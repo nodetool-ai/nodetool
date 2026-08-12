@@ -485,7 +485,7 @@ describe("Agent", () => {
         finishAction({ v: 2 })
       ],
       // CompilerAgent: replicate the response so it's served regardless of
-      // how many compile rounds it takes (memory_list / memory_read may run
+      // how many compile rounds it takes (list_shared / read_shared may run
       // first in some configurations).
       [compilerFinish],
       [compilerFinish],

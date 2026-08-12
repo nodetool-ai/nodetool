@@ -136,11 +136,15 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   convert_pdf_to_markdown: "read",
   convert_markdown_to_pdf: "write",
   convert_document: "write",
-  // --- memory (thread memory; the AgentMemory tools stay executor-internal) ---
+  // --- memory (thread memory: outlives the run, lives in the database) ---
   thread_memory_save: "write",
   thread_memory_list: "read",
   thread_memory_update: "write",
   thread_memory_delete: "write",
+  // --- shared (run-scoped AgentMemory; the executors mount these) ---
+  list_shared: "read",
+  read_shared: "read",
+  share_result: "read",
   // --- email ---
   search_email: "read",
   archive_email: "external",
@@ -175,10 +179,27 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   revise_storyboard_clip: "write",
   assemble_storyboard_timeline: "write",
   edit_storyboard: "write",
+  // packs — sandbox package discovery, mounted per CodeAct session.
+  get_sandbox_package_docs: "read",
+  list_sandbox_packages: "read",
   // code (Code-node authoring harness)
   validate_code: "read",
   run_code: "execute",
-  test_code: "execute"
+  test_code: "execute",
+  // The graph planner. Unlisted in `TOOL_PERMISSION_CATEGORIES` under its own
+  // name would default it to `external`; the map classes it `read` because it
+  // builds and returns a graph, and `create_workflow` gates the save.
+  plan_workflow_graph: "read",
+  // ui — the eight workflow-document schemas. Reading the graph is a read; the
+  // seven mutators rewrite a stored workflow.
+  ui_get_graph: "read",
+  ui_add_node: "write",
+  ui_connect_nodes: "write",
+  ui_update_node_data: "write",
+  ui_delete_node: "write",
+  ui_delete_edge: "write",
+  ui_move_node: "write",
+  ui_set_node_title: "write"
 };
 
 describe("capability registry walk", () => {

@@ -29,13 +29,13 @@ npm install @nodetool-ai/dsl
 import { workflow, run, text } from "@nodetool-ai/dsl";
 import { getSecret } from "@nodetool-ai/models";
 
-const chunks = text.chunk({ text: "...long document...", length: 1000, overlap: 200 });
+const greeting = text.template({ string: "Hello, {{ name }}" });
 
-const wf = workflow(chunks);
+const wf = workflow(greeting);
 const result = await run(wf, {
   secretResolver: (key, userId) => getSecret(key, userId)
 });
-console.log(result); // { output: string[] }
+console.log(result); // { output: string }
 ```
 
 `createNode(nodeType, inputs, opts)` is the low-level primitive behind the generated factories; `opts` covers `streaming`, `multiOutput`, `outputNames`, and `defaultOutput`. Pass an output handle (`node.output()`) as another node's input to wire an edge. Graphs with Python nodes connect a worker bridge automatically (via `RunOptions.bridgeOptions` or the `NODETOOL_WORKER_URL` environment).
@@ -43,8 +43,12 @@ console.log(result); // { output: string[] }
 Regenerate the node factories after node changes:
 
 ```bash
-npm run codegen
+npm run codegen         # rewrite src/generated/ from the node registry
+npm run codegen:check   # exit 1 when src/generated/ no longer matches it
 ```
+
+`codegen:check` runs in CI, so a node that is renamed or deleted cannot leave a
+factory behind in the DSL.
 
 ## Links
 

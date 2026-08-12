@@ -4,7 +4,7 @@ import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef } from "../types.js";
 
 // YouTube Downloader — lib.video.download.YtDlpDownload
-export interface YtDlpDownloadInputs {
+export type YtDlpDownloadInputs = {
   url?: Connectable<string>;
   mode?: Connectable<"video" | "audio" | "metadata">;
   format_selector?: Connectable<string>;
@@ -15,7 +15,7 @@ export interface YtDlpDownloadInputs {
   overwrite?: Connectable<boolean>;
   rate_limit_kbps?: Connectable<number>;
   timeout?: Connectable<number>;
-}
+};
 
 export interface YtDlpDownloadOutputs {
   video: VideoRef;
@@ -26,5 +26,5 @@ export interface YtDlpDownloadOutputs {
 }
 
 export function ytDlpDownload(inputs: YtDlpDownloadInputs): DslNode<YtDlpDownloadOutputs> {
-  return createNode("lib.video.download.YtDlpDownload", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
+  return createNode("lib.video.download.YtDlpDownload", inputs, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
 }

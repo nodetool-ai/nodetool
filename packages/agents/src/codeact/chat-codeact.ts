@@ -9,7 +9,7 @@
  * session bridges `tools.<name>()` to a caller-supplied `executeTool` and
  * leaves the routing where it is. Everything else matches the step executor:
  * one `execute_code` provider tool, a `state` object that persists across the
- * turn's actions, `searchTools()` for the deferred long tail, and an
+ * turn's actions, `nodetool.searchTools()` for the deferred long tail, and an
  * observation envelope as the tool result.
  *
  * When the belt carries the `ui_*` workflow document tools, actions also get
@@ -26,6 +26,7 @@ import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { mountCapabilityModules } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
+import type { Tool } from "../tools/base-tool.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
@@ -36,8 +37,14 @@ import {
 } from "./sandbox-packages.js";
 import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
-  SandboxPackageDocsTool
-} from "./sandbox-package-docs.js";
+  SANDBOX_PACKAGE_LIST_TOOL_NAME,
+  sandboxPackageDocsTool,
+  sandboxPackageListTool
+} from "../capabilities/packs.js";
+import {
+  GRAPH_DSL_PACKAGE,
+  withGraphDslPackage
+} from "./graph-dsl-package.js";
 import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
@@ -192,11 +199,20 @@ function normalizeToolResult(raw: unknown): unknown {
 export function createChatCodeActSession(
   options: ChatCodeActSessionOptions
 ): ChatCodeActSession {
-  const sandboxPackages = sessionAllowedPackages(options.sandboxPackages);
   const sandboxModuleCatalog =
     options.sandboxModuleCatalog !== undefined
       ? options.sandboxModuleCatalog
       : getProcessSandboxModuleCatalog();
+
+  // Authoring a graph is a package, not a builder: a turn whose belt can save,
+  // validate and run a workflow gets the DSL pack on its allowlist, provided
+  // this machine installed it.
+  const sandboxPackages = withGraphDslPackage(
+    sessionAllowedPackages(options.sandboxPackages),
+    options.tools.map((t) => t.name),
+    sandboxModuleCatalog
+  );
+  const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
   // in-session rather than through the chat router: it needs no permission gate
@@ -207,11 +223,27 @@ export function createChatCodeActSession(
   const docsTool =
     sandboxPackages.length > 0 &&
     !options.tools.some((t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME)
-      ? new SandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
+      ? sandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
       : null;
-  const belt: ToolSignatureSource[] = docsTool
-    ? [...options.tools, docsTool]
-    : options.tools;
+  // Discovery covers what the allowlist does not: a pack installed here but not
+  // allowed is listed as such, so the model reports it instead of writing an
+  // import that gets refused.
+  const listTool =
+    (sandboxPackages.length > 0 ||
+      (sandboxModuleCatalog?.summaries().length ?? 0) > 0) &&
+    !options.tools.some((t) => t.name === SANDBOX_PACKAGE_LIST_TOOL_NAME)
+      ? sandboxPackageListTool(
+          sandboxPackages,
+          sandboxModuleCatalog,
+          options.capabilityRun !== undefined
+        )
+      : null;
+  // Tools this session answers itself, without the chat router.
+  const inSession = new Map<string, Tool>();
+  for (const tool of [docsTool, listTool]) {
+    if (tool !== null) inSession.set(tool.name, tool);
+  }
+  const belt: ToolSignatureSource[] = [...options.tools, ...inSession.values()];
 
   const toolNames = belt.map((t) => t.name);
   const byName = new Map(belt.map((t) => [t.name, t]));
@@ -233,7 +265,7 @@ export function createChatCodeActSession(
       if (typeof name !== "string" || !byName.has(name)) {
         return {
           ok: false,
-          error: `Unknown tool "${String(name)}". Use searchTools() to discover tools.`
+          error: `Unknown tool "${String(name)}". Use nodetool.searchTools() to discover tools.`
         };
       }
       if (actionCalls >= maxCallsPerAction) {
@@ -272,12 +304,10 @@ export function createChatCodeActSession(
       }
 
       options.onToolCall?.({ name, args });
+      const own = inSession.get(name);
       const raw =
-        docsTool !== null && name === docsTool.name
-          ? await docsTool.process(
-              options.context ?? ({} as ProcessingContext),
-              args
-            )
+        own !== undefined
+          ? await own.process(options.context ?? ({} as ProcessingContext), args)
           : await options.executeTool({
               id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
               name,
@@ -357,11 +387,6 @@ export function createChatCodeActSession(
   const residentNames = new Set(
     options.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
   );
-  // The package section names this call, so its signature belongs in the
-  // catalog rather than behind a searchTools() round trip.
-  if (byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME)) {
-    residentNames.add(SANDBOX_PACKAGE_DOCS_TOOL_NAME);
-  }
   let resident: ToolSignatureSource[];
   let deferred: ToolSignatureSource[];
   if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
@@ -373,7 +398,7 @@ export function createChatCodeActSession(
   }
 
   const nodetoolApiSection = withNodetoolApi
-    ? buildNodetoolApiPromptSection(toolNames)
+    ? buildNodetoolApiPromptSection(toolNames, { graphDsl: withGraphDsl })
     : "";
   const extraSections: string[] = [];
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
@@ -388,12 +413,16 @@ export function createChatCodeActSession(
       : undefined,
     extraSections,
     packageLines: packagePromptLines(sandboxPackages, sandboxModuleCatalog),
-    packageDocsTool: byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME)
+    packageDocsTool: byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME),
+    packageListTool: byName.has(SANDBOX_PACKAGE_LIST_TOOL_NAME)
   });
 
   const preludeParts = [CODEACT_PRELUDE];
   if (withGraphModel) preludeParts.push(GRAPH_MODEL_PRELUDE);
-  if (withNodetoolApi) preludeParts.push(NODETOOL_API_PRELUDE_FULL);
+  // Always: `nodetool` carries tool discovery and package discovery, which a
+  // belt with no platform tools still needs. Every method whose tool is missing
+  // throws and names it, so an empty belt degrades to that.
+  preludeParts.push(NODETOOL_API_PRELUDE_FULL);
   const prelude = preludeParts.join("\n");
 
   const executeAction = async (

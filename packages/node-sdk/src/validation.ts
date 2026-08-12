@@ -201,7 +201,10 @@ export function validateNodeProperties(
         nodeType: options.nodeType,
         property: name,
         code: "unset_model",
-        message: `Property "${name}" requires a ${typeStr} to be selected (provider and model id)`
+        message:
+          `Property "${name}" requires a ${typeStr} to be selected — assign ` +
+          `{type: "${typeStr}", provider, id, name} (the field is \`id\`, ` +
+          `not \`model_id\`; a find_model result's \`ref\` is this shape)`
       });
     }
   }

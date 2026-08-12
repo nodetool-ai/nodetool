@@ -28,6 +28,20 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  listNodesSpec,
+  searchNodesSpec,
+  getNodeInfoSpec,
+  LIST_NODES_INPUT_SCHEMA,
+  SEARCH_NODES_INPUT_SCHEMA,
+  GET_NODE_INFO_INPUT_SCHEMA
+} from "./nodes.specs.js";
+
+export {
+  LIST_NODES_INPUT_SCHEMA,
+  SEARCH_NODES_INPUT_SCHEMA,
+  GET_NODE_INFO_INPUT_SCHEMA
+} from "./nodes.specs.js";
 
 function firstSentence(text: string): string {
   const dot = text.indexOf(".");
@@ -68,40 +82,8 @@ function toCompact(meta: NodeMetadata, score: number): CompactSearchResult {
   };
 }
 
-// ---------------------------------------------------------------------------
-// list_nodes
-// ---------------------------------------------------------------------------
-
-const LIST_NODES_INPUT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    namespace: {
-      type: "string",
-      description:
-        "Optional namespace prefix filter (e.g. 'nodetool.text', 'lib.image')"
-    },
-    limit: {
-      type: "number",
-      description: "Maximum number of nodes to return (default 50)",
-      default: 50
-    }
-  },
-  required: [] as string[]
-};
-
 const listNodes: CapabilityExport = {
-  spec: {
-    name: "list_nodes",
-    description:
-      "List available node types, optionally filtered by namespace. " +
-      "Use this to browse what deterministic nodes are available.",
-    inputSchema: LIST_NODES_INPUT_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const ns = params["namespace"];
-      return ns ? `Listing nodes in namespace ${ns}` : "Listing available nodes";
-    }
-  },
+  spec: listNodesSpec,
   impl: async (run: CapabilityRun, params) => {
     const registry = run.nodeRegistry;
     if (!registry) return noRegistryError("list node types");
@@ -138,59 +120,8 @@ const listNodes: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// search_nodes
-// ---------------------------------------------------------------------------
-
-const SEARCH_NODES_INPUT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "array",
-      items: { type: "string" },
-      description:
-        "Search terms matched against title, node_type, namespace, and description."
-    },
-    n_results: {
-      type: "number",
-      description: "Maximum number of results to return (default 10).",
-      default: 10
-    },
-    namespace: {
-      type: "string",
-      description:
-        "Optional namespace prefix to scope the search (e.g. 'nodetool.control')."
-    },
-    input_type: {
-      type: "string",
-      description: "Optional filter: only nodes that accept this input type."
-    },
-    output_type: {
-      type: "string",
-      description: "Optional filter: only nodes that emit this output type."
-    },
-    include_provider_nodes: {
-      type: "boolean",
-      description:
-        "Include provider-specific nodes (openai.*, anthropic.*, etc.) in results. Set to true ONLY when the user explicitly named a provider. Default: false.",
-      default: false
-    }
-  },
-  required: ["query"] as string[]
-};
-
 const searchNodes: CapabilityExport = {
-  spec: {
-    name: "search_nodes",
-    description:
-      "Search for available nodes by keyword. Provider-specific nodes are hidden by default — set include_provider_nodes:true only when the user named a provider. Use namespace to scope to e.g. 'nodetool.control'.",
-    inputSchema: SEARCH_NODES_INPUT_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const query = (params["query"] as string[]) ?? [];
-      return `Searching for nodes: ${query.join(", ")}`;
-    }
-  },
+  spec: searchNodesSpec,
   impl: async (run: CapabilityRun, params) => {
     const registry = run.nodeRegistry;
     if (!registry) return noRegistryError("search node types");
@@ -224,7 +155,11 @@ const searchNodes: CapabilityExport = {
       ranked = indexed.searchMetadata(queryArr, scoreOptions);
     } else {
       const { rankNodeMetadata } = await import("@nodetool-ai/node-sdk");
-      ranked = rankNodeMetadata(registry.listMetadata(), queryArr, scoreOptions);
+      ranked = rankNodeMetadata(
+        registry.listMetadata(),
+        queryArr,
+        scoreOptions
+      );
     }
 
     if (inputType) {
@@ -253,32 +188,8 @@ const searchNodes: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_node_info
-// ---------------------------------------------------------------------------
-
-const GET_NODE_INFO_INPUT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    node_type: {
-      type: "string",
-      description: "Fully-qualified node type (e.g. 'nodetool.text.Concat')"
-    }
-  },
-  required: ["node_type"] as string[]
-};
-
 const getNodeInfo: CapabilityExport = {
-  spec: {
-    name: "get_node_info",
-    description:
-      "Get detailed metadata for a node type including all inputs, outputs, types, and defaults. " +
-      "Use this before add_node to verify exact property names and types.",
-    inputSchema: GET_NODE_INFO_INPUT_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Getting info for node type ${params["node_type"]}`
-  },
+  spec: getNodeInfoSpec,
   impl: async (run: CapabilityRun, params) => {
     const registry = run.nodeRegistry;
     if (!registry) return noRegistryError("read node metadata");

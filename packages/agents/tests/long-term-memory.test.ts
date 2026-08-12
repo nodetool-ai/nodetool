@@ -17,7 +17,9 @@ import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 
 import {
   LongTermMemory,
-  formatMemoryForPrompt
+  formatMemoryForPrompt,
+  setLongTermMemory,
+  getLongTermMemory
 } from "../src/long-term-memory.js";
 import type { SynthesizedFact } from "../src/prompts/memory-synthesis-prompt.js";
 
@@ -59,6 +61,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setLongTermMemory("user-1", null);
   try {
     provider.close();
   } catch {}
@@ -638,5 +641,27 @@ describe("LongTermMemory namespace isolation", () => {
     const bTexts = bHits.map((h) => h.text);
     expect(aTexts).toContain("User uses TypeScript on this project");
     expect(bTexts).not.toContain("User uses TypeScript on this project");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-user registry
+// ---------------------------------------------------------------------------
+
+describe("long-term memory registry", () => {
+  it("returns the instance registered for a user", () => {
+    const memory = createMemory();
+    setLongTermMemory("user-1", memory);
+    expect(getLongTermMemory("user-1")).toBe(memory);
+  });
+
+  it("setLongTermMemory(userId, null) clears the entry", () => {
+    setLongTermMemory("user-1", createMemory());
+    setLongTermMemory("user-1", null);
+    expect(getLongTermMemory("user-1")).toBeNull();
+  });
+
+  it("returns null for a user with no entry", () => {
+    expect(getLongTermMemory("no-such-user")).toBeNull();
   });
 });

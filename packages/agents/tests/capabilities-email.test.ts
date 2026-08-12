@@ -22,13 +22,9 @@ import type {
   CapabilityExport,
   CapabilityGate
 } from "../src/capabilities/types.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
-import {
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool
-} from "../src/tools/email-tools.js";
 
 const mockClient = {
   connect: vi.fn().mockResolvedValue(undefined),
@@ -105,11 +101,11 @@ describe("email capability module", () => {
   });
 });
 
-describe("wire compatibility with the deprecated classes", () => {
+describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
-    [new SearchEmailTool(), "search_email"],
-    [new ArchiveEmailTool(), "archive_email"],
-    [new AddLabelToEmailTool(), "add_label_to_email"]
+    [toolForCapabilityName("search_email"), "search_email"],
+    [toolForCapabilityName("archive_email"), "archive_email"],
+    [toolForCapabilityName("add_label_to_email"), "add_label_to_email"]
   ];
 
   it.each(pairs)("%o keeps its name, description and schema", (tool, name) => {
@@ -120,11 +116,14 @@ describe("wire compatibility with the deprecated classes", () => {
   });
 
   it("keeps the userMessage templates", () => {
-    expect(new ArchiveEmailTool().userMessage({ message_ids: ["7"] })).toBe(
-      "Archiving email 7..."
-    );
     expect(
-      new AddLabelToEmailTool().userMessage({ message_id: "7", label: "todo" })
+      toolForCapabilityName("archive_email").userMessage({ message_ids: ["7"] })
+    ).toBe("Archiving email 7...");
+    expect(
+      toolForCapabilityName("add_label_to_email").userMessage({
+        message_id: "7",
+        label: "todo"
+      })
     ).toBe("Adding label 'todo' to email 7...");
   });
 });

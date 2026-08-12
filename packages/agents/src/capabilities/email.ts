@@ -2,9 +2,8 @@
  * The `email` capability module — Gmail over IMAP.
  *
  * Three capabilities that used to be three `Tool` subclasses in
- * `../tools/email-tools.ts`. Wire names, descriptions and schemas are
- * unchanged; the classes survive as thin subclasses over these
- * implementations.
+ * `email-tools.ts`. Wire names, descriptions and schemas are unchanged; a
+ * belt builds all three from `email.specs.ts` by name.
  *
  * `imapflow` and `mailparser` are imported inside the connection helper and
  * the parse path rather than at module scope, so a run that never touches
@@ -18,6 +17,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ImapFlow } from "imapflow";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import { stripTags, stripToFixpoint } from "./html-text.js";
+import {
+  searchEmailSpec,
+  archiveEmailSpec,
+  addLabelToEmailSpec
+} from "./email.specs.js";
 
 function stripHtml(html: string): string {
   const text = html
@@ -76,45 +80,7 @@ async function createGmailConnection(
 // ---------------------------------------------------------------------------
 
 const searchEmail: CapabilityExport = {
-  spec: {
-    name: "search_email",
-    description:
-      "Search Gmail by subject, text, and date. Returns a list of emails with message_id, subject, sender, and body.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        subject: {
-          type: "string",
-          description: "Text to search for in email subject"
-        },
-        since_hours_ago: {
-          type: "integer",
-          description: "Number of hours ago to search for",
-          default: 6
-        },
-        text: {
-          type: "string",
-          description: "General text to search for anywhere in the email"
-        },
-        max_results: {
-          type: "integer",
-          description: "Maximum number of emails to return",
-          default: 50
-        }
-      }
-    },
-    category: "read",
-    userMessage: (params) => {
-      const parts: string[] = [];
-      if (params.subject) parts.push(`subject: '${params.subject}'`);
-      if (params.text) parts.push(`text: '${params.text}'`);
-      if (params.since_hours_ago)
-        parts.push(`since: ${params.since_hours_ago} hours ago`);
-      const queryStr = parts.length > 0 ? parts.join(", ") : "emails";
-      const msg = `Searching ${queryStr}...`;
-      return msg.length > 80 ? "Searching emails..." : msg;
-    }
-  },
+  spec: searchEmailSpec,
   impl: async (run, params) => {
     let client: ImapFlow | null = null;
     try {
@@ -200,28 +166,7 @@ const searchEmail: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const archiveEmail: CapabilityExport = {
-  spec: {
-    name: "archive_email",
-    description: "Move specified emails to Gmail archive",
-    inputSchema: {
-      type: "object",
-      properties: {
-        message_ids: {
-          type: "array",
-          items: { type: "string" },
-          description: "List of message IDs to archive"
-        }
-      },
-      required: ["message_ids"]
-    },
-    category: "external",
-    userMessage: (params) => {
-      const ids = (params.message_ids as string[]) ?? [];
-      return ids.length === 1
-        ? `Archiving email ${ids[0]}...`
-        : `Archiving ${ids.length} emails...`;
-    }
-  },
+  spec: archiveEmailSpec,
   impl: async (run, params) => {
     let client: ImapFlow | null = null;
     try {
@@ -277,30 +222,7 @@ const archiveEmail: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const addLabelToEmail: CapabilityExport = {
-  spec: {
-    name: "add_label_to_email",
-    description: "Add a label to a Gmail message",
-    inputSchema: {
-      type: "object",
-      properties: {
-        message_id: {
-          type: "string",
-          description: "Message ID to label"
-        },
-        label: {
-          type: "string",
-          description: "Label to add to the message"
-        }
-      },
-      required: ["message_id", "label"]
-    },
-    category: "external",
-    userMessage: (params) => {
-      const label = (params.label as string) ?? "a label";
-      const msg = `Adding label '${label}' to email ${params.message_id}...`;
-      return msg.length > 80 ? `Adding label '${label}' to email...` : msg;
-    }
-  },
+  spec: addLabelToEmailSpec,
   impl: async (run, params) => {
     let client: ImapFlow | null = null;
     try {

@@ -15,7 +15,6 @@ export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 // Tools
 export { Tool } from "./tools/base-tool.js";
 export {
-  ToolSearchTool,
   searchTools,
   formatToolSearchResult,
   formatDeferredToolsReminder,
@@ -24,23 +23,9 @@ export {
 export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
 export {
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool
-} from "./tools/openai-tools.js";
-export {
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool
-} from "./tools/filesystem-tools.js";
-export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
-export { EditFileTool, GlobTool, GrepTool } from "./tools/edit-search-tools.js";
-export {
-  TodoWriteTool,
   getThreadTodos,
   clearThreadTodos
 } from "./tools/todo-tools.js";
-export { ViewImageTool, ListImagesTool } from "./tools/view-image-tool.js";
 export {
   IMAGE_CONTENT_FIELD,
   IMAGE_CONTENTS_FIELD,
@@ -51,20 +36,6 @@ export type {
   InjectableImage,
   ExtractedImages
 } from "./tools/image-injection.js";
-export {
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool
-} from "./tools/search-tools.js";
-export {
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool
-} from "./tools/google-tools.js";
-export {
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-} from "./tools/dataseo-tools.js";
 export type {
   SerpProvider,
   SearchResult,
@@ -83,42 +54,12 @@ export {
   getConfiguredSerpProvider,
   resolveSerpProvider
 } from "./tools/serp-tool-factory.js";
+export { htmlToText } from "./tools/browser-tools.js";
 export {
-  BrowserTool,
-  ScreenshotTool,
-  htmlToText
-} from "./tools/browser-tools.js";
-export {
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool
-} from "./tools/email-tools.js";
-export {
-  ListWorkflowsTool,
-  GetWorkflowTool,
-  CreateWorkflowTool,
-  RunWorkflowTool,
-  DebugWorkflowTool,
-  ResolveWorkflowEscalationTool,
-  BuildAppTool,
-  DebugAppTool,
-  ValidateWorkflowTool,
-  ValidateTimelineTool,
-  ValidateSketchTool,
-  PlanWorkflowGraphTool,
-  GetExampleWorkflowTool,
-  ExportWorkflowDigraphTool,
-  ListJobsTool,
-  GetJobTool,
-  GetJobLogsTool,
-  StartBackgroundJobTool,
-  ListAssetsTool,
-  GetAssetTool,
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
 export type {
-  PlanWorkflowGraphToolOptions,
   GetAllMcpToolsOptions,
   ExampleWorkflowCatalog,
   WorkflowDslExporter,
@@ -129,26 +70,7 @@ export type {
   SketchLoader,
   SketchToolRecord
 } from "./tools/mcp-tools.js";
-export {
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
-} from "./tools/pdf-tools.js";
-export {
-  VecTextSearchTool,
-  VecIndexTool,
-  VecHybridSearchTool,
-  VecRecursiveSplitAndIndexTool,
-  VecMarkdownSplitAndIndexTool,
-  VecBatchIndexTool
-} from "./tools/vector-tools.js";
 export type { VecCollection } from "./tools/vector-tools.js";
-export {
-  ListCollectionsTool,
-  QueryCollectionTool
-} from "./tools/collection-tools.js";
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
@@ -175,10 +97,18 @@ export {
   capabilityModuleDrift,
   DECLARED_CAPABILITY_MODULES,
   toolFromCapability,
+  toolFromLazyCapability,
+  toolForCapabilityName,
   capabilityFromTool,
+  capabilitySpec,
+  listCapabilitySpecs,
   createCapabilityRun,
-  resolveCapabilityMessage
+  resolveCapabilityMessage,
+  UNGATED
 } from "./capabilities/index.js";
+// `plan_workflow_graph` is served by a host that can build a `graphPlanner`
+// run — the chat runner — rather than by the belt every surface assembles.
+export { planWorkflowGraph } from "./capabilities/workflows.js";
 export type {
   CapabilitySpec,
   CapabilityImpl,
@@ -189,6 +119,7 @@ export type {
   CapabilityLoaders,
   ClientToolRouter,
   SubAgentRuntime,
+  GraphPlannerRuntime,
   CapabilityRunSource,
   CreateCapabilityRunOptions
 } from "./capabilities/index.js";
@@ -214,45 +145,20 @@ export {
   getAllTools
 } from "./tools/tool-registry.js";
 export {
-  BUILTIN_TOOL_CLASSES,
-  AGENT_TOOLBELT_EXCLUDED,
+  BUILTIN_TOOL_NAMES,
   getBuiltinTools,
   getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
 export {
-  GOOGLE_WORKSPACE_TOOL_CLASSES,
+  GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
 
-export {
-  WorkspaceReadTool,
-  WorkspaceWriteTool,
-  WorkspaceListTool
-} from "./tools/workspace-tools.js";
-export { ListProviderModelsTool } from "./tools/model-tools.js";
-export { FindModelTool } from "./tools/find-model-tool.js";
-export { ListModelsTool } from "./tools/list-models-tool.js";
-export {
-  GenerateImageTool,
-  EditImageTool,
-  GenerateVideoTool,
-  AnimateImageTool,
-  GenerateSpeechTool,
-  TranscribeAudioTool,
-  EmbedTextTool
-} from "./tools/media-tools.js";
-export { ImageGenerationTool } from "./tools/image-generation-tool.js";
-export {
-  CritiqueImageTool,
-  CompareImagesTool,
-  ScoreImageAdherenceTool,
-  RecordStylePreferenceTool,
-  GetStyleProfileTool,
-  CREATIVE_CRITIQUE_TOOL_NAMES
-} from "./tools/creative-critique-tools.js";
+export { getMediaTools } from "./tools/media-tools.js";
+export { CREATIVE_CRITIQUE_TOOL_NAMES } from "./tools/creative-critique-tools.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
@@ -274,10 +180,8 @@ export type {
 } from "./prompts/graph-planner-prompt.js";
 export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
 export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
-export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
-export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
   runSubAgent,
@@ -325,14 +229,6 @@ export {
 
 // Graph-native planner tools
 export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
-export { AddNodeTool } from "./tools/add-node-tool.js";
-export { AddEdgeTool } from "./tools/add-edge-tool.js";
-export { RemoveNodeTool } from "./tools/remove-node-tool.js";
-export { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
-export { FinishGraphTool } from "./tools/finish-graph-tool.js";
-export { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
-export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
-export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
 export {
@@ -417,12 +313,23 @@ export {
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
 export {
-  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
-  SandboxPackageDocsTool,
   sandboxPackageSkills,
   wrapUntrustedPackageDocs
 } from "./codeact/sandbox-package-docs.js";
-export type { SandboxPackageDocs } from "./codeact/sandbox-package-docs.js";
+export {
+  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
+  SANDBOX_PACKAGE_LIST_TOOL_NAME,
+  sandboxPackageDocsTool,
+  sandboxPackageListTool
+} from "./capabilities/packs.js";
+export type { SandboxPackageDocs } from "./capabilities/packs.js";
+export { scanModuleExports } from "./codeact/sandbox-package-listing.js";
+export type {
+  SandboxModuleExports,
+  SandboxPackageEntry,
+  SandboxPackageListing,
+  SandboxPlatformEntry
+} from "./codeact/sandbox-package-listing.js";
 export {
   buildToolBridge,
   renderToolCatalog,
@@ -452,6 +359,12 @@ export {
   hasNodetoolApiTools,
   nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
+export {
+  GRAPH_DSL_PACKAGE,
+  GRAPH_DSL_PROMPT_SECTION,
+  hasGraphDslTools,
+  withGraphDslPackage
+} from "./codeact/graph-dsl-package.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
@@ -461,7 +374,9 @@ export type { AgentSkill, AgentOptions } from "./agent.js";
 export {
   LongTermMemory,
   formatMemoryForPrompt,
-  createDefaultLongTermMemory
+  createDefaultLongTermMemory,
+  setLongTermMemory,
+  getLongTermMemory
 } from "./long-term-memory.js";
 export type {
   LongTermMemoryItem,
@@ -475,69 +390,18 @@ export type {
   FactUtility
 } from "./prompts/memory-synthesis-prompt.js";
 export {
-  LtmRecallTool,
-  LtmRememberTool,
-  getLongTermMemoryTools,
-  LTM_TOOL_NAMES,
-  setLongTermMemory,
-  getLongTermMemory
-} from "./tools/ltm-tools.js";
-export {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool,
   getThreadMemoryTools,
   formatThreadMemoriesForPrompt,
   THREAD_MEMORY_TOOL_NAMES
 } from "./tools/thread-memory-tools.js";
 export {
-  AssetSearchTool,
-  AssetListTool,
   getAssetLibraryTools,
   ASSET_LIBRARY_TOOL_NAMES
 } from "./tools/asset-library-tools.js";
-export {
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool,
-  EditScriptTool,
-  SCRIPT_VOICE_TOOL_NAMES
-} from "./tools/script-voice-tools.js";
-export {
-  ValidateCodeTool,
-  RunCodeTool,
-  TestCodeTool
-} from "./tools/code-authoring-tools.js";
-export {
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool,
-  EditStoryboardTool,
-  STORYBOARD_RENDER_TOOL_NAMES
-} from "./tools/storyboard-render-tools.js";
-export {
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool,
-  SKETCH_VERSION_TOOL_NAMES
-} from "./tools/sketch-version-tools.js";
-export {
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool,
-  TIMELINE_VERSION_TOOL_NAMES
-} from "./tools/timeline-version-tools.js";
-export { EditTimelineTool } from "./tools/timeline-edit-tools.js";
-export { EditSketchTool } from "./tools/sketch-edit-tools.js";
+export { SCRIPT_VOICE_TOOL_NAMES } from "./tools/script-voice-tools.js";
+export { STORYBOARD_RENDER_TOOL_NAMES } from "./tools/storyboard-render-tools.js";
+export { SKETCH_VERSION_TOOL_NAMES } from "./tools/sketch-version-tools.js";
+export { TIMELINE_VERSION_TOOL_NAMES } from "./tools/timeline-version-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
@@ -829,7 +693,7 @@ export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
 export {
   CODEACT_SANDBOX_PACK_EVAL_CASES,
   SANDBOX_PACK_DOCS_TOOL,
-  shippedHostPackCatalog
+  shippedPackCatalog
 } from "./evals/codeact-sandbox-pack-cases.js";
 
 // Planning-mode evaluation harness (TaskPlanner DAG)

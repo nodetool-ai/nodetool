@@ -15,7 +15,9 @@ import type {
   JsonSchema,
   ProcessingContext
 } from "@nodetool-ai/runtime";
+import type { ZodType } from "zod";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
 import type { PermissionGateOptions } from "../tools/tool-permissions.js";
 import type { PermissionCategory } from "../tools/tool-permissions.js";
@@ -41,12 +43,29 @@ export interface CapabilitySpec {
   /** Rendered for prompts, `searchTools()`, and MCP. */
   readonly inputSchema: JsonSchema;
   /**
+   * The Zod schema behind {@link inputSchema}, for the handful of capabilities
+   * whose identity is that schema. A `Tool` built from the spec validates with
+   * it on the way in, so a malformed call comes back as
+   * `invalid_tool_arguments` instead of reaching the implementation — the
+   * behaviour the classes these replaced had. The implementation carries the
+   * same check for callers that reach it through `invoke`.
+   */
+  readonly zodSchema?: ZodType;
+  /**
    * REQUIRED — there is no default-to-`external` fallback here. The string-keyed
    * map's conservative default is right for a map and wrong for a typed
    * registry: a required field plus a drift test turns a misclassification into
    * a reviewable diff instead of a runtime surprise.
    */
   readonly category: PermissionCategory;
+  /**
+   * The capability nests the events of what it runs under the call that
+   * started it, so it needs the caller's tool-call id. It arrives in the args
+   * under the reserved `_tool_call_id` field — `Tool.needsToolCallId` on the
+   * class path, an explicit arg on every other. Only `plan_workflow_graph`,
+   * `run_subtask` and `run_search` set it.
+   */
+  readonly needsToolCallId?: boolean;
   /** User-facing status template, the analog of `Tool.userMessage`. */
   userMessage?(args: Record<string, unknown>): string;
 }
@@ -80,6 +99,25 @@ export interface ClientToolRouter {
  */
 export type SubAgentRuntime = SubAgentToolRuntime;
 
+/**
+ * What `plan_workflow_graph` needs: the turn's own provider and model, the
+ * event sink its planner streams through, and the abort signal of the *current*
+ * turn. The signal is a function because the capability outlives one turn and
+ * each turn installs a fresh controller — a captured signal would go stale
+ * after the first Stop.
+ *
+ * The analog of {@link SubAgentRuntime}, and separate from it on purpose: the
+ * planner is not a child agent loop, it forwards through its own sink (which
+ * also emits the synthetic tool-call cards the chat UI nests), and it has no
+ * parent toolbelt.
+ */
+export interface GraphPlannerRuntime {
+  provider: BaseProvider;
+  model: string;
+  forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+  signal?: () => AbortSignal | undefined;
+}
+
 /** Row loaders for the surfaces whose API is tRPC-only. */
 export interface CapabilityLoaders {
   timeline?: TimelineLoader;
@@ -95,6 +133,8 @@ export interface CapabilityRun {
   readonly client?: ClientToolRouter;
   /** What `run_subtask` / `run_search` need. */
   readonly subAgent?: SubAgentRuntime;
+  /** What `plan_workflow_graph` needs; absent on runs that cannot plan. */
+  readonly graphPlanner?: GraphPlannerRuntime;
   // The injected singletons `getAllMcpTools` takes today (mcp-tools.ts).
   readonly nodeRegistry?: NodeRegistry;
   readonly providers?: Record<string, BaseProvider>;

@@ -253,7 +253,9 @@ export function buildCoreProviderTools(options: {
  * Guest-side prelude prepended to every code action. Builds `tools.<name>()`
  * wrappers over `__callTool` (via {@link TOOLS_PRELUDE}) and `finish()` over
  * `__finish`. Hosts without a `__finish` bridge — the Code node — prepend
- * `TOOLS_PRELUDE` alone.
+ * `TOOLS_PRELUDE` alone. Tool discovery lives on the object model as
+ * `nodetool.searchTools()`, so a session reaches every capability under one
+ * name.
  */
 export const CODEACT_PRELUDE = `${TOOLS_PRELUDE}
 async function finish(result) {
@@ -262,13 +264,6 @@ async function finish(result) {
     throw new Error(__r && __r.error ? __r.error : "finish() rejected the result");
   }
   return "step finished";
-}
-async function searchTools(query, maxResults) {
-  const __r = await __searchTools(String(query), maxResults === undefined ? 5 : maxResults);
-  if (!__r || __r.ok !== true) {
-    throw new Error(__r && __r.error ? __r.error : "searchTools failed");
-  }
-  return __r.result;
 }
 `;
 
@@ -284,7 +279,6 @@ export const CODEACT_INJECTED_GLOBALS = [
   "tools",
   "finish",
   "state",
-  "searchTools",
   "__callTool",
   "__finish",
   "__toolNames",
@@ -368,7 +362,7 @@ export function renderToolCatalog(tools: ToolSignatureSource[]): string {
   return tools.map(renderToolSignature).join("\n");
 }
 
-/** What `searchTools()` returns to the guest, per matched tool. */
+/** What `nodetool.searchTools()` returns to the guest, per matched tool. */
 export interface ToolSearchHit {
   name: string;
   signature: string;

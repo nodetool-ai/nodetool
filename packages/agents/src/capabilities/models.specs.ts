@@ -1,0 +1,154 @@
+/**
+ * The `models` module's specs — data only, no implementation.
+ *
+ * Split out so a belt can be assembled synchronously: the registry's eager
+ * spec table imports this file, never `models.ts`, so nothing the
+ * implementations pull in reaches the entry graph. `models.ts` imports these
+ * back and attaches each to its implementation, so there is one spec object
+ * behind both halves.
+ */
+
+import type { CapabilitySpec } from "./types.js";
+import type { JsonSchema } from "@nodetool-ai/runtime";
+
+export const SUPPORTED_CAPABILITIES = [
+  "text_to_image",
+  "image_to_image",
+  "text_to_video",
+  "image_to_video",
+  "text_to_speech",
+  "text_to_music",
+  "automatic_speech_recognition",
+  "generate_embedding",
+  "generate_message"
+] as const;
+
+export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    capability: {
+      type: "string" as const,
+      enum: [...SUPPORTED_CAPABILITIES],
+      description:
+        "Provider capability needed by the generic AI node (e.g. text_to_image, generate_embedding)."
+    },
+    task: {
+      type: "string" as const,
+      description:
+        "Optional task hint matched against model.supportedTasks (e.g. 'text_to_image' vs 'image_to_image')."
+    },
+    provider_hint: {
+      type: "string" as const,
+      description:
+        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers."
+    },
+    model_hint: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "Optional preferred model ids. Strongly boosts matching models in the ranking."
+    },
+    prefer_local: {
+      type: "boolean" as const,
+      description:
+        "If true, ranks local providers (ollama, lmstudio, vllm, llama_cpp, node_llama_cpp, huggingface) above hosted ones.",
+      default: false
+    },
+    limit: {
+      type: "number" as const,
+      description: "Maximum number of results to return (default 5).",
+      default: 5
+    }
+  },
+  required: ["capability"] as string[]
+};
+
+export const MODEL_TYPES = [
+  "language",
+  "image",
+  "video",
+  "tts",
+  "music",
+  "asr",
+  "embedding"
+] as const;
+
+export const LIST_MODELS_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: {
+      type: "string" as const,
+      description:
+        "Filter by provider id (e.g. openai, anthropic, ollama). Omit or pass 'all' for every configured provider.",
+      default: "all"
+    },
+    model_type: {
+      type: "string" as const,
+      enum: [...MODEL_TYPES],
+      description:
+        "Filter by model type. Omit to list every type the providers offer."
+    },
+    downloaded_only: {
+      type: "boolean" as const,
+      description:
+        "Only return models served by a local provider (ollama, lmstudio, vllm, llama.cpp, huggingface).",
+      default: false
+    },
+    limit: {
+      type: "number" as const,
+      description: "Maximum number of models to return (default 50).",
+      default: 50
+    }
+  },
+  required: [] as string[]
+};
+
+export const findModelSpec: CapabilitySpec = {
+  name: "find_model",
+  description:
+    "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Each result carries `ref` — the typed value to assign to a node's model property verbatim. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
+  inputSchema: FIND_MODEL_INPUT_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Looking up models for capability: ${String(params["capability"])}`
+};
+
+export const listModelsSpec: CapabilitySpec = {
+  name: "list_models",
+  description:
+    "List the AI models available from the providers the user has configured, " +
+    "optionally filtered by provider, model type, and download status. Use " +
+    "`find_model` instead when you need one model for a specific capability.",
+  inputSchema: LIST_MODELS_SCHEMA,
+  category: "read",
+  userMessage: (params) => {
+    const provider = params["provider"] ?? "all";
+    const type = params["model_type"];
+    return type
+      ? `Listing ${String(type)} models from ${String(provider)}`
+      : `Listing models from ${String(provider)}`;
+  }
+};
+
+export const listProviderModelsSpec: CapabilitySpec = {
+  name: "list_provider_models",
+  description: "List available language models from a provider.",
+  inputSchema: {
+    type: "object" as const,
+    properties: {
+      provider: {
+        type: "string" as const,
+        description: "Provider ID (e.g. 'openai', 'anthropic')"
+      }
+    },
+    required: ["provider"]
+  },
+  category: "read"
+};
+
+/** Every spec this module declares, in declaration order. */
+export const modelsSpecs: readonly CapabilitySpec[] = [
+  findModelSpec,
+  listModelsSpec,
+  listProviderModelsSpec
+];

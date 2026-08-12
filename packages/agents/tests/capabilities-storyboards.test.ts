@@ -2,7 +2,7 @@
  * The `storyboards` capability module.
  *
  * A well-formed, correctly classified module; specs byte-identical to the
- * deprecated classes; and implementations that still render, revise, assemble,
+ * wire surface they replaced; and implementations that still render, revise, assemble,
  * and direct. `tests/storyboard-render-tools.test.ts` and
  * `tests/document-edit-tools.test.ts` run unmodified against those classes and
  * remain the deep behavioural net.
@@ -10,22 +10,19 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { Asset, ModelObserver, Storyboard, initTestDb } from "@nodetool-ai/models";
+import {
+  Asset,
+  ModelObserver,
+  Storyboard,
+  initTestDb
+} from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
 import { module as storyboards } from "../src/capabilities/storyboards.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool,
-  EditStoryboardTool
-} from "../src/tools/storyboard-render-tools.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
@@ -40,7 +37,11 @@ function ctx(userId = "u1") {
       return request.capability === "text_to_image" ? PNG : MP4;
     }),
     createAsset: vi.fn(
-      async (args: { name: string; contentType: string; content: Uint8Array }) => {
+      async (args: {
+        name: string;
+        contentType: string;
+        content: Uint8Array;
+      }) => {
         const asset = await Asset.create<Asset>({
           user_id: "u1",
           name: args.name,
@@ -63,7 +64,9 @@ function ctx(userId = "u1") {
 const run = (context: ProcessingContext) =>
   createCapabilityRun({ context, gate: UNGATED });
 
-const shot = (overrides: Partial<Shot> & { id: string; index: number }): Shot => ({
+const shot = (
+  overrides: Partial<Shot> & { id: string; index: number }
+): Shot => ({
   type: "shot",
   action: `action ${overrides.index}`,
   status: "planned",
@@ -93,15 +96,27 @@ async function makeBoard(
   });
 }
 
-/** Every capability paired with the class it replaced. */
+/** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
-  ["list_storyboards", () => new ListStoryboardsTool()],
-  ["get_storyboard", () => new GetStoryboardTool()],
-  ["render_storyboard_stills", () => new RenderStoryboardStillsTool()],
-  ["render_storyboard_clips", () => new RenderStoryboardClipsTool()],
-  ["revise_storyboard_clip", () => new ReviseStoryboardClipTool()],
-  ["assemble_storyboard_timeline", () => new AssembleStoryboardTimelineTool()],
-  ["edit_storyboard", () => new EditStoryboardTool()]
+  ["list_storyboards", () => toolForCapabilityName("list_storyboards")],
+  ["get_storyboard", () => toolForCapabilityName("get_storyboard")],
+  [
+    "render_storyboard_stills",
+    () => toolForCapabilityName("render_storyboard_stills")
+  ],
+  [
+    "render_storyboard_clips",
+    () => toolForCapabilityName("render_storyboard_clips")
+  ],
+  [
+    "revise_storyboard_clip",
+    () => toolForCapabilityName("revise_storyboard_clip")
+  ],
+  [
+    "assemble_storyboard_timeline",
+    () => toolForCapabilityName("assemble_storyboard_timeline")
+  ],
+  ["edit_storyboard", () => toolForCapabilityName("edit_storyboard")]
 ];
 
 describe("storyboards capability module", () => {
@@ -127,7 +142,7 @@ describe("storyboards capability module", () => {
     }
   });
 
-  it("keeps each deprecated class's wire surface", () => {
+  it("keeps the wire surface the belt offers", () => {
     for (const [name, make] of PAIRS) {
       const spec = storyboards.exports.find((e) => e.spec.name === name)?.spec;
       const tool = make();
@@ -138,7 +153,7 @@ describe("storyboards capability module", () => {
     }
   });
 
-  it("renders the same user messages the classes rendered", () => {
+  it("renders the user-facing messages", () => {
     const args = {
       storyboard_id: "b1",
       target: "s1",

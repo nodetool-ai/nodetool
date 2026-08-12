@@ -107,11 +107,16 @@ describe("model field emptiness boundaries", () => {
     // length 0 must NOT be flagged as an unselected model.
     expect(validateModel({ provider: "openai", id: [] })).toEqual([]);
   });
-  it("uses the model-specific message naming the type", () => {
+  it("uses the model-specific message naming the type and the expected shape", () => {
+    // The message teaches the assignable shape: a live session lost three
+    // rounds assigning a pick result's flat {provider, model_id} and getting
+    // the same terse error back.
     const issues = validateModel({ provider: "empty", id: "" });
-    expect(issues[0].message).toBe(
-      'Property "field" requires a language_model to be selected (provider and model id)'
+    expect(issues[0].message).toContain(
+      'Property "field" requires a language_model to be selected'
     );
+    expect(issues[0].message).toContain('{type: "language_model", provider, id, name}');
+    expect(issues[0].message).toContain("not `model_id`");
   });
 });
 

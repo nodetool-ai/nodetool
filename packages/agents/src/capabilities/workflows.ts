@@ -38,42 +38,47 @@ import {
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
+import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
 import type {
   CapabilityExport,
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  listWorkflowsSpec,
+  getWorkflowSpec,
+  createWorkflowSpec,
+  runWorkflowCapabilitySpec,
+  debugWorkflowSpec,
+  resolveWorkflowEscalationSpec,
+  validateWorkflowSpec,
+  startBackgroundJobSpec,
+  getExampleWorkflowSpec,
+  exportWorkflowDigraphSpec,
+  planWorkflowGraphSpec,
+  LIST_WORKFLOWS_SCHEMA,
+  CREATE_WORKFLOW_SCHEMA,
+  RUN_WORKFLOW_SCHEMA,
+  DEBUG_WORKFLOW_SCHEMA,
+  RESOLVE_ESCALATION_SCHEMA,
+  VALIDATE_WORKFLOW_SCHEMA,
+  PLAN_WORKFLOW_GRAPH_SCHEMA
+} from "./workflows.specs.js";
+
+export {
+  LIST_WORKFLOWS_SCHEMA,
+  CREATE_WORKFLOW_SCHEMA,
+  RUN_WORKFLOW_SCHEMA,
+  DEBUG_WORKFLOW_SCHEMA,
+  RESOLVE_ESCALATION_SCHEMA,
+  VALIDATE_WORKFLOW_SCHEMA,
+  PLAN_WORKFLOW_GRAPH_SCHEMA
+} from "./workflows.specs.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {
   return resolveRunEnvironment(run.workflowEnvironment, run.nodeRegistry);
 }
-
-// ---------------------------------------------------------------------------
-// list_workflows
-// ---------------------------------------------------------------------------
-
-const LIST_WORKFLOWS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    workflow_type: {
-      type: "string",
-      description: "Type of workflows to list",
-      enum: ["user", "example", "all"],
-      default: "user"
-    },
-    query: {
-      type: "string",
-      description: "Optional search query to filter workflows"
-    },
-    limit: {
-      type: "number",
-      description: "Maximum number of workflows to return",
-      default: 100
-    }
-  },
-  required: [] as string[]
-};
 
 async function listUserWorkflows(
   run: CapabilityRun,
@@ -105,19 +110,7 @@ async function listExampleWorkflows(
 }
 
 const listWorkflows: CapabilityExport = {
-  spec: {
-    name: "list_workflows",
-    description:
-      "List workflows (id, name, description, tags only — no graph). Returns user workflows, example workflows, or both. Use get_workflow for the full graph of a specific workflow.",
-    inputSchema: LIST_WORKFLOWS_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const wt = params["workflow_type"] ?? "user";
-      const q = params["query"];
-      if (q) return `Listing ${wt} workflows matching '${q}'`;
-      return `Listing ${wt} workflows`;
-    }
-  },
+  spec: listWorkflowsSpec,
   impl: async (run, params) => {
     const workflowType = String(params["workflow_type"] ?? "user");
     const query = params["query"] as string | undefined;
@@ -141,23 +134,7 @@ const listWorkflows: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const getWorkflow: CapabilityExport = {
-  spec: {
-    name: "get_workflow",
-    description:
-      "Get detailed information about a specific workflow including its graph structure.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workflow_id: {
-          type: "string",
-          description: "The ID of the workflow"
-        }
-      },
-      required: ["workflow_id"]
-    },
-    category: "read",
-    userMessage: (params) => `Getting workflow ${params["workflow_id"]}`
-  },
+  spec: getWorkflowSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
     const workflowId = String(params["workflow_id"]);
@@ -167,52 +144,17 @@ const getWorkflow: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// create_workflow
-// ---------------------------------------------------------------------------
-
-const CREATE_WORKFLOW_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    name: { type: "string", description: "The workflow name" },
-    graph: {
-      type: "object",
-      description:
-        "Workflow graph with nodes and edges. Nodes may be an array of {id, type, properties} or an object keyed by node id with {node_type, parameters}. Edges use source, target, targetHandle/target_input, and optional sourceHandle/source_output (defaults to output)."
-    },
-    description: {
-      type: "string",
-      description: "Optional workflow description"
-    },
-    tags: {
-      type: "array",
-      items: { type: "string" },
-      description: "Optional workflow tags"
-    },
-    access: {
-      type: "string",
-      enum: ["private", "public"],
-      default: "private"
-    }
-  },
-  required: ["name", "graph"]
-};
-
 const createWorkflow: CapabilityExport = {
-  spec: {
-    name: "create_workflow",
-    description:
-      "Create a new workflow with a name, graph structure, and optional " +
-      "metadata. Model properties are checked before the workflow is created: " +
-      "an unregistered provider or a model id the provider does not offer is " +
-      "returned as an error instead of being saved.",
-    inputSchema: CREATE_WORKFLOW_SCHEMA,
-    category: "write",
-    userMessage: (params) => `Creating workflow '${params["name"]}'`
-  },
+  spec: createWorkflowSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const graph = normalizeWorkflowGraph(params["graph"]);
+    // Declare before normalizing, so the handle is on the node the editor,
+    // the validator and every later run read. Without a registry this is the
+    // identity function and the graph is stored exactly as it arrived.
+    const authored = run.nodeRegistry
+      ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
+      : params["graph"];
+    const graph = normalizeWorkflowGraph(authored);
     const badModels = await modelSelectionError(
       graph,
       run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
@@ -233,44 +175,8 @@ const createWorkflow: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// run_workflow
-// ---------------------------------------------------------------------------
-
-const RUN_WORKFLOW_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    workflow_id: {
-      type: "string",
-      description: "The ID of the workflow to run"
-    },
-    params: {
-      type: "object",
-      description: "Dictionary of input parameters for the workflow"
-    },
-    interactive: {
-      type: "boolean",
-      description:
-        "Bubble node failures up as escalations you answer, instead of " +
-        "failing the run (default false)"
-    }
-  },
-  required: ["workflow_id"]
-};
-
 const runWorkflowCapability: CapabilityExport = {
-  spec: {
-    name: "run_workflow",
-    description:
-      "Execute a workflow with given parameters and return results. With " +
-      "interactive=true a failing node invocation pauses the run and returns " +
-      'an escalation (status "escalated") for you to answer via ' +
-      "resolve_workflow_escalation — retry, substitute, skip, or fail — " +
-      "instead of the whole run failing outright.",
-    inputSchema: RUN_WORKFLOW_SCHEMA,
-    category: "execute",
-    userMessage: (params) => `Running workflow ${params["workflow_id"]}`
-  },
+  spec: runWorkflowCapabilitySpec,
   impl: async (run, params) => {
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("run a workflow");
@@ -286,55 +192,8 @@ const runWorkflowCapability: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// debug_workflow
-// ---------------------------------------------------------------------------
-
-const DEBUG_WORKFLOW_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    workflow_id: {
-      type: "string",
-      description: "The ID of the workflow to run and debug"
-    },
-    params: {
-      type: "object",
-      description: "Input parameters keyed by input-node name"
-    },
-    interactive: {
-      type: "boolean",
-      description:
-        "Bubble node failures up as escalations you answer mid-run, " +
-        "instead of only reading them post-mortem (default false)"
-    },
-    include_graph: {
-      type: "boolean",
-      description:
-        "Include the workflow graph overview in the report (default true)"
-    },
-    log_limit: {
-      type: "number",
-      description: "Maximum job log entries to include (default 200)"
-    }
-  },
-  required: ["workflow_id"]
-};
-
 const debugWorkflow: CapabilityExport = {
-  spec: {
-    name: "debug_workflow",
-    description:
-      "Run a workflow end-to-end and return a consolidated debug report: a " +
-      "pass/fail verdict with the issues behind it, per-node status and errors, " +
-      "logs, LLM calls, outputs, job record, and the workflow graph overview. " +
-      "Use this to troubleshoot a failing or misbehaving workflow and iterate. " +
-      "With interactive=true a failing node invocation pauses the run and " +
-      'returns an escalation (status "escalated") for you to answer via ' +
-      "resolve_workflow_escalation before the report is produced.",
-    inputSchema: DEBUG_WORKFLOW_SCHEMA,
-    category: "execute",
-    userMessage: (params) => `Debugging workflow ${params["workflow_id"]}`
-  },
+  spec: debugWorkflowSpec,
   impl: async (run, params) => {
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("debug a workflow");
@@ -392,68 +251,8 @@ const debugWorkflow: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// resolve_workflow_escalation
-// ---------------------------------------------------------------------------
-
-const RESOLVE_ESCALATION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    session_id: {
-      type: "string",
-      description: "The debug session id from the escalated response"
-    },
-    escalation_id: {
-      type: "string",
-      description: "The escalation id being answered"
-    },
-    action: {
-      type: "string",
-      enum: ["retry", "substitute", "skip", "end_stream", "fail"],
-      description:
-        "The verdict — must be one of the escalation's allowedActions"
-    },
-    outputs: {
-      type: "object",
-      description:
-        "For substitute: repaired output values keyed by the node's " +
-        "declared output slots"
-    },
-    reason: {
-      type: "string",
-      description:
-        "For fail: a one-sentence reason surfaced as the run's error summary"
-    },
-    apply_to: {
-      type: "string",
-      enum: ["invocation", "signature"],
-      description:
-        'For skip/fail: "signature" also resolves later failures with the ' +
-        'same failureSignature without asking again (default "invocation")'
-    }
-  },
-  required: ["session_id", "escalation_id", "action"]
-};
-
 const resolveWorkflowEscalation: CapabilityExport = {
-  spec: {
-    name: "resolve_workflow_escalation",
-    description:
-      "Answer an escalation raised by an interactive run_workflow/debug_workflow " +
-      "run. The run is parked on the failing node until you decide: retry the " +
-      "invocation, substitute repaired outputs (only when the escalation carries " +
-      "a candidateOutput), skip the invocation, end the stream (streaming nodes), " +
-      "or fail the node. Only the escalation's allowedActions are accepted; the " +
-      "kernel enforces the same set. Returns the next escalation (answer it the " +
-      "same way) or the run's final report.",
-    inputSchema: RESOLVE_ESCALATION_SCHEMA,
-    // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the gate classes it
-    // `external` today. Carried over unchanged: a reclassification belongs in
-    // its own diff, not in a port.
-    category: "external",
-    userMessage: (params) =>
-      `Resolving workflow escalation with "${params["action"]}"`
-  },
+  spec: resolveWorkflowEscalationSpec,
   impl: async (run, params) => {
     const { submitEscalationVerdict } =
       await import("@nodetool-ai/execution/service");
@@ -481,54 +280,8 @@ const resolveWorkflowEscalation: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// validate_workflow
-// ---------------------------------------------------------------------------
-
-const VALIDATE_WORKFLOW_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    workflow_id: {
-      type: "string",
-      description:
-        "The ID of a saved workflow to validate (fetched from the API)"
-    },
-    graph: {
-      type: "object",
-      description:
-        "Inline graph to validate ({ nodes, edges }). Takes precedence over workflow_id."
-    },
-    code: {
-      type: "string",
-      description:
-        "A graph program in the same DSL submit_graph takes — node(type, " +
-        "properties) and ref.output(slot?), ending with `return graph();`. " +
-        "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
-    }
-  }
-};
-
 const validateWorkflow: CapabilityExport = {
-  spec: {
-    name: "validate_workflow",
-    description:
-      "Statically validate a workflow against the node registry WITHOUT running " +
-      "it: unknown node types, missing required properties, unselected models, " +
-      "model properties naming an unregistered provider or a model id that " +
-      "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
-      "check the same graph program you would hand to submit_graph, an inline " +
-      "`graph` to check a graph you are building, or `workflow_id` to validate " +
-      "a saved one. Run this before saving or running to catch breakage in " +
-      "milliseconds.",
-    inputSchema: VALIDATE_WORKFLOW_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      if (params["code"]) return "Validating graph program";
-      return params["workflow_id"]
-        ? `Validating workflow ${params["workflow_id"]}`
-        : "Validating workflow graph";
-    }
-  },
+  spec: validateWorkflowSpec,
   impl: async (run, params) => {
     let graph = params["graph"] as
       | { nodes?: unknown[]; edges?: unknown[] }
@@ -596,9 +349,19 @@ const validateWorkflow: CapabilityExport = {
     // exactly where hallucinated ids come from. This capability always runs
     // server-side, so the runtime's own catalogs are the right default.
     const catalogs = run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS;
+    // An outgoing edge declares the source's dynamic output handle. The tool
+    // path does this in `GraphBuilder`; a graph the DSL pack authors arrives
+    // here as data and has never seen one, so the same rule runs on the JSON.
+    const declared = declareDynamicOutputsInGraph(graph, registry) as {
+      nodes?: unknown[];
+      edges?: unknown[];
+    };
     const { validateGraph } = await import("@nodetool-ai/node-sdk");
     return validateGraph(
-      { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
+      {
+        nodes: declared.nodes as never[],
+        edges: (declared.edges ?? []) as never[]
+      },
       {
         has: (type) => registry.has(type),
         getMetadata: (type) => registry.getMetadata(type),
@@ -617,28 +380,7 @@ const validateWorkflow: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const startBackgroundJob: CapabilityExport = {
-  spec: {
-    name: "start_background_job",
-    description:
-      "Start a workflow running in the background and return a job ID for tracking.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workflow_id: {
-          type: "string",
-          description: "The workflow ID to run"
-        },
-        params: {
-          type: "object",
-          description: "Optional input parameters"
-        }
-      },
-      required: ["workflow_id"]
-    },
-    category: "execute",
-    userMessage: (params) =>
-      `Starting background job for workflow ${params["workflow_id"]}`
-  },
+  spec: startBackgroundJobSpec,
   impl: async (run, params) => {
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("start a background job");
@@ -659,27 +401,7 @@ const startBackgroundJob: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const getExampleWorkflow: CapabilityExport = {
-  spec: {
-    name: "get_example_workflow",
-    description: "Load a specific example workflow from a package by name.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        package_name: {
-          type: "string",
-          description: "The name of the package containing the example"
-        },
-        example_name: {
-          type: "string",
-          description: "The name of the example workflow to load"
-        }
-      },
-      required: ["package_name", "example_name"]
-    },
-    category: "read",
-    userMessage: (params) =>
-      `Loading example ${params["package_name"]}/${params["example_name"]}`
-  },
+  spec: getExampleWorkflowSpec,
   impl: async (run, params) => {
     if (!run.examples) return NO_EXAMPLES;
     const packageName = String(params["package_name"]);
@@ -698,29 +420,7 @@ const getExampleWorkflow: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const exportWorkflowDigraph: CapabilityExport = {
-  spec: {
-    name: "export_workflow_digraph",
-    description:
-      "Export a workflow as a Graphviz Digraph (DOT format) for visualization.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workflow_id: {
-          type: "string",
-          description: "The ID of the workflow to export"
-        },
-        descriptive_names: {
-          type: "boolean",
-          description: "Use descriptive node names instead of UUIDs",
-          default: true
-        }
-      },
-      required: ["workflow_id"]
-    },
-    category: "read",
-    userMessage: (params) =>
-      `Exporting workflow ${params["workflow_id"]} as digraph`
-  },
+  spec: exportWorkflowDigraphSpec,
   // `workflowToDsl` lives in `@nodetool-ai/dsl`, which sits above this package
   // in the dependency order, so the exporter rides on the run rather than
   // being imported.
@@ -751,6 +451,91 @@ const exportWorkflowDigraph: CapabilityExport = {
   }
 };
 
+/**
+ * Build a graph with `GraphPlanner` and return it — the one capability whose
+ * run needs the turn's own provider, model, event sink and abort signal, which
+ * is what {@link CapabilityRun.graphPlanner} carries. Those were the
+ * constructor arguments of `PlanWorkflowGraphTool`, built by the chat runner.
+ */
+const planWorkflowGraph: CapabilityExport = {
+  spec: planWorkflowGraphSpec,
+  impl: async (run, params) => {
+    const planning = run.graphPlanner;
+    if (!planning) {
+      return {
+        error:
+          "`plan_workflow_graph` needs a graph-planner runtime, but this run " +
+          "carries no `graphPlanner` (provider, model, forwardMessage, " +
+          "signal). The host that builds the CapabilityRun must supply it."
+      };
+    }
+    if (!run.nodeRegistry) return noRegistryError("plan a workflow graph");
+
+    const objective =
+      typeof params["objective"] === "string" ? params["objective"].trim() : "";
+    if (!objective) {
+      return {
+        error: "`objective` is required and must be a non-empty string."
+      };
+    }
+    const { TOOL_CALL_ID_FIELD } = await import("../tools/subtask-fields.js");
+    const parentToolCallId =
+      typeof params[TOOL_CALL_ID_FIELD] === "string"
+        ? (params[TOOL_CALL_ID_FIELD] as string)
+        : null;
+
+    const signal = planning.signal?.();
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
+    const { GraphPlanner } = await import("../graph-planner.js");
+    const planner = new GraphPlanner({
+      provider: planning.provider,
+      model: planning.model,
+      registry: run.nodeRegistry,
+      tools: [],
+      inputs: (params["inputs"] as Record<string, unknown>) ?? {},
+      providers: run.providers,
+      signal
+    });
+
+    // The planner is not a CodeAct loop, but it IS a sub-agent in the core's
+    // sense — an async generator of ProcessingMessages with a settled return
+    // value — so the shared stream pipe drives it: tagging for UI nesting,
+    // forward-failure tolerance, and the between-rounds abort check (the
+    // planner's own abort stops its LLM loop, but a tool call already in
+    // flight still resolves — stop driving the generator so a Stop ends the
+    // turn promptly instead of after the current round).
+    const { forwardSubAgentStream } = await import("../subagent.js");
+    const { aborted, value: graph } = await forwardSubAgentStream(
+      planner.plan(objective, run.context),
+      {
+        forward: planning.forwardMessage,
+        parentToolCallId,
+        signal,
+        label: "plan_workflow_graph"
+      }
+    );
+    if (aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+    if (!graph) {
+      return {
+        error:
+          "GraphPlanner failed to build a graph after multiple attempts. " +
+          "Refine the objective (name concrete inputs/outputs) and retry."
+      };
+    }
+
+    return {
+      graph,
+      node_count: graph.nodes.length,
+      edge_count: graph.edges.length
+    };
+  }
+};
+
 /** Every workflow capability, in the order `getAllMcpTools` offered them. */
 export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
@@ -765,9 +550,16 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   startBackgroundJob
 ];
 
+/**
+ * The registry serves one more than the belt does. `plan_workflow_graph` needs
+ * the turn's provider, model, event sink and abort signal, so only a host that
+ * builds a `graphPlanner` run can serve it — the chat runner does, and
+ * `getAllMcpTools` does not. Offering it on the belt everywhere would put a
+ * tool on every surface that can only answer with what it is missing.
+ */
 export const module: CapabilityModule = {
   module: "workflows",
-  exports: WORKFLOW_CAPABILITIES
+  exports: [...WORKFLOW_CAPABILITIES, planWorkflowGraph]
 };
 
 export {
@@ -780,5 +572,6 @@ export {
   validateWorkflow,
   getExampleWorkflow,
   exportWorkflowDigraph,
-  startBackgroundJob
+  startBackgroundJob,
+  planWorkflowGraph
 };

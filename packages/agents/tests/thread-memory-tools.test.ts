@@ -6,17 +6,8 @@ import {
   ModelObserver,
   initTestDb
 } from "@nodetool-ai/models";
-import {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool,
-  formatThreadMemoriesForPrompt
-} from "../src/tools/thread-memory-tools.js";
-import {
-  AssetSearchTool,
-  AssetListTool
-} from "../src/tools/asset-library-tools.js";
+import { formatThreadMemoriesForPrompt } from "../src/tools/thread-memory-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { READ_ONLY_TOOL_NAMES } from "../src/tools/run-search-tool.js";
 
@@ -41,7 +32,7 @@ describe("thread memory tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("saves and lists a memory", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const saved = (await save.process(ctx(), {
       content: "User approved a teal palette.",
       title: "palette",
@@ -50,7 +41,7 @@ describe("thread memory tools", () => {
     expect(saved.success).toBe(true);
     expect(saved.memory_id).toBeTruthy();
 
-    const list = new ThreadMemoryListTool();
+    const list = toolForCapabilityName("thread_memory_list");
     const listed = (await list.process(ctx(), {})) as {
       success: boolean;
       count: number;
@@ -63,7 +54,7 @@ describe("thread memory tools", () => {
 
   it("resolves asset resources, keeps other kinds, and drops unknown assets", async () => {
     const asset = await makeAsset("cover.png", "image/png");
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const saved = (await save.process(ctx(), {
       content: "Generated cover art with a workflow.",
       kind: "resource",
@@ -92,7 +83,7 @@ describe("thread memory tools", () => {
   });
 
   it("requires a non-empty content", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const result = (await save.process(ctx(), { content: "   " })) as {
       success: boolean;
     };
@@ -100,7 +91,7 @@ describe("thread memory tools", () => {
   });
 
   it("errors when there is no active thread", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const result = (await save.process(ctx({ threadId: null }), {
       content: "x"
     })) as { success: boolean; error: string };
@@ -109,11 +100,11 @@ describe("thread memory tools", () => {
   });
 
   it("updates an existing memory", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const saved = (await save.process(ctx(), { content: "original" })) as {
       memory_id: string;
     };
-    const update = new ThreadMemoryUpdateTool();
+    const update = toolForCapabilityName("thread_memory_update");
     const updated = (await update.process(ctx(), {
       memory_id: saved.memory_id,
       content: "revised",
@@ -127,11 +118,11 @@ describe("thread memory tools", () => {
   });
 
   it("deletes a memory", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const saved = (await save.process(ctx(), { content: "temp" })) as {
       memory_id: string;
     };
-    const del = new ThreadMemoryDeleteTool();
+    const del = toolForCapabilityName("thread_memory_delete");
     const deleted = (await del.process(ctx(), {
       memory_id: saved.memory_id
     })) as { success: boolean };
@@ -140,11 +131,11 @@ describe("thread memory tools", () => {
   });
 
   it("does not touch another thread's memory", async () => {
-    const save = new ThreadMemorySaveTool();
+    const save = toolForCapabilityName("thread_memory_save");
     const saved = (await save.process(ctx({ threadId: "t2" }), {
       content: "in t2"
     })) as { memory_id: string };
-    const del = new ThreadMemoryDeleteTool();
+    const del = toolForCapabilityName("thread_memory_delete");
     const result = (await del.process(ctx({ threadId: "t1" }), {
       memory_id: saved.memory_id
     })) as { success: boolean };
@@ -200,7 +191,7 @@ describe("asset library tools", () => {
     await makeAsset("intro-clip.mp4", "video/mp4");
     await makeAsset("hero-notes.txt", "text/plain");
 
-    const search = new AssetSearchTool();
+    const search = toolForCapabilityName("asset_search");
     const result = (await search.process(ctx(), {
       query: "hero",
       content_type: "image/"
@@ -215,7 +206,7 @@ describe("asset library tools", () => {
     await makeAsset("a.png", "image/png");
     await makeAsset("b.mp4", "video/mp4");
 
-    const list = new AssetListTool();
+    const list = toolForCapabilityName("asset_list");
     const result = (await list.process(ctx(), {
       content_type: "video/"
     })) as { success: boolean; assets: Array<{ name: string }> };
@@ -230,7 +221,7 @@ describe("asset library tools", () => {
       name: "secret.png",
       content_type: "image/png"
     });
-    const search = new AssetSearchTool();
+    const search = toolForCapabilityName("asset_search");
     const result = (await search.process(ctx(), { query: "secret" })) as {
       assets: unknown[];
     };

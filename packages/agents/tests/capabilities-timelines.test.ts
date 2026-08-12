@@ -3,7 +3,7 @@
  *
  * Three things must hold for a port: the module is well-formed and classified
  * the way the gate's map classifies it, each spec is byte-identical to the
- * deprecated class it replaces, and the implementations still do the work.
+ * wire surface it replaces, and the implementations still do the work.
  * `tests/timeline-version-tools.test.ts` and `tests/document-edit-tools.test.ts`
  * run unmodified against those classes and are the behavioural net; the round
  * trips here prove the same work happens when a run invokes the capability
@@ -20,17 +20,9 @@ import {
 import { module as timelines } from "../src/capabilities/timelines.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool
-} from "../src/tools/timeline-version-tools.js";
-import { EditTimelineTool } from "../src/tools/timeline-edit-tools.js";
-import { ValidateTimelineTool } from "../src/tools/mcp-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -82,15 +74,24 @@ async function makeTimeline(
   });
 }
 
-/** Every capability paired with the class it replaced. */
+/** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
-  ["list_timelines", () => new ListTimelinesTool()],
-  ["list_timeline_versions", () => new ListTimelineVersionsTool()],
-  ["get_timeline_version", () => new GetTimelineVersionTool()],
-  ["create_timeline_version", () => new CreateTimelineVersionTool()],
-  ["restore_timeline_version", () => new RestoreTimelineVersionTool()],
-  ["edit_timeline", () => new EditTimelineTool()],
-  ["validate_timeline", () => new ValidateTimelineTool()]
+  ["list_timelines", () => toolForCapabilityName("list_timelines")],
+  [
+    "list_timeline_versions",
+    () => toolForCapabilityName("list_timeline_versions")
+  ],
+  ["get_timeline_version", () => toolForCapabilityName("get_timeline_version")],
+  [
+    "create_timeline_version",
+    () => toolForCapabilityName("create_timeline_version")
+  ],
+  [
+    "restore_timeline_version",
+    () => toolForCapabilityName("restore_timeline_version")
+  ],
+  ["edit_timeline", () => toolForCapabilityName("edit_timeline")],
+  ["validate_timeline", () => toolForCapabilityName("validate_timeline")]
 ];
 
 describe("timelines capability module", () => {
@@ -116,7 +117,7 @@ describe("timelines capability module", () => {
     }
   });
 
-  it("keeps each deprecated class's wire surface", () => {
+  it("keeps the wire surface the belt offers", () => {
     for (const [name, make] of PAIRS) {
       const spec = timelines.exports.find((e) => e.spec.name === name)?.spec;
       const tool = make();
@@ -127,7 +128,7 @@ describe("timelines capability module", () => {
     }
   });
 
-  it("renders the same user messages the classes rendered", () => {
+  it("renders the user-facing messages", () => {
     const args = { timeline_id: "t1", version: 3, ops: [{ op: "get_state" }] };
     for (const [name, make] of PAIRS) {
       const spec = timelines.exports.find((e) => e.spec.name === name)!.spec;

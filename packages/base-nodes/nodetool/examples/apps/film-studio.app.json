@@ -950,8 +950,7 @@
               },
               "negative_prompt": "",
               "aspect_ratio": "16:9",
-              "resolution": "2K",
-              "timeout_seconds": 0
+              "resolution": "2K"
             },
             "ui_properties": {
               "position": {
@@ -1060,8 +1059,7 @@
               "negative_prompt": "",
               "strength": 0.82,
               "aspect_ratio": "16:9",
-              "resolution": "2K",
-              "timeout_seconds": 0
+              "resolution": "2K"
             },
             "ui_properties": {
               "position": {
@@ -1545,8 +1543,7 @@
               "prompt": "",
               "negative_prompt": "",
               "aspect_ratio": "16:9",
-              "resolution": "2K",
-              "timeout_seconds": 0
+              "resolution": "2K"
             },
             "ui_properties": {
               "position": {
@@ -2148,8 +2145,7 @@
               },
               "negative_prompt": "",
               "aspect_ratio": "3:4",
-              "resolution": "2K",
-              "timeout_seconds": 0
+              "resolution": "2K"
             },
             "ui_properties": {
               "selected": true,

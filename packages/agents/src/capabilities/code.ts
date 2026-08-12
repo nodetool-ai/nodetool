@@ -19,28 +19,29 @@
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
-import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
+import {
+  validateCodeSpec,
+  runCodeSpec,
+  testCodeSpec,
+  MAX_TIMEOUT_SECONDS,
+  DEFAULT_TIMEOUT_SECONDS,
+  MAX_TEST_CASES,
+  CODE_FIELD,
+  PACKAGES_FIELD
+} from "./code.specs.js";
 
-/** Wall-clock ceiling for one harness run. Authoring runs are short. */
-const MAX_TIMEOUT_SECONDS = 120;
-const DEFAULT_TIMEOUT_SECONDS = 30;
-/** Cases one `test_code` call may run. */
-const MAX_TEST_CASES = 20;
-
-const CODE_FIELD: JsonSchema = {
-  type: "string",
-  description:
-    "The Code-node body: plain JavaScript. Declared inputs arrive on the " +
-    "`inputs` object; return an object whose keys become output handles."
-};
-
-const PACKAGES_FIELD: JsonSchema = {
-  type: "array",
-  items: { type: "string" },
-  description:
-    "Sandbox package specifiers the body imports (the node's `packages` " +
-    'property), e.g. ["@nodetool-ai/sandbox-yaml"].'
-};
+export {
+  MAX_TIMEOUT_SECONDS,
+  DEFAULT_TIMEOUT_SECONDS,
+  MAX_TEST_CASES,
+  CODE_FIELD,
+  PACKAGES_FIELD
+} from "./code.specs.js";
 
 interface HarnessRunResult {
   ok: boolean;
@@ -179,35 +180,7 @@ function timeoutSeconds(value: unknown): number {
 // ---------------------------------------------------------------------------
 
 const validateCode: CapabilityExport = {
-  spec: {
-    name: "validate_code",
-    description:
-      "Statically check a Code-node body without running it: syntax, imports " +
-      "against the declared sandbox packages, undefined names, undeclared " +
-      "`inputs.*` reads, unused inputs, and whether every declared output is " +
-      "set on every return path. Same check the workflow validator runs. Call " +
-      "it after every edit — it is far cheaper than run_code.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        code: CODE_FIELD,
-        inputs: {
-          type: "array",
-          items: { type: "string" },
-          description: "Input names the node declares (keys on `inputs`)."
-        },
-        outputs: {
-          type: "array",
-          items: { type: "string" },
-          description: "Output handle names the node declares."
-        },
-        packages: PACKAGES_FIELD
-      },
-      required: ["code"]
-    },
-    category: "read",
-    userMessage: () => "Validating code"
-  },
+  spec: validateCodeSpec,
   impl: async (run, params) => {
     const { validateCodeNodeBody, parseSandboxModuleDeclarations } =
       await import("@nodetool-ai/node-sdk");
@@ -241,40 +214,7 @@ const validateCode: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const runCode: CapabilityExport = {
-  spec: {
-    name: "run_code",
-    description:
-      "Run a Code-node body in the QuickJS sandbox with the given `inputs` " +
-      "and return its outputs, console logs, and error. Streaming bodies " +
-      "(`yield`) return the collected items as `streamed`. The run is " +
-      "hermetic: no node toolbelt, and only the secrets named in `secrets` " +
-      "are readable. Use it to debug a body before saving it onto a node.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        code: CODE_FIELD,
-        inputs: {
-          type: "object",
-          description: "Input values the body reads from the `inputs` object.",
-          additionalProperties: true
-        },
-        packages: PACKAGES_FIELD,
-        secrets: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Secret names the body may read via getSecret(). Default: none."
-        },
-        timeout_seconds: {
-          type: "number",
-          description: `Execution timeout (default ${DEFAULT_TIMEOUT_SECONDS}, max ${MAX_TIMEOUT_SECONDS}).`
-        }
-      },
-      required: ["code"]
-    },
-    category: "execute",
-    userMessage: () => "Running code in the sandbox"
-  },
+  spec: runCodeSpec,
   impl: async (run, params) =>
     runCodeBody(run, {
       code: String(params["code"] ?? ""),
@@ -305,62 +245,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 const testCode: CapabilityExport = {
-  spec: {
-    name: "test_code",
-    description:
-      "Run a Code-node body against a list of test cases and grade each one. " +
-      "A case supplies `inputs` and optionally `expect` — expected values per " +
-      "output handle, compared structurally; outputs not named in `expect` " +
-      "are ignored. A case without `expect` passes when the body runs " +
-      "without error. Use it as the regression check after editing code.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        code: CODE_FIELD,
-        cases: {
-          type: "array",
-          description: `Test cases (max ${MAX_TEST_CASES}).`,
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string", description: "Case label." },
-              inputs: {
-                type: "object",
-                description: "Input values for this case.",
-                additionalProperties: true
-              },
-              expect: {
-                type: "object",
-                description:
-                  "Expected value per output handle, compared structurally.",
-                additionalProperties: true
-              }
-            },
-            required: [] as string[]
-          }
-        },
-        packages: PACKAGES_FIELD,
-        secrets: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Secret names the body may read via getSecret(). Default: none."
-        },
-        timeout_seconds: {
-          type: "number",
-          description: `Per-case timeout (default ${DEFAULT_TIMEOUT_SECONDS}, max ${MAX_TIMEOUT_SECONDS}).`
-        }
-      },
-      required: ["code", "cases"]
-    },
-    category: "execute",
-    userMessage: (params) => {
-      const count = Array.isArray(params["cases"])
-        ? params["cases"].length
-        : 0;
-      return `Testing code against ${count} case${count === 1 ? "" : "s"}`;
-    }
-  },
+  spec: testCodeSpec,
   impl: async (run, params) => {
     const rawCases = Array.isArray(params["cases"]) ? params["cases"] : [];
     if (rawCases.length === 0) {

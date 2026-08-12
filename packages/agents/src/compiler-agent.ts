@@ -10,8 +10,8 @@
  * synthesis quality, gives synthesis full memory access, and lets us use a
  * stronger (e.g. reasoning) model for compilation specifically.
  *
- * Toolset: `memory_list`, `memory_read`, `finish_step`. No domain tools, no
- * `memory_write` — the compiler is read-only over memory and produces exactly
+ * Toolset: `list_shared`, `read_shared`, `finish_step`. No domain tools, no
+ * `share_result` — the compiler is read-only over memory and produces exactly
  * one result.
  */
 
@@ -34,7 +34,7 @@ import type {
 } from "@nodetool-ai/protocol";
 
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import { MemoryListTool, MemoryReadTool } from "./tools/memory-tools.js";
+import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
 import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
 import { truncateToolResult } from "./constants.js";
@@ -48,11 +48,11 @@ You are the Compiler. The plan has finished gathering information; your only
 job is to synthesize the gathered results into the final deliverable.
 
 # How To Work
-1. Call \`memory_list\` first to see every entry that the plan produced.
+1. Call \`list_shared\` first to see every entry that the plan produced.
    Entries with kind \`task_result\` are task outputs, \`step_result\` are step
    outputs, \`input\` are caller-supplied inputs, and \`shared\` are facts the
    agents published explicitly.
-2. Call \`memory_read\` for the keys whose full values you need. Read multiple
+2. Call \`read_shared\` for the keys whose full values you need. Read multiple
    keys in a single call when you need several.
 3. Synthesize a single result that satisfies the declared output schema.
 4. Call \`finish_step\` exactly once with \`{"result": <result>}\`. Stop
@@ -76,9 +76,9 @@ job is to combine the gathered results into one coherent response for the
 user.
 
 # How To Work
-1. Call \`memory_list\` to see every entry the plan produced (task outputs,
+1. Call \`list_shared\` to see every entry the plan produced (task outputs,
    step outputs, inputs, shared facts).
-2. Call \`memory_read\` for the keys whose full values you need.
+2. Call \`read_shared\` for the keys whose full values you need.
 3. Produce the final response as your assistant message. Do NOT call any
    tool in this final turn — the absence of a tool call signals completion.
 
@@ -188,8 +188,8 @@ export class CompilerAgent {
   }
 
   private async *_compileImpl(): AsyncGenerator<ProcessingMessage, unknown> {
-    const memoryList = new MemoryListTool();
-    const memoryRead = new MemoryReadTool();
+    const memoryList = toolForCapabilityName("list_shared");
+    const memoryRead = toolForCapabilityName("read_shared");
     const finishStepTool = this.outputSchema
       ? new FinishStepTool(this.outputSchema)
       : null;
@@ -219,7 +219,7 @@ export class CompilerAgent {
       `Objective:\n${this.objective}`,
       ...(planSection ? ["", planSection] : []),
       "",
-      "Memory inventory (call `memory_read` for the keys whose values you need):",
+      "Memory inventory (call `read_shared` for the keys whose values you need):",
       inventory,
       "",
       closing

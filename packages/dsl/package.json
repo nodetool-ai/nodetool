@@ -24,7 +24,8 @@
     "pretest:watch": "node scripts/ensure-deps-built.mjs",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "codegen": "tsx scripts/codegen.ts"
+    "codegen": "tsx scripts/codegen.ts",
+    "codegen:check": "tsx scripts/codegen.ts --check"
   },
   "dependencies": {
     "@nodetool-ai/base-nodes": "*",

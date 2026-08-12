@@ -194,8 +194,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system_prompt": "You are an expert meeting-notes writer. You will be given a raw meeting transcript.\n\nWrite a summary in Markdown with this exact structure:\n## Overview\nOne or two sentences on what the meeting was about and its outcome.\n\n## Key discussion points\n- Bullet list of the main topics and decisions, most important first.\n\n## Open questions\n- Anything left unresolved or needing follow-up. Write \"None\" if there aren't any.\n\nRules:\n- Base every statement strictly on the transcript — never invent names, numbers, or decisions.\n- Keep it to about 150 words total.\n- Do not repeat action items here; those are extracted separately.",
-          "context_window": 8192
+          "system_prompt": "You are an expert meeting-notes writer. You will be given a raw meeting transcript.\n\nWrite a summary in Markdown with this exact structure:\n## Overview\nOne or two sentences on what the meeting was about and its outcome.\n\n## Key discussion points\n- Bullet list of the main topics and decisions, most important first.\n\n## Open questions\n- Anything left unresolved or needing follow-up. Write \"None\" if there aren't any.\n\nRules:\n- Base every statement strictly on the transcript — never invent names, numbers, or decisions.\n- Keep it to about 150 words total.\n- Do not repeat action items here; those are extracted separately."
         },
         "ui_properties": {
           "selected": false,

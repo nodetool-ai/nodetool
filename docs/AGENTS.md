@@ -136,9 +136,9 @@ context.memory.getValue(memoryKeys.task("research"));
 
 | Tool | Purpose |
 |---|---|
-| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
-| `memory_read` | Fetch full values for specific keys |
-| `memory_write` | Publish a value under `shared:<key>` for other agents to discover |
+| `list_shared` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `read_shared` | Fetch full values for specific keys |
+| `share_result` | Publish a value under `shared:<key>` for other agents to discover |
 
 The default execution system prompt explains these tools; the user message names only the **specific** upstream keys the planner declared as required for the step. Values are pulled on demand.
 
@@ -175,12 +175,9 @@ abstract class Tool {
 | **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
 | **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
 | **Search** | `WebSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
-| **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
-| **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
 | **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |
 | **PDF** | `ExtractPDFTextTool`, `ConvertPDFToMarkdownTool`, and more | `pdf-tools.ts` |
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
-| **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
 | **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool` | `mcp-tools.ts` |
 | **Node registry** | `LocalSearchNodesTool`, `LocalListNodesTool`, `LocalGetNodeInfoTool` | `local-search-nodes-tool.ts`, `local-list-nodes-tool.ts`, `local-get-node-info-tool.ts` |
@@ -568,5 +565,4 @@ which the web sandbox does. Two ways out:
 - [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
 - [Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line
-- [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference
 - [Custom Nodes Guide](developer/custom-nodes-guide.md) — Building custom workflow nodes

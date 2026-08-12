@@ -102,15 +102,15 @@ describe("agent mode resolution", () => {
 
 describe("enabled tools merging", () => {
   it("parses comma-separated --tools flag", () => {
-    const toolsFlag = "google_search,openai_web_search";
+    const toolsFlag = "google_search,web_search";
     const enabledTools = toolsFlag.split(",").map((t) => t.trim());
-    expect(enabledTools).toEqual(["google_search", "openai_web_search"]);
+    expect(enabledTools).toEqual(["google_search", "web_search"]);
   });
 
   it("trims whitespace around tool names", () => {
-    const toolsFlag = " google_search , openai_web_search ";
+    const toolsFlag = " google_search , web_search ";
     const enabledTools = toolsFlag.split(",").map((t) => t.trim());
-    expect(enabledTools).toEqual(["google_search", "openai_web_search"]);
+    expect(enabledTools).toEqual(["google_search", "web_search"]);
   });
 
   it("uses saved enabledTools when no --tools flag", () => {
@@ -267,15 +267,12 @@ describe("autoEnable logic", () => {
 
     await Promise.all([
       autoEnable("SERPAPI_API_KEY", ["google_search"]),
-      autoEnable("OPENAI_API_KEY", [
-        "openai_web_search",
-        "openai_image_generation"
-      ])
+      autoEnable("OPENAI_API_KEY", ["web_search", "generate_image"])
     ]);
 
     expect(enabledTools).toContain("google_search");
-    expect(enabledTools).toContain("openai_web_search");
-    expect(enabledTools).toContain("openai_image_generation");
+    expect(enabledTools).toContain("web_search");
+    expect(enabledTools).toContain("generate_image");
   });
 });
 

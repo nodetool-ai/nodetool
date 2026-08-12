@@ -213,8 +213,7 @@ export interface AgentOptions {
    * final result for memories by default — agent results are generated
    * output, not user-confirmed facts, and persisting them across sessions
    * pollutes the store with hallucinations or run-specific artefacts.
-   * Agents can still publish memories explicitly via the `ltm_remember`
-   * tool. To re-enable automatic mining for a specific agent, set
+   * To re-enable automatic mining for a specific agent, set
    * {@link AgentOptions.autoPersistMemory} to `true`.
    */
   longTermMemory?: LongTermMemory | null;

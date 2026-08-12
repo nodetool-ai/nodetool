@@ -4,7 +4,7 @@
  * Three things must hold for a ported namespace: the module is drift-clean and
  * classified the way the gate's own map classifies it, each spec is
  * byte-identical to the deprecated `Tool` subclass it replaces, and the
- * implementations behave the way the classes did. The vector capabilities also
+ * implementations behave the way they always did. The vector capabilities also
  * have to answer for the run field that replaced their constructor argument.
  */
 
@@ -31,19 +31,22 @@ import {
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
-import {
-  ListCollectionsTool,
-  QueryCollectionTool
-} from "../src/tools/collection-tools.js";
-import {
-  VecBatchIndexTool,
-  VecHybridSearchTool,
-  VecIndexTool,
-  VecMarkdownSplitAndIndexTool,
-  VecRecursiveSplitAndIndexTool,
-  VecTextSearchTool
-} from "../src/tools/vector-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
+
+/**
+ * One capability as a `Tool`. The collection that used to be a constructor
+ * argument on the `Vec*` classes is a run field, read at call time.
+ */
+function capTool(name: string, collection?: VectorCollection): Tool {
+  return toolForCapabilityName(name, (context) =>
+    createCapabilityRun({
+      context,
+      gate: UNGATED,
+      vectorCollection: collection
+    })
+  );
+}
 
 const ctx = {} as unknown as ProcessingContext;
 
@@ -53,12 +56,20 @@ type FakeCollection = VectorCollection & {
 };
 
 /** An in-memory collection: enough surface for every vector capability. */
-function fakeCollection(overrides: Partial<FakeCollection> = {}): FakeCollection {
+function fakeCollection(
+  overrides: Partial<FakeCollection> = {}
+): FakeCollection {
   return {
     name: "fake",
     metadata: {},
     query: vi.fn().mockResolvedValue([
-      { id: "id1", document: "doc one", metadata: {}, uri: null, distance: 0.1 },
+      {
+        id: "id1",
+        document: "doc one",
+        metadata: {},
+        uri: null,
+        distance: 0.1
+      },
       { id: "id2", document: "doc two", metadata: {}, uri: null, distance: 0.2 }
     ]),
     upsert: vi.fn().mockResolvedValue(undefined),
@@ -93,7 +104,9 @@ beforeEach(() => {
 
 describe("collections module shape", () => {
   it("is drift-clean", () => {
-    expect(capabilityModuleIssues("collections", collectionsModule)).toEqual([]);
+    expect(capabilityModuleIssues("collections", collectionsModule)).toEqual(
+      []
+    );
   });
 
   it("classifies every export the way the gate's own map does", () => {
@@ -119,17 +132,23 @@ describe("collections module shape", () => {
   });
 });
 
-describe("wire identity against the deprecated classes", () => {
+describe("wire identity: a Tool built from the spec", () => {
   const col = fakeCollection();
   const pairs: Array<[string, Tool]> = [
-    ["list_collections", new ListCollectionsTool()],
-    ["query_collection", new QueryCollectionTool()],
-    ["vector_text_search", new VecTextSearchTool(col)],
-    ["vector_index", new VecIndexTool(col)],
-    ["vector_hybrid_search", new VecHybridSearchTool(col)],
-    ["vector_recursive_split_and_index", new VecRecursiveSplitAndIndexTool(col)],
-    ["vector_markdown_split_and_index", new VecMarkdownSplitAndIndexTool(col)],
-    ["vector_batch_index", new VecBatchIndexTool(col)]
+    ["list_collections", capTool("list_collections")],
+    ["query_collection", capTool("query_collection")],
+    ["vector_text_search", capTool("vector_text_search", col)],
+    ["vector_index", capTool("vector_index", col)],
+    ["vector_hybrid_search", capTool("vector_hybrid_search", col)],
+    [
+      "vector_recursive_split_and_index",
+      capTool("vector_recursive_split_and_index", col)
+    ],
+    [
+      "vector_markdown_split_and_index",
+      capTool("vector_markdown_split_and_index", col)
+    ],
+    ["vector_batch_index", capTool("vector_batch_index", col)]
   ];
 
   for (const [name, tool] of pairs) {
@@ -142,24 +161,24 @@ describe("wire identity against the deprecated classes", () => {
   }
 
   it("carries the userMessage templates over", () => {
-    expect(new ListCollectionsTool().userMessage({})).toBe(
+    expect(capTool("list_collections").userMessage({})).toBe(
       "Listing knowledge collections"
     );
-    expect(new QueryCollectionTool().userMessage({ collection: "docs" })).toBe(
-      "Searching collection 'docs'"
-    );
-    expect(new QueryCollectionTool().userMessage({})).toBe(
+    expect(
+      capTool("query_collection").userMessage({ collection: "docs" })
+    ).toBe("Searching collection 'docs'");
+    expect(capTool("query_collection").userMessage({})).toBe(
       "Searching collection"
     );
-    expect(new VecTextSearchTool(col).userMessage({ text: "cats" })).toBe(
-      "Performing semantic search for 'cats'..."
-    );
     expect(
-      new VecTextSearchTool(col).userMessage({ text: "x".repeat(200) })
+      capTool("vector_text_search", col).userMessage({ text: "cats" })
+    ).toBe("Performing semantic search for 'cats'...");
+    expect(
+      capTool("vector_text_search", col).userMessage({ text: "x".repeat(200) })
     ).toBe("Performing semantic search...");
-    expect(new VecBatchIndexTool(col).userMessage({ chunks: [1, 2, 3] })).toBe(
-      "Indexing a batch of 3 text chunks..."
-    );
+    expect(
+      capTool("vector_batch_index", col).userMessage({ chunks: [1, 2, 3] })
+    ).toBe("Indexing a batch of 3 text chunks...");
   });
 });
 
@@ -246,9 +265,9 @@ describe("the vector capabilities resolve their collection from the run", () => 
     }
   });
 
-  it("still runs through the deprecated class, which binds the collection", async () => {
+  it("runs through a Tool whose run binds the collection", async () => {
     const col = fakeCollection();
-    const result = await new VecTextSearchTool(col).process(ctx, {
+    const result = await capTool("vector_text_search", col).process(ctx, {
       text: "hello",
       n_results: 2
     });
@@ -257,14 +276,15 @@ describe("the vector capabilities resolve their collection from the run", () => 
 
   it("splits and indexes every chunk of a document", async () => {
     const col = fakeCollection();
-    const result = (await capability(
-      "vector_recursive_split_and_index"
-    ).impl(runWith(col), {
-      text: "one.two.three",
-      document_id: "doc",
-      chunk_size: 5,
-      chunk_overlap: 0
-    })) as Record<string, unknown>;
+    const result = (await capability("vector_recursive_split_and_index").impl(
+      runWith(col),
+      {
+        text: "one.two.three",
+        document_id: "doc",
+        chunk_size: 5,
+        chunk_overlap: 0
+      }
+    )) as Record<string, unknown>;
     expect(result["status"]).toBe("success");
     expect(result["indexed_count"]).toBe(col.upsert.mock.calls.length);
     expect(col.upsert.mock.calls.length).toBeGreaterThan(1);
@@ -277,7 +297,10 @@ describe("the vector capabilities resolve their collection from the run", () => 
     ).toEqual({ error: "No chunks provided" });
 
     const result = (await capability("vector_batch_index").impl(runWith(col), {
-      chunks: [{ text: "a", source_id: "s1" }, { text: "b", source_id: "s2" }]
+      chunks: [
+        { text: "a", source_id: "s1" },
+        { text: "b", source_id: "s2" }
+      ]
     })) as Record<string, unknown>;
     expect(result["indexed_count"]).toBe(2);
   });

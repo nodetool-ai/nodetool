@@ -1,6 +1,11 @@
 /**
- * CodeAct eval cases for the CORE `nodetool.*` namespaces — workflows, graph,
- * nodes, models, media, jobs, assets, agents (plus `batch`).
+ * CodeAct eval cases for the CORE `nodetool.*` namespaces — workflows, nodes,
+ * models, media, jobs, assets, agents (plus `batch`).
+ *
+ * The two graph-authoring cases build with `@nodetool-ai/sandbox-dsl`, so the
+ * world's node types are the ones that pack really exports. The exception is
+ * `nodetool.text.Uppercase`, which only ever appears inside pre-built
+ * workflows a case runs by id.
  *
  * The belt below is a set of fakes named exactly like the real tools, so the
  * executor lights up the object model, its prompt section, and the guest
@@ -13,6 +18,7 @@
  */
 
 import type { Tool } from "../tools/base-tool.js";
+import { GRAPH_DSL_PACKAGE } from "../codeact/graph-dsl-package.js";
 import {
   RecordingTool,
   type CodeActEvalCase,
@@ -26,12 +32,6 @@ const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-
-const slugify = (text: string): string =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 
 /** Words a critique judges a brief by — short ones carry no signal. */
 const briefTerms = (brief: string): string[] =>
@@ -49,6 +49,8 @@ interface NodeSpec {
   description: string;
   keywords: readonly string[];
   properties: readonly NodeProperty[];
+  /** Accepts inputs beyond `properties` — a real node with dynamic slots. */
+  dynamicInputs?: boolean;
   outputs: readonly { name: string; type: string }[];
   evaluate: (props: Record<string, unknown>) => string;
 }
@@ -86,6 +88,9 @@ const NODE_CATALOG: readonly NodeSpec[] = [
     evaluate: (props) => str(props["a"]) + str(props["b"])
   },
   {
+    // The one type here that NodeTool does not really ship. It is the middle
+    // node of the world's pre-built workflows, which cases run by id; nothing
+    // authors it, so the DSL pack never needs a wrapper for it.
     type: "nodetool.text.Uppercase",
     description: "Uppercase a string.",
     keywords: ["uppercase", "shout", "case", "text"],
@@ -94,16 +99,23 @@ const NODE_CATALOG: readonly NodeSpec[] = [
     evaluate: (props) => str(props["text"]).toUpperCase()
   },
   {
-    type: "nodetool.text.Slugify",
-    description: "Turn a title into a URL slug.",
-    keywords: ["slug", "slugify", "url", "title", "permalink"],
-    properties: [prop("text", "str", true, "Title to slugify.")],
+    type: "nodetool.text.Template",
+    // Every other spec here takes fixed properties. This one takes a template
+    // plus whatever slots the template names, so a case that wires it has to
+    // read what the node reports rather than assume a signature.
+    description: "Render a template, substituting {{slot}} from its inputs.",
+    keywords: ["template", "render", "substitute", "format", "text"],
+    properties: [prop("string", "str", true, "Template text.")],
+    dynamicInputs: true,
     outputs: OUT_STR,
-    evaluate: (props) => slugify(str(props["text"]))
+    evaluate: (props) =>
+      str(props["string"]).replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (_, slot) =>
+        str(props[String(slot)])
+      )
   },
   {
-    type: "nodetool.output.StringOutput",
-    description: "A named string output of the workflow.",
+    type: "nodetool.output.Output",
+    description: "A named output of the workflow.",
     keywords: ["output", "result", "string", "return"],
     properties: [
       prop("name", "str", true, "Name this output is reported under."),
@@ -245,7 +257,7 @@ const stringInputGraph = (
     { id: "mid_1", type: middleType, properties: middleProps },
     {
       id: "out_1",
-      type: "nodetool.output.StringOutput",
+      type: "nodetool.output.Output",
       properties: { name: outputName }
     }
   ],
@@ -381,7 +393,11 @@ function validateGraph(graph: WorldGraph): ValidationReport {
     }
     const spec = nodeSpec(target.type);
     const handle = str(edge.targetHandle);
-    if (spec && !spec.properties.some((p) => p.name === handle)) {
+    if (
+      spec &&
+      spec.dynamicInputs !== true &&
+      !spec.properties.some((p) => p.name === handle)
+    ) {
       errors.push(`Node "${target.id}" (${target.type}) has no input "${handle}"`);
     }
     const set = fed.get(target.id) ?? new Set<string>();
@@ -405,7 +421,7 @@ function validateGraph(graph: WorldGraph): ValidationReport {
     }
   }
 
-  if (!graph.nodes.some((n) => n.type === "nodetool.output.StringOutput")) {
+  if (!graph.nodes.some((n) => n.type === "nodetool.output.Output")) {
     warnings.push("Graph has no output node, so a run reports nothing.");
   }
   return { valid: errors.length === 0, errors, warnings };
@@ -443,7 +459,7 @@ function runGraph(
       }
       const value = node.id === skipNodeId ? "" : spec.evaluate(props);
       values.set(node.id, value);
-      if (node.type === "nodetool.output.StringOutput") {
+      if (node.type === "nodetool.output.Output") {
         outputs[str(props["name"])] = value;
       }
       remaining.splice(remaining.indexOf(node), 1);
@@ -789,6 +805,7 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         node_type: spec.type,
         description: spec.description,
         properties: spec.properties,
+        dynamic_inputs: spec.dynamicInputs === true,
         outputs: spec.outputs
       };
     }),
@@ -1185,8 +1202,8 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
     id: "api-graph-build-and-run",
     description: "Discover node types, then build, validate and run a graph",
     objective:
-      "Build a workflow that takes a string input named `name` and reports a " +
-      "string output named `greeting` reading `<name>, welcome aboard!`. " +
+      "Build a workflow that takes a string input named `name` and reports an " +
+      "output named `greeting` reading `<name>, welcome aboard!`. " +
       "Discover the node types from the catalog — never guess a type. " +
       "Validate the graph before running it, then run it with name = \"Ada\" " +
       "and finish with {greeting: <the run's greeting output>}.",
@@ -1196,7 +1213,8 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       required: ["greeting"]
     },
     createTools: createCoreApiTools,
-    namespaces: ["nodes", "graph", "workflows"],
+    sandboxPackages: [GRAPH_DSL_PACKAGE],
+    namespaces: ["nodes", "workflows"],
     expect: {
       requiredTools: ["search_nodes", "validate_workflow", "run_workflow"],
       maxActions: 5,
@@ -1208,25 +1226,29 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
     id: "api-probe-node-then-wire",
     description: "Probe a node with the single-node harness before wiring it",
     objective:
-      "Find the node that turns a title into a URL slug. Probe it on its own " +
-      'with the title "Hello World Again" so you know exactly what it emits, ' +
-      "then build and run a workflow that slugifies a `title` input, using " +
-      '"Fox In Snow" as the title. Finish with {probe: <the probe output>, ' +
-      "slug: <the run's slug output>}.",
+      "Find the node that renders a text template. Probe it on its own with " +
+      'the template "{{title}} — a field report" and title "Hello World" so ' +
+      "you know exactly what it emits, then build and run a workflow that " +
+      "renders that same template from a `title` input, using " +
+      '"Fox In Snow" as the title. Report the rendered line as an output ' +
+      "named `line`. Finish with {probe: <the probe output>, " +
+      "line: <the run's line output>}.",
     outputSchema: {
       type: "object",
-      properties: { probe: { type: "string" }, slug: { type: "string" } },
-      required: ["probe", "slug"]
+      properties: { probe: { type: "string" }, line: { type: "string" } },
+      required: ["probe", "line"]
     },
     createTools: createCoreApiTools,
-    namespaces: ["nodes", "graph", "workflows"],
+    sandboxPackages: [GRAPH_DSL_PACKAGE],
+    namespaces: ["nodes", "workflows"],
     expect: {
       requiredTools: ["run_node", "run_workflow"],
       maxActions: 5,
       resultCheck: (r) =>
-        asObject(r)["probe"] === "hello-world-again" &&
-        asObject(r)["slug"] === "fox-in-snow",
-      resultCheckLabel: "probe=hello-world-again, slug=fox-in-snow"
+        asObject(r)["probe"] === "Hello World — a field report" &&
+        asObject(r)["line"] === "Fox In Snow — a field report",
+      resultCheckLabel:
+        'probe="Hello World — a field report", line="Fox In Snow — a field report"'
     }
   },
   {

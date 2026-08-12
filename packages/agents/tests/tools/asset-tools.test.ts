@@ -4,10 +4,12 @@
 
 import { Buffer } from "node:buffer";
 import { describe, it, expect, vi } from "vitest";
-import { SaveAssetTool } from "../../src/tools/asset-tools.js";
-import { ReadAssetTool } from "../../src/tools/asset-tools.js";
+import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
+
+const saveAssetTool = () => toolForCapabilityName("save_asset");
+const readAssetTool = () => toolForCapabilityName("read_asset");
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -26,7 +28,7 @@ function makeContext(
 /* ------------------------------------------------------------------ */
 
 describe("SaveAssetTool", () => {
-  const tool = new SaveAssetTool();
+  const tool = saveAssetTool();
 
   it("has correct name and description", () => {
     expect(tool.name).toBe("save_asset");
@@ -180,7 +182,7 @@ describe("SaveAssetTool", () => {
 /* ------------------------------------------------------------------ */
 
 describe("ReadAssetTool", () => {
-  const tool = new ReadAssetTool();
+  const tool = readAssetTool();
 
   it("has correct name and description", () => {
     expect(tool.name).toBe("read_asset");
@@ -271,8 +273,8 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
     const storage = new InMemoryStorageAdapter();
     const ctx = makeContext(storage);
 
-    const saveTool = new SaveAssetTool();
-    const readTool = new ReadAssetTool();
+    const saveTool = saveAssetTool();
+    const readTool = readAssetTool();
 
     const saved = (await saveTool.process(ctx, {
       name: "round-trip.txt",
@@ -300,14 +302,14 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
       storage
     } as unknown as ProcessingContext;
 
-    const saved = (await new SaveAssetTool().process(ctx, {
+    const saved = (await saveAssetTool().process(ctx, {
       name: "report.md",
       content: "# Findings",
       content_type: "text/markdown"
     })) as Record<string, unknown>;
     expect(saved.asset_id).toBe("db-generated-id");
 
-    const read = (await new ReadAssetTool().process(ctx, {
+    const read = (await readAssetTool().process(ctx, {
       name: "report.md"
     })) as Record<string, unknown>;
     expect(read.success).toBe(true);
@@ -321,13 +323,13 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
     // Bytes that are not valid UTF-8 (a PNG signature fragment).
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe]);
     const b64 = Buffer.from(bytes).toString("base64");
-    await new SaveAssetTool().process(ctx, {
+    await saveAssetTool().process(ctx, {
       name: "cover.png",
       content_base64: b64,
       content_type: "image/png"
     });
 
-    const read = (await new ReadAssetTool().process(ctx, {
+    const read = (await readAssetTool().process(ctx, {
       name: "cover.png"
     })) as Record<string, unknown>;
 

@@ -317,9 +317,15 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     // Comment
     lines.push(`// ${meta.title || className} — ${meta.node_type}`);
 
-    // --- Inputs interface ---
+    // --- Inputs type ---
+    // A type alias, not an interface: TypeScript infers an implicit index
+    // signature for an aliased object literal type, so the inputs bag is
+    // assignable to createNode's `Record<string, unknown>` with no cast. An
+    // interface never gets that index signature, and one with a required
+    // member is not comparable to Record either — that combination is what
+    // made the old `inputs as Record<string, unknown>` cast fail to compile.
     const hasProps = meta.properties.length > 0;
-    lines.push(`export interface ${className}Inputs {`);
+    lines.push(`export type ${className}Inputs = {`);
     for (const prop of meta.properties) {
       const tsType = mapType(prop.type);
       const hasDefault = Object.prototype.hasOwnProperty.call(prop, "default");
@@ -333,7 +339,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
         `  ${propName}${optional ? "?" : ""}: Connectable<${tsType}>;`
       );
     }
-    lines.push("}");
+    lines.push("};");
     lines.push("");
 
     // --- Outputs interface ---
@@ -369,9 +375,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     if (defaultOutput) baseOpts.push(`defaultOutput: ${defaultOutput}`);
     if (meta.is_streaming_output) baseOpts.push("streaming: true");
     if (meta.is_streaming_input) baseOpts.push("streamingInput: true");
-    const castExpr = hasProps
-      ? "inputs as Record<string, unknown>"
-      : "(inputs ?? {}) as Record<string, unknown>";
+    const inputsExpr = hasProps ? "inputs" : "inputs ?? {}";
 
     const optsExpr = `{ ${baseOpts.join(", ")} }`;
 
@@ -379,7 +383,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
       `export function ${factoryName}(${inputsArg}): ${returnType} {`
     );
     lines.push(
-      `  return createNode("${meta.node_type}", ${castExpr}, ${optsExpr});`
+      `  return createNode("${meta.node_type}", ${inputsExpr}, ${optsExpr});`
     );
     lines.push("}");
     lines.push("");
@@ -404,9 +408,16 @@ function generateBarrel(namespaces: string[]): string {
 // Main
 // ---------------------------------------------------------------------------
 
-function main(): void {
-  console.log(`Introspecting ${ALL_BASE_NODES.length} node classes...`);
+/** The files `src/generated/` must hold, keyed by file name. */
+interface GeneratedOutput {
+  files: Map<string, string>;
+  /** Node count per namespace file, for the log line. */
+  nodeCounts: Map<string, number>;
+  namespaces: string[];
+  totalNodes: number;
+}
 
+function generateAll(): GeneratedOutput {
   // Group nodes by namespace
   const byNamespace = new Map<string, NodeInfo[]>();
   let totalNodes = 0;
@@ -438,9 +449,31 @@ function main(): void {
     totalNodes++;
   }
 
-  // Ensure output directory exists and is clean
+  const files = new Map<string, string>();
+  const nodeCounts = new Map<string, number>();
+  const namespaces: string[] = [];
+  for (const [ns, nodes] of byNamespace) {
+    files.set(`${ns}.ts`, generateFile(ns, nodes));
+    nodeCounts.set(`${ns}.ts`, nodes.length);
+    namespaces.push(ns);
+  }
+  files.set("index.ts", generateBarrel(namespaces));
+
+  return { files, nodeCounts, namespaces, totalNodes };
+}
+
+/** Read what is on disk under `src/generated/`, keyed by file name. */
+function readGenerated(): Map<string, string> {
+  const onDisk = new Map<string, string>();
+  if (!fs.existsSync(GENERATED_DIR)) return onDisk;
+  for (const file of fs.readdirSync(GENERATED_DIR)) {
+    onDisk.set(file, fs.readFileSync(path.join(GENERATED_DIR, file), "utf8"));
+  }
+  return onDisk;
+}
+
+function write(output: GeneratedOutput): void {
   if (fs.existsSync(GENERATED_DIR)) {
-    // Remove old generated files
     for (const file of fs.readdirSync(GENERATED_DIR)) {
       fs.unlinkSync(path.join(GENERATED_DIR, file));
     }
@@ -448,24 +481,60 @@ function main(): void {
     fs.mkdirSync(GENERATED_DIR, { recursive: true });
   }
 
-  // Generate per-namespace files
-  const namespaces: string[] = [];
-  for (const [ns, nodes] of byNamespace) {
-    const fileName = `${ns}.ts`;
-    const filePath = path.join(GENERATED_DIR, fileName);
-    const content = generateFile(ns, nodes);
-    fs.writeFileSync(filePath, content);
-    namespaces.push(ns);
-    console.log(`  ${fileName} — ${nodes.length} nodes`);
+  for (const [fileName, content] of output.files) {
+    fs.writeFileSync(path.join(GENERATED_DIR, fileName), content);
+    const count = output.nodeCounts.get(fileName);
+    console.log(
+      count === undefined ? `  ${fileName}` : `  ${fileName} — ${count} nodes`
+    );
   }
 
-  // Generate barrel index
-  const barrelPath = path.join(GENERATED_DIR, "index.ts");
-  fs.writeFileSync(barrelPath, generateBarrel(namespaces));
-
   console.log(
-    `\nDone: ${namespaces.length} namespace files, ${totalNodes} nodes total.`
+    `\nDone: ${output.namespaces.length} namespace files, ${output.totalNodes} nodes total.`
   );
+}
+
+/**
+ * Compare the generated output against what is checked in. Exits 1 on any
+ * difference, so CI catches a DSL that no longer matches the node registry.
+ */
+function check(output: GeneratedOutput): void {
+  const onDisk = readGenerated();
+  const missing: string[] = [];
+  const changed: string[] = [];
+
+  for (const [fileName, content] of output.files) {
+    const current = onDisk.get(fileName);
+    if (current === undefined) missing.push(fileName);
+    else if (current !== content) changed.push(fileName);
+  }
+  const extra = [...onDisk.keys()].filter((f) => !output.files.has(f));
+
+  if (missing.length === 0 && changed.length === 0 && extra.length === 0) {
+    console.log(
+      `src/generated/ is up to date (${output.namespaces.length} namespaces, ${output.totalNodes} nodes).`
+    );
+    return;
+  }
+
+  console.error(
+    "\nsrc/generated/ is out of date — the DSL no longer matches the node registry."
+  );
+  for (const file of missing.sort()) console.error(`  missing: ${file}`);
+  for (const file of extra.sort()) console.error(`  stale:   ${file}`);
+  for (const file of changed.sort()) console.error(`  changed: ${file}`);
+  console.error(
+    "\nRun `npm run codegen --workspace=packages/dsl` and commit the result."
+  );
+  process.exit(1);
+}
+
+function main(): void {
+  const checkOnly = process.argv.includes("--check");
+  console.log(`Introspecting ${ALL_BASE_NODES.length} node classes...`);
+  const output = generateAll();
+  if (checkOnly) check(output);
+  else write(output);
 }
 
 main();

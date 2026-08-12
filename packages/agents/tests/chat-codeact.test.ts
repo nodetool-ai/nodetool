@@ -263,12 +263,12 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     expect(String(obs.result)).toContain("does not exist in chat");
   });
 
-  it("answers searchTools() with signatures over the schema catalog", async () => {
+  it("answers nodetool.searchTools() with signatures over the schema catalog", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `const hits = await searchTools("select:add");\nreturn hits[0];`
+      `const hits = await nodetool.searchTools("select:add");\nreturn hits[0];`
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toMatchObject({ name: "add" });

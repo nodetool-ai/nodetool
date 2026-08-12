@@ -14,6 +14,7 @@ import {
   getConfiguredSerpProvider,
   resolveSerpProvider
 } from "../../src/tools/serp-tool-factory.js";
+import { webSearch } from "../../src/capabilities/web.js";
 
 function makeContext(secrets: Record<string, string> = {}): ProcessingContext {
   return {
@@ -121,7 +122,9 @@ describe("SERP tool factory", () => {
       });
       const tool = await createSearchTool(ctx);
       expect(tool.name).toBe("web_search");
-      expect(tool.constructor.name).toBe("WebSearchTool");
+      // The factory binds the resolved provider into the implementation, so the
+      // tool is built from the capability rather than pulled from the registry.
+      expect(tool.inputSchema).toEqual(webSearch.spec.inputSchema);
     });
 
     it("uses default SerpAPI when provider not set", async () => {

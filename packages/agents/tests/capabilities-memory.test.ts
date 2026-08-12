@@ -23,14 +23,9 @@ import type {
   CapabilityExport,
   CapabilityGate
 } from "../src/capabilities/types.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
-import {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool
-} from "../src/tools/thread-memory-tools.js";
 
 const gate: CapabilityGate = {
   mode: "auto",
@@ -71,12 +66,12 @@ describe("memory capability module", () => {
   });
 });
 
-describe("wire compatibility with the deprecated classes", () => {
+describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
-    [new ThreadMemorySaveTool(), "thread_memory_save"],
-    [new ThreadMemoryListTool(), "thread_memory_list"],
-    [new ThreadMemoryUpdateTool(), "thread_memory_update"],
-    [new ThreadMemoryDeleteTool(), "thread_memory_delete"]
+    [toolForCapabilityName("thread_memory_save"), "thread_memory_save"],
+    [toolForCapabilityName("thread_memory_list"), "thread_memory_list"],
+    [toolForCapabilityName("thread_memory_update"), "thread_memory_update"],
+    [toolForCapabilityName("thread_memory_delete"), "thread_memory_delete"]
   ];
 
   it.each(pairs)("%o keeps its name, description and schema", (tool, name) => {
@@ -87,10 +82,12 @@ describe("wire compatibility with the deprecated classes", () => {
   });
 
   it("keeps the userMessage templates", () => {
-    expect(new ThreadMemorySaveTool().userMessage({ title: "palette" })).toBe(
-      "Remembering: palette"
-    );
-    expect(new ThreadMemoryListTool().userMessage({})).toBe(
+    expect(
+      toolForCapabilityName("thread_memory_save").userMessage({
+        title: "palette"
+      })
+    ).toBe("Remembering: palette");
+    expect(toolForCapabilityName("thread_memory_list").userMessage({})).toBe(
       "Recalling conversation memory"
     );
   });

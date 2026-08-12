@@ -8,20 +8,16 @@
 
 import { describe, it, expect } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  ValidateCodeTool,
-  RunCodeTool,
-  TestCodeTool
-} from "../src/tools/code-authoring-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/index.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 const context = () => createMockContext() as unknown as ProcessingContext;
 
 describe("validate_code", () => {
   it("passes a clean body and reports its issues structurally", async () => {
-    const tool = new ValidateCodeTool();
+    const tool = toolForCapabilityName("validate_code");
     const clean = (await tool.execute(context(), {
       code: "return { sum: inputs.a + inputs.b };",
       inputs: ["a", "b"],
@@ -32,7 +28,7 @@ describe("validate_code", () => {
   });
 
   it("flags syntax errors, undeclared inputs, and missing outputs", async () => {
-    const tool = new ValidateCodeTool();
+    const tool = toolForCapabilityName("validate_code");
     const syntax = (await tool.execute(context(), {
       code: "return {"
     })) as { ok: boolean; issues: { code: string }[] };
@@ -66,7 +62,7 @@ describe("validate_code", () => {
 
 describe("run_code", () => {
   it("runs a body with inputs and returns outputs + logs", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: 'console.log("computing"); return { sum: inputs.a + inputs.b };',
       inputs: { a: 2, b: 3 }
@@ -77,7 +73,7 @@ describe("run_code", () => {
   });
 
   it("wraps an implicit return the way the Code node does", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: "({ doubled: inputs.x * 2 })",
       inputs: { x: 4 }
@@ -87,7 +83,7 @@ describe("run_code", () => {
   });
 
   it("collects yield into streamed items", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: "for (const item of inputs.items) { yield ({ item }); }",
       inputs: { items: ["a", "b"] }
@@ -97,7 +93,7 @@ describe("run_code", () => {
   });
 
   it("reports a thrown error instead of throwing", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: 'throw new Error("boom");'
     })) as { ok: boolean; error: string };
@@ -106,7 +102,7 @@ describe("run_code", () => {
   });
 
   it("denies secrets by default", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: 'return { key: await getSecret("OPENAI_API_KEY") };'
     })) as { ok: boolean; error: string };
@@ -115,7 +111,7 @@ describe("run_code", () => {
   });
 
   it("refuses declared packages when no catalog is mounted", async () => {
-    const tool = new RunCodeTool();
+    const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
       code: "return {};",
       packages: ["@nodetool-ai/sandbox-yaml"]
@@ -127,7 +123,7 @@ describe("run_code", () => {
 
 describe("test_code", () => {
   it("grades cases against expected outputs", async () => {
-    const tool = new TestCodeTool();
+    const tool = toolForCapabilityName("test_code");
     const result = (await tool.execute(context(), {
       code: "return { sum: inputs.a + inputs.b };",
       cases: [
@@ -155,7 +151,7 @@ describe("test_code", () => {
   });
 
   it("rejects an empty case list", async () => {
-    const tool = new TestCodeTool();
+    const tool = toolForCapabilityName("test_code");
     const result = (await tool.execute(context(), {
       code: "return {};",
       cases: []
@@ -166,10 +162,9 @@ describe("test_code", () => {
 
 describe("registration", () => {
   it("is on the builtin belt with the pinned categories", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
-    expect(names).toContain("validate_code");
-    expect(names).toContain("run_code");
-    expect(names).toContain("test_code");
+    expect(BUILTIN_TOOL_NAMES).toContain("validate_code");
+    expect(BUILTIN_TOOL_NAMES).toContain("run_code");
+    expect(BUILTIN_TOOL_NAMES).toContain("test_code");
     expect(permissionCategoryFor("validate_code")).toBe("read");
     expect(permissionCategoryFor("run_code")).toBe("execute");
     expect(permissionCategoryFor("test_code")).toBe("execute");

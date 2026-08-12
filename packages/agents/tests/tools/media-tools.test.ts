@@ -15,15 +15,15 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  AnimateImageTool,
-  EditImageTool,
-  EmbedTextTool,
-  GenerateImageTool,
-  GenerateSpeechTool,
-  GenerateVideoTool,
-  TranscribeAudioTool
-} from "../../src/tools/media-tools.js";
+import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
+
+const animateImageTool = () => toolForCapabilityName("animate_image");
+const editImageTool = () => toolForCapabilityName("edit_image");
+const embedTextTool = () => toolForCapabilityName("embed_text");
+const generateImageTool = () => toolForCapabilityName("generate_image");
+const generateSpeechTool = () => toolForCapabilityName("generate_speech");
+const generateVideoTool = () => toolForCapabilityName("generate_video");
+const transcribeAudioTool = () => toolForCapabilityName("transcribe_audio");
 
 let workspaceDir: string;
 function createTmpWorkspace(): string {
@@ -104,7 +104,7 @@ describe("GenerateImageTool", () => {
         return bytes;
       }
     });
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const result = (await tool.process(ctx, {
       provider: "openai",
       model: "gpt-image-1",
@@ -137,7 +137,7 @@ describe("GenerateImageTool", () => {
       assetMode: "enabled",
       assetCalls
     });
-    const result = (await new GenerateImageTool().process(ctx, {
+    const result = (await generateImageTool().process(ctx, {
       provider: "openai",
       model: "gpt-image-1",
       prompt: "a cat"
@@ -162,7 +162,7 @@ describe("GenerateImageTool", () => {
       assetMode: "enabled",
       assetCalls
     });
-    const result = (await new GenerateImageTool().process(ctx, {
+    const result = (await generateImageTool().process(ctx, {
       provider: "openai",
       model: "gpt-image-1",
       prompt: "a cat",
@@ -175,7 +175,7 @@ describe("GenerateImageTool", () => {
 
   it("returns error when required args are missing", async () => {
     const ctx = makeContext({});
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(ctx, {
       provider: "openai",
       model: "gpt-image-1"
@@ -185,7 +185,7 @@ describe("GenerateImageTool", () => {
 
   it("returns error when provider/model missing", async () => {
     const ctx = makeContext({});
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(ctx, {
       prompt: "a cat",
       output_file: "out/x.png"
@@ -209,7 +209,7 @@ describe("EditImageTool", () => {
       }
     });
 
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const result = (await tool.process(ctx, {
       provider: "openai",
       model: "gpt-image-1",
@@ -239,7 +239,7 @@ describe("GenerateVideoTool / AnimateImageTool", () => {
       assetMode: "enabled",
       assetCalls
     });
-    const tool = new GenerateVideoTool();
+    const tool = generateVideoTool();
     const r = (await tool.process(ctx, {
       provider: "fal_ai",
       model: "runway",
@@ -261,7 +261,7 @@ describe("GenerateVideoTool / AnimateImageTool", () => {
         return new Uint8Array([2]);
       }
     });
-    const tool = new AnimateImageTool();
+    const tool = animateImageTool();
     await tool.process(ctx, {
       provider: "fal_ai",
       model: "runway",
@@ -289,7 +289,7 @@ describe("GenerateSpeechTool", () => {
       assetMode: "enabled",
       assetCalls
     });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const result = (await tool.process(ctx, {
       provider: "openai",
       model: "tts-1",
@@ -314,7 +314,7 @@ describe("GenerateSpeechTool", () => {
           yield { data: new Uint8Array([7, 8, 9]) };
         })()
     });
-    const r = (await new GenerateSpeechTool().process(ctx, {
+    const r = (await generateSpeechTool().process(ctx, {
       provider: "openai",
       model: "tts-1",
       text: "hi",
@@ -328,7 +328,7 @@ describe("GenerateSpeechTool", () => {
     const ctx = makeContext({
       stream: () => (async function* () {})() as AsyncGenerator<unknown>
     });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(ctx, {
       provider: "openai",
       model: "tts-1",
@@ -345,7 +345,7 @@ describe("TranscribeAudioTool", () => {
     const ctx = makeContext({
       run: () => ({ text: "hello world" })
     });
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(ctx, {
       provider: "openai",
       model: "whisper-1",
@@ -360,7 +360,7 @@ describe("TranscribeAudioTool", () => {
     fs.writeFileSync(path.join(workspaceDir, "in.wav"), Buffer.from([42]));
     const longText = "a".repeat(2000);
     const ctx = makeContext({ run: () => ({ text: longText }) });
-    const r = (await new TranscribeAudioTool().process(ctx, {
+    const r = (await transcribeAudioTool().process(ctx, {
       provider: "openai",
       model: "whisper-1",
       input_file: "in.wav"
@@ -382,7 +382,7 @@ describe("EmbedTextTool", () => {
         ];
       }
     });
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(ctx, {
       provider: "openai",
       model: "text-embedding-3-small",
@@ -396,7 +396,7 @@ describe("EmbedTextTool", () => {
 
   it("rejects non-string/array text", async () => {
     const ctx = makeContext({});
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(ctx, {
       provider: "openai",
       model: "text-embedding-3-small",

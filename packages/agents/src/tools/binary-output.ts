@@ -7,8 +7,8 @@
  *      UI-fetchable URL so the chat UI can display the result inline instead
  *      of echoing a `file://` path or a base64 data URI.
  *
- * Centralized here so download_file, openai_image_generation, openai_tts,
- * gemini_image_generation, etc. all follow the same pattern.
+ * Centralized here so download_file, generate_image, generate_speech and
+ * every other binary-producing tool follow the same pattern.
  */
 
 import { extname } from "node:path";

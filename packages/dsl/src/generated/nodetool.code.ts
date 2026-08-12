@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 
 // Code — nodetool.code.Code
-export interface CodeInputs {
+export type CodeInputs = {
   code?: Connectable<string>;
   packages?: Connectable<Record<string, unknown>[]>;
   secrets?: Connectable<string[]>;
@@ -11,11 +11,11 @@ export interface CodeInputs {
   max_response_mb?: Connectable<number>;
   allow_local_network?: Connectable<boolean>;
   allow_host_filesystem?: Connectable<boolean>;
-}
+};
 
 export interface CodeOutputs {
 }
 
 export function code(inputs: CodeInputs): DslNode<CodeOutputs> {
-  return createNode("nodetool.code.Code", inputs as Record<string, unknown>, { outputNames: [], streaming: true });
+  return createNode("nodetool.code.Code", inputs, { outputNames: [], streaming: true });
 }

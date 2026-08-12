@@ -9,6 +9,7 @@
  */
 
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
 import { permissionCategoryFor } from "../tools/tool-permissions.js";
 import type {
@@ -43,6 +44,12 @@ function isRunFactory(
 export class CapabilityTool extends Tool {
   readonly name: string;
   readonly description: string;
+  /**
+   * A capability that nests what it runs under the caller's card declares the
+   * need in its spec, so the wrapper asks `Tool.execute` for the id the same
+   * way the class it replaces did.
+   */
+  override readonly needsToolCallId: boolean;
 
   constructor(
     private readonly spec: CapabilitySpec,
@@ -52,10 +59,20 @@ export class CapabilityTool extends Tool {
     super();
     this.name = spec.name;
     this.description = spec.description;
+    this.needsToolCallId = spec.needsToolCallId === true;
   }
 
   override get inputSchema(): JsonSchema {
     return this.spec.inputSchema;
+  }
+
+  /**
+   * The Zod schema for the capabilities whose identity is one, exactly as
+   * {@link toolFromLazyCapability} exposes it: `Tool.execute` then validates on
+   * the way in, where the class this replaces validated.
+   */
+  override get schema(): ZodType | undefined {
+    return this.spec.zodSchema;
   }
 
   override userMessage(params: Record<string, unknown>): string {
@@ -98,6 +115,7 @@ export function capabilityFromTool(tool: Tool): CapabilityExport {
     description: tool.description,
     inputSchema: tool.inputSchema,
     category: permissionCategoryFor(tool.name),
+    needsToolCallId: tool.needsToolCallId,
     userMessage: (args) => tool.userMessage(args)
   };
   return {

@@ -8,7 +8,7 @@
  * the chat runner uses, so the two cannot drift — and `view_image`, which stays
  * direct because pixels cannot ride the sandbox's JSON observation envelope.
  * Every other capability lives inside the sandbox as `tools.<name>()` and the
- * `nodetool.*` object model, found with `searchTools()` and catalogued on the
+ * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued on the
  * `nodetool://capabilities` resource.
  *
  * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
@@ -29,21 +29,12 @@ import {
   CODEACT_RESIDENT_TOOL_NAMES,
   createChatCodeActSession,
   type ChatCodeActToolCall,
-  ValidateTimelineTool,
-  ValidateSketchTool,
-  FindModelTool,
-  ListModelsTool,
-  GenerateImageTool,
-  EditImageTool,
-  GenerateVideoTool,
-  AnimateImageTool,
-  GenerateSpeechTool,
-  TranscribeAudioTool,
-  EmbedTextTool,
   getAgentToolbelt,
   getAllMcpTools,
   getGoogleWorkspaceTools,
   permissionCategoryFor,
+  toolForCapabilityName,
+  UNGATED,
   createCapabilityRun,
   type CapabilityRun,
   NODETOOL_API_NAMESPACE_TOOLS
@@ -341,25 +332,43 @@ function collectBridgedTools(
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.
     ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
-    // Timelines have no REST route (the API is tRPC-only), so this tool takes a
-    // loader instead of fetching, and `getAllMcpTools` cannot construct it.
-    new ValidateTimelineTool(loadTimelineForUser),
-    // Sketches are tRPC-only too, so this one takes a loader for the same
-    // reason and `getAllMcpTools` cannot construct it either.
-    new ValidateSketchTool(loadSketchForUser),
+    // Timelines have no REST route (the API is tRPC-only), so this capability
+    // reads a loader off the run instead of fetching, and `getAllMcpTools`
+    // cannot build it.
+    toolForCapabilityName("validate_timeline", (context) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        loaders: { timeline: loadTimelineForUser }
+      })
+    ),
+    // Sketches are tRPC-only too, so this one reads a loader for the same
+    // reason and `getAllMcpTools` cannot build it either.
+    toolForCapabilityName("validate_sketch", (context) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        loaders: { sketch: loadSketchForUser }
+      })
+    ),
     // `getAllMcpTools` only offers the media tools when handed a populated
     // provider map. Here they resolve providers from the scoped user's secrets
     // at call time, so offer them unconditionally rather than probing every
     // provider during server construction.
-    new GenerateImageTool(),
-    new EditImageTool(),
-    new GenerateVideoTool(),
-    new AnimateImageTool(),
-    new GenerateSpeechTool(),
-    new TranscribeAudioTool(),
-    new EmbedTextTool(),
-    new FindModelTool(providers),
-    new ListModelsTool(providers)
+    ...[
+      "generate_image",
+      "edit_image",
+      "generate_video",
+      "animate_image",
+      "generate_speech",
+      "transcribe_audio",
+      "embed_text"
+    ].map((name) => toolForCapabilityName(name)),
+    ...["find_model", "list_models"].map((name) =>
+      toolForCapabilityName(name, (context) =>
+        createCapabilityRun({ context, gate: UNGATED, providers })
+      )
+    )
   ];
 }
 
@@ -513,7 +522,7 @@ function buildCapabilityCatalog(
  *
  * Everything else the catalogs offer becomes the sandbox belt instead of an MCP
  * tool. It stays fully reachable — `tools.<name>()`, the `nodetool.*` object
- * model, `await searchTools("query")` — and the `execute_code` description
+ * model, `await nodetool.searchTools("query")` — and the `execute_code` description
  * carries the same contract and catalog the chat runner puts in its system
  * prompt, because MCP has no system prompt to put it in.
  */
@@ -583,7 +592,7 @@ export function registerAgentMcpTools(
   ): Promise<unknown> => {
     // find_model and list_models read the configured-providers map at call
     // time, so populate it before either handler runs.
-    if (tool instanceof FindModelTool || tool instanceof ListModelsTool) {
+    if (tool.name === "find_model" || tool.name === "list_models") {
       await ensureProviders();
     }
     if (workflowDocumentToolNames.has(tool.name)) {

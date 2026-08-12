@@ -14,9 +14,35 @@
 import {
   PERMISSION_CATEGORIES,
   type CapabilityExport,
+  type CapabilityImpl,
   type CapabilityModule,
+  type CapabilitySpec,
   type PermissionCategory
 } from "./types.js";
+import { agentsSpecs } from "./agents.specs.js";
+import { appsSpecs } from "./apps.specs.js";
+import { assetsSpecs } from "./assets.specs.js";
+import { codeSpecs } from "./code.specs.js";
+import { collectionsSpecs } from "./collections.specs.js";
+import { documentsSpecs } from "./documents.specs.js";
+import { emailSpecs } from "./email.specs.js";
+import { filesSpecs } from "./files.specs.js";
+import { googleSpecs } from "./google.specs.js";
+import { jobsSpecs } from "./jobs.specs.js";
+import { mediaSpecs } from "./media.specs.js";
+import { memorySpecs } from "./memory.specs.js";
+import { modelsSpecs } from "./models.specs.js";
+import { nodesSpecs } from "./nodes.specs.js";
+import { packsSpecs } from "./packs.specs.js";
+import { scriptsSpecs } from "./scripts.specs.js";
+import { sharedSpecs } from "./shared.specs.js";
+import { sketchesSpecs } from "./sketches.specs.js";
+import { storyboardsSpecs } from "./storyboards.specs.js";
+import { styleSpecs } from "./style.specs.js";
+import { timelinesSpecs } from "./timelines.specs.js";
+import { uiSpecs } from "./ui.specs.js";
+import { webSpecs } from "./web.specs.js";
+import { workflowsSpecs } from "./workflows.specs.js";
 
 type Loader = () => Promise<CapabilityModule>;
 
@@ -34,6 +60,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   documents: () => import("./documents.js").then((m) => m.module),
   email: () => import("./email.js").then((m) => m.module),
   memory: () => import("./memory.js").then((m) => m.module),
+  shared: () => import("./shared.js").then((m) => m.module),
   web: () => import("./web.js").then((m) => m.module),
   files: () => import("./files.js").then((m) => m.module),
   agents: () => import("./agents.js").then((m) => m.module),
@@ -42,7 +69,9 @@ const MODULES: Readonly<Record<string, Loader>> = {
   sketches: () => import("./sketches.js").then((m) => m.module),
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
-  code: () => import("./code.js").then((m) => m.module)
+  code: () => import("./code.js").then((m) => m.module),
+  packs: () => import("./packs.js").then((m) => m.module),
+  ui: () => import("./ui.js").then((m) => m.module)
 };
 
 /**
@@ -65,6 +94,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "documents",
   "email",
   "memory",
+  "shared",
   "web",
   "files",
   "agents",
@@ -73,8 +103,83 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "sketches",
   "scripts",
   "storyboards",
-  "code"
+  "code",
+  "packs",
+  "ui"
 ];
+
+/**
+ * The eager half of the table: every module's specs, available synchronously.
+ *
+ * A spec file is data — the wire name, the description, the JSON schema, the
+ * category, the message template — and imports nothing an implementation
+ * needs, so importing all of them costs one object graph and no `import()`.
+ * That is what lets a belt be assembled synchronously from the registry while
+ * {@link MODULES} keeps every implementation behind a lazy import.
+ *
+ * Both halves list the same modules, and `capabilityModuleDrift` compares them
+ * spec by spec, so the eager table cannot fall behind what a module exports.
+ */
+const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
+  workflows: workflowsSpecs,
+  models: modelsSpecs,
+  media: mediaSpecs,
+  style: styleSpecs,
+  collections: collectionsSpecs,
+  nodes: nodesSpecs,
+  jobs: jobsSpecs,
+  assets: assetsSpecs,
+  apps: appsSpecs,
+  documents: documentsSpecs,
+  email: emailSpecs,
+  memory: memorySpecs,
+  shared: sharedSpecs,
+  web: webSpecs,
+  files: filesSpecs,
+  agents: agentsSpecs,
+  google: googleSpecs,
+  timelines: timelinesSpecs,
+  sketches: sketchesSpecs,
+  scripts: scriptsSpecs,
+  storyboards: storyboardsSpecs,
+  code: codeSpecs,
+  packs: packsSpecs,
+  ui: uiSpecs
+};
+
+const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(
+  Object.values(MODULE_SPECS).flatMap((specs) =>
+    specs.map((spec) => [spec.name, spec] as const)
+  )
+);
+
+const MODULE_OF_NAME: ReadonlyMap<string, string> = new Map(
+  Object.entries(MODULE_SPECS).flatMap(([moduleName, specs]) =>
+    specs.map((spec) => [spec.name, moduleName] as const)
+  )
+);
+
+/** Every registered capability's spec, read without loading a module. */
+export function listCapabilitySpecs(): readonly CapabilitySpec[] {
+  return [...SPEC_BY_NAME.values()];
+}
+
+/** One module's specs, read without loading it. */
+export function capabilityModuleSpecTable(
+  moduleName: string
+): readonly CapabilitySpec[] {
+  return Object.hasOwn(MODULE_SPECS, moduleName)
+    ? MODULE_SPECS[moduleName]
+    : [];
+}
+
+/**
+ * One capability's spec by wire name, synchronously. A miss means no module
+ * declares that name — the belt builders treat it as a programming error.
+ */
+export function capabilitySpec(name: string): CapabilitySpec | undefined {
+  return SPEC_BY_NAME.get(name);
+}
 
 const cache = new Map<string, Promise<CapabilityModule>>();
 
@@ -102,6 +207,31 @@ export function loadCapabilityModule(
   cache.set(moduleName, loading);
   void loading.catch(() => cache.delete(moduleName));
   return loading;
+}
+
+/**
+ * One capability's implementation, loading only the module that owns it.
+ *
+ * The eager spec table says which module that is, so a belt built from specs
+ * pays for one `import()` at first invoke instead of the whole table the way
+ * {@link findCapability} does.
+ */
+export async function loadCapabilityImpl(
+  name: string
+): Promise<CapabilityImpl> {
+  const moduleName = MODULE_OF_NAME.get(name);
+  if (moduleName === undefined) {
+    throw new Error(`no capability is registered for "${name}"`);
+  }
+  const mod = await loadCapabilityModule(moduleName);
+  const entry = mod.exports.find((candidate) => candidate.spec.name === name);
+  if (entry === undefined) {
+    throw new Error(
+      `capability module "${moduleName}" declares "${name}" but exports no ` +
+        `implementation for it`
+    );
+  }
+  return entry.impl;
 }
 
 /** Module names this process can serve. */
@@ -194,6 +324,42 @@ export function capabilityModuleIssues(
 }
 
 /**
+ * What the eager spec table says about one module against what the module
+ * itself exports. The two halves are meant to be one object per capability, so
+ * anything but identity is drift: a name only one half has, or a spec the
+ * module rebuilt instead of importing from its `.specs.ts` sibling.
+ *
+ * Identity, not deep equality, on purpose. A module that copies its spec would
+ * pass a field-by-field check and still be two things to keep in step.
+ */
+export function eagerSpecDrift(
+  moduleName: string,
+  mod: CapabilityModule
+): readonly string[] {
+  const issues: string[] = [];
+  const eager = new Map(
+    capabilityModuleSpecTable(moduleName).map((spec) => [spec.name, spec])
+  );
+  for (const entry of mod.exports) {
+    const spec = eager.get(entry.spec.name);
+    if (spec === undefined) {
+      issues.push(`${entry.spec.name} is exported by ${moduleName} but carries no eager spec`);
+      continue;
+    }
+    if (spec !== entry.spec) {
+      issues.push(
+        `${entry.spec.name} has a different spec object in ${moduleName}.specs.ts than in ${moduleName}.ts`
+      );
+    }
+    eager.delete(entry.spec.name);
+  }
+  for (const name of eager.keys()) {
+    issues.push(`${name} has an eager spec but ${moduleName} exports no such capability`);
+  }
+  return issues;
+}
+
+/**
  * Modules declared with no loader, loaders nobody declared, and any module
  * whose exports fail {@link capabilityModuleIssues} — including a spec with no
  * category, which is the failure this whole mechanism exists to catch. Also
@@ -214,10 +380,16 @@ export async function capabilityModuleDrift(): Promise<readonly string[]> {
       drift.push(`${name} is implemented but not declared`);
     }
   }
+  for (const name of Object.keys(MODULE_SPECS)) {
+    if (!implemented.has(name)) {
+      drift.push(`${name} has an eager spec table but no loader`);
+    }
+  }
   const owners = new Map<string, string>();
   for (const name of listCapabilityModules()) {
     const mod = await loadCapabilityModule(name);
     drift.push(...capabilityModuleIssues(name, mod));
+    drift.push(...eagerSpecDrift(name, mod));
     for (const entry of mod.exports) {
       const owner = owners.get(entry.spec.name);
       if (owner !== undefined) {

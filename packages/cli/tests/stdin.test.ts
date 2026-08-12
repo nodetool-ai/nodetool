@@ -92,38 +92,25 @@ vi.mock("@nodetool-ai/agents", () => ({
     // eslint-disable-next-line @typescript-eslint/require-await
     async *execute(_ctx?: unknown) {}
   },
-  RunSubtaskTool: class {
-    name = "run_subtask";
-    description = "run a subtask";
-    inputSchema = { type: "object" };
-    constructor(_opts: unknown) {}
+  // The delegation tools reach the belt as capabilities now; the CLI names
+  // them, so the mock answers by name.
+  UNGATED: { mode: "auto", sessionAllow: new Set<string>() },
+  createCapabilityRun: (options: unknown) => options,
+  toolForCapabilityName: (name: string) => ({
+    name,
+    description: `stub ${name}`,
+    inputSchema: { type: "object" },
     toProviderTool() {
       return {
         name: this.name,
         description: this.description,
         inputSchema: this.inputSchema
       };
-    }
+    },
     async process() {
       return null;
     }
-  },
-  RunSearchTool: class {
-    name = "run_search";
-    description = "run a read-only search";
-    inputSchema = { type: "object" };
-    constructor(_opts: unknown) {}
-    toProviderTool() {
-      return {
-        name: this.name,
-        description: this.description,
-        inputSchema: this.inputSchema
-      };
-    }
-    async process() {
-      return null;
-    }
-  }
+  })
 }));
 
 let _mockCancelJobSpy = vi.fn();

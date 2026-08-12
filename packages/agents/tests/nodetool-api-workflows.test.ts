@@ -199,38 +199,25 @@ describe("nodetool.workflows examples", () => {
     });
   });
 
-  it('splits "<package>/<example>" and copies the fetched graph into a builder', async () => {
+  it('splits "<package>/<example>" and hands back the example graph', async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);
     const obs = await runAction(
       session,
       `const ex = await nodetool.workflows.example("nodetool-base/Summarize");
-       const g = nodetool.graph();
-       const copy = g.copyFrom(ex);
-       return { json: g.toJSON(), idMap: copy.idMap };`
+       return {
+         types: ex.graph.nodes.map((n) => n.type),
+         edges: ex.graph.edges.length
+       };`
     );
     expect(obs.ok).toBe(true);
     expect(calls[0]).toMatchObject({
       name: "get_example_workflow",
       args: { package_name: "nodetool-base", example_name: "Summarize" }
     });
-    const { json, idMap } = obs.result as {
-      json: {
-        nodes: Array<{ id: string; type: string; properties: unknown }>;
-        edges: Array<{ source: string; target: string; targetHandle: string }>;
-      };
-      idMap: Record<string, string>;
-    };
-    expect(json.nodes.map((n) => n.type)).toEqual([
-      "nodetool.input.StringInput",
-      "nodetool.output.StringOutput"
-    ]);
-    expect(json.nodes[0].properties).toEqual({ name: "prompt" });
-    expect(json.edges).toHaveLength(1);
-    expect(json.edges[0]).toMatchObject({
-      source: idMap["in"],
-      target: idMap["out"],
-      targetHandle: "value"
+    expect(obs.result).toEqual({
+      types: ["nodetool.input.StringInput", "nodetool.output.StringOutput"],
+      edges: 1
     });
   });
 

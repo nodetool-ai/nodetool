@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
+  dataForSeoSearch,
+  dataForSeoNews,
+  dataForSeoImages
 } from "../src/tools/dataseo-tools.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -39,14 +39,12 @@ function makeSuccessResponse(items: unknown[]) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  DataForSEOSearchTool                                              */
+/*  dataforseo_search                                                 */
 /* ------------------------------------------------------------------ */
 
-describe("DataForSEOSearchTool", () => {
-  let tool: DataForSEOSearchTool;
+describe("dataforseo_search backend", () => {
 
   beforeEach(() => {
-    tool = new DataForSEOSearchTool();
     vi.restoreAllMocks();
   });
 
@@ -55,13 +53,13 @@ describe("DataForSEOSearchTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = await tool.process(ctx, {});
+    const result = await dataForSeoSearch(ctx, {});
     expect(result).toEqual({ error: "keyword is required" });
   });
 
   it("returns error when credentials are missing", async () => {
     const ctx = makeContext();
-    const result = await tool.process(ctx, { keyword: "test" });
+    const result = await dataForSeoSearch(ctx, { keyword: "test" });
     expect(result).toHaveProperty("error");
     expect((result as { error: string }).error).toContain("DATA_FOR_SEO");
   });
@@ -91,7 +89,7 @@ describe("DataForSEOSearchTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, {
+    const result = (await dataForSeoSearch(ctx, {
       keyword: "test",
       num_results: 5
     })) as { success: boolean; results: unknown[] };
@@ -121,7 +119,7 @@ describe("DataForSEOSearchTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "test" })) as {
+    const result = (await dataForSeoSearch(ctx, { keyword: "test" })) as {
       error: string;
     };
     expect(result.error).toContain("DataForSEO API Error");
@@ -133,7 +131,7 @@ describe("DataForSEOSearchTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "test" })) as {
+    const result = (await dataForSeoSearch(ctx, { keyword: "test" })) as {
       error: string;
     };
     expect(result.error).toContain("HTTP error");
@@ -155,35 +153,22 @@ describe("DataForSEOSearchTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "test" })) as {
+    const result = (await dataForSeoSearch(ctx, { keyword: "test" })) as {
       results: Array<Record<string, unknown>>;
     };
     // The base64 image field should not appear in the mapped result
     // (we only map title, url, snippet, position, type)
     expect(result.results[0]).not.toHaveProperty("thumbnail");
   });
-
-  it("userMessage returns expected string", () => {
-    expect(tool.userMessage({ keyword: "cats" })).toBe(
-      "Searching Google (DataForSEO) for 'cats'..."
-    );
-    expect(
-      tool.userMessage({
-        keyword: "a".repeat(80)
-      })
-    ).toBe("Searching Google (DataForSEO)...");
-  });
 });
 
 /* ------------------------------------------------------------------ */
-/*  DataForSEONewsTool                                                */
+/*  dataforseo_news                                                   */
 /* ------------------------------------------------------------------ */
 
-describe("DataForSEONewsTool", () => {
-  let tool: DataForSEONewsTool;
+describe("dataforseo_news backend", () => {
 
   beforeEach(() => {
-    tool = new DataForSEONewsTool();
     vi.restoreAllMocks();
   });
 
@@ -192,7 +177,7 @@ describe("DataForSEONewsTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = await tool.process(ctx, {});
+    const result = await dataForSeoNews(ctx, {});
     expect(result).toEqual({ error: "keyword is required" });
   });
 
@@ -221,7 +206,7 @@ describe("DataForSEONewsTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "AI" })) as {
+    const result = (await dataForSeoNews(ctx, { keyword: "AI" })) as {
       success: boolean;
       results: unknown[];
     };
@@ -237,23 +222,15 @@ describe("DataForSEONewsTool", () => {
       type: "news"
     });
   });
-
-  it("userMessage returns expected string", () => {
-    expect(tool.userMessage({ keyword: "AI" })).toBe(
-      "Searching Google News (DataForSEO) for 'AI'..."
-    );
-  });
 });
 
 /* ------------------------------------------------------------------ */
-/*  DataForSEOImagesTool                                              */
+/*  dataforseo_images                                                 */
 /* ------------------------------------------------------------------ */
 
-describe("DataForSEOImagesTool", () => {
-  let tool: DataForSEOImagesTool;
+describe("dataforseo_images backend", () => {
 
   beforeEach(() => {
-    tool = new DataForSEOImagesTool();
     vi.restoreAllMocks();
   });
 
@@ -262,7 +239,7 @@ describe("DataForSEOImagesTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = await tool.process(ctx, {});
+    const result = await dataForSeoImages(ctx, {});
     expect(result).toEqual({
       error: "One of 'keyword' or 'image_url' is required for image search."
     });
@@ -296,7 +273,7 @@ describe("DataForSEOImagesTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "cats" })) as {
+    const result = (await dataForSeoImages(ctx, { keyword: "cats" })) as {
       success: boolean;
       results: unknown[];
     };
@@ -326,22 +303,13 @@ describe("DataForSEOImagesTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    await tool.process(ctx, {
+    await dataForSeoImages(ctx, {
       image_url: "https://example.com/photo.jpg"
     });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body[0].image_url).toBe("https://example.com/photo.jpg");
     expect(body[0]).not.toHaveProperty("keyword");
-  });
-
-  it("userMessage shows keyword when available", () => {
-    expect(tool.userMessage({ keyword: "dogs" })).toBe(
-      "Searching Google Images (DataForSEO) for 'dogs'..."
-    );
-    expect(tool.userMessage({})).toBe(
-      "Searching Google Images (DataForSEO)..."
-    );
   });
 
   it("handles network error gracefully", async () => {
@@ -353,7 +321,7 @@ describe("DataForSEOImagesTool", () => {
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
     });
-    const result = (await tool.process(ctx, { keyword: "test" })) as {
+    const result = (await dataForSeoImages(ctx, { keyword: "test" })) as {
       error: string;
     };
     expect(result.error).toContain("Network timeout");

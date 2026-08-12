@@ -8,16 +8,9 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
-import {
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool
-} from "../src/tools/storyboard-render-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
@@ -103,7 +96,7 @@ describe("storyboard render tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("registers as built-ins with sane permissions", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
+    const names = BUILTIN_TOOL_NAMES;
     expect(names).toEqual(
       expect.arrayContaining([
         "list_storyboards",
@@ -129,7 +122,7 @@ describe("storyboard render tools", () => {
       })
     ]);
 
-    const listed = (await new ListStoryboardsTool().process(ctx(), {})) as {
+    const listed = (await toolForCapabilityName("list_storyboards").process(ctx(), {})) as {
       storyboards: Array<{ id: string; shots: number; with_keyframe: number }>;
     };
     expect(listed.storyboards[0]).toMatchObject({
@@ -138,7 +131,7 @@ describe("storyboard render tools", () => {
       with_keyframe: 1
     });
 
-    const read = (await new GetStoryboardTool().process(ctx(), {
+    const read = (await toolForCapabilityName("get_storyboard").process(ctx(), {
       storyboard_id: board.id
     })) as { shots: Array<{ id: string; has_keyframe: boolean }> };
     expect(read.shots.map((s) => s.id)).toEqual(["s1", "s2"]);
@@ -147,7 +140,7 @@ describe("storyboard render tools", () => {
 
   it("hides a board owned by another user", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
-    const result = (await new GetStoryboardTool().process(ctx({ userId: "other" }), {
+    const result = (await toolForCapabilityName("get_storyboard").process(ctx({ userId: "other" }), {
       storyboard_id: board.id
     })) as { error: string };
     expect(result.error).toContain("not found");
@@ -166,7 +159,7 @@ describe("storyboard render tools", () => {
     ]);
     const context = ctx();
 
-    const result = (await new RenderStoryboardStillsTool().process(context, {
+    const result = (await toolForCapabilityName("render_storyboard_stills").process(context, {
       storyboard_id: board.id
     })) as { rendered: number; failed: number; results: Array<{ shot_id: string }> };
 
@@ -200,7 +193,7 @@ describe("storyboard render tools", () => {
       }
     });
 
-    const result = (await new RenderStoryboardStillsTool().process(context, {
+    const result = (await toolForCapabilityName("render_storyboard_stills").process(context, {
       storyboard_id: board.id
     })) as { rendered: number; failed: number; results: Array<{ error?: string }> };
 
@@ -216,7 +209,7 @@ describe("storyboard render tools", () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })], {
       imageModel: null
     });
-    const result = (await new RenderStoryboardStillsTool().process(ctx(), {
+    const result = (await toolForCapabilityName("render_storyboard_stills").process(ctx(), {
       storyboard_id: board.id
     })) as { error: string };
     expect(result.error).toContain("find_model");
@@ -225,11 +218,11 @@ describe("storyboard render tools", () => {
   it("animates the shot's still into a clip and seeds the model with it", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0, motion: "slow push in" })]);
     const context = ctx();
-    await new RenderStoryboardStillsTool().process(context, {
+    await toolForCapabilityName("render_storyboard_stills").process(context, {
       storyboard_id: board.id
     });
 
-    const result = (await new RenderStoryboardClipsTool().process(context, {
+    const result = (await toolForCapabilityName("render_storyboard_clips").process(context, {
       storyboard_id: board.id
     })) as { rendered: number; results: Array<{ asset_id?: string }> };
     expect(result.rendered).toBe(1);
@@ -249,7 +242,7 @@ describe("storyboard render tools", () => {
 
   it("says what to do when no shot has a still to animate", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
-    const result = (await new RenderStoryboardClipsTool().process(ctx(), {
+    const result = (await toolForCapabilityName("render_storyboard_clips").process(ctx(), {
       storyboard_id: board.id
     })) as { rendered: number; note: string };
     expect(result.rendered).toBe(0);
@@ -259,11 +252,11 @@ describe("storyboard render tools", () => {
   it("revises a clip in place, keeping the previous take as a version", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const context = ctx();
-    await new RenderStoryboardStillsTool().process(context, { storyboard_id: board.id });
-    await new RenderStoryboardClipsTool().process(context, { storyboard_id: board.id });
+    await toolForCapabilityName("render_storyboard_stills").process(context, { storyboard_id: board.id });
+    await toolForCapabilityName("render_storyboard_clips").process(context, { storyboard_id: board.id });
     const firstTake = (await Storyboard.findById(board.id))!.toDocument().shots[0].clip;
 
-    const result = (await new ReviseStoryboardClipTool().process(context, {
+    const result = (await toolForCapabilityName("revise_storyboard_clip").process(context, {
       storyboard_id: board.id,
       target: "0",
       instruction: "make it darker"
@@ -314,7 +307,7 @@ describe("storyboard render tools", () => {
       }
     );
 
-    const result = (await new AssembleStoryboardTimelineTool().process(ctx(), {
+    const result = (await toolForCapabilityName("assemble_storyboard_timeline").process(ctx(), {
       storyboard_id: board.id
     })) as {
       timeline_id: string;
@@ -343,7 +336,7 @@ describe("storyboard render tools", () => {
     expect((await Storyboard.findById(board.id))!.timeline_id).toBe(result.timeline_id);
 
     // Re-assembling updates the same sequence rather than orphaning it.
-    const again = (await new AssembleStoryboardTimelineTool().process(ctx(), {
+    const again = (await toolForCapabilityName("assemble_storyboard_timeline").process(ctx(), {
       storyboard_id: board.id
     })) as { timeline_id: string };
     expect(again.timeline_id).toBe(result.timeline_id);
@@ -351,7 +344,7 @@ describe("storyboard render tools", () => {
 
   it("refuses to assemble a board with nothing rendered", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
-    const result = (await new AssembleStoryboardTimelineTool().process(ctx(), {
+    const result = (await toolForCapabilityName("assemble_storyboard_timeline").process(ctx(), {
       storyboard_id: board.id
     })) as { error: string };
     expect(result.error).toContain("render_storyboard_stills");
@@ -379,7 +372,7 @@ describe("storyboard render tools", () => {
     );
     const context = ctx();
 
-    await new RenderStoryboardStillsTool().process(context, {
+    await toolForCapabilityName("render_storyboard_stills").process(context, {
       storyboard_id: board.id,
       concurrency: 1
     });

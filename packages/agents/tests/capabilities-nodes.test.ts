@@ -18,10 +18,18 @@ import {
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
-import { LocalListNodesTool } from "../src/tools/local-list-nodes-tool.js";
-import { LocalSearchNodesTool } from "../src/tools/local-search-nodes-tool.js";
-import { LocalGetNodeInfoTool } from "../src/tools/local-get-node-info-tool.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import type { Tool } from "../src/tools/base-tool.js";
+
+/**
+ * One capability as a `Tool`. The registry that used to be a constructor
+ * argument is a run field, read at call time.
+ */
+function capTool(name: string, registry?: NodeRegistry): Tool {
+  return toolForCapabilityName(name, (context) =>
+    createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry })
+  );
+}
 
 const ctx = {} as unknown as ProcessingContext;
 
@@ -67,7 +75,11 @@ const NODES = [
 ];
 
 function runWith(registry?: NodeRegistry): CapabilityRun {
-  return createCapabilityRun({ context: ctx, gate: UNGATED, nodeRegistry: registry });
+  return createCapabilityRun({
+    context: ctx,
+    gate: UNGATED,
+    nodeRegistry: registry
+  });
 }
 
 function capability(name: string) {
@@ -102,12 +114,12 @@ describe("nodes module shape", () => {
   });
 });
 
-describe("wire identity against the deprecated classes", () => {
+describe("wire identity: a Tool built from the spec", () => {
   const registry = mockRegistry(NODES);
   const pairs: Array<[string, Tool]> = [
-    ["list_nodes", new LocalListNodesTool(registry)],
-    ["search_nodes", new LocalSearchNodesTool(registry)],
-    ["get_node_info", new LocalGetNodeInfoTool(registry)]
+    ["list_nodes", capTool("list_nodes", registry)],
+    ["search_nodes", capTool("search_nodes", registry)],
+    ["get_node_info", capTool("get_node_info", registry)]
   ];
 
   for (const [name, tool] of pairs) {
@@ -121,16 +133,18 @@ describe("wire identity against the deprecated classes", () => {
 
   it("carries the userMessage templates over", () => {
     expect(
-      new LocalListNodesTool(registry).userMessage({ namespace: "nodetool.text" })
+      capTool("list_nodes", registry).userMessage({
+        namespace: "nodetool.text"
+      })
     ).toBe("Listing nodes in namespace nodetool.text");
-    expect(new LocalListNodesTool(registry).userMessage({})).toBe(
+    expect(capTool("list_nodes", registry).userMessage({})).toBe(
       "Listing available nodes"
     );
     expect(
-      new LocalSearchNodesTool(registry).userMessage({ query: ["a", "b"] })
+      capTool("search_nodes", registry).userMessage({ query: ["a", "b"] })
     ).toBe("Searching for nodes: a, b");
     expect(
-      new LocalGetNodeInfoTool(registry).userMessage({
+      capTool("get_node_info", registry).userMessage({
         node_type: "nodetool.text.Concat"
       })
     ).toBe("Getting info for node type nodetool.text.Concat");
@@ -207,8 +221,8 @@ describe("the node capabilities read the run's registry", () => {
     }
   });
 
-  it("still runs through the deprecated class, which binds the registry", async () => {
-    const result = (await new LocalListNodesTool(mockRegistry(NODES)).process(
+  it("runs through a Tool whose run binds the registry", async () => {
+    const result = (await capTool("list_nodes", mockRegistry(NODES)).process(
       ctx,
       {}
     )) as { total: number };

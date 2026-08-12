@@ -15,10 +15,20 @@ export type {
   CapabilityLoaders,
   ClientToolRouter,
   SubAgentRuntime,
+  GraphPlannerRuntime,
   PermissionCategory
 } from "./types.js";
 export {
+  toolFromLazyCapability,
+  toolForCapabilityName
+} from "./lazy-tool.js";
+export {
   DECLARED_CAPABILITY_MODULES,
+  listCapabilitySpecs,
+  capabilitySpec,
+  capabilityModuleSpecTable,
+  loadCapabilityImpl,
+  eagerSpecDrift,
   loadCapabilityModule,
   listCapabilityModules,
   loadAllCapabilityModules,

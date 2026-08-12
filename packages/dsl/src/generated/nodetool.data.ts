@@ -4,9 +4,9 @@ import { createNode, Connectable, DslNode } from "../core.js";
 import type { DataframeRef, FolderRef } from "../types.js";
 
 // For Each Row — nodetool.data.ForEachRow
-export interface ForEachRowInputs {
+export type ForEachRowInputs = {
   dataframe?: Connectable<DataframeRef>;
-}
+};
 
 export interface ForEachRowOutputs {
   row: Record<string, unknown>;
@@ -14,13 +14,13 @@ export interface ForEachRowOutputs {
 }
 
 export function forEachRow(inputs: ForEachRowInputs): DslNode<ForEachRowOutputs> {
-  return createNode("nodetool.data.ForEachRow", inputs as Record<string, unknown>, { outputNames: ["row", "index"], streaming: true });
+  return createNode("nodetool.data.ForEachRow", inputs, { outputNames: ["row", "index"], streaming: true });
 }
 
 // Load CSV Assets — nodetool.data.LoadCSVAssets
-export interface LoadCSVAssetsInputs {
+export type LoadCSVAssetsInputs = {
   folder?: Connectable<FolderRef>;
-}
+};
 
 export interface LoadCSVAssetsOutputs {
   dataframe: DataframeRef;
@@ -30,5 +30,5 @@ export interface LoadCSVAssetsOutputs {
 }
 
 export function loadCSVAssets(inputs: LoadCSVAssetsInputs): DslNode<LoadCSVAssetsOutputs> {
-  return createNode("nodetool.data.LoadCSVAssets", inputs as Record<string, unknown>, { outputNames: ["dataframe", "name", "dataframes", "names"], streaming: true });
+  return createNode("nodetool.data.LoadCSVAssets", inputs, { outputNames: ["dataframe", "name", "dataframes", "names"], streaming: true });
 }

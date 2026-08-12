@@ -8,14 +8,9 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import type { ScriptLine, ScriptTake } from "@nodetool-ai/models";
-import {
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool
-} from "../src/tools/script-voice-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 /**
  * A real 500ms mono 16-bit WAV at 8kHz. Real bytes so the duration probe has
@@ -141,7 +136,7 @@ describe("script voice tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("registers as built-ins with sane permissions", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
+    const names = BUILTIN_TOOL_NAMES;
     expect(names).toEqual(
       expect.arrayContaining([
         "list_scripts",
@@ -162,12 +157,12 @@ describe("script voice tools", () => {
       line({ id: "l4", text: "No speaker" })
     ]);
 
-    const listed = (await new ListScriptsTool().process(ctx().context, {})) as {
+    const listed = (await toolForCapabilityName("list_scripts").process(ctx().context, {})) as {
       scripts: Array<{ id: string; lines: number; voiced: number }>;
     };
     expect(listed.scripts[0]).toMatchObject({ id: row.id, lines: 4, voiced: 1 });
 
-    const read = (await new GetScriptTool().process(ctx().context, {
+    const read = (await toolForCapabilityName("get_script").process(ctx().context, {
       script_id: row.id
     })) as { lines: Array<{ id: string; index: number; status: string }> };
     expect(read.lines.map((l) => [l.id, l.index, l.status])).toEqual([
@@ -180,7 +175,7 @@ describe("script voice tools", () => {
 
   it("hides a script owned by another user", async () => {
     const row = await makeScript([line({ id: "l1" })]);
-    const result = (await new GetScriptTool().process(
+    const result = (await toolForCapabilityName("get_script").process(
       ctx({ userId: "other" }).context,
       { script_id: row.id }
     )) as { error: string };
@@ -201,7 +196,7 @@ describe("script voice tools", () => {
     ]);
     const { context, textToSpeechEncoded } = ctx();
 
-    const result = (await new VoiceScriptLinesTool().process(context, {
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
       script_id: row.id
     })) as {
       voiced: number;
@@ -230,7 +225,7 @@ describe("script voice tools", () => {
 
   it("skips a line with no voice and says how to fix it", async () => {
     const row = await makeScript([line({ id: "l1", text: "Orphan" })], []);
-    const result = (await new VoiceScriptLinesTool().process(ctx().context, {
+    const result = (await toolForCapabilityName("voice_script_lines").process(ctx().context, {
       script_id: row.id,
       targets: ["l1"]
     })) as { voiced: number; results: Array<{ error?: string }> };
@@ -242,7 +237,7 @@ describe("script voice tools", () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1", text: "Line" })]);
     const { context, textToSpeechEncoded } = ctx();
 
-    await new VoiceScriptLinesTool().process(context, {
+    await toolForCapabilityName("voice_script_lines").process(context, {
       script_id: row.id,
       targets: ["0"],
       provider: "elevenlabs",
@@ -258,7 +253,7 @@ describe("script voice tools", () => {
 
   it("rejects a half-specified voice override", async () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
-    const result = (await new VoiceScriptLinesTool().process(ctx().context, {
+    const result = (await toolForCapabilityName("voice_script_lines").process(ctx().context, {
       script_id: row.id,
       provider: "elevenlabs"
     })) as { error: string };
@@ -282,7 +277,7 @@ describe("script voice tools", () => {
       }
     });
 
-    const result = (await new VoiceScriptLinesTool().process(context, {
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
       script_id: row.id,
       concurrency: 1
     })) as { voiced: number; failed: number; results: Array<{ error?: string }> };
@@ -296,7 +291,7 @@ describe("script voice tools", () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1", text: "Line" })]);
     const { context, automaticSpeechRecognition } = ctx();
 
-    const result = (await new VoiceScriptLinesTool().process(context, {
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
       script_id: row.id,
       transcribe: false
     })) as { results: Array<{ duration_ms?: number; word_count?: number }> };
@@ -335,7 +330,7 @@ describe("script voice tools", () => {
       })
     ]);
 
-    const result = (await new AssembleScriptTimelineTool().process(ctx().context, {
+    const result = (await toolForCapabilityName("assemble_script_timeline").process(ctx().context, {
       script_id: row.id
     })) as {
       timeline_id: string;
@@ -365,7 +360,7 @@ describe("script voice tools", () => {
     expect((await Script.findById(row.id))!.timeline_id).toBe(result.timeline_id);
 
     // Re-assembling updates the same sequence and keeps foreign clips.
-    const again = (await new AssembleScriptTimelineTool().process(ctx().context, {
+    const again = (await toolForCapabilityName("assemble_script_timeline").process(ctx().context, {
       script_id: row.id
     })) as { timeline_id: string; clip_count: number };
     expect(again.timeline_id).toBe(result.timeline_id);
@@ -374,7 +369,7 @@ describe("script voice tools", () => {
 
   it("refuses to assemble a script with nothing voiced", async () => {
     const row = await makeScript([line({ id: "l1", speakerId: "sp1" })]);
-    const result = (await new AssembleScriptTimelineTool().process(ctx().context, {
+    const result = (await toolForCapabilityName("assemble_script_timeline").process(ctx().context, {
       script_id: row.id
     })) as { error: string };
     expect(result.error).toContain("voice_script_lines");

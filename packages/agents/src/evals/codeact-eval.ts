@@ -24,7 +24,7 @@ import {
   type CodeActEvalCase,
   type CodeActEvalExpectations
 } from "./codeact-cases.js";
-import { shippedHostPackCatalog } from "./codeact-sandbox-pack-cases.js";
+import { shippedPackCatalog } from "./codeact-sandbox-pack-cases.js";
 
 const DEFAULT_MAX_ITERATIONS = 8;
 
@@ -160,7 +160,7 @@ async function runCase(
     jobId: `codeact-eval-${randomUUID()}`,
     userId: "eval-user",
     ...(sandboxPackages.length > 0
-      ? { sandboxModuleCatalog: shippedHostPackCatalog() }
+      ? { sandboxModuleCatalog: shippedPackCatalog() }
       : {})
   });
 

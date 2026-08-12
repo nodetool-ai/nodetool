@@ -9,29 +9,32 @@ import {
 } from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
-  PlanWorkflowGraphTool,
-  ListWorkflowsTool,
-  GetWorkflowTool,
-  CreateWorkflowTool,
-  RunWorkflowTool,
-  DebugWorkflowTool,
-  ResolveWorkflowEscalationTool,
-  BuildAppTool,
-  DebugAppTool,
-  ValidateWorkflowTool,
-  ValidateTimelineTool,
-  ValidateSketchTool,
-  GetExampleWorkflowTool,
-  ExportWorkflowDigraphTool,
-  ListJobsTool,
-  GetJobTool,
-  GetJobLogsTool,
-  StartBackgroundJobTool,
-  ListAssetsTool,
-  GetAssetTool,
   getAllMcpTools,
   type ExampleWorkflowCatalog
 } from "../src/tools/mcp-tools.js";
+import { RUNTIME_MODEL_CATALOGS } from "../src/tools/mcp-tool-support.js";
+import type { Tool } from "../src/tools/base-tool.js";
+import { planWorkflowGraph } from "../src/capabilities/workflows.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolForCapabilityName,
+  toolFromCapability,
+  type CreateCapabilityRunOptions
+} from "../src/capabilities/index.js";
+
+/**
+ * One capability as a `Tool`, over a run carrying what a host injects. What
+ * used to be a constructor argument on a tool class is a field on the run,
+ * read at call time.
+ */
+type CapabilityDeps = Omit<CreateCapabilityRunOptions, "context" | "gate">;
+
+function capTool(name: string, deps: CapabilityDeps = {}): Tool {
+  return toolForCapabilityName(name, (context) =>
+    createCapabilityRun({ context, gate: UNGATED, ...deps })
+  );
+}
 
 const USER = "user-1";
 
@@ -98,8 +101,8 @@ async function saveWorkflow(
 // Workflow Tools
 // ---------------------------------------------------------------------------
 
-describe("ListWorkflowsTool", () => {
-  const tool = new ListWorkflowsTool();
+describe("list_workflows", () => {
+  const tool = capTool("list_workflows");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("list_workflows");
@@ -135,7 +138,7 @@ describe("ListWorkflowsTool", () => {
           : [],
       get: async () => null
     };
-    const withCatalog = new ListWorkflowsTool(examples);
+    const withCatalog = capTool("list_workflows", { examples });
     const result = (await withCatalog.process(ctx, {
       workflow_type: "example",
       query: "news"
@@ -149,8 +152,8 @@ describe("ListWorkflowsTool", () => {
   });
 });
 
-describe("GetWorkflowTool", () => {
-  const tool = new GetWorkflowTool();
+describe("get_workflow", () => {
+  const tool = capTool("get_workflow");
 
   it("returns the stored workflow, graph included", async () => {
     const saved = await saveWorkflow({
@@ -177,8 +180,10 @@ describe("GetWorkflowTool", () => {
   });
 });
 
-describe("CreateWorkflowTool", () => {
-  const tool = new CreateWorkflowTool();
+describe("create_workflow", () => {
+  const tool = capTool("create_workflow", {
+    modelCatalogs: RUNTIME_MODEL_CATALOGS
+  });
 
   /** The graph as it was actually persisted. */
   async function createdGraph(
@@ -200,7 +205,7 @@ describe("CreateWorkflowTool", () => {
           ? ["wan/2-7-image-to-video"]
           : undefined
     };
-    const checked = new CreateWorkflowTool(catalogs);
+    const checked = capTool("create_workflow", { modelCatalogs: catalogs });
     const graphWith = (model: Record<string, unknown>) => ({
       nodes: [
         { id: "n1", type: "nodetool.video.ImageToVideo", properties: { model } }
@@ -464,9 +469,9 @@ describe("CreateWorkflowTool", () => {
   });
 });
 
-describe("RunWorkflowTool", () => {
+describe("run_workflow", () => {
   it("refuses without a node registry instead of reaching for a server", async () => {
-    const result = (await new RunWorkflowTool().process(ctx, {
+    const result = (await capTool("run_workflow").process(ctx, {
       workflow_id: "wf-456"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no node registry");
@@ -474,7 +479,7 @@ describe("RunWorkflowTool", () => {
   });
 
   it("reports the service's refusal for a workflow that is not there", async () => {
-    const tool = new RunWorkflowTool(stubRegistry);
+    const tool = capTool("run_workflow", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       workflow_id: "missing"
     })) as Record<string, unknown>;
@@ -488,9 +493,11 @@ describe("RunWorkflowTool", () => {
     // HTTP-run one.
     const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
     let resolved = 0;
-    const tool = new RunWorkflowTool(undefined, async () => {
-      resolved += 1;
-      return { registry: stubRegistry };
+    const tool = capTool("run_workflow", {
+      workflowEnvironment: async () => {
+        resolved += 1;
+        return { registry: stubRegistry };
+      }
     });
     const result = (await tool.process(ctx, {
       workflow_id: saved.id
@@ -501,7 +508,7 @@ describe("RunWorkflowTool", () => {
 
   it("refuses a workflow whose run mode the backend does not run", async () => {
     const saved = await saveWorkflow({ run_mode: "app" });
-    const tool = new RunWorkflowTool(stubRegistry);
+    const tool = capTool("run_workflow", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       workflow_id: saved.id
     })) as Record<string, unknown>;
@@ -511,7 +518,7 @@ describe("RunWorkflowTool", () => {
 
   it("runs the workflow and reports the job", async () => {
     const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
-    const tool = new RunWorkflowTool(stubRegistry);
+    const tool = capTool("run_workflow", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       workflow_id: saved.id
     })) as Record<string, unknown>;
@@ -521,9 +528,9 @@ describe("RunWorkflowTool", () => {
   });
 });
 
-describe("DebugWorkflowTool", () => {
+describe("debug_workflow", () => {
   it("refuses without a node registry", async () => {
-    const result = (await new DebugWorkflowTool().process(ctx, {
+    const result = (await capTool("debug_workflow").process(ctx, {
       workflow_id: "wf-1"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no node registry");
@@ -534,7 +541,7 @@ describe("DebugWorkflowTool", () => {
       name: "Debuggable",
       graph: { nodes: [], edges: [] }
     });
-    const tool = new DebugWorkflowTool(stubRegistry);
+    const tool = capTool("debug_workflow", { nodeRegistry: stubRegistry });
     const report = (await tool.process(ctx, {
       workflow_id: saved.id
     })) as Record<string, unknown>;
@@ -550,7 +557,7 @@ describe("DebugWorkflowTool", () => {
 
   it("omits the graph overview when the caller says so", async () => {
     const saved = await saveWorkflow();
-    const tool = new DebugWorkflowTool(stubRegistry);
+    const tool = capTool("debug_workflow", { nodeRegistry: stubRegistry });
     const report = (await tool.process(ctx, {
       workflow_id: saved.id,
       include_graph: false
@@ -559,8 +566,8 @@ describe("DebugWorkflowTool", () => {
   });
 });
 
-describe("ResolveWorkflowEscalationTool", () => {
-  const tool = new ResolveWorkflowEscalationTool();
+describe("resolve_workflow_escalation", () => {
+  const tool = capTool("resolve_workflow_escalation");
 
   it("reports a session that is not the caller's", async () => {
     const result = (await tool.process(ctx, {
@@ -659,16 +666,16 @@ describe("ResolveWorkflowEscalationTool", () => {
   });
 });
 
-describe("BuildAppTool", () => {
+describe("build_app", () => {
   it("refuses without a node registry", async () => {
-    const result = (await new BuildAppTool().process(ctx, {
+    const result = (await capTool("build_app").process(ctx, {
       prompt: "an app"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no node registry");
   });
 
   it("asks for a provider and model when nothing is stamped", async () => {
-    const tool = new BuildAppTool(stubRegistry);
+    const tool = capTool("build_app", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       prompt: "a note-drafting app"
     })) as Record<string, unknown>;
@@ -680,7 +687,7 @@ describe("BuildAppTool", () => {
       provider: "anthropic",
       model: "claude-sonnet-5"
     });
-    const tool = new BuildAppTool(stubRegistry);
+    const tool = capTool("build_app", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       prompt: "a note-drafting app"
     })) as Record<string, unknown>;
@@ -690,28 +697,29 @@ describe("BuildAppTool", () => {
   });
 
   it("documents the inheritance in the tool and parameter descriptions", () => {
-    const tool = new BuildAppTool();
+    const tool = capTool("build_app");
     expect(tool.description).toContain("default to the provider and model");
-    const props = tool.inputSchema.properties as Record<string, { description: string }>;
+    const props = tool.inputSchema.properties as Record<
+      string,
+      { description: string }
+    >;
     expect(props.provider.description).toContain("agent making this call");
     expect(props.model.description).toContain("agent making this call");
   });
 });
 
-describe("DebugAppTool", () => {
+describe("debug_app", () => {
   it("refuses without a node registry", async () => {
-    const result = (await new DebugAppTool().process(ctx, {
+    const result = (await capTool("debug_app").process(ctx, {
       application_id: "app-1"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no node registry");
   });
 
   it("insists on exactly one target", async () => {
-    const tool = new DebugAppTool(stubRegistry);
+    const tool = capTool("debug_app", { nodeRegistry: stubRegistry });
     expect(
-      String(
-        ((await tool.process(ctx, {})) as Record<string, unknown>).error
-      )
+      String(((await tool.process(ctx, {})) as Record<string, unknown>).error)
     ).toContain("either an application_id or a document");
     expect(
       String(
@@ -726,7 +734,7 @@ describe("DebugAppTool", () => {
   });
 
   it("reports an application the user does not own", async () => {
-    const tool = new DebugAppTool(stubRegistry);
+    const tool = capTool("debug_app", { nodeRegistry: stubRegistry });
     const result = (await tool.process(ctx, {
       application_id: "app-1"
     })) as Record<string, unknown>;
@@ -734,16 +742,18 @@ describe("DebugAppTool", () => {
   });
 
   it("requires neither target in the schema — the service enforces exactly one", () => {
-    const tool = new DebugAppTool();
+    const tool = capTool("debug_app");
     expect(tool.inputSchema.required).toEqual([]);
     expect(Object.keys(tool.inputSchema.properties ?? {})).toContain(
       "application_id"
     );
-    expect(Object.keys(tool.inputSchema.properties ?? {})).toContain("document");
+    expect(Object.keys(tool.inputSchema.properties ?? {})).toContain(
+      "document"
+    );
   });
 
   it("userMessage distinguishes the free wiring check from a run", () => {
-    const tool = new DebugAppTool();
+    const tool = capTool("debug_app");
     expect(tool.userMessage({ application_id: "app-1", run: false })).toContain(
       "Checking"
     );
@@ -751,8 +761,10 @@ describe("DebugAppTool", () => {
   });
 });
 
-describe("ValidateWorkflowTool", () => {
-  const tool = new ValidateWorkflowTool();
+describe("validate_workflow", () => {
+  const tool = capTool("validate_workflow", {
+    modelCatalogs: RUNTIME_MODEL_CATALOGS
+  });
 
   it("reports a saved workflow it cannot find", async () => {
     const result = (await tool.process(ctx, {
@@ -782,7 +794,10 @@ describe("ValidateWorkflowTool", () => {
       getMetadata: () => ({ properties: [], outputs: [] }),
       validateNode: () => []
     };
-    const withRegistry = new ValidateWorkflowTool(registry as never);
+    const withRegistry = capTool("validate_workflow", {
+      nodeRegistry: registry as never,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS
+    });
     const result = (await withRegistry.process(ctx, {
       workflow_id: saved.id
     })) as { ok: boolean };
@@ -798,14 +813,16 @@ describe("ValidateWorkflowTool", () => {
       getMetadata: () => ({ properties: [], outputs: [] }),
       validateNode: () => []
     };
-    const withCatalogs = new ValidateWorkflowTool(
-      registry as never,
-      () => ["kie"],
-      (provider, modelType) =>
-        provider === "kie" && modelType === "video_model"
-          ? ["wan/2-7-image-to-video"]
-          : undefined
-    );
+    const withCatalogs = capTool("validate_workflow", {
+      nodeRegistry: registry as never,
+      modelCatalogs: {
+        listProviderIds: () => ["kie"],
+        listModelIds: (provider, modelType) =>
+          provider === "kie" && modelType === "video_model"
+            ? ["wan/2-7-image-to-video"]
+            : undefined
+      }
+    });
 
     const result = (await withCatalogs.process(ctx, {
       graph: {
@@ -832,7 +849,7 @@ describe("ValidateWorkflowTool", () => {
 // Timeline / Sketch validation
 // ---------------------------------------------------------------------------
 
-describe("ValidateTimelineTool", () => {
+describe("validate_timeline", () => {
   const track = {
     id: "t1",
     name: "Video",
@@ -860,7 +877,7 @@ describe("ValidateTimelineTool", () => {
   });
 
   it("validates an inline document and summarizes a clean result", async () => {
-    const tool = new ValidateTimelineTool();
+    const tool = capTool("validate_timeline");
     const result = (await tool.process(ctx, { document: doc("t1") })) as {
       ok: boolean;
       errors: unknown[];
@@ -873,7 +890,7 @@ describe("ValidateTimelineTool", () => {
   });
 
   it("reports a clip on a track the document lacks", async () => {
-    const tool = new ValidateTimelineTool();
+    const tool = capTool("validate_timeline");
     const result = (await tool.process(ctx, { document: doc("missing") })) as {
       ok: boolean;
       errors: Array<{ code: string }>;
@@ -894,7 +911,9 @@ describe("ValidateTimelineTool", () => {
       height: 1080,
       name: "My sequence"
     });
-    const tool = new ValidateTimelineTool(loader);
+    const tool = capTool("validate_timeline", {
+      loaders: { timeline: loader }
+    });
     const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
       ok: boolean;
       timeline_id: string;
@@ -908,7 +927,7 @@ describe("ValidateTimelineTool", () => {
   });
 
   it("reports an error when given an id but wired with no loader", async () => {
-    const tool = new ValidateTimelineTool();
+    const tool = capTool("validate_timeline");
     const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
       error: string;
       validated: boolean;
@@ -919,7 +938,7 @@ describe("ValidateTimelineTool", () => {
   });
 });
 
-describe("ValidateSketchTool", () => {
+describe("validate_sketch", () => {
   const layer = (overrides: Record<string, unknown> = {}) => ({
     id: "layer-1",
     name: "Background",
@@ -943,7 +962,7 @@ describe("ValidateSketchTool", () => {
   });
 
   it("validates an inline document and summarizes a clean result", async () => {
-    const tool = new ValidateSketchTool();
+    const tool = capTool("validate_sketch");
     const result = (await tool.process(ctx, { document: doc() })) as {
       ok: boolean;
       errors: unknown[];
@@ -956,7 +975,7 @@ describe("ValidateSketchTool", () => {
   });
 
   it("reports an active layer the stack lacks", async () => {
-    const tool = new ValidateSketchTool();
+    const tool = capTool("validate_sketch");
     const result = (await tool.process(ctx, { document: doc("gone") })) as {
       ok: boolean;
       errors: Array<{ code: string }>;
@@ -969,7 +988,7 @@ describe("ValidateSketchTool", () => {
   });
 
   it("checks the inline document against the canvas meta it is given", async () => {
-    const tool = new ValidateSketchTool();
+    const tool = capTool("validate_sketch");
     const result = (await tool.process(ctx, {
       document: doc(),
       width: 512,
@@ -978,7 +997,9 @@ describe("ValidateSketchTool", () => {
     })) as { ok: boolean; warnings: Array<{ code: string }> };
 
     expect(result.ok).toBe(true);
-    expect(result.warnings.map((w) => w.code)).toContain("canvas_size_mismatch");
+    expect(result.warnings.map((w) => w.code)).toContain(
+      "canvas_size_mismatch"
+    );
   });
 
   it("loads a saved sketch through the injected loader", async () => {
@@ -990,8 +1011,10 @@ describe("ValidateSketchTool", () => {
       backgroundColor: "#ffffff",
       name: "My sketch"
     });
-    const tool = new ValidateSketchTool(loader);
-    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+    const tool = capTool("validate_sketch", { loaders: { sketch: loader } });
+    const result = (await tool.process(ctx, {
+      image_document_id: "img-1"
+    })) as {
       ok: boolean;
       image_document_id: string;
       name: string;
@@ -1004,8 +1027,12 @@ describe("ValidateSketchTool", () => {
   });
 
   it("reports a sketch the loader cannot find", async () => {
-    const tool = new ValidateSketchTool(vi.fn().mockResolvedValue(null));
-    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+    const tool = capTool("validate_sketch", {
+      loaders: { sketch: vi.fn().mockResolvedValue(null) }
+    });
+    const result = (await tool.process(ctx, {
+      image_document_id: "img-1"
+    })) as {
       error: string;
       validated: boolean;
     };
@@ -1015,8 +1042,10 @@ describe("ValidateSketchTool", () => {
   });
 
   it("reports an error when given an id but wired with no loader", async () => {
-    const tool = new ValidateSketchTool();
-    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+    const tool = capTool("validate_sketch");
+    const result = (await tool.process(ctx, {
+      image_document_id: "img-1"
+    })) as {
       error: string;
       validated: boolean;
     };
@@ -1026,15 +1055,15 @@ describe("ValidateSketchTool", () => {
   });
 
   it("reports having nothing to validate", async () => {
-    const tool = new ValidateSketchTool();
+    const tool = capTool("validate_sketch");
     const result = (await tool.process(ctx, {})) as { error: string };
     expect(result.error).toContain("No sketch to validate");
   });
 });
 
-describe("GetExampleWorkflowTool", () => {
+describe("get_example_workflow", () => {
   it("says so when no example catalog was injected", async () => {
-    const result = (await new GetExampleWorkflowTool().process(ctx, {
+    const result = (await capTool("get_example_workflow").process(ctx, {
       package_name: "nodetool-base",
       example_name: "Hello"
     })) as Record<string, unknown>;
@@ -1049,7 +1078,7 @@ describe("GetExampleWorkflowTool", () => {
           ? { name: "Hello", graph: { nodes: [], edges: [] } }
           : null
     };
-    const tool = new GetExampleWorkflowTool(examples);
+    const tool = capTool("get_example_workflow", { examples });
     expect(
       await tool.process(ctx, {
         package_name: "nodetool-base",
@@ -1059,9 +1088,8 @@ describe("GetExampleWorkflowTool", () => {
   });
 
   it("reports an example the catalog does not have", async () => {
-    const tool = new GetExampleWorkflowTool({
-      list: async () => [],
-      get: async () => null
+    const tool = capTool("get_example_workflow", {
+      examples: { list: async () => [], get: async () => null }
     });
     const result = (await tool.process(ctx, {
       package_name: "nodetool-base",
@@ -1071,9 +1099,9 @@ describe("GetExampleWorkflowTool", () => {
   });
 });
 
-describe("ExportWorkflowDigraphTool", () => {
+describe("export_workflow_digraph", () => {
   it("says so when no DSL exporter was injected", async () => {
-    const result = (await new ExportWorkflowDigraphTool().process(ctx, {
+    const result = (await capTool("export_workflow_digraph").process(ctx, {
       workflow_id: "wf-1"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no DSL exporter");
@@ -1085,7 +1113,7 @@ describe("ExportWorkflowDigraphTool", () => {
       graph: { nodes: [], edges: [] }
     });
     const exportDsl = vi.fn(() => "const g = graph();");
-    const tool = new ExportWorkflowDigraphTool(exportDsl);
+    const tool = capTool("export_workflow_digraph", { exportDsl });
     const result = (await tool.process(ctx, {
       workflow_id: saved.id
     })) as Record<string, unknown>;
@@ -1096,7 +1124,7 @@ describe("ExportWorkflowDigraphTool", () => {
   });
 
   it("reports a workflow it cannot find", async () => {
-    const tool = new ExportWorkflowDigraphTool(() => "");
+    const tool = capTool("export_workflow_digraph", { exportDsl: () => "" });
     const result = (await tool.process(ctx, {
       workflow_id: "gone"
     })) as Record<string, unknown>;
@@ -1118,8 +1146,8 @@ async function saveJob(fields: { workflowId?: string } = {}): Promise<Job> {
   })) as Job;
 }
 
-describe("ListJobsTool", () => {
-  const tool = new ListJobsTool();
+describe("list_jobs", () => {
+  const tool = capTool("list_jobs");
 
   it("lists the user's jobs", async () => {
     await saveJob();
@@ -1140,8 +1168,8 @@ describe("ListJobsTool", () => {
   });
 });
 
-describe("GetJobTool", () => {
-  const tool = new GetJobTool();
+describe("get_job", () => {
+  const tool = capTool("get_job");
 
   it("returns the job row", async () => {
     const job = await saveJob();
@@ -1165,8 +1193,8 @@ describe("GetJobTool", () => {
   });
 });
 
-describe("GetJobLogsTool", () => {
-  const tool = new GetJobLogsTool();
+describe("get_job_logs", () => {
+  const tool = capTool("get_job_logs");
 
   it("returns the most recent log entries up to the limit", async () => {
     const job = (await Job.create({
@@ -1190,9 +1218,9 @@ describe("GetJobLogsTool", () => {
   });
 });
 
-describe("StartBackgroundJobTool", () => {
+describe("start_background_job", () => {
   it("refuses without a node registry", async () => {
-    const result = (await new StartBackgroundJobTool().process(ctx, {
+    const result = (await capTool("start_background_job").process(ctx, {
       workflow_id: "wf-bg"
     })) as Record<string, unknown>;
     expect(String(result.error)).toContain("no node registry");
@@ -1200,7 +1228,9 @@ describe("StartBackgroundJobTool", () => {
 
   it("marks the run as backgrounded", async () => {
     const saved = await saveWorkflow();
-    const tool = new StartBackgroundJobTool(stubRegistry);
+    const tool = capTool("start_background_job", {
+      nodeRegistry: stubRegistry
+    });
     const result = (await tool.process(ctx, {
       workflow_id: saved.id
     })) as Record<string, unknown>;
@@ -1210,7 +1240,7 @@ describe("StartBackgroundJobTool", () => {
 
   it("userMessage includes workflow_id", () => {
     expect(
-      new StartBackgroundJobTool().userMessage({ workflow_id: "wf-123" })
+      capTool("start_background_job").userMessage({ workflow_id: "wf-123" })
     ).toContain("wf-123");
   });
 });
@@ -1228,8 +1258,8 @@ async function saveAsset(name: string, contentType = "image/png") {
   });
 }
 
-describe("ListAssetsTool", () => {
-  const tool = new ListAssetsTool();
+describe("list_assets", () => {
+  const tool = capTool("list_assets");
 
   it("lists the user's assets", async () => {
     await saveAsset("logo.png");
@@ -1256,7 +1286,9 @@ describe("ListAssetsTool", () => {
   });
 
   it("reads package assets from the injected lister", async () => {
-    const withLister = new ListAssetsTool(async () => [{ name: "bundled.png" }]);
+    const withLister = capTool("list_assets", {
+      listPackageAssets: async () => [{ name: "bundled.png" }]
+    });
     const result = (await withLister.process(ctx, { source: "package" })) as {
       assets: Array<Record<string, unknown>>;
     };
@@ -1272,8 +1304,8 @@ describe("ListAssetsTool", () => {
   });
 });
 
-describe("GetAssetTool", () => {
-  const tool = new GetAssetTool();
+describe("get_asset", () => {
+  const tool = capTool("get_asset");
 
   it("returns the asset row", async () => {
     const asset = await saveAsset("one.png");
@@ -1394,12 +1426,11 @@ describe("getAllMcpTools", () => {
   });
 });
 
-
 // ---------------------------------------------------------------------------
-// PlanWorkflowGraphTool
+// plan_workflow_graph
 // ---------------------------------------------------------------------------
 
-describe("PlanWorkflowGraphTool", () => {
+describe("plan_workflow_graph", () => {
   // A provider whose tool loop ends immediately without calling finish_graph,
   // so the planner exhausts its retries and returns null.
   function makeEmptyLoopProvider(): BaseProvider {
@@ -1409,16 +1440,36 @@ describe("PlanWorkflowGraphTool", () => {
     } as unknown as BaseProvider;
   }
 
-  function makeTool(
-    forwardMessage?: (msg: ProcessingMessage) => void
-  ): PlanWorkflowGraphTool {
-    return new PlanWorkflowGraphTool({
-      provider: makeEmptyLoopProvider(),
-      model: "mock-model",
-      registry: {} as never,
-      forwardMessage
-    });
+  function makeTool(forwardMessage?: (msg: ProcessingMessage) => void): Tool {
+    return toolFromCapability(
+      planWorkflowGraph.spec,
+      planWorkflowGraph.impl,
+      (context) =>
+        createCapabilityRun({
+          context,
+          gate: UNGATED,
+          nodeRegistry: {} as never,
+          graphPlanner: {
+            provider: makeEmptyLoopProvider(),
+            model: "mock-model",
+            forwardMessage
+          }
+        })
+    );
   }
+
+  it("asks for the runtime a host must supply", async () => {
+    const withoutRuntime = toolFromCapability(
+      planWorkflowGraph.spec,
+      planWorkflowGraph.impl,
+      (context) => createCapabilityRun({ context, gate: UNGATED })
+    );
+    expect(
+      await withoutRuntime.process(ctx, { objective: "do things" })
+    ).toMatchObject({
+      error: expect.stringContaining("graphPlanner")
+    });
+  });
 
   it("rejects a missing or empty objective", async () => {
     const tool = makeTool();
@@ -1443,10 +1494,14 @@ describe("PlanWorkflowGraphTool", () => {
     const tool = makeTool((msg) => {
       forwarded.push(msg);
     });
-    await tool.process(ctx, {
-      objective: "do things",
-      _tool_call_id: "call-1"
-    });
+    // The wrapper declares `needsToolCallId`, so the id the caller passes to
+    // `execute` reaches the implementation in the args.
+    expect(tool.needsToolCallId).toBe(true);
+    await tool.execute(
+      ctx,
+      { objective: "do things" },
+      { toolCallId: "call-1" }
+    );
     expect(forwarded.length).toBeGreaterThan(0);
     expect(forwarded.some((m) => m.type === "planning_update")).toBe(true);
     for (const msg of forwarded) {

@@ -25,7 +25,11 @@ import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
-import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
+import {
+  createCapabilityRun,
+  toolForCapabilityName,
+  UNGATED
+} from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -240,21 +244,27 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
       }
     };
-    const subtaskTool = new RunSubtaskTool({
-      provider: prov,
-      model: opts.model,
-      parentTools: () => baseTools,
-      forwardMessage
-    });
+    // Both delegation tools reach the belt as capabilities over one runtime.
+    // The class is still what runs — the `agents` module builds one per call —
+    // so the depth gate, the child's inherited belt (with a `run_subtask` of
+    // its own stitched in, since this snapshot predates the tools below it)
+    // and the event tagging are unchanged.
+    const delegationRun = (context: ProcessingContext) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        subAgent: {
+          provider: prov,
+          model: opts.model,
+          parentTools: () => baseTools,
+          forwardMessage
+        }
+      });
+    const subtaskTool = toolForCapabilityName("run_subtask", delegationRun);
     // Read-only fan-out search (on by default). Filters baseTools to its
     // read-only allowlist internally, so passing the full snapshot is correct.
     if (opts.enableReadOnlySearch !== false) {
-      const searchTool = new RunSearchTool({
-        provider: prov,
-        model: opts.model,
-        parentTools: () => baseTools,
-        forwardMessage
-      });
+      const searchTool = toolForCapabilityName("run_search", delegationRun);
       return [searchTool, subtaskTool, ...baseTools];
     }
     return [subtaskTool, ...baseTools];

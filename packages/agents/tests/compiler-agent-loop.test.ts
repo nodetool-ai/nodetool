@@ -75,7 +75,7 @@ describe("CompilerAgent — provider-driven tool loop", () => {
     const provider = createSdkLoopProvider([
       {
         id: "tc_read",
-        name: "memory_read",
+        name: "read_shared",
         args: { keys: ["task:research"] }
       },
       {
@@ -112,7 +112,7 @@ describe("CompilerAgent — provider-driven tool loop", () => {
     const names = events
       .filter((e) => (e as { type?: string }).type === "tool_call_update")
       .map((e) => (e as { name: string }).name);
-    expect(names).toContain("memory_read");
+    expect(names).toContain("read_shared");
     expect(names).toContain("finish_step");
   });
 

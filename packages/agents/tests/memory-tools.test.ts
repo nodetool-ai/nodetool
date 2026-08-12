@@ -1,23 +1,43 @@
 /**
- * Unit tests for the memory tools (memory_list / memory_read / memory_write).
+ * Unit tests for the run-scoped memory capabilities
+ * (list_shared / read_shared / share_result).
  *
  * These are the progressive-disclosure interface that agents use to access
  * shared agent memory without paying the token cost of an auto-injected
- * snapshot.
+ * snapshot. They live in the `shared` capability module; `getMemoryTools()` is
+ * the belt every step executor mounts them from.
  */
 
 import { describe, expect, it } from "vitest";
 import { memoryKeys } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  MemoryListTool,
-  MemoryReadTool,
-  MemoryWriteTool,
+  listShared,
+  readShared,
+  shareResult
+} from "../src/capabilities/shared.js";
+import { ungatedCapabilityRun } from "../src/capabilities/invoke.js";
+import {
   MEMORY_TOOL_NAMES,
   getMemoryTools
 } from "../src/tools/memory-tools.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
-function seed(context: ReturnType<typeof createMockContext>): void {
+type MockContext = ReturnType<typeof createMockContext>;
+
+const run = (context: MockContext) =>
+  ungatedCapabilityRun(context as unknown as ProcessingContext);
+
+const list = (context: MockContext, params: Record<string, unknown> = {}) =>
+  listShared.impl(run(context), params);
+
+const read = (context: MockContext, params: Record<string, unknown>) =>
+  readShared.impl(run(context), params);
+
+const share = (context: MockContext, params: Record<string, unknown>) =>
+  shareResult.impl(run(context), params);
+
+function seed(context: MockContext): void {
   context.memory.set({
     key: memoryKeys.task("research"),
     kind: "task_result",
@@ -43,7 +63,7 @@ function seed(context: ReturnType<typeof createMockContext>): void {
     key: memoryKeys.shared("note"),
     kind: "shared",
     value: "user-published note",
-    source: "memory_write",
+    source: "share_result",
     title: "note"
   });
 }
@@ -53,15 +73,21 @@ describe("getMemoryTools", () => {
     const tools = getMemoryTools();
     expect(tools.map((t) => t.name)).toEqual([...MEMORY_TOOL_NAMES]);
   });
+
+  it("carries the specs' descriptions and schemas onto the belt", () => {
+    const [listTool, readTool, shareTool] = getMemoryTools();
+    expect(listTool.description).toBe(listShared.spec.description);
+    expect(readTool.inputSchema).toBe(readShared.spec.inputSchema);
+    expect(shareTool.description).toBe(shareResult.spec.description);
+  });
 });
 
-describe("MemoryListTool", () => {
+describe("list_shared", () => {
   it("returns metadata for every entry without values", async () => {
-    const tool = new MemoryListTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, {})) as {
+    const result = (await list(context)) as {
       total: number;
       returned: number;
       truncated: boolean;
@@ -88,7 +114,7 @@ describe("MemoryListTool", () => {
       "task:research"
     ]);
 
-    // No `value` field in entries — values must be fetched via memory_read.
+    // No `value` field in entries — values must be fetched via read_shared.
     for (const e of result.entries) {
       expect(e).not.toHaveProperty("value");
       expect(typeof e.valueBytes).toBe("number");
@@ -97,43 +123,39 @@ describe("MemoryListTool", () => {
   });
 
   it("filters by kind", async () => {
-    const tool = new MemoryListTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, {
-      kind: ["task_result"]
-    })) as { entries: Array<{ key: string }> };
+    const result = (await list(context, { kind: ["task_result"] })) as {
+      entries: Array<{ key: string }>;
+    };
     expect(result.entries.map((e) => e.key)).toEqual(["task:research"]);
   });
 
   it("filters by key_prefix", async () => {
-    const tool = new MemoryListTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, {
-      key_prefix: "input:"
-    })) as { entries: Array<{ key: string }> };
+    const result = (await list(context, { key_prefix: "input:" })) as {
+      entries: Array<{ key: string }>;
+    };
     expect(result.entries.map((e) => e.key)).toEqual(["input:customer"]);
   });
 
   it("filters by sources", async () => {
-    const tool = new MemoryListTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, {
-      sources: ["research"]
-    })) as { entries: Array<{ key: string }> };
+    const result = (await list(context, { sources: ["research"] })) as {
+      entries: Array<{ key: string }>;
+    };
     expect(result.entries.map((e) => e.key)).toEqual(["task:research"]);
   });
 
   it("returns empty list when memory is empty", async () => {
-    const tool = new MemoryListTool();
     const context = createMockContext();
 
-    const result = (await tool.process(context, {})) as {
+    const result = (await list(context)) as {
       total: number;
       returned: number;
       entries: unknown[];
@@ -143,13 +165,12 @@ describe("MemoryListTool", () => {
   });
 });
 
-describe("MemoryReadTool", () => {
+describe("read_shared", () => {
   it("returns full values for requested keys, with missing keys reported", async () => {
-    const tool = new MemoryReadTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, {
+    const result = (await read(context, {
       keys: ["task:research", "step:step_1", "task:does_not_exist"]
     })) as {
       entries: Record<string, { value: unknown; kind: string }>;
@@ -169,25 +190,52 @@ describe("MemoryReadTool", () => {
   });
 
   it("treats an empty keys array as a no-op", async () => {
-    const tool = new MemoryReadTool();
     const context = createMockContext();
     seed(context);
 
-    const result = (await tool.process(context, { keys: [] })) as {
+    const result = (await read(context, { keys: [] })) as {
       entries: Record<string, unknown>;
       missing: string[];
     };
     expect(result.entries).toEqual({});
     expect(result.missing).toEqual([]);
   });
+
+  it("resolves a bare suffix under shared:, reported under the asked-for key", async () => {
+    const context = createMockContext();
+    await share(context, {
+      key: "top_source",
+      value: "https://example.com"
+    });
+
+    const result = (await read(context, { keys: ["top_source"] })) as {
+      entries: Record<string, { value: unknown }>;
+      missing: string[];
+    };
+
+    expect(result.entries["top_source"].value).toBe("https://example.com");
+    expect(result.missing).toEqual([]);
+  });
+
+  it("does not fall back for a key that names another namespace", async () => {
+    const context = createMockContext();
+    seed(context);
+
+    const result = (await read(context, {
+      keys: ["task:does_not_exist"]
+    })) as { entries: Record<string, unknown>; missing: string[] };
+
+    // `shared:task:does_not_exist` must never answer a `task:` read.
+    expect(result.entries).toEqual({});
+    expect(result.missing).toEqual(["task:does_not_exist"]);
+  });
 });
 
-describe("MemoryWriteTool", () => {
+describe("share_result", () => {
   it("publishes a value under the shared: namespace", async () => {
-    const tool = new MemoryWriteTool();
     const context = createMockContext();
 
-    const result = (await tool.process(context, {
+    const result = (await share(context, {
       key: "top_source",
       value: "https://example.com",
       title: "Top source URL",
@@ -202,22 +250,45 @@ describe("MemoryWriteTool", () => {
     expect(entry?.value).toBe("https://example.com");
     expect(entry?.title).toBe("Top source URL");
     expect(entry?.description).toBe("Picked by the researcher agent.");
-    expect(entry?.source).toBe("memory_write");
+    expect(entry?.source).toBe("share_result");
   });
 
   it("only writes under shared: even when caller specifies a different prefix", async () => {
-    const tool = new MemoryWriteTool();
     const context = createMockContext();
 
     // The schema doesn't let the agent pick a kind, and the suffix is
     // always passed through memoryKeys.shared. Even a colon-suffixed key
     // gets its prefix overwritten.
-    const result = (await tool.process(context, {
+    const result = (await share(context, {
       key: "task:bogus",
       value: 42
     })) as { key: string };
     expect(result.key).toBe("shared:task:bogus");
     expect(context.memory.has("task:bogus")).toBe(false);
     expect(context.memory.has("shared:task:bogus")).toBe(true);
+  });
+
+  it("strips a leading shared: instead of doubling the prefix", async () => {
+    const context = createMockContext();
+
+    // A live run handed back a key from list_shared and minted
+    // `shared:shared:best_language_model`. The write is now idempotent.
+    const result = (await share(context, {
+      key: "shared:best_language_model",
+      value: "openai/gpt-5-mini"
+    })) as { key: string };
+
+    expect(result.key).toBe("shared:best_language_model");
+    expect(context.memory.has("shared:shared:best_language_model")).toBe(false);
+  });
+
+  it("writes the same entry whether the key carries the prefix or not", async () => {
+    const context = createMockContext();
+
+    await share(context, { key: "pick", value: 1 });
+    await share(context, { key: "shared:pick", value: 2 });
+
+    expect(context.memory.get("shared:pick")?.value).toBe(2);
+    expect(context.memory.has("shared:shared:pick")).toBe(false);
   });
 });

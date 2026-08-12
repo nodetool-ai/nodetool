@@ -10,15 +10,15 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import {
-  GenerateImageTool,
-  EditImageTool,
-  GenerateVideoTool,
-  AnimateImageTool,
-  GenerateSpeechTool,
-  TranscribeAudioTool,
-  EmbedTextTool
-} from "../src/tools/media-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+
+const generateImageTool = () => toolForCapabilityName("generate_image");
+const editImageTool = () => toolForCapabilityName("edit_image");
+const generateVideoTool = () => toolForCapabilityName("generate_video");
+const animateImageTool = () => toolForCapabilityName("animate_image");
+const generateSpeechTool = () => toolForCapabilityName("generate_speech");
+const transcribeAudioTool = () => toolForCapabilityName("transcribe_audio");
+const embedTextTool = () => toolForCapabilityName("embed_text");
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]);
 
@@ -58,7 +58,7 @@ function makeStorage(files: Record<string, Uint8Array> = {}): any {
 
 describe("model-arg validation (shared across tools)", () => {
   it("generate_image rejects a missing provider", async () => {
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(makeContext(), {
       model: "m",
       prompt: "p"
@@ -67,7 +67,7 @@ describe("model-arg validation (shared across tools)", () => {
   });
 
   it("generate_image rejects an empty provider", async () => {
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "",
       model: "m",
@@ -77,7 +77,7 @@ describe("model-arg validation (shared across tools)", () => {
   });
 
   it("generate_image rejects a non-string model", async () => {
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "openai",
       model: 42,
@@ -91,7 +91,7 @@ describe("model-arg validation (shared across tools)", () => {
 
 describe("GenerateImageTool", () => {
   it("declares name, schema and userMessage", () => {
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     expect(tool.name).toBe("generate_image");
     expect(tool.inputSchema.required).toEqual(["provider", "model", "prompt"]);
     expect(tool.userMessage({ provider: "openai", model: "gpt-image-1" })).toBe(
@@ -100,7 +100,7 @@ describe("GenerateImageTool", () => {
   });
 
   it("returns error when prompt is missing", async () => {
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "openai",
       model: "m"
@@ -111,7 +111,7 @@ describe("GenerateImageTool", () => {
   it("generates and persists an asset on success", async () => {
     const runProviderPrediction = vi.fn().mockResolvedValue(PNG);
     const createAsset = vi.fn().mockResolvedValue({ id: "img-9" });
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(
       makeContext({ runProviderPrediction, createAsset }),
       {
@@ -138,7 +138,7 @@ describe("GenerateImageTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockRejectedValue(new Error("upstream 500"));
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "openai",
       model: "m",
@@ -150,7 +150,7 @@ describe("GenerateImageTool", () => {
   it("passes output_file through to workspace storage", async () => {
     const runProviderPrediction = vi.fn().mockResolvedValue(PNG);
     const storage = makeStorage();
-    const tool = new GenerateImageTool();
+    const tool = generateImageTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -168,7 +168,7 @@ describe("GenerateImageTool", () => {
 
 describe("EditImageTool", () => {
   it("declares name and required params", () => {
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     expect(tool.name).toBe("edit_image");
     expect(tool.inputSchema.required).toEqual([
       "provider",
@@ -182,7 +182,7 @@ describe("EditImageTool", () => {
   });
 
   it("returns error when input_file is missing", async () => {
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "fal",
       model: "m",
@@ -192,7 +192,7 @@ describe("EditImageTool", () => {
   });
 
   it("returns error when prompt is missing", async () => {
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "fal",
       model: "m",
@@ -204,7 +204,7 @@ describe("EditImageTool", () => {
   it("reads source file, runs image_to_image, persists asset", async () => {
     const src = new Uint8Array([1, 2, 3]);
     const runProviderPrediction = vi.fn().mockResolvedValue(PNG);
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -228,7 +228,7 @@ describe("EditImageTool", () => {
   });
 
   it("errors when workspace storage is not configured", async () => {
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const r = (await tool.process(
       makeContext({ runProviderPrediction: vi.fn() }),
       { provider: "fal", model: "m", input_file: "in.png", prompt: "p" }
@@ -238,7 +238,7 @@ describe("EditImageTool", () => {
   });
 
   it("errors when the source file is not found", async () => {
-    const tool = new EditImageTool();
+    const tool = editImageTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction: vi.fn(),
@@ -254,7 +254,7 @@ describe("EditImageTool", () => {
 
 describe("GenerateVideoTool", () => {
   it("declares name and userMessage", () => {
-    const tool = new GenerateVideoTool();
+    const tool = generateVideoTool();
     expect(tool.name).toBe("generate_video");
     expect(tool.userMessage({ provider: "p", model: "m" })).toBe(
       "Generating video with p:m"
@@ -262,7 +262,7 @@ describe("GenerateVideoTool", () => {
   });
 
   it("returns error when prompt missing", async () => {
-    const tool = new GenerateVideoTool();
+    const tool = generateVideoTool();
     const r = (await tool.process(makeContext(), {
       provider: "p",
       model: "m"
@@ -274,7 +274,7 @@ describe("GenerateVideoTool", () => {
     const bytes = new Uint8Array([9, 9, 9]);
     const runProviderPrediction = vi.fn().mockResolvedValue(bytes);
     const createAsset = vi.fn().mockResolvedValue({ id: "v1" });
-    const tool = new GenerateVideoTool();
+    const tool = generateVideoTool();
     const r = (await tool.process(
       makeContext({ runProviderPrediction, createAsset }),
       { provider: "p", model: "m", prompt: "a wave", num_frames: 24 }
@@ -289,7 +289,7 @@ describe("GenerateVideoTool", () => {
 
   it("wraps errors", async () => {
     const runProviderPrediction = vi.fn().mockRejectedValue("boom-str");
-    const tool = new GenerateVideoTool();
+    const tool = generateVideoTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "p",
       model: "m",
@@ -303,7 +303,7 @@ describe("GenerateVideoTool", () => {
 
 describe("AnimateImageTool", () => {
   it("declares name and required params (no prompt required)", () => {
-    const tool = new AnimateImageTool();
+    const tool = animateImageTool();
     expect(tool.name).toBe("animate_image");
     expect(tool.inputSchema.required).toEqual([
       "provider",
@@ -316,7 +316,7 @@ describe("AnimateImageTool", () => {
   });
 
   it("returns error when input_file missing", async () => {
-    const tool = new AnimateImageTool();
+    const tool = animateImageTool();
     const r = (await tool.process(makeContext(), {
       provider: "p",
       model: "m"
@@ -327,7 +327,7 @@ describe("AnimateImageTool", () => {
   it("reads source and runs image_to_video", async () => {
     const src = new Uint8Array([7, 7]);
     const runProviderPrediction = vi.fn().mockResolvedValue(new Uint8Array([1]));
-    const tool = new AnimateImageTool();
+    const tool = animateImageTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -344,7 +344,7 @@ describe("AnimateImageTool", () => {
   });
 
   it("wraps read errors", async () => {
-    const tool = new AnimateImageTool();
+    const tool = animateImageTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction: vi.fn(),
@@ -360,7 +360,7 @@ describe("AnimateImageTool", () => {
 
 describe("GenerateSpeechTool", () => {
   it("declares name and userMessage", () => {
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     expect(tool.name).toBe("generate_speech");
     expect(tool.userMessage({ provider: "openai", model: "tts" })).toBe(
       "Synthesizing speech with openai:tts"
@@ -368,7 +368,7 @@ describe("GenerateSpeechTool", () => {
   });
 
   it("returns error when text missing", async () => {
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(makeContext(), {
       provider: "openai",
       model: "tts"
@@ -384,7 +384,7 @@ describe("GenerateSpeechTool", () => {
     const getProvider = vi.fn().mockResolvedValue({ textToSpeechEncoded });
     const createAsset = vi.fn().mockResolvedValue({ id: "sp1" });
     const streamProviderPrediction = vi.fn();
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({
         getProvider,
@@ -408,7 +408,7 @@ describe("GenerateSpeechTool", () => {
       .fn()
       .mockResolvedValue({ data: new Uint8Array([1]), mimeType: "audio/wav" });
     const getProvider = vi.fn().mockResolvedValue({ textToSpeechEncoded });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     await tool.process(
       makeContext({
         getProvider,
@@ -431,7 +431,7 @@ describe("GenerateSpeechTool", () => {
     }
     const streamProviderPrediction = vi.fn(() => stream());
     const createAsset = vi.fn().mockResolvedValue({ id: "st1" });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({ getProvider, streamProviderPrediction, createAsset }),
       { provider: "openai", model: "tts", text: "hello" }
@@ -450,7 +450,7 @@ describe("GenerateSpeechTool", () => {
       yield { data: b64, mimeType: "audio/mpeg" };
     }
     const createAsset = vi.fn().mockResolvedValue({ id: "b64" });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({
         getProvider,
@@ -474,7 +474,7 @@ describe("GenerateSpeechTool", () => {
     }
     const storage = makeStorage();
     const createAsset = vi.fn().mockResolvedValue({ id: "wav1" });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({
         getProvider,
@@ -501,7 +501,7 @@ describe("GenerateSpeechTool", () => {
     async function* stream() {
       // no yields
     }
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({
         getProvider,
@@ -519,7 +519,7 @@ describe("GenerateSpeechTool", () => {
     const streamProviderPrediction = vi.fn(() => {
       throw new Error("stream setup failed");
     });
-    const tool = new GenerateSpeechTool();
+    const tool = generateSpeechTool();
     const r = (await tool.process(
       makeContext({ getProvider, streamProviderPrediction }),
       { provider: "openai", model: "tts", text: "hi" }
@@ -532,7 +532,7 @@ describe("GenerateSpeechTool", () => {
 
 describe("TranscribeAudioTool", () => {
   it("declares name and userMessage", () => {
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     expect(tool.name).toBe("transcribe_audio");
     expect(tool.userMessage({ provider: "openai", model: "whisper" })).toBe(
       "Transcribing audio with openai:whisper"
@@ -540,7 +540,7 @@ describe("TranscribeAudioTool", () => {
   });
 
   it("returns error when input_file missing", async () => {
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(makeContext(), {
       provider: "openai",
       model: "whisper"
@@ -553,7 +553,7 @@ describe("TranscribeAudioTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockResolvedValue({ text: "hello world", chunks: [1, 2, 3] });
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -576,7 +576,7 @@ describe("TranscribeAudioTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockResolvedValue({ text: long });
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -592,7 +592,7 @@ describe("TranscribeAudioTool", () => {
 
   it("handles a missing text field by returning empty string", async () => {
     const runProviderPrediction = vi.fn().mockResolvedValue({});
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -608,7 +608,7 @@ describe("TranscribeAudioTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockRejectedValue(new Error("asr down"));
-    const tool = new TranscribeAudioTool();
+    const tool = transcribeAudioTool();
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
@@ -624,7 +624,7 @@ describe("TranscribeAudioTool", () => {
 
 describe("EmbedTextTool", () => {
   it("declares name and userMessage", () => {
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     expect(tool.name).toBe("embed_text");
     expect(tool.userMessage({ provider: "openai", model: "embed" })).toBe(
       "Embedding text with openai:embed"
@@ -632,7 +632,7 @@ describe("EmbedTextTool", () => {
   });
 
   it("returns error when text is neither string nor array", async () => {
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(makeContext(), {
       provider: "openai",
       model: "embed",
@@ -645,7 +645,7 @@ describe("EmbedTextTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockResolvedValue([[0.1, 0.2, 0.3]]);
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "openai",
       model: "embed",
@@ -669,7 +669,7 @@ describe("EmbedTextTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockResolvedValue([[1, 2], [3, 4]]);
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "openai",
       model: "embed",
@@ -683,7 +683,7 @@ describe("EmbedTextTool", () => {
 
   it("reports 0 dimensions for an empty result", async () => {
     const runProviderPrediction = vi.fn().mockResolvedValue([]);
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "openai",
       model: "embed",
@@ -697,7 +697,7 @@ describe("EmbedTextTool", () => {
     const runProviderPrediction = vi
       .fn()
       .mockRejectedValue(new Error("embed down"));
-    const tool = new EmbedTextTool();
+    const tool = embedTextTool();
     const r = (await tool.process(makeContext({ runProviderPrediction }), {
       provider: "openai",
       model: "embed",

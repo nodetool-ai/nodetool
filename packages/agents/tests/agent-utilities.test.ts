@@ -1,164 +1,30 @@
 /**
- * Tests for agent utility gaps: T-AG-1, T-AG-3, T-AG-7, T-AG-8.
+ * Tests for agent utility gaps: T-AG-3, T-AG-7, T-AG-8.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-import * as os from "node:os";
-import {
-  WorkspaceReadTool,
-  WorkspaceWriteTool,
-  WorkspaceListTool
-} from "../src/tools/workspace-tools.js";
-import { ListProviderModelsTool } from "../src/tools/model-tools.js";
+import { describe, it, expect } from "vitest";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
 import { wrapGeneratorsParallel } from "../src/utils/wrap-generators-parallel.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
-import type { MessageContent } from "@nodetool-ai/runtime";
-
-// Minimal context stub for workspace tools — wires a real
-// FileStorageAdapter so the tools' new storage-backed code path works.
-function makeContext(workspaceDir: string) {
-  return {
-    workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir)
-  } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
-}
-
-// ── T-AG-1 — Workspace tools ────────────────────────────────────────
-
-describe("T-AG-1: Workspace tools", () => {
-  let tmpDir: string;
-
-  beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-tools-test-"));
-    await fs.mkdir(path.join(tmpDir, "subdir"));
-    await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello world");
-    await fs.writeFile(path.join(tmpDir, "subdir", "nested.txt"), "nested");
-  });
-
-  afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  });
-
-  describe("WorkspaceReadTool", () => {
-    it("reads a file relative to workspace", async () => {
-      const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "hello.txt"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      expect(result.content).toBe("hello world");
-    });
-
-    it("reads a file in subdirectory", async () => {
-      const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "subdir/nested.txt"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      expect(result.content).toBe("nested");
-    });
-
-    it("rejects path traversal", async () => {
-      const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "../../etc/passwd"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("traversal");
-    });
-
-    it("returns error for nonexistent file", async () => {
-      const tool = new WorkspaceReadTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "nope.txt"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("WorkspaceWriteTool", () => {
-    it("writes a file relative to workspace", async () => {
-      const tool = new WorkspaceWriteTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "output.txt",
-        content: "written"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      const content = await fs.readFile(
-        path.join(tmpDir, "output.txt"),
-        "utf-8"
-      );
-      expect(content).toBe("written");
-    });
-
-    it("creates parent directories", async () => {
-      const tool = new WorkspaceWriteTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "deep/nested/file.txt",
-        content: "deep"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      const content = await fs.readFile(
-        path.join(tmpDir, "deep/nested/file.txt"),
-        "utf-8"
-      );
-      expect(content).toBe("deep");
-    });
-
-    it("rejects path traversal", async () => {
-      const tool = new WorkspaceWriteTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "../../tmp/evil.txt",
-        content: "evil"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("traversal");
-    });
-  });
-
-  describe("WorkspaceListTool", () => {
-    it("lists workspace root", async () => {
-      const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "."
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      const entries = result.entries as Array<{
-        name: string;
-        is_dir: boolean;
-      }>;
-      const names = entries.map((e) => e.name);
-      expect(names).toContain("hello.txt");
-      expect(names).toContain("subdir");
-    });
-
-    it("lists subdirectory", async () => {
-      const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "subdir"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(true);
-      const entries = result.entries as Array<{ name: string }>;
-      expect(entries.length).toBe(1);
-      expect(entries[0].name).toBe("nested.txt");
-    });
-
-    it("rejects path traversal", async () => {
-      const tool = new WorkspaceListTool(tmpDir);
-      const result = (await tool.process(makeContext(tmpDir), {
-        path: "../../"
-      })) as Record<string, unknown>;
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("traversal");
-    });
-  });
-});
+import type {
+  BaseProvider,
+  MessageContent,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolForCapabilityName
+} from "../src/capabilities/index.js";
 
 // ── T-AG-3 — Model listing tool ─────────────────────────────────────
 
-describe("T-AG-3: ListProviderModelsTool", () => {
+/** `list_provider_models` over a run carrying the providers map. */
+function listProviderModelsTool(providers: Record<string, BaseProvider>) {
+  return toolForCapabilityName("list_provider_models", (context) =>
+    createCapabilityRun({ context, gate: UNGATED, providers })
+  );
+}
+
+describe("T-AG-3: list_provider_models", () => {
   it("returns models from a mock provider", async () => {
     const mockProvider = {
       getAvailableLanguageModels: async () => [
@@ -166,15 +32,13 @@ describe("T-AG-3: ListProviderModelsTool", () => {
         { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" }
       ]
     };
-    const tool = new ListProviderModelsTool({
-      openai:
-        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
+    const tool = listProviderModelsTool({
+      openai: mockProvider as unknown as BaseProvider
     });
 
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "openai" }
-    )) as Record<string, unknown>;
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "openai"
+    })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
     const models = result.models as Array<{ id: string }>;
@@ -183,25 +47,22 @@ describe("T-AG-3: ListProviderModelsTool", () => {
   });
 
   it("returns error for unknown provider", async () => {
-    const tool = new ListProviderModelsTool({});
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "unknown" }
-    )) as Record<string, unknown>;
+    const tool = listProviderModelsTool({});
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "unknown"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("unknown");
   });
 
   it("returns error when provider has no getAvailableLanguageModels", async () => {
     const mockProvider = {};
-    const tool = new ListProviderModelsTool({
-      openai:
-        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
+    const tool = listProviderModelsTool({
+      openai: mockProvider as unknown as BaseProvider
     });
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "openai" }
-    )) as Record<string, unknown>;
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "openai"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(false);
   });
 });

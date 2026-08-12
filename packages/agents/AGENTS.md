@@ -6,15 +6,15 @@ Every `ProcessingContext` carries an `AgentMemory` instance at `context.memory`.
 
 ### Access pattern: progressive disclosure via tools
 
-Memory contents are NOT auto-injected into prompts. Agents access memory through three tools that are auto-attached to every step (and to every team iteration):
+Memory contents are NOT auto-injected into prompts. Agents access memory through three capabilities that are auto-attached to every step (and to every team iteration). They are the `shared` capability module (`src/capabilities/shared.ts`) — kept apart from `memory`, which is thread memory and a different lifetime — and `getMemoryTools()` (`src/tools/memory-tools.ts`) is the belt the executors mount them from:
 
-| Tool | Purpose |
-|---|---|
-| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
-| `memory_read` | Fetch full values for specific keys |
-| `memory_write` | Publish a value under `shared:<key>` |
+| Tool | Object model | Purpose |
+|---|---|---|
+| `list_shared` | `nodetool.shared.list(filters)` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `read_shared` | `nodetool.shared.read(keys)` | Fetch full values for specific keys |
+| `share_result` | `nodetool.shared.publish(key, value, {title, description})` | Publish a value under `shared:<key>` |
 
-The default execution system prompt documents these tools. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
+The default execution system prompt documents the `nodetool.shared` form, and the three wire names drop out of the raw tool catalog the way every other wrapped tool does. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
 
 ### Key namespaces
 
@@ -35,9 +35,9 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `CodeActExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
-| `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
+| `share_result` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
-`memory_write` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
+`share_result` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
 
 ### Custom prompts are preambles, not replacements
 
@@ -45,7 +45,7 @@ A step executor always builds the default execution prompt (the CodeAct action c
 
 ### Final synthesis: CompilerAgent
 
-`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `memory_read`, and produces the final deliverable:
+`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `read_shared`, and produces the final deliverable:
 
 - **Structured mode** (an `outputSchema` is set): `finish_step` is included in the toolset, and the compiler returns a schema-conformant value.
 - **Prose mode** (no `outputSchema`): `finish_step` is omitted; the compiler emits a final assistant message and the absence of any tool call ends the loop. The text becomes the result.
@@ -54,13 +54,13 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 
 ### Threading task-level deps through executors
 
-`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every step executor. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `memory_read` when it needs the values.
+`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every step executor. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `read_shared` when it needs the values.
 
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-tools.test.ts` — unit tests for `memory_list` / `memory_read` / `memory_write`
-- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `memory_list` → `memory_read` → `finish_step`
+- `packages/agents/tests/memory-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getMemoryTools()` builds from them
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
 When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
@@ -233,7 +233,7 @@ and `require` never resolve. The browser runner fetches those modules over
 rules hold client-side.
 
 A session that allows packages also carries **`get_sandbox_package_docs`**
-(`codeact/sandbox-package-docs.ts`): it serves one pack's SKILL.md, refuses a
+(`capabilities/packs.ts`): it serves one pack's SKILL.md, refuses a
 specifier off the session allowlist, and wraps the body of a pack the operator
 has not put on the pack-loader allowlist in `<untrusted-package-docs>` — read
 as reference, never as instructions. A trusted pack's skill instead registers
@@ -429,9 +429,29 @@ arrives at *call* time, not at construction time, which is what lets one
 process-level registry serve every host. Design:
 [docs/tool-class-retirement-design.md](../../docs/tool-class-retirement-design.md).
 
-`registry.ts` is the table: one lazy `import()` per namespace, plus
-`DECLARED_CAPABILITY_MODULES`, the list a reviewer reads. Two drift walks keep
-them honest. `capabilityModuleDrift()` reports a declared module with no loader,
+`registry.ts` is the table, in two halves. The **lazy** half is one `import()`
+per namespace, so no implementation sits in an entry graph. The **eager** half
+is a spec table: every module has a data-only sibling (`workflows.specs.ts`,
+`media.specs.ts`, …) holding wire name, description, JSON schema, category and
+message template, and importing no implementation, so `capabilitySpec(name)`
+and `listCapabilitySpecs()` answer synchronously. That is what lets a belt be
+assembled synchronously from the registry: `toolFromLazyCapability(spec, run)` /
+`toolForCapabilityName(name, run)` (`capabilities/lazy-tool.ts`) return a `Tool`
+whose spec is there at assembly time and whose implementation loads from its own
+module at the first `process()` — `Tool.process()` was already async, so only the
+spec ever had to be eager. `getBuiltinTools()`, `getAllMcpTools()` and
+`getGoogleWorkspaceTools()` all build this way; the ninety-two one-line
+`extends CapabilityTool` subclasses they replaced are gone.
+
+A module imports its own specs back and attaches each to an implementation, so
+one spec *object* stands behind both halves, and `eagerSpecDrift` compares them
+by identity — a module that copied its spec would pass a field check and still
+be two things to keep in step. `CapabilitySpec.zodSchema` carries the Zod schema
+for the few capabilities whose identity is one (`view_image`, `list_images`, the
+eight `ui_*` document tools), so `Tool.execute` still validates on the way in.
+
+`DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads. Three drift
+walks keep everything honest. `capabilityModuleDrift()` reports a declared module with no loader,
 a loader nobody declared, an export with no category or no schema, and one name
 owned by two modules; `tests/capabilities-registry.test.ts` also pins a
 checked-in `name → category` snapshot, so a reclassification is a one-line diff.
@@ -770,8 +790,23 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `asset_search`/`grep`/`glob`, the Claude-agent file set
   (`read_file`/`write_file`/`edit_file`/`list_directory`), browser, HTTP,
   memory, `run_subtask`) are documented in full; past `CODEACT_DEFER_THRESHOLD` tools, the rest is name-only in the
-  prompt and discovered in-sandbox with `await searchTools("query")`
-  (ToolSearch grammar). All tools stay callable either way.
+  prompt and discovered in-sandbox with `await nodetool.searchTools("query")`
+  (ToolSearch grammar). All tools stay callable either way. Discovery lives on
+  the object model and nowhere else: the bare `searchTools()` global is gone,
+  because a model that knows `nodetool.*` looked for it there and burned two
+  rounds finding out it was elsewhere.
+- Imports are discoverable too: `nodetool.packs.list()` reports every installed
+  pack and whether this session allows it, `modules(pack)` the specifiers it
+  declares, `exports(specifier)` the function names one module exports, and
+  `docs(specifier)` the pack's SKILL.md. A pack installed but off the allowlist
+  is listed as `allowed: false` rather than hidden — hiding it teaches the model
+  the pack does not exist. The data reaches the guest as a tool
+  (`list_sandbox_packages`, `capabilities/packs.ts`), which is the
+  only path the object model has: it owns no host bridge. Exports are exact for
+  host modules (`SANDBOX_HOST_MODULES`), WASM modules (the manifest contract)
+  and platform modules (the capability registry); for a guest JS module they are
+  read off its own `export` statements with acorn, and a module that re-exports
+  with `export *` answers `complete: false` instead of a short list.
 - Every step executor is one: `TaskExecutor`, `ParallelTaskExecutor`,
   `run_subtask`, and `run_search` all construct `CodeActExecutor`. `StepExecutor` — the older one-JSON-tool-call
   loop — is no longer exported; two callers keep it because they are one-shot
@@ -792,13 +827,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
   `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/
-  create/open), `nodetool.graph()` (an ad-hoc graph builder with
-  `ref.output()` wiring, `copyFrom()` graph-into-graph copying with id
-  remapping, `validate()`, `save()`, and `run()` — save-as-`codeact-adhoc` +
-  run; it runs on the shared graph DSL core in `src/graph-dsl-core.ts`, the
-  same implementation behind the GraphPlanner's `submit_graph`, so wiring
-  semantics and guards — snake_case auto ids, `connect()` id checks, handles
-  that throw when stringified — cannot drift between the two surfaces), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
+  create/open), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
   one ranked model; `find`/`list` for the long form; `forProvider(provider)`
   for one provider's own catalog), and `nodetool.media`
@@ -816,7 +845,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   backend host-side, and `provider` pins one: `"default"`, `"openai"`,
   `"google"`, `"dataforseo"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
-  (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
+  (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
+  (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
+  run's own scratchpad, beside thread-scoped `nodetool.memory`), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
@@ -831,7 +862,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   per capability: tools the object model wraps
   (`nodetoolApiCoveredToolNames`, plus `GRAPH_MODEL_TOOL_NAMES` when the graph
   model loads) are filtered out of the prompt's tool catalog — they stay
-  callable through the bridge and findable via `searchTools()`, but the
+  callable through the bridge and findable via `nodetool.searchTools()`, but the
   `nodetool.*` form is the only documented one. Workspace files are the
   deliberate exception: they are not wrapped, because the sandbox's own
   `workspace.*` API is in-process and costs no tool call — the action contract
@@ -841,19 +872,33 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `unit_conversion`) were deleted outright, MCP included, and so were the code
   tools `run_code` and `js` — `execute_code` is the code surface, and a second
   one only invited the model to run code without the sandbox's `nodetool.*` API
-  and `state`. `getAgentToolbelt()`
-  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific
-  duplicates: the media tools `image_generation`, `openai_image_generation`,
-  `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
-  covers them through the provider-agnostic `generate_image` /
-  `generate_speech` — and the search backends `openai_web_search`,
-  `google_grounded_search`, `dataforseo_search`, `dataforseo_news` and
-  `dataforseo_images`, which `web_search`/`google_news`/`google_images` reach
-  by routing across the configured backends host-side (`backend` pins one).
-  `getBuiltinTools()` still returns them all as the full inventory for
-  registration and audits. Every surface a model reasons over — chat turns,
-  agent steps, and the MCP server — assembles its belt from
-  `getAgentToolbelt()`, because all three have the object model.
+  and `state`. The nine provider-specific duplicates went next. The media four
+  — `image_generation`, `openai_image_generation`, `google_image_generation`,
+  `openai_text_to_speech` — were deleted, because `nodetool.media` covers them
+  through the provider-agnostic `generate_image` / `generate_speech`. The
+  search five — `openai_web_search`, `google_grounded_search`,
+  `dataforseo_search`, `dataforseo_news`, `dataforseo_images` — were never
+  duplicates at all: they are the backends `web_search` / `google_news` /
+  `google_images` route to, so they became plain functions with no wire name
+  (`backend` still pins one). `getAgentToolbelt()`
+  (`src/tools/builtin-tools.ts`) therefore returns what `getBuiltinTools()`
+  returns; a saved AgentNode naming a retired tool resolves to its replacement
+  through `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.
+- Authoring a graph is a **package**, not a builder. `nodetool.graph()` — a
+  builder taking every node type as a free-form string — is gone; a session
+  authors with `@nodetool-ai/sandbox-dsl`, which ships one generated function
+  per node type with that node's real inputs, one module per namespace. A type
+  the catalog does not have has no export, so a hallucinated type fails at
+  import instead of surviving into a graph nobody checked.
+  `withGraphDslPackage` (`src/codeact/graph-dsl-package.ts`) is the wiring: it
+  puts the pack on the session allowlist when the belt carries
+  `create_workflow`, `validate_workflow` and `run_workflow` **and** the catalog
+  serves the pack, so a machine without it installed is never told to import
+  it. `CodeActExecutor` and `createChatCodeActSession` both call it, and the
+  answer also gates `GRAPH_DSL_PROMPT_SECTION`. Consent is per pack: an
+  allowlist entry covers that specifier's subpaths, which is what makes
+  seventy-two namespace modules one prompt line. Tests:
+  `tests/codeact-graph-dsl.test.ts`.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface: 19 cases over two
@@ -866,9 +911,12 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   parses, reading a pack's SKILL.md through `get_sandbox_package_docs` instead
   of guessing its API, reporting a pack as unavailable rather than working
   around it, and using two packs in one action. A case names its allowlist in
-  `sandboxPackages`, and the runner puts a catalog over the shipped **host**
-  packs on the context — a guest pack would need `@nodetool-ai/sandbox-compiler`,
-  which this package does not depend on. `requiredSessionTools` scores tools the
+  `sandboxPackages`, and the runner puts a catalog over the shipped packs
+  (`shippedPackCatalog()`) on the context: the three host packs plus
+  `@nodetool-ai/sandbox-dsl`, whose modules are guest JavaScript the pack ships
+  outright — a pack with an npm dependency would need
+  `@nodetool-ai/sandbox-compiler`, which this package does not depend on.
+  `requiredSessionTools` scores tools the
   executor adds rather than the case, which the recorder cannot see.
   Measured on `claude_agent_sdk`/sonnet: 4/4, mean score 1.00, ~2 actions each.
   `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case
@@ -926,7 +974,7 @@ inside an `execute_code` action:
 | `await pipeline(items, ...stages)` | `nodetool.batch(items, async (item) => …)` |
 | `log(message)` | `console.log(message)` |
 | `budget` | the run's own `AgentPolicy` bounds, enforced host-side |
-| `inputs` | the step's inputs, read from `context.memory` via `memory_read` |
+| `inputs` | the step's inputs, read from `context.memory` via `read_shared` |
 
 The difference that mattered — one authored artifact reviewed before anything
 ran — is not lost: a plan still goes through the approval gate, and an action's

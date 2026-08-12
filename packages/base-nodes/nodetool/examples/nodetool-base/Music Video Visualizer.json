@@ -427,10 +427,8 @@
             "path": null,
             "supported_tasks": []
           },
-          "width": 1920,
-          "height": 1080,
-          "guidance_scale": 7.5,
-          "num_inference_steps": 4
+          "aspect_ratio": "16:9",
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

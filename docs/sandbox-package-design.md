@@ -899,7 +899,7 @@ reaches an agent only under the trust rule above.
   description and the module's `contentDigest`; a body never rides in a
   summary.
 - **Disclosure to the agent.** `get_sandbox_package_docs`
-  (`packages/agents/src/codeact/sandbox-package-docs.ts`) refuses a specifier
+  (`packages/agents/src/capabilities/packs.ts`) refuses a specifier
   the session never allowed, returns a trusted pack's body plainly, and wraps
   an untrusted pack's body in `<untrusted-package-docs>` with the
   do-not-follow warning and escaped angle brackets. A trusted pack's skill also

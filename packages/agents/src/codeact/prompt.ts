@@ -221,7 +221,7 @@ export interface CodeActPromptOptions {
   tools: ToolSignatureSource[];
   /**
    * Deferred long tail: callable like any other tool, but listed by name
-   * only — the model pulls a signature in with `searchTools()` first.
+   * only — the model pulls a signature in with `nodetool.searchTools()` first.
    */
   deferredTools?: ToolSignatureSource[];
   /** Declared output schema (JSON schema) of the step, if any. */
@@ -256,11 +256,19 @@ export interface CodeActPromptOptions {
    * serve costs the model a round trip and teaches it the wrong contract.
    */
   packageDocsTool?: boolean;
+  /**
+   * Whether `list_sandbox_packages` is on this session's belt. Same rule as
+   * {@link CodeActPromptOptions.packageDocsTool}: the discovery sentence is
+   * printed only when a session can answer it.
+   */
+  packageListTool?: boolean;
 }
 
 /** The one true invocation, as a code action writes it. */
-export const PACKAGE_DOCS_CALL =
-  'await tools.get_sandbox_package_docs({ specifier: "<specifier>" })';
+export const PACKAGE_DOCS_CALL = 'await nodetool.packs.docs("<specifier>")';
+
+/** The one true discovery invocation, as a code action writes it. */
+export const PACKAGE_LIST_CALL = "await nodetool.packs.list()";
 
 /**
  * The session's package tier: one line per allowed specifier, or the sentence
@@ -269,10 +277,14 @@ export const PACKAGE_DOCS_CALL =
  */
 function renderPackageSection(
   lines: readonly string[],
-  docsTool: boolean
+  docsTool: boolean,
+  listTool: boolean
 ): string {
+  const discovery = listTool
+    ? ` \`${PACKAGE_LIST_CALL}\` reports every pack installed here and whether this session allows it, \`nodetool.packs.modules(pack)\` the specifiers one declares, and \`nodetool.packs.exports(specifier)\` the function names one module exports.`
+    : "";
   if (lines.length === 0) {
-    return "# Sandbox packages\nNo sandbox packages are available in this session. Do not import anything.";
+    return `# Sandbox packages\nNo sandbox packages are available in this session. Do not import anything.${discovery}`;
   }
   const intro =
     "Import these with a static `import` at the top of the action. Only these specifiers resolve; every other import fails.";
@@ -281,7 +293,7 @@ function renderPackageSection(
     : "";
   return [
     "# Sandbox packages",
-    `${intro}${docs}`,
+    `${intro}${docs}${discovery}`,
     lines.map((line) => `- ${line}`).join("\n")
   ].join("\n\n");
 }
@@ -320,8 +332,8 @@ export function buildCodeActSystemPrompt(
     sections.push(
       `# More tools (discover before calling)\n` +
         `These are also callable via \`tools.<name>()\`, but only their names ` +
-        `are listed here. Call \`await searchTools("query")\` (or ` +
-        `\`searchTools("select:name1,name2")\`) first — it returns each ` +
+        `are listed here. Call \`await nodetool.searchTools("query")\` (or ` +
+        `\`nodetool.searchTools("select:name1,name2")\`) first — it returns each ` +
         `match's signature and description. Do not guess arguments for a ` +
         `tool you have not looked up.\n\n` +
         deferred.map((t) => t.name).join(", ")
@@ -332,7 +344,7 @@ export function buildCodeActSystemPrompt(
     sections.push(
       `# Direct tools (call them, do not write code for them)\n` +
         `These are ordinary tool calls, not sandbox functions. They are not ` +
-        `in \`tools.*\` and \`searchTools()\` does not list them. Call one ` +
+        `in \`tools.*\` and \`nodetool.searchTools()\` does not list them. Call one ` +
         `directly when you need exactly what it does; write a code action ` +
         `when you need to compose several calls, loop, or transform the ` +
         `results.\n\n` +
@@ -342,7 +354,8 @@ export function buildCodeActSystemPrompt(
   sections.push(
     renderPackageSection(
       options.packageLines ?? [],
-      options.packageDocsTool ?? false
+      options.packageDocsTool ?? false,
+      options.packageListTool ?? false
     )
   );
   for (const section of options.extraSections ?? []) {

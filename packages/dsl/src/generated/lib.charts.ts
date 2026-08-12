@@ -4,7 +4,7 @@ import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, DataframeRef } from "../types.js";
 
 // Chart Renderer — lib.charts.ChartRenderer
-export interface ChartRendererInputs {
+export type ChartRendererInputs = {
   chart_config?: Connectable<unknown>;
   width?: Connectable<number>;
   height?: Connectable<number>;
@@ -12,12 +12,12 @@ export interface ChartRendererInputs {
   background_color?: Connectable<string>;
   despine?: Connectable<boolean>;
   trim_margins?: Connectable<boolean>;
-}
+};
 
 export interface ChartRendererOutputs {
   output: ImageRef;
 }
 
 export function chartRenderer(inputs: ChartRendererInputs): DslNode<ChartRendererOutputs, "output"> {
-  return createNode("lib.charts.ChartRenderer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("lib.charts.ChartRenderer", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -6,15 +6,9 @@ import {
   ModelObserver,
   initTestDb
 } from "@nodetool-ai/models";
-import {
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool
-} from "../src/tools/sketch-version-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -62,7 +56,7 @@ describe("sketch version tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("registers as built-ins with sane permissions", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
+    const names = BUILTIN_TOOL_NAMES;
     expect(names).toEqual(
       expect.arrayContaining([
         "list_sketches",
@@ -82,12 +76,12 @@ describe("sketch version tools", () => {
     const poster = await makeSketch();
     await makeSketch({ name: "Storyboard frame" });
 
-    const all = (await new ListSketchesTool().process(ctx(), {})) as {
+    const all = (await toolForCapabilityName("list_sketches").process(ctx(), {})) as {
       sketches: Array<{ id: string; name: string; width: number }>;
     };
     expect(all.sketches).toHaveLength(2);
 
-    const filtered = (await new ListSketchesTool().process(ctx(), {
+    const filtered = (await toolForCapabilityName("list_sketches").process(ctx(), {
       query: "post"
     })) as { sketches: Array<{ id: string; width: number }> };
     expect(filtered.sketches).toHaveLength(1);
@@ -96,12 +90,12 @@ describe("sketch version tools", () => {
 
   it("hides another user's sketches", async () => {
     await makeSketch();
-    const listed = (await new ListSketchesTool().process(ctx("other"), {})) as {
+    const listed = (await toolForCapabilityName("list_sketches").process(ctx("other"), {})) as {
       sketches: unknown[];
     };
     expect(listed.sketches).toEqual([]);
 
-    const versions = (await new ListSketchVersionsTool().process(ctx("other"), {
+    const versions = (await toolForCapabilityName("list_sketch_versions").process(ctx("other"), {
       image_document_id: (await ImageDocument.listByUser("u1"))[0].id
     })) as { error: string };
     expect(versions.error).toContain("was not found");
@@ -110,7 +104,7 @@ describe("sketch version tools", () => {
   it("creates a manual snapshot and lists it", async () => {
     const row = await makeSketch();
 
-    const created = (await new CreateSketchVersionTool().process(ctx(), {
+    const created = (await toolForCapabilityName("create_sketch_version").process(ctx(), {
       image_document_id: row.id,
       name: "before the repaint"
     })) as { ok: boolean; version: number; saveType: string; name: string };
@@ -124,7 +118,7 @@ describe("sketch version tools", () => {
 
     await ImageDocumentVersion.snapshot(row, { saveType: "autosave" });
 
-    const listed = (await new ListSketchVersionsTool().process(ctx(), {
+    const listed = (await toolForCapabilityName("list_sketch_versions").process(ctx(), {
       image_document_id: row.id
     })) as { versions: Array<{ version: number; saveType: string }> };
     // Newest first.
@@ -133,7 +127,7 @@ describe("sketch version tools", () => {
       [1, "manual"]
     ]);
 
-    const manualOnly = (await new ListSketchVersionsTool().process(ctx(), {
+    const manualOnly = (await toolForCapabilityName("list_sketch_versions").process(ctx(), {
       image_document_id: row.id,
       save_type: "manual"
     })) as { versions: Array<{ version: number }> };
@@ -142,12 +136,12 @@ describe("sketch version tools", () => {
 
   it("reads one version's document without restoring it", async () => {
     const row = await makeSketch();
-    await new CreateSketchVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_sketch_version").process(ctx(), {
       image_document_id: row.id,
       name: "the good one"
     });
 
-    const result = (await new GetSketchVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("get_sketch_version").process(ctx(), {
       image_document_id: row.id,
       version: 1
     })) as {
@@ -168,13 +162,13 @@ describe("sketch version tools", () => {
     const after = (await ImageDocument.findById(row.id))!;
     expect(after.updated_at).toBe(row.updated_at);
 
-    const missing = (await new GetSketchVersionTool().process(ctx(), {
+    const missing = (await toolForCapabilityName("get_sketch_version").process(ctx(), {
       image_document_id: row.id,
       version: 7
     })) as { error: string };
     expect(missing.error).toContain("no version 7");
 
-    const otherUser = (await new GetSketchVersionTool().process(ctx("other"), {
+    const otherUser = (await toolForCapabilityName("get_sketch_version").process(ctx("other"), {
       image_document_id: row.id,
       version: 1
     })) as { error: string };
@@ -183,7 +177,7 @@ describe("sketch version tools", () => {
 
   it("restores a version, snapshots the overwritten state, and validates the result", async () => {
     const row = await makeSketch();
-    await new CreateSketchVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_sketch_version").process(ctx(), {
       image_document_id: row.id,
       name: "the good one"
     });
@@ -194,7 +188,7 @@ describe("sketch version tools", () => {
     edited.width = 512;
     await edited.save();
 
-    const result = (await new RestoreSketchVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_sketch_version").process(ctx(), {
       image_document_id: row.id,
       version: 1
     })) as {
@@ -228,11 +222,11 @@ describe("sketch version tools", () => {
 
   it("reports the findings when the restored document no longer validates", async () => {
     const row = await makeSketch({ document: document("gone") });
-    await new CreateSketchVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_sketch_version").process(ctx(), {
       image_document_id: row.id
     });
 
-    const result = (await new RestoreSketchVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_sketch_version").process(ctx(), {
       image_document_id: row.id,
       version: 1
     })) as {
@@ -251,7 +245,7 @@ describe("sketch version tools", () => {
 
   it("refuses to restore a version the sketch does not have", async () => {
     const row = await makeSketch();
-    const result = (await new RestoreSketchVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_sketch_version").process(ctx(), {
       image_document_id: row.id,
       version: 7
     })) as { error: string };
@@ -261,11 +255,11 @@ describe("sketch version tools", () => {
 
   it("refuses to restore another user's sketch", async () => {
     const row = await makeSketch();
-    await new CreateSketchVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_sketch_version").process(ctx(), {
       image_document_id: row.id
     });
 
-    const result = (await new RestoreSketchVersionTool().process(ctx("other"), {
+    const result = (await toolForCapabilityName("restore_sketch_version").process(ctx("other"), {
       image_document_id: row.id,
       version: 1
     })) as { error: string };

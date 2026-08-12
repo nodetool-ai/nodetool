@@ -3,12 +3,12 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 
 // Discord Bot Trigger — messaging.discord.DiscordBotTrigger
-export interface DiscordBotTriggerInputs {
+export type DiscordBotTriggerInputs = {
   max_events?: Connectable<number>;
   token?: Connectable<string>;
   channel_id?: Connectable<string>;
   allow_bot_messages?: Connectable<boolean>;
-}
+};
 
 export interface DiscordBotTriggerOutputs {
   message_id: number;
@@ -23,5 +23,5 @@ export interface DiscordBotTriggerOutputs {
 }
 
 export function discordBotTrigger(inputs: DiscordBotTriggerInputs): DslNode<DiscordBotTriggerOutputs> {
-  return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true });
+  return createNode("messaging.discord.DiscordBotTrigger", inputs, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }

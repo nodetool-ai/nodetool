@@ -47,7 +47,11 @@ export interface SandboxCapabilityDispatcher {
    * The one entry point guest code reaches. Every argument is untrusted and
    * validated here before the capability is looked up, let alone gated.
    */
-  call(moduleKey: unknown, exportName: unknown, args: unknown): Promise<unknown>;
+  call(
+    moduleKey: unknown,
+    exportName: unknown,
+    args: unknown
+  ): Promise<unknown>;
 }
 
 /**

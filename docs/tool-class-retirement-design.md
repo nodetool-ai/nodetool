@@ -145,7 +145,7 @@ table above lists. The class dissolves into data plus a function.
 export interface CapabilitySpec {
   readonly name: string;                 // wire name, unchanged: "list_workflows"
   readonly description: string;
-  readonly inputSchema: JsonSchema;      // rendered for prompts, searchTools(), MCP
+  readonly inputSchema: JsonSchema;      // rendered for prompts, nodetool.searchTools(), MCP
   readonly category: PermissionCategory; // REQUIRED — no default-to-external fallback
   userMessage?(args: Record<string, unknown>): string;
 }
@@ -335,7 +335,9 @@ tool calls already execute server-side.
 
 ### What stays schema-shaped, and where it lives
 
-Two provider tools survive, and neither needs the class:
+Three kinds survive, and none of them needs the class.
+
+The first two are the product surface's own:
 
 - `execute_code` is already constants, not a `Tool`: `EXECUTE_CODE_TOOL_NAME` and
   `EXECUTE_CODE_INPUT_SCHEMA` (`packages/agents/src/codeact/codeact-executor.ts:110`,
@@ -349,8 +351,53 @@ Two provider tools survive, and neither needs the class:
   the direct path (`chat-codeact.ts:277-281`, `unified-websocket-runner.ts:5738-5762`,
   `mcp-agent-tools.ts:456-459`). That rule is unchanged.
 
+The third kind is **loop-protocol tools**, and they are exempt from this migration
+by kind rather than by schedule. A loop-protocol tool is the structured-output or
+feedback channel of a provider-driven loop. Three properties identify one, and all
+three must hold:
+
+- Its state is **loop-instance state read back by the code that constructed it**.
+  `GraphPlanner` builds a `SubmitGraphTool` per attempt (`graph-planner.ts:420`),
+  aborts the provider loop from inside the tool's own execute on acceptance
+  (`:486`), then reads `_graph` / `lastCode` / `lastErrors` off the instance
+  (`submit-graph-tool.ts:57`). `PlanBuilder` plus its three tools is the same shape
+  (`task-planner.ts:423`).
+- It is **never gated**. `GraphPlanner` passes `{} as ProcessingContext`
+  (`graph-planner.ts:463`); there is no context, no gate, and `invoke` could not run
+  it.
+- It is **never belt-assembled** and never sandbox-reachable, so
+  `capabilities-coverage.test.ts` does not and should not see it.
+
+Named instances: `submit_graph`, `submit_code`, `add_task` / `remove_task` /
+`finish_plan`, `create_task`, `finish_step`, the per-edge `control_*` tools,
+`get_run_state` / `read_node_output`, and the eval fakes.
+
+The supervisor pair reads least like the others, so state why it belongs.
+`createSupervisorTools` builds a `GetRunStateTool` and a `ReadNodeOutputTool`
+**per decision**, bound to that decision's `Escalation` and the run's
+`RunStateReader` (`supervisor/supervisor-agent.ts:150-158`), and hands them to
+a `StepExecutor` that never calls `gateTools`. All three properties hold: the
+state is the loop instance's, read back by the code that constructed it;
+nothing gates them, because the scoping *is* the control — `read_node_output`
+refuses a read outside the failing invocation's causal lineage, which no
+permission category expresses; and no belt assembles them, so
+`capabilities-coverage.test.ts` never sees them. Registering them would put one
+escalation on the run, which is the shape this design rejects.
+
+Schema-per-tool is the mechanism here, not an artifact of the old design, because
+**the provider owns the loop** — the comment at `graph-planner.ts:441` records that
+this is what makes the flow work on backends running their own agent loop (the
+Claude Agent SDK). Nor is "let the planner act via sandbox code" a unification:
+`SubmitGraphTool` already evaluates the submitted DSL program in QuickJS itself
+(`submit-graph-tool.ts:82`). Routing it through a CodeAct session would add a
+sandbox hop and forfeit SDK-loop compatibility.
+
+Their end form is the same as `execute_code`'s — plain `{name, description,
+inputSchema, execute}` records, which is already the shape `GraphPlanner` flattens
+them into at `:503`. That conversion is cosmetic and buys nothing on its own.
+
 `CapabilitySpec` also feeds everything else that consumes schemas today: prompt
-signature rendering (`toolSignature`, `tool-api.ts:351`), in-sandbox `searchTools()`
+signature rendering (`toolSignature`, `tool-api.ts:351`), in-sandbox `nodetool.searchTools()`
 (`chat-codeact.ts:299-328`), and the chat direct-tool set (`CORE_TOOL_NAMES` members
 offered as plain provider tools, `tool-api.ts:204`, `:223`). The core set is a chat
 concern and is not touched by Decision 2 — see the MCP section.
@@ -516,6 +563,11 @@ argument is now `run.examples`, built by the same host code that builds it today
 | `/ui` | `ui_*` schemas (`toolSchemas.ts:185`) + graph model prelude | `client` |
 | `/files` *(or none)* | the ten unwrapped: file set stays `workspace.*`; `todo_write` stays a direct tool; fold `asset_list` into `/assets`, `export_workflow_digraph` into `/workflows` | — |
 
+The table maps one inventory: what `getBuiltinTools()` and `getAllMcpTools({})`
+assemble. The planner- and executor-constructed tools are **not** in it and are not
+migration debt — they are exempt by kind, for the reasons in
+[What stays schema-shaped](#what-stays-schema-shaped-and-where-it-lives).
+
 ### PR order
 
 Each step merges and reverts independently.
@@ -564,8 +616,9 @@ imports. `codeact-prompt-drift.test.ts` and the `codeact` eval cases are the
 regression net for the prompt change.
 
 **PR 12 — deletion.** The `nodetool` global shim, `base-tool.ts`, the tool registry
-and `llm-nodes` hydration shims, `capabilityFromTool`. `extends Tool` count reaches
-zero.
+and `llm-nodes` hydration shims, `capabilityFromTool`. The **capability-shaped**
+`extends Tool` count reaches zero; the loop-protocol tools stay, and `base-tool.ts`
+stays with them.
 
 ## What breaks, and what each costs
 
@@ -694,6 +747,20 @@ PRs 1–11 landed on this branch, in this order:
 - `agents+websocket: the permission gate moves into CapabilityRun.invoke (PR 10 of tool-class retirement)`
 - `agents+protocol+websocket: the platform is importable in the sandbox (PR 11 of tool-class retirement)`
 - `agents: break the tool-permissions/capabilities import cycle that deadlocked the bundled backend`
+- `agents+websocket: the ui and graph-planner capabilities leave mcp-tools (PR 13 of tool-class retirement)`
+
+PR 13 ported the last two capability-shaped `Tool` classes in `mcp-tools.ts`.
+`WorkflowDocumentTool` became the **`ui`** module — one capability per
+document-tool name, the registry on the run instead of in a constructor — and
+survives as a thin `CapabilityTool` subclass that keeps the Zod schema, so the
+class path still validates exactly once. `PlanWorkflowGraphTool` was deleted
+outright: its spec and implementation are `plan_workflow_graph` in the
+`workflows` module, and its constructor options became
+`CapabilityRun.graphPlanner` (provider, model, forwardMessage, signal), built
+where the constructor stood, in `unified-websocket-runner.ts`. The wrapper
+reads a new `CapabilitySpec.needsToolCallId`, which is how the planner's events
+keep nesting under the caller's card. The capability is registry-visible but
+not on the belt: only a host that can build a `graphPlanner` run can serve it.
 
 ### The esbuild async-cycle lesson
 
@@ -724,7 +791,9 @@ and records the rest as named debt:
   synchronously, while capability modules load through `import()`. A belt
   cannot be built from the registry alone until either the belt assembly turns
   async or the registry gains eager specs. That is its own PR, with its own
-  callers to touch.
+  callers to touch. *(Resolved — see
+  [Eager specs](#eager-specs-and-the-ninety-two-that-went-with-them-2026-08-12)
+  below: the registry gained eager specs and all ninety-two are gone.)*
 - **The `nodetool` global stays.** The design gives the generated shim over the
   imports at least one release before it dies; PR 11 shipped the import form,
   and this is that release.
@@ -739,17 +808,270 @@ and records the rest as named debt:
 
 ### Measured `extends Tool`
 
-Before (recorded above): **180 occurrences across 77 files**. After PR 12:
-**84 across 52 files** (64 of them in `packages/agents`, tests included), plus
-**88 `extends CapabilityTool` across 30 files** — the deprecated subclasses that
-now carry no implementation of their own. Outside `packages/agents` the
-remaining `Tool` subclasses are the ones listed above, and the fake tools in the
-`chat` and `code-nodes` test suites.
+Before (recorded above): **180 occurrences across 77 files**. After PR 13
+landed on top of the fifteen deletions below: **32 across 24 files** (source
+only — `packages/**`, no `dist/`, no test directories), plus
+**92 `extends CapabilityTool` across 31 files** — the deprecated subclasses
+that carry no implementation of their own. Outside `packages/agents` the
+remaining `Tool` subclasses are the ones listed above, and the fake tools in
+the `chat` and `code-nodes` test suites.
 
 `packages/agents/tests/capabilities-coverage.test.ts` is what keeps the count
 from growing back: everything `getBuiltinTools()` and `getAllMcpTools({})`
-assemble must resolve through `findCapability`, and the seventeen that do not
-are pinned by name with a reason — the eight workflow-document `ui_*` schemas,
-which route to a renderer or a direct registry write rather than to a host
-function, and the nine provider-specific duplicates in
-`AGENT_TOOLBELT_EXCLUDED`, each of which a routed capability already covers.
+assemble must resolve through `findCapability`. Its exception list is
+**empty** — PR 13 unpinned the eight workflow-document `ui_*` schemas and the
+deletions below retired the nine `AGENT_TOOLBELT_EXCLUDED` names, so every
+belt name is a capability.
+
+### Two counters, not one (2026-08-11)
+
+The single number above understated the work by counting one inventory and
+implying it was the whole set. Split it:
+
+- **Capability-shaped subclasses** — anything `getBuiltinTools()` or
+  `getAllMcpTools({})` assembles. Target: zero. Defended by
+  `capabilities-coverage.test.ts` plus its pinned exceptions (seventeen when
+  this was written, eight after the deletions below).
+- **Loop-protocol subclasses** — planner- and executor-constructed, enumerated by
+  name in [What stays schema-shaped](#what-stays-schema-shaped-and-where-it-lives).
+  Allowed. No target.
+
+Neither the mapping table nor the coverage test ever saw the second group, because
+a planner constructs its tools inside its own loop and never assembles a belt. That
+is correct behavior, but it meant roughly twenty subclasses in
+`packages/agents/src/tools/` were tracked nowhere.
+
+Two decisions taken while writing this down:
+
+**The pre-`submit_graph` incremental family is deleted.** `add_node`, `add_edge`,
+`remove_node`, `remove_edge`, `finish_graph` and `create_plan` were the tool-call-per-
+node flow the one-shot DSL replaced. No planner constructed any of them; the only
+references left were the `src/index.ts` re-exports and their own tests. The two live
+helpers in `finish-graph-tool.ts` moved to `tools/graph-validation-registry.ts`,
+which is what `submit_graph` and the Code-node refiner actually import.
+
+**The run-scoped memory tools are a real gap, and stay open.** *(Closed
+2026-08-12 — see [The `shared` module](#the-shared-module-2026-08-12) below.)*
+`list_shared` /
+`read_shared` / `share_result` (renamed from `memory_list` / `memory_read` /
+`memory_write`) are not loop-protocol tools: they are prompt-documented,
+permission-classified, and the model calls them from inside the sandbox as
+`tools.read_shared(...)` — the CodeAct executor's own prompt instructs exactly that
+(`codeact-executor.ts:884`). "Executor-internal" in `capabilities/memory.ts:10`
+means *mounted by the executor rather than the host*, not *not model-facing*. They
+belong in a `shared` capability module — not folded into `memory`, which is thread
+memory and a different lifetime — with the executors still mounting them, since that
+is mount policy.
+
+The port waits on the sync-belt problem PR 12 named: executors attach these in
+constructors, synchronously, while capability modules load through `import()`. Doing
+it before the async-belt PR would fork a third pattern beside the sixteen ported
+namespaces and the deprecated `CapabilityTool` subclasses.
+
+#### Fifteen deleted (2026-08-11)
+
+Two commits took `extends Tool` from **71 across 35 files** to **56 across 28**
+(source only — `packages/**`, no `dist/`, no tests).
+
+The dead cluster, six classes, deleted outright: `workspace_read` /
+`workspace_write` / `workspace_list` (the sandbox's in-process `workspace.*` API
+is the live path), `ltm_recall` / `ltm_remember` (`Agent` calls
+`LongTermMemory` directly — the feature stays, the wrappers were mounted
+nowhere), and `ToolSearchTool` (constructed only by its own test; discovery runs
+through the `__searchTools` bridge). The per-user LTM registry moved into
+`long-term-memory.ts`; `searchTools` and the two formatters stayed where they
+were.
+
+The nine `AGENT_TOOLBELT_EXCLUDED` names, all nine gone from the belt — but not
+in one way, because **the pinned reason was wrong for five of them**. "A routed
+capability already covers each" held for the media four (`image_generation`,
+`openai_image_generation`, `google_image_generation`, `openai_text_to_speech`),
+which `generate_image` / `generate_speech` cover and which were deleted. It did
+not hold for `openai_web_search`, `google_grounded_search` and the three
+`dataforseo_*`: `capabilities/web.ts` constructed those very classes as the
+openai, gemini and dataforseo backends of `web_search` / `google_news` /
+`google_images`. They were not duplicates of the routed capability, they were
+the inside of it, and deleting them would have deleted three search backends.
+They became plain async functions the capability calls — one wire name fewer,
+one implementation unchanged. Read a pinned exception's reason as a claim to
+check, not a finding.
+
+Both counters move: the capability-shaped counter loses nine and
+`AGENT_TOOLBELT_EXCLUDED` is gone with them, so `getAgentToolbelt()` now returns
+what `getBuiltinTools()` returns and `capabilities-coverage.test.ts` pins only
+the eight workflow-document `ui_*` schemas. The loop-protocol counter loses the
+six dead ones.
+
+### Eager specs, and the ninety-two that went with them (2026-08-12)
+
+The sync-belt problem PR 12 named is solved, and the way out was the third
+option: not an async belt, and not a spec on every class, but a **spec table
+the registry can read synchronously**.
+
+Each capability module gained a data-only sibling — `workflows.specs.ts`,
+`media.specs.ts`, one per namespace — holding the wire name, description, JSON
+schema, category and message template, and nothing else. A spec file imports
+`types.ts`, `zod`, and the schema constants it needs; it imports no
+implementation, so importing all twenty-two costs one object graph and no
+`import()`. `registry.ts` imports them eagerly beside its lazy loader table and
+exposes `capabilitySpec(name)` / `listCapabilitySpecs()`. The module file
+imports its own specs back and attaches each to an implementation, so there is
+one spec *object* behind both halves — and `eagerSpecDrift` compares them by
+identity, not by field, because a module that copied its spec would pass a
+field check and still be two things to keep in step.
+
+`toolFromLazyCapability(spec, run)` and `toolForCapabilityName(name, run)`
+(`capabilities/lazy-tool.ts`) are the wrapper. `Tool.process()` is already
+async, so only the spec has to be there when a belt is assembled: the name, the
+description and the schema are what a provider list and a permission prompt
+read. The implementation arrives on the first invoke, from the one module that
+owns it — `loadCapabilityImpl` resolves the owning module from the eager table
+and loads only that one, where `findCapability` would have loaded all
+twenty-two. Gating stays single-pass: like `CapabilityTool` before it, the
+wrapper calls the implementation directly, because a belt is gated from the
+outside by `gateTools`, which runs the one ladder in `invoke.ts`.
+
+`CapabilitySpec` grew one optional field, `zodSchema`, for the handful of
+capabilities whose identity is a Zod schema — `view_image`, `list_images` and
+the eight `ui_*` document tools. The wrapper returns it from `Tool.schema`, so
+a malformed call still comes back as `invalid_tool_arguments` from
+`Tool.execute` instead of reaching the implementation, which is what the
+classes did.
+
+`getBuiltinTools()` is now a list of **names**, `getAllMcpTools()` a list of
+names plus the run each group needs, and `getGoogleWorkspaceTools()` a walk
+over `googleSpecs`. The belt is unchanged name for name.
+
+**All ninety-two deprecated `extends CapabilityTool` subclasses are gone**, and
+with them sixteen files that held nothing else. What each file still owned that
+was not a class stayed: `htmlToText`, `requestSignal`, `serpApiConfigured`,
+`splitTextRecursive`, `getThreadTodos`/`clearThreadTodos`,
+`formatThreadMemoriesForPrompt`, `VecCollection`, and the five `*_TOOL_NAMES`
+lists. Three constructor call sites outside `packages/agents` moved to the name
+form: `mcp-agent-tools.ts` (the two validators, the seven media capabilities,
+`find_model`/`list_models`), `unified-websocket-runner.ts` (the two collection
+capabilities), and `graph-planner.ts` (the three discovery capabilities plus
+`find_model`). `runBridgedTool`'s `instanceof FindModelTool` became a name
+check, which is what it meant.
+
+One capability could not be built from the spec table, and stayed as it was:
+`createSearchTool` (`tools/serp-tool-factory.ts`) binds a resolved SERP
+provider into the *implementation*, not into the run, so it builds its tool
+with `toolFromCapability(webSearch.spec, webSearchImpl(provider), …)`.
+
+Measured after: **33 `extends Tool` across 25 files** and **zero
+`extends CapabilityTool`** (source only — `packages/**`, no `dist/`, no test
+directories). The one new `extends Tool` is the lazy wrapper itself. The
+capability-shaped counter is now zero on both halves: nothing
+`getBuiltinTools()` or `getAllMcpTools({})` assembles is a class any more.
+`base-tool.ts` stays for the loop-protocol tools and the five subclasses
+outside this package.
+
+`npm run backend:smoke` is green, which is the only check that would have seen
+a new cycle across the `tools/` ↔ `capabilities/` seam. The eager spec table
+does not pull an implementation into the entry graph, so laziness is stronger
+than it was: before this, `mcp-tools.ts` imported ten implementation modules
+statically to build its belt.
+
+One thing a deletion could have broken quietly: an AgentNode saves its tools as
+bare name stubs and `resolveBuiltinAgentTool` hydrates them by wire name, so a
+workflow naming a retired tool would have hydrated to nothing and been
+uncallable without an error. `RETIRED_TOOL_NAMES`
+(`packages/llm-nodes/src/nodes/agent-tool-hydration.ts`) maps all nine onto
+their replacements.
+
+### The `shared` module (2026-08-12)
+
+The gap the previous section left open is closed. `list_shared` / `read_shared`
+/ `share_result` are a capability module, `shared`, built on the eager-specs
+pattern: `shared.specs.ts` holds the three wire names, descriptions and schemas
+unchanged, `shared.ts` attaches each to an implementation reading
+`run.context.memory`, and both halves appear in `MODULES`,
+`DECLARED_CAPABILITY_MODULES` and the spec table, so `eagerSpecDrift` and the
+category snapshot cover them like every other namespace.
+
+Not folded into `memory`. That module is thread memory — a database row that
+outlives the run — and these are the run's own `AgentMemory`, discarded with it.
+The naming now shows the lifetimes: `nodetool.shared` run-scoped beside
+`nodetool.memory` thread-scoped.
+
+Mount policy did not move. `getMemoryTools()` keeps its signature and its
+callers, and now assembles the belt from the specs with
+`toolFromLazyCapability`; every step executor still pushes it onto its own
+toolset, and the host still mounts nothing. What eager specs changed is that a
+synchronous constructor can build that belt from the registry — the sync-belt
+problem that kept this port waiting.
+
+The three joined the object model as `nodetool.shared.list/read/publish` and
+therefore `nodetoolApiCoveredToolNames`, so they leave the raw tool catalog the
+way every wrapped tool does. The CodeAct executor's upstream-context line
+teaches `await nodetool.shared.read([...])` instead of
+`await tools.read_shared({keys: [...]})`, and a `shared-handoff` eval case keeps
+the namespace covered.
+
+### The survey, the sandbox packs, and what the count is made of (2026-08-12)
+
+Eager specs left thirty-five `extends Tool` subclasses. A survey classified
+every one of them, which is the first time the second counter has an itemized
+answer rather than a total:
+
+| Kind | Count | Where it goes |
+|---|---|---|
+| Loop-protocol | 12 | Exempt by kind — the enumeration above, plus the eval and harness fakes |
+| Supervisor | 2 | Exempt by kind; tracked nowhere until now, hence the paragraph above |
+| Infrastructure | 3 | `CapabilityTool`, `LazyCapabilityTool`, `GatedCapabilityTool` — the wrappers that *serve* capabilities |
+| Sandbox packs | 2 | Ported by this commit |
+| Run-scoped memory | 3 | `list_shared` / `read_shared` / `share_result` — ported by the `shared` module above |
+| Genuinely dynamic / host bridge | 13 | Pending an interface conversion, not a port |
+
+The last row is the honest remainder: the websocket UI bridges and
+`list_renderers`, `RunNodeTool`, `SandboxTool`, `SubAgentTool`, the two
+browser-agent factories, the Code-node tool factory, and the CLI's
+`execute_code` shim. None is a spec plus a function. Each is either a *factory*
+whose identity is built at run time from something no spec table can hold (a
+node's dynamic slots, a pack's manifest), or a bridge whose implementation is a
+transport. They move when the interface they sit on moves — a `Tool[]` belt
+becoming a capability list — not by being rewritten as capabilities first.
+
+**What this commit ported.** `SandboxPackageDocsTool` and
+`SandboxPackageListTool` become the **`packs`** module — the namespace
+`nodetool.packs.*` already wrapped them under. Their three constructor
+arguments (allowlist, catalog, whether the host mounts platform modules) are
+per-*session* state, not per-run: the allowlist is computed where the session
+is built. So it rides in the implementation's closure and reaches a belt
+through `toolFromCapability`, the shape `createSearchTool` uses, instead of
+becoming three fields on `CapabilityRun` for two capabilities. The registry
+serves the specs — wire names, Zod schemas, `read` classification, the drift
+walk — behind an implementation that fails closed naming
+`nodetool.packs.list()`, which is what the dispatcher's contract asks of a
+capability whose dependency the run does not carry. `CapabilityTool` gained the
+`zodSchema` accessor `toolFromLazyCapability` already had, so a malformed call
+still comes back as `invalid_tool_arguments`.
+
+The two `SubAgentTool` belt sites — `unified-websocket-runner.ts` and the CLI's
+`stdin.ts` — now name `run_subtask` / `run_search` over a run carrying that
+turn's `subAgent`. The classes still run, one per call, so the depth gate, the
+read-only filter, and `buildChildToolset`'s self-stitching are untouched; both
+hosts still snapshot the parent belt *before* the unshift, which is what makes
+that stitching necessary and correct. The move surfaced a real gap: neither
+spec carried `needsToolCallId`, which `SubAgentTool` declares, so a belt built
+from the specs would have dropped `parent_tool_call_id` and un-nested every
+child card in the chat UI. Both specs declare it now.
+
+**Re-measured** (source only — `packages/**`, no `dist/`, no test
+directories): **31 `extends Tool` across 23 files**, down from 33 across 25.
+Three of the thirty-one are the wrappers, and the loop-protocol group is the
+bulk of the rest.
+
+**`capabilityFromTool` must live until belts stop being `Tool[]`.** PR 12
+recorded it as load-bearing in `gateTools`; the survey says why more precisely.
+The two `gateTools` call sites — `agent.ts:426` and
+`unified-websocket-runner.ts:5428` — gate *heterogeneous* belts: registry-backed
+tools next to host-constructed ones (`RunNodeTool`, the UI bridges, a
+Code-node's dynamic tool). `capabilityFromTool` is what gives a non-registry
+tool a category at all, by reading the classification map. Delete it and those
+tools reach `invoke` with no category, which is exactly the fail-open the
+required `CapabilitySpec.category` exists to prevent. The runner uses it a
+third time on purpose, at `:5589`, to hand `run_node` to a `CapabilityRun` as a
+host-supplied capability. It goes when a belt is a capability list, and not
+before.

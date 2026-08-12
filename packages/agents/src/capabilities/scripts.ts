@@ -28,19 +28,46 @@ import type {
   ScriptVoiceBinding
 } from "@nodetool-ai/models";
 import type { CaptionWord } from "@nodetool-ai/timeline";
-import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
+import { UNGATED, createCapabilityRun } from "./invoke.js";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
+import {
+  listScriptsSpec,
+  getScriptSpec,
+  voiceScriptLinesSpec,
+  assembleScriptTimelineSpec,
+  editScriptSpec,
+  DEFAULT_CONCURRENCY,
+  MAX_CONCURRENCY,
+  DEFAULT_ASR_PROVIDER,
+  DEFAULT_ASR_MODEL,
+  LINE_TARGETS_SCHEMA,
+  LIST_SCRIPTS_SCHEMA,
+  GET_SCRIPT_SCHEMA,
+  VOICE_SCRIPT_LINES_SCHEMA,
+  ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
+  EDIT_SCRIPT_SCHEMA
+} from "./scripts.specs.js";
 
-/** Lines voiced at once. Bounded so one call cannot fan out unboundedly. */
-const DEFAULT_CONCURRENCY = 3;
-const MAX_CONCURRENCY = 8;
+export {
+  DEFAULT_CONCURRENCY,
+  MAX_CONCURRENCY,
+  DEFAULT_ASR_PROVIDER,
+  DEFAULT_ASR_MODEL,
+  LINE_TARGETS_SCHEMA,
+  LIST_SCRIPTS_SCHEMA,
+  GET_SCRIPT_SCHEMA,
+  VOICE_SCRIPT_LINES_SCHEMA,
+  ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
+  EDIT_SCRIPT_SCHEMA
+} from "./scripts.specs.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
 /** Attempts to land a document write before reporting a conflict. */
 const CAS_ATTEMPTS = 5;
-
-/** Word-timing default, matching the editor's take transcription. */
-const DEFAULT_ASR_PROVIDER = "openai";
-const DEFAULT_ASR_MODEL = "whisper-1";
 
 type ToolError = { error: string };
 
@@ -144,7 +171,8 @@ async function appendTake(
         return updated;
       })
     }));
-    if (!updated) return { error: `Line ${lineId} is no longer in the script.` };
+    if (!updated)
+      return { error: `Line ${lineId} is no longer in the script.` };
     const saved = await Script.updateFieldsIfUnchanged(
       scriptId,
       row.updated_at,
@@ -257,39 +285,8 @@ function lineStatus(
   return helpers.needsVoicing(line, voice) ? "stale" : "voiced";
 }
 
-const LINE_TARGETS_SCHEMA = {
-  type: "array" as const,
-  items: { type: "string" as const },
-  description:
-    "Lines to voice, each a line id, 0-based reading-order index, or the " +
-    "line's exact text. Omit to voice every line that is unvoiced or stale."
-};
-
-// ---------------------------------------------------------------------------
-// list_scripts
-// ---------------------------------------------------------------------------
-
-const LIST_SCRIPTS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    limit: {
-      type: "number",
-      description: "Max scripts to return (default 20)."
-    }
-  }
-};
-
 const listScripts: CapabilityExport = {
-  spec: {
-    name: "list_scripts",
-    description:
-      "List the caller's scripts, newest first: id, name, cast size, line count, " +
-      "how many lines are voiced, and the timeline it was assembled into. Start " +
-      "here when the user names a script but not its id.",
-    inputSchema: LIST_SCRIPTS_SCHEMA,
-    category: "read",
-    userMessage: () => "Listing scripts"
-  },
+  spec: listScriptsSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
@@ -322,32 +319,8 @@ const listScripts: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_script
-// ---------------------------------------------------------------------------
-
-const GET_SCRIPT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    script_id: { type: "string", description: "Script id." }
-  },
-  required: ["script_id"]
-};
-
 const getScript: CapabilityExport = {
-  spec: {
-    name: "get_script",
-    description:
-      "Read one script: its cast with each speaker's voice, and every line in " +
-      "reading order with its id, index, speaker, text, direction, pause, " +
-      "effective voice, and voicing status ('draft' = never voiced, 'stale' = " +
-      "text or voice changed since the take, 'voiced' = up to date, 'no_voice' = " +
-      "no speaker voice assigned). Call this before voicing — the other tools " +
-      "address lines by these ids.",
-    inputSchema: GET_SCRIPT_SCHEMA,
-    category: "read",
-    userMessage: (params) => `Reading script ${String(params["script_id"])}`
-  },
+  spec: getScriptSpec,
   impl: async (run, params) => {
     const handle = await loadScript(run, params["script_id"]);
     if (isError(handle)) return handle;
@@ -462,69 +435,8 @@ function selectLines(
   return selected;
 }
 
-const VOICE_SCRIPT_LINES_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    script_id: { type: "string", description: "Script id." },
-    targets: LINE_TARGETS_SCHEMA,
-    provider: {
-      type: "string",
-      description:
-        "TTS provider id (from find_model, capability=text_to_speech). Overrides every line's own voice."
-    },
-    model: {
-      type: "string",
-      description: "TTS model id (from find_model). Overrides every line's own voice."
-    },
-    voice: {
-      type: "string",
-      description: "Voice id for the override. Required when provider/model are passed."
-    },
-    speed: {
-      type: "number",
-      description: "Speech speed multiplier passed to the provider (e.g. 0.25–4.0)."
-    },
-    transcribe: {
-      type: "boolean",
-      description:
-        "Transcribe each take for word timings (default true). Set false to skip the extra ASR call."
-    },
-    asr_provider: {
-      type: "string",
-      description: `Provider for word timings (default ${DEFAULT_ASR_PROVIDER}).`
-    },
-    asr_model: {
-      type: "string",
-      description: `Model for word timings (default ${DEFAULT_ASR_MODEL}).`
-    },
-    concurrency: {
-      type: "number",
-      description: `Lines voiced in parallel (default ${DEFAULT_CONCURRENCY}, max ${MAX_CONCURRENCY}).`
-    }
-  },
-  required: ["script_id"]
-};
-
 const voiceScriptLines: CapabilityExport = {
-  spec: {
-    name: "voice_script_lines",
-    description:
-      "Synthesize speech for a script's lines by calling the TTS provider " +
-      "directly — no workflow is created or run. Each take is saved as an audio " +
-      "asset, appended to its line, and made the line's current take (earlier " +
-      "takes are kept). Omit `targets` to voice every line that is unvoiced or " +
-      "stale, so a whole script is one call. Each line uses its own voice (its " +
-      "override, else its speaker's) unless you pass provider/model/voice to " +
-      "override them all. Word timings are transcribed best-effort so the " +
-      "assembled timeline carries captions.",
-    inputSchema: VOICE_SCRIPT_LINES_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const targets = params["targets"];
-      const count = Array.isArray(targets) ? `${targets.length} ` : "";
-      return `Voicing ${count}script lines`;
-    }
-  },
+  spec: voiceScriptLinesSpec,
   impl: async (run, params) => {
     const context = run.context;
     const handle = await loadScript(run, params["script_id"]);
@@ -534,9 +446,8 @@ const voiceScriptLines: CapabilityExport = {
     const override = voiceOverrideFrom(params);
     if (isError(override)) return override;
 
-    const { effectiveVoice, needsVoicing, scriptLines } = await import(
-      "@nodetool-ai/timeline"
-    );
+    const { effectiveVoice, needsVoicing, scriptLines } =
+      await import("@nodetool-ai/timeline");
     const lines = scriptLines(doc.sections);
     const selected = selectLines(lines, params["targets"], override, doc, {
       effectiveVoice,
@@ -556,13 +467,14 @@ const voiceScriptLines: CapabilityExport = {
       };
     }
 
-    // Synthesis stays with `GenerateSpeechTool`: it is the one place that knows
+    // Synthesis stays with `generate_speech`: it is the one place that knows
     // how to ask a provider for encoded audio, fall back to streaming PCM, and
     // persist the result as an asset.
-    const { GenerateSpeechTool } = await import("../tools/media-tools.js");
-    const speech = new GenerateSpeechTool();
+    const { generateSpeech } = await import("./media.js");
+    const speechRun = createCapabilityRun({ context, gate: UNGATED });
 
-    const speed = typeof params["speed"] === "number" ? params["speed"] : undefined;
+    const speed =
+      typeof params["speed"] === "number" ? params["speed"] : undefined;
     const transcribe = params["transcribe"] !== false;
     const asrProvider =
       typeof params["asr_provider"] === "string"
@@ -595,7 +507,7 @@ const voiceScriptLines: CapabilityExport = {
         }
 
         try {
-          const synthesized = (await speech.process(context, {
+          const synthesized = (await generateSpeech.impl(speechRun, {
             provider: voice.provider,
             model: voice.model,
             text,
@@ -646,7 +558,10 @@ const voiceScriptLines: CapabilityExport = {
             word_count: words.length
           };
         } catch (e) {
-          return { ...base, error: `text_to_speech failed: ${errorMessage(e)}` };
+          return {
+            ...base,
+            error: `text_to_speech failed: ${errorMessage(e)}`
+          };
         }
       }
     );
@@ -660,39 +575,8 @@ const voiceScriptLines: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// assemble_script_timeline
-// ---------------------------------------------------------------------------
-
-const ASSEMBLE_SCRIPT_TIMELINE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    script_id: { type: "string", description: "Script id." },
-    name: {
-      type: "string",
-      description: "Name for the sequence. Defaults to the script's name."
-    },
-    fps: { type: "number", description: "Frame rate (default 30)." }
-  },
-  required: ["script_id"]
-};
-
 const assembleScriptTimeline: CapabilityExport = {
-  spec: {
-    name: "assemble_script_timeline",
-    description:
-      "Lay a script's voiced takes end to end into a voiceover timeline sequence " +
-      "and save it, without building a workflow. Each clip carries its take's " +
-      "word timings, the speaker label, and a link back to its script line, so a " +
-      "later re-voice can round-trip into the cut. Lines with no voiced take are " +
-      "skipped and listed. Re-running rebuilds the same sequence in place, " +
-      "keeping clips other surfaces added. Validate the result with " +
-      "validate_timeline before rendering.",
-    inputSchema: ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Assembling script ${String(params["script_id"])} into a timeline`
-  },
+  spec: assembleScriptTimelineSpec,
   impl: async (run, params) => {
     const context = run.context;
     const handle = await loadScript(run, params["script_id"]);
@@ -724,7 +608,8 @@ const assembleScriptTimeline: CapabilityExport = {
     const existing = row.timeline_id
       ? await TimelineSequence.findById(row.timeline_id)
       : null;
-    const reuse = existing && existing.user_id === context.userId ? existing : null;
+    const reuse =
+      existing && existing.user_id === context.userId ? existing : null;
 
     let tracks = assembled.tracks;
     let clips = assembled.clips;
@@ -736,7 +621,9 @@ const assembleScriptTimeline: CapabilityExport = {
       const previous = reuse.toDocument();
       const foreignClips = previous.clips.filter((c) => c.scriptId !== row.id);
       const scriptTrackIds = new Set(
-        previous.clips.filter((c) => c.scriptId === row.id).map((c) => c.trackId)
+        previous.clips
+          .filter((c) => c.scriptId === row.id)
+          .map((c) => c.trackId)
       );
       const foreignTrackIds = new Set(foreignClips.map((c) => c.trackId));
       const foreignTracks = previous.tracks.filter(
@@ -882,7 +769,9 @@ function mintId(prefix: string, used: Set<string>): string {
 }
 
 /** A provider/model/voice triple, all three or none — never a half-guess. */
-function parseVoiceBinding(args: Record<string, unknown>): ScriptVoiceBinding | null {
+function parseVoiceBinding(
+  args: Record<string, unknown>
+): ScriptVoiceBinding | null {
   const provider = args["provider"];
   const model = args["model"];
   const voice = args["voice"];
@@ -935,7 +824,8 @@ function applyScriptOp(
 
     case "set_speaker": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No speaker matches "${String(args["target"])}".`);
       const speaker = { ...doc.cast[index] };
       if (args["name"] !== undefined) speaker.name = String(args["name"]);
       if (args["color"] !== undefined) speaker.color = String(args["color"]);
@@ -945,7 +835,8 @@ function applyScriptOp(
 
     case "set_speaker_voice": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No speaker matches "${String(args["target"])}".`);
       const voice = parseVoiceBinding(args);
       if (!voice) {
         throw new Error(
@@ -960,7 +851,8 @@ function applyScriptOp(
 
     case "remove_speaker": {
       const index = findSpeakerIndex(doc, args["target"]);
-      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No speaker matches "${String(args["target"])}".`);
       const [removed] = doc.cast.splice(index, 1);
       for (const section of doc.sections) {
         section.lines = section.lines.map((line) =>
@@ -1009,7 +901,10 @@ function applyScriptOp(
       };
       const at =
         typeof args["index"] === "number"
-          ? Math.max(0, Math.min(Math.trunc(args["index"]), section.lines.length))
+          ? Math.max(
+              0,
+              Math.min(Math.trunc(args["index"]), section.lines.length)
+            )
           : section.lines.length;
       section.lines.splice(at, 0, line);
       return { id: line.id, section_id: section.id, index: at };
@@ -1054,46 +949,8 @@ function applyScriptOp(
   }
 }
 
-const EDIT_SCRIPT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    script_id: { type: "string", description: "Script id." },
-    ops: {
-      type: "array",
-      description:
-        'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        "add_speaker {name, color?, provider?, model?, voice?}, " +
-        "set_speaker {target, name?, color?}, " +
-        "set_speaker_voice {target, provider, model, voice, settings?}, " +
-        "remove_speaker {target}, add_section {title?}, " +
-        "add_line {text, speaker?, section?, direction?, pause_after_ms?, index?}, " +
-        "set_line_text {target, text}, set_line_speaker {target, speaker}, " +
-        "remove_line {target}. A line `target` is its id, its 0-based index " +
-        "across the script, or its exact text; a speaker `target` is its id " +
-        "or name.",
-      items: { type: "object" }
-    }
-  },
-  required: ["script_id", "ops"]
-};
-
 const editScript: CapabilityExport = {
-  spec: {
-    name: "edit_script",
-    description:
-      "Edit a saved script headlessly: add cast members and assign their " +
-      "voices, add sections, and add, rewrite, reassign and remove lines. " +
-      "Operations run in order against the stored document and the result is " +
-      "saved; an open editor picks the change up live. Rewriting a line leaves " +
-      "its takes in place as stale, so voice_script_lines re-records exactly " +
-      "those. Call get_script first for line and speaker ids.",
-    inputSchema: EDIT_SCRIPT_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
-      return `Editing script ${String(params["script_id"])} (${count} ops)`;
-    }
-  },
+  spec: editScriptSpec,
   impl: async (run, params) => {
     const ops = parseScriptOps(params["ops"]);
     if (isError(ops)) return ops;
@@ -1121,9 +978,13 @@ const editScript: CapabilityExport = {
         }
       }
 
-      const saved = await Script.updateFieldsIfUnchanged(row.id, row.updated_at, {
-        document: JSON.stringify(doc)
-      });
+      const saved = await Script.updateFieldsIfUnchanged(
+        row.id,
+        row.updated_at,
+        {
+          document: JSON.stringify(doc)
+        }
+      );
       if (!saved) continue;
 
       const failed = records.filter((record) => !record.ok);

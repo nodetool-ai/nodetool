@@ -4,7 +4,7 @@
  *
  * Three things are checked. The registry stays drift-free with the module in
  * it. Every spec's category equals what the classification map says for that
- * wire name, and every spec still matches the deprecated class that now wraps
+ * wire name, and every spec still matches the Tool the belt builds from
  * it — a port that changed a name, a description, or a schema would be a
  * behavior change nobody asked for. And each capability is driven end to end
  * through `run.invoke` against a real temp workspace, so the implementation is
@@ -27,20 +27,10 @@ import {
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  ListDirectoryTool,
-  ReadFileTool,
-  WriteFileTool
-} from "../src/tools/filesystem-tools.js";
-import {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "../src/tools/edit-search-tools.js";
-import { TodoWriteTool } from "../src/tools/todo-tools.js";
 
 let workspace: string;
 let posted: unknown[];
@@ -109,18 +99,18 @@ describe("the files capability module", () => {
     }
   });
 
-  it("leaves the deprecated classes with the surface they had", () => {
-    const classes: Record<string, Tool> = {
-      read_file: new ReadFileTool(),
-      write_file: new WriteFileTool(),
-      list_directory: new ListDirectoryTool(),
-      edit_file: new EditFileTool(),
-      glob: new GlobTool(),
-      grep: new GrepTool(),
-      todo_write: new TodoWriteTool()
+  it("renders each capability with the surface the belt offers", () => {
+    const belt: Record<string, Tool> = {
+      read_file: toolForCapabilityName("read_file"),
+      write_file: toolForCapabilityName("write_file"),
+      list_directory: toolForCapabilityName("list_directory"),
+      edit_file: toolForCapabilityName("edit_file"),
+      glob: toolForCapabilityName("glob"),
+      grep: toolForCapabilityName("grep"),
+      todo_write: toolForCapabilityName("todo_write")
     };
     for (const entry of FILE_CAPABILITIES) {
-      const tool = classes[entry.spec.name];
+      const tool = belt[entry.spec.name];
       expect(tool).toBeDefined();
       expect(tool.name).toBe(entry.spec.name);
       expect(tool.description).toBe(entry.spec.description);
@@ -128,25 +118,27 @@ describe("the files capability module", () => {
     }
   });
 
-  it("renders the message templates the classes rendered", () => {
-    expect(new ReadFileTool().userMessage({ file_path: "a.txt" })).toBe(
-      "Reading a.txt"
+  it("renders the user-facing message templates", () => {
+    expect(
+      toolForCapabilityName("read_file").userMessage({ file_path: "a.txt" })
+    ).toBe("Reading a.txt");
+    expect(
+      toolForCapabilityName("write_file").userMessage({ file_path: "a.txt" })
+    ).toBe("Writing a.txt");
+    expect(toolForCapabilityName("list_directory").userMessage({})).toBe(
+      "Listing ."
     );
-    expect(new WriteFileTool().userMessage({ file_path: "a.txt" })).toBe(
-      "Writing a.txt"
-    );
-    expect(new ListDirectoryTool().userMessage({})).toBe("Listing .");
-    expect(new EditFileTool().userMessage({ path: "a.txt" })).toBe(
-      "Editing file a.txt"
-    );
-    expect(new GlobTool().userMessage({ pattern: "**/*.ts" })).toBe(
-      "Searching for files: **/*.ts"
-    );
-    expect(new GrepTool().userMessage({ pattern: "TODO" })).toBe(
+    expect(
+      toolForCapabilityName("edit_file").userMessage({ path: "a.txt" })
+    ).toBe("Editing file a.txt");
+    expect(
+      toolForCapabilityName("glob").userMessage({ pattern: "**/*.ts" })
+    ).toBe("Searching for files: **/*.ts");
+    expect(toolForCapabilityName("grep").userMessage({ pattern: "TODO" })).toBe(
       "Searching for: TODO"
     );
     expect(
-      new TodoWriteTool().userMessage({
+      toolForCapabilityName("todo_write").userMessage({
         todos: [{ content: "Ship it", status: "in_progress" }]
       })
     ).toBe("Working on: Ship it");
@@ -157,10 +149,12 @@ describe("files capabilities over a real workspace", () => {
   it("writes a file, reads it back numbered, and lists the directory", async () => {
     const run = runFor(workspace);
 
-    expect(await run.invoke("write_file", {
-      file_path: "notes.txt",
-      content: "alpha\nbeta\n"
-    })).toBe("Created notes.txt");
+    expect(
+      await run.invoke("write_file", {
+        file_path: "notes.txt",
+        content: "alpha\nbeta\n"
+      })
+    ).toBe("Created notes.txt");
 
     expect(await run.invoke("read_file", { file_path: "notes.txt" })).toBe(
       "1\talpha\n2\tbeta"

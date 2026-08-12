@@ -214,7 +214,7 @@ const SECRET_PATTERNS: RegExp[] = [
   /\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{16,128}\b/,
   /\bAKIA[0-9A-Z]{16}\b/,
   /\baws_secret_access_key\b[\s:=]{0,5}["']?[A-Za-z0-9/+=]{20,80}/i,
-  /\b(?:authorization|bearer)\s*[:=]?\s*["']?[A-Za-z0-9._\-+/=]{16,500}/i,
+  /\b(?:authorization|bearer)[\s:=]{0,6}["']?[A-Za-z0-9._\-+/=]{16,500}/i,
   /-----BEGIN[ A-Z]{0,40}PRIVATE KEY-----/,
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/,
   /\b(?:api[_-]?key|access[_-]?token|secret(?:[_-]?key)?|password|passwd|pwd)\b\s*[:=]\s*["']?[^\s"']{8,500}/i,
@@ -521,8 +521,8 @@ export class LongTermMemory {
     if (!trimmed) return null;
 
     // Hard refusal for anything that looks like a credential. Applies to
-    // every write path — extraction, ltm_remember tool, programmatic
-    // callers — so a single check covers them all.
+    // every write path — extraction, agent calls, programmatic callers — so a
+    // single check covers them all.
     if (looksLikeSecret(trimmed)) {
       log.debug("LTM remember: dropped suspected secret/credential", {
         userId: this.userId,
@@ -1072,6 +1072,36 @@ export async function createDefaultLongTermMemory(
   return memory;
 }
 
+// ---------------------------------------------------------------------------
+// Per-user registry
+// ---------------------------------------------------------------------------
+
+const REGISTRY = new Map<string, LongTermMemory>();
+
+/**
+ * Register a {@link LongTermMemory} for a user so code that only holds a
+ * `ProcessingContext` can find it by `context.userId`.
+ *
+ * Pass `null` on session end, logout, or teardown to clear the entry. The
+ * registry has no TTL or LRU, so leaks here accumulate forever in a
+ * long-running server. Passing the instance directly sidesteps the registry
+ * and is preferred when the caller already holds it.
+ */
+export function setLongTermMemory(
+  userId: string,
+  memory: LongTermMemory | null
+): void {
+  if (!userId) return;
+  if (memory === null) REGISTRY.delete(userId);
+  else REGISTRY.set(userId, memory);
+}
+
+/** Look up a previously registered LTM. Returns null if none is set. */
+export function getLongTermMemory(userId: string): LongTermMemory | null {
+  if (!userId) return null;
+  return REGISTRY.get(userId) ?? null;
+}
+
 /**
  * Render recalled memory items as a system-message block with explicit
  * untrusted-content delimiters. Returns `""` when there's nothing to render.
@@ -1079,7 +1109,7 @@ export async function createDefaultLongTermMemory(
  * Memory contents are user-derived data, not instructions. Recalled items
  * may contain text that looks like an instruction ("Ignore all previous
  * instructions…") — either from a manipulated prior conversation or from a
- * direct {@link LtmRememberTool} call. Wrapping the items in `<recalled-memories>`
+ * direct {@link LongTermMemory.remember} call. Wrapping the items in `<recalled-memories>`
  * tags and prefixing with a do-not-execute warning gives the model a clear
  * structural signal that this region is reference data. It isn't a complete
  * defence against prompt injection, but it's the pattern Anthropic and

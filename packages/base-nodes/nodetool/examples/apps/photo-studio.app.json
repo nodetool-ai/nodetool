@@ -647,13 +647,9 @@
               "prompt": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition intact, only improve quality.",
               "negative_prompt": "",
               "strength": 0.3,
-              "guidance_scale": 7,
-              "num_inference_steps": 25,
-              "target_width": 512,
-              "target_height": 512,
-              "seed": -1,
               "scheduler": "",
-              "safety_check": true
+              "aspect_ratio": "1:1",
+              "resolution": "1K"
             },
             "ui_properties": {
               "width": 384,

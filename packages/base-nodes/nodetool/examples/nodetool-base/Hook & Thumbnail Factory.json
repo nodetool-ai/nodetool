@@ -338,8 +338,7 @@
           },
           "negative_prompt": "blurry, low contrast, watermark, text, letters, tiny details, clutter",
           "aspect_ratio": "16:9",
-          "resolution": "2K",
-          "timeout_seconds": 0
+          "resolution": "2K"
         },
         "ui_properties": {
           "selected": false,

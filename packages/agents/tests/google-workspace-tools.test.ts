@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  GOOGLE_WORKSPACE_TOOL_CLASSES,
+  GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,
-  GoogleDriveSearchTool,
-  GmailSendMessageTool,
-  GoogleSheetsAppendTool,
-  GoogleCalendarListEventsTool
+  registerGoogleWorkspaceTools
 } from "../src/tools/google-workspace-tools.js";
-import { registerGoogleWorkspaceTools } from "../src/tools/google-workspace-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { resolveTool } from "../src/tools/tool-registry.js";
 
 const TOKEN = "ya29.test-token";
@@ -42,7 +39,7 @@ afterEach(() => {
 describe("Google Workspace toolbelt", () => {
   it("exposes uniquely-named tools across Drive, Gmail, Docs, Sheets and Calendar", () => {
     const names = getGoogleWorkspaceTools().map((t) => t.name);
-    expect(names).toHaveLength(GOOGLE_WORKSPACE_TOOL_CLASSES.length);
+    expect(names).toHaveLength(GOOGLE_WORKSPACE_TOOL_NAMES.length);
     expect(new Set(names).size).toBe(names.length);
     for (const prefix of [
       "google_drive_",
@@ -65,7 +62,7 @@ describe("Google Workspace toolbelt", () => {
 
 describe("token handling", () => {
   it("returns a sign-in hint instead of throwing when no account is connected", async () => {
-    const result = (await new GoogleDriveSearchTool().process(
+    const result = (await toolForCapabilityName("google_drive_search").process(
       contextWithToken(null),
       { query: "notes" }
     )) as { error?: string };
@@ -78,7 +75,7 @@ describe("token handling", () => {
       new Response("insufficient scope", { status: 403 })
     ) as unknown as typeof globalThis.fetch;
 
-    const result = (await new GoogleDriveSearchTool().process(
+    const result = (await toolForCapabilityName("google_drive_search").process(
       contextWithToken(TOKEN),
       { query: "notes" }
     )) as { error?: string };
@@ -91,7 +88,7 @@ describe("tool calls", () => {
   it("searches Drive and returns the file list", async () => {
     mockFetch({ files: [{ id: "1", name: "Report", mimeType: "text/plain" }] });
 
-    const result = (await new GoogleDriveSearchTool().process(
+    const result = (await toolForCapabilityName("google_drive_search").process(
       contextWithToken(TOKEN),
       { query: "Report", max_results: 5 }
     )) as { files: unknown[] };
@@ -103,7 +100,7 @@ describe("tool calls", () => {
   it("sends mail through the Gmail send endpoint", async () => {
     mockFetch({ id: "sent-1", threadId: "t1" });
 
-    const result = (await new GmailSendMessageTool().process(
+    const result = (await toolForCapabilityName("gmail_send_message").process(
       contextWithToken(TOKEN),
       { to: "bob@example.com", subject: "Hi", body: "there" }
     )) as { id: string };
@@ -115,7 +112,7 @@ describe("tool calls", () => {
   it("coerces a flat value list into a single sheet row", async () => {
     mockFetch({ updates: { updatedRange: "A2:B2", updatedRows: 1 } });
 
-    const result = (await new GoogleSheetsAppendTool().process(
+    const result = (await toolForCapabilityName("google_sheets_append").process(
       contextWithToken(TOKEN),
       { spreadsheet_id: "s1", range: "A:B", values: ["Alice", 30] }
     )) as { updatedRows: number };
@@ -135,7 +132,7 @@ describe("tool calls", () => {
       ]
     });
 
-    const result = (await new GoogleCalendarListEventsTool().process(
+    const result = (await toolForCapabilityName("google_calendar_list_events").process(
       contextWithToken(TOKEN),
       {}
     )) as { events: Array<{ summary: string }> };

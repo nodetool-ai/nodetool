@@ -6,15 +6,9 @@ import {
   TimelineSequenceVersion,
   initTestDb
 } from "@nodetool-ai/models";
-import {
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool
-} from "../src/tools/timeline-version-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -70,7 +64,7 @@ describe("timeline version tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("registers as built-ins with sane permissions", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
+    const names = BUILTIN_TOOL_NAMES;
     expect(names).toEqual(
       expect.arrayContaining([
         "list_timelines",
@@ -91,12 +85,12 @@ describe("timeline version tools", () => {
     const trailer = await makeTimeline();
     await makeTimeline({ name: "Behind the scenes" });
 
-    const all = (await new ListTimelinesTool().process(ctx(), {})) as {
+    const all = (await toolForCapabilityName("list_timelines").process(ctx(), {})) as {
       timelines: Array<{ id: string; name: string }>;
     };
     expect(all.timelines).toHaveLength(2);
 
-    const filtered = (await new ListTimelinesTool().process(ctx(), {
+    const filtered = (await toolForCapabilityName("list_timelines").process(ctx(), {
       query: "trail"
     })) as { timelines: Array<{ id: string; fps: number }> };
     expect(filtered.timelines).toHaveLength(1);
@@ -105,12 +99,12 @@ describe("timeline version tools", () => {
 
   it("hides another user's timelines", async () => {
     const row = await makeTimeline();
-    const listed = (await new ListTimelinesTool().process(ctx("other"), {})) as {
+    const listed = (await toolForCapabilityName("list_timelines").process(ctx("other"), {})) as {
       timelines: unknown[];
     };
     expect(listed.timelines).toEqual([]);
 
-    const versions = (await new ListTimelineVersionsTool().process(
+    const versions = (await toolForCapabilityName("list_timeline_versions").process(
       ctx("other"),
       { timeline_id: row.id }
     )) as { error: string };
@@ -120,7 +114,7 @@ describe("timeline version tools", () => {
   it("creates a manual snapshot and lists it", async () => {
     const row = await makeTimeline();
 
-    const created = (await new CreateTimelineVersionTool().process(ctx(), {
+    const created = (await toolForCapabilityName("create_timeline_version").process(ctx(), {
       timeline_id: row.id,
       name: "before the recut"
     })) as { ok: boolean; version: number; saveType: string; name: string };
@@ -135,7 +129,7 @@ describe("timeline version tools", () => {
 
     await TimelineSequenceVersion.snapshot(row, { saveType: "autosave" });
 
-    const listed = (await new ListTimelineVersionsTool().process(ctx(), {
+    const listed = (await toolForCapabilityName("list_timeline_versions").process(ctx(), {
       timeline_id: row.id
     })) as { versions: Array<{ version: number; saveType: string }> };
     // Newest first.
@@ -144,7 +138,7 @@ describe("timeline version tools", () => {
       [1, "manual"]
     ]);
 
-    const manualOnly = (await new ListTimelineVersionsTool().process(ctx(), {
+    const manualOnly = (await toolForCapabilityName("list_timeline_versions").process(ctx(), {
       timeline_id: row.id,
       save_type: "manual"
     })) as { versions: Array<{ version: number }> };
@@ -153,12 +147,12 @@ describe("timeline version tools", () => {
 
   it("reads one version's document without restoring it", async () => {
     const row = await makeTimeline();
-    await new CreateTimelineVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_timeline_version").process(ctx(), {
       timeline_id: row.id,
       name: "the good cut"
     });
 
-    const result = (await new GetTimelineVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("get_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 1
     })) as {
@@ -179,13 +173,13 @@ describe("timeline version tools", () => {
     const after = (await TimelineSequence.findById(row.id))!;
     expect(after.updated_at).toBe(row.updated_at);
 
-    const missing = (await new GetTimelineVersionTool().process(ctx(), {
+    const missing = (await toolForCapabilityName("get_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 7
     })) as { error: string };
     expect(missing.error).toContain("no version 7");
 
-    const otherUser = (await new GetTimelineVersionTool().process(ctx("other"), {
+    const otherUser = (await toolForCapabilityName("get_timeline_version").process(ctx("other"), {
       timeline_id: row.id,
       version: 1
     })) as { error: string };
@@ -194,7 +188,7 @@ describe("timeline version tools", () => {
 
   it("restores a version, snapshots the overwritten state, and validates the result", async () => {
     const row = await makeTimeline();
-    await new CreateTimelineVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_timeline_version").process(ctx(), {
       timeline_id: row.id,
       name: "the good cut"
     });
@@ -207,7 +201,7 @@ describe("timeline version tools", () => {
       duration_ms: 0
     });
 
-    const result = (await new RestoreTimelineVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 1
     })) as {
@@ -242,11 +236,11 @@ describe("timeline version tools", () => {
 
   it("reports the findings when the restored document no longer validates", async () => {
     const row = await makeTimeline({ document: document("ghost") });
-    await new CreateTimelineVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_timeline_version").process(ctx(), {
       timeline_id: row.id
     });
 
-    const result = (await new RestoreTimelineVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 1
     })) as {
@@ -265,7 +259,7 @@ describe("timeline version tools", () => {
 
   it("refuses to restore a version the timeline does not have", async () => {
     const row = await makeTimeline();
-    const result = (await new RestoreTimelineVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 7
     })) as { error: string };
@@ -275,11 +269,11 @@ describe("timeline version tools", () => {
 
   it("refuses to restore another user's timeline", async () => {
     const row = await makeTimeline();
-    await new CreateTimelineVersionTool().process(ctx(), {
+    await toolForCapabilityName("create_timeline_version").process(ctx(), {
       timeline_id: row.id
     });
 
-    const result = (await new RestoreTimelineVersionTool().process(ctx("other"), {
+    const result = (await toolForCapabilityName("restore_timeline_version").process(ctx("other"), {
       timeline_id: row.id,
       version: 1
     })) as { error: string };
@@ -302,7 +296,7 @@ describe("timeline version tools", () => {
       document: JSON.stringify({ tracks: [] })
     });
 
-    const result = (await new RestoreTimelineVersionTool().process(ctx(), {
+    const result = (await toolForCapabilityName("restore_timeline_version").process(ctx(), {
       timeline_id: row.id,
       version: 1
     })) as { error: string; undo_version: number };

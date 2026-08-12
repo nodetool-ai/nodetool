@@ -139,11 +139,6 @@ import {
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import {
-  RunSubtaskTool,
-  RunSearchTool,
-  PlanWorkflowGraphTool
-} from "@nodetool-ai/agents";
-import {
   createChatCodeActSession,
   createSandboxClock,
   type SandboxClock,
@@ -158,14 +153,17 @@ import {
   registerBuiltinTools,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools,
-  ListCollectionsTool,
-  QueryCollectionTool,
+  toolForCapabilityName,
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
+  toolFromCapability,
+  planWorkflowGraph,
+  UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
   type CapabilityRun,
+  type GraphPlannerRuntime,
   type PermissionGateOptions,
   type SubAgentRuntime,
   type PermissionMode,
@@ -193,7 +191,7 @@ import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
 
 const log = createLogger("nodetool.websocket.runner");
-const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
+const DATA_URI_PATTERN = /data:([^;,]{1,100})?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
 const TERMINAL_JOB_STATUSES = [
   "completed",
@@ -1263,7 +1261,7 @@ sandbox where the platform is the \`nodetool.*\` object model and every other
 tool is \`tools.<name>()\`. The CodeAct section that follows this prompt carries
 the exact signatures — read it there, and prefer the \`nodetool.*\` form over the
 raw tool it wraps.
-- \`nodetool.workflows\`, \`nodetool.graph()\`, \`nodetool.nodes\`,
+- \`nodetool.workflows\`, \`nodetool.nodes\`,
   \`nodetool.models\`, \`nodetool.media\`, \`nodetool.assets\`, \`nodetool.jobs\`,
   \`nodetool.collections\`, \`nodetool.apps\`, \`nodetool.memory\`, and the
   creative-resource namespaces cover the platform. A namespace only appears in
@@ -1274,8 +1272,8 @@ raw tool it wraps.
 - \`tools.plan_workflow_graph\` and \`tools.run_search\` are the delegation
   tools with no \`nodetool.*\` form.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
-  catalog. Find it inside an action with \`await searchTools("query")\`, then
-  call it as \`tools.<name>()\`. Raise \`max_results\` (\`searchTools("+timeline",
+  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
+  call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
   20)\`) to see a whole family instead of concluding a capability is missing.
 
 # Working in actions
@@ -1289,33 +1287,34 @@ NodeTool is not only workflows. A user's work lives in typed resources, and
 most of them have both a headless \`nodetool.*\` namespace and an editor
 (\`ui_*\`) family — so when a request names one, reach for that resource instead
 of assuming the only way forward is a workflow.
-- **workflow** — a node graph that runs. \`nodetool.workflows\` and
-  \`nodetool.graph()\`; see "Building workflows".
+- **workflow** — a node graph that runs. \`nodetool.workflows\`, and the
+  \`@nodetool-ai/sandbox-dsl\` package for authoring one; see "Building
+  workflows".
 - **app** — a mini app: widgets bound to workflow operations and variables.
-  Author with the \`ui_app_*\` family (\`searchTools("+ui_app", 20)\`), verify
+  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`), verify
   with \`nodetool.apps.debug\`, or generate a whole one from a prompt with
   \`nodetool.apps.build\`.
 - **storyboard** — a brief or screenplay broken into shots, each with a
   keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
   edits the shot list, renders stills and clips, and assembles them into a
-  timeline without an open editor; \`searchTools("+ui_storyboard", 20)\` edits
+  timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
   the open one.
 - **script** — speakers, lines, and a voice take per line. \`nodetool.scripts\`
   reads any script by id and reports which lines still need voicing, edits the
   words, voices the takes, and cuts them into a timeline — no workflow, no open
-  editor. \`searchTools("+ui_script", 20)\` edits the open one.
+  editor. \`nodetool.searchTools("+ui_script", 20)\` edits the open one.
 - **timeline** — tracks and clips that render to video. \`nodetool.timelines\`
   lists, validates (statically check a sequence before the user renders it),
   edits tracks and clips server-side, and keeps a snapshot history
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
-  editor. \`searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
+  editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
 - **sketch** — a layered image document. \`nodetool.sketches\` lists, validates,
   edits the layer stack, and keeps the same snapshot history — but never
   touches pixels. Painting, generating into a layer, and rendering to an asset
-  live in \`searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
+  live in \`nodetool.searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
   be previewed inline in chat; see "Linking resources".
-- **model3d** — a 3D scene. Family \`searchTools("+ui_3d", 20)\`: add and
+- **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
   transform objects, set materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,
   search, hybrid search, query.
@@ -1324,7 +1323,7 @@ of assuming the only way forward is a workflow.
 - **thread** — this conversation and its memory; see "Memory and resources".
 The \`ui_*\` families act on a document the user has open and take its id — the
 open ids are listed under "What the user is looking at", and the exact tools in
-a family differ per surface, so \`searchTools\` rather than guessing names. Chat
+a family differ per surface, so \`nodetool.searchTools\` rather than guessing names. Chat
 has no way to create a storyboard, script, timeline, sketch, or 3D scene from
 nothing: when none is open, name the one you need and ask the user to open or
 create it, instead of falling back to a workflow that approximates it.
@@ -1347,9 +1346,9 @@ When the user wants a workflow built, drive this loop in code:
    again. There is no update call: each fix produces a new workflow, so tell
    the user which id is current.
 Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
-hand-fix small issues in a planned graph rather than re-planning. For a graph
-you only need to run once, \`nodetool.graph()\` builds and runs one ad hoc — no
-saved workflow, no editor.
+hand-fix small issues in a planned graph rather than re-planning. To author a
+graph yourself, import \`@nodetool-ai/sandbox-dsl\`: one generated function per
+node type, so a type that does not exist has no export to import.
 
 # Debugging mini apps
 A mini app is not a workflow: a workflow debug says nothing about whether a
@@ -1443,7 +1442,7 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
  * The chat turn's resident toolbelt: the tools documented in full in the
  * CodeAct prompt's catalog, on top of `CODEACT_RESIDENT_TOOL_NAMES`; the long
  * tail (other MCP tools and all client `ui_*` tools) is name-only and found
- * in-sandbox with `searchTools()`.
+ * in-sandbox with `nodetool.searchTools()`.
  *
  * Only tools the `nodetool.*` object model does NOT wrap belong here. Workflow
  * building, node discovery, apps, assets and memory are documented once, as
@@ -1530,7 +1529,7 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
  * Render the user's open documents into the system prompt. The `ui_*` tools all
  * take a required document id, so this block is how the agent learns which ids
  * are valid — without it the tools are unusable even though they're discoverable
- * through `searchTools()`.
+ * through `nodetool.searchTools()`.
  */
 function formatUiContext(uiContext?: UiContext | null): string {
   if (!uiContext) return "";
@@ -2952,7 +2951,8 @@ export class UnifiedWebSocketRunner {
       );
       const total = items.reduce(
         (sum, item) =>
-          sum + (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
+          sum +
+          (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
         0
       );
       return { usesNodetool: items.length > 0, estimatedUsd: total };
@@ -5241,9 +5241,7 @@ export class UnifiedWebSocketRunner {
         uiContext,
         workflowId
       );
-      return codeactPromptSection
-        ? `${base}\n\n${codeactPromptSection}`
-        : base;
+      return codeactPromptSection ? `${base}\n\n${codeactPromptSection}` : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5354,34 +5352,47 @@ export class UnifiedWebSocketRunner {
         providers: chatProviders,
         ...mcpToolHostDeps()
       }),
-      new ListCollectionsTool(),
-      new QueryCollectionTool(),
+      toolForCapabilityName("list_collections"),
+      toolForCapabilityName("query_collection"),
       runNodeTool
     ];
     // GraphPlanner as a chat tool: builds a workflow graph from an objective
     // using the session's provider/model. Needs the in-process node registry.
+    let graphPlanner: GraphPlannerRuntime | undefined;
     if (this.nodeRegistry) {
+      const graphPlannerRegistry = this.nodeRegistry;
+      graphPlanner = {
+        provider,
+        model,
+        signal: () => this.chatAbort?.signal,
+        forwardMessage: async (msg: ProcessingMessage) => {
+          const enriched: Record<string, unknown> = {
+            ...(msg as unknown as Record<string, unknown>)
+          };
+          if (enriched.thread_id == null) enriched.thread_id = threadId;
+          if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
+          await this.sendMessage(enriched);
+          // The planner's discovery/submit tool calls arrive as transient
+          // tool_call_update events. Emit a persistent card so the chat UI
+          // shows what the planner is doing, nested under the parent
+          // plan_workflow_graph card.
+          await this.emitSyntheticToolCallCard(enriched);
+        }
+      };
+      const planning = graphPlanner;
       rawToolbelt.push(
-        new PlanWorkflowGraphTool({
-          provider,
-          model,
-          registry: this.nodeRegistry,
-          providers: chatProviders,
-          signal: () => this.chatAbort?.signal,
-          forwardMessage: async (msg) => {
-            const enriched: Record<string, unknown> = {
-              ...(msg as unknown as Record<string, unknown>)
-            };
-            if (enriched.thread_id == null) enriched.thread_id = threadId;
-            if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
-            await this.sendMessage(enriched);
-            // The planner's discovery/submit tool calls arrive as transient
-            // tool_call_update events. Emit a persistent card so the chat UI
-            // shows what the planner is doing, nested under the parent
-            // plan_workflow_graph card.
-            await this.emitSyntheticToolCallCard(enriched);
-          }
-        })
+        toolFromCapability(
+          planWorkflowGraph.spec,
+          planWorkflowGraph.impl,
+          (context) =>
+            createCapabilityRun({
+              context,
+              gate: UNGATED,
+              nodeRegistry: graphPlannerRegistry,
+              providers: chatProviders,
+              graphPlanner: planning
+            })
+        )
       );
     }
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
@@ -5453,19 +5464,30 @@ export class UnifiedWebSocketRunner {
         parentTools: () => baseTools,
         forwardMessage: forwardSubtaskMessage
       };
-      serverTools.unshift(new RunSubtaskTool(subAgentRuntime));
+      // Both delegation tools reach the belt as capabilities over this
+      // runtime. The class is still what runs — the `agents` module builds one
+      // per call — so the depth gate, the child's inherited belt (with a
+      // `run_subtask` of its own stitched in by `buildChildToolset`, since this
+      // snapshot deliberately predates the unshift), and the
+      // `parent_tool_call_id` / `subtask_depth` tagging are unchanged.
+      const delegationRun = (context: ProcessingContext) =>
+        createCapabilityRun({
+          context,
+          // Ungated on purpose, as before: spawning a child loop has no side
+          // effect of its own, and the child's tools are the gated `baseTools`.
+          gate: UNGATED,
+          subAgent: subAgentRuntime
+        });
+      serverTools.unshift(
+        toolForCapabilityName("run_subtask", delegationRun)
+      );
 
-      // Read-only fan-out search (opt-in). Reuses the same forwarder and the
-      // baseTools snapshot — RunSearchTool internally filters baseTools to its
-      // read-only allowlist, so passing the full snapshot is correct.
+      // Read-only fan-out search (opt-in). Reuses the same runtime — the
+      // capability filters the parent belt to its read-only allowlist
+      // internally, so passing the full snapshot is correct.
       if (enableReadOnlySearch) {
         serverTools.unshift(
-          new RunSearchTool({
-            provider,
-            model,
-            parentTools: () => baseTools,
-            forwardMessage: forwardSubtaskMessage
-          })
+          toolForCapabilityName("run_search", delegationRun)
         );
       }
     }
@@ -5484,7 +5506,7 @@ export class UnifiedWebSocketRunner {
     );
     // Every client tool the connected UI registered is exposed. They used to be
     // gated on an active workflow, which made the editor tools unreachable from
-    // plain chat; they are deferred behind `searchTools()` anyway, and each one now
+    // plain chat; they are deferred behind `nodetool.searchTools()` anyway, and each one now
     // takes an explicit document id, so the gate cost reach without buying
     // safety. Which ids are valid comes from `ui_context` in the system prompt.
     const clientToolNames = Object.keys(this.clientToolsManifest);
@@ -5513,7 +5535,7 @@ export class UnifiedWebSocketRunner {
 
     // A chat turn with tools always runs in CodeAct: the model acts by writing
     // sandboxed JavaScript over the toolbelt (docs/codeact-design.md), and the
-    // session's in-sandbox `searchTools()` is the discovery path. The session
+    // session's in-sandbox `nodetool.searchTools()` is the discovery path. The session
     // is created below, once the tool router and processing context exist.
     const useCodeAct = allSchemas.length > 0;
 
@@ -5562,6 +5584,7 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
+      graphPlanner,
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });

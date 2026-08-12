@@ -2,10 +2,10 @@
  * Builtin agent-tool registry + hydration.
  *
  * Tools can be referenced by name as bare stubs (`{ name }`) and hydrated into
- * real `Tool` instances on demand. The registry holds the always-available
- * STATIC_TOOL_CLASSES plus anything other modules append via
- * {@link registerBuiltinAgentToolClasses} at load time (e.g. `sandbox.ts`
- * registers the `browser_*` CDP tools).
+ * real `Tool` instances on demand. The registry is the default agent toolbelt
+ * (`getAgentToolbelt()` — no hand-maintained name list) plus anything other
+ * modules append via {@link registerBuiltinAgentToolClasses} at load time
+ * (e.g. `sandbox.ts` registers the `browser_*` CDP tools).
  *
  * CONTRACT: a name-stub is NOT executable until hydrated. `runAgentLoop` and
  * the AgentNode (`normalizeTools`) both hydrate their `tools` before use, so a
@@ -15,24 +15,7 @@
  * unhydrated stub has no `process`/`inputSchema` and silently can't be called.
  */
 
-import {
-  BrowserTool,
-  DataForSEOImagesTool,
-  DataForSEONewsTool,
-  DataForSEOSearchTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
-  GoogleImagesTool,
-  GoogleNewsTool,
-  WebSearchTool,
-  HttpRequestTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-  OpenAIWebSearchTool,
-  ScreenshotTool,
-  SearchEmailTool,
-  Tool
-} from "@nodetool-ai/agents";
+import { getAgentToolbelt, getMediaTools, Tool } from "@nodetool-ai/agents";
 
 type ToolCtor = new () => Tool;
 
@@ -41,23 +24,27 @@ type MaybeTool = {
   process?: unknown;
 };
 
-const STATIC_TOOL_CLASSES: ToolCtor[] = [
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-  BrowserTool,
-  ScreenshotTool,
-  HttpRequestTool,
-  SearchEmailTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-];
+/**
+ * Names a saved workflow may still carry, mapped to what replaced them.
+ *
+ * The provider-specific search and media tools were retired: `web_search`,
+ * `google_news` and `google_images` now choose a backend host-side, and
+ * `generate_image` / `generate_speech` are provider-agnostic. An AgentNode
+ * saved before that stores the old name as a bare stub, and a stub that
+ * resolves to nothing is silently uncallable — so resolve it to the tool that
+ * took over instead.
+ */
+const RETIRED_TOOL_NAMES: Readonly<Record<string, string>> = {
+  openai_web_search: "web_search",
+  google_grounded_search: "web_search",
+  dataforseo_search: "web_search",
+  dataforseo_news: "google_news",
+  dataforseo_images: "google_images",
+  image_generation: "generate_image",
+  openai_image_generation: "generate_image",
+  google_image_generation: "generate_image",
+  openai_text_to_speech: "generate_speech"
+};
 
 const extraToolClasses: ToolCtor[] = [];
 const toolFactories: (() => ToolCtor[])[] = [];
@@ -91,13 +78,19 @@ export function registerBuiltinAgentToolFactory(factory: () => ToolCtor[]): void
 export function resolveBuiltinAgentTool(name: string): Tool | null {
   if (!builtinAgentTools) {
     builtinAgentTools = new Map<string, Tool>();
+    for (const tool of [...getAgentToolbelt(), ...getMediaTools()]) {
+      builtinAgentTools.set(tool.name, tool);
+    }
     const dynamicClasses = toolFactories.flatMap((f) => f());
-    for (const ToolClass of [...STATIC_TOOL_CLASSES, ...extraToolClasses, ...dynamicClasses]) {
+    for (const ToolClass of [...extraToolClasses, ...dynamicClasses]) {
       const tool = new ToolClass();
       builtinAgentTools.set(tool.name, tool);
     }
   }
-  return builtinAgentTools.get(name) ?? null;
+  const direct = builtinAgentTools.get(name);
+  if (direct) return direct;
+  const replacement = RETIRED_TOOL_NAMES[name];
+  return replacement ? (builtinAgentTools.get(replacement) ?? null) : null;
 }
 
 /**

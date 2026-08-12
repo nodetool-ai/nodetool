@@ -174,11 +174,7 @@ describe("nodetool object model", () => {
     const obs = await runAction(session, `return nodetool.capabilities();`);
     expect(obs.ok).toBe(true);
     const caps = obs.result as Record<string, string[]>;
-    expect(Object.keys(caps).sort()).toEqual([
-      "graph",
-      "models",
-      "workflows"
-    ]);
+    expect(Object.keys(caps).sort()).toEqual(["models", "workflows"]);
     expect(caps["workflows"]).toContain("run_workflow");
   });
 
@@ -287,106 +283,6 @@ describe("nodetool object model", () => {
     expect(String(obs.result)).toContain("not in this toolbelt");
   });
 
-  it("builds an ad-hoc graph with output-wiring and runs it", async () => {
-    const { executeTool, calls } = createFakeRouter();
-    const session = makeSession(WORKFLOW_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `const g = nodetool.graph();
-       const inp = g.node("nodetool.input.StringInput", { name: "prompt" });
-       const out = g.node("nodetool.output.StringOutput", {
-         name: "result",
-         value: inp.output()
-       });
-       const check = await g.validate();
-       const { workflow, result } = await g.run({ prompt: "hello" });
-       return { check, workflowId: workflow.id, status: result.status,
-                graph: g.toJSON() };`
-    );
-    expect(obs.ok).toBe(true);
-    const r = obs.result as {
-      check: { status: string };
-      workflowId: string;
-      status: string;
-      graph: { nodes: unknown[]; edges: Array<Record<string, unknown>> };
-    };
-    expect(r.check.status).toBe("ok");
-    expect(r.workflowId).toBe("wf_new_1");
-    expect(r.status).toBe("completed");
-    expect(r.graph.nodes).toHaveLength(2);
-    expect(r.graph.edges[0]).toMatchObject({
-      sourceHandle: "output",
-      targetHandle: "value"
-    });
-
-    const createCall = calls.find((c) => c.name === "create_workflow");
-    expect(createCall?.args["tags"]).toEqual(["codeact-adhoc"]);
-    const runCall = calls.find((c) => c.name === "run_workflow");
-    expect(runCall?.args).toMatchObject({
-      workflow_id: "wf_new_1",
-      params: { prompt: "hello" }
-    });
-  });
-
-  it("validates wiring as the graph is built (shared DSL core)", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(WORKFLOW_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `const g = nodetool.graph();
-       const inp = g.node("nodetool.input.StringInput", { name: "prompt" });
-       const errors = {};
-       try { g.node("nodetool.agents.Agent", { prompt: "Use " + inp.output() }); }
-       catch (e) { errors.interpolated = e.message; }
-       try { g.connect(inp, "output", "no_such_node", "value"); }
-       catch (e) { errors.unknownTarget = e.message; }
-       try { g.node(42, {}); }
-       catch (e) { errors.badType = e.message; }
-       const agent = g.node("nodetool.agents.Agent", {});
-       return { errors, ids: g.nodes.map((n) => n.id), agentId: agent.id };`
-    );
-    expect(obs.ok).toBe(true);
-    const r = obs.result as {
-      errors: Record<string, string>;
-      ids: string[];
-      agentId: string;
-    };
-    expect(r.errors.interpolated).toContain("inside a string");
-    expect(r.errors.unknownTarget).toContain("Node not found: no_such_node");
-    expect(r.errors.badType).toContain("type must be a non-empty string");
-    // Auto ids follow the graph DSL's snake_case scheme.
-    expect(r.ids).toEqual(["string_input", "agent"]);
-    expect(r.agentId).toBe("agent");
-  });
-
-  it("copies a saved workflow's graph into a builder with id remapping", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(WORKFLOW_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `const wf = await nodetool.workflows.get("wf1");
-       const g = nodetool.graph();
-       g.node("nodetool.input.StringInput", {}, { id: "src" }); // force collision
-       const { idMap, refs } = g.copyFrom(wf);
-       g.connect(g.get("src"), "output", refs["dst"], "value");
-       const json = g.toJSON();
-       return { idMap, nodeCount: json.nodes.length, edgeCount: json.edges.length,
-                copiedProps: refs["src"].properties };`
-    );
-    expect(obs.ok).toBe(true);
-    const r = obs.result as {
-      idMap: Record<string, string>;
-      nodeCount: number;
-      edgeCount: number;
-      copiedProps: Record<string, unknown>;
-    };
-    expect(r.nodeCount).toBe(3);
-    expect(r.idMap["src"]).not.toBe("src"); // collision remapped
-    expect(r.idMap["dst"]).toBe("dst");
-    expect(r.edgeCount).toBe(2); // copied edge + manual connect
-    expect(r.copiedProps).toEqual({ name: "prompt" });
-  });
-
   it("batches with bounded concurrency and settles failures as entries", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);
@@ -458,7 +354,7 @@ describe("nodetool object model", () => {
        catch (e) { return e.message; }`
     );
     expect(obs.ok).toBe(true);
-    expect(String(obs.result)).toContain("nodetool.graph()");
+    expect(String(obs.result)).toContain("sandbox DSL package");
   });
 
   it("gates the prompt section and prelude on the belt", () => {
@@ -472,13 +368,22 @@ describe("nodetool object model", () => {
       "find_model",
       "generate_image"
     ]);
-    expect(section).toContain("nodetool.graph(");
     expect(section).toContain("nodetool.models");
     expect(section).toContain("nodetool.media");
     expect(section).toContain("nodetool.models.pick(\"text_to_image\")");
     expect(section).toContain("nodetool.batch(");
     expect(section).not.toContain("nodetool.timelines");
     expect(section).not.toContain("nodetool.providers");
+    // Graph authoring is a package, so the section names it only when the
+    // caller says this session mounts it.
+    expect(section).not.toContain("@nodetool-ai/sandbox-dsl");
+
+    const withDsl = buildNodetoolApiPromptSection(
+      ["run_workflow", "create_workflow", "validate_workflow"],
+      { graphDsl: true }
+    );
+    expect(withDsl).toContain("@nodetool-ai/sandbox-dsl");
+    expect(withDsl).toContain("workflow(");
 
     expect(buildNodetoolApiPromptSection(["read_file"])).toBe("");
 

@@ -1,7 +1,7 @@
 /**
  * The `nodetool` object model — the agent-facing JS API for the CodeAct
  * sandbox. Where `tools.<name>()` is the raw RPC surface, `nodetool.*` is the
- * platform as objects: workflows, an ad-hoc graph builder, models, assets,
+ * platform as objects: workflows, models, assets,
  * jobs, collections, timelines, sketches, scripts, and storyboards, plus a
  * bounded-concurrency `batch()` for fan-out (run a workflow once per CSV row,
  * validate every timeline, render all boards).
@@ -14,7 +14,8 @@
  * from the graph-model prelude when that is loaded.
  */
 
-import { GRAPH_DSL_CORE_PRELUDE } from "../graph-dsl-core.js";
+import { GRAPH_JSON_PRELUDE } from "../graph-dsl-core.js";
+import { GRAPH_DSL_PROMPT_SECTION } from "./graph-dsl-package.js";
 
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
@@ -29,7 +30,10 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "resolve_workflow_escalation",
     "get_example_workflow"
   ],
-  graph: ["create_workflow", "validate_workflow", "run_workflow"],
+  // Documented in the sandbox-packages section rather than in the namespace
+  // list, but covered here so the two discovery tools are not also catalogued
+  // as raw `tools.*` signatures.
+  packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
   models: ["find_model", "list_models", "list_provider_models"],
@@ -67,6 +71,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "thread_memory_update",
     "thread_memory_delete"
   ],
+  shared: ["list_shared", "read_shared", "share_result"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
   assets: [
@@ -163,7 +168,7 @@ const nodetool = (() => {
     if (typeof fn !== "function") {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
-        "method is unavailable here. searchTools() lists what is."
+        "method is unavailable here. nodetool.searchTools() lists what is."
       );
     }
     return fn;
@@ -215,43 +220,6 @@ const nodetool = (() => {
     );
   };
 
-  /**
-   * The graph DSL core (\`__graphDslBuilder\`, shared with the GraphPlanner's
-   * submit_graph programs) plus the tool-backed methods only this sandbox
-   * has: validate, save, and the save-and-run shortcut.
-   */
-  function graphBuilder(base) {
-    const g = __graphDslBuilder();
-    g.validate = () => __need("validate_workflow")({ graph: g.toJSON() });
-    g.save = (name, opts) =>
-      __need("create_workflow")(
-        __merge(opts, { name: name, graph: g.toJSON() })
-      );
-    /**
-     * Run this graph ad hoc: saves it as a workflow (tagged so it is easy
-     * to find and clean up), then runs it. Returns { workflow, result }.
-     * Pass { name } to keep it as a deliberate, named workflow instead.
-     */
-    g.run = async (params, opts) => {
-      const name =
-        (opts && opts.name) || "Ad-hoc graph " + new Date().toISOString();
-      const tags = (opts && opts.tags) || ["codeact-adhoc"];
-      const workflow = await g.save(name, { tags: tags });
-      if (!workflow || !workflow.id) {
-        throw new Error("Ad-hoc run: saving the graph returned no id");
-      }
-      const result = await __need("run_workflow")(
-        __merge(opts && opts.interactive ? { interactive: true } : {}, {
-          workflow_id: workflow.id,
-          params: params || {}
-        })
-      );
-      return { workflow: workflow, result: result };
-    };
-    if (base) g.copyFrom(base, {});
-    return g;
-  }
-
   const api = {
     /**
      * Credentials, through the one bridge that has them.
@@ -297,6 +265,138 @@ const nodetool = (() => {
           : __secretScope.slice();
       }
     },
+
+    /**
+     * Find a tool the prompt lists by name only, or does not list at all.
+     * Takes the ToolSearch grammar ("select:a,b" for exact names, "+term" to
+     * require one) and returns each match's name, signature and description.
+     * Call it before calling a tool whose arguments you have not seen.
+     */
+    async searchTools(query, maxResults) {
+      if (typeof __searchTools !== "function") {
+        throw new Error(
+          "nodetool.searchTools: this run has no tool catalog to search."
+        );
+      }
+      const r = await __searchTools(
+        String(query === undefined || query === null ? "" : query),
+        maxResults === undefined ? 5 : maxResults
+      );
+      if (!r || r.ok !== true) {
+        throw new Error(r && r.error ? r.error : "nodetool.searchTools failed");
+      }
+      return r.result;
+    },
+
+    /**
+     * What this action can import: the sandbox packs installed here, the
+     * modules each declares, the functions those export, and each pack's own
+     * documentation. A pack marked allowed:false is installed but off this
+     * session's allowlist — importing it is refused.
+     */
+    packs: (() => {
+      let cached = null;
+      const load = async (refresh) => {
+        if (cached === null || refresh === true) {
+          cached = await __need("list_sandbox_packages")({});
+        }
+        return cached;
+      };
+      const packOf = (entry) => entry.packName;
+      return {
+        /**
+         * One entry per pack: {packName, description, allowed, kinds,
+         * specifiers}. Pass {refresh: true} to re-read the catalog.
+         */
+        async list(opts) {
+          const listing = await load(opts && opts.refresh);
+          const byPack = {};
+          const order = [];
+          for (const entry of listing.packages) {
+            const name = packOf(entry);
+            if (byPack[name] === undefined) {
+              byPack[name] = {
+                packName: name,
+                packVersion: entry.packVersion,
+                description: entry.description || "",
+                allowed: false,
+                kinds: [],
+                specifiers: []
+              };
+              order.push(name);
+            }
+            const pack = byPack[name];
+            if (!pack.description && entry.description) {
+              pack.description = entry.description;
+            }
+            if (entry.allowed) pack.allowed = true;
+            if (pack.kinds.indexOf(entry.kind) < 0) pack.kinds.push(entry.kind);
+            pack.specifiers.push(entry.specifier);
+          }
+          const packs = order.map((name) => byPack[name]);
+          if (listing.platform && listing.platform.length > 0) {
+            packs.push({
+              packName: "@nodetool-ai/sandbox-nodetool",
+              description:
+                "NodeTool's own surface — the same gated calls as nodetool.*.",
+              allowed: true,
+              kinds: ["platform"],
+              specifiers: listing.platform.map((entry) => entry.specifier)
+            });
+          }
+          return packs;
+        },
+        /**
+         * The importable module specifiers of one pack, each with its kind and
+         * whether this session allows it. Takes a pack name or any specifier
+         * inside the pack.
+         */
+        async modules(pack, opts) {
+          const listing = await load(opts && opts.refresh);
+          const name = String(pack === undefined || pack === null ? "" : pack);
+          const platform = (listing.platform || []).filter(
+            (entry) => entry.specifier === name || entry.specifier.indexOf(name) === 0
+          );
+          if (platform.length > 0) {
+            return platform.map((entry) => ({
+              specifier: entry.specifier,
+              kind: "platform",
+              allowed: true
+            }));
+          }
+          return listing.packages
+            .filter(
+              (entry) =>
+                packOf(entry) === name ||
+                entry.specifier === name ||
+                entry.specifier.indexOf(name + "/") === 0
+            )
+            .map((entry) => ({
+              specifier: entry.specifier,
+              kind: entry.kind,
+              description: entry.description,
+              allowed: entry.allowed
+            }));
+        },
+        /**
+         * The function names one module exports: {specifier, kind, exports,
+         * complete, note?}. A module whose exports cannot be read answers
+         * exports:null with the reason in note — read docs() instead of
+         * guessing.
+         */
+        exports(specifier) {
+          return __need("list_sandbox_packages")({
+            specifier: String(specifier === undefined ? "" : specifier)
+          });
+        },
+        /** A pack's SKILL.md, for the specifier you are about to import. */
+        docs(specifier) {
+          return __need("get_sandbox_package_docs")({
+            specifier: String(specifier === undefined ? "" : specifier)
+          });
+        }
+      };
+    })(),
 
     /** What this belt supports, namespace by namespace. */
     capabilities() {
@@ -353,8 +453,6 @@ const nodetool = (() => {
       await Promise.all(workers);
       return results.filter((entry) => entry !== undefined);
     },
-
-    graph: graphBuilder,
 
     nodes: {
       /**
@@ -438,9 +536,9 @@ const nodetool = (() => {
           })
         ),
       /**
-       * One example workflow, graph included — ready for
-       * nodetool.graph().copyFrom(...). Name is "<package>/<example>", or
-       * pass the package separately as {package}.
+       * One example workflow, graph included — a worked graph to read before
+       * authoring one. Name is "<package>/<example>", or pass the package
+       * separately as {package}.
        */
       example(name, opts) {
         const explicit = (opts && (opts.package || opts.package_name)) || "";
@@ -471,7 +569,8 @@ const nodetool = (() => {
         if (typeof openWorkflow !== "function") {
           throw new Error(
             "nodetool.workflows.open: the graph editing tools (ui_*) are " +
-            "not in this toolbelt. Build with nodetool.graph() instead."
+            "not in this toolbelt. Author a graph with the sandbox DSL " +
+            "package instead, then create() it."
           );
         }
         return openWorkflow(id);
@@ -483,8 +582,10 @@ const nodetool = (() => {
         __need("find_model")(__merge(opts, { capability: capability })),
       /**
        * Resolve ONE model for a capability — the top-ranked hit, ready to
-       * pass to nodetool.media.* or into node properties. Throws when no
-       * configured provider offers the capability.
+       * pass to nodetool.media.*. To put it in a node's model property,
+       * assign the result's "ref" field verbatim (the flat fields use
+       * "model_id"; the property wants "id"). Throws when no configured
+       * provider offers the capability.
        */
       async pick(capability, opts) {
         const found = await __need("find_model")(
@@ -634,6 +735,19 @@ const nodetool = (() => {
         ),
       remove: (memoryId) =>
         __need("thread_memory_delete")({ memory_id: memoryId })
+    },
+
+    shared: {
+      /** Metadata for every entry this run shares — no values. */
+      list: (opts) => __need("list_shared")(__merge(opts)),
+      /** Full values for the keys you name; misses come back in \`missing\`. */
+      read: (keys) =>
+        __need("read_shared")({
+          keys: Array.isArray(keys) ? keys : [keys]
+        }),
+      /** Publish under \`shared:<key>\` for the rest of this run to find. */
+      publish: (key, value, opts) =>
+        __need("share_result")(__merge(opts, { key: key, value: value }))
     },
 
     email: {
@@ -844,15 +958,14 @@ const NAMESPACE_TOOLS_LITERAL = `const __NT_NAMESPACE_TOOLS = ${JSON.stringify(
   NODETOOL_API_NAMESPACE_TOOLS
 )};`;
 
-/** The full prelude: namespace map, shared graph DSL core, API definition. */
-export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_DSL_CORE_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
+/** The full prelude: namespace map, graph normalizer, API definition. */
+export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_JSON_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
 
 /** Guest names {@link NODETOOL_API_PRELUDE_FULL} defines. */
 export const NODETOOL_API_GLOBALS = [
   "nodetool",
   "__NT_NAMESPACE_TOOLS",
-  "__graphJsonOf",
-  "__graphDslBuilder"
+  "__graphJsonOf"
 ] as const;
 
 interface PromptEntry {
@@ -876,27 +989,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   run-and-resolve loop (\`while (report.status === "escalated") ...\`) in one
   action. \`list({workflow_type: "example"})\` enumerates the shipped
   example workflows and \`example("<package>/<name>")\` loads one with its
-  graph, ready for \`nodetool.graph().copyFrom(...)\`.`
-  },
-  {
-    namespace: "graph",
-    doc: `- \`nodetool.graph(base?)\` — build an AD-HOC graph in code and run it, no editor
-  needed. \`g.node(type, props)\` returns a ref; pass \`ref.output(slot?)\` as a
-  property value to wire an edge (or \`g.connect(a, "output", b, "text")\`).
-  \`g.copyFrom(workflowOrGraph, {prefix})\` copies another graph in (ids remapped;
-  returns \`{idMap, refs}\` keyed by source id). Wiring is checked as you build:
-  \`connect\` refuses an id the graph does not have, and a handle inside a
-  string throws — a handle wires an edge, it is not text. \`await g.validate()\`
-  before \`await g.run(params)\` (saves it tagged \`codeact-adhoc\`, then runs) or
-  \`await g.save(name)\`.`
+  graph — a worked example to read before authoring one.`
   },
   {
     namespace: "nodes",
-    doc: `- \`nodetool.nodes\` — the graph builder's discovery half. NEVER guess a node
+    doc: `- \`nodetool.nodes\` — the graph author's discovery half. NEVER guess a node
   type: \`await search(["summarize text"], {n_results, input_type, output_type})\`
   (a bare string works too) to find candidates, then
   \`await info("nodetool.text.Concat")\` for the exact properties, inputs and
-  outputs before you write \`g.node(type, props)\`. \`list({namespace, limit})\`
+  outputs before you import that node's namespace from the DSL package.
+  \`list({namespace, limit})\`
   browses a namespace. \`run(type, inputs)\` is the single-node harness — probe
   one node with a property bag before wiring it into a graph.`
   },
@@ -912,12 +1014,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "models",
     doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id}\`), \`find(capability,
+  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`), \`find(capability,
   {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
   \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
-  provider's own catalog. Never guess a model id — pick one,
-  then pass it to \`nodetool.media.*\` or into node properties.`
+  provider's own catalog. Never guess a model id — pick one, then pass it to
+  \`nodetool.media.*\`. To set a node's model property, assign the result's
+  \`ref\` verbatim (it is the typed \`{type, provider, id, name}\` value the
+  property wants — the flat \`model_id\` field does not fit).`
   },
   {
     namespace: "media",
@@ -960,6 +1064,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   put the assets, workflows and collections you produce in \`resources\` so you
   can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
   title, resources})\`, and \`remove(memoryId)\`.`
+  },
+  {
+    namespace: "shared",
+    doc: `- \`nodetool.shared\` — the scratchpad for THIS run, gone when it ends (use
+  \`nodetool.memory\` for anything that must outlive it). \`list({kind,
+  key_prefix, sources})\` returns metadata only — keys, titles, kinds, byte
+  sizes — so discovery costs no tokens; \`read(keys)\` fetches the full values
+  of the keys you name and reports misses in \`missing\`; \`publish(key, value,
+  {title, description})\` stores under \`shared:<key>\` for later steps and
+  sub-agents to find. Upstream step and task results land here, so read them
+  rather than asking for them again.`
   },
   {
     namespace: "style",
@@ -1073,20 +1188,6 @@ const images = await nodetool.batch(shots, (prompt) =>
 return images.map((r) => (r.ok ? r.value.asset_uri : r.error));
 \`\`\``;
 
-const GRAPH_EXAMPLE = `Ad-hoc graph — compose and run a workflow entirely from code:
-
-\`\`\`js
-const g = nodetool.graph();
-const inp = g.node("nodetool.input.StringInput", { name: "prompt" });
-const img = g.node("nodetool.image.TextToImage", {
-  prompt: inp.output(),
-  model: { provider: "fal_ai", id: "fal-ai/flux/schnell" }
-});
-g.node("nodetool.output.ImageOutput", { name: "image", value: img.output() });
-const check = await g.validate();          // fix issues before spending
-const { workflow, result } = await g.run({ prompt: "a red fox in snow" });
-\`\`\``;
-
 /**
  * The `nodetool` API section for codeact system prompts, documenting only the
  * namespaces this belt can actually serve. Empty string when none can.
@@ -1128,8 +1229,19 @@ If you do not know the document's id, find it with \`list()\` on the namespace.`
  */
 export const NODETOOL_API_SECTION_HEADER = "# The `nodetool` object model";
 
+export interface NodetoolApiPromptOptions {
+  /**
+   * Whether this session can author graphs with `@nodetool-ai/sandbox-dsl` —
+   * the belt carries the three workflow verbs AND the pack is installed. The
+   * caller decides it (`withGraphDslPackage`), because only the caller knows
+   * the allowlist and the catalog.
+   */
+  graphDsl?: boolean;
+}
+
 export function buildNodetoolApiPromptSection(
-  toolNames: Iterable<string>
+  toolNames: Iterable<string>,
+  options: NodetoolApiPromptOptions = {}
 ): string {
   const names = new Set(toolNames);
   const active = NAMESPACE_DOCS.filter((entry) =>
@@ -1141,7 +1253,7 @@ export function buildNodetoolApiPromptSection(
 
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
-    `Platform objects — workflows, graphs, models, media, documents — are
+    `Platform objects — workflows, models, media, documents — are
 driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
 tools are deliberately absent from the tool catalog above; this object model
 is their one documented surface. \`nodetool.capabilities()\` reports what is
@@ -1155,10 +1267,7 @@ available, and the two cannot disagree. A module this session does not mount
 fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
-  const hasGraph = NODETOOL_API_NAMESPACE_TOOLS["graph"].every((tool) =>
-    names.has(tool)
-  );
-  if (hasGraph) sections.push(GRAPH_EXAMPLE);
+  if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
   if (names.has("find_model") && names.has("generate_image")) {
     sections.push(MEDIA_EXAMPLE);
   }

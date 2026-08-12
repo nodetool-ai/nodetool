@@ -539,9 +539,7 @@ export function App({
           "take_screenshot",
           "google_search",
           "google_news",
-          "google_images",
-          "dataforseo_search",
-          "dataforseo_news"
+          "google_images"
         ])
       : null;
 

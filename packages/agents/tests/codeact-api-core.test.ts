@@ -61,37 +61,44 @@ function createScriptedLoopProvider(actionsByCall: string[][]): BaseProvider {
 
 const SOLUTIONS: Record<string, string[]> = {
   "api-graph-build-and-run": [
-    `await nodetool.nodes.search(["string input", "concat text", "string output"]);
-     const g = nodetool.graph();
-     const name = g.node("nodetool.input.StringInput", { name: "name" });
-     const joined = g.node("nodetool.text.Concat", {
-       a: name.output(),
-       b: ", welcome aboard!"
-     });
-     g.node("nodetool.output.StringOutput", {
-       name: "greeting",
-       value: joined.output()
-     });
-     const check = await g.validate();
+    `import { workflow } from "@nodetool-ai/sandbox-dsl";
+     import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
+     import { concat } from "@nodetool-ai/sandbox-dsl/nodetool.text";
+     import { output } from "@nodetool-ai/sandbox-dsl/nodetool.output";
+     await nodetool.nodes.search(["string input", "concat text", "output"]);
+     const name = stringInput({ name: "name" });
+     const joined = concat({ a: name.output(), b: ", welcome aboard!" });
+     const graph = workflow(
+       output({ name: "greeting", value: joined.output() })
+     );
+     const check = await nodetool.workflows.validate(graph);
      if (!check.valid) throw new Error(JSON.stringify(check.errors));
-     const run = await g.run({ name: "Ada" });
-     await finish({ greeting: run.result.outputs.greeting });`
+     const saved = await nodetool.workflows.create("Greeter", graph);
+     const run = await nodetool.workflows.run(saved.id, { name: "Ada" });
+     await finish({ greeting: run.outputs.greeting });`
   ],
   "api-probe-node-then-wire": [
-    `await nodetool.nodes.search("slug a title");
-     await nodetool.nodes.info("nodetool.text.Slugify");
-     const probe = await nodetool.nodes.run("nodetool.text.Slugify", {
-       text: "Hello World Again"
+    `import { workflow } from "@nodetool-ai/sandbox-dsl";
+     import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
+     import { template } from "@nodetool-ai/sandbox-dsl/nodetool.text";
+     import { output } from "@nodetool-ai/sandbox-dsl/nodetool.output";
+     await nodetool.nodes.search("render a text template");
+     await nodetool.nodes.info("nodetool.text.Template");
+     const probe = await nodetool.nodes.run("nodetool.text.Template", {
+       string: "{{title}} — a field report",
+       title: "Hello World"
      });
-     const g = nodetool.graph();
-     const title = g.node("nodetool.input.StringInput", { name: "title" });
-     const slug = g.node("nodetool.text.Slugify", { text: title.output() });
-     g.node("nodetool.output.StringOutput", {
-       name: "slug",
-       value: slug.output()
+     const title = stringInput({ name: "title" });
+     const line = template({
+       string: "{{title}} — a field report",
+       title: title.output()
      });
-     const run = await g.run({ title: "Fox In Snow" });
-     await finish({ probe: probe.output, slug: run.result.outputs.slug });`
+     const graph = workflow(output({ name: "line", value: line.output() }));
+     const saved = await nodetool.workflows.create("Field report", graph);
+     const run = await nodetool.workflows.run(saved.id, {
+       title: "Fox In Snow"
+     });
+     await finish({ probe: probe.output, line: run.outputs.line });`
   ],
   "api-pick-model-and-batch-images": [
     `const catalog = await nodetool.models.list({ limit: 1000 });
@@ -191,7 +198,6 @@ const SOLUTIONS: Record<string, string[]> = {
 
 const CORE_NAMESPACES = [
   "workflows",
-  "graph",
   "nodes",
   "models",
   "media",

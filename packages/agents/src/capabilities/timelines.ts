@@ -2,13 +2,12 @@
  * The `timelines` capability module.
  *
  * Seven capabilities that used to be seven `Tool` subclasses: the five version
- * tools (`../tools/timeline-version-tools.ts`), the headless editor
- * (`../tools/timeline-edit-tools.ts`), and `validate_timeline`, which lived
- * beside the workflow tools in `../tools/mcp-tools.ts`.
+ * tools (`timeline-version-tools.ts`), the headless editor
+ * (`timeline-edit-tools.ts`), and `validate_timeline`, which lived beside the
+ * workflow tools in `../tools/mcp-tools.ts`.
  *
- * Wire names, descriptions and schemas are unchanged: the old classes survive
- * as thin `CapabilityTool` subclasses over these implementations, so
- * `BUILTIN_TOOL_CLASSES` and every belt that names them keep working.
+ * Wire names, descriptions and schemas are unchanged: a belt builds all seven
+ * from `timelines.specs.ts` by name.
  *
  * What was a constructor argument is now a field on the run: the tRPC-only
  * timeline loader `validate_timeline` takes is `run.loaders?.timeline`. Every
@@ -32,10 +31,38 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  listTimelinesSpec,
+  listTimelineVersionsSpec,
+  getTimelineVersionSpec,
+  createTimelineVersionSpec,
+  restoreTimelineVersionSpec,
+  editTimelineSpec,
+  validateTimelineSpec,
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
+  SAVE_TYPE_PROPERTY,
+  LIST_TIMELINES_SCHEMA,
+  LIST_TIMELINE_VERSIONS_SCHEMA,
+  GET_TIMELINE_VERSION_SCHEMA,
+  CREATE_TIMELINE_VERSION_SCHEMA,
+  RESTORE_TIMELINE_VERSION_SCHEMA,
+  EDIT_TIMELINE_SCHEMA,
+  VALIDATE_TIMELINE_SCHEMA
+} from "./timelines.specs.js";
 
-/** Versions one call may return, so a long history cannot flood the context. */
-const DEFAULT_VERSION_LIMIT = 20;
-const MAX_VERSION_LIMIT = 100;
+export {
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
+  SAVE_TYPE_PROPERTY,
+  LIST_TIMELINES_SCHEMA,
+  LIST_TIMELINE_VERSIONS_SCHEMA,
+  GET_TIMELINE_VERSION_SCHEMA,
+  CREATE_TIMELINE_VERSION_SCHEMA,
+  RESTORE_TIMELINE_VERSION_SCHEMA,
+  EDIT_TIMELINE_SCHEMA,
+  VALIDATE_TIMELINE_SCHEMA
+} from "./timelines.specs.js";
 
 type ToolError = { error: string };
 
@@ -118,45 +145,8 @@ function versionNumber(value: unknown): number | ToolError {
   return n;
 }
 
-const SAVE_TYPE_PROPERTY = {
-  type: "string" as const,
-  enum: ["manual", "autosave", "restore"],
-  description:
-    "Only versions of this kind: 'manual' (a save someone asked for), " +
-    "'autosave' (taken on a document write), 'restore' (the pre-restore " +
-    "snapshot). Omit for all of them."
-};
-
-// ---------------------------------------------------------------------------
-// list_timelines
-// ---------------------------------------------------------------------------
-
-const LIST_TIMELINES_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "string",
-      description:
-        "Only timelines whose name contains this text (case-insensitive)."
-    },
-    limit: {
-      type: "number",
-      description: "Max timelines to return (default 20)."
-    }
-  }
-};
-
 const listTimelines: CapabilityExport = {
-  spec: {
-    name: "list_timelines",
-    description:
-      "List the caller's timeline sequences, most recently updated first: id, " +
-      "name, frame rate, resolution, duration, and when it last changed. Start " +
-      "here when the user names a timeline but not its id.",
-    inputSchema: LIST_TIMELINES_SCHEMA,
-    category: "read",
-    userMessage: () => "Listing timelines"
-  },
+  spec: listTimelinesSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
@@ -187,39 +177,8 @@ const listTimelines: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// list_timeline_versions
-// ---------------------------------------------------------------------------
-
-const LIST_TIMELINE_VERSIONS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: {
-      type: "string",
-      description: "Timeline sequence id."
-    },
-    save_type: SAVE_TYPE_PROPERTY,
-    limit: {
-      type: "number",
-      description: `Max versions to return (default ${DEFAULT_VERSION_LIMIT}, max ${MAX_VERSION_LIMIT}).`
-    }
-  },
-  required: ["timeline_id"]
-};
-
 const listTimelineVersions: CapabilityExport = {
-  spec: {
-    name: "list_timeline_versions",
-    description:
-      "List a timeline sequence's snapshots, newest first: version number, " +
-      "name, save type ('manual', 'autosave', 'restore'), render settings, and " +
-      "when it was taken. Call this before restoring — restore_timeline_version " +
-      "addresses a snapshot by its version number.",
-    inputSchema: LIST_TIMELINE_VERSIONS_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Listing versions of timeline ${String(params["timeline_id"])}`
-  },
+  spec: listTimelineVersionsSpec,
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
@@ -248,37 +207,8 @@ const listTimelineVersions: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_timeline_version
-// ---------------------------------------------------------------------------
-
-const GET_TIMELINE_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: {
-      type: "string",
-      description: "Timeline sequence id."
-    },
-    version: {
-      type: "number",
-      description: "Version number to read, from list_timeline_versions."
-    }
-  },
-  required: ["timeline_id", "version"]
-};
-
 const getTimelineVersion: CapabilityExport = {
-  spec: {
-    name: "get_timeline_version",
-    description:
-      "Read one snapshot of a timeline sequence without restoring it: the " +
-      "version's metadata plus the full document it stored. Use this to inspect " +
-      "or compare versions before deciding which one to restore.",
-    inputSchema: GET_TIMELINE_VERSION_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Reading v${String(params["version"])} of timeline ${String(params["timeline_id"])}`
-  },
+  spec: getTimelineVersionSpec,
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
@@ -305,38 +235,8 @@ const getTimelineVersion: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// create_timeline_version
-// ---------------------------------------------------------------------------
-
-const CREATE_TIMELINE_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: {
-      type: "string",
-      description: "Timeline sequence id."
-    },
-    name: {
-      type: "string",
-      description: "Label for the snapshot, e.g. 'before the recut'."
-    }
-  },
-  required: ["timeline_id"]
-};
-
 const createTimelineVersion: CapabilityExport = {
-  spec: {
-    name: "create_timeline_version",
-    description:
-      "Snapshot a timeline sequence's current document as a manual version, so " +
-      "it can be restored later. Manual snapshots are never pruned (autosaves " +
-      "are), so take one before an edit the user may want undone. Returns the " +
-      "new version's number.",
-    inputSchema: CREATE_TIMELINE_VERSION_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Snapshotting timeline ${String(params["timeline_id"])}`
-  },
+  spec: createTimelineVersionSpec,
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
@@ -358,40 +258,8 @@ const createTimelineVersion: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// restore_timeline_version
-// ---------------------------------------------------------------------------
-
-const RESTORE_TIMELINE_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: {
-      type: "string",
-      description: "Timeline sequence id."
-    },
-    version: {
-      type: "number",
-      description: "Version number to restore, from list_timeline_versions."
-    }
-  },
-  required: ["timeline_id", "version"]
-};
-
 const restoreTimelineVersion: CapabilityExport = {
-  spec: {
-    name: "restore_timeline_version",
-    description:
-      "Roll a timeline sequence's document and render settings back to one of " +
-      "its snapshots, addressed by version number (from " +
-      "list_timeline_versions). The state being overwritten is snapshotted " +
-      "first, so the restore is itself undoable — restore that snapshot to come " +
-      "back. An old document is restored against today's schema, so the result " +
-      "is validated afterwards and the findings are returned with it.",
-    inputSchema: RESTORE_TIMELINE_VERSION_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Restoring timeline ${String(params["timeline_id"])} to v${String(params["version"])}`
-  },
+  spec: restoreTimelineVersionSpec,
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
@@ -399,9 +267,8 @@ const restoreTimelineVersion: CapabilityExport = {
     const number = versionNumber(params["version"]);
     if (isError(number)) return number;
 
-    const { TimelineSequence, TimelineSequenceVersion } = await import(
-      "@nodetool-ai/models"
-    );
+    const { TimelineSequence, TimelineSequenceVersion } =
+      await import("@nodetool-ai/models");
     const version = await TimelineSequenceVersion.findByVersion(seq.id, number);
     if (!version) {
       return {
@@ -449,9 +316,8 @@ const restoreTimelineVersion: CapabilityExport = {
       };
     }
 
-    const { validateTimelineSequence } = await import(
-      "@nodetool-ai/execution/timeline-debug"
-    );
+    const { validateTimelineSequence } =
+      await import("@nodetool-ai/execution/timeline-debug");
     const validation: TimelineValidation = validateTimelineSequence(document, {
       fps: version.fps,
       width: version.width,
@@ -495,7 +361,9 @@ const EXCLUDED_OPS = new Set([
 function normalizeOpName(name: string): string {
   const trimmed = name.trim();
   if (trimmed.startsWith(TOOL_PREFIX)) return trimmed;
-  const bare = trimmed.startsWith("ui_") ? trimmed.slice("ui_".length) : trimmed;
+  const bare = trimmed.startsWith("ui_")
+    ? trimmed.slice("ui_".length)
+    : trimmed;
   return `${TOOL_PREFIX}${bare}`;
 }
 
@@ -513,7 +381,9 @@ function parseOps(raw: unknown): ParsedOp[] | ToolError {
     };
   }
   if (raw.length > MAX_OPS) {
-    return { error: `ops holds ${raw.length} entries; at most ${MAX_OPS} per call.` };
+    return {
+      error: `ops holds ${raw.length} entries; at most ${MAX_OPS} per call.`
+    };
   }
   const parsed: ParsedOp[] = [];
   for (const [index, entry] of raw.entries()) {
@@ -552,9 +422,8 @@ async function applyOps(
   document: TimelineDocument,
   ops: ParsedOp[]
 ): Promise<ApplyOutcome> {
-  const { createTimelineToolBridge } = await import(
-    "../evals/surfaces/timeline.js"
-  );
+  const { createTimelineToolBridge } =
+    await import("../evals/surfaces/timeline.js");
   const bridge = createTimelineToolBridge({
     sequence: {
       fps: sequence.fps,
@@ -588,57 +457,25 @@ async function applyOps(
     try {
       records.push({ op, ok: true, result: await tool.execute(input) });
     } catch (e) {
-      records.push({ op, ok: false, error: e instanceof Error ? e.message : String(e) });
+      records.push({
+        op,
+        ok: false,
+        error: e instanceof Error ? e.message : String(e)
+      });
     }
   }
 
   return { records, state: bridge.finalState() };
 }
 
-const EDIT_TIMELINE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: { type: "string", description: "Timeline sequence id." },
-    ops: {
-      type: "array",
-      description:
-        'Operations in order. Each is {"op": <name>, ...arguments}, e.g. ' +
-        '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
-        '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
-        "Ops: get_state, add_track, add_text_clip, add_shape_clip, " +
-        "split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
-        "set_clip_params, set_clip_binding, animate_clip, clear_animations, " +
-        "list_animation_presets, select_clip, seek. Start with get_state to " +
-        "read track and clip ids.",
-      items: { type: "object" }
-    }
-  },
-  required: ["timeline_id", "ops"]
-};
-
 const editTimeline: CapabilityExport = {
-  spec: {
-    name: "edit_timeline",
-    description:
-      "Edit a saved timeline sequence headlessly: add tracks, add text and " +
-      "shape clips, split, trim, move, duplicate and delete clips, set clip " +
-      "params and workflow bindings, and animate clips with presets. Pass a " +
-      "list of operations; they run in order against the stored document and " +
-      "the result is saved. An open editor picks the change up live. Call " +
-      "list_timelines to find a sequence and validate_timeline afterwards. " +
-      "Use render_storyboard_clips or a workflow run to generate media — this " +
-      "tool authors the cut, it does not render.",
-    inputSchema: EDIT_TIMELINE_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
-      return `Editing timeline ${String(params["timeline_id"])} (${count} ops)`;
-    }
-  },
+  spec: editTimelineSpec,
   impl: async (run, params) => {
     const timelineId = params["timeline_id"];
     if (typeof timelineId !== "string" || !timelineId) {
-      return { error: "timeline_id is required (use list_timelines to find one)." };
+      return {
+        error: "timeline_id is required (use list_timelines to find one)."
+      };
     }
     const ops = parseOps(params["ops"]);
     if (isError(ops)) return ops;
@@ -715,57 +552,8 @@ function parseStoredDocument(document: unknown): unknown {
   }
 }
 
-const VALIDATE_TIMELINE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    timeline_id: {
-      type: "string",
-      description: "The ID of a saved timeline sequence to validate"
-    },
-    document: {
-      type: "object",
-      description:
-        "Inline TimelineDocument to validate ({ tracks, clips, markers }). " +
-        "Takes precedence over timeline_id."
-    },
-    fps: {
-      type: "number",
-      description:
-        "Frame rate the inline document renders at (default 30). Timing " +
-        "checks are frame-based, so a document authored at another fps " +
-        "validates against the wrong grid without this. Ignored for timeline_id."
-    },
-    width: {
-      type: "number",
-      description:
-        "Render width of the inline document. Ignored for timeline_id."
-    },
-    height: {
-      type: "number",
-      description:
-        "Render height of the inline document. Ignored for timeline_id."
-    }
-  }
-};
-
 const validateTimeline: CapabilityExport = {
-  spec: {
-    name: "validate_timeline",
-    description:
-      "Statically validate a timeline sequence WITHOUT rendering or playing it: " +
-      "clips on tracks the document lacks, duplicate ids, overlapping clips, " +
-      "fades and transitions longer than the clip, in/out points that cannot " +
-      "render, unknown animation presets, incomplete bindings, and fields a " +
-      "schema round trip would strip. Pass an inline `document` to check one you " +
-      "are building, or `timeline_id` to validate a saved sequence. Run it after " +
-      "timeline edits and before rendering.",
-    inputSchema: VALIDATE_TIMELINE_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      params["timeline_id"]
-        ? `Validating timeline ${params["timeline_id"]}`
-        : "Validating timeline document"
-  },
+  spec: validateTimelineSpec,
   // The timeline API is tRPC-only, so there is no REST route to fall back on:
   // a host that wants the `timeline_id` path puts a loader on the run. Without
   // one this still validates inline documents.
@@ -811,9 +599,8 @@ const validateTimeline: CapabilityExport = {
       };
     }
 
-    const { validateTimelineSequence } = await import(
-      "@nodetool-ai/execution/timeline-debug"
-    );
+    const { validateTimelineSequence } =
+      await import("@nodetool-ai/execution/timeline-debug");
     const validation = validateTimelineSequence(document, meta);
     return {
       ...validation,

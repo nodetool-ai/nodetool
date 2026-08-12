@@ -13,10 +13,10 @@ import type {
 import type { ProcessingContext, SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 import {
-  SandboxPackageDocsTool,
   sandboxPackageSkills,
   wrapUntrustedPackageDocs
 } from "../src/codeact/sandbox-package-docs.js";
+import { sandboxPackageDocsTool } from "../src/capabilities/packs.js";
 
 const SUMMARY: SandboxModuleSummary = {
   specifier: "@acme/geo",
@@ -52,7 +52,7 @@ const context = {} as ProcessingContext;
 
 describe("get_sandbox_package_docs", () => {
   it("refuses a specifier the session never allowed", async () => {
-    const tool = new SandboxPackageDocsTool(["@acme/geo"], catalog(false));
+    const tool = sandboxPackageDocsTool(["@acme/geo"], catalog(false));
     const result = await tool.process(context, { specifier: "@evil/pack" });
     expect(result).toEqual({
       error: "package_not_allowed",
@@ -61,13 +61,13 @@ describe("get_sandbox_package_docs", () => {
   });
 
   it("says so plainly when the session allows nothing", async () => {
-    const tool = new SandboxPackageDocsTool([], catalog(true));
+    const tool = sandboxPackageDocsTool([], catalog(true));
     const result = await tool.process(context, { specifier: "@acme/geo" });
     expect(result).toMatchObject({ error: "package_not_allowed" });
   });
 
   it("wraps an untrusted pack's body as untrusted content", async () => {
-    const tool = new SandboxPackageDocsTool(["@acme/geo"], catalog(false));
+    const tool = sandboxPackageDocsTool(["@acme/geo"], catalog(false));
     const result = (await tool.process(context, {
       specifier: "@acme/geo"
     })) as { trusted: boolean; documentation: string };
@@ -81,7 +81,7 @@ describe("get_sandbox_package_docs", () => {
   });
 
   it("hands a trusted pack's body over unwrapped", async () => {
-    const tool = new SandboxPackageDocsTool(["@acme/geo"], catalog(true));
+    const tool = sandboxPackageDocsTool(["@acme/geo"], catalog(true));
     const result = (await tool.process(context, {
       specifier: "@acme/geo"
     })) as { trusted: boolean; documentation: string };
@@ -91,7 +91,7 @@ describe("get_sandbox_package_docs", () => {
   });
 
   it("serves the module's own section when the pack documents one", async () => {
-    const tool = new SandboxPackageDocsTool(
+    const tool = sandboxPackageDocsTool(
       ["@acme/geo/bearing"],
       catalog(true)
     );
@@ -107,7 +107,7 @@ describe("get_sandbox_package_docs", () => {
       diagnostics: () => [],
       resolveForExecution: () => ({ modules: [], statuses: [] })
     };
-    const tool = new SandboxPackageDocsTool(["@acme/geo"], empty);
+    const tool = sandboxPackageDocsTool(["@acme/geo"], empty);
     expect(
       await tool.process(context, { specifier: "@acme/geo" })
     ).toMatchObject({ error: "package_docs_unavailable" });
@@ -117,7 +117,7 @@ describe("get_sandbox_package_docs", () => {
     // A chat session installs the tool off the allowlist alone, so it must
     // still answer where no catalog resolves — the prompt advertises the call
     // and the model gets a named error instead of a missing tool.
-    const tool = new SandboxPackageDocsTool(["@acme/geo"], null);
+    const tool = sandboxPackageDocsTool(["@acme/geo"], null);
     expect(
       await tool.process(context, { specifier: "@acme/geo" })
     ).toMatchObject({ error: "package_docs_unavailable" });

@@ -4,7 +4,7 @@
  *
  * The port must be invisible. So the checks are: the module walk is clean,
  * every spec's category equals what the classification map the gate reads says,
- * each deprecated class still renders exactly the spec it was ported from, and
+ * a Tool built from a spec renders exactly that spec, and
  * a call through `toolFromCapability` produces what the class produced.
  */
 
@@ -24,15 +24,9 @@ import type {
   CapabilityExport,
   CapabilityGate
 } from "../src/capabilities/types.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool
-} from "../src/tools/search-tools.js";
-import { BrowserTool, ScreenshotTool } from "../src/tools/browser-tools.js";
-import { DownloadFileTool, HttpRequestTool } from "../src/tools/http-tools.js";
 
 const gate: CapabilityGate = {
   mode: "auto",
@@ -105,15 +99,15 @@ describe("web capability module", () => {
   });
 });
 
-describe("wire compatibility with the deprecated classes", () => {
+describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
-    [new WebSearchTool(), "web_search"],
-    [new GoogleNewsTool(), "google_news"],
-    [new GoogleImagesTool(), "google_images"],
-    [new BrowserTool(), "browser"],
-    [new ScreenshotTool(), "take_screenshot"],
-    [new HttpRequestTool(), "http_request"],
-    [new DownloadFileTool(), "download_file"]
+    [toolForCapabilityName("web_search"), "web_search"],
+    [toolForCapabilityName("google_news"), "google_news"],
+    [toolForCapabilityName("google_images"), "google_images"],
+    [toolForCapabilityName("browser"), "browser"],
+    [toolForCapabilityName("take_screenshot"), "take_screenshot"],
+    [toolForCapabilityName("http_request"), "http_request"],
+    [toolForCapabilityName("download_file"), "download_file"]
   ];
 
   it.each(pairs)("%o keeps its name, description and schema", (tool, name) => {
@@ -124,14 +118,14 @@ describe("wire compatibility with the deprecated classes", () => {
   });
 
   it("keeps the userMessage templates", () => {
-    expect(new WebSearchTool().userMessage({ query: "otters" })).toBe(
-      "Searching the web for 'otters'"
-    );
-    expect(new BrowserTool().userMessage({ url: "https://a.example" })).toBe(
-      "Fetching https://a.example"
-    );
     expect(
-      new HttpRequestTool().userMessage({
+      toolForCapabilityName("web_search").userMessage({ query: "otters" })
+    ).toBe("Searching the web for 'otters'");
+    expect(
+      toolForCapabilityName("browser").userMessage({ url: "https://a.example" })
+    ).toBe("Fetching https://a.example");
+    expect(
+      toolForCapabilityName("http_request").userMessage({
         method: "post",
         url: "https://a.example"
       })

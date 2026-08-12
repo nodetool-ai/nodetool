@@ -49,17 +49,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_directory: "read",
   glob: "read",
   grep: "read",
-  workspace_read: "read",
-  workspace_list: "read",
   // --- read: web & document reads ---
   web_search: "read",
   google_news: "read",
   google_images: "read",
-  google_grounded_search: "read",
-  openai_web_search: "read",
-  dataforseo_search: "read",
-  dataforseo_news: "read",
-  dataforseo_images: "read",
   take_screenshot: "read",
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
@@ -107,11 +100,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   vector_hybrid_search: "read",
   // --- read: internal agent bookkeeping (no external side effects) ---
   todo_write: "read",
-  memory_list: "read",
-  memory_read: "read",
-  memory_write: "read",
-  ltm_recall: "read",
-  ltm_remember: "read",
+  list_shared: "read",
+  read_shared: "read",
+  share_result: "read",
   // Thread-memory reads + asset-library discovery have no side effects.
   thread_memory_list: "read",
   asset_search: "read",
@@ -134,14 +125,13 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // through the gated `create_workflow`.
   plan_workflow_graph: "read",
   // run_search spawns a read-only child loop (read_file/glob/grep/
-  // list_directory/memory_read only); the call itself has no side effects, so
+  // list_directory/read_shared only); the call itself has no side effects, so
   // it always runs ungated.
   run_search: "read",
 
   // --- write: produces files / artifacts / costly media ---
   write_file: "write",
   edit_file: "write",
-  workspace_write: "write",
   download_file: "write",
   convert_markdown_to_pdf: "write",
   convert_document: "write",
@@ -189,9 +179,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   edit_storyboard: "write",
   transcribe_audio: "write",
   embed_text: "write",
-  openai_image_generation: "write",
-  google_image_generation: "write",
-  openai_text_to_speech: "write",
   vector_index: "write",
   vector_batch_index: "write",
   vector_recursive_split_and_index: "write",

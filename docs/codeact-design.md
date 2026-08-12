@@ -129,7 +129,7 @@ provider transcript only carries `execute_code`.
    browser, HTTP, memory, `run_subtask` — `CODEACT_RESIDENT_TOOL_NAMES`,
    overridable per executor) stay fully documented; once the belt exceeds `CODEACT_DEFER_THRESHOLD` (16),
    everything else is listed by name only and discovered in-sandbox via
-   `await searchTools("query")`, which reuses the ToolSearch query grammar
+   `await nodetool.searchTools("query")`, which reuses the ToolSearch query grammar
    (`select:`, keywords, `+substr`) and returns each match's signature and
    description. Deferred tools remain callable — the split spends prompt
    tokens, not capability. This is the progressive-disclosure half of the
@@ -176,7 +176,7 @@ The action executes with the same privileges tool mode already grants:
 A chat turn with tools presents `execute_code` (plus `view_image`, the one
 channel that puts pixels into context and so cannot ride the JSON observation
 envelope) instead of the toolbelt; discovery is the in-sandbox
-`searchTools()`. The adapter is
+`nodetool.searchTools()`. The adapter is
 `createChatCodeActSession` (`packages/agents/src/codeact/chat-codeact.ts`): a
 chat toolbelt mixes server tools with client (`ui_*`) tools that exist
 server-side only as schemas, so instead of `buildToolBridge` the session
@@ -223,19 +223,24 @@ cancels its queued ops instead of issuing a delete. Tests:
 Alongside the graph model, an action gets the `nodetool` object model
 (`packages/agents/src/codeact/nodetool-api.ts`): namespaces wrapping belt
 tools, so gating and routing stay untouched and a method whose backing tool is
-absent throws naming it. The namespaces are `workflows`, `graph()`, `nodes`,
+absent throws naming it. The namespaces are `workflows`, `nodes`,
 `agents`, `models`, `providers`, `media`, `documents`, `web`, `memory`,
 `style`, `email`, `assets`, `jobs`, `collections`, `apps`, `timelines`,
 `sketches`, `scripts`, `storyboards`, plus `batch()` for bounded fan-out.
 
-`nodetool.graph()` is not its own graph language: it is the graph DSL core
-(`src/graph-dsl-core.ts`), the same implementation the GraphPlanner's
-`submit_graph` programs run on. One wiring semantics across both surfaces —
-snake_case auto ids, `node(type, props)` argument validation, `connect()`
-refusing an id the graph does not have, and handles that throw when
-interpolated into a string instead of silently becoming `"[object Object]"`.
-The sandbox layer adds only the tool-backed methods (`validate()`, `save()`,
-`run()`).
+Authoring a graph is not one of them. It is a sandbox package,
+`@nodetool-ai/sandbox-dsl`: one generated function per node type, carrying that
+node's real inputs, one importable module per namespace. A node type the
+catalog does not have has no export, so a hallucinated type fails at import
+rather than at validation — the failure mode the string-typed `nodetool.graph()`
+builder could not close. `workflow(...terminals)` returns the `{nodes, edges}`
+shape `validate_workflow` and `create_workflow` already take.
+
+The pack reaches an action through the session allowlist like any other:
+`withGraphDslPackage` (`src/codeact/graph-dsl-package.ts`) adds it when the belt
+carries `create_workflow`, `validate_workflow` and `run_workflow` and the
+catalog serves the pack. A machine without it installed gets neither the
+specifier nor the prompt section naming it.
 
 `web` is the outside world behind one surface: `search(query, {provider})`
 picks whichever search backend the belt carries (`"default"`, `"openai"`,
@@ -246,7 +251,7 @@ accumulated taste, `email` the Gmail three.
 
 Every wrapped tool is filtered out of the prompt's tool catalog
 (`nodetoolApiCoveredToolNames`) — it stays callable through the bridge and
-findable via `searchTools()`, but `nodetool.*` is its one documented form.
+findable via `nodetool.searchTools()`, but `nodetool.*` is its one documented form.
 Workspace files are the exception on purpose: they go through the sandbox's own
 in-process `workspace.*` API, which costs no tool call, and the prompt's action
 contract says so.
@@ -260,13 +265,14 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
   a model can do by writing code is not a tool. The code tools `run_code` and
   `js` went with them: `execute_code` is the code path, and a second one only
   offered the model a sandbox without the `nodetool.*` API or `state`.
-- `getAgentToolbelt()` (`src/tools/builtin-tools.ts`) drops the
-  provider-specific media duplicates — `image_generation`,
+- The provider-specific media duplicates — `image_generation`,
   `openai_image_generation`, `google_image_generation`,
-  `openai_text_to_speech` — because `nodetool.media` already covers them
-  through the provider-agnostic `generate_image` / `generate_speech`. They stay
-  in `getBuiltinTools()` as the full inventory for registration and audits;
-  no surface a model reasons over offers them.
+  `openai_text_to_speech` — are deleted, because `nodetool.media` already
+  covers them through the provider-agnostic `generate_image` /
+  `generate_speech`. The provider-specific search names went the same way,
+  but their implementations stayed: they are the backends `web_search` /
+  `google_news` / `google_images` route to, now plain functions rather than
+  tools.
 
 ## Evaluation
 

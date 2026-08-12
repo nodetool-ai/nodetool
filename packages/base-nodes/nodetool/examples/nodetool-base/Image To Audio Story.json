@@ -83,7 +83,6 @@
           },
           "system": "You are a vision-driven storyteller. Study the image and invent a short, vivid short story inspired by what you see — never a literal description or caption.",
           "prompt": "Write a 150-250 word short story inspired by this image. Give it a clear beginning, middle, and end, and a one-line title on the first line. Output plain prose only, no headings or bullet points.",
-          "messages": [],
           "max_tokens": 100000
         },
         "ui_properties": {

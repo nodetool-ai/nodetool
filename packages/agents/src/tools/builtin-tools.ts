@@ -1,271 +1,144 @@
 /**
- * Canonical list of built-in agent tool classes.
+ * Canonical list of built-in agent tool names.
  *
- * "Built-in" = constructable with `new ToolClass()` (no required args), and
- * not tied to a specific NodeRegistry, sandbox, workspace, or vector
- * collection. These are the tools the WebSocket server exposes by name —
- * any tool listed here can be selected from the chat / agent frontends and
- * resolved via `resolveTool(name)` without additional context.
+ * "Built-in" = servable from the capability registry with nothing but a
+ * `ProcessingContext` — not tied to a specific NodeRegistry, sandbox,
+ * workspace, or vector collection. These are the tools the WebSocket server
+ * exposes by name; any name listed here can be selected from the chat / agent
+ * frontends and resolved via `resolveTool(name)` without additional context.
  *
- * Tools that need constructor args (workspace path, vector collection,
- * NodeRegistry, ProcessingContext, sandbox client, …) are NOT included
- * here; they are wired up by their owning subsystem (e.g. base-nodes,
- * sandbox-tools, mcp-tools).
+ * Capabilities that need something a run must carry (a node registry, a vector
+ * collection, a provider map, an example catalog) are NOT listed here; the
+ * subsystem that owns the dependency builds them — `getAllMcpTools`,
+ * base-nodes, sandbox-tools.
  *
  * In particular the recursive-decomposition primitive (`run_subtask`) and the
  * read-only fan-out search primitive (`run_search`) are intentionally excluded:
- * both take constructor args (provider, model, parentTools, forwardMessage) and
- * are instantiated at their call sites (the websocket runner and the cli), not
- * resolved by name from this zero-arg array.
+ * both need a provider, a model and the parent belt, and are constructed at
+ * their call sites (the websocket runner and the cli).
+ *
+ * The list is names, not classes. Each name resolves to its spec in the
+ * registry's eager spec table and becomes a `Tool` whose implementation loads
+ * from the owning capability module at first invoke
+ * (`capabilities/lazy-tool.ts`) — so a belt is still assembled synchronously,
+ * and no implementation is in the entry graph until something calls one.
  */
 
 import type { Tool } from "./base-tool.js";
 import { registerTool } from "./tool-registry.js";
+import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 
-import { BrowserTool, ScreenshotTool } from "./browser-tools.js";
-import { DownloadFileTool, HttpRequestTool } from "./http-tools.js";
-import {
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool
-} from "./openai-tools.js";
-import {
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool
-} from "./google-tools.js";
-import { ImageGenerationTool } from "./image-generation-tool.js";
-import {
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-} from "./dataseo-tools.js";
-import {
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool
-} from "./search-tools.js";
-import {
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool
-} from "./email-tools.js";
-import {
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
-} from "./pdf-tools.js";
-import {
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool
-} from "./filesystem-tools.js";
-import {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "./edit-search-tools.js";
-import { TodoWriteTool } from "./todo-tools.js";
-import { ViewImageTool, ListImagesTool } from "./view-image-tool.js";
-import {
-  CritiqueImageTool,
-  CompareImagesTool,
-  ScoreImageAdherenceTool,
-  RecordStylePreferenceTool,
-  GetStyleProfileTool
-} from "./creative-critique-tools.js";
-import {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool
-} from "./thread-memory-tools.js";
-import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
-import {
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool,
-  EditScriptTool
-} from "./script-voice-tools.js";
-import {
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool,
-  EditStoryboardTool
-} from "./storyboard-render-tools.js";
-import {
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool
-} from "./sketch-version-tools.js";
-import { EditSketchTool } from "./sketch-edit-tools.js";
-import {
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool
-} from "./timeline-version-tools.js";
-import { EditTimelineTool } from "./timeline-edit-tools.js";
-import {
-  ValidateCodeTool,
-  RunCodeTool,
-  TestCodeTool
-} from "./code-authoring-tools.js";
-
-export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
+export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Filesystem (workspace-relative)
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool,
-  EditFileTool,
-  GlobTool,
-  GrepTool,
+  "read_file",
+  "write_file",
+  "list_directory",
+  "edit_file",
+  "glob",
+  "grep",
 
   // Task tracking
-  TodoWriteTool,
+  "todo_write",
 
   // Thread-level memory (durable per-conversation notes + asset references)
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool,
+  "thread_memory_save",
+  "thread_memory_list",
+  "thread_memory_update",
+  "thread_memory_delete",
 
   // Asset library (discover + reuse generated/uploaded media)
-  AssetSearchTool,
-  AssetListTool,
+  "asset_search",
+  "asset_list",
 
   // Script → voiced takes → timeline, without authoring a workflow
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool,
-  EditScriptTool,
+  "list_scripts",
+  "get_script",
+  "voice_script_lines",
+  "assemble_script_timeline",
+  "edit_script",
 
   // Storyboard → rendered media → timeline, without authoring a workflow
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool,
-  EditStoryboardTool,
+  "list_storyboards",
+  "get_storyboard",
+  "render_storyboard_stills",
+  "render_storyboard_clips",
+  "revise_storyboard_clip",
+  "assemble_storyboard_timeline",
+  "edit_storyboard",
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool,
-  EditSketchTool,
+  "list_sketches",
+  "list_sketch_versions",
+  "get_sketch_version",
+  "create_sketch_version",
+  "restore_sketch_version",
+  "edit_sketch",
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool,
-  EditTimelineTool,
+  "list_timelines",
+  "list_timeline_versions",
+  "get_timeline_version",
+  "create_timeline_version",
+  "restore_timeline_version",
+  "edit_timeline",
 
   // Code-node authoring harness (validate → run → test a Code body)
-  ValidateCodeTool,
-  RunCodeTool,
-  TestCodeTool,
+  "validate_code",
+  "run_code",
+  "test_code",
 
   // Vision (lazy image loading: handles → pixels on demand)
-  ListImagesTool,
-  ViewImageTool,
+  "list_images",
+  "view_image",
 
   // Search
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  OpenAIWebSearchTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool,
+  "web_search",
+  "google_news",
+  "google_images",
 
   // Creative critique (VLM judging + taste memory)
-  CritiqueImageTool,
-  CompareImagesTool,
-  ScoreImageAdherenceTool,
-  RecordStylePreferenceTool,
-  GetStyleProfileTool,
-
-  // Generation
-  ImageGenerationTool,
-  GoogleImageGenerationTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
+  "critique_image",
+  "compare_images",
+  "score_image_adherence",
+  "record_style_preference",
+  "get_style_profile",
 
   // Web
-  BrowserTool,
-  ScreenshotTool,
-  DownloadFileTool,
-  HttpRequestTool,
+  "browser",
+  "take_screenshot",
+  "download_file",
+  "http_request",
 
   // Email
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool,
+  "search_email",
+  "archive_email",
+  "add_label_to_email",
 
   // Documents
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
+  "extract_pdf_text",
+  "extract_pdf_tables",
+  "convert_pdf_to_markdown",
+  "convert_markdown_to_pdf",
+  "convert_document"
 ];
 
 /**
- * Return one fresh instance per built-in tool class.
+ * Return one fresh `Tool` per built-in name.
  * Useful when constructing a tool list for an agent.
  */
 export function getBuiltinTools(): Tool[] {
-  return BUILTIN_TOOL_CLASSES.map((Cls) => new Cls());
+  return BUILTIN_TOOL_NAMES.map((name) => toolForCapabilityName(name));
 }
 
 /**
- * Built-ins an agent's toolbelt leaves out. Every one is a provider-specific
- * duplicate of a capability a routed tool already covers: the media tools
- * through the provider-agnostic `generate_image` / `generate_speech` (the
- * `nodetool.media.*` object model), and the search backends through
- * `web_search` / `google_news` / `google_images`, which route across the
- * configured backends host-side (`backend` pins one). Offering the duplicates
- * makes the model choose a provider before it has chosen a backend. They all
- * stay in {@link getBuiltinTools}, so MCP clients — which have no object model
- * and no routing habit — keep them.
- */
-export const AGENT_TOOLBELT_EXCLUDED: ReadonlySet<string> = new Set([
-  "image_generation",
-  "openai_image_generation",
-  "google_image_generation",
-  "openai_text_to_speech",
-  "openai_web_search",
-  "google_grounded_search",
-  "dataforseo_search",
-  "dataforseo_news",
-  "dataforseo_images"
-]);
-
-/**
- * The built-ins an agent gets: {@link getBuiltinTools} minus
- * {@link AGENT_TOOLBELT_EXCLUDED}. Use this wherever a toolbelt is assembled
- * for a model to reason over; use `getBuiltinTools` for the full inventory
- * (MCP, registration, audits).
+ * The built-ins an agent gets. The nine provider-specific duplicates this set
+ * used to subtract are gone: the media four were deleted, and the five search
+ * backends became plain functions `web_search` / `google_news` /
+ * `google_images` route to host-side. Every host therefore assembles the same
+ * belt, and there is nothing left to exclude.
  */
 export function getAgentToolbelt(): Tool[] {
-  return getBuiltinTools().filter(
-    (tool) => !AGENT_TOOLBELT_EXCLUDED.has(tool.name)
-  );
+  return getBuiltinTools();
 }
 
 let registeredNames: string[] | null = null;
@@ -281,10 +154,9 @@ let registeredNames: string[] | null = null;
 export function registerBuiltinTools(): string[] {
   if (registeredNames) return registeredNames;
   const names: string[] = [];
-  for (const Cls of BUILTIN_TOOL_CLASSES) {
-    const instance = new Cls();
-    registerTool(instance);
-    names.push(instance.name);
+  for (const tool of getBuiltinTools()) {
+    registerTool(tool);
+    names.push(tool.name);
   }
   registeredNames = names;
   return names;

@@ -134,12 +134,8 @@
             "supported_tasks": []
           },
           "negative_prompt": "text, logo, watermark, packaging, people, hands, clutter",
-          "width": 1280,
-          "height": 720,
-          "guidance_scale": 7.5,
-          "num_inference_steps": 6,
-          "seed": -1,
-          "safety_check": true
+          "aspect_ratio": "16:9",
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

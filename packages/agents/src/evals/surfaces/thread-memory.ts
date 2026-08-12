@@ -18,11 +18,7 @@ import {
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool
-} from "../../tools/thread-memory-tools.js";
-import { AssetSearchTool } from "../../tools/asset-library-tools.js";
+import { toolForCapabilityName } from "../../capabilities/lazy-tool.js";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -73,9 +69,9 @@ export function createThreadMemoryToolBridge(
     threadId: EVAL_THREAD
   } as unknown as ProcessingContext;
 
-  const saveTool = new ThreadMemorySaveTool();
-  const listTool = new ThreadMemoryListTool();
-  const searchTool = new AssetSearchTool();
+  const saveTool = toolForCapabilityName("thread_memory_save");
+  const listTool = toolForCapabilityName("thread_memory_list");
+  const searchTool = toolForCapabilityName("asset_search");
 
   let state: ThreadMemoryBridgeFinalState = { memories: [], assets: [] };
 

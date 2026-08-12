@@ -11,9 +11,9 @@ description: "Unified, structured memory shared by every agent, task, and step i
 
 The **agent memory system** is the single source of truth for everything that flows between agents, tasks, steps, sub-agents, and tools during a workflow run. One `AgentMemory` instance lives on every `ProcessingContext` as `context.memory`. All executors read from and write to it through a single namespaced API, and every agent accesses it through three auto-attached tools:
 
-- `memory_list` — discover what's available (metadata only)
-- `memory_read` — fetch full values for specific keys
-- `memory_write` — publish a value under the `shared:` namespace
+- `list_shared` — discover what's available (metadata only)
+- `read_shared` — fetch full values for specific keys
+- `share_result` — publish a value under the `shared:` namespace
 
 This page is the full reference. For a quick orientation, jump to [Quick Reference](#quick-reference) or [Examples](#examples).
 
@@ -50,8 +50,8 @@ The fix is one store, one API, and one access pattern — **progressive disclosu
        ▼                                                   ▼
   CodeActExecutor                           ParallelTaskExecutor
   (writes step:, task: on finish-task       (passes task.dependsOn IDs as
-   steps; auto-attaches memory_list /        upstream key hints to
-   memory_read / memory_write tools)         TaskExecutor)
+   steps; auto-attaches list_shared /        upstream key hints to
+   read_shared / share_result tools)         TaskExecutor)
 ```
 
 Every executor writes results into `context.memory`. Every step has the three memory tools available automatically, and the system prompt instructs the model when to use them.
@@ -65,7 +65,7 @@ Every executor writes results into `context.memory`. Every step has the three me
 | `step:<id>` | `memoryKeys.step(id)` | `CodeActExecutor`, `TaskExecutor` (process mode) | Per-step results |
 | `task:<id>` | `memoryKeys.task(id)` | `CodeActExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
-| `shared:<key>` | `memoryKeys.shared(key)` | `memory_write` tool | Cross-agent communication, scratch space |
+| `shared:<key>` | `memoryKeys.shared(key)` | `share_result` tool | Cross-agent communication, scratch space |
 
 Always use the helper functions when constructing keys — they prevent typos and make grep-able call sites.
 
@@ -90,7 +90,7 @@ export interface MemoryEntry {
   value: unknown;
   /** Optional ID of the producer (task / step / agent / tool). */
   source?: string;
-  /** Optional human-readable title shown in `memory_list`. */
+  /** Optional human-readable title shown in `list_shared`. */
   title?: string;
   /** Optional brief description. */
   description?: string;
@@ -99,7 +99,7 @@ export interface MemoryEntry {
 }
 ```
 
-`title` and `description` flow through to `memory_list` output, so set them when you want the LLM to see a friendly label rather than a UUID.
+`title` and `description` flow through to `list_shared` output, so set them when you want the LLM to see a friendly label rather than a UUID.
 
 ---
 
@@ -107,7 +107,7 @@ export interface MemoryEntry {
 
 Three tools are auto-attached to every step executor. Their signatures appear in the prompt's tool catalog, so the model knows when to call them.
 
-### `memory_list`
+### `list_shared`
 
 Discover available entries without paying for their values.
 
@@ -141,7 +141,7 @@ Discover available entries without paying for their values.
 
 `valueBytes` is the size of the JSON-serialized value — useful for the model to budget reads. The result is hard-capped at 200 entries; older entries are truncated and reported via `truncated: true`.
 
-### `memory_read`
+### `read_shared`
 
 Fetch full values for one or more keys.
 
@@ -167,9 +167,9 @@ Fetch full values for one or more keys.
 
 Missing keys are reported in `missing` so the model can decide whether to retry, list again, or proceed without them.
 
-### `memory_write`
+### `share_result`
 
-Publish a value under the `shared:` namespace so other agents and steps can discover it via `memory_list`.
+Publish a value under the `shared:` namespace so other agents and steps can discover it via `list_shared`.
 
 ```jsonc
 // args
@@ -265,13 +265,13 @@ The execution engine for a single step.
 
 **LLM access**:
 
-- The memory tools ride in the toolbelt like any other, so the prompt's tool catalog documents them as `tools.memory_list()` / `tools.memory_read()` / `tools.memory_write()`.
+- The memory tools ride in the toolbelt like any other, but the object model is their one documented form: the prompt teaches `nodetool.shared.list()` / `nodetool.shared.read(keys)` / `nodetool.shared.publish(key, value)`, and the three wire names drop out of the raw tool catalog like every other wrapped tool.
 - The user message includes only **specific declared upstream keys** as a hint:
   - `step:<id>` for every entry of the step's `dependsOn` (intra-task deps).
   - any key supplied via `CodeActExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
-- Values are not included; the agent calls `memory_read` to fetch them.
+- Values are not included; the agent calls `read_shared` to fetch them.
 
-**Tool attachment**: `getMemoryTools()` is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
+**Tool attachment**: `getMemoryTools()` — a belt built from the `shared` capability module's specs — is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Mount policy stays with the executor: the host never mounts these. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
 
 **Custom prompts are preambles, not replacements**: A caller-supplied `systemPrompt` is layered before the default execution prompt, so the contract — including the tool catalog and the `finish()` discipline — is non-bypassable.
 
@@ -308,7 +308,7 @@ Runs a `TaskPlan` of multiple tasks as a DAG. It owns no private result map — 
 | Read all results | `getAllResults()` lists all `task_result` entries |
 | Read specific task | `getTaskResult(id)` |
 
-Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `memory_read` when needed.
+Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `read_shared` when needed.
 
 ### Agent (`packages/agents/src/agent.ts`)
 
@@ -334,9 +334,9 @@ This is the canonical end-to-end flow for a multi-task plan:
                │     + "Required upstream memory" hint listing
                │       declared dependency keys (no values)
                ├─ LLM streams → may emit:
-               │     - memory_list  → returns metadata
-               │     - memory_read  → returns values for chosen keys
-               │     - memory_write → publishes shared facts
+               │     - list_shared  → returns metadata
+               │     - read_shared  → returns values for chosen keys
+               │     - share_result → publishes shared facts
                │     - other tools / finish_step
                ├─ finish_step received → storeCompletionResult()
                │     ├─ context.memory.set({ key: "step:<id>", ... })
@@ -346,7 +346,7 @@ This is the canonical end-to-end flow for a multi-task plan:
 3. ParallelTaskExecutor: ensure task: entry exists (idempotent)
 4. Mark task.completed = true → unblocks downstream tasks
 5. Next iteration: downstream tasks now executable. Their step user
-   messages name the upstream task keys; agents call memory_read when
+   messages name the upstream task keys; agents call read_shared when
    they actually need the values.
 ```
 
@@ -381,12 +381,12 @@ The default execution system prompt includes:
   inputs, and facts published by other agents.
 - Memory contents are NOT auto-included in your prompt. If you need upstream
   context, discover it on demand:
-  1. Call `memory_list` to see what's available (returns metadata only —
+  1. Call `list_shared` to see what's available (returns metadata only —
      keys, titles, kinds, byte sizes).
-  2. Call `memory_read` with the specific keys you actually need; it returns
+  2. Call `read_shared` with the specific keys you actually need; it returns
      full values.
-  3. Call `memory_write` to publish a value under `shared:<key>` so other
-     agents can find it via `memory_list`.
+  3. Call `share_result` to publish a value under `shared:<key>` so other
+     agents can find it via `list_shared`.
 - Pull only what you need — don't fetch every entry by reflex.
 ```
 
@@ -395,11 +395,11 @@ And the user message for a step that depends on `task:research_phase` looks like
 ```markdown
 Write a report from the upstream findings.
 
-# Required upstream memory (call `memory_read` with these keys):
+# Required upstream memory (call `read_shared` with these keys):
 - task:research_phase — Research findings
 ```
 
-The model then chooses whether to call `memory_read` or proceed.
+The model then chooses whether to call `read_shared` or proceed.
 
 ### Pre-populate memory before running
 
@@ -420,7 +420,7 @@ const agent = new Agent({
   objective: "Build on the prior research findings.",
   /* ... */
 });
-// The agent's first memory_list call will surface this entry.
+// The agent's first list_shared call will surface this entry.
 ```
 
 ### Tool that publishes to shared memory directly (without an LLM round-trip)
@@ -437,7 +437,7 @@ context.memory.set({
 });
 ```
 
-Subsequent agents will see this via `memory_list` and can fetch it via `memory_read`.
+Subsequent agents will see this via `list_shared` and can fetch it via `read_shared`.
 
 ### Subscribe in a host application (UI sidebar)
 
@@ -487,9 +487,9 @@ LLM-facing tools (auto-attached to every step):
 
 | Tool | Purpose | Returns |
 |---|---|---|
-| `memory_list` | Discover entries (metadata only) | `{ total, returned, entries: [...] }` |
-| `memory_read` | Fetch full values for specific keys | `{ entries: { ... }, missing: [...] }` |
-| `memory_write` | Publish under `shared:<key>` | `{ ok, key, kind, createdAt }` |
+| `list_shared` | Discover entries (metadata only) | `{ total, returned, entries: [...] }` |
+| `read_shared` | Fetch full values for specific keys | `{ entries: { ... }, missing: [...] }` |
+| `share_result` | Publish under `shared:<key>` | `{ ok, key, kind, createdAt }` |
 
 ---
 
@@ -501,17 +501,17 @@ Auto-injecting every memory entry into every prompt is wasteful. Most steps need
 **Why expose memory through tools instead of a dedicated channel?**
 Models in 2026 are excellent tool callers — and tools come with rich JSON schemas that make discovery, filtering, and parameter validation trivial. Adding bespoke prompt syntax for memory access would be reinventing function calling. Tools also give us first-class observability: every memory access shows up as a `tool_call_update` in the message stream.
 
-**Why is `memory_write` restricted to `shared:`?**
+**Why is `share_result` restricted to `shared:`?**
 Step results, task results, and inputs are owned by the executors. Letting an agent overwrite a `task:<id>` entry would let it spoof the result of work it didn't actually do, breaking the audit trail. Agents publish under `shared:` and the executor namespaces stay tamper-proof.
 
 **Why does the user message still mention specific upstream keys?**
-A pure tool-only design would force the agent to call `memory_list` even when the planner already declared the dependency. That's an unnecessary round trip for a known-relevant key. The user message names exactly the keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn`), so the agent can go straight to `memory_read` for declared deps and use `memory_list` only when it needs to discover beyond them.
+A pure tool-only design would force the agent to call `list_shared` even when the planner already declared the dependency. That's an unnecessary round trip for a known-relevant key. The user message names exactly the keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn`), so the agent can go straight to `read_shared` for declared deps and use `list_shared` only when it needs to discover beyond them.
 
 **Why a single map and not a relational store?**
 Agent runs are short-lived and the data is small (typically tens of entries). A `Map` plus structured rendering covers every observed use case without the operational cost of a database. Persistent storage belongs in the asset / vector layer.
 
 **Why namespaced string keys instead of typed IDs?**
-The LLM has to read keys back from the tool result and pass them to `memory_read`. Strings round-trip cleanly through prompts and logs without serialization games.
+The LLM has to read keys back from the tool result and pass them to `read_shared`. Strings round-trip cleanly through prompts and logs without serialization games.
 
 **Why isn't memory shared across `context.copy()`?**
 Copies are designed for isolated sub-runs. If a sub-run should inherit memory, the caller can `set` entries from the parent before kicking it off. Default isolation is the safer choice.
@@ -523,9 +523,9 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 
 ## Troubleshooting
 
-**Symptom:** A downstream task's prompt shows the upstream key hint but the agent never calls `memory_read`.
-- The model may have decided it doesn't need the value. If you know it should, make the user instructions more explicit ("read the upstream findings via memory_read before writing").
-- Check the conclusion stage: if the step is at >90% token budget, only `finish_step` is allowed and `memory_read` is filtered out.
+**Symptom:** A downstream task's prompt shows the upstream key hint but the agent never calls `read_shared`.
+- The model may have decided it doesn't need the value. If you know it should, make the user instructions more explicit ("read the upstream findings via read_shared before writing").
+- Check the conclusion stage: if the step is at >90% token budget, only `finish_step` is allowed and `read_shared` is filtered out.
 
 **Symptom:** Task result key is missing after the step yielded `step_result` with `is_task_result: true`.
 - A step executor only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task (or the explicit `finalStepId` option). Steps in the middle of a task only write `step:<id>`.
@@ -534,7 +534,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 **Symptom:** Tests pass but memory entries seem stale across test runs.
 - A new `AgentMemory` instance is constructed for every `ProcessingContext`. If you reuse a context across tests, call `context.memory.clear()` between them.
 
-**Symptom:** Agent calls `memory_list` and gets `truncated: true`.
+**Symptom:** Agent calls `list_shared` and gets `truncated: true`.
 - The list response is hard-capped at 200 entries. If you need more, narrow the filter (`kind`, `key_prefix`, or `sources`) — or accept that for very long runs, only the most recent 200 are visible at once.
 
 ---
@@ -543,7 +543,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 
 - [Chat & Agents](global-chat-agents.md) — agents overview
 - `packages/runtime/src/agent-memory.ts` — `AgentMemory` implementation
-- `packages/agents/src/tools/memory-tools.ts` — `memory_list` / `memory_read` / `memory_write`
+- `packages/agents/src/capabilities/shared.ts` — `list_shared` / `read_shared` / `share_result` (the `shared` capability module; `packages/agents/src/tools/memory-tools.ts` is the belt executors mount them from)
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation tests including the tool round-trip
 - `packages/agents/tests/memory-tools.test.ts` — unit tests for the memory tools
 - `packages/runtime/tests/agent-memory.test.ts` — `AgentMemory` unit tests

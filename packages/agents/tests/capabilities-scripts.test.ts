@@ -2,11 +2,11 @@
  * The `scripts` capability module.
  *
  * A well-formed, correctly classified module; specs byte-identical to the
- * deprecated classes; and implementations that still voice, assemble, and
+ * wire surface they replaced; and implementations that still voice, assemble, and
  * edit. `tests/script-voice-tools.test.ts` and `tests/document-edit-tools.test.ts`
  * run unmodified against those classes and remain the deep behavioural net —
  * the round trips here prove a direct `invoke` reaches the same work, including
- * the delegation to `GenerateSpeechTool` the port had to keep.
+ * the delegation to the `generate_speech` capability the port had to keep.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -16,15 +16,9 @@ import type { ScriptLine } from "@nodetool-ai/models";
 import { module as scripts } from "../src/capabilities/scripts.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool,
-  EditScriptTool
-} from "../src/tools/script-voice-tools.js";
 
 const VOICE = { provider: "openai", model: "tts-1", voice: "alloy" };
 const TAKE_MS = 500;
@@ -77,7 +71,11 @@ function ctx(userId = "u1") {
       automaticSpeechRecognition
     })),
     createAsset: vi.fn(
-      async (args: { name: string; contentType: string; content: Uint8Array }) => {
+      async (args: {
+        name: string;
+        contentType: string;
+        content: Uint8Array;
+      }) => {
         const asset = await Asset.create<Asset>({
           user_id: "u1",
           name: args.name,
@@ -87,7 +85,7 @@ function ctx(userId = "u1") {
         return asset;
       }
     ),
-    // GenerateSpeechTool falls back to the streaming path when the encoded one
+    // generate_speech falls back to the streaming path when the encoded one
     // fails, so the fake has to answer both.
     streamProviderPrediction: () => {
       throw new Error("no streaming TTS in this fake");
@@ -126,13 +124,16 @@ async function makeScript(
   });
 }
 
-/** Every capability paired with the class it replaced. */
+/** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
-  ["list_scripts", () => new ListScriptsTool()],
-  ["get_script", () => new GetScriptTool()],
-  ["voice_script_lines", () => new VoiceScriptLinesTool()],
-  ["assemble_script_timeline", () => new AssembleScriptTimelineTool()],
-  ["edit_script", () => new EditScriptTool()]
+  ["list_scripts", () => toolForCapabilityName("list_scripts")],
+  ["get_script", () => toolForCapabilityName("get_script")],
+  ["voice_script_lines", () => toolForCapabilityName("voice_script_lines")],
+  [
+    "assemble_script_timeline",
+    () => toolForCapabilityName("assemble_script_timeline")
+  ],
+  ["edit_script", () => toolForCapabilityName("edit_script")]
 ];
 
 describe("scripts capability module", () => {
@@ -156,7 +157,7 @@ describe("scripts capability module", () => {
     }
   });
 
-  it("keeps each deprecated class's wire surface", () => {
+  it("keeps the wire surface the belt offers", () => {
     for (const [name, make] of PAIRS) {
       const spec = scripts.exports.find((e) => e.spec.name === name)?.spec;
       const tool = make();
@@ -167,7 +168,7 @@ describe("scripts capability module", () => {
     }
   });
 
-  it("renders the same user messages the classes rendered", () => {
+  it("renders the user-facing messages", () => {
     const args = {
       script_id: "sc1",
       targets: ["l1", "l2"],
@@ -197,7 +198,11 @@ describe("scripts capability behaviour", () => {
     const listed = (await run(context).invoke("list_scripts", {})) as {
       scripts: Array<{ id: string; lines: number; voiced: number }>;
     };
-    expect(listed.scripts[0]).toMatchObject({ id: row.id, lines: 2, voiced: 0 });
+    expect(listed.scripts[0]).toMatchObject({
+      id: row.id,
+      lines: 2,
+      voiced: 0
+    });
 
     const read = (await run(context).invoke("get_script", {
       script_id: row.id
@@ -216,7 +221,7 @@ describe("scripts capability behaviour", () => {
     expect(result.error).toContain("not found");
   });
 
-  it("voices the lines that need it through GenerateSpeechTool", async () => {
+  it("voices the lines that need it through generate_speech", async () => {
     const row = await makeScript([
       line({ id: "l1", speakerId: "sp1", text: "First" }),
       line({ id: "l2", speakerId: "sp1", text: "Second" })
@@ -228,7 +233,11 @@ describe("scripts capability behaviour", () => {
     })) as {
       voiced: number;
       failed: number;
-      results: Array<{ line_id: string; take_id?: string; word_count?: number }>;
+      results: Array<{
+        line_id: string;
+        take_id?: string;
+        word_count?: number;
+      }>;
     };
     expect(result).toMatchObject({ voiced: 2, failed: 0 });
     expect(textToSpeechEncoded).toHaveBeenCalledTimes(2);
@@ -248,7 +257,9 @@ describe("scripts capability behaviour", () => {
       script_id: row.id,
       provider: "openai"
     })) as { error: string };
-    expect(result.error).toContain("needs all three of provider, model, and voice");
+    expect(result.error).toContain(
+      "needs all three of provider, model, and voice"
+    );
   });
 
   it("assembles voiced takes into a timeline and refuses when there are none", async () => {

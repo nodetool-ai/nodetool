@@ -18,7 +18,11 @@
  */
 
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import type { Asset, Storyboard, StoryboardDocument } from "@nodetool-ai/models";
+import type {
+  Asset,
+  Storyboard,
+  StoryboardDocument
+} from "@nodetool-ai/models";
 import type {
   Entity,
   EntityKind,
@@ -26,11 +30,43 @@ import type {
   Shot,
   VideoRef
 } from "@nodetool-ai/protocol";
-import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
+import {
+  listStoryboardsSpec,
+  getStoryboardSpec,
+  renderStoryboardStillsSpec,
+  renderStoryboardClipsSpec,
+  reviseStoryboardClipSpec,
+  assembleStoryboardTimelineSpec,
+  editStoryboardSpec,
+  DEFAULT_CONCURRENCY,
+  MAX_CONCURRENCY,
+  SHOT_TARGETS_SCHEMA,
+  LIST_STORYBOARDS_SCHEMA,
+  GET_STORYBOARD_SCHEMA,
+  RENDER_STILLS_SCHEMA,
+  RENDER_CLIPS_SCHEMA,
+  REVISE_CLIP_SCHEMA,
+  ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
+  EDIT_STORYBOARD_SCHEMA
+} from "./storyboards.specs.js";
 
-/** Shots rendered at once. Bounded so one call cannot fan out unboundedly. */
-const DEFAULT_CONCURRENCY = 3;
-const MAX_CONCURRENCY = 8;
+export {
+  DEFAULT_CONCURRENCY,
+  MAX_CONCURRENCY,
+  SHOT_TARGETS_SCHEMA,
+  LIST_STORYBOARDS_SCHEMA,
+  GET_STORYBOARD_SCHEMA,
+  RENDER_STILLS_SCHEMA,
+  RENDER_CLIPS_SCHEMA,
+  REVISE_CLIP_SCHEMA,
+  ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
+  EDIT_STORYBOARD_SCHEMA
+} from "./storyboards.specs.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write before reporting a conflict. */
@@ -52,14 +88,18 @@ interface BoardHandle {
 type ToolError = { error: string };
 
 const isError = (value: unknown): value is ToolError =>
-  !!value && typeof value === "object" && typeof (value as ToolError).error === "string";
+  !!value &&
+  typeof value === "object" &&
+  typeof (value as ToolError).error === "string";
 
 async function loadBoard(
   run: CapabilityRun,
   storyboardId: unknown
 ): Promise<BoardHandle | ToolError> {
   if (typeof storyboardId !== "string" || !storyboardId) {
-    return { error: "storyboard_id is required (use list_storyboards to find one)." };
+    return {
+      error: "storyboard_id is required (use list_storyboards to find one)."
+    };
   }
   const { Storyboard } = await import("@nodetool-ai/models");
   const row = await Storyboard.findById(storyboardId);
@@ -127,13 +167,16 @@ async function mapWithConcurrency<T, R>(
 ): Promise<R[]> {
   const results = new Array<R>(items.length);
   let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
-      const index = next++;
-      if (index >= items.length) return;
-      results[index] = await task(items[index]);
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      for (;;) {
+        const index = next++;
+        if (index >= items.length) return;
+        results[index] = await task(items[index]);
+      }
     }
-  });
+  );
   await Promise.all(workers);
   return results;
 }
@@ -156,7 +199,8 @@ async function patchShot(
     if (!row) return { error: `Storyboard ${storyboardId} was not found.` };
     const doc = row.toDocument();
     const index = doc.shots.findIndex((s) => s.id === shotId);
-    if (index === -1) return { error: `Shot ${shotId} is no longer on the board.` };
+    if (index === -1)
+      return { error: `Shot ${shotId} is no longer on the board.` };
     const updated = patch(doc.shots[index]);
     const shots = [...doc.shots];
     shots[index] = updated;
@@ -307,36 +351,8 @@ interface ShotOutcome {
   error?: string;
 }
 
-const SHOT_TARGETS_SCHEMA = {
-  type: "array" as const,
-  items: { type: "string" as const },
-  description:
-    "Shots to render, each a shot id, 0-based index, or slug. Omit to render " +
-    "every shot that still needs this step."
-};
-
-// ---------------------------------------------------------------------------
-// list_storyboards
-// ---------------------------------------------------------------------------
-
-const LIST_STORYBOARDS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    limit: { type: "number", description: "Max boards to return (default 20)." }
-  }
-};
-
 const listStoryboards: CapabilityExport = {
-  spec: {
-    name: "list_storyboards",
-    description:
-      "List the caller's storyboards, newest first: id, name, shot count, how " +
-      "many shots have a still and a clip, and the timeline it was assembled " +
-      "into. Start here when the user names a board but not its id.",
-    inputSchema: LIST_STORYBOARDS_SCHEMA,
-    category: "read",
-    userMessage: () => "Listing storyboards"
-  },
+  spec: listStoryboardsSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
@@ -360,31 +376,8 @@ const listStoryboards: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_storyboard
-// ---------------------------------------------------------------------------
-
-const GET_STORYBOARD_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." }
-  },
-  required: ["storyboard_id"]
-};
-
 const getStoryboard: CapabilityExport = {
-  spec: {
-    name: "get_storyboard",
-    description:
-      "Read one storyboard: brief, style, aspect ratio, the still/clip models it " +
-      "renders with, and every shot with its id, index, slug, action, camera, " +
-      "motion, duration, status, and whether it already has a still or a clip. " +
-      "Call this before rendering — the other tools address shots by these ids.",
-    inputSchema: GET_STORYBOARD_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Reading storyboard ${String(params["storyboard_id"])}`
-  },
+  spec: getStoryboardSpec,
   impl: async (run, params) => {
     const board = await loadBoard(run, params["storyboard_id"]);
     if (isError(board)) return board;
@@ -419,53 +412,8 @@ const getStoryboard: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// render_storyboard_stills
-// ---------------------------------------------------------------------------
-
-const RENDER_STILLS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." },
-    targets: SHOT_TARGETS_SCHEMA,
-    provider: {
-      type: "string",
-      description: "Provider id (from find_model). Defaults to the board's image model."
-    },
-    model: {
-      type: "string",
-      description: "Model id (from find_model). Defaults to the board's image model."
-    },
-    style: {
-      type: "string",
-      description: "Style text appended to every prompt. Defaults to the board's style."
-    },
-    concurrency: {
-      type: "number",
-      description: `Shots rendered in parallel (default ${DEFAULT_CONCURRENCY}, max ${MAX_CONCURRENCY}).`
-    }
-  },
-  required: ["storyboard_id"]
-};
-
 const renderStoryboardStills: CapabilityExport = {
-  spec: {
-    name: "render_storyboard_stills",
-    description:
-      "Render keyframe stills for a storyboard's shots by calling the image " +
-      "model directly — no workflow is created or run. Each still is saved as an " +
-      "asset and becomes the shot's selected keyframe (previous stills are kept " +
-      "as versions). Omit `targets` to render every shot that has no still yet, " +
-      "so a whole board is one call. Stills are the cheap step: render them, " +
-      "look at them, then spend on clips.",
-    inputSchema: RENDER_STILLS_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const targets = params["targets"];
-      const count = Array.isArray(targets) ? `${targets.length} ` : "";
-      return `Rendering ${count}storyboard stills`;
-    }
-  },
+  spec: renderStoryboardStillsSpec,
   impl: async (run, params) => {
     const context = run.context;
     const board = await loadBoard(run, params["storyboard_id"]);
@@ -475,10 +423,18 @@ const renderStoryboardStills: CapabilityExport = {
     const model = resolveModel(params, doc.imageModel, "still");
     if (isError(model)) return model;
 
-    const selected = selectShots(doc.shots, params["targets"], (s) => !s.keyframe);
+    const selected = selectShots(
+      doc.shots,
+      params["targets"],
+      (s) => !s.keyframe
+    );
     if (isError(selected)) return selected;
     if (selected.length === 0) {
-      return { rendered: 0, results: [], note: "Every shot already has a still." };
+      return {
+        rendered: 0,
+        results: [],
+        note: "Every shot already has a still."
+      };
     }
     if (selected.length > MAX_SHOTS_PER_CALL) {
       return {
@@ -489,7 +445,9 @@ const renderStoryboardStills: CapabilityExport = {
     const { entitiesForShot } = await import("@nodetool-ai/protocol");
     const { inferImageMime } = await import("../tools/asset-persist.js");
     const style =
-      typeof params["style"] === "string" ? (params["style"] as string) : doc.style;
+      typeof params["style"] === "string"
+        ? (params["style"] as string)
+        : doc.style;
     const entities = await loadBoardEntities(context, doc);
     const aspectRatio = doc.aspectRatio || "16:9";
 
@@ -529,7 +487,8 @@ const renderStoryboardStills: CapabilityExport = {
           };
           const updated = await patchShot(row.id, shot.id, (current) => {
             const versions =
-              current.keyframe_versions ?? (current.keyframe ? [current.keyframe] : []);
+              current.keyframe_versions ??
+              (current.keyframe ? [current.keyframe] : []);
             return {
               ...current,
               keyframe,
@@ -566,54 +525,8 @@ const renderStoryboardStills: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// render_storyboard_clips
-// ---------------------------------------------------------------------------
-
-const RENDER_CLIPS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." },
-    targets: SHOT_TARGETS_SCHEMA,
-    provider: {
-      type: "string",
-      description: "Provider id (from find_model). Defaults to the board's video model."
-    },
-    model: {
-      type: "string",
-      description: "Model id (from find_model). Defaults to the board's video model."
-    },
-    resolution: {
-      type: "string",
-      description: "Provider resolution hint, e.g. '720p'."
-    },
-    concurrency: {
-      type: "number",
-      description: `Shots rendered in parallel (default ${DEFAULT_CONCURRENCY}, max ${MAX_CONCURRENCY}).`
-    }
-  },
-  required: ["storyboard_id"]
-};
-
 const renderStoryboardClips: CapabilityExport = {
-  spec: {
-    name: "render_storyboard_clips",
-    description:
-      "Render video clips for a storyboard's shots by animating each shot's " +
-      "selected still with the video model directly — no workflow is created or " +
-      "run. Each clip is saved as an asset and attached to its shot (previous " +
-      "takes are kept as versions), leaving the shot 'rendered' and ready for " +
-      "assemble_storyboard_timeline. Omit `targets` to render every shot that " +
-      "has a still but no clip. Shots without a still are reported, not rendered " +
-      "— run render_storyboard_stills first. This is the expensive step.",
-    inputSchema: RENDER_CLIPS_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const targets = params["targets"];
-      const count = Array.isArray(targets) ? `${targets.length} ` : "";
-      return `Rendering ${count}storyboard clips`;
-    }
-  },
+  spec: renderStoryboardClipsSpec,
   impl: async (run, params) => {
     const context = run.context;
     const board = await loadBoard(run, params["storyboard_id"]);
@@ -647,7 +560,9 @@ const renderStoryboardClips: CapabilityExport = {
     const entities = await loadBoardEntities(context, doc);
     const aspectRatio = doc.aspectRatio || "16:9";
     const resolution =
-      typeof params["resolution"] === "string" ? (params["resolution"] as string) : undefined;
+      typeof params["resolution"] === "string"
+        ? (params["resolution"] as string)
+        : undefined;
 
     const results = await mapWithConcurrency(
       selected,
@@ -662,13 +577,17 @@ const renderStoryboardClips: CapabilityExport = {
         if (!shot.keyframe) {
           return {
             ...base,
-            error: "Shot has no still to animate. Run render_storyboard_stills first."
+            error:
+              "Shot has no still to animate. Run render_storyboard_stills first."
           };
         }
         try {
           const seed = await loadMediaRefBytes(shot.keyframe, context);
           if (!seed || seed.length === 0) {
-            return { ...base, error: "The shot's still could not be read back from storage." };
+            return {
+              ...base,
+              error: "The shot's still could not be read back from storage."
+            };
           }
           const bytes = (await context.runProviderPrediction({
             provider: model.provider,
@@ -719,7 +638,10 @@ const renderStoryboardClips: CapabilityExport = {
             ...current,
             status: "failed"
           }));
-          return { ...base, error: `image_to_video failed: ${errorMessage(e)}` };
+          return {
+            ...base,
+            error: `image_to_video failed: ${errorMessage(e)}`
+          };
         }
       }
     );
@@ -735,40 +657,8 @@ const renderStoryboardClips: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// revise_storyboard_clip
-// ---------------------------------------------------------------------------
-
-const REVISE_CLIP_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." },
-    target: {
-      type: "string",
-      description: "Shot id, 0-based index, or slug."
-    },
-    instruction: {
-      type: "string",
-      description: "The change to make, phrased as a video edit prompt."
-    },
-    provider: { type: "string", description: "Provider id (from find_model)." },
-    model: { type: "string", description: "Model id (from find_model)." }
-  },
-  required: ["storyboard_id", "target", "instruction"]
-};
-
 const reviseStoryboardClip: CapabilityExport = {
-  spec: {
-    name: "revise_storyboard_clip",
-    description:
-      "Revise one shot's rendered clip with a text instruction ('make it darker, " +
-      "add rain') via video-to-video. Seeds the shot's current clip and swaps the " +
-      "result in as the selected take, keeping the previous one as a version. The " +
-      "shot must already have a clip.",
-    inputSchema: REVISE_CLIP_SCHEMA,
-    category: "write",
-    userMessage: (params) => `Revising shot ${String(params["target"])}`
-  },
+  spec: reviseStoryboardClipSpec,
   impl: async (run, params) => {
     const context = run.context;
     const board = await loadBoard(run, params["storyboard_id"]);
@@ -785,7 +675,9 @@ const reviseStoryboardClip: CapabilityExport = {
       };
     }
     if (!shot.clip) {
-      return { error: "Shot has no clip to revise. Run render_storyboard_clips first." };
+      return {
+        error: "Shot has no clip to revise. Run render_storyboard_clips first."
+      };
     }
 
     const model = resolveModel(params, doc.videoModel, "clip");
@@ -795,7 +687,9 @@ const reviseStoryboardClip: CapabilityExport = {
     try {
       const source = await loadMediaRefBytes(shot.clip, context);
       if (!source || source.length === 0) {
-        return { error: "The shot's clip could not be read back from storage." };
+        return {
+          error: "The shot's clip could not be read back from storage."
+        };
       }
       const bytes = (await context.runProviderPrediction({
         provider: model.provider,
@@ -817,7 +711,8 @@ const reviseStoryboardClip: CapabilityExport = {
         uri: saved.uri
       };
       const updated = await patchShot(row.id, shot.id, (current) => {
-        const versions = current.clip_versions ?? (current.clip ? [current.clip] : []);
+        const versions =
+          current.clip_versions ?? (current.clip ? [current.clip] : []);
         return {
           ...current,
           clip,
@@ -857,41 +752,16 @@ function frameSize(aspectRatio: string): { width: number; height: number } {
     : { width: short, height: even((short * h) / w) };
 }
 
-const ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." },
-    name: {
-      type: "string",
-      description: "Name for the sequence. Defaults to the storyboard's name."
-    },
-    fps: { type: "number", description: "Frame rate (default 30)." }
-  },
-  required: ["storyboard_id"]
-};
-
 const assembleStoryboardTimeline: CapabilityExport = {
-  spec: {
-    name: "assemble_storyboard_timeline",
-    description:
-      "Lay a storyboard's rendered clips end to end into a timeline sequence and " +
-      "save it, without building a workflow. Clips keep their link to the shot " +
-      "they came from, and the screenplay's narration and music become draft " +
-      "audio clips the timeline can generate on demand. Shots with no rendered " +
-      "clip are skipped and listed. Re-running rebuilds the same sequence in " +
-      "place. Validate the result with validate_timeline before rendering.",
-    inputSchema: ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Assembling storyboard ${String(params["storyboard_id"])} into a timeline`
-  },
+  spec: assembleStoryboardTimelineSpec,
   impl: async (run, params) => {
     const context = run.context;
     const board = await loadBoard(run, params["storyboard_id"]);
     if (isError(board)) return board;
     const { row, doc } = board;
 
-    const { Storyboard, TimelineSequence } = await import("@nodetool-ai/models");
+    const { Storyboard, TimelineSequence } =
+      await import("@nodetool-ai/models");
     const { buildStoryboardTimeline } = await import("@nodetool-ai/timeline");
 
     const assembled = buildStoryboardTimeline({
@@ -1022,7 +892,9 @@ function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
 
 /** Renumber `index` to the array order — the field the editor sorts on. */
 function renumberShots(shots: Shot[]): Shot[] {
-  return shots.map((shot, index) => (shot.index === index ? shot : { ...shot, index }));
+  return shots.map((shot, index) =>
+    shot.index === index ? shot : { ...shot, index }
+  );
 }
 
 const optionalString = (value: unknown): string | undefined =>
@@ -1033,10 +905,12 @@ function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
   const next: Shot = { ...shot };
   if (args["action"] !== undefined) next.action = String(args["action"]);
   if (args["slug"] !== undefined) next.slug = String(args["slug"]);
-  if (args["camera"] !== undefined) next.camera = args["camera"] as Shot["camera"];
+  if (args["camera"] !== undefined)
+    next.camera = args["camera"] as Shot["camera"];
   if (args["motion"] !== undefined) next.motion = String(args["motion"]);
   if (args["dialogue"] !== undefined) next.dialogue = String(args["dialogue"]);
-  if (args["narration"] !== undefined) next.narration = String(args["narration"]);
+  if (args["narration"] !== undefined)
+    next.narration = String(args["narration"]);
   if (args["notes"] !== undefined) next.notes = String(args["notes"]);
   if (args["duration_seconds"] !== undefined) {
     const seconds = Number(args["duration_seconds"]);
@@ -1069,7 +943,9 @@ function applyBoardOp(
   switch (op) {
     case "add_shot": {
       if (typeof args["action"] !== "string" || args["action"].trim() === "") {
-        throw new Error("add_shot needs a non-empty `action` describing the shot.");
+        throw new Error(
+          "add_shot needs a non-empty `action` describing the shot."
+        );
       }
       const shot = applyShotFields(
         {
@@ -1145,43 +1021,8 @@ function applyBoardOp(
   }
 }
 
-const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    storyboard_id: { type: "string", description: "Storyboard id." },
-    ops: {
-      type: "array",
-      description:
-        'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
-        "duration_seconds?, entity_ids?, location_id?, notes?, index?}, " +
-        "update_shot {target, ...same fields}, remove_shot {target}, " +
-        "reorder_shot {target, index}, set_board {brief?, style?, " +
-        "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +
-        "index, or its slug.",
-      items: { type: "object" }
-    }
-  },
-  required: ["storyboard_id", "ops"]
-};
-
 const editStoryboard: CapabilityExport = {
-  spec: {
-    name: "edit_storyboard",
-    description:
-      "Edit a saved storyboard's shot list headlessly: add, rewrite, remove and " +
-      "reorder shots, and set the board's brief, style, aspect ratio and " +
-      "entities. Operations run in order against the stored document and the " +
-      "result is saved; an open board picks the change up live. Rendering stays " +
-      "with render_storyboard_stills / render_storyboard_clips — this tool " +
-      "directs, it does not spend. Call get_storyboard first for shot ids.",
-    inputSchema: EDIT_STORYBOARD_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
-      return `Editing storyboard ${String(params["storyboard_id"])} (${count} ops)`;
-    }
-  },
+  spec: editStoryboardSpec,
   impl: async (run, params) => {
     const ops = parseBoardOps(params["ops"]);
     if (isError(ops)) return ops;
@@ -1198,7 +1039,11 @@ const editStoryboard: CapabilityExport = {
       const records: BoardOpRecord[] = [];
       for (const parsed of ops) {
         try {
-          records.push({ op: parsed.op, ok: true, result: applyBoardOp(doc, parsed) });
+          records.push({
+            op: parsed.op,
+            ok: true,
+            result: applyBoardOp(doc, parsed)
+          });
         } catch (e) {
           records.push({
             op: parsed.op,
@@ -1208,9 +1053,13 @@ const editStoryboard: CapabilityExport = {
         }
       }
 
-      const saved = await Storyboard.updateFieldsIfUnchanged(row.id, row.updated_at, {
-        document: JSON.stringify(doc)
-      });
+      const saved = await Storyboard.updateFieldsIfUnchanged(
+        row.id,
+        row.updated_at,
+        {
+          document: JSON.stringify(doc)
+        }
+      );
       if (!saved) continue;
 
       const failed = records.filter((record) => !record.ok);

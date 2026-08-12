@@ -140,6 +140,8 @@
     "test:coverage:mobile": "npm --prefix mobile run test:coverage",
     "test:integration": "npm test --workspace=@nodetool-ai/base-nodes -- example-workflows-execute",
     "validate:examples": "node scripts/validate-examples.mjs",
+    "codegen:dsl": "npm run codegen --workspace=packages/dsl",
+    "codegen:dsl:check": "npm run codegen:check --workspace=packages/dsl",
     "gen:example-thumbnails": "node scripts/generate-example-thumbnails.mjs",
     "examples:smoke": "node scripts/smoke-examples.mjs",
     "backend:smoke": "npm run prepare-backend --workspace=electron && node scripts/smoke-backend-bundle.mjs",
@@ -170,7 +172,9 @@
     "electron:dev": "node scripts/electron-dev.mjs",
     "screenshots": "npm run build:packages && npm run screenshots --workspace=web",
     "screenshots:force": "npm run build:packages && npm run screenshots:force --workspace=web",
-    "setup:codex": "bash scripts/setup-codex.sh"
+    "setup:codex": "bash scripts/setup-codex.sh",
+    "build:sandbox-dsl": "node packages/sandbox-packs/sandbox-dsl/scripts/build.mjs",
+    "build:sandbox-dsl:check": "node packages/sandbox-packs/sandbox-dsl/scripts/build.mjs --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

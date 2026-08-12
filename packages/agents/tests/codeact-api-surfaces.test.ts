@@ -88,6 +88,23 @@ const SOLUTIONS: Record<string, string[]> = {
        total: listed.memories.length
      });`
   ],
+  "shared-handoff": [
+    `const listed = await nodetool.shared.list();
+     let pricingKey = null;
+     for (const e of listed.entries) {
+       if (e.key.indexOf("pricing") >= 0) pricingKey = e.key;
+     }
+     const read = await nodetool.shared.read([pricingKey]);
+     const monthly = read.entries[pricingKey].value.monthly_usd;
+     const annual = monthly * 12;
+     const published = await nodetool.shared.publish("annual_price", annual,
+       {title: "Annual price"});
+     await finish({
+       monthlyUsd: monthly,
+       annualUsd: annual,
+       publishedKey: published.key
+     });`
+  ],
   "web-research-brief": [
     `const hits = await nodetool.web.search("NodeTool 4.2 release notes");
      const page = await nodetool.web.browse(hits.results[0].url);

@@ -3,7 +3,7 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 
 // Telegram Bot Trigger — messaging.telegram.TelegramBotTrigger
-export interface TelegramBotTriggerInputs {
+export type TelegramBotTriggerInputs = {
   max_events?: Connectable<number>;
   token?: Connectable<string>;
   chat_id?: Connectable<number>;
@@ -11,7 +11,7 @@ export interface TelegramBotTriggerInputs {
   include_edited_messages?: Connectable<boolean>;
   poll_timeout_seconds?: Connectable<number>;
   poll_interval_seconds?: Connectable<number>;
-}
+};
 
 export interface TelegramBotTriggerOutputs {
   update_id: number;
@@ -29,5 +29,5 @@ export interface TelegramBotTriggerOutputs {
 }
 
 export function telegramBotTrigger(inputs: TelegramBotTriggerInputs): DslNode<TelegramBotTriggerOutputs> {
-  return createNode("messaging.telegram.TelegramBotTrigger", inputs as Record<string, unknown>, { outputNames: ["update_id", "update_type", "message_id", "text", "caption", "entities", "chat", "from_user", "attachments", "timestamp", "source", "event_type"], streaming: true });
+  return createNode("messaging.telegram.TelegramBotTrigger", inputs, { outputNames: ["update_id", "update_type", "message_id", "text", "caption", "entities", "chat", "from_user", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }

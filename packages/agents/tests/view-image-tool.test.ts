@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Buffer } from "node:buffer";
-import { ViewImageTool, ListImagesTool } from "../src/tools/view-image-tool.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import {
   extractInjectableImages,
   stripImagePayload,
@@ -13,6 +13,9 @@ import {
 import { resolveTool } from "../src/tools/tool-registry.js";
 import type { MessageContent } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+
+const viewImageTool = () => toolForCapabilityName("view_image");
+const listImagesTool = () => toolForCapabilityName("list_images");
 
 function createMockProvider() {
   return {
@@ -98,7 +101,7 @@ describe("image-injection helpers", () => {
 
 describe("ViewImageTool", () => {
   it("loads a data: URI into an image_content payload", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {
       image_id: TINY_PNG_DATA_URI
     })) as Record<string, any>;
@@ -111,7 +114,7 @@ describe("ViewImageTool", () => {
   });
 
   it("passes original bytes through unchanged at high detail (no re-encode)", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(TINY_PNG_BYTES), {
       image_id: "asset://abc123.png",
       detail: "high"
@@ -124,7 +127,7 @@ describe("ViewImageTool", () => {
   });
 
   it("resolves an asset id via the context", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const ctx = imageContext(TINY_PNG_BYTES);
     const result = (await tool.process(ctx, {
       image_id: "asset://abc123.png",
@@ -138,7 +141,7 @@ describe("ViewImageTool", () => {
   });
 
   it("crops to a region when sharp is available", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {
       image_id: TINY_PNG_DATA_URI,
       region: { x: 0, y: 0, width: 1, height: 1 }
@@ -150,16 +153,18 @@ describe("ViewImageTool", () => {
   });
 
   it("errors on a missing image_id", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {})) as Record<
       string,
       any
     >;
-    expect(result.error).toMatch(/image_id is required/);
+    // The capability validates its own arguments and names the missing one.
+    expect(result.error).toBe("invalid_tool_arguments");
+    expect(result.message).toMatch(/image_id/);
   });
 
   it("errors when an asset cannot be resolved", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {
       image_id: "asset://missing.png"
     })) as Record<string, any>;
@@ -167,7 +172,7 @@ describe("ViewImageTool", () => {
   });
 
   it("passes remote URLs through for the provider to fetch", async () => {
-    const tool = new ViewImageTool();
+    const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {
       image_id: "https://example.com/cat.png"
     })) as Record<string, any>;
@@ -179,7 +184,7 @@ describe("ViewImageTool", () => {
 describe("ListImagesTool", () => {
   it("returns an error envelope when the asset store is unavailable", async () => {
     // No DB in the unit-test runtime → Asset.paginate throws, caught into error.
-    const tool = new ListImagesTool();
+    const tool = listImagesTool();
     const result = (await tool.process(imageContext(null), {})) as Record<
       string,
       any
@@ -194,7 +199,7 @@ describe("builtin registration", () => {
     const names = registerBuiltinTools();
     expect(names).toContain("view_image");
     expect(names).toContain("list_images");
-    expect(resolveTool("view_image")).toBeInstanceOf(ViewImageTool);
-    expect(resolveTool("list_images")).toBeInstanceOf(ListImagesTool);
+    expect(resolveTool("view_image")?.name).toBe("view_image");
+    expect(resolveTool("list_images")?.name).toBe("list_images");
   });
 });

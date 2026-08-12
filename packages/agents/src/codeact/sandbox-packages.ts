@@ -31,6 +31,24 @@ export function sessionAllowedPackages(
 }
 
 /**
+ * Whether an allowlist covers one import specifier.
+ *
+ * Consent is per pack, so a subpath of an allowed specifier is covered: it is
+ * the same pack's code, shipped in the same manifest, resolved through the same
+ * catalog entry. `@nodetool-ai/sandbox-dsl` ships one module per node
+ * namespace, and listing all seventy-two in the prompt would spend the budget
+ * the one-line tier exists to protect.
+ */
+function allowlistCovers(
+  allowed: readonly string[],
+  specifier: string
+): boolean {
+  return allowed.some(
+    (entry) => specifier === entry || specifier.startsWith(`${entry}/`)
+  );
+}
+
+/**
  * Pack-authored text reaches every prompt of the session, so it is stripped to
  * a single short line: no control characters, no newlines, no runaway length.
  * The rule lives in protocol, where the catalog that fills a summary's
@@ -93,8 +111,9 @@ export function mountActionModules(
   ].filter((specifier) => !hostMounted.has(specifier));
   if (specifiers.length === 0) return { ok: true };
 
-  const allowSet = new Set(allowed);
-  const denied = specifiers.filter((specifier) => !allowSet.has(specifier));
+  const denied = specifiers.filter(
+    (specifier) => !allowlistCovers(allowed, specifier)
+  );
   if (denied.length > 0) {
     const list = denied.map((specifier) => `"${specifier}"`).join(", ");
     return {
