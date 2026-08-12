@@ -110,7 +110,7 @@ big-bang rewrite of 286 files; instead:
   file you edit. Workstreams 1–4 will organically convert many sites.
 - **Targeted sweeps** where the payoff is real, one directory per PR, largest
   clusters first: `display:"flex"` sx → `FlexRow`/`FlexColumn` (only where the
-  shorthand props actually shrink the code — per CLAUDE.md, keep `Box` when
+  shorthand props actually shrink the code — per AGENTS.md, keep `Box` when
   heavy `sx` remains), `overflow:"auto"` → `ScrollArea`, `textOverflow` →
   `TruncatedText`.
 - **Adopt composites when refactoring**: `FormField`, `SectionHeader`,

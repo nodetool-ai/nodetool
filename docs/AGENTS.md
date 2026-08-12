@@ -5,7 +5,7 @@ permalink: /agents
 description: "Architecture of the NodeTool agent system — planning, execution, tools, skills, and workflow integration."
 ---
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Agent System**
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Agent System**
 
 > Code in `@nodetool-ai/agents` follows the canonical standards in [DEVELOPMENT_STANDARDS.md](DEVELOPMENT_STANDARDS.md) — in particular, the rules for [TypeScript (§1)](DEVELOPMENT_STANDARDS.md#1-typescript), [Error handling (§18)](DEVELOPMENT_STANDARDS.md#18-error-handling), [Observability (§17)](DEVELOPMENT_STANDARDS.md#17-observability), and [Security/Sandboxing (§16)](DEVELOPMENT_STANDARDS.md#16-security). This document describes the architecture; the standards doc describes the rules.
 

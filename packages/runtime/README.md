@@ -25,5 +25,5 @@ npm run test  --workspace=packages/runtime
 npm run lint  --workspace=packages/runtime
 ```
 
-See [packages/agents/CLAUDE.md](../agents/CLAUDE.md) for the agent-memory model
-and the root [CLAUDE.md](../../CLAUDE.md) for provider/telemetry details.
+See [packages/agents/AGENTS.md](../agents/AGENTS.md) for the agent-memory model
+and the root [AGENTS.md](../../AGENTS.md) for provider/telemetry details.

@@ -1,6 +1,6 @@
 # Electron Guidelines
 
-**Navigation**: [Root AGENTS.md](../../AGENTS.md) | [CLAUDE.md](../../CLAUDE.md) → **Electron**
+**Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Electron**
 
 > **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
 

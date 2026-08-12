@@ -2,7 +2,7 @@
  * Reads and summarizes the OpenTelemetry JSONL trace a debug run produces.
  *
  * The runtime's `JsonlFileSpanExporter` writes one span per line in the shape
- * documented in CLAUDE.md (workflow.run → node.process → agent.* → llm.*). We
+ * documented in AGENTS.md (workflow.run → node.process → agent.* → llm.*). We
  * roll those up into per-name timing plus token/cost totals from the
  * `gen_ai.usage.*` attributes carried by every llm.chat / llm.stream span.
  */

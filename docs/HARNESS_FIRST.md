@@ -160,7 +160,7 @@ second, driftable copy of the selection logic.
 3. Give the harness `--json` and a meaningful exit code from day one, and a
    `selfcheck` if any invocation can run keyless and target-free — a harness
    the gate can run is worth ten the author has to remember.
-4. Document it in CLAUDE.md next to the other harnesses, in the same PR.
+4. Document it in AGENTS.md next to the other harnesses, in the same PR.
 
 ## Current gaps
 

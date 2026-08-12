@@ -55,7 +55,7 @@ jobs:
           mkdir -p docs-facts
 
           # Every CLI command's help text — the reference the CLI docs and
-          # CLAUDE.md command blocks are supposed to match.
+          # AGENTS.md command blocks are supposed to match.
           {
             npm run --silent dev:nodetool -- --help
             npm run --silent dev:nodetool -- --help 2>/dev/null \
@@ -117,7 +117,7 @@ jobs:
 
             ## Scope
             - `docs/**/*.md`
-            - `README.md`, `AGENTS.md`, `CLAUDE.md`, and per-package `CLAUDE.md` / `AGENTS.md` / `README.md`
+            - `README.md`, `AGENTS.md`, and per-package `AGENTS.md` / `README.md`
 
             ## What counts as an error
 

@@ -1,6 +1,6 @@
 # TypeScript Backend Packages
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **TypeScript Backend Packages**
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **TypeScript Backend Packages**
 
 > **Read [docs/DEVELOPMENT_STANDARDS.md](../docs/DEVELOPMENT_STANDARDS.md) first.** It is the canonical source for TypeScript, ES modules, Fastify, Drizzle, Zod, testing, error handling, and security standards. The rules below are the area-specific overlay for `packages/`.
 
@@ -149,7 +149,7 @@ The `nodetool` command-line interface (`packages/cli/src/commands/`). Beyond
 server/jobs/assets/secrets management, it ships the harnesses an agent uses to
 close the build→verify loop. Run from source with `npm run dev:nodetool -- <cmd>`
 (no build) or from `dist` with `npm run nodetool -- <cmd>`. Full flags in
-[CLI documentation](../docs/cli.md) and [CLAUDE.md](../CLAUDE.md).
+[CLI documentation](../docs/cli.md) and the [root AGENTS.md](../AGENTS.md).
 
 | Command | Harness | When |
 |---|---|---|

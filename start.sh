@@ -83,7 +83,7 @@ if [ ! -d node_modules ]; then
   # rolls back the whole tree — skip the ones dev never needs.
   export ELECTRON_SKIP_BINARY_DOWNLOAD=1
   export npm_config_onnxruntime_node_install_cuda=skip
-  npm install --no-audit --fund=false || die "npm install failed. See CLAUDE.md § Common Pitfalls."
+  npm install --no-audit --fund=false || die "npm install failed. See AGENTS.md § Common Pitfalls."
   ok "dependencies installed"
 fi
 

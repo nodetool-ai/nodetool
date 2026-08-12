@@ -1,6 +1,6 @@
 # Web UI
 
-**Navigation**: [Root AGENTS.md](../../AGENTS.md) | [CLAUDE.md](../../CLAUDE.md) → **Web**
+**Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Web**
 
 > **Read [docs/DEVELOPMENT_STANDARDS.md](../../docs/DEVELOPMENT_STANDARDS.md) first.** It is the canonical source for React, Zustand, MUI/primitives, TanStack Query, ReactFlow, testing, accessibility, performance, and security standards. The rules below are the area-specific overlay for the web app.
 

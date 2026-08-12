@@ -27,4 +27,4 @@ npm run test  --workspace=packages/agents
 npm run lint  --workspace=packages/agents
 ```
 
-Architecture, parallel execution, skills, and tuning: [packages/agents/CLAUDE.md](./CLAUDE.md).
+Architecture, parallel execution, skills, and tuning: [packages/agents/AGENTS.md](./AGENTS.md).

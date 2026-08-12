@@ -7,7 +7,7 @@ description: "NodeTool design system reference — typography, spacing, color, b
 
 # NodeTool Design System
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) | [UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)
+**Navigation**: [Root AGENTS.md](../AGENTS.md) | [UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)
 
 Single reference for every design token and visual rule in NodeTool. All frontend work must follow these rules. When touching any UI file, scan for violations in the sections below and fix them in the same PR.
 

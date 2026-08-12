@@ -15,7 +15,7 @@ Each axis runs as a **parallel sub-agent** so they don't pollute each other's co
 
 Division of labor with the sibling skill: [`unslop`](../unslop/SKILL.md) asks whether the change is free of AI-generated filler. Run it after this one for a full pre-merge pass.
 
-The rules the Correctness and Standards axes cite live in [`CLAUDE.md`](../../../CLAUDE.md), [`docs/DEVELOPMENT_STANDARDS.md`](../../../docs/DEVELOPMENT_STANDARDS.md), and the area `AGENTS.md` files.
+The rules the Correctness and Standards axes cite live in [`AGENTS.md`](../../../AGENTS.md), [`docs/DEVELOPMENT_STANDARDS.md`](../../../docs/DEVELOPMENT_STANDARDS.md), and the area `AGENTS.md` files.
 
 ## Process
 
@@ -43,7 +43,7 @@ In order:
 
 ### 4. Find the standards sources
 
-`CLAUDE.md`, `docs/DEVELOPMENT_STANDARDS.md`, the `AGENTS.md` for each area the diff touches, and anything else the repo documents about how code should be written.
+`AGENTS.md`, `docs/DEVELOPMENT_STANDARDS.md`, the `AGENTS.md` for each area the diff touches, and anything else the repo documents about how code should be written.
 
 On top of those, the Standards axis always carries the [smell baseline](#smell-baseline) below, which applies even where a repo documents nothing. Two rules bind it: a documented repo standard always wins, and every smell is a labelled heuristic ("possible Feature Envy"), never a hard violation.
 
@@ -121,8 +121,8 @@ Non-negotiable ([electron/src/AGENTS.md](../../../electron/src/AGENTS.md) § Sec
 
 ### Config, CI, docs
 
-- `package.json` script or dependency changes: check the lockfile moved with it, and that the sandboxed-install caveats (CLAUDE.md § Common Pitfalls) still hold.
-- Changes to commands, architecture, or rules documented in `CLAUDE.md`/`AGENTS.md`: the doc must move in the same PR — that's a written rule, cite it.
+- `package.json` script or dependency changes: check the lockfile moved with it, and that the sandboxed-install caveats (AGENTS.md § Common Pitfalls) still hold.
+- Changes to commands, architecture, or rules documented in `AGENTS.md`: the doc must move in the same PR — that's a written rule, cite it.
 - Prose follows [docs/WRITING_STYLE.md](../../../docs/WRITING_STYLE.md); flag slop words but leave the full prose pass to `unslop`.
 
 ## Smell baseline

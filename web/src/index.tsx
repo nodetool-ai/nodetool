@@ -124,9 +124,6 @@ const CodeEditorDebug = React.lazy(
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
 );
-const SettingsPage = React.lazy(
-  () => import("./components/menus/SettingsMenu")
-);
 const TimelineEditor = React.lazy(
   () => import("./components/timeline/TimelineEditor")
 );
@@ -150,8 +147,10 @@ const StudioAccountPage = React.lazy(
 );
 import {
   ChatThreadRedirect,
+  SettingsRedirect,
   WorkflowEditorRedirect
 } from "./components/workspace/RouteRedirects";
+import { openSettingsTab } from "./components/workspace/openPageTab";
 const LegacyAppRedirect = React.lazy(
   () => import("./components/applications/LegacyAppRedirect")
 );
@@ -234,19 +233,11 @@ function getRoutes() {
       element: <Navigate to="/workspace" replace />
     },
     {
+      // Settings is a workspace tab now; the old route only redirects.
       path: "/settings",
       element: (
         <ProtectedRoute>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <SettingsPage />
-          </div>
+          <SettingsRedirect />
         </ProtectedRoute>
       )
     },
@@ -544,14 +535,15 @@ if (!rootElement) throw new Error("Root element #root not found");
 const root = ReactDOM.createRoot(rootElement);
 
 /**
- * Routes Electron menu/tray "Settings" actions to the in-app settings page.
+ * Routes Electron menu/tray "Settings" actions to the in-app settings tab.
  * The desktop shell sends an `openSettings` menu event (instead of opening a
- * separate window); navigating via the router singleton works from any route.
+ * separate window); the tab opens and the router singleton focuses the
+ * workspace, which works from any route.
  */
 const MenuNavigationBridge = () => {
   const handleMenuEvent = useCallback((data: MenuEventData) => {
     if (data.type === "openSettings") {
-      void router.navigate("/settings");
+      openSettingsTab();
     }
   }, []);
   useMenuHandler(handleMenuEvent);

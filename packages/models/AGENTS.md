@@ -1,6 +1,6 @@
 # @nodetool-ai/models — Agent Guidelines
 
-**Navigation**: [packages/AGENTS.md](../AGENTS.md) | [Root CLAUDE.md](../../CLAUDE.md)
+**Navigation**: [packages/AGENTS.md](../AGENTS.md) | [Root AGENTS.md](../../AGENTS.md)
 
 This package is the persistence layer. It owns all database tables, schema definitions, migrations, and the `DBModel` base class.
 

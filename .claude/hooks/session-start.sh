@@ -4,7 +4,7 @@
 # server, typecheck, lint, and test with no manual setup.
 #
 # Installs npm dependencies using the flags that survive sandboxed/proxied
-# environments (see CLAUDE.md § Common Pitfalls). Idempotent: exits fast when the
+# environments (see AGENTS.md § Common Pitfalls). Idempotent: exits fast when the
 # dependency tree is already there. Runs only in the remote (web) environment so
 # local terminal sessions start instantly.
 set -euo pipefail

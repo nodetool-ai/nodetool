@@ -708,8 +708,9 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     title: "Open Settings",
     slug: "openSettings",
     keyCombo: ["Control", ","],
+    keyComboMac: ["Meta", ","],
     category: "editor",
-    description: "Open application settings",
+    description: "Open settings in a workspace tab",
     registerCombo: true
   },
 

@@ -218,20 +218,47 @@ export const createMediaComposerStyles = (theme: Theme) =>
     },
 
     // Mobile: the chip cluster plus the buttons never fit on one phone-width
-    // line, so the row wraps and the card sheds padding to keep the textarea
-    // full-width.
+    // line, so the card sheds padding and the chips scroll sideways instead of
+    // wrapping into a block that pushes the composer up under the keyboard.
     [theme.breakpoints.down("sm")]: {
       ".media-compose-card": {
         padding: `${theme.spacing(1.5)} ${theme.spacing(1.5)} ${theme.spacing(1)}`,
         gap: theme.spacing(1)
       },
       ".media-compose-card textarea.media-compose-input": {
-        padding: `${theme.spacing(1)} ${theme.spacing(1)}`
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+        // The keyboard takes most of the screen — cap the growth well below
+        // the desktop 220 (matches MOBILE_TEXTAREA_MAX_HEIGHT).
+        maxHeight: 140
       },
       ".media-chip-row": {
         flexWrap: "wrap",
         rowGap: theme.spacing(1),
         padding: 0
+      },
+      // One scrolling strip, never a wrapped block: chips keep their touch
+      // size and the row keeps its height whatever the mode puts in it.
+      ".media-chip-main": {
+        flexWrap: "nowrap",
+        overflowX: "auto",
+        overflowY: "hidden",
+        scrollbarWidth: "none",
+        WebkitOverflowScrolling: "touch",
+        "&::-webkit-scrollbar": {
+          display: "none"
+        },
+        "> *": {
+          flexShrink: 0
+        }
+      },
+      ".media-chip-row .media-control-chip": {
+        height: 38
+      },
+      // Narrower than the desktop pill so the chip strip keeps most of the
+      // line, and tall enough to stay a comfortable touch target.
+      ".media-generate-btn": {
+        height: 40,
+        padding: `0 ${theme.spacing(2)}`
       },
       // With host workflow actions (the canvas dock), give the chips their own
       // full line so every button — send plus the workflow actions — lands
@@ -247,11 +274,6 @@ export const createMediaComposerStyles = (theme: Theme) =>
       },
       ".media-chip-row.has-trailing .media-primary-action": {
         order: 2
-      },
-      // No host actions (the chat panel): the lone send button shares the chip
-      // line, pinned to the right.
-      ".media-chip-row:not(.has-trailing) .media-primary-action": {
-        marginLeft: "auto"
       }
     }
   });

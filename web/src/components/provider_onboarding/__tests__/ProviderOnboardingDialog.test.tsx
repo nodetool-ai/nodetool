@@ -9,6 +9,8 @@ import ProviderOnboardingDialog from "../ProviderOnboardingDialog";
 import useProviderOnboardingStore from "../../../stores/ProviderOnboardingStore";
 import { useSecrets } from "../../../hooks/useSecrets";
 import { navigateTo } from "../../../lib/appNavigation";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
 import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -82,12 +84,17 @@ describe("ProviderOnboardingDialog", () => {
     expect(screen.getByText("Connect an AI provider")).toBeInTheDocument();
   });
 
-  it("navigates to settings via the router singleton, not useNavigate", async () => {
+  it("opens the settings tab via the router singleton, not useNavigate", async () => {
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
     renderDialog();
     await userEvent.click(
       screen.getByRole("button", { name: /see all providers in settings/i })
     );
     expect(dismiss).toHaveBeenCalledTimes(1);
-    expect(mockNavigateTo).toHaveBeenCalledWith("/settings?tab=1");
+    expect(mockNavigateTo).toHaveBeenCalledWith("/workspace");
+    expect(useWorkspaceTabsStore.getState().tabs).toEqual([
+      expect.objectContaining({ type: "page", ref: "settings" })
+    ]);
+    expect(useSettingsPageStore.getState().section).toBe("providers");
   });
 });

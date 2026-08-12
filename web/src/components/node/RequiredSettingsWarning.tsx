@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Text, EditorButton } from "../ui_primitives";
+import { openSettingsTab } from "../workspace/openPageTab";
 import { useRequiredSettings } from "../../hooks/useRequiredSettings";
 
 interface RequiredSettingsWarningProps {
@@ -9,16 +9,11 @@ interface RequiredSettingsWarningProps {
 
 const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.memo(
   ({ nodeType }) => {
-    const navigate = useNavigate();
     const missingSettings = useRequiredSettings(nodeType);
 
     const handleOpenSettings = useCallback(() => {
-      const searchKey = missingSettings.length > 0 ? missingSettings[0] : undefined;
-      const qs = searchKey
-        ? `?tab=1&q=${encodeURIComponent(searchKey)}`
-        : "?tab=1";
-      navigate(`/settings${qs}`);
-    }, [navigate, missingSettings]);
+      openSettingsTab("providers");
+    }, []);
 
     const content = useMemo(() => {
       if (missingSettings.length === 0) {

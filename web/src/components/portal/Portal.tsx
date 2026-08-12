@@ -20,6 +20,7 @@ import DashboardTutorials from "./DashboardTutorials";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
 import { useStartTrackChat } from "../../hooks/useStartTrackChat";
+import { openSettingsTab } from "../workspace/openPageTab";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -103,8 +104,8 @@ const Portal: React.FC = () => {
   );
 
   const handleOpenSettings = useCallback(() => {
-    navigate("/settings");
-  }, [navigate]);
+    openSettingsTab();
+  }, []);
 
   // Already on the dashboard, so "browse templates" is a scroll, not a route
   // change. The templates section owns the anchor id.

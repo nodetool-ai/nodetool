@@ -7,7 +7,7 @@ description: Strip "AI slop" from code and prose in this repo — over-engineere
 
 A pre-commit pass that removes patterns LLMs add reflexively but humans wouldn't write. Apply it to your own diff before claiming a task is done. The goal isn't to shorten the diff — it's to delete code whose absence would not be missed.
 
-This skill complements (does not replace) [`AGENTS.md`](../../../AGENTS.md), [`CLAUDE.md`](../../../CLAUDE.md), and [`web/src/components/ui_primitives/STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md). Those define the rules. This skill defines the patterns to actively hunt and remove.
+This skill complements (does not replace) [`AGENTS.md`](../../../AGENTS.md) and [`web/src/components/ui_primitives/STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md). Those define the rules. This skill defines the patterns to actively hunt and remove.
 
 Unslop is a quality pass, not a bug hunt. For correctness review of a diff, branch, or PR — including the NodeTool-specific landmines — use [`code-review`](../code-review/SKILL.md); a full pre-merge pass runs both.
 
@@ -341,7 +341,7 @@ it("adds a new node when the user clicks Add Node", async () => {
 
 ## 10. Prose slop
 
-Applies to commit messages, PR descriptions, README/CLAUDE.md/AGENTS.md edits, code comments, error messages, and chat-facing text.
+Applies to commit messages, PR descriptions, README/AGENTS.md edits, code comments, error messages, and chat-facing text.
 
 **Banned openers and crutches** (delete or rewrite):
 
@@ -399,4 +399,4 @@ Patterns synthesized from these community skills, adapted to NodeTool's stack:
 - [vercel-labs/agent-skills/composition-patterns](https://github.com/vercel-labs/agent-skills) — composition over boolean-prop proliferation
 - [vercel-labs/agent-skills/react-best-practices](https://github.com/vercel-labs/agent-skills) — React/Next performance rules
 - [awesome-skills/code-review-skill](https://github.com/awesome-skills/code-review-skill) — React 19 / TypeScript review patterns
-- NodeTool's own [`AGENTS.md`](../../../AGENTS.md), [`CLAUDE.md`](../../../CLAUDE.md), and [`STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md)
+- NodeTool's own [`AGENTS.md`](../../../AGENTS.md) and [`STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md)

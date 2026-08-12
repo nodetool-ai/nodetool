@@ -11,7 +11,7 @@
  * Pure and registry-free so it can be unit-tested with a synthetic graph.
  */
 
-/** Packages whose nodes load from compiled dist/ (decorators) — see CLAUDE.md. */
+/** Packages whose nodes load from compiled dist/ (decorators) — see AGENTS.md. */
 export const DECORATOR_PACKAGES: ReadonlySet<string> = new Set([
   "@nodetool-ai/node-sdk",
   "@nodetool-ai/base-nodes",
