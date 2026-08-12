@@ -360,6 +360,36 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       }
     ]
   },
+  emit: {
+    name: "emit",
+    kind: "function",
+    description:
+      "Stream one value to an output handle while the body keeps running.",
+    members: [
+      {
+        name: "emit",
+        signature: "await emit(name, value) -> void",
+        description:
+          "Delivers {[name]: value} downstream immediately, in call order. Awaiting it applies backpressure. Capped per run; a non-string name throws.",
+        async: true
+      }
+    ]
+  },
+  output: {
+    name: "output",
+    kind: "function",
+    description:
+      "Set the final value of an output handle; all finals post as one bag when the body completes.",
+    members: [
+      {
+        name: "output",
+        signature: "await output(name, value) -> void",
+        description:
+          "Records the handle's final value. A second call for the same handle throws; the body's return value carries no outputs.",
+        async: true
+      }
+    ]
+  },
   format: {
     name: "format",
     kind: "namespace",
@@ -815,6 +845,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "crypto",
   "decodeURI",
   "decodeURIComponent",
+  "emit",
   "encodeURI",
   "encodeURIComponent",
   "escape",
@@ -828,6 +859,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "isFinite",
   "isNaN",
   "media",
+  "output",
   "parallelMap",
   "parseFloat",
   "parseInt",

@@ -133,6 +133,12 @@ export const DEFAULT_FORMAT_LOCALE = "en-US";
 export const MAX_RANDOM_BYTES = 65_536;
 /** Progress reports forwarded to the host per run; further calls are dropped. */
 export const MAX_PROGRESS_CALLS = 1000;
+/**
+ * Emitted values a run may deliver. Unlike progress reports, emits are never
+ * dropped or rate-limited — every value reaches the host in call order — so the
+ * cap is enforced by throwing in the guest rather than by ignoring the call.
+ */
+export const MAX_EMIT_CALLS = 10_000;
 /** Minimum gap between two forwarded progress reports. */
 export const PROGRESS_MIN_INTERVAL_MS = 100;
 /** Longest progress message forwarded to the host. */
@@ -150,6 +156,22 @@ export type SandboxProgressCallback = (
   progress: number,
   message?: string
 ) => void;
+
+/**
+ * Host sink for guest `emit(name, value)` calls. Awaited before the guest's
+ * promise resolves, so a slow consumer applies backpressure to the producer,
+ * and a sink that throws surfaces in the guest as a thrown error.
+ */
+export type SandboxEmitCallback = (
+  name: string,
+  value: unknown
+) => void | Promise<void>;
+
+/** One value a guest `emit(name, value)` call delivered. */
+export interface SandboxEmittedValue {
+  name: string;
+  value: unknown;
+}
 
 /**
  * Per-invocation limit overrides. Every field defaults to the module constant
@@ -879,6 +901,16 @@ export function cleanStack(stack: string): string {
 export interface SandboxResult {
   sandbox: Record<string, unknown>;
   getLogs: () => string[];
+  /**
+   * The final values guest `output(name, value)` calls recorded, or `undefined`
+   * when the guest called `output` never.
+   */
+  getOutputs: () => Record<string, unknown> | undefined;
+  /**
+   * Values guest `emit` calls produced while no host sink was set, in call
+   * order. `undefined` when a sink consumed them or nothing was emitted.
+   */
+  getEmitted: () => SandboxEmittedValue[] | undefined;
 }
 
 /**
@@ -894,12 +926,15 @@ export interface SandboxResult {
  *                 {@link resolveSandboxLimits}.
  * @param onProgress Optional sink for guest `progress()` calls. Without one the
  *                 guest function is a no-op.
+ * @param onEmit   Optional sink for guest `emit()` calls. Without one the values
+ *                 are collected and handed back through `getEmitted`.
  */
 export function buildSandbox(
   context?: ProcessingContext,
   signal?: AbortSignal,
   limits?: SandboxLimits,
-  onProgress?: SandboxProgressCallback
+  onProgress?: SandboxProgressCallback,
+  onEmit?: SandboxEmitCallback
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -1454,6 +1489,47 @@ export function buildSandbox(
     }
   };
 
+  // Output delivery. The opposite of `progress` in every respect: awaitable, so
+  // the guest gets backpressure from a slow consumer, and never rate-limited or
+  // dropped — an output value the host silently discards is data loss, not a
+  // missed progress tick. Both throw into the guest rather than failing quietly.
+  let emitCalls = 0;
+  const emitted: SandboxEmittedValue[] = [];
+  const outputs = new Map<string, unknown>();
+
+  const handleName = (fn: string, name: unknown): string => {
+    if (typeof name !== "string") {
+      throw new TypeError(`${fn}: name must be a string`);
+    }
+    return name;
+  };
+
+  const emit = async (name: unknown, value: unknown): Promise<void> => {
+    const handle = handleName("emit", name);
+    if (emitCalls >= MAX_EMIT_CALLS) {
+      throw new Error(
+        `emit: this run may emit at most ${MAX_EMIT_CALLS} values (MAX_EMIT_CALLS)`
+      );
+    }
+    emitCalls++;
+    const marshaled = serializeResult(value, resolvedLimits.maxOutputSize);
+    if (onEmit) {
+      // Awaited, so the guest's promise resolves only once the host has taken
+      // the value — and a sink that throws unwinds the guest's `emit` call.
+      await onEmit(handle, marshaled);
+      return;
+    }
+    emitted.push({ name: handle, value: marshaled });
+  };
+
+  const output = async (name: unknown, value: unknown): Promise<void> => {
+    const handle = handleName("output", name);
+    if (outputs.has(handle)) {
+      throw new Error(`output "${handle}" was already set`);
+    }
+    outputs.set(handle, serializeResult(value, resolvedLimits.maxOutputSize));
+  };
+
   // QuickJS ships no Intl, so locale-aware formatting has to come from the
   // host. Async + never-reject like the other bridges: a bad locale or option
   // surfaces in the guest as a thrown Error with Intl's own message.
@@ -1634,6 +1710,8 @@ export function buildSandbox(
     assetToSandbox,
     sandboxToAsset,
     progress,
+    emit,
+    output,
     format,
     image,
     canvas,
@@ -1644,7 +1722,13 @@ export function buildSandbox(
     __secretScope: secretScope === null ? null : [...secretScope]
   };
 
-  return { sandbox, getLogs: () => logs };
+  return {
+    sandbox,
+    getLogs: () => logs,
+    getOutputs: () =>
+      outputs.size > 0 ? Object.fromEntries(outputs) : undefined,
+    getEmitted: () => (emitted.length > 0 ? [...emitted] : undefined)
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2092,6 +2176,14 @@ export interface RunSandboxOptions {
    */
   onProgress?: SandboxProgressCallback;
   /**
+   * Sink for guest `emit(name, value)` calls. Every value reaches it, in call
+   * order, and the guest's `emit` promise resolves only after it does — so an
+   * `await emit(...)` blocks a producer the consumer cannot keep up with. A
+   * sink that throws surfaces in the guest as a thrown error. Without a sink
+   * the values are collected into {@link RunSandboxResult.emitted} instead.
+   */
+  onEmit?: SandboxEmitCallback;
+  /**
    * Wall clock the host can stop while the guest waits on a round-trip it
    * cannot hurry (a permission prompt). Time suspended is added back to
    * {@link timeoutMs}, so the guest keeps its full execution budget across the
@@ -2133,6 +2225,18 @@ export interface RunSandboxResult {
   error?: string;
   stack?: string;
   logs?: string[];
+  /**
+   * Final values the guest recorded with `output(name, value)`, marshaled the
+   * way `result` is. Absent when the guest called `output` never, and dropped
+   * on a failed run — a run that died has no answer to post.
+   */
+  outputs?: Record<string, unknown>;
+  /**
+   * Values the guest passed to `emit(name, value)`, in call order. Present only
+   * when the caller passed no {@link RunSandboxOptions.onEmit} sink — with one,
+   * the values went there instead.
+   */
+  emitted?: SandboxEmittedValue[];
 }
 
 const IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
@@ -2173,6 +2277,8 @@ export const EXPOSED_BRIDGE_NAMES = [
   "assetToSandbox",
   "sandboxToAsset",
   "progress",
+  "emit",
+  "output",
   "format",
   "image",
   "canvas",
@@ -2245,6 +2351,7 @@ export async function runInSandbox(
     signal,
     limits,
     onProgress,
+    onEmit,
     clock,
     suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS,
     modules,
@@ -2291,11 +2398,12 @@ export async function runInSandbox(
     return { success: false, error: "Execution cancelled", logs: [] };
   }
 
-  const { sandbox, getLogs } = buildSandbox(
+  const { sandbox, getLogs, getOutputs, getEmitted } = buildSandbox(
     context,
     signal,
     resolvedLimits,
-    onProgress
+    onProgress,
+    onEmit
   );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
@@ -2353,6 +2461,8 @@ export async function runInSandbox(
         bridges.getSecret = wrap(bridges.getSecret as never);
         bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
         bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
+        bridges.emit = wrap(bridges.emit as never);
+        bridges.output = wrap(bridges.output as never);
         // Object bridges whose members are all async: wrap each member.
         const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
           const out: Record<string, unknown> = {};
@@ -2520,6 +2630,8 @@ globalThis.sleep = __wrap(globalThis.sleep);
 globalThis.getSecret = __wrap(globalThis.getSecret);
 globalThis.assetToSandbox = __wrap(globalThis.assetToSandbox);
 globalThis.sandboxToAsset = __wrap(globalThis.sandboxToAsset);
+globalThis.emit = __wrap(globalThis.emit);
+globalThis.output = __wrap(globalThis.output);
 const __ws = globalThis.workspace;
 globalThis.workspace = {
   read: __wrap(__ws.read),
@@ -2788,7 +2900,8 @@ export default true;`,
       return {
         success: false,
         error: "Execution cancelled",
-        logs: getLogs()
+        logs: getLogs(),
+        emitted: getEmitted()
       };
     }
     const evalResponse = raced;
@@ -2813,14 +2926,19 @@ export default true;`,
         stack: evalResponse.error.stack
           ? cleanStack(evalResponse.error.stack)
           : undefined,
-        logs: logs.length > 0 ? logs : undefined
+        logs: logs.length > 0 ? logs : undefined,
+        // Emitted values were delivered while the guest still ran, so they
+        // stand. Recorded `output` finals do not: the run has no answer.
+        emitted: getEmitted()
       };
     }
 
     return {
       success: true,
       result: serializeResult(evalResponse.data, resolvedLimits.maxOutputSize),
-      logs: logs.length > 0 ? logs : undefined
+      logs: logs.length > 0 ? logs : undefined,
+      outputs: getOutputs(),
+      emitted: getEmitted()
     };
   } catch (e: unknown) {
     // Host-side failures (engine load error, marshaling bug, etc.). Guest-side
@@ -2834,7 +2952,8 @@ export default true;`,
       success: false,
       error: errorMessage,
       stack: errorStack,
-      logs: logs.length > 0 ? logs : undefined
+      logs: logs.length > 0 ? logs : undefined,
+      emitted: getEmitted()
     };
   }
 }

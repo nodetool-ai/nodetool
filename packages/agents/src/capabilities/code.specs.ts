@@ -21,7 +21,11 @@ export const CODE_FIELD: JsonSchema = {
   type: "string",
   description:
     "The Code-node body: plain JavaScript. Declared inputs arrive on the " +
-    "`inputs` object; return an object whose keys become output handles."
+    "`inputs` object. Outputs leave through two calls: " +
+    "`await emit(name, value)` streams one value from an output handle, and " +
+    "`await output(name, value)` sets a handle's final value. `return` is " +
+    "control flow only — its value is ignored. A body calling neither runs " +
+    "the deprecated return/yield contract for one more release."
 };
 
 export const PACKAGES_FIELD: JsonSchema = {
@@ -38,8 +42,9 @@ export const validateCodeSpec: CapabilitySpec = {
     "Statically check a Code-node body without running it: syntax, imports " +
     "against the declared sandbox packages, undefined names, undeclared " +
     "`inputs.*` reads, unused inputs, and whether every declared output is " +
-    "set on every return path. Same check the workflow validator runs. Call " +
-    "it after every edit — it is far cheaper than run_code.",
+    "reached by an `emit` or `output` call. Same check the workflow " +
+    "validator runs. Call it after every edit — it is far cheaper than " +
+    "run_code.",
   inputSchema: {
     type: "object",
     properties: {
@@ -66,10 +71,13 @@ export const runCodeSpec: CapabilitySpec = {
   name: "run_code",
   description:
     "Run a Code-node body in the QuickJS sandbox with the given `inputs` " +
-    "and return its outputs, console logs, and error. Streaming bodies " +
-    "(`yield`) return the collected items as `streamed`. The run is " +
-    "hermetic: no node toolbelt, and only the secrets named in `secrets` " +
-    "are readable. Use it to debug a body before saving it onto a node.",
+    "and report its outputs, console logs, and error. Values passed to " +
+    "`output(name, value)` come back as `outputs`; values passed to " +
+    "`emit(name, value)` come back as `streamed`, an ordered list of " +
+    "`{name, value}`. A legacy return/yield body reports its return bag as " +
+    "`outputs` and its yielded items as `streamed`. The run is hermetic: no " +
+    "node toolbelt, and only the secrets named in `secrets` are readable. " +
+    "Use it to debug a body before saving it onto a node.",
   inputSchema: {
     type: "object",
     properties: {
@@ -101,10 +109,12 @@ export const testCodeSpec: CapabilitySpec = {
   name: "test_code",
   description:
     "Run a Code-node body against a list of test cases and grade each one. " +
-    "A case supplies `inputs` and optionally `expect` — expected values per " +
-    "output handle, compared structurally; outputs not named in `expect` " +
-    "are ignored. A case without `expect` passes when the body runs " +
-    "without error. Use it as the regression check after editing code.",
+    "A case supplies `inputs` and optionally `expect` — expected final " +
+    "values per output handle, compared structurally; outputs not named in " +
+    "`expect` are ignored — and `expected_streamed`, the full ordered list " +
+    "of `{name, value}` the body must emit. A case with neither passes when " +
+    "the body runs without error. Use it as the regression check after " +
+    "editing code.",
   inputSchema: {
     type: "object",
     properties: {
@@ -124,8 +134,26 @@ export const testCodeSpec: CapabilitySpec = {
             expect: {
               type: "object",
               description:
-                "Expected value per output handle, compared structurally.",
+                "Expected final value per output handle, compared " +
+                "structurally.",
               additionalProperties: true
+            },
+            expected_streamed: {
+              type: "array",
+              description:
+                "Every value the body must emit, in call order. The list is " +
+                "compared whole: a differing length or entry fails the case.",
+              items: {
+                type: "object",
+                properties: {
+                  name: {
+                    type: "string",
+                    description: "Output handle the value was emitted from."
+                  },
+                  value: { description: "The emitted value." }
+                },
+                required: ["name", "value"]
+              }
             }
           },
           required: [] as string[]
