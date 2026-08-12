@@ -228,8 +228,11 @@ describe("the timeout meters guest execution only", () => {
     const onTakeInput: SandboxTakeInputCallback = async () => {
       if (served) return { done: true };
       served = true;
-      // Three times the run's timeout, spent waiting on upstream.
-      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      // Longer than the run's whole timeout, spent waiting on upstream. The
+      // margin is wide on purpose: engine startup and prelude evaluation are
+      // charged to the budget, and on a loaded CI runner they alone have
+      // eaten a 500ms one.
+      await new Promise((resolve) => setTimeout(resolve, 4_500));
       return { done: false, handle: "slow", value: "late" };
     };
     const result = await runInSandbox({
@@ -247,7 +250,7 @@ describe("the timeout meters guest execution only", () => {
         return seen;
       `,
       onTakeInput,
-      timeoutMs: 500
+      timeoutMs: 3_000
     });
 
     expect(result.error).toBeUndefined();
