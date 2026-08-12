@@ -63,10 +63,43 @@ describe("isConnectionControlMessage", () => {
     );
   });
 
+  it("recognizes the relay's wall-clock control frames", () => {
+    for (const type of ["system_stats", "resource_change", "ping", "pong"]) {
+      expect(isConnectionControlMessage({ type })).toBe(true);
+    }
+  });
+
   it("leaves run frames alone", () => {
     for (const type of ["job_update", "node_update", "edge_update", "output_update"]) {
       expect(isConnectionControlMessage({ type })).toBe(false);
     }
+  });
+});
+
+/**
+ * Regression guard for Ring 1 run 31619279663, which failed
+ * `linear-text-pipeline` on the packaged surface and blocked the Fly deploy of
+ * 2868cffe. `UnifiedWebSocketRunner.startStatsBroadcast` fires its first
+ * sample ~1s after connect; that run took just long enough for it to land
+ * between two `edge_update`s, shifting every later entry in the control
+ * channel and mismatching the stream-shape golden by three. This is the exact
+ * frame from that failure's log.
+ */
+describe("the frame that failed Ring 1 on 2868cffe", () => {
+  it("is connection control, so no relay driver records it", () => {
+    expect(
+      isConnectionControlMessage({
+        type: "system_stats",
+        stats: {
+          cpu_percent: 30.76923076923077,
+          memory_percent: 13.05219544311343,
+          memory_total: 16766423040,
+          memory_total_gb: 15.614948272705078,
+          memory_used: 2188386304,
+          memory_used_gb: 2.0380935668945312
+        }
+      })
+    ).toBe(true);
   });
 });
 

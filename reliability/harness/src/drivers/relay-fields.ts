@@ -56,9 +56,26 @@ export const RELAY_ONLY_WORKFLOW_ID_TYPES: ReadonlySet<string> = new Set([
  * production Fastify plugin when an SDK live-runner registry is wired
  * (`packages/websocket/src/plugins/websocket.ts`). The kernel oracle has no
  * connection to announce, so there is nothing to compare it against.
+ *
+ * The rest are the relay's own timers and observers, which fire on wall-clock
+ * cadence rather than on anything the run does
+ * (`unified-websocket-runner.ts`): `system_stats` ~1s after connect and every
+ * 5s after (outside `NODE_ENV=production`), `ping` every 25s, `pong` in reply
+ * to a client ping, `resource_change` whenever a model or resource event
+ * lands. Whether one of them interleaves into a run depends on how long the
+ * run happens to take, so recording them makes the stream non-deterministic —
+ * a `system_stats` landing mid-run is what failed `linear-text-pipeline` on
+ * the packaged surface in Ring 1 (run 31619279663), which in turn blocked
+ * the Fly deploy of 2868cffe. They are all outbound *control* frames in the
+ * protocol's own taxonomy (`outboundControlMessageSchemas`), not
+ * `ProcessingMessage`s, so no run assertion loses coverage by dropping them.
  */
 export const CONNECTION_CONTROL_MESSAGE_TYPES: ReadonlySet<string> = new Set([
-  "sdk_execution_target"
+  "sdk_execution_target",
+  "system_stats",
+  "resource_change",
+  "ping",
+  "pong"
 ]);
 
 /** True when `message` is transport control rather than a run frame — callers
