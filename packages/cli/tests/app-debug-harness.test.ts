@@ -101,7 +101,7 @@ describe("runAppDebug", () => {
     );
 
     expect(report.verdict.ok).toBe(true);
-    expect(report.app).toEqual({ version: 3, title: "Demo App", widgetCount: 3 });
+    expect(report.app).toEqual({ version: 4, title: "Demo App", widgetCount: 3 });
     expect(runOnServer).toHaveBeenCalledOnce();
     expect(runOnServer.mock.calls[0][0].params).toEqual({ prompt: "what is it?" });
 

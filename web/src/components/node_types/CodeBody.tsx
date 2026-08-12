@@ -59,6 +59,7 @@ import {
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
 import CodeAssistantDialog from "./code_assistant/CodeAssistantDialog";
+import CodeNodeScriptLink from "./CodeNodeScriptLink";
 
 export interface CodeBodyProps {
   id: string;
@@ -69,6 +70,14 @@ export interface CodeBodyProps {
   status?: string;
   isOutputNode: boolean;
 }
+
+/** True when the node's `script` property pins a linked script version. */
+const readsScriptLink = (value: unknown): boolean =>
+  value !== null &&
+  typeof value === "object" &&
+  !Array.isArray(value) &&
+  typeof (value as { id?: unknown }).id === "string" &&
+  (value as { id: string }).id !== "";
 
 const EDITOR_OPTIONS: Record<string, unknown> = {
   minimap: { enabled: false },
@@ -364,6 +373,18 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     nodeMetadata.supports_dynamic_inputs ||
     nodeMetadata.supports_dynamic_outputs;
 
+  // A linked node runs the pinned script's body, so editing the mirrored copy
+  // here would change nothing that runs.
+  const isLinkedToScript =
+    supportsCodeGen && readsScriptLink(data.properties?.script);
+  const editorOptions = useMemo(
+    () =>
+      isLinkedToScript
+        ? { ...EDITOR_OPTIONS, readOnly: true }
+        : EDITOR_OPTIONS,
+    [isLinkedToScript]
+  );
+
   return (
     <FlexColumn
       fullWidth
@@ -372,6 +393,8 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     >
       <div css={cssStyles} className="code-body" data-bespoke-body="Code">
         <HandleColumn id={id} properties={inputProperties} />
+
+        {supportsCodeGen && <CodeNodeScriptLink id={id} data={data} />}
 
         <div className="code-toolbar">
           <span className="code-language">{languageLabel}</span>
@@ -418,7 +441,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
               width="100%"
               height="100%"
               onMount={handleEditorMount}
-              options={EDITOR_OPTIONS}
+              options={editorOptions}
             />
           ) : monacoLoadError ? (
             <div className="editor-error">{monacoLoadError}</div>

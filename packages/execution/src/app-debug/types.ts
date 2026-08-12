@@ -16,6 +16,7 @@ import type {
   ConditionProps,
   InputMapping,
   OperationPolicy,
+  OperationTarget,
   OutputMapping,
   ResourceKind,
   RunDecision,
@@ -29,6 +30,7 @@ import type {
   DebugVerdict,
   ServerRunReport
 } from "../debug/types.js";
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { SeedResourceItem } from "./runtime.js";
 
 export type { SeedResourceItem };
@@ -57,6 +59,12 @@ export interface ResolvedAppTarget {
   issue: string | null;
   /** Graphs the target carries, keyed by the id its operations reference. */
   graphs: Map<string, DebugGraph>;
+  /**
+   * JS scripts the target carries, keyed the same way — a bundle ships the
+   * document of every script version its operations pin, so a script operation
+   * runs without a database.
+   */
+  scripts?: Map<string, { name: string; document: JsScriptDocument }>;
   /**
    * True when those keys are bundle-local, so no operation names a real
    * workflow id and nothing can be handed to the runner as one.
@@ -118,6 +126,8 @@ export interface AppOperationSpec {
   id: string;
   name: string;
   workflowId: string;
+  /** What the operation runs — a workflow, or a pinned JS script version. */
+  target: OperationTarget;
   policy: OperationPolicy;
   timeoutMs: number | null;
   /** Input node id → where its value comes from. */

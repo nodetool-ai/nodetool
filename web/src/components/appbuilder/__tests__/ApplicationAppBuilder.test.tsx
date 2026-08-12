@@ -152,7 +152,7 @@ describe("ApplicationAppBuilder", () => {
       id: "app-1",
       baseUpdatedAt: "2026-07-11T10:00:00.000Z",
       document: {
-        schemaVersion: 3,
+        schemaVersion: 4,
         ui: EDITED.ui,
         operations: application.document.operations,
         resources: [],

@@ -217,6 +217,56 @@ export function assertValidJsScriptDocument(document: unknown): void {
   }
 }
 
+// ── Linking a pinned version ────────────────────────────────────────────────
+
+/**
+ * A pinned reference to one script version. A Code node stores this in its
+ * `script` property and a mini-app operation stores it in its target: both pin
+ * the version, because a graph whose behavior changes when someone edits a
+ * shared script is a debugging trap.
+ */
+export interface JsScriptLink {
+  id: string;
+  version: number;
+}
+
+/** What a resolver answers with: the pinned version's document plus identity. */
+export interface ResolvedJsScript {
+  id: string;
+  name: string;
+  version: number;
+  document: JsScriptDocument;
+}
+
+/**
+ * Resolve a pinned link to its document. Implemented by the models layer over
+ * `js_script_versions` and installed process-wide by the host; a process with
+ * no database (the browser runner) has none, and every consumer must handle
+ * that rather than guess.
+ */
+export interface JsScriptResolver {
+  resolve(
+    link: JsScriptLink,
+    userId?: string
+  ): Promise<ResolvedJsScript | null>;
+}
+
+/**
+ * Read a stored `{id, version}` link, or null when the value is absent or does
+ * not carry both. An empty object is how an unlinked node stores "no script".
+ */
+export function parseJsScriptLink(value: unknown): JsScriptLink | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const id = record.id;
+  const version = record.version;
+  if (typeof id !== "string" || id.trim() === "") return null;
+  if (typeof version !== "number" || !Number.isInteger(version)) return null;
+  return { id: id.trim(), version };
+}
+
 // ── API shapes ──────────────────────────────────────────────────────────────
 
 export const jsScriptResponse = z.object({

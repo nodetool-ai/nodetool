@@ -10,6 +10,7 @@
 import {
   DEFAULT_OPERATION_ID,
   encodeBinding,
+  operationTarget,
   parseApplicationDocument,
   parseBinding,
   parseCondition,
@@ -330,6 +331,7 @@ export function operationSpec(
     id: binding.id,
     name: binding.name,
     workflowId: binding.workflowId,
+    target: operationTarget(binding),
     policy: binding.policy,
     timeoutMs: binding.timeoutMs ?? null,
     inputs: binding.inputs,

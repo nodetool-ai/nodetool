@@ -62,12 +62,14 @@ const debugApp: CapabilityExport = {
     if (!registry) return noRegistryError("debug an app");
     const { runApplicationDebug } =
       await import("@nodetool-ai/execution/service");
+    const { createJsScriptAppRunner } = await import(
+      "../js-script-app-runner.js"
+    );
+    const userId = userIdOf(run.context);
     try {
-      return await runApplicationDebug(
-        userIdOf(run.context),
-        params as AppDebugRequest,
-        registry
-      );
+      return await runApplicationDebug(userId, params as AppDebugRequest, registry, {
+        runScript: createJsScriptAppRunner(userId)
+      });
     } catch (error) {
       return {
         error: error instanceof Error ? error.message : String(error)

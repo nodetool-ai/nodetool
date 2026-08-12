@@ -16,7 +16,7 @@ export interface PuckData {
 }
 
 /** Bumped whenever the parser needs a new branch. */
-export const APP_SCHEMA_VERSION = 3 as const;
+export const APP_SCHEMA_VERSION = 4 as const;
 
 /**
  * Legacy `workflow.app_doc` versions. v1/v2 were `{ version, data }` with
@@ -44,24 +44,63 @@ export type OutputMapping =
 export type OperationPolicy = "parallel" | "replace" | "queue";
 
 /**
- * A named, typed reference to a workflow. The same workflow may be bound
- * twice with different mappings (`translateTitle`, `translateBody`).
+ * What an operation runs. A workflow target's id lives in the binding's own
+ * `workflowId` (v3's storage, still the storage); a script target is stored
+ * under `target`, which pins the script version the way a Code node link does.
+ */
+export type OperationTarget =
+  | { kind: "workflow"; workflowId: string; workflowVersion?: number }
+  | { kind: "script"; scriptId: string; scriptVersion: number };
+
+/**
+ * A named, typed reference to a workflow or a JS script. The same workflow may
+ * be bound twice with different mappings (`translateTitle`, `translateBody`).
  *
  * `inputs`/`outputs` key on node **IDs**, never names: the runtime derives the
  * name-keyed `params` object the run protocol wants at the execution boundary,
- * so renaming a node in the graph editor never breaks an app.
+ * so renaming a node in the graph editor never breaks an app. A script
+ * operation has no nodes, so its ports key on their declared names, which are
+ * the script's stable identifiers.
  */
 export interface OperationBinding {
   id: string;
   name: string;
+  /**
+   * The workflow this operation runs, `""` for a script operation. Kept for
+   * one schema version so v3 readers still work; new code reads
+   * {@link operationTarget}, which is the only place the two kinds are told
+   * apart.
+   */
   workflowId: string;
   /** Pinned in a release, floating (latest) in a draft. */
   workflowVersion?: number;
+  /** Present only for a script target; a workflow target lives in `workflowId`. */
+  target?: OperationTarget;
   inputs: Record<string, InputMapping>;
   outputs: Record<string, OutputMapping>;
   policy: OperationPolicy;
   timeoutMs?: number;
 }
+
+/** What a binding runs, normalized — the one place the union is derived. */
+export const operationTarget = (
+  binding: Pick<
+    OperationBinding,
+    "workflowId" | "workflowVersion" | "target"
+  >
+): OperationTarget =>
+  binding.target ?? {
+    kind: "workflow",
+    workflowId: binding.workflowId,
+    ...(binding.workflowVersion === undefined
+      ? {}
+      : { workflowVersion: binding.workflowVersion })
+  };
+
+/** True when the operation runs a JS script rather than a workflow. */
+export const isScriptOperation = (
+  binding: Pick<OperationBinding, "workflowId" | "workflowVersion" | "target">
+): boolean => operationTarget(binding).kind === "script";
 
 export type ResourceKind = "asset" | "timeline" | "storyboard" | "sketch";
 
@@ -211,21 +250,55 @@ const parseMappings = <T>(
  * untrusted input (bundle import), and an id-less mapping used to become a
  * read or a write keyed `undefined`.
  */
+/**
+ * Parse a stored `target`, or null when the entry is not one the union
+ * describes. A workflow target is folded back onto `workflowId`, so the two
+ * spellings of the same thing produce one binding shape; only a script target
+ * survives as a stored `target`.
+ */
+const parseScriptTarget = (
+  value: unknown
+): Extract<OperationTarget, { kind: "script" }> | null => {
+  if (!isRecord(value) || value.kind !== "script") return null;
+  const { scriptId, scriptVersion } = value;
+  if (typeof scriptId !== "string" || scriptId.length === 0) return null;
+  if (typeof scriptVersion !== "number" || !Number.isInteger(scriptVersion)) {
+    return null;
+  }
+  return { kind: "script", scriptId, scriptVersion };
+};
+
+/** The workflow id a stored `target` names, when it names one. */
+const targetWorkflowId = (value: unknown): string | null => {
+  if (!isRecord(value) || value.kind !== "workflow") return null;
+  return typeof value.workflowId === "string" ? value.workflowId : null;
+};
+
 const parseOperation = (
   value: unknown,
   hostWorkflowId?: string
 ): OperationBinding | null => {
   if (!isRecord(value)) return null;
-  const { id, name, workflowId, policy } = value;
-  if (typeof id !== "string" || typeof workflowId !== "string") return null;
+  const { id, name, policy } = value;
+  if (typeof id !== "string") return null;
+  const script = parseScriptTarget(value.target);
+  // v3 stored only `workflowId`; v4 may carry an explicit workflow target
+  // instead. Either way the workflow id ends up in one place.
+  const workflowId =
+    typeof value.workflowId === "string"
+      ? value.workflowId
+      : targetWorkflowId(value.target);
+  if (!script && workflowId === null) return null;
   return {
     id,
     name: typeof name === "string" ? name : id,
     // A document that ships without a workflow — a template, which has no id
-    // until it is installed — binds to whatever workflow hosts it.
-    workflowId: workflowId || hostWorkflowId || "",
+    // until it is installed — binds to whatever workflow hosts it. A script
+    // operation binds no workflow at all.
+    workflowId: script ? "" : workflowId || hostWorkflowId || "",
     workflowVersion:
       typeof value.workflowVersion === "number" ? value.workflowVersion : undefined,
+    ...(script ? { target: script } : {}),
     inputs: parseMappings(value.inputs, parseInputMapping),
     outputs: parseMappings(value.outputs, parseOutputMapping),
     policy:
@@ -414,7 +487,9 @@ export const liftLegacyAppDoc = (
   return {
     ...document,
     operations: document.operations.map((op) =>
-      op.workflowId ? op : { ...op, workflowId: hostWorkflowId }
+      op.workflowId || isScriptOperation(op)
+        ? op
+        : { ...op, workflowId: hostWorkflowId }
     )
   };
 };

@@ -9,8 +9,10 @@
  * bundle means the same thing to both.
  */
 import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { DebugGraph } from "../debug/types.js";
 import { debugGraphOf } from "./graph-shape.js";
+import { parseCarriedScriptDocument } from "./script-operation.js";
 import type { ResolvedAppTarget } from "./types.js";
 
 const EMPTY_GRAPH: DebugGraph = { nodes: [], edges: [] };
@@ -32,6 +34,15 @@ export function bundleTarget(
     const graph = debugGraphOf(workflow.graph);
     if (graph) graphs.set(workflow.key, graph);
   }
+  // A carried script's document is untrusted input, so it is parsed against
+  // the pinned contract rather than trusted; one that fails reads as a script
+  // the bundle does not carry, and the operation reports as unresolvable.
+  const scripts = new Map<string, { name: string; document: JsScriptDocument }>();
+  for (const script of bundle.scripts ?? []) {
+    const document = parseCarriedScriptDocument(script.document);
+    if (document) scripts.set(script.key, { name: script.name, document });
+  }
+
   const host =
     bundle.app.operations
       .map((operation) => graphs.get(operation.workflowId))
@@ -53,6 +64,7 @@ export function bundleTarget(
     document: bundle.app,
     issue: null,
     graphs,
+    scripts,
     operationsReferenceKeys: true,
     appName: bundle.name
   };

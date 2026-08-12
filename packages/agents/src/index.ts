@@ -889,4 +889,5 @@ export type {
 // The hermetic Code-body executor `run_code`/`test_code` share, and what the
 // JS-script run endpoint executes a script document with.
 export { runCodeBody } from "./capabilities/code.js";
+export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";

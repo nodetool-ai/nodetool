@@ -155,6 +155,8 @@ import {
   getProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
 } from "./sandbox-module-catalog.js";
+import { getProcessJsScriptResolver } from "./js-script-resolver.js";
+import type { JsScriptResolver } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 // Re-exported from the narrow `/context` subpath so a browser client can type
 // its own catalog without importing the package root (providers, tracing).
@@ -1130,6 +1132,12 @@ export class ProcessingContext {
   /** Read-only sandbox module catalog supplied by the execution host. */
   readonly sandboxModuleCatalog: SandboxModuleCatalog | null;
   /**
+   * Resolves a Code node's pinned `script` link to its document. Null on a host
+   * with no script storage (the browser runner), where a linked node fails with
+   * that said rather than running the wrong body.
+   */
+  readonly jsScriptResolver: JsScriptResolver | null;
+  /**
    * Run-level cancellation. Set by the kernel to the signal
    * `WorkflowRunner.cancel()` aborts, so long-running node work (agent loops,
    * provider calls) can be interrupted rather than merely having its result
@@ -1282,6 +1290,7 @@ export class ProcessingContext {
     environment?: Record<string, string>;
     authToken?: string | null;
     sandboxModuleCatalog?: SandboxModuleCatalog | null;
+    jsScriptResolver?: JsScriptResolver | null;
     secretResolver?: (
       key: string,
       userId: string
@@ -1335,6 +1344,10 @@ export class ProcessingContext {
       opts.sandboxModuleCatalog !== undefined
         ? opts.sandboxModuleCatalog
         : getProcessSandboxModuleCatalog();
+    this.jsScriptResolver =
+      opts.jsScriptResolver !== undefined
+        ? opts.jsScriptResolver
+        : getProcessJsScriptResolver();
     this._secretResolver = opts.secretResolver ?? null;
     this._fetch =
       opts.fetchFn ??
@@ -1382,6 +1395,7 @@ export class ProcessingContext {
       environment: { ...this.environment },
       authToken: this.authToken,
       sandboxModuleCatalog: this.sandboxModuleCatalog,
+      jsScriptResolver: this.jsScriptResolver,
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,

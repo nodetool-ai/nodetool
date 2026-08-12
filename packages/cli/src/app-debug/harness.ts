@@ -14,7 +14,9 @@ import {
   renderAppReportMarkdown,
   simulateApp,
   type AppDebugOptions,
-  type AppDebugReport
+  type AppDebugReport,
+  type JsScriptOperationLoader,
+  type JsScriptOperationRunner
 } from "@nodetool-ai/execution/app-debug";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { resolveAppTarget, type AppTargetDeps } from "./app-target.js";
@@ -22,6 +24,9 @@ import type { DebugGraph } from "../debug/types.js";
 import type { ServerRunInput, ServerRunOutcome } from "../debug/server-runner.js";
 
 export { defaultInteractions } from "@nodetool-ai/execution/app-debug";
+
+/** The local single-user id every direct-DB CLI command runs as. */
+const LOCAL_USER_ID = "1";
 
 export interface AppDebugDeps {
   /** Load a workflow by DB id, including its legacy `app_doc`. */
@@ -37,6 +42,10 @@ export interface AppDebugDeps {
   onLog?: (line: string) => void;
   /** Injected for tests; defaults to the kernel server runner. */
   runOnServer?: (input: ServerRunInput) => Promise<ServerRunOutcome>;
+  /** Injected for tests; defaults to the sandbox script runner. */
+  runScript?: JsScriptOperationRunner;
+  /** Resolve a pinned script version an operation targets but the target lacks. */
+  loadScript?: JsScriptOperationLoader;
 }
 
 function defaultOutDir(ref: string): string {
@@ -78,9 +87,35 @@ export async function runAppDebug(
     (async (input: ServerRunInput): Promise<ServerRunOutcome> =>
       (await import("../debug/server-runner.js")).runOnServer(input));
 
+  // Both load lazily for the same reason `runOnServer` does: a `--no-run`
+  // check must not pull in the sandbox or the database.
+  const runScript =
+    deps.runScript ??
+    (async (input) => {
+      const { createJsScriptAppRunner } = await import("@nodetool-ai/agents");
+      const { getSecret } = await import("@nodetool-ai/models");
+      return createJsScriptAppRunner(LOCAL_USER_ID, {
+        secretResolver: getSecret
+      })(input);
+    });
+  const loadScript =
+    deps.loadScript ??
+    (async (scriptId: string, scriptVersion: number) => {
+      const { createJsScriptResolver } = await import("@nodetool-ai/models");
+      const resolved = await createJsScriptResolver().resolve({
+        id: scriptId,
+        version: scriptVersion
+      });
+      return resolved
+        ? { name: resolved.name, document: resolved.document }
+        : null;
+    });
+
   const report = await simulateApp(resolved, options, {
     loadFromDb: deps.loadFromDb,
     runOnServer,
+    runScript,
+    loadScript,
     ...(deps.onLog ? { onLog: deps.onLog } : {}),
     onRunMessages: async (runIndex: number, messages: ProcessingMessage[]) => {
       const messagesFile = `server/run-${runIndex + 1}.messages.jsonl`;

@@ -207,6 +207,7 @@ export { JsScript, JsScriptConflictError } from "./js-script.js";
 export type { JsScriptResponse } from "./js-script.js";
 export { JsScriptVersion } from "./js-script-version.js";
 export type { JsScriptSaveType } from "./js-script-version.js";
+export { createJsScriptResolver } from "./js-script-resolver.js";
 export type {
   ScriptDocument,
   ScriptResponse,

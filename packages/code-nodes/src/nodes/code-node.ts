@@ -43,7 +43,9 @@ import {
   prop,
   CODE_INPUTS_GLOBAL,
   NodeRegistry,
+  missingScriptInputs,
   parseSandboxModuleDeclarations,
+  readJsScriptLink,
   hasReturnStatement,
   hasYieldStatement,
   wrapImplicitReturn,
@@ -366,6 +368,17 @@ class InputStreamBridge {
   }
 }
 
+/**
+ * What one invocation executes: the node's own properties, or the pinned
+ * script's document when the node is linked to one.
+ */
+interface CodeEnvelope {
+  code: string;
+  packages: unknown[];
+  secrets: string[];
+  timeoutSeconds: number;
+}
+
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly platforms = ALL_PLATFORMS;
@@ -486,6 +499,23 @@ export class CodeNode extends BaseNode {
   declare secrets: string[];
 
   @prop({
+    type: "dict",
+    default: {},
+    title: "Script",
+    // The editor renders this with the script picker; an unlinked node stores
+    // the empty object.
+    json_schema_extra: { type: "js_script_link" },
+    description:
+      "A JS script document this node runs instead of its inline code, as " +
+      '{"id": "<script id>", "version": <n>}. The version is pinned at link ' +
+      "time, so editing the script does not silently change this workflow. " +
+      "While linked the script supplies the body, packages, secrets and " +
+      "timeout, and its declared inputs must match the node's slots. Empty " +
+      "means the node runs its own `code`."
+  })
+  declare script: Record<string, unknown>;
+
+  @prop({
     type: "int",
     default: 30,
     title: "Timeout",
@@ -558,9 +588,9 @@ export class CodeNode extends BaseNode {
    * ever widened by an explicit choice on this node — nothing the guest code
    * can reach.
    */
-  private sandboxLimits(): SandboxLimits {
+  private sandboxLimits(envelope: CodeEnvelope): SandboxLimits {
     const mb = Number(this.max_response_mb ?? 1);
-    const declared = (Array.isArray(this.secrets) ? this.secrets : [])
+    const declared = envelope.secrets
       .map((name) => String(name).trim())
       .filter((name) => name !== "");
     return {
@@ -587,10 +617,11 @@ export class CodeNode extends BaseNode {
    * saying so on the node's log is the whole remedy.
    */
   private resolveModules(
+    envelope: CodeEnvelope,
     context?: ProcessingContext
   ): SandboxModuleResolution | undefined {
     const { declarations, invalid } = parseSandboxModuleDeclarations(
-      this.packages
+      envelope.packages
     );
     if (invalid.length > 0) {
       throw new Error(
@@ -666,9 +697,72 @@ export class CodeNode extends BaseNode {
   }
 
   /** Milliseconds the guest may run, or undefined for no limit. */
-  private timeoutMs(): number | undefined {
-    const timeout = Number(this.timeout ?? 30);
-    return timeout > 0 ? timeout * 1000 : undefined;
+  private timeoutMs(envelope: CodeEnvelope): number | undefined {
+    return envelope.timeoutSeconds > 0
+      ? envelope.timeoutSeconds * 1000
+      : undefined;
+  }
+
+  /**
+   * What this invocation runs: the node's own properties, or the pinned
+   * script's document when the node is linked.
+   *
+   * A linked node that cannot resolve its script fails here rather than
+   * silently falling back to its inline body — the body is stale by
+   * construction, and running it would produce a plausible wrong answer.
+   */
+  private async envelope(
+    context: ProcessingContext | undefined
+  ): Promise<CodeEnvelope> {
+    const link = readJsScriptLink({ script: this.script });
+    if (!link) {
+      return {
+        code: String(this.code ?? "return {};"),
+        packages: Array.isArray(this.packages) ? this.packages : [],
+        secrets: Array.isArray(this.secrets) ? this.secrets : [],
+        timeoutSeconds: Number(this.timeout ?? 30)
+      };
+    }
+
+    const resolver = context?.jsScriptResolver;
+    if (!resolver) {
+      throw new Error(
+        `This node is linked to JS script ${link.id} v${link.version}, but ` +
+          "no script resolver is available in this process."
+      );
+    }
+    const resolved = await resolver.resolve(link, context?.userId);
+    if (!resolved) {
+      throw new Error(
+        `JS script ${link.id} v${link.version} was not found; the node's link ` +
+          "is dangling. Re-link the node or restore the script."
+      );
+    }
+
+    const nodeInputs = Object.keys(
+      extractDynamicInputs({
+        ...this.serialize(),
+        ...Object.fromEntries(this.dynamicProps)
+      })
+    );
+    const missing = missingScriptInputs(
+      resolved.document.inputs.map((port) => port.name),
+      nodeInputs
+    );
+    if (missing.length > 0) {
+      throw new Error(
+        `JS script "${resolved.name}" declares input${missing.length > 1 ? "s" : ""} ` +
+          `${missing.map((name) => `"${name}"`).join(", ")}, which this node has ` +
+          "no slot for."
+      );
+    }
+
+    return {
+      code: resolved.document.code,
+      packages: resolved.document.packages,
+      secrets: resolved.document.secrets,
+      timeoutSeconds: resolved.document.timeoutSeconds
+    };
   }
 
   /**
@@ -679,30 +773,32 @@ export class CodeNode extends BaseNode {
    */
   private async sandboxOptions(
     code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): Promise<RunSandboxOptions> {
     return {
       code: `${NODETOOL_PRELUDE}\n${code}`,
       context,
-      timeoutMs: this.timeoutMs(),
+      timeoutMs: this.timeoutMs(envelope),
       globals: await this.sandboxGlobals(context),
-      limits: this.sandboxLimits(),
+      limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
-      modules: this.resolveModules(context)
+      modules: this.resolveModules(envelope, context)
     };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? "return {};");
+    const envelope = await this.envelope(context);
+    const code = envelope.code;
     if (!usesEmitOutputContract(code)) {
       // The legacy return/yield contract runs unwarned: the deprecation
       // notice lives in validate_code, not in every run's message stream —
       // reliability goldens and downstream consumers pin that stream.
-      return this.runLegacySingleShot(code, context);
+      return this.runLegacySingleShot(envelope, context);
     }
 
     const result = await runInSandbox(
-      await this.sandboxOptions(code, context)
+      await this.sandboxOptions(code, envelope, context)
     );
 
     if (!result.success) {
@@ -734,7 +830,8 @@ export class CodeNode extends BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void> {
-    const code = String(this.code ?? "return {};");
+    const envelope = await this.envelope(context);
+    const code = envelope.code;
     if (!usesStreamInputContract(code)) {
       // The kernel only routes here when hydration said the body streams, and
       // hydration re-reads the body every time. Reaching this means a stale
@@ -760,7 +857,7 @@ export class CodeNode extends BaseNode {
 
     try {
       const result = await runInSandbox({
-        ...(await this.sandboxOptions(code, context)),
+        ...(await this.sandboxOptions(code, envelope, context)),
         signal: abort.signal,
         // Awaited, so a downstream inbox at its bound blocks the guest's
         // `emit` — the same backpressure the buffered pump gets from its
@@ -792,12 +889,13 @@ export class CodeNode extends BaseNode {
 
   /** The deprecated return-bag path: implicit return, normalized output. */
   private async runLegacySingleShot(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): Promise<Record<string, unknown>> {
+    const code = envelope.code;
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
     const result = await runInSandbox(
-      await this.sandboxOptions(body, context)
+      await this.sandboxOptions(body, envelope, context)
     );
     if (!result.success) {
       throw new Error(result.error ?? "Code execution failed");
@@ -808,18 +906,18 @@ export class CodeNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const code = String(this.code ?? "return {};");
+    const envelope = await this.envelope(context);
 
-    if (usesEmitOutputContract(code)) {
-      yield* this.pumpEmitContract(code, context);
+    if (usesEmitOutputContract(envelope.code)) {
+      yield* this.pumpEmitContract(envelope, context);
       return;
     }
 
-    if (!hasYieldStatement(code)) {
-      yield await this.runLegacySingleShot(code, context);
+    if (!hasYieldStatement(envelope.code)) {
+      yield await this.runLegacySingleShot(envelope, context);
       return;
     }
-    yield* this.runLegacyStream(code, context);
+    yield* this.runLegacyStream(envelope, context);
   }
 
   /**
@@ -831,7 +929,7 @@ export class CodeNode extends BaseNode {
    * backpressure with no new kernel concept.
    */
   private async *pumpEmitContract(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): AsyncGenerator<Record<string, unknown>> {
     const channel = new BoundedChannel<Record<string, unknown>>(
@@ -846,7 +944,7 @@ export class CodeNode extends BaseNode {
     const run = (async () => {
       try {
         result = await runInSandbox({
-          ...(await this.sandboxOptions(code, context)),
+          ...(await this.sandboxOptions(envelope.code, envelope, context)),
           signal: abort.signal,
           onEmit: (name: string, value: unknown) =>
             channel.push({ [name]: value })
@@ -890,9 +988,10 @@ export class CodeNode extends BaseNode {
 
   /** The deprecated `yield` path: the guest collects, the host replays. */
   private async *runLegacyStream(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): AsyncGenerator<Record<string, unknown>> {
+    const code = envelope.code;
     // The prelude sits outside the yield_ rewrite: only user code streams.
     const wrappedBody = `${NODETOOL_PRELUDE}
       const __yielded = [];
@@ -902,7 +1001,7 @@ export class CodeNode extends BaseNode {
     `;
 
     const result = await runInSandbox({
-      ...(await this.sandboxOptions("", context)),
+      ...(await this.sandboxOptions("", envelope, context)),
       code: wrappedBody
     });
 
@@ -931,6 +1030,7 @@ function extractDynamicInputs(
 ): Record<string, unknown> {
   const reserved = new Set([
     "code",
+    "script",
     "packages",
     "secrets",
     "timeout",

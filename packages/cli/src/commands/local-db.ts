@@ -4,7 +4,8 @@
  * commands) without pulling in the heavy deploy stack.
  */
 
-import { initDb } from "@nodetool-ai/models";
+import { createJsScriptResolver, initDb } from "@nodetool-ai/models";
+import { setProcessJsScriptResolver } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 
@@ -23,6 +24,8 @@ let ready: Promise<void> | null = null;
 export function setupLocalDb(): Promise<void> {
   ready ??= (async () => {
     initDb(getDefaultDbPath());
+    // A Code node linked to a JS script resolves its pinned version here.
+    setProcessJsScriptResolver(createJsScriptResolver());
     try {
       await initMasterKey();
     } catch (err) {

@@ -1,6 +1,9 @@
 # JS Script Documents: a first-class, executable script type
 
-Status: design (not implemented). Owner: code-nodes / agents / web. 2026-08-12.
+Status: implemented (phases 1–3). Owner: code-nodes / agents / web. 2026-08-12.
+
+Where the implementation differs from the design below, the difference is
+noted inline under **Implementation note**.
 
 ## Problem
 
@@ -242,6 +245,21 @@ match the node's connected slots, which `validateGraph` checks by resolving
 the reference (a dangling id or version is a graph error, same family as a
 model id the provider doesn't offer).
 
+**Implementation note.** A node cannot reach the database, so resolution goes
+through a `JsScriptResolver` on the `ProcessingContext`, installed process-wide
+by the host that owns the database (`setProcessJsScriptResolver`, the seam
+`SandboxModuleCatalog` uses; the implementation is
+`createJsScriptResolver` in `@nodetool-ai/models`). `validateGraph` is
+synchronous, so it takes an injected `jsScriptLookup` instead: a caller
+prefetches every link with `collectJsScriptLinks` and passes a lookup over what
+it found. Without one, a linked node is a `js_script_unverified` **warning**,
+not an error — the fail-toward-silence rule the model checks follow. With one, a
+link it does not answer for is `js_script_missing`, an error. The port rule
+lives in `@nodetool-ai/node-sdk` (`js-script-link.ts`), shared by the validator
+and the node: the validator checks all four directions, the running node checks
+the one it can decide (a declared input it has no slot for), because a node
+instance does not carry its declared output handles.
+
 ### From mini apps
 
 `OperationBinding` (`packages/app-runtime/src/document.ts`) today binds only a
@@ -256,6 +274,13 @@ type OperationTarget =
 (`workflowId` on the binding stays readable for one schema version;
 `APP_SCHEMA_VERSION` bumps to 4 with a lift in `documents.ts`.)
 
+**Implementation note.** The lift lives in `document.ts`, next to
+`parseApplicationDocument` — `documents.ts` is the sketch/timeline ref reader
+and has nothing to do with app documents. `workflowId` is not duplicated: a
+workflow target stores its id there as it always did, and only a script target
+stores a `target`. `operationTarget(binding)` is the normalizer that derives the
+union, and it is the only place the two kinds are told apart.
+
 A script operation maps widgets to the script's declared inputs and its
 outputs to displays/variables exactly as a workflow operation maps input and
 output nodes — the mapping layer already works on names. Execution goes
@@ -264,6 +289,29 @@ the app-runtime fold (`fold.ts`), the `app debug` harness simulator, and the
 web runtime consume script operations without a second code path. `nodetool
 app debug` validates a script target the way it validates a workflow target:
 a binding naming a port the script does not declare is an error.
+
+**Implementation note.** The run endpoint still answers with plain JSON, so the
+stream the fold consumes is synthesized from that result by one adapter,
+`jsScriptRunMessages` (`@nodetool-ai/execution/app-debug`, `script-operation.ts`):
+one `output_update` per emit in call order, one per final output, then the
+terminal `job_update`. A script's ports stand in for node ids, since a script
+has no nodes. Executing a body lives above `@nodetool-ai/execution`, so the
+simulator takes an injected `runScript`; the hosts that own both wire
+`createJsScriptAppRunner` (`@nodetool-ai/agents`) — the server's
+`/api/applications/debug`, the `debug_app` capability, and `nodetool app debug`.
+A host with no runner reports the operation as unexecutable rather than skipping
+it. The web app runtime is **not** wired yet: it still runs workflow operations
+only, and a script operation in the browser is the remaining gap — tracked here.
+The app builder has no script-operation authoring UI either; a script operation
+is authored through the document (bundle import, an agent's document edit).
+
+`ApplicationBundle.scripts` carries each pinned document under a bundle-local
+key. Because a script row has its own version numbering, import snapshots every
+carried script and re-pins the operations to the version it created
+(`pinScriptVersions`); the number the export carried means nothing in the
+importing database. `@nodetool-ai/app-runtime` stays dependency-free, so the
+carried document is typed structurally (`BundleJsScriptDocument`) and parsed
+against the pinned Zod contract wherever it is actually run.
 
 `ApplicationBundle` gains `scripts: BundledJsScript[]` beside `workflows`,
 with the same bundle-local key indirection, so an app that uses scripts stays
@@ -342,7 +390,8 @@ with cases covering authoring from a prompt, adding tests, and a repair loop
    `jsscript-tools` eval. Agents and other scripts can invoke scripts.
 3. **Attachment**: Code node `script` link (link/extract/detach, pinned
    version, graph validation), mini-app `OperationTarget` + bundle scripts +
-   `app debug` coverage.
+   `app debug` coverage. Landed, minus the web app runtime's own execution
+   path for a script operation (see the note under *From mini apps*).
 
 Each phase lands green on its own; nothing in phase 1 depends on a later
 phase's schema.

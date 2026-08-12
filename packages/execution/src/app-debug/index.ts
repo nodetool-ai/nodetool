@@ -54,5 +54,15 @@ export type {
   HeadlessRunResult,
   ResourceItem
 } from "./runtime.js";
+export {
+  jsScriptRunMessages,
+  parseCarriedScriptDocument,
+  scriptAppIO
+} from "./script-operation.js";
+export type {
+  JsScriptOperationLoader,
+  JsScriptOperationRunner,
+  JsScriptRunResult
+} from "./script-operation.js";
 export { renderAppReportMarkdown } from "./markdown.js";
 export type * from "./types.js";

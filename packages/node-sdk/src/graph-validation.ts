@@ -16,6 +16,12 @@ import {
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
+import {
+  jsScriptPortMismatches,
+  readJsScriptLink,
+  type JsScriptLink,
+  type JsScriptLinkLookup
+} from "./js-script-link.js";
 import { parseSandboxModuleDeclarations } from "./sandbox-module-declarations.js";
 import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
@@ -576,6 +582,35 @@ export interface GraphValidationOptions {
    * graph without one (a browser client, a test).
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * Resolves a Code node's pinned `script` link. Validation is synchronous, so
+   * a caller that can reach the script store prefetches every link
+   * ({@link collectJsScriptLinks}) and passes a lookup over what it found.
+   *
+   * Without one, a linked node reports "cannot verify" as a warning rather
+   * than a false error — the same fail-toward-silence rule the model-catalog
+   * checks follow. With one, a link it does not answer for is dangling, and
+   * that is an error.
+   */
+  jsScriptLookup?: JsScriptLinkLookup | null;
+}
+
+/**
+ * Every pinned script link a graph's Code nodes carry, deduplicated. A host
+ * that wants the linked-script checks loads these first and hands
+ * {@link validateGraph} a lookup over the result.
+ */
+export function collectJsScriptLinks(
+  graph: GraphValidationInput
+): JsScriptLink[] {
+  const seen = new Map<string, JsScriptLink>();
+  for (const node of graph.nodes ?? []) {
+    if (!isJsCodeNodeType(String(node.type ?? ""))) continue;
+    const link = readJsScriptLink(readProperties(node));
+    if (!link) continue;
+    seen.set(`${link.id}@${link.version}`, link);
+  }
+  return [...seen.values()];
 }
 
 export function validateGraph(
@@ -764,6 +799,72 @@ export function validateGraph(
         ...Object.keys(readDynamicProperties(node)),
         ...connectedInputs
       ]);
+
+      // A linked node runs the pinned script's body, not its own `code`, so
+      // the script is what gets checked — against the node's slots.
+      const link = readJsScriptLink(props);
+      if (link) {
+        const lookup = options.jsScriptLookup;
+        const resolved = lookup ? lookup(link) : undefined;
+        if (!lookup) {
+          issues.push({
+            severity: "warning",
+            code: "js_script_unverified",
+            nodeId: id,
+            nodeType: type,
+            message:
+              `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
+              "which cannot be verified here — no script resolver is available."
+          });
+        } else if (!resolved) {
+          issues.push({
+            severity: "error",
+            code: "js_script_missing",
+            nodeId: id,
+            nodeType: type,
+            message:
+              `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
+              "which does not exist. Re-link the node or restore the script."
+          });
+        } else {
+          const nodeInputs = [...availableInputs].filter(
+            (name) => !isReservedHandle(name)
+          );
+          const nodeOutputs = Object.keys(readDynamicOutputs(node));
+          for (const mismatch of jsScriptPortMismatches({
+            scriptInputs: resolved.document.inputs.map((port) => port.name),
+            scriptOutputs: resolved.document.outputs.map((port) => port.name),
+            nodeInputs,
+            nodeOutputs
+          })) {
+            issues.push({
+              severity: "error",
+              code: "js_script_ports",
+              nodeId: id,
+              nodeType: type,
+              message: `Node "${id}": ${mismatch}.`
+            });
+          }
+          for (const codeIssue of validateCodeNodeBody({
+            code: resolved.document.code,
+            availableInputs: resolved.document.inputs.map((port) => port.name),
+            declaredOutputs: resolved.document.outputs.map((port) => port.name),
+            connectedOutputs: [...(consumedByNode.get(id) ?? [])],
+            declaredPackages: resolved.document.packages,
+            sandboxModuleCatalog
+          })) {
+            issues.push({
+              severity: codeIssue.severity,
+              code: codeIssue.code,
+              nodeId: id,
+              nodeType: type,
+              message: `Node "${id}" (script "${resolved.name}"): ${codeIssue.message}`
+            });
+          }
+        }
+        continue;
+      }
+
       const { declarations, invalid } = parseSandboxModuleDeclarations(
         props.packages
       );

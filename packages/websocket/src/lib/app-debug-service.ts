@@ -7,6 +7,8 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
+import { createJsScriptAppRunner } from "@nodetool-ai/agents";
+import { getSecret } from "@nodetool-ai/models";
 import {
   AppServiceError,
   runApplicationDebug as runApplicationDebugService
@@ -48,7 +50,12 @@ export async function runApplicationDebug(
   const registry =
     deps.registry ?? apiOptions.registry ?? (await getDefaultRegistry());
   try {
-    return await runApplicationDebugService(userId, body, registry, deps);
+    return await runApplicationDebugService(userId, body, registry, {
+      // A script operation runs the QuickJS sandbox, which lives above the
+      // execution package — the server is where both are in reach.
+      runScript: createJsScriptAppRunner(userId, { secretResolver: getSecret }),
+      ...deps
+    });
   } catch (error) {
     if (error instanceof AppServiceError) {
       throwApiError(
