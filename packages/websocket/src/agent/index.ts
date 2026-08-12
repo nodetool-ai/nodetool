@@ -12,7 +12,7 @@ export {
   getMcpToolServerUrl,
   stopMcpToolServer,
 } from "./mcp-tool-server.js";
-export { setLlmAgentGraphPlannerRegistry } from "./llm-agent.js";
+export { setLlmAgentNodeRegistry } from "./llm-agent.js";
 export { default as agentSocketRoute } from "./socket-route.js";
 export type {
   AgentProvider,

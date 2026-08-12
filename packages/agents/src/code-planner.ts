@@ -1,7 +1,7 @@
 /**
  * CodePlanner -- generates one Code node from a natural-language instruction.
  *
- * Same machinery as `GraphPlanner`, smaller payload: a system prompt derived
+ * A system prompt derived
  * from the sandbox manifest, one forced `submit_code` tool, validation run
  * inside the tool, and rejections returned as tool results so the model fixes
  * its submission over feedback rounds. Rounds are capped; an accepted

@@ -1,12 +1,12 @@
 /**
- * SubmitCodeTool -- the `submit_code` analog of `submit_graph`.
+ * SubmitCodeTool -- the one tool `CodePlanner` forces.
  *
  * The model submits the whole Code node — title, summary, code, typed input and
  * output slots — as one tool call. Transport shape is checked with the protocol
  * schema, then the code is parsed and every declared output is verified on every
  * visible return path. Failures come back as the tool result, so the model fixes
- * the submission over feedback rounds instead of the planner re-prompting from
- * scratch.
+ * the submission over feedback rounds instead of the planner re-prompting
+ * from scratch.
  *
  * Only the arguments of an accepted call become the result. Free text and code
  * fences in the assistant message are never read.

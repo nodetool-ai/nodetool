@@ -118,15 +118,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   finish_task: "read",
   finish_step: "read",
   finish_graph: "read",
-  submit_graph: "read",
   add_node: "read",
   add_edge: "read",
   // run_subtask spawns a child loop whose own tools are gated; the call
   // itself has no side effects, so it always runs.
   run_subtask: "read",
-  // plan_workflow_graph only builds and returns a graph — saving it goes
-  // through the gated `create_workflow`.
-  plan_workflow_graph: "read",
   // run_search spawns a read-only child loop (read_file/glob/grep/
   // list_directory/read_shared only); the call itself has no side effects, so
   // it always runs ungated.

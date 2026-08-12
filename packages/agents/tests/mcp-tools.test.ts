@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { Asset, Job, Workflow, initTestDb } from "@nodetool-ai/models";
 import {
   debugSessions,
@@ -14,12 +13,10 @@ import {
 } from "../src/tools/mcp-tools.js";
 import { RUNTIME_MODEL_CATALOGS } from "../src/tools/mcp-tool-support.js";
 import type { Tool } from "../src/tools/base-tool.js";
-import { planWorkflowGraph } from "../src/capabilities/workflows.js";
 import {
   UNGATED,
   createCapabilityRun,
   toolForCapabilityName,
-  toolFromCapability,
   type CreateCapabilityRunOptions
 } from "../src/capabilities/index.js";
 
@@ -1426,96 +1423,3 @@ describe("getAllMcpTools", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// plan_workflow_graph
-// ---------------------------------------------------------------------------
-
-describe("plan_workflow_graph", () => {
-  // A provider whose tool loop ends immediately without calling finish_graph,
-  // so the planner exhausts its retries and returns null.
-  function makeEmptyLoopProvider(): BaseProvider {
-    return {
-      provider: "mock",
-      generateLoop: () => (async function* () {})()
-    } as unknown as BaseProvider;
-  }
-
-  function makeTool(forwardMessage?: (msg: ProcessingMessage) => void): Tool {
-    return toolFromCapability(
-      planWorkflowGraph.spec,
-      planWorkflowGraph.impl,
-      (context) =>
-        createCapabilityRun({
-          context,
-          gate: UNGATED,
-          nodeRegistry: {} as never,
-          graphPlanner: {
-            provider: makeEmptyLoopProvider(),
-            model: "mock-model",
-            forwardMessage
-          }
-        })
-    );
-  }
-
-  it("asks for the runtime a host must supply", async () => {
-    const withoutRuntime = toolFromCapability(
-      planWorkflowGraph.spec,
-      planWorkflowGraph.impl,
-      (context) => createCapabilityRun({ context, gate: UNGATED })
-    );
-    expect(
-      await withoutRuntime.process(ctx, { objective: "do things" })
-    ).toMatchObject({
-      error: expect.stringContaining("graphPlanner")
-    });
-  });
-
-  it("rejects a missing or empty objective", async () => {
-    const tool = makeTool();
-    expect(await tool.process(ctx, {})).toMatchObject({
-      error: expect.stringContaining("objective")
-    });
-    expect(await tool.process(ctx, { objective: "   " })).toMatchObject({
-      error: expect.stringContaining("objective")
-    });
-  });
-
-  it("returns an error when the planner fails to produce a graph", async () => {
-    const tool = makeTool();
-    const result = await tool.process(ctx, { objective: "do things" });
-    expect(result).toMatchObject({
-      error: expect.stringContaining("failed to build a graph")
-    });
-  });
-
-  it("forwards planner events tagged with the parent tool_call_id", async () => {
-    const forwarded: ProcessingMessage[] = [];
-    const tool = makeTool((msg) => {
-      forwarded.push(msg);
-    });
-    // The wrapper declares `needsToolCallId`, so the id the caller passes to
-    // `execute` reaches the implementation in the args.
-    expect(tool.needsToolCallId).toBe(true);
-    await tool.execute(
-      ctx,
-      { objective: "do things" },
-      { toolCallId: "call-1" }
-    );
-    expect(forwarded.length).toBeGreaterThan(0);
-    expect(forwarded.some((m) => m.type === "planning_update")).toBe(true);
-    for (const msg of forwarded) {
-      expect(
-        (msg as unknown as Record<string, unknown>).parent_tool_call_id
-      ).toBe("call-1");
-    }
-  });
-
-  it("survives a broken forwarder and still returns a result", async () => {
-    const tool = makeTool(() => {
-      throw new Error("forwarder down");
-    });
-    const result = await tool.process(ctx, { objective: "do things" });
-    expect(result).toMatchObject({ error: expect.any(String) });
-  });
-});

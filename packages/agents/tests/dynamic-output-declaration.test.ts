@@ -1,13 +1,12 @@
 /**
- * The bug this pins: a graph authored through `submit_graph` could not declare
- * a dynamic output handle, so a Code node returning `{ line }` and wired onward
- * by `line` reported `code_undeclared_output` — and no DSL a planner could
- * write would fix it. An outgoing edge now declares the handle.
+ * The bug this pins: an authored graph could not declare a dynamic output
+ * handle, so a Code node returning `{ line }` and wired onward by `line`
+ * reported `code_undeclared_output` — and no graph the agent could write would
+ * fix it. An outgoing edge now declares the handle.
  */
 import { describe, it, expect } from "vitest";
 import { validateGraph } from "@nodetool-ai/node-sdk";
 import { GraphBuilder } from "../src/graph-builder.js";
-import { SubmitGraphTool } from "../src/tools/submit-graph-tool.js";
 import { metadataAwareRegistry } from "../src/tools/graph-validation-registry.js";
 import { declareDynamicOutputsInGraph } from "../src/dynamic-slots.js";
 
@@ -37,12 +36,6 @@ const registry = {
 } as never;
 
 const CODE_BODY = 'const line = "hello";\nreturn { line };';
-
-const PROGRAM = `const code = node("nodetool.code.Code", {
-  code: ${JSON.stringify(CODE_BODY)}
-}, "code");
-node("nodetool.output.Output", { name: "line", value: code.output("line") }, "out");
-return graph();`;
 
 /** Codes of the code-body issues the validator can raise about outputs. */
 function outputIssueCodes(graph: unknown): string[] {
@@ -83,25 +76,6 @@ function jsonGraph(): JsonGraph {
 }
 
 describe("a Code node's returned key wired onward", () => {
-  it("validates through submit_graph with no undeclared-output issue", async () => {
-    const tool = new SubmitGraphTool(registry);
-    const result = (await tool.process({} as never, { code: PROGRAM })) as {
-      status: string;
-      errors?: string[];
-      warnings?: string[];
-    };
-
-    expect(result.errors ?? []).toEqual([]);
-    expect(result.status).toBe("graph_accepted");
-    expect(
-      (result.warnings ?? []).filter((w) => w.includes("not declared as an output"))
-    ).toEqual([]);
-    expect(tool.graph!.nodes.find((n) => n.id === "code")?.dynamic_outputs).toEqual({
-      line: { type: "any" }
-    });
-    expect(outputIssueCodes(tool.graph)).not.toContain("code_undeclared_output");
-  });
-
   it("validates as plain JSON with no undeclared-output issue", () => {
     const declared = declareDynamicOutputsInGraph(
       jsonGraph(),

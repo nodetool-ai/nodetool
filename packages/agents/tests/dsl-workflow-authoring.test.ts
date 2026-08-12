@@ -351,7 +351,7 @@ describe("validating an authored graph", () => {
 
   /**
    * The wired Code handle is declared from the edge that reads it, the way
-   * `submit_graph` declares it in `GraphBuilder`. The DSL pack builds its graph
+   * `GraphBuilder` declares it. The DSL pack builds its graph
    * in the guest, which has no registry and so cannot know the node supports
    * dynamic outputs; `validate_workflow` declares it host-side instead.
    */

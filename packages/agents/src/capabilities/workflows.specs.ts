@@ -166,29 +166,11 @@ export const VALIDATE_WORKFLOW_SCHEMA: JsonSchema = {
     code: {
       type: "string",
       description:
-        "A graph program in the same DSL submit_graph takes — node(type, " +
+        "A graph program in the legacy untyped DSL — node(type, " +
         "properties) and ref.output(slot?), ending with `return graph();`. " +
         "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
     }
   }
-};
-
-export const PLAN_WORKFLOW_GRAPH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    objective: {
-      type: "string",
-      description:
-        "Natural-language description of what the workflow should do."
-    },
-    inputs: {
-      type: "object",
-      description:
-        "Runtime parameters the workflow should accept, keyed by input " +
-        "name with example values. Each becomes an input node in the graph."
-    }
-  },
-  required: ["objective"]
 };
 
 export const listWorkflowsSpec: CapabilitySpec = {
@@ -289,7 +271,8 @@ export const validateWorkflowSpec: CapabilitySpec = {
     "it: unknown node types, missing required properties, unselected models, " +
     "model properties naming an unregistered provider or a model id that " +
     "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
-    "check the same graph program you would hand to submit_graph, an inline " +
+    "check a graph DSL program (node(type, properties) calls ending with " +
+    "`return graph();`), an inline " +
     "`graph` to check a graph you are building, or `workflow_id` to validate " +
     "a saved one. Run this before saving or running to catch breakage in " +
     "milliseconds.",
@@ -372,28 +355,6 @@ export const exportWorkflowDigraphSpec: CapabilitySpec = {
     `Exporting workflow ${params["workflow_id"]} as digraph`
 };
 
-export const planWorkflowGraphSpec: CapabilitySpec = {
-  name: "plan_workflow_graph",
-  description:
-    "Build a complete workflow graph ({nodes, edges}) from a natural-language " +
-    "objective using the backend GraphPlanner: it searches the node registry, " +
-    "inspects node metadata, and wires a validated DAG node-by-node. Returns " +
-    "the graph without saving or running it — pass the result to " +
-    "`create_workflow` to save, then `run_workflow` to execute.",
-  inputSchema: PLAN_WORKFLOW_GRAPH_SCHEMA,
-  // Planning builds and returns a graph; saving it goes through
-  // `create_workflow`, which is where the write is gated.
-  category: "read",
-  needsToolCallId: true,
-  userMessage: (params) => {
-    const objective =
-      typeof params["objective"] === "string"
-        ? params["objective"].slice(0, 80)
-        : "workflow";
-    return `Planning workflow graph: ${objective}`;
-  }
-};
-
 /** Every spec this module declares, in declaration order. */
 export const workflowsSpecs: readonly CapabilitySpec[] = [
   listWorkflowsSpec,
@@ -405,6 +366,5 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   validateWorkflowSpec,
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
-  exportWorkflowDigraphSpec,
-  planWorkflowGraphSpec
+  exportWorkflowDigraphSpec
 ];

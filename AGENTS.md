@@ -1161,6 +1161,19 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+**No API key? Use the Claude Agent provider.** In keyless environments —
+Claude Code on the web, CI sandboxes — the `claude_agent_sdk` provider runs
+every eval suite on the session's own Claude credentials, no secret store
+needed. In the web sandbox (uid=0) set `IS_SANDBOX=1` so the nested CLI
+accepts the permission bypass:
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval graph-planner -p claude_agent_sdk -m claude-sonnet-5
+```
+
+Details on env stripping and the uid=0 blocker:
+[docs/AGENTS.md § Claude Agent SDK](docs/AGENTS.md#claude-agent-sdk).
+
 A **`graph-e2e`** suite takes the same planner all the way through: it plans a
 workflow, executes it on the kernel with the case's inputs, and has an LLM judge
 decide whether the outputs achieve the case's goal. A case succeeds only if all

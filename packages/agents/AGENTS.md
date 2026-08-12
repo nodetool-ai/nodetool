@@ -949,8 +949,8 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
 The one place that knows how to spawn, stream, and settle a child agent. A
 sub-agent is an async generator of `ProcessingMessage` events whose return
 value is how the run settled — CodeAct is the default producer, but anything
-with that shape (a `GraphPlanner.plan()`, a future reviewer) streams through
-the same pipe and nests in the UI the same way.
+with that shape (a future reviewer, a researcher) streams through the same
+pipe and nests in the UI the same way.
 
 | Primitive | Does |
 |---|---|
@@ -963,9 +963,9 @@ the same pipe and nests in the UI the same way.
 Every spawn site goes through it: `RunSubtaskTool` (inherits the full parent
 belt, stitches itself in for recursion) and `RunSearchTool` (read-only
 allowlist, breadth-scaled iteration budget) are thin `SubAgentTool`
-subclasses; `plan_workflow_graph` drives the GraphPlanner generator through
-`forwardSubAgentStream`. A new delegation tool
-should be another subclass, not another copy of the machinery.
+subclasses. A generator that is not a CodeAct child streams through
+`forwardSubAgentStream` directly. A new delegation tool should be another
+subclass, not another copy of the machinery.
 
 Tests: `tests/subagent.test.ts` (pure-function coverage), plus the spawn-site
 suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`)
@@ -996,15 +996,45 @@ code is visible in the `execute_code` call. What is gone is the second sandbox
 API, the second planner prompt, and the second set of budget knobs
 (`maxAgentCalls`).
 
-## Graph Mode (one-shot DSL planning)
+## Authoring a graph (`src/author-graph.ts`)
 
-`GraphPlanner` builds a workflow graph by having the LLM write ONE graph DSL
-program instead of a tool call per node/edge. Discovery tools (`search_nodes`,
-`get_node_info`, `list_nodes`, `find_model`) stay; construction goes through a
-single `submit_graph(code)` tool. The program is plain JavaScript with the
-same wiring semantics as `@nodetool-ai/dsl` — `node(type, properties)` creates
-a node, passing `ref.output(slot?)` as a property value becomes an edge, and
-the program ends with `return graph();`:
+`authorGraph(objective, opts)` is how a graph gets written, and what both
+graph callers use — `Agent`'s graph mode (`executeGraphPlan`) and the
+app-build plan stage (one call per operation). It streams `ProcessingMessage`s
+and returns the graph.
+
+It runs no loop of its own. `runSubAgent` drives one CodeAct child whose
+allowlist carries `@nodetool-ai/sandbox-dsl`, so the child authors with the
+typed pack — one generated function per node type — instead of the untyped
+`node(type, props)` program the retired one-shot planner took. The belt is
+discovery
+(`search_nodes`, `get_node_info`, `list_nodes`), `validate_workflow`, the
+Code-body harness (`validate_code`, `run_code`, `test_code`) and `find_model`
+when providers are configured. The graph comes back through `finish()` against
+a `{nodes, edges}` output schema: the object is already in the sandbox, so
+handing it over costs no tokens.
+
+The prompt is assembled once. `renderWorkflowAuthoringKnowledge()`
+(`prompts/workflow-authoring-knowledge.ts`) is the preamble — which node to
+reach for, how `agent` steps and `if_` behave, what a Code node is — and the
+DSL mechanics are NOT repeated there: `CodeActExecutor` renders
+`GRAPH_DSL_PROMPT_SECTION` itself once the pack is on the allowlist.
+
+There is no post-hoc Code-node refinement pass. A whole-graph one-shot had no
+way to iterate on a Code body it wrote as a string literal, which is what such
+a pass existed to fix; a CodeAct child validates and re-runs a body inside the
+same loop. Without a catalog serving the pack the run fails immediately, naming the
+pack, rather than spending a provider turn on an import that cannot resolve.
+
+Tests: `tests/author-graph.test.ts` (brief, preamble, belt, plus one scripted
+provider driving a real sandbox action over the real shipped pack).
+
+## The graph DSL program (`src/graph-dsl.ts`)
+
+`evaluateGraphDsl` runs a free-form graph program in the QuickJS sandbox (no
+host access) and returns `{nodes, edges}`. It is the older, untyped authoring
+shape — `node(type, properties)` creates a node, passing `ref.output(slot?)` as
+a property value becomes an edge, and the program ends with `return graph();`:
 
 ```js
 const prompt = node("nodetool.input.StringInput", { name: "prompt" });
@@ -1012,29 +1042,35 @@ const image = node("nodetool.image.TextToImage", {
   prompt: prompt.output(),
   model: { provider: "fal_ai", id: "fal-ai/flux/schnell" }
 });
-node("nodetool.output.ImageOutput", { name: "image", value: image.output() });
+node("nodetool.output.Output", { name: "image", value: image.output() });
 return graph();
 ```
 
-The program runs in the QuickJS sandbox (`evaluateGraphDsl` in
-`src/graph-dsl.ts` — no host access), is loaded into a `GraphBuilder`, and
-validated structurally plus with node-sdk's `validateGraph`. Failures return
-as the `submit_graph` tool result, so the model fixes the program and
-resubmits over feedback rounds; an accepted submission ends the loop. The
-outer retry (`maxRetries`, default 3) carries the last program and its errors
-into a fresh attempt when the model stops without an accepted graph.
+Nothing authors this way any more — `authorGraph` writes typed calls against
+`@nodetool-ai/sandbox-dsl` instead — but `validate_workflow` still accepts a
+program in this shape, so the evaluator and the wiring core behind it
+(`src/graph-dsl-core.ts`, shared with the pack's guest builder) stay.
+`GraphBuilder` (`src/graph-builder.ts`) is what loads either shape into a
+graph and validates it structurally, alongside node-sdk's `validateGraph`.
 
-Tests: `tests/graph-dsl.test.ts`, `tests/graph-planner-coverage.test.ts`,
-`tests/graph-planner-loop.test.ts`.
+Tests: `tests/graph-dsl.test.ts`, `tests/dsl-handle-interpolation.test.ts`,
+`tests/dsl-workflow-authoring.test.ts`.
 
 ### Eval suite
 
-`src/evals/` carries a provider-agnostic evaluation harness for the planner:
-`GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations — input
-wiring, node-family patterns, branch handles, no provider-locked nodes) and
-`runGraphPlannerEval` (metrics per case: accepted, score, submit rounds,
-tool calls, attempts, duration, cost; aggregate: success rate, one-shot rate,
-averages). Run it against any registered provider:
+`src/evals/` carries a provider-agnostic evaluation harness for graph
+authoring: `GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations —
+input wiring, node-family patterns, branch handles, reachability, prompt text,
+no provider-locked nodes) and `runGraphPlannerEval`, which drives
+`authorGraph` (metrics per case: accepted, score, authoring rounds, tool
+calls, duration, cost; aggregate: success rate, one-shot rate, averages). Run it
+against any registered provider:
+
+Two metrics were mapped when the suite moved off the retired one-shot planner:
+**authoring rounds** replaces submit rounds and counts `execute_code` actions,
+so a one-shot is a graph delivered in the first action; **attempts** is gone,
+because `authorGraph` has no outer retry loop — a repair is another authoring
+round.
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list
@@ -1053,7 +1089,7 @@ nothing about whether the workflow does what was asked. `src/evals/graph-e2e-
 {cases,eval}.ts` closes that loop — every case runs three phases and only counts
 as a success when all three hold:
 
-1. **plan** — `GraphPlanner.plan()` produces a graph, scored structurally by the
+1. **plan** — `authorGraph()` produces a graph, scored structurally by the
    same `checkExpectations` the graph-planner suite uses.
 2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
    planner's Agent nodes (the planner leaves them model-less on purpose — the
@@ -1540,7 +1576,7 @@ Span hierarchy (an analyzer agent can read this tree to optimize prompts):
 workflow.run
   node.process
     agent.execute
-      agent.plan        (TaskPlanner.planMultiTask / GraphPlanner.plan)
+      agent.plan        (TaskPlanner.planMultiTask / authorGraph)
         llm.chat        (BaseProvider.generateMessageTraced)
         llm.stream      (BaseProvider.generateMessagesTraced)
       agent.step        (CodeActExecutor.execute)

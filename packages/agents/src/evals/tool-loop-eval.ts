@@ -7,7 +7,7 @@
  * against a {@link createToolLoopBridge headless bridge}, and the result is fed
  * back — repeating until the model stops calling tools or a turn cap is hit.
  *
- * Where {@link runGraphPlannerEval} evaluates one-shot DSL authoring, this
+ * Where {@link runGraphPlannerEval} evaluates typed-DSL graph authoring, this
  * evaluates the incremental add-node/connect-node tool flow the browser UI and
  * the agent WebSocket bridge actually expose. It records the same efficiency
  * metrics and emits the same result/summary shapes so providers/models can be

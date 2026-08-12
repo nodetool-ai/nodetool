@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { validateNodeProperties } from "@nodetool-ai/node-sdk";
+import { validateGraph, validateNodeProperties } from "@nodetool-ai/node-sdk";
+import { GraphBuilder } from "../src/graph-builder.js";
 import { metadataAwareRegistry } from "../src/tools/graph-validation-registry.js";
-import { SubmitGraphTool } from "../src/tools/submit-graph-tool.js";
+import { normalizeModelProperties } from "../src/normalize-model-properties.js";
 
 // `validateNodeProperties` consumes @prop declarations; `getMetadata`
 // returns the flattened NodeMetadata shape. They differ, so both are here.
@@ -30,7 +31,27 @@ const realRegistry = {
     })
 } as any;
 
-describe("planner graph validation — models", () => {
+/** One Agent node, validated the way an authored graph is. */
+function validateAgent(
+  properties: Record<string, unknown>,
+  registry: typeof realRegistry = realRegistry
+): string[] {
+  const builder = new GraphBuilder();
+  builder.addNode(
+    "agent",
+    "nodetool.agents.Agent",
+    normalizeModelProperties("nodetool.agents.Agent", properties, registry)
+  );
+  const report = validateGraph(
+    builder.snapshot(),
+    metadataAwareRegistry(registry)
+  );
+  return report.issues
+    .filter((i) => i.severity === "error")
+    .map((i) => i.message);
+}
+
+describe("authored graph validation — models", () => {
   it("the underlying validator does flag an unset model", () => {
     const issues = validateNodeProperties(
       DECLARED,
@@ -41,9 +62,13 @@ describe("planner graph validation — models", () => {
     expect(issues.map((i) => i.code)).toContain("unset_model");
   });
 
-  it("the planner's registry suppresses unset-model issues", () => {
+  it("the authoring registry suppresses unset-model issues", () => {
     const issues = metadataAwareRegistry(realRegistry).validateNode(
-      { id: "agent", type: "nodetool.agents.Agent", properties: { prompt: "hi" } },
+      {
+        id: "agent",
+        type: "nodetool.agents.Agent",
+        properties: { prompt: "hi" }
+      },
       new Set()
     );
 
@@ -59,23 +84,16 @@ describe("planner graph validation — models", () => {
     expect(issues.map((i) => i.code)).toContain("required");
   });
 
-  // The behaviour that matters: the planner is told to omit `model`, so a
-  // graph that does so must be accepted rather than pushed into pinning one.
-  it("accepts a submitted graph whose Agent node has no model", async () => {
-    const tool = new SubmitGraphTool(realRegistry);
-    const result = (await tool.process({} as any, {
-      code: `node("nodetool.agents.Agent", { prompt: "Write a poem" }, "agent");
-return graph();`
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("graph_accepted");
-    expect(tool.graph!.nodes[0].properties).not.toHaveProperty("model");
+  // The behaviour that matters: the agent is told to omit `model`, so a graph
+  // that does so must be accepted rather than pushed into pinning one.
+  it("accepts an Agent node with no model", () => {
+    expect(validateAgent({ prompt: "Write a poem" })).toEqual([]);
   });
 
-  // Omitting a model is the planner's intended output; pinning a wrong one is
-  // not. `NodeRegistry` carries no provider catalog, so before these two hooks
-  // were forwarded a hallucinated provider/model reached the finished graph.
-  describe("a model the planner does pin", () => {
+  // Omitting a model is the intended output; pinning a wrong one is not.
+  // `NodeRegistry` carries no provider catalog, so before these two hooks were
+  // forwarded a hallucinated provider/model reached the finished graph.
+  describe("a model the graph does pin", () => {
     const catalogRegistry = {
       ...realRegistry,
       listProviderIds: () => ["kie"],
@@ -85,26 +103,25 @@ return graph();`
           : undefined
     } as any;
 
-    const submit = (model: string, provider = "kie") =>
-      new SubmitGraphTool(catalogRegistry).process({} as any, {
-        code: `node("nodetool.agents.Agent", { prompt: "hi", model: { type: "language_model", provider: ${JSON.stringify(provider)}, id: ${JSON.stringify(model)} } }, "agent");
-return graph();`
-      }) as Promise<Record<string, unknown>>;
+    const errorsFor = (model: string, provider = "kie") =>
+      validateAgent(
+        {
+          prompt: "hi",
+          model: { type: "language_model", provider, id: model }
+        },
+        catalogRegistry
+      );
 
-    it("rejects a provider the runtime cannot construct", async () => {
-      const result = await submit("kimi/k2", "nonesuch");
-      expect(result.status).toBe("validation_failed");
-      expect((result.errors as string[]).join("\n")).toContain("nonesuch");
+    it("rejects a provider the runtime cannot construct", () => {
+      expect(errorsFor("kimi/k2", "nonesuch").join("\n")).toContain("nonesuch");
     });
 
-    it("rejects a model id the provider does not offer", async () => {
-      const result = await submit("kimi/k3");
-      expect(result.status).toBe("validation_failed");
-      expect((result.errors as string[]).join("\n")).toContain("kimi/k2");
+    it("rejects a model id the provider does not offer", () => {
+      expect(errorsFor("kimi/k3").join("\n")).toContain("kimi/k2");
     });
 
-    it("accepts a pair the catalogs know", async () => {
-      expect((await submit("kimi/k2")).status).toBe("graph_accepted");
+    it("accepts a pair the catalogs know", () => {
+      expect(errorsFor("kimi/k2")).toEqual([]);
     });
   });
 });

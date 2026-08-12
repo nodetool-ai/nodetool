@@ -5,15 +5,14 @@
  * Before this module, every spawn site hand-rolled the same machinery:
  * `run_subtask` and `run_search` each carried a depth guard, a context copy,
  * a single-step Task, a `CodeActExecutor`, event tagging, forwarding, and
- * result/error extraction; `plan_workflow_graph` re-implemented the streaming
- * half for a non-CodeAct producer. Three copies of one concept meant every fix
- * (the nested-`{error}` detection, the broken-forwarder guard) had to land
- * three times — or didn't.
+ * result/error extraction. Copies of one concept meant every fix (the
+ * nested-`{error}` detection, the broken-forwarder guard) had to land in each
+ * of them — or didn't.
  *
  * The concept, stated once: a sub-agent is an async generator of
  * `ProcessingMessage` events with a settled outcome as its return value.
  * CodeAct is the default producer ({@link runSubAgent}), but any generator
- * with that shape — a `GraphPlanner.plan()`, a future reviewer or researcher —
+ * with that shape — an `authorGraph()` run, a future reviewer or researcher —
  * streams through the same pipe ({@link forwardSubAgentStream}) and nests in
  * the UI the same way (`parent_tool_call_id` + `subtask_depth`).
  *
@@ -36,7 +35,11 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  TurnBudget
+} from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
 import { Tool } from "./tools/base-tool.js";
@@ -77,6 +80,14 @@ export interface SubAgentRunOptions {
   systemPrompt?: string;
   maxIterations?: number;
   maxTokens?: number;
+  /** Spend admission, consulted before every provider turn of the child. */
+  turnBudget?: TurnBudget;
+  threadId?: string;
+  /**
+   * Sandbox package specifiers the child's actions may import. Defaults to
+   * none — a caller that authors with a pack (the graph DSL) names it here.
+   */
+  sandboxPackages?: readonly string[];
   signal?: AbortSignal;
 }
 
@@ -142,6 +153,9 @@ export async function* runSubAgent(
     systemPrompt: opts.systemPrompt,
     maxIterations: opts.maxIterations,
     maxTokens: opts.maxTokens,
+    turnBudget: opts.turnBudget,
+    threadId: opts.threadId,
+    sandboxPackages: opts.sandboxPackages,
     // Without the run's signal a cancelled parent leaves its children driving
     // provider calls to completion in the background.
     signal: opts.signal

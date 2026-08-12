@@ -48,7 +48,7 @@ export interface BuildSpecOutput {
 export interface BuildSpecOperation {
   /** Stable slug, e.g. "draft". */
   id: string;
-  /** GraphPlanner objective — or empty when {@link workflowId} binds instead. */
+  /** Graph-authoring objective — or empty when {@link workflowId} binds instead. */
   objective: string;
   /** Bind an existing workflow rather than planning one. */
   workflowId?: string;

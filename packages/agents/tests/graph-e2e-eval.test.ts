@@ -1,10 +1,11 @@
 /**
  * Unit tests for the end-to-end graph eval harness (`src/evals/graph-e2e-*`):
  * the three phases and how a failure in each is scored, output collection and
- * checks, judge parsing, skip logic, and report formatting — all with a
- * scripted provider and a fake graph runner, no network and no kernel.
+ * checks, judge parsing, skip logic, and report formatting — with a provider
+ * replaying real DSL code actions and a fake graph runner: no network and no
+ * kernel.
  */
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import {
   GRAPH_E2E_EVAL_CASES,
   runGraphE2eEval,
@@ -18,12 +19,14 @@ import {
   type GraphRunResult
 } from "../src/index.js";
 import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
+import { GRAPH_DSL_PACKAGE } from "../src/codeact/graph-dsl-package.js";
+import { shippedPackCatalog } from "../src/evals/codeact-sandbox-pack-cases.js";
 import type {
   BaseProvider,
   Message,
-  ProviderStreamItem,
-  ToolCall
+  ProviderStreamItem
 } from "@nodetool-ai/runtime";
+import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 // Accepts every node type; no validateNode → deep validation is skipped.
@@ -33,20 +36,32 @@ const stubRegistry = {
   listMetadata: () => []
 } as unknown as NodeRegistry;
 
-const GOOD_PROGRAM = `const t = node("nodetool.input.StringInput", { name: "text" });
-const s = node("${AGENT_NODE_TYPE}", { prompt: "summarize", input: t.output() });
-node("nodetool.output.Output", { name: "summary", value: s.output() });
-return graph();`;
+// The harness builds its own context, so the DSL pack has to reach it the way
+// it reaches the CLI: as this process's catalog.
+beforeAll(() => {
+  setProcessSandboxModuleCatalog(shippedPackCatalog());
+});
+
+/** One input feeding one Agent step feeding one output — via the typed pack. */
+const GOOD_PROGRAM = [
+  `import { workflow } from "${GRAPH_DSL_PACKAGE}";`,
+  `import { stringInput } from "${GRAPH_DSL_PACKAGE}/nodetool.input";`,
+  `import { agent } from "${GRAPH_DSL_PACKAGE}/nodetool.agents";`,
+  `import { output } from "${GRAPH_DSL_PACKAGE}/nodetool.output";`,
+  'const t = stringInput({ name: "text" });',
+  'const s = agent({ prompt: t.output() });',
+  'const graph = workflow(output({ name: "summary", value: s.output("text") }));',
+  "await finish(graph);"
+].join("\n");
 
 /**
- * Provider that replays one scripted tool-call list per `generateLoop` call
- * (the planner) and one scripted judge answer per `generateMessageTraced` call.
+ * Provider that replays code actions through `generateLoop` (the authoring
+ * sub-agent) and one scripted judge answer per `generateMessageTraced` call.
  */
 function createScriptedProvider(
-  attempts: ToolCall[][],
+  actions: string[],
   judgeAnswers: string[] = []
 ): BaseProvider {
-  let attemptIndex = 0;
   let judgeIndex = 0;
   return {
     provider: "scripted",
@@ -60,20 +75,22 @@ function createScriptedProvider(
     async *generateLoop(args: {
       tools?: Array<{
         name: string;
-        execute?: (a: Record<string, unknown>) => Promise<unknown>;
+        execute?: (a: Record<string, unknown>, id: string) => Promise<unknown>;
       }>;
       signal?: AbortSignal;
     }): AsyncGenerator<ProviderStreamItem> {
-      const script = attempts[attemptIndex] ?? [];
-      attemptIndex++;
-      const toolMap = new Map((args.tools ?? []).map((t) => [t.name, t]));
-      for (const tc of script) {
+      const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+      let round = 0;
+      for (const code of actions) {
         if (args.signal?.aborted) break;
-        yield tc as unknown as ProviderStreamItem;
-        await toolMap
-          .get(tc.name)
-          ?.execute?.(tc.args as Record<string, unknown>);
-        if (args.signal?.aborted) break;
+        round++;
+        const call = { title: "Author the graph", code };
+        yield {
+          id: `call_${round}`,
+          name: "execute_code",
+          args: call
+        } as unknown as ProviderStreamItem;
+        await tool?.execute?.(call, `call_${round}`);
       }
       yield { type: "chunk", content: "", done: true };
     }
@@ -98,9 +115,7 @@ const SUMMARIZE_CASE: GraphE2eEvalCase = {
   expect: { requiredOutputNames: ["summary"], requireNonEmptyOutputs: true }
 };
 
-const PLAN_SCRIPT: ToolCall[][] = [
-  [{ id: "s1", name: "submit_graph", args: { code: GOOD_PROGRAM } }]
-];
+const PLAN_SCRIPT = [GOOD_PROGRAM];
 
 describe("runGraphE2eEval", () => {
   it("scores a case that plans, runs, and achieves its goal", async () => {
@@ -149,7 +164,7 @@ describe("runGraphE2eEval", () => {
       cases: [SUMMARIZE_CASE]
     });
 
-    // The planner emits model-less Agent nodes on purpose; without the policy
+    // Authoring emits model-less Agent nodes on purpose; without the policy
     // every LLM step would die on "Select a model" at run time.
     const agent = ranGraph!.nodes.find((n) => n.type === AGENT_NODE_TYPE);
     expect(agent?.properties).toMatchObject({
@@ -217,9 +232,9 @@ describe("runGraphE2eEval", () => {
     expect(report.summary.successRate).toBe(0);
   });
 
-  it("never runs a graph the planner did not produce", async () => {
+  it("never runs a graph authoring did not produce", async () => {
     let runs = 0;
-    const provider = createScriptedProvider([[]]);
+    const provider = createScriptedProvider([]);
 
     const report = await runGraphE2eEval({
       provider,
@@ -230,7 +245,7 @@ describe("runGraphE2eEval", () => {
         return { ok: true, status: "completed", outputs: [] };
       },
       cases: [SUMMARIZE_CASE],
-      maxRetries: 1
+      maxIterations: 2
     });
 
     expect(runs).toBe(0);

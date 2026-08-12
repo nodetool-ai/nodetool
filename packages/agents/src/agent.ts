@@ -39,7 +39,7 @@ import { SupervisorAgent } from "./supervisor/supervisor-agent.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
-import { GraphPlanner } from "./graph-planner.js";
+import { authorGraph } from "./author-graph.js";
 import { AgentWorkflowRunner, applyRunPolicy } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./capabilities/gate-tools.js";
@@ -269,7 +269,7 @@ export interface AgentOptions {
   /** Node registry required when {@link useGraphPlanner} is true. */
   registry?: NodeRegistry;
   /**
-   * Configured BaseProvider instances by id. When supplied, the GraphPlanner
+   * Configured BaseProvider instances by id. When supplied, the graph author
    * exposes a `find_model` tool so the agent can pick a real model+provider
    * for generic AI nodes (TextToImage, TextToVideo, etc.).
    */
@@ -1054,8 +1054,8 @@ export class Agent {
   }
 
   /**
-   * Graph-native plan: build a DAG of nodes via GraphPlanner, then execute it
-   * with AgentWorkflowRunner.
+   * Graph-native plan: author a DAG of nodes with {@link authorGraph}, then
+   * execute it with AgentWorkflowRunner.
    */
   private async *executeGraphPlan(
     context: ProcessingContext,
@@ -1071,7 +1071,8 @@ export class Agent {
       severity: "info"
     } satisfies LogUpdate;
 
-    const planner = new GraphPlanner({
+    const graphData = yield* authorGraph(this.objective, {
+      context,
       provider: this.provider,
       model: this.planningModel,
       registry: this.registry!,
@@ -1083,16 +1084,8 @@ export class Agent {
       signal: this.signal
     });
 
-    const planGen = planner.plan(this.objective, context);
-    let planResult = await planGen.next();
-    while (!planResult.done) {
-      yield planResult.value;
-      planResult = await planGen.next();
-    }
-    const graphData = planResult.value;
-
     if (!graphData) {
-      throw new Error("GraphPlanner failed to build a workflow graph.");
+      throw new Error("Failed to author a workflow graph.");
     }
 
     log.info("Graph planning complete", {

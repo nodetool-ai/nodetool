@@ -246,22 +246,4 @@ describe("buildExecutionTreeState", () => {
     expect(step.toolCalls[0].name).toBe("web_search");
     expect(step.toolCalls[0].args).toEqual({ query: "test" });
   });
-
-  it("auto-creates a synthetic graph planner task for graph_planner tool calls", () => {
-    const messages = [
-      msg("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-gp-1",
-        name: "search_nodes",
-        args: { query: "image generation" }
-      })
-    ] as Parameters<typeof buildExecutionTreeState>[0];
-    const state = buildExecutionTreeState(messages);
-    expect(state.tasks).toHaveLength(1);
-    expect(state.tasks[0].id).toBe("graph_planner");
-    expect(state.tasks[0].name).toBe("Graph planner");
-    expect(state.tasks[0].status).toBe("running");
-    expect(state.tasks[0].steps[0].toolCalls).toHaveLength(1);
-    expect(state.tasks[0].steps[0].toolCalls[0].name).toBe("search_nodes");
-  });
 });

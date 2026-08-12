@@ -9,7 +9,8 @@
  * `<recalled-memories>` safety envelope the raw-item path uses.
  *
  * Kept here (in src/prompts/) to match the convention that prompt strings live
- * in this directory (see graph-planner-prompt.ts, security-monitor-prompt.ts).
+ * in this directory (see workflow-authoring-knowledge.ts,
+ * security-monitor-prompt.ts).
  *
  * All framing is neutral ("this assistant", "the user") — no vendor, product,
  * or filesystem-path branding appears anywhere in these strings.

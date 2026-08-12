@@ -1,21 +1,36 @@
 /**
- * GraphPlanner evaluation harness — provider-agnostic.
+ * Graph authoring evaluation harness — provider-agnostic.
  *
- * Runs a set of {@link GraphPlannerEvalCase}s through `GraphPlanner.plan()`
- * with any `BaseProvider`, records efficiency metrics from the message stream
- * (tool calls, submit rounds, attempts, duration, cost), and scores each
- * accepted graph against the case's structural expectations. The result is a
- * machine-readable report plus a text summary, so different providers/models
- * can be compared on the same suite.
+ * Runs a set of {@link GraphPlannerEvalCase}s through {@link authorGraph} with
+ * any `BaseProvider`, records efficiency metrics from the message stream (tool
+ * calls, authoring rounds, duration, cost), and scores each authored graph
+ * against the case's structural expectations. The result is a machine-readable
+ * report plus a text summary, so different providers/models can be compared on
+ * the same suite.
+ *
+ * It used to drive `GraphPlanner.plan()`, whose unit of work was a
+ * `submit_graph` call carrying one untyped DSL program. `authorGraph` has no
+ * such tool: the graph is built inside an `execute_code` action against the
+ * typed DSL pack and handed back through `finish()`. Two metrics are mapped
+ * across:
+ *
+ * - **authoring rounds** (was submit rounds) — `execute_code` actions the run
+ *   spent. One action that ends in `finish(graph)` is the new one-shot, so
+ *   `oneShotRate` still reads "delivered without a second attempt".
+ * - **attempts** is gone. It counted `GraphPlanner`'s outer retry loop, which
+ *   `authorGraph` does not have — a CodeAct child repairs inside its own loop,
+ *   and that repair already shows up as another authoring round.
  */
 
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { randomUUID } from "node:crypto";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { isJsCodeNodeType } from "@nodetool-ai/node-sdk";
+import { isJsCodeNodeType, PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
-import { GraphPlanner } from "../graph-planner.js";
+import { authorGraph } from "../author-graph.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import { AGENT_NODE_TYPE } from "../graph-builder.js";
-import { PROVIDER_NAMESPACES } from "../prompts/graph-planner-prompt.js";
 import { GRAPH_PLANNER_EVAL_CASES } from "./graph-planner-cases.js";
 
 export interface GraphPlannerEvalExpectations {
@@ -25,6 +40,18 @@ export interface GraphPlannerEvalExpectations {
   requiredNodeTypePatterns?: string[];
   /** Regex sources; none may match any node type in the graph. */
   forbiddenNodeTypePatterns?: string[];
+  /**
+   * Regex sources; each must match the text of some node property. Catches an
+   * instruction the objective asked for — "as bullet points" — that no node
+   * type or edge can express.
+   */
+  requiredPropertyTextPatterns?: string[];
+  /**
+   * Regex pairs; for each, some node matching `from` must reach some node
+   * matching `to` by following edges. Two node families both being present
+   * says nothing about the data getting from one to the other.
+   */
+  requiredReachablePaths?: { from: string; to: string }[];
   /** Edge sourceHandles that must each be used by at least one edge. */
   requiredSourceHandles?: string[];
   /** Minimum number of Agent (LLM step) nodes. */
@@ -102,17 +129,15 @@ export interface GraphPlannerCaseResult {
   caseId: string;
   description: string;
   skipped: boolean;
-  /** Planner returned an accepted graph. */
+  /** The run returned a graph. */
   accepted: boolean;
   /** Fraction of checks passed (0 when no graph was produced). */
   score: number;
   checks: EvalCheck[];
-  /** Total tool calls the planner made, by tool name. */
+  /** Total tool calls the run made, by tool name (`execute_code` included). */
   toolCalls: Record<string, number>;
-  /** submit_graph calls — 1 means the model one-shotted the graph. */
-  submitRounds: number;
-  /** Outer planning attempts consumed (1 = no retry). */
-  attempts: number;
+  /** `execute_code` actions — 1 means the model one-shotted the graph. */
+  authoringRounds: number;
   durationMs: number;
   costUsd: number;
   nodes: number;
@@ -133,9 +158,9 @@ export interface GraphPlannerEvalReport {
     successRate: number;
     /** Mean expectation score over non-skipped cases. */
     meanScore: number;
-    /** Fraction of accepted graphs that needed exactly one submit_graph call. */
+    /** Fraction of authored graphs delivered in exactly one code action. */
     oneShotRate: number;
-    avgSubmitRounds: number;
+    avgAuthoringRounds: number;
     avgToolCalls: number;
     avgDurationMs: number;
     totalCostUsd: number;
@@ -150,7 +175,8 @@ export interface RunGraphPlannerEvalOptions {
   providers?: Record<string, BaseProvider>;
   /** Cases to run; defaults to the built-in suite. */
   cases?: readonly GraphPlannerEvalCase[];
-  maxRetries?: number;
+  /** Provider rounds one authoring run may spend; `authorGraph`'s default otherwise. */
+  maxIterations?: number;
   signal?: AbortSignal;
   /** Progress callback (one line per event, for CLI display). */
   onEvent?: (line: string) => void;
@@ -196,6 +222,33 @@ function codePackageSpecifiers(node: NodeDescriptor): string[] {
   });
 }
 
+/**
+ * Whether any node matching `from` reaches one matching `to` over the edges.
+ * A node matching `from` never counts as the destination, so a pattern pair
+ * that overlaps cannot pass on the start node alone.
+ */
+function reaches(graph: GraphData, from: RegExp, to: RegExp): boolean {
+  const typeById = new Map(graph.nodes.map((n) => [n.id, n.type]));
+  const outgoing = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
+  }
+  const queue = graph.nodes.filter((n) => from.test(n.type)).map((n) => n.id);
+  const seen = new Set(queue);
+  while (queue.length > 0) {
+    const id = queue.shift() as string;
+    if (to.test(typeById.get(id) ?? "") && !from.test(typeById.get(id) ?? "")) {
+      return true;
+    }
+    for (const next of outgoing.get(id) ?? []) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push(next);
+    }
+  }
+  return false;
+}
+
 /** Score an accepted graph against the case expectations. */
 export function checkExpectations(
   graph: GraphData,
@@ -233,6 +286,29 @@ export function checkExpectations(
       name: `not:${pattern}`,
       pass: !offender,
       detail: offender ? `forbidden node type ${offender}` : undefined
+    });
+  }
+
+  for (const pattern of expect.requiredPropertyTextPatterns ?? []) {
+    const re = new RegExp(pattern, "i");
+    const found = graph.nodes.some((n) =>
+      Object.values(n.properties ?? {}).some(
+        (v) => typeof v === "string" && re.test(v)
+      )
+    );
+    checks.push({
+      name: `propText:${pattern}`,
+      pass: found,
+      detail: found ? undefined : `no node property matches /${pattern}/i`
+    });
+  }
+
+  for (const { from, to } of expect.requiredReachablePaths ?? []) {
+    const found = reaches(graph, new RegExp(from), new RegExp(to));
+    checks.push({
+      name: `reaches:${from}->${to}`,
+      pass: found,
+      detail: found ? undefined : `no path from /${from}/ to /${to}/`
     });
   }
 
@@ -431,29 +507,30 @@ async function runCase(
   opts: RunGraphPlannerEvalOptions
 ): Promise<GraphPlannerCaseResult> {
   const toolCalls: Record<string, number> = {};
-  let attempts = 0;
   const costBefore = opts.provider.getTotalCost();
   const startedAt = Date.now();
 
-  const planner = new GraphPlanner({
-    provider: opts.provider,
-    model: opts.model,
-    registry: opts.registry,
-    providers: opts.providers,
-    inputs: evalCase.inputs,
-    outputSchema: evalCase.outputSchema,
-    maxRetries: opts.maxRetries,
-    signal: opts.signal,
-    // This suite scores the planner's own submission. Refinement re-authors
-    // Code bodies afterwards, so leaving it on would measure two loops and
-    // charge for both.
-    refineCodeNodes: false
+  // A real context: the authoring sub-agent runs code in the sandbox, so it
+  // needs the process's module catalog and a memory to settle through.
+  const context = new ProcessingContext({
+    jobId: `graph-eval-${randomUUID()}`,
+    userId: "eval-user"
   });
 
   let graph: GraphData | null = null;
   let error: string | undefined;
   try {
-    const gen = planner.plan(evalCase.objective, {} as ProcessingContext);
+    const gen = authorGraph(evalCase.objective, {
+      context,
+      provider: opts.provider,
+      model: opts.model,
+      registry: opts.registry,
+      ...(opts.providers ? { providers: opts.providers } : {}),
+      ...(evalCase.inputs ? { inputs: evalCase.inputs } : {}),
+      ...(evalCase.outputSchema ? { outputSchema: evalCase.outputSchema } : {}),
+      ...(opts.maxIterations ? { maxIterations: opts.maxIterations } : {}),
+      ...(opts.signal ? { signal: opts.signal } : {})
+    });
     let res = await gen.next();
     while (!res.done) {
       const m = res.value as { type?: string } & Record<string, unknown>;
@@ -461,12 +538,6 @@ async function runCase(
         const name = String(m.name ?? "unknown");
         toolCalls[name] = (toolCalls[name] ?? 0) + 1;
         opts.onEvent?.(`    [tool] ${name}`);
-      } else if (
-        m.type === "planning_update" &&
-        m.phase === "generation" &&
-        m.status === "running"
-      ) {
-        attempts++;
       }
       res = await gen.next();
     }
@@ -477,7 +548,7 @@ async function runCase(
 
   const durationMs = Date.now() - startedAt;
   const costUsd = opts.provider.getTotalCost() - costBefore;
-  const submitRounds = toolCalls["submit_graph"] ?? 0;
+  const authoringRounds = toolCalls[EXECUTE_CODE_TOOL_NAME] ?? 0;
 
   const checks: EvalCheck[] = [
     { name: "accepted", pass: graph !== null, detail: error }
@@ -495,8 +566,7 @@ async function runCase(
     score,
     checks,
     toolCalls,
-    submitRounds,
-    attempts: Math.max(attempts, 1),
+    authoringRounds,
     durationMs,
     costUsd,
     nodes: graph?.nodes.length ?? 0,
@@ -525,8 +595,7 @@ export async function runGraphPlannerEval(
         score: 0,
         checks: [],
         toolCalls: {},
-        submitRounds: 0,
-        attempts: 0,
+        authoringRounds: 0,
         durationMs: 0,
         costUsd: 0,
         nodes: 0,
@@ -540,7 +609,7 @@ export async function runGraphPlannerEval(
     const failed = result.checks.filter((c) => !c.pass);
     opts.onEvent?.(
       `  ${result.accepted ? "PASS" : "FAIL"} score=${result.score.toFixed(2)} ` +
-        `submits=${result.submitRounds} tools=${totalToolCalls(result.toolCalls)} ` +
+        `actions=${result.authoringRounds} tools=${totalToolCalls(result.toolCalls)} ` +
         `nodes=${result.nodes} edges=${result.edges} ${Math.round(result.durationMs / 1000)}s` +
         (failed.length > 0
           ? ` | failed: ${failed.map((c) => c.name).join(", ")}`
@@ -560,12 +629,12 @@ export async function runGraphPlannerEval(
       ran.length > 0 ? ran.reduce((a, r) => a + r.score, 0) / ran.length : 0,
     oneShotRate:
       acceptedResults.length > 0
-        ? acceptedResults.filter((r) => r.submitRounds === 1).length /
+        ? acceptedResults.filter((r) => r.authoringRounds === 1).length /
           acceptedResults.length
         : 0,
-    avgSubmitRounds:
+    avgAuthoringRounds:
       ran.length > 0
-        ? ran.reduce((a, r) => a + r.submitRounds, 0) / ran.length
+        ? ran.reduce((a, r) => a + r.authoringRounds, 0) / ran.length
         : 0,
     avgToolCalls:
       ran.length > 0
@@ -591,14 +660,14 @@ export async function runGraphPlannerEval(
 export function formatEvalReport(report: GraphPlannerEvalReport): string {
   const lines: string[] = [];
   lines.push(
-    `GraphPlanner eval — provider=${report.provider} model=${report.model}`
+    `Graph authoring eval — provider=${report.provider} model=${report.model}`
   );
   lines.push("");
   const header = [
     "case".padEnd(22),
     "result".padEnd(7),
     "score".padEnd(6),
-    "submits".padEnd(8),
+    "actions".padEnd(8),
     "tools".padEnd(6),
     "nodes".padEnd(6),
     "time".padEnd(7),
@@ -612,7 +681,7 @@ export function formatEvalReport(report: GraphPlannerEvalReport): string {
         r.caseId.padEnd(22),
         (r.skipped ? "skip" : r.accepted ? "pass" : "FAIL").padEnd(7),
         (r.skipped ? "-" : r.score.toFixed(2)).padEnd(6),
-        String(r.submitRounds).padEnd(8),
+        String(r.authoringRounds).padEnd(8),
         String(totalToolCalls(r.toolCalls)).padEnd(6),
         String(r.nodes).padEnd(6),
         `${Math.round(r.durationMs / 1000)}s`.padEnd(7),
@@ -629,7 +698,7 @@ export function formatEvalReport(report: GraphPlannerEvalReport): string {
     `success ${s.accepted}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
       `  mean score ${s.meanScore.toFixed(2)}` +
       `  one-shot ${(s.oneShotRate * 100).toFixed(0)}%` +
-      `  avg submits ${s.avgSubmitRounds.toFixed(1)}` +
+      `  avg actions ${s.avgAuthoringRounds.toFixed(1)}` +
       `  avg tools ${s.avgToolCalls.toFixed(1)}` +
       `  avg time ${(s.avgDurationMs / 1000).toFixed(1)}s` +
       (s.totalCostUsd > 0 ? `  cost $${s.totalCostUsd.toFixed(4)}` : "") +

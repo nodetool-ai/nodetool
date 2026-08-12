@@ -55,14 +55,12 @@ import {
   startBackgroundJobSpec,
   getExampleWorkflowSpec,
   exportWorkflowDigraphSpec,
-  planWorkflowGraphSpec,
   LIST_WORKFLOWS_SCHEMA,
   CREATE_WORKFLOW_SCHEMA,
   RUN_WORKFLOW_SCHEMA,
   DEBUG_WORKFLOW_SCHEMA,
   RESOLVE_ESCALATION_SCHEMA,
-  VALIDATE_WORKFLOW_SCHEMA,
-  PLAN_WORKFLOW_GRAPH_SCHEMA
+  VALIDATE_WORKFLOW_SCHEMA
 } from "./workflows.specs.js";
 
 export {
@@ -71,8 +69,7 @@ export {
   RUN_WORKFLOW_SCHEMA,
   DEBUG_WORKFLOW_SCHEMA,
   RESOLVE_ESCALATION_SCHEMA,
-  VALIDATE_WORKFLOW_SCHEMA,
-  PLAN_WORKFLOW_GRAPH_SCHEMA
+  VALIDATE_WORKFLOW_SCHEMA
 } from "./workflows.specs.js";
 
 /** The run environment this run can execute a workflow in, or null. */
@@ -289,9 +286,8 @@ const validateWorkflow: CapabilityExport = {
     const workflowId = params["workflow_id"] as string | undefined;
     const code = typeof params["code"] === "string" ? params["code"] : "";
 
-    // A graph program is what the planner actually authors, so let it be
-    // checked in the form it will be submitted in rather than hand-translated
-    // to JSON first. Same evaluation submit_graph uses.
+    // A legacy graph program can be checked in the form it was authored in
+    // rather than hand-translated to JSON first.
     if (code.trim()) {
       const { evaluateGraphDsl } = await import("../graph-dsl.js");
       const evaluated = await evaluateGraphDsl(code);
@@ -451,91 +447,6 @@ const exportWorkflowDigraph: CapabilityExport = {
   }
 };
 
-/**
- * Build a graph with `GraphPlanner` and return it — the one capability whose
- * run needs the turn's own provider, model, event sink and abort signal, which
- * is what {@link CapabilityRun.graphPlanner} carries. Those were the
- * constructor arguments of `PlanWorkflowGraphTool`, built by the chat runner.
- */
-const planWorkflowGraph: CapabilityExport = {
-  spec: planWorkflowGraphSpec,
-  impl: async (run, params) => {
-    const planning = run.graphPlanner;
-    if (!planning) {
-      return {
-        error:
-          "`plan_workflow_graph` needs a graph-planner runtime, but this run " +
-          "carries no `graphPlanner` (provider, model, forwardMessage, " +
-          "signal). The host that builds the CapabilityRun must supply it."
-      };
-    }
-    if (!run.nodeRegistry) return noRegistryError("plan a workflow graph");
-
-    const objective =
-      typeof params["objective"] === "string" ? params["objective"].trim() : "";
-    if (!objective) {
-      return {
-        error: "`objective` is required and must be a non-empty string."
-      };
-    }
-    const { TOOL_CALL_ID_FIELD } = await import("../tools/subtask-fields.js");
-    const parentToolCallId =
-      typeof params[TOOL_CALL_ID_FIELD] === "string"
-        ? (params[TOOL_CALL_ID_FIELD] as string)
-        : null;
-
-    const signal = planning.signal?.();
-    if (signal?.aborted) {
-      return { error: "Graph planning was cancelled." };
-    }
-
-    const { GraphPlanner } = await import("../graph-planner.js");
-    const planner = new GraphPlanner({
-      provider: planning.provider,
-      model: planning.model,
-      registry: run.nodeRegistry,
-      tools: [],
-      inputs: (params["inputs"] as Record<string, unknown>) ?? {},
-      providers: run.providers,
-      signal
-    });
-
-    // The planner is not a CodeAct loop, but it IS a sub-agent in the core's
-    // sense — an async generator of ProcessingMessages with a settled return
-    // value — so the shared stream pipe drives it: tagging for UI nesting,
-    // forward-failure tolerance, and the between-rounds abort check (the
-    // planner's own abort stops its LLM loop, but a tool call already in
-    // flight still resolves — stop driving the generator so a Stop ends the
-    // turn promptly instead of after the current round).
-    const { forwardSubAgentStream } = await import("../subagent.js");
-    const { aborted, value: graph } = await forwardSubAgentStream(
-      planner.plan(objective, run.context),
-      {
-        forward: planning.forwardMessage,
-        parentToolCallId,
-        signal,
-        label: "plan_workflow_graph"
-      }
-    );
-    if (aborted) {
-      return { error: "Graph planning was cancelled." };
-    }
-    if (!graph) {
-      return {
-        error:
-          "GraphPlanner failed to build a graph after multiple attempts. " +
-          "Refine the objective (name concrete inputs/outputs) and retry."
-      };
-    }
-
-    return {
-      graph,
-      node_count: graph.nodes.length,
-      edge_count: graph.edges.length
-    };
-  }
-};
-
 /** Every workflow capability, in the order `getAllMcpTools` offered them. */
 export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   listWorkflows,
@@ -550,16 +461,9 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   startBackgroundJob
 ];
 
-/**
- * The registry serves one more than the belt does. `plan_workflow_graph` needs
- * the turn's provider, model, event sink and abort signal, so only a host that
- * builds a `graphPlanner` run can serve it — the chat runner does, and
- * `getAllMcpTools` does not. Offering it on the belt everywhere would put a
- * tool on every surface that can only answer with what it is missing.
- */
 export const module: CapabilityModule = {
   module: "workflows",
-  exports: [...WORKFLOW_CAPABILITIES, planWorkflowGraph]
+  exports: [...WORKFLOW_CAPABILITIES]
 };
 
 export {
@@ -572,6 +476,5 @@ export {
   validateWorkflow,
   getExampleWorkflow,
   exportWorkflowDigraph,
-  startBackgroundJob,
-  planWorkflowGraph
+  startBackgroundJob
 };

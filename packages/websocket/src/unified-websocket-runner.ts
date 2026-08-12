@@ -138,7 +138,7 @@ import {
   processingMessageSchemas,
   type ControlMessageInType
 } from "@nodetool-ai/protocol";
-import { Tool } from "@nodetool-ai/agents";
+import { Tool, WORKFLOW_AUTHORING_KNOWLEDGE } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
@@ -158,13 +158,10 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
-  toolFromCapability,
-  planWorkflowGraph,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
   type CapabilityRun,
-  type GraphPlannerRuntime,
   type PermissionGateOptions,
   type SubAgentRuntime,
   type PermissionMode,
@@ -1270,8 +1267,7 @@ raw tool it wraps.
 - A few tools stay ordinary tool calls, documented under "Direct tools": the
   file set, search, web fetch, \`todo_write\`, \`run_subtask\`, and \`view_image\`.
   Call one directly when a single call is the whole step.
-- \`tools.plan_workflow_graph\` and \`tools.run_search\` are the delegation
-  tools with no \`nodetool.*\` form.
+- \`tools.run_search\` is the one delegation tool with no \`nodetool.*\` form.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
   catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
   call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
@@ -1330,26 +1326,28 @@ nothing: when none is open, name the one you need and ask the user to open or
 create it, instead of falling back to a workflow that approximates it.
 
 # Building workflows
-When the user wants a workflow built, drive this loop in code:
-1. \`await tools.plan_workflow_graph({objective, inputs})\` — turn the objective
-   into a complete graph ({nodes, edges}). \`inputs\` are the runtime parameters
-   the workflow should accept; each becomes an input node. Progress streams to
-   the user.
-2. \`await nodetool.workflows.validate(graph)\` — statically re-check the graph
-   after any manual edit. Fix issues before saving.
-3. \`await nodetool.workflows.create(name, graph, {description})\` — save it
+You author the graph yourself, in an \`execute_code\` action. Drive this loop:
+1. \`await nodetool.nodes.search(["what the step does"])\` for every step you
+   are unsure of, then \`nodetool.nodes.info(type)\` for its exact properties
+   and handles. The answer is \`{total, results}\` and a result's node type is
+   on \`type\`, not \`node_type\`.
+2. Import those namespaces from \`@nodetool-ai/sandbox-dsl\` — one generated
+   function per node type, so a type that does not exist has no export to
+   import — and write the graph in the same action:
+   \`workflow(...terminals)\` returns \`{nodes, edges}\`.
+3. \`await nodetool.workflows.validate(graph)\` — costs nothing and catches a
+   missing property, a dangling edge, or a model nobody selected. Fix what it
+   reports before spending anything.
+4. \`await nodetool.workflows.create(name, graph, {description})\` — save it
    under a clear name. The returned id is what run and debug take.
-4. \`await nodetool.workflows.debug(id, params)\` — run it and get final status,
+5. \`await nodetool.workflows.debug(id, params)\` — run it and get final status,
    outputs, errors, and job logs in one report. \`nodetool.workflows.run(id,
    params)\` is a plain run; \`nodetool.nodes.run(type, inputs)\` probes a single
    suspect node in isolation.
-5. On failure, fix the graph — or re-plan with a sharper objective — and save
-   again. There is no update call: each fix produces a new workflow, so tell
-   the user which id is current.
-Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
-hand-fix small issues in a planned graph rather than re-planning. To author a
-graph yourself, import \`@nodetool-ai/sandbox-dsl\`: one generated function per
-node type, so a type that does not exist has no export to import.
+6. On failure, fix the graph and save again. There is no update call: each fix
+   produces a new workflow, so tell the user which id is current.
+
+${WORKFLOW_AUTHORING_KNOWLEDGE}
 
 # Debugging mini apps
 A mini app is not a workflow: a workflow debug says nothing about whether a
@@ -1453,9 +1451,6 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
 export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives with no `nodetool.*` form.
   "run_search",
-  // Step 1 of the workflow-building loop the system prompt teaches; the rest
-  // of that loop is `nodetool.workflows.*`.
-  "plan_workflow_graph",
   // Browser sessions only (it is in the manifest a connected UI registers):
   // opens a document as a tab so the editor `ui_*` tools can act on it.
   // Resident because it is the answer to "that document is not open", and
@@ -5363,45 +5358,6 @@ export class UnifiedWebSocketRunner {
       toolForCapabilityName("query_collection"),
       runNodeTool
     ];
-    // GraphPlanner as a chat tool: builds a workflow graph from an objective
-    // using the session's provider/model. Needs the in-process node registry.
-    let graphPlanner: GraphPlannerRuntime | undefined;
-    if (this.nodeRegistry) {
-      const graphPlannerRegistry = this.nodeRegistry;
-      graphPlanner = {
-        provider,
-        model,
-        signal: () => this.chatAbort?.signal,
-        forwardMessage: async (msg: ProcessingMessage) => {
-          const enriched: Record<string, unknown> = {
-            ...(msg as unknown as Record<string, unknown>)
-          };
-          if (enriched.thread_id == null) enriched.thread_id = threadId;
-          if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
-          await this.sendMessage(enriched);
-          // The planner's discovery/submit tool calls arrive as transient
-          // tool_call_update events. Emit a persistent card so the chat UI
-          // shows what the planner is doing, nested under the parent
-          // plan_workflow_graph card.
-          await this.emitSyntheticToolCallCard(enriched);
-        }
-      };
-      const planning = graphPlanner;
-      rawToolbelt.push(
-        toolFromCapability(
-          planWorkflowGraph.spec,
-          planWorkflowGraph.impl,
-          (context) =>
-            createCapabilityRun({
-              context,
-              gate: UNGATED,
-              nodeRegistry: graphPlannerRegistry,
-              providers: chatProviders,
-              graphPlanner: planning
-            })
-        )
-      );
-    }
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
@@ -5591,7 +5547,6 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
-      graphPlanner,
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });

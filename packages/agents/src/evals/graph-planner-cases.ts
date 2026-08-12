@@ -27,6 +27,34 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
     }
   },
   {
+    id: "pdf-bullet-summary",
+    description: "A PDF document input reaching an LLM step that answers in bullets",
+    objective:
+      "The input document is a PDF report. Summarize it as a list of bullet " +
+      "points covering its key findings, and output the bullet points. The " +
+      "workflow must read the PDF itself — the text is not supplied as a " +
+      "parameter.",
+    inputs: {
+      document: { type: "document", uri: "asset://quarterly-report.pdf" }
+    },
+    expect: {
+      requiredInputNames: ["document"],
+      // The document must arrive as a document, not as a string the caller
+      // was expected to have extracted. Either document input node passes.
+      requiredNodeTypePatterns: ["^nodetool\\.input\\.Document"],
+      // Any LLM step family — Agent, Summarizer, DocumentAgent — is a valid
+      // answer; which one is the model's call, so none is pinned.
+      requiredReachablePaths: [
+        { from: "^nodetool\\.input\\.Document", to: "^nodetool\\.agents\\." }
+      ],
+      requiredPropertyTextPatterns: ["bullet"],
+      requireConnected: true,
+      requireOutputNode: true,
+      minEdges: 2,
+      maxNodes: 8
+    }
+  },
+  {
     id: "chain-multi-output",
     description: "Two chained LLM steps, both results surfaced as outputs",
     objective:

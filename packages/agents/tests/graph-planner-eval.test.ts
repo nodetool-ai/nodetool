@@ -1,9 +1,13 @@
 /**
- * Unit tests for the GraphPlanner eval harness (`src/evals/`): metrics
+ * Unit tests for the graph authoring eval harness (`src/evals/`): metrics
  * collection from the message stream, expectation scoring, skip logic, and
- * report formatting — all with a scripted provider, no network.
+ * report formatting.
+ *
+ * The harness drives `authorGraph`, so a "scripted provider" here replays code
+ * actions rather than tool calls: each action is real DSL code, run in the real
+ * QuickJS sandbox against the real shipped pack. No network.
  */
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import {
   runGraphPlannerEval,
   formatEvalReport,
@@ -11,11 +15,10 @@ import {
   type GraphPlannerEvalCase
 } from "../src/index.js";
 import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
-import type {
-  BaseProvider,
-  ProviderStreamItem,
-  ToolCall
-} from "@nodetool-ai/runtime";
+import { GRAPH_DSL_PACKAGE } from "../src/codeact/graph-dsl-package.js";
+import { shippedPackCatalog } from "../src/evals/codeact-sandbox-pack-cases.js";
+import type { BaseProvider, ProviderStreamItem } from "@nodetool-ai/runtime";
+import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 // Accepts every node type; no validateNode → deep validation is skipped.
@@ -25,9 +28,17 @@ const stubRegistry = {
   listMetadata: () => []
 } as unknown as NodeRegistry;
 
-/** Provider replaying one scripted tool-call list per generateLoop call. */
-function createScriptedProvider(attempts: ToolCall[][]): BaseProvider {
-  let attemptIndex = 0;
+// The harness builds its own context, so the DSL pack has to reach it the way
+// it reaches the CLI: as this process's catalog.
+beforeAll(() => {
+  setProcessSandboxModuleCatalog(shippedPackCatalog());
+});
+
+/**
+ * Provider replaying a list of code actions, the way `generateLoop` drives a
+ * real one: every action in the same loop, each executed as it is yielded.
+ */
+function createScriptedProvider(actions: string[]): BaseProvider {
   return {
     provider: "scripted",
     hasToolSupport: async () => true,
@@ -35,28 +46,42 @@ function createScriptedProvider(attempts: ToolCall[][]): BaseProvider {
     async *generateLoop(args: {
       tools?: Array<{
         name: string;
-        execute?: (a: Record<string, unknown>) => Promise<unknown>;
+        execute?: (a: Record<string, unknown>, id: string) => Promise<unknown>;
       }>;
       signal?: AbortSignal;
     }): AsyncGenerator<ProviderStreamItem> {
-      const script = attempts[attemptIndex] ?? [];
-      attemptIndex++;
-      const toolMap = new Map((args.tools ?? []).map((t) => [t.name, t]));
-      for (const tc of script) {
+      const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+      let round = 0;
+      for (const code of actions) {
         if (args.signal?.aborted) break;
-        yield tc as unknown as ProviderStreamItem;
-        await toolMap.get(tc.name)?.execute?.(tc.args as Record<string, unknown>);
-        if (args.signal?.aborted) break;
+        round++;
+        const call = { title: "Author the graph", code };
+        yield {
+          id: `call_${round}`,
+          name: "execute_code",
+          args: call
+        } as unknown as ProviderStreamItem;
+        await tool?.execute?.(call, `call_${round}`);
       }
       yield { type: "chunk", content: "", done: true };
     }
   } as unknown as BaseProvider;
 }
 
-const GOOD_PROGRAM = `const t = node("nodetool.input.StringInput", { name: "text" });
-const s = node("${AGENT_NODE_TYPE}", { prompt: "summarize", input: t.output() });
-node("nodetool.output.Output", { name: "summary", value: s.output() });
-return graph();`;
+/** One input feeding one Agent step feeding one output — via the typed pack. */
+const GOOD_PROGRAM = [
+  `import { workflow } from "${GRAPH_DSL_PACKAGE}";`,
+  `import { stringInput } from "${GRAPH_DSL_PACKAGE}/nodetool.input";`,
+  `import { agent } from "${GRAPH_DSL_PACKAGE}/nodetool.agents";`,
+  `import { output } from "${GRAPH_DSL_PACKAGE}/nodetool.output";`,
+  'const t = stringInput({ name: "text" });',
+  'const s = agent({ prompt: t.output() });',
+  "const graph = workflow(output({ name: \"summary\", value: s.output(\"text\") }));",
+  "await finish(graph);"
+].join("\n");
+
+/** An action that runs cleanly but hands nothing back. */
+const NO_FINISH_PROGRAM = "1 + 1;";
 
 const CASES: GraphPlannerEvalCase[] = [
   {
@@ -82,19 +107,15 @@ const CASES: GraphPlannerEvalCase[] = [
 
 describe("runGraphPlannerEval", () => {
   it("collects metrics, scores expectations, and skips model-dependent cases", async () => {
-    // Case "good": one failed submission (feedback round) then success.
-    const provider = createScriptedProvider([
-      [
-        { id: "s1", name: "submit_graph", args: { code: "return graph();" } },
-        { id: "s2", name: "submit_graph", args: { code: GOOD_PROGRAM } }
-      ]
-    ]);
+    // Case "good": one action that hands nothing back, then one that does.
+    const provider = createScriptedProvider([NO_FINISH_PROGRAM, GOOD_PROGRAM]);
 
     const report = await runGraphPlannerEval({
       provider,
       model: "test-model",
       registry: stubRegistry,
-      cases: CASES
+      cases: CASES,
+      maxIterations: 4
     });
 
     expect(report.provider).toBe("scripted");
@@ -103,8 +124,8 @@ describe("runGraphPlannerEval", () => {
     const good = report.cases[0];
     expect(good.accepted).toBe(true);
     expect(good.score).toBe(1);
-    expect(good.submitRounds).toBe(2);
-    expect(good.toolCalls["submit_graph"]).toBe(2);
+    expect(good.authoringRounds).toBe(2);
+    expect(good.toolCalls["execute_code"]).toBe(2);
     expect(good.nodes).toBe(3);
     expect(good.edges).toBe(2);
     expect(good.checks.every((c) => c.pass)).toBe(true);
@@ -116,44 +137,42 @@ describe("runGraphPlannerEval", () => {
     expect(report.summary.skipped).toBe(1);
     expect(report.summary.accepted).toBe(1);
     expect(report.summary.successRate).toBe(1);
-    // 2 submits on the accepted case → not a one-shot.
+    // 2 actions on the authored case → not a one-shot.
     expect(report.summary.oneShotRate).toBe(0);
-    expect(report.summary.avgSubmitRounds).toBe(2);
-  });
+    expect(report.summary.avgAuthoringRounds).toBe(2);
+  }, 120_000);
 
   it("scores a failed case 0 and reports the error check", async () => {
-    // Model never submits anything, all attempts fail.
-    const provider = createScriptedProvider([[], [], []]);
+    // The model writes code but never hands a graph back.
+    const provider = createScriptedProvider([NO_FINISH_PROGRAM]);
     const report = await runGraphPlannerEval({
       provider,
       model: "test-model",
       registry: stubRegistry,
       cases: [CASES[0]],
-      maxRetries: 2
+      maxIterations: 2
     });
     const r = report.cases[0];
     expect(r.accepted).toBe(false);
     expect(r.score).toBe(0);
-    expect(r.attempts).toBe(2);
     expect(report.summary.successRate).toBe(0);
-  });
+  }, 120_000);
 
   it("formats a readable report", async () => {
-    const provider = createScriptedProvider([
-      [{ id: "s1", name: "submit_graph", args: { code: GOOD_PROGRAM } }]
-    ]);
+    const provider = createScriptedProvider([GOOD_PROGRAM]);
     const report = await runGraphPlannerEval({
       provider,
       model: "test-model",
       registry: stubRegistry,
-      cases: [CASES[0]]
+      cases: [CASES[0]],
+      maxIterations: 2
     });
     const text = formatEvalReport(report);
     expect(text).toContain("provider=scripted model=test-model");
     expect(text).toContain("good");
     expect(text).toContain("success 1/1 (100%)");
     expect(text).toContain("one-shot 100%");
-  });
+  }, 120_000);
 });
 
 describe("checkExpectations", () => {
@@ -185,6 +204,85 @@ describe("checkExpectations", () => {
     expect(byName["not:^nodetool\\.agents\\."]).toBe(false);
     expect(byName["handle:if_true"]).toBe(false);
     expect(byName["no-provider-nodes"]).toBe(false);
+  });
+});
+
+describe("checkExpectations — reachability and property text", () => {
+  const pdfGraph = (agentPrompt: string) => ({
+    nodes: [
+      {
+        id: "doc",
+        type: "nodetool.input.DocumentInput",
+        name: "doc",
+        properties: { name: "document" }
+      },
+      {
+        id: "step",
+        type: AGENT_NODE_TYPE,
+        name: "step",
+        properties: { prompt: agentPrompt }
+      },
+      {
+        id: "out",
+        type: "nodetool.output.Output",
+        name: "out",
+        properties: { name: "summary" }
+      }
+    ],
+    edges: [
+      {
+        id: "e1",
+        source: "doc",
+        sourceHandle: "output",
+        target: "step",
+        targetHandle: "prompt"
+      },
+      {
+        id: "e2",
+        source: "step",
+        sourceHandle: "text",
+        target: "out",
+        targetHandle: "value"
+      }
+    ]
+  });
+
+  const expectations = {
+    requiredReachablePaths: [
+      { from: "^nodetool\\.input\\.Document", to: "^nodetool\\.agents\\." }
+    ],
+    requiredPropertyTextPatterns: ["bullet"]
+  };
+
+  const pass = (checks: ReturnType<typeof checkExpectations>, name: string) =>
+    checks.find((c) => c.name === name)?.pass;
+
+  const reachName =
+    "reaches:^nodetool\\.input\\.Document->^nodetool\\.agents\\.";
+
+  it("passes a document input wired into an LLM step that asks for bullets", () => {
+    const checks = checkExpectations(
+      pdfGraph("Summarize the document as bullet points."),
+      expectations
+    );
+    expect(pass(checks, reachName)).toBe(true);
+    expect(pass(checks, "propText:bullet")).toBe(true);
+  });
+
+  it("fails when nothing asks for bullets", () => {
+    const checks = checkExpectations(
+      pdfGraph("Summarize the document."),
+      expectations
+    );
+    expect(pass(checks, "propText:bullet")).toBe(false);
+  });
+
+  it("fails when the input never reaches the LLM step", () => {
+    const disconnected = pdfGraph("Bullet points, please.");
+    disconnected.edges = disconnected.edges.filter((e) => e.id !== "e1");
+    const checks = checkExpectations(disconnected, expectations);
+    expect(pass(checks, reachName)).toBe(false);
+    expect(checks.find((c) => c.name === reachName)?.detail).toContain("no path");
   });
 });
 

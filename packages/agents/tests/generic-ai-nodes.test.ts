@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   GENERIC_AI_NODES,
-  buildGraphPlannerSystemPrompt,
   resolveAvailableGenericNodes,
   type GenericNodeCapability
-} from "../src/prompts/graph-planner-prompt.js";
+} from "../src/prompts/workflow-authoring-knowledge.js";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 
 const VALID_CAPABILITIES: GenericNodeCapability[] = [
@@ -92,57 +91,5 @@ describe("resolveAvailableGenericNodes", () => {
     const { available, missing } = resolveAvailableGenericNodes(lookupOf(all));
     expect(available.map((n) => n.type)).toEqual(all);
     expect(missing).toEqual([]);
-  });
-});
-
-describe("buildGraphPlannerSystemPrompt", () => {
-  it("advertises every catalog node by default", () => {
-    const prompt = buildGraphPlannerSystemPrompt();
-    for (const node of GENERIC_AI_NODES) {
-      expect(prompt).toContain(node.type);
-    }
-  });
-
-  it("renders only the generic nodes it is given", () => {
-    const subset = GENERIC_AI_NODES.slice(0, 2);
-    const prompt = buildGraphPlannerSystemPrompt({ genericNodes: subset });
-    for (const node of subset) {
-      expect(prompt).toContain(`| ${node.task} | \`${node.type}\``);
-    }
-    for (const node of GENERIC_AI_NODES.slice(2)) {
-      expect(prompt).not.toContain(`| ${node.task} | \`${node.type}\``);
-    }
-  });
-
-  it("names no sandbox pack when none are installed", () => {
-    const prompt = buildGraphPlannerSystemPrompt();
-    expect(prompt).toContain("No sandbox packages are installed");
-    expect(prompt).toContain("`packages` must stay empty");
-    expect(prompt).not.toContain("@nodetool-ai/sandbox-");
-  });
-
-  it("renders one row per installed pack", () => {
-    const prompt = buildGraphPlannerSystemPrompt({
-      sandboxPacks: [
-        { specifier: "@nodetool-ai/sandbox-csv", summary: "Parse CSV" },
-        { specifier: "@nodetool-ai/sandbox-yaml", summary: "Parse YAML" }
-      ]
-    });
-    expect(prompt).toContain("| `@nodetool-ai/sandbox-csv` | Parse CSV |");
-    expect(prompt).toContain("| `@nodetool-ai/sandbox-yaml` | Parse YAML |");
-    expect(prompt).not.toContain("sandbox-pptx");
-    expect(prompt).not.toContain("No sandbox packages are installed");
-  });
-
-  it("forbids undeclared specifiers in both cases", () => {
-    const rule = "Never declare a specifier that is not listed";
-    expect(buildGraphPlannerSystemPrompt()).toContain(rule);
-    expect(
-      buildGraphPlannerSystemPrompt({
-        sandboxPacks: [
-          { specifier: "@nodetool-ai/sandbox-csv", summary: "Parse CSV" }
-        ]
-      })
-    ).toContain(rule);
   });
 });
