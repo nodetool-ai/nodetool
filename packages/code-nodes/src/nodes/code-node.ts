@@ -366,6 +366,14 @@ class InputStreamBridge {
   }
 }
 
+/** What one invocation executes: the node's own properties. */
+interface CodeEnvelope {
+  code: string;
+  packages: unknown[];
+  secrets: string[];
+  timeoutSeconds: number;
+}
+
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly platforms = ALL_PLATFORMS;
@@ -486,6 +494,23 @@ export class CodeNode extends BaseNode {
   declare secrets: string[];
 
   @prop({
+    type: "dict",
+    default: {},
+    title: "Script",
+    // The editor renders this with the script picker; an unlinked node stores
+    // the empty object.
+    json_schema_extra: { type: "js_script_link" },
+    description:
+      "Which JS script version this node's body was copied from, as " +
+      '{"id": "<script id>", "version": <n>}. Linking materializes the pinned ' +
+      "version: its code, packages, secrets and timeout become the node's own, " +
+      "so editing the script does not silently change this workflow and a run " +
+      "needs no script storage. \"Update to latest\" re-copies and re-pins. " +
+      "Empty means the node was never linked."
+  })
+  declare script: Record<string, unknown>;
+
+  @prop({
     type: "int",
     default: 30,
     title: "Timeout",
@@ -558,9 +583,9 @@ export class CodeNode extends BaseNode {
    * ever widened by an explicit choice on this node — nothing the guest code
    * can reach.
    */
-  private sandboxLimits(): SandboxLimits {
+  private sandboxLimits(envelope: CodeEnvelope): SandboxLimits {
     const mb = Number(this.max_response_mb ?? 1);
-    const declared = (Array.isArray(this.secrets) ? this.secrets : [])
+    const declared = envelope.secrets
       .map((name) => String(name).trim())
       .filter((name) => name !== "");
     return {
@@ -587,10 +612,11 @@ export class CodeNode extends BaseNode {
    * saying so on the node's log is the whole remedy.
    */
   private resolveModules(
+    envelope: CodeEnvelope,
     context?: ProcessingContext
   ): SandboxModuleResolution | undefined {
     const { declarations, invalid } = parseSandboxModuleDeclarations(
-      this.packages
+      envelope.packages
     );
     if (invalid.length > 0) {
       throw new Error(
@@ -666,9 +692,29 @@ export class CodeNode extends BaseNode {
   }
 
   /** Milliseconds the guest may run, or undefined for no limit. */
-  private timeoutMs(): number | undefined {
-    const timeout = Number(this.timeout ?? 30);
-    return timeout > 0 ? timeout * 1000 : undefined;
+  private timeoutMs(envelope: CodeEnvelope): number | undefined {
+    return envelope.timeoutSeconds > 0
+      ? envelope.timeoutSeconds * 1000
+      : undefined;
+  }
+
+  /**
+   * What this invocation runs: the node's own properties, always.
+   *
+   * Linking a script *materializes* it — the pinned version's code, packages,
+   * secrets and timeout are copied onto the node when the link is made or
+   * updated, and the `script` property records only which version they came
+   * from. So execution needs no database, no resolver, and no await: the body
+   * a run executes is the body the graph carries, which is also the body
+   * hydration read to decide whether this node streams its inputs.
+   */
+  private envelope(): CodeEnvelope {
+    return {
+      code: String(this.code ?? "return {};"),
+      packages: Array.isArray(this.packages) ? this.packages : [],
+      secrets: Array.isArray(this.secrets) ? this.secrets : [],
+      timeoutSeconds: Number(this.timeout ?? 30)
+    };
   }
 
   /**
@@ -679,30 +725,32 @@ export class CodeNode extends BaseNode {
    */
   private async sandboxOptions(
     code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): Promise<RunSandboxOptions> {
     return {
       code: `${NODETOOL_PRELUDE}\n${code}`,
       context,
-      timeoutMs: this.timeoutMs(),
+      timeoutMs: this.timeoutMs(envelope),
       globals: await this.sandboxGlobals(context),
-      limits: this.sandboxLimits(),
+      limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
-      modules: this.resolveModules(context)
+      modules: this.resolveModules(envelope, context)
     };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? "return {};");
+    const envelope = this.envelope();
+    const code = envelope.code;
     if (!usesEmitOutputContract(code)) {
       // The legacy return/yield contract runs unwarned: the deprecation
       // notice lives in validate_code, not in every run's message stream —
       // reliability goldens and downstream consumers pin that stream.
-      return this.runLegacySingleShot(code, context);
+      return this.runLegacySingleShot(envelope, context);
     }
 
     const result = await runInSandbox(
-      await this.sandboxOptions(code, context)
+      await this.sandboxOptions(code, envelope, context)
     );
 
     if (!result.success) {
@@ -734,7 +782,8 @@ export class CodeNode extends BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void> {
-    const code = String(this.code ?? "return {};");
+    const envelope = this.envelope();
+    const code = envelope.code;
     if (!usesStreamInputContract(code)) {
       // The kernel only routes here when hydration said the body streams, and
       // hydration re-reads the body every time. Reaching this means a stale
@@ -760,7 +809,7 @@ export class CodeNode extends BaseNode {
 
     try {
       const result = await runInSandbox({
-        ...(await this.sandboxOptions(code, context)),
+        ...(await this.sandboxOptions(code, envelope, context)),
         signal: abort.signal,
         // Awaited, so a downstream inbox at its bound blocks the guest's
         // `emit` — the same backpressure the buffered pump gets from its
@@ -792,12 +841,13 @@ export class CodeNode extends BaseNode {
 
   /** The deprecated return-bag path: implicit return, normalized output. */
   private async runLegacySingleShot(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): Promise<Record<string, unknown>> {
+    const code = envelope.code;
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
     const result = await runInSandbox(
-      await this.sandboxOptions(body, context)
+      await this.sandboxOptions(body, envelope, context)
     );
     if (!result.success) {
       throw new Error(result.error ?? "Code execution failed");
@@ -808,18 +858,18 @@ export class CodeNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const code = String(this.code ?? "return {};");
+    const envelope = this.envelope();
 
-    if (usesEmitOutputContract(code)) {
-      yield* this.pumpEmitContract(code, context);
+    if (usesEmitOutputContract(envelope.code)) {
+      yield* this.pumpEmitContract(envelope, context);
       return;
     }
 
-    if (!hasYieldStatement(code)) {
-      yield await this.runLegacySingleShot(code, context);
+    if (!hasYieldStatement(envelope.code)) {
+      yield await this.runLegacySingleShot(envelope, context);
       return;
     }
-    yield* this.runLegacyStream(code, context);
+    yield* this.runLegacyStream(envelope, context);
   }
 
   /**
@@ -831,7 +881,7 @@ export class CodeNode extends BaseNode {
    * backpressure with no new kernel concept.
    */
   private async *pumpEmitContract(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): AsyncGenerator<Record<string, unknown>> {
     const channel = new BoundedChannel<Record<string, unknown>>(
@@ -846,7 +896,7 @@ export class CodeNode extends BaseNode {
     const run = (async () => {
       try {
         result = await runInSandbox({
-          ...(await this.sandboxOptions(code, context)),
+          ...(await this.sandboxOptions(envelope.code, envelope, context)),
           signal: abort.signal,
           onEmit: (name: string, value: unknown) =>
             channel.push({ [name]: value })
@@ -890,9 +940,10 @@ export class CodeNode extends BaseNode {
 
   /** The deprecated `yield` path: the guest collects, the host replays. */
   private async *runLegacyStream(
-    code: string,
+    envelope: CodeEnvelope,
     context: ProcessingContext | undefined
   ): AsyncGenerator<Record<string, unknown>> {
+    const code = envelope.code;
     // The prelude sits outside the yield_ rewrite: only user code streams.
     const wrappedBody = `${NODETOOL_PRELUDE}
       const __yielded = [];
@@ -902,7 +953,7 @@ export class CodeNode extends BaseNode {
     `;
 
     const result = await runInSandbox({
-      ...(await this.sandboxOptions("", context)),
+      ...(await this.sandboxOptions("", envelope, context)),
       code: wrappedBody
     });
 
@@ -931,6 +982,7 @@ function extractDynamicInputs(
 ): Record<string, unknown> {
   const reserved = new Set([
     "code",
+    "script",
     "packages",
     "secrets",
     "timeout",

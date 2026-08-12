@@ -286,7 +286,10 @@ const assembleBundle = (
     key: workflow.key,
     name: workflow.name,
     graph: { nodes: workflow.graph.nodes, edges: workflow.graph.edges }
-  }))
+  })),
+  // The builder plans workflows, never scripts: authoring a script operation
+  // is not a stage it has.
+  scripts: []
 });
 
 // ---------------------------------------------------------------------------

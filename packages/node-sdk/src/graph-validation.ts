@@ -16,6 +16,12 @@ import {
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
+import {
+  jsScriptPortMismatches,
+  readJsScriptLink,
+  type JsScriptLink,
+  type JsScriptLinkLookup
+} from "./js-script-link.js";
 import { parseSandboxModuleDeclarations } from "./sandbox-module-declarations.js";
 import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
@@ -576,6 +582,34 @@ export interface GraphValidationOptions {
    * graph without one (a browser client, a test).
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * Resolves a Code node's pinned `script` link. Validation is synchronous, so
+   * a caller that can reach the script store prefetches every link
+   * ({@link collectJsScriptLinks}) and passes a lookup over what it found.
+   *
+   * A link the lookup cannot answer for is a warning either way: the node runs
+   * the body it copied at link time, so a script that moved or disappeared
+   * costs freshness, not the run.
+   */
+  jsScriptLookup?: JsScriptLinkLookup | null;
+}
+
+/**
+ * Every pinned script link a graph's Code nodes carry, deduplicated. A host
+ * that wants the linked-script checks loads these first and hands
+ * {@link validateGraph} a lookup over the result.
+ */
+export function collectJsScriptLinks(
+  graph: GraphValidationInput
+): JsScriptLink[] {
+  const seen = new Map<string, JsScriptLink>();
+  for (const node of graph.nodes ?? []) {
+    if (!isJsCodeNodeType(String(node.type ?? ""))) continue;
+    const link = readJsScriptLink(readProperties(node));
+    if (!link) continue;
+    seen.set(`${link.id}@${link.version}`, link);
+  }
+  return [...seen.values()];
 }
 
 export function validateGraph(
@@ -764,6 +798,52 @@ export function validateGraph(
         ...Object.keys(readDynamicProperties(node)),
         ...connectedInputs
       ]);
+
+      // A linked node carries a *copy* of the pinned script's body, so the
+      // body below is checked exactly like an inline one. What the link adds
+      // is a freshness question: does the node's shape still match the script
+      // it came from? Nothing here blocks a run, because a run no longer reads
+      // the script row.
+      const link = readJsScriptLink(props);
+      if (link) {
+        const lookup = options.jsScriptLookup;
+        const resolved = lookup ? lookup(link) : undefined;
+        if (!resolved) {
+          issues.push({
+            severity: "warning",
+            code: lookup ? "js_script_missing" : "js_script_unverified",
+            nodeId: id,
+            nodeType: type,
+            message:
+              `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
+              (lookup
+                ? "which no longer exists, so the link's freshness cannot be " +
+                  "verified. The node runs the body it copied at link time."
+                : "whose freshness cannot be verified here — no script store is " +
+                  "available. The node runs the body it copied at link time.")
+          });
+        } else {
+          const nodeInputs = [...availableInputs].filter(
+            (name) => !isReservedHandle(name)
+          );
+          const nodeOutputs = Object.keys(readDynamicOutputs(node));
+          for (const mismatch of jsScriptPortMismatches({
+            scriptInputs: resolved.document.inputs.map((port) => port.name),
+            scriptOutputs: resolved.document.outputs.map((port) => port.name),
+            nodeInputs,
+            nodeOutputs
+          })) {
+            issues.push({
+              severity: "error",
+              code: "js_script_ports",
+              nodeId: id,
+              nodeType: type,
+              message: `Node "${id}": ${mismatch}.`
+            });
+          }
+        }
+      }
+
       const { declarations, invalid } = parseSandboxModuleDeclarations(
         props.packages
       );

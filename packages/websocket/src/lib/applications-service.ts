@@ -12,16 +12,22 @@ import {
   applyBundle,
   bundleFromApplication,
   createEmptyDocument,
+  operationTarget,
   parseApplicationBundle,
   parseApplicationDocument,
+  pinScriptVersions,
   type ApplicationDocument,
+  type BundleJsScriptSource,
   type BundleWorkflowSource
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
   ApplicationIdInUseError,
   InvalidApplicationIdError,
+  JsScript,
+  JsScriptVersion,
   Workflow,
+  createJsScriptResolver,
   createStableUuid,
   createTimeOrderedUuid,
   normalizeApplicationId,
@@ -284,8 +290,32 @@ export async function exportApplicationBundle(
   );
 
   const sources: BundleWorkflowSource[] = [];
+  const scriptSources: BundleJsScriptSource[] = [];
   const seen = new Set<string>();
+  const seenScripts = new Set<string>();
   for (const operation of document.operations) {
+    const target = operationTarget(operation);
+    if (target.kind === "script") {
+      if (seenScripts.has(target.scriptId)) continue;
+      seenScripts.add(target.scriptId);
+      // The pinned version is what the app runs, so that is what ships — not
+      // whatever the script has drifted to since.
+      const resolved = await createJsScriptResolver().resolve(
+        { id: target.scriptId, version: target.scriptVersion },
+        userId
+      );
+      // A script the operation pins but the install no longer has is left out,
+      // the way a missing workflow is: the broken link stays visible.
+      if (!resolved) continue;
+      scriptSources.push({
+        scriptId: target.scriptId,
+        name: resolved.name,
+        document: resolved.document,
+        sourceId: target.scriptId,
+        version: target.scriptVersion
+      });
+      continue;
+    }
     if (seen.has(operation.workflowId)) continue;
     seen.add(operation.workflowId);
     const pin = pinned.get(operation.workflowId);
@@ -305,7 +335,8 @@ export async function exportApplicationBundle(
   return applicationBundle.parse(
     bundleFromApplication(
       { name: app.name, description: app.description, document },
-      sources
+      sources,
+      scriptSources
     )
   );
 }
@@ -338,6 +369,10 @@ export async function importApplicationBundle(
     newWorkflowId: (workflow) =>
       workflow.sourceId
         ? createStableUuid(userId, workflow.sourceId)
+        : createTimeOrderedUuid(),
+    newScriptId: (script) =>
+      script.sourceId
+        ? createStableUuid(userId, script.sourceId)
         : createTimeOrderedUuid()
   });
 
@@ -355,12 +390,41 @@ export async function importApplicationBundle(
     });
   }
 
+  // A script row has its own version numbering, so the number the export
+  // pinned means nothing here: every carried script is snapshotted and the
+  // operations are re-pinned to the version this install created.
+  const scriptVersions = new Map<string, number>();
+  for (const script of result.scripts) {
+    const existing = await JsScript.findById(script.id);
+    const row =
+      existing && existing.user_id === userId
+        ? existing
+        : new JsScript({
+            id: script.id,
+            user_id: userId,
+            project_id: input.projectId,
+            name: script.name,
+            document: JSON.stringify(script.document)
+          });
+    if (row !== existing) await row.save();
+    const version = await JsScriptVersion.snapshot(row, {
+      saveType: "manual",
+      name: `Imported with ${result.app.name}`
+    });
+    scriptVersions.set(script.id, version.version);
+  }
+
+  const document =
+    scriptVersions.size > 0
+      ? pinScriptVersions(result.app.document, scriptVersions)
+      : result.app.document;
+
   const app = await insertApplication(userId, {
     user_id: userId,
     project_id: input.projectId,
     name: result.app.name,
     description: result.app.description,
-    document: JSON.stringify(result.app.document)
+    document: JSON.stringify(document)
   });
   return applicationResponse.parse(app.toResponse());
 }

@@ -20,7 +20,13 @@
 
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { Application, Workflow } from "@nodetool-ai/models";
+import {
+  Application,
+  Workflow,
+  createJsScriptResolver
+} from "@nodetool-ai/models";
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { JsScriptOperationRunner } from "../app-debug/script-operation.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   applicationTarget,
@@ -92,6 +98,27 @@ export interface AppDebugDeps {
     userId: string,
     id: string
   ) => Promise<{ id: string; name: string; document: unknown } | null>;
+  /**
+   * Execute a script operation. Running a sandbox body lives above this
+   * package, so a host that wants script operations passes one in; without it
+   * such an operation reports as unexecutable instead of being skipped.
+   */
+  runScript?: JsScriptOperationRunner;
+}
+
+/** A pinned script version the user owns, for a script operation. */
+async function loadUserJsScript(
+  userId: string,
+  scriptId: string,
+  scriptVersion: number
+): Promise<{ name: string; document: JsScriptDocument } | null> {
+  const resolved = await createJsScriptResolver().resolve(
+    { id: scriptId, version: scriptVersion },
+    userId
+  );
+  return resolved
+    ? { name: resolved.name, document: resolved.document }
+    : null;
 }
 
 /** A workflow the user can read, in the shape the simulator wants. */
@@ -233,7 +260,10 @@ export async function runApplicationDebug(
             (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
           runOnServer: createAppServerRunner(userId, registry, {
             jobPrefix: "app-debug-run"
-          })
+          }),
+          loadScript: (scriptId: string, scriptVersion: number) =>
+            loadUserJsScript(userId, scriptId, scriptVersion),
+          ...(deps.runScript ? { runScript: deps.runScript } : {})
         }
       );
       return debugPayload(report, debugId);

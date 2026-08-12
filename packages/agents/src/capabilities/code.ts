@@ -21,12 +21,13 @@
  * the call's own `secrets` list — authoring runs are hermetic by default.
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
-import type {
-  CapabilityExport,
-  CapabilityModule,
-  CapabilityRun
-} from "./types.js";
+import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type { CapabilityExport, CapabilityModule } from "./types.js";
+import {
+  gradeCodeCases,
+  type GradedCase,
+  type HarnessRunResult
+} from "./code-grading.js";
 import {
   validateCodeSpec,
   runCodeSpec,
@@ -46,33 +47,22 @@ export {
   PACKAGES_FIELD
 } from "./code.specs.js";
 
-/** One `await emit(name, value)` call, in call order. */
-interface EmittedEntry {
-  name: string;
-  value: unknown;
-}
-
-/**
- * What a run streamed: `{name, value}` entries under the emit/output contract,
- * legacy `yield` bags under the return contract.
- */
-type StreamedItems = EmittedEntry[] | Record<string, unknown>[];
-
-interface HarnessRunResult {
-  ok: boolean;
-  outputs?: Record<string, unknown>;
-  streamed?: StreamedItems;
-  logs: string[];
-  error?: string;
-  duration_ms: number;
-}
+export type {
+  EmittedEntry,
+  StreamedItems,
+  HarnessRunResult
+} from "./code-grading.js";
 
 /**
  * Run one Code-node body the way the node runs it, minus the toolbelt.
  * Returns rather than throws: a failing body is a result to report.
+ *
+ * Takes a `ProcessingContext` rather than a `CapabilityRun` because that is
+ * all it ever used, and the JS-script run endpoint reaches it from a host that
+ * has a context and no capability run.
  */
-async function runCodeBody(
-  run: CapabilityRun,
+export async function runCodeBody(
+  context: ProcessingContext,
   params: {
     code: string;
     inputs: Record<string, unknown>;
@@ -108,7 +98,7 @@ async function runCodeBody(
   }
   let modules;
   if (declarations.length > 0) {
-    const catalog = run.context.sandboxModuleCatalog;
+    const catalog = context.sandboxModuleCatalog;
     if (!catalog) {
       return fail(
         "Sandbox packages are not available in this process, so the declared " +
@@ -158,7 +148,7 @@ return __yielded;`
 
   const result = await runInSandbox({
     code: body,
-    context: run.context,
+    context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,
     limits: { secretScope: [...params.secrets] },
@@ -358,7 +348,7 @@ const validateCode: CapabilityExport = {
 const runCode: CapabilityExport = {
   spec: runCodeSpec,
   impl: async (run, params) =>
-    runCodeBody(run, {
+    runCodeBody(run.context, {
       code: String(params["code"] ?? ""),
       inputs: inputBag(params["inputs"]),
       packages: stringList(params["packages"]),
@@ -373,46 +363,6 @@ const runCode: CapabilityExport = {
 // ---------------------------------------------------------------------------
 // test_code
 // ---------------------------------------------------------------------------
-
-interface TestCaseReport {
-  name: string;
-  ok: boolean;
-  outputs?: Record<string, unknown>;
-  streamed?: StreamedItems;
-  logs: string[];
-  error?: string;
-  mismatches: { output: string; expected: unknown; actual: unknown }[];
-}
-
-/** Structural equality by JSON normalization — the values already crossed the sandbox boundary as plain data. */
-function deepEqual(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-/**
- * Grade a case's `expected_streamed` against what the run streamed: the same
- * entries, in the same order. A length difference is one mismatch on
- * `streamed`; a differing entry is one mismatch on `streamed[i]`.
- */
-function streamMismatches(
-  expected: readonly unknown[],
-  actual: StreamedItems
-): TestCaseReport["mismatches"] {
-  if (expected.length !== actual.length) {
-    return [{ output: "streamed", expected, actual }];
-  }
-  const mismatches: TestCaseReport["mismatches"] = [];
-  for (let i = 0; i < expected.length; i++) {
-    if (!deepEqual(expected[i], actual[i])) {
-      mismatches.push({
-        output: `streamed[${i}]`,
-        expected: expected[i],
-        actual: actual[i]
-      });
-    }
-  }
-  return mismatches;
-}
 
 const testCode: CapabilityExport = {
   spec: testCodeSpec,
@@ -431,70 +381,41 @@ const testCode: CapabilityExport = {
     const secrets = stringList(params["secrets"]);
     const timeout = timeoutSeconds(params["timeout_seconds"]);
 
-    const results: TestCaseReport[] = [];
-    for (let i = 0; i < rawCases.length; i++) {
+    const cases: GradedCase[] = rawCases.map((entry, i) => {
       const raw =
-        rawCases[i] && typeof rawCases[i] === "object"
-          ? (rawCases[i] as Record<string, unknown>)
+        entry && typeof entry === "object"
+          ? (entry as Record<string, unknown>)
           : {};
       const name =
         typeof raw["name"] === "string" && raw["name"].trim() !== ""
           ? raw["name"]
           : `case ${i + 1}`;
-      const expectBag =
-        raw["expect"] && typeof raw["expect"] === "object"
-          ? (raw["expect"] as Record<string, unknown>)
-          : undefined;
-      const expectStream = Array.isArray(raw["expected_streamed"])
-        ? (raw["expected_streamed"] as unknown[])
-        : undefined;
-
       const staged = inputStreamBag(raw["input_streams"]);
-      const outcome = await runCodeBody(run, {
-        code,
+      return {
+        name,
         inputs: inputBag(raw["inputs"]),
+        ...(raw["expect"] && typeof raw["expect"] === "object"
+          ? { expect: raw["expect"] as Record<string, unknown> }
+          : {}),
+        ...(Array.isArray(raw["expected_streamed"])
+          ? { expectedStreamed: raw["expected_streamed"] as unknown[] }
+          : {}),
+        ...(staged !== undefined ? { inputStreams: staged } : {})
+      };
+    });
+
+    return gradeCodeCases(cases, (testCase) =>
+      runCodeBody(run.context, {
+        code,
+        inputs: testCase.inputs,
         packages,
         secrets,
         timeoutSeconds: timeout,
-        ...(staged !== undefined ? { inputStreams: staged } : {})
-      });
-
-      const mismatches: TestCaseReport["mismatches"] = [];
-      if (outcome.ok && expectBag) {
-        const actualBag = outcome.outputs ?? {};
-        for (const [key, expected] of Object.entries(expectBag)) {
-          const actual = actualBag[key];
-          if (!deepEqual(expected, actual)) {
-            mismatches.push({ output: key, expected, actual });
-          }
-        }
-      }
-      if (outcome.ok && expectStream) {
-        mismatches.push(
-          ...streamMismatches(expectStream, outcome.streamed ?? [])
-        );
-      }
-
-      results.push({
-        name,
-        ok: outcome.ok && mismatches.length === 0,
-        ...(outcome.outputs !== undefined ? { outputs: outcome.outputs } : {}),
-        ...(outcome.streamed !== undefined
-          ? { streamed: outcome.streamed }
-          : {}),
-        logs: outcome.logs,
-        ...(outcome.error !== undefined ? { error: outcome.error } : {}),
-        mismatches
-      });
-    }
-
-    const passed = results.filter((entry) => entry.ok).length;
-    return {
-      ok: passed === results.length,
-      passed,
-      failed: results.length - passed,
-      results
-    };
+        ...(testCase.inputStreams !== undefined
+          ? { inputStreams: testCase.inputStreams }
+          : {})
+      })
+    );
   }
 };
 

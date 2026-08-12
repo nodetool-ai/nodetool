@@ -22,6 +22,7 @@ import MovieIcon from "@mui/icons-material/Movie";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
+import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
@@ -91,6 +92,11 @@ export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "timelines", label: "Timelines", icon: <MovieIcon /> },
   { id: "storyboards", label: "Storyboards", icon: <DashboardOutlinedIcon /> },
   { id: "scripts", label: "Scripts", icon: <RecordVoiceOverOutlinedIcon /> },
+  {
+    id: "jsscripts",
+    label: "JS Scripts",
+    icon: <DataObjectOutlinedIcon />
+  },
   {
     id: "apps",
     label: "Apps",

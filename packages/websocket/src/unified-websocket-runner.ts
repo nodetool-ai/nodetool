@@ -1522,6 +1522,7 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
   timeline: "timeline sequence",
   storyboard: "storyboard",
   script: "script",
+  jsscript: "js script",
   app: "app",
   chat: "chat"
 };

@@ -78,6 +78,7 @@ import { registerAppsCommands } from "./commands/apps.js";
 import { registerValidateCommand } from "./commands/validate.js";
 import { registerTimelineCommands } from "./commands/timeline.js";
 import { registerSketchCommands } from "./commands/sketch.js";
+import { registerJsScriptCommands } from "./commands/js-script.js";
 import { registerReliabilityCommands } from "./commands/reliability.js";
 import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
@@ -115,7 +116,7 @@ function ensureDb(): void {
 }
 
 async function setupDb(): Promise<void> {
-  initDb(getDefaultDbPath());
+  ensureDb();
   // Resolve the master encryption key from keychain / env / AWS so that
   // both encryption (Secret.upsert) and decryption (Secret.getDecryptedValue)
   // use the same persistent key. Without this, a fresh process would
@@ -2334,6 +2335,7 @@ registerAppsCommands(program);
 registerValidateCommand(program);
 registerTimelineCommands(program);
 registerSketchCommands(program);
+registerJsScriptCommands(program);
 registerReliabilityCommands(program);
 registerNodeCommands(program);
 registerGenerateCommand(program);

@@ -590,6 +590,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "SCRIPT_TOOL_LOOP_CASES"
   ),
   makeToolLoopSuite(
+    "jsscript-tools",
+    "Run the JS-script surface tool-loop eval suite (ui_jsscript_* tools, real sandbox execution) against a provider/model",
+    "JS_SCRIPT_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
     "sketch-tools",
     "Run the Sketch/image-editor surface tool-loop eval suite (ui_sketch_* tools) against a provider/model",
     "SKETCH_TOOL_LOOP_CASES"

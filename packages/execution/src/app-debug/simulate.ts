@@ -25,12 +25,22 @@ import {
   DEFAULT_OPERATION_ID,
   eventToAction,
   parseBinding,
+  operationTarget,
   parseInputStateKey,
   resolveBinding,
   stateKey,
   type InputSlot,
-  type OperationBinding
+  type OperationBinding,
+  type OperationTarget
 } from "@nodetool-ai/app-runtime";
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import {
+  jsScriptRunMessages,
+  scriptAppIO,
+  scriptOperationInvocation,
+  type JsScriptOperationLoader,
+  type JsScriptOperationRunner
+} from "./script-operation.js";
 import {
   bindingScopeFor,
   documentOperations,
@@ -79,6 +89,17 @@ export interface AppSimulationDeps {
   ) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>;
   /** Execute one operation's workflow. */
   runOnServer: (input: AppServerRunInput) => Promise<AppServerRunOutcome>;
+  /**
+   * Resolve a pinned script version a script operation targets and the target
+   * itself does not carry. Absent on a host with no script store, where such an
+   * operation reports as unresolvable instead of running something else.
+   */
+  loadScript?: JsScriptOperationLoader;
+  /**
+   * Execute one script operation. Absent on a host that cannot run a sandbox
+   * body, with the same consequence.
+   */
+  runScript?: JsScriptOperationRunner;
   /** Progress/log sink. */
   onLog?: (line: string) => void;
   /**
@@ -371,6 +392,88 @@ function buildAppVerdict(
   return { ok, headline, issues, warnings };
 }
 
+/** A finished script run in the report's server-run shape. */
+function scriptRunReport(
+  result: { ok: boolean; error?: string; logs: string[] },
+  durationMs: number,
+  scriptName: string,
+  messagesFile: string | null | undefined
+): ServerRunReport {
+  const status = result.ok ? "completed" : "failed";
+  return {
+    surface: "server",
+    ok: result.ok,
+    status,
+    error: result.error ?? null,
+    durationMs,
+    summary: {
+      status,
+      error: result.error ?? null,
+      nodes: [],
+      logs: result.logs.map((content) => ({
+        nodeId: scriptName,
+        severity: "info" as const,
+        content
+      })),
+      edges: [],
+      llmCalls: [],
+      outputs: [],
+      interventions: [],
+      counts: {
+        nodes: 0,
+        completed: result.ok ? 1 : 0,
+        errored: result.ok ? 0 : 1,
+        logs: result.logs.length,
+        outputs: 0,
+        llmCalls: 0,
+        interventions: 0
+      },
+      errors: result.error
+        ? [{ nodeId: scriptName, message: result.error }]
+        : []
+    },
+    trace: null,
+    ...(messagesFile ? { messagesFile } : {})
+  };
+}
+
+/**
+ * What a script operation runs: the document the target carries under the key
+ * its target names, else the one the host loads by id and version.
+ */
+async function resolveOperationScript(
+  target: Extract<OperationTarget, { kind: "script" }>,
+  carried: ResolvedAppTarget["scripts"],
+  loadScript: AppSimulationDeps["loadScript"]
+): Promise<{
+  script: { name: string; document: JsScriptDocument } | null;
+  unavailable: string | null;
+}> {
+  const bundled = carried?.get(target.scriptId);
+  if (bundled) return { script: bundled, unavailable: null };
+  if (!loadScript) {
+    return {
+      script: null,
+      unavailable: `runs JS script "${target.scriptId}" v${target.scriptVersion}, which this host cannot resolve.`
+    };
+  }
+  try {
+    const script = await loadScript(target.scriptId, target.scriptVersion);
+    if (!script) {
+      return {
+        script: null,
+        unavailable: `runs JS script "${target.scriptId}" v${target.scriptVersion}, which does not exist.`
+      };
+    }
+    return { script, unavailable: null };
+  } catch (error) {
+    return {
+      script: null,
+      unavailable: `runs JS script "${target.scriptId}" v${target.scriptVersion}, which could not be loaded: ${String(error)}`
+    };
+  }
+}
+
 /**
  * The graph an operation runs: one the target carries (a bundle's workflows,
  * the host workflow), else the database.
@@ -427,8 +530,34 @@ export async function simulateApp(
     resources: document?.resources.map(({ id, name, kind }) => ({ id, name, kind })) ?? []
   };
   const bindingByOperation = new Map<string, OperationBinding>();
+  const scriptByOperation = new Map<
+    string,
+    { name: string; document: JsScriptDocument }
+  >();
   if (document) {
     for (const binding of documentOperations(document)) {
+      const target = operationTarget(binding);
+      bindingByOperation.set(binding.id, binding);
+
+      if (target.kind === "script") {
+        const { script, unavailable } = await resolveOperationScript(
+          target,
+          resolved.scripts,
+          deps.loadScript
+        );
+        if (script) scriptByOperation.set(binding.id, script);
+        context.operations.push(
+          operationSpec(
+            binding,
+            script ? scriptAppIO(script.document) : null,
+            script && !deps.runScript
+              ? `runs JS script "${script.name}", which this host cannot execute.`
+              : unavailable
+          )
+        );
+        continue;
+      }
+
       const { graph, unavailable } = await resolveOperationGraph(
         binding,
         {
@@ -441,7 +570,6 @@ export async function simulateApp(
       const operationIO: AppIO | null =
         graph === resolved.graph ? io : graph ? extractAppIO(graph) : null;
       if (graph) graphByOperation.set(binding.id, graph);
-      bindingByOperation.set(binding.id, binding);
       context.operations.push(operationSpec(binding, operationIO, unavailable));
     }
     // The first declared operation, exactly as the web runtime picks it
@@ -531,9 +659,51 @@ export async function simulateApp(
       };
     };
 
+    /**
+     * Run one script operation and hand back the stream the fold expects. The
+     * run endpoint answers with plain JSON, so `jsScriptRunMessages` is what
+     * turns that into per-emit and final output messages.
+     */
+    const runScriptOperation = async (
+      operationId: string,
+      target: Extract<OperationTarget, { kind: "script" }>,
+      script: { name: string; document: JsScriptDocument },
+      timeoutMs: number | null,
+      inputs: Record<string, unknown>
+    ) => {
+      log(`Running script operation "${operationId}"…`);
+      const started = Date.now();
+      // A streaming body reads its inputs off the inbox, so the operation's
+      // one value per input is staged as a one-item stream instead.
+      const invocation = scriptOperationInvocation(script.document, inputs);
+      const result = await deps.runScript!({
+        scriptId: target.scriptId,
+        scriptVersion: target.scriptVersion,
+        name: script.name,
+        document: script.document,
+        inputs: invocation.inputs,
+        ...(invocation.inputStreams
+          ? { inputStreams: invocation.inputStreams }
+          : {}),
+        ...(timeoutMs != null ? { timeoutMs } : {})
+      });
+      const messages = jsScriptRunMessages(result);
+      const runIndex = runs.length;
+      const messagesFile = await deps.onRunMessages?.(
+        runIndex,
+        messages as unknown as ProcessingMessage[]
+      );
+      runs.push(
+        scriptRunReport(result, Date.now() - started, script.name, messagesFile)
+      );
+      log(`Run ${runIndex + 1}: ${result.ok ? "completed" : "failed"}`);
+      return { messages, runIndex };
+    };
+
     const scope = bindingScopeFor(io, context);
     const operations: HeadlessOperationInit[] = context.operations.map((op) => {
       const binding = bindingByOperation.get(op.id) as OperationBinding;
+      const script = scriptByOperation.get(op.id) ?? null;
       const graph = graphByOperation.get(op.id) ?? null;
       const operationIO = op.io ?? { inputs: [], outputs: [], variables: [], nodeIds: [] };
       const defaults: Record<string, unknown> = {};
@@ -554,6 +724,18 @@ export async function simulateApp(
         inputNodeIds: operationIO.inputs.map((i) => i.nodeId),
         inputNameByNodeId: new Map(operationIO.inputs.map((i) => [i.nodeId, i.name])),
         defaults,
+        ...(script && deps.runScript
+          ? {
+              runWorkflow: (params: Record<string, unknown>) =>
+                runScriptOperation(
+                  op.id,
+                  op.target as Extract<OperationTarget, { kind: "script" }>,
+                  script,
+                  timeoutMs,
+                  params
+                )
+            }
+          : {}),
         ...(graph
           ? {
               runWorkflow: (params: Record<string, unknown>) =>

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  collectJsScriptLinks,
   collectModelSelectionIssues,
   validateGraph,
   validationHeadline,
@@ -1447,5 +1448,145 @@ describe("Code node sandbox packages", () => {
     expect(report.issues.map((i) => i.code)).not.toContain(
       "code_package_disabled"
     );
+  });
+});
+
+describe("Code nodes linked to a JS script", () => {
+  const CODE = "nodetool.code.Code";
+  const registry = fakeRegistry({
+    [CODE]: meta(CODE, { code: "str", timeout: "int" }, {}, {
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: true
+    } as Partial<NodeMetadata>),
+    "a.Sink": meta("a.Sink", { in: "str" }, {})
+  });
+
+  const script = (
+    overrides: Partial<{
+      code: string;
+      inputs: { name: string; type: string }[];
+      outputs: { name: string; type: string }[];
+    }> = {}
+  ) => ({
+    id: "s1",
+    name: "Shout",
+    version: 2,
+    document: {
+      schemaVersion: 1 as const,
+      description: "",
+      code: 'await output("out", String(inputs.text).toUpperCase());',
+      inputs: [{ name: "text", type: "str" }],
+      outputs: [{ name: "out", type: "str" }],
+      packages: [],
+      secrets: [],
+      timeoutSeconds: 30,
+      tests: [],
+      ...overrides
+    }
+  });
+
+  /** A linked Code node feeding a sink from its `out` handle. */
+  const graph = (node: Record<string, unknown>) => ({
+    nodes: [
+      {
+        id: "c",
+        type: CODE,
+        properties: {
+          // The body linking materialized onto the node — what a run executes.
+          code: 'await output("out", String(inputs.text).toUpperCase());',
+          script: { id: "s1", version: 2 }
+        },
+        dynamic_inputs: { text: { type: { type: "str" } } },
+        dynamic_outputs: { out: { type: "str" } },
+        ...node
+      },
+      { id: "s", type: "a.Sink", properties: {} }
+    ],
+    edges: [
+      { id: "e1", source: "c", sourceHandle: "out", target: "s", targetHandle: "in" }
+    ]
+  });
+
+  const lookup = (found: ReturnType<typeof script> | undefined) => () => found;
+
+  it("accepts a linked node whose materialized body matches the script", () => {
+    const report = validateGraph(graph({}), registry, {
+      sandboxModuleCatalog: null,
+      jsScriptLookup: lookup(script())
+    });
+    expect(report.counts.errors).toBe(0);
+  });
+
+  it("checks the materialized body like any inline one", () => {
+    const report = validateGraph(
+      graph({ properties: { code: "const x = ((", script: { id: "s1", version: 2 } } }),
+      registry,
+      { sandboxModuleCatalog: null, jsScriptLookup: lookup(script()) }
+    );
+    expect(report.ok).toBe(false);
+    expect(report.issues.some((i) => i.code === "code_syntax")).toBe(true);
+  });
+
+  it("checks a materialized streaming body against the node's edges", () => {
+    const report = validateGraph(
+      graph({
+        properties: {
+          code: 'for await (const t of stream("text")) { await emit("out", t); }',
+          script: { id: "s1", version: 2 }
+        }
+      }),
+      registry,
+      { sandboxModuleCatalog: null, jsScriptLookup: lookup(script()) }
+    );
+    // Nothing feeds `text`, so the stream yields nothing — a warning, not an error.
+    expect(report.counts.errors).toBe(0);
+    expect(
+      report.issues.some((i) => i.code === "code_unconnected_stream")
+    ).toBe(true);
+  });
+
+  it("warns rather than errors on a dangling link — the body still runs", () => {
+    const report = validateGraph(graph({}), registry, {
+      sandboxModuleCatalog: null,
+      jsScriptLookup: lookup(undefined)
+    });
+    expect(report.ok).toBe(true);
+    const issue = report.issues.find((i) => i.code === "js_script_missing");
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.message).toContain("s1");
+  });
+
+  it("warns when no lookup can verify the link", () => {
+    const report = validateGraph(graph({}), registry, {
+      sandboxModuleCatalog: null
+    });
+    expect(report.ok).toBe(true);
+    expect(
+      report.issues.some((i) => i.code === "js_script_unverified")
+    ).toBe(true);
+  });
+
+  it("errors when the script's ports and the node's slots disagree", () => {
+    const report = validateGraph(
+      graph({ dynamic_inputs: { other: { type: { type: "str" } } } }),
+      registry,
+      {
+        sandboxModuleCatalog: null,
+        jsScriptLookup: lookup(script())
+      }
+    );
+    expect(report.ok).toBe(false);
+    const messages = report.issues
+      .filter((i) => i.code === "js_script_ports")
+      .map((i) => i.message)
+      .join(" ");
+    expect(messages).toContain('"text"');
+    expect(messages).toContain('"other"');
+  });
+
+  it("collects every pinned link in the graph", () => {
+    expect(collectJsScriptLinks(graph({}))).toEqual([
+      { id: "s1", version: 2 }
+    ]);
   });
 });

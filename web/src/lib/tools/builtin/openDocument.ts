@@ -40,6 +40,10 @@ import {
   hasScriptAgentHandler
 } from "../../../components/script/scriptAgentBridge";
 import {
+  getJsScriptAgentHandler,
+  hasJsScriptAgentHandler
+} from "../../../components/jsScript/jsScriptAgentBridge";
+import {
   getSketchAgentHandler,
   hasSketchAgentHandler
 } from "../../../components/sketch/sketchAgentBridge";
@@ -54,6 +58,7 @@ const OPENABLE_TYPES = [
   "timeline",
   "storyboard",
   "script",
+  "jsscript",
   "sketch",
   "app"
 ] as const;
@@ -65,6 +70,7 @@ const TAB_TYPE: Record<OpenableType, WorkspaceTabType> = {
   timeline: "timeline",
   storyboard: "storyboard",
   script: "script",
+  jsscript: "jsscript",
   sketch: "sketch",
   app: "application"
 };
@@ -74,6 +80,7 @@ const LABEL: Record<OpenableType, string> = {
   timeline: "timeline sequence",
   storyboard: "storyboard",
   script: "script",
+  jsscript: "JS script",
   sketch: "image document",
   app: "app"
 };
@@ -99,11 +106,26 @@ const isReady: Record<
   script: (id) =>
     hasScriptAgentHandler(id) &&
     getScriptAgentHandler(id).getSnapshot().scriptId === id,
+  jsscript: (id) =>
+    hasJsScriptAgentHandler(id) &&
+    getJsScriptAgentHandler(id).getSnapshot().scriptId === id,
   sketch: (id) =>
     hasSketchAgentHandler(id) &&
     getSketchAgentHandler(id).getSnapshot().documentId === id,
   app: (id) => hasPuckAgentHandler(id)
 };
+
+
+/**
+ * The resource URI for a document, when the scheme has a kind for it. JS
+ * scripts have no `ResourceKind` yet (the scheme lives in the protocol
+ * package), so their result carries no link rather than a wrong one.
+ */
+const resourceLink = (
+  type: OpenableType,
+  id: string
+): { url?: string } =>
+  type === "jsscript" ? {} : { url: docUrl(type, id) };
 
 const ready = (
   type: OpenableType,
@@ -143,7 +165,7 @@ const waitUntilReady = async (
 FrontendToolRegistry.register({
   name: "ui_open_document",
   description:
-    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this when a ui_* tool reports that the document is not open, or when the user names a document that is not in the open list — do not report a document as unavailable until you have tried to open it. Types: workflow, timeline, storyboard, script, sketch, app. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, a resource link, or the user). Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
+    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this when a ui_* tool reports that the document is not open, or when the user names a document that is not in the open list — do not report a document as unavailable until you have tried to open it. Types: workflow, timeline, storyboard, script, jsscript, sketch, app. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user). Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
   parameters: z.object({
     type: z
       .enum(OPENABLE_TYPES)
@@ -169,7 +191,7 @@ FrontendToolRegistry.register({
         type,
         id,
         already_open: true,
-        url: docUrl(type, id)
+        ...resourceLink(type, id)
       };
     }
 
@@ -195,7 +217,7 @@ FrontendToolRegistry.register({
         type,
         id,
         already_open: wasOpen,
-        url: docUrl(type, id)
+        ...resourceLink(type, id)
       };
     }
 

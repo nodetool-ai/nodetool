@@ -51,6 +51,13 @@ jest.mock("../../../contexts/NodeContext", () => ({
     })
 }));
 
+// The script-link header owns its own tRPC queries and its own test; here it
+// is only in the way.
+jest.mock("../CodeNodeScriptLink", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({
     handleAddProperty: jest.fn(),

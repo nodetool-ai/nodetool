@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
 
+import { APP_SCHEMA_VERSION } from "@nodetool-ai/app-runtime";
 import {
   MigrationRunner,
   SQLiteMigrationAdapter,
@@ -82,7 +83,9 @@ describe("lift_workflow_app_docs_to_applications", () => {
     expect(apps[0].project_id).toBe("default");
 
     const document = JSON.parse(String(apps[0].document));
-    expect(document.schemaVersion).toBe(3);
+    // The lift parses through the app-runtime parser, so a v3 `app_doc` comes
+    // out at today's schema version.
+    expect(document.schemaVersion).toBe(APP_SCHEMA_VERSION);
     expect(document.ui.root.props.title).toBe("Greeter");
     // The empty `workflowId` binds to the workflow that hosted the document.
     expect(document.operations).toEqual([

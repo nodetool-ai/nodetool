@@ -17,6 +17,7 @@ export type LeftPanelView =
   | "timelines"
   | "storyboards"
   | "scripts"
+  | "jsscripts"
   | "apps"
   | "settings"
   | "history"
@@ -76,6 +77,7 @@ const VALID_VIEWS: LeftPanelView[] = [
   "timelines",
   "storyboards",
   "scripts",
+  "jsscripts",
   "apps",
   "settings",
   "history",

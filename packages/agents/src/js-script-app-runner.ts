@@ -1,0 +1,56 @@
+/**
+ * Running a mini app's script operation.
+ *
+ * The app simulator (`@nodetool-ai/execution/app-debug`) knows how to fold a
+ * script run into an app's values but cannot execute one: the QuickJS sandbox
+ * lives here, above it in the dependency order. This is the runner every host
+ * that owns both — the server, the CLI, the agent tools — passes down.
+ *
+ * Execution is `runCodeBody`, the same hermetic core `run_code`, `test_code`,
+ * `run_js_script` and the run endpoint use, with the script's own envelope: its
+ * declared packages, its declared secrets, and its timeout capped at
+ * `JS_SCRIPT_MAX_TIMEOUT_SECONDS`. No toolbelt.
+ */
+import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";
+import { JS_SCRIPT_MAX_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { runCodeBody } from "./capabilities/code.js";
+
+/**
+ * A runner for one user's app run. The operation's own `timeoutMs`, when the
+ * app sets one, only ever narrows the script's declared timeout.
+ */
+export function createJsScriptAppRunner(
+  userId: string,
+  options: {
+    secretResolver?: (
+      key: string,
+      userId: string
+    ) => Promise<string | null | undefined> | string | null | undefined;
+  } = {}
+): JsScriptOperationRunner {
+  return async (input) => {
+    const context = new ProcessingContext({
+      jobId: `js-script-op-${input.scriptId}-${Date.now()}`,
+      userId,
+      ...(options.secretResolver
+        ? { secretResolver: options.secretResolver }
+        : {})
+    });
+    const declared = Math.min(
+      input.document.timeoutSeconds,
+      JS_SCRIPT_MAX_TIMEOUT_SECONDS
+    );
+    return runCodeBody(context, {
+      code: input.document.code,
+      inputs: input.inputs,
+      ...(input.inputStreams ? { inputStreams: input.inputStreams } : {}),
+      packages: input.document.packages.map((pack) => pack.specifier),
+      secrets: input.document.secrets,
+      timeoutSeconds:
+        input.timeoutMs === undefined
+          ? declared
+          : Math.min(declared, Math.max(1, Math.round(input.timeoutMs / 1000)))
+    });
+  };
+}

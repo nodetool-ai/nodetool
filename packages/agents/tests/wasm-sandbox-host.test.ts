@@ -80,10 +80,18 @@ const hangingFactory: WasmWorkerFactory = {
 /** A hanging worker that records the terminations aimed at it. */
 class HangingFactory implements WasmWorkerFactory {
   terminated = 0;
+  private signalStarted: (() => void) | undefined;
+  /** Resolves once a call has reached the worker and started hanging. */
+  readonly started = new Promise<void>((resolve) => {
+    this.signalStarted = resolve;
+  });
   create(): Promise<WasmCallWorker> {
     const factory = this;
     return Promise.resolve({
-      call: () => new Promise<{ value: number | undefined }>(() => {}),
+      call: () => {
+        factory.signalStarted?.();
+        return new Promise<{ value: number | undefined }>(() => {});
+      },
       terminate() {
         factory.terminated += 1;
       }
@@ -336,7 +344,11 @@ describe("WASM worker pool", () => {
     );
 
     const call = dispatcher.call(REFERENCE_SPECIFIER, "spin", []);
-    setTimeout(() => controller.abort(), 5);
+    // Abort only once the call is really running in the worker — a timer
+    // could fire while the call is still on its way to dispatch, where the
+    // signal recheck drops it without a worker to terminate.
+    await factory.started;
+    controller.abort();
     await expect(call).rejects.toThrow(/the run was cancelled/);
     expect(factory.terminated).toBe(1);
     pool.dispose();

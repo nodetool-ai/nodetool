@@ -165,6 +165,12 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   restore_sketch_version: "write",
   edit_sketch: "write",
   validate_sketch: "read",
+  validate_js_script: "read",
+  list_js_scripts: "read",
+  get_js_script: "read",
+  save_js_script: "write",
+  run_js_script: "execute",
+  test_js_script: "execute",
   // scripts
   list_scripts: "read",
   get_script: "read",

@@ -37,6 +37,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   timeline: true,
   storyboard: false,
   script: false,
+  jsscript: false,
   model3d: true,
   text: true,
   audio: true,
@@ -52,6 +53,7 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "timeline",
   "storyboard",
   "script",
+  "jsscript",
   "model3d",
   "chat"
 ]);
@@ -63,6 +65,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   timeline: "▤",
   storyboard: "▥",
   script: "🎙",
+  jsscript: "{ }",
   model3d: "◈",
   audio: "♪",
   text: "¶",
@@ -79,6 +82,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   timeline: colorForType("video"),
   storyboard: colorForType("video"),
   script: colorForType("audio"),
+  jsscript: colorForType("str"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
@@ -448,6 +452,12 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             break;
           case "model3d":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
+            break;
+          case "jsscript":
+            await trpcClient.jsScripts.update.mutate({
+              id: tab.ref,
+              name: trimmed
+            });
             break;
           case "chat":
             await useGlobalChatStore

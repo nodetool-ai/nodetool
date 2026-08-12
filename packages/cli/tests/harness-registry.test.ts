@@ -105,6 +105,18 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("maps a JS-script change onto the jsscript surface and its cheap selfcheck", () => {
+    const plan = planGate([
+      "packages/agents/src/capabilities/js-scripts.ts",
+      "packages/cli/src/commands/js-script.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("jsscript");
+    expect(plan.checks.map((c) => c.harnessId)).toContain("jsscript-test");
+    // validate/run/debug/versions need a target, so they land in manual.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("jsscript-validate");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("reports files no surface claims", () => {
     const plan = planGate(["README.md"]);
     expect(plan.unmappedFiles).toEqual(["README.md"]);

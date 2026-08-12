@@ -68,6 +68,7 @@ describe("ui_open_document", () => {
       "timeline",
       "storyboard",
       "script",
+      "jsscript",
       "sketch",
       "app"
     ]);

@@ -9,6 +9,8 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  JsScript,
+  JsScriptVersion,
   ModelObserver,
   Workflow,
   initTestDb
@@ -244,5 +246,124 @@ describe("application bundle export/import", () => {
       url: `/api/applications/${other.id}/export-bundle`
     });
     expect(response.statusCode).toBe(404);
+  });
+});
+
+describe("application bundle — script operations", () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    initTestDb();
+    server = await buildServer();
+  });
+
+  afterEach(async () => {
+    await server.close();
+    ModelObserver.clear();
+  });
+
+  const scriptDocument = {
+    schemaVersion: 1 as const,
+    description: "shouts",
+    code: 'await output("shouted", String(inputs.text).toUpperCase());',
+    inputs: [{ name: "text", type: "str" }],
+    outputs: [{ name: "shouted", type: "str" }],
+    packages: [],
+    secrets: [],
+    timeoutSeconds: 30,
+    tests: []
+  };
+
+  /** An app whose one operation runs a pinned script version. */
+  async function seedScriptApp() {
+    const script = new JsScript({
+      id: "js-1",
+      user_id: USER_ID,
+      name: "Shout",
+      document: JSON.stringify(scriptDocument)
+    });
+    await script.save();
+    const version = await JsScriptVersion.snapshot(script, {
+      saveType: "manual"
+    });
+
+    const document = createEmptyDocument("Shouty");
+    document.operations = [
+      {
+        id: "shout",
+        name: "Shout",
+        workflowId: "",
+        target: {
+          kind: "script",
+          scriptId: script.id,
+          scriptVersion: version.version
+        },
+        inputs: {},
+        outputs: {},
+        policy: "replace"
+      }
+    ];
+    return Application.create<Application>({
+      user_id: USER_ID,
+      project_id: "p1",
+      name: "Shouty",
+      description: "shouts a string",
+      document: JSON.stringify(document)
+    });
+  }
+
+  it("carries the pinned script document and keys the operation to it", async () => {
+    const seeded = await seedScriptApp();
+    const bundle = (
+      await server.inject({
+        url: `/api/applications/${seeded.id}/export-bundle`
+      })
+    ).json();
+
+    expect(bundle.scripts.map((s: { key: string }) => s.key)).toEqual([
+      "shout"
+    ]);
+    expect(bundle.scripts[0].document.code).toBe(scriptDocument.code);
+    expect(bundle.app.operations[0].target).toEqual({
+      kind: "script",
+      scriptId: "shout",
+      scriptVersion: 1
+    });
+  });
+
+  it("round-trips onto a clean database and re-pins to the new version", async () => {
+    const seeded = await seedScriptApp();
+    const exported = (
+      await server.inject({
+        url: `/api/applications/${seeded.id}/export-bundle`
+      })
+    ).json();
+
+    await server.close();
+    initTestDb();
+    server = await buildServer();
+    expect(await JsScript.findById("js-1")).toBeNull();
+
+    const imported = await server.inject({
+      method: "POST",
+      url: "/api/applications/import-bundle",
+      payload: { bundle: exported, projectId: "p2" }
+    });
+    expect(imported.statusCode).toBe(200);
+    const app = imported.json();
+    const target = app.document.operations[0].target;
+    expect(target.kind).toBe("script");
+    expect(target.scriptId).not.toBe("shout");
+    expect(target.scriptId).not.toBe("js-1");
+
+    // The script exists, and the version the operation pins is the one the
+    // import created — not the number the export happened to carry.
+    const script = await JsScript.findById(target.scriptId);
+    expect(script?.name).toBe("Shout");
+    const version = await JsScriptVersion.findByVersion(
+      target.scriptId,
+      target.scriptVersion
+    );
+    expect(JSON.parse(version!.document).code).toBe(scriptDocument.code);
   });
 });

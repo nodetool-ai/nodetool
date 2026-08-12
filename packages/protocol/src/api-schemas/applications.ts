@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { graph } from "./workflows.js";
+import { jsScriptDocument } from "./js-scripts.js";
 
 // ── Application document ────────────────────────────────────────────────────
 // Mirrors `ApplicationDocument` in `@nodetool-ai/app-runtime`. The UI document
@@ -32,12 +33,33 @@ const outputMapping = z.union([
   z.object({ to: z.literal("variable"), variableId: z.string() })
 ]);
 
+/**
+ * What an operation runs. A workflow target's id stays on the binding's own
+ * `workflowId`; a script target is stored here, pinning the script version the
+ * way a Code node's link does.
+ */
+export const operationTarget = z.union([
+  z.object({
+    kind: z.literal("workflow"),
+    workflowId: z.string(),
+    workflowVersion: z.number().optional()
+  }),
+  z.object({
+    kind: z.literal("script"),
+    scriptId: z.string(),
+    scriptVersion: z.number().int()
+  })
+]);
+
 export const operationBinding = z.object({
   id: z.string(),
   name: z.string(),
+  /** `""` for a script operation, whose target is `target`. */
   workflowId: z.string(),
   /** Pinned in a release, floating (latest) in a draft. */
   workflowVersion: z.number().optional(),
+  /** Present only for a script target. */
+  target: operationTarget.optional(),
   /** Keyed by input node ID, never by name — renames must not break an app. */
   inputs: z.record(z.string(), inputMapping).default({}),
   outputs: z.record(z.string(), outputMapping).default({}),
@@ -220,12 +242,25 @@ export const bundledWorkflow = z.object({
 });
 export type BundledWorkflowSchema = z.infer<typeof bundledWorkflow>;
 
+/** One JS script a bundle carries, referenced by `scripts[].key`. */
+export const bundledJsScript = z.object({
+  key: z.string().min(1),
+  name: z.string(),
+  /** The document of the version the operations pin. */
+  document: jsScriptDocument,
+  /** See {@link bundledWorkflow}'s `sourceId`. */
+  sourceId: z.string().optional(),
+  version: z.number().nullable().default(null)
+});
+export type BundledJsScriptSchema = z.infer<typeof bundledJsScript>;
+
 export const applicationBundle = z.object({
   schemaVersion: z.number().default(APPLICATION_BUNDLE_SCHEMA_VERSION),
   name: z.string().default("Untitled app"),
   description: z.string().default(""),
   app: applicationDocument,
-  workflows: z.array(bundledWorkflow).default([])
+  workflows: z.array(bundledWorkflow).default([]),
+  scripts: z.array(bundledJsScript).default([])
 });
 export type ApplicationBundleSchema = z.infer<typeof applicationBundle>;
 

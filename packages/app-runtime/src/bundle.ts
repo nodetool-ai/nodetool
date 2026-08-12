@@ -17,8 +17,10 @@
  */
 
 import {
+  operationTarget,
   parseApplicationDocument,
-  type ApplicationDocument
+  type ApplicationDocument,
+  type OperationBinding
 } from "./document.js";
 
 /** Bumped whenever the bundle parser needs a new branch. */
@@ -57,13 +59,42 @@ export interface BundledWorkflow {
   graphHash?: string | null;
 }
 
+/**
+ * A JS script document, structural for the same reason {@link BundleGraph} is:
+ * the pinned Zod contract lives in `@nodetool-ai/protocol`, which this package
+ * does not depend on. A consumer that needs the real document parses it there.
+ */
+export interface BundleJsScriptDocument {
+  schemaVersion: number;
+  code: string;
+  inputs: Array<{ name: string; type: string }>;
+  outputs: Array<{ name: string; type: string }>;
+}
+
+/** One JS script carried by a bundle, addressed by its bundle-local `key`. */
+export interface BundledJsScript {
+  /** Bundle-local identifier that script operations reference in place of an id. */
+  key: string;
+  name: string;
+  /** The document of the version the operations pin. */
+  document: BundleJsScriptDocument;
+  /** See {@link BundledWorkflow.sourceId}. */
+  sourceId?: string;
+  /** The version number the exporting install pinned; null when unpinned. */
+  version?: number | null;
+}
+
 export interface ApplicationBundle {
   schemaVersion: number;
   name: string;
   description: string;
-  /** The application document; its operations reference `workflows[].key`. */
+  /**
+   * The application document; its operations reference `workflows[].key` and
+   * `scripts[].key` in place of real ids.
+   */
   app: ApplicationDocument;
   workflows: BundledWorkflow[];
+  scripts: BundledJsScript[];
 }
 
 /** The application side of an export — an application row, structurally. */
@@ -78,6 +109,16 @@ export interface BundleApplicationSource {
  * Mirrors an entry of `application_versions.workflow_graphs` plus the
  * workflow's name, so a released app exports exactly what it runs.
  */
+/** One script to carry, keyed by the real id the document's operations use. */
+export interface BundleJsScriptSource {
+  scriptId: string;
+  name: string;
+  document: BundleJsScriptDocument;
+  /** See {@link BundledWorkflow.sourceId}. */
+  sourceId?: string;
+  version?: number | null;
+}
+
 export interface BundleWorkflowSource {
   workflowId: string;
   name: string;
@@ -104,13 +145,16 @@ const slugify = (name: string): string =>
     .replace(/^-/, "")
     .replace(/-$/, "");
 
-/** A readable, collision-free key per workflow, stable for a given input order. */
-const assignKeys = (workflows: readonly BundleWorkflowSource[]): Map<string, string> => {
+/** A readable, collision-free key per id, stable for a given input order. */
+const assignKeys = (
+  items: ReadonlyArray<{ id: string; name: string }>,
+  fallback: string
+): Map<string, string> => {
   const keys = new Map<string, string>();
   const taken = new Set<string>();
-  for (const workflow of workflows) {
-    if (keys.has(workflow.workflowId)) continue;
-    const base = slugify(workflow.name) || "workflow";
+  for (const item of items) {
+    if (keys.has(item.id)) continue;
+    const base = slugify(item.name) || fallback;
     let key = base;
     let suffix = 2;
     while (taken.has(key)) {
@@ -118,19 +162,34 @@ const assignKeys = (workflows: readonly BundleWorkflowSource[]): Map<string, str
       suffix += 1;
     }
     taken.add(key);
-    keys.set(workflow.workflowId, key);
+    keys.set(item.id, key);
   }
   return keys;
 };
 
-/** Rewrite every operation's `workflowId` through `map`, leaving misses alone. */
+/**
+ * Rewrite every operation's target id through the map for its kind, leaving
+ * misses alone: an id no carried entry covers is a link that is already broken,
+ * and dropping the operation would hide it.
+ */
 const rewriteOperations = (
   document: ApplicationDocument,
-  map: ReadonlyMap<string, string>
+  workflowMap: ReadonlyMap<string, string>,
+  scriptMap: ReadonlyMap<string, string>
 ): ApplicationDocument => ({
   ...document,
-  operations: document.operations.map((operation) => {
-    const replacement = map.get(operation.workflowId);
+  operations: document.operations.map((operation): OperationBinding => {
+    const target = operationTarget(operation);
+    if (target.kind === "script") {
+      const replacement = scriptMap.get(target.scriptId);
+      return replacement === undefined
+        ? operation
+        : {
+            ...operation,
+            target: { ...target, scriptId: replacement }
+          };
+    }
+    const replacement = workflowMap.get(operation.workflowId);
     return replacement === undefined
       ? operation
       : { ...operation, workflowId: replacement };
@@ -146,9 +205,20 @@ const rewriteOperations = (
  */
 export const bundleFromApplication = (
   app: BundleApplicationSource,
-  workflows: readonly BundleWorkflowSource[]
+  workflows: readonly BundleWorkflowSource[],
+  scripts: readonly BundleJsScriptSource[] = []
 ): ApplicationBundle => {
-  const keys = assignKeys(workflows);
+  const keys = assignKeys(
+    workflows.map((workflow) => ({
+      id: workflow.workflowId,
+      name: workflow.name
+    })),
+    "workflow"
+  );
+  const scriptKeys = assignKeys(
+    scripts.map((script) => ({ id: script.scriptId, name: script.name })),
+    "script"
+  );
   const seen = new Set<string>();
   const bundled: BundledWorkflow[] = [];
   for (const workflow of workflows) {
@@ -170,12 +240,28 @@ export const bundleFromApplication = (
       graphHash: workflow.graphHash ?? null
     });
   }
+  const seenScripts = new Set<string>();
+  const bundledScripts: BundledJsScript[] = [];
+  for (const script of scripts) {
+    if (seenScripts.has(script.scriptId)) continue;
+    seenScripts.add(script.scriptId);
+    const key = scriptKeys.get(script.scriptId);
+    if (key === undefined) continue;
+    bundledScripts.push({
+      key,
+      name: script.name,
+      document: script.document,
+      ...(script.sourceId === undefined ? {} : { sourceId: script.sourceId }),
+      version: script.version ?? null
+    });
+  }
   return {
     schemaVersion: APPLICATION_BUNDLE_SCHEMA_VERSION,
     name: app.name,
     description: app.description ?? "",
-    app: rewriteOperations(app.document, keys),
-    workflows: bundled
+    app: rewriteOperations(app.document, keys, scriptKeys),
+    workflows: bundled,
+    scripts: bundledScripts
   };
 };
 
@@ -192,6 +278,13 @@ export interface ApplyBundleResult {
     document: ApplicationDocument;
   };
   workflows: ResolvedBundleWorkflow[];
+  scripts: ResolvedBundleJsScript[];
+}
+
+/** A script an importer must create, with the id it was assigned. */
+export interface ResolvedBundleJsScript extends BundledJsScript {
+  /** The id the caller persists this script under. */
+  id: string;
 }
 
 export interface ApplyBundleOptions {
@@ -201,13 +294,15 @@ export interface ApplyBundleOptions {
    * (the models layer's time-ordered uuid) or a test wants determinism.
    */
   newWorkflowId?: (workflow: BundledWorkflow, index: number) => string;
+  /** Mints the id each carried script is created under. Same default. */
+  newScriptId?: (script: BundledJsScript, index: number) => string;
 }
 
-const defaultWorkflowId = (): string => {
+const defaultMintedId = (option: string): string => {
   const uuid = globalThis.crypto?.randomUUID;
   if (typeof uuid !== "function") {
     throw new Error(
-      "applyBundle needs a newWorkflowId option: crypto.randomUUID is unavailable"
+      `applyBundle needs a ${option} option: crypto.randomUUID is unavailable`
     );
   }
   return globalThis.crypto.randomUUID();
@@ -224,18 +319,91 @@ export const applyBundle = (
   bundle: ApplicationBundle,
   options: ApplyBundleOptions = {}
 ): ApplyBundleResult => {
-  const mint = options.newWorkflowId ?? defaultWorkflowId;
+  const mint =
+    options.newWorkflowId ?? (() => defaultMintedId("newWorkflowId"));
+  const mintScript =
+    options.newScriptId ?? (() => defaultMintedId("newScriptId"));
   const workflows: ResolvedBundleWorkflow[] = bundle.workflows.map(
     (workflow, index) => ({ ...workflow, id: mint(workflow, index) })
   );
+  const scripts: ResolvedBundleJsScript[] = bundle.scripts.map(
+    (script, index) => ({ ...script, id: mintScript(script, index) })
+  );
   const keyToId = new Map(workflows.map((w) => [w.key, w.id]));
+  const scriptKeyToId = new Map(scripts.map((s) => [s.key, s.id]));
   return {
     app: {
       name: bundle.name,
       description: bundle.description,
-      document: rewriteOperations(bundle.app, keyToId)
+      document: rewriteOperations(bundle.app, keyToId, scriptKeyToId)
     },
-    workflows
+    workflows,
+    scripts
+  };
+};
+
+const isPortList = (value: unknown): value is BundleJsScriptDocument["inputs"] =>
+  Array.isArray(value) &&
+  value.every(
+    (port) =>
+      isRecord(port) &&
+      typeof port.name === "string" &&
+      typeof port.type === "string"
+  );
+
+/**
+ * Re-pin every script operation to the version the importer actually created.
+ * A bundle carries one document per script; the row it lands in has its own
+ * version numbering, so the number the export pinned means nothing here.
+ */
+export const pinScriptVersions = (
+  document: ApplicationDocument,
+  versionByScriptId: ReadonlyMap<string, number>
+): ApplicationDocument => ({
+  ...document,
+  operations: document.operations.map((operation): OperationBinding => {
+    const target = operationTarget(operation);
+    if (target.kind !== "script") return operation;
+    const version = versionByScriptId.get(target.scriptId);
+    return version === undefined
+      ? operation
+      : { ...operation, target: { ...target, scriptVersion: version } };
+  })
+});
+
+const parseScriptDocument = (
+  value: unknown
+): BundleJsScriptDocument | null => {
+  if (!isRecord(value)) return null;
+  if (typeof value.code !== "string") return null;
+  if (!isPortList(value.inputs) || !isPortList(value.outputs)) return null;
+  // Everything past the ports is carried through untouched — the pinned Zod
+  // contract in `@nodetool-ai/protocol` is what checks the rest, wherever the
+  // document is actually run.
+  return {
+    ...(value as Record<string, unknown>),
+    schemaVersion:
+      typeof value.schemaVersion === "number" ? value.schemaVersion : 1,
+    code: value.code,
+    inputs: value.inputs,
+    outputs: value.outputs
+  } as BundleJsScriptDocument;
+};
+
+const parseScript = (value: unknown): BundledJsScript | null => {
+  if (!isRecord(value)) return null;
+  const { key, name } = value;
+  if (typeof key !== "string" || key.length === 0) return null;
+  const document = parseScriptDocument(value.document);
+  if (!document) return null;
+  return {
+    key,
+    name: typeof name === "string" ? name : key,
+    document,
+    ...(typeof value.sourceId === "string" && value.sourceId.length > 0
+      ? { sourceId: value.sourceId }
+      : {}),
+    version: typeof value.version === "number" ? value.version : null
   };
 };
 
@@ -282,12 +450,18 @@ export const parseApplicationBundle = (
         .map(parseWorkflow)
         .filter((w): w is BundledWorkflow => w !== null)
     : [];
+  const scripts = Array.isArray(value.scripts)
+    ? value.scripts
+        .map(parseScript)
+        .filter((script): script is BundledJsScript => script !== null)
+    : [];
   return {
     schemaVersion: APPLICATION_BUNDLE_SCHEMA_VERSION,
     name: typeof value.name === "string" ? value.name : "Untitled app",
     description: typeof value.description === "string" ? value.description : "",
     app,
-    workflows
+    workflows,
+    scripts
   };
 };
 

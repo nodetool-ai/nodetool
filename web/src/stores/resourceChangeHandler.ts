@@ -65,6 +65,7 @@ const DOCUMENT_TRPC_ROUTER: Record<SyncedDocumentType, string> = {
   imagedocument: "sketch",
   storyboard: "storyboards",
   script: "scripts",
+  jsscript: "jsScripts",
   application: "applications"
 };
 

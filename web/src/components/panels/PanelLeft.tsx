@@ -25,6 +25,9 @@ import StoryboardListPanel, {
   CreateStoryboardButton
 } from "../storyboard/StoryboardListPanel";
 import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
+import JsScriptListPanel, {
+  CreateJsScriptButton
+} from "../jsScript/JsScriptListPanel";
 import ChatListPanel, { CreateChatButton } from "../chat/ChatListPanel";
 import ApplicationListPanel, {
   CreateApplicationButton,
@@ -529,6 +532,24 @@ const PanelContent = memo(function PanelContent({
           <ScriptListPanel />
         </FlexColumn>
       )}
+      {activeView === "jsscripts" && (
+        <FlexColumn
+          className="jsscript-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="JS Scripts"
+              actions={<CreateJsScriptButton />}
+            />
+          )}
+          <JsScriptListPanel />
+        </FlexColumn>
+      )}
       {activeView === "apps" && (
         <FlexColumn
           className="application-list-container"
@@ -658,6 +679,7 @@ const MOBILE_CREATE_ACTIONS: Partial<Record<LeftPanelView, React.FC>> = {
   timelines: CreateTimelineButton,
   storyboards: CreateStoryboardButton,
   scripts: CreateScriptButton,
+  jsscripts: CreateJsScriptButton,
   apps: CreateApplicationButton
 };
 
@@ -926,7 +948,8 @@ const PanelLeft: React.FC = () => {
                   displayActiveView === "sketches" ||
                   displayActiveView === "timelines" ||
                   displayActiveView === "storyboards" ||
-                  displayActiveView === "scripts")
+                  displayActiveView === "scripts" ||
+                  displayActiveView === "jsscripts")
               ) {
                 e.stopPropagation();
                 setVisibility(false);

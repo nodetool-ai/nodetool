@@ -8,6 +8,7 @@ import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
 import { jobsRouter } from "./routers/jobs.js";
+import { jsScriptsRouter } from "./routers/js-scripts.js";
 import { triggersRouter } from "./routers/triggers.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
@@ -44,6 +45,7 @@ export const appRouter = router({
   files: filesRouter,
   fonts: fontsRouter,
   jobs: jobsRouter,
+  jsScripts: jsScriptsRouter,
   triggers: triggersRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,

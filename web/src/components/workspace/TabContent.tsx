@@ -17,6 +17,7 @@ const AudioSurface = React.lazy(() => import("./AudioSurface"));
 const TimelineSurface = React.lazy(() => import("./TimelineSurface"));
 const StoryboardSurface = React.lazy(() => import("./StoryboardSurface"));
 const ScriptSurface = React.lazy(() => import("./ScriptSurface"));
+const JsScriptSurface = React.lazy(() => import("./JsScriptSurface"));
 const ApplicationSurface = React.lazy(() => import("./ApplicationSurface"));
 const ChatSurface = React.lazy(() => import("./ChatSurface"));
 const PageSurface = React.lazy(() => import("./PageSurface"));
@@ -48,6 +49,10 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       );
     case "script":
       return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "jsscript":
+      return (
+        <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
+      );
     case "application":
       return <ApplicationSurface refId={tab.ref} />;
     case "chat":
