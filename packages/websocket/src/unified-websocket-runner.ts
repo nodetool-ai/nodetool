@@ -2494,7 +2494,7 @@ export class UnifiedWebSocketRunner {
     if (Array.isArray(message.content)) {
       message = {
         ...message,
-        content: resolveContentUrls(
+        content: await resolveContentUrls(
           message.content as unknown[],
           (message.user_id as string | undefined) ?? this.userId ?? undefined
         )
@@ -4583,7 +4583,8 @@ export class UnifiedWebSocketRunner {
           workflow_id: workflowId ?? null,
           name: `image_${Date.now()}`,
           content_type: mimeType,
-          parent_id: null
+          // Home — see the chat media generation path.
+          parent_id: userId
         });
         const fileName = `${asset.id}.${ext}`;
         await storeAssetWithThumbnail(
@@ -6495,7 +6496,9 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId ?? null,
         name: `${mode}_${Date.now()}`,
         content_type: contentType,
-        parent_id: null
+        // Home, the same folder an upload lands in. A null parent is
+        // unreachable from the folder the asset browser opens on.
+        parent_id: userId
       });
       const fileName = `${asset.id}.${ext}`;
       await storeAssetWithThumbnail(
@@ -7835,7 +7838,8 @@ export class UnifiedWebSocketRunner {
         workflow_id: null,
         name: `${req.mode}_${Date.now()}`,
         content_type: contentType,
-        parent_id: null
+        // Home — see the chat media generation path above.
+        parent_id: userId
       });
       const fileName = `${asset.id}.${ext}`;
       await storeAssetWithThumbnail(

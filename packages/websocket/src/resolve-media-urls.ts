@@ -2,7 +2,14 @@
  * Resolve asset IDs in message content to browser-accessible URLs.
  *
  * Media refs store an `asset_id` in the database. Before sending to a
- * client, this module resolves each to a full URL via `buildAssetUrl`.
+ * client, this module resolves each to a URL the browser can load directly
+ * from an `<img>` / `<video>` / `<audio>` element — which is why it goes
+ * through the storage backend's own URL builder, exactly like
+ * `assets.get_url` does. A media element sends no `Authorization` header, so
+ * on a deployment with auth enforced and asset bytes in S3/Supabase the old
+ * `/api/storage/<key>` path answered 401 (and pointed at a local file backend
+ * that did not hold the bytes anyway); the signed URL those backends mint is
+ * loadable as-is.
  *
  * For LLM providers use `resolveContentForProvider` instead, which maps
  * asset_id directly to a file:// URI so no HTTP round-trip is needed.
@@ -12,8 +19,12 @@
  * prefix resolves to a path that no longer exists.
  */
 
-import { buildAssetUrl, getAssetFilePath } from "@nodetool-ai/config";
-import { assetObjectKey } from "@nodetool-ai/storage";
+import {
+  buildAssetUrl,
+  getAssetFilePath,
+  loadAssetStorageConfig
+} from "@nodetool-ai/config";
+import { assetObjectKey, createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -72,22 +83,43 @@ function assetKeyFor(
   return userId ? assetObjectKey(userId, fileName) : fileName;
 }
 
-function resolveAssetId(
-  assetId: string,
-  mimeType?: string | null,
-  userId?: string
-): string {
-  return buildAssetUrl(assetKeyFor(assetId, mimeType, userId));
+/**
+ * The configured backend's URL builder, rebuilt when the backend kind changes
+ * (tests switch backends in-process). The `file` backend is served by this
+ * server's own `/api/storage` route, so it keeps going through
+ * `buildAssetUrl`, which percent-encodes each key segment; the cloud backends
+ * mint a signed URL to their own origin.
+ */
+let cachedBuilderKind: string | null = null;
+let cachedBuilder: ((key: string) => Promise<string>) | null = null;
+
+async function assetUrlForKey(key: string): Promise<string> {
+  const config = loadAssetStorageConfig();
+  if (config.kind === "file") {
+    return buildAssetUrl(key);
+  }
+  if (!cachedBuilder || cachedBuilderKind !== config.kind) {
+    cachedBuilderKind = config.kind;
+    cachedBuilder = createAssetUrlBuilder(config);
+  }
+  try {
+    return await cachedBuilder(key);
+  } catch {
+    // Signing failed (network, expired credentials). The server-side route is
+    // no worse than emitting nothing, and it still works for a caller that can
+    // authenticate.
+    return buildAssetUrl(key);
+  }
 }
 
 /**
  * Resolve a media ref object: if it has an asset_id, derive uri from it.
  */
-function resolveRef(
+async function resolveRef(
   ref: Record<string, unknown>,
   fallbackMime?: string,
   userId?: string
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const resolved = { ...ref };
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 
@@ -95,7 +127,9 @@ function resolveRef(
     typeof resolved.asset_id === "string" &&
     isSafeAssetId(resolved.asset_id)
   ) {
-    resolved.uri = resolveAssetId(resolved.asset_id, mime, userId);
+    resolved.uri = await assetUrlForKey(
+      assetKeyFor(resolved.asset_id, mime, userId)
+    );
   }
 
   return resolved;
@@ -169,33 +203,59 @@ export function resolveContentForProvider(
 
 /**
  * Walk a message content array and resolve asset_id refs to URLs.
+ *
+ * Async because a cloud storage backend signs each URL; the `file` backend
+ * resolves without I/O.
  */
-export function resolveContentUrls(
+export async function resolveContentUrls(
   content: string | unknown[] | Record<string, unknown> | null,
   userId?: string
-): string | unknown[] | Record<string, unknown> | null {
+): Promise<string | unknown[] | Record<string, unknown> | null> {
   if (!Array.isArray(content)) return content;
 
-  return content.map((block) => {
-    if (!block || typeof block !== "object") return block;
-    const b = block as Record<string, unknown>;
+  return Promise.all(
+    content.map(async (block) => {
+      if (!block || typeof block !== "object") return block;
+      const b = block as Record<string, unknown>;
 
-    if (
-      (b.type === "image_url" || b.type === "image") &&
-      b.image &&
-      typeof b.image === "object"
-    ) {
-      return { ...b, image: resolveRef(b.image as Record<string, unknown>, "image/png", userId) };
-    }
+      if (
+        (b.type === "image_url" || b.type === "image") &&
+        b.image &&
+        typeof b.image === "object"
+      ) {
+        return {
+          ...b,
+          image: await resolveRef(
+            b.image as Record<string, unknown>,
+            "image/png",
+            userId
+          )
+        };
+      }
 
-    if (b.type === "video" && b.video && typeof b.video === "object") {
-      return { ...b, video: resolveRef(b.video as Record<string, unknown>, "video/mp4", userId) };
-    }
+      if (b.type === "video" && b.video && typeof b.video === "object") {
+        return {
+          ...b,
+          video: await resolveRef(
+            b.video as Record<string, unknown>,
+            "video/mp4",
+            userId
+          )
+        };
+      }
 
-    if (b.type === "audio" && b.audio && typeof b.audio === "object") {
-      return { ...b, audio: resolveRef(b.audio as Record<string, unknown>, "audio/wav", userId) };
-    }
+      if (b.type === "audio" && b.audio && typeof b.audio === "object") {
+        return {
+          ...b,
+          audio: await resolveRef(
+            b.audio as Record<string, unknown>,
+            "audio/wav",
+            userId
+          )
+        };
+      }
 
-    return block;
-  });
+      return block;
+    })
+  );
 }
