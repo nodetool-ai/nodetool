@@ -36,7 +36,60 @@ export type GenspendMatch =
   | "provider-id"
   | "catalog";
 
+/**
+ * One rung of a provider's published price grid, reduced to the facets a
+ * calculator narrows on. GenSpend's raw `spec` prose is deliberately not
+ * carried: a row that says nothing in facets prices nothing and is dropped at
+ * sync time.
+ */
+export interface GenspendVariant {
+  price_usd: number;
+  /** May differ from the entry's class — e.g. a per-generation duration rung. */
+  unit_class: string;
+  /** "480p".."4K" for video, an image size for image models. */
+  resolution?: string;
+  duration_seconds?: number;
+  with_audio?: boolean;
+  /** True on rows that price a job with a video going in — a billing axis. */
+  video_input?: boolean;
+  tier?: string;
+  /** The provider's own default deliverable; `unit_price` quotes this row. */
+  is_base: boolean;
+}
+
+/**
+ * An input-side charge, in GenSpend's semantics:
+ * - `input_image` is **additive** past `free_allowance`.
+ * - `input_video_second` **replaces** the generation cost with
+ *   `unit_price_usd × (input + output) seconds`, scoped to `spec`'s
+ *   resolution. No row for the requested resolution means decline the re-rate,
+ *   never apply another rung.
+ * - `per_request` is opt-in (prompt expansion, search grounding): surface it,
+ *   never add it silently.
+ */
+export interface GenspendSurcharge {
+  kind: "input_image" | "input_video_second" | "per_request";
+  /** Resolution the `input_video_second` rate is scoped to. */
+  spec?: string;
+  unit_price_usd: number;
+  free_allowance: number;
+  /** What a `per_request` extra buys ("prompt expansion"). */
+  label?: string;
+}
+
+/**
+ * A known discrepancy GenSpend has open against an offering.
+ * `quote_wrong` means the number must not be shown as a cost at all;
+ * `spec_gap` means it is exact at the base spec and nowhere else. Cosmetic
+ * flags are display text and are dropped at sync time.
+ */
+export interface GenspendDataFlag {
+  kind: string;
+  severity: "quote_wrong" | "spec_gap";
+}
+
 export interface GenspendPrice {
+  /** The base-spec price: what one unit costs with nothing specified. */
   unit_price: number;
   /** "images", "seconds", "generations", … — the FAL catalog's vocabulary. */
   billing_unit: string;
@@ -52,9 +105,19 @@ export interface GenspendPrice {
   tier?: string;
   /** Resolution the priced variant is billed at, if the provider prices per one. */
   resolution?: string;
+  /** The provider's published grid. Absent when it prices one flat number. */
+  variants?: GenspendVariant[];
+  surcharges?: GenspendSurcharge[];
+  /**
+   * The clip lengths the model is receipted for. `null` is a refusal to price
+   * any duration — never read it as "no limits"; absent means none published.
+   */
+  clip_seconds?: { set?: number[]; min?: number; max?: number } | null;
+  data_flags?: GenspendDataFlag[];
 }
 
 export interface GenspendPricingCatalog {
+  /** 3 since the grid shipped; a v2 file reads fine — every new field is optional. */
   schemaVersion: number;
   source: string;
   attribution: string;
