@@ -12,7 +12,7 @@
  * The concept, stated once: a sub-agent is an async generator of
  * `ProcessingMessage` events with a settled outcome as its return value.
  * CodeAct is the default producer ({@link runSubAgent}), but any generator
- * with that shape — a `GraphPlanner.plan()`, a future reviewer or researcher —
+ * with that shape — an `authorGraph()` run, a future reviewer or researcher —
  * streams through the same pipe ({@link forwardSubAgentStream}) and nests in
  * the UI the same way (`parent_tool_call_id` + `subtask_depth`).
  *

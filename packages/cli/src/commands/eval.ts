@@ -9,8 +9,8 @@
  * then hands them to the suite. Adding a suite means pushing an `EvalSuite`
  * entry — not another hand-wired command block.
  *
- * The suites live in `@nodetool-ai/agents`: GraphPlanner
- * (`GRAPH_PLANNER_EVAL_CASES`, one-shot DSL) and the frontend tool-loop
+ * The suites live in `@nodetool-ai/agents`: graph authoring
+ * (`GRAPH_PLANNER_EVAL_CASES`, typed-DSL CodeAct) and the frontend tool-loop
  * (`TOOL_LOOP_EVAL_CASES`, multi-turn `ui_*` tool calling). Heavy deps are
  * imported lazily so command registration stays light.
  */

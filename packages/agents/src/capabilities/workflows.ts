@@ -286,9 +286,8 @@ const validateWorkflow: CapabilityExport = {
     const workflowId = params["workflow_id"] as string | undefined;
     const code = typeof params["code"] === "string" ? params["code"] : "";
 
-    // A graph program is what the planner actually authors, so let it be
-    // checked in the form it will be submitted in rather than hand-translated
-    // to JSON first. Same evaluation submit_graph uses.
+    // A legacy graph program can be checked in the form it was authored in
+    // rather than hand-translated to JSON first.
     if (code.trim()) {
       const { evaluateGraphDsl } = await import("../graph-dsl.js");
       const evaluated = await evaluateGraphDsl(code);

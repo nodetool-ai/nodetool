@@ -34,7 +34,7 @@ const realRegistry = {
 /** One Agent node, validated the way an authored graph is. */
 function validateAgent(
   properties: Record<string, unknown>,
-  registry: any = realRegistry
+  registry: typeof realRegistry = realRegistry
 ): string[] {
   const builder = new GraphBuilder();
   builder.addNode(

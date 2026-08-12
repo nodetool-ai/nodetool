@@ -166,7 +166,7 @@ export const VALIDATE_WORKFLOW_SCHEMA: JsonSchema = {
     code: {
       type: "string",
       description:
-        "A graph program in the same DSL submit_graph takes — node(type, " +
+        "A graph program in the legacy untyped DSL — node(type, " +
         "properties) and ref.output(slot?), ending with `return graph();`. " +
         "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
     }
@@ -271,7 +271,8 @@ export const validateWorkflowSpec: CapabilitySpec = {
     "it: unknown node types, missing required properties, unselected models, " +
     "model properties naming an unregistered provider or a model id that " +
     "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
-    "check the same graph program you would hand to submit_graph, an inline " +
+    "check a graph DSL program (node(type, properties) calls ending with " +
+    "`return graph();`), an inline " +
     "`graph` to check a graph you are building, or `workflow_id` to validate " +
     "a saved one. Run this before saving or running to catch breakage in " +
     "milliseconds.",

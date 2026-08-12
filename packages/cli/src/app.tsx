@@ -517,7 +517,7 @@ export function App({
     // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
     // When a NodeRegistry is in process, this swaps the REST node-search
     // tools for the local biased versions (and adds `find_model`) so any
-    // agent loop gets the same node-selection bias as the GraphPlanner.
+    // agent loop gets the same node-selection bias as the graph author.
     for (const tool of getAllMcpTools({
       registry,
       providers: agentProviders,
