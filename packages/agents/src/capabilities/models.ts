@@ -84,6 +84,42 @@ interface FindModelResult {
   downloaded: boolean;
   recommended: boolean;
   score: number;
+  /** Ready to assign to a node's model property — see {@link modelRef}. */
+  ref: ModelRef;
+}
+
+interface ModelRef {
+  type: string;
+  provider: string;
+  id: string;
+  name: string;
+}
+
+/**
+ * The typed-ref property shape a model-typed node property takes. A pick
+ * result's flat fields (`model_id`) do not round-trip into a property — a
+ * live session lost three rounds to exactly that — so every result carries
+ * the assignable form too.
+ */
+const CAPABILITY_REF_TYPE: Record<SupportedCapability, string> = {
+  generate_message: "language_model",
+  text_to_image: "image_model",
+  image_to_image: "image_model",
+  text_to_video: "video_model",
+  image_to_video: "video_model",
+  text_to_speech: "tts_model",
+  text_to_music: "tts_model",
+  automatic_speech_recognition: "asr_model",
+  generate_embedding: "embedding_model"
+};
+
+function modelRef(
+  capability: SupportedCapability,
+  provider: string,
+  id: string,
+  name: string
+): ModelRef {
+  return { type: CAPABILITY_REF_TYPE[capability], provider, id, name };
 }
 
 function getRecommendedSet(capability: SupportedCapability): Set<string> {
@@ -261,7 +297,8 @@ const findModel: CapabilityExport = {
           name: m.name,
           downloaded,
           recommended,
-          score
+          score,
+          ref: modelRef(capability, providerId, m.id, m.name)
         });
       }
     }

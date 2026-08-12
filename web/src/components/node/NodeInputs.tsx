@@ -219,8 +219,21 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
     [data?.dynamic_inputs]
   );
 
-  const dynamicInputElements = useMemo(() => Object.entries(dynamicProperties).map(
-    ([name], index) => {
+  // A dynamic input renders whether it arrived with a value
+  // (`dynamic_properties`) or as a bare declaration (`dynamic_inputs`) — a
+  // graph authored headlessly declares slots without seeding values, and a
+  // declared slot with no handle would leave its incoming edge pointing at
+  // nothing.
+  const dynamicInputNames = useMemo(() => {
+    const names = Object.keys(dynamicProperties);
+    for (const name of Object.keys(dynamicInputs)) {
+      if (!(name in dynamicProperties)) names.push(name);
+    }
+    return names;
+  }, [dynamicProperties, dynamicInputs]);
+
+  const dynamicInputElements = useMemo(() => dynamicInputNames.map(
+    (name, index) => {
       const incoming = connectedEdgeByHandle.get(name);
       const inputMeta = dynamicInputs[name]
         ? normalizeDynamicSlot(dynamicInputs[name])
@@ -296,7 +309,7 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
       );
     }
   ), [
-    dynamicProperties,
+    dynamicInputNames,
     connectedEdgeByHandle,
     dynamicInputs,
     id,

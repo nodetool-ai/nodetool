@@ -106,7 +106,7 @@ export const LIST_MODELS_SCHEMA: JsonSchema = {
 export const findModelSpec: CapabilitySpec = {
   name: "find_model",
   description:
-    "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
+    "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Each result carries `ref` — the typed value to assign to a node's model property verbatim. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
   inputSchema: FIND_MODEL_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) =>

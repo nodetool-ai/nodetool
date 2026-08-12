@@ -582,8 +582,10 @@ const nodetool = (() => {
         __need("find_model")(__merge(opts, { capability: capability })),
       /**
        * Resolve ONE model for a capability — the top-ranked hit, ready to
-       * pass to nodetool.media.* or into node properties. Throws when no
-       * configured provider offers the capability.
+       * pass to nodetool.media.*. To put it in a node's model property,
+       * assign the result's "ref" field verbatim (the flat fields use
+       * "model_id"; the property wants "id"). Throws when no configured
+       * provider offers the capability.
        */
       async pick(capability, opts) {
         const found = await __need("find_model")(
@@ -1012,12 +1014,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "models",
     doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id}\`), \`find(capability,
+  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`), \`find(capability,
   {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
   \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
-  provider's own catalog. Never guess a model id — pick one,
-  then pass it to \`nodetool.media.*\` or into node properties.`
+  provider's own catalog. Never guess a model id — pick one, then pass it to
+  \`nodetool.media.*\`. To set a node's model property, assign the result's
+  \`ref\` verbatim (it is the typed \`{type, provider, id, name}\` value the
+  property wants — the flat \`model_id\` field does not fit).`
   },
   {
     namespace: "media",
