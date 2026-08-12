@@ -76,8 +76,11 @@ const createMinimalNodeStore = (
   nodes: Node<NodeData>[],
   edges: Edge[],
   workflow: Workflow
-) =>
-  create<MinimalNodeStore>(() => ({
+) => {
+  // Every previewed node component calls findNode, so a scan per call makes
+  // rendering the preview O(N^2).
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+  return create<MinimalNodeStore>(() => ({
     nodes,
     edges,
     workflow,
@@ -92,9 +95,10 @@ const createMinimalNodeStore = (
     updateNode: () => {},
     updateNodeData: () => {},
     getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodes.find((n) => n.id === id),
+    findNode: (id: string) => nodesById.get(id),
     getNodesByType: () => []
   }));
+};
 
 const edgeTypes = { default: CustomEdge, control: ControlEdge };
 

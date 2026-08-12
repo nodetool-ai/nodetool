@@ -105,7 +105,11 @@ export const buildTriggerSubgraph = (
     return overlay ? withNodeProperties(rf, overlay) : rf;
   });
   const edges = (workflow.graph?.edges ?? []).map(graphEdgeToReactFlowEdge);
-  const findNode = (id: string) => nodes.find((node) => node.id === id);
+  // buildDownstreamRunGraph calls findNode once per external input edge, and
+  // this runs on every reactive input change (a slider drag), so index rather
+  // than rescan.
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const findNode = (id: string) => nodesById.get(id);
 
   const built = buildDownstreamRunGraph({
     nodeId: triggerNodeId,

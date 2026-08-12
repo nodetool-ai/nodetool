@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import type { Edge } from "@xyflow/react";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 
 type Direction = "upstream" | "downstream" | "both";
@@ -28,6 +29,29 @@ export const useSelectConnected = (
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const nodeStore = useNodeStoreRef();
 
+  // Index the edges once per edge-list identity. Walking with `edges.filter`
+  // per visited node made each traversal O(V*E), and `connectedNodeCount`
+  // re-runs it on every edge change.
+  const { incomingByTarget, outgoingBySource } = useMemo(() => {
+    const incoming = new Map<string, Edge[]>();
+    const outgoing = new Map<string, Edge[]>();
+    for (const edge of edges) {
+      const into = incoming.get(edge.target);
+      if (into) {
+        into.push(edge);
+      } else {
+        incoming.set(edge.target, [edge]);
+      }
+      const out = outgoing.get(edge.source);
+      if (out) {
+        out.push(edge);
+      } else {
+        outgoing.set(edge.source, [edge]);
+      }
+    }
+    return { incomingByTarget: incoming, outgoingBySource: outgoing };
+  }, [edges]);
+
   const getConnectedNodeIds = useCallback((): string[] => {
     const selectedNodes = getSelectedNodes();
     if (selectedNodes.length === 0) {
@@ -36,47 +60,42 @@ export const useSelectConnected = (
 
     const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
     const connectedNodeIds = new Set<string>();
+    const startIds = selectedNodes.map((n) => n.id);
 
-    const traverseUpstream = (nodeId: string, visited: Set<string>) => {
-      if (visited.has(nodeId)) {return;}
-      visited.add(nodeId);
-
-      const incomingEdges = edges.filter((e) => e.target === nodeId);
-      for (const edge of incomingEdges) {
-        if (!selectedNodeIds.has(edge.source)) {
-          connectedNodeIds.add(edge.source);
+    // Iterative so a long chain can't blow the stack, and the visited set is
+    // shared across the selected nodes: reachability sets merge, so a node
+    // already walked from one start contributes nothing new from another.
+    const traverse = (
+      adjacency: Map<string, Edge[]>,
+      nextId: (edge: Edge) => string
+    ) => {
+      const visited = new Set<string>();
+      const stack = [...startIds];
+      while (stack.length > 0) {
+        const nodeId = stack.pop()!;
+        if (visited.has(nodeId)) {
+          continue;
         }
-        traverseUpstream(edge.source, visited);
+        visited.add(nodeId);
+        for (const edge of adjacency.get(nodeId) ?? []) {
+          const neighbor = nextId(edge);
+          if (!selectedNodeIds.has(neighbor)) {
+            connectedNodeIds.add(neighbor);
+          }
+          stack.push(neighbor);
+        }
       }
     };
 
-    const traverseDownstream = (nodeId: string, visited: Set<string>) => {
-      if (visited.has(nodeId)) {return;}
-      visited.add(nodeId);
-
-      const outgoingEdges = edges.filter((e) => e.source === nodeId);
-      for (const edge of outgoingEdges) {
-        if (!selectedNodeIds.has(edge.target)) {
-          connectedNodeIds.add(edge.target);
-        }
-        traverseDownstream(edge.target, visited);
-      }
-    };
-
-    for (const node of selectedNodes) {
-      const visitedUpstream = new Set<string>();
-      const visitedDownstream = new Set<string>();
-
-      if (direction === "upstream" || direction === "both") {
-        traverseUpstream(node.id, visitedUpstream);
-      }
-      if (direction === "downstream" || direction === "both") {
-        traverseDownstream(node.id, visitedDownstream);
-      }
+    if (direction === "upstream" || direction === "both") {
+      traverse(incomingByTarget, (edge) => edge.source);
+    }
+    if (direction === "downstream" || direction === "both") {
+      traverse(outgoingBySource, (edge) => edge.target);
     }
 
     return Array.from(connectedNodeIds);
-  }, [edges, getSelectedNodes, direction]);
+  }, [incomingByTarget, outgoingBySource, getSelectedNodes, direction]);
 
   const connectedNodeCount = useMemo(() => {
     return getConnectedNodeIds().length;
