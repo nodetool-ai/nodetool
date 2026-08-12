@@ -302,6 +302,20 @@ export {
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
 export {
+  MCP_GUEST_CONTRACT,
+  MCP_SANDBOX_ACTION_SNIPPET,
+  MCP_SANDBOX_ASSET_SNIPPET,
+  MCP_SANDBOX_PROBE_SNIPPET,
+  MCP_SANDBOX_RESOURCE_URI,
+  MCP_SANDBOX_PROMPTS,
+  buildMcpSandboxCatalog
+} from "./codeact/mcp-guest-contract.js";
+export type {
+  McpSandboxCatalog,
+  McpSandboxCatalogOptions,
+  McpSandboxBridge
+} from "./codeact/mcp-guest-contract.js";
+export {
   sandboxPackageSkills,
   wrapUntrustedPackageDocs
 } from "./codeact/sandbox-package-docs.js";

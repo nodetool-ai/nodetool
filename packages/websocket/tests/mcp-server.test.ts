@@ -1,11 +1,16 @@
 /**
- * The `/mcp` surface: exactly two tools, one capability resource, and a session
- * that must be bound to a user.
+ * The `/mcp` surface: exactly two tools, capability + sandbox resources,
+ * guest-contract instructions, and a session that must be bound to a user.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  MCP_GUEST_CONTRACT,
+  MCP_SANDBOX_ASSET_SNIPPET,
+  MCP_SANDBOX_PROBE_SNIPPET
+} from "@nodetool-ai/agents";
 import { initTestDb } from "@nodetool-ai/models";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -17,7 +22,10 @@ import {
   unregisterMcpFrontendTransport,
   MCP_SCOPE_REQUIRED_MESSAGE
 } from "../src/mcp-server.js";
-import { MCP_CAPABILITIES_RESOURCE_URI } from "../src/mcp-agent-tools.js";
+import {
+  MCP_CAPABILITIES_RESOURCE_URI,
+  MCP_SANDBOX_RESOURCE_URI
+} from "../src/mcp-agent-tools.js";
 import type { AgentTransport } from "../src/agent/transport.js";
 
 const scope = { userId: "1", source: "stdio-local" as const };
@@ -141,8 +149,15 @@ describe("MCP server surface", () => {
       tools.find((t) => t.name === "execute_code")?.description ?? "";
     // MCP has no system prompt, so the description is the only place the
     // contract can reach the model. Without it the tool is unusable.
+    expect(description.startsWith(MCP_GUEST_CONTRACT)).toBe(true);
     expect(description).toContain("searchTools");
     expect(description).toContain("nodetool");
+    await client.close();
+  });
+
+  it("publishes the guest contract as server instructions", async () => {
+    const client = await connectClient();
+    expect(client.getInstructions()).toBe(MCP_GUEST_CONTRACT);
     await client.close();
   });
 
@@ -173,6 +188,65 @@ describe("MCP server surface", () => {
     expect(listWorkflows?.permission_category).toBe("read");
     expect(listWorkflows?.description.length).toBeGreaterThan(0);
     await client.close();
+  });
+
+  it("publishes the sandbox catalog as a resource", async () => {
+    const client = await connectClient();
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toContain(MCP_SANDBOX_RESOURCE_URI);
+
+    const read = await client.readResource({
+      uri: MCP_SANDBOX_RESOURCE_URI
+    });
+    const entry = read.contents[0];
+    expect(entry.mimeType).toBe("application/json");
+    const catalog = JSON.parse(entry.text as string) as {
+      runtime: string;
+      contract: string;
+      unavailable_bridges: string[];
+      examples: { probe: string; asset: string };
+    };
+    expect(catalog.runtime).toBe("quickjs");
+    expect(catalog.contract).toBe(MCP_GUEST_CONTRACT);
+    expect(catalog.unavailable_bridges).toEqual(
+      expect.arrayContaining(["fetch", "workspace", "media"])
+    );
+    expect(catalog.examples.probe).toBe(MCP_SANDBOX_PROBE_SNIPPET);
+    expect(catalog.examples.asset).toBe(MCP_SANDBOX_ASSET_SNIPPET);
+    await client.close();
+  });
+
+  it("lists the two sandbox prompts", async () => {
+    const client = await connectClient();
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name).sort()).toEqual([
+      "sandbox-action",
+      "sandbox-asset"
+    ]);
+    const action = await client.getPrompt({ name: "sandbox-action" });
+    expect(action.messages[0]?.content).toEqual({
+      type: "text",
+      text: expect.stringContaining("nodetool.media.generateImage")
+    });
+    await client.close();
+  });
+});
+
+describe("sandbox snippets run", () => {
+  it("runs the probe snippet", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observation = await act(server, MCP_SANDBOX_PROBE_SNIPPET);
+    expect(observation.ok).toBe(true);
+    const result = observation.result as { count: number; tools: string[] };
+    expect(result.count).toBe(0);
+    expect(result.tools).toContain("validate_workflow");
+  });
+
+  it("runs the asset snippet against an empty library", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observation = await act(server, MCP_SANDBOX_ASSET_SNIPPET);
+    expect(observation.ok).toBe(true);
+    expect(observation.result).toEqual({ found: 0 });
   });
 });
 

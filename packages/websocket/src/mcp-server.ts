@@ -5,8 +5,8 @@
  * in-app chat agent runs on — and `view_image`, which is direct because pixels
  * cannot ride a sandbox action's JSON observation envelope. Everything else
  * NodeTool can do is reached from inside an action, through the belt and the
- * `nodetool.*` object model, and is catalogued on the `nodetool://capabilities`
- * resource.
+ * `nodetool.*` object model, and is catalogued on `nodetool://capabilities`
+ * and `nodetool://sandbox`.
  *
  * This file used to hand-build a second product surface here: native
  * `run_workflow` / `get_asset` / `get_node_info` / collection tools, a flat
@@ -18,6 +18,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { AgentTransport } from "./agent/transport.js";
@@ -90,8 +91,8 @@ function listFrontendRenderers(): { renderer_id: string; active: boolean }[] {
 }
 
 /**
- * Create a configured MCP server: `execute_code`, `view_image`, and the
- * capabilities resource.
+ * Create a configured MCP server: `execute_code`, `view_image`, the
+ * capabilities and sandbox resources, and the guest-contract instructions.
  *
  * Throws when `agentToolsScope` is missing — a session with no user binding
  * would hold zero tools, which is a server that answers and cannot act.
@@ -101,10 +102,13 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     throw new Error(MCP_SCOPE_REQUIRED_MESSAGE);
   }
 
-  const server = new McpServer({
-    name: "NodeTool API Server",
-    version: "1.0.0"
-  });
+  const server = new McpServer(
+    {
+      name: "NodeTool API Server",
+      version: "1.0.0"
+    },
+    { instructions: MCP_GUEST_CONTRACT }
+  );
 
   registerAgentMcpTools(server, options, {
     execute: async (toolName, args) => {
