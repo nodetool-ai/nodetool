@@ -118,6 +118,81 @@ describe("find_model through the adapter", () => {
     expect(result.results[0].model_id).toBe("gpt-image-1");
   });
 
+  it("finds a model by name across the punctuation its id uses", async () => {
+    // The session this fixes lost four rounds here: the model was configured
+    // the whole time and every search answered with something else.
+    const providers = {
+      openai: new FakeImageProvider("openai" as ProviderId, [
+        {
+          id: "gpt-image-2",
+          name: "GPT Image 2",
+          provider: "openai"
+        } as ImageModel
+      ]),
+      huggingface: new FakeImageProvider("huggingface" as ProviderId, [
+        {
+          id: "black-forest-labs/FLUX.1-schnell",
+          name: "FLUX.1 Schnell",
+          provider: "huggingface"
+        } as ImageModel,
+        {
+          id: "black-forest-labs/FLUX.1-dev",
+          name: "FLUX.1 Dev",
+          provider: "huggingface"
+        } as ImageModel
+      ])
+    };
+    const tool = asTool(findModel, providers);
+
+    const byQuery = (await tool.process(ctx, {
+      capability: "text_to_image",
+      query: "flux schnell"
+    })) as {
+      total: number;
+      query_matched: boolean;
+      results: { model_id: string }[];
+    };
+    expect(byQuery.query_matched).toBe(true);
+    expect(byQuery.total).toBe(1);
+    expect(byQuery.results[0].model_id).toBe(
+      "black-forest-labs/FLUX.1-schnell"
+    );
+
+    // A model name typed into `task` used to filter everything out.
+    const byTask = (await tool.process(ctx, {
+      capability: "text_to_image",
+      task: "flux schnell"
+    })) as { total: number; note: string; results: { model_id: string }[] };
+    expect(byTask.results[0].model_id).toBe("black-forest-labs/FLUX.1-schnell");
+    expect(byTask.note).toMatch(/searched model names/);
+
+    // A fragment of an id is enough for model_hint.
+    const byHint = (await tool.process(ctx, {
+      capability: "text_to_image",
+      model_hint: ["FLUX.1-dev"]
+    })) as { results: { model_id: string }[] };
+    expect(byHint.results[0].model_id).toBe("black-forest-labs/FLUX.1-dev");
+  });
+
+  it("reports a missed search instead of ranking an unrelated model first", async () => {
+    const tool = asTool(findModel, {
+      openai: new FakeImageProvider("openai" as ProviderId, [
+        {
+          id: "gpt-image-2",
+          name: "GPT Image 2",
+          provider: "openai"
+        } as ImageModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      query: "flux schnell"
+    })) as { total: number; query_matched: boolean; note: string };
+    expect(result.query_matched).toBe(false);
+    expect(result.total).toBe(1);
+    expect(result.note).toMatch(/No model name matched/);
+  });
+
   it("says so when the run carries no providers", async () => {
     const result = (await asTool(findModel).process(ctx, {
       capability: "text_to_image"

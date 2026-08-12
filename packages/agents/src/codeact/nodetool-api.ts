@@ -601,6 +601,19 @@ const nodetool = (() => {
               (found && found.note ? " — " + found.note : "")
           );
         }
+        // A missed search must not resolve to an unrelated model — the caller
+        // asked for a named one.
+        if (found && found.query_matched === false) {
+          throw new Error(
+            "nodetool.models.pick: no model matches " +
+              JSON.stringify(opts && opts.query) +
+              " for " +
+              capability +
+              '. Call nodetool.models.find("' +
+              capability +
+              '") to see what is configured.'
+          );
+        }
         return results[0];
       },
       list: (opts) => __need("list_models")(__merge(opts)),
@@ -1017,8 +1030,12 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "models",
     doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`), \`find(capability,
-  {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
+  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`). When the user
+  named a model, search for it in the SAME call:
+  \`pick("text_to_image", {query: "flux schnell"})\` — \`query\` is free text over
+  model id and name, and \`pick\` throws when nothing matches instead of
+  returning something else. \`find(capability,
+  {query, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
   \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
   provider's own catalog. Never guess a model id — pick one, then pass it to

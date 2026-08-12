@@ -32,10 +32,15 @@ export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
       description:
         "Provider capability needed by the generic AI node (e.g. text_to_image, generate_embedding)."
     },
+    query: {
+      type: "string" as const,
+      description:
+        "Free-text search over model id and name (e.g. 'flux schnell', 'gpt image'). All words must appear; separators are ignored, so 'flux 1 schnell' matches 'FLUX.1-schnell'. Matching models are returned first and ranked above everything else."
+    },
     task: {
       type: "string" as const,
       description:
-        "Optional task hint matched against model.supportedTasks (e.g. 'text_to_image' vs 'image_to_image')."
+        "Optional task hint matched against model.supportedTasks (e.g. 'text_to_image' vs 'image_to_image'). This is NOT a search box — use `query` to search by name."
     },
     provider_hint: {
       type: "string" as const,
@@ -46,7 +51,7 @@ export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
       type: "array" as const,
       items: { type: "string" as const },
       description:
-        "Optional preferred model ids. Strongly boosts matching models in the ranking."
+        "Optional preferred model ids. Strongly boosts matching models in the ranking. Matches a full id or a fragment of one."
     },
     prefer_local: {
       type: "boolean" as const,
@@ -106,7 +111,7 @@ export const LIST_MODELS_SCHEMA: JsonSchema = {
 export const findModelSpec: CapabilitySpec = {
   name: "find_model",
   description:
-    "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Each result carries `ref` — the typed value to assign to a node's model property verbatim. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
+    "Find a real {provider, model_id} for a generic AI node by capability. Pass `query` to search by name when the user named a model ('flux schnell'), otherwise omit it to get the recommended ranking. Returns models from providers the user has configured, ranked by match/recommended/downloaded/preferences. Each result carries `ref` — the typed value to assign to a node's model property verbatim. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
   inputSchema: FIND_MODEL_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) =>

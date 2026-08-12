@@ -211,6 +211,40 @@ function taskMatch(model: AnyModel, task: string | undefined): boolean {
   return model.supportedTasks.includes(task);
 }
 
+/**
+ * Lowercase, with every separator collapsed to a single space, so a query
+ * word matches across the punctuation a model id happens to use:
+ * `black-forest-labs/FLUX.1-schnell` → `black forest labs flux 1 schnell`.
+ */
+function searchable(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function queryWords(query: string): string[] {
+  const words = searchable(query).split(" ").filter(Boolean);
+  return words;
+}
+
+/** Every word of the query appears somewhere in the model's id or name. */
+function queryMatch(model: AnyModel, words: string[]): boolean {
+  if (words.length === 0) return true;
+  const haystack = ` ${searchable(`${model.id} ${model.name}`)} `;
+  return words.every((w) => haystack.includes(w));
+}
+
+function hintMatch(model: AnyModel, hints: Set<string>): boolean {
+  if (hints.size === 0) return false;
+  const id = searchable(model.id);
+  for (const hint of hints) {
+    const h = searchable(hint);
+    if (h && (id === h || id.includes(h))) return true;
+  }
+  return false;
+}
+
 const findModel: CapabilityExport = {
   spec: findModelSpec,
   impl: async (run, params) => {
@@ -227,6 +261,10 @@ const findModel: CapabilityExport = {
     const task =
       typeof params["task"] === "string"
         ? (params["task"] as string)
+        : undefined;
+    const query =
+      typeof params["query"] === "string"
+        ? (params["query"] as string)
         : undefined;
     const providerHint =
       typeof params["provider_hint"] === "string"
@@ -257,7 +295,7 @@ const findModel: CapabilityExport = {
     }
 
     const recommendedSet = getRecommendedSet(capability);
-    const collected: FindModelResult[] = [];
+    const candidates: Array<{ providerId: string; model: AnyModel }> = [];
 
     for (const [providerId, instance] of providerEntries) {
       let supports: boolean;
@@ -278,30 +316,68 @@ const findModel: CapabilityExport = {
       }
 
       for (const m of models) {
-        if (!taskMatch(m, task)) continue;
-        const recommended = recommendedSet.has(`${providerId}::${m.id}`);
-        const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
-
-        let score = 0;
-        if (recommended) score += 100;
-        if (downloaded) score += 30;
-        // Explicit user preferences outrank the default recommended bonus.
-        if (providerHint && providerId === providerHint) score += 200;
-        if (modelHints.has(m.id)) score += 250;
-        if (preferLocal && LOCAL_PROVIDER_IDS.has(providerId)) score += 150;
-        else if (preferLocal && !LOCAL_PROVIDER_IDS.has(providerId)) score -= 5;
-
-        collected.push({
-          provider: providerId,
-          model_id: m.id,
-          name: m.name,
-          downloaded,
-          recommended,
-          score,
-          ref: modelRef(capability, providerId, m.id, m.name)
-        });
+        candidates.push({ providerId, model: m });
       }
     }
+
+    const notes: string[] = [];
+    let words = queryWords(typeof query === "string" ? query : "");
+
+    // The `task` filter reads `supportedTasks`. A caller who typed a model name
+    // into it used to get an empty list — or, when no model declares tasks at
+    // all, the unfiltered default ranking — and no way to tell why. A task no
+    // model declares is read as a name search instead.
+    const declaredTasks = new Set<string>();
+    for (const { model } of candidates) {
+      for (const t of model.supportedTasks ?? []) declaredTasks.add(t);
+    }
+    let pool: typeof candidates;
+    if (task && !declaredTasks.has(task)) {
+      pool = candidates;
+      words = [...words, ...queryWords(task)];
+      notes.push(
+        `No model declares task '${task}'; searched model names for it instead. Use \`query\` to search by name.`
+      );
+    } else {
+      pool = candidates.filter(({ model }) => taskMatch(model, task));
+    }
+
+    let queryMatched: boolean | undefined;
+    if (words.length > 0) {
+      const matched = pool.filter(({ model }) => queryMatch(model, words));
+      queryMatched = matched.length > 0;
+      if (matched.length > 0) {
+        pool = matched;
+      } else {
+        notes.push(
+          `No model name matched '${words.join(" ")}'. Showing the ranked models for ${capability} instead.`
+        );
+      }
+    }
+
+    const collected: FindModelResult[] = pool.map(({ providerId, model }) => {
+      const recommended = recommendedSet.has(`${providerId}::${model.id}`);
+      const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
+
+      let score = 0;
+      if (recommended) score += 100;
+      if (downloaded) score += 30;
+      // Explicit user preferences outrank the default recommended bonus.
+      if (providerHint && providerId === providerHint) score += 200;
+      if (hintMatch(model, modelHints)) score += 250;
+      if (preferLocal && LOCAL_PROVIDER_IDS.has(providerId)) score += 150;
+      else if (preferLocal && !LOCAL_PROVIDER_IDS.has(providerId)) score -= 5;
+
+      return {
+        provider: providerId,
+        model_id: model.id,
+        name: model.name,
+        downloaded,
+        recommended,
+        score,
+        ref: modelRef(capability, providerId, model.id, model.name)
+      };
+    });
 
     collected.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
@@ -313,7 +389,9 @@ const findModel: CapabilityExport = {
     return {
       capability,
       total: collected.length,
-      results: collected.slice(0, limit)
+      results: collected.slice(0, limit),
+      ...(queryMatched === undefined ? {} : { query_matched: queryMatched }),
+      ...(notes.length > 0 ? { note: notes.join(" ") } : {})
     };
   }
 };
@@ -328,6 +406,15 @@ const MODEL_TYPE_ALIASES: Record<string, ModelType> = {
   text_generation: "language",
   image_model: "image",
   video_model: "video",
+  // The capability names `find_model` takes — a caller who knows one surface
+  // should not have to learn the other's vocabulary to browse.
+  generate_message: "language",
+  text_to_image: "image",
+  image_to_image: "image",
+  text_to_video: "video",
+  image_to_video: "video",
+  text_to_music: "music",
+  generate_embedding: "embedding",
   speech: "tts",
   text_to_speech: "tts",
   audio: "tts",
