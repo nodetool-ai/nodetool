@@ -6,7 +6,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { createServer } from "node:http";
-import { connectCdp } from "../src/nodes/model3d/render3d-headless.js";
+import {
+  connectCdp,
+  launchChromeWithRetry
+} from "../src/nodes/model3d/render3d-headless.js";
 
 /** A port with nothing on it, found by opening and immediately closing one. */
 async function closedPort(): Promise<number> {
@@ -54,5 +57,35 @@ describe("connectCdp", () => {
     expect(err).toBeInstanceOf(Error);
     expect((err as Error).message).toContain(String(port));
     expect((err as Error).cause).toBeDefined();
+  });
+});
+
+describe("launchChromeWithRetry", () => {
+  // chrome-launcher rejects with its port poll's raw ECONNREFUSED when
+  // Chromium opens its debug port too slowly on a loaded machine; one fresh
+  // launch covers exactly that transient.
+  it("launches again after a transient first failure", async () => {
+    let attempts = 0;
+    const chrome = await launchChromeWithRetry(() => {
+      attempts += 1;
+      return attempts === 1
+        ? Promise.reject(new Error("connect ECONNREFUSED 127.0.0.1:42857"))
+        : Promise.resolve({ port: 9222 });
+    }, 10);
+    expect(chrome).toEqual({ port: 9222 });
+    expect(attempts).toBe(2);
+  });
+
+  it("propagates the second failure of a machine that cannot run Chrome", async () => {
+    let attempts = 0;
+    await expect(
+      launchChromeWithRetry(() => {
+        attempts += 1;
+        return Promise.reject(
+          new Error(`connect ECONNREFUSED 127.0.0.1:4285${attempts}`)
+        );
+      }, 10)
+    ).rejects.toThrow(/ECONNREFUSED 127.0.0.1:42852/);
+    expect(attempts).toBe(2);
   });
 });
