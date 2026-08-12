@@ -4,9 +4,10 @@ Status: implemented (sandbox bridge, CodeNode pump, validation, harness; the
 migration codemod remains open). Owner: code-nodes / node-sdk. 2026-08-12.
 
 Two implementation choices differ from the text below, both deliberate: the
-legacy deprecation warning lives in the `validate_code` harness and the node's
-run log, not in graph validation — the shipped-examples gate treats warnings
-as errors and every shipped Code body is legacy — and the pristine default
+legacy deprecation warning lives only in the `validate_code` harness — graph
+validation would red the shipped-examples gate (it treats warnings as errors
+and every shipped Code body is legacy), and a run-log warning changed the
+message stream the Ring 0 reliability goldens pin — and the pristine default
 body `return {};` is exempt from the warning, because an empty node is not a
 legacy body.
 

@@ -179,21 +179,20 @@ describe("CodeNode — legacy bodies still run, and warn", () => {
     expect(bags).toEqual([{ a: 1 }, { b: 2 }]);
   });
 
-  it("posts one deprecation warning for a legacy body", async () => {
+  it("runs a legacy body without polluting the message stream", async () => {
     const { context, messages } = stubContext();
     const node = new CodeNode({ code: "return { a: 1 }", __node_id: "n1" });
     const bags: Record<string, unknown>[] = [];
     for await (const bag of node.genProcess(context)) bags.push(bag);
 
     expect(bags).toEqual([{ a: 1 }]);
+    // The deprecation notice lives in validate_code, not the run stream —
+    // reliability goldens pin the exact messages a legacy run emits.
     const warnings = messages.filter(
       (message) =>
         message.type === "log_update" && message.severity === "warning"
     );
-    expect(warnings).toHaveLength(1);
-    expect(String(warnings[0].content)).toMatch(/deprecated/i);
-    expect(String(warnings[0].content)).toMatch(/emit\(name, value\)/);
-    expect(String(warnings[0].content)).toMatch(/output\(name, value\)/);
+    expect(warnings).toHaveLength(0);
   });
 
   it("posts no deprecation warning for an emit/output body", async () => {

@@ -550,22 +550,12 @@ export class CodeNode extends BaseNode {
     return timeout > 0 ? timeout * 1000 : undefined;
   }
 
-  /** The one deprecation notice a legacy body gets, once per invocation. */
-  private warnLegacyContract(context: ProcessingContext | undefined): void {
-    // The pristine default is an empty node, not a legacy body — don't nag it.
-    if (String(this.code ?? "").trim() === "return {};") return;
-    this.logWarning(
-      context,
-      "The return/yield output contract is deprecated. Stream values with " +
-        "await emit(name, value) and set final values with await output(name, value); " +
-        "the return value then carries no outputs."
-    );
-  }
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
     if (!usesEmitOutputContract(code)) {
-      this.warnLegacyContract(context);
+      // The legacy return/yield contract runs unwarned: the deprecation
+      // notice lives in validate_code, not in every run's message stream —
+      // reliability goldens and downstream consumers pin that stream.
       return this.runLegacySingleShot(code, context);
     }
 
@@ -624,7 +614,6 @@ export class CodeNode extends BaseNode {
       return;
     }
 
-    this.warnLegacyContract(context);
     if (!hasYieldStatement(code)) {
       yield await this.runLegacySingleShot(code, context);
       return;
