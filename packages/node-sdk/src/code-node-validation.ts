@@ -2,8 +2,9 @@
  * Static checks for a Code node (`nodetool.code.Code`) inside a workflow graph.
  *
  * The node's `code` property is the body of one async function that reads the
- * node's dynamic inputs off an `inputs` object and whose returned object's keys
- * are its output handles. Nothing about that contract is enforced until the node runs, so a
+ * node's dynamic inputs off an `inputs` object and sends its outputs through
+ * `emit`/`output` calls — or, when it calls neither, through the legacy
+ * returned object's keys. Nothing about that contract is enforced until the node runs, so a
  * body that does not parse, reads an input the node does not have, or forgets
  * an output handle that downstream nodes are wired to costs a whole run to
  * discover. Everything here is decidable from the graph alone.
@@ -14,6 +15,7 @@
 import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
+import type { CodeBodyStatement } from "./code-analysis.js";
 import {
   analyzeCodeBody,
   CODE_INPUTS_GLOBAL,
@@ -21,11 +23,13 @@ import {
   freeIdentifiers,
   inputsMemberReads,
   moduleDeclarationKinds,
+  outputCallNames,
   parseCodeBody,
   returnShapes,
   staticImportSpecifiers,
   typeofGuardedNames
 } from "./code-analysis.js";
+import { usesEmitOutputContract } from "./code-body.js";
 import { installHintFor } from "./sandbox-bridge-packs.js";
 
 /** Node types whose `code` property is a JavaScript sandbox body. */
@@ -65,7 +69,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   "queueMicrotask", "undefined", "unescape",
   // Host bridges
   "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
-  "assetToSandbox", "sandboxToAsset", "progress", "format",
+  "assetToSandbox", "sandboxToAsset", "progress", "emit", "output", "format",
   "image", "canvas", "media",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",
@@ -109,6 +113,7 @@ export interface CodeNodeIssue {
   /**
    * Stable category: "code_syntax" | "code_module" | "code_no_return" |
    * "code_return_shape" | "code_missing_output" | "code_undeclared_output" |
+   * "code_output_dynamic_name" | "code_return_ignored" |
    * "code_undefined_name" | "code_undefined_input" | "code_unused_input" |
    * "code_unused_package" | "code_package_unavailable" |
    * "code_package_mismatch".
@@ -338,7 +343,16 @@ export function validateCodeNodeBody(
     ? []
     : [...new Set(input.availableInputs.filter((name) => !read.has(name)))];
 
-  // ── Outputs, against every return path the parser can see ────────────────
+  // ── Outputs ──────────────────────────────────────────────────────────────
+  // Two contracts, one probe. A body that calls `emit`/`output` names its
+  // handles, so the return-path analysis below does not apply to it at all —
+  // its returns are control flow and carry nothing.
+  if (usesEmitOutputContract(code)) {
+    issues.push(...emitContractIssues(parsed.statements, declared, connected));
+    return withUnusedInputs(issues, declaredInputsUnused);
+  }
+
+  // ── Legacy contract: outputs, against every return path the parser can see ─
   const { returns, fallsThrough } = analyzeCodeBody(parsed.statements);
   const expected = declared.length > 0 ? declared : connected;
 
@@ -416,6 +430,84 @@ export function validateCodeNodeBody(
   }
 
   return withUnusedInputs(issues, declaredInputsUnused);
+}
+
+/**
+ * Check a body that uses the `emit`/`output` contract.
+ *
+ * The rule is per-handle existence, not per-path coverage: a declared output
+ * needs one call naming it somewhere in the body, and branching freely is fine.
+ * A call whose handle is computed makes every name unknowable, so it downgrades
+ * the body to a warning instead of failing it on names this reader cannot see.
+ */
+function emitContractIssues(
+  statements: readonly CodeBodyStatement[],
+  declared: readonly string[],
+  connected: readonly string[]
+): CodeNodeIssue[] {
+  const issues: CodeNodeIssue[] = [];
+  const { names, nonLiteral } = outputCallNames(statements);
+  const expected = declared.length > 0 ? declared : connected;
+  // A wired handle is a real handle even when the node forgot to declare it —
+  // the declared/connected split is the missing-output check's business.
+  const known = new Set([...declared, ...connected]);
+
+  const undeclared = [...new Set(names.filter((name) => !known.has(name)))].sort();
+  if (undeclared.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "code_undeclared_output",
+      message:
+        `The code sends to ${formatNames(undeclared)}, which ` +
+        `${undeclared.length > 1 ? "are not outputs" : "is not an output"} of this node — the call throws at run time. ` +
+        `Declare ${undeclared.length > 1 ? "them" : "it"} as ${undeclared.length > 1 ? "dynamic outputs" : "a dynamic output"}, or fix the name.`
+    });
+  }
+
+  if (nonLiteral) {
+    issues.push({
+      severity: "warning",
+      code: "code_output_dynamic_name",
+      message:
+        "The code calls `emit` or `output` with a handle name that is not a string " +
+        "literal, so the output names cannot be checked statically. Pass a literal " +
+        "name to have them checked."
+    });
+  } else {
+    const missing = expected.filter((name) => !names.includes(name));
+    if (missing.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "code_missing_output",
+        message:
+          `The code never sends to the output${missing.length > 1 ? "s" : ""} ${formatNames(missing)}, so ` +
+          `${missing.length > 1 ? "they stay" : "it stays"} empty. Call ` +
+          `${missing.map((n) => `\`await output("${n}", value)\``).join(", ")} for a final value, ` +
+          "or `emit` to stream values as they are produced."
+      });
+    }
+  }
+
+  const valuedReturns = analyzeCodeBody(statements).returns.filter(
+    (statement) =>
+      statement.argument != null &&
+      !(
+        statement.argument.type === "Identifier" &&
+        statement.argument.name === "undefined"
+      )
+  );
+  if (valuedReturns.length > 0) {
+    issues.push({
+      severity: "warning",
+      code: "code_return_ignored",
+      message:
+        "The code returns a value, but return values carry no outputs — use " +
+        "`output(name, value)` for a final value or `emit(name, value)` to stream. " +
+        "`return` here only exits the body early."
+    });
+  }
+
+  return issues;
 }
 
 /**

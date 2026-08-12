@@ -2,8 +2,10 @@
  * AST primitives for the body of a Code node (`nodetool.code.Code`).
  *
  * A Code node's `code` property is the body of one async function: declared
- * dynamic inputs arrive on an `inputs` object and the returned object's keys
- * are the node's output handles. Everything a checker needs to say about such a body —
+ * dynamic inputs arrive on an `inputs` object, and outputs leave through
+ * `emit(name, value)` / `output(name, value)` — or, for a body that calls
+ * neither, through the legacy returned object's keys. Everything a checker
+ * needs to say about such a body —
  * does it parse, what does it return, which names does it invent — is derived
  * here, so the graph validator, the code-generation planner and the editor all
  * read the same AST rather than three approximations of it.
@@ -310,6 +312,44 @@ export function analyzeCodeBody(
   const returns: acorn.ReturnStatement[] = [];
   collectReturns(statements, returns);
   return { returns, fallsThrough: statementsComplete(statements) };
+}
+
+/** The two host bridges a body delivers outputs through. */
+export const CODE_OUTPUT_CALLEES: readonly string[] = ["emit", "output"];
+
+/** Output handles a body names through `emit`/`output` calls. */
+export interface OutputCallNames {
+  /** Literal handle names, in source order, deduplicated. */
+  names: string[];
+  /** A call whose first argument is not a string literal hides its handle. */
+  nonLiteral: boolean;
+}
+
+/**
+ * Handles the body delivers to via `emit(name, …)` / `output(name, …)`.
+ *
+ * Presence in the AST is the whole rule: a call inside a branch, a loop or a
+ * helper function counts, because the contract is per-handle existence rather
+ * than per-path coverage. `x.output(…)` is a method on something else and is
+ * not counted.
+ */
+export function outputCallNames(
+  statements: readonly CodeBodyStatement[]
+): OutputCallNames {
+  const names = new Set<string>();
+  let nonLiteral = false;
+  walk(statements, (node) => {
+    if (node.type !== "CallExpression") return;
+    if (node.callee.type !== "Identifier") return;
+    if (!CODE_OUTPUT_CALLEES.includes(node.callee.name)) return;
+    const first = node.arguments[0];
+    if (first?.type === "Literal" && typeof first.value === "string") {
+      names.add(first.value);
+      return;
+    }
+    nonLiteral = true;
+  });
+  return { names: [...names], nonLiteral };
 }
 
 /** Names a binding pattern introduces (`const { a, b: [c] } = x`). */

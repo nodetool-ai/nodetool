@@ -150,6 +150,29 @@ export async function connectCdp(
 }
 
 /**
+ * Launch Chrome, retrying once after a beat. `chrome-launcher` rejects with
+ * its port poll's raw error (an `ECONNREFUSED`) when Chromium is too slow to
+ * open its debug port on a loaded machine — the same transient race the CDP
+ * attach retry above covers, one step earlier. A machine that cannot run
+ * Chrome at all fails the same way twice and the second error propagates.
+ *
+ * Exported for tests.
+ */
+export async function launchChromeWithRetry<T>(
+  launch: () => Promise<T>,
+  retryDelayMs = 1_000
+): Promise<T> {
+  try {
+    return await launch();
+  } catch {
+    // The first failure leaves any half-started Chrome behind; a fresh launch
+    // picks a fresh port, so the two never contend.
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    return await launch();
+  }
+}
+
+/**
  * Render GLB bytes to PNG bytes in a fresh headless Chromium. One Chrome per
  * call keeps the node stateless; launch cost (~1s) is negligible next to a
  * typical workflow's model-generation steps.
@@ -161,10 +184,12 @@ export async function renderGlbHeadless(
   const bundle = await loadRenderBundle();
 
   const { launch } = await import("chrome-launcher");
-  const chrome = await launch({
-    chromeFlags: CHROME_FLAGS,
-    chromePath: process.env.CHROME_PATH || undefined
-  });
+  const chrome = await launchChromeWithRetry(() =>
+    launch({
+      chromeFlags: CHROME_FLAGS,
+      chromePath: process.env.CHROME_PATH || undefined
+    })
+  );
 
   let client: CdpClient | null = null;
   try {

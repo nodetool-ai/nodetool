@@ -14,6 +14,7 @@ import {
   createSandboxWasmDispatcher,
   resetSandboxWasmModuleCache,
   resetSandboxWasmWorkerPool,
+  SandboxWasmError,
   WasmWorkerPool
 } from "../src/wasm-sandbox/host.js";
 import type {
@@ -216,6 +217,46 @@ describe("WASM budgets", () => {
     expect(admitted[0]).toBe(50);
     expect(admitted.reduce((sum, ms) => sum + ms, 0)).toBeLessThanOrEqual(60);
     // And the cap is spent: nothing further is admitted.
+    await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
+      /budget of 60 ms of WASM wall clock/
+    );
+    pool.dispose();
+  });
+
+  it("keeps a timeout-cut call's full reservation even when the kill measures early", async () => {
+    // The pool's timer can fire a millisecond before Date.now() sees the
+    // reservation elapse. A settle that charges measured time would refund
+    // that sliver and admit a next call the documented budget refuses. This
+    // pool makes the race deterministic: the timeout kill settles instantly,
+    // so measured time is ~0 and only a reservation-floored charge exhausts
+    // the budget.
+    class InstantTimeoutPool extends WasmWorkerPool {
+      override run(
+        _module: WebAssembly.Module,
+        exportName: string,
+        _args: readonly number[],
+        timeoutMs: number
+      ): Promise<number | undefined> {
+        return Promise.reject(
+          new SandboxWasmError(
+            `WASM call ${exportName} exceeded its ${timeoutMs} ms per-call timeout; the worker was terminated and replaced`
+          )
+        );
+      }
+    }
+    const pool = new InstantTimeoutPool(4, hangingFactory);
+    const dispatcher = createSandboxWasmDispatcher(
+      [referenceWasmModule({ limits: { wallClockMs: 60, callTimeoutMs: 50 } })],
+      { pool }
+    );
+    if (dispatcher === undefined) throw new Error("expected a dispatcher");
+
+    await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
+      /exceeded its 50 ms per-call timeout/
+    );
+    await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
+      /exceeded its 10 ms per-call timeout/
+    );
     await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
       /budget of 60 ms of WASM wall clock/
     );

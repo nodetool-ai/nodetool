@@ -16,13 +16,19 @@
  * import graph. Without a belt, `nodetool.capabilities()` reports `{}` and
  * every method throws naming its missing tool instead of a ReferenceError.
  *
+ * Outputs leave the body through two host calls: `await emit(name, value)`
+ * streams one value downstream immediately, `await output(name, value)` sets a
+ * handle's final value, delivered as one bag when the body completes. The
+ * body's return value carries no outputs.
+ *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
  *   // code:
- *   const sum = inputs.x + 10;
- *   const upper = inputs.text.toUpperCase();
- *   return { sum, upper };
- *   // outputs: { sum: 15, upper: "HELLO" }
+ *   for (const word of inputs.text.split(" ")) await emit("word", word);
+ *   await output("sum", inputs.x + 10);
+ *   // streams { word: … } per word, then the final bag { sum: 15 }
+ *
+ * A body that calls neither runs the deprecated return/yield contract.
  */
 
 import {
@@ -34,14 +40,16 @@ import {
   hasReturnStatement,
   hasYieldStatement,
   wrapImplicitReturn,
-  normalizeCodeOutput
+  normalizeCodeOutput,
+  usesEmitOutputContract
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
   TOOLS_PRELUDE,
   NODETOOL_API_PRELUDE_FULL,
-  type SandboxLimits
+  type SandboxLimits,
+  type RunSandboxResult
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
 import { ALL_PLATFORMS, type SandboxModuleResolution } from "@nodetool-ai/protocol";
@@ -209,6 +217,56 @@ async function toolBridgeGlobals(
   return mod.buildToolBridge({ tools, context }).globals;
 }
 
+/**
+ * Bags a node invocation may hold before `emit` blocks the guest. Exported so
+ * a test can drive the producer past the bound without guessing the number.
+ */
+export const EMIT_CHANNEL_CAPACITY = 64;
+
+/**
+ * A bounded async queue with one producer (the guest's `emit` bridge) and one
+ * consumer (the `genProcess` pump). `push` resolves once the item is in the
+ * queue, which is only below capacity — that resolution is the backpressure
+ * release. `take` resolves `null` when the channel is closed and drained, so
+ * the consumer cannot finish while bags are still queued.
+ */
+class BoundedChannel<T> {
+  private readonly items: T[] = [];
+  private readonly takers: Array<() => void> = [];
+  private readonly pushers: Array<() => void> = [];
+  private closed = false;
+
+  constructor(private readonly capacity: number) {}
+
+  async push(item: T): Promise<void> {
+    while (this.items.length >= this.capacity && !this.closed) {
+      await new Promise<void>((resolve) => this.pushers.push(resolve));
+    }
+    if (this.closed) return;
+    this.items.push(item);
+    this.takers.shift()?.();
+  }
+
+  async take(): Promise<T | null> {
+    for (;;) {
+      if (this.items.length > 0) {
+        const item = this.items.shift() as T;
+        this.pushers.shift()?.();
+        return item;
+      }
+      if (this.closed) return null;
+      await new Promise<void>((resolve) => this.takers.push(resolve));
+    }
+  }
+
+  /** No further pushes; queued items still drain. Wakes everyone waiting. */
+  close(): void {
+    this.closed = true;
+    while (this.takers.length > 0) this.takers.shift()?.();
+    while (this.pushers.length > 0) this.pushers.shift()?.();
+  }
+}
+
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly platforms = ALL_PLATFORMS;
@@ -225,7 +283,9 @@ export class CodeNode extends BaseNode {
     "nodetool.capabilities() reports what is live. Tool-backed calls can spend money " +
     "(media generation, workflow runs) and reach the web; each tool applies its own " +
     "permission gating. " +
-    "Dynamic inputs arrive on the `inputs` object; return an object to define outputs." +
+    "Dynamic inputs arrive on the `inputs` object; outputs leave through " +
+    "await emit(name, value) to stream a value now and await output(name, value) " +
+    "to set a handle's final value. The return value carries no outputs." +
     "\n    code, javascript, script, function, dynamic, custom, logic, " +
     "parse, transform, convert, format, compute, calculate, filter, map, " +
     "merge, extract, json, csv, text, string, math, " +
@@ -264,7 +324,13 @@ export class CodeNode extends BaseNode {
       "nodetool.assets, …) where the host carries them — nodetool.capabilities() " +
       "reports live namespaces; elsewhere a method throws naming its missing tool. " +
       "A persistent `state` object survives across streaming invocations. " +
-      "Return an object — its keys become output handles."
+      "Outputs: `await emit(name, value)` streams one value to output handle " +
+      "`name` right away and can be called any number of times; " +
+      "`await output(name, value)` records that handle's final value, delivered " +
+      "as one bag when the body ends. `return` is control flow only — the " +
+      "returned value carries no outputs. " +
+      "Deprecated: a body that calls neither still runs the old contract, where " +
+      "a returned object's keys become output handles and yield(value) streams."
   })
   declare code: string;
 
@@ -456,68 +522,182 @@ export class CodeNode extends BaseNode {
     });
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? "return {};");
-    const timeout = Number(this.timeout ?? 30);
-
-    // Extract dynamic inputs (filter reserved/invalid keys).
-    // Merge declared props with dynamicProps so that dynamic inputs are available.
+  /**
+   * The globals every run gets, on either contract. Declared inputs arrive on
+   * one `inputs` object rather than as globals of their own name: sharing the
+   * global namespace with the sandbox API let an input called `env` or `data`
+   * shadow a bridge, and made every undeclared identifier ambiguous between a
+   * typo and a missing slot. State stays a direct reference so mutations
+   * persist across calls.
+   */
+  private async sandboxGlobals(
+    context: ProcessingContext | undefined
+  ): Promise<Record<string, unknown>> {
     const allInputs = {
       ...this.serialize(),
       ...Object.fromEntries(this.dynamicProps)
     };
-    const dynamicInputs = extractDynamicInputs(allInputs);
-
-    // Build the function body with implicit return support.
-    const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
-
-    // Declared inputs arrive on one `inputs` object rather than as globals of
-    // their own name. Sharing the global namespace with the sandbox API let an
-    // input called `env` or `data` shadow a bridge, and made every undeclared
-    // identifier ambiguous between a typo and a missing slot.
-    // State stays a direct reference so mutations persist across calls.
-    const globals = {
-      [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
+    return {
+      [CODE_INPUTS_GLOBAL]: deepCopyInputs(extractDynamicInputs(allInputs)),
       state: this._state,
       ...(await toolBridgeGlobals(context))
     };
+  }
 
-    const sandboxResult = await runInSandbox({
-      code: `${NODETOOL_PRELUDE}\n${body}`,
+  /** Milliseconds the guest may run, or undefined for no limit. */
+  private timeoutMs(): number | undefined {
+    const timeout = Number(this.timeout ?? 30);
+    return timeout > 0 ? timeout * 1000 : undefined;
+  }
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const code = String(this.code ?? "return {};");
+    if (!usesEmitOutputContract(code)) {
+      // The legacy return/yield contract runs unwarned: the deprecation
+      // notice lives in validate_code, not in every run's message stream —
+      // reliability goldens and downstream consumers pin that stream.
+      return this.runLegacySingleShot(code, context);
+    }
+
+    const result = await runInSandbox({
+      code: `${NODETOOL_PRELUDE}\n${code}`,
       context,
-      timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals,
+      timeoutMs: this.timeoutMs(),
+      globals: await this.sandboxGlobals(context),
       limits: this.sandboxLimits(),
       onProgress: this.progressSink(context),
       modules: this.resolveModules(context)
     });
 
-    if (!sandboxResult.success) {
-      throw new Error(sandboxResult.error ?? "Code execution failed");
+    if (!result.success) {
+      throw new Error(result.error ?? "Code execution failed");
     }
 
-    return normalizeCodeOutput(sandboxResult.result);
+    // Single-shot callers see no stream, so an emitted value would be lost.
+    // Precedence: a handle's final `output` value wins; where there is none,
+    // the LAST value emitted for that handle stands in.
+    const merged: Record<string, unknown> = {};
+    for (const { name, value } of result.emitted ?? []) {
+      merged[name] = value;
+    }
+    return { ...merged, ...(result.outputs ?? {}) };
+  }
+
+  /** The deprecated return-bag path: implicit return, normalized output. */
+  private async runLegacySingleShot(
+    code: string,
+    context: ProcessingContext | undefined
+  ): Promise<Record<string, unknown>> {
+    const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
+    const result = await runInSandbox({
+      code: `${NODETOOL_PRELUDE}\n${body}`,
+      context,
+      timeoutMs: this.timeoutMs(),
+      globals: await this.sandboxGlobals(context),
+      limits: this.sandboxLimits(),
+      onProgress: this.progressSink(context),
+      modules: this.resolveModules(context)
+    });
+    if (!result.success) {
+      throw new Error(result.error ?? "Code execution failed");
+    }
+    return normalizeCodeOutput(result.result);
   }
 
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
-    const timeout = Number(this.timeout ?? 30);
 
-    // If no yield in code, fall back to single-shot process().
-    if (!hasYieldStatement(code)) {
-      yield await this.process(context);
+    if (usesEmitOutputContract(code)) {
+      yield* this.pumpEmitContract(code, context);
       return;
     }
 
-    // For streaming: collect all yielded values, then emit them.
-    const allInputs = {
-      ...this.serialize(),
-      ...Object.fromEntries(this.dynamicProps)
-    };
-    const dynamicInputs = extractDynamicInputs(allInputs);
+    if (!hasYieldStatement(code)) {
+      yield await this.runLegacySingleShot(code, context);
+      return;
+    }
+    yield* this.runLegacyStream(code, context);
+  }
 
+  /**
+   * The emit/output pump: start the run, hand every `emit` bag downstream as
+   * it happens, then post the final `output` bag once the run succeeds.
+   *
+   * The guest's `emit` promise resolves only when the channel has accepted its
+   * bag, so a producer faster than the kernel blocks at the channel bound —
+   * backpressure with no new kernel concept.
+   */
+  private async *pumpEmitContract(
+    code: string,
+    context: ProcessingContext | undefined
+  ): AsyncGenerator<Record<string, unknown>> {
+    const channel = new BoundedChannel<Record<string, unknown>>(
+      EMIT_CHANNEL_CAPACITY
+    );
+    const abort = new AbortController();
+
+    let result: RunSandboxResult | undefined;
+    let failure: unknown;
+    // Never rejects: the run's outcome is read after the drain, so a rejection
+    // parked on the promise would otherwise look unhandled while we pump.
+    const run = (async () => {
+      try {
+        result = await runInSandbox({
+          code: `${NODETOOL_PRELUDE}\n${code}`,
+          context,
+          timeoutMs: this.timeoutMs(),
+          globals: await this.sandboxGlobals(context),
+          limits: this.sandboxLimits(),
+          onProgress: this.progressSink(context),
+          modules: this.resolveModules(context),
+          signal: abort.signal,
+          onEmit: (name: string, value: unknown) =>
+            channel.push({ [name]: value })
+        });
+      } catch (err) {
+        failure = err;
+      } finally {
+        // Closing here is what ends the drain, and it happens only after the
+        // run has settled — so every bag pushed before that is still taken.
+        channel.close();
+      }
+    })();
+
+    try {
+      for (;;) {
+        const bag = await channel.take();
+        if (!bag) break;
+        yield bag;
+      }
+
+      await run;
+      if (failure) throw failure;
+      if (!result || !result.success) {
+        throw new Error(result?.error ?? "Code execution failed");
+      }
+      // A failed run discards finals; only a successful one posts its bag.
+      const outputs = result.outputs ?? {};
+      if (Object.keys(outputs).length > 0) {
+        yield outputs;
+      }
+    } finally {
+      // The consumer may abandon the generator mid-stream (a downstream
+      // routing error, or a `break`). Aborting unblocks the guest, closing the
+      // channel releases any `emit` waiting for room, and awaiting the run
+      // leaves nothing in flight behind us.
+      abort.abort();
+      channel.close();
+      await run;
+    }
+  }
+
+  /** The deprecated `yield` path: the guest collects, the host replays. */
+  private async *runLegacyStream(
+    code: string,
+    context: ProcessingContext | undefined
+  ): AsyncGenerator<Record<string, unknown>> {
     // The prelude sits outside the yield_ rewrite: only user code streams.
     const wrappedBody = `${NODETOOL_PRELUDE}
       const __yielded = [];
@@ -526,32 +706,21 @@ export class CodeNode extends BaseNode {
       return __yielded;
     `;
 
-    // Declared inputs arrive on one `inputs` object rather than as globals of
-    // their own name. Sharing the global namespace with the sandbox API let an
-    // input called `env` or `data` shadow a bridge, and made every undeclared
-    // identifier ambiguous between a typo and a missing slot.
-    // State stays a direct reference so mutations persist across calls.
-    const globals = {
-      [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
-      state: this._state,
-      ...(await toolBridgeGlobals(context))
-    };
-
-    const sandboxResult = await runInSandbox({
+    const result = await runInSandbox({
       code: wrappedBody,
       context,
-      timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
-      globals,
+      timeoutMs: this.timeoutMs(),
+      globals: await this.sandboxGlobals(context),
       limits: this.sandboxLimits(),
       onProgress: this.progressSink(context),
       modules: this.resolveModules(context)
     });
 
-    if (!sandboxResult.success) {
-      throw new Error(sandboxResult.error ?? "Code execution failed");
+    if (!result.success) {
+      throw new Error(result.error ?? "Code execution failed");
     }
 
-    const items = sandboxResult.result as unknown[];
+    const items = result.result as unknown[];
     if (Array.isArray(items)) {
       for (const item of items) {
         if (item !== null && item !== undefined) {
