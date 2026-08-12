@@ -84,7 +84,7 @@ column by `resolveSandboxLimits`:
 | Limit | Default | Configured by | Ceiling |
 |-------|---------|---------------|---------|
 | Execution time | `timeoutMs` (30 s) | `setInterruptHandler` (CPU budget) + wall-clock race | — |
-| Suspended time | `DEFAULT_SUSPEND_ALLOWANCE_MS` (30 min) | `RunSandboxOptions.suspendAllowanceMs`, only with a `clock` | — |
+| Suspended time | `DEFAULT_SUSPEND_ALLOWANCE_MS` (30 min), or `INPUT_STREAM_SUSPEND_ALLOWANCE_MS` (unbounded) for a run with `onTakeInput` | `RunSandboxOptions.suspendAllowanceMs`, only with a `clock` | — |
 | Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` (`limits.memoryLimitBytes`) | 512 MB |
 | Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` (`limits.stackLimitBytes`) | 8 MB |
 | Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge (`limits.maxFetchCalls`) | 100 |
@@ -135,6 +135,20 @@ aliases are gone),
 `createCanvas(...).toBytes()`), and any caller-supplied `globals`. `fetch` sends
 a `Uint8Array` body as raw bytes instead of JSON. Every one of these is a
 **capability**, not a library — libraries are imports (below).
+
+`stream` is the input side of `emit`, built in the guest prelude over one
+awaitable host bridge: `for await (const item of stream(name))` reads one input
+handle in order until end-of-stream, `stream.any()` interleaves every handle as
+`[handle, value]` pairs, `await stream.first(name)` takes the next value
+(`undefined` at end-of-stream), and `stream.open(name)` answers synchronously
+whether more can arrive. The host supplies the values through
+`RunSandboxOptions.onTakeInput` (called with `null` for `any()`) and the probe
+through `onStreamOpen`; without an `onTakeInput` every verb throws
+`NO_INPUT_STREAM_MESSAGE`. The guest pulls, so an item nobody asked for stays in
+the host's inbox — backpressure costs nothing. Time parked on a take is
+clock-suspended: a streaming body's timeout meters its own execution, and how
+long upstream takes is the run's cancellation to bound, not the timeout's.
+Tests: `tests/js-sandbox-stream.test.ts`.
 
 `progress` is fire-and-forget: it reports to
 `RunSandboxOptions.onProgress`, clamped to 0–100 with the message truncated to
