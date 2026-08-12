@@ -66,6 +66,18 @@ import { Watchdog } from "../watchdog";
 
 const { spawn } = require("child_process");
 
+/** The private surface these tests drive, named so it stays type-checked. */
+interface WatchdogInternals {
+  healthPort: number;
+  healthHost: string;
+  forkUtilityProcess(): Promise<void>;
+  spawnChildProcess(): Promise<void>;
+  isPidAlive(): Promise<boolean>;
+}
+
+const internals = (wd: Watchdog): WatchdogInternals =>
+  wd as unknown as WatchdogInternals;
+
 describe("Watchdog constructor: healthUrl parsing", () => {
   test("extracts port + host from a standard http URL", () => {
     const wd = new Watchdog({
@@ -75,8 +87,8 @@ describe("Watchdog constructor: healthUrl parsing", () => {
       pidFilePath: "/tmp/x.pid",
       healthUrl: "http://127.0.0.1:7777/health",
     });
-    expect((wd as any).healthPort).toBe(7777);
-    expect((wd as any).healthHost).toBe("127.0.0.1");
+    expect(internals(wd).healthPort).toBe(7777);
+    expect(internals(wd).healthHost).toBe("127.0.0.1");
   });
 
   test("extracts port + host from an https URL", () => {
@@ -87,8 +99,8 @@ describe("Watchdog constructor: healthUrl parsing", () => {
       pidFilePath: "/tmp/x.pid",
       healthUrl: "https://example.com:8443/healthz",
     });
-    expect((wd as any).healthPort).toBe(8443);
-    expect((wd as any).healthHost).toBe("example.com");
+    expect(internals(wd).healthPort).toBe(8443);
+    expect(internals(wd).healthHost).toBe("example.com");
   });
 
   test("defaults to 80 / 443 when port is omitted", () => {
@@ -99,7 +111,7 @@ describe("Watchdog constructor: healthUrl parsing", () => {
       pidFilePath: "/tmp/x.pid",
       healthUrl: "http://example.com/health",
     });
-    expect((wdHttp as any).healthPort).toBe(80);
+    expect(internals(wdHttp).healthPort).toBe(80);
 
     const wdHttps = new Watchdog({
       name: "x",
@@ -108,7 +120,7 @@ describe("Watchdog constructor: healthUrl parsing", () => {
       pidFilePath: "/tmp/x.pid",
       healthUrl: "https://example.com/health",
     });
-    expect((wdHttps as any).healthPort).toBe(443);
+    expect(internals(wdHttps).healthPort).toBe(443);
   });
 
   test("respects an explicit healthPort override", () => {
@@ -121,8 +133,8 @@ describe("Watchdog constructor: healthUrl parsing", () => {
       healthPort: 9000,
       healthHost: "10.0.0.1",
     });
-    expect((wd as any).healthPort).toBe(9000);
-    expect((wd as any).healthHost).toBe("10.0.0.1");
+    expect(internals(wd).healthPort).toBe(9000);
+    expect(internals(wd).healthHost).toBe("10.0.0.1");
   });
 });
 
@@ -141,7 +153,7 @@ describe("Watchdog: utilityProcess.fork option contract (fork mode)", () => {
       healthUrl: "http://127.0.0.1:7777/health",
     });
 
-    await (wd as any).forkUtilityProcess();
+    await internals(wd).forkUtilityProcess();
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/server.mjs",
@@ -165,7 +177,7 @@ describe("Watchdog: utilityProcess.fork option contract (fork mode)", () => {
       healthUrl: "http://127.0.0.1:7777/health",
     });
 
-    await (wd as any).forkUtilityProcess();
+    await internals(wd).forkUtilityProcess();
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/dev-server-runner.cjs",
@@ -200,7 +212,7 @@ describe("Watchdog: child_process.spawn option contract (spawn mode)", () => {
       healthUrl: "http://127.0.0.1:8080/health",
     });
 
-    const startPromise = (wd as any).spawnChildProcess();
+    const startPromise = internals(wd).spawnChildProcess();
     process.nextTick(() => proc.emit("spawn"));
     await startPromise;
 
@@ -232,7 +244,7 @@ describe("Watchdog: child_process.spawn option contract (spawn mode)", () => {
       healthUrl: "http://127.0.0.1:9999/health",
     });
 
-    await expect((wd as any).spawnChildProcess()).rejects.toThrow(
+    await expect(internals(wd).spawnChildProcess()).rejects.toThrow(
       /failed to spawn.*EACCES/,
     );
   });
@@ -257,12 +269,12 @@ describe("Watchdog: graceful stop sequence", () => {
       gracefulStopTimeoutMs: 100,
     });
 
-    const fork = (wd as any).forkUtilityProcess();
+    const fork = internals(wd).forkUtilityProcess();
     process.nextTick(() => utilProc.emit("spawn"));
     await fork;
 
     // Force isPidAlive to return false so the stop loop exits quickly.
-    jest.spyOn(wd as any, "isPidAlive").mockResolvedValue(false);
+    jest.spyOn(internals(wd), "isPidAlive").mockResolvedValue(false);
     await wd.stopGracefully();
 
     expect(utilProc.kill).toHaveBeenCalledTimes(1);
@@ -288,13 +300,13 @@ describe("Watchdog: graceful stop sequence", () => {
       gracefulStopTimeoutMs: 50,
     });
 
-    const startPromise = (wd as any).spawnChildProcess();
+    const startPromise = internals(wd).spawnChildProcess();
     process.nextTick(() => child.emit("spawn"));
     await startPromise;
 
     // Pretend the process is still alive throughout the grace window so
     // the SIGKILL escalation triggers.
-    jest.spyOn(wd as any, "isPidAlive").mockResolvedValue(true);
+    jest.spyOn(internals(wd), "isPidAlive").mockResolvedValue(true);
 
     await wd.stopGracefully();
 
@@ -326,7 +338,7 @@ describe("Watchdog: output handler delegation", () => {
       logOutput: false,
     });
 
-    const startPromise = (wd as any).spawnChildProcess();
+    const startPromise = internals(wd).spawnChildProcess();
     process.nextTick(() => proc.emit("spawn"));
     await startPromise;
 

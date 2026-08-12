@@ -1,6 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFloatingToolbarActions } from "../useFloatingToolbarActions";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
+import {
+  useWebsocketRunner,
+  type WorkflowRunner
+} from "../../stores/WorkflowRunner";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -12,6 +15,21 @@ import { useRunWarningStore } from "../../stores/RunWarningStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { selectFrom } from "../../__mocks__/fixtures";
+import type { SettingWithValue, Workflow } from "../../stores/ApiTypes";
+import type { NodeData } from "../../stores/NodeData";
+import type { NodeStore, NodeStoreState } from "../../stores/NodeStore";
+import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
+import type { NodeMenuStore } from "../../stores/NodeMenuStore";
+import { defaultSettings } from "../../stores/SettingsStore";
+
+type SettingsState = ReturnType<typeof useSettingsStore.getState>;
+type BottomPanelState = ReturnType<typeof useBottomPanelStore.getState>;
+type MiniMapState = ReturnType<typeof useMiniMapStore.getState>;
+
+/** A node-store ref whose `getState()` answers from a declared slice. */
+const nodeStoreRef = (state: Partial<NodeStoreState>): NodeStore =>
+  ({ getState: () => state }) as unknown as NodeStore;
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(() => jest.fn()),
@@ -57,9 +75,13 @@ const mockUseMiniMapStore = useMiniMapStore as jest.MockedFunction<
 >;
 
 describe("useFloatingToolbarActions", () => {
-  const mockWorkflow = {
+  const mockWorkflow: Workflow = {
     id: "workflow-123",
     name: "Test Workflow",
+    description: "",
+    access: "private",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
     graph: { nodes: [], edges: [] }
   };
 
@@ -76,117 +98,69 @@ describe("useFloatingToolbarActions", () => {
   const mockToggleBottomPanel = jest.fn();
   const mockToggleMiniMap = jest.fn();
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Mock useWebsocketRunner calls with different selectors
-    const mockRunnerState = {
+  const runnerInState = (state: WorkflowRunner["state"]) =>
+    selectFrom<WorkflowRunner>({
       run: mockRun,
       cancel: mockCancel,
       pause: mockPause,
       resume: mockResume,
-      state: "idle",
-      queuePosition: null,
-      pendingRuns: []
-    };
-    mockUseWebsocketRunner.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockRunnerState as any);
-      }
-      // Fallback for non-function selectors
-      return mockRunnerState as any;
+      state,
+      queuePosition: null
     });
 
-    // Mock multiple useNodes calls with different selectors
-    const mockNodesState = {
-      workflow: mockWorkflow,
-      autoLayout: mockAutoLayout,
-      workflowJSON: mockWorkflowJSON
-    };
-    mockUseNodes.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockNodesState as any);
-      }
-      // Fallback for non-function selectors
-      return mockNodesState as any;
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-    mockUseNodeStoreRef.mockReturnValue({
-      getState: jest.fn(() => ({
-        nodes: [],
-        edges: [],
-        getWorkflow: jest.fn(() => mockWorkflow)
-      }))
-    } as any);
+    mockUseWebsocketRunner.mockImplementation(runnerInState("idle"));
 
-    // Mock useWorkflowManager calls with different selectors
-    const mockWorkflowManagerState = {
-      getWorkflow: mockGetWorkflow,
-      saveWorkflow: mockSaveWorkflow
-    };
-    mockUseWorkflowManager.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockWorkflowManagerState as any);
-      }
-      // Fallback for non-function selectors
-      return mockWorkflowManagerState as any;
-    });
+    mockUseNodes.mockImplementation(
+      selectFrom<NodeStoreState>({
+        workflow: mockWorkflow,
+        autoLayout: mockAutoLayout,
+        workflowJSON: mockWorkflowJSON
+      })
+    );
 
-    // Mock useSettingsStore calls with different selectors
-    const mockSettingsState = {
-      settings: {
-        autosave: {
-          saveBeforeRun: false,
-          maxVersionsPerWorkflow: 10
+    mockUseNodeStoreRef.mockReturnValue(nodeStoreRef({ nodes: [], edges: [] }));
+
+    mockUseWorkflowManager.mockImplementation(
+      selectFrom<WorkflowManagerState>({
+        getWorkflow: mockGetWorkflow,
+        saveWorkflow: mockSaveWorkflow
+      })
+    );
+
+    // `confirmLargeRun: false` keeps the large-run confirmation out of the way
+    // for every case except the ones that opt into it.
+    mockUseSettingsStore.mockImplementation(
+      selectFrom<SettingsState>({
+        settings: {
+          ...defaultSettings,
+          confirmLargeRun: false,
+          autosave: {
+            ...defaultSettings.autosave,
+            saveBeforeRun: false,
+            maxVersionsPerWorkflow: 10
+          }
         }
-      }
-    };
-    mockUseSettingsStore.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockSettingsState as any);
-      }
-      // Fallback for non-function selectors
-      return {
-        autosave: {
-          saveBeforeRun: false,
-          maxVersionsPerWorkflow: 10
-        }
-      } as any;
-    });
+      })
+    );
 
-    // Mock useNodeMenuStore calls with different selectors
-    const mockNodeMenuState = {
-      openNodeMenu: mockOpenNodeMenu,
-      closeNodeMenu: mockCloseNodeMenu,
-      isMenuOpen: false
-    };
-    mockUseNodeMenuStore.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockNodeMenuState as any);
-      }
-      // Fallback for non-function selectors
-      return mockNodeMenuState as any;
-    });
+    mockUseNodeMenuStore.mockImplementation(
+      selectFrom<NodeMenuStore>({
+        openNodeMenu: mockOpenNodeMenu,
+        closeNodeMenu: mockCloseNodeMenu,
+        isMenuOpen: false
+      })
+    );
 
-    mockUseBottomPanelStore.mockReturnValue(mockToggleBottomPanel as any);
+    mockUseBottomPanelStore.mockImplementation(
+      selectFrom<BottomPanelState>({ handleViewChange: mockToggleBottomPanel })
+    );
 
-    // Mock useMiniMapStore calls with different selectors
-    const mockMiniMapState = {
-      toggleVisible: mockToggleMiniMap
-    };
-    mockUseMiniMapStore.mockImplementation((selector) => {
-      // If selector is a function, call it with mock state
-      if (typeof selector === 'function') {
-        return selector(mockMiniMapState as any);
-      }
-      // Fallback for non-function selectors
-      return mockMiniMapState as any;
-    });
+    mockUseMiniMapStore.mockImplementation(
+      selectFrom<MiniMapState>({ toggleVisible: mockToggleMiniMap })
+    );
 
     mockTriggerAutosave.mockResolvedValue(null);
 
@@ -209,21 +183,7 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("asks for confirmation while running, then runs on confirm", async () => {
-      mockUseWebsocketRunner.mockImplementation((selector) => {
-        const mockRunnerState = {
-          run: mockRun,
-          cancel: mockCancel,
-          pause: mockPause,
-          resume: mockResume,
-          state: "running",
-          queuePosition: null,
-          pendingRuns: []
-        };
-        if (typeof selector === 'function') {
-          return selector(mockRunnerState as any);
-        }
-        return mockRunnerState as any;
-      });
+      mockUseWebsocketRunner.mockImplementation(runnerInState("running"));
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -244,27 +204,33 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    const searchNode = {
+    const searchNode: NodeStoreState["nodes"][number] = {
       id: "agent-1",
       type: "nodetool.agents.Agent",
+      position: { x: 0, y: 0 },
       data: {
-        properties: { tools: [{ type: "tool_name", name: "google_search" }] }
-      }
+        properties: { tools: [{ type: "tool_name", name: "google_search" }] },
+        selectable: true,
+        dynamic_properties: {},
+        workflow_id: mockWorkflow.id
+      } satisfies NodeData
     };
 
-    const mockNodeStoreWith = (nodes: unknown[]) => {
-      mockUseNodeStoreRef.mockReturnValue({
-        getState: jest.fn(() => ({
+    const mockNodeStoreWith = (nodes: NodeStoreState["nodes"]) => {
+      mockUseNodeStoreRef.mockReturnValue(
+        nodeStoreRef({
           nodes,
           edges: [],
           setSelectedNodes: jest.fn(),
-          setShouldFitToScreen: jest.fn(),
-          getWorkflow: jest.fn(() => mockWorkflow)
-        }))
-      } as any);
+          setShouldFitToScreen: jest.fn()
+        })
+      );
     };
 
-    const setting = (env_var: string, value: string | null) => ({
+    const setting = (
+      env_var: string,
+      value: string | null
+    ): SettingWithValue => ({
       package_name: "",
       env_var,
       group: "Search",
@@ -277,7 +243,7 @@ describe("useFloatingToolbarActions", () => {
     it("blocks the run and opens the search-provider dialog when a search tool has no provider", async () => {
       mockNodeStoreWith([searchNode]);
       useRemoteSettingsStore.setState({
-        settings: [setting("SERP_PROVIDER", null)] as any
+        settings: [setting("SERP_PROVIDER", null)]
       });
       useSearchProviderCalloutStore.getState().dismiss();
 
@@ -299,7 +265,7 @@ describe("useFloatingToolbarActions", () => {
         settings: [
           setting("SERP_PROVIDER", "brave"),
           setting("BRAVE_API_KEY", "****")
-        ] as any
+        ]
       });
       useSearchProviderCalloutStore.getState().dismiss();
 
@@ -313,30 +279,27 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("triggers autosave before running if enabled", async () => {
-      mockUseSettingsStore.mockImplementation((selector) => {
-        const mockSettingsState = {
+      mockUseSettingsStore.mockImplementation(
+        selectFrom<SettingsState>({
           settings: {
+            ...defaultSettings,
+            confirmLargeRun: false,
             autosave: {
+              ...defaultSettings.autosave,
               saveBeforeRun: true,
               maxVersionsPerWorkflow: 10
             }
           }
-        };
-        if (typeof selector === 'function') {
-          return selector(mockSettingsState as any);
-        }
-        return {
-          autosave: {
-            saveBeforeRun: true,
-            maxVersionsPerWorkflow: 10
-          }
-        } as any;
-      });
+        })
+      );
 
       mockGetWorkflow.mockReturnValue({
         ...mockWorkflow,
-        graph: { nodes: [{ id: "node-1" }], edges: [] }
-      } as any);
+        graph: {
+          nodes: [{ id: "node-1", type: "nodetool.agents.Agent" }],
+          edges: []
+        }
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -457,17 +420,13 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("does nothing when workflow is null", () => {
-      mockUseNodes.mockImplementation((selector) => {
-        const mockNodesState = {
-          workflow: null,
+      // No `workflow` key: the subject guards on it being falsy.
+      mockUseNodes.mockImplementation(
+        selectFrom<NodeStoreState>({
           autoLayout: mockAutoLayout,
           workflowJSON: mockWorkflowJSON
-        };
-        if (typeof selector === 'function') {
-          return selector(mockNodesState as any);
-        }
-        return mockNodesState as any;
-      });
+        })
+      );
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -499,17 +458,13 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("does nothing when workflow is null", () => {
-      mockUseNodes.mockImplementation((selector) => {
-        const mockNodesState = {
-          workflow: null,
+      // No `workflow` key: the subject guards on it being falsy.
+      mockUseNodes.mockImplementation(
+        selectFrom<NodeStoreState>({
           autoLayout: mockAutoLayout,
           workflowJSON: mockWorkflowJSON
-        };
-        if (typeof selector === 'function') {
-          return selector(mockNodesState as any);
-        }
-        return mockNodesState as any;
-      });
+        })
+      );
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -535,17 +490,13 @@ describe("useFloatingToolbarActions", () => {
 
   describe("handleToggleNodeMenu", () => {
     it("closes menu when already open", () => {
-      mockUseNodeMenuStore.mockImplementation((selector) => {
-        const mockNodeMenuState = {
+      mockUseNodeMenuStore.mockImplementation(
+        selectFrom<NodeMenuStore>({
           openNodeMenu: mockOpenNodeMenu,
           closeNodeMenu: mockCloseNodeMenu,
           isMenuOpen: true
-        };
-        if (typeof selector === 'function') {
-          return selector(mockNodeMenuState as any);
-        }
-        return mockNodeMenuState as any;
-      });
+        })
+      );
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -600,21 +551,7 @@ describe("useFloatingToolbarActions", () => {
 
   describe("state properties", () => {
     it("exposes workflow running state", () => {
-      mockUseWebsocketRunner.mockImplementation((selector) => {
-        const mockRunnerState = {
-          run: mockRun,
-          cancel: mockCancel,
-          pause: mockPause,
-          resume: mockResume,
-          state: "running",
-          queuePosition: null,
-          pendingRuns: []
-        };
-        if (typeof selector === 'function') {
-          return selector(mockRunnerState as any);
-        }
-        return mockRunnerState as any;
-      });
+      mockUseWebsocketRunner.mockImplementation(runnerInState("running"));
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -624,21 +561,7 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("exposes paused state", () => {
-      mockUseWebsocketRunner.mockImplementation((selector) => {
-        const mockRunnerState = {
-          run: mockRun,
-          cancel: mockCancel,
-          pause: mockPause,
-          resume: mockResume,
-          state: "paused",
-          queuePosition: null,
-          pendingRuns: []
-        };
-        if (typeof selector === 'function') {
-          return selector(mockRunnerState as any);
-        }
-        return mockRunnerState as any;
-      });
+      mockUseWebsocketRunner.mockImplementation(runnerInState("paused"));
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
