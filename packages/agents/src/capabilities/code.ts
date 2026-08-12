@@ -10,12 +10,15 @@
  *   test_code     — run a case list and grade each against expected outputs
  *
  * Execution matches the Code node: the body gets the `inputs` object and a
- * fresh `state`, implicit returns are wrapped, `yield` collects a stream, and
- * the return value normalizes into an output bag the same way
- * (`@nodetool-ai/node-sdk` code-body helpers — one implementation for both
- * hosts). What the harness deliberately does NOT provide: the node toolbelt
- * (`tools.*` / `nodetool.*`) and secrets outside the call's own `secrets`
- * list — authoring runs are hermetic by default.
+ * fresh `state`, and the same probe the node uses (`usesEmitOutputContract`)
+ * decides which output contract applies. A body calling `emit`/`output` runs
+ * verbatim — emitted values come back as `streamed`, final values as
+ * `outputs`, its return value ignored. A body calling neither runs the legacy
+ * path (implicit return wrapping, `yield` collection, return-bag
+ * normalization) through the `@nodetool-ai/node-sdk` code-body helpers, one
+ * implementation for both hosts. What the harness deliberately does NOT
+ * provide: the node toolbelt (`tools.*` / `nodetool.*`) and secrets outside
+ * the call's own `secrets` list — authoring runs are hermetic by default.
  */
 
 import type { JsonSchema } from "@nodetool-ai/runtime";
@@ -43,10 +46,22 @@ export {
   PACKAGES_FIELD
 } from "./code.specs.js";
 
+/** One `await emit(name, value)` call, in call order. */
+interface EmittedEntry {
+  name: string;
+  value: unknown;
+}
+
+/**
+ * What a run streamed: `{name, value}` entries under the emit/output contract,
+ * legacy `yield` bags under the return contract.
+ */
+type StreamedItems = EmittedEntry[] | Record<string, unknown>[];
+
 interface HarnessRunResult {
   ok: boolean;
   outputs?: Record<string, unknown>;
-  streamed?: Record<string, unknown>[];
+  streamed?: StreamedItems;
   logs: string[];
   error?: string;
   duration_ms: number;
@@ -71,6 +86,7 @@ async function runCodeBody(
     hasYieldStatement,
     wrapImplicitReturn,
     normalizeCodeOutput,
+    usesEmitOutputContract,
     parseSandboxModuleDeclarations
   } = await import("@nodetool-ai/node-sdk");
   const { runInSandbox } = await import("../js-sandbox.js");
@@ -112,15 +128,20 @@ async function runCodeBody(
   }
 
   const code = params.code;
-  const streaming = hasYieldStatement(code);
-  const body = streaming
-    ? `const __yielded = [];
+  // The emit/output contract names its outputs, so nothing is inferred from
+  // the body's shape and nothing is rewritten: it runs exactly as written.
+  const emitContract = usesEmitOutputContract(code);
+  const streaming = !emitContract && hasYieldStatement(code);
+  const body = emitContract
+    ? code
+    : streaming
+      ? `const __yielded = [];
 function yield_(value) { __yielded.push(value); }
 ${code.replace(/\byield\b/g, "yield_")}
 return __yielded;`
-    : hasReturnStatement(code)
-      ? code
-      : wrapImplicitReturn(code);
+      : hasReturnStatement(code)
+        ? code
+        : wrapImplicitReturn(code);
 
   const globals = {
     inputs: params.inputs,
@@ -139,6 +160,17 @@ return __yielded;`
   const logs = result.logs ?? [];
   if (!result.success) {
     return fail(result.error ?? "Code execution failed", logs);
+  }
+  if (emitContract) {
+    // No `onEmit` sink is passed, so the host accumulates the emits and hands
+    // them back in call order; the return value carries no output semantics.
+    return {
+      ok: true,
+      outputs: result.outputs ?? {},
+      streamed: result.emitted ?? [],
+      logs,
+      duration_ms: Date.now() - started
+    };
   }
   if (streaming) {
     const items = Array.isArray(result.result) ? result.result : [];
@@ -179,11 +211,17 @@ function timeoutSeconds(value: unknown): number {
 // validate_code
 // ---------------------------------------------------------------------------
 
+/** Issue category for a body still on the return/yield output contract. */
+const CODE_LEGACY_CONTRACT = "code_legacy_contract";
+
 const validateCode: CapabilityExport = {
   spec: validateCodeSpec,
   impl: async (run, params) => {
-    const { validateCodeNodeBody, parseSandboxModuleDeclarations } =
-      await import("@nodetool-ai/node-sdk");
+    const {
+      validateCodeNodeBody,
+      usesEmitOutputContract,
+      parseSandboxModuleDeclarations
+    } = await import("@nodetool-ai/node-sdk");
     const packages = stringList(params["packages"]);
     const { declarations, invalid } = parseSandboxModuleDeclarations(
       packages.length > 0 ? packages : undefined
@@ -200,6 +238,30 @@ const validateCode: CapabilityExport = {
         severity: "error",
         code: "code_module",
         message: `Invalid \`packages\` declaration: ${entry}`
+      });
+    }
+    // The legacy return/yield contract runs for one more release. The shared
+    // validator is where that warning belongs; this adds it only when the
+    // shared layer did not, so the harness warns either way and never twice.
+    const code = String(params["code"] ?? "");
+    const alreadyWarned = issues.some(
+      (issue) =>
+        issue.code === CODE_LEGACY_CONTRACT || /deprecat/i.test(issue.message)
+    );
+    // The pristine default body is an empty node, not a legacy body.
+    if (
+      code.trim() !== "" &&
+      code.trim() !== "return {};" &&
+      !usesEmitOutputContract(code) &&
+      !alreadyWarned
+    ) {
+      issues.push({
+        severity: "warning",
+        code: CODE_LEGACY_CONTRACT,
+        message:
+          "The return/yield output contract is deprecated; use " +
+          "emit(name, value) to stream a value and output(name, value) to " +
+          "set a final one."
       });
     }
     return {
@@ -233,7 +295,7 @@ interface TestCaseReport {
   name: string;
   ok: boolean;
   outputs?: Record<string, unknown>;
-  streamed?: Record<string, unknown>[];
+  streamed?: StreamedItems;
   logs: string[];
   error?: string;
   mismatches: { output: string; expected: unknown; actual: unknown }[];
@@ -242,6 +304,31 @@ interface TestCaseReport {
 /** Structural equality by JSON normalization — the values already crossed the sandbox boundary as plain data. */
 function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Grade a case's `expected_streamed` against what the run streamed: the same
+ * entries, in the same order. A length difference is one mismatch on
+ * `streamed`; a differing entry is one mismatch on `streamed[i]`.
+ */
+function streamMismatches(
+  expected: readonly unknown[],
+  actual: StreamedItems
+): TestCaseReport["mismatches"] {
+  if (expected.length !== actual.length) {
+    return [{ output: "streamed", expected, actual }];
+  }
+  const mismatches: TestCaseReport["mismatches"] = [];
+  for (let i = 0; i < expected.length; i++) {
+    if (!deepEqual(expected[i], actual[i])) {
+      mismatches.push({
+        output: `streamed[${i}]`,
+        expected: expected[i],
+        actual: actual[i]
+      });
+    }
+  }
+  return mismatches;
 }
 
 const testCode: CapabilityExport = {
@@ -275,6 +362,9 @@ const testCode: CapabilityExport = {
         raw["expect"] && typeof raw["expect"] === "object"
           ? (raw["expect"] as Record<string, unknown>)
           : undefined;
+      const expectStream = Array.isArray(raw["expected_streamed"])
+        ? (raw["expected_streamed"] as unknown[])
+        : undefined;
 
       const outcome = await runCodeBody(run, {
         code,
@@ -293,6 +383,11 @@ const testCode: CapabilityExport = {
             mismatches.push({ output: key, expected, actual });
           }
         }
+      }
+      if (outcome.ok && expectStream) {
+        mismatches.push(
+          ...streamMismatches(expectStream, outcome.streamed ?? [])
+        );
       }
 
       results.push({

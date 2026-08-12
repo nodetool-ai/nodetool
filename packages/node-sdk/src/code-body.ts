@@ -36,6 +36,23 @@ export function hasYieldStatement(code: string): boolean {
 }
 
 /**
+ * Whether the body uses the `emit`/`output` contract rather than the legacy
+ * return/yield one.
+ *
+ * A body that calls either function names its outputs explicitly and its return
+ * value is ignored; a body that calls neither runs the legacy path. Every host
+ * routes on this one probe, so the two contracts never both apply to one body.
+ *
+ * The match is textual on purpose — it runs before the parser, on bodies that
+ * may not parse. `x.output(` and `myemit(` are not calls to the bridge, and a
+ * call inside a string or a comment is not a call at all.
+ */
+export function usesEmitOutputContract(code: string): boolean {
+  const stripped = stripStringsAndComments(code);
+  return /(?:^|[^.\w$])(?:emit|output)\s*\(/.test(stripped);
+}
+
+/**
  * Wrap the last expression with `return(...)` for implicit return support.
  */
 export function wrapImplicitReturn(code: string): string {

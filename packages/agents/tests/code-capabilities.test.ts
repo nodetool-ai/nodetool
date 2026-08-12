@@ -2,8 +2,9 @@
  * The `code` capability module — the Code-node authoring harness.
  *
  * Real QuickJS sandbox, no network: validate_code over the node-sdk static
- * check, run_code with implicit return / explicit return / yield streaming,
- * and test_code grading cases against expected outputs.
+ * check, run_code on both output contracts (emit/output, and the deprecated
+ * implicit return / explicit return / yield streaming), and test_code grading
+ * cases against expected finals and expected emits.
  */
 
 import { describe, it, expect } from "vitest";
@@ -19,12 +20,31 @@ describe("validate_code", () => {
   it("passes a clean body and reports its issues structurally", async () => {
     const tool = toolForCapabilityName("validate_code");
     const clean = (await tool.execute(context(), {
-      code: "return { sum: inputs.a + inputs.b };",
+      code: 'await output("sum", inputs.a + inputs.b);',
       inputs: ["a", "b"],
       outputs: ["sum"]
     })) as { ok: boolean; issues: unknown[] };
     expect(clean.ok).toBe(true);
     expect(clean.issues).toEqual([]);
+  });
+
+  it("warns once that a legacy return body is deprecated", async () => {
+    const tool = toolForCapabilityName("validate_code");
+    const legacy = (await tool.execute(context(), {
+      code: "return { sum: inputs.a + inputs.b };",
+      inputs: ["a", "b"],
+      outputs: ["sum"]
+    })) as {
+      ok: boolean;
+      issues: { severity: string; code: string; message: string }[];
+    };
+    expect(legacy.ok).toBe(true);
+    const deprecations = legacy.issues.filter((issue) =>
+      /deprecat/i.test(issue.message)
+    );
+    expect(deprecations).toHaveLength(1);
+    expect(deprecations[0]?.severity).toBe("warning");
+    expect(deprecations[0]?.message).toContain("emit(name, value)");
   });
 
   it("flags syntax errors, undeclared inputs, and missing outputs", async () => {
@@ -92,6 +112,27 @@ describe("run_code", () => {
     expect(result.streamed).toEqual([{ item: "a" }, { item: "b" }]);
   });
 
+  it("reports emits as streamed entries and output() calls as outputs", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: `for (const item of inputs.items) { await emit("row", item); }
+await output("count", inputs.items.length);
+return { ignored: true };`,
+      inputs: { items: ["a", "b"] }
+    })) as {
+      ok: boolean;
+      outputs: Record<string, unknown>;
+      streamed: { name: string; value: unknown }[];
+    };
+    expect(result.ok).toBe(true);
+    expect(result.streamed).toEqual([
+      { name: "row", value: "a" },
+      { name: "row", value: "b" }
+    ]);
+    // `return` is control flow on this path — its value never reaches outputs.
+    expect(result.outputs).toEqual({ count: 2 });
+  });
+
   it("reports a thrown error instead of throwing", async () => {
     const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {
@@ -147,6 +188,75 @@ describe("test_code", () => {
     const wrong = result.results.find((entry) => entry.name === "wrong");
     expect(wrong?.mismatches).toEqual([
       { output: "sum", expected: 4, actual: 3 }
+    ]);
+  });
+
+  it("grades cases against expected_streamed", async () => {
+    const tool = toolForCapabilityName("test_code");
+    const result = (await tool.execute(context(), {
+      code: `for (const n of inputs.items) { await emit("n", n); }
+await output("total", inputs.items.length);`,
+      cases: [
+        {
+          name: "streams both",
+          inputs: { items: [1, 2] },
+          expected_streamed: [
+            { name: "n", value: 1 },
+            { name: "n", value: 2 }
+          ],
+          expect: { total: 2 }
+        },
+        {
+          name: "wrong value",
+          inputs: { items: [1, 2] },
+          expected_streamed: [
+            { name: "n", value: 1 },
+            { name: "n", value: 99 }
+          ]
+        },
+        {
+          name: "wrong length",
+          inputs: { items: [1, 2] },
+          expected_streamed: [{ name: "n", value: 1 }]
+        }
+      ]
+    })) as {
+      ok: boolean;
+      passed: number;
+      failed: number;
+      results: {
+        name: string;
+        ok: boolean;
+        mismatches: { output: string; expected: unknown; actual: unknown }[];
+      }[];
+    };
+    expect(result.ok).toBe(false);
+    expect(result.passed).toBe(1);
+    expect(result.failed).toBe(2);
+
+    const wrongValue = result.results.find(
+      (entry) => entry.name === "wrong value"
+    );
+    expect(wrongValue?.mismatches).toEqual([
+      {
+        output: "streamed[1]",
+        expected: { name: "n", value: 99 },
+        actual: { name: "n", value: 2 }
+      }
+    ]);
+
+    const wrongLength = result.results.find(
+      (entry) => entry.name === "wrong length"
+    );
+    expect(wrongLength?.mismatches).toEqual([
+      {
+        output: "streamed",
+        expected: [{ name: "n", value: 1 }],
+        actual: [
+          { name: "n", value: 1 },
+          { name: "n", value: 2 }
+        ]
+      }
     ]);
   });
 

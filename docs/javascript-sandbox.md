@@ -73,10 +73,11 @@ libraries are imports.**
 | `crypto.*` | `randomUUID`, `getRandomValues`, `digest`, `hmac` (WebCrypto-backed; SHA-1/256/384/512) |
 | `format.*` | `number`, `date`, `relativeTime`, `list` — host `Intl`, which QuickJS does not ship. All four are async |
 | `image.*` | `info`, `decode`, `encode`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert` over encoded bytes |
-| `media.*` | `bytes`, `text`, `info` read a document/image/audio/video input; `toDocument`, `toImage`, `toAudio`, `toVideo` build one to return. Needs a `ProcessingContext` |
+| `media.*` | `bytes`, `text`, `info` read a document/image/audio/video input; `toDocument`, `toImage`, `toAudio`, `toVideo` build one to emit or output. Needs a `ProcessingContext` |
 | `canvas.measureText` / `createCanvas(w, h)` | Canvas 2D drawing, recorded in the guest and replayed on a real host context by `await surface.toBytes()` |
 | `assetToSandbox(assetId, path)` / `sandboxToAsset(path)` | Move an asset in and out of the workspace |
 | `progress(percent, message?)` | Fire-and-forget progress, rate-limited and capped |
+| `emit(name, value)` / `output(name, value)` | The Code node's output contract: stream a value now, or record a handle's final value. Awaitable; `emit` awaits drain under backpressure |
 | `toBase64` / `fromBase64` / `toHex` / `fromHex` / `parallelMap` | Pure guest helpers, no host call behind them |
 
 Core JavaScript — `JSON`, `Math`, `Date`, `Map`, `Set`, `RegExp`, `URL`,
@@ -98,7 +99,7 @@ that turns bytes back into a ref the next node can read:
 const bytes = await media.bytes(inputs.pdf);
 const page = await media.text(inputs.notes);          // utf-8 unless `encoding` says otherwise
 const { mimeType, size } = await media.info(inputs.pdf);
-return { report: await media.toDocument(bytes, { mimeType, filename: "report.pdf" }) };
+await output("report", await media.toDocument(bytes, { mimeType, filename: "report.pdf" }));
 ```
 
 | Call | Returns |
@@ -132,7 +133,7 @@ package** the run declares and imports:
 ```js
 import yaml from "@nodetool-ai/sandbox-yaml";
 const config = yaml.load(inputs.text);
-return { config };
+await output("config", config);
 ```
 
 NodeTool ships twenty-one (`packages/sandbox-packs/`): `-dates` (date-fns),
@@ -314,24 +315,34 @@ page as on the server.
 // inputs: { rows: [...], threshold: 10 }
 const kept = inputs.rows.filter((r) => r.score > inputs.threshold);
 progress(50, `kept ${kept.length}`);
-return { kept, count: kept.length };
-// outputs: kept, count
+for (const row of kept) await emit("row", row);   // streams as it goes
+await output("count", kept.length);               // final, posted at the end
+// outputs: row, count
 ```
 
 - **Inputs** arrive on the `inputs` object, never as globals of their own name.
   Sharing the global namespace let an input called `env` shadow a bridge and
   made every undeclared identifier ambiguous between a typo and a missing slot.
   Values are deep-copied through JSON before entering the guest.
-- **Outputs** are the returned object's keys. Return a non-object and it becomes
-  a single `output` handle. Code with no `return` gets an implicit return of its
-  last expression.
+- **Outputs** leave the body through two awaitable calls, and nothing else.
+  `await output(name, value)` records a handle's final value; all final values
+  post together as one bag when the body completes, and a second `output` on the
+  same handle throws. `name` must be a declared output handle. `return` is
+  ordinary control flow — its value is ignored.
 - **Media inputs** arrive as refs. Read one with `media.bytes` / `media.text`,
-  and return one built by `media.toDocument` / `toImage` / `toAudio` / `toVideo`.
-- **Streaming.** Code containing `yield` runs through `genProcess`: the yields
-  are collected in the guest and emitted one message at a time. A replacement
-  contract — live `emit(name, value)` streaming plus `output(name, value)`
-  finals, with the return mechanics removed — is designed in
-  [code-node-emit-design.md](code-node-emit-design.md).
+  and output one built by `media.toDocument` / `toImage` / `toAudio` /
+  `toVideo`.
+- **Streaming.** `await emit(name, value)` delivers `{[name]: value}`
+  downstream immediately, while the body keeps running — call it any number of
+  times per handle. Awaiting it applies backpressure once the queue is full.
+  A body that emits nothing simply never streams; there is no separate
+  streaming mode to opt into.
+- **Legacy bodies.** A body that calls neither `emit` nor `output` runs the old
+  return/yield contract — returned object keys as outputs, implicit return of
+  the last expression, `yield` replayed after the run — for one more release,
+  with a deprecation warning from `validate_code` and from the editor. See
+  [code-node-emit-design.md](code-node-emit-design.md) for the contract and the
+  migration.
 - **`state`** is a plain object that survives across streaming invocations and
   resets at the start of each workflow run.
 - **`progress(percent, message)`** posts `node_progress` to the kernel — the
@@ -355,8 +366,9 @@ needs instead of a `ReferenceError`.
 what a run would hit: invalid JavaScript, top-level `export`, an import the
 node's `packages` does not declare, a bare read of a name that is neither a
 sandbox API nor one of the node's own inputs (they live on `inputs`, so a bare
-read is a `ReferenceError`), an `inputs.<name>` the node does not declare, no
-return, or a declared output left unset on some return path. The analysis lives
+read is a `ReferenceError`), an `inputs.<name>` the node does not declare, an
+`emit`/`output` call naming a handle the node does not declare, and a declared
+handle no reachable call ever writes. The analysis lives
 in `@nodetool-ai/node-sdk` (`code-analysis.ts`, `code-node-validation.ts`), so
 the validator, the `submit_code` planner and the editor read one AST.
 

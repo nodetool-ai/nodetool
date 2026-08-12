@@ -171,9 +171,12 @@ describe("CodeNode — sandbox packages", () => {
       [{ specifier: "@acme/geo", resolvedPackVersion: "1.0.0" }]
     ).process(contextWith(catalog(), posted));
     expect(result).toEqual({ out: "geo:1" });
-    const warning = posted.find((message) => message.type === "log_update");
+    const warning = posted.find(
+      (message) =>
+        message.type === "log_update" &&
+        String(message.content).includes("@acme/nodetool-geo")
+    );
     expect(warning?.severity).toBe("warning");
-    expect(warning?.content).toContain("@acme/nodetool-geo");
   });
 
   it("streams from a body that imports a declared module", async () => {

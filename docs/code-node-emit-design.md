@@ -1,6 +1,14 @@
 # Code Node Output Interface: `emit` and `output`
 
-Status: proposed. Owner: code-nodes / node-sdk. 2026-08-12.
+Status: implemented (sandbox bridge, CodeNode pump, validation, harness; the
+migration codemod remains open). Owner: code-nodes / node-sdk. 2026-08-12.
+
+Two implementation choices differ from the text below, both deliberate: the
+legacy deprecation warning lives in the `validate_code` harness and the node's
+run log, not in graph validation — the shipped-examples gate treats warnings
+as errors and every shipped Code body is legacy — and the pristine default
+body `return {};` is exempt from the warning, because an empty node is not a
+legacy body.
 
 ## Problem
 
