@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { SelectChangeEvent } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
@@ -24,15 +24,9 @@ const WorkflowListProperty = (props: PropertyProps) => {
     }
   });
 
-  const findWorkflow = useCallback(
-    (id: string) => {
-      if (data?.workflows === undefined) {return { name: "" };}
-      return (
-        data.workflows.find((workflow) => workflow.id === id) || { name: "" }
-      );
-    },
-    [data]
-  );
+  const workflowMap = useMemo(() => {
+    return new Map((data?.workflows || []).map(w => [w.id, w.name]));
+  }, [data?.workflows]);
 
   const handleChange = useCallback(
     (e: SelectChangeEvent<unknown>) => {
@@ -45,9 +39,9 @@ const WorkflowListProperty = (props: PropertyProps) => {
   const renderSelectedValue = useCallback(
     (selected: unknown) => {
       const ids = selected as string[];
-      return ids.map((id: string) => findWorkflow(id).name).join(", ");
+      return ids.map((id: string) => workflowMap.get(id) || "").filter(Boolean).join(", ");
     },
-    [findWorkflow]
+    [workflowMap]
   );
 
   return (

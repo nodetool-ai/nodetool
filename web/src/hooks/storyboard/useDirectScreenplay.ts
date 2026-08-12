@@ -75,8 +75,9 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       }
       // Tell the Director about the board's cast so the screenplay references
       // entities by their exact names (which is what activates them per shot).
+      const entitiesMap = new Map(allEntities?.map((e) => [e.id, e]));
       const cast = (board?.entityIds ?? [])
-        .map((id) => allEntities?.find((e) => e.id === id))
+        .map((id) => entitiesMap.get(id))
         .filter((e): e is NonNullable<typeof e> => !!e);
       if (cast.length > 0) {
         const lines = cast.map(

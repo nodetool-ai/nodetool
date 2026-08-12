@@ -83,3 +83,6 @@
 ## 2026-05-25 - Fixing Mock Stubs Requires Validating E2E Tests
 **Learning:** Found that unapproved dependency updates (like bumping `fastify` and `@huggingface/hub` inside workspaces that aren't central to the task) can trigger hidden test regressions, especially in end-to-end tests that rely on carefully mocked Node APIs (`fs-stub.js`, `path-stub.js`) during Vite build steps.
 **Action:** When updating shared API mocks or running `npm run build` after an unrequested package lock change, always execute `npm run test:e2e` in the affected workspace (like `packages/workflow-runner`) to ensure the stubs actually provide the correct interfaces needed for browser tests.
+## 2026-05-25 - O(N*M) mapping optimization in array map operations
+**Learning:** Found O(N*M) performance bottlenecks in `web/src/hooks/storyboard/useDirectScreenplay.ts` and `web/src/components/properties/WorkflowListProperty.tsx` where `.find(...)` was called inside `.map(...)` for looking up IDs. As lists of entities or workflows grow, mapping an array of IDs creates a noticeable UI lag due to the O(N^2) complexity.
+**Action:** Replaced `.find` with `.get` using a pre-initialized or memoized O(1) `Map` mapping ID strings to their respective objects, achieving O(N+M) lookup time.
