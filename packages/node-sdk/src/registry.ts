@@ -539,8 +539,14 @@ export function hydrateGraphNodeFlags(
       // saved `true` when a node type migrates away from streaming/control.
       // OR let the saved value win forever. Saved flags apply only when the
       // registry has no opinion (unknown type, or metadata omitting the flag).
+      // A class may also decide streaming input per instance, from the node's
+      // own properties (`resolveStreamingInput` — the Code node, where the body
+      // decides). It is consulted ahead of the static and re-read on every
+      // hydration, so it cannot go stale.
       is_streaming_input:
-        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ??
+        (cls
+          ? cls.resolveStreamingInput?.(node) ?? cls.isStreamingInput
+          : meta?.is_streaming_input) ??
         node.is_streaming_input ??
         false,
       is_streaming_output:
@@ -605,6 +611,14 @@ export function createGraphNodeTypeResolver(
 
       if (!metadata) return null;
 
+      // Per-instance streaming-input resolution, when the class declares it.
+      // Metadata carries one boolean per type and cannot answer for a node
+      // whose mode lives in its own properties, so the closure travels to the
+      // merge site instead. Absent for every class without the hook, which
+      // keeps `Graph.loadFromDict` on exactly today's path.
+      const cls = registry.getClass(nodeType);
+      const resolveStreamingInput = cls?.resolveStreamingInput;
+
       const propertyTypes = Object.fromEntries(
         (metadata.properties ?? []).map((prop) => [
           prop.name,
@@ -635,6 +649,11 @@ export function createGraphNodeTypeResolver(
         propertyTypes,
         outputs,
         supportsDynamicInputs: metadata.supports_dynamic_inputs ?? false,
+        ...(resolveStreamingInput && {
+          resolveInstanceFlags: (node: {
+            properties?: Record<string, unknown>;
+          }) => ({ is_streaming_input: resolveStreamingInput(node) })
+        }),
         descriptorDefaults: {
           name: metadata.title,
           // Explicit booleans, never omitted: Graph.loadFromDict resolves each

@@ -756,10 +756,13 @@ export function validateGraph(
     // A `code` handle fed by an edge carries a body nothing here can see.
     if (isJsCodeNodeType(type) && !connectedByNode.get(id)?.has("code")) {
       const props = readProperties(node);
+      const connectedInputs = [...(connectedByNode.get(id) ?? [])].filter(
+        (name) => !isReservedHandle(name)
+      );
       const availableInputs = new Set<string>([
         ...Object.keys(readDynamicInputs(node)),
         ...Object.keys(readDynamicProperties(node)),
-        ...(connectedByNode.get(id) ?? [])
+        ...connectedInputs
       ]);
       const { declarations, invalid } = parseSandboxModuleDeclarations(
         props.packages
@@ -780,6 +783,7 @@ export function validateGraph(
         availableInputs: [...availableInputs].filter(
           (name) => !isReservedHandle(name)
         ),
+        connectedInputs,
         declaredOutputs: Object.keys(readDynamicOutputs(node)),
         connectedOutputs: [...(consumedByNode.get(id) ?? [])],
         declaredPackages: declarations,

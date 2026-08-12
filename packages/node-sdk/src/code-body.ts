@@ -53,6 +53,25 @@ export function usesEmitOutputContract(code: string): boolean {
 }
 
 /**
+ * Whether the body consumes its inputs as streams rather than as one buffered
+ * snapshot per upstream item.
+ *
+ * A body that calls `stream(name)` — or reaches any member of it, `stream.any`,
+ * `stream.first`, `stream.open` — runs once and drains its inbox itself, so the
+ * node hydrates `is_streaming_input: true`. A body that never mentions `stream`
+ * keeps today's per-item invocation.
+ *
+ * Textual for the same reason as {@link usesEmitOutputContract}: it answers
+ * before the parser, on bodies that may not parse. `x.stream(` is a method on
+ * something else, `mystream(` is another function, and a mention inside a
+ * string or a comment is not a call at all.
+ */
+export function usesStreamInputContract(code: string): boolean {
+  const stripped = stripStringsAndComments(code);
+  return /(?:^|[^.\w$])stream\s*[(.]/.test(stripped);
+}
+
+/**
  * Wrap the last expression with `return(...)` for implicit return support.
  */
 export function wrapImplicitReturn(code: string): string {

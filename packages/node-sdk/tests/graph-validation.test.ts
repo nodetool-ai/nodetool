@@ -931,6 +931,70 @@ describe("Code nodes", () => {
     expect(report.issues.some((i) => i.code === "code_undefined_name")).toBe(false);
   });
 
+  // The streaming-input checks need to know which handles an edge feeds, which
+  // only the graph knows — these prove `validateGraph` hands them over.
+  it("takes a connected handle as a legal stream, and an unconnected one as a warning", () => {
+    const streamingGraph = (targetHandle: string) => ({
+      nodes: [
+        { id: "src", type: "a.Sink", properties: {} },
+        {
+          id: "c",
+          type: CODE,
+          properties: {
+            code: 'for await (const x of stream("text")) { await emit("out", x); }'
+          },
+          dynamic_inputs: {
+            text: { type: { type: "str" } },
+            other: { type: { type: "str" } }
+          },
+          dynamic_outputs: { out: { type: "str" } }
+        }
+      ],
+      edges: [
+        { id: "e", source: "src", sourceHandle: "in", target: "c", targetHandle }
+      ]
+    });
+
+    const connected = validateGraph(streamingGraph("text"), registry);
+    expect(
+      connected.issues.some((i) => i.code === "code_unconnected_stream")
+    ).toBe(false);
+
+    const unconnected = validateGraph(streamingGraph("other"), registry);
+    const issue = unconnected.issues.find(
+      (i) => i.code === "code_unconnected_stream"
+    );
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.nodeId).toBe("c");
+  });
+
+  it("reports an `inputs` read of a handle an edge feeds in a streaming body", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "src", type: "a.Sink", properties: {} },
+          {
+            id: "c",
+            type: CODE,
+            properties: {
+              code:
+                'for await (const x of stream("text")) { await emit("out", inputs.text); }'
+            },
+            dynamic_inputs: { text: { type: { type: "str" } } },
+            dynamic_outputs: { out: { type: "str" } }
+          }
+        ],
+        edges: [
+          { id: "e", source: "src", sourceHandle: "in", target: "c", targetHandle: "text" }
+        ]
+      },
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "code_stream_input_read");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain('stream("text")');
+  });
+
   it("uses the edges into the node when nothing declares an output", () => {
     const report = validateGraph(
       graph({ properties: { code: "const x = 1;" } }),

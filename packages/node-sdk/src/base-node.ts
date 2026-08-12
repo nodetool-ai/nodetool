@@ -147,6 +147,13 @@ export type NodeClass = {
   requiredSettings?: string[];
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
+  /**
+   * Per-instance override of {@link isStreamingInput}. See
+   * `BaseNode.resolveStreamingInput`.
+   */
+  resolveStreamingInput?: (node: {
+    properties?: Record<string, unknown>;
+  }) => boolean;
   isTrigger: boolean;
   alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
@@ -283,6 +290,20 @@ export abstract class BaseNode {
   static readonly requiredSettings: string[] | undefined = undefined;
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
+  /**
+   * Decide {@link isStreamingInput} per node instance, from its saved
+   * properties. Unset on every node whose mode is a property of the type;
+   * declared only where one type covers both modes — the Code node, where the
+   * body decides (`usesStreamInputContract(node.properties.code)`).
+   *
+   * Both hydration paths consult it ahead of the static
+   * (`hydrateGraphNodeFlags`, and `Graph.loadFromDict` via the resolver's
+   * `resolveInstanceFlags`), and re-read it on every hydration, so editing the
+   * body flips the mode with no saved flag involved.
+   */
+  static readonly resolveStreamingInput:
+    | ((node: { properties?: Record<string, unknown> }) => boolean)
+    | undefined = undefined;
   /**
    * Marks a trigger node. Triggers compile to `trigger_registrations` on
    * workflow activation, and when a run starts because of a delivered event
