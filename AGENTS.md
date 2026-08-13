@@ -1438,6 +1438,28 @@ npm run dev:nodetool -- workflows export-bundle <id> [<id2> ...] -o my-pack.node
 npm run dev:nodetool -- workflows import-bundle my-pack.nodetool   # → local library
 ```
 
+### nodetool apps
+
+Mini apps as portable artifacts, straight against the local database. An
+`ApplicationBundle` is one JSON file carrying the app document plus the full
+graph of every workflow its operations bind; inside it an operation's
+`workflowId` is a bundle-local key, and import creates the workflows and
+rewrites the keys to the new ids. The bundle logic is pure and lives in
+`@nodetool-ai/app-runtime`, so the CLI, `POST /api/applications/import-bundle`,
+and the example-app installer all produce the same rows.
+
+```bash
+npm run dev:nodetool -- apps list                          # id, name, operations, updated_at
+npm run dev:nodetool -- apps export-bundle <application_id> -o my.app.json
+npm run dev:nodetool -- apps export-bundle <id> --released # the released snapshot, not the draft
+npm run dev:nodetool -- apps import-bundle my.app.json --project default
+```
+
+A bundled workflow carrying a `sourceId` gets a row id derived from it, so two
+bundles that ship the same workflow reuse the row instead of duplicating it —
+which is what keeps installing several example apps from filling the library
+with copies of one template.
+
 ### nodetool jobs
 
 ```bash

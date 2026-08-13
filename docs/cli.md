@@ -337,6 +337,61 @@ imported assets.
 nodetool workflows import-bundle my-pack.nodetool
 ```
 
+## Mini App Management
+
+### `nodetool apps`
+
+Move mini apps between installs. Reads and writes the local database directly — no running server.
+
+**Subcommands:** `list`, `export-bundle`, `import-bundle`
+
+```bash
+# List applications with their operation count
+nodetool apps list
+nodetool apps list --json
+```
+
+`list` prints `id`, `name`, `operations`, and `updated_at`.
+
+#### `nodetool apps export-bundle <application_id>`
+
+Export an application as a portable bundle: the app document plus the full graph of every workflow its operations bind,
+in a single JSON file. Inside the file an operation's `workflowId` is a bundle-local key, not a real workflow id.
+
+**Options:**
+
+- `-o, --output <file>` — output path (default `<name>.app.json`, with unsafe characters replaced by `_`).
+- `--released` — export the released snapshot and the graphs it pinned, not the draft. Fails when the app has no
+  released version.
+
+The bundle path goes to stdout and the summary line to stderr, so `$(nodetool apps export-bundle <id>)` captures the
+path alone. An operation binding a workflow that no longer exists is left unresolved in the bundle and reported as a
+warning.
+
+```bash
+nodetool apps export-bundle <application_id>
+nodetool apps export-bundle <application_id> -o my.app.json --released
+```
+
+#### `nodetool apps import-bundle <bundle_file>`
+
+Import an application bundle into the local library: create its workflows and the app, with operations rewired to the
+new ids.
+
+**Options:**
+
+- `--project <id>` — project to create the app in (default `default`).
+- `--json` — output the created application as JSON.
+
+A bundled workflow carrying a `sourceId` gets a row id derived from it, so importing two bundles that ship the same
+workflow — two example apps binding one template — reuses the existing row instead of duplicating it. Without a
+`sourceId` every import creates fresh workflows.
+
+```bash
+nodetool apps import-bundle my.app.json
+nodetool apps import-bundle my.app.json --project my-project --json
+```
+
 ## Job Management
 
 ### `nodetool jobs`
