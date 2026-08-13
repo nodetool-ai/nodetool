@@ -1093,9 +1093,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  \`await nodetool.media.bytes(result)\` reads the bytes back — pass the
-  generation result itself, its \`asset_uri\`, or an asset id — so
-  generate → \`image.resize/composite\` → \`nodetool.assets.save\` is one action.
+  Feed a generation result straight into \`image.*\` — it takes the result, its
+  \`asset_uri\`, or an asset id, and returns a handle you pass to the next call,
+  so generate → \`image.resize/composite\` → \`nodetool.media.toImage(handle)\`
+  is one action and the picture never enters the sandbox. Do NOT read bytes to
+  move an image between calls: \`nodetool.media.bytes(ref)\` and
+  \`image.bytes(handle)\` exist for a body that parses the bytes itself, and
+  pulling a few megabytes in for no reason is how a run runs out of memory.
+  An image handle belongs to the action that made it: before the action ends,
+  \`nodetool.media.toImage(handle)\` anything you still need and keep the
+  \`asset://\` ref in \`state\` — a handle in \`state\` is dead next action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),

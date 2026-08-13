@@ -530,10 +530,14 @@ function buildFilter(options: Record<string, unknown>): string {
 export interface ImageBridge {
   info(bytes: unknown): Promise<Record<string, unknown>>;
   decode(bytes: unknown): Promise<Record<string, unknown>>;
-  encode(
-    pixels: unknown,
+  stats(bytes: unknown): Promise<Record<string, unknown>>;
+  blank(
+    width: unknown,
+    height: unknown,
     options?: Record<string, unknown>
   ): Promise<Uint8Array>;
+  pad(bytes: unknown, options?: Record<string, unknown>): Promise<Uint8Array>;
+  grid(images: unknown, options?: Record<string, unknown>): Promise<Uint8Array>;
   resize(bytes: unknown, options?: Record<string, unknown>): Promise<Uint8Array>;
   crop(bytes: unknown, options?: Record<string, unknown>): Promise<Uint8Array>;
   rotate(
@@ -559,6 +563,42 @@ export interface ImageBridge {
  * so results chain (`resize` → `adjust` → `convert`) without the guest ever
  * holding a decoded surface.
  */
+/**
+ * Encode raw RGBA pixels — host-side only, deliberately not on the guest
+ * bridge.
+ *
+ * This is what `image.encode` used to expose. The capability is fine; offering
+ * it to the *guest* was not, because the pixels had to be built in the guest
+ * heap and shipped across the boundary, and every observed use was a backdrop:
+ * `width*height*4` zeroed bytes moved to produce a few kilobytes of PNG. The
+ * guest now asks for `image.blank` instead. Host code (fixtures, backends,
+ * anything already holding pixels) keeps the direct path.
+ */
+export async function encodePixels(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  options?: Record<string, unknown>
+): Promise<Uint8Array> {
+  assertSurfaceSize(width, height, "encodePixels");
+  if (pixels.length !== width * height * 4) {
+    throw new Error(
+      `encodePixels: expected ${width * height * 4} RGBA bytes, got ${pixels.length}`
+    );
+  }
+  const encode = encodeOptions(options, "encodePixels");
+  const backend = await getMediaBackend();
+  const image = await backend.fromPixels(pixels, width, height);
+  return renderTo(
+    backend,
+    width,
+    height,
+    encode,
+    options?.background as string | undefined,
+    (ctx) => ctx.drawImage(image.handle, 0, 0)
+  );
+}
+
 export function createImageBridge(): ImageBridge {
   return {
     async info(bytes) {
@@ -592,28 +632,184 @@ export function createImageBridge(): ImageBridge {
       };
     },
 
-    async encode(pixels, options) {
-      const source = (pixels ?? {}) as Record<string, unknown>;
-      const width = Math.round(Number(source.width));
-      const height = Math.round(Number(source.height));
-      assertSurfaceSize(width, height, "image.encode");
-      const raw = asImageBytes(source.pixels, "image.encode: pixels");
-      if (raw.length !== width * height * 4) {
-        throw new Error(
-          `image.encode: pixels must hold width*height*4 RGBA bytes ` +
-            `(expected ${width * height * 4}, got ${raw.length})`
-        );
+    /**
+     * Per-channel summary, computed host-side.
+     *
+     * Handles mean the guest no longer holds an image, which would leave it
+     * unable to answer anything about one without `decode` pulling every pixel
+     * across — reintroducing the cost handles removed. This answers the
+     * questions a body actually asks (is it dark? is it flat? is it
+     * transparent?) in a few dozen bytes.
+     */
+    async stats(bytes) {
+      const input = asImageBytes(bytes, "image.stats: bytes");
+      // No MAX_DECODE_PIXELS check: that bound exists because `decode` ships
+      // every pixel to the guest. This reads them host-side and answers in a
+      // hundred bytes, so the surface-size guard `decodeImage` already applies
+      // is the only limit it needs.
+      const { backend, image } = await decodeImage(input, "image.stats");
+      const surface = backend.createSurface(image.width, image.height);
+      surface.ctx.drawImage(image.handle, 0, 0);
+      const data = surface.ctx.getImageData(0, 0, image.width, image.height);
+      const px = data.data as ArrayLike<number>;
+      const count = image.width * image.height;
+      const sum = [0, 0, 0, 0];
+      const min = [255, 255, 255, 255];
+      const max = [0, 0, 0, 0];
+      let luminance = 0;
+      for (let i = 0; i < count; i++) {
+        for (let c = 0; c < 4; c++) {
+          const v = px[i * 4 + c];
+          sum[c] += v;
+          if (v < min[c]) min[c] = v;
+          if (v > max[c]) max[c] = v;
+        }
+        // Rec. 601 luma, the same weighting `adjust`'s grayscale uses.
+        luminance += 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
       }
-      const encode = encodeOptions(options, "image.encode");
+      const channel = (c: number): Record<string, number> => ({
+        mean: sum[c] / count,
+        min: min[c],
+        max: max[c]
+      });
+      return {
+        width: image.width,
+        height: image.height,
+        pixels: count,
+        luminance: luminance / count,
+        opaque: min[3] === 255,
+        channels: {
+          r: channel(0),
+          g: channel(1),
+          b: channel(2),
+          a: channel(3)
+        }
+      };
+    },
+
+    /**
+     * A new surface, made host-side.
+     *
+     * This replaces `encode`, whose only observed use was allocating
+     * `width*height*4` zeroed bytes in the guest to get a backdrop — 6 MB
+     * shipped across the boundary to produce a 6 KB PNG, and the single
+     * largest guest→host payload left in a normal image run.
+     */
+    async blank(width, height, options) {
+      const w = Math.round(Number(width));
+      const h = Math.round(Number(height));
+      if (!Number.isFinite(w) || !Number.isFinite(h)) {
+        throw new Error("image.blank: width and height must be numbers");
+      }
+      assertSurfaceSize(w, h, "image.blank");
+      const encode = encodeOptions(options, "image.blank");
       const backend = await getMediaBackend();
-      const image = await backend.fromPixels(raw, width, height);
+      const color = options?.color as string | undefined;
+      return renderTo(
+        backend,
+        w,
+        h,
+        encode,
+        // `background` fills before the draw, which is exactly a solid fill.
+        color ?? (options?.background as string | undefined),
+        () => {}
+      );
+    },
+
+    /**
+     * Grow the canvas around an image without scaling it — the headroom a
+     * composite needs, and what `nodetool.image.CanvasResize` does in a graph.
+     * Building it by hand meant computing a bigger blank and compositing onto
+     * it, which is three calls and an easy place to get the offsets wrong.
+     */
+    async pad(bytes, options) {
+      const opts = options ?? {};
+      const input = asImageBytes(bytes, "image.pad: bytes");
+      const { backend, image } = await decodeImage(input, "image.pad");
+      const all = Number(opts.all ?? 0);
+      const side = (name: string): number => {
+        const v = Number(opts[name] ?? all);
+        if (!Number.isFinite(v) || v < 0) {
+          throw new Error(`image.pad: ${name} must be a non-negative number`);
+        }
+        return Math.round(v);
+      };
+      const top = side("top");
+      const right = side("right");
+      const bottom = side("bottom");
+      const left = side("left");
+      const width = image.width + left + right;
+      const height = image.height + top + bottom;
+      assertSurfaceSize(width, height, "image.pad");
+      const encode = encodeOptions(options, "image.pad");
       return renderTo(
         backend,
         width,
         height,
         encode,
-        options?.background as string | undefined,
-        (ctx) => ctx.drawImage(image.handle, 0, 0)
+        (opts.color as string | undefined) ??
+          (opts.background as string | undefined),
+        (ctx) => ctx.drawImage(image.handle, left, top)
+      );
+    },
+
+    /**
+     * Lay images out in a grid — the shape a caller usually means by "combine
+     * these", and what `lib.grid.CombineImageGrid` does in a graph. Expressing
+     * it with `composite` meant sizing a backdrop, computing every offset, and
+     * getting the row wrap right; the failure that started all of this was a
+     * two-image version of exactly that.
+     */
+    async grid(images, options) {
+      const opts = options ?? {};
+      if (!Array.isArray(images) || images.length === 0) {
+        throw new Error("image.grid: pass a non-empty array of images");
+      }
+      if (images.length > MAX_COMPOSITE_LAYERS) {
+        throw new Error(
+          `image.grid: at most ${MAX_COMPOSITE_LAYERS} images, got ${images.length}`
+        );
+      }
+      const backend = await getMediaBackend();
+      const decoded: MediaImage[] = [];
+      for (let i = 0; i < images.length; i++) {
+        decoded.push(
+          (await decodeImage(
+            asImageBytes(images[i], `image.grid: images[${i}]`),
+            `image.grid: images[${i}]`
+          )).image
+        );
+      }
+      const gap = Math.max(0, Math.round(Number(opts.gap ?? 0)));
+      const columns = Math.max(
+        1,
+        Math.round(Number(opts.columns ?? decoded.length))
+      );
+      const rows = Math.ceil(decoded.length / columns);
+      // Every cell is the largest input, so a grid stays aligned when the
+      // sources differ in size; each image is centred in its cell.
+      const cellWidth = Math.max(...decoded.map((d) => d.width));
+      const cellHeight = Math.max(...decoded.map((d) => d.height));
+      const width = columns * cellWidth + (columns - 1) * gap;
+      const height = rows * cellHeight + (rows - 1) * gap;
+      assertSurfaceSize(width, height, "image.grid");
+      const encode = encodeOptions(options, "image.grid");
+      return renderTo(
+        backend,
+        width,
+        height,
+        encode,
+        (opts.background as string | undefined) ??
+          (opts.color as string | undefined),
+        (ctx) => {
+          decoded.forEach((d, i) => {
+            const col = i % columns;
+            const row = Math.floor(i / columns);
+            const x = col * (cellWidth + gap) + Math.round((cellWidth - d.width) / 2);
+            const y = row * (cellHeight + gap) + Math.round((cellHeight - d.height) / 2);
+            ctx.drawImage(d.handle, x, y);
+          });
+        }
       );
     },
 

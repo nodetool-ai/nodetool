@@ -221,7 +221,16 @@ async function readContainedPath(
   }
 }
 
-async function resolveRefBytes(
+/**
+ * Read the bytes a media ref names, with this run's containment applied.
+ *
+ * Exported because `image.*` accepts a ref anywhere it accepts bytes: the
+ * guest passes the `asset://…` a generator handed it straight into the next
+ * operation, and the bytes are loaded here rather than pulled through the
+ * guest heap and back. One resolver, so `image.*` and `media.*` contain the
+ * same uri shapes the same way.
+ */
+export async function resolveRefBytes(
   where: string,
   ref: MediaRefValue,
   context: ProcessingContext,

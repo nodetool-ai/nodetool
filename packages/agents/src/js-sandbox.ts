@@ -80,12 +80,19 @@ import {
 import {
   BASE64_ALPHABET,
   SANDBOX_BYTES_MARKER,
+  SANDBOX_SERIALIZE_MAX_DEPTH,
   toGuestBytes,
   toGuestBytesDeep
 } from "./sandbox-bytes.js";
 import {
+  createSandboxMediaStore,
+  isSandboxMediaHandle,
+  MAX_RUN_MEDIA_BYTES
+} from "./sandbox-media-handle.js";
+import {
   createMediaRefBridge,
-  MEDIA_REF_MEMBERS
+  MEDIA_REF_MEMBERS,
+  resolveRefBytes
 } from "./sandbox-media-ref.js";
 import {
   createSandboxWasmDispatcher,
@@ -252,6 +259,11 @@ export interface SandboxLimits {
   maxResponseBodyBytes?: number;
   maxOutputSize?: number;
   memoryLimitBytes?: number;
+  /**
+   * Total bytes of media one run may hold host-side for its handles. The
+   * aggregate the per-call image/media ceilings never bounded.
+   */
+  runMediaBytes?: number;
   stackLimitBytes?: number;
   fetchTimeoutMs?: number;
   /**
@@ -351,6 +363,12 @@ export function resolveSandboxLimits(
       1024 * 1024,
       512 * 1024 * 1024
     ),
+    runMediaBytes: clampLimit(
+      limits?.runMediaBytes,
+      MAX_RUN_MEDIA_BYTES,
+      1024 * 1024,
+      2 * 1024 * 1024 * 1024
+    ),
     stackLimitBytes: clampLimit(
       limits?.stackLimitBytes,
       GUEST_STACK_LIMIT,
@@ -404,8 +422,17 @@ function registerTypedArraySerializers(): void {
     addSerializer(name, (ctx, handle) => {
       const bufferHandle = ctx.getProp(handle, "buffer");
       try {
+        // `getArrayBuffer` hands back a Lifetime that owns a view into the
+        // guest heap, not a plain value. Dropping it leaks the underlying
+        // object, and enough leaks trip `list_empty(&rt->gc_obj_list)` in
+        // JS_FreeRuntime — an Emscripten abort that kills the run *after* it
+        // produced its answer. Copy out, then release.
         const ab = ctx.getArrayBuffer(bufferHandle);
-        return Uint8Array.from(ab.value);
+        try {
+          return Uint8Array.from(ab.value);
+        } finally {
+          ab.dispose();
+        }
       } finally {
         bufferHandle.dispose();
       }
@@ -434,6 +461,87 @@ function getEngine(): ReturnType<typeof loadQuickJs> {
  * behaviour (the user still gets a thrown Error with name + message).
  */
 const SANDBOX_ERROR_MARKER = "__nodetool_sandbox_error__";
+
+/**
+ * The guest engine can fail in two ways that never reach `runInSandbox`'s own
+ * `await`, and both used to end the same way: the host process died, the tool
+ * call it was serving returned *nothing*, and the agent driving it saw a turn
+ * that simply stopped. A missing result is worse than any error — there is
+ * nothing to read and nothing to retry.
+ *
+ * 1. An Emscripten `abort()` (the `list_empty(&rt->gc_obj_list)` assertion in
+ *    `JS_FreeRuntime`) surfaces as a `RuntimeError` from the WASM module.
+ * 2. A marshaling failure — most often guest OOM while a host return value is
+ *    being written into the guest — throws inside a promise continuation the
+ *    library created and never catches, so it lands as an unhandled rejection.
+ *
+ * `guardHostProcess` races the run against those escapes. A rejection that
+ * looks like the engine's fails the run; anything else is re-thrown on the next
+ * tick so a genuine host bug still crashes the way it should.
+ */
+function isEngineFailure(error: unknown): boolean {
+  const name = (error as Error)?.constructor?.name ?? "";
+  const message = String((error as Error)?.message ?? error);
+  const stack = String((error as Error)?.stack ?? "");
+  return (
+    name.startsWith("QuickJS") ||
+    message.includes("Assertion failed") ||
+    message.includes("gc_obj_list") ||
+    /\bAborted\(/.test(message) ||
+    stack.includes("quickjs")
+  );
+}
+
+/** The agent-facing translation of an engine failure. */
+export function describeEngineFailure(error: unknown): string {
+  const message = String((error as Error)?.message ?? error);
+  if (/gc_obj_list|Assertion failed|\bAborted\(/.test(message)) {
+    return (
+      "The JavaScript sandbox runtime aborted while cleaning up, so this " +
+      "action produced no result. It is usually triggered by moving a large " +
+      "amount of binary data across the sandbox boundary in one run. Retry " +
+      "with smaller pieces — process one image at a time, or hand large " +
+      "payloads between steps as assets instead of as bytes."
+    );
+  }
+  if (/out of memory/i.test(message)) {
+    return (
+      "The JavaScript sandbox ran out of guest memory, so this action " +
+      "produced no result. Retry with less data held live at once."
+    );
+  }
+  return message;
+}
+
+async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
+  let onRejection: ((reason: unknown) => void) | undefined;
+  const escaped = new Promise<never>((_resolve, reject) => {
+    onRejection = (reason: unknown) => {
+      if (isEngineFailure(reason)) {
+        reject(reason instanceof Error ? reason : new Error(String(reason)));
+        return;
+      }
+      // Not ours. Restore the default "unhandled rejection crashes the
+      // process" behaviour rather than silently swallowing someone's bug.
+      setImmediate(() => {
+        throw reason;
+      });
+    };
+    process.on("unhandledRejection", onRejection);
+  });
+  try {
+    return await Promise.race([run, escaped]);
+  } finally {
+    if (onRejection) process.off("unhandledRejection", onRejection);
+    // The loser of the race stays pending forever; make sure neither promise
+    // can later re-trigger the default handler.
+    void escaped.catch(() => {});
+    void run.then?.(
+      () => {},
+      () => {}
+    );
+  }
+}
 
 function neverReject<Args extends unknown[], R>(
   fn: (...args: Args) => Promise<R>
@@ -1727,6 +1835,12 @@ export function buildSandbox(
     }
   };
 
+  // Bytes `image.*` produced and the guest only carries around. Lives for the
+  // run, then goes; nothing here is durable until something promotes it.
+  const mediaStore = createSandboxMediaStore(
+    resolveSandboxLimits(limits).runMediaBytes
+  );
+
   // Media bridges. The engine (`sandbox-media.ts`) is imported on first use
   // like every other library-backed bridge, and picks its canvas backend from
   // the runtime — `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser
@@ -1743,21 +1857,120 @@ export function buildSandbox(
   ): ((...args: A) => Promise<unknown>) =>
     withGuestBytes(async (...args: A) => pick(await loadSandboxMedia())(...args));
 
+  // `image.*` trades in handles, not bytes. On the way in, every handle and
+  // every media ref buried anywhere in the arguments is replaced by the bytes
+  // it names — resolved host-side, so an `asset://` a generator produced goes
+  // straight into the next operation without being pulled through the guest.
+  // On the way out, encoded bytes become a handle instead of a base64 payload.
+  // A chain (resize → adjust → composite) therefore moves nothing across the
+  // boundary but small objects.
+  //
+  // `info` and `decode` are the deliberate exceptions: they exist to tell the
+  // guest what is *in* an image, so their results stay plain data. `decode`
+  // still hands over real pixels, which is the one call that has to.
+  const resolveMediaArgs = async (
+    where: string,
+    value: unknown,
+    // `image.*` wants a ref flattened to bytes it can operate on. `media.*`
+    // takes refs *as* refs — that is its whole job — so it resolves handles
+    // only, or `media.bytes(assetRef)` would be handed bytes and no longer
+    // have a ref to read.
+    resolveRefs: boolean,
+    depth = 0
+  ): Promise<unknown> => {
+    if (depth >= SANDBOX_SERIALIZE_MAX_DEPTH) return value;
+    // Matched on the marker, not on store membership: a handle from an
+    // earlier run must report *that*, rather than falling through to the ref
+    // path and blaming the uri it happens to carry.
+    if (isSandboxMediaHandle(value)) return mediaStore.resolve(value);
+    if (Array.isArray(value)) {
+      return Promise.all(
+        value.map((v) => resolveMediaArgs(where, v, resolveRefs, depth + 1))
+      );
+    }
+    if (value !== null && typeof value === "object") {
+      if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return value;
+      // A media ref — `{uri}` / `{asset_id}` / `{data}` — reads through the
+      // same resolver `media.*` uses, so both surfaces contain a uri alike.
+      const record = value as Record<string, unknown>;
+      const looksLikeRef =
+        typeof record.uri === "string" ||
+        typeof record.asset_id === "string" ||
+        record.data !== undefined;
+      if (resolveRefs && looksLikeRef && context) {
+        return resolveRefBytes(
+          where,
+          record as never,
+          context,
+          (path: string) => resolveGuestPath(context, path, false)
+        );
+      }
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(record)) {
+        out[k] = await resolveMediaArgs(where, v, resolveRefs, depth + 1);
+      }
+      return out;
+    }
+    return value;
+  };
+
+  /** An `image.*` op: handles/refs in, a handle out. */
+  const imageMember = <A extends unknown[]>(
+    name: string,
+    pick: (media: SandboxMediaModule) => (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) => {
+    const where = `image.${name}`;
+    return async (...args: A) => {
+      const resolved = (await resolveMediaArgs(where, args, true)) as A;
+      const result = await pick(await loadSandboxMedia())(...resolved);
+      if (result instanceof Uint8Array) {
+        const media = await loadSandboxMedia();
+        const info = (await media.imageOps.info(result)) as {
+          width?: number;
+          height?: number;
+          format?: string;
+        };
+        return mediaStore.put(result, {
+          mimeType: info.format ? `image/${info.format}` : "image/png",
+          ...(info.width === undefined ? {} : { width: info.width }),
+          ...(info.height === undefined ? {} : { height: info.height })
+        });
+      }
+      return toGuestBytesDeep(result);
+    };
+  };
+
   const image = {
-    info: mediaMember((m) => m.imageOps.info),
-    decode: mediaMember((m) => m.imageOps.decode),
-    encode: mediaMember((m) => m.imageOps.encode),
-    resize: mediaMember((m) => m.imageOps.resize),
-    crop: mediaMember((m) => m.imageOps.crop),
-    rotate: mediaMember((m) => m.imageOps.rotate),
-    flip: mediaMember((m) => m.imageOps.flip),
-    adjust: mediaMember((m) => m.imageOps.adjust),
-    composite: mediaMember((m) => m.imageOps.composite),
-    convert: mediaMember((m) => m.imageOps.convert)
+    /**
+     * The one door from a handle back to real bytes, and deliberately the only
+     * one. Every other op keeps the payload host-side, so a body that reaches
+     * for this is saying it will read the bytes itself — the cost is explicit
+     * at the call site instead of hidden in every hop. It needs no
+     * ProcessingContext, so a Code node that really does parse an encoded image
+     * works exactly as it did.
+     */
+    bytes: async (value: unknown): Promise<unknown> => {
+      const resolved = await resolveMediaArgs("image.bytes", value, true);
+      const media = await loadSandboxMedia();
+      return toGuestBytes(media.asImageBytes(resolved, "image.bytes"));
+    },
+    info: imageMember("info", (m) => m.imageOps.info),
+    decode: imageMember("decode", (m) => m.imageOps.decode),
+    stats: imageMember("stats", (m) => m.imageOps.stats),
+    blank: imageMember("blank", (m) => m.imageOps.blank),
+    pad: imageMember("pad", (m) => m.imageOps.pad),
+    grid: imageMember("grid", (m) => m.imageOps.grid),
+    resize: imageMember("resize", (m) => m.imageOps.resize),
+    crop: imageMember("crop", (m) => m.imageOps.crop),
+    rotate: imageMember("rotate", (m) => m.imageOps.rotate),
+    flip: imageMember("flip", (m) => m.imageOps.flip),
+    adjust: imageMember("adjust", (m) => m.imageOps.adjust),
+    composite: imageMember("composite", (m) => m.imageOps.composite),
+    convert: imageMember("convert", (m) => m.imageOps.convert)
   };
 
   const canvas = {
-    render: mediaMember((m) => m.renderCanvas),
+    render: imageMember("render", (m) => m.renderCanvas),
     measureText: mediaMember((m) => m.measureCanvasText)
   };
 
@@ -1767,12 +1980,26 @@ export function buildSandbox(
   // `media.*` reads files, so it resolves paths through the same
   // `resolveGuestPath` `workspace.*` uses — one containment rule, one
   // `filesystemAccess` scope, no second scheme to keep in step.
-  const media = createMediaRefBridge(
+  const mediaRefBridge = createMediaRefBridge(
     context,
     context
       ? { resolvePath: (path: string) => resolveGuestPath(context, path, false) }
       : {}
   );
+
+  // An `image.*` handle is accepted wherever `media.*` takes a ref or bytes,
+  // so the last step of a chain — `media.toImage(composited)` — promotes the
+  // handle to a durable asset without the guest ever holding the bytes. Only
+  // this promotion writes to storage; the intermediates never do.
+  const media = Object.fromEntries(
+    Object.entries(mediaRefBridge).map(([name, fn]) => [
+      name,
+      async (...args: unknown[]) =>
+        (fn as (...a: unknown[]) => Promise<unknown>)(
+          ...((await resolveMediaArgs(`media.${name}`, args, false)) as unknown[])
+        )
+    ])
+  ) as unknown as typeof mediaRefBridge;
 
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
@@ -2710,7 +2937,12 @@ export async function runInSandbox(
         }
         // Caller-injected globals are host functions too — guard the async
         // ones or a cancelled run keeps driving real work through them after
-        // runInSandbox has returned.
+        // runInSandbox has returned. A caller-supplied global must follow the
+        // byte-tagging contract itself (`toGuestBytesDeep`): a raw `Uint8Array`
+        // returned to the guest is marshaled property-by-property, which OOMs
+        // the guest and throws inside the library's detached marshaling
+        // continuation. `guardHostProcess` below keeps that from killing the
+        // process, but the run still fails.
         for (const [name, value] of Object.entries(userGlobals)) {
           bridges[name] =
             typeof value === "function"
@@ -2858,9 +3090,13 @@ const __wrapDeep = (fn) => {
 };
 const __image = globalThis.image;
 globalThis.image = {
+  bytes: __wrapDeep(__image.bytes),
   info: __wrapDeep(__image.info),
   decode: __wrapDeep(__image.decode),
-  encode: __wrapDeep(__image.encode),
+  stats: __wrapDeep(__image.stats),
+  blank: __wrapDeep(__image.blank),
+  pad: __wrapDeep(__image.pad),
+  grid: __wrapDeep(__image.grid),
   resize: __wrapDeep(__image.resize),
   crop: __wrapDeep(__image.crop),
   rotate: __wrapDeep(__image.rotate),
@@ -2991,7 +3227,14 @@ globalThis.createCanvas = (width, height) => {
       ops,
       ...(options || {})
     }),
-    toBytes: (options) => globalThis.canvas.render(surface.toSpec(options))
+    // render answers with a handle, like every other image producer, so a
+    // drawing that goes straight into image.* never crosses the boundary.
+    // toBytes keeps its name's promise and pays for the bytes explicitly.
+    toImage: (options) => globalThis.canvas.render(surface.toSpec(options)),
+    toBytes: async (options) =>
+      globalThis.image.bytes(
+        await globalThis.canvas.render(surface.toSpec(options))
+      )
   };
   return surface;
 };
@@ -3127,7 +3370,9 @@ export default true;`,
       if (!signal) return;
       signal.addEventListener("abort", () => resolve(null), { once: true });
     });
-    const raced = await Promise.race([sandboxRun, cancellation]);
+    const raced = await guardHostProcess(
+      Promise.race([sandboxRun, cancellation])
+    );
     if (raced === null) {
       return {
         success: false,
@@ -3173,10 +3418,12 @@ export default true;`,
       emitted: getEmitted()
     };
   } catch (e: unknown) {
-    // Host-side failures (engine load error, marshaling bug, etc.). Guest-side
-    // errors go through evalResponse.ok=false above.
+    // Host-side failures (engine load error, marshaling bug, an aborted
+    // runtime). Guest-side errors go through evalResponse.ok=false above.
+    // An engine failure is reported in terms the caller can act on: the raw
+    // Emscripten assertion text tells an agent nothing it can retry against.
     const logs = getLogs();
-    const errorMessage = e instanceof Error ? e.message : String(e);
+    const errorMessage = describeEngineFailure(e);
     const errorStack =
       e instanceof Error ? cleanStack(e.stack ?? "") : undefined;
 
