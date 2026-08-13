@@ -1,14 +1,20 @@
 /**
  * Compact, Claude-Code-style formatting for the builtin "basic" tools
- * (read/write/edit/list/glob/grep/run). For these, the chat UI shows a
- * friendly verb, a tight one-line parameter summary, and a `⎿` result line
- * derived from the tool's structured output — e.g.
+ * (read/write/edit/list/glob/grep) and CodeAct's `execute_code`. For these,
+ * the chat UI shows a friendly verb, a tight one-line parameter summary,
+ * and a `⎿` result line derived from the tool's structured output — e.g.
  *
  *   ● Read(src/app.tsx)
  *     ⎿  Read 47 lines
  *
+ *   ● Run  Rendering product images from CSV
+ *       const listed = await nodetool.workflows.list();
+ *     ⎿  { count: 3 }  ·  1 tool call
+ *
  * Every other tool keeps the generic `name(key: value)` + raw preview render.
  */
+
+const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
 /** Map from canonical builtin tool name → the verb shown in the UI. */
 const FRIENDLY_NAMES: Record<string, string> = {
@@ -25,8 +31,19 @@ export function isBasicTool(name: string): boolean {
   return name in FRIENDLY_NAMES;
 }
 
-/** Friendly verb for a basic tool, or the raw name otherwise. */
+/** True when the tool is CodeAct's `execute_code` action. */
+export function isCodeAction(name: string): boolean {
+  return name === EXECUTE_CODE_TOOL_NAME;
+}
+
+/** True when the result should go through {@link formatToolResult}. */
+export function isFormattedTool(name: string): boolean {
+  return isBasicTool(name) || isCodeAction(name);
+}
+
+/** Friendly verb for a formatted tool, or the raw name otherwise. */
 export function friendlyToolName(name: string): string {
+  if (isCodeAction(name)) return "Run";
   return FRIENDLY_NAMES[name] ?? name;
 }
 
@@ -55,6 +72,18 @@ function safeJson(v: unknown): string {
   } catch {
     return String(v);
   }
+}
+
+/** Live status label: the action title for `execute_code`, else the verb. */
+export function toolStatusLabel(
+  name: string,
+  args?: Record<string, unknown>
+): string {
+  if (isCodeAction(name)) {
+    const title = str(args?.title).trim();
+    return title || "Run";
+  }
+  return friendlyToolName(name);
 }
 
 /** One-line fallback preview for an arbitrary result value. */
@@ -104,6 +133,8 @@ export function formatToolParams(
       if (path) s += ` in ${path}`;
       return s;
     }
+    case EXECUTE_CODE_TOOL_NAME:
+      return str(args.title).trim();
     default:
       return Object.entries(args)
         .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
@@ -184,8 +215,114 @@ export function formatToolResult(
         }`;
       }
       break;
+    case EXECUTE_CODE_TOOL_NAME:
+      return formatExecuteCodeResult(result);
   }
   return genericPreview(result);
+}
+
+function parseObservation(result: unknown): Record<string, unknown> | null {
+  let value: unknown = result;
+  if (typeof result === "string") {
+    const trimmed = result.trim();
+    if (!trimmed.startsWith("{")) return null;
+    try {
+      value = JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  }
+  if (!isObj(value)) return null;
+  if (
+    typeof value.ok === "boolean" ||
+    "error" in value ||
+    "result" in value ||
+    "toolCalls" in value ||
+    "logs" in value
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function compactValue(value: unknown): string {
+  if (typeof value === "string") return firstLine(value);
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value == null) return String(value);
+  return safeJson(value);
+}
+
+/** Observation envelope → one headline plus optional log lines. */
+function formatExecuteCodeResult(result: unknown): string {
+  const obs = parseObservation(result);
+  if (!obs) return genericPreview(result);
+
+  if (obs.ok === false || typeof obs.error === "string") {
+    const err = str(obs.error) || "failed";
+    return truncate(`Error: ${firstLine(err)}`, 200);
+  }
+
+  const parts: string[] = [];
+  if (obs.result !== undefined) {
+    parts.push(truncate(compactValue(obs.result), 160));
+  }
+  if (typeof obs.toolCalls === "number" && obs.toolCalls > 0) {
+    parts.push(plural(obs.toolCalls, "tool call", "tool calls"));
+  }
+  const logs = Array.isArray(obs.logs)
+    ? obs.logs.filter((line): line is string => typeof line === "string")
+    : [];
+  if (logs.length > 0) {
+    parts.push(plural(logs.length, "log", "logs"));
+  }
+
+  const lines = [parts.join("  ·  ") || "Done"];
+  for (const log of logs.slice(0, 3)) {
+    lines.push(truncate(firstLine(log), 160));
+  }
+  if (logs.length > 3) {
+    const more = logs.length - 3;
+    lines.push(`… +${more} more ${more === 1 ? "log" : "logs"}`);
+  }
+  return lines.join("\n");
+}
+
+const MAX_CODE_LINES = 12;
+
+function dedentCode(code: string): string[] {
+  const normalized = code.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.replace(/\t/g, "  ").split("\n");
+  while (lines.length > 0 && lines[0].trim() === "") lines.shift();
+  while (lines.length > 0 && lines[lines.length - 1].trim() === "") {
+    lines.pop();
+  }
+  const indents = lines
+    .filter((line) => line.trim().length > 0)
+    .map((line) => line.match(/^ */)?.[0].length ?? 0);
+  const pad = indents.length > 0 ? Math.min(...indents) : 0;
+  return lines.map((line) => line.slice(pad));
+}
+
+/**
+ * Dedented program lines for an `execute_code` call, or null when there is
+ * no code to show. Caps long programs the way {@link formatToolDiff} does.
+ */
+export function formatToolCode(
+  name: string,
+  args?: Record<string, unknown>
+): string[] | null {
+  if (!args || !isCodeAction(name)) return null;
+  const raw = str(args.code);
+  if (!raw.trim()) return null;
+  const lines = dedentCode(raw);
+  if (lines.length === 0) return null;
+  if (lines.length <= MAX_CODE_LINES) return lines;
+  const shown = lines.slice(0, MAX_CODE_LINES);
+  const more = lines.length - MAX_CODE_LINES;
+  shown.push(`… +${more} more ${more === 1 ? "line" : "lines"}`);
+  return shown;
 }
 
 // ---------------------------------------------------------------------------

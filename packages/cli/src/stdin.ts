@@ -22,9 +22,10 @@
 
 import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
+import { createChatContext } from "./chat-context.js";
 import {
   createCapabilityRun,
   toolForCapabilityName,
@@ -35,7 +36,12 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
-import { getSecret } from "@nodetool-ai/models";
+import {
+  isCodeAction,
+  isFormattedTool,
+  toolStatusLabel,
+  formatToolResult,
+} from "./tool-format.js";
 
 export interface StdinModeOptions {
   provider: string;
@@ -280,14 +286,8 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     prov: BaseProvider,
     tools: Tool[]
   ): Promise<void> => {
-    const context = new ProcessingContext({
-      jobId: crypto.randomUUID(),
-      userId: "1",
-      workspaceDir: opts.workspaceDir,
-      workspaceStorage: opts.workspaceDir
-        ? new FileStorageAdapter(opts.workspaceDir)
-        : null,
-      secretResolver: getSecret
+    const context = await createChatContext({
+      workspaceDir: opts.workspaceDir ?? null
     });
     const turn = createCliCodeActTurn({
       tools,
@@ -307,6 +307,18 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       callbacks: {
         onChunk: (text) => {
           process.stdout.write(text);
+        },
+        onToolCall: (tc) => {
+          process.stderr.write(
+            isCodeAction(tc.name)
+              ? `[tool] Run  ${toolStatusLabel(tc.name, tc.args)}\n`
+              : `[tool] ${tc.name}\n`
+          );
+        },
+        onToolResult: (tc, result) => {
+          if (!isFormattedTool(tc.name)) return;
+          const preview = formatToolResult(tc.name, tc.args, result);
+          process.stderr.write(`[result] ${preview.split("\n")[0]}\n`);
         }
       }
     });
@@ -356,20 +368,34 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         if (event.type === "chunk") {
           process.stdout.write(event.content);
         } else if (event.type === "tool_call") {
-          const argsStr =
-            Object.keys(event.args).length > 0
-              ? JSON.stringify(event.args)
-              : "";
-          process.stderr.write(
-            `[tool] ${event.name}${argsStr ? `(${argsStr})` : ""}\n`
-          );
+          if (isCodeAction(event.name)) {
+            process.stderr.write(
+              `[tool] Run  ${toolStatusLabel(event.name, event.args)}\n`
+            );
+          } else {
+            const argsStr =
+              Object.keys(event.args).length > 0
+                ? JSON.stringify(event.args)
+                : "";
+            process.stderr.write(
+              `[tool] ${event.name}${argsStr ? `(${argsStr})` : ""}\n`
+            );
+          }
         } else if (event.type === "tool_result") {
-          // Truncate long results for display
-          const preview =
-            event.content.length > 200
-              ? event.content.slice(0, 200) + "..."
-              : event.content;
-          process.stderr.write(`[result] ${event.name}: ${preview}\n`);
+          if (isFormattedTool(event.name)) {
+            const preview = formatToolResult(
+              event.name,
+              undefined,
+              event.content
+            );
+            process.stderr.write(`[result] ${preview.split("\n")[0]}\n`);
+          } else {
+            const preview =
+              event.content.length > 200
+                ? event.content.slice(0, 200) + "..."
+                : event.content;
+            process.stderr.write(`[result] ${event.name}: ${preview}\n`);
+          }
         } else if (event.type === "output_update") {
           process.stdout.write(JSON.stringify(event.value, null, 2));
           process.stdout.write("\n");
