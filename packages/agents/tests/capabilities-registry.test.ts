@@ -178,6 +178,10 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   voice_script_lines: "write",
   assemble_script_timeline: "write",
   edit_script: "write",
+  // threads (chat history — read-only)
+  list_threads: "read",
+  get_thread: "read",
+  get_message: "read",
   // storyboards
   list_storyboards: "read",
   get_storyboard: "read",

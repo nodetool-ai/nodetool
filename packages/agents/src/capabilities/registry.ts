@@ -40,6 +40,7 @@ import { sharedSpecs } from "./shared.specs.js";
 import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
 import { styleSpecs } from "./style.specs.js";
+import { threadsSpecs } from "./threads.specs.js";
 import { timelinesSpecs } from "./timelines.specs.js";
 import { uiSpecs } from "./ui.specs.js";
 import { webSpecs } from "./web.specs.js";
@@ -66,6 +67,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   files: () => import("./files.js").then((m) => m.module),
   agents: () => import("./agents.js").then((m) => m.module),
   google: () => import("./google.js").then((m) => m.module),
+  threads: () => import("./threads.js").then((m) => m.module),
   timelines: () => import("./timelines.js").then((m) => m.module),
   sketches: () => import("./sketches.js").then((m) => m.module),
   scripts: () => import("./scripts.js").then((m) => m.module),
@@ -101,6 +103,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "files",
   "agents",
   "google",
+  "threads",
   "timelines",
   "sketches",
   "scripts",
@@ -141,6 +144,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   files: filesSpecs,
   agents: agentsSpecs,
   google: googleSpecs,
+  threads: threadsSpecs,
   timelines: timelinesSpecs,
   sketches: sketchesSpecs,
   scripts: scriptsSpecs,

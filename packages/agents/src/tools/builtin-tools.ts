@@ -46,6 +46,11 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "thread_memory_update",
   "thread_memory_delete",
 
+  // Chat history (past conversations and what was said in them)
+  "list_threads",
+  "get_thread",
+  "get_message",
+
   // Asset library (discover + reuse generated/uploaded media)
   "asset_search",
   "asset_list",

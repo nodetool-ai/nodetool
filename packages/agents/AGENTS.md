@@ -936,7 +936,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
   (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
-  run's own scratchpad, beside thread-scoped `nodetool.memory`), `nodetool.style`
+  run's own scratchpad, beside thread-scoped `nodetool.memory`),
+  `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
+  `get_message` — the chat history itself, read-only), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
