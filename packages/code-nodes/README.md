@@ -20,8 +20,6 @@ Dynamic inputs arrive on the `inputs` object; the returned object becomes the
 outputs. Libraries are sandbox packages the node declares and imports. Full
 reference: [JavaScript Sandbox](https://docs.nodetool.ai/javascript-sandbox).
 
-**Sandbox** (`nodetool.sandbox.*`) — `SandboxShell`, `SandboxFile`.
-
 **Tool agents** (`nodetool.agents.*`) — LLM agents scoped to one toolset:
 `ShellAgent`, `BrowserAgent`, `LiveBrowserAgent`, `FilesystemAgent`, `GitAgent`,
 `HttpApiAgent`, `HtmlAgent`, `ImageAgent`, `MediaAgent`, `FfmpegAgent`,

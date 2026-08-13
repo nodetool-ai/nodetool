@@ -29,9 +29,6 @@ nodetool chat --tools google_search,browser,write_file
 
 # Connect to a running server instead of a local provider
 nodetool chat -u ws://localhost:7777/ws
-
-# Provision an isolated Docker sandbox and expose its tools to the agent
-nodetool chat --sandbox
 ```
 
 > **Agent mode is always on.** Every chat session runs the unified agent loop
@@ -47,8 +44,6 @@ nodetool chat --sandbox
 | `-w, --workspace <path>` | Workspace directory (default: cwd) |
 | `--tools <list>` | Comma-separated enabled tools |
 | `-u, --url <ws-url>` | Connect to a NodeTool server WebSocket |
-| `--sandbox` | Isolated Docker sandbox with file/shell/browser/desktop tools |
-| `--sandbox-image <image>` | Override the sandbox Docker image |
 | `--no-read-only-search` | Disable the read-only `run_search` fan-out primitive |
 | `--trace-file <path>` | Append LLM/agent/workflow spans as JSONL |
 | `--trace-stdout [pretty\|json]` | Stream spans to stdout |
@@ -159,5 +154,5 @@ curl -X POST http://localhost:7777/v1/chat/completions \
 
 - **No provider configured**: store a key first (`nodetool secrets store OPENAI_API_KEY`). Providers without a key are greyed out and `/provider <name>` refuses them.
 - **Wrong model ID**: switch with `/model <id>`; each provider's default is loaded when you switch providers.
-- **Expecting a shell**: bare commands like `ls` are sent to the model, not run. Use the agent's file tools or `--sandbox`.
+- **Expecting a shell**: bare commands like `ls` are sent to the model, not run. Use the agent's file tools instead.
 - **Looking for `/agent`**: agent mode is always on; there is no toggle.

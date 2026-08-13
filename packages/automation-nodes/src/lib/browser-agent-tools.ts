@@ -1,22 +1,14 @@
 /**
- * Browser actions exposed as agent tools, in two flavours:
+ * Browser actions exposed as agent tools (`browser_*`), driving a
+ * host-process Chrome via CDP. State (cookies, navigation, indexed elements)
+ * persists for the lifetime of the host process.
  *
- *   - `browser_*`         — drives a host-process Chrome via CDP. State
- *                           (cookies, navigation, indexed elements) persists
- *                           for the lifetime of the host process.
- *   - `sandbox_browser_*` — proxies the same actions to the per-workflow
- *                           sandbox container's tool server, sharing the
- *                           session that SandboxShell/SandboxFile use.
- *
- * Both flavours are registered in `BUILTIN_AGENT_TOOL_CLASSES`, so a regular
- * `AgentNode` can pick them by name in its `tools` prop. The sandbox version
- * lazily acquires a `ToolClient` from the shared `SessionStore`; the local
- * version lazily launches Chrome on first use.
+ * Registered in `BUILTIN_AGENT_TOOL_CLASSES`, so a regular `AgentNode` can
+ * pick them by name in its `tools` prop. Chrome launches lazily on first use.
  */
 
 import { Tool, persistOutput } from "@nodetool-ai/agents";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ToolClient } from "@nodetool-ai/sandbox";
 import { Buffer } from "node:buffer";
 import {
   browserView as localView,
@@ -36,7 +28,7 @@ import {
 import type {
   BrowserCaptureMediaRaw,
   BrowserUploadAssetRaw
-} from "@nodetool-ai/sandbox/schemas";
+} from "./browser-schemas.js";
 
 const ELEMENT_REF_PROPS = {
   index: {
@@ -49,19 +41,14 @@ const ELEMENT_REF_PROPS = {
 } as const;
 
 export interface BrowserActionSpec {
-  /** Action key shared by local + sandbox tool names. */
+  /** Action key used to build the tool name (`browser_<key>`). */
   key: string;
-  /** Tool description (same for both flavours; sandbox prefix added below). */
+  /** Tool description. */
   description: string;
   /** JSON schema for the tool's input. */
   inputSchema: Record<string, unknown>;
   /** Local-process invocation. */
   local: (
-    params: Record<string, unknown>
-  ) => Promise<unknown>;
-  /** Sandbox invocation, taking a per-call ToolClient. */
-  sandbox: (
-    client: ToolClient,
     params: Record<string, unknown>
   ) => Promise<unknown>;
 }
@@ -81,7 +68,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       }
     },
     local: (p) => localView(p as Parameters<typeof localView>[0]),
-    sandbox: (c, p) => c.browserView(p as Parameters<ToolClient["browserView"]>[0])
   },
   {
     key: "navigate",
@@ -98,8 +84,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       required: ["url"]
     },
     local: (p) => localNavigate(p as Parameters<typeof localNavigate>[0]),
-    sandbox: (c, p) =>
-      c.browserNavigate(p as Parameters<ToolClient["browserNavigate"]>[0])
   },
   {
     key: "restart",
@@ -110,8 +94,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       properties: { url: { type: "string" } }
     },
     local: (p) => localRestart(p as Parameters<typeof localRestart>[0]),
-    sandbox: (c, p) =>
-      c.browserRestart(p as Parameters<ToolClient["browserRestart"]>[0])
   },
   {
     key: "click",
@@ -122,8 +104,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       properties: { ...ELEMENT_REF_PROPS }
     },
     local: (p) => localClick(p as Parameters<typeof localClick>[0]),
-    sandbox: (c, p) =>
-      c.browserClick(p as Parameters<ToolClient["browserClick"]>[0])
   },
   {
     key: "input_text",
@@ -139,8 +119,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       required: ["text"]
     },
     local: (p) => localInput(p as Parameters<typeof localInput>[0]),
-    sandbox: (c, p) =>
-      c.browserInput(p as Parameters<ToolClient["browserInput"]>[0])
   },
   {
     key: "move_mouse",
@@ -154,8 +132,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       required: ["coordinate_x", "coordinate_y"]
     },
     local: (p) => localMoveMouse(p as Parameters<typeof localMoveMouse>[0]),
-    sandbox: (c, p) =>
-      c.browserMoveMouse(p as Parameters<ToolClient["browserMoveMouse"]>[0])
   },
   {
     key: "press_key",
@@ -167,8 +143,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       required: ["key"]
     },
     local: (p) => localPressKey(p as Parameters<typeof localPressKey>[0]),
-    sandbox: (c, p) =>
-      c.browserPressKey(p as Parameters<ToolClient["browserPressKey"]>[0])
   },
   {
     key: "select_option",
@@ -184,10 +158,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
     },
     local: (p) =>
       localSelectOption(p as Parameters<typeof localSelectOption>[0]),
-    sandbox: (c, p) =>
-      c.browserSelectOption(
-        p as Parameters<ToolClient["browserSelectOption"]>[0]
-      )
   },
   {
     key: "scroll",
@@ -202,8 +172,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       }
     },
     local: (p) => localScroll(p as Parameters<typeof localScroll>[0]),
-    sandbox: (c, p) =>
-      c.browserScroll(p as Parameters<ToolClient["browserScroll"]>[0])
   },
   {
     key: "console_exec",
@@ -215,10 +183,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       required: ["javascript"]
     },
     local: (p) => localConsoleExec(p as Parameters<typeof localConsoleExec>[0]),
-    sandbox: (c, p) =>
-      c.browserConsoleExec(
-        p as Parameters<ToolClient["browserConsoleExec"]>[0]
-      )
   },
   {
     key: "console_view",
@@ -228,10 +192,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       properties: { max_lines: { type: "integer" } }
     },
     local: (p) => localConsoleView(p as Parameters<typeof localConsoleView>[0]),
-    sandbox: (c, p) =>
-      c.browserConsoleView(
-        p as Parameters<ToolClient["browserConsoleView"]>[0]
-      )
   },
   {
     key: "capture_media",
@@ -263,10 +223,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       }
     },
     local: (p) => localCaptureMedia(p as Parameters<typeof localCaptureMedia>[0]),
-    sandbox: (c, p) =>
-      c.browserCaptureMedia(
-        p as Parameters<ToolClient["browserCaptureMedia"]>[0]
-      )
   },
   {
     key: "upload_asset",
@@ -295,7 +251,6 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
     // params are pre-enriched to BrowserUploadAssetRaw by the tool wrappers,
     // which resolve the asset bytes from the ProcessingContext.
     local: (p) => localUploadAsset(p as BrowserUploadAssetRaw),
-    sandbox: (c, p) => c.browserUploadAsset(p as BrowserUploadAssetRaw)
   }
 ];
 
@@ -486,64 +441,7 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
   };
 }
 
-function makeSandboxToolClass(
-  spec: BrowserActionSpec,
-  acquireClient: (ctx: ProcessingContext) => Promise<ToolClient>
-): ToolCtor {
-  return class extends Tool {
-    readonly name = `sandbox_browser_${spec.key}`;
-    readonly description = `${spec.description} Runs inside the per-workflow sandbox container.`;
-    protected readonly jsonSchema = spec.inputSchema;
-
-    async process(
-      ctx: ProcessingContext,
-      params: Record<string, unknown>
-    ): Promise<unknown> {
-      try {
-        const client = await acquireClient(ctx);
-        const callParams =
-          spec.key === "upload_asset"
-            ? ((await resolveUploadParams(ctx, params ?? {})) as unknown as Record<
-                string,
-                unknown
-              >)
-            : (params ?? {});
-        const out = await spec.sandbox(client, callParams);
-        if (spec.key === "view") {
-          return await persistViewScreenshot(
-            ctx,
-            out,
-            "sandbox-browser-screenshot"
-          );
-        }
-        if (spec.key === "capture_media") {
-          return await persistCaptureMedia(
-            ctx,
-            out,
-            "sandbox-browser-capture"
-          );
-        }
-        return out;
-      } catch (e) {
-        return { error: e instanceof Error ? e.message : String(e) };
-      }
-    }
-  };
-}
-
-/**
- * Build the 26 browser tool classes (13 local + 13 sandbox).
- * The sandbox classes need a function that knows how to acquire a ToolClient
- * for a given ProcessingContext; that lives in nodes/sandbox.ts to avoid a
- * cross-package dependency loop.
- */
-export function buildBrowserAgentToolClasses(
-  acquireSandboxClient: (ctx: ProcessingContext) => Promise<ToolClient>
-): ToolCtor[] {
-  const out: ToolCtor[] = [];
-  for (const spec of BROWSER_ACTION_SPECS) {
-    out.push(makeLocalToolClass(spec));
-    out.push(makeSandboxToolClass(spec, acquireSandboxClient));
-  }
-  return out;
+/** Build the 13 `browser_*` tool classes. */
+export function buildBrowserAgentToolClasses(): ToolCtor[] {
+  return BROWSER_ACTION_SPECS.map((spec) => makeLocalToolClass(spec));
 }

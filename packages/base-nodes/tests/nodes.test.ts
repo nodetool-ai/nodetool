@@ -42,9 +42,7 @@ import {
   StructuredOutputGeneratorNode,
   ListGeneratorNode,
   TextTo3DNode,
-  GetModel3DMetadataNode,
-  SandboxShellNode,
-  SandboxFileNode
+  GetModel3DMetadataNode
 } from "../src/index.js";
 
 describe("base node registration", () => {
@@ -74,8 +72,6 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.triggers.FileWatchTrigger")).toBe(true);
     expect(registry.has("nodetool.image.TextToImage")).toBe(true);
     expect(registry.has("nodetool.video.Resize")).toBe(true);
-    expect(registry.has(SandboxShellNode.nodeType)).toBe(true);
-    expect(registry.has(SandboxFileNode.nodeType)).toBe(true);
   });
 });
 
