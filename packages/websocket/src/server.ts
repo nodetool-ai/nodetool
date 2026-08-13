@@ -122,6 +122,7 @@ import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
+import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
@@ -960,6 +961,7 @@ if (_resolvedExamplesDir) {
 // ---------------------------------------------------------------------------
 
 const sdkLiveRunnerRegistry = new SdkLiveRunnerRegistry();
+const frontendRendererRegistry = new FrontendRendererRegistry();
 const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
   getActiveWorker: () => workerManager.getActiveWorker()
 });
@@ -1181,6 +1183,7 @@ await app.register(websocketPlugin, {
   pythonBridge,
   apiOptions,
   sdkLiveRunnerRegistry,
+  frontendRendererRegistry,
   workerManager,
   getPythonBridgeReady,
   ensurePythonBridge: async () => {
@@ -1335,6 +1338,7 @@ if (!isProduction) {
       metadataRoots,
       registry,
       examplesDir: apiOptions.examplesDir,
+      frontendRendererRegistry,
       agentToolsScope: { userId: "1", source: "local-dev-http" }
     });
     if (!response) {

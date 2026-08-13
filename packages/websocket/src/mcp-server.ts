@@ -1,12 +1,9 @@
 /**
  * MCP (Model Context Protocol) server for NodeTool.
  *
- * The mount exposes exactly two tools: `execute_code` — the CodeAct action the
- * in-app chat agent runs on — and `view_image`, which is direct because pixels
- * cannot ride a sandbox action's JSON observation envelope. Everything else
- * NodeTool can do is reached from inside an action, through the belt and the
- * `nodetool.*` object model, and is catalogued on `nodetool://capabilities`
- * and `nodetool://sandbox`.
+ * The mount exposes the CodeAct action, direct image/discovery tools, and
+ * renderer steering tools on the CodeAct belt. A connected editor is reached
+ * through the shared `/ws` renderer registry.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -15,12 +12,14 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { registerAgentMcpTools } from "./mcp-agent-tools.js";
 
 export interface McpServerOptions {
   metadataRoots?: string[];
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
+  frontendRendererRegistry?: FrontendRendererService;
   /** Static example workflows directory — same as HttpApiOptions.examplesDir. */
   examplesDir?: string;
   /**

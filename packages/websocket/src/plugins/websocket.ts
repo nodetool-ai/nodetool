@@ -17,6 +17,7 @@ import { setExtensionChannelProvider } from "@nodetool-ai/automation-nodes/lib/e
 import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import { runTransformersJsModelDownload } from "../model-download-runtime.js";
+import type { FrontendRendererRegistry } from "../frontend-renderer-registry.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -33,6 +34,8 @@ export interface WebSocketPluginOptions {
   /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
   apiOptions: HttpApiOptions;
   sdkLiveRunnerRegistry?: SdkLiveRunnerRegistry;
+  /** Registry of browser renderers attached to the normal /ws connection. */
+  frontendRendererRegistry?: FrontendRendererRegistry;
   /**
    * Worker provisioning orchestrator. Present when the server is wired with a
    * worker subsystem; enables `scope: "worker"` model downloads on /ws/download.
@@ -97,6 +100,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     ensurePythonBridge,
     apiOptions,
     sdkLiveRunnerRegistry,
+    frontendRendererRegistry,
     workerManager
   } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
@@ -178,7 +182,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       nodeRegistry: registry,
       pythonBridge,
       getPythonBridgeReady,
-      apiOptions
+      apiOptions,
+      frontendRendererRegistry
     });
     const runnerTargetId = sdkLiveRunnerRegistry?.register(
       req.userId ?? "1",

@@ -26,7 +26,8 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DIRECT_TOOL_NAMES,
   ProcessingContext as ProcessingContextImpl,
-  SDK_NATIVE_TOOL_REPLACEMENTS
+  SDK_NATIVE_TOOL_REPLACEMENTS,
+  zodToJsonSchema
 } from "@nodetool-ai/runtime";
 import {
   Tool,
@@ -49,6 +50,7 @@ import {
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
 import {
@@ -57,6 +59,7 @@ import {
   ImageDocument,
   TimelineSequence
 } from "@nodetool-ai/models";
+import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import {
   createLogger,
   getNodetoolDataDir,
@@ -66,6 +69,7 @@ import { join } from "node:path";
 import { getAssetAdapter } from "./lib/storage.js";
 import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
+import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 
@@ -368,6 +372,174 @@ export const MCP_CAPABILITIES_RESOURCE_URI = "nodetool://capabilities";
 /** URI of the guest-JS surface this mount publishes. Re-exported for callers. */
 export { MCP_SANDBOX_RESOURCE_URI };
 
+const RENDERER_ID_PROPERTY = {
+  type: "string" as const,
+  description:
+    "Target a specific connected NodeTool editor. Omit to use the " +
+    "most-recently-active one. List ids with list_renderers()."
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+type RendererResult = { handled: boolean; result?: unknown };
+
+async function executeFrontendTool(
+  options: McpServerOptions,
+  userId: string,
+  name: string,
+  args: Record<string, unknown>
+): Promise<RendererResult> {
+  const registry: FrontendRendererService | undefined =
+    options.frontendRendererRegistry;
+  if (!registry) return { handled: false };
+  const { renderer_id, ...toolArgs } = args;
+  return registry.execute({
+    userId,
+    rendererId: typeof renderer_id === "string" ? renderer_id : undefined,
+    toolName: name,
+    args: toolArgs
+  });
+}
+
+/** A `ui_*` request that must be handled by a connected editor. */
+class FrontendUiTool extends Tool {
+  readonly name: string;
+  readonly description: string;
+  protected readonly jsonSchema: JsonSchema;
+
+  constructor(
+    name: string,
+    description: string,
+    jsonSchema: JsonSchema,
+    private readonly options: McpServerOptions,
+    private readonly userId: string
+  ) {
+    super();
+    this.name = name;
+    this.description = description;
+    this.jsonSchema = jsonSchema;
+  }
+
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const outcome = await executeFrontendTool(
+      this.options,
+      this.userId,
+      this.name,
+      params
+    );
+    if (!outcome.handled) {
+      const rendererId = params["renderer_id"];
+      throw new Error(
+        typeof rendererId === "string"
+          ? `No connected NodeTool renderer with id "${rendererId}".`
+          : `${this.name} needs a connected NodeTool editor; none is open.`
+      );
+    }
+    return outcome.result;
+  }
+}
+
+/** Adds the optional renderer selector to a workflow document tool schema. */
+class RendererAwareDocumentTool extends Tool {
+  readonly name: string;
+  readonly description: string;
+  protected readonly jsonSchema: JsonSchema;
+
+  constructor(private readonly delegate: Tool) {
+    super();
+    this.name = delegate.name;
+    this.description = delegate.description;
+    const schema = delegate.inputSchema;
+    this.jsonSchema = {
+      ...schema,
+      type: "object",
+      properties: {
+        ...recordValue(schema["properties"]),
+        renderer_id: RENDERER_ID_PROPERTY
+      }
+    };
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const { renderer_id: _rendererId, ...serverArgs } = params;
+    return this.delegate.process(context, serverArgs);
+  }
+}
+
+/** `list_renderers` as a belt tool: which editors a `ui_*` call could target. */
+class ListRenderersTool extends Tool {
+  readonly name = "list_renderers";
+  readonly description =
+    "List connected NodeTool editor renderers that can run ui_* tools. Pass a " +
+    "returned renderer_id to a ui_* tool to target that editor; omit it to use " +
+    "the active one.";
+  protected readonly jsonSchema: JsonSchema = {
+    type: "object",
+    properties: {}
+  };
+
+  constructor(
+    private readonly options: McpServerOptions,
+    private readonly userId: string
+  ) {
+    super();
+  }
+
+  async process(): Promise<unknown> {
+    const renderers = this.options.frontendRendererRegistry
+      ? this.options.frontendRendererRegistry
+          .list(this.userId)
+          .map((renderer, index) => ({
+            renderer_id: renderer.renderer_id,
+            active: index === 0
+          }))
+      : [];
+    return { renderers };
+  }
+}
+
+/**
+ * The `ui_*` schemas that steer a connected editor rather than edit a
+ * persisted workflow document, plus `list_renderers`.
+ */
+function editorSteeringTools(
+  options: McpServerOptions,
+  userId: string
+): Tool[] {
+  const documentToolNames = new Set<string>(WORKFLOW_DOCUMENT_TOOL_NAMES);
+  const tools: Tool[] = [new ListRenderersTool(options, userId)];
+  for (const [name, schema] of Object.entries(uiToolSchemas)) {
+    if (documentToolNames.has(name)) continue;
+    const params = zodToJsonSchema(z.object(schema.parameters));
+    const properties = {
+      ...recordValue(params["properties"]),
+      renderer_id: RENDERER_ID_PROPERTY
+    };
+    tools.push(
+      new FrontendUiTool(
+        name,
+        schema.description,
+        { ...params, type: "object", properties },
+        options,
+        userId
+      )
+    );
+  }
+  return tools;
+}
+
 /** First sentence of a tool description, for the capabilities catalog. */
 function oneLine(description: string): string {
   const flat = description.replace(/\s+/g, " ").trim();
@@ -470,6 +642,10 @@ export function registerAgentMcpTools(
     loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
   });
 
+  const workflowDocumentToolNames = new Set<string>(
+    WORKFLOW_DOCUMENT_TOOL_NAMES
+  );
+
   /**
    * Run one bridged tool. The single execution path for both surfaces — a
    * direct MCP call and a `tools.<name>()` call inside an action — so a
@@ -484,7 +660,35 @@ export function registerAgentMcpTools(
     if (tool.name === "find_model" || tool.name === "list_models") {
       await ensureProviders();
     }
-    return tool.process(context, args);
+    const isWorkflowDocumentTool = workflowDocumentToolNames.has(tool.name);
+    const isFrontendTool = tool.name.startsWith("ui_");
+    if (isWorkflowDocumentTool || isFrontendTool) {
+      const live = await executeFrontendTool(
+        options,
+        scope.userId,
+        tool.name,
+        args
+      );
+      if (live.handled) return live.result;
+
+      const rendererId = args["renderer_id"];
+      if (typeof rendererId === "string") {
+        throw new Error(
+          `No connected NodeTool renderer with id "${rendererId}".`
+        );
+      }
+
+      // Workflow document tools have a server-side implementation and use the
+      // live editor when one is available. Other editor tools only exist in a
+      // connected renderer, so report the missing target clearly.
+      if (isFrontendTool && !isWorkflowDocumentTool) {
+        throw new Error(
+          `${tool.name} needs a connected NodeTool editor; none is open.`
+        );
+      }
+    }
+    const { renderer_id: _rendererId, ...serverArgs } = args;
+    return tool.process(context, serverArgs);
   };
 
   const register = (tool: Tool): void => {
@@ -508,7 +712,13 @@ export function registerAgentMcpTools(
   // overlap and a session must not offer one tool under two instances.
   const belt: Tool[] = [];
   const beltNames = new Set<string>();
-  for (const tool of collectBridgedTools(options, sharedProviders)) {
+  for (const originalTool of [
+    ...collectBridgedTools(options, sharedProviders),
+    ...editorSteeringTools(options, scope.userId)
+  ]) {
+    const tool = workflowDocumentToolNames.has(originalTool.name)
+      ? new RendererAwareDocumentTool(originalTool)
+      : originalTool;
     if (beltNames.has(tool.name)) continue;
     beltNames.add(tool.name);
     belt.push(tool);

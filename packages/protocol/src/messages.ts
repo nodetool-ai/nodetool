@@ -859,6 +859,43 @@ export interface ClientToolManifestMessage {
   tools: Array<Record<string, unknown>>;
 }
 
+/** Server-assigned identity for the browser/editor on this /ws connection. */
+export interface RendererRegisteredMessage {
+  type: "renderer_registered";
+  renderer_id: string;
+}
+
+/** A frontend-tool request that is independent of a chat thread. */
+export interface RendererToolCallMessage {
+  type: "renderer_tool_call";
+  renderer_id: string;
+  tool_call_id: string;
+  name: string;
+  args: unknown;
+}
+
+interface RendererToolResultMessageBase {
+  type: "renderer_tool_result";
+  renderer_id: string;
+  tool_call_id: string;
+  elapsed_ms?: number;
+}
+
+/** Result for a connection-level frontend-tool request. */
+export type RendererToolResultMessage = RendererToolResultMessageBase &
+  (
+    | {
+        ok: true;
+        result?: unknown;
+        error?: never;
+      }
+    | {
+        ok: false;
+        result?: never;
+        error: string;
+      }
+  );
+
 export interface ToolResultMessage {
   type: "tool_result";
   tool_call_id?: string;
@@ -880,11 +917,14 @@ export interface ResourceChangeMessage {
 export type WebSocketControlMessage =
   | PingMessage
   | ClientToolManifestMessage
+  | RendererToolResultMessage
   | ToolResultMessage;
 
 export type WebSocketServerMessage =
   | ProcessingMessage
   | PongMessage
+  | RendererRegisteredMessage
+  | RendererToolCallMessage
   | SystemStatsMessage
   | ResourceChangeMessage
   | RpcResponseMessage

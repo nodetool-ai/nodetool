@@ -36,6 +36,12 @@ export {
   type McpServerOptions
 } from "./mcp-server.js";
 export {
+  FrontendRendererRegistry,
+  type FrontendRendererInfo,
+  type FrontendRendererRunner,
+  type FrontendRendererService
+} from "./frontend-renderer-registry.js";
+export {
   extensionBridge,
   ExtensionBridge,
   type ExtensionChannel,

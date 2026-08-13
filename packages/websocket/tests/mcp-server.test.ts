@@ -31,6 +31,43 @@ import {
 
 const scope = { userId: "1", source: "stdio-local" as const };
 
+function fakeRendererRegistry() {
+  const calls: Array<Record<string, unknown>> = [];
+  return {
+    calls,
+    list: (userId: string) =>
+      userId === "1"
+        ? [
+            {
+              renderer_id: "renderer-1",
+              user_id: "1",
+              ready: true,
+              connected: true,
+              active: true,
+              last_active_at: 1,
+              tools: {}
+            }
+          ]
+        : [],
+    execute: async (request: {
+      userId: string;
+      rendererId?: string;
+      toolName: string;
+      args: Record<string, unknown>;
+    }) => {
+      const { userId, rendererId, toolName, args } = request;
+      calls.push({ userId, rendererId, toolName, args });
+      if (userId !== "1" || rendererId === "missing") {
+        return { handled: false };
+      }
+      return {
+        handled: true,
+        result: { renderer_id: rendererId ?? "renderer-1", ok: true }
+      };
+    }
+  };
+}
+
 // The bridged file tools are rooted under the NodeTool data dir, and
 // constructing the server creates that directory. Point it at a temp dir so the
 // suite never touches the developer's real workspace.
@@ -140,6 +177,45 @@ describe("MCP server surface", () => {
         "http_request",
         "download_file"
       ])
+    );
+  });
+
+  it("exposes renderer tools on the CodeAct belt and scopes calls", async () => {
+    const renderer = fakeRendererRegistry();
+    const server = createMcpServer({
+      agentToolsScope: scope,
+      frontendRendererRegistry: renderer
+    });
+    expect(toolNames(server)).not.toContain("list_renderers");
+    const observation = await act(
+      server,
+      "return [await tools.list_renderers(), await tools.ui_switch_tab({ tab_index: 2 })];"
+    );
+    expect(observation.ok).toBe(true);
+    expect(observation.result).toEqual([
+      { renderers: [{ renderer_id: "renderer-1", active: true }] },
+      { renderer_id: "renderer-1", ok: true }
+    ]);
+    expect(renderer.calls).toHaveLength(1);
+    expect(renderer.calls[0]).toMatchObject({
+      userId: "1",
+      toolName: "ui_switch_tab",
+      args: { tab_index: 2 }
+    });
+  });
+
+  it("reports an explicitly unavailable renderer", async () => {
+    const server = createMcpServer({
+      agentToolsScope: scope,
+      frontendRendererRegistry: fakeRendererRegistry()
+    });
+    const observation = await act(
+      server,
+      'return await tools.ui_switch_tab({ tab_index: 2, renderer_id: "missing" });'
+    );
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain(
+      'No connected NodeTool renderer with id "missing"'
     );
   });
 

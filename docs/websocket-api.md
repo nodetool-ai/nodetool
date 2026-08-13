@@ -38,6 +38,50 @@ same format. Every message is a map/object with at least a `type` field.
    reference client retries up to 10 times starting at 1 s).
 4. **Close** — call `socket.close()` or let the server close the connection.
 
+## Live Editor Renderer Bridge
+
+The web editor can execute `ui_*` tools for an MCP client through this same
+`/ws` connection. It does not open a second agent socket and it does not create
+a chat thread.
+
+The bridge uses these connection-level messages:
+
+| Direction | Type | Purpose |
+|---|---|---|
+| Server → editor | `renderer_registered` | Assign an ID to this editor connection. |
+| Editor → server | `client_tools_manifest` | Advertise the frontend tools available in this editor. |
+| Server → editor | `renderer_tool_call` | Ask the editor to execute one advertised tool. |
+| Editor → server | `renderer_tool_result` | Return the result or a structured error. |
+
+The server keeps a user-scoped registry of ready editors. An MCP `ui_*` call
+can include `renderer_id` to select one editor. If it omits the ID, the server
+uses that user's most recently active editor. The `list_renderers` CodeAct belt
+tool returns the available IDs. A disconnected editor is removed immediately.
+
+The normal MessagePack or JSON encoding rules apply. These frames do not use
+the `{ command, data }` envelope.
+
+```json
+{
+  "type": "renderer_tool_call",
+  "renderer_id": "<renderer-id>",
+  "tool_call_id": "<call-id>",
+  "name": "ui_get_graph",
+  "args": {}
+}
+```
+
+```json
+{
+  "type": "renderer_tool_result",
+  "renderer_id": "<renderer-id>",
+  "tool_call_id": "<call-id>",
+  "ok": true,
+  "result": { "nodes": [], "edges": [] },
+  "elapsed_ms": 12
+}
+```
+
 ## Multi-Instance Deployments
 
 A run's replay buffer and its cancel/stream hooks live in the one server

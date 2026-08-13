@@ -188,6 +188,11 @@ import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
+import type {
+  FrontendRendererRegistry,
+  FrontendRendererToolCall,
+  FrontendRendererToolResult
+} from "./frontend-renderer-registry.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]{1,100})?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -1908,6 +1913,12 @@ class ToolBridge {
     waiter.resolve(payload);
   }
 
+  rejectResult(toolCallId: string, error: Error): void {
+    const waiter = this.waiters.get(toolCallId);
+    if (!waiter) return;
+    waiter.reject(error);
+  }
+
   cancelAll(): void {
     const error = new Error("All pending tool calls cancelled");
     for (const waiter of this.waiters.values()) {
@@ -1992,6 +2003,8 @@ export interface UnifiedWebSocketRunnerOptions {
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
   apiOptions?: HttpApiOptions;
+  /** Registry used to expose this /ws connection as a live browser renderer. */
+  frontendRendererRegistry?: FrontendRendererRegistry;
 }
 
 export interface SdkExecutionCapacitySnapshot {
@@ -2023,6 +2036,8 @@ export class UnifiedWebSocketRunner {
   private pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
+  private frontendRendererRegistry?: FrontendRendererRegistry;
+  private frontendRendererId: string | null = null;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
     new Map();
 
@@ -2065,7 +2080,10 @@ export class UnifiedWebSocketRunner {
    */
   private chatAbort: AbortController | null = null;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
+  private clientToolsManifestReady = false;
   private toolBridge = new ToolBridge();
+  /** Separate bridge for connection-level renderer calls; never resolves chat tool_result waiters. */
+  private rendererToolBridge = new ToolBridge();
   /** Round-trips permission approvals for gated tool calls. */
   private approvalBridge = new ToolBridge();
   /**
@@ -2298,7 +2316,81 @@ export class UnifiedWebSocketRunner {
     this.pythonBridge = options.pythonBridge;
     this.getPythonBridgeReady = options.getPythonBridgeReady;
     this.apiOptions = options.apiOptions;
+    this.frontendRendererRegistry = options.frontendRendererRegistry;
     this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
+  }
+
+  isRendererConnected(): boolean {
+    return (
+      this.websocket !== null &&
+      this.websocket.clientState !== "disconnected" &&
+      this.websocket.applicationState !== "disconnected"
+    );
+  }
+
+  isRendererReady(): boolean {
+    return this.clientToolsManifestReady;
+  }
+
+  getRendererToolManifest(): Record<string, Record<string, unknown>> {
+    return Object.fromEntries(
+      Object.entries(this.clientToolsManifest).map(([name, manifest]) => [
+        name,
+        { ...manifest }
+      ])
+    );
+  }
+
+  /** Send a connection-level frontend tool call and await its renderer result. */
+  async executeRendererTool(
+    rendererId: string,
+    call: FrontendRendererToolCall,
+    timeoutMs = 300_000
+  ): Promise<FrontendRendererToolResult> {
+    if (this.frontendRendererId !== rendererId || !this.isRendererConnected()) {
+      throw new Error(`Renderer "${rendererId}" is not connected`);
+    }
+    if (!this.isRendererReady()) {
+      throw new Error(`Renderer "${rendererId}" is not ready`);
+    }
+    if (!this.clientToolsManifest[call.name]) {
+      throw new Error(`Tool "${call.name}" is not available in renderer`);
+    }
+    const resultPromise = this.rendererToolBridge.createWaiter(
+      call.tool_call_id,
+      timeoutMs
+    );
+    try {
+      await this.sendToSocket({
+        type: "renderer_tool_call",
+        renderer_id: rendererId,
+        tool_call_id: call.tool_call_id,
+        name: call.name,
+        args: call.args
+      });
+      if (!this.isRendererConnected()) {
+        throw new Error(
+          `Renderer "${rendererId}" disconnected during tool call`
+        );
+      }
+    } catch (error) {
+      this.rendererToolBridge.rejectResult(
+        call.tool_call_id,
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+    const result = await resultPromise;
+    if (result.ok !== true) {
+      throw new Error(
+        typeof result.error === "string" ? result.error : "Renderer tool failed"
+      );
+    }
+    return {
+      renderer_id: rendererId,
+      tool_call_id: call.tool_call_id,
+      ok: true,
+      result: result.result ?? result.content
+    };
   }
 
   async connect(
@@ -2312,6 +2404,16 @@ export class UnifiedWebSocketRunner {
 
     await websocket.accept();
     this.websocket = websocket;
+    if (this.frontendRendererRegistry) {
+      this.frontendRendererId = this.frontendRendererRegistry.register(
+        this.userId,
+        this
+      );
+      await this.sendToSocket({
+        type: "renderer_registered",
+        renderer_id: this.frontendRendererId
+      });
+    }
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
@@ -2327,6 +2429,11 @@ export class UnifiedWebSocketRunner {
     this.stopHeartbeat();
     this.stopStatsBroadcast();
     this.unregisterObserver();
+    if (this.frontendRendererId) {
+      this.frontendRendererRegistry?.unregister(this.frontendRendererId);
+      this.frontendRendererId = null;
+    }
+    this.rendererToolBridge.cancelAll();
 
     // A resilient chat turn survives the socket: detach it (frames keep
     // buffering in the session for replay) instead of aborting. The session's
@@ -8844,12 +8951,12 @@ export class UnifiedWebSocketRunner {
   };
 
   async run(websocket: WebSocketConnection): Promise<void> {
-    await this.connect(
-      websocket,
-      this.userId ?? undefined,
-      this.authToken ?? undefined
-    );
     try {
+      await this.connect(
+        websocket,
+        this.userId ?? undefined,
+        this.authToken ?? undefined
+      );
       await this.receiveMessages();
     } finally {
       await this.disconnect();
@@ -8904,6 +9011,12 @@ export class UnifiedWebSocketRunner {
         }
       }
 
+      // Heartbeats show that the connection is alive, not that the user is
+      // working in this editor.
+      if (this.frontendRendererId && msgType !== "ping" && msgType !== "pong") {
+        this.frontendRendererRegistry?.touch(this.frontendRendererId);
+      }
+
       if (msgType === "client_tools_manifest") {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
@@ -8916,6 +9029,26 @@ export class UnifiedWebSocketRunner {
             const name = (tool as Record<string, unknown>).name as string;
             this.clientToolsManifest[name] = tool as Record<string, unknown>;
           }
+        }
+        this.clientToolsManifestReady = true;
+        if (this.frontendRendererId) {
+          this.frontendRendererRegistry?.markReady(this.frontendRendererId);
+        }
+        continue;
+      }
+
+      if (msgType === "renderer_tool_result") {
+        const rendererId =
+          typeof data.renderer_id === "string" ? data.renderer_id : null;
+        const toolCallId =
+          typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+        if (
+          rendererId &&
+          toolCallId &&
+          rendererId === this.frontendRendererId
+        ) {
+          this.frontendRendererRegistry?.touch(rendererId);
+          this.rendererToolBridge.resolveResult(toolCallId, data);
         }
         continue;
       }

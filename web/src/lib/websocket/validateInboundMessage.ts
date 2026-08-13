@@ -11,7 +11,10 @@
  * dispatched exactly as before. B4 is about surfacing protocol drift early
  * (in dev/test), not about rejecting traffic client-side.
  */
-import { processingMessageSchemas } from "@nodetool-ai/protocol";
+import {
+  outboundControlMessageSchemas,
+  processingMessageSchemas
+} from "@nodetool-ai/protocol";
 
 /**
  * On (dev and test) unless explicitly built for production — Jest sets
@@ -21,17 +24,18 @@ import { processingMessageSchemas } from "@nodetool-ai/protocol";
 export const VALIDATE_INBOUND_MESSAGES: boolean =
   process.env.NODE_ENV !== "production";
 
-const schemasByType = processingMessageSchemas as Record<
+const schemasByType = {
+  ...processingMessageSchemas,
+  ...outboundControlMessageSchemas
+} as Record<
   string,
   { safeParse: (value: unknown) => { success: boolean; error?: { issues: unknown } } }
 >;
 
 /**
  * Validate one inbound (already msgpack-decoded) message against the shared
- * protocol schemas, when its `type` matches a known `ProcessingMessage`
- * variant. Messages outside that union (`resource_change`, `system_stats`,
- * `rpc_response`, heartbeat frames, …) are not checked here — they have
- * their own shapes and are not part of `processingMessageSchemas`.
+ * protocol schemas, when its `type` matches a known processing or outbound
+ * control message. Other message types are not checked here.
  *
  * Never throws and never changes control flow: callers dispatch the message
  * exactly as they would have without calling this.

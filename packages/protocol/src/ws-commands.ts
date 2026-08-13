@@ -6,7 +6,7 @@
  * `run_job` / `cancel_job` / `stream_input` / … frame arrives in, plus the
  * handful of control frames that aren't wrapped in a `command` envelope
  * (`ping`, `client_tools_manifest`, `tool_result`, `tool_approval_response`,
- * `plan_approval_response`).
+ * `plan_approval_response`, `renderer_tool_result`).
  *
  * Schemas here are intentionally loose: every field is optional (the
  * per-command handler in `unified-websocket-runner.ts` still decides what's
@@ -338,6 +338,33 @@ export const toolResultMessageInSchema = z
   })
   .passthrough();
 
+/** Result of a server/MCP request to execute a frontend tool in this renderer. */
+export const rendererToolResultMessageInSchema = z
+  .discriminatedUnion("ok", [
+    z
+      .object({
+        type: z.literal("renderer_tool_result"),
+        renderer_id: z.string().min(1),
+        tool_call_id: z.string().min(1),
+        ok: z.literal(true),
+        result: z.unknown().optional(),
+        error: z.never().optional(),
+        elapsed_ms: z.number().nonnegative().optional()
+      })
+      .passthrough(),
+    z
+      .object({
+        type: z.literal("renderer_tool_result"),
+        renderer_id: z.string().min(1),
+        tool_call_id: z.string().min(1),
+        ok: z.literal(false),
+        result: z.never().optional(),
+        error: z.string().min(1),
+        elapsed_ms: z.number().nonnegative().optional()
+      })
+      .passthrough()
+  ]);
+
 export const toolApprovalResponseMessageInSchema = z
   .object({
     type: z.literal("tool_approval_response"),
@@ -358,6 +385,7 @@ export const controlMessageInSchemas = {
   pong: pongMessageInSchema,
   client_tools_manifest: clientToolManifestMessageInSchema,
   tool_result: toolResultMessageInSchema,
+  renderer_tool_result: rendererToolResultMessageInSchema,
   tool_approval_response: toolApprovalResponseMessageInSchema,
   plan_approval_response: planApprovalResponseMessageInSchema
 } as const;
@@ -419,6 +447,24 @@ export const resourceChangeMessageOutSchema = z
     event: z.enum(["created", "updated", "deleted"]),
     resource_type: z.string(),
     resource: z.record(z.string(), z.unknown())
+  })
+  .passthrough();
+
+export const rendererRegisteredMessageOutSchema = z
+  .object({
+    type: z.literal("renderer_registered"),
+    renderer_id: z.string().min(1)
+  })
+  .passthrough();
+
+/** Server request to execute a frontend tool without a chat thread. */
+export const rendererToolCallMessageOutSchema = z
+  .object({
+    type: z.literal("renderer_tool_call"),
+    renderer_id: z.string().min(1),
+    tool_call_id: z.string().min(1),
+    name: z.string().min(1),
+    args: z.unknown()
   })
   .passthrough();
 
@@ -493,6 +539,8 @@ export const outboundControlMessageSchemas = {
   rpc_response: rpcResponseMessageOutSchema,
   system_stats: systemStatsMessageOutSchema,
   resource_change: resourceChangeMessageOutSchema,
+  renderer_registered: rendererRegisteredMessageOutSchema,
+  renderer_tool_call: rendererToolCallMessageOutSchema,
   chat_resumed: chatResumedMessageOutSchema,
   chat_turn_active: chatTurnActiveMessageOutSchema,
   job_resumed: jobResumedMessageOutSchema
