@@ -216,9 +216,9 @@ Core business logic for workflows, nodes, agents, and persistence.
 **`node-sdk`** — The framework for defining custom nodes. Exports `BaseNode` (abstract class with static metadata, property/output declarations, and serialization), `NodeRegistry` (central type registry), and TypeScript decorators (`@node()`, `@output()`, `@property()`) for declarative node definition. Nodes implement `process(context, values)` returning an output record.
 
 **`agents`** — Multi-step LLM agent system with layered execution:
-- `Agent` — Entry point. Takes an objective (plus skills, tools, and optional `outputSchema`); orchestrates planning, execution, and final synthesis. With a pre-built `task` it skips planning and runs a single task. With `useGraphPlanner` it builds and runs a workflow DAG via `GraphPlanner` + `AgentWorkflowRunner`.
+- `Agent` — Entry point. Takes an objective (plus skills, tools, and optional `outputSchema`); orchestrates planning, execution, and final synthesis. With a pre-built `task` it skips planning and runs a single task. With `useGraphPlanner` it builds and runs a workflow DAG via `authorGraph` + `AgentWorkflowRunner`.
 - `TaskPlanner` — LLM-driven decomposition of an objective into a `TaskPlan` DAG of tasks and steps.
-- `GraphPlanner` + `GraphBuilder` — LLM discovers nodes with `search_nodes` / `get_node_info` / `find_model`, then submits the whole workflow as one sandboxed graph DSL program (`submit_graph`); validation errors round-trip until the graph is accepted. Produces `GraphData` ready for the kernel.
+- `authorGraph` — a CodeAct sub-agent writes the workflow with the generated, typed `@nodetool-ai/sandbox-dsl` pack, discovering nodes with `search_nodes` / `get_node_info` / `list_nodes` / `find_model` and checking its work with `validate_workflow`; it hands the graph back through `finish()`. Produces `GraphData` ready for the kernel.
 - `ParallelTaskExecutor` → `TaskExecutor` → `StepExecutor` — Runs `TaskPlan` tasks concurrently, each task's steps sequentially (or in parallel when independent).
 - `CompilerAgent` — Final synthesis pass after `ParallelTaskExecutor` finishes; reads accumulated `context.memory` and produces the deliverable (schema-conformant JSON when `outputSchema` is set, otherwise prose).
 - `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel). Planner-authored `nodetool.agents.Agent` nodes carry no model; the runner stamps the run's configured provider+model onto them and injects its live tool set into the `ProcessingContext`.
@@ -352,7 +352,7 @@ The agent system has a single entry point — `Agent` — which dispatches to on
 
 **Path 1: Pre-built `task`** — Caller supplies a `Task` directly; `Agent` skips planning and runs it through `TaskExecutor` → `StepExecutor`.
 
-**Path 2: `useGraphPlanner: true`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Every node — including the `nodetool.agents.Agent` reasoning steps — resolves through the normal `NodeRegistry`; the runner supplies those steps' model and tools. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
+**Path 2: `useGraphPlanner: true`** — `authorGraph` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Every node — including the `nodetool.agents.Agent` reasoning steps — resolves through the normal `NodeRegistry`; the runner supplies those steps' model and tools. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
 
 **Path 3: Default (plan)** — `TaskPlanner` decomposes the objective into a `TaskPlan` DAG; `ParallelTaskExecutor` runs independent tasks concurrently via `TaskExecutor` → `StepExecutor`; `CompilerAgent` synthesizes the final deliverable from accumulated `context.memory`.
 
@@ -368,11 +368,12 @@ Agent.execute(context)
   │      └── Repeats until finish_step tool called         │
   │                                                        │
   ├─── useGraphPlanner ───────────────────────────────────┤
-  │    GraphPlanner                                        │
+  │    authorGraph                                         │
   │      ├── LLM discovers nodes (search_nodes,           │
-  │      │   get_node_info, find_model), then one-shots   │
-  │      │   the whole graph as a DSL program (submit_graph)│
-  │      └── GraphBuilder validates DAG, emits GraphData  │
+  │      │   get_node_info, find_model), then writes the  │
+  │      │   graph with the typed sandbox-dsl pack        │
+  │      └── validate_workflow checks it; finish(graph)   │
+  │          emits GraphData                              │
   │    AgentWorkflowRunner                                 │
   │      └── WorkflowRunner (kernel) with custom resolver:│
   │            Agent nodes: model+tools from runner        │
@@ -708,7 +709,7 @@ REST endpoints follow standard conventions:
 4. Agent loads skills from filesystem (auto-matched to objective) and recalls long-term memory
 5. Path selection:
    pre-built task → TaskExecutor → StepExecutor: LLM ↔ tools until finish_step
-   useGraphPlanner → GraphPlanner: LLM one-shots the node graph as a DSL program
+   useGraphPlanner → authorGraph: LLM writes the node graph with the typed DSL pack
                     AgentWorkflowRunner → WorkflowRunner (kernel)
                       Agent nodes → AgentNode → provider loop
                       Other nodes    → NodeRegistry (deterministic)

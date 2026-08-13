@@ -1192,8 +1192,8 @@ timing, and call counts are unaffected.
 
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 
-Where the graph-planner eval measures one-shot DSL authoring, the tool-loop
-harness measures the incremental, multi-turn tool-calling flow the browser UI
+Where the graph-planner eval measures graph authoring, the tool-loop harness
+measures the incremental, multi-turn tool-calling flow the browser UI
 and the agent WebSocket bridge actually expose. A real provider is handed the
 frontend tool contract (names/descriptions/Zod schemas mirrored from
 `web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
@@ -1231,13 +1231,14 @@ loop completed *and* no critical check failed, and `successRate` — what
 provider error" is reported alongside as `completionRate`: it is a liveness
 signal, not a result, and a model that called zero tools scores 100% on it.
 
-Ten suites are registered:
+Eleven suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
 | `tool-loop` | `ui_*` graph editor | `tool-loop-bridge.ts` |
 | `workflow-escalation` | `ui_*` graph editor + `ask_user` | `tool-loop-bridge.ts` + `escalation.ts` |
 | `script-tools` | `ui_script_*` | `surfaces/script.ts` |
+| `jsscript-tools` | `ui_jsscript_*` | `surfaces/js-script.ts` |
 | `sketch-tools` | `ui_sketch_*` | `surfaces/sketch.ts` |
 | `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
@@ -1424,7 +1425,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app,creative-pipeline}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,thread-memory,creative-pipeline}-tool-loop.test.ts`).
 A live check against a local Ollama model runs when a daemon is reachable:
 `tests/tool-loop-eval.ollama.test.ts`.
 

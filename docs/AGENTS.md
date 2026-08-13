@@ -148,7 +148,7 @@ For the full API, tool schemas, propagation flow, examples, and troubleshooting,
 
 ## Tool System
 
-Every tool extends a single base class:
+A tool that is still a class extends a single base class:
 
 ```ts
 abstract class Tool {
@@ -165,23 +165,48 @@ abstract class Tool {
 }
 ```
 
-### Built-In Tools
+### Built-In Capabilities
 
-| Category | Tools | Source File |
-|---|---|---|
-| **Step control** | `FinishStepTool` | `finish-step-tool.ts` |
-| **Workflow control** | `ControlNodeTool` | `control-tool.ts` |
-| **File system** | `ReadFileTool`, `WriteFileTool`, `ListDirectoryTool` | `filesystem-tools.ts` |
-| **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
-| **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
-| **Search** | `WebSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
-| **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |
-| **PDF** | `ExtractPDFTextTool`, `ConvertPDFToMarkdownTool`, and more | `pdf-tools.ts` |
-| **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
-| **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
-| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool` | `mcp-tools.ts` |
-| **Node registry** | `LocalSearchNodesTool`, `LocalListNodesTool`, `LocalGetNodeInfoTool` | `local-search-nodes-tool.ts`, `local-list-nodes-tool.ts`, `local-get-node-info-tool.ts` |
-| **Models** | `ListModelsTool` | `list-models-tool.ts` |
+Most built-in work is no longer one class per tool. A **capability** is a spec
+(wire name, description, JSON schema, category, user message) in
+`src/capabilities/<module>.specs.ts` plus an implementation in `<module>.ts`.
+`DECLARED_CAPABILITY_MODULES` (`src/capabilities/registry.ts`) is the module
+list, and `capabilityModuleDrift` reports when the eager spec table and the
+lazy implementation table disagree.
+
+| Module | Capabilities |
+|---|---|
+| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
+| `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
+| `models` | `find_model`, `list_models`, `list_provider_models` |
+| `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |
+| `web` | `google_news`, `google_images`, `browser`, `take_screenshot`, `download_file`, `http_request` |
+| `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index` |
+| `documents` | `extract_pdf_text`, `extract_pdf_tables`, `convert_pdf_to_markdown`, `convert_markdown_to_pdf`, `convert_document` |
+| `email` | `search_email`, `archive_email`, `add_label_to_email` |
+| `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
+| `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
+| `apps` | `build_app`, `debug_app` |
+| `code` | `validate_code`, `run_code`, `test_code` |
+| `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
+| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence` |
+| `timelines` | `list_timelines`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `edit_timeline`, `validate_timeline` |
+| `sketches` | `list_sketches`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `edit_sketch`, `validate_sketch` |
+| `storyboards` | `list_storyboards`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard` |
+| `scripts` | `list_scripts`, `get_script`, `voice_script_lines`, `assemble_script_timeline`, `edit_script` |
+| `memory` | `thread_memory_save`, `thread_memory_list`, `thread_memory_update`, `thread_memory_delete` |
+| `shared` | `list_shared`, `read_shared`, `share_result` |
+| `agents` | `run_subtask`, `run_search` |
+| `google` | `google_drive_*`, `gmail_*`, `google_docs_*`, `google_sheets_*`, `google_calendar_*` |
+| `packs` | `list_sandbox_packages`, `get_sandbox_package_docs` |
+| `style` | `record_style_preference`, `get_style_profile` |
+| `ui` | the `ui_*` workflow-document tools, derived from `WORKFLOW_DOCUMENT_TOOL_NAMES` |
+
+What is still a `Tool` class is what is not request/response: `FinishStepTool`
+(`finish-step-tool.ts`), `ControlNodeTool` (`control-tool.ts`), and
+`RunSubtaskTool` (`run-subtask-tool.ts`). `capabilityFromTool`
+(`capabilities/adapters.ts`) wraps one as a capability, and
+`toolFromCapability` goes the other way for a belt that still wants classes.
 
 ### The MCP surface is CodeAct too
 
@@ -214,7 +239,7 @@ instead.
 
 ### Workflow Harness Tools
 
-`ValidateWorkflowTool` and `DebugWorkflowTool` (in `mcp-tools.ts`) are the
+`validate_workflow` and `debug_workflow` (in `capabilities/workflows.ts`) are the
 agent-facing front ends to the same harnesses the CLI exposes as
 `nodetool validate` and `nodetool debug` — use them to author and verify graphs
 from inside an agent:
