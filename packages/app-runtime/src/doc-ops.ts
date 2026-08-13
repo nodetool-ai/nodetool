@@ -351,12 +351,19 @@ export interface BindingTargets {
  * loaded, keyed by script id. A script operation whose document is absent
  * reports `ioAvailable: false`, exactly as an operation over an unloaded
  * workflow does.
+ *
+ * `workflows` carries every other graph the caller has loaded, keyed by
+ * workflow id. An app binds more than one workflow, so resolving only the host
+ * left every other operation permanently empty — and a caller that worked
+ * around it by calling this once per workflow and merging the results was
+ * answering the same question twice, differently.
  */
 export const bindingTargets = (
   meta: AppDocMeta,
   hostWorkflowId: string,
   workflow: BindableWorkflow,
-  scripts: ReadonlyMap<string, ScriptOperationDocument> = new Map()
+  scripts: ReadonlyMap<string, ScriptOperationDocument> = new Map(),
+  workflows: ReadonlyMap<string, BindableWorkflow> = new Map()
 ): BindingTargets => {
   const operations =
     meta.operations.length > 0
@@ -386,11 +393,10 @@ export const bindingTargets = (
           }
         : target.kind === "script"
           ? undefined
-          : workflow;
-      const ioAvailable =
-        target.kind === "script"
-          ? bindable !== undefined
-          : op.workflowId === hostWorkflowId;
+          : op.workflowId === hostWorkflowId
+            ? workflow
+            : workflows.get(op.workflowId);
+      const ioAvailable = bindable !== undefined;
       const io = bindable ?? { inputs: [], outputs: [], variables: [] };
       return {
         operationId: op.id,

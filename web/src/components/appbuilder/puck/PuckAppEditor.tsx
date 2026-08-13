@@ -149,6 +149,17 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
     return states;
   }, [meta.operations, meta.resources, operationWorkflows, workflow]);
 
+  // The same surfaces keyed by workflow id, which is what the agent's
+  // `ui_app_get_binding_targets` resolves an operation against.
+  const workflowStates = useMemo(() => {
+    const states = new Map<string, WorkflowState>();
+    for (const [id, graph] of Object.entries(operationWorkflows ?? {})) {
+      if (id === workflow.id) continue;
+      states.set(id, extractWorkflowState(graph, meta.resources));
+    }
+    return states;
+  }, [meta.resources, operationWorkflows, workflow.id]);
+
   // The design canvas resolves bindings against the document's real operations,
   // not an implicit one — otherwise a widget bound to `operation_1` renders as
   // unbound in the builder.
@@ -187,6 +198,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             meta={meta}
             onMetaChange={handleMetaChange}
             workflowState={workflowState}
+            workflowStates={workflowStates}
           />
           <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
           {onToggleData && (
@@ -237,6 +249,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       meta,
       handleMetaChange,
       workflowState,
+      workflowStates,
       dataOpen,
       onToggleData
     ]

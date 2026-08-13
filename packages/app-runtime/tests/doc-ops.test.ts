@@ -21,6 +21,13 @@ const workflow: BindableWorkflow = {
   variables: ["channel"]
 };
 
+/** A second graph, so an operation can bind something other than the host. */
+const other: BindableWorkflow = {
+  inputs: [{ nodeId: "in-9", name: "numbers", label: "Numbers" }],
+  outputs: [{ nodeId: "out-9", name: "total", label: "Total" }],
+  variables: []
+};
+
 describe("operations", () => {
   it("derives an id from the name and keeps the document immutable", () => {
     const { meta, operation } = addOperation(EMPTY_DOC_META, {
@@ -228,6 +235,57 @@ describe("bindingTargets", () => {
       inputs: [],
       outputs: []
     });
+  });
+
+  it("resolves an operation against a supplied non-host workflow", () => {
+    const { meta } = addOperation(EMPTY_DOC_META, {
+      id: "calc_op",
+      workflowId: "wf-9"
+    });
+    const targets = bindingTargets(
+      meta,
+      "wf-1",
+      workflow,
+      undefined,
+      new Map([["wf-9", other]])
+    );
+    expect(targets.operations[0]).toMatchObject({
+      operationId: "calc_op",
+      workflowId: "wf-9",
+      ioAvailable: true
+    });
+    expect(targets.operations[0].inputs).toEqual([
+      {
+        nodeId: "in-9",
+        name: "numbers",
+        label: "Numbers",
+        binding: "op:calc_op/in:in-9"
+      }
+    ]);
+    expect(targets.operations[0].outputs[0].binding).toBe(
+      "op:calc_op/out:out-9"
+    );
+  });
+
+  it("resolves the host and a second workflow in one call", () => {
+    const withHost = addOperation(EMPTY_DOC_META, {
+      id: "host_op",
+      workflowId: "wf-1"
+    }).meta;
+    const { meta } = addOperation(withHost, {
+      id: "calc_op",
+      workflowId: "wf-9"
+    });
+    const targets = bindingTargets(
+      meta,
+      "wf-1",
+      workflow,
+      undefined,
+      new Map([["wf-9", other]])
+    );
+    expect(targets.operations.map((op) => op.ioAvailable)).toEqual([true, true]);
+    expect(targets.operations[0].inputs[0].binding).toBe("op:host_op/in:in-1");
+    expect(targets.operations[1].inputs[0].binding).toBe("op:calc_op/in:in-9");
   });
 
   it("includes declared variables and the graph's SetVariable channels", () => {
