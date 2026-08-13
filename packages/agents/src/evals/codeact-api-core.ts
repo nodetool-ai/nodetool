@@ -912,6 +912,23 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       (params) => generate(params, "text_to_image", "image/png", "image")
     ),
     tool(
+      "read_media_bytes",
+      "Read the bytes behind a media reference (asset:// URI or asset id).",
+      { uri: s },
+      (params) => {
+        const asset = world.asset(params["uri"]);
+        const content_base64 = Buffer.from(asset.content, "utf8").toString(
+          "base64"
+        );
+        return {
+          uri: asset.uri,
+          size: content_base64.length,
+          mime_type: asset.content_type,
+          content_base64
+        };
+      }
+    ),
+    tool(
       "edit_image",
       "Edit an existing image asset.",
       { provider: s, model: s, prompt: s, input_file: s },

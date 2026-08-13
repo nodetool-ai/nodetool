@@ -62,7 +62,7 @@ Rules:
 - \`return\` a small summary. Keep large data in \`state\`.
 - A failed tool throws. Use \`try/catch\`.
 - This is a chat turn: there is no \`finish()\`. A plain assistant message ends the turn.
-- \`fetch\`, \`workspace\`, \`media\`, and \`getSecret\` are not available here. Files and assets go through \`nodetool.*\`.
+- \`fetch\`, \`workspace\`, \`media\`, and \`getSecret\` are not available here. Files and assets go through \`nodetool.*\`: \`nodetool.media.bytes(ref)\` reads the bytes behind a generated image, \`nodetool.assets.read/save\` the library, \`nodetool.web.fetch\` the network. \`image.*\` works on those bytes without a context.
 - Full guest surface: resource \`${MCP_SANDBOX_RESOURCE_URI}\`. Tool catalog: \`nodetool://capabilities\`.`;
 
 export interface McpSandboxBridge {
