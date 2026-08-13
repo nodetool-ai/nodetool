@@ -13,8 +13,10 @@
  * requested application has no app builder open.
  */
 import { z } from "zod";
+import type { InputMapping, OutputMapping } from "@nodetool-ai/app-runtime";
 
 import { FrontendToolRegistry } from "../frontendTools";
+import type { PuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
 import { docUrl } from "./resourceLinks";
 import { restFetch } from "../../rest-fetch";
@@ -63,7 +65,9 @@ FrontendToolRegistry.register({
     "Variables, and other state to Variables. Add those nodes first with the " +
     "workflow tools. To nest inside a layout widget, pass parent_id and the " +
     "slot it holds children in: Panel and Accordion use 'content', Columns " +
-    "'left' | 'right', Tabs 'tab1' | 'tab2' | 'tab3'.",
+    "'left' | 'right', Tabs 'tab1' | 'tab2' | 'tab3'. " +
+    "Returns the new widget's `id` — pass it as the next add's parent_id, or " +
+    "to ui_app_update_component, without re-reading the snapshot.",
   parameters: z.object({
     application_id: applicationIdParam,
     type: z
@@ -103,7 +107,25 @@ FrontendToolRegistry.register({
       slot: slot ?? null,
       index
     });
-    return { ok: true, component, url: docUrl("app", application_id) };
+    // The id is the whole point of the call: the next add nests under it and
+    // ui_app_update_component addresses it. An editor that reports none is a
+    // failure, not a success with a null payload — one agent read a batch of
+    // those as "8 tool calls succeeded" and moved on.
+    if (typeof component?.id !== "string" || component.id === "") {
+      throw new Error(
+        `Added a ${type} widget but the app builder reported no widget id. ` +
+          "Call ui_app_get_snapshot to see what is on the page."
+      );
+    }
+    return {
+      ok: true,
+      id: component.id,
+      type: component.type,
+      parent_id: component.parentId ?? null,
+      slot: component.slot ?? null,
+      component,
+      url: docUrl("app", application_id)
+    };
   }
 });
 
@@ -175,23 +197,131 @@ FrontendToolRegistry.register({
 
 /* ---------------------------------------------------------------- operations */
 
+const INPUT_MAPPING_FORMS =
+  '{"from":"widget"} | {"from":"variable","variableId":"tone"} | ' +
+  '{"from":"constant","value":"en"} | ' +
+  '{"from":"resource","resourceBindingId":"shots"}';
+
+const OUTPUT_MAPPING_FORMS =
+  '{"to":"display"} | {"to":"variable","variableId":"draft"}';
+
+/**
+ * The strict mapping shapes, plus a loose branch that only exists so this file
+ * — not a raw ZodError — reports a wrong `from`/`to`. One agent got
+ * "Invalid discriminator value" and no list of what was valid.
+ */
+const looseMapping = z.looseObject({});
+
 const inputMapping = z
-  .discriminatedUnion("from", [
-    z.object({ from: z.literal("widget") }),
-    z.object({ from: z.literal("variable"), variableId: z.string() }),
-    z.object({ from: z.literal("constant"), value: z.unknown() }),
-    z.object({ from: z.literal("resource"), resourceBindingId: z.string() })
+  .union([
+    z.discriminatedUnion("from", [
+      z.object({ from: z.literal("widget") }),
+      z.object({ from: z.literal("variable"), variableId: z.string() }),
+      z.object({ from: z.literal("constant"), value: z.unknown() }),
+      z.object({ from: z.literal("resource"), resourceBindingId: z.string() })
+    ]),
+    looseMapping
   ])
   .describe(
-    "Where this input takes its value: the bound widget, a variable, a constant, or the selected resource."
+    "Where this input takes its value: the bound widget, a variable, a " +
+      `constant, or the selected resource. One of: ${INPUT_MAPPING_FORMS}`
   );
 
 const outputMapping = z
-  .discriminatedUnion("to", [
-    z.object({ to: z.literal("display") }),
-    z.object({ to: z.literal("variable"), variableId: z.string() })
+  .union([
+    z.discriminatedUnion("to", [
+      z.object({ to: z.literal("display") }),
+      z.object({ to: z.literal("variable"), variableId: z.string() })
+    ]),
+    looseMapping
   ])
-  .describe("Where this output lands: a display widget, or a variable.");
+  .describe(
+    "Where this output lands: a display widget, or a variable. One of: " +
+      OUTPUT_MAPPING_FORMS
+  );
+
+function describeValue(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function parseInputMappings(
+  raw: Record<string, unknown> | undefined
+): Record<string, InputMapping> | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  const out: Record<string, InputMapping> = {};
+  for (const [nodeId, value] of Object.entries(raw)) {
+    const where = `inputs["${nodeId}"]`;
+    const mapping = value as { from?: unknown; variableId?: unknown; resourceBindingId?: unknown };
+    const from = mapping?.from;
+    if (from === "widget") {
+      out[nodeId] = { from: "widget" };
+    } else if (from === "variable") {
+      if (typeof mapping.variableId !== "string") {
+        throw new Error(
+          `${where}: {"from":"variable"} needs "variableId" (an id from ui_app_list_variables).`
+        );
+      }
+      out[nodeId] = { from: "variable", variableId: mapping.variableId };
+    } else if (from === "constant") {
+      out[nodeId] = {
+        from: "constant",
+        value: (mapping as { value?: unknown }).value
+      };
+    } else if (from === "resource") {
+      if (typeof mapping.resourceBindingId !== "string") {
+        throw new Error(
+          `${where}: {"from":"resource"} needs "resourceBindingId" (an id from ui_app_list_resources).`
+        );
+      }
+      out[nodeId] = {
+        from: "resource",
+        resourceBindingId: mapping.resourceBindingId
+      };
+    } else {
+      throw new Error(
+        `${where}: ${describeValue(value)} is not an input mapping — "from" ` +
+          `must be "widget", "variable", "constant" or "resource". ` +
+          `Forms: ${INPUT_MAPPING_FORMS}`
+      );
+    }
+  }
+  return out;
+}
+
+function parseOutputMappings(
+  raw: Record<string, unknown> | undefined
+): Record<string, OutputMapping> | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  const out: Record<string, OutputMapping> = {};
+  for (const [nodeId, value] of Object.entries(raw)) {
+    const where = `outputs["${nodeId}"]`;
+    const mapping = value as { to?: unknown; variableId?: unknown };
+    if (mapping?.to === "display") {
+      out[nodeId] = { to: "display" };
+    } else if (mapping?.to === "variable") {
+      if (typeof mapping.variableId !== "string") {
+        throw new Error(
+          `${where}: {"to":"variable"} needs "variableId" (an id from ui_app_list_variables).`
+        );
+      }
+      out[nodeId] = { to: "variable", variableId: mapping.variableId };
+    } else {
+      throw new Error(
+        `${where}: ${describeValue(value)} is not an output mapping — "to" ` +
+          `must be "display" or "variable". Forms: ${OUTPUT_MAPPING_FORMS}`
+      );
+    }
+  }
+  return out;
+}
 
 const operationPolicy = z
   .enum(["parallel", "replace", "queue"])
@@ -241,11 +371,17 @@ FrontendToolRegistry.register({
     inputs: z
       .record(z.string(), inputMapping)
       .optional()
-      .describe("Input node id → mapping."),
+      .describe(
+        "Input node id → mapping, e.g. " +
+          '{"node-1":{"from":"variable","variableId":"tone"}}.'
+      ),
     outputs: z
       .record(z.string(), outputMapping)
       .optional()
-      .describe("Output node id → mapping."),
+      .describe(
+        "Output node id → mapping, e.g. " +
+          '{"node-9":{"to":"variable","variableId":"draft"}}.'
+      ),
     timeout_ms: z.number().int().optional()
   }),
   async execute({
@@ -265,8 +401,8 @@ FrontendToolRegistry.register({
       workflowId: target_workflow_id,
       workflowVersion: workflow_version,
       policy,
-      inputs,
-      outputs,
+      inputs: parseInputMappings(inputs),
+      outputs: parseOutputMappings(outputs),
       timeoutMs: timeout_ms
     });
     return { ok: true, operation, url: docUrl("app", application_id) };
@@ -291,11 +427,17 @@ FrontendToolRegistry.register({
     inputs: z
       .record(z.string(), inputMapping)
       .optional()
-      .describe("Input node id → mapping. Merged into the existing mappings."),
+      .describe(
+        "Input node id → mapping, merged into the existing mappings. E.g. " +
+          '{"node-1":{"from":"variable","variableId":"tone"}}.'
+      ),
     outputs: z
       .record(z.string(), outputMapping)
       .optional()
-      .describe("Output node id → mapping. Merged into the existing mappings."),
+      .describe(
+        "Output node id → mapping, merged into the existing mappings. E.g. " +
+          '{"node-9":{"to":"variable","variableId":"draft"}}.'
+      ),
     timeout_ms: z.number().int().optional()
   }),
   async execute({
@@ -318,8 +460,10 @@ FrontendToolRegistry.register({
         ? { workflowVersion: workflow_version }
         : {}),
       ...(policy !== undefined ? { policy } : {}),
-      ...(inputs !== undefined ? { inputs } : {}),
-      ...(outputs !== undefined ? { outputs } : {}),
+      ...(inputs !== undefined ? { inputs: parseInputMappings(inputs) } : {}),
+      ...(outputs !== undefined
+        ? { outputs: parseOutputMappings(outputs) }
+        : {}),
       ...(timeout_ms !== undefined ? { timeoutMs: timeout_ms } : {})
     });
     if (!operation) {
@@ -564,6 +708,139 @@ FrontendToolRegistry.register({
 
 /* ---------------------------------------------------------------- verifying */
 
+const WIDGET_REF =
+  "Widget id, unique widget type, or unique widget label — from ui_app_get_snapshot.";
+
+const INTERACTION_FORMS =
+  '{"set":{"key":"<binding>","value":<any>,"operationId":"<opId>"}} | ' +
+  '{"click":"<widget>"} | {"change":"<widget>","value":<any>} | ' +
+  '{"run":"<opId>"} | {"cancel":"<opId>"} | ' +
+  '{"seedResource":{"id":"<resource binding id>","items":[{"id":"a"}]}}';
+
+/**
+ * The six step forms, plus a loose branch so a mis-shaped step is reported by
+ * this file with the whole list. An agent guessed the shape twice in a row
+ * from the server's "no widget matches undefined".
+ */
+const interactionStep = z
+  .union([
+    z.object({
+      set: z.object({
+        key: z
+          .string()
+          .describe("Binding key, e.g. 'op:main/in:node-1' or 'var:tone'."),
+        value: z.unknown(),
+        operationId: z
+          .string()
+          .optional()
+          .describe("Operation the key belongs to. Defaults to the first one.")
+      })
+    }),
+    z.object({ click: z.string().describe(WIDGET_REF) }),
+    z.object({ change: z.string().describe(WIDGET_REF), value: z.unknown() }),
+    z.object({ run: z.string().describe("Operation id to run.") }),
+    z.object({
+      cancel: z.string().describe("Operation id whose runs to cancel.")
+    }),
+    z.object({
+      seedResource: z.object({
+        id: z.string().describe("Resource binding id."),
+        items: z.array(z.record(z.string(), z.unknown()))
+      })
+    }),
+    z.record(z.string(), z.unknown())
+  ])
+  .describe(`One interaction step. One of: ${INTERACTION_FORMS}`);
+
+type InteractionStepInput = z.output<typeof interactionStep>;
+
+/** How a step's widget reference resolves in the harness: id, type, or label. */
+function widgetTargets(
+  handler: PuckAgentHandler
+): Array<{ id: string; type: string; label: string | null }> {
+  return handler.getSnapshot().components.map((component) => ({
+    id: component.id,
+    type: component.type,
+    label:
+      typeof component.props?.label === "string" ? component.props.label : null
+  }));
+}
+
+function assertWidgetRef(
+  ref: string,
+  stepNumber: number,
+  handler: PuckAgentHandler
+): void {
+  const targets = widgetTargets(handler);
+  const matches = targets.some(
+    (target) =>
+      target.id === ref || target.type === ref || target.label === ref
+  );
+  if (matches) {
+    return;
+  }
+  const listed = targets
+    .map(
+      (target) =>
+        `${target.id} (${target.type}${
+          target.label === null ? "" : `, label "${target.label}"`
+        })`
+    )
+    .join("; ");
+  throw new Error(
+    `Interaction step ${stepNumber}: no widget matches "${ref}" (tried id, ` +
+      `type, and label). ` +
+      (listed === ""
+        ? "This app has no widgets yet — add one with ui_app_add_component."
+        : `Widgets in this app: ${listed}.`)
+  );
+}
+
+/**
+ * Check every step before the round trip, so a bad script names its own fix
+ * instead of coming back from the server as `change undefined`.
+ */
+function checkInteractions(
+  steps: InteractionStepInput[],
+  handler: PuckAgentHandler
+): InteractionStepInput[] {
+  steps.forEach((step, index) => {
+    const stepNumber = index + 1;
+    const record = step as Record<string, unknown>;
+    if (typeof record.click === "string") {
+      assertWidgetRef(record.click, stepNumber, handler);
+      return;
+    }
+    if (typeof record.change === "string") {
+      assertWidgetRef(record.change, stepNumber, handler);
+      return;
+    }
+    if (typeof record.run === "string" || typeof record.cancel === "string") {
+      return;
+    }
+    const set = record.set as { key?: unknown } | undefined;
+    if (set !== undefined && typeof set?.key === "string") {
+      return;
+    }
+    const seed = record.seedResource as
+      | { id?: unknown; items?: unknown }
+      | undefined;
+    if (
+      seed !== undefined &&
+      typeof seed?.id === "string" &&
+      Array.isArray(seed.items)
+    ) {
+      return;
+    }
+    throw new Error(
+      `Interaction step ${stepNumber} is not a valid step (keys: ` +
+        `${Object.keys(record).join(", ") || "none"}). Valid steps: ` +
+        INTERACTION_FORMS
+    );
+  });
+  return steps;
+}
+
 FrontendToolRegistry.register({
   name: "ui_app_debug",
   description:
@@ -578,10 +855,9 @@ FrontendToolRegistry.register({
     "which costs money and takes time: do that once, before you tell the user " +
     "the app is done, and read the verdict. " +
     "Omit `interact` to click the app's natural run trigger, or script the " +
-    "flow with steps: {\"set\":{\"key\":\"<binding>\",\"value\":…," +
-    "\"operationId\":\"<opId>\"}}, {\"click\":\"<widget id | type | label>\"}, " +
-    '{"change":"<widget>","value":…}, {"run":"<opId>"}, {"cancel":"<opId>"}, ' +
-    '{"seedResource":{"id":"<resource binding id>","items":[…]}}.',
+    `flow with steps: ${INTERACTION_FORMS}. A widget is named by its id, its ` +
+    "type when only one widget has it, or its label when only one widget has " +
+    "it.",
   parameters: z.object({
     application_id: applicationIdParam,
     run: z
@@ -597,12 +873,11 @@ FrontendToolRegistry.register({
         "Initial values by binding key, applied before the interactions run."
       ),
     interact: z
-      .array(z.record(z.string(), z.unknown()))
+      .array(interactionStep)
       .optional()
       .describe(
-        "Interaction steps to replay, in order. Omit to use the app's natural " +
-          "run trigger. Each step is one of set / click / change / run / " +
-          "cancel / seedResource, as described above."
+        "Interaction steps to replay, in order. Omit to use the app's " +
+          `natural run trigger. Each step is one of: ${INTERACTION_FORMS}`
       ),
     timeout_ms: z
       .number()
@@ -611,11 +886,20 @@ FrontendToolRegistry.register({
       .describe("Per-run timeout in milliseconds.")
   }),
   async execute({ application_id, run, params, interact, timeout_ms }) {
-    const document = getPuckAgentHandler(application_id).document();
+    const handler = getPuckAgentHandler(application_id);
+    const steps =
+      interact === undefined ? undefined : checkInteractions(interact, handler);
+    const document = handler.document();
     const response = await restFetch("/api/applications/debug", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ document, params, interact, run, timeout_ms })
+      body: JSON.stringify({
+        document,
+        params,
+        interact: steps,
+        run,
+        timeout_ms
+      })
     });
     const report: unknown = await response.json().catch(() => null);
     if (!response.ok) {
