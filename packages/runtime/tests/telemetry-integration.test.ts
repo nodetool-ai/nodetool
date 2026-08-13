@@ -43,6 +43,48 @@ let traceFile: string;
 // Telemetry SDK init/teardown can exceed the default 10s hook timeout when the
 // full package test suite runs in parallel under load, so give the hooks room.
 const HOOK_TIMEOUT_MS = 30000;
+const TRACE_WRITE_TIMEOUT_MS = 3000;
+const TRACE_WRITE_POLL_MS = 25;
+
+async function readTraceRecords(): Promise<TraceRecord[]> {
+  const deadline = Date.now() + TRACE_WRITE_TIMEOUT_MS;
+  let latest: TraceRecord[] = [];
+
+  while (Date.now() < deadline) {
+    let contents: string;
+    try {
+      contents = await readFile(traceFile, "utf8");
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, TRACE_WRITE_POLL_MS)
+        );
+        continue;
+      }
+      throw error;
+    }
+    latest = contents
+      .trim()
+      .split("\n")
+      .filter((line) => line.length > 0)
+      .map((line) => JSON.parse(line) as TraceRecord);
+
+    if (
+      latest.some((record) => record.name === "agent.execute") &&
+      latest.some((record) => record.name.startsWith("llm.chat"))
+    ) {
+      return latest;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, TRACE_WRITE_POLL_MS));
+  }
+
+  return latest;
+}
 
 beforeAll(async () => {
   traceDir = await mkdtemp(join(tmpdir(), "nodetool-trace-int-"));
@@ -74,16 +116,10 @@ describe("telemetry integration", () => {
       }
     );
 
-    // Force flush — SimpleSpanProcessor writes synchronously, but the file
-    // stream is buffered.
-    await new Promise((r) => setTimeout(r, 100));
-
-    const contents = await readFile(traceFile, "utf8");
-    const lines = contents
-      .trim()
-      .split("\n")
-      .filter((l) => l.length > 0);
-    const records = lines.map((l) => JSON.parse(l) as TraceRecord);
+    // SimpleSpanProcessor submits spans immediately, but the JSONL stream can
+    // still be delayed when the full package suite is under load. Poll for the
+    // required records instead of relying on an arbitrary fixed delay.
+    const records = await readTraceRecords();
 
     // We expect at least: one agent.execute span and one llm.chat span.
     const agentSpan = records.find((r) => r.name === "agent.execute");
