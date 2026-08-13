@@ -9,7 +9,12 @@ import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 import type { SelectChangeEvent } from "../ui_primitives";
 
-const WorkflowProperty = (props: PropertyProps) => {
+interface WorkflowValue {
+  type: "workflow";
+  id: string;
+}
+
+const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) => {
   const { property, value, onChange } = props;
   const id = `workflow-${property.name}-${props.propertyIndex}`;
   const load = useWorkflowManager((state) => state.load);

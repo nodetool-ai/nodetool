@@ -9,7 +9,12 @@ import Select from "../inputs/Select";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 
-const CollectionProperty = (props: PropertyProps) => {
+interface CollectionValue {
+  type: "collection";
+  name: string;
+}
+
+const CollectionProperty = (props: PropertyProps<CollectionValue | null>) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
   const isConnectedSelector = useIsConnectedSelector(
     props.nodeId,

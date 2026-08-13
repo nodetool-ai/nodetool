@@ -6,7 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import { NodeTextField } from "../ui_primitives";
 
-const StringListProperty = (props: PropertyProps) => {
+const StringListProperty = (props: PropertyProps<string[]>) => {
   const theme = useTheme();
   const id = `string-list-${props.property.name}-${props.propertyIndex}`;
   const strings = props.value || [];

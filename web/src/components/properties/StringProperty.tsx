@@ -57,7 +57,7 @@ const StringProperty = ({
   isDynamicProperty,
   isInspector,
   onPropertyContextMenu
-}: PropertyProps) => {
+}: PropertyProps<string>) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);

@@ -45,7 +45,7 @@ interface SandboxModuleEntry {
   contentDigest?: string;
 }
 
-interface Declaration {
+export interface Declaration {
   specifier: string;
   resolvedPackVersion?: string;
   contentDigest?: string;
@@ -61,7 +61,9 @@ function declaredSpecifier(entry: unknown): string | null {
   return null;
 }
 
-const SandboxPackagesProperty = (props: PropertyProps) => {
+const SandboxPackagesProperty = (
+  props: PropertyProps<(string | Declaration)[]>
+) => {
   const { value, onChange, property, propertyIndex } = props;
   const [openPack, setOpenPack] = useState<string | null>(null);
 

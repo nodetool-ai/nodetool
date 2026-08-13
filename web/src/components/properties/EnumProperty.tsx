@@ -24,7 +24,7 @@ interface EnumPropertyExtra {
   enum?: (string | number)[];
 }
 
-const EnumProperty: React.FC<PropertyProps> = ({
+const EnumProperty: React.FC<PropertyProps<string>> = ({
   property,
   propertyIndex,
   value,
