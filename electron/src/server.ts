@@ -235,6 +235,22 @@ async function startServer(): Promise<void> {
   }
 
   const basePort = 7777;
+  // Dev mode loads the renderer from the Vite dev server, whose /api and /ws
+  // proxy target is pinned to 7777 (web/vite.config.ts, PROXY_API_TARGET). A
+  // backend on any other port is unreachable from the UI: every API call comes
+  // back 502 and the websockets never connect. Fail loudly instead.
+  if (isDevMode() && !(await isPortAvailable(basePort))) {
+    const message =
+      `Port ${basePort} is already in use. In dev mode the backend must own ` +
+      `it, because the Vite dev server proxies /api and /ws there. Stop the ` +
+      `other process (lsof -nP -iTCP:${basePort} -sTCP:LISTEN) and start the ` +
+      `app again, or point Vite elsewhere with PROXY_API_TARGET.`;
+    logMessage(message, "error");
+    if (!process.env.CI) {
+      dialog.showErrorBox("Port In Use", message);
+    }
+    throw new Error(message);
+  }
   logMessage(`Finding available port starting from ${basePort}...`);
   const selectedPort = await findAvailablePort(basePort);
   serverState.serverPort = selectedPort;
