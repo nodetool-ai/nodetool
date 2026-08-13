@@ -24,7 +24,7 @@ caller granted for that run.
 |---|---|---|
 | `nodetool.code.Code` | `packages/code-nodes/src/nodes/code-node.ts` | A user's node body, with dynamic inputs on `inputs` |
 | CodeAct step / chat turn | `packages/agents/src/codeact/` | One model-written action per `execute_code` call |
-| GraphPlanner `submit_graph` | `packages/agents/src/graph-dsl.ts` | A graph DSL program with no host access at all |
+| `validate_workflow` with `code` | `packages/agents/src/graph-dsl.ts` | A legacy graph DSL program with no host access at all |
 | Browser runner | `packages/workflow-runner/` | The same Code nodes, in the page, fetching modules over HTTP |
 
 One engine (`loadQuickJs`, the `quickjs-ng` release variant) is loaded once per
@@ -501,13 +501,14 @@ it around every tool- and plan-approval round trip.
 
 ### Other agent surfaces
 
-- **GraphPlanner** runs each `submit_graph` program in the sandbox with *no*
-  host access — only `node()` and `graph()` — so a malformed or hostile program
-  cannot reach anything.
-- **The plain code tools `run_code` and `js` are gone.** `execute_code` is the
-  one code path an agent has; it declares the session's sandbox packages, and
-  library-backed work outside an agent goes through a Code node with the
-  package declared.
+- **`validate_workflow`** evaluates a legacy graph DSL program (its `code`
+  parameter) in the sandbox with *no* host access — only `node()` and `graph()`
+  — so a malformed or hostile program cannot reach anything.
+- **The plain `js` tool is gone.** `execute_code` is the one code path an agent
+  *acts* through; it declares the session's sandbox packages. `run_code` remains
+  as a hermetic authoring harness — it executes a Code-node body with no
+  toolbelt and only the secrets the call names — and library-backed work outside
+  an agent goes through a Code node with the package declared.
 
 ## Failure modes
 

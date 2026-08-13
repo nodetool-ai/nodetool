@@ -14,7 +14,7 @@ contract is, and which existing modules do the work.
 
 ## 1. Placement
 
-The loop needs three things at once: GraphPlanner (`@nodetool-ai/agents`), the
+The loop needs three things at once: `authorGraph` (`@nodetool-ai/agents`), the
 app document ops (`@nodetool-ai/app-runtime`), and the headless app simulator
 (today `packages/cli/src/app-debug/`). The dependency graph already almost
 allows it:
@@ -73,7 +73,7 @@ interface BuildSpec {
   title: string;
   operations: Array<{
     id: string;                       // stable slug, e.g. "draft"
-    objective: string;                // GraphPlanner objective, or —
+    objective: string;                // authorGraph objective, or —
     workflowId?: string;              // — bind an existing workflow instead
     inputs: Array<{ name: string; type: string; example: unknown }>;
     outputs: Array<{ name: string; type: string }>;
@@ -152,11 +152,11 @@ Per spec operation, in declaration order:
 - `workflowId` set → load the workflow, `validateGraph`, extract IO
   (`extractAppIO`), and check the spec's declared inputs/outputs against it.
   A mismatch is a spec-stage complaint, not a planning job.
-- otherwise → `GraphPlanner.plan(objective, context)` with `inputs` seeded
+- otherwise → `authorGraph(objective, {...})` with `inputs` seeded
   from the spec's examples and `outputSchema` derived from the declared
-  outputs. The planner already gates on its own `submit_graph` validation;
-  the harness adds `validateGraph` + a check that the planned graph's
-  Input/Output node names cover the spec's declared surface — the app cannot
+  outputs. The authoring sub-agent already checks its own graph with
+  `validate_workflow`; the harness adds `validateGraph` + a check that the
+  planned graph's Input/Output node names cover the spec's declared surface — the app cannot
   bind to an input the planner renamed. Missing names → one replan with the
   delta named in the objective; still missing → `failed`.
 
@@ -331,7 +331,7 @@ Two deterministic cases (template-only workflows, no model calls in the
 ```
 app.build                       (orchestrator)
   app.build.spec                (StepExecutor → llm.chat)
-  agent.plan                    (GraphPlanner, existing span, per operation)
+  agent.plan                    (authorGraph, existing span, per operation)
   app.build.author              (tool loop → llm.chat per turn)
   app.build.check
   app.build.run                 (→ workflow.run per interaction, existing)

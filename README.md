@@ -336,8 +336,9 @@ See [mobile/README.md](mobile/README.md) for full setup.
 | `npm run build` | Build all packages + web |
 | `npm run dev` | Start backend (`tsx --watch`) + web dev server |
 | `npm run electron` | Build and start Electron app |
-| `npm run check` | Run typecheck + lint + test |
-| `npm run test` | Run all tests |
+| `npm run check` | Workspace/lockfile/boundary checks, build:packages, typecheck, lint, test:packages, test |
+| `npm run test` | Run the web, electron, and mobile tests |
+| `npm run test:packages` | Run the backend package tests |
 
 ______________________________________________________________________
 
