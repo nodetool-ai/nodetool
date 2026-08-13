@@ -1,7 +1,6 @@
 # Storybook
 
-Component catalog and visual-regression source for the NodeTool design system.
-Chromatic (set up by the CI task) snapshots these stories on every PR.
+Component catalog for the NodeTool design system.
 
 ## Run
 
@@ -22,14 +21,11 @@ npm run build-storybook    # static build → web/storybook-static/
   deps) into the bundle. `src/stories/**` is exempt from the design-token lint
   (`web/eslint.design.mjs`) as a harness, like `src/demo/` and `src/e2e_runner/`.
 
-## Deterministic snapshots
-
-Two toolbar globals keep Chromatic diffs stable:
+## Toolbar globals
 
 - **Theme** — `dark` (default, the app baseline) or `light`.
 - **Motion** — `Frozen` (default) zeroes every transition/animation duration and
-  hides the caret so snapshots never catch a mid-animation frame; `Animated`
-  restores real motion for local inspection.
+  hides the caret; `Animated` restores real motion for local inspection.
 
 Fonts are self-hosted (Inter + JetBrains Mono via `@fontsource`, imported by
-`ThemeNodetool`), so text renders identically in CI.
+`ThemeNodetool`).

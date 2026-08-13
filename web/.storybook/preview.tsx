@@ -18,10 +18,9 @@ const ModeSync = ({ mode }: { mode: "light" | "dark" }) => {
 };
 
 /**
- * Determinism styles for visual regression. Snapshots must not capture
- * mid-transition or mid-animation frames, and text must render with the
- * self-hosted fonts only. Enabled by default; toggle off with the `motion`
- * toolbar to preview real animations.
+ * Determinism styles: stories render at a settled frame instead of
+ * mid-transition, with the self-hosted fonts only. Enabled by default; toggle
+ * off with the `motion` toolbar to preview real animations.
  */
 const freezeMotionStyles = {
   "*, *::before, *::after": {

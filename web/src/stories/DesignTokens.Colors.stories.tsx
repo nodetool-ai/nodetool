@@ -3,8 +3,8 @@ import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 
 /**
- * Palette swatches read straight off the active theme, so this page doubles as
- * a visual diff of any palette change (light or dark) in Chromatic.
+ * Palette swatches read straight off the active theme, so this page shows any
+ * palette change (light or dark).
  */
 const PALETTE_ROLES = [
   "primary",
