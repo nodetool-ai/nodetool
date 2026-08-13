@@ -193,6 +193,70 @@ describe("find_model through the adapter", () => {
     expect(result.note).toMatch(/No model name matched/);
   });
 
+  it("does not rank a remote provider as if its models were downloaded", async () => {
+    // `huggingface` is the HF Inference API. Counting it as local gave every
+    // HF model a +30 bonus and put FLUX.1-schnell ahead of the fal_ai copy
+    // that could actually run.
+    const tool = asTool(findModel, {
+      fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/flux/schnell",
+          name: "Flux Schnell",
+          provider: "fal_ai"
+        } as ImageModel
+      ]),
+      huggingface: new FakeImageProvider("huggingface" as ProviderId, [
+        {
+          id: "black-forest-labs/FLUX.1-schnell",
+          name: "FLUX.1 Schnell",
+          provider: "huggingface"
+        } as ImageModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      query: "flux schnell"
+    })) as { results: { provider: string; downloaded: boolean }[] };
+    expect(result.results.map((r) => r.downloaded)).toEqual([false, false]);
+    expect(result.results[0].provider).toBe("fal_ai");
+  });
+
+  it("skips a provider that cannot run here, and says which", async () => {
+    // A configured provider whose optional SDK was never installed. The old
+    // ranking offered it first and the failure surfaced on the paid call.
+    class BrokenImageProvider extends FakeImageProvider {
+      override async unavailableReason(): Promise<string | null> {
+        return "@huggingface/inference is required for HuggingFaceProvider.";
+      }
+    }
+    const tool = asTool(findModel, {
+      fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/flux/schnell",
+          name: "Flux Schnell",
+          provider: "fal_ai"
+        } as ImageModel
+      ]),
+      huggingface: new BrokenImageProvider("huggingface" as ProviderId, [
+        {
+          id: "black-forest-labs/FLUX.1-schnell",
+          name: "FLUX.1 Schnell",
+          provider: "huggingface"
+        } as ImageModel
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      query: "flux schnell"
+    })) as {
+      total: number;
+      note: string;
+      results: { provider: string }[];
+    };
+    expect(result.results.map((r) => r.provider)).toEqual(["fal_ai"]);
+    expect(result.note).toMatch(/huggingface .*@huggingface\/inference/);
+  });
+
   it("says so when the run carries no providers", async () => {
     const result = (await asTool(findModel).process(ctx, {
       capability: "text_to_image"
@@ -233,6 +297,28 @@ describe("list_models through the adapter", () => {
     expect(result.results.map((r) => r.provider)).toEqual(["ollama", "openai"]);
     // ollama runs locally, so its models report as downloaded.
     expect(result.results[0].downloaded).toBe(true);
+  });
+
+  it("drops a provider that cannot run here from the listing", async () => {
+    class BrokenLanguageProvider extends FakeLanguageProvider {
+      override async unavailableReason(): Promise<string | null> {
+        return "missing SDK";
+      }
+    }
+    const result = (await asTool(listModels, {
+      openai: new FakeLanguageProvider("openai" as ProviderId, [
+        { id: "gpt-5", name: "GPT-5", provider: "openai" } as LanguageModel
+      ]),
+      huggingface: new BrokenLanguageProvider("huggingface" as ProviderId, [
+        { id: "hf-1", name: "HF One", provider: "huggingface" } as LanguageModel
+      ])
+    }).process(ctx, { model_type: "language" })) as {
+      total: number;
+      note: string;
+      results: { provider: string }[];
+    };
+    expect(result.results.map((r) => r.provider)).toEqual(["openai"]);
+    expect(result.note).toMatch(/huggingface \(missing SDK\)/);
   });
 
   it("rejects an unknown model type", async () => {

@@ -377,6 +377,20 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Why this provider cannot serve a call right now, or `null` when it can.
+   *
+   * The credential check (`isProviderConfigured`) runs before a provider is
+   * ever constructed, so a provider that reaches this point has its keys. This
+   * answers what a key cannot: an optional SDK nobody installed, a local
+   * runtime the host lacks. `find_model` and `list_models` read it, so a model
+   * nothing here can run is not offered as the best match — the failure lands
+   * on the discovery call instead of on the paid generation call.
+   */
+  async unavailableReason(): Promise<string | null> {
+    return null;
+  }
+
+  /**
    * Explicit capability declaration. Returns `null` by default, in which case
    * {@link getCapabilities} derives capabilities by reflecting on which
    * optional methods the concrete class overrides. Providers may override this

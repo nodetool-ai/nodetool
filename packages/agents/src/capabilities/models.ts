@@ -60,15 +60,39 @@ type SupportedCapability = (typeof SUPPORTED_CAPABILITIES)[number];
  * A provider is treated as offering downloaded models when it runs locally.
  * Neither `find_model` nor `list_models` inspects the on-disk cache, so both
  * report the same `downloaded` for the same model.
+ *
+ * `huggingface` is not one of them: it is the HF Inference API, a remote call
+ * like any other. Counting it as local gave every HF model the `downloaded`
+ * bonus and put `FLUX.1-schnell` ahead of the fal_ai copy that could actually
+ * run, on a host with no `@huggingface/inference` installed.
  */
 const LOCAL_PROVIDER_IDS = new Set([
   "ollama",
   "lmstudio",
   "vllm",
   "llama_cpp",
-  "node_llama_cpp",
-  "huggingface"
+  "node_llama_cpp"
 ]);
+
+/**
+ * Why a configured provider still cannot serve a call, or `null` when it can.
+ * A provider that answers with a reason is dropped from the ranking and named
+ * in the result's note — ranking a model nothing can run turns a discovery
+ * call into a failed generation call.
+ */
+async function unavailableReasonOf(
+  provider: BaseProvider
+): Promise<string | null> {
+  // Guarded rather than called outright: a provider from an older build has no
+  // such method, and hiding every provider over that would be a far worse
+  // failure than the one this prevents.
+  if (typeof provider.unavailableReason !== "function") return null;
+  try {
+    return await provider.unavailableReason();
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
 
 interface AnyModel {
   id: string;
@@ -296,6 +320,7 @@ const findModel: CapabilityExport = {
 
     const recommendedSet = getRecommendedSet(capability);
     const candidates: Array<{ providerId: string; model: AnyModel }> = [];
+    const unavailable: string[] = [];
 
     for (const [providerId, instance] of providerEntries) {
       let supports: boolean;
@@ -307,6 +332,12 @@ const findModel: CapabilityExport = {
         continue;
       }
       if (!supports) continue;
+
+      const blocked = await unavailableReasonOf(instance);
+      if (blocked) {
+        unavailable.push(`${providerId} (${blocked})`);
+        continue;
+      }
 
       let models: AnyModel[];
       try {
@@ -321,6 +352,9 @@ const findModel: CapabilityExport = {
     }
 
     const notes: string[] = [];
+    if (unavailable.length > 0) {
+      notes.push(`Skipped providers that cannot run here: ${unavailable.join(", ")}.`);
+    }
     let words = queryWords(typeof query === "string" ? query : "");
 
     // The `task` filter reads `supportedTasks`. A caller who typed a model name
@@ -523,6 +557,7 @@ const listModels: CapabilityExport = {
 
     const wantedTypes = modelType ? [modelType] : [...MODEL_TYPES];
     const collected: ListedModel[] = [];
+    const unavailable: string[] = [];
 
     for (const [providerId, instance] of entries) {
       const downloaded = LOCAL_PROVIDER_IDS.has(providerId);
@@ -532,6 +567,12 @@ const listModels: CapabilityExport = {
       try {
         capabilities = instance.getCapabilities();
       } catch {
+        continue;
+      }
+
+      const blocked = await unavailableReasonOf(instance);
+      if (blocked) {
+        unavailable.push(`${providerId} (${blocked})`);
         continue;
       }
 
@@ -570,7 +611,12 @@ const listModels: CapabilityExport = {
     return {
       total: collected.length,
       truncated: collected.length > limit,
-      results: collected.slice(0, limit)
+      results: collected.slice(0, limit),
+      ...(unavailable.length > 0
+        ? {
+            note: `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
+          }
+        : {})
     };
   }
 };
