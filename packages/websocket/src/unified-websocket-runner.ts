@@ -1472,6 +1472,22 @@ export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Return the registered editor tools for the document the user is editing.
+ * These tools are useful only while their surface has focus, so keeping them
+ * resident avoids discovery rounds without permanently expanding the belt.
+ */
+export function focusedUiToolNames(
+  uiContext: UiContext | null,
+  toolNames: Iterable<string>
+): string[] {
+  const type = uiContext?.focused?.type;
+  if (!type) return [];
+
+  const prefix = `ui_${type}_`;
+  return [...toolNames].filter((name) => name.startsWith(prefix));
+}
+
+/**
  * Build the chat-agent system prompt for the given permission mode. A surface
  * (App Builder, timeline editor, …) can append its own guidance by sending a
  * `system_prompt` on the chat message — it is layered after the base prompt as
@@ -5602,7 +5618,11 @@ export class UnifiedWebSocketRunner {
         },
         residentToolNames: [
           ...CODEACT_RESIDENT_TOOL_NAMES,
-          ...RESIDENT_TOOL_NAMES
+          ...RESIDENT_TOOL_NAMES,
+          ...focusedUiToolNames(
+            uiContext,
+            allSchemas.map((schema) => schema.name)
+          )
         ],
         context: ctx,
         signal,
