@@ -40,6 +40,8 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
 
 interface ChatThreadViewProps {
+  /** Conversation rendered by this ChatView instance. */
+  threadId?: string | null;
   messages: Message[];
   status:
     | "disconnected"
@@ -318,6 +320,7 @@ const StatusFooter = memo<StatusFooterProps>(
 StatusFooter.displayName = "StatusFooter";
 
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
+  threadId,
   messages,
   status,
   progress,
@@ -337,13 +340,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   // bottom of the thread. Resolving one sends the decision and removes it.
   const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const visibleThreadId = threadId ?? currentThreadId;
   const resolveApproval = useGlobalChatStore((s) => s.resolveApproval);
   const threadApprovals = useMemo(
     () =>
       Object.entries(pendingApprovals).filter(
-        ([, approval]) => approval.thread_id === currentThreadId
+        ([, approval]) => approval.thread_id === visibleThreadId
       ),
-    [pendingApprovals, currentThreadId]
+    [pendingApprovals, visibleThreadId]
   );
 
   // Pending plan-approval prompts. Plans from runs not bound to a thread
@@ -356,9 +360,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     () =>
       Object.entries(pendingPlanApprovals).filter(
         ([, approval]) =>
-          approval.thread_id === null || approval.thread_id === currentThreadId
+          approval.thread_id === visibleThreadId ||
+          (approval.thread_id === null && visibleThreadId === currentThreadId)
       ),
-    [pendingPlanApprovals, currentThreadId]
+    [pendingPlanApprovals, currentThreadId, visibleThreadId]
   );
 
   // The generating turn's own outgoing message carries `media_generation` —
@@ -663,7 +668,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     setAnchorTailHeight(0);
     viewportAnchorRef.current = null;
     setShowScrollToBottomButton(false);
-  }, [currentThreadId, setScrollMode]);
+  }, [visibleThreadId, setScrollMode]);
 
   // Land on the latest message when a thread first becomes visible — on mount,
   // thread switch, or once its messages finish loading. Without this the
@@ -673,8 +678,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const landedThreadRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (!scrollHost || filteredMessages.length === 0) return;
-    if (landedThreadRef.current === currentThreadId) return;
-    landedThreadRef.current = currentThreadId;
+    if (landedThreadRef.current === visibleThreadId) return;
+    landedThreadRef.current = visibleThreadId;
     previousMessageCountRef.current = messages.length;
     setScrollMode("following-end");
 
@@ -699,7 +704,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [
     scrollHost,
-    currentThreadId,
+    visibleThreadId,
     filteredMessages.length,
     messages.length,
     setScrollMode,

@@ -1,6 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Data } from "@puckeditor/core";
-import { type AppDocMeta } from "@nodetool-ai/app-runtime";
+import {
+  type AppDocMeta,
+  type OperationBinding
+} from "@nodetool-ai/app-runtime";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -42,6 +45,14 @@ export interface AppBuilderShellProps {
    * yet; the panel still opens, on a thread of its own.
    */
   agentWorkflowId?: string;
+  /**
+   * The operations the canvas holds right now, reported whenever they change.
+   * `document` is the saved row, so a parent that derives the workflows to load
+   * from it alone loads nothing for an operation the agent bound in this
+   * session — and `ui_app_get_binding_targets` answers `ioAvailable: false` for
+   * the one operation the author is working on.
+   */
+  onOperationsChange?: (operations: ReadonlyArray<OperationBinding>) => void;
   /** Title bar above the canvas. */
   header?: React.ReactNode;
   /** Banner between the header and the canvas (a save conflict, say). */
@@ -97,6 +108,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   workflow,
   operationWorkflows,
   agentWorkflowId,
+  onOperationsChange,
   header,
   banner,
   onSave,
@@ -133,6 +145,16 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   useEffect(() => {
     if (agentWorkflowId) setCurrentWorkflowId(agentWorkflowId);
   }, [agentWorkflowId, setCurrentWorkflowId]);
+
+  // Report the operations upward on every change, including the seed, so the
+  // parent's idea of which workflows to load never lags the canvas. Read
+  // through a ref: a caller passing a fresh closure each render must not make
+  // this fire again.
+  const onOperationsChangeRef = useRef(onOperationsChange);
+  onOperationsChangeRef.current = onOperationsChange;
+  useEffect(() => {
+    onOperationsChangeRef.current?.(meta.operations);
+  }, [meta.operations]);
 
   const handleSave = useCallback(
     (nextData: Data) => {

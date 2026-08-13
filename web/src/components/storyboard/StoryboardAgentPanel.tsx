@@ -11,6 +11,7 @@ import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
 import { useInStudio } from "../../studio/StudioContext";
 
 const styles = (_theme: Theme) =>
@@ -61,14 +62,6 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
   // tools. The id is editor context, not a routing signal — we don't set
   // `workflow_target`, so the turn stays a normal chat turn and the board is
   // never run as a workflow.
-  const { status, statusMessage, progress } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      statusMessage: state.statusMessage,
-      progress: state.progress
-    }))
-  );
-
   const { selectedModel, setSelectedModel } = useGlobalChatStore(
     useShallow((state) => ({
       selectedModel: state.selectedModel,
@@ -76,34 +69,21 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
     }))
   );
 
-  const {
-    sendMessage,
-    stopGeneration,
-    connect,
-    createNewThread,
-    switchThread
-  } = useGlobalChatStore(
+  const { connect, createNewThread } = useGlobalChatStore(
     useShallow((state) => ({
-      sendMessage: state.sendMessage,
-      stopGeneration: state.stopGeneration,
       connect: state.connect,
-      createNewThread: state.createNewThread,
-      switchThread: state.switchThread
+      createNewThread: state.createNewThread
     }))
   );
 
-  const { currentThreadId, messageCache, getCurrentMessagesSync } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        currentThreadId: state.currentThreadId,
-        messageCache: state.messageCache,
-        getCurrentMessagesSync: state.getCurrentMessagesSync
-      }))
-    );
-  const messages = useMemo(
-    () => getCurrentMessagesSync(),
-    [getCurrentMessagesSync, currentThreadId, messageCache]
-  );
+  const {
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Establish the chat connection (and send the frontend-tool manifest, which
   // now includes the surface's ui_storyboard_* tools) when the panel mounts.
@@ -113,19 +93,21 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
     });
   }, [connect]);
 
-  const chatStatus = useMemo(
-    () => (status === "stopping" ? "loading" : status),
-    [status]
-  );
+  const chatStatus =
+    runtime.status === "idle"
+      ? "connected"
+      : runtime.status === "stopping"
+        ? "loading"
+        : runtime.status;
 
   const handleNewChat = useCallback(async () => {
     try {
       const id = await createNewThread();
-      switchThread(id);
+      selectThread(id);
     } catch (err) {
       console.error("Failed to start new storyboard editor chat:", err);
     }
-  }, [createNewThread, switchThread]);
+  }, [createNewThread, selectThread]);
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -155,6 +137,8 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
     <div css={cssStyles}>
       <ChatPanelHeader
         onNewChat={handleNewChat}
+        onSelectThread={selectThread}
+        threadId={threadId}
         docsTopic="storyboards"
         docsLabel="Storyboards"
       />
@@ -164,9 +148,9 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
           messages={messages}
           workflowId={boardId}
           sendMessage={sendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
+          progress={runtime.progress.current}
+          total={runtime.progress.total}
+          progressMessage={runtime.statusMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
           hideModelPicker={inStudio}
@@ -175,6 +159,12 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
           requireToolSupport
           hideModePicker
           noMessagesPlaceholder={welcomePlaceholder}
+          threadId={threadId}
+          currentPlanningUpdate={runtime.planningUpdate}
+          currentTaskUpdate={runtime.taskUpdate}
+          currentLogUpdate={runtime.logUpdate}
+          runningToolCallId={runtime.runningToolCallId}
+          runningToolMessage={runtime.toolMessage}
         />
       </div>
     </div>

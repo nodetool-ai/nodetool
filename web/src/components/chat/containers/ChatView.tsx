@@ -342,6 +342,7 @@ const ChatView = ({
         <div className="chat-thread-container">
           {messages.length > 0 ? (
             <ChatThreadView
+              threadId={effectiveThreadId}
               messages={messages}
               status={status}
               progress={progress}

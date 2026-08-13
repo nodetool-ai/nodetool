@@ -11,6 +11,7 @@ import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
 import { useInStudio } from "../../studio/StudioContext";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
@@ -58,14 +59,6 @@ const TimelineAgentPanel = () => {
   // turn stays a normal chat turn and the sequence is never run as a workflow.
   const sequenceId = useTimelineStore((s) => s.sequenceId);
 
-  const { status, statusMessage, progress } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      statusMessage: state.statusMessage,
-      progress: state.progress
-    }))
-  );
-
   const { selectedModel, setSelectedModel } = useGlobalChatStore(
     useShallow((state) => ({
       selectedModel: state.selectedModel,
@@ -73,31 +66,20 @@ const TimelineAgentPanel = () => {
     }))
   );
 
-  const { sendMessage, stopGeneration, connect, createNewThread, switchThread } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        sendMessage: state.sendMessage,
-        stopGeneration: state.stopGeneration,
-        connect: state.connect,
-        createNewThread: state.createNewThread,
-        switchThread: state.switchThread
-      }))
-    );
-
-  // Subscribe to the cache + current thread so the panel re-renders as the
-  // active conversation streams in; the messages themselves are read synchronously.
-  const { currentThreadId, messageCache, getCurrentMessagesSync } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        currentThreadId: state.currentThreadId,
-        messageCache: state.messageCache,
-        getCurrentMessagesSync: state.getCurrentMessagesSync
-      }))
-    );
-  const messages = useMemo(
-    () => getCurrentMessagesSync(),
-    [getCurrentMessagesSync, currentThreadId, messageCache]
+  const { connect, createNewThread } = useGlobalChatStore(
+    useShallow((state) => ({
+      connect: state.connect,
+      createNewThread: state.createNewThread
+    }))
   );
+  const {
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Establish the chat connection (and send the frontend-tool manifest, which
   // now includes the editor's ui_timeline_* tools) when the panel mounts.
@@ -107,19 +89,19 @@ const TimelineAgentPanel = () => {
     });
   }, [connect]);
 
-  const chatStatus = useMemo(
-    () => (status === "stopping" ? "connected" : status),
-    [status]
-  );
+  const chatStatus =
+    runtime.status === "idle" || runtime.status === "stopping"
+      ? "connected"
+      : runtime.status;
 
   const handleNewChat = useCallback(async () => {
     try {
       const id = await createNewThread();
-      switchThread(id);
+      selectThread(id);
     } catch (err) {
       console.error("Failed to start new timeline editor chat:", err);
     }
-  }, [createNewThread, switchThread]);
+  }, [createNewThread, selectThread]);
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -148,6 +130,8 @@ const TimelineAgentPanel = () => {
     <div css={cssStyles}>
       <ChatPanelHeader
         onNewChat={handleNewChat}
+        onSelectThread={selectThread}
+        threadId={threadId}
         docsTopic="timelines"
         docsLabel="Video editor"
       />
@@ -157,9 +141,9 @@ const TimelineAgentPanel = () => {
           messages={messages}
           workflowId={sequenceId}
           sendMessage={sendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
+          progress={runtime.progress.current}
+          total={runtime.progress.total}
+          progressMessage={runtime.statusMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
           hideModelPicker={inStudio}
@@ -168,6 +152,12 @@ const TimelineAgentPanel = () => {
           requireToolSupport
           hideModePicker
           noMessagesPlaceholder={welcomePlaceholder}
+          threadId={threadId}
+          currentPlanningUpdate={runtime.planningUpdate}
+          currentTaskUpdate={runtime.taskUpdate}
+          currentLogUpdate={runtime.logUpdate}
+          runningToolCallId={runtime.runningToolCallId}
+          runningToolMessage={runtime.toolMessage}
         />
       </div>
     </div>

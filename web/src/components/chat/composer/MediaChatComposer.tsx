@@ -1109,7 +1109,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 truncate
                 maxWidth={140}
               />
-              <PermissionSelector />
+              <PermissionSelector threadId={threadId} />
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}

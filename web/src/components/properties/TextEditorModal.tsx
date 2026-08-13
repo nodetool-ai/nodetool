@@ -861,10 +861,9 @@ const TextEditorModal = ({
   const getSelectedTextFnRef = useRef<(() => string) | null>(null);
 
   const {
-    status,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
+    threadId,
+    messages,
+    runtime,
     sendMessage,
     selectedModel,
     setSelectedModel,
@@ -1594,12 +1593,18 @@ const TextEditorModal = ({
                       </div>
                     </div>
                     <ChatView
-                      status={status === "stopping" ? "connected" : status}
-                      progress={progress.current}
-                      total={progress.total}
-                      messages={getCurrentMessagesSync()}
+                      threadId={threadId}
+                      status={
+                        runtime.status === "idle" ||
+                        runtime.status === "stopping"
+                          ? "connected"
+                          : runtime.status
+                      }
+                      progress={runtime.progress.current}
+                      total={runtime.progress.total}
+                      messages={messages}
                       sendMessage={sendMessage}
-                      progressMessage={statusMessage}
+                      progressMessage={runtime.statusMessage}
                       model={
                         (selectedModel as LanguageModel) || {
                           type: "language_model",
@@ -1611,6 +1616,11 @@ const TextEditorModal = ({
                       onModelChange={setSelectedModel}
                       workflowAssistant={true}
                       onStop={stopGeneration}
+                      currentPlanningUpdate={runtime.planningUpdate}
+                      currentTaskUpdate={runtime.taskUpdate}
+                      currentLogUpdate={runtime.logUpdate}
+                      runningToolCallId={runtime.runningToolCallId}
+                      runningToolMessage={runtime.toolMessage}
                       onNewChat={() => void createNewThread()}
                       onInsertCode={(text) => insertIntoEditor(text)}
                       composerPlaceholder="Ask the assistant to write or edit…"

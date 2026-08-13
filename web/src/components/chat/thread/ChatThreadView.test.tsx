@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import ChatThreadView from "./ChatThreadView";
 import mockTheme from "../../../__mocks__/themeMock";
 import { Message } from "../../../stores/ApiTypes";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 const mockScrollToIndex = jest.fn();
 let mockTotalSize: number | null = null;
@@ -130,6 +131,35 @@ describe("ChatThreadView", () => {
     renderWithTheme(<ChatThreadView {...defaultProps} />);
     expect(screen.getByTestId("message-1")).toHaveTextContent("Hello");
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
+  });
+
+  it("shows approvals only for the conversation rendered by this instance", () => {
+    useGlobalChatStore.setState({
+      currentThreadId: "thread-b",
+      pendingApprovals: {
+        "approval-a": {
+          thread_id: "thread-a",
+          tool_name: "write_file",
+          category: "write",
+          message: "Approval for A",
+          args: {}
+        },
+        "approval-b": {
+          thread_id: "thread-b",
+          tool_name: "run_command",
+          category: "execute",
+          message: "Approval for B",
+          args: {}
+        }
+      }
+    });
+
+    renderWithTheme(<ChatThreadView {...defaultProps} threadId="thread-a" />);
+
+    expect(screen.getByText("Approval for A")).toBeInTheDocument();
+    expect(screen.queryByText("Approval for B")).not.toBeInTheDocument();
+
+    act(() => useGlobalChatStore.setState({ pendingApprovals: {} }));
   });
 
   it("does not scroll for streaming tokens that leave layout unchanged", () => {

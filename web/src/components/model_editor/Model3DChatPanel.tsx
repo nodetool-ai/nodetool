@@ -10,6 +10,7 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
 
 const styles = (_theme: Theme) =>
   css({
@@ -45,14 +46,6 @@ const Model3DChatPanel = () => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  const { status, statusMessage, progress } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      statusMessage: state.statusMessage,
-      progress: state.progress
-    }))
-  );
-
   const { selectedModel, setSelectedModel } = useGlobalChatStore(
     useShallow((state) => ({
       selectedModel: state.selectedModel,
@@ -60,31 +53,20 @@ const Model3DChatPanel = () => {
     }))
   );
 
-  const { sendMessage, stopGeneration, connect, createNewThread, switchThread } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        sendMessage: state.sendMessage,
-        stopGeneration: state.stopGeneration,
-        connect: state.connect,
-        createNewThread: state.createNewThread,
-        switchThread: state.switchThread
-      }))
-    );
-
-  // Subscribe to the cache + current thread so the panel re-renders as the
-  // active conversation streams in; the messages themselves are read synchronously.
-  const { currentThreadId, messageCache, getCurrentMessagesSync } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        currentThreadId: state.currentThreadId,
-        messageCache: state.messageCache,
-        getCurrentMessagesSync: state.getCurrentMessagesSync
-      }))
-    );
-  const messages = useMemo(
-    () => getCurrentMessagesSync(),
-    [getCurrentMessagesSync, currentThreadId, messageCache]
+  const { connect, createNewThread } = useGlobalChatStore(
+    useShallow((state) => ({
+      connect: state.connect,
+      createNewThread: state.createNewThread
+    }))
   );
+  const {
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Establish the chat connection (and send the frontend-tool manifest, which
   // now includes the editor's ui_3d_* tools) when the editor mounts.
@@ -94,19 +76,19 @@ const Model3DChatPanel = () => {
     });
   }, [connect]);
 
-  const chatStatus = useMemo(
-    () => (status === "stopping" ? "connected" : status),
-    [status]
-  );
+  const chatStatus =
+    runtime.status === "idle" || runtime.status === "stopping"
+      ? "connected"
+      : runtime.status;
 
   const handleNewChat = useCallback(async () => {
     try {
       const id = await createNewThread();
-      switchThread(id);
+      selectThread(id);
     } catch (err) {
       console.error("Failed to start new 3D editor chat:", err);
     }
-  }, [createNewThread, switchThread]);
+  }, [createNewThread, selectThread]);
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -137,9 +119,9 @@ const Model3DChatPanel = () => {
         status={chatStatus}
         messages={messages}
         sendMessage={sendMessage}
-        progress={progress.current}
-        total={progress.total}
-        progressMessage={statusMessage}
+        progress={runtime.progress.current}
+        total={runtime.progress.total}
+        progressMessage={runtime.statusMessage}
         model={selectedModel}
         onModelChange={setSelectedModel}
         onStop={stopGeneration}
@@ -147,6 +129,12 @@ const Model3DChatPanel = () => {
         requireToolSupport
         hideModePicker
         noMessagesPlaceholder={welcomePlaceholder}
+        threadId={threadId}
+        currentPlanningUpdate={runtime.planningUpdate}
+        currentTaskUpdate={runtime.taskUpdate}
+        currentLogUpdate={runtime.logUpdate}
+        runningToolCallId={runtime.runningToolCallId}
+        runningToolMessage={runtime.toolMessage}
       />
     </div>
   );

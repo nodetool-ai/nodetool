@@ -28,6 +28,8 @@ interface ChatPanelHeaderProps {
   onNewChat: () => void;
   /** Select an existing thread. Defaults to the store's switchThread. */
   onSelectThread?: (id: string) => void;
+  /** Conversation displayed by this panel instance. */
+  threadId?: string | null;
   /** Optional label shown on the left of the header. */
   title?: React.ReactNode;
   /** Docs page the help icon points at. Defaults to the agents guide. */
@@ -44,6 +46,7 @@ interface ChatPanelHeaderProps {
 const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   onNewChat,
   onSelectThread,
+  threadId,
   title,
   docsTopic = "agents",
   docsLabel = "Chat & agents"
@@ -66,6 +69,7 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
         deleteThread: state.deleteThread
       }))
     );
+  const selectedThreadId = threadId ?? currentThreadId;
 
   const getThreadPreview = useCallback(
     (threadId: string) =>
@@ -112,11 +116,11 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   );
 
   const handleOpenAsTab = useCallback(() => {
-    if (currentThreadId) {
-      openTab({ type: "chat", ref: currentThreadId, mode: "view" });
+    if (selectedThreadId) {
+      openTab({ type: "chat", ref: selectedThreadId, mode: "view" });
     }
     navigate("/workspace");
-  }, [openTab, navigate, currentThreadId]);
+  }, [openTab, navigate, selectedThreadId]);
 
   return (
     <FlexRow
@@ -167,7 +171,7 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
         <ScrollArea style={{ maxHeight: 420 }}>
           <ThreadList
             threads={threadsWithMessages}
-            currentThreadId={currentThreadId}
+            currentThreadId={selectedThreadId}
             onNewThread={onNewChat}
             onSelectThread={handleSelectThread}
             onDeleteThread={handleDeleteThread}

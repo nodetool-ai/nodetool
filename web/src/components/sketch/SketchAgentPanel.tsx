@@ -11,6 +11,7 @@ import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 
 const styles = (_theme: Theme) =>
@@ -57,14 +58,6 @@ const SketchAgentPanel = () => {
   // stays a normal chat turn and the document is never run as a workflow.
   const documentId = useSketchSessionStore((s) => s.documentId);
 
-  const { status, statusMessage, progress } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      statusMessage: state.statusMessage,
-      progress: state.progress
-    }))
-  );
-
   const { selectedModel, setSelectedModel } = useGlobalChatStore(
     useShallow((state) => ({
       selectedModel: state.selectedModel,
@@ -72,31 +65,20 @@ const SketchAgentPanel = () => {
     }))
   );
 
-  const { sendMessage, stopGeneration, connect, createNewThread, switchThread } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        sendMessage: state.sendMessage,
-        stopGeneration: state.stopGeneration,
-        connect: state.connect,
-        createNewThread: state.createNewThread,
-        switchThread: state.switchThread
-      }))
-    );
-
-  // Subscribe to the cache + current thread so the panel re-renders as the
-  // active conversation streams in; the messages themselves are read synchronously.
-  const { currentThreadId, messageCache, getCurrentMessagesSync } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        currentThreadId: state.currentThreadId,
-        messageCache: state.messageCache,
-        getCurrentMessagesSync: state.getCurrentMessagesSync
-      }))
-    );
-  const messages = useMemo(
-    () => getCurrentMessagesSync(),
-    [getCurrentMessagesSync, currentThreadId, messageCache]
+  const { connect, createNewThread } = useGlobalChatStore(
+    useShallow((state) => ({
+      connect: state.connect,
+      createNewThread: state.createNewThread
+    }))
   );
+  const {
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Establish the chat connection (and send the frontend-tool manifest, which
   // now includes the editor's ui_sketch_* tools) when the panel mounts.
@@ -106,19 +88,21 @@ const SketchAgentPanel = () => {
     });
   }, [connect]);
 
-  const chatStatus = useMemo(
-    () => (status === "stopping" ? "loading" : status),
-    [status]
-  );
+  const chatStatus =
+    runtime.status === "idle"
+      ? "connected"
+      : runtime.status === "stopping"
+        ? "loading"
+        : runtime.status;
 
   const handleNewChat = useCallback(async () => {
     try {
       const id = await createNewThread();
-      switchThread(id);
+      selectThread(id);
     } catch (err) {
       console.error("Failed to start new image editor chat:", err);
     }
-  }, [createNewThread, switchThread]);
+  }, [createNewThread, selectThread]);
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -147,6 +131,8 @@ const SketchAgentPanel = () => {
     <div css={cssStyles}>
       <ChatPanelHeader
         onNewChat={handleNewChat}
+        onSelectThread={selectThread}
+        threadId={threadId}
         docsTopic="sketches"
         docsLabel="Sketch editor"
       />
@@ -156,9 +142,9 @@ const SketchAgentPanel = () => {
           messages={messages}
           workflowId={documentId}
           sendMessage={sendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
+          progress={runtime.progress.current}
+          total={runtime.progress.total}
+          progressMessage={runtime.statusMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
           onStop={stopGeneration}
@@ -166,6 +152,12 @@ const SketchAgentPanel = () => {
           requireToolSupport
           hideModePicker
           noMessagesPlaceholder={welcomePlaceholder}
+          threadId={threadId}
+          currentPlanningUpdate={runtime.planningUpdate}
+          currentTaskUpdate={runtime.taskUpdate}
+          currentLogUpdate={runtime.logUpdate}
+          runningToolCallId={runtime.runningToolCallId}
+          runningToolMessage={runtime.toolMessage}
         />
       </div>
     </div>
