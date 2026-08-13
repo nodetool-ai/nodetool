@@ -417,10 +417,11 @@ before the guest starts rather than surfacing as a resolve error inside it;
 version or digest drift only warns on the node's log.
 
 On a server host the node's code also gets the `nodetool` object model, backed
-by the agent toolbelt. The belt is loaded lazily and only on Node, since the
-in-browser runner bundles this module: without one,
-`nodetool.capabilities()` reports `{}` and each method throws naming the tool it
-needs instead of a `ReferenceError`.
+by the agent toolbelt. A JS script run uses that same belt. The belt is loaded
+lazily and only on Node, since the in-browser runner bundles this module:
+without one, `nodetool.capabilities()` reports `{}` and each method throws
+naming the tool it needs instead of a `ReferenceError`. `run_code` stays
+hermetic so an authoring probe does not get the belt.
 
 **Static checking.** `nodetool validate` parses each Code node body and reports
 what a run would hit: invalid JavaScript, top-level `export`, an import the

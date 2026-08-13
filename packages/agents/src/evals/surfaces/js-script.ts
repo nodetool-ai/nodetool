@@ -158,7 +158,8 @@ export function createJsScriptToolBridge(
       timeoutSeconds: Math.min(
         document.timeoutSeconds,
         JS_SCRIPT_MAX_TIMEOUT_SECONDS
-      )
+      ),
+      withToolbelt: true
     });
   };
 
@@ -356,7 +357,7 @@ A JS script is a body of JavaScript with declared input and output ports, sandbo
 
 - Call ui_jsscript_get_state first to see the document and its current validation issues.
 - Declare ports with ui_jsscript_set_ports before writing a body that reads or writes them.
-- Write the body with ui_jsscript_set_code. Inputs arrive on the \`inputs\` object; outputs leave through \`await emit(name, value)\` and \`await output(name, value)\`. Never return outputs.
+- Write the body with ui_jsscript_set_code. Inputs arrive on the \`inputs\` object; outputs leave through \`await emit(name, value)\` and \`await output(name, value)\`. Never return outputs. The body has the same \`tools.*\` / \`nodetool.*\` belt a Code node has.
 - Save regression cases with ui_jsscript_set_tests, then run them with ui_jsscript_test.
 - ui_jsscript_run executes the body once with inputs you supply.
 

@@ -54,8 +54,10 @@ export type {
 } from "./code-grading.js";
 
 /**
- * Run one Code-node body the way the node runs it, minus the toolbelt.
- * Returns rather than throws: a failing body is a result to report.
+ * Run one Code-node body the way the node runs it. Off by default this is
+ * hermetic (no `tools.*` / `nodetool.*`); pass `withToolbelt` for a JS
+ * script run. Returns rather than throws: a failing body is a result to
+ * report.
  *
  * Takes a `ProcessingContext` rather than a `CapabilityRun` because that is
  * all it ever used, and the JS-script run endpoint reaches it from a host that
@@ -70,6 +72,12 @@ export async function runCodeBody(
     secrets: readonly string[];
     timeoutSeconds: number;
     inputStreams?: Record<string, unknown[]>;
+    /**
+     * Give the guest the Code-node belt (`tools.*` / `nodetool.*`). Off for
+     * `run_code` / `test_code` (authoring stays hermetic). On for every JS
+     * script run.
+     */
+    withToolbelt?: boolean;
   }
 ): Promise<HarnessRunResult> {
   const {
@@ -134,10 +142,18 @@ return __yielded;`
         ? code
         : wrapImplicitReturn(code);
 
-  const globals = {
+  const globals: Record<string, unknown> = {
     inputs: params.inputs,
     state: {} as Record<string, unknown>
   };
+  let source = body;
+  if (params.withToolbelt) {
+    const { NODETOOL_PRELUDE, sandboxToolBridgeGlobals } = await import(
+      "../sandbox-toolbelt.js"
+    );
+    source = `${NODETOOL_PRELUDE}\n${body}`;
+    Object.assign(globals, sandboxToolBridgeGlobals(context));
+  }
 
   // A body reading `stream` needs a source, or every verb throws. Only a call
   // that staged items gets one — without `inputStreams` the harness behaves
@@ -147,7 +163,7 @@ return __yielded;`
     : undefined;
 
   const result = await runInSandbox({
-    code: body,
+    code: source,
     context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,

@@ -27,8 +27,11 @@ import {
   liveInvocations,
   mergeVariables,
   messageToEvents,
+  operationTarget,
   resolveBinding,
   resolveOperationParams,
+  scriptInvocationInput,
+  scriptRunMessages,
   stateKey,
   type AppAction,
   type ApplicationDocument,
@@ -36,8 +39,11 @@ import {
   type BindingScope,
   type InvocationState,
   type OperationBinding,
-  type ResourceRef
+  type ResourceRef,
+  type ScriptRunResult
 } from "@nodetool-ai/app-runtime";
+import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 import { Workflow } from "../../../stores/ApiTypes";
 import {
@@ -52,7 +58,9 @@ import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner"
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../../trpc/client";
-import { extractWorkflowIO, WorkflowIO } from "../workflowIO";
+import { runJsScript } from "../../jsScript/runJsScript";
+import { useOperationScripts } from "../useOperationScripts";
+import { extractScriptIO, extractWorkflowIO, WorkflowIO } from "../workflowIO";
 import { extractVariableNames } from "../workflowState";
 import { seedInputValue } from "../inputProperty";
 import { collectNodePropertyOverlays, withNodeProperties } from "../nodeBinding";
@@ -79,6 +87,11 @@ interface OperationRuntime {
   operation: OperationBinding;
   /** Undefined while the operation's workflow is still loading, or missing. */
   workflow: Workflow | undefined;
+  /**
+   * The script this operation runs, for a script target. Undefined while it
+   * loads, or when the operation runs a workflow — the two are exclusive.
+   */
+  script: { id: string; document: JsScriptDocument } | undefined;
   io: WorkflowIO;
   runnerStore: WorkflowRunnerStore;
 }
@@ -154,6 +167,14 @@ export const useAppRuntime = (
     return [...ids].sort();
   }, [operations, workflowId, workflowOverrides]);
 
+  // Scripts the app's operations run. The run endpoint executes the *saved*
+  // document, so the draft always runs the latest — the pinned version in the
+  // target says which one the app was authored against, not which one runs.
+  const fetchedScripts = useOperationScripts(operations);
+  const fetchedScriptsRef = useRef(fetchedScripts);
+  fetchedScriptsRef.current = fetchedScripts;
+  const fetchedScriptsKey = [...fetchedScripts.keys()].join("|");
+
   const extraWorkflows = useQueries({
     queries: extraWorkflowIds.map((id) => ({
       queryKey: ["app-operation-workflow", id],
@@ -176,24 +197,51 @@ export const useAppRuntime = (
   const operationRuntimes = useMemo(() => {
     const map = new Map<string, OperationRuntime>();
     for (const operation of operations) {
-      const targetId = operation.workflowId;
-      const target =
+      const target = operationTarget(operation);
+      if (target.kind === "script") {
+        const script = fetchedScriptsRef.current.get(target.scriptId);
+        map.set(operation.id, {
+          operation,
+          workflow: undefined,
+          script: script ? { id: target.scriptId, document: script } : undefined,
+          // A script's ports are its bindable surface; its name-keyed mappings
+          // resolve against them the way a graph's resolve against node ids.
+          io: extractScriptIO(script),
+          // Never used for a script run, but every entry carries one so the
+          // rest of the hook needs no null check.
+          runnerStore: getWorkflowRunnerStore(
+            workflowId || "__app_runtime__"
+          )
+        });
+        continue;
+      }
+      const targetId = target.workflowId;
+      const graph =
         !targetId || targetId === workflowId
           ? workflow
           : workflowOverrides?.[targetId] ?? fetchedRef.current.get(targetId);
       map.set(operation.id, {
         operation,
-        workflow: target,
-        io: extractWorkflowIO(target),
+        workflow: graph,
+        script: undefined,
+        io: extractWorkflowIO(graph),
         runnerStore: getWorkflowRunnerStore(
           targetId || workflowId || "__app_runtime__"
         )
       });
     }
     return map;
-    // `fetchedKey` tracks which operation workflows have arrived; the graphs
-    // themselves are read from the ref so the dep list stays fixed-length.
-  }, [fetchedKey, operations, workflow, workflowId, workflowOverrides]);
+    // `fetchedKey`/`fetchedScriptsKey` track which operation workflows and
+    // scripts have arrived; the documents themselves are read from the refs so
+    // the dep list stays fixed-length.
+  }, [
+    fetchedKey,
+    fetchedScriptsKey,
+    operations,
+    workflow,
+    workflowId,
+    workflowOverrides
+  ]);
 
   const operationRuntimesRef = useRef(operationRuntimes);
   operationRuntimesRef.current = operationRuntimes;
@@ -375,6 +423,9 @@ export const useAppRuntime = (
     const entry = invocation
       ? operationRuntimesRef.current.get(invocation.operationId)
       : undefined;
+    // A script run is one HTTP request with no job row behind it. It is marked
+    // cancelled in the app's own state; there is nothing on the server to stop.
+    if (entry?.script) return;
     const runner = entry?.runnerStore;
     // The runner only knows how to cancel the run it currently displays;
     // anything else (a queued or parallel sibling) is cancelled by job id.
@@ -607,11 +658,19 @@ export const useAppRuntime = (
         );
         return;
       }
+      const binding = operationTarget(entry.operation);
       const target = entry.workflow;
-      if (!target) {
+      if (binding.kind === "workflow" && !target) {
         failInvocation(
           operationId,
-          `"${entry.operation.name}" runs workflow ${entry.operation.workflowId}, which could not be loaded.`
+          `"${entry.operation.name}" runs workflow ${binding.workflowId}, which could not be loaded.`
+        );
+        return;
+      }
+      if (binding.kind === "script" && !entry.script) {
+        failInvocation(
+          operationId,
+          `"${entry.operation.name}" runs script ${binding.scriptId}, which could not be loaded.`
         );
         return;
       }
@@ -638,6 +697,36 @@ export const useAppRuntime = (
         resourceRef: (resourceBindingId) =>
           resourceRefsRef.current.get(resourceBindingId)
       });
+
+      // A script has no graph to submit and no job to subscribe to: it runs
+      // over one request and answers with a result, which the shared adapter
+      // turns into the message stream the fold already consumes.
+      const script = entry.script;
+      if (script) {
+        const jobId = `jsscript-${script.id}-${now()}`;
+        claimInvocation(operationId, jobId, true);
+        let result: ScriptRunResult;
+        try {
+          const { inputs, inputStreams } = scriptInvocationInput(
+            params,
+            usesStreamInputContract(script.document.code)
+          );
+          result = await runJsScript(script.id, inputs, inputStreams);
+        } catch (error) {
+          result = {
+            ok: false,
+            logs: [],
+            error: error instanceof Error ? error.message : "Script run failed",
+            duration_ms: 0
+          };
+        }
+        for (const message of scriptRunMessages(result, jobId)) {
+          foldRef.current(message as MsgpackData);
+        }
+        return;
+      }
+      // The guard above already failed a workflow operation with no graph.
+      if (!target) return;
 
       // Node-property bindings overlay their live widget values onto the graph
       // before the run, so a slider bound to e.g. a model's `strength` drives the

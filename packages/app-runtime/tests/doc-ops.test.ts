@@ -254,3 +254,51 @@ describe("bindingTargets", () => {
     ]);
   });
 });
+
+describe("updateOperation retargeting", () => {
+  const withOp = (operation: OperationBinding): AppDocMeta => ({
+    operations: [operation],
+    variables: [],
+    resources: []
+  });
+  const mapped: OperationBinding = {
+    id: "main",
+    name: "Run",
+    workflowId: "wf-1",
+    inputs: { "node-1": { from: "widget" } },
+    outputs: { "node-2": { to: "display" } },
+    policy: "replace"
+  };
+
+  it("keeps mappings when the patch leaves the target alone", () => {
+    const { operation } = updateOperation(withOp(mapped), "main", {
+      name: "Renamed"
+    });
+    expect(operation?.inputs).toEqual({ "node-1": { from: "widget" } });
+    expect(operation?.outputs).toEqual({ "node-2": { to: "display" } });
+  });
+
+  it("drops mappings when the operation switches to another workflow", () => {
+    const { operation } = updateOperation(withOp(mapped), "main", {
+      workflowId: "wf-2"
+    });
+    expect(operation?.inputs).toEqual({});
+    expect(operation?.outputs).toEqual({});
+  });
+
+  it("drops mappings when the operation switches to a script", () => {
+    const { operation } = updateOperation(withOp(mapped), "main", {
+      workflowId: "",
+      target: { kind: "script", scriptId: "s-1", scriptVersion: 0 }
+    });
+    expect(operation?.inputs).toEqual({});
+    expect(operation?.outputs).toEqual({});
+  });
+
+  it("keeps mappings when only the pinned version moves", () => {
+    const { operation } = updateOperation(withOp(mapped), "main", {
+      workflowVersion: 7
+    });
+    expect(operation?.inputs).toEqual({ "node-1": { from: "widget" } });
+  });
+});

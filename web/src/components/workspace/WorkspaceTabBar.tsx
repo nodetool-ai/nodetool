@@ -18,6 +18,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useJsScriptStore } from "../../stores/jsScript/JsScriptStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import { colorForType } from "../../config/data_types";
@@ -453,12 +454,18 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           case "model3d":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
             break;
-          case "jsscript":
-            await trpcClient.jsScripts.update.mutate({
-              id: tab.ref,
-              name: trimmed
-            });
+          case "jsscript": {
+            const store = useJsScriptStore.getState();
+            if (store.scripts[tab.ref]) {
+              store.setName(tab.ref, trimmed);
+            } else {
+              await trpcClient.jsScripts.update.mutate({
+                id: tab.ref,
+                name: trimmed
+              });
+            }
             break;
+          }
           case "chat":
             await useGlobalChatStore
               .getState()

@@ -141,6 +141,33 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(String(body.error)).toContain("boom");
   });
 
+  it("gives the guest the Code-node toolbelt", async () => {
+    const script = await seedScript({
+      code:
+        'await output("tools", typeof tools);\n' +
+        'await output("list", typeof tools.list_js_scripts);',
+      outputs: [
+        { name: "tools", type: "str" },
+        { name: "list", type: "str" }
+      ]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as {
+      ok: boolean;
+      outputs: Record<string, unknown>;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.outputs).toEqual({ tools: "object", list: "function" });
+  });
+
   it("404s on another user's script", async () => {
     const script = await seedScript({ code: "await output('a', 1);" }, "user-2");
     app = await buildServer(USER_ID);

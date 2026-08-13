@@ -1,12 +1,12 @@
 /**
  * The `js-scripts` capability module.
  *
- * Real QuickJS sandbox and a real in-memory database, no network: the guest is
- * hermetic (no toolbelt), a script reads only the secrets its envelope allows,
- * the recursion gate refuses a cycle and a run too deep, `test_js_script`
- * grades a document's saved cases exactly the way `test_code` grades the same
- * cases, and every validation rule is shown red on a fixture built to violate
- * it and green on one that does not.
+ * Real QuickJS sandbox and a real in-memory database, no network: the guest
+ * gets the Code-node toolbelt, a script reads only the secrets its envelope
+ * allows, the recursion gate refuses a cycle and a run too deep,
+ * `test_js_script` grades a document's saved cases exactly the way
+ * `test_code` grades the same cases, and every validation rule is shown red
+ * on a fixture built to violate it and green on one that does not.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -26,6 +26,8 @@ import {
   MAX_JS_SCRIPT_DEPTH
 } from "../src/capabilities/js-scripts.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
+import { assembleSandboxToolbelt } from "../src/sandbox-toolbelt.js";
 
 const USER = "u1";
 
@@ -179,26 +181,60 @@ describe("run_js_script", () => {
     expect(result.error).toContain("was not found");
   });
 
-  // Hermeticity: a script is a function over its inputs. The toolbelt globals
-  // the CodeAct guest carries must not be reachable from a script body.
-  it("gives the guest no toolbelt", async () => {
+  it("gives the guest the Code-node toolbelt", async () => {
     const script = await makeScript({
-      code: 'await output("tools", typeof tools);\nawait output("nodetool", typeof nodetool);',
+      code:
+        "const caps = nodetool.capabilities();\n" +
+        'await output("tools", typeof tools);\n' +
+        'await output("nodetool", typeof nodetool);\n' +
+        'await output("hasList", typeof tools.list_js_scripts);\n' +
+        'await output("hasWorkflows", Boolean(caps.workflows));\n' +
+        "const listed = await tools.list_js_scripts();\n" +
+        'await output("count", listed.js_scripts.length);',
       outputs: [
         { name: "tools", type: "str" },
-        { name: "nodetool", type: "str" }
+        { name: "nodetool", type: "str" },
+        { name: "hasList", type: "str" },
+        { name: "hasWorkflows", type: "bool" },
+        { name: "count", type: "int" }
       ]
     });
     const result = (await toolForCapabilityName("run_js_script").execute(
       context(),
       { js_script_id: script.id }
-    )) as { ok: boolean; outputs: Record<string, unknown> };
+    )) as { ok: boolean; outputs: Record<string, unknown>; error?: string };
 
+    expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
     expect(result.outputs).toEqual({
-      tools: "undefined",
-      nodetool: "undefined"
+      tools: "object",
+      nodetool: "object",
+      hasList: "function",
+      hasWorkflows: true,
+      count: 1
     });
+  });
+
+  it("refuses a nested run_js_script of the same script, naming the cycle", async () => {
+    const script = await makeScript({
+      code:
+        "try {\n" +
+        "  await tools.run_js_script({ js_script_id: inputs.id });\n" +
+        '  await output("err", "");\n' +
+        "} catch (e) {\n" +
+        '  await output("err", String(e.message));\n' +
+        "}",
+      inputs: [{ name: "id", type: "str" }],
+      outputs: [{ name: "err", type: "str" }]
+    });
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, inputs: { id: script.id } }
+    )) as { ok: boolean; outputs: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(String(result.outputs.err)).toContain("already running");
   });
 });
 
@@ -651,5 +687,21 @@ describe("permission categories", () => {
     expect(permissionCategoryFor("save_js_script")).toBe("write");
     expect(permissionCategoryFor("run_js_script")).toBe("execute");
     expect(permissionCategoryFor("test_js_script")).toBe("execute");
+  });
+
+  it("is on the builtin belt the Code node and a script share", () => {
+    for (const name of [
+      "list_js_scripts",
+      "get_js_script",
+      "save_js_script",
+      "validate_js_script",
+      "run_js_script",
+      "test_js_script"
+    ]) {
+      expect(BUILTIN_TOOL_NAMES).toContain(name);
+    }
+    const belt = assembleSandboxToolbelt().map((tool) => tool.name);
+    expect(belt).toContain("run_js_script");
+    expect(belt).toContain("list_workflows");
   });
 });

@@ -342,6 +342,11 @@ export {
   CODEACT_INJECTED_GLOBALS,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION
 } from "./codeact/tool-api.js";
+export {
+  assembleSandboxToolbelt,
+  sandboxToolBridgeGlobals,
+  NODETOOL_PRELUDE
+} from "./sandbox-toolbelt.js";
 export type { ToolSignatureSource } from "./codeact/tool-api.js";
 export { createChatCodeActSession } from "./codeact/chat-codeact.js";
 export type {
@@ -889,8 +894,9 @@ export type {
   AppBuildRequest
 } from "./app-build/build-service.js";
 
-// The hermetic Code-body executor `run_code`/`test_code` share, and what the
-// JS-script run endpoint executes a script document with.
+// The Code-body executor `run_code`/`test_code` share (hermetic), and what
+// the JS-script run endpoint executes a script document with (with the
+// Code-node toolbelt).
 export { runCodeBody } from "./capabilities/code.js";
 export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";

@@ -92,6 +92,14 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "run_code",
   "test_code",
 
+  // JS script documents (list → get → save → validate → run → test)
+  "list_js_scripts",
+  "get_js_script",
+  "save_js_script",
+  "validate_js_script",
+  "run_js_script",
+  "test_js_script",
+
   // Vision (lazy image loading: handles → pixels on demand)
   "list_images",
   "view_image",

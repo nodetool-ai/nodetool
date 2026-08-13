@@ -204,9 +204,10 @@ export const runJsScriptSpec: CapabilitySpec = {
     "Run a saved JS script in the QuickJS sandbox with the given `inputs` " +
     "and report its outputs, streamed emits, console logs and error. The " +
     "script runs inside its own envelope: the sandbox packages it declares, " +
-    "only the secrets it declares, and its own timeout. There is no toolbelt " +
-    "inside a script — it is a function over its inputs. Address the script " +
-    "by id, or by name when the name is unambiguous.",
+    "only the secrets it declares, and its own timeout. The guest has the " +
+    "same `tools.*` / `nodetool.*` belt a Code node has — tool-backed calls " +
+    "can spend money. Address the script by id, or by name when the name is " +
+    "unambiguous.",
   inputSchema: RUN_JS_SCRIPT_SCHEMA,
   category: "execute",
   userMessage: (params) =>

@@ -10,7 +10,6 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import {
   useJsScriptName,
-  useJsScriptSaveStatus,
   useJsScriptStore
 } from "../../stores/jsScript/JsScriptStore";
 import { useJsScriptServerSync } from "../../hooks/jsScript/useJsScriptServerSync";
@@ -23,10 +22,7 @@ import {
 import {
   FlexColumn,
   FlexRow,
-  TabGroup,
-  Text,
-  TextInput,
-  SPACING
+  TabGroup
 } from "../ui_primitives";
 import JsScriptEditorPane from "../jsScript/JsScriptEditorPane";
 import JsScriptSettingsPanel from "../jsScript/JsScriptSettingsPanel";
@@ -60,12 +56,10 @@ const DEFAULT_NAME = "Untitled JS script";
 const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   const theme = useTheme();
   const ensureScript = useJsScriptStore((state) => state.ensureScript);
-  const setName = useJsScriptStore((state) => state.setName);
   const undo = useJsScriptStore((state) => state.undo);
   const redo = useJsScriptStore((state) => state.redo);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const name = useJsScriptName(refId);
-  const saveStatus = useJsScriptSaveStatus(refId);
   const readOnly = mode === "view";
   const [dockTab, setDockTab] = useState<DockTab>("settings");
 
@@ -126,31 +120,10 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   return (
     <FlexRow fullHeight sx={{ minHeight: 0 }}>
       <FlexColumn fullHeight sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-        <FlexRow
-          gap={SPACING.md}
-          align="center"
-          padding={1}
-          sx={{ flexShrink: 0 }}
-        >
-          <TextInput
-            label="Script name"
-            hideLabel
-            size="small"
-            value={name}
-            placeholder={DEFAULT_NAME}
-            disabled={readOnly}
-            onChange={(event) => setName(refId, event.target.value)}
-            sx={{ maxWidth: 320 }}
-          />
-          <Text size="small" color="secondary">
-            {saveStatus}
-          </Text>
-        </FlexRow>
-
         <FlexColumn
           fullWidth
           padding={1}
-          sx={{ flex: 1, minHeight: 0, paddingTop: 0 }}
+          sx={{ flex: 1, minHeight: 0 }}
         >
           <JsScriptEditorPane scriptId={refId} readOnly={readOnly} />
         </FlexColumn>

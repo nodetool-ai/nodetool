@@ -56,8 +56,8 @@ Apply.
 Script contract: declared inputs arrive on the \`inputs\` object
 (\`inputs.<name>\`); values leave through \`emit(name, value)\` /
 \`output(name, value)\`, never through \`return\`; a sandbox package must be
-declared before its import resolves; there is no toolbelt — a script is a
-function over its inputs.`;
+declared before its import resolves; the body has the same \`tools.*\` /
+\`nodetool.*\` belt a Code node has (tool-backed calls can spend money).`;
 
 export interface JsScriptAgentPanelProps {
   scriptId: string;

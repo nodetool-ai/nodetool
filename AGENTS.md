@@ -7,7 +7,7 @@ This file is the single source of truth for agents working in this repository:
 architecture, commands, harnesses, and linter-like rules. `CLAUDE.md` is a macro
 that points here — never put content there.
 
-> _Last updated: 2026-08-11._ When the architecture, commands, or rules below
+> _Last updated: 2026-08-13._ When the architecture, commands, or rules below
 > drift from the codebase, update this file in the same PR.
 
 > **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).**
@@ -1053,7 +1053,8 @@ Agents reach the same surface through the `js-scripts` capability module —
 **`validate_js_script`**, **`run_js_script`** and **`test_js_script`**. A script
 runs inside its own envelope: its declared packages, its declared secrets
 intersected with whatever allowance the invoking context carries, its own
-timeout, and no toolbelt. Composition is bounded like sub-agents: depth cap 4
+timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
 target resolution, the interaction script, and the bundle. Eval suite:
