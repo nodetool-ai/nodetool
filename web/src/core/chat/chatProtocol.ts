@@ -1155,9 +1155,7 @@ async function executeToolCall(
 
   const startTime = Date.now();
   try {
-    // Resolve the canonical frontend-tool runtime state lazily — the same
-    // source the agent (`/ws/agent`) bridge uses, so `ui_*` tools behave
-    // identically in every chat mode. It is wired by the workflow editor
+    // Resolve the canonical frontend-tool runtime state lazily. It is wired by the workflow editor
     // (PanelRight); when no editor is mounted (e.g. the global /chat route
     // with no open workflow) accessing it throws, which surfaces as a tool
     // error instead of silently mutating a stub.
@@ -1299,8 +1297,7 @@ export async function handleChatWebSocketMessage(
     }));
   }
 
-  // Swallow stragglers for a thread the user is stopping. The top-level
-  // status check covers the pi transport, which drives the mirror directly.
+  // Swallow stragglers for a thread the user is stopping.
   const isStopping =
     getThreadRuntime(currentState, tid).status === "stopping" ||
     (currentState.status === "stopping" &&

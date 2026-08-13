@@ -33,9 +33,6 @@ export const UNIFIED_WS_URL = getWebSocketUrl("/ws");
 /** WebSocket URL for the HuggingFace model download endpoint. */
 export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
-/** WebSocket URL for the Claude/Codex/OpenCode agent endpoint. */
-export const AGENT_WS_URL = getWebSocketUrl("/ws/agent");
-
 /**
  * Prefix a relative URL with `BASE_URL` when it is set. Absolute URLs
  * (http://, https://, blob:, data:, ws://, etc.) and empty values are

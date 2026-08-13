@@ -8,8 +8,8 @@
  * back — repeating until the model stops calling tools or a turn cap is hit.
  *
  * Where {@link runGraphPlannerEval} evaluates typed-DSL graph authoring, this
- * evaluates the incremental add-node/connect-node tool flow the browser UI and
- * the agent WebSocket bridge actually expose. It records the same efficiency
+ * evaluates the incremental add-node/connect-node tool flow the browser UI
+ * exposes. It records the same efficiency
  * metrics and emits the same result/summary shapes so providers/models can be
  * compared on one report.
  *

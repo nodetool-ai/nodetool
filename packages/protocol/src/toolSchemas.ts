@@ -2,7 +2,6 @@
 //
 // Shared Zod tool schemas for frontend UI tools.
 // Exported as ZodRawShape (plain objects of Zod types) for:
-//   - Agent SDK MCP server registration (electron/src/agent.ts)
 //   - Frontend tool validation (web/src/lib/tools/builtin/*.ts wraps with z.object())
 //
 // If you update a schema here, update the corresponding builtin tool file too.

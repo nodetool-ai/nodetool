@@ -12,14 +12,12 @@ jest.mock("react-router-dom", () => ({
 }));
 
 const createNewThread = jest.fn(async () => "thread-1");
-const setChatMode = jest.fn();
 
 jest.mock("../../stores/GlobalChatStore", () => ({
   __esModule: true,
   default: {
     getState: () => ({
-      createNewThread,
-      setMode: setChatMode
+      createNewThread
     })
   }
 }));
@@ -58,7 +56,6 @@ describe("useStartTrackChat", () => {
     });
 
     expect(useMediaGenerationStore.getState().mode).toBe("image");
-    expect(setChatMode).toHaveBeenCalledWith("chat");
   });
 
   it("marks the getting-started step", async () => {

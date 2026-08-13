@@ -503,8 +503,6 @@ app.on("ready", async () => {
       }
 
       await initialize();
-      // The MCP tool server now lives on the NodeTool server alongside the
-      // agent runtime. The renderer connects via `/ws/agent`.
     }
   });
 });

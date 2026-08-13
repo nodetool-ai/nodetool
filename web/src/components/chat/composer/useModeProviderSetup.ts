@@ -17,28 +17,24 @@ export interface ModeProviderSetup {
  * Watches whether the selected composer mode has a configured provider behind
  * it. The providers endpoint only lists providers whose credential is present,
  * so an empty capability-filtered list means the mode cannot run until the
- * user connects a provider. Pass null (e.g. Pi mode) to disable the check.
+ * user connects a provider.
  * While the provider query is loading or errored the check stays quiet — the
  * connection banner already surfaces fetch errors.
  */
-export const useModeProviderSetup = (
-  mode: MediaMode | null
-): ModeProviderSetup => {
-  const capability = mode ? capabilityForMode(mode) : null;
+export const useModeProviderSetup = (mode: MediaMode): ModeProviderSetup => {
+  const capability = capabilityForMode(mode);
   const { providers, isLoading, error } = useProvidersByCapability(
     capability ?? "generate_message"
   );
   const needsSetup =
     capability !== null && !isLoading && !error && providers.length === 0;
-  const reason = needsSetup && mode ? setupReasonForMode(mode) : null;
+  const reason = needsSetup ? setupReasonForMode(mode) : null;
 
   const openSetup = useCallback(() => {
-    if (!capability) {
-      return;
-    }
+    if (!capability) return;
     openProviderOnboarding({
       capability,
-      reason: (mode && setupReasonForMode(mode)) ?? undefined
+      reason: setupReasonForMode(mode) ?? undefined
     });
   }, [capability, mode]);
 

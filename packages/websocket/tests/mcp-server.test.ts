@@ -22,15 +22,12 @@ import {
   createMcpServer,
   createMcpStdioTransport,
   handleMcpHttpRequest,
-  registerMcpFrontendTransport,
-  unregisterMcpFrontendTransport,
   MCP_SCOPE_REQUIRED_MESSAGE
 } from "../src/mcp-server.js";
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
   MCP_SANDBOX_RESOURCE_URI
 } from "../src/mcp-agent-tools.js";
-import type { AgentTransport } from "../src/agent/transport.js";
 
 const scope = { userId: "1", source: "stdio-local" as const };
 
@@ -56,20 +53,6 @@ afterAll(() => {
 beforeEach(() => {
   initTestDb();
 });
-
-function fakeTransport(
-  id: string,
-  executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
-): AgentTransport {
-  return {
-    id,
-    isAlive: true,
-    streamMessage: () => {},
-    requestToolManifest: async () => [],
-    executeTool,
-    abortTools: () => {}
-  };
-}
 
 /** Initialize a real MCP client against a scoped session. */
 async function connectClient(): Promise<Client> {
@@ -348,100 +331,5 @@ describe("session scope", () => {
     const body = (await response!.json()) as { error: { message: string } };
     expect(body.error.message).toBe(MCP_SCOPE_REQUIRED_MESSAGE);
     expect(body.error.message).toContain("nodetool mcp serve");
-  });
-});
-
-describe("editor steering through the belt", () => {
-  it("routes an editor-steering ui_ tool to the connected renderer", async () => {
-    let received: { name?: string; args?: unknown } = {};
-    const transport = fakeTransport("r-1", async (_s, _c, name, args) => {
-      received = { name, args };
-      return { ok: true };
-    });
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      expect(toolNames(server)).not.toContain("ui_open_workflow");
-
-      const observed = await act(
-        server,
-        'return await tools.ui_open_workflow({ workflow_id: "wf-1", renderer_id: "r-1" });'
-      );
-      expect(observed.ok).toBe(true);
-      expect(received.name).toBe("ui_open_workflow");
-      expect(received.args).toMatchObject({ workflow_id: "wf-1" });
-      expect(received.args).not.toHaveProperty("renderer_id");
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
-  });
-
-  it("reports a missing renderer instead of silently succeeding", async () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    const observed = await act(
-      server,
-      'return await tools.ui_switch_tab({ tab_index: 0 });'
-    );
-    expect(observed.ok).toBe(false);
-    expect(observed.error).toContain("connected NodeTool editor");
-  });
-
-  it("names an unknown renderer_id", async () => {
-    const transport = fakeTransport("r-1");
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      const observed = await act(
-        server,
-        'return await tools.ui_copy({ text: "x", renderer_id: "missing" });'
-      );
-      expect(observed.ok).toBe(false);
-      expect(observed.error).toContain('renderer with id "missing"');
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
-  });
-
-  it("list_renderers is on the belt, not an MCP tool", async () => {
-    const a = fakeTransport("r-a");
-    const b = fakeTransport("r-b");
-    registerMcpFrontendTransport(a);
-    registerMcpFrontendTransport(b);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      expect(toolNames(server)).not.toContain("list_renderers");
-
-      const observed = await act(server, "return await tools.list_renderers({});");
-      expect(observed.ok).toBe(true);
-      const body = observed.result as {
-        renderers: Array<{ renderer_id: string; active: boolean }>;
-      };
-      const ids = body.renderers.map((r) => r.renderer_id);
-      expect(ids).toContain("r-a");
-      expect(ids).toContain("r-b");
-      // Most-recently-registered renderer is the active default.
-      expect(body.renderers.find((r) => r.renderer_id === "r-b")?.active).toBe(
-        true
-      );
-    } finally {
-      unregisterMcpFrontendTransport(a);
-      unregisterMcpFrontendTransport(b);
-    }
-  });
-
-  it("prefers live editor state for the workflow document tools", async () => {
-    const transport = fakeTransport("r-live", async () => ({
-      ok: true,
-      workflow_id: "live-workflow"
-    }));
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      const observed = await act(server, "return await tools.ui_get_graph({});");
-      expect(observed.ok).toBe(true);
-      expect(observed.result).toMatchObject({ workflow_id: "live-workflow" });
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
   });
 });

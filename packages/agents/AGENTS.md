@@ -1284,8 +1284,8 @@ timing, and call counts are unaffected.
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 
 Where the graph-planner eval measures graph authoring, the tool-loop harness
-measures the incremental, multi-turn tool-calling flow the browser UI
-and the agent WebSocket bridge actually expose. A real provider is handed the
+measures the incremental, multi-turn tool-calling flow the browser UI exposes.
+A real provider is handed the
 frontend tool contract (names/descriptions/Zod schemas mirrored from
 `web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
 a node-side fake that holds the same state shape and applies the same

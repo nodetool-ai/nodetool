@@ -3,11 +3,8 @@
 // The one list of built-in frontend tool modules. Importing this module
 // registers all of them with the FrontendToolRegistry via side effect.
 //
-// Two entry points load frontend tools — the browser app (`src/index.tsx`,
-// lazily after first render) and the agent WebSocket bridge
-// (`frontendToolsIpc.ts`). They used to keep separate lists that had drifted
-// apart, so the editor tools existed on one path and not the other and the
-// manifest depended on which shell you were in. Both now go through here.
+// The browser app loads this module lazily after its first render. Keeping the
+// registrations in one place prevents the frontend tool catalog from drifting.
 //
 // Note this is registration, not availability: every editor tool takes a
 // required document id and resolves it against the documents actually open,

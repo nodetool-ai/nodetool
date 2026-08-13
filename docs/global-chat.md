@@ -60,7 +60,6 @@ The same composer generates more than text. Click the mode chip to switch betwee
 | **Generate Videos** | Text-to-video |
 | **Animate Image** | Turn a still image into a clip |
 | **Generate Speech** | Text-to-speech with a voice picker |
-| **Pi Agent** | The workspace-aware agent that works over your files |
 
 Each mode swaps in its own controls — resolution, aspect ratio, duration, voice — and attaches them to the message so the server routes to the right provider call.
 

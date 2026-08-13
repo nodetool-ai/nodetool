@@ -7,12 +7,6 @@
  * NodeTool can do is reached from inside an action, through the belt and the
  * `nodetool.*` object model, and is catalogued on `nodetool://capabilities`
  * and `nodetool://sandbox`.
- *
- * This file used to hand-build a second product surface here: native
- * `run_workflow` / `get_asset` / `get_node_info` / collection tools, a flat
- * `ui_*` renderer bridge, and seven MCP App HTML views. All of it is gone; what
- * remains is session plumbing plus the renderer transport map the bridged
- * `ui_*` belt entries route through.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -21,7 +15,6 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { AgentTransport } from "./agent/transport.js";
 import { registerAgentMcpTools } from "./mcp-agent-tools.js";
 
 export interface McpServerOptions {
@@ -56,41 +49,6 @@ export const MCP_SCOPE_REQUIRED_MESSAGE =
 const log = createLogger("nodetool.websocket.mcp-server");
 
 /**
- * Renderer transports keyed by `transport.id`. Each connected NodeTool editor
- * registers here on connect (see the agent WebSocket route), so the shared
- * `/mcp` endpoint can route `ui_*` belt calls to a specific live editor.
- * `activeFrontendRendererId` tracks the most-recently-active renderer, used
- * when a caller doesn't name one.
- */
-const frontendTransports = new Map<string, AgentTransport>();
-let activeFrontendRendererId: string | null = null;
-
-function resolveFrontendTransport(
-  rendererId?: string | null
-): AgentTransport | null {
-  if (rendererId) {
-    const target = frontendTransports.get(rendererId);
-    return target && target.isAlive ? target : null;
-  }
-  if (activeFrontendRendererId) {
-    const active = frontendTransports.get(activeFrontendRendererId);
-    if (active && active.isAlive) return active;
-  }
-  // Fall back to any live renderer so single-editor setups need no id.
-  const alive = [...frontendTransports.values()].filter((t) => t.isAlive);
-  return alive[alive.length - 1] ?? null;
-}
-
-function listFrontendRenderers(): { renderer_id: string; active: boolean }[] {
-  return [...frontendTransports.values()]
-    .filter((t) => t.isAlive)
-    .map((t) => ({
-      renderer_id: t.id,
-      active: t.id === activeFrontendRendererId
-    }));
-}
-
-/**
  * Create a configured MCP server: `execute_code`, `view_image`, the
  * capabilities and sandbox resources, and the guest-contract instructions.
  *
@@ -110,23 +68,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     { instructions: MCP_GUEST_CONTRACT }
   );
 
-  registerAgentMcpTools(server, options, {
-    execute: async (toolName, args) => {
-      const { renderer_id, ...toolArgs } = args;
-      const rendererId =
-        typeof renderer_id === "string" ? renderer_id : undefined;
-      const transport = resolveFrontendTransport(rendererId);
-      if (!transport || !transport.isAlive) return { handled: false };
-      const result = await transport.executeTool(
-        transport.id,
-        `mcp-ui-${toolName}-${crypto.randomUUID()}`,
-        toolName,
-        toolArgs
-      );
-      return { handled: true, result };
-    },
-    listRenderers: listFrontendRenderers
-  });
+  registerAgentMcpTools(server, options);
 
   return server;
 }
@@ -143,35 +85,6 @@ const sessionTransports = new Map<
   string,
   WebStandardStreamableHTTPServerTransport
 >();
-
-/**
- * Register a renderer as available for `ui_*` routing and mark it active.
- * Called when an editor's agent WebSocket connects, so an action can steer a
- * connected editor over the shared `/mcp` endpoint without first priming an
- * in-app agent turn.
- */
-export function registerMcpFrontendTransport(transport: AgentTransport): void {
-  frontendTransports.set(transport.id, transport);
-  activeFrontendRendererId = transport.id;
-}
-
-/** Promote an already-registered renderer to be the active default. */
-export function setActiveMcpFrontendRenderer(transport: AgentTransport): void {
-  if (frontendTransports.has(transport.id)) {
-    activeFrontendRendererId = transport.id;
-  }
-}
-
-/** Drop a renderer on disconnect, promoting another if it was the active one. */
-export function unregisterMcpFrontendTransport(
-  transport: AgentTransport
-): void {
-  frontendTransports.delete(transport.id);
-  if (activeFrontendRendererId === transport.id) {
-    const remaining = [...frontendTransports.keys()];
-    activeFrontendRendererId = remaining[remaining.length - 1] ?? null;
-  }
-}
 
 export function getLocalMcpServerUrl(): string {
   const port = Number(process.env["PORT"] ?? 7777);

@@ -155,9 +155,7 @@ const LegacyAppRedirect = React.lazy(
   () => import("./components/applications/LegacyAppRedirect")
 );
 
-// Defer frontend tool registrations until after initial render. The module list
-// lives in builtin/index.ts so this path and the agent WebSocket bridge
-// register exactly the same tools.
+// Defer frontend tool registrations until after initial render.
 const registerFrontendTools = () => {
   import("./lib/tools/builtin").catch((error) => {
     console.error("Failed to register frontend tools:", error);

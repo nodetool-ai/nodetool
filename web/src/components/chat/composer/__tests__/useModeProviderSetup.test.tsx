@@ -107,13 +107,4 @@ describe("useModeProviderSetup", () => {
     expect(errored.result.current.needsSetup).toBe(false);
   });
 
-  it("is disabled for a null mode (Pi) and never opens onboarding", () => {
-    mockUseProvidersByCapability.mockReturnValue(providersResult([]));
-
-    const { result } = renderHook(() => useModeProviderSetup(null));
-
-    expect(result.current.needsSetup).toBe(false);
-    act(() => result.current.openSetup());
-    expect(mockOpenProviderOnboarding).not.toHaveBeenCalled();
-  });
 });

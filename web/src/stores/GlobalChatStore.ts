@@ -17,7 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import {
   Message,
-  MessageTextContent,
   TaskUpdate,
   PlanningUpdate,
   LogUpdate,
@@ -49,7 +48,6 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
   WorkflowCreatedUpdate,
@@ -72,14 +70,6 @@ type ChatStatus =
   | "streaming"
   | "error"
   | "stopping";
-
-/**
- * How the unified chat routes a message:
- * - "chat": the `/ws` LLM-with-tools loop (also covers media generation, which
- *   is carried per-message via `media_generation`).
- * - "pi": the workspace-aware Pi coding agent over `/ws/agent`.
- */
-type ChatMode = "chat" | "pi";
 
 export type StepToolCall = {
   id: string;
@@ -165,7 +155,7 @@ interface PlanApprovalRequest {
   plan: ProposedPlan;
 }
 
-export interface GlobalChatState extends ChatPiSlice {
+export interface GlobalChatState {
   // Connection state + mirror of the CURRENT thread's runtime (see
   // core/chat/threadRuntime.ts). Multi-thread consumers read `threadRuntime`.
   status: ChatStatus;
@@ -179,11 +169,6 @@ export interface GlobalChatState extends ChatPiSlice {
   threadRuntime: Record<string, ThreadRuntime>;
   workflowId: string | null;
   threadWorkflowId: Record<string, string | null>;
-
-  // Active chat mode (chat vs. pi). Media generation is a per-message concern
-  // carried in `media_generation`, so it does not need its own mode here.
-  mode: ChatMode;
-  setMode: (mode: ChatMode) => void;
 
   // Per-workflow thread binding for the editor side panel: each workflow gets
   // its own conversation. workflowId -> threadId.
@@ -333,22 +318,6 @@ function buildDefaultLanguageModel(): LanguageModel {
   };
 }
 
-/** Flatten a message's content down to plain text (for the pi transport). */
-function extractMessageText(message: Message | ChatOutgoingMessage): string {
-  const { content } = message;
-  if (typeof content === "string") {
-    return content;
-  }
-  if (Array.isArray(content)) {
-    return content
-      .filter((part): part is MessageTextContent => part?.type === "text")
-      .map((part) => part.text)
-      .join("")
-      .trim();
-  }
-  return "";
-}
-
 // Concurrency guards (module-level so they never end up in persisted state):
 // - `connectPromise` dedupes overlapping connect() calls; without it each call
 //   registers its own event handlers on the GlobalWebSocketManager singleton
@@ -424,11 +393,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       wsThreadSubscriptions: {},
       currentRunningToolCallId: null,
       currentToolMessage: null,
-
-      // Mode + Pi transport slice
-      mode: "chat",
-      setMode: (mode: ChatMode) => set({ mode }),
-      ...createChatPiSlice(set, get),
 
       // Per-workflow thread binding (editor side panel)
       workflowThreadId: {},
@@ -858,15 +822,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const { currentThreadId, workflowId, memoryEnabled, selectedModel } =
           get();
 
-        // Pi mode routes through the agent socket instead of the /ws chat loop.
-        if (get().mode === "pi") {
-          let threadId = targetThreadId ?? currentThreadId;
-          if (!threadId) {
-            threadId = await get().createNewThread();
-          }
-          await get().sendPiMessage(threadId, extractMessageText(message));
-          return;
-        }
         // Agent mode is no longer a UI toggle — every chat session runs the
         // unified LLM-with-tools loop, and the agent decides for itself
         // whether to escalate via `run_subtask`. `agent_mode` and
@@ -1558,15 +1513,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const { currentThreadId, loadMessagesTimeoutId } = get();
         const tid = threadId ?? currentThreadId;
 
-        // Pi mode stops via the agent socket, not the /ws stop command.
-        if (get().mode === "pi") {
-          FrontendToolRegistry.abortAll();
-          if (tid) {
-            get().stopPi(tid);
-          }
-          return;
-        }
-
         // Clear the thread's pending sendMessage timeout
         const pendingTimeoutId = getThreadRuntime(get(), tid).sendMessageTimeoutId;
         if (pendingTimeoutId !== null) {
@@ -1677,14 +1623,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedModel: state.selectedModel,
         permissionMode: state.permissionMode,
         memoryEnabled: state.memoryEnabled,
-        // Per-workflow thread binding + Pi selections so the editor side panel
-        // restores the right conversation and agent setup across reloads.
+        // Per-workflow thread binding so the editor side panel restores the
+        // right conversation across reloads.
         workflowThreadId: state.workflowThreadId,
-        threadWorkflowId: state.threadWorkflowId,
-        piModel: state.piModel,
-        piWorkspaceId: state.piWorkspaceId,
-        piWorkspacePath: state.piWorkspacePath,
-        piSessionByThread: state.piSessionByThread
+        threadWorkflowId: state.threadWorkflowId
       }) as GlobalChatState,
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
@@ -1738,7 +1680,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           state.isLoadingMessages = false;
           state.isLoadingThreads = false;
 
-          // Guard the per-workflow + pi maps against corrupt persisted values
+          // Guard the per-workflow maps against corrupt persisted values
           // (they're read with spreads, so a non-object would crash).
           const asRecord = (value: unknown) =>
             value && typeof value === "object" && !Array.isArray(value)
@@ -1746,12 +1688,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
               : {};
           state.workflowThreadId = asRecord(state.workflowThreadId);
           state.threadWorkflowId = asRecord(state.threadWorkflowId);
-          state.piSessionByThread = asRecord(state.piSessionByThread);
-          state.piThreadBySession = {};
-          if (typeof state.piModel !== "string") {
-            state.piModel = "";
-          }
-          state.mode = state.mode === "pi" ? "pi" : "chat";
 
           // Load threads from API if not loaded yet
           if (!state.threadsLoaded) {

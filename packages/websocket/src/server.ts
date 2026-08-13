@@ -134,11 +134,6 @@ import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
-import {
-  agentSocketRoute,
-  getAgentRuntime,
-  setLlmAgentNodeRegistry
-} from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -420,7 +415,6 @@ const registry = await bootstrapNodeRegistry({
   log
 });
 log.info(`Node registry ready [${startupMs()}]`);
-setLlmAgentNodeRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
@@ -1357,8 +1351,6 @@ if (!isProduction) {
   });
 }
 
-await app.register(agentSocketRoute);
-
 log.info(`Routes registered [${startupMs()}]`);
 
 if (hasStaticApp && staticFolder) {
@@ -1513,11 +1505,6 @@ const stopReaper = startReaper(
 async function shutdown(signal: string): Promise<void> {
   log.info(`${signal} received — shutting down`);
   log.info("Closing Python bridge");
-  try {
-    getAgentRuntime().closeAllSessions();
-  } catch {
-    // best-effort cleanup
-  }
   stopReaper();
   stopJobCancelPoller();
   try {
