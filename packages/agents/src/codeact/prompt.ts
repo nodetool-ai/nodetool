@@ -61,7 +61,10 @@ Rules:
   genuinely depends on a previous result.
 - \`state\` is a plain object that persists across your actions in this step.
   Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
-  them next turn — never re-fetch what you already have.
+  them next turn — never re-fetch what you already have. Write a large literal
+  into \`state\` in the action that builds it. If that action fails, patch the
+  copy in \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit
+  the literal a second time.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
   fields you need); large payloads belong in \`state\` or agent memory — not in
   the transcript.
