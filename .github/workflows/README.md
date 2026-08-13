@@ -36,8 +36,6 @@ see below.
 | `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
 | `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
-| `chromatic.yml` | Storybook visual regression via Chromatic (TurboSnap) | 0 | Advisory (`exitZeroOnChanges`) |
-| `visual-regression.yml` | Playwright screenshot diffs for the web UI | 0 | Advisory (`continue-on-error`, baselines still maturing) |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | Deploy the GHCR image to Fly.io, gated on `docker.yml` + `user-journeys.yml`'s `reliability-ring1` both succeeding for the same commit | 1 | Required |

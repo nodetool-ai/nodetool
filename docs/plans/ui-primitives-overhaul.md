@@ -493,12 +493,6 @@ tolerance) but contains zero local form CSS.
 
 - Per PR: `cd web && npm run typecheck && npm run lint && npm test` and
   `npm run lint:design`.
-- **Visual regression**: `npm run test:visual` (Playwright,
-  `web/tests/visual/`, committed baselines, 1% diff tolerance). PRs 1–3 and
-  5–6 intentionally change rendering — regenerate baselines with
-  `--update-snapshots`, review the image diffs in the PR, and say so in the
-  PR body. `design-system.spec.ts` covers the primitives gallery and is the
-  primary gate; `settings.spec.ts` catches the SelectField flip.
 - Manual before/after screenshots per PR: storyboard header (`/workspace`
   storyboard tab), node inspector, `SettingsMenu`, `CollectionForm` — in
   both color schemes.

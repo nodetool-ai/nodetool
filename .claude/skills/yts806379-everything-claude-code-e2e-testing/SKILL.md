@@ -6,7 +6,7 @@ origin: ECC
 
 # E2E Testing Patterns
 
-> **This repo**: Playwright suites live in `web/tests/` with per-suite configs at the `web/` root — `playwright.config.ts`, `playwright.e2e-runner.config.ts`, `playwright.debug-harness.config.ts`, `playwright.visual.config.ts`. Run the harness suites via `cd web && npm run test:debug-harness` (see root `CLAUDE.md` § nodetool debug). Electron E2E setup: `electron/src/AGENTS.md` § E2E Test Setup. The generic patterns below apply on top of that layout — prefer the repo's existing fixtures and configs over the scaffold shown here.
+> **This repo**: Playwright suites live in `web/tests/` with per-suite configs at the `web/` root — `playwright.config.ts`, `playwright.e2e-runner.config.ts`, `playwright.debug-harness.config.ts`. Run the harness suites via `cd web && npm run test:debug-harness` (see root `CLAUDE.md` § nodetool debug). Electron E2E setup: `electron/src/AGENTS.md` § E2E Test Setup. The generic patterns below apply on top of that layout — prefer the repo's existing fixtures and configs over the scaffold shown here.
 
 Comprehensive Playwright patterns for building stable, fast, and maintainable E2E test suites.
 

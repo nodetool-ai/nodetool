@@ -144,7 +144,6 @@ export default {
     "tests/e2e-runner/",
     "tests/benchmarks/",
     "tests/debug-harness/",
-    "tests/visual/",
     "tests/smoke/",
     "tests/journeys/",
     // Shared helpers living inside __tests__ dirs — not suites themselves.

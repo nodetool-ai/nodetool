@@ -8,8 +8,7 @@
  *   - a visible React error boundary,
  *   - a `console.error`, or
  *   - a 4xx/5xx on a critical resource (document / script / stylesheet).
- * It complements the visual-regression suite: that one guards how pages look,
- * this one guards that they mount at all.
+ * It guards that every page mounts at all.
  *
  * Environment noise expected on GPU-less CI runners (WebGPU adapter probing,
  * favicon 404s, aborted in-flight fetches on unmount, the transient agent
