@@ -88,6 +88,23 @@ const SOLUTIONS: Record<string, string[]> = {
        total: listed.memories.length
      });`
   ],
+  "threads-recall": [
+    `const listed = await nodetool.threads.list({limit: 10});
+     let threadId = null;
+     for (const t of listed.threads) {
+       if (t.title.toLowerCase().indexOf("banner") >= 0) threadId = t.id;
+     }
+     const thread = await nodetool.threads.get(threadId);
+     let messageId = null;
+     for (const m of thread.messages) {
+       if (m.tool_calls && m.tool_calls.length > 0) messageId = m.id;
+     }
+     const full = await nodetool.threads.message(messageId);
+     await finish({
+       threadId: threadId,
+       model: full.tool_calls[0].args.model
+     });`
+  ],
   "shared-handoff": [
     `const listed = await nodetool.shared.list();
      let pricingKey = null;

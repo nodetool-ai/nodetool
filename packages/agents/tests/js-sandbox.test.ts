@@ -2017,3 +2017,64 @@ describe("serializeResult binary preservation", () => {
     expect(typeof serializeResult(cyclic)).toBe("string");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Engine failure containment
+//
+// Both cases here used to end with the host process dead and the tool call
+// that was running it returning nothing at all — the worst failure mode there
+// is, because the agent driving it cannot even retry.
+// ---------------------------------------------------------------------------
+
+describe("guest→host binary volume", () => {
+  it("moves far more than the old ~8 MB ceiling without aborting the runtime", async () => {
+    // The typed-array serializer took a `Lifetime` from `getArrayBuffer` and
+    // never disposed it. The leaked handles tripped
+    // `list_empty(&rt->gc_obj_list)` in JS_FreeRuntime — an Emscripten abort
+    // fired *after* the guest had already computed its answer, so the result
+    // was produced and then thrown away. 16 MB failed before the fix.
+    const result = await runInSandbox({
+      code: `
+        let total = 0;
+        for (let i = 0; i < 24; i++) {
+          total += await eat(new Uint8Array(1024 * 1024));
+        }
+        return total;
+      `,
+      context: {} as never,
+      timeoutMs: 120_000,
+      globals: { eat: async (a: unknown) => (a as Uint8Array).length }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(24 * 1024 * 1024);
+  }, 180_000);
+});
+
+describe("engine failure never takes the host process down", () => {
+  it("fails the run, with an actionable message, when marshaling blows up", async () => {
+    // A host global returning a raw Uint8Array breaks the byte-tagging
+    // contract: the value is marshaled property-by-property, the guest OOMs,
+    // and the throw lands in a promise continuation the engine never catches.
+    // That used to be an unhandled rejection, i.e. a dead process.
+    const result = await runInSandbox({
+      code: `const a = await big(); return "unreachable";`,
+      context: {} as never,
+      timeoutMs: 120_000,
+      globals: { big: async () => new Uint8Array(16 * 1024 * 1024) }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    // Not the raw Emscripten assertion text — an agent can't act on that.
+    expect(result.error).not.toMatch(/gc_obj_list|Assertion failed/);
+    expect(result.error).toMatch(/sandbox/i);
+  }, 180_000);
+
+  it("still runs normally afterwards", async () => {
+    const result = await runInSandbox({ code: `return 1 + 1;`, context: {} as never });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(2);
+  });
+});

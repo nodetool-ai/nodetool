@@ -191,7 +191,7 @@ IMAGES (encoded bytes in, encoded bytes out, so calls chain; png, jpeg, webp, av
 - await image.flip(bytes, options?) — horizontal (default true), vertical
 - await image.adjust(bytes, options) — brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity
 - await image.composite(bytes, layers, options?) — layer: image, x, y, width, height, opacity, blendMode
-- await image.convert(bytes, options) — format, quality; await image.decode(bytes) and await image.encode(pixels, options?) for raw RGBA
+- await image.convert(image, options) — format, quality; await image.blank(w, h, {color}) for a backdrop, await image.grid([...]) to combine, await image.stats(image) to inspect, await image.decode(image) for raw RGBA
 
 CANVAS (drawing):
 - createCanvas(width, height) → a surface; getContext with "2d" gives a Canvas 2D context

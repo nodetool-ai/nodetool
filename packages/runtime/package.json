@@ -17,6 +17,7 @@
   "dependencies": {
     "@aki-io/aki-io": "^1.0.1",
     "@anthropic-ai/sdk": "^0.105.0",
+    "@huggingface/inference": "^4.13.25",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
     "@opentelemetry/api": "^1.9.0",

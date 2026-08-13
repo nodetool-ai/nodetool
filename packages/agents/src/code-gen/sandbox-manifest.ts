@@ -429,13 +429,31 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
     name: "image",
     kind: "namespace",
     description:
-      "Raster image editing. Every member takes and returns encoded image " +
-      "bytes, so calls chain. Formats: png, jpeg, webp, avif.",
+      "Raster image editing. Every member takes an image handle, a media ref " +
+      "(asset:// and friends) or encoded bytes, and returns a handle — a small " +
+      "object naming bytes the host holds, so calls chain without moving the " +
+      "image. Read `.byteLength`, `.width`, `.height`, `.mimeType` off a " +
+      "handle; ask image.stats for what an image looks like, image.blank for " +
+      "a backdrop and image.grid to combine several; call image.bytes(handle) " +
+      "only when you must read the bytes " +
+      "yourself, and media.toImage(handle) to save one as an asset. " +
+      "A handle lives only for the action that made it — before this action " +
+      "ends, save anything you still need with media.toImage(handle) and " +
+      "carry the asset ref instead. Formats: png, jpeg, webp, avif.",
     members: [
+      {
+        name: "image.bytes",
+        signature: "await image.bytes(handle) -> Uint8Array",
+        description:
+          "The encoded bytes behind a handle. The one call that pulls an " +
+          "image into the guest — every other member keeps it host-side, so " +
+          "reach for this only when the body reads the bytes itself.",
+        async: true
+      },
       {
         name: "image.info",
         signature:
-          "await image.info(bytes) -> { width, height, format, byteLength }",
+          "await image.info(image) -> { width, height, format, byteLength }",
         description:
           "Dimensions and encoding of an image, without decoding it into the guest.",
         async: true
@@ -443,22 +461,47 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.decode",
         signature:
-          "await image.decode(bytes) -> { width, height, pixels } // pixels: RGBA Uint8Array",
+          "await image.decode(image) -> { width, height, pixels } // pixels: RGBA Uint8Array",
         description:
           "Raw pixels for per-pixel work. Four bytes per pixel — resize first, and prefer the other members when they do the job.",
         async: true
       },
       {
-        name: "image.encode",
+        name: "image.stats",
         signature:
-          "await image.encode({ width, height, pixels }, options?) -> Uint8Array // options: format, quality, background",
-        description: "Encode raw RGBA pixels — the inverse of decode.",
+          "await image.stats(image) -> { width, height, pixels, luminance, opaque, channels: { r, g, b, a } } // each: mean, min, max",
+        description:
+          "What an image looks like, in a hundred bytes — is it dark, flat, transparent. Ask this instead of decoding to find out.",
+        async: true
+      },
+      {
+        name: "image.blank",
+        signature:
+          "await image.blank(width, height, options?) -> handle // options: color, format, quality",
+        description:
+          "A new surface, transparent unless you pass color. The backdrop to composite onto.",
+        async: true
+      },
+      {
+        name: "image.pad",
+        signature:
+          "await image.pad(image, options) -> handle // options: all, top, right, bottom, left, color, format, quality",
+        description:
+          "Grow the canvas around an image without scaling it — margins, letterboxing, room to composite into.",
+        async: true
+      },
+      {
+        name: "image.grid",
+        signature:
+          "await image.grid([image, ...], options?) -> handle // options: columns, gap, background, format, quality",
+        description:
+          "Lay images out in a grid — the usual meaning of \"combine these\". Cells are the largest input and each image is centred; one row unless you pass columns.",
         async: true
       },
       {
         name: "image.resize",
         signature:
-          "await image.resize(bytes, options) -> Uint8Array // options: width, height, fit (cover | contain | fill), background, format, quality",
+          "await image.resize(image, options) -> handle // options: width, height, fit (cover | contain | fill), background, format, quality",
         description:
           "Scale an image. One of width or height keeps the aspect ratio; both apply the fit mode, which defaults to contain.",
         async: true
@@ -466,7 +509,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.crop",
         signature:
-          "await image.crop(bytes, options) -> Uint8Array // options: x, y, width, height, format, quality",
+          "await image.crop(image, options) -> handle // options: x, y, width, height, format, quality",
         description:
           "Cut a rectangle out. A rectangle outside the image is an error, not a clamp.",
         async: true
@@ -474,7 +517,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.rotate",
         signature:
-          "await image.rotate(bytes, degrees, options?) -> Uint8Array // options: background, format, quality",
+          "await image.rotate(image, degrees, options?) -> handle // options: background, format, quality",
         description:
           "Rotate clockwise, growing the canvas to the rotated bounding box so nothing is clipped.",
         async: true
@@ -482,14 +525,14 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.flip",
         signature:
-          "await image.flip(bytes, options?) -> Uint8Array // options: horizontal (default true), vertical, format, quality",
+          "await image.flip(image, options?) -> handle // options: horizontal (default true), vertical, format, quality",
         description: "Mirror an image.",
         async: true
       },
       {
         name: "image.adjust",
         signature:
-          "await image.adjust(bytes, options) -> Uint8Array // options: brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity, format, quality",
+          "await image.adjust(image, options) -> handle // options: brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity, format, quality",
         description:
           "Filter an image. 1 is unchanged for the multiplying filters, 0 for grayscale, sepia, invert and blur.",
         async: true
@@ -497,7 +540,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.composite",
         signature:
-          "await image.composite(bytes, layers, options?) -> Uint8Array // layer: { image, x, y, width, height, opacity, blendMode }",
+          "await image.composite(image, layers, options?) -> handle // layer: { image, x, y, width, height, opacity, blendMode }",
         description:
           "Draw layers over a base image — watermarks, badges, stacked renders. blendMode takes the Canvas globalCompositeOperation names.",
         async: true
@@ -505,7 +548,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "image.convert",
         signature:
-          "await image.convert(bytes, options) -> Uint8Array // options: format, quality, background",
+          "await image.convert(image, options) -> handle // options: format, quality, background",
         description:
           "Re-encode without resampling. Converting to jpeg fills transparency with background, white by default.",
         async: true
@@ -683,7 +726,8 @@ function overridableLimits(): SandboxLimitDoc[] {
     maxOutputSize: HUGE,
     memoryLimitBytes: HUGE,
     stackLimitBytes: HUGE,
-    fetchTimeoutMs: HUGE
+    fetchTimeoutMs: HUGE,
+    runMediaBytes: HUGE
   });
   // Numeric limits only. The capability switches (`allowPrivateNetwork`,
   // `userAgent`, `secretScope`) are deliberately absent: they are host-set,
@@ -705,7 +749,11 @@ function overridableLimits(): SandboxLimitDoc[] {
     maxOutputSize: { description: "serialized return value", unit: "bytes" },
     memoryLimitBytes: { description: "guest heap", unit: "bytes" },
     stackLimitBytes: { description: "guest call stack", unit: "bytes" },
-    fetchTimeoutMs: { description: "per-request fetch timeout", unit: "ms" }
+    fetchTimeoutMs: { description: "per-request fetch timeout", unit: "ms" },
+    runMediaBytes: {
+      description: "media held host-side for this run's image handles",
+      unit: "bytes"
+    }
   };
   return (Object.keys(described) as NumericLimitKey[]).map((key) => ({
     key,

@@ -23,7 +23,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import { ProcessingContext as ProcessingContextImpl } from "@nodetool-ai/runtime";
+import {
+  DIRECT_TOOL_NAMES,
+  ProcessingContext as ProcessingContextImpl,
+  SDK_NATIVE_TOOL_REPLACEMENTS
+} from "@nodetool-ai/runtime";
 import {
   Tool,
   CODEACT_RESIDENT_TOOL_NAMES,
@@ -644,7 +648,38 @@ export function registerAgentMcpTools(
   // and pixels cannot ride the sandbox's JSON observation envelope — so it is a
   // direct tool and is kept off the belt, exactly as the chat runner does.
   const beltForSandbox = belt.filter((tool) => tool.name !== "view_image");
-  const directToolNames = ["view_image"];
+
+  // The direct set, derived the way the CLI turn and the websocket runner
+  // derive theirs — minus the tools an MCP *client* already serves natively.
+  //
+  // `DIRECT_TOOL_NAMES` goes top level everywhere else because those are the
+  // shapes models are trained on, so a sandbox round trip whose only job is to
+  // forward one buys nothing. That argument holds here too. What does not hold
+  // is the file/search half: `SDK_NATIVE_TOOL_REPLACEMENTS` already names the
+  // tools a host agent covers with its own — and an MCP client (Claude Code,
+  // ChatGPT) is that host. Offering NodeTool's workspace-scoped `read_file`
+  // beside the client's own would put two tools of one name and two different
+  // roots in front of the same model.
+  //
+  // What is left has no host equivalent: discovery (which providers, models
+  // and node types this install has — a guess there is a hallucinated id that
+  // fails at generation time, after the run was paid for), the server-side
+  // reach that runs behind NodeTool's own SSRF guard and secrets, and
+  // `run_subtask`, whose child gets the NodeTool belt rather than the client's.
+  //
+  // Derived from both tables rather than hand-listed, so a tool added to
+  // either reaches this mount with no edit here.
+  const promotedDirect = belt.filter(
+    (tool) =>
+      DIRECT_TOOL_NAMES.has(tool.name) &&
+      !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)
+  );
+  // They stay on the belt: an action still calls them from code. Listing them
+  // as direct only moves where the prompt documents them.
+  const directToolNames = [
+    "view_image",
+    ...promotedDirect.map((tool) => tool.name)
+  ];
 
   const session = createChatCodeActSession({
     tools: beltForSandbox.map((tool) => ({
@@ -666,10 +701,29 @@ export function registerAgentMcpTools(
   // catalog and the sandbox summary ride in the description — the only field
   // every MCP client is guaranteed to show the model. The short contract
   // leads: many clients truncate a long description.
+  // `title` is a display label for NodeTool's own chat UI, and the action path
+  // never reads it — `executeAction` takes `code` and discards the rest. On the
+  // provider tool it is required because a system prompt teaches the contract
+  // and the label is what the user watches. MCP has neither: a client whose
+  // model skipped a field this server does not use had its whole action
+  // rejected on validation. It stays in the schema — described, and the
+  // contract in the description still asks for one — but is optional here.
+  const actionSchema = session.providerTool.inputSchema as Record<
+    string,
+    unknown
+  >;
+  const actionShape = jsonSchemaToZodShape({
+    ...actionSchema,
+    required: (Array.isArray(actionSchema["required"])
+      ? (actionSchema["required"] as string[])
+      : []
+    ).filter((name) => name !== "title")
+  } as unknown as JsonSchema);
+
   server.tool(
     session.providerTool.name,
     `${MCP_GUEST_CONTRACT}\n\n${session.providerTool.description}\n\n${session.systemPromptSection}`,
-    jsonSchemaToZodShape(session.providerTool.inputSchema),
+    actionShape,
     async (args) => {
       try {
         // The session already returns the observation envelope as JSON text.
@@ -687,10 +741,13 @@ export function registerAgentMcpTools(
     }
   );
 
-  // `view_image` is the second and last tool: its result carries image content,
-  // which an action's observation envelope cannot.
+  // `view_image` carries image content, which an action's observation envelope
+  // cannot, so it is direct for a reason no other tool shares.
   const viewImage = byName.get("view_image");
   if (viewImage) register(viewImage);
+
+  // The rest of the direct set, for parity with every other entrance.
+  for (const tool of promotedDirect) register(tool);
 
   // The structured catalog, for clients that want more than a description.
   const catalog = buildCapabilityCatalog(belt, [

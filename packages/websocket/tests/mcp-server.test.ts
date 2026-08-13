@@ -12,6 +12,10 @@ import {
   MCP_SANDBOX_PROBE_SNIPPET
 } from "@nodetool-ai/agents";
 import { initTestDb } from "@nodetool-ai/models";
+import {
+  DIRECT_TOOL_NAMES,
+  SDK_NATIVE_TOOL_REPLACEMENTS
+} from "@nodetool-ai/runtime";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
@@ -127,18 +131,56 @@ describe("MCP server surface", () => {
     expect(createMcpStdioTransport()).toBeDefined();
   });
 
-  it("registers exactly execute_code and view_image", () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    expect(toolNames(server).sort()).toEqual(["execute_code", "view_image"]);
+  it("registers the action, view_image, and the direct tools no client serves", () => {
+    // Derived, not hand-listed: DIRECT_TOOL_NAMES minus the tools an MCP host
+    // (Claude Code, ChatGPT) already covers with its own. Pinned as a set so a
+    // tool added to either table shows up here as a one-line diff.
+    const names = toolNames(createMcpServer({ agentToolsScope: scope }));
+
+    // Nothing beyond the action, the pixel channel, and the direct set.
+    for (const name of names) {
+      if (name === "execute_code" || name === "view_image") continue;
+      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+    }
+    // The ones this session can actually build are all there. Node discovery
+    // needs an injected registry, which this harness has none of, so the
+    // promotion correctly leaves those out rather than advertising a tool
+    // whose dependency is missing.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "execute_code",
+        "view_image",
+        "find_model",
+        "list_models",
+        "list_directory",
+        "browser",
+        "http_request",
+        "download_file"
+      ])
+    );
   });
 
-  it("lists exactly two tools over a real MCP session", async () => {
+  it("never offers a tool the client already serves natively", () => {
+    // Two `read_file`s with two different roots in front of one model is worse
+    // than one, which is why the file/search half stays inside the sandbox.
+    const names = new Set(toolNames(createMcpServer({ agentToolsScope: scope })));
+    for (const substituted of SDK_NATIVE_TOOL_REPLACEMENTS.keys()) {
+      expect(names.has(substituted)).toBe(false);
+    }
+  });
+
+  it("keeps every promoted tool callable from inside an action too", async () => {
+    // Promotion moves where the prompt documents a tool; it must not remove it
+    // from the belt, or `nodetool.*` code paths that call it would break.
     const client = await connectClient();
-    const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([
-      "execute_code",
-      "view_image"
-    ]);
+    const res = (await client.callTool({
+      name: "execute_code",
+      arguments: {
+        code: `return typeof tools.find_model + "," + typeof tools.browser;`
+      }
+    })) as { content: Array<{ text: string }>; isError?: boolean };
+    expect(res.isError).toBeFalsy();
+    expect(res.content[0].text).toContain("function,function");
     await client.close();
   });
 
@@ -152,6 +194,31 @@ describe("MCP server surface", () => {
     expect(description.startsWith(MCP_GUEST_CONTRACT)).toBe(true);
     expect(description).toContain("searchTools");
     expect(description).toContain("nodetool");
+    await client.close();
+  });
+
+  it("runs an action from a client that sends no title", async () => {
+    // The label is for NodeTool's own UI and the action path discards it, so
+    // requiring it on MCP only rejected callers over a field nobody reads.
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const schema = tools.find((t) => t.name === "execute_code")
+      ?.inputSchema as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.required).toEqual(["code"]);
+    // Still advertised, so a client that has a label sends it.
+    expect(Object.keys(schema.properties ?? {})).toContain("title");
+
+    const res = (await client.callTool({
+      name: "execute_code",
+      arguments: { code: "return 6 * 7;" }
+    })) as { content: Array<{ text: string }>; isError?: boolean };
+    expect(JSON.parse(res.content[0].text)).toMatchObject({
+      ok: true,
+      result: 42
+    });
     await client.close();
   });
 
@@ -182,7 +249,15 @@ describe("MCP server surface", () => {
         permission_category: string;
       }>;
     };
-    expect(catalog.direct_tools).toEqual(["execute_code", "view_image"]);
+    // The catalog names every tool offered at the top level, so a client
+    // reading it sees the same surface listTools reports.
+    expect(catalog.direct_tools).toEqual(
+      expect.arrayContaining(["execute_code", "view_image", "find_model"])
+    );
+    for (const name of catalog.direct_tools) {
+      if (name === "execute_code" || name === "view_image") continue;
+      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+    }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
     const listWorkflows = catalog.tools.find((t) => t.name === "list_workflows");
     expect(listWorkflows?.permission_category).toBe("read");

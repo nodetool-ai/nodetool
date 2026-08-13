@@ -162,20 +162,67 @@ progress bar.
 `@napi-rs/canvas` (Skia) on Node, loaded through `importHidden` so no bundler
 pulls the native addon into a browser graph — it is already staged as an
 external by `scripts/bundle-backend.mjs` — and `OffscreenCanvas` +
-`createImageBitmap` in the browser runner. `image` takes and returns *encoded*
-bytes (`png`/`jpeg`/`webp`/`avif`), so `resize` → `adjust` → `convert` chains
-without the guest ever holding a surface: `info`, `decode`, `encode`, `resize`
-(`fit`: cover/contain/fill), `crop`, `rotate` (grows to the rotated bounding
-box), `flip`, `adjust` (the CSS filter set), `composite` (layers with position,
-size, opacity and `globalCompositeOperation` blend mode) and `convert`.
-Encoding to `jpeg` fills transparency with `background`, white by default.
+`createImageBitmap` in the browser runner. Ops: `info`, `stats`, `decode`,
+`blank`, `pad`, `grid`, `resize` (`fit`: cover/contain/fill), `crop`, `rotate`
+(grows to the rotated bounding box), `flip`, `adjust` (the CSS filter set),
+`composite` (layers with position, size, opacity and `globalCompositeOperation`
+blend mode) and `convert`. Encoding to `jpeg` fills transparency with
+`background`, white by default.
+
+**`image.encode` is gone.** It took `width*height*4` bytes *from the guest*, so
+using it meant building a pixel array in the guest heap and shipping it across
+— and every observed use was a backdrop, 6 MB of zeros moved to produce a 6 KB
+PNG. After handles it was the largest guest→host payload left in a normal image
+run, and the manifest advertised it, so it read as the way to make an image.
+Three ops cover what it was reached for, all host-side with nothing crossing:
+`blank(width, height, {color})` for a surface, `pad(image, {all|top|right|
+bottom|left, color})` to grow the canvas without scaling (what
+`nodetool.image.CanvasResize` does in a graph), and `grid([image, …],
+{columns, gap})` to lay images out (what `lib.grid.CombineImageGrid` does) —
+which is the whole of "generate two images and combine them", the task that
+started this. Host code that genuinely holds pixels keeps the direct path
+through `encodePixels`, which is not on the guest bridge.
+
+`image.stats(image)` is the counterpart to handles: once the guest stops
+holding images it cannot answer anything about one, and `decode` — the only way
+to look — pulls every pixel across, which is the cost handles removed. `stats`
+reads them host-side and answers in a hundred bytes: per-channel mean/min/max,
+mean luminance, and whether the image is opaque. It carries no
+`MAX_DECODE_PIXELS` bound because it transfers nothing.
+
+**`image.*` trades in handles, not bytes** (`src/sandbox-media-handle.ts`). Each
+op takes a handle, a media ref (`asset://` and every uri `media.*` resolves) or
+raw bytes, and returns a *handle*: a small plain object
+(`{uri: "sandbox://media/<id>", mimeType, byteLength, width, height}`) naming
+bytes the host holds for the run. So a chain — and a generated image fed
+straight in — moves nothing across the boundary but small objects.
+
+That is the difference between working and not. The guest is a courier: in the
+shape that motivated this (generate two images, combine them) it never reads a
+pixel. Carrying them *as* bytes cost a guest→host copy plus a base64 round trip
+per hop, ~2.3× the payload live in the guest, and past roughly 16 MB a run
+aborted the runtime at teardown. Measured on a 45-op chain over a 2.2 MB PNG:
+132 s and an abort at three ops, against 4.7 s with handles.
+
+Two deliberate exceptions, both returning plain data: `info` and `decode` exist
+to report what is *in* an image, and `decode` is the one call that must hand
+over real pixels. `image.bytes(handle)` is the only door back to encoded bytes
+and needs no context — reach for it when the body parses the bytes itself, not
+to move an image between calls. `media.toImage(handle)` promotes a handle to a
+durable asset; nothing else writes storage, so a three-op chain does not leave
+three rows behind. A handle lives for its run: using a stale one says so rather
+than blaming its uri. `limits.runMediaBytes` (default 256 MB) bounds what one
+run may hold — the aggregate the per-call ceilings never covered, so exhaustion
+is a sentence naming the limit instead of an Emscripten assertion.
 
 A canvas *context* is a host object with methods, which the plain-data bridge
 contract cannot carry, so drawing is recorded rather than proxied: the guest
 helper `createCanvas(width, height)` returns a surface whose `getContext("2d")`
 takes the ordinary Canvas 2D calls **synchronously**, appending each to a draw
-list, and `await surface.toBytes({format, quality, background})` ships the whole
-list through `canvas.render` to be replayed against a real context and encoded.
+list, and `await surface.toImage({format, quality, background})` ships the whole
+list through `canvas.render` to be replayed against a real context and encoded,
+answering with a handle like every other image producer. `toBytes()` keeps its
+name's promise and pays for the bytes explicitly.
 `drawImage` takes image bytes, not an image object. Gradients work the same way
 — `createLinearGradient` returns a tagged handle that the renderer swaps for the
 real gradient when it is assigned to `fillStyle`. The method and property
@@ -353,6 +400,23 @@ around every tool- and plan-approval round trip.
   prelude rewraps into a real `throw`. Working around a known handle leak in
   `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
   assertion on runtime dispose).
+- Every `Lifetime` taken from the engine must be disposed, including the one
+  `ctx.getArrayBuffer()` returns. The typed-array serializer dropped it, so
+  each `Uint8Array` crossing guest → host leaked a handle and a run moving
+  ~16 MB tripped the same `list_empty(&rt->gc_obj_list)` assertion — *after*
+  the guest had computed its answer, so the result was produced and then
+  thrown away. Fixed; pinned by "guest→host binary volume" in
+  `tests/js-sandbox.test.ts`.
+- An engine failure never reaches `runInSandbox`'s own `await`: an Emscripten
+  `abort()` arrives as a WASM `RuntimeError`, and a marshaling failure (guest
+  OOM while a host return value is written into the guest) throws inside a
+  promise continuation the library never catches. Unhandled, that killed the
+  host process and the tool call it was serving returned *nothing* — a chat
+  turn that simply stopped, with nothing for the agent to read or retry.
+  `guardHostProcess` claims those rejections and fails the run;
+  `describeEngineFailure` turns them into an actionable message instead of raw
+  assertion text. Anything not attributable to the engine is re-thrown, so a
+  genuine host bug still crashes.
 - Binary crosses the boundary asymmetrically. Guest → host is handled by the
   typed-array serializers (`addSerializer`), so a guest `Uint8Array` reaches a
   bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives
@@ -794,11 +858,25 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   has — one question with one answer, and a wrong answer is a hallucinated
   model id that fails at generation time, after the run was paid for. The two
   sets stay apart because only the core set has SDK built-ins behind it:
-  `DIRECT_TOOL_NAMES` is their union and is what the three offer sites read
-  (`splitCoreTools`, the CLI turn, the websocket runner), while
-  `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
+  `DIRECT_TOOL_NAMES` is their union and is what the four offer sites read
+  (`splitCoreTools`, the CLI turn, the websocket runner, and the MCP mount),
+  while `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
   `nodetool.models.pick` and `nodetool.nodes.search` are unchanged — the belt
   keeps every tool, so an action still composes them.
+- The MCP mount subtracts. It offers `DIRECT_TOOL_NAMES` **minus every key of
+  `SDK_NATIVE_TOOL_REPLACEMENTS`**, because an MCP client (Claude Code,
+  ChatGPT) *is* the host agent that table describes: offering NodeTool's
+  workspace-scoped `read_file` beside the client's own would put two tools of
+  one name and two different roots in front of one model. What survives has no
+  host equivalent — discovery, the server-side reach that runs behind
+  NodeTool's SSRF guard and secrets (`browser`, `http_request`,
+  `download_file`, `list_directory`), and `run_subtask`, whose child gets the
+  NodeTool belt rather than the client's. It is a `belt.filter`, so a session
+  missing an injected dependency (no node registry, say) advertises no node
+  tools instead of a tool that cannot run. Before this the mount registered
+  only `execute_code` and `view_image`: everything was still reachable as
+  `tools.*` inside an action, but every discovery question cost a sandbox round
+  trip, which is the tax the direct set exists to remove.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
   `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,
@@ -872,7 +950,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
   (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
-  run's own scratchpad, beside thread-scoped `nodetool.memory`), `nodetool.style`
+  run's own scratchpad, beside thread-scoped `nodetool.memory`),
+  `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
+  `get_message` — the chat history itself, read-only), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),

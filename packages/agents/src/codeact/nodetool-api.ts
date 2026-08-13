@@ -73,6 +73,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "thread_memory_delete"
   ],
   shared: ["list_shared", "read_shared", "share_result"],
+  threads: ["list_threads", "get_thread", "get_message"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
   assets: [
@@ -786,6 +787,24 @@ const nodetool = (() => {
         __need("thread_memory_delete")({ memory_id: memoryId })
     },
 
+    threads: {
+      /** Past conversations, most recently updated first. */
+      list: (opts) => __need("list_threads")(__merge(opts)),
+      /** One thread and a page of its messages. */
+      get: (threadId, opts) =>
+        __need("get_thread")(__merge(opts, { thread_id: threadId })),
+      /** The newest message in a thread, or undefined when it has none. */
+      last: (threadId) =>
+        __need("get_thread")({
+          thread_id: threadId,
+          limit: 1,
+          newest_first: true
+        }).then((t) => (t && t.messages ? t.messages[0] : undefined)),
+      /** One message in full — untruncated content and every tool call. */
+      message: (messageId) =>
+        __need("get_message")({ message_id: messageId })
+    },
+
     shared: {
       /** Metadata for every entry this run shares — no values. */
       list: (opts) => __need("list_shared")(__merge(opts)),
@@ -1093,9 +1112,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  \`await nodetool.media.bytes(result)\` reads the bytes back — pass the
-  generation result itself, its \`asset_uri\`, or an asset id — so
-  generate → \`image.resize/composite\` → \`nodetool.assets.save\` is one action.
+  Feed a generation result straight into \`image.*\` — it takes the result, its
+  \`asset_uri\`, or an asset id, and returns a handle you pass to the next call,
+  so generate → \`image.resize/composite\` → \`nodetool.media.toImage(handle)\`
+  is one action and the picture never enters the sandbox. Do NOT read bytes to
+  move an image between calls: \`nodetool.media.bytes(ref)\` and
+  \`image.bytes(handle)\` exist for a body that parses the bytes itself, and
+  pulling a few megabytes in for no reason is how a run runs out of memory.
+  An image handle belongs to the action that made it: before the action ends,
+  \`nodetool.media.toImage(handle)\` anything you still need and keep the
+  \`asset://\` ref in \`state\` — a handle in \`state\` is dead next action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
@@ -1128,6 +1154,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   put the assets, workflows and collections you produce in \`resources\` so you
   can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
   title, resources})\`, and \`remove(memoryId)\`.`
+  },
+  {
+    namespace: "threads",
+    doc: `- \`nodetool.threads\` — the chat history, read-only. \`list({limit,
+  workflow_id, cursor})\` returns past conversations newest first, each with
+  its last message; \`get(threadId, {limit, newest_first, cursor, max_chars})\`
+  reads a page of messages; \`last(threadId)\` is the newest one; and
+  \`message(messageId)\` is the full record when a summarized message is not
+  enough. Use it to answer "what did we decide last time" instead of asking
+  the user to repeat it.`
   },
   {
     namespace: "shared",
