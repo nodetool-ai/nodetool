@@ -70,6 +70,7 @@ function ctx(userId = "u1") {
       textToSpeechEncoded,
       automaticSpeechRecognition
     })),
+    hasModelInterface: (name: string) => name === "createAsset",
     createAsset: vi.fn(
       async (args: {
         name: string;

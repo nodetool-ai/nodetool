@@ -17,6 +17,7 @@ import {
 import { ProcessingContext, connectPythonBridgeForGraph } from "@nodetool-ai/runtime";
 import type { HydratedGraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import { createExecutorResolver } from "./executor-resolver.js";
+import { buildWorkspaceExecutionContext } from "./service/workflow-workspace.js";
 import { normalizeGraph } from "./normalize-graph.js";
 import { rewriteOutputNames } from "./output-names.js";
 import { MessageStream } from "./message-stream.js";
@@ -177,12 +178,18 @@ export class ExecutionSession {
       rewriteOutputNames(hydrated);
     }
 
+    // A caller that brings no context still gets one that can reach the
+    // secret store. The bare `new ProcessingContext(...)` this replaced
+    // resolved no secret at all, so a graph with a provider node failed on
+    // credentials the install had — the same defect the service-layer run
+    // path shipped with.
     const context =
       options.context ??
-      new ProcessingContext({
+      buildWorkspaceExecutionContext({
         jobId,
         workflowId,
-        userId: "1"
+        userId: "1",
+        workspaceDir: null
       });
 
     const resolveExecutor =

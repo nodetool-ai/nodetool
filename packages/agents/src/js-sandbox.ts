@@ -1764,7 +1764,15 @@ export function buildSandbox(
   // Media refs in and out. Unlike `image`/`canvas` this one needs a
   // ProcessingContext — it resolves `asset://`, storage keys and package assets
   // through the host's own resolver — so without one every member throws.
-  const media = createMediaRefBridge(context);
+  // `media.*` reads files, so it resolves paths through the same
+  // `resolveGuestPath` `workspace.*` uses — one containment rule, one
+  // `filesystemAccess` scope, no second scheme to keep in step.
+  const media = createMediaRefBridge(
+    context,
+    context
+      ? { resolvePath: (path: string) => resolveGuestPath(context, path, false) }
+      : {}
+  );
 
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the

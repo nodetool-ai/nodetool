@@ -50,6 +50,8 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
+import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
+import { serverModelInterfaces } from "./unified-websocket-runner.js";
 import {
   WorkerManager,
   startReaper,
@@ -288,6 +290,12 @@ try {
   );
   process.exit(1);
 }
+
+// Persistence for every context this process builds. Each entrance used to
+// wire its own, and the ones that forgot produced runs that could not save an
+// asset — the same workflow ran from the editor and threw over HTTP. A
+// context that wires its own still wins.
+setDefaultModelInterfaces(serverModelInterfaces());
 
 // Seed built-in workflows — non-fatal; a seed failure should not prevent startup.
 try {

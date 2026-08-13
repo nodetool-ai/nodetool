@@ -37,6 +37,9 @@ function makeContext(opts: MockCtxOptions = {}): any {
     runProviderPrediction: opts.runProviderPrediction,
     streamProviderPrediction: opts.streamProviderPrediction,
     getProvider: opts.getProvider,
+    // A duck-typed context: the interface check is what the code reads, so a
+    // fake that only defines the method reads as "no asset persistence".
+    hasModelInterface: (name: string) => name === "createAsset",
     createAsset,
     workspaceStorage: opts.workspaceStorage
   };
@@ -154,6 +157,7 @@ describe("GenerateImageTool", () => {
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
+        hasModelInterface: (name: string) => name === "createAsset",
         createAsset: vi.fn().mockResolvedValue({ id: "img-1" }),
         workspaceStorage: storage
       }),
@@ -208,6 +212,7 @@ describe("EditImageTool", () => {
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
+        hasModelInterface: (name: string) => name === "createAsset",
         createAsset: vi.fn().mockResolvedValue({ id: "e1" }),
         workspaceStorage: makeStorage({ "in.png": src })
       }),
@@ -331,6 +336,7 @@ describe("AnimateImageTool", () => {
     const r = (await tool.process(
       makeContext({
         runProviderPrediction,
+        hasModelInterface: (name: string) => name === "createAsset",
         createAsset: vi.fn().mockResolvedValue({ id: "a1" }),
         workspaceStorage: makeStorage({ "src.png": src })
       }),
@@ -412,6 +418,7 @@ describe("GenerateSpeechTool", () => {
     await tool.process(
       makeContext({
         getProvider,
+        hasModelInterface: (name: string) => name === "createAsset",
         createAsset: vi.fn().mockResolvedValue({ id: "x" })
       }),
       { provider: "openai", model: "tts", text: "hi", output_file: "a.flac" }

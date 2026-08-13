@@ -23,7 +23,6 @@ import { ExecutionTree } from "./ExecutionTree.js";
 import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
-import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import {
   RunSubtaskTool,
@@ -35,14 +34,18 @@ import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import {
   isBasicTool,
+  isCodeAction,
+  isFormattedTool,
   friendlyToolName,
+  toolStatusLabel,
   formatToolParams,
   formatToolResult,
   formatToolDiff,
+  formatToolCode,
 } from "./tool-format.js";
 import { saveSettings } from "./settings.js";
 import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
-import { getSecret } from "@nodetool-ai/models";
+import { createChatContext } from "./chat-context.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -117,9 +120,10 @@ function AssistantMessage({ content, rendered }: { content: string; rendered?: s
 
 /**
  * Renders one tool call — header (`● Verb(params)`), result summary, and (for
- * edits) a diff. Shared by the committed transcript (ToolMessage) and the live
- * in-progress area (LiveToolCall). When `running`, shows a spinner instead of
- * waiting for a summary, so the call is visible while it executes.
+ * edits) a diff. `execute_code` uses the action title as the headline and
+ * shows the program as a dimmed block. Shared by the committed transcript
+ * (ToolMessage) and the live in-progress area (LiveToolCall). When `running`,
+ * shows a spinner instead of waiting for a summary.
  */
 function ToolCallView({
   name,
@@ -133,6 +137,42 @@ function ToolCallView({
   running?: boolean;
 }) {
   const isError = !!summary && summary.startsWith("Error");
+
+  if (isCodeAction(name)) {
+    const title = formatToolParams(name, args) || "Code action";
+    const codeLines = formatToolCode(name, args);
+    const maxCodeWidth = Math.max((process.stdout.columns ?? 80) - 8, 20);
+    const summaryLines = summary ? summary.split("\n") : [];
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        <Box>
+          <Text color="green">{"● "}</Text>
+          <Text bold color="cyan">Run</Text>
+          <Text>{"  "}</Text>
+          <Text bold>{title}</Text>
+          {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
+        </Box>
+        {codeLines?.map((line, i) => (
+          <Box key={i} marginLeft={4}>
+            <Text
+              color={line.startsWith("…") ? "gray" : undefined}
+              dimColor
+            >
+              {line.slice(0, maxCodeWidth)}
+            </Text>
+          </Box>
+        ))}
+        {summaryLines.map((line, i) => (
+          <Box key={`s${i}`} marginLeft={2}>
+            <Text color={isError ? "red" : "gray"} dimColor={!isError}>
+              {i === 0 ? "⎿  " : "   "}
+              {line}
+            </Text>
+          </Box>
+        ))}
+      </Box>
+    );
+  }
 
   if (isBasicTool(name)) {
     const params = formatToolParams(name, args);
@@ -783,15 +823,7 @@ export function App({
     setStreamLabel("thinking");
 
     try {
-      const ctx = new ProcessingContext({
-        jobId: crypto.randomUUID(),
-        userId: "1",
-        workspaceDir,
-        workspaceStorage: workspaceDir
-          ? new FileStorageAdapter(workspaceDir)
-          : null,
-        secretResolver: getSecret
-      });
+      const ctx = await createChatContext({ workspaceDir });
       const tools = buildTools();
 
       // The unified chat loop is used for every turn — there is no longer a
@@ -816,11 +848,11 @@ export function App({
             pendingToolArgs.set(event.id, event.args);
             commitStreamSegment(); // finalize any assistant text before the tool
             startLiveTool(event.id, event.name, event.args);
-            setStreamLabel(`${friendlyToolName(event.name)}…`);
+            setStreamLabel(`${toolStatusLabel(event.name, event.args)}…`);
           } else if (event.type === "tool_result") {
             const args = pendingToolArgs.get(event.id);
             pendingToolArgs.delete(event.id);
-            const display = isBasicTool(event.name)
+            const display = isFormattedTool(event.name)
               ? formatToolResult(event.name, args, event.content)
               : event.content.length > 100
                 ? event.content.slice(0, 100) + "…"
@@ -902,10 +934,10 @@ export function App({
             onToolCall: (tc: ToolCall) => {
               commitStreamSegment(); // finalize any assistant text before the tool
               startLiveTool(tc.id, tc.name, tc.args);
-              setStreamLabel(`${friendlyToolName(tc.name)}…`);
+              setStreamLabel(`${toolStatusLabel(tc.name, tc.args)}…`);
             },
             onToolResult: (tc: ToolCall, result: unknown) => {
-              const display = isBasicTool(tc.name)
+              const display = isFormattedTool(tc.name)
                 ? formatToolResult(tc.name, tc.args, result)
                 : typeof result === "string"
                   ? result

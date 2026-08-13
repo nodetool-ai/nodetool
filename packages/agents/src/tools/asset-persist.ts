@@ -94,7 +94,9 @@ export async function persistOutput(
   const ext = MIME_TO_EXT[opts.mime] ?? "bin";
   const result: SavedOutput = { bytes: bytes.length, mime_type: opts.mime };
 
-  if (typeof context.createAsset === "function") {
+  // The interface, not the method: `createAsset` is on the prototype either
+  // way, so this used to be a check that could not fail.
+  if (context.hasModelInterface?.("createAsset")) {
     try {
       const name = opts.outputFile ?? timestampedName(opts.namePrefix, ext);
       const asset = (await context.createAsset({

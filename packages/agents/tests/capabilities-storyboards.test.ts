@@ -36,6 +36,7 @@ function ctx(userId = "u1") {
       const request = req as unknown as { capability: string };
       return request.capability === "text_to_image" ? PNG : MP4;
     }),
+    hasModelInterface: (name: string) => name === "createAsset",
     createAsset: vi.fn(
       async (args: {
         name: string;

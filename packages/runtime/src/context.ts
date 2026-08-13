@@ -477,6 +477,31 @@ export interface ProcessingContextModelInterfaces {
   }) => Promise<unknown | null>;
 }
 
+let defaultModelInterfaces: ProcessingContextModelInterfaces | null = null;
+
+/**
+ * Install the model interfaces every context in this process falls back to.
+ *
+ * A host installs its persistence once at startup instead of each entrance
+ * remembering to wire it onto the context it builds. That forgetting is a
+ * defect generator: `nodetool debug` wired none while `workflows run` wired
+ * four, so a workflow that saves an image ran under one command and threw
+ * under the other. A context that sets its own interfaces still wins — this
+ * is the floor, not an override.
+ *
+ * Pass `null` to uninstall (a test restoring global state).
+ */
+export function setDefaultModelInterfaces(
+  interfaces: ProcessingContextModelInterfaces | null
+): void {
+  defaultModelInterfaces = interfaces;
+}
+
+/** The process-wide default, or null when no host installed one. */
+export function getDefaultModelInterfaces(): ProcessingContextModelInterfaces | null {
+  return defaultModelInterfaces;
+}
+
 function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
@@ -1423,13 +1448,27 @@ export class ProcessingContext {
   }
 
   /**
-   * Whether a given model interface is wired on this context. Lets callers
-   * decide between the DB-backed path (interface present — let errors
-   * propagate) and an in-memory fallback (interface absent — hermetic CLI
-   * runs, tests) without invoking a method that would throw when unwired.
+   * The interfaces this context answers with: its own when a caller wired
+   * them, else the host's process-wide default.
+   *
+   * The default is what keeps a run from depending on which entrance built
+   * its context. Six hosts assembled these by hand and three of them forgot
+   * `createAsset`, so the same workflow saved an image under `workflows run`
+   * and died under `debug` with "model interface is not configured".
+   */
+  private modelInterfaces(): ProcessingContextModelInterfaces | null {
+    return this._modelInterfaces ?? getDefaultModelInterfaces();
+  }
+
+  /**
+   * Whether a given model interface is wired for this context — its own or
+   * the host default. Lets callers decide between the DB-backed path
+   * (interface present — let errors propagate) and an in-memory fallback
+   * (interface absent — hermetic CLI runs, tests) without invoking a method
+   * that would throw when unwired.
    */
   hasModelInterface(name: keyof ProcessingContextModelInterfaces): boolean {
-    return typeof this._modelInterfaces?.[name] === "function";
+    return typeof this.modelInterfaces()?.[name] === "function";
   }
 
   // -----------------------------------------------------------------------
@@ -2139,7 +2178,7 @@ export class ProcessingContext {
   private requireModelInterface<
     K extends keyof ProcessingContextModelInterfaces
   >(name: K): NonNullable<ProcessingContextModelInterfaces[K]> {
-    const fn = this._modelInterfaces?.[name];
+    const fn = this.modelInterfaces()?.[name];
     if (!fn) {
       throw new Error(
         `ProcessingContext model interface '${String(name)}' is not configured`

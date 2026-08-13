@@ -7,7 +7,7 @@
 
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { runInSandbox } from "../src/js-sandbox.js";
@@ -81,22 +81,26 @@ describe("media.bytes / media.text", () => {
     expect(result.result).toBe("hello");
   });
 
-  it("reads an absolute file path", async () => {
+  it("reads an absolute file path under host filesystem access", async () => {
+    // Host mode is the scope where an absolute path means what it says. Under
+    // the default workspace scope it is resolved workspace-relative instead —
+    // see the "filesystem containment" cases below.
     const path = join(dir, "note.txt");
     await writeFile(path, "from disk");
     const result = await runInSandbox({
       code: `return await media.text({ type: "document", uri: ${JSON.stringify(path)} });`,
-      context: contextWith()
+      context: contextWith(),
+      limits: { filesystemAccess: "host" }
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe("from disk");
   });
 
-  it("reads a `~`-prefixed path through the filesystem fallback", async () => {
-    // `loadMediaRefBytes` never touches a `~` path — this is the fallback that
-    // `resolveDocumentBytes` has and the guest would otherwise lack. The home
-    // directory is not writable in every test environment, so the check is that
-    // the fallback ran: the error names the expanded path, not the tilde.
+  it("expands a `~`-prefixed path under host filesystem access", async () => {
+    // `loadMediaRefBytes` never touches a `~` path; `resolveGuestPath` expands
+    // it, but only in host mode. The home directory is not writable in every
+    // test environment, so the check is that expansion ran and the read then
+    // missed — not that the tilde was passed to `fs` verbatim.
     const result = await runInSandbox({
       code: `
         try {
@@ -106,7 +110,8 @@ describe("media.bytes / media.text", () => {
           return e.message;
         }
       `,
-      context: contextWith()
+      context: contextWith(),
+      limits: { filesystemAccess: "host" }
     });
     expect(result.success).toBe(true);
     expect(result.result).toContain("could not read");
@@ -234,7 +239,8 @@ describe("media.info", () => {
         const info = await media.info({ type: "document", uri: ${JSON.stringify(path)} });
         return { mimeType: info.mimeType, size: info.size };
       `,
-      context: contextWith()
+      context: contextWith(),
+      limits: { filesystemAccess: "host" }
     });
     expect(result.result).toEqual({ mimeType: "application/pdf", size: 8 });
   });
@@ -391,5 +397,89 @@ describe("media without a context", () => {
       toAudio: "media.toAudio is not available without a context",
       toVideo: "media.toVideo is not available without a context"
     });
+  });
+});
+
+/**
+ * `media.*` reaches the filesystem, so it answers to the same containment
+ * `workspace.*` does: a run resolves paths under its workspace root unless the
+ * host opted into `filesystemAccess: "host"`. Guest code cannot ask for host
+ * mode, so a model-written body cannot read a credential file by naming it.
+ */
+describe("filesystem containment", () => {
+  let workspace = "";
+  let outside = "";
+  let outsideFile = "";
+
+  beforeAll(async () => {
+    workspace = await mkdtemp(join(tmpdir(), "media-ws-"));
+    outside = await mkdtemp(join(tmpdir(), "media-outside-"));
+    outsideFile = join(outside, "secret.txt");
+    await writeFile(outsideFile, "TOP SECRET");
+  });
+
+  afterAll(async () => {
+    await rm(workspace, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
+  });
+
+  const workspaceContext = (): Ctx =>
+    ({
+      resolveAssetBytes: async () => ({ bytes: null, attempts: [] }),
+      resolveWorkspacePath: (p: string) =>
+        resolve(workspace, p.replace(/^[/\\]+/, ""))
+    }) as unknown as Ctx;
+
+  it("reads a file inside the workspace", async () => {
+    await writeFile(join(workspace, "note.txt"), "from the workspace");
+    const result = await runInSandbox({
+      code: `return await media.text({ type: "document", uri: "note.txt" });`,
+      context: workspaceContext()
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("from the workspace");
+  });
+
+  it("refuses a path outside the workspace", async () => {
+    const result = await runInSandbox({
+      code: `
+        try {
+          return await media.text({ type: "document", uri: ${JSON.stringify(outsideFile)} });
+        } catch (e) {
+          return e.message;
+        }
+      `,
+      context: workspaceContext()
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).not.toContain("TOP SECRET");
+  });
+
+  it("refuses a `file://` URI pointing outside the workspace", async () => {
+    const result = await runInSandbox({
+      code: `
+        try {
+          return await media.text({
+            type: "document",
+            uri: ${JSON.stringify(`file://${outsideFile}`)}
+          });
+        } catch (e) {
+          return e.message;
+        }
+      `,
+      context: workspaceContext()
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).not.toContain("TOP SECRET");
+  });
+
+  it("reads outside the workspace when the host opted into host mode", async () => {
+    const result = await runInSandbox({
+      code: `return await media.text({ type: "document", uri: ${JSON.stringify(outsideFile)} });`,
+      context: workspaceContext(),
+      limits: { filesystemAccess: "host" }
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("TOP SECRET");
   });
 });

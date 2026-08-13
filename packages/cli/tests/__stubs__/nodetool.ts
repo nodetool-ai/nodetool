@@ -213,7 +213,39 @@ export const getProvider = async (id: string): Promise<BaseProvider> =>
 
 // runtime helpers
 export class ProcessingContext {
-  constructor(_opts?: unknown) {}
+  private _modelInterfaces: Record<string, unknown> = {};
+  private _secretResolver:
+    | ((key: string, userId: string) => Promise<string | null> | string | null)
+    | null;
+  readonly userId: string;
+  constructor(opts?: {
+    userId?: string;
+    secretResolver?: (
+      key: string,
+      userId: string
+    ) => Promise<string | null> | string | null;
+  }) {
+    this.userId = opts?.userId ?? "1";
+    this._secretResolver = opts?.secretResolver ?? null;
+  }
+  setModelInterfaces(interfaces: Record<string, unknown>): void {
+    this._modelInterfaces = interfaces;
+  }
+  hasModelInterface(name: string): boolean {
+    return typeof this._modelInterfaces[name] === "function";
+  }
+  async createAsset(args: Record<string, unknown>): Promise<unknown> {
+    const fn = this._modelInterfaces["createAsset"];
+    if (typeof fn !== "function") throw new Error("createAsset is not wired");
+    return (fn as (a: Record<string, unknown>) => Promise<unknown>)({
+      userId: this.userId,
+      ...args
+    });
+  }
+  async getSecret(key: string): Promise<string | null> {
+    if (!this._secretResolver) return null;
+    return (await this._secretResolver(key, this.userId)) ?? null;
+  }
 }
 /** Mirrors the real CORE_TOOL_NAMES so the CodeAct split behaves in tests. */
 export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -229,6 +261,20 @@ export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
   "download_file",
   "todo_write",
   "run_subtask"
+]);
+/** Mirrors DISCOVERY_TOOL_NAMES: providers, models, node types. */
+export const DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "find_model",
+  "list_models",
+  "list_provider_models",
+  "search_nodes",
+  "get_node_info",
+  "list_nodes"
+]);
+/** What the CodeAct wiring actually offers top level. */
+export const DIRECT_TOOL_NAMES: ReadonlySet<string> = new Set([
+  ...CORE_TOOL_NAMES,
+  ...DISCOVERY_TOOL_NAMES
 ]);
 export async function initTelemetry() {}
 export async function processChat(_opts?: unknown) {}
@@ -393,3 +439,10 @@ export const JSON_SCHEMA = {};
 export const input = async (_q: unknown) => "";
 export const password = async (_q: unknown) => "";
 export const select = async (_q: unknown) => null;
+
+/** `@nodetool-ai/websocket/assets` — the chat context's asset persistence. */
+export async function createAssetModelInterface(args: {
+  name: string;
+}): Promise<{ id: string; name: string }> {
+  return { id: "stub-asset", name: args.name };
+}

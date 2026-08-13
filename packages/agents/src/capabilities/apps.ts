@@ -68,7 +68,12 @@ const debugApp: CapabilityExport = {
     const userId = userIdOf(run.context);
     try {
       return await runApplicationDebug(userId, params as AppDebugRequest, registry, {
-        runScript: createJsScriptAppRunner(userId)
+        // The run's own secrets: the server's app-debug service and the CLI
+        // harness both pass a resolver, and without one a script operation
+        // that reads `nodetool.secrets.get(...)` saw undefined here only.
+        runScript: createJsScriptAppRunner(userId, {
+          secretResolver: (key: string) => run.context.getSecret(key)
+        })
       });
     } catch (error) {
       return {

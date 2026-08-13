@@ -64,7 +64,7 @@ export interface MediaRefBridge {
   toVideo(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
 }
 
-const DEFAULT_MIME: Record<MediaRefKind, string> = {
+export const DEFAULT_MIME: Record<MediaRefKind, string> = {
   document: "application/octet-stream",
   image: "image/png",
   audio: "audio/mpeg",
@@ -159,31 +159,63 @@ function describeRef(ref: MediaRefValue): string {
   return `a ${ref.type ?? "media"} ref with no uri, asset_id, or data`;
 }
 
+/** URI prefixes that name something other than a file on this host. */
+const NON_FILESYSTEM_PREFIXES = ["data:", "asset://", "package://", "/api/"];
+
 /**
- * The filesystem fallback `resolveDocumentBytes` has: `loadMediaRefBytes`
- * deliberately reads only absolute and `file://` paths, so a relative or
- * `~`-prefixed path — what the `lib.os` nodes and a hand-written workflow
- * produce — resolves to nothing without this.
+ * The filesystem path a ref's `uri` names, or `null` when it names something
+ * else (a data URI, an asset, a storage key, an http URL).
+ *
+ * Every form that reaches disk goes through here — `file://`, an absolute
+ * path, a `~`-prefixed path, and a bare relative path — so the caller has one
+ * place to apply containment. `loadMediaRefBytes` reads the first two itself
+ * with no check at all, which is why a filesystem-shaped uri never reaches it.
  */
-async function readFallbackPath(uri: string): Promise<Uint8Array | null> {
-  if (!uri || /^[a-z][a-z0-9+.-]*:\/\//i.test(uri) || uri.startsWith("data:")) {
+export function filesystemPathForUri(uri: unknown): string | null {
+  if (typeof uri !== "string" || uri === "") return null;
+  const lower = uri.toLowerCase();
+  if (NON_FILESYSTEM_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
     return null;
   }
+  if (lower.startsWith("file://")) {
+    // Strip the scheme rather than calling fileURLToPath: this feeds a
+    // resolver, not an fs call, and a malformed URL should be refused by
+    // containment rather than throw a different error here.
+    const path = uri.slice("file://".length);
+    return path === "" ? null : decodeURIComponent(path);
+  }
+  // Any other scheme (http, https, memory, s3, …) is not a path.
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(uri)) return null;
+  return uri;
+}
+
+/**
+ * Read a path the run is allowed to read.
+ *
+ * `resolvePath` is the sandbox's own `resolveGuestPath`, so this honors the
+ * run's `filesystemAccess` scope: workspace mode resolves under the workspace
+ * root and refuses an escape, host mode expands `~` and reads anywhere. A run
+ * built without a resolver reads no files at all — failing closed matters more
+ * than serving a caller that never passed one.
+ */
+async function readContainedPath(
+  where: string,
+  path: string,
+  resolvePath?: (path: string) => Promise<string>
+): Promise<Uint8Array | null> {
+  if (!resolvePath) {
+    throw new Error(
+      `${where}: reading a filesystem path is not available in this run`
+    );
+  }
+  const fullPath = await resolvePath(path);
   const fs =
     await importNodeBuiltin<typeof import("node:fs/promises")>(
       "node:fs/promises"
     );
-  const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
-  const path = await importNodeBuiltin<typeof import("node:path")>("node:path");
-  if (!fs || !os || !path) return null;
-  const expanded =
-    uri === "~"
-      ? os.homedir()
-      : uri.startsWith("~/")
-        ? path.join(os.homedir(), uri.slice(2))
-        : uri;
+  if (!fs) return null;
   try {
-    return new Uint8Array(await fs.readFile(expanded));
+    return new Uint8Array(await fs.readFile(fullPath));
   } catch {
     return null;
   }
@@ -192,11 +224,18 @@ async function readFallbackPath(uri: string): Promise<Uint8Array | null> {
 async function resolveRefBytes(
   where: string,
   ref: MediaRefValue,
-  context: ProcessingContext
+  context: ProcessingContext,
+  resolvePath?: (path: string) => Promise<string>
 ): Promise<Uint8Array> {
+  // A filesystem-shaped uri is withheld from `loadMediaRefBytes`, whose own
+  // absolute and `file://` branches read any path this process can reach. The
+  // ref's inline data, asset id and storage key still resolve there; only the
+  // path is ours to contain.
+  const path = filesystemPathForUri(ref.uri);
+  const safeRef = path === null ? ref : { ...ref, uri: undefined };
   const resolved =
-    (await loadMediaRefBytes(ref, context)) ??
-    (typeof ref.uri === "string" ? await readFallbackPath(ref.uri) : null);
+    (await loadMediaRefBytes(safeRef, context)) ??
+    (path === null ? null : await readContainedPath(where, path, resolvePath));
   if (!resolved) {
     throw new Error(`${where}: could not read ${describeRef(ref)}`);
   }
@@ -209,7 +248,7 @@ async function resolveRefBytes(
 }
 
 /** The ref's mime type, from the ref itself, its data URI header, or its path. */
-function mimeForRef(ref: MediaRefValue, fallback: string): string {
+export function mimeForRef(ref: MediaRefValue, fallback: string): string {
   const declared = (ref as { mimeType?: unknown }).mimeType;
   if (typeof declared === "string" && declared.length > 0) return declared;
   const uri = typeof ref.uri === "string" ? ref.uri : "";
@@ -304,13 +343,24 @@ function withoutContext(member: string): never {
   throw new Error(`media.${member} is not available without a context`);
 }
 
+/** What a host supplies alongside the context when it builds the bridge. */
+export interface MediaRefBridgeOptions {
+  /**
+   * Resolve a guest-supplied filesystem path to the one path this run may
+   * read, or throw. The sandbox passes its own `resolveGuestPath`, so
+   * `media.*` and `workspace.*` are contained by one rule rather than two.
+   */
+  resolvePath?: (path: string) => Promise<string>;
+}
+
 /**
  * Build the guest's `media` namespace. Every member is async, and every one
  * fails with a named error when the run has no `ProcessingContext` — the same
  * contract `workspace.*` follows, so nothing half-works.
  */
 export function createMediaRefBridge(
-  context?: ProcessingContext
+  context?: ProcessingContext,
+  options: MediaRefBridgeOptions = {}
 ): MediaRefBridge {
   if (!context) {
     return {
@@ -328,19 +378,25 @@ export function createMediaRefBridge(
     bytes: async (ref: unknown): Promise<unknown> => {
       const where = "media.bytes";
       return toGuestBytes(
-        await resolveRefBytes(where, requireRef(where, ref), context)
+        await resolveRefBytes(
+          where,
+          requireRef(where, ref),
+          context,
+          options.resolvePath
+        )
       );
     },
 
-    text: async (ref: unknown, options?: unknown): Promise<string> => {
+    text: async (ref: unknown, opts?: unknown): Promise<string> => {
       const where = "media.text";
       const bytes = await resolveRefBytes(
         where,
         requireRef(where, ref),
-        context
+        context,
+        options.resolvePath
       );
       const encoding =
-        optionalString(asRecord(options), "encoding", where) ?? "utf-8";
+        optionalString(asRecord(opts), "encoding", where) ?? "utf-8";
       try {
         return new TextDecoder(encoding).decode(bytes);
       } catch {
@@ -351,7 +407,12 @@ export function createMediaRefBridge(
     info: async (ref: unknown): Promise<MediaRefInfo> => {
       const where = "media.info";
       const value = requireRef(where, ref);
-      const bytes = await resolveRefBytes(where, value, context);
+      const bytes = await resolveRefBytes(
+        where,
+        value,
+        context,
+        options.resolvePath
+      );
       const kind = typeof value.type === "string" ? value.type : "document";
       const fallback =
         DEFAULT_MIME[kind as MediaRefKind] ?? DEFAULT_MIME.document;

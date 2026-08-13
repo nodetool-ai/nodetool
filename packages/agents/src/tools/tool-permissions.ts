@@ -87,6 +87,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_assets: "read",
   get_asset: "read",
   read_asset: "read",
+  read_media_bytes: "read",
   list_models: "read",
   list_provider_models: "read",
   find_model: "read",

@@ -73,6 +73,7 @@ function ctx(options: CtxOptions = {}) {
       textToSpeechEncoded,
       automaticSpeechRecognition
     })),
+    hasModelInterface: (name: string) => name === "createAsset",
     createAsset: vi.fn(
       async (args: { name: string; contentType: string; content: Uint8Array }) => {
         const asset = await Asset.create<Asset>({

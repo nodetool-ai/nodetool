@@ -24,6 +24,14 @@ import { randomInt } from "node:crypto";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
+import {
+  DEFAULT_MIME,
+  MAX_MEDIA_REF_BYTES,
+  filesystemPathForUri,
+  mimeForRef
+} from "../sandbox-media-ref.js";
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import { extractJSON } from "../utils/json-parser.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
@@ -35,6 +43,7 @@ import {
   generateSpeechSpec,
   transcribeAudioSpec,
   embedTextSpec,
+  readMediaBytesSpec,
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
@@ -46,6 +55,7 @@ import {
   GENERATE_SPEECH_SCHEMA,
   TRANSCRIBE_AUDIO_SCHEMA,
   EMBED_TEXT_SCHEMA,
+  READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
   SCORE_ADHERENCE_SCHEMA
@@ -60,6 +70,7 @@ export {
   GENERATE_SPEECH_SCHEMA,
   TRANSCRIBE_AUDIO_SCHEMA,
   EMBED_TEXT_SCHEMA,
+  READ_MEDIA_BYTES_SCHEMA,
   CRITIQUE_IMAGE_SCHEMA,
   COMPARE_IMAGES_SCHEMA,
   SCORE_ADHERENCE_SCHEMA
@@ -1010,6 +1021,62 @@ const scoreImageAdherence: CapabilityExport = {
   }
 };
 
+/**
+ * The gated read behind a media reference.
+ *
+ * The sandbox's own `media.bytes` needs a `ProcessingContext`, which a chat
+ * action deliberately runs without (#4780) — so a chat user could generate an
+ * image and never read it back. This is the same resolution past the
+ * permission gate, with the context the run already carries.
+ *
+ * A filesystem path is refused rather than contained here: `read_file` is the
+ * gated way to a workspace file, and a second containment rule beside
+ * `resolveGuestPath` is the thing worth not having.
+ */
+const readMediaBytes: CapabilityExport = {
+  spec: readMediaBytesSpec,
+  impl: async (run, params) => {
+    const uri = params.uri;
+    if (typeof uri !== "string" || uri.trim() === "") {
+      return { error: "uri is required and must be a non-empty string" };
+    }
+    const trimmed = uri.trim();
+    if (filesystemPathForUri(trimmed) !== null) {
+      return {
+        error: `read_media_bytes does not read filesystem paths (${trimmed}). Use read_file for a workspace file, or pass an asset:// URI.`
+      };
+    }
+    // A bare id is what an agent reaches for after reading `asset_id` off a
+    // generation result; accept it rather than making that a failed round trip.
+    const ref = trimmed.includes("://")
+      ? { uri: trimmed }
+      : { uri: trimmed, asset_id: trimmed };
+    try {
+      const bytes = await loadMediaRefBytes(ref, run.context);
+      if (!bytes) {
+        return {
+          error: `Could not read ${trimmed}. Pass the asset:// URI a generation returned (its asset_uri), or list_assets to find one.`
+        };
+      }
+      if (bytes.length > MAX_MEDIA_REF_BYTES) {
+        return {
+          error: `${trimmed} is ${bytes.length} bytes, over the ${MAX_MEDIA_REF_BYTES} byte limit`
+        };
+      }
+      return {
+        uri: trimmed,
+        size: bytes.length,
+        mime_type: mimeForRef(ref, DEFAULT_MIME.document),
+        content_base64: encodeMediaBase64(bytes)
+      };
+    } catch (e) {
+      return {
+        error: `read_media_bytes failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
 /** Every media capability, in the order `getAllMcpTools` offered them. */
 export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   generateImage,
@@ -1019,6 +1086,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   generateSpeech,
   transcribeAudio,
   embedText,
+  readMediaBytes,
   critiqueImage,
   compareImages,
   scoreImageAdherence
@@ -1037,6 +1105,7 @@ export {
   generateSpeech,
   transcribeAudio,
   embedText,
+  readMediaBytes,
   critiqueImage,
   compareImages,
   scoreImageAdherence

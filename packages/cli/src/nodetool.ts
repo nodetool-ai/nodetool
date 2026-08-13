@@ -34,6 +34,7 @@ import {
 } from "@nodetool-ai/models";
 import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
 import { initMasterKey } from "@nodetool-ai/security";
+import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "@nodetool-ai/execution";
 import {
@@ -270,6 +271,13 @@ function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
 function asJson(data: unknown): void {
   console.log(JSON.stringify(data, null, 2));
 }
+
+// Asset and timeline persistence for every context any command builds, here
+// rather than per-entrance: `debug` wired none while `workflows run` wired
+// four, so one workflow saved an image under one command and threw under the
+// other. The interfaces touch the database only when a node calls them, so
+// installing them before `setupDb()` is safe.
+await installLocalModelInterfaces();
 
 // ---------------------------------------------------------------------------
 // info
@@ -761,83 +769,6 @@ addSupervisorOptions(
             : null
         });
 
-        // Persist assets to the local DB + asset store. Without this, any node
-        // that saves an asset fails with "ProcessingContext model interface
-        // 'createAsset' is not configured" — the server wires this in
-        // createRuntimeContext(), the CLI previously wired nothing.
-        const MIME_TO_EXT: Record<string, string> = {
-          "image/png": "png",
-          "image/jpeg": "jpg",
-          "image/webp": "webp",
-          "image/gif": "gif",
-          "audio/mpeg": "mp3",
-          "audio/wav": "wav",
-          "audio/ogg": "ogg",
-          "video/mp4": "mp4",
-          "video/webm": "webm",
-          "application/pdf": "pdf",
-          "text/plain": "txt",
-          "text/html": "html",
-          "model/gltf-binary": "glb"
-        };
-        context.setModelInterfaces({
-          // Timeline nodes persist their sequence rather than passing it down
-          // the graph, so `AddClips` and everything after it threw
-          // "model interface 'createTimelineSequence' is not configured" and
-          // no timeline workflow could run outside the server. These mirror
-          // `unified-websocket-runner.ts` against the same models the CLI
-          // already opens with `setupDb()`.
-          getTimelineSequence: async ({ userId, id }) => {
-            const seq = await TimelineSequence.findById(id);
-            if (!seq || seq.user_id !== userId) return null;
-            return seq.toTimelineSequence();
-          },
-          createTimelineSequence: async ({ userId, sequence }) => {
-            const seq = TimelineSequence.fromTimelineSequence(
-              userId,
-              sequence as Parameters<
-                typeof TimelineSequence.fromTimelineSequence
-              >[1]
-            );
-            await seq.save();
-            return seq.toTimelineSequence();
-          },
-          updateTimelineSequence: async ({ userId, id, sequence }) => {
-            const existing = await TimelineSequence.findById(id);
-            if (!existing || existing.user_id !== userId) return null;
-            const next = TimelineSequence.fromTimelineSequence(
-              userId,
-              sequence as Parameters<
-                typeof TimelineSequence.fromTimelineSequence
-              >[1]
-            );
-            next.id = id;
-            await next.save();
-            return next.toTimelineSequence();
-          },
-          createAsset: async (args) => {
-            const asset = new Asset({
-              user_id: args.userId,
-              workflow_id: args.workflowId ?? null,
-              node_id: args.nodeId ?? null,
-              job_id: args.jobId ?? null,
-              name: args.name,
-              content_type: args.contentType,
-              parent_id: args.parentId ?? null
-            });
-            if (args.content) {
-              const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-              await assetStorage.store(
-                `${asset.user_id}/${asset.id}.${ext}`,
-                args.content,
-                args.contentType
-              );
-              asset.size = args.content.length;
-            }
-            await asset.save();
-            return asset;
-          }
-        });
 
         const supervisor = supervisorConfig
           ? await createSupervisorHandle({

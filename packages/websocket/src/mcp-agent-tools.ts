@@ -8,8 +8,8 @@
  * the chat runner uses, so the two cannot drift — and `view_image`, which stays
  * direct because pixels cannot ride the sandbox's JSON observation envelope.
  * Every other capability lives inside the sandbox as `tools.<name>()` and the
- * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued on the
- * `nodetool://capabilities` resource.
+ * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued
+ * on `nodetool://capabilities` and `nodetool://sandbox`.
  *
  * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
  * `getAllMcpTools()` plus the Google Workspace tools are exactly what
@@ -37,7 +37,11 @@ import {
   UNGATED,
   createCapabilityRun,
   type CapabilityRun,
-  NODETOOL_API_NAMESPACE_TOOLS
+  NODETOOL_API_NAMESPACE_TOOLS,
+  MCP_GUEST_CONTRACT,
+  MCP_SANDBOX_RESOURCE_URI,
+  MCP_SANDBOX_PROMPTS,
+  buildMcpSandboxCatalog
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter, zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -375,6 +379,9 @@ function collectBridgedTools(
 /** URI of the structured capability catalog this mount publishes. */
 export const MCP_CAPABILITIES_RESOURCE_URI = "nodetool://capabilities";
 
+/** URI of the guest-JS surface this mount publishes. Re-exported for callers. */
+export { MCP_SANDBOX_RESOURCE_URI };
+
 const RENDERER_ID_PROPERTY = {
   type: "string" as const,
   description:
@@ -655,12 +662,13 @@ export function registerAgentMcpTools(
     capabilityRun
   });
 
-  // The action tool. MCP has no system prompt, so the contract, the tool
+  // The action tool. MCP has no system prompt, so the guest contract, the
   // catalog and the sandbox summary ride in the description — the only field
-  // every MCP client is guaranteed to show the model.
+  // every MCP client is guaranteed to show the model. The short contract
+  // leads: many clients truncate a long description.
   server.tool(
     session.providerTool.name,
-    `${session.providerTool.description}\n\n${session.systemPromptSection}`,
+    `${MCP_GUEST_CONTRACT}\n\n${session.providerTool.description}\n\n${session.systemPromptSection}`,
     jsonSchemaToZodShape(session.providerTool.inputSchema),
     async (args) => {
       try {
@@ -709,6 +717,45 @@ export function registerAgentMcpTools(
       ]
     })
   );
+
+  const sandbox = buildMcpSandboxCatalog();
+  server.registerResource(
+    "NodeTool Sandbox",
+    MCP_SANDBOX_RESOURCE_URI,
+    {
+      description:
+        "How to write execute_code: the guest contract, blocked globals, " +
+        "bridges this chat session cannot use, and two worked examples.",
+      mimeType: "application/json"
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "application/json",
+          text: JSON.stringify(sandbox, null, 2)
+        }
+      ]
+    })
+  );
+
+  for (const prompt of MCP_SANDBOX_PROMPTS) {
+    server.registerPrompt(
+      prompt.name,
+      {
+        title: prompt.title,
+        description: prompt.description
+      },
+      async () => ({
+        messages: [
+          {
+            role: "user" as const,
+            content: { type: "text" as const, text: prompt.snippet }
+          }
+        ]
+      })
+    );
+  }
 
   log.info("Registered agent MCP tools", {
     userId: scope.userId,

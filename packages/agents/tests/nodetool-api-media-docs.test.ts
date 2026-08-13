@@ -26,6 +26,8 @@ const CRITIQUE_TOOLS = [
   "score_image_adherence"
 ].map(toolDef);
 
+const READ_BYTES_TOOLS = ["generate_image", "read_media_bytes"].map(toolDef);
+
 const DOCUMENT_TOOLS = [
   "convert_document",
   "extract_pdf_text",
@@ -49,7 +51,24 @@ function createFakeRouter() {
           ]
         });
       case "generate_image":
-        return JSON.stringify({ type: "image", asset_uri: "asset://img1.png" });
+        // The shape a real generation returns: an asset URI and id, plus a
+        // host `uri` the guest may not read.
+        return JSON.stringify({
+          type: "image",
+          asset_id: "img1",
+          asset_uri: "asset://img1.png",
+          url: "asset://img1",
+          uri: "file:///var/assets/img1.png"
+        });
+      case "read_media_bytes":
+        return args["uri"] === "asset://img1.png"
+          ? JSON.stringify({
+              uri: args["uri"],
+              size: 3,
+              mime_type: "image/png",
+              content_base64: "AQID"
+            })
+          : JSON.stringify({ error: `Could not read ${String(args["uri"])}` });
       case "critique_image":
         return JSON.stringify({
           type: "critique",
@@ -189,6 +208,67 @@ describe("nodetool.media judging", () => {
     );
     expect(obs.ok).toBe(true);
     expect(String(obs.result)).toContain("nodetool.models.pick");
+  });
+});
+
+describe("nodetool.media.bytes", () => {
+  it("reads the bytes behind a generation result", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(READ_BYTES_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const image = await nodetool.media.generateImage("a fox",
+         { provider: "fal_ai", model_id: "fal-ai/flux/schnell" });
+       const bytes = await nodetool.media.bytes(image);
+       return [bytes.length, Array.from(bytes)];`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toEqual([3, [1, 2, 3]]);
+    // The generation's `uri` is a host path; the asset URI is what goes over.
+    expect(calls[1]).toMatchObject({
+      name: "read_media_bytes",
+      args: { uri: "asset://img1.png" }
+    });
+  });
+
+  it("takes a bare URI too", async () => {
+    const { executeTool } = createFakeRouter();
+    const session = makeSession(READ_BYTES_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const bytes = await nodetool.media.bytes("asset://img1.png");
+       return bytes.length;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe(3);
+  });
+
+  it("throws the tool's own error instead of returning undefined bytes", async () => {
+    const { executeTool } = createFakeRouter();
+    const session = makeSession(READ_BYTES_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `try {
+         await nodetool.media.bytes("asset://missing.png");
+         return "no throw";
+       } catch (e) { return e.message; }`
+    );
+    expect(obs.ok).toBe(true);
+    expect(String(obs.result)).toContain("Could not read asset://missing.png");
+  });
+
+  it("names the accepted references when handed nothing usable", async () => {
+    const { executeTool } = createFakeRouter();
+    const session = makeSession(READ_BYTES_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `try {
+         await nodetool.media.bytes({ type: "image" });
+         return "no throw";
+       } catch (e) { return e.message; }`
+    );
+    expect(obs.ok).toBe(true);
+    expect(String(obs.result)).toContain("asset_uri");
   });
 });
 

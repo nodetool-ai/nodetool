@@ -112,20 +112,27 @@ async function toBytes(result: HfBinary): Promise<Uint8Array> {
 
 let _hfModule: HfInferenceModule | null = null;
 
-async function getHfInference(apiKey: string): Promise<HfClient> {
+/** The message every path reports when the optional dependency is absent. */
+const HF_MODULE_MISSING =
+  "@huggingface/inference is required for HuggingFaceProvider. " +
+  "Install it with: npm install @huggingface/inference";
+
+async function loadHfModule(): Promise<HfInferenceModule> {
   if (!_hfModule) {
     try {
       _hfModule = await (Function(
         'return import("@huggingface/inference")'
       )() as Promise<HfInferenceModule>);
     } catch {
-      throw new Error(
-        "@huggingface/inference is required for HuggingFaceProvider. " +
-          "Install it with: npm install @huggingface/inference"
-      );
+      throw new Error(HF_MODULE_MISSING);
     }
   }
-  const HfInference = _hfModule.HfInference ?? _hfModule.default?.HfInference;
+  return _hfModule;
+}
+
+async function getHfInference(apiKey: string): Promise<HfClient> {
+  const module = await loadHfModule();
+  const HfInference = module.HfInference ?? module.default?.HfInference;
   if (!HfInference) {
     throw new Error(
       "Could not find HfInference class in @huggingface/inference"
@@ -281,6 +288,21 @@ export class HuggingFaceProvider extends BaseProvider {
     this._apiKey = apiKey;
     if (options.hfClient) {
       this._hfClient = options.hfClient;
+    }
+  }
+
+  /**
+   * `@huggingface/inference` is an optional dependency, so a host can hold a
+   * valid HF_TOKEN and still be unable to run a single call. Report that here
+   * rather than at the first generation.
+   */
+  override async unavailableReason(): Promise<string | null> {
+    if (this._hfClient) return null;
+    try {
+      await loadHfModule();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
     }
   }
 

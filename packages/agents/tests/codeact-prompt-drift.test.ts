@@ -286,6 +286,7 @@ describe("chat variant exclusions", () => {
       "assetToSandbox",
       "fetch",
       "getSecret",
+      "media",
       "sandboxToAsset",
       "workspace"
     ]);
@@ -297,6 +298,33 @@ describe("chat variant exclusions", () => {
     const args = call.slice(0, call.indexOf("\n    });"));
     expect(args).not.toMatch(/^\s*context:/m);
     expect(args).toContain("maxFetchCalls: 0");
+  });
+
+  it("cannot call media.* from a chat action", async () => {
+    const session = createChatCodeActSession({
+      tools: [],
+      executeTool: async () => ({})
+    });
+    const observation = JSON.parse(
+      await session.executeAction({
+        code: 'return await media.bytes({ type: "document", uri: "data:text/plain;base64,aGk=" });'
+      })
+    ) as { ok: boolean; error?: string };
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain(
+      "media.bytes is not available without a context"
+    );
+  }, 60_000);
+
+  it("does not advertise media.* to a chat action", () => {
+    const manifest = getSandboxManifest();
+    const chat = buildCodeActSystemPrompt({ tools: [], variant: "chat" });
+    const step = buildCodeActSystemPrompt({ tools: [], variant: "step" });
+    expect(manifest.bridges.media.members.length).toBeGreaterThan(0);
+    for (const member of manifest.bridges.media.members) {
+      expect(step).toContain(member.signature);
+      expect(chat).not.toContain(member.signature);
+    }
   });
 
   it("hides every excluded bridge from the chat prompt", () => {

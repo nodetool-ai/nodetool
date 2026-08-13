@@ -536,11 +536,12 @@ nodetool mcp status
 nodetool mcp uninstall
 ```
 
-The NodeTool server must be running (`nodetool serve`) for MCP to work.
+HTTP MCP (`/mcp`) needs the API server (`nodetool serve`). `nodetool mcp serve`
+is stdio and does not.
 
 ### What the MCP server exposes
 
-Exactly two tools land on `/mcp`:
+Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
 
 - **`execute_code`** — the CodeAct action tool, built by the same
   `createChatCodeActSession` the in-app chat agent runs on, so the two surfaces cannot drift.
@@ -549,14 +550,19 @@ Exactly two tools land on `/mcp`:
   graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
   `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
   (`web_search`, `browser`, `http_request`), collections, documents, code execution, image
-  critique, and thread memory — as `tools.<name>()`, through the `nodetool.*` object model, or
-  found with `await searchTools("query")`. Google Workspace tools appear only on deployments with
-  a Google login.
+  critique, and thread memory — as `nodetool.<namespace>.<method>()`, as `tools.<name>()`, or
+  found with `await nodetool.searchTools("query")`. Google Workspace tools appear only on
+  deployments with a Google login.
 - **`view_image`** — direct, because image content cannot ride a sandbox action's JSON
   observation envelope.
 
-MCP has no system prompt, so the action contract and tool catalog ride in the `execute_code`
-description; the machine-readable form is the `nodetool://capabilities` resource.
+MCP has no system prompt. The guest contract (QuickJS, not Node; `nodetool.*`;
+no `finish()`) is the server `instructions` string and the first lines of the
+`execute_code` description. The rest of the description is the CodeAct catalog.
+Two resources carry the machine-readable form: `nodetool://capabilities` (tools
+and modules) and `nodetool://sandbox` (blocked globals, unavailable bridges,
+worked examples). Prompts `sandbox-action` and `sandbox-asset` are complete
+`execute_code` bodies.
 
 The session needs a user to run as — its tools touch that user's secrets, assets, and files — so
 `createMcpServer` refuses one that is not bound to a user (`nodetool mcp serve`, the local `/mcp`

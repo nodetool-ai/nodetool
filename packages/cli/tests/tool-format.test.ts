@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   isBasicTool,
+  isCodeAction,
+  isFormattedTool,
   friendlyToolName,
+  toolStatusLabel,
   formatToolParams,
   formatToolResult,
+  formatToolCode,
   formatToolDiff,
 } from "../src/tool-format.js";
 
@@ -30,6 +34,15 @@ describe("isBasicTool / friendlyToolName", () => {
   it("maps names to friendly verbs", () => {
     expect(friendlyToolName("read_file")).toBe("Read");
     expect(friendlyToolName("glob")).toBe("Search");
+    expect(friendlyToolName("execute_code")).toBe("Run");
+  });
+
+  it("treats execute_code as a formatted code action, not a basic file tool", () => {
+    expect(isBasicTool("execute_code")).toBe(false);
+    expect(isCodeAction("execute_code")).toBe(true);
+    expect(isFormattedTool("execute_code")).toBe(true);
+    expect(isFormattedTool("read_file")).toBe(true);
+    expect(isFormattedTool("google_search")).toBe(false);
   });
 });
 
@@ -61,6 +74,26 @@ describe("formatToolParams", () => {
     expect(formatToolParams("whatever", { a: 1, b: "x" })).toBe(
       'a: 1, b: "x"'
     );
+  });
+
+  it("execute_code shows only the title, never the program", () => {
+    expect(
+      formatToolParams("execute_code", {
+        title: "Rendering product images from CSV",
+        code: "const listed = await nodetool.workflows.list();",
+      })
+    ).toBe("Rendering product images from CSV");
+    expect(formatToolParams("execute_code", { code: "return 1" })).toBe("");
+  });
+});
+
+describe("toolStatusLabel", () => {
+  it("uses the execute_code title, else Run", () => {
+    expect(
+      toolStatusLabel("execute_code", { title: "Listing workflows" })
+    ).toBe("Listing workflows");
+    expect(toolStatusLabel("execute_code", { code: "return 1" })).toBe("Run");
+    expect(toolStatusLabel("read_file")).toBe("Read");
   });
 });
 
@@ -157,6 +190,69 @@ describe("formatToolResult", () => {
     expect(
       formatToolResult("grep", undefined, '{"success":true,"match_count":3}')
     ).toBe('{"success":true,"match_count":3}');
+  });
+
+  it("execute_code summarizes the observation envelope", () => {
+    expect(
+      formatToolResult("execute_code", undefined, {
+        ok: true,
+        result: { count: 3, uri: "asset://abc" },
+        toolCalls: 2,
+      })
+    ).toBe('{"count":3,"uri":"asset://abc"}  ·  2 tool calls');
+    expect(
+      formatToolResult(
+        "execute_code",
+        undefined,
+        JSON.stringify({
+          ok: true,
+          result: { count: 1 },
+          toolCalls: 1,
+          logs: ["picked flux"],
+        })
+      )
+    ).toBe('{"count":1}  ·  1 tool call  ·  1 log\npicked flux');
+    expect(
+      formatToolResult("execute_code", undefined, {
+        ok: true,
+        toolCalls: 0,
+      })
+    ).toBe("Done");
+  });
+
+  it("execute_code surfaces the observation error", () => {
+    expect(
+      formatToolResult("execute_code", undefined, {
+        ok: false,
+        error: "TypeError: x is not a function\n    at <eval>",
+        toolCalls: 1,
+      })
+    ).toBe("Error: TypeError: x is not a function");
+  });
+});
+
+describe("formatToolCode", () => {
+  it("only formats execute_code", () => {
+    expect(formatToolCode("read_file", { code: "x" })).toBeNull();
+    expect(formatToolCode("execute_code", { title: "Hi" })).toBeNull();
+  });
+
+  it("dedents the program and drops surrounding blank lines", () => {
+    expect(
+      formatToolCode("execute_code", {
+        code: "\n    const n = 1;\n    return n;\n",
+      })
+    ).toEqual(["const n = 1;", "return n;"]);
+  });
+
+  it("caps long programs with a +N more note", () => {
+    const code = Array.from({ length: 20 }, (_, i) => `const x${i} = ${i};`).join(
+      "\n"
+    );
+    const lines = formatToolCode("execute_code", { code });
+    expect(lines).not.toBeNull();
+    expect(lines!.length).toBe(13); // 12 lines + 1 note
+    expect(lines![12]).toBe("… +8 more lines");
   });
 });
 

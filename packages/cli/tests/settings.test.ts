@@ -154,6 +154,36 @@ describe("DEFAULT_SETTINGS structure", () => {
     expect(DEFAULT_SETTINGS.enabledTools).toContain("read_file");
     expect(DEFAULT_SETTINGS.enabledTools).toContain("write_file");
   });
+
+  it("enables every tool the `nodetool` object model documents", async () => {
+    // A namespace the prompt documents while the belt cannot serve it turns a
+    // documented call into "tool not in this toolbelt": `find_model` was
+    // missing here, so `nodetool.models.pick()` threw on every turn.
+    vi.resetModules();
+    const { DEFAULT_SETTINGS, ALWAYS_ENABLED_TOOLS } = await import(
+      "../src/settings.js"
+    );
+    for (const name of [
+      "find_model",
+      "list_models",
+      "list_provider_models",
+      "search_nodes",
+      "get_node_info",
+      "list_nodes",
+      "generate_image",
+      "read_media_bytes"
+    ]) {
+      expect(ALWAYS_ENABLED_TOOLS, `${name} must be always-on`).toContain(name);
+      expect(DEFAULT_SETTINGS.enabledTools).toContain(name);
+    }
+  });
+
+  it("lists each always-on tool once", async () => {
+    vi.resetModules();
+    const { DEFAULT_SETTINGS } = await import("../src/settings.js");
+    const seen = new Set(DEFAULT_SETTINGS.enabledTools);
+    expect(seen.size).toBe(DEFAULT_SETTINGS.enabledTools.length);
+  });
 });
 
 // ─── loadSettings ─────────────────────────────────────────────────────────────

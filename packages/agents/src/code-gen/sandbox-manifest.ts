@@ -551,45 +551,52 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         name: "media.bytes",
         signature: "await media.bytes(ref) -> Uint8Array",
         description: "The bytes behind any media ref.",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.text",
         signature: "await media.text(ref, { encoding? }) -> string",
         description: "Decode the ref's bytes as text (default utf-8).",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.info",
         signature:
           "await media.info(ref) -> { type, mimeType, uri, size }",
         description: "What the ref is and how big it is.",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.toDocument",
         signature:
           "await media.toDocument(bytes, { mimeType?, filename? }) -> DocumentRef",
         description: "Bytes to a document ref, ready to return as an output.",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.toImage",
         signature: "await media.toImage(bytes, { mimeType? }) -> ImageRef",
         description: "Bytes to an image ref.",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.toAudio",
         signature: "await media.toAudio(bytes, { mimeType? }) -> AudioRef",
         description: "Bytes to an audio ref.",
-        async: true
+        async: true,
+        requiresContext: true
       },
       {
         name: "media.toVideo",
         signature: "await media.toVideo(bytes, { mimeType? }) -> VideoRef",
         description: "Bytes to a video ref.",
-        async: true
+        async: true,
+        requiresContext: true
       }
     ]
   },

@@ -74,6 +74,9 @@ function makeContext(stub: {
   };
   if (stub.assetMode === "enabled") {
     let n = 0;
+    // A duck-typed context: the interface check is what the code reads, so a
+    // fake that only defines the method reads as "no asset persistence".
+    ctx.hasModelInterface = (name: string) => name === "createAsset";
     ctx.createAsset = vi.fn(async (args: AssetCreateCall) => {
       stub.assetCalls?.push(args);
       n += 1;

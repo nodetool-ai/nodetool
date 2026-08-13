@@ -92,6 +92,12 @@ function actionContractChat(
   so permission checks and approvals cannot be bypassed. Unusable here:
   ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
   with no context and a zero-request fetch limit.
+- The \`nodetool\` object model covers what those bridges did, past the gate:
+  \`nodetool.media.bytes(ref)\` for the bytes behind an image you generated
+  (pass the generation result or its \`asset_uri\`), \`nodetool.assets.read\` /
+  \`save\` for the library, \`nodetool.web.fetch\` / \`browse\` for the network.
+  \`image.*\` and \`canvas\` need no context, so decode, resize, composite and
+  encode in the same action you read the bytes in.
 - When you need the user's decision, stop writing code and ask in a plain
   assistant message.`;
 }
@@ -343,11 +349,13 @@ export function buildCodeActSystemPrompt(
   if (direct.length > 0) {
     sections.push(
       `# Direct tools (call them, do not write code for them)\n` +
-        `These are ordinary tool calls, not sandbox functions. They are not ` +
-        `in \`tools.*\` and \`nodetool.searchTools()\` does not list them. Call one ` +
-        `directly when you need exactly what it does; write a code action ` +
-        `when you need to compose several calls, loop, or transform the ` +
-        `results.\n\n` +
+        `These are ordinary tool calls — the file set, the web set, ` +
+        `delegation, and discovery: which providers, models and node types ` +
+        `this install has. Call one directly when you need exactly what it ` +
+        `does; a code action whose only job is to forward one is a wasted ` +
+        `round trip. Write the action when you compose several calls, loop, ` +
+        `or transform the results — they stay reachable inside one as ` +
+        `\`tools.<name>()\` and through \`nodetool.*\`.\n\n` +
         direct.join(", ")
     );
   }

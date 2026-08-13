@@ -220,9 +220,10 @@ tool**, not a flat catalog.
 `execute_code` and `view_image`, which is direct because pixels cannot ride a
 sandbox action's JSON observation envelope. Everything else on that belt is
 reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
-model, or found with `await searchTools("query")`. MCP has no system prompt, so
-the action contract and tool catalog ride in the `execute_code` description, and
-the machine-readable form is the `nodetool://capabilities` resource.
+model, or found with `await nodetool.searchTools("query")`. MCP has no system
+prompt, so the guest contract leads the `execute_code` description and is also
+the server `instructions` string. The machine-readable form is
+`nodetool://capabilities` (tools) plus `nodetool://sandbox` (guest surface).
 
 It used to register all ~95 bridged tools flat, which made a scoped MCP session
 NodeTool's largest surface anywhere — 120 tools and ~27k tokens of schema before

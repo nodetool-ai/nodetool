@@ -40,6 +40,43 @@ export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Discovery: which providers, models and node types this install actually has.
+ *
+ * These are lookups whose answer decides what the model writes next, and a
+ * wrong answer is expensive — a hallucinated model id or node type fails at
+ * generation time, after the run has been paid for. A lookup is also exactly
+ * the shape a tool call fits: one question, one answer, nothing to compose.
+ * Routing it through a code action costs a sandbox round trip and hides the
+ * result behind whatever the action chose to return.
+ *
+ * They stay on the belt, so `nodetool.models.pick()` inside an action and the
+ * graph planner's own searches keep working; what changes is the documented
+ * path.
+ */
+export const DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  // Providers and models.
+  "find_model",
+  "list_models",
+  "list_provider_models",
+  // Node types.
+  "search_nodes",
+  "get_node_info",
+  "list_nodes"
+]);
+
+/**
+ * Every tool offered as an ordinary tool call next to `execute_code`:
+ * {@link CORE_TOOL_NAMES} plus {@link DISCOVERY_TOOL_NAMES}. The two sets are
+ * kept apart because only the core set has SDK built-ins behind it — the
+ * substitution in {@link SDK_NATIVE_TOOL_REPLACEMENTS} must never reach a
+ * discovery tool, which no built-in covers.
+ */
+export const DIRECT_TOOL_NAMES: ReadonlySet<string> = new Set([
+  ...CORE_TOOL_NAMES,
+  ...DISCOVERY_TOOL_NAMES
+]);
+
+/**
  * NodeTool tool name → the Claude Agent SDK built-in that replaces it. Only
  * true replacements are listed. Three members of {@link CORE_TOOL_NAMES} are
  * deliberately absent:

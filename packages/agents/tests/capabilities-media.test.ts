@@ -74,6 +74,7 @@ describe("media and style capability modules", () => {
       "generate_speech",
       "transcribe_audio",
       "embed_text",
+      "read_media_bytes",
       "critique_image",
       "compare_images",
       "score_image_adherence"

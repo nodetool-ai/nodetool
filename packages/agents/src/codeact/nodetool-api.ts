@@ -47,7 +47,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "embed_text",
     "critique_image",
     "compare_images",
-    "score_image_adherence"
+    "score_image_adherence",
+    "read_media_bytes"
   ],
   documents: [
     "convert_document",
@@ -217,6 +218,24 @@ const nodetool = (() => {
       "nodetool: a model is required — pass a nodetool.models.find/pick " +
       'result, {provider, model_id}, or "provider/model_id". Use ' +
       'await nodetool.models.pick("<capability>") to resolve one.'
+    );
+  };
+
+  /**
+   * Normalize what a generation returns into the one reference
+   * \`read_media_bytes\` takes. A generation result carries \`asset_uri\`,
+   * \`asset_id\`, \`url\` and a host \`uri\` — the last is a filesystem path the
+   * guest may not read, so it is never chosen. A bare string passes through.
+   */
+  const __mediaUri = (ref) => {
+    if (typeof ref === "string" && ref) return ref;
+    if (ref && typeof ref === "object") {
+      const uri = ref.asset_uri || ref.asset_id || ref.url || ref.uri;
+      if (typeof uri === "string" && uri) return uri;
+    }
+    throw new Error(
+      "nodetool.media.bytes: pass what a generation returned (its " +
+      "asset_uri), an asset id, a /api/storage/ key, or a data:/http(s) URL."
     );
   };
 
@@ -601,6 +620,19 @@ const nodetool = (() => {
               (found && found.note ? " — " + found.note : "")
           );
         }
+        // A missed search must not resolve to an unrelated model — the caller
+        // asked for a named one.
+        if (found && found.query_matched === false) {
+          throw new Error(
+            "nodetool.models.pick: no model matches " +
+              JSON.stringify(opts && opts.query) +
+              " for " +
+              capability +
+              '. Call nodetool.models.find("' +
+              capability +
+              '") to see what is configured.'
+          );
+        }
         return results[0];
       },
       list: (opts) => __need("list_models")(__merge(opts)),
@@ -621,6 +653,22 @@ const nodetool = (() => {
             __merge(__model(model), { input_file: inputFile, prompt: prompt })
           )
         ),
+      /**
+       * The bytes behind anything a generation returned — the way to get at an
+       * image you just made and hand it to \`image.*\`. Takes the result object
+       * itself, its \`asset_uri\`, a bare asset id, a /api/storage/ key, or a
+       * data:/http(s) URL. Returns a Uint8Array.
+       */
+      bytes: (ref) =>
+        __need("read_media_bytes")({ uri: __mediaUri(ref) }).then((r) => {
+          if (!r || typeof r.content_base64 !== "string") {
+            throw new Error(
+              "nodetool.media.bytes: " +
+              ((r && r.error) || "no bytes came back for this reference")
+            );
+          }
+          return fromBase64(r.content_base64);
+        }),
       generateVideo: (prompt, model, opts) =>
         __need("generate_video")(
           __merge(opts, __merge(__model(model), { prompt: prompt }))
@@ -994,7 +1042,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "nodes",
-    doc: `- \`nodetool.nodes\` — the graph author's discovery half. NEVER guess a node
+    doc: `- \`nodetool.nodes\` — the graph author's discovery half. \`search_nodes\`,
+  \`get_node_info\` and \`list_nodes\` are direct tool calls — reach for those
+  when you are only looking something up; these are the same lookups inside an
+  action. NEVER guess a node
   type: \`await search(["summarize text"], {n_results, input_type, output_type})\`
   (a bare string works too) to find candidates — it returns
   \`{total, results}\`, and each result carries its node type on \`type\`
@@ -1016,9 +1067,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "models",
-    doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
-  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`), \`find(capability,
-  {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
+    doc: `- \`nodetool.models\` — model discovery. \`find_model\` / \`list_models\` are
+  direct tool calls, so a plain lookup is one call and not an action; these are
+  the same lookups from inside an action, where a picked model feeds the next
+  call. \`await pick(capability)\` resolves ONE ranked model
+  (e.g. \`pick("text_to_image")\` → \`{provider, model_id, ref}\`). When the user
+  named a model, search for it in the SAME call:
+  \`pick("text_to_image", {query: "flux schnell"})\` — \`query\` is free text over
+  model id and name, and \`pick\` throws when nothing matches instead of
+  returning something else. \`find(capability,
+  {query, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
   \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
   provider's own catalog. Never guess a model id — pick one, then pass it to
@@ -1035,6 +1093,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
+  \`await nodetool.media.bytes(result)\` reads the bytes back — pass the
+  generation result itself, its \`asset_uri\`, or an asset id — so
+  generate → \`image.resize/composite\` → \`nodetool.assets.save\` is one action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
@@ -1096,7 +1157,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "assets",
     doc: `- \`nodetool.assets\` — \`list({content_type, limit})\`, \`search(query)\`,
   \`images({query, limit})\` (image handles — pass an id to \`view_image\`),
-  \`get(assetId)\`, \`save(name, {...})\`, \`read(name)\`.`
+  \`get(assetId)\` (the row — no bytes), \`save(name, {content_base64,
+  content_type})\`, \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
+  /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
+  For bytes you intend to compute on, \`nodetool.media.bytes(ref)\` is the
+  direct route.`
   },
   {
     namespace: "jobs",

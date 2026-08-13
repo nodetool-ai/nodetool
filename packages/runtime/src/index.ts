@@ -11,6 +11,8 @@ export {
   FileStorageAdapter,
   S3StorageAdapter,
   resolveWorkspacePath,
+  setDefaultModelInterfaces,
+  getDefaultModelInterfaces,
   type AssetOutputMode,
   type CacheAdapter,
   type FolderAssetEntry,

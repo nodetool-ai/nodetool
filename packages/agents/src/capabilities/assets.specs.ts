@@ -203,13 +203,15 @@ export const saveAssetSpec: CapabilitySpec = {
 
 export const readAssetSpec: CapabilitySpec = {
   name: "read_asset",
-  description: "Read an asset file",
+  description:
+    "Read an asset's content. Takes the asset:// URI a generation returned (its asset_uri, with or without an extension), a bare asset id, a /api/storage/ key, or a stored file name. Returns `content` for text and `content_base64` for binary; for bytes you intend to compute on, read_media_bytes is the direct route.",
   inputSchema: {
     type: "object",
     properties: {
       name: {
         type: "string",
-        description: "Name of the asset file to read"
+        description:
+          "What to read: an asset:// URI, an asset id, a /api/storage/ key, or a stored file name."
       }
     },
     required: ["name"] as string[]
