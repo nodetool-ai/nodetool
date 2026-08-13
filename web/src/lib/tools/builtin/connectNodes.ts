@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { uiConnectNodesParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { resolveWorkflowId } from "./workflow";
+import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 import {
   findInputHandle,
   findOutputHandle,
@@ -31,7 +31,7 @@ FrontendToolRegistry.register({
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) {
-      throw new Error(`No node store for workflow ${workflowId}`);
+      throw noNodeStoreError(state, workflowId);
     }
 
     const src = nodeStore.findNode(source_node_id);

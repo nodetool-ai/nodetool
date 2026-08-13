@@ -2,7 +2,7 @@ import { z } from "zod";
 import { uiAddNodeParams } from "@nodetool-ai/protocol";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
-import { resolveWorkflowId } from "./workflow";
+import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 
 const addNodeParametersSchema = z.object(uiAddNodeParams);
 
@@ -58,7 +58,7 @@ FrontendToolRegistry.register({
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) {
-      throw new Error(`No node store for workflow ${workflowId}`);
+      throw noNodeStoreError(state, workflowId);
     }
 
     const metadata = state.nodeMetadata[type];

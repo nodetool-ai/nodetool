@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
-import { optionalWorkflowIdSchemaCompact, resolveWorkflowId } from "./workflow";
+import {
+  noNodeStoreError,
+  optionalWorkflowIdSchemaCompact,
+  resolveWorkflowId
+} from "./workflow";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 
 type GraphNodeInput = {
@@ -112,7 +116,7 @@ FrontendToolRegistry.register({
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, w);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
+    if (!nodeStore) {throw noNodeStoreError(state, workflowId);}
 
     const addedNodeIds: string[] = [];
     const addedEdgeIds: string[] = [];
