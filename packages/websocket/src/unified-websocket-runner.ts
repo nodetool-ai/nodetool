@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import {
+  SUPERSEDED_TOOL_RESULT,
+  repairOrphanedToolCalls
+} from "./chat-tool-call-repair.js";
 import { ApiErrorCode } from "./error-codes.js";
 import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
@@ -5394,7 +5398,11 @@ export class UnifiedWebSocketRunner {
         const pm = this.dbMessageToProviderMessage(m);
         if (pm) out.push(pm);
       }
-      return out;
+      // A thread that took an interleave before this was fixed still holds a
+      // tool call with no result. Anthropic 400s on one, so loading such a
+      // thread under a different provider or model would fail every turn from
+      // here on. Patch the history we send; the stored rows are left alone.
+      return repairOrphanedToolCalls(out);
     };
 
     let chatHistory: ProviderMessage[];
@@ -5823,6 +5831,9 @@ export class UnifiedWebSocketRunner {
     // build a multi-component app UI or run a long edit session in one turn —
     // 10 was too low and cut off the app builder mid-build.
     const MAX_TOOL_ROUNDS = 50;
+    // Items still read from a superseded turn, purely to catch tool results
+    // already in flight. A provider that honors the abort ends well inside it.
+    const MAX_SUPERSEDED_DRAIN_ITEMS = 200;
     const useTools = providerToolSchemas.length > 0;
 
     // The wire messages: chat history + the ephemeral memory block (which goes
@@ -5964,6 +5975,98 @@ export class UnifiedWebSocketRunner {
     // Tool name by call id, so persisted tool messages keep their name (the
     // provider Message carries only the id).
     const toolNames = new Map<string, string>();
+    // Calls announced by an assistant message that have not been answered by a
+    // tool message yet. Whatever is still here when the turn tears down never
+    // got its result row, and the `finally` below writes a stand-in so the
+    // transcript stays well-formed.
+    const openToolCalls = new Set<string>();
+    // Set when a newer turn supersedes this one. The loop then stops feeding
+    // the client and only rescues the results still coming.
+    let superseded = false;
+    let drainedItems = 0;
+
+    /**
+     * Write one message this turn produced. `echo` is false for a superseded
+     * turn: the row still belongs in the thread, but the client has moved on
+     * and replaying it there would interleave a dead turn into a live one.
+     */
+    const persistTurnMessage = async (
+      m: ProviderMessage,
+      echo: boolean
+    ): Promise<void> => {
+      if (m.role === "assistant") {
+        // Content may be a plain string or a MessageContent[] carrying
+        // native-image blocks. Raw image bytes are turned into real assets
+        // here so base64 never lands in the DB or on the wire.
+        let persistedContent: unknown = m.content ?? null;
+        if (typeof m.content === "string") {
+          if (echo) content = m.content;
+        } else if (Array.isArray(m.content)) {
+          const materialized = await this.materializeAssistantImageContent(
+            m.content,
+            userId,
+            workflowId
+          );
+          persistedContent = materialized;
+          if (echo) {
+            content = materialized
+              .filter((c) => c.type === "text" && typeof c.text === "string")
+              .map((c) => c.text as string)
+              .join("");
+          }
+        }
+        const toolCalls = Array.isArray(m.toolCalls)
+          ? m.toolCalls.map((tc) => ({
+              id: tc.id,
+              name: tc.name,
+              args: tc.args,
+              result: null
+            }))
+          : null;
+        for (const tc of toolCalls ?? []) {
+          if (typeof tc.id !== "string") continue;
+          openToolCalls.add(tc.id);
+          toolNames.set(tc.id, tc.name);
+        }
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: persistedContent,
+          ...(toolCalls ? { tool_calls: toolCalls } : {}),
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model,
+          provider_session: sessionForPersist()
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        if (echo) await this.sendMessage(assistantMsgData);
+        return;
+      }
+      if (m.role !== "tool") return;
+      // Image tool results carry MessageContent blocks; persist/echo only
+      // their note text so chat history stays light (the base64 rode the
+      // in-flight provider message, never the DB).
+      const toolContent = Array.isArray(m.content)
+        ? this.toolResultDisplayText(m.content)
+        : typeof m.content === "string"
+          ? m.content
+          : "";
+      if (typeof m.toolCallId === "string") openToolCalls.delete(m.toolCallId);
+      const toolMsgData: Record<string, unknown> = {
+        type: "message",
+        role: "tool",
+        tool_call_id: m.toolCallId ?? null,
+        name: m.toolCallId ? (toolNames.get(m.toolCallId) ?? null) : null,
+        content: toolContent,
+        thread_id: threadId,
+        workflow_id: workflowId,
+        provider: providerId,
+        model
+      };
+      await this.saveMessageToDb(toolMsgData);
+      if (echo) await this.sendMessage(toolMsgData);
+    };
 
     try {
       for await (const item of provider.generateLoop({
@@ -5979,8 +6082,39 @@ export class UnifiedWebSocketRunner {
         workspaceDir: chatWorkspaceDir ?? undefined,
         signal
       })) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-          return;
+        // A newer turn has taken over. Stop driving the client, but do NOT
+        // drop what this turn already produced: the provider checks its abort
+        // signal before dispatching a tool, never during one, so a call in
+        // flight runs to completion and its result is arriving right now.
+        // Discarding it left the model blind to a side effect it had already
+        // caused, and it silently redid the work.
+        if (
+          !superseded &&
+          requestSeq !== undefined &&
+          requestSeq !== this.chatRequestSeq
+        ) {
+          superseded = true;
+        }
+        if (superseded) {
+          if (isProviderMessageEvent(item)) {
+            await persistTurnMessage(item.message, false);
+          }
+          // Nothing left outstanding: the rest of this turn is work the user
+          // has already moved on from.
+          if (openToolCalls.size === 0) break;
+          // The turn's signal is already aborted, so a provider that honors it
+          // ends within a few items. One that does not must never hold this
+          // handler open — stop reading and let the `finally` stand in for
+          // whatever is still missing.
+          if (++drainedItems > MAX_SUPERSEDED_DRAIN_ITEMS) {
+            log.warn("Superseded turn kept producing; stopped draining", {
+              threadId,
+              openToolCalls: openToolCalls.size
+            });
+            break;
+          }
+          continue;
+        }
 
         if (isProviderSessionUpdate(item)) {
           // Internal continuity token — capture for persistence, never wired.
@@ -5989,70 +6123,7 @@ export class UnifiedWebSocketRunner {
         }
 
         if (isProviderMessageEvent(item)) {
-          const m = item.message;
-          if (m.role === "assistant") {
-            // Content may be a plain string or a MessageContent[] carrying
-            // native-image blocks. Raw image bytes are turned into real assets
-            // here so base64 never lands in the DB or on the wire.
-            let persistedContent: unknown = m.content ?? null;
-            if (typeof m.content === "string") {
-              content = m.content;
-            } else if (Array.isArray(m.content)) {
-              const materialized = await this.materializeAssistantImageContent(
-                m.content,
-                userId,
-                workflowId
-              );
-              persistedContent = materialized;
-              content = materialized
-                .filter((c) => c.type === "text" && typeof c.text === "string")
-                .map((c) => c.text as string)
-                .join("");
-            }
-            const toolCalls = Array.isArray(m.toolCalls)
-              ? m.toolCalls.map((tc) => ({
-                  id: tc.id,
-                  name: tc.name,
-                  args: tc.args,
-                  result: null
-                }))
-              : null;
-            const assistantMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "assistant",
-              content: persistedContent,
-              ...(toolCalls ? { tool_calls: toolCalls } : {}),
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              provider_session: sessionForPersist()
-            };
-            await this.saveMessageToDb(assistantMsgData);
-            await this.sendMessage(assistantMsgData);
-          } else if (m.role === "tool") {
-            // Image tool results carry MessageContent blocks; persist/echo only
-            // their note text so chat history stays light (the base64 rode the
-            // in-flight provider message, never the DB).
-            const toolContent = Array.isArray(m.content)
-              ? this.toolResultDisplayText(m.content)
-              : typeof m.content === "string"
-                ? m.content
-                : "";
-            const toolMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "tool",
-              tool_call_id: m.toolCallId ?? null,
-              name: m.toolCallId ? (toolNames.get(m.toolCallId) ?? null) : null,
-              content: toolContent,
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model
-            };
-            await this.saveMessageToDb(toolMsgData);
-            await this.sendMessage(toolMsgData);
-          }
+          await persistTurnMessage(item.message, true);
           continue;
         }
 
@@ -6069,6 +6140,11 @@ export class UnifiedWebSocketRunner {
           log.info("Tool call", { tool: tc.name, args: tc.args });
         }
       }
+
+      // A superseded turn is done once its outstanding results are saved. The
+      // completion chunk and the memory pass belong to the turn the user is
+      // actually watching, which has its own.
+      if (superseded) return;
 
       // Log provider call for cost tracking — matches Python's _log_provider_call()
       await this._logProviderCall(
@@ -6214,6 +6290,30 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
+    } finally {
+      // Whatever is still outstanding never got a result row. Leaving the gap
+      // makes the thread malformed — Anthropic rejects a `tool_use` with no
+      // `tool_result` — and leaves the model unaware the call was abandoned,
+      // which is what made it silently redo the work.
+      for (const toolCallId of openToolCalls) {
+        try {
+          await this.saveMessageToDb({
+            type: "message",
+            role: "tool",
+            tool_call_id: toolCallId,
+            name: toolNames.get(toolCallId) ?? null,
+            content: SUPERSEDED_TOOL_RESULT,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model
+          });
+        } catch (err) {
+          // Best effort: a turn that already failed must not fail again here.
+          this.logError("superseded tool result save failed", err);
+        }
+      }
+      openToolCalls.clear();
     }
   }
 
