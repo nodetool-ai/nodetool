@@ -20,6 +20,10 @@ import {
 } from "../../stores/jsScript/JsScriptStore";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  isPermanentSaveError,
+  MAX_TRANSIENT_SAVE_RETRIES
+} from "../../utils/saveErrors";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -50,6 +54,9 @@ export const useJsScriptServerSync = (scriptId: string): void => {
   const syncedRef = useRef<JsScriptEntry | null>(null);
   const inFlightRef = useRef(false);
   const flushAfterSaveRef = useRef(false);
+  // Consecutive failed attempts for the current edit. Reset by a new edit and
+  // by a save that lands.
+  const retriesRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -131,6 +138,7 @@ export const useJsScriptServerSync = (scriptId: string): void => {
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = entry;
         saved = true;
+        retriesRef.current = 0;
         void utilsRef.current.jsScripts.list.invalidate();
         // Only claim "saved" when the saved snapshot still matches the store;
         // edits that landed mid-flight leave newer work queued.
@@ -154,7 +162,18 @@ export const useJsScriptServerSync = (scriptId: string): void => {
           await load("reloaded");
         } else {
           store.getState().setSaveStatus(scriptId, "error");
-          schedule(RETRY_DELAY_MS);
+          // A payload the server will reject again — an invalid document, a
+          // permission error — must not be resent, and even a transient
+          // failure gets a bounded number of retries rather than a loop.
+          if (
+            !isPermanentSaveError(error) &&
+            retriesRef.current < MAX_TRANSIENT_SAVE_RETRIES
+          ) {
+            retriesRef.current += 1;
+            schedule(RETRY_DELAY_MS);
+          } else {
+            retriesRef.current = 0;
+          }
         }
       } finally {
         inFlightRef.current = false;
@@ -177,6 +196,8 @@ export const useJsScriptServerSync = (scriptId: string): void => {
       if (state.scripts[scriptId] === syncedRef.current) return;
       if (!state.serverRevisions[scriptId]) return;
       store.getState().setSaveStatus(scriptId, "unsaved");
+      // A new edit is new content: give it a full retry budget.
+      retriesRef.current = 0;
       schedule();
     });
 
