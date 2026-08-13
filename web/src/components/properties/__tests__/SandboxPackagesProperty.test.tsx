@@ -10,7 +10,8 @@ import { trpcClient } from "../../../trpc/client";
 jest.mock("../../../config/data_types", () => ({}));
 
 import SandboxPackagesProperty, {
-  SANDBOX_CONSENT_TEXT
+  SANDBOX_CONSENT_TEXT,
+  type Declaration
 } from "../SandboxPackagesProperty";
 
 const modulesQuery = trpcClient.packs.sandboxModules
@@ -34,7 +35,7 @@ const defaultProps = {
     type: { type: "list", optional: false, type_args: [] }
   } as any,
   propertyIndex: "0",
-  value: [] as unknown[],
+  value: [] as (string | Declaration)[],
   onChange: jest.fn(),
   nodeId: "node1",
   nodeType: "nodetool.code.Code"

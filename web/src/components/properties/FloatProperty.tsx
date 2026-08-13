@@ -5,7 +5,7 @@ import isEqual from "../../utils/isEqual";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 
-const FloatProperty = (props: PropertyProps) => {
+const FloatProperty = (props: PropertyProps<number>) => {
   const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
   const id = `slider-${property.name}-${props.propertyIndex}`;
   const name = property.name.replaceAll("_", " ");

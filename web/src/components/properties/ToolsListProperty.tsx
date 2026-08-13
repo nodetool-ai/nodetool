@@ -117,10 +117,10 @@ const AVAILABLE_TOOLS: ToolEntry[] = [
   }
 ];
 
-const ToolsListProperty = (props: PropertyProps) => {
+const ToolsListProperty = (props: PropertyProps<Tool[]>) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
   const toolNames: string[] = useMemo(
-    () => props.value?.map((tool: Tool) => tool.name) || [],
+    () => props.value?.map((tool) => tool.name) || [],
     [props.value]
   );
   const toolNameSet = useMemo(() => new Set(toolNames), [toolNames]);
