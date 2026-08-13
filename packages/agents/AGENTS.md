@@ -858,11 +858,25 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   has — one question with one answer, and a wrong answer is a hallucinated
   model id that fails at generation time, after the run was paid for. The two
   sets stay apart because only the core set has SDK built-ins behind it:
-  `DIRECT_TOOL_NAMES` is their union and is what the three offer sites read
-  (`splitCoreTools`, the CLI turn, the websocket runner), while
-  `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
+  `DIRECT_TOOL_NAMES` is their union and is what the four offer sites read
+  (`splitCoreTools`, the CLI turn, the websocket runner, and the MCP mount),
+  while `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
   `nodetool.models.pick` and `nodetool.nodes.search` are unchanged — the belt
   keeps every tool, so an action still composes them.
+- The MCP mount subtracts. It offers `DIRECT_TOOL_NAMES` **minus every key of
+  `SDK_NATIVE_TOOL_REPLACEMENTS`**, because an MCP client (Claude Code,
+  ChatGPT) *is* the host agent that table describes: offering NodeTool's
+  workspace-scoped `read_file` beside the client's own would put two tools of
+  one name and two different roots in front of one model. What survives has no
+  host equivalent — discovery, the server-side reach that runs behind
+  NodeTool's SSRF guard and secrets (`browser`, `http_request`,
+  `download_file`, `list_directory`), and `run_subtask`, whose child gets the
+  NodeTool belt rather than the client's. It is a `belt.filter`, so a session
+  missing an injected dependency (no node registry, say) advertises no node
+  tools instead of a tool that cannot run. Before this the mount registered
+  only `execute_code` and `view_image`: everything was still reachable as
+  `tools.*` inside an action, but every discovery question cost a sandbox round
+  trip, which is the tax the direct set exists to remove.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
   `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,
