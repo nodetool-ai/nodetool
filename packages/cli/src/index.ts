@@ -15,7 +15,8 @@ import { program } from "commander";
 import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
-import { loadSettings } from "./settings.js";
+import { ALWAYS_ENABLED_TOOLS, loadSettings } from "./settings.js";
+import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { runStdinMode } from "./stdin.js";
 import { buildConfiguredProviders, KNOWN_PROVIDERS } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
@@ -161,6 +162,10 @@ try {
   );
 }
 
+// The same persistence a local workflow run gets, for every context this
+// process builds (chat turns build their own on top; a sub-agent's does not).
+await installLocalModelInterfaces();
+
 // Load persisted settings and merge with CLI flags
 const settings = await loadSettings();
 
@@ -180,17 +185,18 @@ if (opts.agent !== undefined) {
 }
 
 const workspace = opts.workspace ?? process.cwd();
-const enabledTools = opts.tools
+const explicitTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
-  : settings.enabledTools;
+  : null;
+const enabledTools = explicitTools ?? settings.enabledTools;
 
-// Always-on tools (no credentials needed)
-for (const tool of [
-  "extract_pdf_text",
-  "convert_pdf_to_markdown",
-  "convert_document"
-]) {
-  if (!enabledTools.includes(tool)) enabledTools.push(tool);
+// Tools that gate on no credential — documents, discovery, generation — added
+// to a settings file written before they existed. `--tools` is left exactly as
+// typed: a caller who names a belt means that belt.
+if (!explicitTools) {
+  for (const tool of ALWAYS_ENABLED_TOOLS) {
+    if (!enabledTools.includes(tool)) enabledTools.push(tool);
+  }
 }
 
 // Auto-enable based on available secrets (env or encrypted DB)
@@ -209,11 +215,9 @@ await Promise.all([
     "google_news",
     "google_images"
   ]),
-  autoEnable("OPENAI_API_KEY", [
-    "web_search",
-    "generate_image",
-    "generate_speech"
-  ]),
+  // `generate_image` / `generate_speech` are not here: they route by the model
+  // they are given, so an OpenAI key is not what makes them usable.
+  autoEnable("OPENAI_API_KEY", ["web_search"]),
   autoEnable("DATA_FOR_SEO_LOGIN", ["web_search", "google_news"]),
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);

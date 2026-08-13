@@ -81,6 +81,7 @@ import type {
   MessageContent,
   BaseProvider,
   ProcessingContext,
+  ProcessingContextModelInterfaces,
   ProviderSession,
   ToolCall as ProviderToolCall,
   ImageModel as ProviderImageModel,
@@ -94,7 +95,7 @@ import type {
 import {
   ProcessingContext as RuntimeProcessingContext,
   ACTIVE_MODEL_CONTEXT_KEY,
-  CORE_TOOL_NAMES,
+  DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
   getCostReconciler,
   isProviderSessionUpdate,
@@ -1000,6 +1001,182 @@ async function autoSaveAssets(
   }
 }
 
+/**
+ * The server's persistence, as one object.
+ *
+ * Installed process-wide at startup (`setDefaultModelInterfaces`) so every
+ * context built anywhere in the server — a chat turn, an MCP session, a
+ * workflow run, an app build — persists through the same code, and a new
+ * entrance cannot forget to wire it.
+ */
+export function serverModelInterfaces(): ProcessingContextModelInterfaces {
+  return {
+      // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
+      // one persistence path, one home-folder default.
+      createAsset: createAssetModelInterface,
+      createMessage: async ({ userId, req }) => {
+        // Persist an AgentNode thread message. `content` / `tool_calls` are stored
+        // raw — the `content` column is a jsonText type that serializes them, so
+        // stringifying here would double-encode and break the getMessages read
+        // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
+        return Message.create({
+          user_id: userId,
+          thread_id: req.thread_id,
+          role: req.role,
+          name: req.name ?? null,
+          content: req.content ?? null,
+          tool_calls: req.tool_calls ?? null,
+          tool_call_id: req.tool_call_id ?? null,
+          workflow_id: req.workflow_id ?? null
+        });
+      },
+      getMessages: async ({ userId, threadId, limit, startKey, reverse }) => {
+        const [msgs, cursor] = await Message.paginate(threadId, {
+          limit: limit ?? 1000,
+          startKey: startKey ?? undefined,
+          reverse: reverse ?? false
+        });
+        // Scope to the requesting user — thread_id has no ownership column of its
+        // own, so filter the rows the same way the tRPC messages router does.
+        const owned = msgs.filter((m) => m.user_id === userId);
+        return {
+          messages: owned as unknown as Array<Record<string, unknown>>,
+          next: cursor || null
+        };
+      },
+      listFolderAssets: async ({ userId, folderId }) => {
+        const folder = await Asset.find(userId, folderId);
+        if (!folder || folder.content_type !== "folder") return null;
+        const out: Array<{ id: string; content_type: string; name: string }> = [];
+        const seen = new Set<string>();
+        const visit = async (parentId: string): Promise<void> => {
+          if (seen.has(parentId)) return; // guard against cyclic parent links
+          seen.add(parentId);
+          const children = await Asset.getChildren(userId, parentId, 1000);
+          for (const child of children) {
+            if (child.content_type === "folder") {
+              await visit(child.id);
+            } else {
+              out.push({
+                id: child.id,
+                content_type: child.content_type,
+                name: child.name
+              });
+            }
+          }
+        };
+        await visit(folderId);
+        out.sort((a, b) => a.name.localeCompare(b.name));
+        return out;
+      },
+      getAssetInfo: async ({ userId, assetId }) => {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        return {
+          id: asset.id,
+          content_type: asset.content_type,
+          name: asset.name,
+          metadata: asset.metadata ?? null
+        };
+      },
+      getImageDocument: async ({ userId, id }) => {
+        const doc = await ImageDocument.findById(id);
+        if (!doc || doc.user_id !== userId) return null;
+        return doc.toResponse();
+      },
+      createImageDocument: async ({
+        userId,
+        name,
+        projectId,
+        width,
+        height,
+        document
+      }) => {
+        const doc = new ImageDocument({
+          user_id: userId,
+          project_id: projectId ?? "default",
+          name,
+          width,
+          height,
+          document: JSON.stringify(document)
+        });
+        await doc.save();
+        return doc.toResponse();
+      },
+      getTimelineSequence: async ({ userId, id }) => {
+        const seq = await TimelineSequence.findById(id);
+        if (!seq || seq.user_id !== userId) return null;
+        return seq.toTimelineSequence();
+      },
+      createTimelineSequence: async ({ userId, sequence }) => {
+        const seq = TimelineSequence.fromTimelineSequence(
+          userId,
+          sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+        );
+        await seq.save();
+        return seq.toTimelineSequence();
+      },
+      updateTimelineSequence: async ({ userId, id, sequence }) => {
+        const existing = await TimelineSequence.findById(id);
+        if (!existing || existing.user_id !== userId) return null;
+        const next = TimelineSequence.fromTimelineSequence(
+          userId,
+          sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+        );
+        const updated = await TimelineSequence.updateFieldsIfUnchanged(
+          id,
+          next.updated_at,
+          {
+            name: next.name,
+            fps: next.fps,
+            width: next.width,
+            height: next.height,
+            duration_ms: next.duration_ms,
+            document: next.document
+          }
+        );
+        return updated ? updated.toTimelineSequence() : null;
+      },
+      getScript: async ({ userId, id }) => {
+        const script = await Script.findById(id);
+        if (!script || script.user_id !== userId) return null;
+        return script.toResponse();
+      },
+      createScript: async ({ userId, name, projectId, document }) => {
+        const script = new Script({
+          user_id: userId,
+          name: name ?? "Untitled script",
+          project_id: projectId ?? "default",
+          document: JSON.stringify(document)
+        });
+        await script.save();
+        return script.toResponse();
+      },
+      updateScript: async ({
+        userId,
+        id,
+        document,
+        timelineId,
+        baseUpdatedAt
+      }) => {
+        const existing = await Script.findById(id);
+        if (!existing || existing.user_id !== userId) return null;
+        const fields: Partial<{
+          document: string;
+          timeline_id: string | null;
+        }> = {};
+        if (document !== undefined) fields.document = JSON.stringify(document);
+        if (timelineId !== undefined) fields.timeline_id = timelineId;
+        const updated = await Script.updateFieldsIfUnchanged(
+          id,
+          baseUpdatedAt ?? existing.updated_at,
+          fields
+        );
+        return updated ? updated.toResponse() : null;
+      }
+  };
+}
+
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
@@ -1057,171 +1234,7 @@ function createRuntimeContext(opts: {
     }
   });
 
-  ctx.setModelInterfaces({
-    // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
-    // one persistence path, one home-folder default.
-    createAsset: createAssetModelInterface,
-    createMessage: async ({ userId, req }) => {
-      // Persist an AgentNode thread message. `content` / `tool_calls` are stored
-      // raw — the `content` column is a jsonText type that serializes them, so
-      // stringifying here would double-encode and break the getMessages read
-      // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
-      return Message.create({
-        user_id: userId,
-        thread_id: req.thread_id,
-        role: req.role,
-        name: req.name ?? null,
-        content: req.content ?? null,
-        tool_calls: req.tool_calls ?? null,
-        tool_call_id: req.tool_call_id ?? null,
-        workflow_id: req.workflow_id ?? null
-      });
-    },
-    getMessages: async ({ userId, threadId, limit, startKey, reverse }) => {
-      const [msgs, cursor] = await Message.paginate(threadId, {
-        limit: limit ?? 1000,
-        startKey: startKey ?? undefined,
-        reverse: reverse ?? false
-      });
-      // Scope to the requesting user — thread_id has no ownership column of its
-      // own, so filter the rows the same way the tRPC messages router does.
-      const owned = msgs.filter((m) => m.user_id === userId);
-      return {
-        messages: owned as unknown as Array<Record<string, unknown>>,
-        next: cursor || null
-      };
-    },
-    listFolderAssets: async ({ userId, folderId }) => {
-      const folder = await Asset.find(userId, folderId);
-      if (!folder || folder.content_type !== "folder") return null;
-      const out: Array<{ id: string; content_type: string; name: string }> = [];
-      const seen = new Set<string>();
-      const visit = async (parentId: string): Promise<void> => {
-        if (seen.has(parentId)) return; // guard against cyclic parent links
-        seen.add(parentId);
-        const children = await Asset.getChildren(userId, parentId, 1000);
-        for (const child of children) {
-          if (child.content_type === "folder") {
-            await visit(child.id);
-          } else {
-            out.push({
-              id: child.id,
-              content_type: child.content_type,
-              name: child.name
-            });
-          }
-        }
-      };
-      await visit(folderId);
-      out.sort((a, b) => a.name.localeCompare(b.name));
-      return out;
-    },
-    getAssetInfo: async ({ userId, assetId }) => {
-      const asset = await Asset.find(userId, assetId);
-      if (!asset) return null;
-      return {
-        id: asset.id,
-        content_type: asset.content_type,
-        name: asset.name,
-        metadata: asset.metadata ?? null
-      };
-    },
-    getImageDocument: async ({ userId, id }) => {
-      const doc = await ImageDocument.findById(id);
-      if (!doc || doc.user_id !== userId) return null;
-      return doc.toResponse();
-    },
-    createImageDocument: async ({
-      userId,
-      name,
-      projectId,
-      width,
-      height,
-      document
-    }) => {
-      const doc = new ImageDocument({
-        user_id: userId,
-        project_id: projectId ?? "default",
-        name,
-        width,
-        height,
-        document: JSON.stringify(document)
-      });
-      await doc.save();
-      return doc.toResponse();
-    },
-    getTimelineSequence: async ({ userId, id }) => {
-      const seq = await TimelineSequence.findById(id);
-      if (!seq || seq.user_id !== userId) return null;
-      return seq.toTimelineSequence();
-    },
-    createTimelineSequence: async ({ userId, sequence }) => {
-      const seq = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-      );
-      await seq.save();
-      return seq.toTimelineSequence();
-    },
-    updateTimelineSequence: async ({ userId, id, sequence }) => {
-      const existing = await TimelineSequence.findById(id);
-      if (!existing || existing.user_id !== userId) return null;
-      const next = TimelineSequence.fromTimelineSequence(
-        userId,
-        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-      );
-      const updated = await TimelineSequence.updateFieldsIfUnchanged(
-        id,
-        next.updated_at,
-        {
-          name: next.name,
-          fps: next.fps,
-          width: next.width,
-          height: next.height,
-          duration_ms: next.duration_ms,
-          document: next.document
-        }
-      );
-      return updated ? updated.toTimelineSequence() : null;
-    },
-    getScript: async ({ userId, id }) => {
-      const script = await Script.findById(id);
-      if (!script || script.user_id !== userId) return null;
-      return script.toResponse();
-    },
-    createScript: async ({ userId, name, projectId, document }) => {
-      const script = new Script({
-        user_id: userId,
-        name: name ?? "Untitled script",
-        project_id: projectId ?? "default",
-        document: JSON.stringify(document)
-      });
-      await script.save();
-      return script.toResponse();
-    },
-    updateScript: async ({
-      userId,
-      id,
-      document,
-      timelineId,
-      baseUpdatedAt
-    }) => {
-      const existing = await Script.findById(id);
-      if (!existing || existing.user_id !== userId) return null;
-      const fields: Partial<{
-        document: string;
-        timeline_id: string | null;
-      }> = {};
-      if (document !== undefined) fields.document = JSON.stringify(document);
-      if (timelineId !== undefined) fields.timeline_id = timelineId;
-      const updated = await Script.updateFieldsIfUnchanged(
-        id,
-        baseUpdatedAt ?? existing.updated_at,
-        fields
-      );
-      return updated ? updated.toResponse() : null;
-    }
-  });
+  ctx.setModelInterfaces(serverModelInterfaces());
 
   return ctx;
 }
@@ -5502,8 +5515,8 @@ export class UnifiedWebSocketRunner {
     // is created below, once the tool router and processing context exist.
     const useCodeAct = allSchemas.length > 0;
 
-    // The tool list handed to the provider: `execute_code`, the core tools
-    // (CORE_TOOL_NAMES) and `view_image`, pushed once the session exists.
+    // The tool list handed to the provider: `execute_code`, the direct tools
+    // (DIRECT_TOOL_NAMES) and `view_image`, pushed once the session exists.
     const providerToolSchemas: ProviderTool[] = [];
     log.info("Provider tool schemas", {
       permissionMode,
@@ -5560,12 +5573,13 @@ export class UnifiedWebSocketRunner {
       | null = null;
     let codeactSession: ChatCodeActSession | null = null;
     if (useCodeAct) {
-      // The core set (file, search, fetch, todo, delegation) is also a plain
-      // tool call: those are the shapes every model is trained on, so routing
-      // them through a sandbox action buys nothing. They stay on the belt so
-      // code can still compose them; the prompt documents the direct call.
+      // The core set (file, search, fetch, todo, delegation) and discovery
+      // (which providers, models and node types this install has) are also
+      // plain tool calls: one question with one answer, which routing through
+      // a sandbox action only delays. They stay on the belt so code can still
+      // compose them; the prompt documents the direct call.
       const directSchemas = allSchemas.filter(
-        (s) => s.name !== "view_image" && CORE_TOOL_NAMES.has(s.name)
+        (s) => s.name !== "view_image" && DIRECT_TOOL_NAMES.has(s.name)
       );
       codeactSession = createChatCodeActSession({
         tools: allSchemas

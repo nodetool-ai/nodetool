@@ -88,6 +88,12 @@
       "types": "./dist/trpc/router.d.ts",
       "import": "./dist/trpc/router.js",
       "default": "./dist/trpc/router.js"
+    },
+    "./assets": {
+      "nodetool-dev": "./src/lib/asset-model-interface.ts",
+      "types": "./dist/lib/asset-model-interface.d.ts",
+      "import": "./dist/lib/asset-model-interface.js",
+      "default": "./dist/lib/asset-model-interface.js"
     }
   },
   "license": "MIT",

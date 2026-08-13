@@ -97,6 +97,7 @@ describe("SaveAssetTool", () => {
       content: Uint8Array;
     }> = [];
     const ctx = {
+      hasModelInterface: (name: string) => name === "createAsset",
       createAsset: vi.fn(async (args) => {
         calls.push(args);
         return { id: "abc123" };
@@ -121,6 +122,7 @@ describe("SaveAssetTool", () => {
 
   it("prefers createAsset over storage for text content too", async () => {
     const ctx = {
+      hasModelInterface: (name: string) => name === "createAsset",
       createAsset: vi.fn(async () => ({ id: "txt-1" })),
       storage: { store: vi.fn() }
     } as unknown as ProcessingContext;
@@ -302,6 +304,7 @@ describe("SaveAssetTool + ReadAssetTool round-trip", () => {
     // assets; save_asset now mirrors the bytes to that key.
     const storage = new InMemoryStorageAdapter();
     const ctx = {
+      hasModelInterface: (name: string) => name === "createAsset",
       createAsset: vi.fn(async () => ({ id: "db-generated-id" })),
       storage
     } as unknown as ProcessingContext;

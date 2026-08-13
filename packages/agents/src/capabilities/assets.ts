@@ -262,7 +262,10 @@ const saveAsset: CapabilityExport = {
       // Prefer the model interface (DB + storage). This is what the chat
       // UI surfaces in the asset browser and what other tools can reference
       // by `asset://<id>.<ext>` URIs.
-      if (typeof context.createAsset === "function") {
+      // The interface, not the method — see `persistOutput`. Without this
+      // the storage-adapter fallback below was dead code and a run with no
+      // asset persistence answered with an error instead of using it.
+      if (context.hasModelInterface?.("createAsset")) {
         const asset = (await context.createAsset({
           name,
           contentType: mime,

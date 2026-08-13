@@ -640,7 +640,10 @@ export class SaveImageNode extends BaseNode {
     const meta = await metadataFor(bytes);
 
     // Create asset via context (persists to DB + storage)
-    if (context && typeof context.createAsset === "function") {
+    // `createAsset` is a method on every context, wired or not — checking
+    // for the function always passed and the fallback below was unreachable,
+    // so a host without asset persistence threw instead of writing a file.
+    if (context?.hasModelInterface?.("createAsset")) {
       const folderRef = this.folder as Record<string, unknown> | undefined;
       const parentId = (folderRef?.asset_id as string) ?? null;
       const asset = (await context.createAsset({

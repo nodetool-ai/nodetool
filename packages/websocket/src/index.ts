@@ -77,3 +77,7 @@ export {
   type StoreAssetInput
 } from "./lib/workflow-bundle.js";
 export { mcpToolHostDeps, createExampleWorkflowCatalog } from "./mcp-tool-deps.js";
+export {
+  createAssetModelInterface,
+  type CreateAssetArgs
+} from "./lib/asset-model-interface.js";

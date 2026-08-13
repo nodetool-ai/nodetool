@@ -39,6 +39,9 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/config",
     "@nodetool-ai/deploy",
     "@nodetool-ai/vectorstore",
+    // The chat context loads asset persistence from here; the real module pulls
+    // sharp and the storage adapters into a unit test that needs neither.
+    "@nodetool-ai/websocket/assets",
     // Direct CLI dependencies not installed at the workspace root
     "marked",
     "marked-terminal",
