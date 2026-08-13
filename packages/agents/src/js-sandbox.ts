@@ -514,6 +514,13 @@ export function describeEngineFailure(error: unknown): string {
 }
 
 async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
+  // Node-only: guards the host process's "unhandledRejection" event, which
+  // doesn't exist in a browser. There is no equivalent escape hatch needed
+  // there — an uncaught rejection in a page just logs, it doesn't kill
+  // anything the run depends on.
+  if (typeof process === "undefined" || typeof process.on !== "function") {
+    return run;
+  }
   let onRejection: ((reason: unknown) => void) | undefined;
   const escaped = new Promise<never>((_resolve, reject) => {
     onRejection = (reason: unknown) => {
