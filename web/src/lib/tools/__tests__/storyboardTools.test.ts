@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import { storyboards } from "@nodetool-ai/protocol/api-schemas";
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
@@ -10,6 +11,7 @@ import {
   type StoryboardShotNode,
   type StoryboardSnapshot
 } from "../../../components/storyboard/storyboardAgentBridge";
+import { registerStoryboardSaver } from "../../../hooks/storyboard/storyboardSaveRegistry";
 import "../builtin/storyboard";
 
 const shotNode = (
@@ -57,6 +59,7 @@ afterEach(() => {
   for (const id of listOpenStoryboardIds()) {
     setStoryboardAgentHandler(id, null);
   }
+  registerStoryboardSaver(BOARD_ID, null);
 });
 
 describe("ui_storyboard_* tools", () => {
@@ -221,6 +224,172 @@ describe("ui_storyboard_* tools", () => {
     expect(result.sequenceId).toBe("seq-1");
     expect(result.clipCount).toBe(3);
     expect(result.skippedShotIds).toEqual(["shot-9"]);
+  });
+
+  describe("ui_storyboard_set_screenplay", () => {
+    // The shape an agent actually sent, which the store copied verbatim and the
+    // save then rejected: no `type`, no `id`, no `index`, no `status`.
+    const agentScreenplay = {
+      type: "screenplay",
+      title: "Lighthouse Dawn",
+      brief: "A keeper's last night",
+      style: "noir, high contrast",
+      shots: [
+        {
+          slug: "Lighthouse at dusk",
+          action: "A lighthouse against a darkening sky",
+          camera: { framing: "wide" },
+          motion: "slow push in",
+          durationSeconds: 4
+        },
+        {
+          slug: "The light dies",
+          action: "The beam flickers out as dawn breaks",
+          motion: "static",
+          durationSeconds: 6
+        }
+      ]
+    };
+
+    it("normalizes an agent screenplay into a savable one", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+        "tc-sp-1",
+        ctx
+      );
+
+      const play = handler.setScreenplay.mock.calls[0][0];
+      // The exact schema the storyboards.update save validates against.
+      expect(() => storyboards.storyboardScreenplay.parse(play)).not.toThrow();
+      expect(play.id).toEqual(expect.any(String));
+      expect(play.shots).toHaveLength(2);
+      play.shots.forEach((shot, index) => {
+        expect(shot.type).toBe("shot");
+        expect(shot.id).toEqual(expect.any(String));
+        expect(shot.index).toBe(index);
+        expect(shot.status).toBe("planned");
+      });
+    });
+
+    it("carries durationSeconds, brief and style through as wire fields", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+        "tc-sp-2",
+        ctx
+      );
+
+      const play = handler.setScreenplay.mock.calls[0][0];
+      expect(play.shots[0].duration_seconds).toBe(4);
+      expect(play.shots[1].duration_seconds).toBe(6);
+      expect(play.brief).toBe("A keeper's last night");
+      expect(play.style_bible).toBe("noir, high contrast");
+    });
+
+    it("rejects a shot with no action, naming its position", async () => {
+      const handler = createMockHandler();
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_set_screenplay",
+          {
+            storyboard_id: BOARD_ID,
+            screenplay: {
+              type: "screenplay",
+              title: "Broken",
+              shots: [{ slug: "Opening", camera: { framing: "wide" } }]
+            }
+          },
+          "tc-sp-3",
+          ctx
+        )
+      ).rejects.toThrow(/shots.*0.*action/s);
+      expect(handler.setScreenplay).not.toHaveBeenCalled();
+    });
+
+    it("reports the revision the save wrote", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+      registerStoryboardSaver(BOARD_ID, async () => ({
+        ok: true,
+        updatedAt: "2026-08-13T00:00:00.000Z"
+      }));
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+        "tc-sp-4",
+        ctx
+      )) as { saved: boolean | null; updatedAt?: string };
+
+      expect(result.saved).toBe(true);
+      expect(result.updatedAt).toBe("2026-08-13T00:00:00.000Z");
+    });
+
+    it("reports saved: null when the host runs no server sync", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_set_screenplay",
+        { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+        "tc-sp-5",
+        ctx
+      )) as { saved: boolean | null };
+
+      expect(result.saved).toBeNull();
+    });
+
+    it("fails the call when the write cannot persist", async () => {
+      const handler = createMockHandler();
+      handler.setScreenplay.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+      registerStoryboardSaver(BOARD_ID, async () => ({
+        ok: false,
+        error: "409 revision conflict"
+      }));
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_set_screenplay",
+          { storyboard_id: BOARD_ID, screenplay: agentScreenplay },
+          "tc-sp-6",
+          ctx
+        )
+      ).rejects.toThrow("409 revision conflict");
+    });
+
+    it("names the required screenplay keys in its parameter schema", () => {
+      const tool = FrontendToolRegistry.getManifest().find(
+        (t) => t.name === "ui_storyboard_set_screenplay"
+      );
+      const schema = tool?.parameters as {
+        properties?: {
+          screenplay?: {
+            properties?: Record<string, unknown>;
+            required?: string[];
+          };
+        };
+      };
+      const screenplay = schema.properties?.screenplay;
+      expect(screenplay?.properties).toHaveProperty("type");
+      expect(screenplay?.properties).toHaveProperty("shots");
+      expect(screenplay?.required).toEqual(
+        expect.arrayContaining(["type", "shots"])
+      );
+    });
   });
 
   it("rejects an invalid shot status during validation", async () => {

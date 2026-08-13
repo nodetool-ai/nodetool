@@ -1497,7 +1497,13 @@ Browser-only tools (asset capture, WebGL viewport render) are scoped out:
 `ui_sketch_render_to_asset`,
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
-generate/render jobs are faked by flipping shot status. The app-builder surface
+generate/render jobs are faked by flipping shot status. Its board holds wire
+`Shot` objects and normalizes every write through
+`normalizeStoryboardScreenplay` (`@nodetool-ai/protocol/api-schemas`), and
+`finalState().savable` reports whether `storyboards.update` would accept what
+the board now holds — a bridge that minted the `id`/`index`/`status` a model
+omits kept this suite green through a bug that lost a user's board. The
+app-builder surface
 reimplements only the Puck *layout* ops (nested slot tree: top-level content plus
 slot-valued props on Panel/Columns) headlessly — those live in `web/`
 (`puckDataOps.ts`), which a backend package can't import. Its operation,

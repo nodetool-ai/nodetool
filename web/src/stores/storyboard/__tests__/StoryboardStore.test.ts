@@ -275,3 +275,60 @@ describe("undo selection safety", () => {
     expect(board?.activeShotId).toBeNull();
   });
 });
+
+describe("setScreenplay", () => {
+  const play = (extra: Record<string, unknown> = {}) => ({
+    type: "shot" as const,
+    id: "sp-shot-1",
+    index: 0,
+    action: "A lighthouse at dusk",
+    status: "planned" as const,
+    ...extra
+  });
+
+  it("takes brief, style and shots from the screenplay", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-1",
+      title: "Lighthouse Dawn",
+      brief: "A keeper's last night",
+      style_bible: "noir, high contrast",
+      shots: [play({ duration_seconds: 4 })]
+    });
+
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.brief).toBe("A keeper's last night");
+    expect(board?.style).toBe("noir, high contrast");
+    expect(board?.title).toBe("Lighthouse Dawn");
+    expect(board?.shots[0].duration_seconds).toBe(4);
+  });
+
+  it("fills an empty brief from the logline but never overwrites one", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-1",
+      title: "T",
+      logline: "The light goes dark",
+      shots: [play()]
+    });
+    expect(useStoryboardStore.getState().boards[BOARD]?.brief).toBe(
+      "The light goes dark"
+    );
+
+    store.setBrief(BOARD, "My own brief");
+    store.setScreenplay(BOARD, {
+      type: "screenplay",
+      id: "sp-2",
+      title: "T",
+      logline: "A different logline",
+      shots: [play()]
+    });
+    expect(useStoryboardStore.getState().boards[BOARD]?.brief).toBe(
+      "My own brief"
+    );
+  });
+});

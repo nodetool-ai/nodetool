@@ -150,6 +150,8 @@ export interface Screenplay {
   id: string;
   title: string;
   logline?: string;
+  /** What the piece is for, in the director's own words. */
+  brief?: string;
   /** Palette, light, lens, texture — the look applied to every shot. */
   style_bible?: string;
   aspect_ratio?: string;

@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { isScreenplay, type ShotStatus } from "@nodetool-ai/protocol";
+import type { ShotStatus } from "@nodetool-ai/protocol";
+import { storyboards } from "@nodetool-ai/protocol/api-schemas";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
+import { flushStoryboardSave } from "../../../hooks/storyboard/storyboardSaveRegistry";
 import { docUrl } from "./resourceLinks";
 
 /**
@@ -14,6 +16,11 @@ import { docUrl } from "./resourceLinks";
  *
  * Shots are addressed by id, 0-based index, or the literal `"selected"`. Call
  * `ui_storyboard_get_state` first to discover the ids the other tools need.
+ *
+ * Every tool that writes normalizes its input through
+ * `normalizeStoryboardScreenplay` (`@nodetool-ai/protocol/api-schemas`) and then
+ * flushes the board's pending save, so a write the persistence layer would
+ * refuse fails the tool call instead of reporting success.
  */
 
 const storyboardIdParam = z
@@ -36,6 +43,70 @@ const cameraParam = z
     movement: z.string().optional()
   })
   .describe("Structured camera direction (framing, lens, angle, movement).");
+
+/**
+ * One shot as the agent supplies it. Only `action` is required — the tool layer
+ * fills in `type`, `id`, `index` and `status`. Extra keys travel: the Director
+ * agent's shot shape evolves.
+ */
+const screenplayShotParam = z
+  .object({
+    action: z
+      .string()
+      .describe("The concrete visual to render: subject plus setting."),
+    slug: z.string().optional().describe("Short human label for the shot."),
+    camera: cameraParam.optional(),
+    motion: z.string().optional(),
+    dialogue: z.string().optional(),
+    narration: z.string().optional(),
+    durationSeconds: z.number().optional(),
+    entityIds: z.array(z.string()).optional()
+  })
+  .passthrough();
+
+const screenplayParam = z
+  .object({
+    type: z
+      .literal("screenplay")
+      .describe("Discriminator — always the literal 'screenplay'."),
+    shots: z
+      .array(screenplayShotParam)
+      .describe("The shots, in order. Each needs an `action`."),
+    id: z.string().optional().describe("Generated when omitted."),
+    title: z.string().optional(),
+    logline: z.string().optional(),
+    brief: z.string().optional().describe("What the piece is for."),
+    style: z
+      .string()
+      .optional()
+      .describe("The look applied to every shot (alias of styleBible)."),
+    styleBible: z.string().optional(),
+    aspectRatio: z.string().optional(),
+    narration: z.string().optional(),
+    musicPrompt: z.string().optional(),
+    entityIds: z.array(z.string()).optional()
+  })
+  .passthrough();
+
+/**
+ * Flush the board's pending save and report what persisted. A write that cannot
+ * reach the server is a failed tool call, not a success with a warning.
+ */
+async function persistBoard(
+  storyboardId: string,
+  what: string
+): Promise<{ saved: true; updatedAt: string } | { saved: null }> {
+  const result = await flushStoryboardSave(storyboardId);
+  if (!result.ok) {
+    throw new Error(
+      `${what} was applied to the open storyboard but did not persist: ${result.error}`
+    );
+  }
+  // A null revision means this host runs no server sync — do not claim a save.
+  return result.updatedAt === null
+    ? { saved: null }
+    : { saved: true, updatedAt: result.updatedAt };
+}
 
 const shotStatusEnum = z.enum([
   "planned",
@@ -61,20 +132,24 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_set_screenplay",
   description:
-    "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', id, title, shots: Shot[], ... }) — typically the output of the Director node.",
+    "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
-    screenplay: z.record(z.string(), z.unknown())
+    screenplay: screenplayParam
   }),
   async execute({ storyboard_id, screenplay }) {
-    if (!isScreenplay(screenplay)) {
-      throw new Error(
-        "`screenplay` must be a Screenplay object ({ type:'screenplay', shots: [...] })."
-      );
-    }
+    const play = storyboards.normalizeStoryboardScreenplay(screenplay, {
+      generateId: () => crypto.randomUUID()
+    });
     const snapshot =
-      getStoryboardAgentHandler(storyboard_id).setScreenplay(screenplay);
-    return { ok: true, ...snapshot, url: docUrl("storyboard", storyboard_id) };
+      getStoryboardAgentHandler(storyboard_id).setScreenplay(play);
+    const persisted = await persistBoard(storyboard_id, "The screenplay");
+    return {
+      ok: true,
+      ...snapshot,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
   }
 });
 
@@ -84,7 +159,7 @@ FrontendToolRegistry.register({
     "Add a new shot to the specified storyboard. `action` is the concrete visual (required). Optionally set `camera`, `motion`, `durationSeconds`, and an `index` to insert at (appended when omitted). The shot starts in the 'planned' status.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
-    action: z.string(),
+    action: z.string().min(1),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     durationSeconds: z.number().optional(),
@@ -105,9 +180,11 @@ FrontendToolRegistry.register({
       durationSeconds,
       index
     });
+    const persisted = await persistBoard(storyboard_id, "The shot");
     return {
       ok: true,
       shot,
+      ...persisted,
       url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
     };
   }
@@ -120,7 +197,7 @@ FrontendToolRegistry.register({
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,
-    action: z.string().optional(),
+    action: z.string().min(1).optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     status: shotStatusEnum.optional()
@@ -132,9 +209,11 @@ FrontendToolRegistry.register({
       motion,
       status
     });
+    const persisted = await persistBoard(storyboard_id, "The shot edit");
     return {
       ok: true,
       shot,
+      ...persisted,
       url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
     };
   }
@@ -151,9 +230,11 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id, target }) {
     const shot =
       await getStoryboardAgentHandler(storyboard_id).generateKeyframe(target);
+    const persisted = await persistBoard(storyboard_id, "The keyframe");
     return {
       ok: true,
       shot,
+      ...persisted,
       url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
     };
   }
@@ -170,9 +251,11 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id, target }) {
     const shot =
       await getStoryboardAgentHandler(storyboard_id).generateClip(target);
+    const persisted = await persistBoard(storyboard_id, "The clip");
     return {
       ok: true,
       shot,
+      ...persisted,
       url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
     };
   }
@@ -196,9 +279,11 @@ FrontendToolRegistry.register({
       target,
       instruction
     );
+    const persisted = await persistBoard(storyboard_id, "The revised clip");
     return {
       ok: true,
       shot,
+      ...persisted,
       url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
     };
   }

@@ -12,20 +12,22 @@
  *
  * What it does NOT fork is the tool *contract*: names, descriptions, and Zod
  * parameter shapes are copied verbatim from the builtin file (minus the
- * `storyboard_id` parameter — this bridge has a single implicit board). Only
- * `Screenplay` / `Shot` / `ShotStatus` / `CameraDirection` / `isScreenplay`
- * are reused from `@nodetool-ai/protocol`, the single source of truth for
- * those shapes.
+ * `storyboard_id` parameter — this bridge has a single implicit board). The
+ * shapes come from `@nodetool-ai/protocol` (`Screenplay` / `Shot` /
+ * `ShotStatus` / `CameraDirection`), and so does the write path: the same
+ * `normalizeStoryboardScreenplay` the browser tool calls, validating against
+ * the same schema the save uses.
  */
 
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
-import {
-  isScreenplay,
-  type CameraDirection,
-  type Screenplay,
-  type ShotStatus
+import type {
+  CameraDirection,
+  Screenplay,
+  Shot,
+  ShotStatus
 } from "@nodetool-ai/protocol";
+import { storyboards } from "@nodetool-ai/protocol/api-schemas";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
@@ -47,6 +49,47 @@ const cameraParam = z
   })
   .describe("Structured camera direction (framing, lens, angle, movement).");
 
+/** Mirrors `screenplayShotParam` in the builtin file. */
+const screenplayShotParam = z
+  .object({
+    action: z
+      .string()
+      .describe("The concrete visual to render: subject plus setting."),
+    slug: z.string().optional().describe("Short human label for the shot."),
+    camera: cameraParam.optional(),
+    motion: z.string().optional(),
+    dialogue: z.string().optional(),
+    narration: z.string().optional(),
+    durationSeconds: z.number().optional(),
+    entityIds: z.array(z.string()).optional()
+  })
+  .passthrough();
+
+/** Mirrors `screenplayParam` in the builtin file. */
+const screenplayParam = z
+  .object({
+    type: z
+      .literal("screenplay")
+      .describe("Discriminator — always the literal 'screenplay'."),
+    shots: z
+      .array(screenplayShotParam)
+      .describe("The shots, in order. Each needs an `action`."),
+    id: z.string().optional().describe("Generated when omitted."),
+    title: z.string().optional(),
+    logline: z.string().optional(),
+    brief: z.string().optional().describe("What the piece is for."),
+    style: z
+      .string()
+      .optional()
+      .describe("The look applied to every shot (alias of styleBible)."),
+    styleBible: z.string().optional(),
+    aspectRatio: z.string().optional(),
+    narration: z.string().optional(),
+    musicPrompt: z.string().optional(),
+    entityIds: z.array(z.string()).optional()
+  })
+  .passthrough();
+
 const shotStatusEnum = z.enum([
   "planned",
   "keyframe_generating",
@@ -57,7 +100,10 @@ const shotStatusEnum = z.enum([
   "failed"
 ]) satisfies z.ZodType<ShotStatus>;
 
-/** Internal shot node the board tracks. */
+/**
+ * The serializable shot the tools answer with — a projection of the stored wire
+ * `Shot`, exactly as `toShotNode` projects it in the browser bridge.
+ */
 interface ShotNode {
   id: string;
   index: number;
@@ -71,6 +117,20 @@ interface ShotNode {
   hasClip: boolean;
   costEstimate?: number | null;
 }
+
+const toShotNode = (shot: Shot): ShotNode => ({
+  id: shot.id,
+  index: shot.index,
+  slug: shot.slug,
+  action: shot.action,
+  camera: shot.camera,
+  motion: shot.motion,
+  durationSeconds: shot.duration_seconds,
+  status: shot.status,
+  hasKeyframe: !!shot.keyframe,
+  hasClip: !!shot.clip,
+  costEstimate: shot.cost_estimate ?? null
+});
 
 /** Case-supplied starting point for a board. */
 export interface StoryboardBridgeInitialState {
@@ -95,10 +155,15 @@ export interface StoryboardBridgeFinalState {
     id: string;
     index: number;
     action: string;
+    durationSeconds?: number;
     status: ShotStatus;
     hasKeyframe: boolean;
     hasClip: boolean;
   }[];
+  /** Whether the shots the board holds would survive `storyboards.update`. */
+  savable: boolean;
+  /** The failing schema paths when `savable` is false. */
+  saveIssues: string[];
 }
 
 function tool(
@@ -111,7 +176,9 @@ function tool(
     name,
     description,
     parameters,
-    execute: (args) => {
+    // Async so a parameter-validation failure reaches the caller as a rejected
+    // promise, the way a failure inside the impl does.
+    execute: async (args) => {
       const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
         string,
         unknown
@@ -126,6 +193,13 @@ function tool(
  * contract but run headlessly against a plain shot array (no live surface,
  * no media generation — generate/render jobs are faked by flipping status
  * flags synchronously).
+ *
+ * The board holds wire `Shot` objects and projects them for its answers, the
+ * way the browser store does. Holding the projection instead let the bridge
+ * mint the `id`, `index` and `status` a shot arrived without — which made it
+ * accept screenplays the real save refuses, and is why this suite stayed green
+ * through a bug that lost a user's board. `finalState().savable` reports what
+ * `storyboards.update` would say about what the board now holds.
  */
 export function createStoryboardToolBridge(
   initial: StoryboardBridgeInitialState = {}
@@ -141,17 +215,11 @@ export function createStoryboardToolBridge(
 
   const nextShotId = () => `shot_${++shotSeq}`;
 
-  let shots: ShotNode[] = (initial.shots ?? []).map((s) => ({
-    id: nextShotId(),
-    index: 0,
-    action: s.action,
-    camera: s.camera,
-    motion: s.motion,
-    durationSeconds: s.durationSeconds,
-    status: "planned",
-    hasKeyframe: false,
-    hasClip: false
-  }));
+  let screenplayId = "sp_1";
+
+  let shots: Shot[] = (initial.shots ?? []).map((s, i) =>
+    storyboards.normalizeStoryboardShot(s, i, { generateId: nextShotId })
+  );
   reindex();
 
   function reindex(): void {
@@ -160,12 +228,12 @@ export function createStoryboardToolBridge(
     });
   }
 
-  function findShot(id: string): ShotNode | undefined {
+  function findShot(id: string): Shot | undefined {
     return shots.find((s) => s.id === id);
   }
 
   /** Resolve a shot by id, 0-based index, or the literal "selected". */
-  function resolveTarget(target: string): ShotNode {
+  function resolveTarget(target: string): Shot {
     if (target === "selected") {
       if (!selectedShotId) {
         throw new Error("No shot is currently selected.");
@@ -188,7 +256,26 @@ export function createStoryboardToolBridge(
     );
   }
 
-  const serialize = (s: ShotNode) => ({ ...s });
+  const serialize = (s: Shot): ShotNode => toShotNode(s);
+
+  /**
+   * What `storyboards.update` would say about the shots the board now holds.
+   * The board's own id and title are the row's, not the agent's, so they are
+   * supplied here; the shots are exactly what the agent handed over.
+   */
+  function saveIssues(): string[] {
+    const parsed = storyboards.storyboardScreenplay.safeParse({
+      type: "screenplay",
+      id: screenplayId,
+      title,
+      shots
+    });
+    return parsed.success
+      ? []
+      : parsed.error.issues.map(
+          (issue) => `${issue.path.join(".") || "screenplay"}: ${issue.message}`
+        );
+  }
 
   function snapshot() {
     return {
@@ -213,29 +300,16 @@ export function createStoryboardToolBridge(
 
     tool(
       "ui_storyboard_set_screenplay",
-      "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', id, title, shots: Shot[], ... }) — typically the output of the Director node.",
-      z.object({ screenplay: z.record(z.string(), z.unknown()) }),
+      "Load a full screenplay onto the specified storyboard, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', title, shots: Shot[], ... }) — typically the output of the Director node. Shot ids, indexes and statuses are filled in for you; every shot needs an `action`.",
+      z.object({ screenplay: screenplayParam }),
       async ({ screenplay }) => {
-        if (!isScreenplay(screenplay)) {
-          throw new Error(
-            "`screenplay` must be a Screenplay object ({ type:'screenplay', shots: [...] })."
-          );
-        }
-        const play = screenplay as Screenplay;
-        shots = play.shots.map((shot) => ({
-          id: nextShotId(),
-          index: 0,
-          slug: shot.slug,
-          action: shot.action,
-          camera: shot.camera,
-          motion: shot.motion,
-          durationSeconds: undefined,
-          status: "planned",
-          hasKeyframe: false,
-          hasClip: false
-        }));
+        const play = storyboards.normalizeStoryboardScreenplay(screenplay, {
+          generateId: nextShotId
+        });
+        shots = play.shots;
         reindex();
         hasScreenplay = true;
+        screenplayId = play.id;
         if (play.title) title = play.title;
         selectedShotId = null;
         return { ok: true, ...snapshot() };
@@ -253,17 +327,11 @@ export function createStoryboardToolBridge(
         index: z.number().optional()
       }),
       async ({ action, camera, motion, durationSeconds, index }) => {
-        const shot: ShotNode = {
-          id: nextShotId(),
-          index: 0,
-          action: action as string,
-          camera: camera as CameraDirection | undefined,
-          motion: motion as string | undefined,
-          durationSeconds: durationSeconds as number | undefined,
-          status: "planned",
-          hasKeyframe: false,
-          hasClip: false
-        };
+        const shot = storyboards.normalizeStoryboardShot(
+          { action, camera, motion, durationSeconds },
+          shots.length,
+          { generateId: nextShotId }
+        );
         if (typeof index === "number" && index >= 0 && index <= shots.length) {
           shots.splice(index, 0, shot);
         } else {
@@ -301,7 +369,7 @@ export function createStoryboardToolBridge(
       async ({ target }) => {
         const shot = resolveTarget(target as string);
         shot.status = "keyframe_ready";
-        shot.hasKeyframe = true;
+        shot.keyframe = { type: "image", uri: `fake://still/${shot.id}` };
         return { ok: true, shot: serialize(shot) };
       }
     ),
@@ -312,13 +380,13 @@ export function createStoryboardToolBridge(
       z.object({ target: targetParam }),
       async ({ target }) => {
         const shot = resolveTarget(target as string);
-        if (!shot.hasKeyframe) {
+        if (!shot.keyframe) {
           throw new Error(
             `Shot "${shot.id}" must have a still before a clip can be generated. Call ui_storyboard_generate_keyframe first.`
           );
         }
         shot.status = "rendered";
-        shot.hasClip = true;
+        shot.clip = { type: "video", uri: `fake://clip/${shot.id}` };
         return { ok: true, shot: serialize(shot) };
       }
     ),
@@ -336,7 +404,7 @@ export function createStoryboardToolBridge(
       }),
       async ({ target }) => {
         const shot = resolveTarget(target as string);
-        if (!shot.hasClip) {
+        if (!shot.clip) {
           throw new Error(
             `Shot "${shot.id}" has no clip to revise. Call ui_storyboard_generate_clip first.`
           );
@@ -351,15 +419,13 @@ export function createStoryboardToolBridge(
       "Assemble the specified storyboard's rendered shots into a persisted timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. Shots without a rendered clip are skipped (returned in skippedShotIds). Each timeline clip stays linked to its shot, so ui_storyboard_revise_shot updates the cut in place.",
       z.object({}),
       async () => {
-        const withClip = shots.filter((s) => s.hasClip);
+        const withClip = shots.filter((s) => s.clip);
         if (withClip.length === 0) {
           throw new Error(
             "No shot has a rendered clip yet. Generate at least one clip before assembling the timeline."
           );
         }
-        const skippedShotIds = shots
-          .filter((s) => !s.hasClip)
-          .map((s) => s.id);
+        const skippedShotIds = shots.filter((s) => !s.clip).map((s) => s.id);
         return {
           ok: true,
           sequenceId: "seq_1",
@@ -396,10 +462,13 @@ export function createStoryboardToolBridge(
         id: s.id,
         index: s.index,
         action: s.action,
+        durationSeconds: s.duration_seconds,
         status: s.status,
-        hasKeyframe: s.hasKeyframe,
-        hasClip: s.hasClip
-      }))
+        hasKeyframe: !!s.keyframe,
+        hasClip: !!s.clip
+      })),
+      savable: saveIssues().length === 0,
+      saveIssues: saveIssues()
     })
   };
 }
@@ -543,6 +612,58 @@ export const STORYBOARD_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<StoryboardBri
             name: "shotCountMatches",
             detail: "shot count does not match the screenplay",
             test: (s) => s.shots.length === SAMPLE_SCREENPLAY.shots.length
+          }
+        ]
+      }
+    },
+    {
+      // `load-screenplay` hands the model a fully-formed screenplay and asks it
+      // to copy it, so it never exercises the shape a model writes itself:
+      // shots with a slug, an action and a camelCase duration, and no `type`,
+      // `id`, `index` or `status`. That is the payload that lost a user's
+      // board, and this case is the one that produces it.
+      id: "author-screenplay",
+      description:
+        "Write a 3-shot screenplay from a brief and load it, with no example to copy",
+      objective:
+        "Write a short screenplay for the board's brief and load it onto the storyboard.",
+      createBridge: () =>
+        createStoryboardToolBridge({
+          brief: "A 20-second teaser for a lighthouse keeper's last night."
+        }),
+      systemPrompt: STORYBOARD_SYSTEM_PROMPT,
+      userPrompt:
+        "Objective: The brief is 'A 20-second teaser for a lighthouse keeper's last night.' Write the screenplay yourself — do not ask for one and do not wait for a Director node. Then load it onto the storyboard with a single ui_storyboard_set_screenplay call. Give it a title, and give every shot a slug, an action, a camera framing and a duration in seconds. Use exactly 3 shots.",
+      needsModelProviders: false,
+      expect: {
+        requiredTools: ["ui_storyboard_set_screenplay"],
+        noErrorResults: true,
+        minToolCalls: 1,
+        maxToolCalls: 10,
+        finalState: [
+          {
+            name: "screenplayLoaded",
+            detail: "hasScreenplay is not true",
+            test: (s) => s.hasScreenplay === true
+          },
+          {
+            name: "hasThreeShots",
+            detail: "the board does not hold 3 shots",
+            test: (s) => s.shots.length === 3
+          },
+          {
+            name: "durationsSurvived",
+            detail: "a shot reached the board without its duration",
+            test: (s) =>
+              s.shots.length > 0 &&
+              s.shots.every((sh) => typeof sh.durationSeconds === "number")
+          },
+          {
+            // The check the old bridge could not make: it minted the fields a
+            // model omits, so an unsavable screenplay looked loaded.
+            name: "screenplayIsSavable",
+            detail: "the loaded screenplay would be refused by the save",
+            test: (s) => s.savable === true
           }
         ]
       }
