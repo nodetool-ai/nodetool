@@ -17,9 +17,28 @@ import type {
 import type { StepToolCall } from "../stores/GlobalChatStore";
 import { visibleToolArgs } from "../core/chat/toolCallFields";
 
+const EMPTY_ARGS: Record<string, unknown> = {};
+
+// `visibleToolArgs` allocates whenever it strips a reserved field (the common
+// `args._message` case), which would hand the inspector new args every rebuild
+// and defeat its serialization memo. The input is a slice of the cached parse,
+// so caching on it keeps the result stable.
+const visibleArgsCache = new WeakMap<object, Record<string, unknown>>();
+
 const visibleArgs = (
   args: Record<string, unknown> | null | undefined
-): Record<string, unknown> => visibleToolArgs(args) ?? {};
+): Record<string, unknown> => {
+  if (!args) {
+    return EMPTY_ARGS;
+  }
+  const cached = visibleArgsCache.get(args);
+  if (cached) {
+    return cached;
+  }
+  const stripped = visibleToolArgs(args) ?? EMPTY_ARGS;
+  visibleArgsCache.set(args, stripped);
+  return stripped;
+};
 
 type StepStatus = "waiting" | "running" | "completed" | "failed";
 type TaskStatus = "waiting" | "running" | "completed" | "failed";
@@ -83,11 +102,30 @@ export interface ExecutionTreeState {
   tasks: TaskState[];
 }
 
-// Message normalization (same as AgentExecutionView)
-function normalizeContent(msg: Message): {
+interface NormalizedMessage {
   content: unknown;
   eventType: string | null | undefined;
-} {
+}
+
+// The tree is a pure fold over the whole message list, re-run on every
+// streamed event, so each event re-parses every earlier message — O(n²) per
+// run. Execution messages are appended and never mutated, so the parse is
+// cached by message identity. That also keeps `rawResult` referentially
+// stable, which is what lets StepInspector's stringify memo hit instead of
+// re-serializing every expanded step's result per event.
+const normalizedCache = new WeakMap<Message, NormalizedMessage>();
+
+function normalizeContent(msg: Message): NormalizedMessage {
+  const cached = normalizedCache.get(msg);
+  if (cached) {
+    return cached;
+  }
+  const normalized = parseContent(msg);
+  normalizedCache.set(msg, normalized);
+  return normalized;
+}
+
+function parseContent(msg: Message): NormalizedMessage {
   let content: unknown = msg.content;
   let eventType = msg.execution_event_type;
 

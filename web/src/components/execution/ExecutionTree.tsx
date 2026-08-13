@@ -466,6 +466,39 @@ StatusBadge.displayName = "StatusBadge";
 // Step inspector
 // ---------------------------------------------------------------------------
 
+// Split out so the args serialization survives a re-render: the inspector
+// rebuilds on every execution event, and a step's args can be large.
+const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
+  const args = call.args;
+  const codeArg =
+    call.name === "execute_code" && typeof args?.["code"] === "string"
+      ? (args["code"] as string)
+      : null;
+  const argsText = useMemo(
+    () =>
+      codeArg === null && Object.keys(args ?? {}).length > 0
+        ? JSON.stringify(args, null, 2)
+        : null,
+    [args, codeArg]
+  );
+
+  return (
+    <div className="tl-inspector-tool">
+      <span className="tl-inspector-body">
+        <strong>{call.name || "tool"}</strong>
+        {call.message ? `  ${call.message}` : ""}
+      </span>
+      {/* A CodeAct action's one argument is a JavaScript program — show the
+          program, not its JSON-escaped string. */}
+      {codeArg !== null ? (
+        <pre className="tl-inspector-code">{codeArg}</pre>
+      ) : argsText !== null ? (
+        <pre className="tl-inspector-code">{argsText}</pre>
+      ) : null}
+    </div>
+  );
+};
+
 const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
   const resultText = useMemo(() => stringifyResult(step.rawResult), [step.rawResult]);
 
@@ -493,27 +526,7 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
             Tool calls ({step.toolCalls.length})
           </span>
           {step.toolCalls.map((call: StepToolCallEntry, i: number) => (
-            <div
-              key={call.id ?? `${call.name}-${i}`}
-              className="tl-inspector-tool"
-            >
-              <span className="tl-inspector-body">
-                <strong>{call.name || "tool"}</strong>
-                {call.message ? `  ${call.message}` : ""}
-              </span>
-              {call.name === "execute_code" &&
-              typeof call.args?.["code"] === "string" ? (
-                // A CodeAct action's one argument is a JavaScript program —
-                // show the program, not its JSON-escaped string.
-                <pre className="tl-inspector-code">
-                  {call.args["code"] as string}
-                </pre>
-              ) : Object.keys(call.args ?? {}).length > 0 ? (
-                <pre className="tl-inspector-code">
-                  {JSON.stringify(call.args, null, 2)}
-                </pre>
-              ) : null}
-            </div>
+            <StepToolCallRow key={call.id ?? `${call.name}-${i}`} call={call} />
           ))}
         </div>
       ) : null}
