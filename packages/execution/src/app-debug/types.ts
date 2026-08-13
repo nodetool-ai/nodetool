@@ -255,7 +255,8 @@ export interface AppWidgetState {
   display?: string | null;
   /**
    * True when the widget shows something — the rendered `format` template when
-   * it has one, else the bound value.
+   * it has one, else the bound value. A value that arrived but is empty (`""`,
+   * `[]`, `null`) shows nothing, so it counts as false.
    */
   hasValue: boolean;
   /** Whether the widget's `visibleWhen` held once the simulation settled. */
