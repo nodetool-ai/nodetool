@@ -8,6 +8,36 @@ export interface ChatSettings {
   enabledTools: string[];
 }
 
+/**
+ * Tools the chat turn is broken without, added to a settings file that predates
+ * them. The `nodetool.*` object model documents these namespaces, so a belt
+ * missing one turns a documented call into "tool not in this toolbelt" —
+ * which is what `nodetool.models.pick()` did until `find_model` landed here.
+ * They need no credential of their own: each resolves its provider from the
+ * model it is handed, or reports that none is configured.
+ */
+export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
+  // Documents.
+  "extract_pdf_text",
+  "convert_pdf_to_markdown",
+  "convert_document",
+  // Discovery: providers, models, node types.
+  "find_model",
+  "list_models",
+  "list_provider_models",
+  "search_nodes",
+  "get_node_info",
+  "list_nodes",
+  // Generation, and reading back what it produced.
+  "generate_image",
+  "edit_image",
+  "generate_video",
+  "animate_image",
+  "generate_speech",
+  "transcribe_audio",
+  "read_media_bytes"
+];
+
 export const DEFAULT_SETTINGS: ChatSettings = {
   provider: detectDefaultProvider(),
   model: detectDefaultModel(),
@@ -30,16 +60,16 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "validate_workflow",
     "get_example_workflow",
     "export_workflow_digraph",
-    "list_nodes",
-    "search_nodes",
-    "get_node_info",
     "list_jobs",
     "get_job",
     "get_job_logs",
     "start_background_job",
     "list_assets",
     "get_asset",
-    "list_models"
+    "asset_search",
+    "save_asset",
+    "read_asset",
+    ...ALWAYS_ENABLED_TOOLS
   ]
 };
 
