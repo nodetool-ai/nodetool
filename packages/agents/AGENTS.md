@@ -788,6 +788,17 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   fan-out call them from code — but the prompt documents them once, under
   "Direct tools", instead of as a `tools.*` signature. `splitCoreTools` /
   `buildCoreProviderTools` in `src/codeact/tool-api.ts`.
+- Discovery goes top level with it. `DISCOVERY_TOOL_NAMES` (`find_model`,
+  `list_models`, `list_provider_models`, `search_nodes`, `get_node_info`,
+  `list_nodes`) answers which providers, models and node types this install
+  has — one question with one answer, and a wrong answer is a hallucinated
+  model id that fails at generation time, after the run was paid for. The two
+  sets stay apart because only the core set has SDK built-ins behind it:
+  `DIRECT_TOOL_NAMES` is their union and is what the three offer sites read
+  (`splitCoreTools`, the CLI turn, the websocket runner), while
+  `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
+  `nodetool.models.pick` and `nodetool.nodes.search` are unchanged — the belt
+  keeps every tool, so an action still composes them.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
   `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,

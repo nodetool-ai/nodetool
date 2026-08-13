@@ -5,7 +5,10 @@
  * by mocking readline.createInterface and all external dependencies.
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { CORE_TOOL_NAMES as CORE_TOOL_NAMES_STUB } from "./__stubs__/nodetool.js";
+import {
+  DIRECT_TOOL_NAMES as DIRECT_TOOL_NAMES_STUB,
+  ProcessingContext as ProcessingContextStub
+} from "./__stubs__/nodetool.js";
 
 // ─── Top-level mocks (hoisted by vitest) ─────────────────────────────────────
 
@@ -32,15 +35,16 @@ vi.mock("@nodetool-ai/models", () => ({
 }));
 
 vi.mock("@nodetool-ai/runtime", () => ({
-  ProcessingContext: class {
-    constructor(_o?: unknown) {}
-  },
+  // The shared stub's context, not a bare class: the chat context wires asset
+  // persistence onto it, so a context without `setModelInterfaces` fails the
+  // turn before `processChat` is ever reached.
+  ProcessingContext: ProcessingContextStub,
   FileStorageAdapter: class {
     constructor(_root?: string) {}
   },
   // This mock replaces the shared stub wholesale, so re-state the one other
   // export the CodeAct wiring reads.
-  CORE_TOOL_NAMES: CORE_TOOL_NAMES_STUB
+  DIRECT_TOOL_NAMES: DIRECT_TOOL_NAMES_STUB
 }));
 
 vi.mock("@nodetool-ai/chat", () => ({

@@ -496,6 +496,54 @@ describe("CodeAct core tools", () => {
     expect(systemPrompt).toContain("tools.lookup_customer(");
   });
 
+  it("offers model and node discovery as direct tools too", async () => {
+    // A lookup is one question with one answer. Behind `execute_code` it cost
+    // a sandbox round trip and the answer arrived only as whatever the action
+    // chose to return.
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    let offered: string[] = [];
+    let systemPrompt = "";
+    const provider = createLoopProvider([
+      { toolCalls: [codeAction("tc_1", `await finish({answer: 1});`)] }
+    ]);
+    const inner = provider.generateLoop.bind(provider);
+    provider.generateLoop = ((args: {
+      tools?: Array<{ name: string }>;
+      messages: Array<{ role: string; content?: unknown }>;
+    }) => {
+      offered = (args.tools ?? []).map((t) => t.name);
+      systemPrompt = String(
+        args.messages.find((m) => m.role === "system")?.content ?? ""
+      );
+      return inner(args as never);
+    }) as typeof provider.generateLoop;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [
+        new NamedTool("find_model", "Find a model."),
+        new NamedTool("search_nodes", "Search node types."),
+        new NamedTool("get_node_info", "Describe a node type."),
+        new NamedTool("run_node", "Run one node."),
+        new NamedTool("lookup_customer", "Look up a customer record by id.")
+      ]
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    for (const name of ["find_model", "search_nodes", "get_node_info"]) {
+      expect(offered, `${name} should be a direct tool`).toContain(name);
+    }
+    // Running a node is execution, not discovery — it stays in the sandbox.
+    expect(offered).not.toContain("run_node");
+    expect(offered).not.toContain("lookup_customer");
+    expect(systemPrompt).toContain("# Direct tools");
+  });
+
   it("still reaches a core tool from inside a code action", async () => {
     // The belt keeps them: `nodetool.web`, `nodetool.agents` and any
     // hand-written fan-out call these from code, in one action.

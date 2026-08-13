@@ -10,7 +10,7 @@
  * never hit.
  */
 
-import { CORE_TOOL_NAMES, type ProcessingContext } from "@nodetool-ai/runtime";
+import { DIRECT_TOOL_NAMES, type ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   JsonSchema,
   MessageContent,
@@ -191,15 +191,16 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
 /**
  * Split a toolbelt into the tools also offered top level and the rest.
  *
- * Membership is {@link CORE_TOOL_NAMES} — the tools that mirror a Claude Agent
- * SDK built-in. They are the shapes every frontier model is trained on, so a
- * plain tool call beats a sandbox round trip whose only job is to forward one.
+ * Membership is {@link DIRECT_TOOL_NAMES}: the core set that mirrors a Claude
+ * Agent SDK built-in, plus discovery — which providers, models and node types
+ * this install has. Both are shapes a plain tool call fits, so a sandbox round
+ * trip whose only job is to forward one buys nothing.
  *
  * `core` is a view, not a removal: the belt keeps every tool, because the
- * object model (`nodetool.web`, `nodetool.agents`) and any hand-written
- * fan-out call them from inside an action. What the top-level offer changes is
- * the *documented* path — the prompt catalog lists them as direct tools, and
- * the default way to reach one is a tool call.
+ * object model (`nodetool.models.pick`, `nodetool.web`, `nodetool.agents`) and
+ * any hand-written fan-out call them from inside an action. What the top-level
+ * offer changes is the *documented* path — the prompt catalog lists them as
+ * direct tools, and the default way to reach one is a tool call.
  */
 export function splitCoreTools(tools: Tool[]): {
   core: Tool[];
@@ -208,7 +209,7 @@ export function splitCoreTools(tools: Tool[]): {
   const core: Tool[] = [];
   const belt: Tool[] = [];
   for (const tool of tools) {
-    (CORE_TOOL_NAMES.has(tool.name) ? core : belt).push(tool);
+    (DIRECT_TOOL_NAMES.has(tool.name) ? core : belt).push(tool);
   }
   return { core, belt };
 }

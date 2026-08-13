@@ -8,10 +8,11 @@
  * whose `process()` runs one code action; the toolbelt itself moves inside the
  * sandbox and is never offered to the provider.
  *
- * Two sets also reach the provider directly, as on the server. The core tools
- * (`CORE_TOOL_NAMES` — file, search, fetch, todo, delegation) are the shapes
- * every model is trained on, so they cost less as a plain tool call than as a
- * sandbox round trip; they stay on the belt too, because code composes them.
+ * Two sets also reach the provider directly, as on the server. The direct
+ * tools (`DIRECT_TOOL_NAMES` — file, search, fetch, todo, delegation, plus
+ * model and node discovery) are the shapes every model is trained on, so they
+ * cost less as a plain tool call than as a sandbox round trip; they stay on
+ * the belt too, because code composes them.
  * And `view_image` is the one channel that puts pixels into the model's
  * context, which cannot ride the JSON observation envelope.
  */
@@ -21,7 +22,7 @@ import type {
   Message,
   ProcessingContext
 } from "@nodetool-ai/runtime";
-import { CORE_TOOL_NAMES } from "@nodetool-ai/runtime";
+import { DIRECT_TOOL_NAMES } from "@nodetool-ai/runtime";
 import {
   Tool,
   createChatCodeActSession,
@@ -84,7 +85,7 @@ export function createCliCodeActTurn(
 ): CliCodeActTurn {
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
   const directTools = options.tools.filter(
-    (t) => t.name !== VIEW_IMAGE_TOOL && CORE_TOOL_NAMES.has(t.name)
+    (t) => t.name !== VIEW_IMAGE_TOOL && DIRECT_TOOL_NAMES.has(t.name)
   );
   const beltTools = options.tools.filter((t) => t.name !== VIEW_IMAGE_TOOL);
 
