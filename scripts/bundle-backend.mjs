@@ -166,6 +166,10 @@ const COMMON_EXTERNAL_PACKAGES = [
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@supabase/supabase-js",
 
+  // HuggingFaceProvider loads this through Function("return import(...)"), which
+  // esbuild cannot see, so nothing stages it implicitly.
+  "@huggingface/inference",
+
   // Telemetry (conditionally loaded)
   "@opentelemetry/sdk-node",
   "@opentelemetry/resources",
