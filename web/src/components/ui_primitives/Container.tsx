@@ -5,7 +5,7 @@
  * Eliminates repetitive padding patterns across the app.
  */
 
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 

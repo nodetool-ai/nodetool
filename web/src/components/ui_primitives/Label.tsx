@@ -5,7 +5,7 @@
  * Provides consistent label styling across the application.
  */
 
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 

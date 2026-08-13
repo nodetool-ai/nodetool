@@ -228,17 +228,6 @@ export function canRunGraphInBrowserSync(
   );
 }
 
-/**
- * True iff every node in `graph` can run in the browser. Loads the browser node
- * registry on first use (cached); resolves `false` — never throws — when no
- * runner is available, so callers safely fall back to the server.
- */
-export async function canRunGraphInBrowser(
-  graph: WorkflowGraph | null | undefined
-): Promise<boolean> {
-  return (await reportBrowserEligibility(graph)).eligible;
-}
-
 /** Diagnostic breakdown of why a graph will (or won't) run in the browser. */
 export interface BrowserEligibility {
   /** Every node is browser-capable and a runner is loaded. */

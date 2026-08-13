@@ -5,7 +5,7 @@
  * Provides consistent card appearance across the application.
  */
 
-import React, { memo, forwardRef } from "react";
+import { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";

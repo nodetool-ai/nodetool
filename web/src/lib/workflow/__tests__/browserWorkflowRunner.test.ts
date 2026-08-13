@@ -1,7 +1,6 @@
 import { globalWebSocketManager } from "../../websocket/GlobalWebSocketManager";
 import {
   __setBrowserRunnerLoader,
-  canRunGraphInBrowser,
   canRunGraphInBrowserSync,
   collectNodeClasses,
   reportBrowserEligibility,
@@ -62,29 +61,34 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("canRunGraphInBrowser", () => {
+describe("reportBrowserEligibility", () => {
   it("is true when every node type is in the browser registry", async () => {
     installFakeRunner(completed());
-    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(true);
+    expect(
+      (await reportBrowserEligibility(browserGraph("browser.Const"))).eligible
+    ).toBe(true);
   });
 
   it("is false when a node type is unknown to the browser registry", async () => {
     installFakeRunner(completed());
-    expect(await canRunGraphInBrowser(browserGraph("server.Image"))).toBe(false);
+    expect(
+      (await reportBrowserEligibility(browserGraph("server.Image"))).eligible
+    ).toBe(false);
   });
 
   it("is false for an empty graph", async () => {
     installFakeRunner(completed());
     expect(
-      await canRunGraphInBrowser({ nodes: [], edges: [] } as WorkflowGraph)
+      (await reportBrowserEligibility({ nodes: [], edges: [] } as WorkflowGraph))
+        .eligible
     ).toBe(false);
   });
 
   it("is false (no throw) when the browser runner can't be loaded", async () => {
     __setBrowserRunnerLoader(async () => null);
-    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
-      false
-    );
+    expect(
+      (await reportBrowserEligibility(browserGraph("browser.Const"))).eligible
+    ).toBe(false);
   });
 
   it("retries after a transient load failure instead of caching it", async () => {
@@ -104,21 +108,21 @@ describe("canRunGraphInBrowser", () => {
     });
 
     // First attempt throws → false, but the failure is not cached.
-    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
-      false
-    );
+    expect(
+      (await reportBrowserEligibility(browserGraph("browser.Const"))).eligible
+    ).toBe(false);
     // A later attempt retries the load and succeeds.
-    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
-      true
-    );
+    expect(
+      (await reportBrowserEligibility(browserGraph("browser.Const"))).eligible
+    ).toBe(true);
     expect(calls).toBe(2);
   });
 
   it("does not load the heavy runner in a unit-test process by default", async () => {
     __setBrowserRunnerLoader(null);
-    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
-      false
-    );
+    expect(
+      (await reportBrowserEligibility(browserGraph("browser.Const"))).eligible
+    ).toBe(false);
   });
 });
 
@@ -130,7 +134,7 @@ describe("canRunGraphInBrowserSync", () => {
     expect(canRunGraphInBrowserSync(browserGraph("browser.Const"))).toBe(false);
 
     // Force the load to settle, then the sync decision reflects the registry.
-    await canRunGraphInBrowser(browserGraph("browser.Const"));
+    await reportBrowserEligibility(browserGraph("browser.Const"));
 
     expect(canRunGraphInBrowserSync(browserGraph("browser.Const"))).toBe(true);
     expect(canRunGraphInBrowserSync(browserGraph("server.Image"))).toBe(false);

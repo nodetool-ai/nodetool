@@ -24,8 +24,6 @@ import {
   undoHistory,
   redoHistory,
   clearHistory,
-  canUndo,
-  canRedo,
   type HistoryMap
 } from "../documentHistory";
 
@@ -423,12 +421,6 @@ export const useJsScriptTests = (id: string): JsScriptTestCase[] =>
 
 export const useJsScriptSaveStatus = (id: string): JsScriptSaveStatus =>
   useJsScriptStore((state) => state.saveStatus[id] ?? "saved");
-
-export const useJsScriptCanUndo = (id: string): boolean =>
-  useJsScriptStore((state) => canUndo(state.history, id));
-
-export const useJsScriptCanRedo = (id: string): boolean =>
-  useJsScriptStore((state) => canRedo(state.history, id));
 
 export const useJsScriptLastRun = (id: string): JsScriptRunOutcome | null =>
   useJsScriptStore((state) => state.lastRun[id] ?? null);

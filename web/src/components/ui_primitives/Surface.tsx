@@ -6,7 +6,7 @@
  * Complements Card (structured content) and Panel (layout regions).
  */
 
-import React, { memo, forwardRef } from "react";
+import { memo, forwardRef } from "react";
 import {
   Paper,
   PaperProps,
