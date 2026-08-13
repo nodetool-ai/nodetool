@@ -121,7 +121,6 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   save_asset: "write",
   view_image: "read",
   // apps
-  build_app: "execute",
   debug_app: "execute",
   // --- web ---
   web_search: "read",

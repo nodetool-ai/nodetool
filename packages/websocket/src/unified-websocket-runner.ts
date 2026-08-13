@@ -1301,9 +1301,9 @@ of assuming the only way forward is a workflow.
   \`@nodetool-ai/sandbox-dsl\` package for authoring one; see "Building
   workflows".
 - **app** — a mini app: widgets bound to workflow operations and variables.
-  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`), verify
-  with \`nodetool.apps.debug\`, or generate a whole one from a prompt with
-  \`nodetool.apps.build\`.
+  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`) and
+  verify with \`nodetool.apps.debug\` — \`{run: false}\` after every wiring change
+  is free and instant. A whole app is that loop, not a single call.
 - **storyboard** — a brief or screenplay broken into shots, each with a
   keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
   edits the shot list, renders stills and clips, and assembles them into a
@@ -5557,8 +5557,8 @@ export class UnifiedWebSocketRunner {
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null, codeactClock);
-    // Stamp the turn's own selection so harness-launching tools (build_app)
-    // inherit this chat's provider/model when the call doesn't name one.
+    // Stamp the turn's own selection so a tool that launches another harness
+    // inherits this chat's provider/model when the call doesn't name one.
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
       provider: providerId,
       model

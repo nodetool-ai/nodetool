@@ -186,7 +186,7 @@ lazy implementation table disagree.
 | `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
-| `apps` | `build_app`, `debug_app` |
+| `apps` | `debug_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence` |
@@ -254,13 +254,11 @@ from inside an agent:
   refused at save and at run rather than surfacing mid-execution.
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
-- **`build_app`** — build a mini app from a prompt (or a pinned `BuildSpec`) and
-  return the `BuildReport`: stages, repairs, the simulated interactions, a
-  verdict, and — only behind a passing verdict — the `ApplicationBundle`. Posts
-  to `POST /api/applications/build`. Minutes, not seconds: with `poll: true` it
-  returns a session id to read at `GET /api/debug/sessions/:id` or cancel at
-  `POST /api/debug/sessions/:id/cancel`. The bundle is offered, never installed
-  — install it with `POST /api/applications/import-bundle`.
+- **`debug_app`** — validate a mini app's bindings, simulate it, and return each
+  widget's final state with a verdict. `run: false` is the free, instant wiring
+  check an agent runs after every edit. There is no `build_app` tool: an app is
+  built with the `ui_app_*` editor tools and graded with this one. The batch
+  harness lives on at `POST /api/applications/build` and `nodetool app build`.
 - **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
   background job (poll with `get_job` / `get_job_logs`).
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,

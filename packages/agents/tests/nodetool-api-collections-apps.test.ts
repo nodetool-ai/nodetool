@@ -27,7 +27,7 @@ const COLLECTION_TOOLS = [
   "vector_hybrid_search"
 ].map(toolDef);
 
-const APP_TOOLS = ["build_app", "debug_app"].map(toolDef);
+const APP_TOOLS = ["debug_app"].map(toolDef);
 
 function createFakeRouter() {
   const calls: ChatCodeActToolCall[] = [];
@@ -46,8 +46,6 @@ function createFakeRouter() {
         return JSON.stringify({ "doc-1": "a chunk about foxes" });
       case "vector_hybrid_search":
         return JSON.stringify({ "doc-2": "a hybrid hit" });
-      case "build_app":
-        return JSON.stringify({ verdict: { ok: true }, session_id: "sess-1" });
       case "debug_app":
         return JSON.stringify({ verdict: { ok: true }, widgets: [] });
       default:
@@ -181,49 +179,6 @@ describe("nodetool.collections", () => {
 });
 
 describe("nodetool.apps", () => {
-  it("maps a string to the prompt field and merges opts", async () => {
-    const { executeTool, calls } = createFakeRouter();
-    const session = makeSession(APP_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `return await nodetool.apps.build("an app that drafts a note", {
-         poll: true,
-         cost_cap_usd: 1
-       });`
-    );
-    expect(obs.ok).toBe(true);
-    expect(calls[0]).toMatchObject({
-      name: "build_app",
-      args: {
-        prompt: "an app that drafts a note",
-        poll: true,
-        cost_cap_usd: 1
-      }
-    });
-    expect(calls[0].args["spec"]).toBeUndefined();
-  });
-
-  it("maps an object to the spec field", async () => {
-    const { executeTool, calls } = createFakeRouter();
-    const session = makeSession(APP_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `return await nodetool.apps.build(
-         { title: "Note drafter", operations: [] },
-         { workflow_ids: ["wf1"] }
-       );`
-    );
-    expect(obs.ok).toBe(true);
-    expect(calls[0]).toMatchObject({
-      name: "build_app",
-      args: {
-        spec: { title: "Note drafter", operations: [] },
-        workflow_ids: ["wf1"]
-      }
-    });
-    expect(calls[0].args["prompt"]).toBeUndefined();
-  });
-
   it("debugs a saved app by application_id", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(APP_TOOLS, executeTool);
@@ -243,12 +198,12 @@ describe("prompt section", () => {
   it("documents both namespaces when their tools are on the belt", () => {
     const section = buildNodetoolApiPromptSection([
       "vector_text_search",
-      "build_app"
+      "debug_app"
     ]);
     expect(section).toContain("nodetool.collections");
     expect(section).toContain("hybridSearch");
     expect(section).toContain("nodetool.apps");
-    expect(section).toContain("poll: true");
+    expect(section).toContain("{run: false}");
   });
 
   it("omits apps when no app tool is present", () => {

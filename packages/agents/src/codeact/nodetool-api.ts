@@ -93,7 +93,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "vector_text_search",
     "vector_hybrid_search"
   ],
-  apps: ["build_app", "debug_app"],
+  apps: ["debug_app"],
   timelines: [
     "list_timelines",
     "list_timeline_versions",
@@ -912,20 +912,6 @@ const nodetool = (() => {
     },
 
     apps: {
-      /**
-       * Build a mini app. Pass a sentence of intent (goes in as the prompt)
-       * or a pinned BuildSpec object (goes in as the spec). Minutes-long —
-       * pass {poll: true} for a session id to read instead of waiting.
-       */
-      build: (promptOrSpec, opts) =>
-        __need("build_app")(
-          __merge(
-            opts,
-            typeof promptOrSpec === "string"
-              ? { prompt: promptOrSpec }
-              : { spec: promptOrSpec }
-          )
-        ),
       /** Validate + simulate a saved app. {run: false} is the free check. */
       debug: (id, opts) =>
         __need("debug_app")(__merge(opts, { application_id: id }))
@@ -1220,14 +1206,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "apps",
-    doc: `- \`nodetool.apps\` — \`build(promptOrSpec, {provider, model, workflow_ids,
-  max_repairs, cost_cap_usd, poll})\` builds a mini app (a string is the intent
-  prompt, an object is a pinned BuildSpec) and returns the build report; the
-  bundle behind a passing verdict is offered, not installed. A build runs for
-  MINUTES — pass \`{poll: true}\` to get a session id back at once and read
-  \`GET /api/debug/sessions/<id>\` until it settles. \`debug(applicationId,
-  {params, interact, run, poll})\` validates and simulates a saved app;
-  \`{run: false}\` is the free, instant wiring check.`
+    doc: `- \`nodetool.apps\` — \`debug(applicationId, {params, interact, run,
+  poll})\` validates and simulates a saved app; \`{run: false}\` is the free,
+  instant wiring check. Build an app by driving the \`ui_app_*\` editor tools
+  and checking each change with \`{run: false}\`.`
   },
   {
     namespace: "timelines",

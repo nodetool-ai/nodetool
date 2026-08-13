@@ -223,17 +223,15 @@ const SOLUTIONS: Record<string, string[]> = {
        remaining: again.messages.length
      });`
   ],
-  "style-aware-app-build": [
+  "style-aware-app-check": [
     `const profile = await nodetool.style.profile();
-     const build = await nodetool.apps.build(
-       "An app that drafts a short note from a prompt. Match this style: " + profile);
-     const dbg = await nodetool.apps.debug(build.application_id, {run: false});
+     const dbg = await nodetool.apps.debug("app_notes", {run: false});
      const pref = await nodetool.style.record(
        "Likes the dark, high-contrast variant of the note app", {chosen: "dark"});
      await finish({
-       styleApplied: build.style_applied,
-       verdictOk: build.verdict.ok,
-       debugOk: dbg.verdict.ok,
+       verdictOk: dbg.verdict.ok,
+       ran: dbg.ran,
+       widgets: dbg.widgets.length,
        preferences: pref.total
      });`
   ]

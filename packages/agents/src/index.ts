@@ -886,8 +886,8 @@ export type {
   JudgeWidgetState
 } from "./app-build/judge.js";
 export { renderBuildReportMarkdown } from "./app-build/markdown.js";
-// The build as a service: what `POST /api/applications/build` and the
-// `build_app` tool both call, minus request parsing.
+// The build as a service: what `POST /api/applications/build` calls, minus
+// request parsing.
 export { runApplicationBuild } from "./app-build/build-service.js";
 export type {
   AppBuildDeps,

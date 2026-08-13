@@ -52,7 +52,7 @@ packages/agents/src/app-build/
   build.ts        # Orchestrator: stages, repair loop, budgets
 packages/execution/src/app-debug/   # relocated simulator (app-spec, runtime, harness)
 packages/cli/src/commands/app.ts    # + `app build` subcommand
-packages/websocket/src/...          # `build_app` tool + HTTP surface
+packages/websocket/src/...          # HTTP surface
 ```
 
 The evals keep working against the same surfaces: `evals/surfaces/app.ts`
@@ -306,14 +306,18 @@ Bundle layout extends the app-debug convention:
 `interactions/<name>/` per interaction holding that pass's
 `run-N.messages.jsonl`. Exit code 0 iff `verdict.ok`.
 
-### 5.2 Server tool and HTTP (M4)
+### 5.2 Server HTTP (M4)
 
-`build_app` registers next to `debug_workflow`:
-`POST /api/applications/build {prompt | spec, options}` running the same
+`POST /api/applications/build {prompt | spec, options}` runs the same
 `buildApp()` from `@nodetool-ai/agents`. Long builds use the existing
 debug-session machinery (`packages/execution/src/service/debug-sessions.ts`) for
-polling and cancel; the editor chat tool returns the `BuildReport` and offers
-the bundle for import through the normal bundle-import path.
+polling and cancel, and the bundle behind a green verdict is imported through
+the normal bundle-import path.
+
+There is no matching agent tool. A `build_app` capability shipped and was
+removed: it put a second, invisible agent between the user and their app, and
+the editor agent can already do every stage itself with the `ui_app_*` tools and
+`debug_app`. The route stays for the CLI and the eval suite.
 
 ### 5.3 Eval suite
 

@@ -384,7 +384,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 |---|---|---|---|
 | Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
 | Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
-| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | `build_app` (`POST /api/applications/build`; poll/cancel via the debug-session endpoints) | minutes |
+| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | — (an agent builds an app with the `ui_app_*` tools and grades it with `debug_app`) | minutes |
 | Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
 | Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
@@ -794,18 +794,20 @@ stages, the `ui_app_*` bridge the `app-tools` eval also scores); the CLI keeps
 the flags and the bundle. Design:
 [docs/mini-app-build-harness-design.md](docs/mini-app-build-harness-design.md).
 
-#### On the server: `POST /api/applications/build` and `build_app`
+#### On the server: `POST /api/applications/build`
 
 The same `buildApp` runs on the server:
 `POST /api/applications/build {prompt | spec, provider, model, workflow_ids,
-max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`, and an agent
-reaches it through the **`build_app`** tool. Provider and model come from the
-body; a `build_app` call that omits them inherits the calling agent's own
-provider/model (stamped on the ProcessingContext under
-`ACTIVE_MODEL_CONTEXT_KEY` by every tool-calling loop — chat turns and
-`run_subtask` sub-agents alike), and the server falls back to
+max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`. Provider and
+model come from the body, and the server falls back to
 `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`. The cost cap
 defaults to the harness's own $2.
+
+**There is no `build_app` agent tool.** An agent builds an app the way a person
+does — declare the operations, place the widgets, and grade every change with
+`debug_app` / `ui_app_debug` — instead of handing the job to a second agent it
+cannot see into. The route stays for the CLI, the eval suite, and a caller that
+wants the batch build.
 
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with

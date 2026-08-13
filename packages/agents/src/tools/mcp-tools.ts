@@ -210,7 +210,6 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     "export_workflow_digraph",
     "start_background_job",
     // apps
-    "build_app",
     "debug_app",
     // jobs
     "list_jobs",

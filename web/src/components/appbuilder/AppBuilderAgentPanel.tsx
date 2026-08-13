@@ -58,10 +58,11 @@ Verify — don't assume:
   Script a specific flow with \`interact\` (set / click / change / run) when the
   natural run trigger isn't what you want to test.
 
-If the user asks for a whole new app and nothing is open to edit, the
-\`build_app\` tool drafts and verifies a complete app as a bundle to import; the
-\`ui_app_*\` tools are for refining the app in this editor. Build incrementally;
-keep labels concise.`;
+A whole new app is the same sequence from an empty document: author the
+workflow with \`create_workflow\`, declare the operation, place the widgets,
+grade it with \`ui_app_debug\`. There is no one-shot build tool — you build the
+app here, a step at a time, and the harness names what is still wrong. Build
+incrementally; keep labels concise.`;
 
 interface AppBuilderAgentPanelProps {
   /** The app being edited — the id the `ui_app_*` tools take. */

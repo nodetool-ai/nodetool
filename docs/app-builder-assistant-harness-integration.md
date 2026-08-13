@@ -138,9 +138,10 @@ the harness loop:
 - before declaring the app done: `ui_app_debug { run: true }` once, read the
   verdict, fix what it names. A run executes real workflows and spends real
   money — check often, run once.
-- for "build me an app" with nothing open: `build_app` (the batch harness),
-  then offer the bundle for import. The editor assistant refines; the batch
-  harness drafts.
+- for "build me an app" with nothing open: the same sequence from an empty
+  document — author the workflow, declare the operation, place the widgets,
+  grade it with `ui_app_debug`. There is no one-shot build tool on the belt;
+  the batch harness stays a CLI and HTTP surface.
 
 ## 4. Rejected alternatives
 

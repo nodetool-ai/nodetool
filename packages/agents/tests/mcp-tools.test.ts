@@ -663,48 +663,6 @@ describe("resolve_workflow_escalation", () => {
   });
 });
 
-describe("build_app", () => {
-  it("refuses without a node registry", async () => {
-    const result = (await capTool("build_app").process(ctx, {
-      prompt: "an app"
-    })) as Record<string, unknown>;
-    expect(String(result.error)).toContain("no node registry");
-  });
-
-  it("asks for a provider and model when nothing is stamped", async () => {
-    const tool = capTool("build_app", { nodeRegistry: stubRegistry });
-    const result = (await tool.process(ctx, {
-      prompt: "a note-drafting app"
-    })) as Record<string, unknown>;
-    expect(String(result.error)).toContain("needs a provider and a model");
-  });
-
-  it("inherits the calling agent's provider/model when the call omits them", async () => {
-    ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
-      provider: "anthropic",
-      model: "claude-sonnet-5"
-    });
-    const tool = capTool("build_app", { nodeRegistry: stubRegistry });
-    const result = (await tool.process(ctx, {
-      prompt: "a note-drafting app"
-    })) as Record<string, unknown>;
-    // The inherited selection got past the "needs a provider" gate; what stops
-    // the build now is the unconfigured provider, not a missing choice.
-    expect(String(result.error)).not.toContain("needs a provider and a model");
-  });
-
-  it("documents the inheritance in the tool and parameter descriptions", () => {
-    const tool = capTool("build_app");
-    expect(tool.description).toContain("default to the provider and model");
-    const props = tool.inputSchema.properties as Record<
-      string,
-      { description: string }
-    >;
-    expect(props.provider.description).toContain("agent making this call");
-    expect(props.model.description).toContain("agent making this call");
-  });
-});
-
 describe("debug_app", () => {
   it("refuses without a node registry", async () => {
     const result = (await capTool("debug_app").process(ctx, {
@@ -1336,7 +1294,6 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("create_workflow");
     expect(names).toContain("run_workflow");
     expect(names).toContain("validate_workflow");
-    expect(names).toContain("build_app");
     expect(names).toContain("debug_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");

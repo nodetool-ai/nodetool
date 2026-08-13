@@ -377,7 +377,6 @@ function createWorld() {
       "Rejected the pastel palette."
     ] as string[],
     apps: new Set<string>(["app_notes"]),
-    appSeq: 0,
     timelines: new Map<string, TimelineDoc>([
       [
         "tl_promo",
@@ -1462,38 +1461,6 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
 
     // -- apps -------------------------------------------------------------
     tool(
-      "build_app",
-      "Build a mini app from a prompt or a pinned spec.",
-      obj({
-        prompt: S,
-        spec: obj({}),
-        provider: S,
-        model: S,
-        workflow_ids: ANY_ARRAY,
-        max_repairs: N,
-        cost_cap_usd: N,
-        poll: B
-      }),
-      (params) => {
-        const prompt = str(params["prompt"]);
-        const spec = params["spec"];
-        if (!prompt && spec === undefined) {
-          throw new Error("build_app needs either a prompt or a spec");
-        }
-        const brief = prompt || JSON.stringify(spec);
-        const applicationId = `app_built_${++world.appSeq}`;
-        world.apps.add(applicationId);
-        return {
-          verdict: { ok: true, issues: [] },
-          application_id: applicationId,
-          // Did the caller carry the recorded taste into the request?
-          style_applied: /high-contrast/i.test(brief),
-          rounds: 1,
-          stages: ["spec", "plan", "author", "check", "run", "judge"]
-        };
-      }
-    ),
-    tool(
       "debug_app",
       "Validate and simulate a saved app.",
       obj({ application_id: S, params: obj({}), interact: ANY_ARRAY, run: B }, [
@@ -2378,36 +2345,35 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     }
   },
   {
-    id: "style-aware-app-build",
-    description: "Carry the user's recorded taste into a build, then check the app",
+    id: "style-aware-app-check",
+    description: "Check a saved app's wiring for free, and record the user's taste",
     namespaces: ["style", "apps"],
     objective:
-      "Build a mini app that drafts a short note from a prompt. The build " +
-      "request has to carry the user's recorded style, not your own taste — " +
-      "read it first and put it in. Then run the free wiring check (no run) " +
-      "on the app the build produced, and record that the user liked the " +
-      "dark, high-contrast variant with the style recorder. Finish with " +
-      "{styleApplied, verdictOk, debugOk, preferences} — the build's style " +
-      "flag, both verdicts, and the preference count the style profile's " +
-      "details report after your recording.",
+      "The app \"app_notes\" drafts a short note from a prompt. Read the " +
+      "user's recorded style first, then run the FREE wiring check on that " +
+      "app — no run, it costs nothing and spends nothing. Record that the " +
+      "user liked the dark, high-contrast variant with the style recorder. " +
+      "Finish with {verdictOk, ran, widgets, preferences} — the check's " +
+      "verdict, whether it executed the app, how many widgets it reported, " +
+      "and the preference count the style profile's details report after " +
+      "your recording.",
     outputSchema: obj(
-      { styleApplied: B, verdictOk: B, debugOk: B, preferences: N },
-      ["styleApplied", "verdictOk", "debugOk", "preferences"]
+      { verdictOk: B, ran: B, widgets: N, preferences: N },
+      ["verdictOk", "ran", "widgets", "preferences"]
     ),
     expect: {
       requiredTools: [
         "get_style_profile",
-        "build_app",
         "debug_app",
         "record_style_preference"
       ],
       maxActions: 5,
       resultCheck: (r: unknown) =>
-        field(r, "styleApplied") === true &&
         field(r, "verdictOk") === true &&
-        field(r, "debugOk") === true &&
+        field(r, "ran") === false &&
+        asNumber(field(r, "widgets")) === 3 &&
         asNumber(field(r, "preferences")) === 3,
-      resultCheckLabel: "style carried, both verdicts ok, 3 preferences"
+      resultCheckLabel: "free check ran, 3 widgets, 3 preferences"
     }
   }
 ].map((entry) => ({ ...entry, createTools: createSurfaceApiTools }));

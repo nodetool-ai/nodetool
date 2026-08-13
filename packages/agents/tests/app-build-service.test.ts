@@ -1,6 +1,6 @@
 /**
  * `runApplicationBuild` — the server entry point behind
- * `POST /api/applications/build` and the `build_app` tool.
+ * `POST /api/applications/build`.
  *
  * The build itself (`buildApp`) is stubbed here, because what this module owns
  * is everything around it: which provider and model a build spends on, which
@@ -204,46 +204,6 @@ describe("runApplicationBuild — which model it spends on", () => {
       runApplicationBuild(nextUser(), { prompt: "an app" }, registry, deps())
     ).rejects.toThrow(/needs a provider and a model/);
     expect(buildApp).not.toHaveBeenCalled();
-  });
-
-  it("inherits the calling agent's model through the build_app tool", async () => {
-    // The tool passes no test seams, so this is the production path: the
-    // provider comes from the user's secrets and every other provider is
-    // enumerated for the judge.
-    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    const { ACTIVE_MODEL_CONTEXT_KEY } = await import("@nodetool-ai/runtime");
-    const { APP_CAPABILITIES } = await import("../src/capabilities/apps.js");
-    const {
-      UNGATED,
-      createCapabilityRun
-    } = await import("../src/capabilities/index.js");
-
-    const entry = APP_CAPABILITIES.find((e) => e.spec.name === "build_app");
-    if (!entry) throw new Error("no build_app capability");
-    const values = new Map<string, unknown>([
-      [
-        ACTIVE_MODEL_CONTEXT_KEY,
-        { provider: "anthropic", model: "claude-sonnet-5" }
-      ]
-    ]);
-    const context = {
-      userId: nextUser(),
-      get: (key: string) => values.get(key),
-      set: (key: string, value: unknown) => values.set(key, value)
-    };
-    const run = createCapabilityRun({
-      context: context as never,
-      gate: UNGATED,
-      nodeRegistry: registry
-    });
-
-    const result = (await entry.impl(run, {
-      prompt: "a drafting app"
-    })) as Record<string, unknown>;
-
-    expect(result["status"]).toBe("completed");
-    expect(optionsPassed().model).toBe("claude-sonnet-5");
-    expect(optionsPassed().provider.provider).toBe("anthropic");
   });
 });
 

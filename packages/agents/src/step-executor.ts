@@ -875,8 +875,8 @@ export class StepExecutor {
       instructions: this.step.instructions.slice(0, 60)
     });
 
-    // Stamp the loop's own selection so harness-launching tools (build_app)
-    // inherit this agent's provider/model when the call doesn't name one.
+    // Stamp the loop's own selection so a tool that launches another harness
+    // inherits this agent's provider/model when the call doesn't name one.
     this.context.set(ACTIVE_MODEL_CONTEXT_KEY, {
       provider: this.provider.provider,
       model: this.model

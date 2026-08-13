@@ -546,7 +546,7 @@ Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
 - **`execute_code`** — the CodeAct action tool, built by the same
   `createChatCodeActSession` the in-app chat agent runs on, so the two surfaces cannot drift.
   Everything NodeTool can do is reached from inside an action: workflow building and debugging
-  (`create_workflow`, `validate_workflow`, `debug_workflow`, `build_app`, `debug_app`, the `ui_*`
+  (`create_workflow`, `validate_workflow`, `debug_workflow`, `debug_app`, the `ui_*`
   graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
   `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
   (`web_search`, `browser`, `http_request`), collections, documents, code execution, image

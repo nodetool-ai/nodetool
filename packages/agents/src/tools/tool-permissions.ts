@@ -196,7 +196,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   test_js_script: "execute",
   run_workflow: "execute",
   debug_workflow: "execute",
-  build_app: "execute",
   debug_app: "execute",
   start_background_job: "execute",
 
