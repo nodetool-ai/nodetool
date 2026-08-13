@@ -77,6 +77,29 @@ User-authored JS from a CodeAct action and `nodetool.code.Code` runs in a
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
 
+On Node the interpreter runs on a **`worker_threads` worker**
+(`src/js-sandbox-worker/`): `buildSandbox` and every host bridge stay on the
+main thread, the worker rebuilds each bridge as an RPC proxy over the port, and
+a CPU-bound guest therefore blocks only its own thread — the server keeps
+serving, and the websocket `stop` frame that cancels the run can still be read.
+Abort is `worker.terminate()`, immediately — equally instant for a spinning
+guest and a parked one, and nothing of value dies with the thread: logs and
+emitted values accumulate main-side through the RPC dispatches, and a cancelled
+action leaving no partial `state` write-back is the cleaner contract. Three
+runs stay in-process: the browser (no `worker_threads`), a run with input
+streams (the synchronous `stream.open` mirror has no handle names to seed), and
+`NODETOOL_SANDBOX_INPROC=1`. `NODETOOL_SANDBOX_WORKER=require` turns any other
+fallback into an error for CI. Under tsx/vitest the worker boots from an eval'd
+bootstrap that registers `tsx/esm/api` — tsx's own `--import` hook skips worker
+threads, and Node's built-in strip-only TS loader cannot parse the workspace
+packages. The packaged backend ships the worker as a second esbuild bundle
+(`scripts/bundle-backend.mjs` → `backend/js-sandbox-worker/worker-entry.js`).
+The interpreter itself (`js-sandbox-worker/interpreter.ts`) is shared by both
+paths, so they cannot drift; bridge results must be plain data — a function in
+a bridge return value cannot cross `postMessage`, which is why the fetch bridge
+returns body bytes and the guest prelude builds `text()`/`bytes()`/
+`arrayBuffer()` over them.
+
 Hard limits enforced by the runtime. Each row's default can be overridden per
 invocation via `RunSandboxOptions.limits`, clamped to the ceiling in the last
 column by `resolveSandboxLimits`:

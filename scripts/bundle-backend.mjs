@@ -17,6 +17,8 @@
  *   <out>/server.mjs.map      — source map
  *   <out>/_modules/           — external packages staged for the target
  *   <out>/package.json        — { "type": "module" }
+ *   <out>/js-sandbox-worker/worker-entry.js
+ *                             — QuickJS sandbox worker thread entry
  *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
  *   <out>/sandbox-agent.mjs   — bundled in-container tool server
  *                               (--with-sandbox-agent only)
@@ -49,6 +51,14 @@ const SANDBOX_AGENT_ENTRY_POINT = path.join(
   "sandbox-agent",
   "dist",
   "entry.js"
+);
+const SANDBOX_WORKER_ENTRY_POINT = path.join(
+  ROOT_DIR,
+  "packages",
+  "agents",
+  "dist",
+  "js-sandbox-worker",
+  "worker-entry.js"
 );
 
 // --- CLI flags -------------------------------------------------------------
@@ -927,6 +937,45 @@ async function buildSandboxAgentBundle() {
   console.log("  Wrote sandbox-agent.mjs");
 }
 
+/**
+ * Bundle the QuickJS sandbox worker entry into
+ * <out>/js-sandbox-worker/worker-entry.js.
+ *
+ * The sandbox interpreter runs on a worker thread, and a worker needs a real
+ * file URL — server.mjs is one module, so the entry cannot be reached inside
+ * it. host.ts resolves this path relative to its own import.meta.url, which in
+ * the packaged app is server.mjs, so the directory name is part of the
+ * contract. quickjs and its wasm variant stay external and resolve from the
+ * adjacent promoted node_modules, exactly as they do for the server.
+ */
+async function buildSandboxWorkerBundle() {
+  console.log("\nBundling sandbox worker (js-sandbox-worker/worker-entry.js)...");
+  if (!fs.existsSync(SANDBOX_WORKER_ENTRY_POINT)) {
+    throw new Error(
+      `Sandbox worker entry point not found: ${SANDBOX_WORKER_ENTRY_POINT}\n` +
+        "Run 'npm run build:packages' first."
+    );
+  }
+  await esbuild.build({
+    entryPoints: [SANDBOX_WORKER_ENTRY_POINT],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    outfile: path.join(BUNDLE_DIR, "js-sandbox-worker", "worker-entry.js"),
+    external: ESBUILD_EXTERNAL_PACKAGES,
+    sourcemap: "external",
+    banner: {
+      js: [
+        'import { createRequire as __ntCreateRequire } from "node:module";',
+        "const require = __ntCreateRequire(import.meta.url);",
+      ].join("\n"),
+    },
+    logLevel: "warning",
+  });
+  console.log("  Wrote js-sandbox-worker/worker-entry.js");
+}
+
 async function main() {
   console.log(
     `Building hybrid backend bundle with esbuild (profile: ${PROFILE})...\n`
@@ -1176,6 +1225,10 @@ async function main() {
     path.join(BUNDLE_DIR, "package.json"),
     JSON.stringify({ type: "module" }, null, 2) + "\n"
   );
+
+  // --- Sandbox worker entry (always: the sandbox falls back to running
+  //     in-process without it, which blocks the event loop for a whole run) ---
+  await buildSandboxWorkerBundle();
 
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {

@@ -1036,26 +1036,26 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     expect(elapsed).toBeLessThan(3000);
   });
 
-  it("documents the limit: a guest that never yields cannot be cancelled in-process", async () => {
-    // A guest that spins from its first instruction blocks the host event loop,
-    // so the Stop message cannot even be read and the abort flag can never be
-    // set — the interrupt handler polls a flag that stays false. Cancelling
-    // this case requires running QuickJS in a terminable worker.
-    // This test pins the known behavior so a future worker migration has a
-    // failing assertion to flip.
+  it("cancels a guest that never yields", async () => {
+    // The case the worker exists for. A guest that spins from its first
+    // instruction used to block the host event loop until its execution
+    // timeout — the abort listener could never run, so the flag the interrupt
+    // handler polled stayed false. On the worker path the host thread stays
+    // free and abort terminates the worker outright.
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 25);
     const started = Date.now();
 
     const result = await runInSandbox({
       code: "while (true) {}\nreturn 'never';",
-      timeoutMs: 1_000,
+      timeoutMs: 30_000,
       signal: controller.signal
     });
 
     expect(result.success).toBe(false);
-    // Runs to its execution timeout despite the 25ms abort.
-    expect(Date.now() - started).toBeGreaterThanOrEqual(900);
+    expect(result.error).toBe("Execution cancelled");
+    // Well before the 30s execution timeout.
+    expect(Date.now() - started).toBeLessThan(5_000);
   });
 
   it("guards caller-injected async globals after cancel", async () => {

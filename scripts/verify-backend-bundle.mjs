@@ -182,6 +182,26 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     summary.push(`${assets.length} package asset(s) staged`);
   }
 
+  // 2b. The sandbox worker entry. A worker needs a real file URL, so it cannot
+  //     live inside server.mjs, and host.ts resolves this exact path relative
+  //     to server.mjs. Missing, the sandbox silently falls back to running the
+  //     interpreter in-process, where a CPU-bound guest blocks the event loop
+  //     for its whole timeout.
+  const sandboxWorker = path.join(
+    bundleDir,
+    "js-sandbox-worker",
+    "worker-entry.js"
+  );
+  if (!existsSync(sandboxWorker)) {
+    errors.push(
+      "js-sandbox-worker/worker-entry.js is not staged — the packaged backend " +
+        "would run every sandboxed program on the main thread. Check " +
+        "buildSandboxWorkerBundle in bundle-backend.mjs."
+    );
+  } else {
+    summary.push("sandbox worker entry staged");
+  }
+
   // 3. webgpu dawn binaries (desktop profile only). The GPU compositor loads
   //    `webgpu` through a variable-specifier dynamic import esbuild can't see,
   //    so nothing else fails the build when it's missing from _modules/.
