@@ -4,7 +4,6 @@ import * as Haptics from 'expo-haptics';
 import {
   hapticImpact,
   hapticNotification,
-  hapticSelection,
   hapticsSupported,
 } from './haptics';
 
@@ -12,10 +11,6 @@ const impactAsync = Haptics.impactAsync as jest.MockedFunction<typeof Haptics.im
 const notificationAsync = Haptics.notificationAsync as jest.MockedFunction<
   typeof Haptics.notificationAsync
 >;
-const selectionAsync = Haptics.selectionAsync as jest.MockedFunction<
-  typeof Haptics.selectionAsync
->;
-
 function setPlatform(os: typeof Platform.OS): void {
   Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
 }
@@ -49,22 +44,15 @@ describe('haptics', () => {
     );
   });
 
-  it('forwards selection feedback', () => {
-    hapticSelection();
-    expect(selectionAsync).toHaveBeenCalled();
-  });
-
   it('no-ops on platforms without taptic hardware', () => {
     setPlatform('web');
     expect(hapticsSupported()).toBe(false);
 
     hapticImpact('light');
     hapticNotification('success');
-    hapticSelection();
 
     expect(impactAsync).not.toHaveBeenCalled();
     expect(notificationAsync).not.toHaveBeenCalled();
-    expect(selectionAsync).not.toHaveBeenCalled();
   });
 
   it('swallows synchronous native failures', () => {

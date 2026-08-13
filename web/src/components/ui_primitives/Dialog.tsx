@@ -33,7 +33,7 @@
  * </Dialog>
  */
 
-import React, { forwardRef, memo, ReactNode, useId } from "react";
+import { forwardRef, memo, ReactNode, useId } from "react";
 import {
   Dialog as MuiDialog,
   DialogProps as MuiDialogProps,

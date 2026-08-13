@@ -55,8 +55,3 @@ export function hapticImpact(style: HapticImpactStyle = 'light'): void {
 export function hapticNotification(type: HapticNotificationType): void {
   fire(() => Haptics.notificationAsync(NOTIFICATION_TYPES[type]));
 }
-
-/** A discrete value changed under the finger (picker, segmented control). */
-export function hapticSelection(): void {
-  fire(() => Haptics.selectionAsync());
-}

@@ -6,7 +6,7 @@
  * above the control via the shared Label primitive — no floating labels.
  */
 
-import React, { memo, forwardRef, useId } from "react";
+import { memo, forwardRef, useId } from "react";
 import {
   Box,
   TextField as MuiTextField,

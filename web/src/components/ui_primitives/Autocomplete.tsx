@@ -5,7 +5,7 @@
  * for common search/select patterns.
  */
 
-import React, { memo, useId } from "react";
+import { memo, useId } from "react";
 import {
   Autocomplete as MuiAutocomplete,
   AutocompleteProps as MuiAutocompleteProps,
