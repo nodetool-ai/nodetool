@@ -1,5 +1,5 @@
 import { createLogger } from "@nodetool-ai/config";
-import { Workflow, Workspace } from "@nodetool-ai/models";
+import { Workflow, Workspace, getSecret } from "@nodetool-ai/models";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.execution.workspace");
@@ -41,12 +41,24 @@ export async function resolveWorkflowWorkspace(
  * paths (REST / tRPC / MCP) that otherwise run without a ProcessingContext.
  * The streaming WebSocket runner builds a richer context of its own; this keeps
  * the workspace available everywhere else with the same resolution rules.
+ *
+ * The run's secrets come with it. Without a resolver `context.getSecret`
+ * answers `null` for every key and providers see only the process environment,
+ * so a key stored in the secret DB is invisible: an agent could generate an
+ * image in a chat turn and get a 401 from the same provider when it ran the
+ * workflow it had just built. The resolver is scoped to the run's own user,
+ * which is the only account whose secrets this run may read.
  */
 export function buildWorkspaceExecutionContext(opts: {
   jobId: string;
   workflowId?: string | null;
   userId: string;
   workspaceDir: string | null;
+  /** Overrides the per-user DB lookup (tests, a host with its own store). */
+  secretResolver?: (
+    key: string,
+    userId: string
+  ) => Promise<string | null | undefined> | string | null | undefined;
 }): ProcessingContext {
   return new ProcessingContext({
     jobId: opts.jobId,
@@ -55,6 +67,9 @@ export function buildWorkspaceExecutionContext(opts: {
     workspaceDir: opts.workspaceDir,
     workspaceStorage: opts.workspaceDir
       ? new FileStorageAdapter(opts.workspaceDir)
-      : null
+      : null,
+    secretResolver:
+      opts.secretResolver ??
+      ((key: string, userId: string) => getSecret(key, userId))
   });
 }
