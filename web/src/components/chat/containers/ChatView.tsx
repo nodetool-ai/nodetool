@@ -16,6 +16,7 @@ import {
   TodoItem
 } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import {
   FlexRow,
@@ -30,6 +31,8 @@ import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useThreadMemoryPanelStore } from "../../../stores/ThreadMemoryPanelStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useClipboard } from "../../../hooks/browser/useClipboard";
 import {
   buildUiContext,
   type BuildUiContextOptions
@@ -285,11 +288,40 @@ const ChatView = ({
   const closeMemoryPanel = useThreadMemoryPanelStore((state) => state.setOpen);
   const canShowMemorySidebar = railsFit && Boolean(effectiveThreadId);
 
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const handleCopyConversation = useCallback(async () => {
+    try {
+      await writeClipboard(JSON.stringify(messages, null, 2), true);
+      addNotification({
+        type: "info",
+        content: `Copied ${messages.length} messages as JSON.`
+      });
+    } catch (error) {
+      console.error("Failed to copy the conversation:", error);
+      addNotification({
+        type: "error",
+        content: "Could not copy the conversation."
+      });
+    }
+  }, [messages, writeClipboard, addNotification]);
+
   return (
     <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
-        {(canShowMemorySidebar || (showNewChatButton && onNewChat)) && (
+        {(canShowMemorySidebar ||
+          messages.length > 0 ||
+          (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={2}>
+            {messages.length > 0 && (
+              <ToolbarIconButton
+                onClick={handleCopyConversation}
+                tooltip="Copy conversation as JSON"
+                icon={<ContentCopyIcon fontSize="small" />}
+              />
+            )}
             {canShowMemorySidebar && (
               <ToolbarIconButton
                 onClick={toggleMemoryPanel}
