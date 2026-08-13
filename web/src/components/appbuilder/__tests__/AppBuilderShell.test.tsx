@@ -249,7 +249,7 @@ describe("AppBuilderShell", () => {
     expect(screen.getAllByRole("button", { name: "Ask Agent" })).toHaveLength(1);
   });
 
-  it("hides the agent when no workflow is bound", () => {
+  it("offers the agent when no workflow is bound — it is what authors one", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <AppBuilderShell
@@ -262,8 +262,8 @@ describe("AppBuilderShell", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "Ask Agent" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Ask Agent" })
+    ).toBeInTheDocument();
     expect(setCurrentWorkflowId).not.toHaveBeenCalled();
   });
 });

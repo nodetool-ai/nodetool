@@ -5,7 +5,6 @@ import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
@@ -21,8 +20,6 @@ import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
 import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
-import { generateAppData } from "../generateAppDoc";
-import { isRenderableData } from "../appData";
 import {
   APP_SCHEMA_VERSION,
   EMPTY_DOC_META,
@@ -31,7 +28,6 @@ import {
 } from "@nodetool-ai/app-runtime";
 import {
   Box,
-  Dialog,
   EditorButton,
   ToggleGroup,
   ToggleOption
@@ -85,54 +81,6 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
     >
       Save
     </EditorButton>
-  );
-};
-
-/**
- * Replaces the editor document with a layout generated from the workflow's
- * inputs/outputs. Goes through Puck's setData action so undo/redo works;
- * confirms first when the current document has placed components.
- */
-const GenerateFromWorkflowButton: React.FC<{ workflow: Workflow }> = ({
-  workflow
-}) => {
-  const getPuck = useGetPuck();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const applyGenerated = useCallback(() => {
-    const { dispatch } = getPuck();
-    dispatch({ type: "setData", data: generateAppData(workflow) });
-    setConfirmOpen(false);
-  }, [getPuck, workflow]);
-
-  const handleClick = useCallback(() => {
-    const { appState } = getPuck();
-    if (isRenderableData(appState.data)) {
-      setConfirmOpen(true);
-    } else {
-      applyGenerated();
-    }
-  }, [getPuck, applyGenerated]);
-
-  return (
-    <>
-      <EditorButton
-        size="small"
-        variant="text"
-        startIcon={<AutoFixHighIcon sx={{ fontSize: 16 }} />}
-        onClick={handleClick}
-      >
-        Generate
-      </EditorButton>
-      <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="Replace app layout?"
-        content="Generating from the workflow replaces the current layout with widgets for every workflow input and output. You can undo afterwards."
-        onConfirm={applyGenerated}
-        confirmText="Replace"
-      />
-    </>
   );
 };
 
@@ -241,7 +189,6 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             workflowState={workflowState}
           />
           <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
-          <GenerateFromWorkflowButton workflow={workflow} />
           {onToggleData && (
             <EditorButton
               size="small"

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { BuildUiContextOptions } from "../../lib/chat/uiContext";
 
@@ -27,6 +27,8 @@ Sequence when asked to build or rebuild an app:
 
 1. Read the workflow with \`get_workflow\` (the active workflow id): its Input
    and Output nodes, their types, and any min/max/options. That is the contract.
+   When the app binds no workflow yet there is no active id: author one with
+   \`create_workflow\` first, then bind it in step 3.
 2. \`ui_app_get_snapshot\` to see what's already placed, and
    \`ui_app_list_component_types\` for valid widget types and props.
 3. Declare the operations with \`ui_app_add_operation\` (one per workflow the app
@@ -64,8 +66,12 @@ keep labels concise.`;
 interface AppBuilderAgentPanelProps {
   /** The app being edited — the id the `ui_app_*` tools take. */
   applicationId: string;
-  /** Workflow the `ui_*` graph tools and the chat thread target. */
-  workflowId: string;
+  /**
+   * Workflow the `ui_*` graph tools and the chat thread target. Absent until
+   * the app binds an operation — the agent still edits the document, so the
+   * panel opens on a plain thread instead.
+   */
+  workflowId?: string;
 }
 
 /**
@@ -108,6 +114,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     connect,
     openWorkflowThread,
     newWorkflowThread,
+    createNewThread,
     sendMessage,
     stopGeneration,
     setSelectedModel,
@@ -117,6 +124,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
       connect: state.connect,
       openWorkflowThread: state.openWorkflowThread,
       newWorkflowThread: state.newWorkflowThread,
+      createNewThread: state.createNewThread,
       sendMessage: state.sendMessage,
       stopGeneration: state.stopGeneration,
       setSelectedModel: state.setSelectedModel,
@@ -125,12 +133,18 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
   );
 
   // Connect and bind a thread to this workflow so the agent's runs and graph
-  // edits target it.
+  // edits target it. Without a workflow the panel opens one plain thread —
+  // guarded by a ref so a remount does not pile up empty threads.
+  const plainThreadStarted = useRef(false);
   useEffect(() => {
     let cancelled = false;
     connect()
       .then(() => {
-        if (!cancelled) return openWorkflowThread(workflowId);
+        if (cancelled) return undefined;
+        if (workflowId) return openWorkflowThread(workflowId);
+        if (plainThreadStarted.current) return undefined;
+        plainThreadStarted.current = true;
+        return createNewThread();
       })
       .catch((err) => {
         console.error("AppBuilder agent: failed to connect", err);
@@ -138,11 +152,15 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [connect, openWorkflowThread, workflowId]);
+  }, [connect, createNewThread, openWorkflowThread, workflowId]);
 
   const handleNewChat = useCallback(async () => {
-    await newWorkflowThread(workflowId);
-  }, [newWorkflowThread, workflowId]);
+    if (workflowId) {
+      await newWorkflowThread(workflowId);
+      return;
+    }
+    await createNewThread();
+  }, [createNewThread, newWorkflowThread, workflowId]);
 
   // The App Builder names its own focused document — the application the
   // ui_app_* tools edit, which is not the workflow the graph tools edit.
@@ -201,7 +219,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           currentTaskUpdate={currentTaskUpdate}
           currentLogUpdate={currentLogUpdate}
           workflowId={workflowId}
-          workflowAssistant
+          workflowAssistant={Boolean(workflowId)}
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
           uiContext={appBuilderUiContext}
           composerVariant="media"

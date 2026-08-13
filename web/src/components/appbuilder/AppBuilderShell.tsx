@@ -39,7 +39,7 @@ export interface AppBuilderShellProps {
   operationWorkflows?: Record<string, Workflow>;
   /**
    * Workflow the agent panel edits. Omitted when the app has no workflow bound
-   * yet, which also hides the panel.
+   * yet; the panel still opens, on a thread of its own.
    */
   agentWorkflowId?: string;
   /** Title bar above the canvas. */
@@ -177,7 +177,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             onPublish={handleSave}
             onClose={onClose}
             agentOpen={agentOpen}
-            onToggleAgent={agentWorkflowId ? toggleAgent : undefined}
+            onToggleAgent={toggleAgent}
             meta={meta}
             onMetaChange={setMeta}
             dataOpen={dataOpen}
@@ -196,7 +196,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
           />
         </Box>
       )}
-      {agentOpen && agentWorkflowId && (
+      {agentOpen && (
         <Box sx={panelSx}>
           <AppBuilderAgentPanel
             applicationId={applicationId}
@@ -204,7 +204,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
           />
         </Box>
       )}
-      {narrow && agentWorkflowId && (
+      {narrow && (
         <CircularActionButton
           icon={agentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
           onClick={toggleAgent}

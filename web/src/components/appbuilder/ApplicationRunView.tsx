@@ -85,7 +85,17 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     refetchOnWindowFocus: false,
     retry: false
   });
-  const workflow = pinnedHost ?? liveHost;
+  // An app need not run a workflow at all — widgets over variables and static
+  // content are a whole app. With no operation bound, the runtime still wants
+  // a workflow shape, so it gets an empty one that contributes no IO.
+  const workflow = useMemo<Workflow | undefined>(() => {
+    if (pinnedHost ?? liveHost) return pinnedHost ?? liveHost;
+    if (hostWorkflowId) return undefined;
+    return pinnedWorkflow(applicationId, application?.name ?? "", {
+      nodes: [],
+      edges: []
+    });
+  }, [applicationId, application?.name, hostWorkflowId, liveHost, pinnedHost]);
 
   if (isLoading || releaseLoading) {
     return <LoadingSpinner size="large" text="Loading app" />;
@@ -106,7 +116,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
       <EmptyState
         variant="error"
         title="Workflow unavailable"
-        description={`This app runs workflow ${hostWorkflowId || "(none)"}, which could not be loaded.`}
+        description={`This app runs workflow ${hostWorkflowId}, which could not be loaded.`}
       />
     );
   }
