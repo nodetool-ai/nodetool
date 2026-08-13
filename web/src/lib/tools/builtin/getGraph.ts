@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { uiGetGraphParams } from "@nodetool-ai/protocol";
+import type { Node as GraphNode, Edge as GraphEdge } from "../../../stores/ApiTypes";
+import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
@@ -174,32 +176,115 @@ function validateGraph(
   return { errors, warnings, suggestions };
 }
 
+interface ReadNode {
+  id: string;
+  type: string | undefined;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+
+interface ReadEdge {
+  id: string | null | undefined;
+  source: string;
+  target: string;
+  sourceHandle: string | null | undefined;
+  targetHandle: string | null | undefined;
+}
+
+/**
+ * Map a stored graph node onto the shape an open editor reports. The stored
+ * node keeps the property bag flat under `data` and the position under
+ * `ui_properties`; the editor nests properties one level down. The validation
+ * below and every agent that reads this tool expect the editor's shape, so a
+ * server-sourced read must speak it too. Editor-only concerns (size, colour,
+ * collapsed state) are left out: this is a read of the graph, not a render.
+ */
+function storedNodeToReadNode(node: GraphNode): ReadNode {
+  const ui =
+    node.ui_properties !== null && typeof node.ui_properties === "object"
+      ? (node.ui_properties as Record<string, unknown>)
+      : {};
+  const position =
+    ui.position !== null && typeof ui.position === "object"
+      ? (ui.position as { x: number; y: number })
+      : { x: 0, y: 0 };
+  return {
+    id: node.id,
+    type: node.type,
+    position,
+    data: {
+      properties: asRecord(node.data),
+      dynamic_properties: node.dynamic_properties ?? {},
+      dynamic_inputs: node.dynamic_inputs ?? {},
+      dynamic_outputs: node.dynamic_outputs ?? {},
+      title: typeof ui.title === "string" ? ui.title : undefined
+    }
+  };
+}
+
+function storedEdgeToReadEdge(edge: GraphEdge): ReadEdge {
+  return {
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle
+  };
+}
+
 FrontendToolRegistry.register({
   name: "ui_get_graph",
-  description: "Read the current workflow graph (nodes and edges).",
+  description:
+    "Read a workflow graph (nodes and edges). Reads the open editor when the " +
+    "workflow has one, otherwise the saved workflow from the server — so a " +
+    "workflow created over the API is readable without opening it. " +
+    "`source` says which one answered.",
   parameters: z.object(uiGetGraphParams),
   async execute({ workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) {
-      throw new Error(`No node store for workflow ${workflowId}`);
+
+    let nodes: ReadNode[];
+    let edges: ReadEdge[];
+    let source: "editor" | "server";
+
+    if (nodeStore) {
+      source = "editor";
+      nodes = nodeStore.nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data as unknown as Record<string, unknown>
+      }));
+      edges = nodeStore.edges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle
+      }));
+    } else {
+      // A workflow the agent just created over the API has no editor. Failing
+      // here once cost a session a full rebuild of the workflow, so read the
+      // saved row instead.
+      source = "server";
+      let workflow = state.getWorkflow(workflowId);
+      if (!workflow) {
+        try {
+          workflow = await fetchWorkflowById(workflowId);
+        } catch (error) {
+          throw new Error(
+            `Cannot read workflow ${workflowId}: no editor is open for it and ` +
+              `the server did not return it (${
+                error instanceof Error ? error.message : String(error)
+              }).`
+          );
+        }
+      }
+      nodes = (workflow.graph?.nodes ?? []).map(storedNodeToReadNode);
+      edges = (workflow.graph?.edges ?? []).map(storedEdgeToReadEdge);
     }
-
-    const nodes = nodeStore.nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: node.data
-    }));
-
-    const edges = nodeStore.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle: edge.sourceHandle,
-      targetHandle: edge.targetHandle
-    }));
 
     let validation: ValidationResult = {
       errors: [],
@@ -216,6 +301,7 @@ FrontendToolRegistry.register({
     return {
       ok: true,
       workflow_id: workflowId,
+      source,
       nodes,
       edges,
       validation
