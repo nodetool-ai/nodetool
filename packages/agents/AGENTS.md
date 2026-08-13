@@ -1517,8 +1517,10 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
 plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,thread-memory,creative-pipeline}-tool-loop.test.ts`).
-A live check against a local Ollama model runs when a daemon is reachable:
-`tests/tool-loop-eval.ollama.test.ts`.
+For a live check against a real model, run the eval command above — a suite
+whose verdict depends on what a model chose belongs behind an explicit
+invocation, not in the unit suite, where a weak local model fails the run for
+everyone.
 
 **Running against the `claude_agent_sdk` provider.** Two gotchas, both from the
 SDK's own agent loop (not the harness):
