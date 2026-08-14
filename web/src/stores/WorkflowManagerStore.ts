@@ -393,6 +393,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                 workflow: persistedWorkflow
               });
               nodeStore.getState().setWorkflowDirty(false);
+            } else {
+              // The save itself succeeded, so the server row now carries this
+              // response's updated_at. Adopt it as the concurrency token —
+              // keeping the old one makes every later save and autosave fail
+              // with an optimistic-concurrency conflict.
+              nodeStore
+                .getState()
+                .setWorkflowUpdatedAt(persistedWorkflow.updated_at);
             }
           }
 

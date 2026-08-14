@@ -22,15 +22,24 @@ jest.mock("../../trpc/client", () => ({
 
 jest.mock("../NodeStore", () => ({
   createNodeStore: (workflow: Workflow) =>
-    create((_set, get: () => { workflow: Workflow }) => ({
-      workflow,
-      nodes: [],
-      edges: [],
-      workflowIsDirty: false,
-      getWorkflow: () => get().workflow,
-      setWorkflowDirty: jest.fn(),
-      cleanup: jest.fn()
-    }))
+    create(
+      (
+        set: (fn: (state: { workflow: Workflow }) => object) => void,
+        get: () => { workflow: Workflow }
+      ) => ({
+        workflow,
+        nodes: [],
+        edges: [],
+        workflowIsDirty: false,
+        getWorkflow: () => get().workflow,
+        setWorkflowDirty: jest.fn(),
+        setWorkflowUpdatedAt: (updatedAt: string) =>
+          set((state) => ({
+            workflow: { ...state.workflow, updated_at: updatedAt }
+          })),
+        cleanup: jest.fn()
+      })
+    )
 }));
 
 jest.mock("../workflowUpdates", () => ({
@@ -108,6 +117,41 @@ describe("saveWorkflow first save", () => {
 
     // The retry is still a first save: no expected_updated_at.
     expect(updateMutate.mock.calls[1][0].expected_updated_at).toBeUndefined();
+  });
+
+  it("adopts the server revision even when the user edited during the save", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-edited",
+      name: "Existing",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+
+    const savedUpdatedAt = "2026-08-03T00:00:00.000Z";
+    const nodeStore = store.getState().getNodeStore("wf-edited");
+    // Simulate an edit landing while the save is in flight: the mutation
+    // replaces the edges array reference before resolving.
+    updateMutate.mockImplementation(async () => {
+      nodeStore?.setState({ edges: [] });
+      return { ...serverWorkflow, updated_at: savedUpdatedAt };
+    });
+
+    await store.getState().saveWorkflow(serverWorkflow);
+
+    // The edit survives, but the concurrency token moves to the server's new
+    // revision — otherwise every later save conflicts.
+    expect(nodeStore?.getState().workflow.updated_at).toBe(savedUpdatedAt);
+    await store
+      .getState()
+      .saveWorkflow(store.getState().getWorkflow("wf-edited") as Workflow);
+    expect(updateMutate.mock.calls[1][0].expected_updated_at).toBe(
+      savedUpdatedAt
+    );
   });
 
   it("sends expected_updated_at for a workflow that came from the server", async () => {
