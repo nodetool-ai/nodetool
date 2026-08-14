@@ -1,5 +1,6 @@
 /**
- * Per-run media handles: the currency `image.*` trades in instead of bytes.
+ * Per-run media handles: the currency media transforms trade in instead of
+ * bytes.
  *
  * The guest is a courier. In the shape that motivated this — generate two
  * images, combine them — it never reads a pixel; it only carries each result
@@ -11,13 +12,13 @@
  * computed the answer.
  *
  * A handle is plain data (so it crosses as a small object, no marker, no
- * base64) naming bytes the host holds for the life of the run. `image.*`
- * accepts one anywhere it accepts bytes and returns one from every op, so an
- * intermediate result never enters the guest at all.
+ * base64) naming bytes the host holds for the life of the run. `image.*`,
+ * `audio.*`, and `video.*` accept one anywhere they accept bytes and return
+ * one from every transform, so intermediates never enter the guest.
  *
  * Intermediates stay in memory rather than becoming assets: a three-op chain
- * should not write three rows to storage. `media.toImage(handle)` (or saving
- * it) is the explicit promotion to something durable.
+ * should not write three rows to storage. `media.toImage/toAudio/toVideo` (or
+ * the matching namespace's `toAsset`) explicitly promotes a result.
  */
 
 /** Marks an object as a handle into this run's media store. */
@@ -30,7 +31,7 @@ export const SANDBOX_MEDIA_SCHEME = "sandbox://media/";
  * Total bytes one run may hold in its media store.
  *
  * There are per-call ceilings already (`MAX_IMAGE_INPUT_BYTES` 25 MB,
- * `MAX_MEDIA_REF_BYTES` 16 MB) but nothing bounded the aggregate: a run could
+ * `MAX_MEDIA_REF_BYTES` 16 MB) but nothing bounded the aggregate. A run could
  * make fifty individually legal calls and die anyway, with an Emscripten
  * assertion as the only explanation. The store is where an aggregate is
  * finally countable, so this is the limit that replaces that failure with a
@@ -38,10 +39,12 @@ export const SANDBOX_MEDIA_SCHEME = "sandbox://media/";
  */
 export const MAX_RUN_MEDIA_BYTES = 256 * 1024 * 1024;
 
+export type SandboxMediaType = "image" | "audio" | "video";
+
 /** What a handle looks like to the guest. */
 export interface SandboxMediaHandle {
   [SANDBOX_MEDIA_HANDLE]: string;
-  type: "image";
+  type: SandboxMediaType;
   uri: string;
   mimeType: string;
   byteLength: number;
@@ -51,16 +54,31 @@ export interface SandboxMediaHandle {
 
 /** Metadata a producer knows and the guest can read without a round trip. */
 export interface SandboxMediaMeta {
+  type?: SandboxMediaType;
   mimeType?: string;
   width?: number;
   height?: number;
+}
+
+export interface SandboxMediaEntry {
+  bytes: Uint8Array;
+  type: SandboxMediaType;
+  mimeType: string;
 }
 
 export interface SandboxMediaStore {
   /** Store bytes and return the handle naming them. */
   put(bytes: Uint8Array, meta?: SandboxMediaMeta): SandboxMediaHandle;
   /** The bytes behind a handle, or undefined if the value is not one. */
-  resolve(value: unknown): Uint8Array | undefined;
+  resolve(
+    value: unknown,
+    expectedType?: SandboxMediaType
+  ): Uint8Array | undefined;
+  /** The bytes and media metadata behind a handle. */
+  entry(
+    value: unknown,
+    expectedType?: SandboxMediaType
+  ): SandboxMediaEntry | undefined;
   /** Whether a value is a handle into *this* store. */
   isHandle(value: unknown): boolean;
   /** Bytes currently held, for the budget check and for tests. */
@@ -81,7 +99,7 @@ export function isSandboxMediaHandle(value: unknown): boolean {
 export function createSandboxMediaStore(
   limitBytes: number = MAX_RUN_MEDIA_BYTES
 ): SandboxMediaStore {
-  const entries = new Map<string, Uint8Array>();
+  const entries = new Map<string, SandboxMediaEntry>();
   let held = 0;
   let counter = 0;
 
@@ -91,17 +109,24 @@ export function createSandboxMediaStore(
         throw new Error(
           `This run has moved ${held + bytes.length} bytes of media, over the ` +
             `${limitBytes} byte limit for one run. Process fewer or smaller ` +
-            `images per action, or save intermediate results as assets and ` +
+            `files per action, or save intermediate results as assets and ` +
             `reload them in a later action.`
         );
       }
       const id = `m${++counter}`;
-      entries.set(id, bytes);
+      const type = meta.type ?? "image";
+      const mimeType =
+        meta.mimeType ??
+        (type === "audio"
+          ? "audio/wav"
+          : type === "video"
+            ? "video/mp4"
+            : "image/png");
+      entries.set(id, { bytes, type, mimeType });
       held += bytes.length;
-      const mimeType = meta.mimeType ?? "image/png";
       return {
         [SANDBOX_MEDIA_HANDLE]: id,
-        type: "image",
+        type,
         uri: `${SANDBOX_MEDIA_SCHEME}${id}`,
         mimeType,
         byteLength: bytes.length,
@@ -110,13 +135,16 @@ export function createSandboxMediaStore(
       };
     },
 
-    resolve(value: unknown): Uint8Array | undefined {
+    entry(
+      value: unknown,
+      expectedType?: SandboxMediaType
+    ): SandboxMediaEntry | undefined {
       if (!isSandboxMediaHandle(value)) return undefined;
       const id = (value as Record<string, unknown>)[
         SANDBOX_MEDIA_HANDLE
       ] as string;
-      const bytes = entries.get(id);
-      if (!bytes) {
+      const entry = entries.get(id);
+      if (!entry) {
         // A handle from another run, or one used after its run ended. Say so
         // rather than falling through to "expected image bytes", which would
         // send the reader looking at the wrong thing.
@@ -126,7 +154,22 @@ export function createSandboxMediaStore(
             `asset to carry it further.`
         );
       }
-      return bytes;
+      if (expectedType && entry.type !== expectedType) {
+        const article =
+          expectedType === "audio" || expectedType === "image" ? "an" : "a";
+        throw new Error(
+          `Expected ${article} ${expectedType} handle, but ${SANDBOX_MEDIA_SCHEME}${id} ` +
+            `contains ${entry.type}.`
+        );
+      }
+      return entry;
+    },
+
+    resolve(
+      value: unknown,
+      expectedType?: SandboxMediaType
+    ): Uint8Array | undefined {
+      return this.entry(value, expectedType)?.bytes;
     },
 
     isHandle(value: unknown): boolean {

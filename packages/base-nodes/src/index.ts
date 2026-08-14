@@ -404,8 +404,13 @@ export {
   LIB_PEDALBOARD_EXTRA_NODES
 } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 export {
+  PdfExtractTextNode,
+  PdfExtractMarkdownNode,
+  PdfExtractTablesNode,
+  PdfExtractStyledTextNode,
   PdfScreenshotNode,
   PdfToppmNode,
+  PdfExtractOcrNode,
   LIB_PDF_NODES
 } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
 export {

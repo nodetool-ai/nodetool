@@ -56,10 +56,12 @@ Rules:
   the only thing the user sees while your code runs.
 - Chain the WHOLE pipeline into one action: call several tools, loop over
   items, branch on intermediate results, retry inside try/catch, and
-  post-process in the same program. An action that makes one tool call and
-  returns to look at it is JSON tool-calling with extra steps — reach for a
-  new action only when you genuinely cannot decide the next call without
-  seeing an observation first (and then finish the rest in that next action).
+  post-process in the same program. Assign each expensive intermediate to
+  \`state\` as you go, so a later throw does not discard it. An action that
+  makes one tool call and returns to look at it is JSON tool-calling with
+  extra steps — reach for a new action only when you genuinely cannot
+  decide the next call without seeing an observation first (and then
+  finish the rest in that next action).
 - Multi-round protocols (poll a job, answer run escalations, retry a flaky
   call) are ONE action: write the loop, not one action per round.
 - Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
@@ -69,12 +71,15 @@ Rules:
   ten independent lookups take one round trip, not ten. ${boundedFanout}
   \`Promise.allSettled\` when some are allowed to fail. Sequence only what
   genuinely depends on a previous result.
-- \`state\` is a plain object that persists across your actions in this step.
-  Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
-  them next turn — never re-fetch what you already have. Write a large literal
-  into \`state\` in the action that builds it. If that action fails, patch the
-  copy in \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit
-  the literal a second time.
+- \`state\` is a plain object that persists across your actions in this step,
+  including after an action throws. \`return\` is the observation only — it
+  does not persist. Assign each expensive result to \`state\` immediately
+  (\`state.video = state.video ?? await nodetool.media.generateVideo(prompt, model)\`),
+  then continue. The next action must reuse what \`state\` already holds —
+  never re-run generate, speak, or fetch. Write a large literal into \`state\`
+  in the action that builds it. If that action fails, patch the copy in
+  \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit the
+  literal a second time.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
   fields you need); large payloads belong in \`state\` or agent memory — not in
   the transcript.

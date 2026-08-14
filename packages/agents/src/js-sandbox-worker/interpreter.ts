@@ -213,6 +213,8 @@ export const EXPOSED_BRIDGE_NAMES = [
   "output",
   "format",
   "image",
+  "audio",
+  "video",
   "canvas",
   "media",
   "__maxIter",
@@ -504,7 +506,10 @@ export function createGuestModuleHost(
       // importing "./thing.wasm" lands on the same id, so it gets the same
       // facade.
       specifiers.set(module.specifier, entryId);
-      sources.set(entryId, generateSandboxWasmFacade(module.specifier, module.wasm));
+      sources.set(
+        entryId,
+        generateSandboxWasmFacade(module.specifier, module.wasm)
+      );
       facades.add(entryId);
       continue;
     }
@@ -516,7 +521,8 @@ export function createGuestModuleHost(
     }
   }
   if (sources.size === 0) return undefined;
-  if (facades.size > 0) sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
+  if (facades.size > 0)
+    sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
   if (hostFacades.size > 0) {
     sources.set(HOST_BRIDGE_MODULE_ID, SANDBOX_HOST_BRIDGE_SOURCE);
   }
@@ -569,7 +575,9 @@ export function createGuestModuleHost(
         const id = guestModuleId(pack, candidate);
         if (sources.has(id)) return id;
       }
-      return deny(`"${requested}" is not a file of the ${pack} sandbox package`);
+      return deny(
+        `"${requested}" is not a file of the ${pack} sandbox package`
+      );
     }
     return deny(
       `"${requested}" is not a sandbox package declared by this node — add it to the node's packages declaration to import it`
@@ -591,7 +599,9 @@ export function createGuestModuleHost(
           const source = sources.get(moduleName);
           if (source !== undefined) return { value: `${hardening}${source}` };
           if (phase === "bootstrap") return fallback(moduleName, context);
-          return { error: new Error(`Module "${moduleName}" is not available`) };
+          return {
+            error: new Error(`Module "${moduleName}" is not available`)
+          };
         };
       }
     },
@@ -777,6 +787,8 @@ export async function runInterpreter(
       bridges.workspace = wrapAllMembers(bridges.workspace);
       bridges.format = wrapAllMembers(bridges.format);
       bridges.image = wrapAllMembers(bridges.image);
+      bridges.audio = wrapAllMembers(bridges.audio);
+      bridges.video = wrapAllMembers(bridges.video);
       bridges.canvas = wrapAllMembers(bridges.canvas);
       bridges.media = wrapAllMembers(bridges.media);
       const hostCrypto = bridges.crypto as {
@@ -1002,6 +1014,13 @@ globalThis.image = {
   composite: __wrapDeep(__image.composite),
   convert: __wrapDeep(__image.convert)
 };
+const __wrapMediaNamespace = (bridge) => {
+  const out = {};
+  for (const name of Object.keys(bridge)) out[name] = __wrapDeep(bridge[name]);
+  return out;
+};
+globalThis.audio = __wrapMediaNamespace(globalThis.audio);
+globalThis.video = __wrapMediaNamespace(globalThis.video);
 const __canvasBridge = globalThis.canvas;
 globalThis.canvas = {
   render: __wrapDeep(__canvasBridge.render),

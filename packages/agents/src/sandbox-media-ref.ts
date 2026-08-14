@@ -58,7 +58,10 @@ export interface MediaRefBridge {
   bytes(ref: unknown): Promise<unknown>;
   text(ref: unknown, options?: unknown): Promise<string>;
   info(ref: unknown): Promise<MediaRefInfo>;
-  toDocument(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
+  toDocument(
+    bytes: unknown,
+    options?: unknown
+  ): Promise<Record<string, unknown>>;
   toImage(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
   toAudio(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
   toVideo(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
@@ -235,8 +238,7 @@ export function remapMediaRef(value: unknown): MediaRefValue {
   return {
     type: typeof record.type === "string" ? record.type : undefined,
     uri: locator,
-    asset_id:
-      typeof record.asset_id === "string" ? record.asset_id : undefined,
+    asset_id: typeof record.asset_id === "string" ? record.asset_id : undefined,
     data: record.data
   };
 }
@@ -327,17 +329,18 @@ async function readContainedPath(
 /**
  * Read the bytes a media ref names, with this run's containment applied.
  *
- * Exported because `image.*` accepts a ref anywhere it accepts bytes: the
- * guest passes the `asset://…` a generator handed it straight into the next
- * operation, and the bytes are loaded here rather than pulled through the
- * guest heap and back. One resolver, so `image.*` and `media.*` contain the
- * same uri shapes the same way.
+ * Exported because media transforms accept refs anywhere they accept bytes.
+ * The guest passes a generator's `asset://…` result straight into the next
+ * operation, and the bytes stay on the host. `maxBytes` remains 16 MB for
+ * `media.*`, whose bytes enter the guest, while handle-based transforms use
+ * the larger per-run media budget.
  */
 export async function resolveRefBytes(
   where: string,
   ref: MediaRefValue,
   context: ProcessingContext,
-  resolvePath?: (path: string) => Promise<string>
+  resolvePath?: (path: string) => Promise<string>,
+  maxBytes: number = MAX_MEDIA_REF_BYTES
 ): Promise<Uint8Array> {
   // A filesystem-shaped uri is withheld from `loadMediaRefBytes`, whose own
   // absolute and `file://` branches read any path this process can reach. The
@@ -351,9 +354,9 @@ export async function resolveRefBytes(
   if (!resolved) {
     throw new Error(`${where}: could not read ${describeRef(ref)}`);
   }
-  if (resolved.length > MAX_MEDIA_REF_BYTES) {
+  if (resolved.length > maxBytes) {
     throw new Error(
-      `${where}: ${describeRef(ref)} is ${resolved.length} bytes, over the ${MAX_MEDIA_REF_BYTES} byte limit`
+      `${where}: ${describeRef(ref)} is ${resolved.length} bytes, over the ${maxBytes} byte limit`
     );
   }
   return resolved;

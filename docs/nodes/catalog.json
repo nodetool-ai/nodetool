@@ -4196,6 +4196,177 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/nlp/tokenize.md"
     },
     {
+      "type": "lib.pdf.ExtractMarkdown",
+      "title": "PDF to Markdown",
+      "namespace": "lib.pdf",
+      "description": "Convert PDF to Markdown, inferring headings from font size.\n    pdf, markdown, convert, headings, structure",
+      "inputs": [
+        {
+          "name": "start_page",
+          "type": "int",
+          "description": "First page (0-based)",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end_page",
+          "type": "int",
+          "description": "Last page (-1 for all)",
+          "required": false,
+          "default": -1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdftomarkdown",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdftomarkdown.md"
+    },
+    {
+      "type": "lib.pdf.ExtractOcr",
+      "title": "PDF Extract Text (OCR)",
+      "namespace": "lib.pdf",
+      "description": "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based",
+      "inputs": [
+        {
+          "name": "start_page",
+          "type": "int",
+          "description": "First page (0-based)",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end_page",
+          "type": "int",
+          "description": "Last page (-1 for all)",
+          "required": false,
+          "default": -1
+        },
+        {
+          "name": "ocr_language",
+          "type": "str",
+          "description": "ISO 639-1 language code for OCR (e.g. en, fr, de, es)",
+          "required": false,
+          "default": "en"
+        },
+        {
+          "name": "dpi",
+          "type": "int",
+          "description": "Rendering DPI for OCR \u2014 higher values improve accuracy on small text",
+          "required": false,
+          "default": 150
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextocr",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextocr.md"
+    },
+    {
+      "type": "lib.pdf.ExtractStyledText",
+      "title": "PDF Extract Styled Text",
+      "namespace": "lib.pdf",
+      "description": "Extract text spans with font name, size, bounding box, and color (always null; liteparse does not expose per-span color).\n    pdf, text, style, font, size, formatting, color",
+      "inputs": [
+        {
+          "name": "start_page",
+          "type": "int",
+          "description": "First page (0-based)",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end_page",
+          "type": "int",
+          "description": "Last page (-1 for all)",
+          "required": false,
+          "default": -1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "list[dict]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextractstyledtext",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextractstyledtext.md"
+    },
+    {
+      "type": "lib.pdf.ExtractTables",
+      "title": "PDF Extract Tables",
+      "namespace": "lib.pdf",
+      "description": "Detect and extract tables from a PDF by analysing text layout.\n    pdf, tables, extract, data, rows, columns",
+      "inputs": [
+        {
+          "name": "start_page",
+          "type": "int",
+          "description": "First page (0-based)",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end_page",
+          "type": "int",
+          "description": "Last page (-1 for all)",
+          "required": false,
+          "default": -1
+        },
+        {
+          "name": "y_tolerance",
+          "type": "int",
+          "description": "Pixel tolerance for grouping text into rows",
+          "required": false,
+          "default": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "list[dict]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttables",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttables.md"
+    },
+    {
+      "type": "lib.pdf.ExtractText",
+      "title": "PDF Extract Text",
+      "namespace": "lib.pdf",
+      "description": "Extract plain text from a PDF, preserving line breaks based on layout position.\n    pdf, text, extract, read, content",
+      "inputs": [
+        {
+          "name": "start_page",
+          "type": "int",
+          "description": "First page (0-based)",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end_page",
+          "type": "int",
+          "description": "Last page (-1 for all)",
+          "required": false,
+          "default": -1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttext",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttext.md"
+    },
+    {
       "type": "lib.pdf.Pdftoppm",
       "title": "PDF Rasterize (pdftoppm)",
       "namespace": "lib.pdf",
@@ -7175,6 +7346,79 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/pptxagent.md"
     },
     {
+      "type": "nodetool.agents.SQLiteAgent",
+      "title": "SQLite Agent",
+      "namespace": "nodetool.agents",
+      "description": "Query and analyze a SQLite database using plain-language requests.\n    agent, database, sqlite, sql, query",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "language_model",
+          "description": "Model used for optional agent reasoning over query results.",
+          "required": false,
+          "default": {
+            "type": "language_model",
+            "provider": "empty",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "Prompt for data query/transform task.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "timeout_seconds",
+          "type": "int",
+          "description": "Maximum runtime for agent execution.",
+          "required": false,
+          "default": 120
+        },
+        {
+          "name": "max_output_chars",
+          "type": "int",
+          "description": "Maximum serialized output chars before truncation.",
+          "required": false,
+          "default": 200000
+        },
+        {
+          "name": "db_path",
+          "type": "str",
+          "description": "Path to SQLite database relative to workspace.",
+          "required": false,
+          "default": "memory.db"
+        },
+        {
+          "name": "allow_mutation",
+          "type": "bool",
+          "description": "Allow INSERT/UPDATE/DELETE/DDL statements when enabled.",
+          "required": false,
+          "default": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "json",
+          "type": "dict[str, any]"
+        },
+        {
+          "name": "dataframe",
+          "type": "dataframe"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/agents/sqliteagent",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/sqliteagent.md"
+    },
+    {
       "type": "nodetool.agents.ShellAgent",
       "title": "Shell Agent",
       "namespace": "nodetool.agents",
@@ -7275,79 +7519,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/agents/spreadsheetagent",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/spreadsheetagent.md"
-    },
-    {
-      "type": "nodetool.agents.SQLiteAgent",
-      "title": "SQLite Agent",
-      "namespace": "nodetool.agents",
-      "description": "Query and analyze a SQLite database using plain-language requests.\n    agent, database, sqlite, sql, query",
-      "inputs": [
-        {
-          "name": "model",
-          "type": "language_model",
-          "description": "Model used for optional agent reasoning over query results.",
-          "required": false,
-          "default": {
-            "type": "language_model",
-            "provider": "empty",
-            "id": "",
-            "name": "",
-            "path": null,
-            "supported_tasks": []
-          }
-        },
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "Prompt for data query/transform task.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "timeout_seconds",
-          "type": "int",
-          "description": "Maximum runtime for agent execution.",
-          "required": false,
-          "default": 120
-        },
-        {
-          "name": "max_output_chars",
-          "type": "int",
-          "description": "Maximum serialized output chars before truncation.",
-          "required": false,
-          "default": 200000
-        },
-        {
-          "name": "db_path",
-          "type": "str",
-          "description": "Path to SQLite database relative to workspace.",
-          "required": false,
-          "default": "memory.db"
-        },
-        {
-          "name": "allow_mutation",
-          "type": "bool",
-          "description": "Allow INSERT/UPDATE/DELETE/DDL statements when enabled.",
-          "required": false,
-          "default": false
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "json",
-          "type": "dict[str, any]"
-        },
-        {
-          "name": "dataframe",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/agents/sqliteagent",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/sqliteagent.md"
     },
     {
       "type": "nodetool.agents.Summarizer",
@@ -8055,185 +8226,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/overlayaudio.md"
     },
     {
-      "type": "nodetool.audio.realtime.AudioOutput",
-      "title": "Audio Out",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Plays a realtime audio chunk stream \u2014 the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
-      "inputs": [
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to play.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audioout",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audioout.md"
-    },
-    {
-      "type": "nodetool.audio.realtime.AudioToChunks",
-      "title": "Audio To Chunks",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Slices an audio file into a stream of fixed-duration PCM16 chunks.\n    audio, stream, chunk, realtime\n\n    Use cases:\n    - Feed batch audio into realtime/streaming nodes\n    - Simulate a live audio feed from a recording\n    - Drive streaming effects and transcription nodes",
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to slice into chunks (must be WAV).",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "chunk_duration",
-          "type": "float",
-          "description": "Duration of each emitted chunk in seconds.",
-          "required": false,
-          "default": 0.25
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audiotochunks",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audiotochunks.md"
-    },
-    {
-      "type": "nodetool.audio.realtime.ChunksToAudio",
-      "title": "Chunks To Audio",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Accumulates a stream of PCM16 audio chunks into a single audio file.\n    audio, stream, chunk, realtime, accumulate\n\n    Use cases:\n    - Capture the output of streaming TTS or effects as a file\n    - Terminate a realtime audio chain with a playable result\n    - Record a processed live feed",
-      "inputs": [
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to accumulate.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "audio"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/chunkstoaudio",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/chunkstoaudio.md"
-    },
-    {
-      "type": "nodetool.audio.realtime.StreamingGain",
-      "title": "Streaming Gain",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Applies a gain (volume adjustment) to each chunk of a realtime audio stream.\n    audio, stream, chunk, realtime, effect, volume\n\n    Use cases:\n    - Adjust the level of a live audio feed\n    - Balance streaming sources before mixing\n    - Attenuate or boost streaming TTS output",
-      "inputs": [
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
-          "name": "gain_db",
-          "type": "float",
-          "description": "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
-          "required": false,
-          "default": 0
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminggain",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminggain.md"
-    },
-    {
-      "type": "nodetool.audio.realtime.StreamingHighPass",
-      "title": "Streaming High Pass",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Applies a high-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Remove rumble from a live microphone feed\n    - Clean up the low end of streaming audio\n    - Thin out streaming sources before mixing",
-      "inputs": [
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
-          "name": "cutoff_frequency_hz",
-          "type": "float",
-          "description": "The cutoff frequency of the high-pass filter in Hz.",
-          "required": false,
-          "default": 80
-        },
-        {
-          "name": "q",
-          "type": "float",
-          "description": "Filter resonance (quality factor).",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighpass",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighpass.md"
-    },
-    {
-      "type": "nodetool.audio.realtime.StreamingLowPass",
-      "title": "Streaming Low Pass",
-      "namespace": "nodetool.audio.realtime",
-      "description": "Applies a low-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Soften a live audio feed\n    - Remove high-frequency noise from streaming audio\n    - Create realtime dub-style effects",
-      "inputs": [
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
-          "name": "cutoff_frequency_hz",
-          "type": "float",
-          "description": "The cutoff frequency of the low-pass filter in Hz.",
-          "required": false,
-          "default": 5000
-        },
-        {
-          "name": "q",
-          "type": "float",
-          "description": "Filter resonance (quality factor).",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass.md"
-    },
-    {
       "type": "nodetool.audio.RemoveSilence",
       "title": "Remove Silence",
       "namespace": "nodetool.audio",
@@ -8546,6 +8538,334 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/stereotomono",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/stereotomono.md"
+    },
+    {
+      "type": "nodetool.audio.TextToMusic",
+      "title": "Text To Music",
+      "namespace": "nodetool.audio",
+      "description": "Generate music from a text prompt using any supported music provider (FAL, Replicate, KIE/Suno, MiniMax). Optionally supply lyrics for vocal models.\n    audio, generation, AI, text-to-music, music, song",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "music_model",
+          "description": "The text-to-music model to use",
+          "required": false,
+          "default": {
+            "type": "music_model",
+            "provider": "replicate",
+            "id": "meta/musicgen",
+            "name": "MusicGen",
+            "path": null
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "Describe the style, mood, genre, and instrumentation",
+          "required": false,
+          "default": "An upbeat electronic track with a catchy melody and driving beat"
+        },
+        {
+          "name": "lyrics",
+          "type": "str",
+          "description": "Optional song lyrics for vocal models (e.g. Suno, MiniMax). Leave empty for instrumental.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "description": "Requested duration in seconds (providers clamp to their limits).",
+          "required": false,
+          "default": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "audio"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttomusic",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttomusic.md"
+    },
+    {
+      "type": "nodetool.audio.TextToSpeech",
+      "title": "Text To Speech",
+      "namespace": "nodetool.audio",
+      "description": "Generate speech audio from text using any supported TTS provider. Automatically routes to the appropriate backend (OpenAI, HuggingFace, MLX).\n    audio, generation, AI, text-to-speech, tts, voice",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "tts_model",
+          "description": "The text-to-speech model to use",
+          "required": false,
+          "default": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "alloy"
+          }
+        },
+        {
+          "name": "text",
+          "type": "str",
+          "description": "Text to convert to speech",
+          "required": false,
+          "default": "Hello! This is a text-to-speech demonstration."
+        },
+        {
+          "name": "speed",
+          "type": "float",
+          "description": "Speech speed multiplier (0.25 to 4.0)",
+          "required": false,
+          "default": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "audio"
+        },
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttospeech",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttospeech.md"
+    },
+    {
+      "type": "nodetool.audio.Trim",
+      "title": "Trim",
+      "namespace": "nodetool.audio",
+      "description": "Trim an audio file to a specified duration.\n    audio, trim, cut",
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to trim.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
+        },
+        {
+          "name": "start",
+          "type": "float",
+          "description": "The start time of the trimmed audio in seconds.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "end",
+          "type": "float",
+          "description": "The end time of the trimmed audio in seconds.",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "audio"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/trim",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/trim.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.AudioOutput",
+      "title": "Audio Out",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Plays a realtime audio chunk stream \u2014 the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
+      "inputs": [
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to play.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audioout",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audioout.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.AudioToChunks",
+      "title": "Audio To Chunks",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Slices an audio file into a stream of fixed-duration PCM16 chunks.\n    audio, stream, chunk, realtime\n\n    Use cases:\n    - Feed batch audio into realtime/streaming nodes\n    - Simulate a live audio feed from a recording\n    - Drive streaming effects and transcription nodes",
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to slice into chunks (must be WAV).",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
+        },
+        {
+          "name": "chunk_duration",
+          "type": "float",
+          "description": "Duration of each emitted chunk in seconds.",
+          "required": false,
+          "default": 0.25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audiotochunks",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/audiotochunks.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "title": "Chunks To Audio",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Accumulates a stream of PCM16 audio chunks into a single audio file.\n    audio, stream, chunk, realtime, accumulate\n\n    Use cases:\n    - Capture the output of streaming TTS or effects as a file\n    - Terminate a realtime audio chain with a playable result\n    - Record a processed live feed",
+      "inputs": [
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to accumulate.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "audio"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/chunkstoaudio",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/chunkstoaudio.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingGain",
+      "title": "Streaming Gain",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Applies a gain (volume adjustment) to each chunk of a realtime audio stream.\n    audio, stream, chunk, realtime, effect, volume\n\n    Use cases:\n    - Adjust the level of a live audio feed\n    - Balance streaming sources before mixing\n    - Attenuate or boost streaming TTS output",
+      "inputs": [
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
+        },
+        {
+          "name": "gain_db",
+          "type": "float",
+          "description": "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminggain",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminggain.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingHighPass",
+      "title": "Streaming High Pass",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Applies a high-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Remove rumble from a live microphone feed\n    - Clean up the low end of streaming audio\n    - Thin out streaming sources before mixing",
+      "inputs": [
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
+        },
+        {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the high-pass filter in Hz.",
+          "required": false,
+          "default": 80
+        },
+        {
+          "name": "q",
+          "type": "float",
+          "description": "Filter resonance (quality factor).",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighpass",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighpass.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingLowPass",
+      "title": "Streaming Low Pass",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Applies a low-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Soften a live audio feed\n    - Remove high-frequency noise from streaming audio\n    - Create realtime dub-style effects",
+      "inputs": [
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
+        },
+        {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the low-pass filter in Hz.",
+          "required": false,
+          "default": 5000
+        },
+        {
+          "name": "q",
+          "type": "float",
+          "description": "Filter resonance (quality factor).",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass.md"
     },
     {
       "type": "nodetool.audio.synth.ADSR",
@@ -8986,155 +9306,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/vcf",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/vcf.md"
-    },
-    {
-      "type": "nodetool.audio.TextToMusic",
-      "title": "Text To Music",
-      "namespace": "nodetool.audio",
-      "description": "Generate music from a text prompt using any supported music provider (FAL, Replicate, KIE/Suno, MiniMax). Optionally supply lyrics for vocal models.\n    audio, generation, AI, text-to-music, music, song",
-      "inputs": [
-        {
-          "name": "model",
-          "type": "music_model",
-          "description": "The text-to-music model to use",
-          "required": false,
-          "default": {
-            "type": "music_model",
-            "provider": "replicate",
-            "id": "meta/musicgen",
-            "name": "MusicGen",
-            "path": null
-          }
-        },
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "Describe the style, mood, genre, and instrumentation",
-          "required": false,
-          "default": "An upbeat electronic track with a catchy melody and driving beat"
-        },
-        {
-          "name": "lyrics",
-          "type": "str",
-          "description": "Optional song lyrics for vocal models (e.g. Suno, MiniMax). Leave empty for instrumental.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "duration",
-          "type": "float",
-          "description": "Requested duration in seconds (providers clamp to their limits).",
-          "required": false,
-          "default": 8
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "audio"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttomusic",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttomusic.md"
-    },
-    {
-      "type": "nodetool.audio.TextToSpeech",
-      "title": "Text To Speech",
-      "namespace": "nodetool.audio",
-      "description": "Generate speech audio from text using any supported TTS provider. Automatically routes to the appropriate backend (OpenAI, HuggingFace, MLX).\n    audio, generation, AI, text-to-speech, tts, voice",
-      "inputs": [
-        {
-          "name": "model",
-          "type": "tts_model",
-          "description": "The text-to-speech model to use",
-          "required": false,
-          "default": {
-            "type": "tts_model",
-            "provider": "openai",
-            "id": "tts-1",
-            "name": "TTS 1",
-            "path": null,
-            "voices": [
-              "alloy",
-              "echo",
-              "fable",
-              "onyx",
-              "nova",
-              "shimmer"
-            ],
-            "selected_voice": "alloy"
-          }
-        },
-        {
-          "name": "text",
-          "type": "str",
-          "description": "Text to convert to speech",
-          "required": false,
-          "default": "Hello! This is a text-to-speech demonstration."
-        },
-        {
-          "name": "speed",
-          "type": "float",
-          "description": "Speech speed multiplier (0.25 to 4.0)",
-          "required": false,
-          "default": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "audio"
-        },
-        {
-          "name": "chunk",
-          "type": "chunk"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttospeech",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/texttospeech.md"
-    },
-    {
-      "type": "nodetool.audio.Trim",
-      "title": "Trim",
-      "namespace": "nodetool.audio",
-      "description": "Trim an audio file to a specified duration.\n    audio, trim, cut",
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to trim.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "start",
-          "type": "float",
-          "description": "The start time of the trimmed audio in seconds.",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end",
-          "type": "float",
-          "description": "The end time of the trimmed audio in seconds.",
-          "required": false,
-          "default": 0
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "audio"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/trim",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/trim.md"
     },
     {
       "type": "nodetool.code.Code",
@@ -9953,6 +10124,29 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/constant/string.md"
     },
     {
+      "type": "nodetool.constant.TTSModelConstant",
+      "title": "TTS Model Constant",
+      "namespace": "nodetool.constant",
+      "description": "Represents a text-to-speech model constant in the workflow.\n    tts, speech, voice, model, audio\n\n    Use cases:\n    - Provide a fixed TTS model for speech synthesis\n    - Set default TTS model for the workflow\n    - Configure model selection without user input",
+      "inputs": [
+        {
+          "name": "value",
+          "type": "tts_model",
+          "description": "",
+          "required": false,
+          "default": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "tts_model"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/constant/ttsmodelconstant",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/constant/ttsmodelconstant.md"
+    },
+    {
       "type": "nodetool.constant.TextList",
       "title": "Text List",
       "namespace": "nodetool.constant",
@@ -10001,29 +10195,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/constant/timeline",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/constant/timeline.md"
-    },
-    {
-      "type": "nodetool.constant.TTSModelConstant",
-      "title": "TTS Model Constant",
-      "namespace": "nodetool.constant",
-      "description": "Represents a text-to-speech model constant in the workflow.\n    tts, speech, voice, model, audio\n\n    Use cases:\n    - Provide a fixed TTS model for speech synthesis\n    - Set default TTS model for the workflow\n    - Configure model selection without user input",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "tts_model",
-          "description": "",
-          "required": false,
-          "default": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "tts_model"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/constant/ttsmodelconstant",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/constant/ttsmodelconstant.md"
     },
     {
       "type": "nodetool.constant.Video",
@@ -11252,6 +11423,64 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/generators/listgenerator.md"
     },
     {
+      "type": "nodetool.generators.SVGGenerator",
+      "title": "SVGGenerator",
+      "namespace": "nodetool.generators",
+      "description": "LLM Agent to create SVG elements based on user prompts.\n    svg, generator, vector, graphics\n\n    Use cases:\n    - Creating vector graphics from text descriptions\n    - Generating scalable illustrations\n    - Creating custom icons and diagrams",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "language_model",
+          "description": "The language model to use for SVG generation.",
+          "required": false,
+          "default": {
+            "type": "language_model",
+            "provider": "empty",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          }
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "The user prompt for SVG generation",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "image",
+          "type": "list[image]",
+          "description": "Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider.",
+          "required": false,
+          "default": []
+        },
+        {
+          "name": "audio",
+          "type": "list[audio]",
+          "description": "Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider.",
+          "required": false,
+          "default": []
+        },
+        {
+          "name": "max_tokens",
+          "type": "int",
+          "description": "The maximum number of tokens to generate.",
+          "required": false,
+          "default": 8192
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "list[svg_element]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/generators/svggenerator",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/generators/svggenerator.md"
+    },
+    {
       "type": "nodetool.generators.StructuredOutputGenerator",
       "title": "Structured Output Generator",
       "namespace": "nodetool.generators",
@@ -11317,64 +11546,6 @@
       "outputs": [],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/generators/structuredoutputgenerator",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/generators/structuredoutputgenerator.md"
-    },
-    {
-      "type": "nodetool.generators.SVGGenerator",
-      "title": "SVGGenerator",
-      "namespace": "nodetool.generators",
-      "description": "LLM Agent to create SVG elements based on user prompts.\n    svg, generator, vector, graphics\n\n    Use cases:\n    - Creating vector graphics from text descriptions\n    - Generating scalable illustrations\n    - Creating custom icons and diagrams",
-      "inputs": [
-        {
-          "name": "model",
-          "type": "language_model",
-          "description": "The language model to use for SVG generation.",
-          "required": false,
-          "default": {
-            "type": "language_model",
-            "provider": "empty",
-            "id": "",
-            "name": "",
-            "path": null,
-            "supported_tasks": []
-          }
-        },
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "The user prompt for SVG generation",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "image",
-          "type": "list[image]",
-          "description": "Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "audio",
-          "type": "list[audio]",
-          "description": "Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "max_tokens",
-          "type": "int",
-          "description": "The maximum number of tokens to generate.",
-          "required": false,
-          "default": 8192
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[svg_element]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/generators/svggenerator",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/generators/svggenerator.md"
     },
     {
       "type": "nodetool.image.BatchToList",
@@ -11759,21 +11930,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/image/getmetadata.md"
     },
     {
-      "type": "nodetool.image.ImagesToList",
-      "title": "Images To List",
-      "namespace": "nodetool.image",
-      "description": "Convert all dynamic properties to a list of image references.\n    list, images, processing",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[image]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagestolist",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagestolist.md"
-    },
-    {
       "type": "nodetool.image.ImageToImage",
       "title": "Image To Image",
       "namespace": "nodetool.image",
@@ -11851,6 +12007,21 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagetoimage",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagetoimage.md"
+    },
+    {
+      "type": "nodetool.image.ImagesToList",
+      "title": "Images To List",
+      "namespace": "nodetool.image",
+      "description": "Convert all dynamic properties to a list of image references.\n    list, images, processing",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "list[image]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagestolist",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/image/imagestolist.md"
     },
     {
       "type": "nodetool.image.Levels",
@@ -13893,43 +14064,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/stringlistinput.md"
     },
     {
-      "type": "nodetool.input.TextListInput",
-      "title": "Text List Input",
-      "namespace": "nodetool.input",
-      "description": "Accepts a list of text strings as a parameter for workflows.\n    input, parameter, text, string, list",
-      "inputs": [
-        {
-          "name": "name",
-          "type": "str",
-          "description": "The parameter name for the workflow.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "value",
-          "type": "list[str]",
-          "description": "The list of text strings to use as input.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "description",
-          "type": "str",
-          "description": "The description of the input for the workflow.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[str]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/textlistinput",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/textlistinput.md"
-    },
-    {
       "type": "nodetool.input.TTSModelInput",
       "title": "TTS Model Input",
       "namespace": "nodetool.input",
@@ -13973,6 +14107,43 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/ttsmodelinput",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/ttsmodelinput.md"
+    },
+    {
+      "type": "nodetool.input.TextListInput",
+      "title": "Text List Input",
+      "namespace": "nodetool.input",
+      "description": "Accepts a list of text strings as a parameter for workflows.\n    input, parameter, text, string, list",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "str",
+          "description": "The parameter name for the workflow.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "value",
+          "type": "list[str]",
+          "description": "The list of text strings to use as input.",
+          "required": false,
+          "default": []
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "description": "The description of the input for the workflow.",
+          "required": false,
+          "default": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "list[str]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/textlistinput",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/textlistinput.md"
     },
     {
       "type": "nodetool.input.VideoInput",
@@ -15117,31 +15288,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/test/listsumprocessor.md"
     },
     {
-      "type": "nodetool.test.Multiply",
-      "title": "Multiply",
-      "namespace": "nodetool.test",
-      "description": "Multiplies two numbers",
-      "inputs": [
-        {
-          "name": "a",
-          "type": "int",
-          "description": "",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "b",
-          "type": "int",
-          "description": "",
-          "required": false,
-          "default": 1
-        }
-      ],
-      "outputs": [],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/test/multiply",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/test/multiply.md"
-    },
-    {
       "type": "nodetool.test.MultiTriggerController",
       "title": "Multi Trigger Controller",
       "namespace": "nodetool.test",
@@ -15165,6 +15311,31 @@
       "outputs": [],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/test/multitriggercontroller",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/test/multitriggercontroller.md"
+    },
+    {
+      "type": "nodetool.test.Multiply",
+      "title": "Multiply",
+      "namespace": "nodetool.test",
+      "description": "Multiplies two numbers",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "b",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 1
+        }
+      ],
+      "outputs": [],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/test/multiply",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/test/multiply.md"
     },
     {
       "type": "nodetool.test.Passthrough",

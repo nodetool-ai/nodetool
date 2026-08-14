@@ -406,7 +406,8 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         name: "format.date",
         signature:
           "await format.date(epochMs, options?) -> string // locale, dateStyle, timeStyle, timeZone",
-        description: "Locale date and time formatting of a millisecond timestamp.",
+        description:
+          "Locale date and time formatting of a millisecond timestamp.",
         async: true
       },
       {
@@ -505,7 +506,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         signature:
           "await image.grid([image, ...], options?) -> handle // options: columns, gap, background, format, quality",
         description:
-          "Lay images out in a grid — the usual meaning of \"combine these\". Cells are the largest input and each image is centred; one row unless you pass columns.",
+          'Lay images out in a grid — the usual meaning of "combine these". Cells are the largest input and each image is centred; one row unless you pass columns.',
         async: true
       },
       {
@@ -565,6 +566,151 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       }
     ]
   },
+  audio: {
+    name: "audio",
+    kind: "namespace",
+    description:
+      "Host-side audio editing. Inputs may be handles, media refs, or encoded bytes; transformed outputs are run-local handles.",
+    members: [
+      {
+        name: "audio.bytes",
+        signature: "await audio.bytes(handle) -> Uint8Array",
+        description:
+          "Read encoded bytes explicitly. Chaining operations does not need this.",
+        async: true
+      },
+      {
+        name: "audio.toAsset",
+        signature:
+          "await audio.toAsset(handle, { filename?, mimeType? }) -> AudioRef",
+        description: "Save a run-local audio handle as a durable asset.",
+        async: true
+      },
+      {
+        name: "audio.info",
+        signature:
+          "await audio.info(audio) -> { duration, sample_rate, channels, format, size_bytes }",
+        description: "Inspect audio without returning its encoded payload.",
+        async: true
+      },
+      {
+        name: "audio.normalize",
+        signature: "await audio.normalize(audio) -> handle",
+        description: "Normalize peak volume.",
+        async: true
+      },
+      {
+        name: "audio.trim",
+        signature: "await audio.trim(audio, { start?, end? }) -> handle",
+        description: "Keep an interval in seconds.",
+        async: true
+      },
+      {
+        name: "audio.concat",
+        signature: "await audio.concat([audio, ...]) -> handle",
+        description: "Join compatible audio files in sequence.",
+        async: true
+      },
+      {
+        name: "audio.mix",
+        signature: "await audio.mix([audio, ...]) -> handle",
+        description: "Mix compatible tracks over the same timeline.",
+        async: true
+      },
+      {
+        name: "audio.reverse",
+        signature: "await audio.reverse(audio) -> handle",
+        description: "Reverse audio playback.",
+        async: true
+      },
+      {
+        name: "audio.fadeIn",
+        signature: "await audio.fadeIn(audio, { duration? }) -> handle",
+        description: "Apply a fade at the start.",
+        async: true
+      },
+      {
+        name: "audio.fadeOut",
+        signature: "await audio.fadeOut(audio, { duration? }) -> handle",
+        description: "Apply a fade at the end.",
+        async: true
+      },
+      {
+        name: "audio.repeat",
+        signature: "await audio.repeat(audio, { loops? }) -> handle",
+        description: "Repeat audio a fixed number of times.",
+        async: true
+      }
+    ]
+  },
+  video: {
+    name: "video",
+    kind: "namespace",
+    description:
+      "Cross-platform video editing and media composition through Mediabunny. Outputs stay in run-local handles.",
+    members: [
+      {
+        name: "video.bytes",
+        signature: "await video.bytes(handle) -> Uint8Array",
+        description:
+          "Read encoded bytes explicitly. Chaining operations does not need this.",
+        async: true
+      },
+      {
+        name: "video.toAsset",
+        signature:
+          "await video.toAsset(handle, { filename?, mimeType? }) -> VideoRef",
+        description: "Save a run-local video handle as a durable asset.",
+        async: true
+      },
+      {
+        name: "video.info",
+        signature:
+          "await video.info(video) -> { duration, width, height, rotation, codec, has_audio }",
+        description: "Inspect the video and its streams.",
+        async: true
+      },
+      {
+        name: "video.trim",
+        signature: "await video.trim(video, { start?, end? }) -> handle",
+        description: "Keep a time interval in seconds.",
+        async: true
+      },
+      {
+        name: "video.resize",
+        signature:
+          "await video.resize(video, { width, height, fit? }) -> handle",
+        description: "Resize video with fill, contain, or cover fitting.",
+        async: true
+      },
+      {
+        name: "video.rotate",
+        signature: "await video.rotate(video, degrees) -> handle",
+        description: "Rotate video by 0, 90, 180, or 270 degrees.",
+        async: true
+      },
+      {
+        name: "video.addAudio",
+        signature:
+          "await video.addAudio(video, audio, { keepOriginalAudio? }) -> handle",
+        description:
+          "Attach an audio track to a video. By default it replaces existing audio.",
+        async: true
+      },
+      {
+        name: "video.extractAudio",
+        signature: "await video.extractAudio(video) -> audio handle",
+        description: "Extract the soundtrack as WAV audio.",
+        async: true
+      },
+      {
+        name: "video.extractFrame",
+        signature: "await video.extractFrame(video, time?) -> image handle",
+        description: "Extract a PNG frame at a time in seconds.",
+        async: true
+      }
+    ]
+  },
   canvas: {
     name: "canvas",
     kind: "namespace",
@@ -616,8 +762,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       },
       {
         name: "media.info",
-        signature:
-          "await media.info(ref) -> { type, mimeType, uri, size }",
+        signature: "await media.info(ref) -> { type, mimeType, uri, size }",
         description: "What the ref is and how big it is.",
         async: true,
         requiresContext: true
@@ -716,7 +861,7 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     signature:
       "createCanvas(width, height) -> { width, height, getContext, toBytes, toSpec }",
     description:
-      "A Canvas 2D surface. getContext with \"2d\" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec returns the recorded draw list.",
+      'A Canvas 2D surface. getContext with "2d" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec returns the recorded draw list.',
     async: false
   }
 };
@@ -761,7 +906,7 @@ function overridableLimits(): SandboxLimitDoc[] {
     stackLimitBytes: { description: "guest call stack", unit: "bytes" },
     fetchTimeoutMs: { description: "per-request fetch timeout", unit: "ms" },
     runMediaBytes: {
-      description: "media held host-side for this run's image handles",
+      description: "media handles and transform work held host-side per run",
       unit: "bytes"
     }
   };
@@ -912,6 +1057,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "WeakRef",
   "WeakSet",
   "assetToSandbox",
+  "audio",
   "canvas",
   "console",
   "createCanvas",
@@ -945,6 +1091,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "toHex",
   "undefined",
   "unescape",
+  "video",
   "workspace"
 ];
 
@@ -1047,7 +1194,9 @@ export function getSandboxManifest(): SandboxManifest {
         text: "Declared inputs arrive on the `inputs` object: read `inputs.name`. A bare `name` is a ReferenceError.",
         audience: "code-node"
       },
-      { text: "Media and asset values are reference objects. Pass them through unchanged." },
+      {
+        text: "Media and asset values are reference objects. Pass them through unchanged."
+      },
       {
         text: "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back."
       },

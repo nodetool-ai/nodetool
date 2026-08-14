@@ -9,8 +9,8 @@
  * session bridges `tools.<name>()` to a caller-supplied `executeTool` and
  * leaves the routing where it is. Everything else matches the step executor:
  * one `execute_code` provider tool, a `state` object that persists across the
- * turn's actions, `nodetool.searchTools()` for the deferred long tail, and an
- * observation envelope as the tool result.
+ * turn's actions (including after a throw), `nodetool.searchTools()` for the
+ * deferred long tail, and an observation envelope as the tool result.
  *
  * When the belt carries the `ui_*` workflow document tools, actions also get
  * the graph object model (`openWorkflow()` — see graph-model.ts), so graph and
@@ -24,10 +24,7 @@ import {
 } from "@nodetool-ai/runtime";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import { resolveRefBytes } from "../sandbox-media-ref.js";
-import {
-  inferImageMime,
-  persistOutput
-} from "../tools/asset-persist.js";
+import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { mountCapabilityModules } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
@@ -46,10 +43,7 @@ import {
   sandboxPackageDocsTool,
   sandboxPackageListTool
 } from "../capabilities/packs.js";
-import {
-  GRAPH_DSL_PACKAGE,
-  withGraphDslPackage
-} from "./graph-dsl-package.js";
+import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
@@ -139,7 +133,10 @@ export interface ChatCodeActSessionOptions {
    */
   capabilityRun?: CapabilityRun;
   /** Observability hook — fires before each bridged tool executes. */
-  onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
+  onToolCall?: (record: {
+    name: string;
+    args: Record<string, unknown>;
+  }) => void;
 }
 
 export interface ChatCodeActSession {
@@ -312,7 +309,10 @@ export function createChatCodeActSession(
       const own = inSession.get(name);
       const raw =
         own !== undefined
-          ? await own.process(options.context ?? ({} as ProcessingContext), args)
+          ? await own.process(
+              options.context ?? ({} as ProcessingContext),
+              args
+            )
           : await options.executeTool({
               id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
               name,
@@ -478,11 +478,19 @@ export function createChatCodeActSession(
           )
       : undefined;
     const promoteMedia = context
-      ? async (bytes: Uint8Array, opts?: Record<string, unknown>) => {
+      ? async (
+          type: "image" | "audio" | "video",
+          bytes: Uint8Array,
+          opts?: Record<string, unknown>
+        ) => {
           const mime =
             typeof opts?.mimeType === "string" && opts.mimeType
               ? opts.mimeType
-              : inferImageMime(bytes);
+              : type === "image"
+                ? inferImageMime(bytes)
+                : type === "audio"
+                  ? "audio/wav"
+                  : "video/mp4";
           const filename =
             typeof opts?.filename === "string"
               ? opts.filename
@@ -490,13 +498,15 @@ export function createChatCodeActSession(
                 ? opts.name
                 : undefined;
           const saved = await persistOutput(context, bytes, {
-            namePrefix: "image",
+            namePrefix: type,
             mime,
             ...(filename === undefined ? {} : { outputFile: filename })
           });
           if (!saved.asset_uri && !saved.path) {
             throw new Error(
-              "nodetool.media.toImage: cannot save an asset in this run"
+              `nodetool.media.to${
+                type[0].toUpperCase() + type.slice(1)
+              }: cannot save an asset in this run`
             );
           }
           return saved;

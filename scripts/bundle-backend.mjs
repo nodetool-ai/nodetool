@@ -101,6 +101,9 @@ const COMMON_REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  "mediabunny",
+  "@mediabunny/server",
+  "node-av",
 ];
 // webgpu is required on desktop only: the GPU compositor needs the dawn.node
 // binary there, while the server profile does no local GPU compute (the gpu
@@ -146,6 +149,12 @@ const COMMON_EXTERNAL_PACKAGES = [
   "pdfjs-dist",
   "@napi-rs/canvas",
   "chart.js",
+  // The sandbox uses Mediabunny in browsers and on Node. Keep both packages
+  // external in the backend so the server adapter registers codecs on the
+  // same Mediabunny module instance used by the sandbox media bridge.
+  "mediabunny",
+  "@mediabunny/server",
+  "node-av",
   // Modules that source code lazy-imports but whose own top-level imports
   // would be hoisted into server.mjs if inlined, defeating the lazy intent.
   // pdf-parse hoisted `pdfjs-dist/legacy/build/pdf.mjs` and crashed on
@@ -212,6 +221,9 @@ const EXTERNAL_PACKAGES =
 // is unavailable). Copying these would trigger a node-gyp rebuild on Linux CI.
 const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   "canvas",
+  // unzipper requires this only inside its optional S3 source adapter but
+  // does not declare it. Keep the optional branch unresolved unless used.
+  "@aws-sdk/client-s3",
 ];
 const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
@@ -617,6 +629,10 @@ async function copyExternalPackages() {
       const optionalDeps = pkgJson.optionalDependencies ?? {};
       const deps = { ...(pkgJson.dependencies ?? {}), ...optionalDeps };
       for (const depName of Object.keys(deps)) {
+        // node-av uses werift only for optional WebRTC sources. Sandbox media
+        // operations read in-memory files, so staging that graph adds weight
+        // without providing a reachable runtime path.
+        if (pkgName === "node-av" && depName === "werift") continue;
         // Skip packages that are external for esbuild but must NOT be staged.
         // These are loaded via runtime try/catch with a fallback (e.g. linkedom
         // → canvas) and copying them would trigger a node-gyp rebuild.

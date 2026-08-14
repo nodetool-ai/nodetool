@@ -334,143 +334,28 @@ describe("migrateGraphNodeTypes", () => {
     });
   });
 
-  // -------------------------------------------------------------------------
-  // The lib.pdf.* nodes removed in #4830. Three read plain text and migrate to
-  // a Code node that resolves its input with `media.bytes` and reads it with
-  // @nodetool-ai/sandbox-pdf; the six that read layout, tables, styling or OCR
-  // have no equivalent and stay unmigrated.
-  // -------------------------------------------------------------------------
-  describe("lib.pdf.* -> Code node migrations", () => {
-    const pdfRef = {
-      type: "document",
-      uri: "asset://doc-1.pdf",
-      asset_id: "doc-1.pdf"
-    };
+  it("migrates removed lib.pdf.PageCount and SearchText to Code", () => {
+    for (const from of ["lib.pdf.PageCount", "lib.pdf.SearchText"]) {
+      const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
+      expect(m, `missing migration for ${from}`).toBeDefined();
+      expect(m?.to).toBe("nodetool.code.Code");
+      expect(m?.setProperties?.packages).toEqual(["@nodetool-ai/sandbox-pdf"]);
+    }
+  });
 
-    it("migrates ExtractText to Code with the pdf and page range as dynamic inputs", () => {
-      const graph = {
-        nodes: [
-          {
-            id: "n1",
-            type: "lib.pdf.ExtractText",
-            data: { pdf: pdfRef, start_page: 1, end_page: 3 }
-          }
-        ],
-        edges: []
-      };
-      const result = migrateGraphNodeTypes(graph);
-      const node = result.nodes[0];
-
-      expect(node.type).toBe("nodetool.code.Code");
-      expect(node.data.packages).toEqual(["@nodetool-ai/sandbox-pdf"]);
-      expect(node.data.code).toContain(
-        'import { extractPages } from "@nodetool-ai/sandbox-pdf"'
-      );
-      expect(node.data.code).toContain("await media.bytes(inputs.pdf)");
-      expect(node.data.pdf).toBeUndefined();
-      expect(node.dynamic_properties).toEqual({
-        pdf: pdfRef,
-        start_page: 1,
-        end_page: 3
-      });
-    });
-
-    it("keeps an incoming pdf edge wired to the migrated node", () => {
-      const graph = {
-        nodes: [
-          { id: "src", type: "nodetool.input.DocumentInput", data: {} },
-          { id: "n1", type: "lib.pdf.ExtractText", data: {} }
-        ],
-        edges: [
-          {
-            source: "src",
-            sourceHandle: "output",
-            target: "n1",
-            targetHandle: "pdf"
-          }
-        ]
-      };
-      const result = migrateGraphNodeTypes(graph);
-      expect(result.nodes[1].type).toBe("nodetool.code.Code");
-      expect(result.edges[0].targetHandle).toBe("pdf");
-    });
-
-    it("migrates PageCount to a body returning the page count", () => {
-      const graph = {
-        nodes: [{ id: "n1", type: "lib.pdf.PageCount", data: { pdf: pdfRef } }],
-        edges: []
-      };
-      const node = migrateGraphNodeTypes(graph).nodes[0];
-
-      expect(node.type).toBe("nodetool.code.Code");
-      expect(node.data.code).toContain("return { output: pages.length };");
-      expect(node.dynamic_properties).toEqual({ pdf: pdfRef });
-    });
-
-    it("migrates SearchText with its phrase and case flag preserved", () => {
-      const graph = {
-        nodes: [
-          {
-            id: "n1",
-            type: "lib.pdf.SearchText",
-            data: {
-              pdf: pdfRef,
-              phrase: "quarterly",
-              case_sensitive: true,
-              start_page: 0,
-              end_page: -1
-            }
-          }
-        ],
-        edges: []
-      };
-      const node = migrateGraphNodeTypes(graph).nodes[0];
-
-      expect(node.type).toBe("nodetool.code.Code");
-      expect(node.data.code).toContain("inputs.phrase");
-      expect(node.data.code).toContain("inputs.case_sensitive");
-      expect(node.dynamic_properties).toEqual({
-        pdf: pdfRef,
-        phrase: "quarterly",
-        case_sensitive: true,
-        start_page: 0,
-        end_page: -1
-      });
-    });
-
-    it("declares the pdf pack on every migrated body", () => {
-      for (const from of [
-        "lib.pdf.PageCount",
-        "lib.pdf.ExtractText",
-        "lib.pdf.SearchText"
-      ]) {
-        const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
-        expect(m, `missing migration for ${from}`).toBeDefined();
-        expect(m?.to).toBe("nodetool.code.Code");
-        expect(m?.setProperties?.packages).toEqual([
-          "@nodetool-ai/sandbox-pdf"
-        ]);
-        expect(m?.moveRemainingPropertiesToDynamic).toBe(true);
-        expect(String(m?.setProperties?.code)).toContain("media.bytes");
-      }
-    });
-
-    it("leaves the layout, table, styling and OCR nodes unmigrated", () => {
-      // sandbox-pdf reads the text layer only. A migration that answered a
-      // graph expecting `list[dict]` tables with plain text would be worse
-      // than the unknown-node-type failure these still raise.
-      for (const from of [
-        "lib.pdf.ExtractMarkdown",
-        "lib.pdf.ExtractTables",
-        "lib.pdf.ExtractTextBlocks",
-        "lib.pdf.ExtractStyledText",
-        "lib.pdf.PageMetadata",
-        "lib.pdf.ExtractOcr"
-      ]) {
-        expect(
-          NODE_TYPE_MIGRATIONS.find((x) => x.from === from)
-        ).toBeUndefined();
-      }
-    });
+  it("does not migrate kept lib.pdf conversion nodes", () => {
+    for (const from of [
+      "lib.pdf.ExtractText",
+      "lib.pdf.ExtractMarkdown",
+      "lib.pdf.ExtractTables",
+      "lib.pdf.ExtractStyledText",
+      "lib.pdf.ExtractOcr",
+      "lib.pdf.ExtractTextBlocks",
+      "lib.pdf.PageMetadata"
+    ]) {
+      expect(
+        NODE_TYPE_MIGRATIONS.find((x) => x.from === from)
+      ).toBeUndefined();
+    }
   });
 });

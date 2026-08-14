@@ -640,6 +640,10 @@ const nodetool = (() => {
        * Bytes stay on the host; the guest only sees the asset:// ref.
        */
       toImage: (src, opts) => image.toAsset(src, opts),
+      /** Promote an audio handle to a durable asset. */
+      toAudio: (src, opts) => audio.toAsset(src, opts),
+      /** Promote a video handle to a durable asset. */
+      toVideo: (src, opts) => video.toAsset(src, opts),
       generateVideo: (prompt, model, opts) =>
         __need("generate_video")(
           __merge(opts, __merge(__model(model), { prompt: prompt }))
@@ -1068,14 +1072,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  Feed a generation result straight into \`image.*\` — it takes the result, its
-  \`asset_uri\`, or an asset id, and returns a handle you pass to the next call,
-  so generate → \`image.resize/composite\` → \`nodetool.media.toImage(handle)\`
-  is one action and the picture never enters the sandbox. Do not pull bytes
-  into the guest. An image handle belongs to the action that made it: before
-  the action ends, \`nodetool.media.toImage(handle)\` anything you still need
-  and keep the \`asset://\` ref in \`state\` — a handle in \`state\` is dead
-  next action.
+  Assign each result to \`state\` before the next call
+  (\`state.clip = state.clip ?? await nodetool.media.generateVideo(prompt, model)\`)
+  so a later failure does not re-run generation. Feed generation results
+  straight into \`image.*\`, \`audio.*\`, or \`video.*\`. These namespaces take a
+  result, its \`asset_uri\`, or an asset id and return run-local handles. They
+  can combine media too: for example, \`video.addAudio(videoHandle, audioHandle)\`.
+  Save finished handles with \`nodetool.media.toImage/toAudio/toVideo\` before
+  the action ends; keep the returned \`asset://\` ref in \`state\`. Do not pull
+  bytes into the guest, and do not keep a handle in \`state\` because it is
+  dead in the next action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
@@ -1232,14 +1238,18 @@ entry settles as \`{ok, index, item, value | error}\`. A handful of items is one
 \`batch\` call in one action; only lists big enough to threaten the sandbox
 limits get chunked across actions with progress in \`state\`.`;
 
-const MEDIA_EXAMPLE = `Pick a model once, then generate — batching included:
+const MEDIA_EXAMPLE = `Pick a model once, stash results in \`state\`, then generate —
+batching included. Skip work \`state\` already holds:
 
 \`\`\`js
-const model = await nodetool.models.pick("text_to_image");
-const shots = ["a red fox in snow", "a fox by a river"];
-const images = await nodetool.batch(shots, (prompt) =>
-  nodetool.media.generateImage(prompt, model), { concurrency: 2 });
-return images.map((r) => (r.ok ? r.value.asset_uri : r.error));
+const model = state.model ?? (state.model = await nodetool.models.pick("text_to_image"));
+if (!state.images) {
+  const shots = ["a red fox in snow", "a fox by a river"];
+  const images = await nodetool.batch(shots, (prompt) =>
+    nodetool.media.generateImage(prompt, model), { concurrency: 2 });
+  state.images = images.map((r) => (r.ok ? r.value : null));
+}
+return state.images.map((img) => (img ? img.asset_uri : "failed"));
 \`\`\``;
 
 /**
@@ -1326,7 +1336,11 @@ fails the action by name, before any code runs.`,
     sections.push(MEDIA_EXAMPLE);
   }
   if (names.has("run_workflow")) sections.push(BATCH_EXAMPLE);
-  if ([...names].some((name) => DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p)))) {
+  if (
+    [...names].some((name) =>
+      DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p))
+    )
+  ) {
     sections.push(DOCUMENT_SURFACE_GUIDANCE);
   }
   return sections.join("\n\n");
