@@ -288,7 +288,8 @@ export interface GlobalChatState {
   fetchThread: (threadId: string) => Promise<Thread | null>;
   createNewThread: (
     title?: string,
-    workflowId?: string | null
+    workflowId?: string | null,
+    options?: { makeCurrent?: boolean }
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
@@ -1109,8 +1110,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      createNewThread: async (title?: string, workflowId?: string | null) => {
+      createNewThread: async (
+        title?: string,
+        workflowId?: string | null,
+        options?: { makeCurrent?: boolean }
+      ) => {
         const safeTitle = typeof title === "string" ? title : undefined;
+        const makeCurrent = options?.makeCurrent !== false;
 
         // Bind to the passed workflow, or the currently open one. `undefined`
         // means "use current"; an explicit `null` forces a workflow-agnostic
@@ -1147,15 +1153,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...state.threads,
             [id]: localThread
           },
-          currentThreadId: id,
-          lastUsedThreadId: id,
           threadWorkflowId: {
             ...state.threadWorkflowId,
             [id]: boundWorkflowId
           },
-          workflowThreadId: boundWorkflowId
-            ? { ...state.workflowThreadId, [boundWorkflowId]: id }
-            : state.workflowThreadId,
           messageCache: {
             ...state.messageCache,
             [id]: []
@@ -1164,8 +1165,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ...state.wsThreadSubscriptions,
             [id]: newUnsub
           },
-          // The new thread becomes current with a fresh (idle) runtime.
-          ...mirrorsForThread({ ...state, currentThreadId: id }, id)
+          ...(makeCurrent
+            ? {
+                currentThreadId: id,
+                lastUsedThreadId: id,
+                workflowThreadId: boundWorkflowId
+                  ? { ...state.workflowThreadId, [boundWorkflowId]: id }
+                  : state.workflowThreadId,
+                ...mirrorsForThread({ ...state, currentThreadId: id }, id)
+              }
+            : {})
         }));
 
         return id;

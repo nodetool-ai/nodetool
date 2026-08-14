@@ -29,6 +29,7 @@ import JsScriptSettingsPanel from "../jsScript/JsScriptSettingsPanel";
 import JsScriptAgentPanel from "../jsScript/JsScriptAgentPanel";
 import JsScriptRunConsole from "../jsScript/JsScriptRunConsole";
 import type { JsScriptRunRequest } from "../jsScript/JsScriptRunDialog";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 
 interface JsScriptSurfaceProps {
   refId: string;
@@ -146,14 +147,10 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
         </FlexColumn>
       </FlexColumn>
 
-      <FlexColumn
-        fullHeight
-        sx={{
-          width: DOCK_WIDTH,
-          flexShrink: 0,
-          minHeight: 0,
-          borderLeft: `1px solid ${theme.vars.palette.divider}`
-        }}
+      <ResizableSideDock
+        storageKey="jsscript_assistant"
+        defaultWidth={DOCK_WIDTH}
+        ariaLabel="Resize JS script assistant"
       >
         <TabGroup
           tabs={dockTabs}
@@ -173,7 +170,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
             <JsScriptAgentPanel scriptId={refId} />
           )}
         </FlexColumn>
-      </FlexColumn>
+      </ResizableSideDock>
     </FlexRow>
   );
 };

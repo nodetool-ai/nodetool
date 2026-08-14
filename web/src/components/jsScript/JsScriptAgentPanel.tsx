@@ -1,42 +1,8 @@
-/** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useMemo } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { useShallow } from "zustand/react/shallow";
+import { memo, useMemo } from "react";
+import type { UiDocumentRef } from "@nodetool-ai/protocol";
 
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-
-import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
-import ChatView from "../chat/containers/ChatView";
-import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
-
-const styles = (_theme: Theme) =>
-  css({
-    "&": {
-      height: "100%",
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column"
-    },
-    // ChatView is tuned for the full-page global chat. Tighten it for this
-    // narrow side panel.
-    "& .chat-view": {
-      padding: `0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(
-        SPACING.xs
-      )} ${getSpacingPx(SPACING.xs)}`
-    },
-    "& .chat-input-section": {
-      width: "100%",
-      maxWidth: "100%"
-    },
-    "& .chat-thread-container": {
-      maxWidth: "100%",
-      paddingBottom: getSpacingPx(SPACING.md)
-    }
-  });
+import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
+import { useJsScriptName } from "../../stores/jsScript/JsScriptStore";
 
 /** Teaches the agent the JS script surface and the sandbox contract. */
 const jsScriptSystemPrompt = (scriptId: string): string =>
@@ -64,123 +30,28 @@ export interface JsScriptAgentPanelProps {
   scriptId: string;
 }
 
-/**
- * Chat surface for the JS script editor. Reuses {@link ChatView} wired to the
- * shared {@link useGlobalChatStore}, so the assistant can call the
- * `ui_jsscript_*` frontend tools the surface registers on the JS script agent
- * bridge.
- */
 const JsScriptAgentPanel = ({ scriptId }: JsScriptAgentPanelProps) => {
-  const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const name = useJsScriptName(scriptId);
 
-  const { selectedModel, setSelectedModel } = useGlobalChatStore(
-    useShallow((state) => ({
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel
-    }))
+  const focused = useMemo<UiDocumentRef>(
+    () => ({ type: "jsscript", id: scriptId, title: name || null }),
+    [scriptId, name]
   );
-
-  const { connect, createNewThread } = useGlobalChatStore(
-    useShallow((state) => ({
-      connect: state.connect,
-      createNewThread: state.createNewThread
-    }))
-  );
-  const {
-    threadId,
-    messages,
-    runtime,
-    selectThread,
-    sendMessage,
-    stopGeneration
-  } = useChatViewThread();
-
-  // Establish the chat connection (and send the frontend-tool manifest, which
-  // includes the ui_jsscript_* tools) when the panel mounts.
-  useEffect(() => {
-    connect().catch((err) => {
-      console.error("Failed to connect JS script editor chat:", err);
-    });
-  }, [connect]);
-
-  const chatStatus =
-    runtime.status === "idle"
-      ? "connected"
-      : runtime.status === "stopping"
-        ? "loading"
-        : runtime.status;
-
-  const handleNewChat = useCallback(async () => {
-    try {
-      const id = await createNewThread();
-      selectThread(id);
-    } catch (err) {
-      console.error("Failed to start new JS script chat:", err);
-    }
-  }, [createNewThread, selectThread]);
 
   const systemPrompt = useMemo(
     () => jsScriptSystemPrompt(scriptId),
     [scriptId]
   );
 
-  const welcomePlaceholder = useMemo(
-    () => (
-      <FlexColumn
-        align="center"
-        justify="center"
-        fullHeight
-        padding={3}
-        sx={{ textAlign: "center" }}
-      >
-        <AutoAwesomeIcon sx={{ fontSize: 40, mb: 1.5, opacity: 0.5 }} />
-        <Text size="normal" weight={600} sx={{ mb: 1 }}>
-          JS Script Assistant
-        </Text>
-        <Text size="small" color="secondary" sx={{ maxWidth: 280 }}>
-          Ask me to write or change this script — e.g. &quot;parse the CSV and
-          emit one row per line&quot;, &quot;add an error output&quot;, or
-          &quot;write a test for the empty case&quot;.
-        </Text>
-      </FlexColumn>
-    ),
-    []
-  );
-
   return (
-    <div css={cssStyles}>
-      <ChatPanelHeader
-        onNewChat={handleNewChat}
-        onSelectThread={selectThread}
-        threadId={threadId}
-      />
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <ChatView
-          status={chatStatus}
-          messages={messages}
-          workflowId={scriptId}
-          sendMessage={sendMessage}
-          progress={runtime.progress.current}
-          total={runtime.progress.total}
-          progressMessage={runtime.statusMessage}
-          model={selectedModel}
-          onModelChange={setSelectedModel}
-          onStop={stopGeneration}
-          onNewChat={handleNewChat}
-          systemPrompt={systemPrompt}
-          requireToolSupport
-          hideModePicker
-          noMessagesPlaceholder={welcomePlaceholder}
-          threadId={threadId}
-          currentPlanningUpdate={runtime.planningUpdate}
-          currentTaskUpdate={runtime.taskUpdate}
-          currentLogUpdate={runtime.logUpdate}
-          runningToolCallId={runtime.runningToolCallId}
-          runningToolMessage={runtime.toolMessage}
-        />
-      </div>
-    </div>
+    <AssistantChatPanel
+      chatSource="jsscript_assistant"
+      focused={focused}
+      workflowId={scriptId}
+      systemPrompt={systemPrompt}
+      welcomeTitle="JS Script Assistant"
+      welcomeBody='Ask me to write or change this script — e.g. "parse the CSV and emit one row per line", "add an error output", or "write a test for the empty case".'
+    />
   );
 };
 

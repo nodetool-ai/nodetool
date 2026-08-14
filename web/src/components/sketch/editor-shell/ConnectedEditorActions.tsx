@@ -1,10 +1,9 @@
 /**
  * ConnectedEditorActions — the trailing action cluster of the tool bar.
  *
- * Two controls only, so the editor's chrome stays one slim row: a Generate
- * button that opens the text-to-image form in a popover, and an overflow menu
- * holding the editor-wide actions (assistant panel, fit, hide panels) plus any
- * document actions the host surface contributes via `menuItems`.
+ * A Generate button that opens the text-to-image form, a visible assistant
+ * toggle, and an overflow menu for fit / hide panels plus any document
+ * actions the host surface contributes via `menuItems`.
  *
  * Editor-shell convention: narrow store selectors only; the fit computation
  * reads and writes through getState() so the cluster gains no subscriptions on
@@ -139,6 +138,22 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         </>
       )}
 
+      <Tooltip
+        title={assistantPanelOpen ? "Hide Assistant" : "Show Assistant"}
+      >
+        <IconButton
+          size="small"
+          onClick={handleAssistant}
+          aria-label={
+            assistantPanelOpen ? "Hide Assistant" : "Show Assistant"
+          }
+          aria-pressed={assistantPanelOpen}
+          data-testid="sketch-assistant-toggle"
+        >
+          <SmartToyOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
       <Tooltip title="Editor actions">
         <IconButton
           size="small"
@@ -159,19 +174,6 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         paperSx={{ borderRadius: BORDER_RADIUS.lg, minWidth: 220 }}
       >
-        <EditorMenuItem
-          onClick={handleAssistant}
-          selected={assistantPanelOpen}
-          data-testid="sketch-assistant-toggle"
-        >
-          <ListItemIcon>
-            <SmartToyOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>
-            {assistantPanelOpen ? "Hide Assistant" : "Assistant"}
-          </ListItemText>
-        </EditorMenuItem>
-
         <EditorMenuItem onClick={handleFit} data-testid="sketch-fit-view">
           <ListItemIcon>
             <FitScreenIcon fontSize="small" />

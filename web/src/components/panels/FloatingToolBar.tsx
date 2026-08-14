@@ -321,17 +321,25 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // Conversation overlay: floats above the composer, showing the active chat
   // thread. It surfaces dynamically — auto-opening whenever a new message
   // arrives or a generation starts — and can be collapsed back to a toggle.
+  // Only the canvas workflow thread counts: a side-panel assistant (code,
+  // sketch, …) streams on its own thread and must not open this overlay.
   const { conversationCount, chatBusy, chatError, clearChatError } =
     useGlobalChatStore(
-      useShallow((state) => ({
-        conversationCount: state.currentThreadId
-          ? state.messageCache[state.currentThreadId]?.length ?? 0
-          : 0,
-        chatBusy:
-          state.status === "loading" || state.status === "streaming",
-        chatError: state.error,
-        clearChatError: state.clearError
-      }))
+      useShallow((state) => {
+        const threadId =
+          (workflow?.id ? state.workflowThreadId[workflow.id] : null) ??
+          state.currentThreadId;
+        const runtime = threadId ? state.threadRuntime[threadId] : undefined;
+        return {
+          conversationCount: threadId
+            ? state.messageCache[threadId]?.length ?? 0
+            : 0,
+          chatBusy:
+            runtime?.status === "loading" || runtime?.status === "streaming",
+          chatError: state.error,
+          clearChatError: state.clearError
+        };
+      })
     );
 
   // Bind the canvas chat to the open workflow: chat threads are scoped per

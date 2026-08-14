@@ -75,6 +75,7 @@ import {
 } from "./editor-shell";
 import { ConnectedGeneratedLayerSection } from "./Inspector";
 import SketchAgentPanel from "./SketchAgentPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
@@ -628,22 +629,13 @@ function SketchEditor({
           same panelsHidden chrome toggle so Tab collapses it too. On mobile
           it moves into a bottom sheet (below). */}
         {!panelsHidden && !isMobile && assistantPanelOpen && (
-          <FlexColumn
+          <ResizableSideDock
+            storageKey="sketch_assistant"
             className="sketch-editor__assistant-panel"
-            sx={{
-              width: SKETCH_SIZE.assistantPanelWidth,
-              minWidth: SKETCH_SIZE.assistantPanelWidth,
-              maxWidth: SKETCH_SIZE.assistantPanelWidth,
-              minHeight: 0,
-              flexShrink: 0,
-              backgroundColor: theme.vars.palette.background.paper,
-              borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              overflow: "hidden"
-            }}
-            gap={0}
+            ariaLabel="Resize sketch assistant"
           >
             <SketchAgentPanel />
-          </FlexColumn>
+          </ResizableSideDock>
         )}
       </FlexRow>
 

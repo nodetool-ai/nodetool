@@ -50,6 +50,7 @@ import type {
 } from "./codeAssistantBridge";
 import { registerCodeAssistantHandler } from "./codeAssistantBridge";
 import CodeAssistantChatPanel from "./CodeAssistantChatPanel";
+import ResizableSideDock from "../../chat/assistant/ResizableSideDock";
 
 const CHAT_PANEL_WIDTH = 360;
 
@@ -355,16 +356,13 @@ const CodeAssistantDialogInner = ({
             )}
           </Box>
         </FlexColumn>
-        <Box
-          sx={{
-            width: CHAT_PANEL_WIDTH,
-            flexShrink: 0,
-            minHeight: 0,
-            borderLeft: "1px solid var(--palette-grey-500)"
-          }}
+        <ResizableSideDock
+          storageKey="code_assistant"
+          defaultWidth={CHAT_PANEL_WIDTH}
+          ariaLabel="Resize code assistant"
         >
           <CodeAssistantChatPanel nodeId={nodeId} workflowId={workflowId} />
-        </Box>
+        </ResizableSideDock>
       </FlexRow>
     </Dialog>
   );
