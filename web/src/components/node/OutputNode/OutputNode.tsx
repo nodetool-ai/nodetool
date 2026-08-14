@@ -111,16 +111,17 @@ const styles = (theme: Theme) =>
         margin: 0,
         border: 0
       },
-      "& .react-flow__resize-control.handle.bottom.right": {
+      ".media-aspect-resize-handle .resize-grip": {
         opacity: 0,
-        position: "absolute",
-        right: "-8px",
-        bottom: "-9px",
         transition: `opacity ${MOTION.normal}`
       },
-      "&:hover .react-flow__resize-control.handle.bottom.right": {
-        opacity: 1
+      "&:hover .media-aspect-resize-handle .resize-grip": {
+        opacity: 0.6
       },
+      ".media-aspect-resize-handle .resize-grip:hover, .media-aspect-resize-handle .resize-grip:active":
+        {
+          opacity: 1
+        },
       "&:hover .actions": {
         opacity: 1
       },
@@ -196,7 +197,8 @@ const styles = (theme: Theme) =>
       "@media (pointer: coarse)": {
         ".actions": { opacity: 1 },
         ".image-view-actions": { opacity: 1 },
-        ".tile-actions": { opacity: 1 }
+        ".tile-actions": { opacity: 1 },
+        ".media-aspect-resize-handle .resize-grip": { opacity: 0.6 }
       }
     },
     tableStyles(theme)

@@ -45,13 +45,20 @@
 }
 
 /* Media-aspect corner grips: hidden until the node is hovered, so all four
-   corners reveal together and idle nodes stay clean. */
-.base-node .media-aspect-resize-handle .resize-grip {
+   corners reveal together and idle nodes stay clean. Applies to every node
+   that uses content-aware handles (base, output, preview, schema). */
+.react-flow__node .media-aspect-resize-handle .resize-grip {
   opacity: 0;
 }
-.base-node:hover .media-aspect-resize-handle .resize-grip {
+.react-flow__node:hover .media-aspect-resize-handle .resize-grip,
+.react-flow__node .media-aspect-resize-handle .resize-grip:active {
   opacity: 0.6;
 }
-.base-node .media-aspect-resize-handle .resize-grip:hover {
+.react-flow__node .media-aspect-resize-handle .resize-grip:hover {
   opacity: 1;
+}
+@media (pointer: coarse) {
+  .react-flow__node .media-aspect-resize-handle .resize-grip {
+    opacity: 0.6;
+  }
 }
