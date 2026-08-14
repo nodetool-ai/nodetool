@@ -115,6 +115,8 @@ export const getScriptPortInputKind = (
       return "float";
     case "bool":
       return "boolean";
+    case "color":
+      return "color";
     case "image":
     case "ImageRef":
       return "image";
@@ -130,6 +132,12 @@ export const getScriptPortInputKind = (
     case "dataframe":
     case "DataframeRef":
       return "dataframe";
+    case "file_path":
+      return "file_path";
+    case "folder_path":
+      return "folder_path";
+    case "folder":
+      return "folder";
     case "list[str]":
       return "text_list";
     case "list[image]":
@@ -142,6 +150,49 @@ export const getScriptPortInputKind = (
       return "string";
   }
 };
+
+/**
+ * True when the port type has no dedicated widget and must be edited as JSON
+ * (`list`, `dict`, `any`). `str` uses the string widget instead.
+ */
+export const isJsonScriptPortType = (portType: string): boolean => {
+  const kind = getScriptPortInputKind(portType);
+  return kind === "string" && portType !== "str" && portType !== "string";
+};
+
+const KIND_NODE_TYPE: Record<WorkflowInputKind, string> = {
+  string: "nodetool.input.StringInput",
+  integer: "nodetool.input.IntegerInput",
+  float: "nodetool.input.FloatInput",
+  boolean: "nodetool.input.BooleanInput",
+  color: "nodetool.input.ColorInput",
+  image: "nodetool.input.ImageInput",
+  video: "nodetool.input.VideoInput",
+  audio: "nodetool.input.AudioInput",
+  document: "nodetool.input.DocumentInput",
+  dataframe: "nodetool.input.DataframeInput",
+  file_path: "nodetool.input.FilePathInput",
+  folder_path: "nodetool.input.FolderPathInput",
+  folder: "nodetool.input.Folder",
+  select: "nodetool.input.SelectInput",
+  language_model: "nodetool.input.LanguageModelInput",
+  image_model: "nodetool.input.ImageModelInput",
+  video_model: "nodetool.input.VideoModelInput",
+  tts_model: "nodetool.input.TTSModelInput",
+  asr_model: "nodetool.input.ASRModelInput",
+  embedding_model: "nodetool.input.EmbeddingModelInput",
+  image_list: "nodetool.input.ImageListInput",
+  video_list: "nodetool.input.VideoListInput",
+  audio_list: "nodetool.input.AudioListInput",
+  text_list: "nodetool.input.TextListInput",
+  model3d: "nodetool.input.Model3DInput",
+  image_size: "nodetool.input.ImageSizeInput",
+  huggingface_model: "nodetool.input.HuggingFaceModelInput"
+};
+
+/** The InputNode type the mini-app property widgets expect for this kind. */
+export const nodeTypeForInputKind = (kind: WorkflowInputKind): string =>
+  KIND_NODE_TYPE[kind];
 
 export const clampNumber = (
   value: number,
