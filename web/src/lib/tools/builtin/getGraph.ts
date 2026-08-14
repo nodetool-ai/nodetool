@@ -255,7 +255,7 @@ FrontendToolRegistry.register({
         id: node.id,
         type: node.type,
         position: node.position,
-        data: node.data as unknown as Record<string, unknown>
+        data: node.data as Record<string, unknown>
       }));
       edges = nodeStore.edges.map((edge) => ({
         id: edge.id,
