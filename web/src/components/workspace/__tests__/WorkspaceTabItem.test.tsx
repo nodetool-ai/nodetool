@@ -1,0 +1,85 @@
+/**
+ * @jest-environment jsdom
+ */
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
+import WorkspaceTabItem from "../WorkspaceTabItem";
+import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
+
+jest.mock("../../../hooks/useWorkflowRunnerState", () => ({
+  useIsWorkflowRunning: () => false
+}));
+jest.mock("../../../hooks/useWorkflowDirty", () => ({
+  useWorkflowDirty: () => false
+}));
+jest.mock("../../../stores/SettingsStore", () => ({
+  useSettingsStore: (selector: (state: unknown) => unknown) =>
+    selector({ settings: { instantUpdate: false } })
+}));
+
+const tab: WorkspaceTab = {
+  id: "tab-1",
+  type: "workflow",
+  ref: "wf-1",
+  title: "My Workflow"
+} as WorkspaceTab;
+
+const renderTab = (overrides: Partial<React.ComponentProps<typeof WorkspaceTabItem>> = {}) => {
+  const handlers = {
+    onActivate: jest.fn(),
+    onBeginRename: jest.fn(),
+    onClose: jest.fn(),
+    onCloseOthers: jest.fn(),
+    onCloseAll: jest.fn(),
+    onDragStart: jest.fn(),
+    onDragOver: jest.fn(),
+    onDragLeave: jest.fn(),
+    onDrop: jest.fn(),
+    onCommitRename: jest.fn(),
+    onCancelRename: jest.fn()
+  };
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <WorkspaceTabItem
+        tab={tab}
+        isActive={false}
+        isEditing={false}
+        canRename={true}
+        dropPosition={null}
+        typeColor="#fff"
+        typeGlyph="◆"
+        {...handlers}
+        {...overrides}
+      />
+    </ThemeProvider>
+  );
+  return handlers;
+};
+
+describe("WorkspaceTabItem rename input", () => {
+  it("lets the user type spaces into the rename input", async () => {
+    const user = userEvent.setup();
+    const handlers = renderTab({ isEditing: true });
+
+    const input = screen.getByLabelText("Tab name") as HTMLInputElement;
+    await user.clear(input);
+    await user.type(input, "My New Name");
+
+    expect(input.value).toBe("My New Name");
+    expect(handlers.onActivate).not.toHaveBeenCalled();
+  });
+
+  it("still activates the tab on Space when the tab itself is focused", async () => {
+    const user = userEvent.setup();
+    const handlers = renderTab();
+
+    const tabElement = screen.getByRole("tab");
+    tabElement.focus();
+    await user.keyboard(" ");
+
+    expect(handlers.onActivate).toHaveBeenCalledWith("tab-1");
+  });
+});

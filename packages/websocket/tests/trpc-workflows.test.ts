@@ -656,6 +656,24 @@ describe("workflows router", () => {
       expect(Workflow.create).toHaveBeenCalled();
     });
 
+    // The client relies on this: a first save of a never-persisted workflow
+    // must omit expected_updated_at or the upsert is refused.
+    it("throws NOT_FOUND instead of upserting when expected_updated_at is sent", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.update({
+          id: "wf-new",
+          name: "New",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+          expected_updated_at: new Date().toISOString()
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Workflow.create).not.toHaveBeenCalled();
+    });
+
     it("rejects unauthenticated callers", async () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(
