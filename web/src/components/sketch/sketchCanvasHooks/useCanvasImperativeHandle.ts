@@ -23,6 +23,8 @@ import type {
 } from "../painting/agentStrokes";
 import type { PaintSurface } from "@nodetool-ai/image-editor/painting.js";
 import { useSketchStore } from "../state/useSketchStore";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 
 export interface UseCanvasImperativeHandleParams {
   ref: Ref<SketchCanvasRef> | undefined;
@@ -173,6 +175,67 @@ export function useCanvasImperativeHandle({
       fillLayerWithColor: (layerId: string, color: string) => {
         runtime.fillLayerWithColor(layerId, color);
         redraw();
+      },
+      mutateLayerPixels: (layerId, mutate) => {
+        const liveDoc = useSketchStore.getState().document;
+        const layer = liveDoc.layers.find((entry) => entry.id === layerId);
+        const canvas = runtime.getOrCreateLayerCanvas(
+          layerId,
+          Math.max(1, layer?.contentBounds.width || liveDoc.canvas.width),
+          Math.max(1, layer?.contentBounds.height || liveDoc.canvas.height)
+        );
+        mutate(canvas);
+        runtime.invalidateLayer(layerId);
+        redraw();
+      },
+      sampleComposite: (x, y) => {
+        const liveDoc = useSketchStore.getState().document;
+        const image = runtime.readbackComposite(liveDoc, null, null);
+        if (!image) {
+          return null;
+        }
+        const px = Math.round(x);
+        const py = Math.round(y);
+        if (px < 0 || py < 0 || px >= image.width || py >= image.height) {
+          return null;
+        }
+        const i = (py * image.width + px) * 4;
+        return {
+          r: image.data[i],
+          g: image.data[i + 1],
+          b: image.data[i + 2],
+          a: image.data[i + 3]
+        };
+      },
+      sampleLayer: (layerId, x, y) => {
+        const canvas = runtime.getLayerCanvas(layerId);
+        if (!canvas) {
+          return null;
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return null;
+        }
+        const liveDoc = useSketchStore.getState().document;
+        const layer = liveDoc.layers.find((entry) => entry.id === layerId);
+        const local = layer
+          ? new CoordinateMapper({
+              layerTransform: layer.transform,
+              rasterBounds: getCanvasRasterBounds(canvas) ?? layer.contentBounds
+            }).docToLayer({ x, y })
+          : { x, y };
+        const px = Math.round(local.x);
+        const py = Math.round(local.y);
+        if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) {
+          return null;
+        }
+        const image = ctx.getImageData(px, py, 1, 1);
+        return {
+          r: image.data[0],
+          g: image.data[1],
+          b: image.data[2],
+          a: image.data[3]
+        };
       },
       paintStrokes: (strokes: readonly AgentStrokeRequest[]) => {
         // Read live state, not the render closure: a batch can follow an edit

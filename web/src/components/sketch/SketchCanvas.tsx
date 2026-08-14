@@ -99,6 +99,25 @@ export interface SketchCanvasRef {
    * whole batch can commit as one undo entry.
    */
   paintStrokes: (strokes: readonly AgentStrokeRequest[]) => AgentStrokeOutcome[];
+  /**
+   * Mutate one layer's backing canvas, then invalidate + redraw.
+   * History and document persist stay with the caller.
+   */
+  mutateLayerPixels: (
+    layerId: string,
+    mutate: (canvas: HTMLCanvasElement) => void
+  ) => void;
+  /** Sample the flattened composite at a document-space pixel. */
+  sampleComposite: (
+    x: number,
+    y: number
+  ) => { r: number; g: number; b: number; a: number } | null;
+  /** Sample a layer backing canvas at a layer-space pixel. */
+  sampleLayer: (
+    layerId: string,
+    x: number,
+    y: number
+  ) => { r: number; g: number; b: number; a: number } | null;
   fillLayerRect: (
     layerId: string,
     x: number,

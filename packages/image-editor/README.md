@@ -71,6 +71,14 @@ drawBrushStroke(
 and `PaintSurface` are structural types, so a DOM `CanvasRenderingContext2D`
 and a skia canvas both satisfy them without a cast.
 
+## Raster ops
+
+`@nodetool-ai/image-editor/raster.js` is the fill, gradient, shape, transform,
+adjust, crop, and selection-mask engine the `ui_sketch_*` tools share. ImageData
+ops (`fillRegion`, `adjustImage`, `pickPixel`, selection builders) need no
+canvas. Drawing ops (`drawGradient`, `drawShape`, `transformRaster`, `cropRaster`)
+take a `RasterContext2D` — a DOM or skia 2D context.
+
 ## Usage
 
 ```ts

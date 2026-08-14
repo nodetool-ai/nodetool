@@ -5,6 +5,7 @@
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
 import type { FillSettings } from "../types";
 import { parseColorToRgba } from "../types";
+import { fillRegion } from "@nodetool-ai/image-editor/raster.js";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
@@ -18,10 +19,8 @@ import {
 } from "../selection";
 
 // ─── Flood Fill ──────────────────────────────────────────────────────────────
-//
-// Scanline span-fill: ~7x faster than 4-way pixel-stack fill.
-// Uses perceptually weighted color distance (luminance-weighted RGB + alpha)
-// so tolerance behaves consistently across the color spectrum.
+// Pixel match + scanline fill live in @nodetool-ai/image-editor/raster.js so
+// the pointer tool and ui_sketch_fill paint the same pixels.
 
 export function floodFill(
   ctx: CanvasRenderingContext2D,
@@ -39,56 +38,16 @@ export function floodFill(
     return;
   }
 
-  const fillParsed = parseColorToRgba(settings.color);
-  const fillR = fillParsed.r;
-  const fillG = fillParsed.g;
-  const fillB = fillParsed.b;
-  const fillA = Math.round(Math.max(0, Math.min(1, fillParsed.a)) * 255);
-
-  const idx0 = (sy * width + sx) * 4;
-  const targetR = data[idx0];
-  const targetG = data[idx0 + 1];
-  const targetB = data[idx0 + 2];
-  const targetA = data[idx0 + 3];
-
-  if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === fillA) {
-    return;
-  }
-
-  // Perceptually weighted distance² threshold.
-  // Weights: R×0.299, G×0.587, B×0.114 (standard luminance coefficients).
-  // tolerance is on a 0–255 per-channel scale; we square it for comparison.
-  const tol = settings.tolerance;
-  const tol2 = tol * tol;
-
-  const colorMatches = (i: number): boolean => {
-    const dr = data[i] - targetR;
-    const dg = data[i + 1] - targetG;
-    const db = data[i + 2] - targetB;
-    const da = data[i + 3] - targetA;
-    return dr * dr * 0.299 + dg * dg * 0.587 + db * db * 0.114 + da * da * 0.5 <= tol2;
-  };
-
-  const fillMask = new Uint8Array(width * height);
-  const bounds = computeFloodFillMask(fillMask, width, height, sx, sy, colorMatches);
-  if (!bounds) {
-    return;
-  }
-
-  for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
-    const rowBase = y * width;
-    for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
-      if (!fillMask[rowBase + x]) {
-        continue;
-      }
-      const ii = (rowBase + x) * 4;
-      data[ii] = fillR;
-      data[ii + 1] = fillG;
-      data[ii + 2] = fillB;
-      data[ii + 3] = fillA;
+  fillRegion(
+    { width, height, data },
+    sx,
+    sy,
+    {
+      color: settings.color,
+      tolerance: settings.tolerance,
+      contiguous: true
     }
-  }
-
+  );
   ctx.putImageData(imageData, 0, 0);
 }
 

@@ -1515,10 +1515,11 @@ Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
 clip/track factories) — rather than reimplement. The sketch surface reimplements
 its layer-stack ops directly, but not its pixels: every raster layer is an
-`@napi-rs/canvas` bitmap and `ui_sketch_stroke` runs the editor's own paint core
-(`@nodetool-ai/image-editor/painting.js`, pointed at skia with
-`setPaintSurfaceFactory(createCanvas)`), so a headless stroke is the stroke the
-browser would paint. `ui_sketch_get_layer_image` composites those layers —
+`@napi-rs/canvas` bitmap. `ui_sketch_stroke` runs the editor's paint core
+(`@nodetool-ai/image-editor/painting.js`) and fill / gradient / shape / transform
+/ adjust / crop / selection-shape run `@nodetool-ai/image-editor/raster.js`, both
+pointed at skia with `setPaintSurfaceFactory(createCanvas)`, so a headless edit
+is the edit the browser would paint. `ui_sketch_get_layer_image` composites those layers —
 opacity and blend mode included, NodeTool's `"normal"`/`"add"` mapping onto
 Canvas's `"source-over"`/`"lighter"` — and hands the model a PNG of its own
 work. `SketchToolBridge.compositePng()` (or `getLastSketchToolBridge()`, for a

@@ -194,6 +194,144 @@ export interface SketchRenderedAssetResult {
   layerName: string | null;
 }
 
+export interface SketchFillOptions {
+  target?: string;
+  x: number;
+  y: number;
+  color?: string;
+  tolerance?: number;
+  contiguous?: boolean;
+}
+
+export interface SketchFillResult {
+  layerId: string;
+  layerName: string;
+  x: number;
+  y: number;
+  color: string;
+}
+
+export interface SketchGradientStop {
+  offset: number;
+  color: string;
+}
+
+export interface SketchGradientOptions {
+  target?: string;
+  type: "linear" | "radial";
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+  stops?: SketchGradientStop[];
+}
+
+export interface SketchGradientResult {
+  layerId: string;
+  layerName: string;
+  type: "linear" | "radial";
+}
+
+export interface SketchDrawShapeOptions {
+  target?: string;
+  shape: "rect" | "ellipse" | "line" | "arrow" | "polygon" | "star";
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  cornerRadius?: number;
+  points?: number;
+  innerRadius?: number;
+}
+
+export interface SketchDrawShapeResult {
+  layerId: string;
+  layerName: string;
+  shape: string;
+  bounds: { x: number; y: number; width: number; height: number };
+}
+
+export interface SketchSelectionShapeOptions {
+  mode?: "replace" | "add" | "subtract" | "intersect";
+  shape: "rect" | "ellipse" | "lasso" | "polygon";
+  bounds?: { x: number; y: number; width: number; height: number };
+  points?: { x: number; y: number }[];
+  feather?: number;
+}
+
+export interface SketchSelectionShapeResult {
+  hasSelection: boolean;
+  shape: string;
+  mode: string;
+}
+
+export interface SketchTransformOptions {
+  target?: string;
+  dx?: number;
+  dy?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  flipH?: boolean;
+  flipV?: boolean;
+}
+
+export interface SketchTransformResult {
+  layerId: string;
+  layerName: string;
+  dx: number;
+  dy: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+}
+
+export interface SketchAdjustLayerOptions {
+  target?: string;
+  brightness?: number;
+  contrast?: number;
+  exposure?: number;
+  saturation?: number;
+  hue?: number;
+  blur?: number;
+}
+
+export interface SketchAdjustLayerResult {
+  layerId: string;
+  layerName: string;
+  adjustments: Record<string, number>;
+}
+
+export interface SketchCropOptions {
+  target?: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SketchCropResult {
+  layerId: string | null;
+  width: number;
+  height: number;
+}
+
+export interface SketchPickColorOptions {
+  target?: string | null;
+  x: number;
+  y: number;
+}
+
+export interface SketchPickColorResult {
+  x: number;
+  y: number;
+  color: string;
+  rgba: { r: number; g: number; b: number; a: number };
+}
+
 /**
  * Operations the live {@link SketchEditor} exposes to the agent tooling layer.
  * Layers are addressed by id, by (case-insensitive) name, or the literal
@@ -225,6 +363,14 @@ export interface SketchAgentHandler {
   paintStrokes: (strokes: SketchStrokeOptions[]) => SketchStrokeResult[];
   resizeCanvas: (width: number, height: number) => { width: number; height: number };
   setSelection: (op: SketchSelectionOp) => { hasSelection: boolean };
+  fill: (opts: SketchFillOptions) => Promise<SketchFillResult> | SketchFillResult;
+  gradient: (opts: SketchGradientOptions) => Promise<SketchGradientResult> | SketchGradientResult;
+  drawShape: (opts: SketchDrawShapeOptions) => Promise<SketchDrawShapeResult> | SketchDrawShapeResult;
+  setSelectionShape: (opts: SketchSelectionShapeOptions) => SketchSelectionShapeResult;
+  transform: (opts: SketchTransformOptions) => Promise<SketchTransformResult> | SketchTransformResult;
+  adjustLayer: (opts: SketchAdjustLayerOptions) => Promise<SketchAdjustLayerResult> | SketchAdjustLayerResult;
+  crop: (opts: SketchCropOptions) => Promise<SketchCropResult> | SketchCropResult;
+  pickColor: (opts: SketchPickColorOptions) => Promise<SketchPickColorResult>;
   /** Read pixels: the flattened composite (target null) or a single layer. */
   getLayerImage: (target: string | null) => Promise<SketchLayerImageResult>;
   /**
