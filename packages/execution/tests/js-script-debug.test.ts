@@ -83,6 +83,21 @@ describe("validateJsScriptDoc", () => {
     expect(codes(validation)).toContain("js_script_test_output");
   });
 
+  it("rejects a module-style export async function run body", async () => {
+    const validation = await validateJsScriptDoc(
+      doc({
+        code:
+          "export async function run(inputs) {\n" +
+          '  await output("total", inputs.n + 1);\n' +
+          "}"
+      })
+    );
+    expect(validation.ok).toBe(false);
+    const issue = validation.errors.find((item) => item.code === "code_module");
+    expect(issue?.message).toContain("`export`");
+    expect(issue?.message).not.toContain("return an object");
+  });
+
   it("makes the return contract an error", async () => {
     const legacy = await validateJsScriptDoc(
       doc({ code: "return { total: inputs.n + 1 };" })

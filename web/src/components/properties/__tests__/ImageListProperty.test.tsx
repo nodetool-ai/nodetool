@@ -38,6 +38,11 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
     isUploading: false
   })
 }));
+jest.mock("../../../serverState/useAsset", () => ({
+  useAsset: ({ image }: { image?: { uri?: string } }) => ({
+    uri: image?.uri
+  })
+}));
 jest.mock("../../node/ImageDimensions", () => ({
   __esModule: true,
   default: () => <div>Image Dimensions</div>

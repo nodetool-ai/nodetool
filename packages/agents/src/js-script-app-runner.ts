@@ -11,9 +11,10 @@
  * every installed pack by import, its declared secrets, its timeout capped at
  * `JS_SCRIPT_MAX_TIMEOUT_SECONDS`, and the Code-node toolbelt.
  */
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";
 import { JS_SCRIPT_MAX_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { runCodeBody } from "./capabilities/code.js";
 
 /**
@@ -33,6 +34,7 @@ export function createJsScriptAppRunner(
     const context = new ProcessingContext({
       jobId: `js-script-op-${input.scriptId}-${Date.now()}`,
       userId,
+      storage: new FileStorageAdapter(getDefaultAssetsPath()),
       ...(options.secretResolver
         ? { secretResolver: options.secretResolver }
         : {})

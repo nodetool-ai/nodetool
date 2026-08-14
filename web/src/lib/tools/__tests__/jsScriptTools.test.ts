@@ -69,6 +69,15 @@ describe("ui_jsscript_* tools", () => {
     );
   });
 
+  it("tells set_code not to wrap the body in a module function", () => {
+    const setCode = FrontendToolRegistry.getManifest().find(
+      (tool) => tool.name === "ui_jsscript_set_code"
+    );
+    expect(setCode?.description).toContain("top-level statements");
+    expect(setCode?.description).toContain("function run");
+    expect(setCode?.description).toContain("`export`");
+  });
+
   it("requires the script id on every tool", () => {
     const jsScriptTools = FrontendToolRegistry.getManifest().filter((tool) =>
       tool.name.startsWith("ui_jsscript_")

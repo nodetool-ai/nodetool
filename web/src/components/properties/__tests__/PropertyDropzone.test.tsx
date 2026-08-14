@@ -1,9 +1,10 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock the hooks
+const mockUploadAsset = jest.fn();
+
 jest.mock("../../../hooks/handlers/useFileDrop", () => ({
   useFileDrop: () => ({
     onDrop: jest.fn(),
@@ -15,7 +16,7 @@ jest.mock("../../../hooks/handlers/useFileDrop", () => ({
 
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({
-    uploadAsset: jest.fn(),
+    uploadAsset: mockUploadAsset,
     isUploading: false,
   }),
 }));
@@ -54,6 +55,7 @@ describe("PropertyDropzone", () => {
 
   beforeEach(() => {
     mockOnChange.mockClear();
+    mockUploadAsset.mockReset();
     mockIsElectron = false;
     // Reset window.api
     delete (window as any).api;
@@ -113,5 +115,34 @@ describe("PropertyDropzone", () => {
 
     // Dropzone should be clickable in Electron too
     expect(screen.getByText("Click or drop image")).toBeInTheDocument();
+  });
+
+  it("writes asset:// and asset_id when an upload completes", () => {
+    mockUploadAsset.mockImplementation(({ onCompleted }) => {
+      onCompleted({
+        id: "87c6124bc9684facabb8cb3575dcb8ad",
+        get_url: "/api/storage/1/87c6124bc9684facabb8cb3575dcb8ad.bin"
+      });
+    });
+
+    renderWithTheme(
+      <PropertyDropzone
+        asset={undefined}
+        uri={undefined}
+        onChange={mockOnChange}
+        contentType="image"
+        props={mockProps as any}
+      />
+    );
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["bytes"], "clip.mp4", { type: "video/mp4" });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(mockOnChange).toHaveBeenCalledWith({
+      type: "image",
+      uri: "asset://87c6124bc9684facabb8cb3575dcb8ad",
+      asset_id: "87c6124bc9684facabb8cb3575dcb8ad"
+    });
   });
 });

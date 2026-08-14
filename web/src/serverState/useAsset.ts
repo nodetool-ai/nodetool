@@ -3,6 +3,7 @@ import { Asset, Video, Audio, Image, Document, Model3DRef } from "../stores/ApiT
 import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
 import { fileUriToHttpUrl } from "../utils/localFile";
+import { assetIdFromLocator } from "../utils/mediaRef";
 
 type UseAssetProps = {
   audio?: Audio;
@@ -35,18 +36,29 @@ export function useAsset(props: UseAssetProps): {
   const getAsset = useAssetStore((state) => state.get);
   const assetResource = assetResourceFromType(props);
 
+  const declaredId =
+    typeof assetResource?.asset_id === "string" &&
+    assetResource.asset_id.trim() !== ""
+      ? assetResource.asset_id.trim()
+      : undefined;
+  const assetId =
+    declaredId ??
+    assetIdFromLocator(
+      typeof assetResource?.uri === "string" ? assetResource.uri : undefined
+    );
+
   const load = useCallback(async () => {
-    if (assetResource?.asset_id) {
-      return await getAsset(assetResource.asset_id);
+    if (assetId) {
+      return await getAsset(assetId);
     } else {
       return undefined;
     }
-  }, [assetResource?.asset_id, getAsset]);
+  }, [assetId, getAsset]);
 
   const { data: asset } = useQuery({
-    queryKey: ["asset", assetResource?.asset_id],
+    queryKey: ["asset", assetId],
     queryFn: load,
-    enabled: !!assetResource?.asset_id
+    enabled: Boolean(assetId)
   });
 
   const resourceUri = assetResource?.uri;

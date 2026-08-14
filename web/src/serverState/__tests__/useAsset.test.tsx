@@ -46,6 +46,18 @@ describe('useAsset', () => {
     );
   });
 
+  it('loads by the id inside an asset:// uri when asset_id is absent', () => {
+    renderHook(() =>
+      useAsset({ video: { uri: 'asset://87c6124bc9684facabb8cb3575dcb8ad' } as any })
+    );
+    expect(useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['asset', '87c6124bc9684facabb8cb3575dcb8ad'],
+        enabled: true
+      })
+    );
+  });
+
   it('prefers fetched asset URL for asset scheme URIs', () => {
     const { result } = renderHook(() =>
       useAsset({ model3d: { asset_id: '123', uri: 'asset://123' } as any })

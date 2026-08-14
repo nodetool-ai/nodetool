@@ -231,8 +231,8 @@ export function validateCodeNodeBody(
       code: "code_module",
       message:
         "The code uses `export` at the top level. The body runs inside an async " +
-        "function, which cannot contain an export declaration — return an object " +
-        "instead; its keys become the node's output handles."
+        "function, which cannot contain an export declaration. Write top-level " +
+        "statements only — do not wrap the body in `export async function run`."
     });
   }
 

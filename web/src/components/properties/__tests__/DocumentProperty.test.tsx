@@ -80,7 +80,8 @@ describe("DocumentProperty", () => {
     expect(mockUploadAsset).toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        uri: "/api/storage/1/asset-1.pdf",
+        uri: "asset://asset-1",
+        asset_id: "asset-1",
         type: "document"
       })
     );
@@ -109,7 +110,8 @@ describe("DocumentProperty", () => {
     expect(mockUploadAsset).toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        uri: "/api/storage/1/asset-1.pdf",
+        uri: "asset://asset-1",
+        asset_id: "asset-1",
         type: "document"
       })
     );

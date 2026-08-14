@@ -19,7 +19,12 @@
  */
 
 import { z } from "zod";
-import { parseWithTypeCoercion, ProcessingContext } from "@nodetool-ai/runtime";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import {
+  FileStorageAdapter,
+  parseWithTypeCoercion,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
 import {
   emptyJsScriptDocument,
   JS_SCRIPT_MAX_TIMEOUT_SECONDS,
@@ -148,7 +153,8 @@ export function createJsScriptToolBridge(
   ): Promise<HarnessRunResult> => {
     const context = new ProcessingContext({
       jobId: `jsscript-bridge-${++runSeq}`,
-      userId: "1"
+      userId: "1",
+      storage: new FileStorageAdapter(getDefaultAssetsPath())
     });
     return runCodeBody(context, {
       code: document.code,
@@ -196,7 +202,7 @@ export function createJsScriptToolBridge(
 
     tool(
       "ui_jsscript_set_code",
-      "Replace the script body. Declared inputs arrive on the `inputs` object; outputs leave through `await emit(name, value)` (streams one value) and `await output(name, value)` (sets a final one). `return` is control flow only — a body that returns its outputs instead of emitting them fails validation.",
+      "Replace the script body. Write top-level statements only — the host wraps the body. Do not write `export` or `function run`. Declared inputs arrive on the `inputs` object; outputs leave through `await emit(name, value)` (streams one value) and `await output(name, value)` (sets a final one). `return` is control flow only — a body that returns its outputs instead of emitting them fails validation.",
       z.object({ code: z.string() }),
       async ({ code }) => {
         document.code = code as string;
@@ -355,9 +361,11 @@ const JS_SCRIPT_SYSTEM_PROMPT = `You are a scripting assistant operating a JS sc
 
 A JS script is a body of JavaScript with declared input and output ports, secrets it may read, a timeout, and saved test cases. Import any installed sandbox pack or \`@nodetool-ai/sandbox-nodetool/<namespace>\` directly — there is no packages setting.
 
+The host wraps the body in an async function. Write top-level statements only. Do not write \`export\`. Do not wrap the body in \`function run\`. \`inputs\` is already in scope.
+
 - Call ui_jsscript_get_state first to see the document and its current validation issues.
 - Declare ports with ui_jsscript_set_ports before writing a body that reads or writes them.
-- Write the body with ui_jsscript_set_code. Inputs arrive on the \`inputs\` object; outputs leave through \`await emit(name, value)\` and \`await output(name, value)\`. Never return outputs. The body has the same \`tools.*\` / \`nodetool.*\` belt a Code node has.
+- Write the body with ui_jsscript_set_code. Read \`inputs.<name>\`. Leave values through \`await emit(name, value)\` and \`await output(name, value)\`. Never return outputs. The body has the same \`tools.*\` / \`nodetool.*\` belt a Code node has.
 - Save regression cases with ui_jsscript_set_tests, then run them with ui_jsscript_test.
 - ui_jsscript_run executes the body once with inputs you supply.
 

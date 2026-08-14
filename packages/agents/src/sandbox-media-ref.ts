@@ -404,29 +404,47 @@ function encodeBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Turn bytes into the ref's `uri`.
+ * Turn bytes into a portable locator.
  *
- * Storage wins whenever the context has it: the ref then carries a short
- * `/api/storage/<key>` URI that `loadMediaRefBytes` reads back, and the bytes
- * stay out of every graph message. Without storage a small payload becomes a
- * `data:` URI and a large one is refused.
+ * `createAsset` wins: the ref is `asset://<id>` plus `asset_id`, which any
+ * host can resolve. Otherwise the bytes go to storage under a sandbox key
+ * and the locator is `/api/storage/<key>` — never the `file://` path
+ * `store()` returns on the local adapter. Without storage a small payload
+ * becomes a `data:` URI and a large one is refused.
  */
 async function storeOrInline(
   where: string,
   bytes: Uint8Array,
   mimeType: string,
+  filename: string | undefined,
   context: ProcessingContext
-): Promise<string> {
+): Promise<{ uri: string; asset_id: string | null }> {
+  if (context.hasModelInterface?.("createAsset")) {
+    const ext = extForMime(mimeType);
+    const name = filename ?? `sandbox-${crypto.randomUUID()}.${ext}`;
+    const created = (await context.createAsset({
+      name,
+      contentType: mimeType,
+      content: bytes
+    })) as { id?: unknown };
+    if (typeof created?.id === "string" && created.id.length > 0) {
+      return { uri: `asset://${created.id}`, asset_id: created.id };
+    }
+  }
   if (context.storage) {
     const key = `sandbox/${crypto.randomUUID()}.${extForMime(mimeType)}`;
-    return context.storage.store(key, bytes, mimeType);
+    await context.storage.store(key, bytes, mimeType);
+    return { uri: `/api/storage/${key}`, asset_id: null };
   }
   if (bytes.length > MAX_DATA_URI_BYTES) {
     throw new Error(
       `${where}: ${bytes.length} bytes needs storage, which this run has none of; a data URI is capped at ${MAX_DATA_URI_BYTES} bytes`
     );
   }
-  return `data:${mimeType};base64,${encodeBase64(bytes)}`;
+  return {
+    uri: `data:${mimeType};base64,${encodeBase64(bytes)}`,
+    asset_id: null
+  };
 }
 
 async function buildRef(
@@ -443,8 +461,14 @@ async function buildRef(
     optionalString(options, "mimeType", where) ??
     (filename ? mimeForPath(filename) : undefined) ??
     DEFAULT_MIME[kind];
-  const uri = await storeOrInline(where, bytes, mimeType, context);
-  const ref: Record<string, unknown> = { type: kind, uri, asset_id: null };
+  const { uri, asset_id } = await storeOrInline(
+    where,
+    bytes,
+    mimeType,
+    filename,
+    context
+  );
+  const ref: Record<string, unknown> = { type: kind, uri, asset_id };
   if (kind !== "document") {
     ref.mimeType = mimeType;
   }

@@ -18,11 +18,12 @@ import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
   uri: string | undefined;
-  onChange: (value: { uri: string; type: string }) => void;
+  onChange: (value: { uri: string; type: string; asset_id: string }) => void;
   contentType: string;
   props: PropertyProps;
   showRecorder?: boolean;
@@ -37,13 +38,18 @@ const PropertyDropzone = ({
   showRecorder = true
 }: PropertyDropzoneProps) => {
   const theme = useTheme();
-  const onChangeAsset = (asset: Asset) =>
-    props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
+  const emitRef = useCallback(
+    (next: Asset) => onChange(mediaRefFromAsset(next, contentType)),
+    [onChange, contentType]
+  );
+  const onChangeAsset = useCallback(
+    (next: Asset) => props.onChange(mediaRefFromAsset(next, contentType)),
+    [props, contentType]
+  );
 
   const { onDrop, onDragOver, filename } = useFileDrop({
     uploadAsset: true,
-    onChangeAsset: (asset: Asset) =>
-      onChange({ uri: asset.get_url || "", type: contentType }),
+    onChangeAsset: emitRef,
     type: contentType as "image" | "audio" | "video" | "all"
   });
 
@@ -239,8 +245,8 @@ const PropertyDropzone = ({
     const file = files[0];
     uploadAssetFn({
       file,
-      onCompleted: (asset) => {
-        onChange({ uri: asset.get_url || "", type: contentType });
+      onCompleted: (next) => {
+        emitRef(next);
       },
       onFailed: (error) => {
         console.error("Failed to upload asset:", error);
@@ -251,7 +257,7 @@ const PropertyDropzone = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [contentType, onChange, uploadAssetFn]);
+  }, [emitRef, uploadAssetFn]);
 
   const handleNativeFilePicker = useCallback(async () => {
     if (!window.api?.dialog?.openFile) {
@@ -310,8 +316,8 @@ const PropertyDropzone = ({
 
         uploadAssetFn({
           file,
-          onCompleted: (asset) => {
-            onChange({ uri: asset.get_url || "", type: contentType });
+          onCompleted: (next) => {
+            emitRef(next);
           },
           onFailed: (error) => {
             console.error("Failed to upload asset:", error);
@@ -321,7 +327,7 @@ const PropertyDropzone = ({
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [contentType, onChange, uploadAssetFn]);
+  }, [contentType, emitRef, uploadAssetFn]);
 
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {

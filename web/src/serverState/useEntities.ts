@@ -4,7 +4,7 @@
  *
  * Storage convention: an entity is an ordinary image asset carrying an
  * {@link EntityMarker} under `metadata.nodetool_entity`. The asset's own bytes
- * are the entity's primary reference image (`get_url`); the marker holds the
+ * are the entity's primary reference image (`asset://<id>`); the marker holds the
  * kind/name/descriptor and other prompt-injection fields. Tagging and untagging
  * never create or delete the underlying asset — they only write the marker.
  */
@@ -18,6 +18,7 @@ import {
 } from "@tanstack/react-query";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import type { Asset } from "../stores/ApiTypes";
+import { mediaRefFromAsset } from "../utils/mediaRef";
 import { trpcClient } from "../trpc/client";
 
 /** The Entity-without-images object stored on `metadata.nodetool_entity`. */
@@ -86,9 +87,7 @@ export function assetToEntity(asset: Asset): Entity | null {
     tags: marker.tags,
     lora: marker.lora ?? null,
     palette: marker.palette ?? null,
-    reference_images: asset.get_url
-      ? [{ type: "image", asset_id: asset.id, uri: asset.get_url }]
-      : [],
+    reference_images: [mediaRefFromAsset(asset, "image")],
     created_at: asset.created_at
   };
 }

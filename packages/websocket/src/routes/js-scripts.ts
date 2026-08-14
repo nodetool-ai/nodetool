@@ -24,11 +24,14 @@ import {
   runJsScriptRequest,
   type RunJsScriptResponse
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
+import { getAssetAdapter } from "../lib/storage.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
+  storage?: StorageAdapter;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -97,7 +100,8 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const context = new ProcessingContext({
         jobId: `js-script-${script.id}-${Date.now()}`,
         userId,
-        secretResolver: getSecret
+        secretResolver: getSecret,
+        storage: opts.storage ?? getAssetAdapter()
       });
 
       const result = await runCodeBody(context, {

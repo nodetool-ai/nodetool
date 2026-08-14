@@ -75,7 +75,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_set_code",
   description:
-    "Replace the script's body; the editor updates live and autosaves. Declared inputs arrive on the `inputs` object (`inputs.<name>`); outputs leave through `emit(name, value)` / `output(name, value)`, never through `return`. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly — there is no packages setting.",
+    "Replace the script's body; the editor updates live and autosaves. Write top-level statements only — the host wraps the body in an async function. Do not write `export` or `function run`. Declared inputs arrive on `inputs.<name>`; outputs leave through `await emit(name, value)` / `await output(name, value)`, never through `return`. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly — there is no packages setting.",
   parameters: z.object({
     script_id: scriptIdParam,
     code: z.string().describe("The full new JavaScript body.")

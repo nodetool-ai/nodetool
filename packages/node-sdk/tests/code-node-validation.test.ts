@@ -388,6 +388,8 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     );
     const issue = issues.find((i) => i.code === "code_module");
     expect(issue?.message).toContain("`export`");
+    expect(issue?.message).toContain("top-level statements");
+    expect(issue?.message).not.toContain("return an object");
   });
 
   it("reports a specifier the catalog cannot resolve", () => {
