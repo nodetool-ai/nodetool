@@ -128,7 +128,8 @@ const log = createLogger("nodetool.websocket.http");
 import {
   getAssetFileName,
   getAssetStoragePath,
-  retrieveAssetBytes
+  retrieveAssetBytes,
+  normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { assetObjectKey } from "@nodetool-ai/storage";
 export { getAssetFileName, getAssetStoragePath };
@@ -2365,10 +2366,15 @@ export async function handleAssetsRoot(
 
     const metadata: Record<string, unknown> = body.metadata ?? {};
 
+    const assetContentType = normalizeAssetContentType(
+      body.content_type,
+      body.name
+    );
+
     const asset = (await Asset.create({
       user_id: userId,
       name: body.name,
-      content_type: body.content_type,
+      content_type: assetContentType,
       parent_id: body.parent_id,
       workflow_id: body.workflow_id ?? null,
       node_id: body.node_id ?? null,

@@ -151,8 +151,36 @@ describe("assets.createUpload", () => {
     expect(adapter.createUploadUrl).not.toHaveBeenCalled();
   });
 
-  it("returns a null target on a backend with no direct upload", async () => {
-    assetCreate.mockResolvedValue(pendingAsset());
+  it("assigns a .glb key for model/gltf-binary", async () => {
+    assetCreate.mockResolvedValue(
+      pendingAsset({ id: "m1", content_type: "model/gltf-binary", name: "Untitled.glb" })
+    );
+    const result = await createCaller(makeCtx()).assets.createUpload({
+      name: "Untitled.glb",
+      content_type: "model/gltf-binary",
+      parent_id: "user-1",
+      size: 2012
+    });
+    expect(result.key).toBe("user-1/m1.glb");
+  });
+
+  it("infers model/gltf-binary from a .glb name when the type is generic", async () => {
+    assetCreate.mockImplementation(async (row: Record<string, unknown>) =>
+      pendingAsset({ id: "m1", ...row })
+    );
+    const result = await createCaller(makeCtx()).assets.createUpload({
+      name: "Duck.glb",
+      content_type: "application/octet-stream",
+      parent_id: "user-1",
+      size: 100
+    });
+    expect(assetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ content_type: "model/gltf-binary" })
+    );
+    expect(result.key).toBe("user-1/m1.glb");
+  });
+
+  it("returns a null target on a backend with no direct upload and creates no row", async () => {
     const restore = adapter.createUploadUrl;
     adapter.createUploadUrl = undefined;
     try {
@@ -163,7 +191,7 @@ describe("assets.createUpload", () => {
         size: 1024
       });
       expect(result.upload).toBeNull();
-      expect(result.key).toBe("user-1/a1.png");
+      expect(assetCreate).not.toHaveBeenCalled();
     } finally {
       adapter.createUploadUrl = restore;
     }

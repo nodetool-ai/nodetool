@@ -5,6 +5,7 @@ import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
   useWorkspaceTabsStore,
@@ -84,18 +85,23 @@ const Model3DSurface = ({ refId, mode }: Model3DSurfaceProps) => {
   const persistBlob = useCallback(
     async (blob: Blob) => {
       if (!asset) {
-        return;
+        throw new Error("Asset is not loaded.");
       }
       const base64Data = await blobToBase64(blob);
       await updateAsset({
         id: asset.id,
         data: base64Data,
-        data_encoding: "base64"
+        data_encoding: "base64",
+        content_type: "model/gltf-binary"
       });
       invalidateQueries(["asset", asset.id]);
       if (asset.parent_id) {
         invalidateQueries(["assets", { parent_id: asset.parent_id }]);
       }
+      useNotificationStore.getState().addNotification({
+        type: "success",
+        content: `Saved ${asset.name || "3D model"}.`
+      });
     },
     [asset, updateAsset, invalidateQueries]
   );

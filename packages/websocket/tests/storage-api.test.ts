@@ -119,6 +119,18 @@ describe("MIME type detection", () => {
     expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
   });
 
+  it("serves a legacy .bin 3D object when the request asks for .glb", async () => {
+    const handler = makeHandler();
+    const ownerDir = path.join(tmpDir, "1");
+    await fs.mkdir(ownerDir, { recursive: true });
+    await fs.writeFile(path.join(ownerDir, "mesh.bin"), "glTF-bytes");
+    const res = await handler(
+      makeRequest("/api/storage/1/mesh.glb", "GET")
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("glTF-bytes");
+  });
+
   it.each([
     ["clip.webm", "video/webm"],
     ["sound.ogg", "audio/ogg"],

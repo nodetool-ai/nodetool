@@ -30,6 +30,7 @@ const MIME_TYPES: Record<string, string> = {
   ".aac": "audio/aac",
   ".flac": "audio/flac",
   ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
   ".json": "application/json",
   ".txt": "text/plain",
   ".pdf": "application/pdf",
@@ -102,6 +103,20 @@ function legacyKeyFor(key: string): string | null {
   if (slash <= 0) return null;
   const base = normalized.slice(slash + 1);
   return base && base !== normalized ? base : null;
+}
+
+/**
+ * 3D models used to be stored as `.bin`. Swap `.glb`/`.gltf` ↔ `.bin` so a
+ * new get_url still finds the old object.
+ */
+function alternateModel3DKey(key: string): string | null {
+  if (key.endsWith(".glb") || key.endsWith(".gltf")) {
+    return key.replace(/\.(glb|gltf)$/, ".bin");
+  }
+  if (key.endsWith(".bin")) {
+    return key.slice(0, -4) + ".glb";
+  }
+  return null;
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -265,6 +280,16 @@ async function handleStorageRequest(
   if (legacy && !(await pathExists(filePath))) {
     if (await callerOwnsStorageKey(userId, legacy)) {
       filePath = resolveStoragePath(rootDir, legacy);
+    }
+  }
+
+  if (!(await pathExists(filePath))) {
+    const alt = alternateModel3DKey(key);
+    if (alt) {
+      const altPath = resolveStoragePath(rootDir, alt);
+      if (await pathExists(altPath)) {
+        filePath = altPath;
+      }
     }
   }
 
