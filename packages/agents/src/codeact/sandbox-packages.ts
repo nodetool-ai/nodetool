@@ -31,6 +31,30 @@ export function sessionAllowedPackages(
 }
 
 /**
+ * Unique installed pack names. Consent is per pack, so a JS-script session
+ * lists roots only — a subpath of an allowed pack is already covered.
+ */
+export function installedPackAllowlist(
+  catalog: SandboxModuleCatalog | null | undefined
+): string[] {
+  return [...new Set((catalog?.summaries() ?? []).map((s) => s.packName))];
+}
+
+/**
+ * Chat session allowlist. A JS-script assistant may import every installed
+ * pack; every other source leaves this unset so dsl+fabric stay the default.
+ */
+export function sandboxPackagesForChat(opts: {
+  source?: string | null;
+  focusedType?: string | null;
+  catalog: SandboxModuleCatalog | null | undefined;
+}): string[] | undefined {
+  const isJsScript =
+    opts.source === "jsscript_assistant" || opts.focusedType === "jsscript";
+  return isJsScript ? installedPackAllowlist(opts.catalog) : undefined;
+}
+
+/**
  * Whether an allowlist covers one import specifier.
  *
  * Consent is per pack, so a subpath of an allowed specifier is covered: it is

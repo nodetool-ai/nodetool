@@ -11,8 +11,7 @@ import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAg
  * throws, naming the requested id and listing the open ones.
  *
  * Unlike the Code node assistant, these edits are the document: they autosave.
- * Run and test execute server-side in the QuickJS sandbox against the *saved*
- * document, so an edit needs a moment to land before a run reflects it.
+ * Run and test flush the live document first, then execute the saved row.
  */
 
 const scriptIdParam = z
@@ -188,7 +187,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_run",
   description:
-    "Run the script server-side in the QuickJS sandbox with the given inputs — or, for a body that reads `stream`, with items staged per handle in `input_streams` — and return its outputs, emitted stream, logs, error and duration. The run executes the SAVED document, so make edits and then run — an edit still riding the autosave debounce will not be reflected.",
+    "Flush the live document, then run the saved script server-side in the QuickJS sandbox with the given inputs — or, for a body that reads `stream`, with items staged per handle in `input_streams` — and return its outputs, emitted stream, logs, error and duration. The run executes the saved document after the flush. The run fails when declared outputs are all empty.",
   parameters: z.object({
     script_id: scriptIdParam,
     inputs: z
@@ -207,14 +206,16 @@ FrontendToolRegistry.register({
       inputs ?? {},
       input_streams
     );
-    return { ok: true, run: outcome };
+    // The nested `run.ok` is what the body did. Mirror it on the tool
+    // result so a failed run is not a successful tool call.
+    return { ok: outcome.ok, run: outcome };
   }
 });
 
 FrontendToolRegistry.register({
   name: "ui_jsscript_test",
   description:
-    "Run every saved test case against the script and return the grade report: how many passed and failed, and for each case its outputs, emitted stream, logs, error, and the mismatches between what it expected and what it got. Save cases first with ui_jsscript_set_tests.",
+    "Flush the live document, then run every saved test case and return the grade report: how many passed and failed, and for each case its outputs, emitted stream, logs, error, and the mismatches. Fails when there are no saved cases. Add cases first with ui_jsscript_set_tests.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const report = await getJsScriptAgentHandler(script_id).test();

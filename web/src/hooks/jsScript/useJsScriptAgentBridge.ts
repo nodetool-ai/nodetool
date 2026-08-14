@@ -26,6 +26,13 @@ import {
 } from "../../components/jsScript/jsScriptAgentBridge";
 import { runJsScript } from "../../components/jsScript/runJsScript";
 import { gradeJsScriptTests } from "../../components/jsScript/gradeJsScriptTests";
+import { flushJsScriptSave } from "./jsScriptSaveRegistry";
+import {
+  assertJsScriptTestsPresent,
+  emptyDeclaredOutputsError,
+  jsScriptFlushFailedError,
+  missingDeclaredOutputs
+} from "./jsScriptRunGates";
 
 export const useJsScriptAgentBridge = (scriptId: string): void => {
   const handler = useMemo<JsScriptAgentHandler>(() => {
@@ -55,9 +62,31 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
       inputs: Record<string, unknown>,
       inputStreams?: Record<string, unknown[]>
     ): Promise<JsScriptRunOutcome> => {
+      const flushed = await flushJsScriptSave(scriptId);
+      if (!flushed.ok) {
+        const outcome: JsScriptRunOutcome = {
+          ok: false,
+          logs: [],
+          duration_ms: 0,
+          error: jsScriptFlushFailedError("run", flushed.error)
+        };
+        store().setLastRun(scriptId, outcome);
+        return outcome;
+      }
+      const ports = requireEntry().document.outputs;
       store().setRunning(scriptId, true);
       try {
         const outcome = await runJsScript(scriptId, inputs, inputStreams);
+        const missing = missingDeclaredOutputs(ports, outcome.outputs);
+        if (outcome.ok && ports.length > 0 && missing.length === ports.length) {
+          const failed: JsScriptRunOutcome = {
+            ...outcome,
+            ok: false,
+            error: emptyDeclaredOutputsError(missing)
+          };
+          store().setLastRun(scriptId, failed);
+          return failed;
+        }
         store().setLastRun(scriptId, outcome);
         return outcome;
       } finally {
@@ -98,7 +127,12 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
       },
       run,
       test: async (): Promise<JsScriptTestReport> => {
+        const flushed = await flushJsScriptSave(scriptId);
+        if (!flushed.ok) {
+          throw new Error(jsScriptFlushFailedError("test", flushed.error));
+        }
         const tests = requireEntry().document.tests;
+        assertJsScriptTestsPresent(tests);
         store().setRunning(scriptId, true);
         try {
           const report = await gradeJsScriptTests(

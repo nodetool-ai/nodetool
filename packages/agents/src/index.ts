@@ -368,6 +368,10 @@ export {
   nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
 export {
+  installedPackAllowlist,
+  sandboxPackagesForChat
+} from "./codeact/sandbox-packages.js";
+export {
   GRAPH_DSL_PACKAGE,
   GRAPH_DSL_PROMPT_SECTION,
   hasGraphDslTools,

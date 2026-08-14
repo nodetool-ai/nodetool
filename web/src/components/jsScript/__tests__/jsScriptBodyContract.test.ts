@@ -28,4 +28,11 @@ describe("JS script body contract", () => {
     expect(prompt).toContain('script id "script-1"');
     expect(prompt).toContain(JS_SCRIPT_BODY_CONTRACT);
   });
+
+  it("tells the assistant that run and test flush, and empty is not done", () => {
+    const prompt = jsScriptSystemPrompt("script-1");
+    expect(prompt).toMatch(/flush/i);
+    expect(prompt).toContain("ui_jsscript_set_tests");
+    expect(prompt).toMatch(/empty outputs/i);
+  });
 });

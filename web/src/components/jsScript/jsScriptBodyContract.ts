@@ -30,7 +30,13 @@ Apply.
   \`ui_jsscript_set_meta\` (name, description, secrets, timeout), and
   \`ui_jsscript_set_tests\`.
 - Check your work with \`ui_jsscript_run\` (given inputs) and
-  \`ui_jsscript_test\` (the saved cases). Both execute server-side against the
-  saved document.
+  \`ui_jsscript_test\` (the saved cases).
+- Run and test execute the saved document.
+- Both tools flush the live document first and wait for the save.
+- Do not treat empty outputs as done.
+- Do not treat zero test cases as done.
+- \`ui_jsscript_test\` fails when there are no saved cases.
+- Add cases with \`ui_jsscript_set_tests\` first.
+- Leave values with \`await output\` or \`emit\`. Never return them.
 
 ${JS_SCRIPT_BODY_CONTRACT}`;

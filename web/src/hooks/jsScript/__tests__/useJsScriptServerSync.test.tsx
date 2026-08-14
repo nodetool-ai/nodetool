@@ -6,6 +6,7 @@ import {
   useJsScriptStore
 } from "../../../stores/jsScript/JsScriptStore";
 import { useJsScriptServerSync } from "../useJsScriptServerSync";
+import { flushJsScriptSave } from "../jsScriptSaveRegistry";
 
 jest.mock("../../../trpc/client", () => ({
   trpc: { useUtils: jest.fn() },
@@ -54,6 +55,15 @@ const loaded = async (): Promise<void> => {
   await waitFor(() =>
     expect(useJsScriptStore.getState().serverRevisions["js-1"]).toBe("rev-1")
   );
+};
+
+/** Mount the hook and wait for the initial load to record a server revision. */
+const mountLoaded = async (): Promise<
+  ReturnType<typeof renderHook<void, unknown>>
+> => {
+  const rendered = renderHook(() => useJsScriptServerSync("js-1"));
+  await loaded();
+  return rendered as ReturnType<typeof renderHook<void, unknown>>;
 };
 
 describe("useJsScriptServerSync", () => {
@@ -153,5 +163,96 @@ describe("useJsScriptServerSync", () => {
       () => expect(useJsScriptStore.getState().saveStatus["js-1"]).toBe("error"),
       { timeout: 3000 }
     );
+  });
+});
+
+describe("flushJsScriptSave", () => {
+  it("resolves ok with a null revision when no saver is registered", async () => {
+    await expect(flushJsScriptSave("unknown-script")).resolves.toEqual({
+      ok: true,
+      updatedAt: null
+    });
+  });
+
+  it("saves a pending edit immediately and reports the new revision", async () => {
+    const rendered = await mountLoaded();
+
+    act(() =>
+      useJsScriptStore.getState().setCode("js-1", "await output('n', 1)")
+    );
+    expect(updateMutate).not.toHaveBeenCalled();
+
+    const result = await flushJsScriptSave("js-1");
+    expect(result).toEqual({ ok: true, updatedAt: "rev-2" });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "js-1", baseUpdatedAt: "rev-1" })
+    );
+    rendered.unmount();
+  });
+
+  it("reports the current revision when nothing is dirty", async () => {
+    const rendered = await mountLoaded();
+
+    await expect(flushJsScriptSave("js-1")).resolves.toEqual({
+      ok: true,
+      updatedAt: "rev-1"
+    });
+    expect(updateMutate).not.toHaveBeenCalled();
+    rendered.unmount();
+  });
+
+  it("resolves not-ok with the message when the save is rejected", async () => {
+    updateMutate.mockRejectedValue(
+      new Error("Invalid input: document.code is required")
+    );
+    const rendered = await mountLoaded();
+
+    act(() => useJsScriptStore.getState().setCode("js-1", "bad"));
+    const result = await flushJsScriptSave("js-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/document\.code/);
+    }
+    rendered.unmount();
+  });
+
+  it("does not launch overlapping saves for concurrent flushes", async () => {
+    const rendered = await mountLoaded();
+
+    let resolveSave: (value: { updatedAt: string }) => void = () => {};
+    updateMutate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve as (value: { updatedAt: string }) => void;
+        })
+    );
+
+    act(() =>
+      useJsScriptStore.getState().setCode("js-1", "await output('n', 1)")
+    );
+    const first = flushJsScriptSave("js-1");
+    const second = flushJsScriptSave("js-1");
+    await act(async () => {
+      await Promise.resolve();
+      resolveSave({ updatedAt: "rev-2" });
+      await Promise.resolve();
+    });
+
+    await expect(first).resolves.toEqual({ ok: true, updatedAt: "rev-2" });
+    await expect(second).resolves.toEqual({ ok: true, updatedAt: "rev-2" });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+    rendered.unmount();
+  });
+
+  it("stops answering for a script whose hook unmounted", async () => {
+    const rendered = await mountLoaded();
+    rendered.unmount();
+
+    await expect(flushJsScriptSave("js-1")).resolves.toEqual({
+      ok: true,
+      updatedAt: null
+    });
   });
 });

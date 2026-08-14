@@ -131,6 +131,47 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(String(response.json().detail)).toContain("nope");
   });
 
+  it("does not fail a completed run when no outputs are declared", async () => {
+    const script = await seedScript({
+      code: "const unused = 1;"
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Record<string, unknown>;
+    expect(body.ok).toBe(true);
+  });
+
+  it("fails a completed run that emits nothing against declared outputs", async () => {
+    const script = await seedScript({
+      code: "const unused = 1;",
+      outputs: [
+        { name: "palette", type: "list[str]" },
+        { name: "hex", type: "str" }
+      ]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Record<string, unknown>;
+    expect(body.ok).toBe(false);
+    expect(String(body.error)).toContain("palette");
+    expect(String(body.error)).toContain("hex");
+    expect(String(body.error)).toContain("none of the declared outputs");
+  });
+
   it("reports a body that throws instead of failing the request", async () => {
     const script = await seedScript({
       code: "throw new Error('boom');",

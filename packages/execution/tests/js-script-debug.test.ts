@@ -12,6 +12,8 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
   buildJsScriptDebugReport,
+  emptyDeclaredJsScriptOutputsError,
+  missingDeclaredJsScriptOutputs,
   renderJsScriptReportMarkdown,
   validateJsScriptDoc
 } from "../src/js-script-debug/index.js";
@@ -258,6 +260,42 @@ describe("validateJsScriptDoc — input streams", () => {
     );
     expect(validation.ok).toBe(true);
     expect(codes(validation)).toContain("js_script_tests_no_streams");
+  });
+});
+
+describe("missingDeclaredJsScriptOutputs", () => {
+  it("returns [] when nothing is declared", () => {
+    expect(missingDeclaredJsScriptOutputs([], {})).toEqual([]);
+    expect(missingDeclaredJsScriptOutputs([], undefined)).toEqual([]);
+  });
+
+  it("returns every name when the bag is empty of all of them", () => {
+    expect(
+      missingDeclaredJsScriptOutputs(
+        [{ name: "palette" }, { name: "hex" }],
+        {}
+      )
+    ).toEqual(["palette", "hex"]);
+    expect(
+      missingDeclaredJsScriptOutputs([{ name: "out" }], undefined)
+    ).toEqual(["out"]);
+  });
+
+  it("returns [] when any declared name is present", () => {
+    expect(
+      missingDeclaredJsScriptOutputs(
+        [{ name: "palette" }, { name: "hex" }],
+        { palette: [] }
+      )
+    ).toEqual([]);
+  });
+
+  it("names the missing ports in the shared error", () => {
+    expect(emptyDeclaredJsScriptOutputsError(["palette", "hex"])).toBe(
+      "The run produced none of the declared outputs: palette, hex. " +
+        "Leave values with `await output(name, value)` or `await emit(name, value)` — " +
+        "an empty output bag is not success."
+    );
   });
 });
 

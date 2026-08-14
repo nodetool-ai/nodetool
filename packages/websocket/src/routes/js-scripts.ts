@@ -17,6 +17,10 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { runCodeBody } from "@nodetool-ai/agents";
+import {
+  emptyDeclaredJsScriptOutputsError,
+  missingDeclaredJsScriptOutputs
+} from "@nodetool-ai/execution/js-script-debug";
 import { getSecret, JsScript } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -117,12 +121,22 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         withToolbelt: true
       });
 
+      // A declared-output script that finishes with `outputs: {}` is a
+      // failed contract, not a 500 — same shape as a body that throws.
+      const missing = result.ok
+        ? missingDeclaredJsScriptOutputs(document.outputs, result.outputs)
+        : [];
+      const failedEmptyBag = missing.length > 0;
       const body: RunJsScriptResponse = {
-        ok: result.ok,
+        ok: failedEmptyBag ? false : result.ok,
         ...(result.outputs !== undefined ? { outputs: result.outputs } : {}),
         ...(result.streamed !== undefined ? { streamed: result.streamed } : {}),
         logs: result.logs,
-        ...(result.error !== undefined ? { error: result.error } : {}),
+        ...(failedEmptyBag
+          ? { error: emptyDeclaredJsScriptOutputsError(missing) }
+          : result.error !== undefined
+            ? { error: result.error }
+            : {}),
         duration_ms: result.duration_ms
       };
       return jsonResponse(body);

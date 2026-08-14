@@ -15,8 +15,10 @@ import type {
 import { refuseSandboxDelivery } from "@nodetool-ai/runtime";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import {
+  installedPackAllowlist,
   mountActionModules,
   packagePromptLines,
+  sandboxPackagesForChat,
   sanitizePackageDescription,
   sessionAllowedPackages,
   MAX_PACKAGE_DESCRIPTION
@@ -172,6 +174,141 @@ describe("mounting an action's imports", () => {
     expect(mountActionModules("return (((", ["@acme/geo"], fakeCatalog())).toEqual(
       { ok: true }
     );
+  });
+
+  it("accepts a pack subpath when only the pack name is allowed", () => {
+    const image: ResolvedSandboxModule = {
+      ...GEO,
+      specifier: "@nodetool-ai/sandbox-dsl/lib.image",
+      packName: "@nodetool-ai/sandbox-dsl"
+    };
+    const catalog: SandboxModuleCatalog = {
+      summaries: () => [],
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId) =>
+        Promise.resolve(refuseSandboxDelivery(moduleId)),
+      resolveForExecution: (
+        declarations: readonly SandboxModuleDeclaration[]
+      ): SandboxModuleResolution => ({
+        modules: declarations
+          .filter((d) => d.specifier === image.specifier)
+          .map(() => image),
+        statuses: []
+      })
+    };
+    const mount = mountActionModules(
+      'import { fill } from "@nodetool-ai/sandbox-dsl/lib.image";\nreturn 1;',
+      ["@nodetool-ai/sandbox-dsl"],
+      catalog
+    );
+    expect(mount.ok).toBe(true);
+    expect(mount.ok && mount.modules?.modules[0]?.specifier).toBe(
+      "@nodetool-ai/sandbox-dsl/lib.image"
+    );
+  });
+});
+
+describe("installedPackAllowlist", () => {
+  it("returns unique pack names, not every module specifier", () => {
+    const dsl = "@nodetool-ai/sandbox-dsl";
+    const summaries: SandboxModuleSummary[] = [
+      ...Array.from({ length: 72 }, (_, i) => ({
+        specifier: `${dsl}/ns.${i}`,
+        packName: dsl,
+        packVersion: "1.0.0",
+        kind: "js" as const,
+        description: "A DSL namespace."
+      })),
+      {
+        specifier: "@nodetool-ai/sandbox-qr",
+        packName: "@nodetool-ai/sandbox-qr",
+        packVersion: "1.0.0",
+        kind: "js",
+        description: "QR codes."
+      },
+      {
+        specifier: "@nodetool-ai/sandbox-qr/extra",
+        packName: "@nodetool-ai/sandbox-qr",
+        packVersion: "1.0.0",
+        kind: "js",
+        description: "QR extras."
+      }
+    ];
+    const allowlist = installedPackAllowlist(fakeCatalog(summaries));
+    expect(allowlist).toEqual([dsl, "@nodetool-ai/sandbox-qr"]);
+    expect(allowlist).not.toContain(`${dsl}/ns.0`);
+    expect(allowlist.length).toBe(2);
+  });
+
+  it("returns an empty list when the catalog is missing", () => {
+    expect(installedPackAllowlist(undefined)).toEqual([]);
+    expect(installedPackAllowlist(null)).toEqual([]);
+    expect(installedPackAllowlist(fakeCatalog([]))).toEqual([]);
+  });
+});
+
+describe("sandboxPackagesForChat", () => {
+  const catalog = fakeCatalog([
+    {
+      specifier: "@nodetool-ai/sandbox-dsl/lib.image",
+      packName: "@nodetool-ai/sandbox-dsl",
+      packVersion: "1.0.0",
+      kind: "js"
+    },
+    {
+      specifier: "@nodetool-ai/sandbox-qr",
+      packName: "@nodetool-ai/sandbox-qr",
+      packVersion: "1.0.0",
+      kind: "js"
+    },
+    {
+      specifier: "@nodetool-ai/sandbox-exif",
+      packName: "@nodetool-ai/sandbox-exif",
+      packVersion: "1.0.0",
+      kind: "js"
+    }
+  ]);
+
+  it("allows every installed pack for a JS-script assistant", () => {
+    expect(
+      sandboxPackagesForChat({
+        source: "jsscript_assistant",
+        catalog
+      })
+    ).toEqual([
+      "@nodetool-ai/sandbox-dsl",
+      "@nodetool-ai/sandbox-qr",
+      "@nodetool-ai/sandbox-exif"
+    ]);
+  });
+
+  it("allows every installed pack when the focused document is a JS script", () => {
+    expect(
+      sandboxPackagesForChat({
+        source: "workspace_chat",
+        focusedType: "jsscript",
+        catalog
+      })
+    ).toEqual([
+      "@nodetool-ai/sandbox-dsl",
+      "@nodetool-ai/sandbox-qr",
+      "@nodetool-ai/sandbox-exif"
+    ]);
+  });
+
+  it("does not widen the allowlist for other chat sources", () => {
+    for (const source of [
+      "workspace_chat",
+      "workflow_canvas",
+      "sketch_assistant",
+      "timeline_assistant",
+      "code_assistant"
+    ]) {
+      expect(
+        sandboxPackagesForChat({ source, focusedType: "workflow", catalog })
+      ).toBeUndefined();
+    }
+    expect(sandboxPackagesForChat({ catalog })).toBeUndefined();
   });
 });
 

@@ -20,6 +20,10 @@ export {
   type JsScriptValidationOptions
 } from "./validate.js";
 export {
+  missingDeclaredJsScriptOutputs,
+  emptyDeclaredJsScriptOutputsError
+} from "./outputs.js";
+export {
   buildJsScriptDebugReport,
   type JsScriptDebugReportInput
 } from "./report.js";

@@ -102,6 +102,7 @@ import {
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
   getCostReconciler,
+  getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   type ActiveModelSelection
@@ -148,6 +149,7 @@ import { Tool, WORKFLOW_AUTHORING_KNOWLEDGE } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
+  sandboxPackagesForChat,
   type SandboxClock,
   CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
@@ -5768,6 +5770,11 @@ export class UnifiedWebSocketRunner {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        sandboxPackages: sandboxPackagesForChat({
+          source: uiContext?.source,
+          focusedType: uiContext?.focused?.type,
+          catalog: getProcessSandboxModuleCatalog()
+        }),
         directToolNames: directSchemas.map((s) => s.name),
         executeTool: async (call: ChatCodeActToolCall) => {
           if (!codeactExecuteToolRef) {
