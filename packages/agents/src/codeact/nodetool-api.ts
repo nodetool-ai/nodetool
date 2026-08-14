@@ -47,8 +47,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "embed_text",
     "critique_image",
     "compare_images",
-    "score_image_adherence",
-    "read_media_bytes"
+    "score_image_adherence"
   ],
   documents: [
     "convert_document",
@@ -219,24 +218,6 @@ const nodetool = (() => {
       "nodetool: a model is required — pass a nodetool.models.find/pick " +
       'result, {provider, model_id}, or "provider/model_id". Use ' +
       'await nodetool.models.pick("<capability>") to resolve one.'
-    );
-  };
-
-  /**
-   * Normalize what a generation returns into the one reference
-   * \`read_media_bytes\` takes. A generation result carries \`asset_uri\`,
-   * \`asset_id\`, \`url\` and a host \`uri\` — the last is a filesystem path the
-   * guest may not read, so it is never chosen. A bare string passes through.
-   */
-  const __mediaUri = (ref) => {
-    if (typeof ref === "string" && ref) return ref;
-    if (ref && typeof ref === "object") {
-      const uri = ref.asset_uri || ref.asset_id || ref.url || ref.uri;
-      if (typeof uri === "string" && uri) return uri;
-    }
-    throw new Error(
-      "nodetool.media.bytes: pass what a generation returned (its " +
-      "asset_uri), an asset id, a /api/storage/ key, or a data:/http(s) URL."
     );
   };
 
@@ -655,21 +636,10 @@ const nodetool = (() => {
           )
         ),
       /**
-       * The bytes behind anything a generation returned — the way to get at an
-       * image you just made and hand it to \`image.*\`. Takes the result object
-       * itself, its \`asset_uri\`, a bare asset id, a /api/storage/ key, or a
-       * data:/http(s) URL. Returns a Uint8Array.
+       * Promote an image handle (or a generation result) to a durable asset.
+       * Bytes stay on the host; the guest only sees the asset:// ref.
        */
-      bytes: (ref) =>
-        __need("read_media_bytes")({ uri: __mediaUri(ref) }).then((r) => {
-          if (!r || typeof r.content_base64 !== "string") {
-            throw new Error(
-              "nodetool.media.bytes: " +
-              ((r && r.error) || "no bytes came back for this reference")
-            );
-          }
-          return fromBase64(r.content_base64);
-        }),
+      toImage: (src, opts) => image.toAsset(src, opts),
       generateVideo: (prompt, model, opts) =>
         __need("generate_video")(
           __merge(opts, __merge(__model(model), { prompt: prompt }))
@@ -1101,13 +1071,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   Feed a generation result straight into \`image.*\` — it takes the result, its
   \`asset_uri\`, or an asset id, and returns a handle you pass to the next call,
   so generate → \`image.resize/composite\` → \`nodetool.media.toImage(handle)\`
-  is one action and the picture never enters the sandbox. Do NOT read bytes to
-  move an image between calls: \`nodetool.media.bytes(ref)\` and
-  \`image.bytes(handle)\` exist for a body that parses the bytes itself, and
-  pulling a few megabytes in for no reason is how a run runs out of memory.
-  An image handle belongs to the action that made it: before the action ends,
-  \`nodetool.media.toImage(handle)\` anything you still need and keep the
-  \`asset://\` ref in \`state\` — a handle in \`state\` is dead next action.
+  is one action and the picture never enters the sandbox. Do not pull bytes
+  into the guest. An image handle belongs to the action that made it: before
+  the action ends, \`nodetool.media.toImage(handle)\` anything you still need
+  and keep the \`asset://\` ref in \`state\` — a handle in \`state\` is dead
+  next action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
@@ -1182,8 +1150,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`get(assetId)\` (the row — no bytes), \`save(name, {content_base64,
   content_type})\`, \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
   /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
-  For bytes you intend to compute on, \`nodetool.media.bytes(ref)\` is the
-  direct route.`
+  To edit a generated image, pass the generation result to \`image.*\` and
+  save with \`nodetool.media.toImage(handle).\``
   },
   {
     namespace: "jobs",

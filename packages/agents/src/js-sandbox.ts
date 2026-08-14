@@ -83,7 +83,12 @@ import {
   isSandboxMediaHandle,
   MAX_RUN_MEDIA_BYTES
 } from "./sandbox-media-handle.js";
-import { createMediaRefBridge, resolveRefBytes } from "./sandbox-media-ref.js";
+import {
+  createMediaRefBridge,
+  looksLikeMediaRef,
+  remapMediaRef,
+  resolveRefBytes
+} from "./sandbox-media-ref.js";
 import {
   createSandboxWasmDispatcher,
   type SandboxWasmDispatcher,
@@ -998,6 +1003,9 @@ export interface SandboxResult {
  * @param streams  Optional input bridges behind the guest `stream` global.
  *                 Without an `onTakeInput` every `stream` call throws
  *                 {@link NO_INPUT_STREAM_MESSAGE}.
+ * @param resolveMediaRef Optional host loader for media refs when this run
+ *                 has no ProcessingContext (chat). `image.*` uses it so a
+ *                 generation result can go straight into the next op.
  */
 export function buildSandbox(
   context?: ProcessingContext,
@@ -1005,7 +1013,15 @@ export function buildSandbox(
   limits?: SandboxLimits,
   onProgress?: SandboxProgressCallback,
   onEmit?: SandboxEmitCallback,
-  streams?: SandboxInputStreams
+  streams?: SandboxInputStreams,
+  resolveMediaRef?: (
+    where: string,
+    ref: unknown
+  ) => Promise<Uint8Array>,
+  promoteMedia?: (
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ) => Promise<unknown>
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -1759,6 +1775,26 @@ export function buildSandbox(
   // `info` and `decode` are the deliberate exceptions: they exist to tell the
   // guest what is *in* an image, so their results stay plain data. `decode`
   // still hands over real pixels, which is the one call that has to.
+  const loadImageRef = async (
+    where: string,
+    value: unknown
+  ): Promise<Uint8Array> => {
+    const ref = remapMediaRef(value);
+    if (context) {
+      return resolveRefBytes(where, ref, context, (path: string) =>
+        resolveGuestPath(context, path, false)
+      );
+    }
+    if (resolveMediaRef) {
+      return resolveMediaRef(where, ref);
+    }
+    const label = ref.uri || ref.asset_id || "this media ref";
+    throw new Error(
+      `${where}: cannot resolve ${label} in this run. Pass an image ` +
+        `handle or a generation result (its asset_uri).`
+    );
+  };
+
   const resolveMediaArgs = async (
     where: string,
     value: unknown,
@@ -1774,28 +1810,17 @@ export function buildSandbox(
     // earlier run must report *that*, rather than falling through to the ref
     // path and blaming the uri it happens to carry.
     if (isSandboxMediaHandle(value)) return mediaStore.resolve(value);
+    if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return value;
     if (Array.isArray(value)) {
       return Promise.all(
         value.map((v) => resolveMediaArgs(where, v, resolveRefs, depth + 1))
       );
     }
+    if (resolveRefs && looksLikeMediaRef(value)) {
+      return loadImageRef(where, value);
+    }
     if (value !== null && typeof value === "object") {
-      if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return value;
-      // A media ref — `{uri}` / `{asset_id}` / `{data}` — reads through the
-      // same resolver `media.*` uses, so both surfaces contain a uri alike.
       const record = value as Record<string, unknown>;
-      const looksLikeRef =
-        typeof record.uri === "string" ||
-        typeof record.asset_id === "string" ||
-        record.data !== undefined;
-      if (resolveRefs && looksLikeRef && context) {
-        return resolveRefBytes(
-          where,
-          record as never,
-          context,
-          (path: string) => resolveGuestPath(context, path, false)
-        );
-      }
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(record)) {
         out[k] = await resolveMediaArgs(where, v, resolveRefs, depth + 1);
@@ -1844,6 +1869,28 @@ export function buildSandbox(
       const resolved = await resolveMediaArgs("image.bytes", value, true);
       const media = await loadSandboxMedia();
       return toGuestBytes(media.asImageBytes(resolved, "image.bytes"));
+    },
+    /**
+     * Handle → durable asset. Bytes stay on the host; the guest gets a ref.
+     */
+    toAsset: async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      const resolved = await resolveMediaArgs("image.toAsset", value, true);
+      const media = await loadSandboxMedia();
+      const bytes = media.asImageBytes(resolved, "image.toAsset");
+      if (promoteMedia) {
+        return promoteMedia(bytes, options);
+      }
+      if (context) {
+        return mediaRefBridge.toImage(bytes, options);
+      }
+      throw new Error(
+        "image.toAsset: cannot save an asset in this run. Use " +
+          "nodetool.media.toImage from a chat action, or media.toImage " +
+          "from a Code node."
+      );
     },
     info: imageMember("info", (m) => m.imageOps.info),
     decode: imageMember("decode", (m) => m.imageOps.decode),
@@ -2156,6 +2203,20 @@ export interface RunSandboxOptions {
    * the pool without sharing it with every other test in the file.
    */
   wasmPool?: WasmWorkerPool;
+  /**
+   * Load a media ref when this run has no ProcessingContext. Chat uses this
+   * so `image.adjust(generateImageResult)` resolves host-side and the guest
+   * only ever sees a handle.
+   */
+  resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>;
+  /**
+   * Save host-side image bytes as an asset. Backs `image.toAsset` /
+   * `nodetool.media.toImage` in chat, so the guest never holds the payload.
+   */
+  promoteMedia?: (
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ) => Promise<unknown>;
 }
 
 export interface RunSandboxResult {
@@ -2298,7 +2359,9 @@ export async function runInSandbox(
     clock,
     modules,
     capabilities,
-    wasmPool
+    wasmPool,
+    resolveMediaRef,
+    promoteMedia
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
   // A streaming run needs a clock whether or not the caller brought one: the
@@ -2353,7 +2416,9 @@ export async function runInSandbox(
       ...(onTakeInput === undefined ? {} : { onTakeInput }),
       ...(onStreamOpen === undefined ? {} : { onStreamOpen }),
       ...(activeClock === undefined ? {} : { clock: activeClock })
-    }
+    },
+    resolveMediaRef,
+    promoteMedia
   );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of

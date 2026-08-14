@@ -138,6 +138,109 @@ function optionalString(
   return value;
 }
 
+/**
+ * Locator fields on a generation result, in the order a chat action may read.
+ * `uri` is last: a generation also carries a host filesystem path there, and
+ * the guest must not follow it.
+ */
+export const MEDIA_LOCATOR_KEYS = [
+  "asset_uri",
+  "asset_id",
+  "url",
+  "uri"
+] as const;
+
+/**
+ * The one string `read_media_bytes` / `image.*` should load for a value.
+ * Accepts a generation result, its `asset_uri`, a bare asset id, or a URI.
+ *
+ * A remapped ref keeps both `uri` (the preferred locator) and `asset_id`.
+ * Prefer a non-filesystem URI so a bare id does not win over `asset://…`.
+ */
+export function mediaLocatorFrom(value: unknown): string {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value.trim();
+  }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const values: string[] = [];
+    for (const key of MEDIA_LOCATOR_KEYS) {
+      const locator = record[key];
+      if (typeof locator === "string" && locator.trim() !== "") {
+        values.push(locator.trim());
+      }
+    }
+    const safeUri = values.find(
+      (candidate) =>
+        (candidate.includes("://") || candidate.startsWith("/api/")) &&
+        filesystemPathForUri(candidate) === null
+    );
+    if (safeUri) return safeUri;
+    if (typeof record.asset_id === "string" && record.asset_id.trim() !== "") {
+      return record.asset_id.trim();
+    }
+    if (values[0]) return values[0];
+  }
+  throw new Error(
+    "pass what a generation returned (its asset_uri), an asset id, " +
+      "a /api/storage/ key, or a data:/http(s) URL"
+  );
+}
+
+/** A string that names media, not an option like `"png"` or `"cover"`. */
+export function isMediaLocatorString(value: string): boolean {
+  const locator = value.trim();
+  return locator.includes("://") || locator.startsWith("/api/");
+}
+
+/** Whether `image.*` should treat the value as a media ref, not as nested data. */
+export function looksLikeMediaRef(value: unknown): boolean {
+  if (typeof value === "string") {
+    return isMediaLocatorString(value);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.uri === "string" ||
+    typeof record.asset_id === "string" ||
+    typeof record.asset_uri === "string" ||
+    record.data !== undefined
+  );
+}
+
+/**
+ * Flatten a generation result (or a bare locator) to the ref `loadMediaRefBytes`
+ * understands. Prefers `asset_uri` so a host `file://` on the same object is
+ * never the path that is read.
+ */
+export function remapMediaRef(value: unknown): MediaRefValue {
+  if (typeof value === "string") {
+    const locator = value.trim();
+    return locator.includes("://") || locator.startsWith("/api/")
+      ? { uri: locator }
+      : { uri: locator, asset_id: locator };
+  }
+  const record =
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  let locator: string | undefined;
+  try {
+    locator = mediaLocatorFrom(value);
+  } catch {
+    locator = undefined;
+  }
+  return {
+    type: typeof record.type === "string" ? record.type : undefined,
+    uri: locator,
+    asset_id:
+      typeof record.asset_id === "string" ? record.asset_id : undefined,
+    data: record.data
+  };
+}
+
 /** The ref argument, checked. A guest can pass anything, including `undefined`. */
 function requireRef(where: string, ref: unknown): MediaRefValue {
   if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
