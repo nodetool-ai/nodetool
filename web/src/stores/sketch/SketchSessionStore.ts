@@ -807,7 +807,7 @@ async function saveSnapshot(
   try {
     const response = await trpcClient.sketch.update.mutate({
       id: documentId,
-      name,
+      name: session.getState().name || name,
       width: prepared.sketch.canvas.width,
       height: prepared.sketch.canvas.height,
       backgroundColor: prepared.sketch.canvas.backgroundColor,
@@ -860,6 +860,46 @@ export async function saveSketchDocument(
     await saveSnapshot(instance, store.documentId, store.name, onSaved);
   } finally {
     instance.saveInFlight.current = false;
+  }
+}
+
+/** Persist a rename. Sets session.name first so a concurrent autosave cannot clobber it. */
+export async function renameSketchDocument(
+  instance: SketchInstance,
+  name: string
+): Promise<void> {
+  const trimmed = name.trim();
+  const store = instance.session.getState();
+  if (!store.documentId || trimmed.length === 0) {
+    return;
+  }
+  instance.session.getState().setName(trimmed);
+
+  const persist = async () => {
+    const session = instance.session.getState();
+    if (!session.documentId) {
+      return;
+    }
+    const response = await trpcClient.sketch.update.mutate({
+      id: session.documentId,
+      name: trimmed,
+      baseUpdatedAt: session.baseUpdatedAt ?? undefined
+    });
+    instance.session.setState({
+      baseUpdatedAt: response.updatedAt,
+      saveState: "idle",
+      hasConflict: false
+    });
+  };
+
+  try {
+    await persist();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.toLowerCase().includes("concurrent")) {
+      throw error;
+    }
+    await persist();
   }
 }
 

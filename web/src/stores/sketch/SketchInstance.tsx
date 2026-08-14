@@ -91,6 +91,9 @@ const popActive = (instance: SketchInstance): void => {
 const currentInstance = (): SketchInstance =>
   activationStack[activationStack.length - 1] ?? getDefaultInstance();
 
+/** The focused sketch editor, or the shared default when none is active. */
+export const getActiveSketchInstance = (): SketchInstance => currentInstance();
+
 // ── Context ─────────────────────────────────────────────────────────────────
 
 declare global {

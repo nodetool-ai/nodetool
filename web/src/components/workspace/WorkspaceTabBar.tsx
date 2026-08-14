@@ -21,6 +21,8 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useJsScriptStore } from "../../stores/jsScript/JsScriptStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
+import { getActiveSketchInstance } from "../../stores/sketch/SketchInstance";
+import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -440,10 +442,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       try {
         switch (tab.type) {
           case "sketch":
-            await trpcClient.sketch.update.mutate({
-              id: tab.ref,
-              name: trimmed
-            });
+            await renameSketchDocument(getActiveSketchInstance(), trimmed);
             break;
           case "timeline":
             await trpcClient.timeline.update.mutate({
@@ -517,8 +516,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   }, [closeTab, removeWorkflow]);
 
   const handleBeginRename = useCallback(
-    (tab: WorkspaceTab) => setEditingTabId(tab.id),
-    []
+    (tab: WorkspaceTab) => {
+      setActiveTab(tab.id);
+      setEditingTabId(tab.id);
+    },
+    [setActiveTab]
   );
 
   const handleCancelRename = useCallback(() => setEditingTabId(null), []);
