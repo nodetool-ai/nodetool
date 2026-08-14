@@ -211,10 +211,10 @@ export const BrowserCaptureMediaInput = z
 export type BrowserCaptureMediaInput = z.infer<typeof BrowserCaptureMediaInput>;
 
 /**
- * Raw capture result from the action (local or sandbox). Carries the bytes as
- * base64 plus the resolved MIME and source URL. The host-side tool wrapper
- * persists these bytes via the same `persistOutput` path screenshots use and
- * replaces this shape with a {@link BrowserCaptureMediaOutput} AssetRef.
+ * Raw capture result from the action. Carries the bytes as base64 plus the
+ * resolved MIME and source URL. The host-side tool wrapper persists these
+ * bytes via the same `persistOutput` path screenshots use and replaces this
+ * shape with a {@link BrowserCaptureMediaOutput} AssetRef.
  */
 export const BrowserCaptureMediaRaw = z.object({
   /** Base64-encoded media bytes. */
@@ -288,8 +288,7 @@ export type BrowserUploadAssetInput = z.infer<typeof BrowserUploadAssetInput>;
  * The wire input the upload_asset action actually consumes: the file input's
  * {@link ElementRef} plus the asset bytes resolved host-side (base64), the file
  * name the website should see, and the MIME type. The host tool wrapper builds
- * this from a {@link BrowserUploadAssetInput} after reading the asset; the
- * sandbox container cannot read assets itself, so the bytes ride the wire.
+ * this from a {@link BrowserUploadAssetInput} after reading the asset.
  */
 export const BrowserUploadAssetRaw = z
   .object({
@@ -314,9 +313,9 @@ export type BrowserUploadAssetRaw = z.infer<typeof BrowserUploadAssetRaw>;
 /**
  * Result of injecting an asset into a file input. `via` records which path
  * succeeded: `native` is `DOM.setFileInputFiles` against a real filesystem path
- * Chrome can reach (host/container Chrome); `data_transfer` is the in-page
- * DataTransfer/`File` fallback used when no path is reachable (e.g. the
- * extension driving the user's own machine from the server).
+ * Chrome can reach; `data_transfer` is the in-page DataTransfer/`File`
+ * fallback used when no path is reachable (e.g. the extension driving the
+ * user's own machine from the server).
  */
 export const BrowserUploadAssetOutput = z.object({
   uploaded: z.literal(true),

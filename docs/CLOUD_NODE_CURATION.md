@@ -147,7 +147,7 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 
 - **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
   `lib.markdown`, `lib.html`, `lib.charts`
-- **System/automation:** `lib.os`, `nodetool.workspace`, `nodetool.sandbox`,
+- **System/automation:** `lib.os`, `nodetool.workspace`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`
 - **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
   `lib.mail`, `lib.secret`, `lib.comfy`

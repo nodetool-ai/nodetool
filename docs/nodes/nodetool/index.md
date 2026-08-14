@@ -3,7 +3,7 @@ layout: page
 title: "nodetool Nodes"
 ---
 
-This namespace contains 329 node(s).
+This namespace contains 327 node(s).
 
 ## Sub-namespaces
 
@@ -21,7 +21,6 @@ This namespace contains 329 node(s).
 - **[input](input/)** - 33 node(s)
 - **[model3d](model3d/)** - 17 node(s)
 - **[output](output/)** - 1 node(s)
-- **[sandbox](sandbox/)** - 2 node(s)
 - **[sketch](sketch/)** - 3 node(s)
 - **[test](test/)** - 22 node(s)
 - **[text](text/)** - 49 node(s)
