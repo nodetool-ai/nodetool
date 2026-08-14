@@ -303,17 +303,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
-   * Validate (dev/test only — see `validateInboundMessage`) then route an
-   * inbound, already msgpack-decoded message. Validation never affects
-   * dispatch: a message that fails the protocol schema is still routed
-   * exactly as before, just logged.
-   */
-  private ingestMessage(message: WebSocketMessage): void {
-    validateInboundMessage(message);
-    this.routeMessage(message);
-  }
-
-  /**
    * Route incoming message to registered handlers.
    * Each handler is called at most once per message, even if the message
    * matches multiple routing keys (thread_id, workflow_id, job_id).

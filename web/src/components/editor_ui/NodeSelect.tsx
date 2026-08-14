@@ -11,7 +11,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { useMemo, memo, type Ref } from "react";
+import { useMemo, memo, type Ref } from "react";
 import {
   Select,
   SelectProps,
