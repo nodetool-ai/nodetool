@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/image-nodes",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "description": "NodeTool image nodes — sharp-based + WebGPU shader pool (image, lib-image-*, lib-shader-utils, lib-grid)",
   "type": "module",
   "engines": {

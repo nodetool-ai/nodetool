@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/image-editor",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "description": "Shared image-editor types, dependency hashing, seeded layer templates, and the host-neutral brush/pencil/eraser paint core",
   "type": "module",
   "engines": {
