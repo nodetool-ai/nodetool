@@ -441,7 +441,11 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-call-details": {
       padding: theme.spacing(1, 1.5, 1.25),
-      borderTop: `1px solid ${theme.vars.palette.divider}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      minWidth: 0,
+      ".code-block-container": {
+        marginBottom: 0
+      }
     },
 
     ".tool-call-card.running .tool-call-name": {

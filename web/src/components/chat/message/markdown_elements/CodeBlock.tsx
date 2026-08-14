@@ -4,7 +4,16 @@ import React, { useCallback, useMemo, memo } from "react";
 import Prism from "prismjs";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
-import { CopyButton, BORDER_RADIUS, FlexRow, FONT_SIZE_SANS, FONT_WEIGHT, SPACING, getSpacingPx } from "../../../ui_primitives";
+import {
+  CopyButton,
+  BORDER_RADIUS,
+  FlexRow,
+  FONT_SIZE_MONO,
+  FONT_SIZE_SANS,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx
+} from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import {
   CodeThemeColors,
@@ -24,27 +33,49 @@ interface CodeBlockProps {
 }
 
 const cssStyles = css({
+  minWidth: 0,
+  maxWidth: "100%",
   ".code-block-header": {
-    padding: ".5em 1em"
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.md),
+    backgroundColor: "var(--palette-grey-800)",
+    color: "var(--palette-text-primary)",
+    paddingTop: getSpacingPx(SPACING.sm),
+    paddingBottom: getSpacingPx(SPACING.sm),
+    paddingLeft: getSpacingPx(SPACING.xl),
+    paddingRight: getSpacingPx(SPACING.xl),
+    borderTopLeftRadius: BORDER_RADIUS.md,
+    borderTopRightRadius: BORDER_RADIUS.md
+  },
+  ".code-block-language": {
+    fontFamily: "var(--fontFamily2)",
+    fontSize: FONT_SIZE_MONO.caption,
+    color: "var(--palette-text-secondary)",
+    textTransform: "lowercase"
   }
 });
 
 const contentStyles = (colors: CodeThemeColors) =>
   css({
-    fontFamily: '"JetBrains Mono", monospace',
-    padding: "1em",
+    fontFamily: "var(--fontFamily2)",
+    fontSize: FONT_SIZE_MONO.code,
+    padding: getSpacingPx(SPACING.xl),
     margin: 0,
-    border: "2px solid var(--palette-grey-800)",
+    border: "1px solid var(--palette-grey-800)",
     boxSizing: "border-box",
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: BORDER_RADIUS.sm,
-    borderBottomRightRadius: BORDER_RADIUS.sm,
+    borderBottomLeftRadius: BORDER_RADIUS.md,
+    borderBottomRightRadius: BORDER_RADIUS.md,
     backgroundColor: colors.background,
     color: colors.foreground,
-    whiteSpace: "pre",
-    wordBreak: "normal",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
     overflow: "auto",
+    maxHeight: "40vh",
     lineHeight: 1.5,
     tabSize: 2,
     "& code": {

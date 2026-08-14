@@ -146,8 +146,7 @@ describe("MessageView tool-call grouping", () => {
 });
 
 describe("MessageView CodeAct actions", () => {
-  it("renders execute_code's program as a code block, not JSON args", async () => {
-    const user = userEvent.setup();
+  it("renders execute_code's program as a formatted code block, not JSON args", async () => {
     renderView({
       id: "m5",
       role: "assistant",
@@ -155,18 +154,25 @@ describe("MessageView CodeAct actions", () => {
         {
           id: "a",
           name: "execute_code",
-          args: { code: 'const x = await tools.add({a: 1, b: 2});' }
+          args: {
+            code: "const x = await tools.add({a: 1, b: 2}); return x;"
+          }
         }
       ]
     } as Message);
 
-    // Expand the card, then the program shows under a "Code" section.
-    await user.click(screen.getByRole("button", { name: /execute code/i }));
+    // CodeAct cards start expanded so the program is readable at once.
     expect(screen.getByText("Code")).toBeInTheDocument();
     // Prism splits the program into token spans; read the block's text.
     await waitFor(() => {
       const block = document.querySelector(".code-block-container");
-      expect(block?.textContent).toContain("tools.add({a: 1, b: 2})");
+      expect(block?.textContent).toContain("const x = await tools.add({");
+      expect(block?.textContent).toContain("return x;");
+    });
+    // Packed statements are split onto their own lines.
+    await waitFor(() => {
+      const block = document.querySelector(".code-block-container");
+      expect(block?.textContent).toMatch(/}\);\s*return x;/);
     });
     // The lone `code` arg is lifted out — no leftover Arguments JSON section.
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();

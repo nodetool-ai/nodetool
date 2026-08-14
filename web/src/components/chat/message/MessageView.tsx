@@ -42,6 +42,7 @@ import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
+import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
@@ -107,13 +108,13 @@ const ToolCallCard: React.FC<{
   result?: { name?: string | null; content: unknown };
   durationMs?: number | null;
 }> = React.memo(({ tc, result, durationMs }) => {
-  const [open, setOpen] = useState(false);
+  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+  const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
+  const [open, setOpen] = useState(isCodeAction);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
-  const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
   // out of args into headline + expanded body. Tolerate the older
@@ -131,6 +132,10 @@ const ToolCallCard: React.FC<{
     ? (pickString("prompt") ?? pickString("instructions"))
     : null;
   const actionCode = isCodeAction ? pickString("code") : null;
+  const formattedActionCode = useMemo(
+    () => (actionCode ? formatJavaScriptForDisplay(actionCode) : null),
+    [actionCode]
+  );
   const actionTitle = isCodeAction ? pickString("title") : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
@@ -267,11 +272,11 @@ const ToolCallCard: React.FC<{
               </Text>
             </FlexColumn>
           )}
-          {actionCode && (
+          {formattedActionCode && (
             <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Code</Caption>
               <CodeBlock inline={false} className="language-javascript">
-                {actionCode}
+                {formattedActionCode}
               </CodeBlock>
             </FlexColumn>
           )}
