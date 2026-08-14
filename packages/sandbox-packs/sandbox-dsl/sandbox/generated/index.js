@@ -51,7 +51,6 @@ import * as image from "./nodetool.image.js";
 import * as input from "./nodetool.input.js";
 import * as model3d from "./nodetool.model3d.js";
 import * as output from "./nodetool.output.js";
-import * as sandbox from "./nodetool.sandbox.js";
 import * as script from "./nodetool.script.js";
 import * as sketch from "./nodetool.sketch.js";
 import * as text from "./nodetool.text.js";
@@ -127,7 +126,6 @@ export {
   openaiImage,
   openaiText,
   output,
-  sandbox,
   script,
   sketch,
   text,

@@ -23,6 +23,11 @@ import {
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import { resolveRefBytes } from "../sandbox-media-ref.js";
+import {
+  inferImageMime,
+  persistOutput
+} from "../tools/asset-persist.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { mountCapabilityModules } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
@@ -463,6 +468,41 @@ export function createChatCodeActSession(
     }
     actionCalls = 0;
 
+    const context = options.context;
+    const resolveMediaRef = context
+      ? (where: string, ref: unknown) =>
+          resolveRefBytes(
+            where,
+            ref as Parameters<typeof resolveRefBytes>[1],
+            context
+          )
+      : undefined;
+    const promoteMedia = context
+      ? async (bytes: Uint8Array, opts?: Record<string, unknown>) => {
+          const mime =
+            typeof opts?.mimeType === "string" && opts.mimeType
+              ? opts.mimeType
+              : inferImageMime(bytes);
+          const filename =
+            typeof opts?.filename === "string"
+              ? opts.filename
+              : typeof opts?.name === "string"
+                ? opts.name
+                : undefined;
+          const saved = await persistOutput(context, bytes, {
+            namePrefix: "image",
+            mime,
+            ...(filename === undefined ? {} : { outputFile: filename })
+          });
+          if (!saved.asset_uri && !saved.path) {
+            throw new Error(
+              "nodetool.media.toImage: cannot save an asset in this run"
+            );
+          }
+          return saved;
+        }
+      : undefined;
+
     const outcome = await runInSandbox({
       code: `${prelude}\n${code}`,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
@@ -471,6 +511,8 @@ export function createChatCodeActSession(
       limits: { maxFetchCalls: 0 },
       modules: mount.modules,
       capabilities: platform.mount,
+      ...(resolveMediaRef === undefined ? {} : { resolveMediaRef }),
+      ...(promoteMedia === undefined ? {} : { promoteMedia }),
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,

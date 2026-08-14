@@ -3,8 +3,8 @@ export * from "./nodes/lib-browser.js";
 export * from "./nodes/triggers.js";
 export * from "./nodes/lib-sqlite.js";
 
-// Browser-automation helpers exposed for sibling packages (e.g. code-nodes
-// sandbox uses buildBrowserAgentToolClasses).
+// Browser-automation helpers exposed for sibling packages (code-nodes calls
+// buildBrowserAgentToolClasses to register the browser_* agent tools).
 export * from "./lib/browser-agent-tools.js";
 
 // File-watch matching/debounce logic shared with the host file-watch adapter

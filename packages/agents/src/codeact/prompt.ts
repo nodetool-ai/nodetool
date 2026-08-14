@@ -31,6 +31,16 @@ const BOUNDED_FANOUT_NODETOOL_BATCH = `Use
   per-action tool budget; it keeps at most N in flight and settles each entry
   as \`{ok, value | error}\` instead of rejecting.`;
 
+/**
+ * The catalog renders each tool as the call an action writes. Read as a tool
+ * list, `tools.<name>` becomes a tool name a model emits at the top level, and
+ * the provider rejects the turn.
+ */
+export const TOOL_CATALOG_GUIDANCE =
+  "Each line is code you write inside an `execute_code` action, not the name " +
+  "of a tool. Nothing here is callable as a top-level tool call — a turn that " +
+  "names one fails.";
+
 const actionContractBase = (
   boundedFanout: string
 ) => `# CodeAct Execution
@@ -96,11 +106,10 @@ function actionContractChat(
   ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
   with no context and a zero-request fetch limit.
 - The \`nodetool\` object model covers what those bridges did, past the gate:
-  \`nodetool.media.bytes(ref)\` for the bytes behind an image you generated
-  (pass the generation result or its \`asset_uri\`), \`nodetool.assets.read\` /
-  \`save\` for the library, \`nodetool.web.fetch\` / \`browse\` for the network.
-  \`image.*\` and \`canvas\` need no context, so decode, resize, composite and
-  encode in the same action you read the bytes in.
+  feed a generation result (or its \`asset_uri\`) straight into \`image.*\`,
+  then \`nodetool.media.toImage(handle)\` to save. The guest holds handles,
+  never encoded bytes. \`nodetool.assets.read\` / \`save\` for the library,
+  \`nodetool.web.fetch\` / \`browse\` for the network.
 - When you need the user's decision, stop writing code and ask in a plain
   assistant message.`;
 }
@@ -335,7 +344,9 @@ export function buildCodeActSystemPrompt(
       );
     }
   }
-  sections.push(`# Tools\n${renderToolCatalog(options.tools)}`);
+  sections.push(
+    `# Tools\n${TOOL_CATALOG_GUIDANCE}\n\n${renderToolCatalog(options.tools)}`
+  );
   const deferred = options.deferredTools ?? [];
   if (deferred.length > 0) {
     sections.push(

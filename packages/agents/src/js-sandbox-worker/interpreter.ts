@@ -987,6 +987,7 @@ const __wrapDeep = (fn) => {
 const __image = globalThis.image;
 globalThis.image = {
   bytes: __wrapDeep(__image.bytes),
+  toAsset: __wrapDeep(__image.toAsset),
   info: __wrapDeep(__image.info),
   decode: __wrapDeep(__image.decode),
   stats: __wrapDeep(__image.stats),

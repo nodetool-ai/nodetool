@@ -4,17 +4,13 @@
  * Reads a `blob:`/`<video>`/`<audio>`/`<img>` source from the page, fetches it
  * to an ArrayBuffer inside the page context, and returns base64 bytes plus the
  * resolved MIME type. This is the universally-available rung of the capture
- * ladder (it uses only `CdpPage.evaluate`), shared verbatim between the
- * host-process and in-container browser tools.
- *
- * An IDENTICAL copy lives at
- * `packages/sandbox-agent/src/lib/browser-capture.ts`. Keep the two in sync.
+ * ladder (it uses only `CdpPage.evaluate`).
  */
 
 import type {
   BrowserCaptureMediaInput,
   BrowserCaptureMediaRaw
-} from "@nodetool-ai/sandbox/schemas";
+} from "./browser-schemas.js";
 import type { CdpPage } from "../lib/cdp-page.js";
 
 /** Page-side capture payload returned by the injected function. */

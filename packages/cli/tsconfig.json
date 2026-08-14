@@ -71,13 +71,7 @@
       "path": "../runtime"
     },
     {
-      "path": "../sandbox"
-    },
-    {
       "path": "../sandbox-compiler"
-    },
-    {
-      "path": "../sandbox-tools"
     },
     {
       "path": "../security"

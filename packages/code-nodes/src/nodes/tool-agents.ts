@@ -11,7 +11,12 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ToolLike } from "@nodetool-ai/llm-nodes";
-import { runAgentLoop, resolveBuiltinAgentTool } from "@nodetool-ai/llm-nodes";
+import {
+  runAgentLoop,
+  resolveBuiltinAgentTool,
+  registerBuiltinAgentToolFactory
+} from "@nodetool-ai/llm-nodes";
+import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
 import { createLogger } from "@nodetool-ai/config";
 import { exec } from "node:child_process";
 import { access, mkdir, readFile } from "node:fs/promises";
@@ -645,11 +650,15 @@ export class BrowserAgentNode extends ToolAgentNode {
 // LiveBrowserAgent — drives the user's real logged-in Chrome via the extension
 // ---------------------------------------------------------------------------
 
+// Registers the `browser_*` CDP tools into the builtin agent-tool registry so
+// AgentNode and LiveBrowserAgentNode can pick them up by name.
+registerBuiltinAgentToolFactory(() => buildBrowserAgentToolClasses());
+
 /**
- * The 13 CDP browser tools (registered into the builtin agent-tool registry by
- * `sandbox.ts`). Passed as name-stubs; `runAgentLoop` hydrates them from the
- * registry. The local `browser_*` tools route through `browser-tools-local`,
- * which selects the extension transport via `NODETOOL_BROWSER_TRANSPORT`.
+ * The 13 CDP browser tools (registered above). Passed as name-stubs;
+ * `runAgentLoop` hydrates them from the registry. The `browser_*` tools route
+ * through `browser-tools-local`, which selects the extension transport via
+ * `NODETOOL_BROWSER_TRANSPORT`.
  */
 const LIVE_BROWSER_TOOL_NAMES: readonly string[] = [
   "browser_view",
@@ -746,7 +755,7 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
       } else {
         liveBrowserLog.warn(
           `Browser tool '${name}' is not registered — the agent will not be ` +
-            "able to call it (is automation-nodes/sandbox loaded?)"
+            "able to call it (is automation-nodes loaded?)"
         );
       }
     }
