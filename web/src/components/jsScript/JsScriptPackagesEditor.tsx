@@ -1,28 +1,25 @@
 /**
- * The sandbox packages a JS script's body may import — the same choice the
- * Code node's `packages` property offers, over the same catalog
- * (`packs.sandboxModules`), writing the same declaration stamped with the pack
- * version and content digest it was chosen against.
+ * The sandbox packages a JS script's body may import — the same catalog
+ * (`packs.sandboxModules`) as the Code node's `packages` property, writing
+ * the same declaration stamped with the pack version and content digest it
+ * was chosen against.
  *
  * Choosing a package is a consent decision, so the panel repeats what it means
  * in the trust model's own words (SANDBOX_CONSENT_TEXT, shared with the node
  * property so the two cannot drift).
  */
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useId, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 
 import {
   AlertBanner,
-  Box,
-  Checkbox,
+  Autocomplete,
   Chip,
   FlexColumn,
   FlexRow,
   Label,
-  LoadingSpinner,
   Text,
-  BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
 import { trpc } from "../../lib/trpc";
@@ -37,6 +34,28 @@ interface SandboxModuleEntry {
   contentDigest?: string;
 }
 
+interface PackageOption {
+  specifier: string;
+  packName: string;
+  packVersion?: string;
+  kind: SandboxModuleEntry["kind"] | "unavailable";
+  description?: string;
+  contentDigest?: string;
+  unavailable?: boolean;
+}
+
+function stampDeclaration(entry: SandboxModuleEntry): SandboxModuleDeclaration {
+  return {
+    specifier: entry.specifier,
+    ...(entry.packVersion === undefined
+      ? {}
+      : { resolvedPackVersion: entry.packVersion }),
+    ...(entry.contentDigest === undefined
+      ? {}
+      : { contentDigest: entry.contentDigest })
+  };
+}
+
 export interface JsScriptPackagesEditorProps {
   packages: readonly SandboxModuleDeclaration[];
   readOnly?: boolean;
@@ -48,6 +67,7 @@ const JsScriptPackagesEditor = ({
   readOnly = false,
   onChange
 }: JsScriptPackagesEditorProps) => {
+  const fieldId = useId();
   const modulesQuery = useQuery({
     queryKey: ["packs", "sandboxModules"],
     queryFn: async () =>
@@ -59,11 +79,6 @@ const JsScriptPackagesEditor = ({
   const modules = useMemo(
     () => modulesQuery.data?.modules ?? [],
     [modulesQuery.data]
-  );
-
-  const selected = useMemo(
-    () => new Set(packages.map((declaration) => declaration.specifier)),
-    [packages]
   );
 
   /**
@@ -80,101 +95,157 @@ const JsScriptPackagesEditor = ({
       .filter((specifier) => !installed.has(specifier));
   }, [modules, modulesQuery.isSuccess, packages]);
 
-  const toggle = useCallback(
-    (entry: SandboxModuleEntry, checked: boolean) => {
-      const kept = packages.filter(
-        (declaration) => declaration.specifier !== entry.specifier
-      );
-      if (!checked) {
-        onChange(kept);
-        return;
+  const missingSet = useMemo(() => new Set(missing), [missing]);
+
+  const selectedOptions = useMemo<PackageOption[]>(() => {
+    const bySpecifier = new Map(
+      modules.map((entry) => [entry.specifier, entry] as const)
+    );
+    return packages.map((declaration) => {
+      const installed = bySpecifier.get(declaration.specifier);
+      if (installed) {
+        return installed;
       }
-      onChange([
-        ...kept,
-        {
-          specifier: entry.specifier,
-          ...(entry.packVersion === undefined
-            ? {}
-            : { resolvedPackVersion: entry.packVersion }),
-          ...(entry.contentDigest === undefined
-            ? {}
-            : { contentDigest: entry.contentDigest })
-        }
-      ]);
+      return {
+        specifier: declaration.specifier,
+        packName: declaration.specifier,
+        kind: missingSet.has(declaration.specifier)
+          ? "unavailable"
+          : "js",
+        unavailable: missingSet.has(declaration.specifier)
+      };
+    });
+  }, [missingSet, modules, packages]);
+
+  const handleChange = useCallback(
+    (_event: unknown, next: PackageOption[]) => {
+      const previous = new Map(
+        packages.map((declaration) => [declaration.specifier, declaration])
+      );
+      const catalog = new Map(
+        modules.map((entry) => [entry.specifier, entry])
+      );
+      onChange(
+        next.map((option) => {
+          const existing = previous.get(option.specifier);
+          if (existing) {
+            return existing;
+          }
+          const installed = catalog.get(option.specifier);
+          if (installed) {
+            return stampDeclaration(installed);
+          }
+          return { specifier: option.specifier };
+        })
+      );
     },
-    [onChange, packages]
+    [modules, onChange, packages]
   );
 
-  const removeMissing = useCallback(
-    (specifier: string) => {
-      onChange(
-        packages.filter((declaration) => declaration.specifier !== specifier)
-      );
+  const filterOptions = useCallback(
+    (options: PackageOption[], state: { inputValue: string }) => {
+      const query = state.inputValue.trim().toLowerCase();
+      if (query === "") {
+        return options;
+      }
+      return options.filter((option) => {
+        if (option.specifier.toLowerCase().includes(query)) {
+          return true;
+        }
+        if (option.packName.toLowerCase().includes(query)) {
+          return true;
+        }
+        return option.description?.toLowerCase().includes(query) ?? false;
+      });
     },
-    [onChange, packages]
+    []
   );
+
+  const catalogEmpty =
+    !modulesQuery.isLoading && modules.length === 0 && missing.length === 0;
 
   return (
     <FlexColumn gap={SPACING.sm}>
-      <Label>Packages</Label>
+      <Label htmlFor={fieldId}>Packages</Label>
       <Text size="small" color="secondary">
         {SANDBOX_CONSENT_TEXT}
       </Text>
 
-      {modulesQuery.isLoading && <LoadingSpinner size={16} />}
       {modulesQuery.isError && (
         <AlertBanner severity="error" compact>
           Installed sandbox packages could not be read.
         </AlertBanner>
       )}
-      {!modulesQuery.isLoading &&
-        modules.length === 0 &&
-        missing.length === 0 && (
-          <Text size="small" color="secondary">
-            No sandbox packages are installed.
-          </Text>
-        )}
+      {catalogEmpty && (
+        <Text size="small" color="secondary">
+          No sandbox packages are installed.
+        </Text>
+      )}
 
-      {modules.map((entry) => (
-        <FlexRow key={entry.specifier} gap={SPACING.sm} align="center">
-          <Checkbox
-            checked={selected.has(entry.specifier)}
-            disabled={readOnly}
-            inputProps={{ "aria-label": entry.specifier }}
-            onChange={(_event, next) => toggle(entry, next)}
-          />
-          <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
-            {entry.specifier}
-          </Text>
-          <Chip label={entry.kind} compact />
-        </FlexRow>
-      ))}
+      <Autocomplete<PackageOption, true>
+        id={fieldId}
+        multiple
+        compact
+        disableCloseOnSelect
+        filterSelectedOptions
+        disabled={readOnly || modulesQuery.isError || catalogEmpty}
+        loading={modulesQuery.isLoading}
+        options={modules}
+        value={selectedOptions}
+        placeholder="Add a package"
+        noOptionsText="No matching packages"
+        getOptionLabel={(option) => option.specifier}
+        isOptionEqualToValue={(option, value) =>
+          option.specifier === value.specifier
+        }
+        filterOptions={filterOptions}
+        onChange={handleChange}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => {
+            const { key, ...tagProps } = getTagProps({ index });
+            return (
+              <Chip
+                {...tagProps}
+                key={key}
+                label={option.specifier}
+                compact
+                color={option.unavailable ? "warning" : "default"}
+              />
+            );
+          })
+        }
+        renderOption={(props, option) => {
+          const { key, ...rest } = props;
+          return (
+            <li key={key} {...rest}>
+              <FlexColumn
+                gap={SPACING.micro}
+                sx={{ minWidth: 0, width: "100%" }}
+              >
+                <FlexRow gap={SPACING.sm} align="center">
+                  <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
+                    {option.specifier}
+                  </Text>
+                  <Chip label={option.kind} compact />
+                </FlexRow>
+                {option.description ? (
+                  <Text size="smaller" color="secondary">
+                    {option.description}
+                  </Text>
+                ) : null}
+              </FlexColumn>
+            </li>
+          );
+        }}
+        sx={{ width: "100%" }}
+      />
 
-      {missing.map((specifier) => (
-        <FlexRow
-          key={`missing-${specifier}`}
-          gap={SPACING.sm}
-          align="center"
-          sx={(theme) => ({
-            px: 1,
-            borderRadius: BORDER_RADIUS.md,
-            border: `1px solid ${theme.vars.palette.warning.main}`
-          })}
-        >
-          <Checkbox
-            checked
-            disabled={readOnly}
-            inputProps={{ "aria-label": specifier }}
-            onChange={() => removeMissing(specifier)}
-          />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Text size="small" truncate>
-              {specifier}
-            </Text>
-          </Box>
-          <Chip label="unavailable" color="warning" compact />
-        </FlexRow>
-      ))}
+      {missing.length > 0 && (
+        <AlertBanner severity="warning" compact>
+          Saved with this script, but no installed pack declares them. The
+          script fails until you reinstall the pack or remove the chip.
+        </AlertBanner>
+      )}
     </FlexColumn>
   );
 };
