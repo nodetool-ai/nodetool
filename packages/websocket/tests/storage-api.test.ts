@@ -157,12 +157,16 @@ describe("MIME type detection", () => {
     expect(res.headers.get("Content-Type")).toBe("text/plain");
   });
 
-  it("does not serve SVG as image/svg+xml (leaves it octet-stream)", async () => {
+  it("serves SVG as image/svg+xml with a sandbox CSP", async () => {
     const handler = makeHandler();
     await fs.writeFile(path.join(tmpDir, "vec.svg"), "<svg/>");
     const res = await handler(makeRequest("/api/storage/vec.svg", "HEAD"));
     expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
+    expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    const csp = res.headers.get("Content-Security-Policy") ?? "";
+    expect(csp).toContain("sandbox");
+    expect(csp).toContain("default-src 'none'");
   });
 });
 

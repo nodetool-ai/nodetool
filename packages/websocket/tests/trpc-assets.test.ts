@@ -174,6 +174,24 @@ describe("assets router", () => {
       expect(result.next).toBe("next-cursor");
     });
 
+    it("SVG assets have a get_url and no raster thumb_url", async () => {
+      const svg = makeAsset({
+        id: "svg-1",
+        name: "logo.svg",
+        content_type: "image/svg+xml"
+      });
+      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [svg],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.assets.list({ parent_id: "folder" });
+      expect(result.assets[0]?.get_url).toMatch(/^\/api\/storage\//);
+      expect(result.assets[0]?.get_url).toMatch(/\.svg/);
+      expect(result.assets[0]?.thumb_url).toBeNull();
+    });
+
     it("folder assets have null get_url", async () => {
       const folder = makeAsset({
         id: "f1",

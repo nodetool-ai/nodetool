@@ -33,6 +33,7 @@ import {
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import {
+  assetHasRasterThumbnail,
   generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
   thumbnailKey,
@@ -89,11 +90,7 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
       )
     : null;
 
-  const hasThumbnail =
-    asset.content_type.startsWith("image/") ||
-    asset.content_type.startsWith("video/") ||
-    asset.content_type.startsWith("audio/") ||
-    asset.content_type === "application/pdf";
+  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
   const thumbUrl = hasThumbnail
     ? await getUrlBuilder()(
         assetObjectKey(asset.user_id, thumbnailKey(asset.id))

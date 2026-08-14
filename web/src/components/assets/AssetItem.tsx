@@ -251,6 +251,10 @@ const styles = (theme: Theme) =>
       height: "auto",
       fontSize: theme.fontSizeSmaller
     },
+    "&.svg .asset .image, &.svg .asset .image-aspect-ratio": {
+      backgroundSize: "contain",
+      backgroundColor: theme.vars.palette.grey[800]
+    },
     // ITEM
     "&:after": {
       content: '""',
@@ -376,6 +380,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     assetType,
     assetFileEnding,
     isImage,
+    isSvg,
     isText,
     isAudio,
     isVideo,
@@ -390,7 +395,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     return {
       assetType: parts[0] || "unknown",
       assetFileEnding: parts[1] || "unknown",
-      isImage: contentType.match("image") !== null,
+      isSvg:
+        contentType === "image/svg+xml" || name.toLowerCase().endsWith(".svg"),
+      isImage:
+        contentType.match("image") !== null ||
+        name.toLowerCase().endsWith(".svg"),
       isText: contentType.match("text") !== null,
       isAudio: contentType.match("audio") !== null,
       isVideo: contentType.match("video") !== null,
@@ -421,7 +430,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const result = (
     <div
       css={assetStyles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+      className={`asset-item ${assetType}${isSvg ? " svg" : ""} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
         } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -458,14 +467,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 <div
                   className="image"
                   style={{
-                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${isSvg ? asset.get_url : asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />
                 <div
                   className="image-aspect-ratio"
                   style={{
-                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${isSvg ? asset.get_url : asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />

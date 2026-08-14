@@ -77,6 +77,25 @@ describe("AssetItem", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it("paints an SVG from get_url, not a raster thumb", () => {
+    const svgAsset: Asset = {
+      ...baseImageAsset,
+      id: "svg1",
+      name: "logo.svg",
+      content_type: "image/svg+xml",
+      get_url: "/api/storage/svg1.svg",
+      thumb_url: "/api/storage/svg1_thumb.jpg"
+    };
+    const { container } = renderWithTheme(
+      <AssetItem asset={svgAsset} isSelected={false} showDeleteButton={false} />
+    );
+    const tile = container.querySelector(".asset .image") as HTMLElement;
+    expect(tile).toBeTruthy();
+    expect(tile.style.backgroundImage).toContain("/api/storage/svg1.svg");
+    expect(tile.style.backgroundImage).not.toContain("_thumb.jpg");
+    expect(container.querySelector(".asset-item")?.className).toContain("svg");
+  });
+
   it("calls onDoubleClick with asset on double click", () => {
     const onDoubleClick = jest.fn();
     renderWithTheme(

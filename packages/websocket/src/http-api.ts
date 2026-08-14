@@ -78,7 +78,11 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { storeAssetWithThumbnail, thumbnailKey } from "./lib/thumbnail.js";
+import {
+  assetHasRasterThumbnail,
+  storeAssetWithThumbnail,
+  thumbnailKey
+} from "./lib/thumbnail.js";
 import { getAssetAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
@@ -2271,11 +2275,7 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
       )
     : null;
 
-  const hasThumbnail =
-    asset.content_type.startsWith("image/") ||
-    asset.content_type.startsWith("video/") ||
-    asset.content_type.startsWith("audio/") ||
-    asset.content_type === "application/pdf";
+  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
   const thumbUrl = hasThumbnail
     ? await getHttpUrlBuilder()(
         assetObjectKey(asset.user_id, thumbnailKey(asset.id))

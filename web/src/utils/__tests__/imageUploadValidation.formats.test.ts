@@ -21,6 +21,14 @@ const PNG_BYTES = new Uint8Array([
 
 const RANDOM_BYTES = new Uint8Array([0xde, 0xad, 0xbe, 0xef, 0x01, 0x02]);
 
+const SVG_BYTES = new TextEncoder().encode(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>'
+);
+
+const SVG_XML_BYTES = new TextEncoder().encode(
+  '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg"><circle r="4"/></svg>'
+);
+
 describe("imageUploadValidation (formats)", () => {
   describe("sniffImageMimeType — GIF", () => {
     it("detects GIF89a magic bytes", () => {
@@ -44,6 +52,16 @@ describe("imageUploadValidation (formats)", () => {
       bytes[6] = 0x20;
       bytes[7] = 0x30;
       expect(sniffImageMimeType(bytes)).toBe("image/webp");
+    });
+  });
+
+  describe("sniffImageMimeType — SVG", () => {
+    it("detects a bare <svg> document", () => {
+      expect(sniffImageMimeType(SVG_BYTES)).toBe("image/svg+xml");
+    });
+
+    it("detects an XML-declared SVG", () => {
+      expect(sniffImageMimeType(SVG_XML_BYTES)).toBe("image/svg+xml");
     });
   });
 
@@ -129,6 +147,18 @@ describe("imageUploadValidation (formats)", () => {
       expect(prepared.finalMime).toBe("image/png");
       expect(prepared.file.name).toBe("photo.png");
       expect(prepared.declaredMime).toBe("image/jpeg");
+    });
+
+    it("accepts a dropped SVG and keeps image/svg+xml", async () => {
+      const file = new File([SVG_BYTES], "logo.svg", {
+        type: "image/svg+xml"
+      });
+
+      const prepared = await prepareUploadFile(file, "drop");
+
+      expect(prepared.finalMime).toBe("image/svg+xml");
+      expect(prepared.sniffedMime).toBe("image/svg+xml");
+      expect(prepared.file.name.endsWith(".svg")).toBe(true);
     });
 
     it("downgrades to application/octet-stream for unrecognized bytes", async () => {

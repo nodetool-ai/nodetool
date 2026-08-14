@@ -39,4 +39,11 @@ describe("normalizeAssetContentType", () => {
       normalizeAssetContentType("application/octet-stream", "scene.gltf")
     ).toBe("model/gltf+json");
   });
+
+  it("infers image/svg+xml from a .svg name when the type is generic", () => {
+    expect(
+      normalizeAssetContentType("application/octet-stream", "logo.svg")
+    ).toBe("image/svg+xml");
+    expect(normalizeAssetContentType("", "icon.SVG")).toBe("image/svg+xml");
+  });
 });

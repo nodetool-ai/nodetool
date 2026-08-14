@@ -39,6 +39,22 @@ describe("useAssetDisplay", () => {
     expect(getByTestId("image-viewer")).toBeInTheDocument();
   });
 
+  test("renders ImageViewer for SVG content type", () => {
+    const asset: any = { content_type: "image/svg+xml" };
+    const { getByTestId } = render(<HookComponent asset={asset} />);
+    expect(getByTestId("image-viewer")).toBeInTheDocument();
+  });
+
+  test("renders ImageViewer for an SVG named file with a generic type", () => {
+    const asset: any = {
+      content_type: "application/octet-stream",
+      name: "logo.svg",
+      get_url: "/api/storage/1/logo.svg"
+    };
+    const { getByTestId } = render(<HookComponent asset={asset} />);
+    expect(getByTestId("image-viewer")).toBeInTheDocument();
+  });
+
   test("renders PDFViewer from url document", () => {
     const { getByTestId } = render(
       <HookComponent

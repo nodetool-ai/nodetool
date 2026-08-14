@@ -191,18 +191,20 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
 
   return (
     <div css={viewerStyles} className="image-viewer">
-      <div className="image-info">
-        <Text
-          size="small"
-          sx={{
-            color: "inherit",
-            textAlign: "inherit",
-            textShadow: "inherit"
-          }}
-        >
-          {`${imageWidth} x ${imageHeight}`}
-        </Text>
-      </div>
+      {imageWidth > 0 && imageHeight > 0 && (
+        <div className="image-info">
+          <Text
+            size="small"
+            sx={{
+              color: "inherit",
+              textAlign: "inherit",
+              textShadow: "inherit"
+            }}
+          >
+            {`${imageWidth} x ${imageHeight}`}
+          </Text>
+        </div>
+      )}
       <div
         style={containerStyle}
         onMouseMove={handleMouseMove}

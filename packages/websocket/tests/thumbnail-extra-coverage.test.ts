@@ -44,6 +44,21 @@ describe("storeAssetWithThumbnail", () => {
     vi.restoreAllMocks();
   });
 
+  it("stores only the original for SVG (no JPEG thumbnail)", async () => {
+    const svg = new TextEncoder().encode(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"/>'
+    );
+    await storeAssetWithThumbnail(
+      "u1",
+      "vec",
+      "logo.svg",
+      svg,
+      "image/svg+xml"
+    );
+    expect(store).toHaveBeenCalledTimes(1);
+    expect(store).toHaveBeenCalledWith("u1/logo.svg", svg, "image/svg+xml");
+  });
+
   it("stores only the original for a non-media content type", async () => {
     await storeAssetWithThumbnail(
       "u1",

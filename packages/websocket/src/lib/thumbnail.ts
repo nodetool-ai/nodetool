@@ -2,7 +2,8 @@
  * Thumbnail generation for uploaded assets.
  *
  * Images: resized via sharp to fit within THUMB_MAX_DIM px, JPEG-encoded,
- * stored at `{assetId}_thumb.jpg`. EXIF orientation is honored.
+ * stored at `{assetId}_thumb.jpg`. EXIF orientation is honored. SVG is
+ * excluded — the original file is the preview (JPEG cannot keep alpha).
  *
  * Videos: ffmpeg seeks one second in (or 0 for shorter clips), extracts a
  * single frame scaled to THUMB_MAX_DIM, JPEG-encoded.
@@ -164,9 +165,27 @@ async function generateAudioThumb(bytes: Uint8Array): Promise<Buffer> {
 /** Largest object we'll pull back out of storage just to thumbnail it. */
 export const THUMBNAIL_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
 
+const SVG_CONTENT_TYPE = "image/svg+xml";
+
+/**
+ * Whether this content type gets a stored JPEG thumbnail. SVG is shown
+ * from the original file — JPEG cannot keep alpha, and the vector is
+ * already small enough to paint in the grid.
+ */
+export function assetHasRasterThumbnail(contentType: string): boolean {
+  if (contentType === SVG_CONTENT_TYPE) return false;
+  return (
+    contentType.startsWith("image/") ||
+    contentType.startsWith("video/") ||
+    contentType.startsWith("audio/") ||
+    contentType === "application/pdf"
+  );
+}
+
 function thumbGeneratorFor(
   contentType: string
 ): ((bytes: Uint8Array) => Promise<Buffer>) | null {
+  if (contentType === SVG_CONTENT_TYPE) return null;
   if (contentType.startsWith("image/")) return generateImageThumb;
   if (contentType.startsWith("video/")) return generateVideoThumb;
   if (contentType.startsWith("audio/")) return generateAudioThumb;

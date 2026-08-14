@@ -44,9 +44,10 @@ const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
   "model/gltf+json": "gltf"
 };
 
-const EXTENSION_TO_MODEL_TYPE: Record<string, string> = {
+const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
   glb: "model/gltf-binary",
-  gltf: "model/gltf+json"
+  gltf: "model/gltf+json",
+  svg: "image/svg+xml"
 };
 
 const GENERIC_CONTENT_TYPES = new Set(["", "application/octet-stream"]);
@@ -69,7 +70,8 @@ function fileExtensionOf(fileName: string | undefined): string | undefined {
 
 /**
  * Fill in a missing or generic content type from the file name. Browsers
- * often send `application/octet-stream` (or nothing) for `.glb` / `.gltf`.
+ * often send `application/octet-stream` (or nothing) for `.glb` / `.gltf`
+ * / `.svg`.
  */
 export function normalizeAssetContentType(
   contentType: string,
@@ -79,8 +81,9 @@ export function normalizeAssetContentType(
     return contentType;
   }
   const ext = fileExtensionOf(fileName);
-  if (ext && EXTENSION_TO_MODEL_TYPE[ext] && GENERIC_CONTENT_TYPES.has(contentType)) {
-    return EXTENSION_TO_MODEL_TYPE[ext];
+  const inferred = ext ? EXTENSION_TO_INFERRED_TYPE[ext] : undefined;
+  if (inferred && GENERIC_CONTENT_TYPES.has(contentType)) {
+    return inferred;
   }
   return contentType || "application/octet-stream";
 }
