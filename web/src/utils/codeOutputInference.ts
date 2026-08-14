@@ -6,6 +6,7 @@
  * - Inputs: names read off the `inputs` object
  */
 import * as acorn from "acorn";
+import type { TypeMetadata } from "../stores/ApiTypes";
 
 // ---------------------------------------------------------------------------
 // Minimal AST walker (replaces acorn-walk for the node types used below)
@@ -153,24 +154,31 @@ export function inferInputKeysFromCode(code: string): string[] | null {
 // ---------------------------------------------------------------------------
 
 interface CodeIOUpdates {
-  dynamic_outputs: Record<
-    string,
-    { type: string; type_args: never[]; optional: boolean }
-  >;
+  dynamic_outputs: Record<string, TypeMetadata>;
   dynamic_properties: Record<string, unknown>;
 }
 
+const ANY_TYPE: TypeMetadata = { type: "any", type_args: [], optional: false };
+
 /**
  * Derive the `dynamic_outputs` / `dynamic_properties` node-data updates from the
- * `code` property of a Code node. Inferred inputs preserve any existing value;
- * inputs/outputs no longer referenced by the code are dropped.
+ * `code` property of a Code node.
+ *
+ * Outputs follow the last `return {…}`: inferred keys replace the map. When
+ * the body does not parse or has no object return, existing outputs stay.
+ *
+ * Inputs are a union: every existing slot is kept (the Add-input button and
+ * dropped connections write them before the body names them), and every
+ * newly referenced `inputs.name` is added. A keystroke of incomplete
+ * JavaScript must not wipe a slot the user just created.
  *
  * Shared by the inline property editor and the Monaco-based CodeBody so both
  * keep the node's handles in sync with the code.
  */
 export function deriveCodeIOUpdates(
   code: string,
-  existingDynProps: Record<string, unknown> = {}
+  existingDynProps: Record<string, unknown> = {},
+  existingDynOutputs: CodeIOUpdates["dynamic_outputs"] = {}
 ): CodeIOUpdates {
   const outputKeys = inferOutputKeysFromCode(code);
   const inputKeys = inferInputKeysFromCode(code);
@@ -178,15 +186,18 @@ export function deriveCodeIOUpdates(
   const dynamic_outputs: CodeIOUpdates["dynamic_outputs"] = {};
   if (outputKeys) {
     for (const key of outputKeys) {
-      dynamic_outputs[key] = { type: "any", type_args: [], optional: false };
+      dynamic_outputs[key] = { ...ANY_TYPE };
     }
+  } else {
+    Object.assign(dynamic_outputs, existingDynOutputs);
   }
 
-  const dynamic_properties: Record<string, unknown> = {};
+  const dynamic_properties: Record<string, unknown> = { ...existingDynProps };
   if (inputKeys) {
     for (const key of inputKeys) {
-      dynamic_properties[key] =
-        key in existingDynProps ? existingDynProps[key] : "";
+      if (!(key in dynamic_properties)) {
+        dynamic_properties[key] = "";
+      }
     }
   }
 
