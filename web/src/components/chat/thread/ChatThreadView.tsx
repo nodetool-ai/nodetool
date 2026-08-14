@@ -13,10 +13,13 @@ import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BORDER_RADIUS,
+  Caption,
   FONT_SIZE_SANS,
+  FlexRow,
   SPACING,
   SPACING_PX,
   ShimmerText,
+  Text,
   getSpacingPx,
   Z_INDEX
 } from "../../ui_primitives";
@@ -148,24 +151,6 @@ function toolResultsAreEqual(
   });
 }
 
-const STATUS_ROW_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.md),
-  padding: `${getSpacingPx(SPACING.xs)} 0`
-};
-
-const STATUS_TEXT_STYLE: React.CSSProperties = {
-  fontSize: FONT_SIZE_SANS.body,
-  fontStyle: "italic"
-};
-
-const ELAPSED_STYLE: React.CSSProperties = {
-  fontSize: FONT_SIZE_SANS.label,
-  fontVariantNumeric: "tabular-nums",
-  marginLeft: "auto"
-};
-
 const LOG_WRAPPER_STYLE: React.CSSProperties = {
   position: "relative",
   paddingLeft: "1.5rem"
@@ -225,14 +210,14 @@ const StatusFooter = memo<StatusFooterProps>(
         )}
         {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
           <div className="chat-message-list-item">
-            <div style={STATUS_ROW_STYLE}>
-              <span
+            <FlexRow className="chat-status-row" align="center" gap={2} fullWidth>
+              <Text
+                component="span"
+                size="small"
+                color="secondary"
                 role="status"
                 aria-live="polite"
-                style={{
-                  ...STATUS_TEXT_STYLE,
-                  color: theme.vars.palette.text.secondary
-                }}
+                className="chat-status-label"
               >
                 <ShimmerText>
                   {progressMessage && !runningToolCallId
@@ -241,16 +226,11 @@ const StatusFooter = memo<StatusFooterProps>(
                       ? "Responding…"
                       : "Thinking…"}
                 </ShimmerText>
-              </span>
-              <span
-                style={{
-                  ...ELAPSED_STYLE,
-                  color: theme.vars.palette.text.disabled
-                }}
-              >
+              </Text>
+              <Caption className="chat-status-elapsed" color="muted">
                 {formatElapsed(elapsed)}
-              </span>
-            </div>
+              </Caption>
+            </FlexRow>
           </div>
         )}
         {progress > 0 && !hasAgentExecutionMessages && (

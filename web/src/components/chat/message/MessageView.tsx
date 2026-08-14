@@ -110,7 +110,7 @@ const ToolCallCard: React.FC<{
 }> = React.memo(({ tc, result, durationMs }) => {
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
   const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
-  const [open, setOpen] = useState(isCodeAction);
+  const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
@@ -218,7 +218,6 @@ const ToolCallCard: React.FC<{
             <Text
               component="span"
               size="small"
-              weight={600}
               className="tool-call-badge"
             >
               {headlineLabel}
@@ -290,7 +289,19 @@ const ToolCallCard: React.FC<{
           )}
           {hasResult && (
             <FlexColumn gap={0.5}>
-              <Caption className="tool-section-title">Result</Caption>
+              <FlexRow
+                className="tool-section-header"
+                align="center"
+                justify="space-between"
+                fullWidth
+              >
+                <Caption className="tool-section-title">Result</Caption>
+                <CopyButton
+                  value={resultContent}
+                  tooltip="Copy result"
+                  buttonSize="small"
+                />
+              </FlexRow>
               <ToolResult toolName={tc.name} content={resultContent} />
             </FlexColumn>
           )}
@@ -401,8 +412,7 @@ const ToolCallGroup: React.FC<{
       >
         <Text
           component="span"
-          size="smaller"
-          weight={500}
+          size="small"
           className="tool-call-group-label"
         >
           {isRunning ? (

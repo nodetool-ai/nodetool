@@ -390,7 +390,10 @@ describe("ChatThreadView", () => {
         messages={mockMessages}
       />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Thinking…");
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Thinking…");
+    expect(status).toHaveClass("chat-status-label");
+    expect(status.closest(".chat-status-row")).not.toBeNull();
   });
 
   it("renders progress bar when progress > 0", () => {

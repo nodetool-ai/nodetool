@@ -18,6 +18,11 @@ jest.mock("../../../../contexts/EditorInsertionContext", () => ({
   useEditorInsertion: () => undefined
 }));
 
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
+jest.mock("../../../../hooks/browser/useClipboard", () => ({
+  useClipboard: () => ({ writeClipboard: mockWriteClipboard })
+}));
+
 jest.mock("../ChatMarkdown", () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => <div>{content}</div>
@@ -147,6 +152,7 @@ describe("MessageView tool-call grouping", () => {
 
 describe("MessageView CodeAct actions", () => {
   it("renders execute_code's program as a formatted code block, not JSON args", async () => {
+    const user = userEvent.setup();
     renderView({
       id: "m5",
       role: "assistant",
@@ -161,7 +167,12 @@ describe("MessageView CodeAct actions", () => {
       ]
     } as Message);
 
-    // CodeAct cards start expanded so the program is readable at once.
+    // CodeAct cards start collapsed — the program is behind the header.
+    expect(screen.queryByText("Code")).not.toBeInTheDocument();
+    expect(document.querySelector(".code-block-container")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /execute code/i }));
+
     expect(screen.getByText("Code")).toBeInTheDocument();
     // Prism splits the program into token spans; read the block's text.
     await waitFor(() => {
@@ -197,9 +208,74 @@ describe("MessageView CodeAct actions", () => {
     expect(
       screen.getByRole("button", { name: /rendering product images from csv/i })
     ).toBeInTheDocument();
+    expect(screen.queryByText("Code")).not.toBeInTheDocument();
     // The generic tool-name fallback is replaced, and `title` is not
     // duplicated into an Arguments section.
     expect(screen.queryByText(/^execute code$/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
+  });
+});
+
+describe("MessageView tool-call result copy", () => {
+  beforeEach(() => {
+    mockWriteClipboard.mockClear();
+  });
+
+  it("copies a string result from the Result header", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m7",
+              role: "assistant",
+              tool_calls: [toolCall("a", "read_file")]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            a: { name: "read_file", content: "file body" }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /read file/i }));
+    expect(screen.getByText("Result")).toBeInTheDocument();
+    expect(screen.getByText("file body")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /copy result/i }));
+    expect(mockWriteClipboard).toHaveBeenCalledWith("file body", true);
+  });
+
+  it("copies a JSON result as pretty-printed text", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m8",
+              role: "assistant",
+              tool_calls: [toolCall("a", "search")]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            a: { name: "search", content: { hits: [1, 2] } }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /search/i }));
+    await user.click(screen.getByRole("button", { name: /copy result/i }));
+    expect(mockWriteClipboard).toHaveBeenCalledWith(
+      JSON.stringify({ hits: [1, 2] }, null, 2),
+      true
+    );
   });
 });
