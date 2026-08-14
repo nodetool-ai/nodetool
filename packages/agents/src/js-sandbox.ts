@@ -443,6 +443,15 @@ export function describeEngineFailure(error: unknown): string {
 }
 
 async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
+  // `process` is a Node global; the browser bundle (the in-process fallback
+  // path there) has none, and there is no host process to guard against an
+  // engine abort escaping as an unhandled rejection anyway.
+  const nodeProcess = (
+    globalThis as { process?: NodeJS.Process }
+  ).process;
+  if (!nodeProcess?.on || !nodeProcess?.off) {
+    return run;
+  }
   let onRejection: ((reason: unknown) => void) | undefined;
   const escaped = new Promise<never>((_resolve, reject) => {
     onRejection = (reason: unknown) => {
@@ -456,12 +465,12 @@ async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
         throw reason;
       });
     };
-    process.on("unhandledRejection", onRejection);
+    nodeProcess.on("unhandledRejection", onRejection);
   });
   try {
     return await Promise.race([run, escaped]);
   } finally {
-    if (onRejection) process.off("unhandledRejection", onRejection);
+    if (onRejection) nodeProcess.off("unhandledRejection", onRejection);
     // The loser of the race stays pending forever; make sure neither promise
     // can later re-trigger the default handler.
     void escaped.catch(() => {});

@@ -43,6 +43,11 @@ function writeValidBundle(dir: string): void {
   });
   writeStagedPackage(dir, "@img/sharp-libvips-linux-x64", { version: "1.3.2" });
   writeShippedSandboxPacks(dir);
+  fs.mkdirSync(path.join(dir, "js-sandbox-worker"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "js-sandbox-worker", "worker-entry.js"),
+    "export {};"
+  );
 }
 
 const SANDBOX_PACKS_DIR = path.join(
