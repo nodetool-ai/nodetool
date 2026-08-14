@@ -9,8 +9,8 @@
  *   the model's `beforeSave` and the tRPC router run;
  * - the body analysis comes from `validateCodeNodeBody` in
  *   `@nodetool-ai/node-sdk` — the same function `validateGraph` runs over a
- *   Code node, given the document's declared ports and packages instead of a
- *   graph's slots and edges.
+ *   Code node, given the document's declared ports. A script has no packages
+ *   setting: every installed pack and every platform module resolves by import.
  *
  * On top of both, two rules only a script has: outputs that leave through
  * `return` instead of `emit`/`output` are an error (a script is a new surface,
@@ -144,7 +144,7 @@ export async function validateJsScriptDoc(
     availableInputs: inputNames,
     connectedInputs: inputNames,
     declaredOutputs: doc.outputs.map((port) => port.name),
-    declaredPackages: doc.packages,
+    allowInstalledPackages: true,
     sandboxModuleCatalog: options.sandboxModuleCatalog ?? null
   }).map((issue) => ({
     severity: issue.severity,

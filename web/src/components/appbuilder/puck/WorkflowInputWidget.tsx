@@ -118,7 +118,7 @@ const ModelSelect: React.FC<{
  * from the workflow) and the fixed-kind palette widgets (input synthesized
  * from widget props).
  */
-const InputControl: React.FC<{
+export const WorkflowInputControl: React.FC<{
   input: WorkflowInputIO;
   value: unknown;
   onValue: (value: unknown) => void;
@@ -260,7 +260,7 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   }
 
   return (
-    <InputControl
+    <WorkflowInputControl
       input={input}
       value={value}
       onValue={(next) => {
@@ -334,7 +334,7 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
   );
 
   return (
-    <InputControl
+    <WorkflowInputControl
       input={input}
       value={value}
       onValue={(next) => {
@@ -427,7 +427,7 @@ export const FixedKindInputWidget: React.FC<
   );
 
   const control = (
-    <InputControl
+    <WorkflowInputControl
       input={input}
       value={value}
       onValue={(next) => {

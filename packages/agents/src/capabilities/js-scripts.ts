@@ -19,8 +19,9 @@
  * `test_code` already share, so a script run, a Code-node run, and the
  * `POST /api/js-scripts/:id/run` endpoint are one execution path. What the
  * guest gets is the script's own envelope plus the Code-node toolbelt:
- * its declared packages, its declared secrets narrowed by whatever allowance
- * the invoking context carries, its own timeout, and `tools.*` / `nodetool.*`.
+ * every installed pack and platform module by import, its declared secrets
+ * narrowed by whatever allowance the invoking context carries, its own
+ * timeout, and `tools.*` / `nodetool.*`.
  * Grading is `gradeCodeCases`, shared with `test_code` rather than copied.
  *
  * Composition is bounded the way sub-agents are: the context carries a depth

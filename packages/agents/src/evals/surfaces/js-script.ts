@@ -179,7 +179,7 @@ export function createJsScriptToolBridge(
   const tools: HeadlessTool[] = [
     tool(
       "ui_jsscript_get_state",
-      "Read the script: its name, description, body, declared input and output ports, sandbox packages, secrets, timeout, and saved test cases, plus the static validation issues the document currently carries and the result of the last run and test. Call this first.",
+      "Read the script: its name, description, body, declared input and output ports, secrets, timeout, and saved test cases, plus the static validation issues the document currently carries and the result of the last run and test. Call this first.",
       z.object({}),
       async () => {
         const validation = await validate();
@@ -227,7 +227,7 @@ export function createJsScriptToolBridge(
 
     tool(
       "ui_jsscript_set_packages",
-      "Replace the sandbox packages the body may import, e.g. [{specifier: '@nodetool-ai/sandbox-yaml'}]. An import of anything not declared here fails validation before it fails at run time.",
+      "No-op leftover: a JS script does not declare packages. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly.",
       z.object({
         packages: z.array(z.object({ specifier: z.string() }))
       }),
@@ -353,7 +353,7 @@ export function createJsScriptToolBridge(
 
 const JS_SCRIPT_SYSTEM_PROMPT = `You are a scripting assistant operating a JS script document through UI tools.
 
-A JS script is a body of JavaScript with declared input and output ports, sandbox packages it may import, secrets it may read, a timeout, and saved test cases.
+A JS script is a body of JavaScript with declared input and output ports, secrets it may read, a timeout, and saved test cases. Import any installed sandbox pack or \`@nodetool-ai/sandbox-nodetool/<namespace>\` directly — there is no packages setting.
 
 - Call ui_jsscript_get_state first to see the document and its current validation issues.
 - Declare ports with ui_jsscript_set_ports before writing a body that reads or writes them.

@@ -64,7 +64,7 @@ const testCaseParam = z.object({
 FrontendToolRegistry.register({
   name: "ui_jsscript_get_state",
   description:
-    "Read the specified JS script: its name and full document (description, code, declared inputs/outputs, sandbox packages, secrets, timeout, saved test cases), the document-level validation issues, and the last run and test results from this editor. Call this first.",
+    "Read the specified JS script: its name and full document (description, code, declared inputs/outputs, secrets, timeout, saved test cases), the document-level validation issues, and the last run and test results from this editor. Call this first.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const snapshot = getJsScriptAgentHandler(script_id).getSnapshot();
@@ -75,7 +75,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_set_code",
   description:
-    "Replace the script's body; the editor updates live and autosaves. Declared inputs arrive on the `inputs` object (`inputs.<name>`); outputs leave through `emit(name, value)` / `output(name, value)`, never through `return`. A sandbox package must be declared with ui_jsscript_set_packages before its import resolves.",
+    "Replace the script's body; the editor updates live and autosaves. Declared inputs arrive on the `inputs` object (`inputs.<name>`); outputs leave through `emit(name, value)` / `output(name, value)`, never through `return`. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly — there is no packages setting.",
   parameters: z.object({
     script_id: scriptIdParam,
     code: z.string().describe("The full new JavaScript body.")
@@ -118,7 +118,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_set_packages",
   description:
-    "Replace the sandbox packages the body may import. Pass the complete list; an undeclared import fails validation before it fails at run time.",
+    "No-op leftover: a JS script does not declare packages. Every installed sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import. The field is kept so old documents still parse.",
   parameters: z.object({
     script_id: scriptIdParam,
     packages: z

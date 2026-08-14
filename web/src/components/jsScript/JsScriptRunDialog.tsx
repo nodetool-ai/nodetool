@@ -1,8 +1,8 @@
 /**
- * Prompts for one value per declared input before a run. Values are typed in
- * as JSON so a list or an object can be given as easily as a string; a value
- * that does not parse as JSON is passed through as the literal string, which
- * is what a user typing `hello` means.
+ * Prompts for one value per declared input before a run. Each port uses the
+ * same typed property widget a mini-app InputNode uses, via
+ * WorkflowInputControl. Types with no widget (`list`, `dict`, `any`) stay as
+ * JSON text — a value that does not parse is passed as the literal string.
  *
  * A body that reads its inputs with `stream` takes a whole stream per handle
  * rather than one value, so each field is then a JSON array of the items to
@@ -19,6 +19,16 @@ import {
   TextInput,
   SPACING
 } from "../ui_primitives";
+import { EditorUiProvider } from "../editor_ui";
+import { NodeContext } from "../../contexts/NodeContext";
+import { createNodeStore } from "../../stores/NodeStore";
+import { WorkflowInputControl } from "../appbuilder/puck/WorkflowInputWidget";
+import { isJsonScriptPortType } from "../appbuilder/inputKinds";
+import {
+  createPropertyForInput,
+  resolveInputValue
+} from "../appbuilder/inputProperty";
+import { workflowInputForScriptPort } from "../appbuilder/workflowIO";
 import type { JsScriptPort } from "../../stores/jsScript/JsScriptStore";
 
 /** What the dialog hands back: buffered values, or items staged per handle. */
@@ -55,6 +65,46 @@ export const parseStagedItems = (raw: string): unknown[] => {
   return Array.isArray(value) ? value : [value];
 };
 
+/** Empty store so integer/audio property widgets can call useNodes. */
+let emptyStore: ReturnType<typeof createNodeStore> | null = null;
+const getEmptyStore = () => {
+  if (!emptyStore) {
+    emptyStore = createNodeStore();
+  }
+  return emptyStore;
+};
+
+const usesJsonField = (port: JsScriptPort, streaming: boolean): boolean =>
+  streaming || isJsonScriptPortType(port.type);
+
+const fallbackForPort = (port: JsScriptPort): unknown => {
+  const input = workflowInputForScriptPort(port);
+  const property = createPropertyForInput(input);
+  const resolved = resolveInputValue(input, property, undefined);
+  if (resolved !== undefined) return resolved;
+  if (input.kind === "integer" || input.kind === "float") return 0;
+  return null;
+};
+
+const JsonPortField = ({
+  port,
+  streaming,
+  value,
+  onChange
+}: {
+  port: JsScriptPort;
+  streaming: boolean;
+  value: string;
+  onChange: (raw: string) => void;
+}) => (
+  <TextInput
+    label={`${port.name} (${streaming ? `stream of ${port.type}` : port.type})`}
+    size="small"
+    value={value}
+    onChange={(event) => onChange(event.target.value)}
+  />
+);
+
 const JsScriptRunDialog = ({
   open,
   inputs,
@@ -62,27 +112,36 @@ const JsScriptRunDialog = ({
   onClose,
   onRun
 }: JsScriptRunDialogProps) => {
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
 
   const request = useMemo<JsScriptRunRequest>(() => {
     if (streaming) {
       const staged: Record<string, unknown[]> = {};
       for (const port of inputs) {
-        staged[port.name] = parseStagedItems(values[port.name] ?? "");
+        staged[port.name] = parseStagedItems(jsonDrafts[port.name] ?? "");
       }
       return { inputs: {}, inputStreams: staged };
     }
     const bag: Record<string, unknown> = {};
     for (const port of inputs) {
-      bag[port.name] = parseInputValue(values[port.name] ?? "");
+      if (isJsonScriptPortType(port.type)) {
+        bag[port.name] = parseInputValue(jsonDrafts[port.name] ?? "");
+      } else if (values[port.name] !== undefined) {
+        bag[port.name] = values[port.name];
+      } else {
+        bag[port.name] = fallbackForPort(port);
+      }
     }
     return { inputs: bag };
-  }, [inputs, streaming, values]);
+  }, [inputs, streaming, values, jsonDrafts]);
 
   const handleRun = useCallback(() => {
     onRun(request);
     onClose();
   }, [request, onClose, onRun]);
+
+  const store = useMemo(() => getEmptyStore(), []);
 
   return (
     <Dialog
@@ -98,35 +157,57 @@ const JsScriptRunDialog = ({
         </FlexRow>
       }
     >
-      <FlexColumn gap={SPACING.md} sx={{ minWidth: 380 }}>
-        {inputs.length === 0 ? (
-          <Text size="small" color="secondary">
-            This script declares no inputs. Run it as it is.
-          </Text>
-        ) : (
-          <>
-            <Text size="small" color="secondary">
-              {streaming
-                ? "This script reads its inputs with stream(). Give each handle a JSON array of the items to stage, e.g. [1, 2, 3]."
-                : "Values are read as JSON; anything that is not valid JSON is passed as text."}
-            </Text>
-            {inputs.map((port) => (
-              <TextInput
-                key={port.name}
-                label={`${port.name} (${streaming ? `stream of ${port.type}` : port.type})`}
-                size="small"
-                value={values[port.name] ?? ""}
-                onChange={(event) =>
-                  setValues((current) => ({
-                    ...current,
-                    [port.name]: event.target.value
-                  }))
-                }
-              />
-            ))}
-          </>
-        )}
-      </FlexColumn>
+      <NodeContext.Provider value={store}>
+        <EditorUiProvider scope="inspector">
+          <FlexColumn gap={SPACING.md} sx={{ minWidth: 380 }}>
+            {inputs.length === 0 ? (
+              <Text size="small" color="secondary">
+                This script declares no inputs. Run it as it is.
+              </Text>
+            ) : (
+              <>
+                <Text size="small" color="secondary">
+                  {streaming
+                    ? "This script reads its inputs with stream(). Give each handle a JSON array of the items to stage, e.g. [1, 2, 3]."
+                    : "Each input uses the control for its declared type."}
+                </Text>
+                {inputs.map((port) =>
+                  usesJsonField(port, streaming) ? (
+                    <JsonPortField
+                      key={port.name}
+                      port={port}
+                      streaming={streaming}
+                      value={jsonDrafts[port.name] ?? ""}
+                      onChange={(raw) =>
+                        setJsonDrafts((current) => ({
+                          ...current,
+                          [port.name]: raw
+                        }))
+                      }
+                    />
+                  ) : (
+                    <WorkflowInputControl
+                      key={port.name}
+                      input={workflowInputForScriptPort(port)}
+                      value={
+                        values[port.name] !== undefined
+                          ? values[port.name]
+                          : fallbackForPort(port)
+                      }
+                      onValue={(next) =>
+                        setValues((current) => ({
+                          ...current,
+                          [port.name]: next
+                        }))
+                      }
+                    />
+                  )
+                )}
+              </>
+            )}
+          </FlexColumn>
+        </EditorUiProvider>
+      </NodeContext.Provider>
     </Dialog>
   );
 };
