@@ -160,7 +160,7 @@ To avoid silently running whatever happens to be in `node_modules` in production
 - **Allowlist** — a list of trusted pack names; `"*"` allows everything. Set via:
   - The env var `NODETOOL_PACKS_ALLOWLIST` (comma-separated names), or
   - The `allow` field of `~/.config/nodetool/packs.json` (path overridable with the `NODETOOL_PACKS_CONFIG` env var).
-- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false` in production** (`NODETOOL_ENV=production`). Override via the config file.
+- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false`** when either `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set. The packaged desktop app sets the latter — it needs the allowlist without production mode, which would disable local-only features. Override via the config file.
 
 Two further guards protect the registry regardless of trust:
 

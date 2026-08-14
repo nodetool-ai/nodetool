@@ -111,6 +111,11 @@ const WorkspaceTabItem = ({
 
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Keydown from children bubbles here — the rename input needs Space to
+      // type a space, and the close button handles its own Enter/Space.
+      if (event.target !== event.currentTarget) {
+        return;
+      }
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onActivate(tab.id);
