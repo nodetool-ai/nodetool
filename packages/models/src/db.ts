@@ -6,6 +6,8 @@
  */
 
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   drizzle as drizzleSqlite,
   type BetterSQLite3Database
@@ -18,6 +20,18 @@ import {
   MigrationRunner,
   SQLiteMigrationAdapter
 } from "./migrations/index.js";
+
+/**
+ * better-sqlite3 refuses to create a database file whose parent directory
+ * does not exist yet ("Cannot open database because the directory does not
+ * exist") — a first run on a fresh machine (a new CI container, a fresh
+ * install) hits this before anything else has had a chance to create the
+ * data directory. `:memory:` has no parent directory to create.
+ */
+function ensureDbDirExists(dbPath: string): void {
+  if (dbPath === ":memory:") return;
+  mkdirSync(dirname(dbPath), { recursive: true });
+}
 
 export type DbDialect = "sqlite" | "postgres";
 
@@ -47,6 +61,7 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
       "A PostgreSQL connection is already active. Call closeDb() before switching to SQLite."
     );
   }
+  ensureDbDirExists(dbPath);
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 30000");
@@ -178,6 +193,7 @@ export async function pingDb(): Promise<void> {
  * global Drizzle connection. Used by local backend startup before initDb().
  */
 export async function migrateSqliteDb(dbPath: string): Promise<string[]> {
+  ensureDbDirExists(dbPath);
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 30000");

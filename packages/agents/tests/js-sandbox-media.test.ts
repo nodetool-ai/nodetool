@@ -479,6 +479,58 @@ describe("image handles", () => {
     expect(result.result).toMatchObject({ w: 4, h: 4 });
   });
 
+  it("names how to resolve a generation result when this run has no loader", async () => {
+    const result = await runInSandbox({
+      code: `return await image.adjust(source, { grayscale: true });`,
+      timeoutMs: 60_000,
+      globals: {
+        source: {
+          type: "image",
+          asset_id: "img1",
+          asset_uri: "asset://img1.png",
+          uri: "file:///var/assets/img1.png"
+        }
+      }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/cannot resolve asset:\/\/img1\.png/);
+    expect(result.error).toMatch(/generation result/);
+  });
+
+  it("loads a generation result through resolveMediaRef and accepts grayscale: true", async () => {
+    const png = (await run(`${SOLID(8, 8, "#ff0000")} return await image.bytes(solid);`)) as Uint8Array;
+    const seen: string[] = [];
+
+    const result = await runInSandbox({
+      code: `
+        const grey = await image.adjust(source, { grayscale: true });
+        const decoded = await image.decode(grey);
+        const i = 0;
+        return [decoded.pixels[i], decoded.pixels[i + 1], decoded.pixels[i + 2]];
+      `,
+      timeoutMs: 60_000,
+      globals: {
+        source: {
+          type: "image",
+          asset_id: "img1",
+          asset_uri: "asset://img1.png",
+          uri: "file:///secret/img1.png"
+        }
+      },
+      resolveMediaRef: async (_where, ref) => {
+        seen.push(String((ref as { uri?: string }).uri));
+        return png;
+      }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(seen).toEqual(["asset://img1.png"]);
+    const rgb = result.result as number[];
+    expect(rgb[0]).toBe(rgb[1]);
+    expect(rgb[1]).toBe(rgb[2]);
+  });
+
   it("hands over real bytes only when asked", async () => {
     const bytes = (await run(`
       ${SOLID(8, 8, "#ffffff")}

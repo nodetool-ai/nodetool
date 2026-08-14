@@ -5,6 +5,7 @@ import path from "node:path";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import {
   PACKAGE_DOCS_CALL,
+  TOOL_CATALOG_GUIDANCE,
   buildCodeActSystemPrompt,
   chatUnavailableBridges
 } from "../src/codeact/prompt.js";
@@ -66,6 +67,26 @@ describe("CodeAct prompt / sandbox drift", () => {
       preamble: "Group the rows with lodash.groupBy(rows, 'id')."
     });
     expect(undocumented(bogus)).toContain("lodash");
+  });
+
+  it("says the catalog holds calls, not tool names, before the signatures", () => {
+    // A model read a signature as a tool name and emitted
+    // `tools.ui_storyboard_set_screenplay` as a top-level call; the provider
+    // rejected the turn.
+    const tools = [
+      {
+        name: "ui_storyboard_set_screenplay",
+        description: "Replace the screenplay.",
+        inputSchema: { type: "object", properties: {} }
+      }
+    ];
+    for (const variant of VARIANTS) {
+      const prompt = buildCodeActSystemPrompt({ tools, variant });
+      expect(prompt).toContain(TOOL_CATALOG_GUIDANCE);
+      expect(prompt.indexOf(TOOL_CATALOG_GUIDANCE)).toBeLessThan(
+        prompt.indexOf("await tools.ui_storyboard_set_screenplay")
+      );
+    }
   });
 
   it("carries the manifest's notes into the summary", () => {

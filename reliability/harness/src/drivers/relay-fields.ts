@@ -54,8 +54,11 @@ export const RELAY_ONLY_WORKFLOW_ID_TYPES: ReadonlySet<string> = new Set([
  * are never part of a run's stream. `sdk_execution_target` is sent once per
  * socket, at upgrade time and BEFORE any workflow is submitted, by the
  * production Fastify plugin when an SDK live-runner registry is wired
- * (`packages/websocket/src/plugins/websocket.ts`). The kernel oracle has no
- * connection to announce, so there is nothing to compare it against.
+ * (`packages/websocket/src/plugins/websocket.ts`). `renderer_registered` is
+ * the same shape for the frontend-renderer registry: sent once per socket
+ * right after `connect()`, naming a `renderer_id` no other surface has
+ * anything to compare against. The kernel oracle has no connection to
+ * announce, so there is nothing to compare either against.
  *
  * The rest are the relay's own timers and observers, which fire on wall-clock
  * cadence rather than on anything the run does
@@ -72,6 +75,7 @@ export const RELAY_ONLY_WORKFLOW_ID_TYPES: ReadonlySet<string> = new Set([
  */
 export const CONNECTION_CONTROL_MESSAGE_TYPES: ReadonlySet<string> = new Set([
   "sdk_execution_target",
+  "renderer_registered",
   "system_stats",
   "resource_change",
   "ping",

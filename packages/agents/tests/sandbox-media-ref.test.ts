@@ -12,11 +12,39 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { runInSandbox } from "../src/js-sandbox.js";
 import {
+  looksLikeMediaRef,
   MAX_DATA_URI_BYTES,
-  MAX_MEDIA_REF_BYTES
+  MAX_MEDIA_REF_BYTES,
+  mediaLocatorFrom,
+  remapMediaRef
 } from "../src/sandbox-media-ref.js";
 
 type Ctx = import("@nodetool-ai/runtime").ProcessingContext;
+
+describe("generation-result locators", () => {
+  const generated = {
+    type: "image",
+    asset_id: "img1",
+    asset_uri: "asset://img1.png",
+    url: "asset://img1",
+    uri: "file:///var/assets/img1.png"
+  };
+
+  it("prefers asset_uri over the host filesystem path", () => {
+    expect(mediaLocatorFrom(generated)).toBe("asset://img1.png");
+    expect(remapMediaRef(generated)).toMatchObject({
+      uri: "asset://img1.png",
+      asset_id: "img1"
+    });
+    expect(mediaLocatorFrom(remapMediaRef(generated))).toBe("asset://img1.png");
+  });
+
+  it("treats a generation result as a ref and an option string as not", () => {
+    expect(looksLikeMediaRef(generated)).toBe(true);
+    expect(looksLikeMediaRef("png")).toBe(false);
+    expect(looksLikeMediaRef("asset://img1.png")).toBe(true);
+  });
+});
 
 /** A storage adapter backed by a Map, with only the methods the bridge uses. */
 function createStorage(): {

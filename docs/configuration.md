@@ -193,6 +193,39 @@ surface at its source:
 NODETOOL_VALIDATE_OUTBOUND_WS=1 nodetool serve
 ```
 
+## JavaScript Sandbox Threading
+
+The QuickJS sandbox behind Code nodes, CodeAct, and JS scripts runs on a worker
+thread whenever it can. A CPU-bound guest blocks whichever thread runs it, and
+on the server's main thread that freeze takes the event loop with it — including
+the WebSocket `stop` frame that would have cancelled the run. On a worker,
+cancelling is `terminate()`, immediate for a spinning guest and a parked one
+alike.
+
+Two settings change that choice:
+
+- `NODETOOL_SANDBOX_INPROC=1` runs every guest on the calling thread. It is
+  treated as a chosen fallback, so it warns about nothing.
+- `NODETOOL_SANDBOX_WORKER=require` refuses to fall back at all. A run that
+  cannot reach a worker fails with `the sandbox worker path is required
+  (NODETOOL_SANDBOX_WORKER=require) but unavailable: <reason>` instead of
+  running in-process.
+
+Some runs stay in-process with no setting involved. A run that streams its
+inputs does, because the synchronous `stream.open` probe is served from a
+worker-local mirror that must be seeded with the handle names; those runs park
+on takes and yield constantly, so the freeze the worker exists for cannot build
+up. Globals that cannot be structured-cloned keep a run on this thread too. The
+by-design cases are quiet; an environmental one warns once per process:
+
+```
+sandbox: running in-process (<reason>); a CPU-bound guest will block this thread until its timeout
+```
+
+```bash
+NODETOOL_SANDBOX_INPROC=1 nodetool serve
+```
+
 ## Development-Only Settings
 
 Two settings exist for local development and are off unless set:
@@ -249,6 +282,34 @@ The run writes `record.json`, `screenshot.png`, and — with stages on —
 hermetic backend on `127.0.0.1:7777`, so stop any server already on that port
 first; the harness refuses to run against one rather than exercise a real
 database with real providers.
+
+### Hermetic providers
+
+The user-journey suite (`web/tests/journeys`) sends chat messages and runs whole
+workflows with no API keys and no network. `NODETOOL_FAKE_PROVIDERS=1` puts the
+suite's backend (`screenshot-server.ts`) in hermetic mode: every registered LLM
+provider is re-registered as a deterministic fake, and external or
+media-generating nodes — fal, Replicate, search, HTTP, image/video/audio
+generation — resolve to an executor that returns type-correct placeholder
+outputs derived from the node's output metadata. Structural nodes
+(input/output/control) and pure-compute nodes (text, data, math) still run for
+real, so the assertions mean something. Every faked LLM call returns the string
+`deterministic e2e response`.
+
+`npm run test:journeys` sets the variable itself — `tests/journeys/globalSetup.ts`
+does `process.env.NODETOOL_FAKE_PROVIDERS ??= "1"`. Set it by hand only when
+starting that backend yourself. The screenshot and visual suites leave it off,
+because they only render pages and never run a node.
+
+- `NODETOOL_FAKE_DEBUG=1` logs each node's REAL/FAKE resolution to stderr, which
+  is how you find out why a node you expected to be faked ran for real.
+- `NODETOOL_ENABLE_FAKE_PROVIDER=1` registers the separate `fake` provider id as
+  a builtin, so a workflow can select it the way it selects any other provider.
+  Ignored when `NODETOOL_ENV=production`.
+
+```bash
+NODETOOL_FAKE_PROVIDERS=1 NODETOOL_FAKE_DEBUG=1 npm run test:journeys
+```
 
 ## Chat Turn Replay
 
@@ -391,6 +452,8 @@ through the sandbox options' `env` map.
 | `NODETOOL_VNC_DISPLAY` / `NODETOOL_VNC_GEOMETRY` | X display and screen geometry the sandbox desktop runs at | no | Container-side. Defaults `:99` and `1280x900x24`; ignored when `NODETOOL_HEADLESS=1` |
 | `NODETOOL_WORKSPACE` | Directory the in-container tool server treats as the workspace | no | Container-side. Default `/workspace`, which is where the host bind-mounts the session's workspace directory |
 | `NODETOOL_SHIPPED_PACKS_DIR` | Roots the sandbox packs that ship with NodeTool are read from | no | Comma-, semicolon-, or `PATH`-separator-delimited, same as `NODETOOL_PACK_SEARCH_PATHS`. Candidates that do not exist are dropped, so a bad path yields no packs rather than an error. Unset, the loader looks for `_sandbox/` beside the bundled `server.mjs` (packaged desktop app, Docker image), then walks up to `packages/sandbox-packs` (a checkout). Set it only for a host that stages the packs somewhere else. See [Sandbox package design](sandbox-package-design.md) |
+| `NODETOOL_SANDBOX_INPROC` | Run every QuickJS guest on the calling thread instead of a worker | no | `1` only. A chosen fallback, so it warns about nothing. A CPU-bound guest then blocks the thread — on the server's main thread that freezes the event loop, including the frame that would have cancelled the run. See [JavaScript sandbox threading](#javascript-sandbox-threading) |
+| `NODETOOL_SANDBOX_WORKER` | Require the sandbox worker path | no | `require` only. A run that cannot reach a worker fails with `the sandbox worker path is required (NODETOOL_SANDBOX_WORKER=require) but unavailable: <reason>` rather than falling back in-process. Runs that stream their inputs never reach a worker, so this fails them |
 | `NODETOOL_GPU_VALIDATE` | Escape hatch for the WGSL linearity validator | no | `off` disables it. The validator rejects a shader module whose WGSL contradicts its declared premultiplied-alpha contract, at module load. Use it to ship a hotfix while the shader is corrected, not as a standing setting; read once per process |
 | `NODETOOL_GPU_DEBUG` | Comma-separated GPU debug passes to enable | no | `premul` scans every premultiplied output texture after dispatch and logs texels that break the invariant (`rgb ≤ a`, `rgb ≥ 0`, no NaN): `NODETOOL_GPU_DEBUG=premul`. Off by default and zero cost when off — the pass is never encoded. Read once per process |
 | `NODETOOL_CACHE_DIR` | Per-user cache root for derived artifacts NodeTool can always rebuild | no | Everything under it is safe to delete — it is deliberately separate from the data directory. Unset, it is `%LOCALAPPDATA%\nodetool\cache` on Windows and `$XDG_CACHE_HOME/nodetool` (falling back to `~/.cache/nodetool`) elsewhere. The compiled sandbox guest modules live in `sandbox-modules/` under it, cached by content digest; see [Sandbox package design](sandbox-package-design.md) |
@@ -410,6 +473,9 @@ through the sandbox options' `env` map.
 | `NODETOOL_DEBUG_STAGES` | Capture a canvas screenshot at every stage of a browser debug run | no | `1` or `true`. Set by `nodetool debug --stages`; off otherwise. Up to 16 intermediate frames land in `stages/` under the output directory. See [Test harness settings](#test-harness-settings) |
 | `NODETOOL_DEBUG_TIMEOUT` | Per-run timeout (ms) for the in-page run of the browser debug harness | no | How `nodetool debug --timeout` reaches the browser surface. Read as a positive integer; anything else is ignored and the harness's 5-minute floor applies |
 | `NODETOOL_E2E_EXAMPLES_DIR` | Examples directory the e2e test server serves at `/api/examples` | no | A path that does not exist is ignored; the server then tries `packages/base-nodes/nodetool/examples/nodetool-base` and `examples/workflows` under the repo root |
+| `NODETOOL_FAKE_PROVIDERS` | Run the user-journey backend hermetically — every LLM provider and every external/media node is a deterministic fake | no | `1` only. `npm run test:journeys` sets it itself; the screenshot and visual suites leave it off. Structural and pure-compute nodes still run for real. See [Hermetic providers](#hermetic-providers) |
+| `NODETOOL_FAKE_DEBUG` | Log each node's REAL/FAKE resolution in hermetic mode | no | `1` only, written to stderr. Use it when a node you expected to be faked ran for real |
+| `NODETOOL_ENABLE_FAKE_PROVIDER` | Register the `fake` provider id as a builtin, so a workflow can select it | no | `1` only, and ignored when `NODETOOL_ENV=production`. Separate from `NODETOOL_FAKE_PROVIDERS`, which fakes the providers that are already registered |
 | `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
 | `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
 | `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |

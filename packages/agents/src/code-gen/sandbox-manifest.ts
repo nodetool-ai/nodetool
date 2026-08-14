@@ -451,6 +451,16 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         async: true
       },
       {
+        name: "image.toAsset",
+        signature:
+          "await image.toAsset(handle, { filename?, mimeType? }) -> ImageRef",
+        description:
+          "Save a handle as a durable asset. The bytes stay on the host; " +
+          "the guest gets an asset:// ref. Prefer nodetool.media.toImage " +
+          "from a chat action.",
+        async: true
+      },
+      {
         name: "image.info",
         signature:
           "await image.info(image) -> { width, height, format, byteLength }",

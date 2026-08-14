@@ -1497,6 +1497,33 @@ export function focusedUiToolNames(
 }
 
 /**
+ * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
+ * Models sometimes emit that member expression verbatim as a top-level tool
+ * name, so the router strips it before looking the tool up.
+ */
+const GUEST_TOOL_PREFIX = "tools.";
+
+/** Recover the plain tool name from a `tools.<name>` slip. */
+export function normalizeToolCallName(name: string): string {
+  return name.startsWith(GUEST_TOOL_PREFIX)
+    ? name.slice(GUEST_TOOL_PREFIX.length)
+    : name;
+}
+
+/**
+ * The result handed back for a top-level call to a tool this turn does not
+ * carry at all. In CodeAct mode the belt lives inside the sandbox, so the
+ * recovery the model needs is the guest call shape and the discovery call —
+ * not a bare "no such tool".
+ */
+export function unroutableToolMessage(name: string): string {
+  return (
+    `Unknown tool "${name}". Tools are callable inside execute_code as: ` +
+    `await tools.<name>({...}). Use nodetool.searchTools() to discover tools.`
+  );
+}
+
+/**
  * Build the chat-agent system prompt for the given permission mode. A surface
  * (App Builder, timeline editor, …) can append its own guidance by sending a
  * `system_prompt` on the chat message — it is layered after the base prompt as
@@ -5963,14 +5990,27 @@ export class UnifiedWebSocketRunner {
     // `view_image` is offered in codeact mode) keeps the normal path.
     codeactExecuteToolRef = executeTool;
     const session = codeactSession;
-    const effectiveExecuteTool = session
-      ? async (
-          toolCall: ProviderToolCall
-        ): Promise<string | MessageContent[]> =>
-          toolCall.name === EXECUTE_CODE_TOOL_NAME
-            ? session.executeAction(toolCall.args)
-            : executeTool(toolCall)
-      : executeTool;
+    const beltToolNames = new Set(allSchemas.map((s) => s.name));
+    const effectiveExecuteTool = async (
+      rawCall: ProviderToolCall
+    ): Promise<string | MessageContent[]> => {
+      // A model that read the CodeAct prompt sometimes calls
+      // `tools.<name>` at the top level. Recover the plain name first, so the
+      // call reaches the tool instead of dying as "no such tool".
+      const name = normalizeToolCallName(rawCall.name);
+      const toolCall = name === rawCall.name ? rawCall : { ...rawCall, name };
+      if (!session) return executeTool(toolCall);
+      if (name === EXECUTE_CODE_TOOL_NAME) {
+        return session.executeAction(toolCall.args);
+      }
+      // A belt tool named directly still runs: the router is the same gate the
+      // sandbox bridge goes through, so answering the call is strictly better
+      // than refusing it and spending a round on the correction.
+      if (beltToolNames.has(name)) return executeTool(toolCall);
+      // Answer, do not throw: the model can only correct course if the
+      // recovery instructions arrive as this call's tool result.
+      return JSON.stringify({ error: unroutableToolMessage(name) });
+    };
 
     // Tool name by call id, so persisted tool messages keep their name (the
     // provider Message carries only the id).
