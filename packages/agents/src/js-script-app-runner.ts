@@ -7,8 +7,8 @@
  * that owns both — the server, the CLI, the agent tools — passes down.
  *
  * Execution is `runCodeBody`, the same core `run_code`, `test_code`,
- * `run_js_script` and the run endpoint use, with the script's own envelope: its
- * declared packages, its declared secrets, its timeout capped at
+ * `run_js_script` and the run endpoint use, with the script's own envelope:
+ * every installed pack by import, its declared secrets, its timeout capped at
  * `JS_SCRIPT_MAX_TIMEOUT_SECONDS`, and the Code-node toolbelt.
  */
 import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";

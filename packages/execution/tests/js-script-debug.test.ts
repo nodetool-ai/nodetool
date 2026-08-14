@@ -135,7 +135,18 @@ describe("validateJsScriptDoc", () => {
     const undeclaredImport = await validateJsScriptDoc(
       doc({ code: 'import yaml from "@nodetool-ai/sandbox-yaml";\nawait output("total", 1);' })
     );
-    expect(undeclaredImport.ok).toBe(false);
+    // A script has no packages setting. Without a catalog the import cannot
+    // be checked offline, so it is not an error.
+    expect(undeclaredImport.ok).toBe(true);
+
+    const platformImport = await validateJsScriptDoc(
+      doc({
+        code:
+          'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+          'await output("total", typeof list_models);'
+      })
+    );
+    expect(platformImport.ok).toBe(true);
   });
 });
 

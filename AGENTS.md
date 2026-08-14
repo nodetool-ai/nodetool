@@ -1025,7 +1025,7 @@ npm run dev:nodetool -- jsscript versions list|show|create|restore|delete <id>
 ```
 
 `validate` reads what a headless check can decide: the body's syntax, imports
-against the declared packages, undefined names, undeclared `inputs.*` reads,
+against the installed catalog (a script has no packages setting), undefined names, undeclared `inputs.*` reads,
 outputs no `emit`/`output` call reaches, duplicate or non-identifier port names,
 and tests naming ports the script does not declare. A body that declares outputs
 and returns them instead of emitting them is an **error** — a script has no
@@ -1053,9 +1053,10 @@ Agents reach the same surface through the `js-scripts` capability module —
 **`list_js_scripts`** (id, name, description, ports: the discovery surface),
 **`get_js_script`**, **`save_js_script`** (validated first, CAS on update),
 **`validate_js_script`**, **`run_js_script`** and **`test_js_script`**. A script
-runs inside its own envelope: its declared packages, its declared secrets
-intersected with whatever allowance the invoking context carries, its own
-timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+runs inside its own envelope: every installed sandbox pack and every
+`@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
+secrets intersected with whatever allowance the invoking context carries, its
+own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
 Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
