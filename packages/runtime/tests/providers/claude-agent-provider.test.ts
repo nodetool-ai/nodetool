@@ -239,7 +239,14 @@ describe("ClaudeAgentProvider", () => {
     // text would execute on the host under bypassPermissions. allowedTools:[]
     // alone does NOT disable them.
     expect(opts.disallowedTools).toEqual(
-      expect.arrayContaining(["Bash", "WebFetch", "Read", "Write", "Edit"])
+      expect.arrayContaining([
+        "Bash",
+        "WebFetch",
+        "Read",
+        "Write",
+        "Edit",
+        "ToolSearch"
+      ])
     );
   });
 
@@ -768,6 +775,9 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.allowedTools).toContain("mcp__nodetool_tools__echo");
     expect(opts.maxTurns).toBeGreaterThan(1);
     expect(opts.mcpServers).toBeTruthy();
+    // NodeTool defers no tool into the SDK, so its built-in ToolSearch always
+    // answers empty — a dead end a stuck model reaches for. Disable it.
+    expect(opts.disallowedTools).toEqual(["ToolSearch"]);
 
     // The tool_use surfaced as a ToolCall (name stripped of the MCP prefix).
     const toolCallItems = items.filter(
@@ -834,8 +844,9 @@ describe("ClaudeAgentProvider", () => {
       "mcp__nodetool_tools__run_subtask",
       "mcp__nodetool_tools__echo"
     ]);
-    // The built-ins stay live, anchored to the run's workspace.
-    expect(opts.disallowedTools).toBeUndefined();
+    // The built-ins stay live, anchored to the run's workspace — only the
+    // always-empty ToolSearch is taken off the table.
+    expect(opts.disallowedTools).toEqual(["ToolSearch"]);
     expect(opts.cwd).toBe("/tmp/ws");
   });
 
@@ -871,6 +882,68 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.cwd).toBeUndefined();
   });
 
+  it("normalizes a `tools.<name>` tool-call name to the plain tool name", async () => {
+    // Regression: the CodeAct prompt documents guest tools as
+    // `await tools.<name>({…})`. A model emitted that member expression as the
+    // tool name, the SDK answered "No such tool available", and the turn died.
+    const { fn } = fakeQuery([
+      sysInit("sess-prefix"),
+      assistantToolUse("tu_1", "tools.echo", { text: "hi" }),
+      userToolResult("tu_1", "echoed: hi"),
+      assistantTextMsg("done"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const items = await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("echo hi")],
+        model: "haiku",
+        tools: [{ name: "echo", description: "Echo the input" }],
+        executeTool: async () => "ok"
+      })
+    );
+
+    const toolCallItems = items.filter(
+      (i): i is ToolCall => "name" in i && "id" in i && !("type" in i)
+    );
+    expect(toolCallItems[0]).toMatchObject({ id: "tu_1", name: "echo" });
+    const asstWithCalls = messagesOf(items).find(
+      (m) => m.role === "assistant" && m.toolCalls?.length
+    );
+    expect(asstWithCalls?.toolCalls?.[0]?.name).toBe("echo");
+  });
+
+  it("still strips the SDK's `mcp__nodetool_tools__` prefix", async () => {
+    const { fn } = fakeQuery([
+      sysInit("sess-mcp-prefix"),
+      assistantToolUse("tu_1", "mcp__nodetool_tools__echo", { text: "hi" }),
+      userToolResult("tu_1", "echoed: hi"),
+      assistantTextMsg("done"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const items = await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("echo hi")],
+        model: "haiku",
+        tools: [{ name: "echo", description: "Echo the input" }],
+        executeTool: async () => "ok"
+      })
+    );
+    const toolCallItems = items.filter(
+      (i): i is ToolCall => "name" in i && "id" in i && !("type" in i)
+    );
+    expect(toolCallItems[0]).toMatchObject({ name: "echo" });
+  });
+
   it("leaves the built-ins live when every offered tool was replaced", async () => {
     const { fn, calls } = fakeQuery([
       sysInit("sess-allnative"),
@@ -891,8 +964,9 @@ describe("ClaudeAgentProvider", () => {
     const opts = calls[0].options as Options;
     expect(opts.mcpServers).toBeUndefined();
     // The caller offered a tool, so the built-ins must not be disabled — and
-    // the loop must still be allowed the turns to use them.
-    expect(opts.disallowedTools).toBeUndefined();
+    // the loop must still be allowed the turns to use them. ToolSearch is the
+    // one exception: it searches deferred tools, and NodeTool defers none.
+    expect(opts.disallowedTools).toEqual(["ToolSearch"]);
     expect(opts.maxTurns).toBeGreaterThan(1);
   });
 

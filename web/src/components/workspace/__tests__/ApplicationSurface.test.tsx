@@ -44,7 +44,11 @@ jest.mock("../LinkedWorkflowsMenu", () => ({
 const builderMounted = jest.fn();
 jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
   __esModule: true,
-  default: ({ applicationId }: { applicationId: string }) => {
+  default: function MockApplicationAppBuilder({
+    applicationId
+  }: {
+    applicationId: string;
+  }) {
     React.useEffect(() => {
       builderMounted(applicationId);
     }, [applicationId]);

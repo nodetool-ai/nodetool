@@ -96,7 +96,7 @@ const ADDED_OPERATION = {
 
 jest.mock("../AppBuilderShell", () => ({
   __esModule: true,
-  default: ({
+  default: function MockAppBuilderShell({
     document,
     workflow,
     operationWorkflows,
@@ -110,7 +110,7 @@ jest.mock("../AppBuilderShell", () => ({
     banner?: React.ReactNode;
     onSave: (document: AppDocument) => void;
     onOperationsChange?: (operations: AppDocument["operations"]) => void;
-  }) => {
+  }) {
     // The real shell reports its seeded operations on mount, then again on
     // every change the agent's ui_app_* tools make.
     React.useEffect(() => {
