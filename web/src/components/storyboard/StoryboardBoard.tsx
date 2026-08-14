@@ -1,39 +1,36 @@
-/** @jsxImportSource @emotion/react */
 /**
  * StoryboardBoard
  *
  * The board header (title, brief, style, aspect ratio, shot count, and a
- * "Direct" trigger) plus a responsive grid of {@link ShotCard}s. The Direct
- * button is a placeholder that forwards to an `onDirect` callback so a parent
- * can wire it to a real Director run.
+ * "Direct" trigger) plus a list of {@link ShotCard}s. The Direct button
+ * forwards to an `onDirect` callback so a parent can wire it to a Director run.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 import {
+  Box,
+  Card,
+  Caption,
+  Dialog,
+  Divider,
+  EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   FormField,
   FormGrid,
   FormSection,
   Panel,
-  TextInput,
+  ScrollArea,
   SelectField,
-  EditorButton,
-  UndoRedoButtons,
-  EmptyState,
-  Dialog,
-  Divider,
+  Skeleton,
   Text,
-  Caption,
-  CONTROL,
-  SPACING,
-  getSpacingPx,
+  TextInput,
+  UndoRedoButtons,
   BORDER_RADIUS,
-  MOTION
+  CONTROL,
+  SPACING
 } from "../ui_primitives";
 import {
   useBoard,
@@ -94,110 +91,25 @@ const modelFieldSx = {
   "& .select-model-button": { minHeight: `${CONTROL.height.lg}px` }
 } as const;
 
-const styles = (theme: Theme) =>
-  css({
-    height: "100%",
-    overflowY: "auto",
-    padding: getSpacingPx(SPACING.lg),
-    display: "flex",
-    flexDirection: "column",
-    gap: getSpacingPx(SPACING.lg),
-    // Reclaim horizontal room for shots on phones.
-    [theme.breakpoints.down("sm")]: {
-      padding: getSpacingPx(SPACING.md),
-      gap: getSpacingPx(SPACING.md)
-    },
-    // Children must keep their natural height so the container scrolls;
-    // otherwise the header panel gets flex-shrunk under the grid.
-    "> *": { flexShrink: 0 },
-    ".shot-list": {
-      display: "flex",
-      flexDirection: "column",
-      gap: getSpacingPx(SPACING.md)
-    },
-    // ── Directing: ghost cards materializing while the screenplay is written ──
-    "@keyframes storyboard-ghost-in": {
-      from: { opacity: 0, transform: "translateY(8px) scale(0.98)" },
-      to: { opacity: 1, transform: "translateY(0) scale(1)" }
-    },
-    "@keyframes storyboard-shimmer": {
-      from: { backgroundPosition: "200% 0" },
-      to: { backgroundPosition: "-200% 0" }
-    },
-    "@keyframes storyboard-spark": {
-      "0%, 100%": { opacity: 0.35, transform: "scale(0.9) rotate(0deg)" },
-      "50%": { opacity: 0.9, transform: "scale(1.15) rotate(90deg)" }
-    },
-    ".directing-line": {
-      color: theme.vars.palette.primary.main,
-      backgroundImage: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.text.secondary}, ${theme.vars.palette.primary.main})`,
-      backgroundSize: "200% 100%",
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      animation: `storyboard-shimmer ${MOTION.spin} infinite`
-    },
-    ".ghost-card": {
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.md,
-      padding: getSpacingPx(SPACING.md),
-      display: "grid",
-      gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
-      gap: getSpacingPx(SPACING.md),
-      alignItems: "start",
-      opacity: 0,
-      animation: `storyboard-ghost-in ${MOTION.slow} both`,
-      "@media (max-width: 720px)": {
-        gridTemplateColumns: "minmax(0, 1fr)"
-      }
-    },
-    ".ghost-lines": {
-      display: "flex",
-      flexDirection: "column",
-      gap: getSpacingPx(SPACING.sm)
-    },
-    ".ghost-frame": {
-      aspectRatio: "16 / 9",
-      borderRadius: BORDER_RADIUS.sm,
-      display: "grid",
-      placeItems: "center",
-      backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
-      backgroundSize: "200% 100%",
-      animation: `storyboard-shimmer ${MOTION.spin} infinite`
-    },
-    ".ghost-line": {
-      height: "10px",
-      borderRadius: BORDER_RADIUS.pill,
-      backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
-      backgroundSize: "200% 100%",
-      animation: `storyboard-shimmer ${MOTION.spin} infinite`
-    },
-    ".spark": {
-      fontSize: "1.5em",
-      color: theme.vars.palette.primary.main,
-      animation: `storyboard-spark ${MOTION.pulse} infinite`
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      ".ghost-frame, .ghost-line, .directing-line, .spark": {
-        animation: "none"
-      },
-      ".ghost-card": { animation: "none", opacity: 1 }
-    },
-    ".header-fields": {
-      color: theme.vars.palette.text.secondary,
-      // Keep the writing fields at a readable measure on wide screens.
-      maxWidth: "1100px",
-      // Rule between the columns, dropped when they stack.
-      ".settings": {
-        paddingLeft: getSpacingPx(SPACING.xl),
-        borderLeft: `1px solid ${theme.vars.palette.divider}`,
-        "@media (max-width: 860px)": {
-          paddingLeft: 0,
-          borderLeft: "none"
-        }
-      }
-    }
-  });
+const FORM_STACK_BELOW = 860;
+
+const settingsRailSx = {
+  [`@media (min-width: ${FORM_STACK_BELOW + 1}px)`]: {
+    paddingLeft: SPACING.xl,
+    borderLeft: "1px solid",
+    borderColor: "divider"
+  }
+} as const;
+
+const shotCardGridSx = {
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
+  gap: SPACING.md,
+  alignItems: "start",
+  "@media (max-width: 720px)": {
+    gridTemplateColumns: "minmax(0, 1fr)"
+  }
+} as const;
 
 const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   boardId,
@@ -209,8 +121,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   assembling,
   assembleError
 }) => {
-  const theme = useTheme();
-  const boardStyles = useMemo(() => styles(theme), [theme]);
   const {
     title,
     brief,
@@ -310,11 +220,21 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [pendingClips, generateClip, boardId]);
 
   return (
-    <div css={boardStyles} className="storyboard-board">
+    <ScrollArea fullHeight thin className="storyboard-board">
+      <FlexColumn
+        gap={SPACING.lg}
+        sx={{
+          p: SPACING.xl,
+          "@media (max-width: 600px)": {
+            p: SPACING.md,
+            gap: SPACING.md
+          }
+        }}
+      >
       {!readOnly && (
-        <Panel padding="normal" className="header-fields">
-          <FlexColumn gap={4}>
-            <FormGrid>
+        <Panel padding={SPACING.xl} sx={{ maxWidth: "1100px" }}>
+          <FlexColumn gap={SPACING.xl}>
+            <FormGrid stackBelow={FORM_STACK_BELOW}>
               <FormSection label="Screenplay">
                 <FormField label="Title">
                   <TextInput
@@ -347,7 +267,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 </FormField>
               </FormSection>
 
-              <FormSection label="Direction" className="settings">
+              <FormSection label="Direction" sx={settingsRailSx}>
                 {/* The Studio shell pins the director model — a beginner
                     picks what the film looks like, not which LLM writes it. */}
                 {!inStudio && (
@@ -365,10 +285,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     onChange={(value) => setImageModel(boardId, value)}
                   />
                   {entitiesNeedEditModel && (
-                    <Text size="small" color="warning">
+                    <Caption color="warning">
                       Entities carry reference images, but this model only
                       takes text. Pick an image-to-image model to use them.
-                    </Text>
+                    </Caption>
                   )}
                 </FormField>
                 <FormField label="Clip model" sx={modelFieldSx}>
@@ -399,15 +319,22 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
             <Divider />
 
-            <FlexRow gap={2} align="center" justify="space-between" wrap>
-              <Text size="small" color={directError || assembleError ? "error" : "secondary"}>
+            <FlexRow
+              gap={SPACING.md}
+              align="center"
+              justify="space-between"
+              wrap
+            >
+              <Caption
+                color={directError || assembleError ? "error" : "secondary"}
+              >
                 {directError ??
                   assembleError ??
                   (hasShots
                     ? "Re-directing rewrites the screenplay and replaces every shot."
                     : "Direct writes the screenplay and seeds your shots.")}
-              </Text>
-              <FlexRow gap={2} align="center">
+              </Caption>
+              <FlexRow gap={SPACING.md} align="center" wrap>
                 <UndoRedoButtons
                   canUndo={canUndo}
                   canRedo={canRedo}
@@ -421,14 +348,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   onClick={handleGenerateAllStills}
                   disabled={pendingStills.length === 0 || directing}
                 >
-                  {`✦ Generate all stills${pendingStills.length > 0 ? ` (${pendingStills.length})` : ""}`}
+                  {`Generate all stills${pendingStills.length > 0 ? ` (${pendingStills.length})` : ""}`}
                 </EditorButton>
                 <EditorButton
                   variant="outlined"
                   onClick={handleGenerateAllClips}
                   disabled={pendingClips.length === 0 || directing}
                 >
-                  {`✦ Generate all clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
+                  {`Generate all clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
                 </EditorButton>
                 <EditorButton
                   variant="outlined"
@@ -459,8 +386,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         confirmText="Re-direct"
         destructive
       >
-        <FlexColumn gap={1}>
-          <Text size="small">
+        <FlexColumn gap={SPACING.xs}>
+          <Text>
             {`Directing writes a new screenplay and replaces all ${shots.length} current shot${shots.length === 1 ? "" : "s"}.`}
           </Text>
           <Caption color="secondary">
@@ -471,29 +398,32 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       </Dialog>
 
       {directing ? (
-        <>
-          <Text size="small" className="directing-line">
-            ✦ The director is writing your screenplay…
-          </Text>
-          <div className="shot-list">
-            {Array.from({ length: shotCount }).map((_, i) => (
-              <div
-                key={i}
-                className="ghost-card"
-                style={{ animationDelay: `${i * 140}ms` }}
-              >
-                <div className="ghost-frame">
-                  <span className="spark">✦</span>
-                </div>
-                <div className="ghost-lines">
-                  <div className="ghost-line" style={{ width: "40%" }} />
-                  <div className="ghost-line" style={{ width: "85%" }} />
-                  <div className="ghost-line" style={{ width: "60%" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        <FlexColumn gap={SPACING.md}>
+          <Caption color="primary">
+            The director is writing your screenplay.
+          </Caption>
+          {Array.from({ length: shotCount }).map((_, i) => (
+            <Card key={i} variant="outlined" padding="compact">
+              <Box sx={shotCardGridSx}>
+                <Skeleton
+                  variant="rectangular"
+                  animation="wave"
+                  sx={{
+                    width: "100%",
+                    aspectRatio: "16 / 9",
+                    height: "auto",
+                    borderRadius: BORDER_RADIUS.sm
+                  }}
+                />
+                <FlexColumn gap={SPACING.sm}>
+                  <Skeleton preset="text" width="40%" />
+                  <Skeleton preset="text" width="85%" />
+                  <Skeleton preset="text" width="60%" />
+                </FlexColumn>
+              </Box>
+            </Card>
+          ))}
+        </FlexColumn>
       ) : shots.length === 0 ? (
         <EmptyState
           variant="empty"
@@ -505,25 +435,24 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           }
         />
       ) : (
-        <>
-          <Text size="small" color="secondary">
+        <FlexColumn gap={SPACING.md}>
+          <Caption color="secondary">
             {`${shots.length} shot${shots.length === 1 ? "" : "s"}`}
-          </Text>
-          <div className="shot-list">
-            {shots.map((shot, i) => (
-              <ShotCard
-                key={shot.id}
-                boardId={boardId}
-                shot={shot}
-                readOnly={readOnly}
-                isFirst={i === 0}
-                isLast={i === shots.length - 1}
-              />
-            ))}
-          </div>
-        </>
+          </Caption>
+          {shots.map((shot, i) => (
+            <ShotCard
+              key={shot.id}
+              boardId={boardId}
+              shot={shot}
+              readOnly={readOnly}
+              isFirst={i === 0}
+              isLast={i === shots.length - 1}
+            />
+          ))}
+        </FlexColumn>
       )}
-    </div>
+      </FlexColumn>
+    </ScrollArea>
   );
 };
 

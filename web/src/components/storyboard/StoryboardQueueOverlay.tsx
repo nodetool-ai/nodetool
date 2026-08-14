@@ -13,13 +13,18 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   Box,
+  Caption,
   FlexColumn,
   FlexRow,
+  ScrollArea,
   Text,
-  Tooltip,
+  ToolbarIconButton,
+  BORDER_RADIUS,
   MOTION,
-  reducedMotion,
-  BORDER_RADIUS
+  SPACING,
+  Z_INDEX,
+  getSpacingPx,
+  reducedMotion
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import TheatersIcon from "@mui/icons-material/Theaters";
@@ -118,17 +123,18 @@ const RenderBar = memo(function RenderBar({ progress }: { progress?: number }) {
 
 const cardSx: SxProps<Theme> = {
   backgroundColor: "grey.800",
-  border: "1px solid var(--palette-c_overlay)",
+  border: "1px solid",
+  borderColor: "c_overlay",
   borderRadius: BORDER_RADIUS.lg,
-  px: 1.5,
-  py: 1
+  px: SPACING.sm,
+  py: SPACING.xs
 };
 
 const Dot = ({ color = "primary.main" }: { color?: string }) => (
   <Box
     sx={{
-      width: 8,
-      height: 8,
+      width: getSpacingPx(SPACING.md),
+      height: getSpacingPx(SPACING.md),
       flex: "0 0 auto",
       borderRadius: BORDER_RADIUS.circle,
       backgroundColor: color
@@ -136,48 +142,17 @@ const Dot = ({ color = "primary.main" }: { color?: string }) => (
   />
 );
 
-const IconButton = ({
-  icon,
-  label,
-  onClick,
-  hoverColor = "text.primary"
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  hoverColor?: string;
-}) => (
-  <Tooltip title={label}>
-    <Box
-      component="button"
-      aria-label={label}
-      onClick={onClick}
-      sx={{
-        display: "flex",
-        flex: "0 0 auto",
-        border: "none",
-        background: "transparent",
-        color: "text.secondary",
-        cursor: "pointer",
-        p: 0.25,
-        borderRadius: BORDER_RADIUS.sm,
-        "&:hover": { color: hoverColor }
-      }}
-    >
-      {icon}
-    </Box>
-  </Tooltip>
-);
-
 const KindTag = ({ kind }: { kind: ShotJobKind }) => (
-  <Text
-    size="smaller"
+  <Caption
     color="secondary"
-    family="secondary"
-    sx={{ flex: "0 0 auto", textTransform: "uppercase", letterSpacing: "0.05em" }}
+    sx={{
+      flex: "0 0 auto",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    }}
   >
     {KIND_LABEL[kind]}
-  </Text>
+  </Caption>
 );
 
 const RenderingCard = memo(function RenderingCard({
@@ -189,20 +164,21 @@ const RenderingCard = memo(function RenderingCard({
 }) {
   return (
     <Box sx={cardSx}>
-      <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
+      <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
         <Dot />
-        <Text size="small" weight={500} truncate sx={{ flex: 1, minWidth: 0 }}>
+        <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {row.name}
         </Text>
         <KindTag kind={row.kind} />
-        <IconButton
-          icon={<CloseIcon sx={{ fontSize: 15 }} />}
-          label="Cancel render"
+        <ToolbarIconButton
+          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+          tooltip="Cancel render"
+          ariaLabel="Cancel render"
+          variant="error"
           onClick={() => onCancel(row.shotId)}
-          hoverColor="error.main"
         />
       </FlexRow>
-      <Box sx={{ mt: 1 }}>
+      <Box sx={{ mt: SPACING.xs }}>
         <RenderBar progress={row.progress} />
       </Box>
     </Box>
@@ -220,24 +196,20 @@ const EnqueuedCard = memo(function EnqueuedCard({
 }) {
   return (
     <Box sx={cardSx}>
-      <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Text
-          size="smaller"
-          color="secondary"
-          family="secondary"
-          sx={{ flex: "0 0 auto" }}
-        >
+      <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
+        <Caption color="secondary" sx={{ flex: "0 0 auto" }}>
           #{position + 1}
-        </Text>
+        </Caption>
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {row.name}
         </Text>
         <KindTag kind={row.kind} />
-        <IconButton
-          icon={<CloseIcon sx={{ fontSize: 15 }} />}
-          label="Remove from queue"
+        <ToolbarIconButton
+          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+          tooltip="Remove from queue"
+          ariaLabel="Remove from queue"
+          variant="error"
           onClick={() => onCancel(row.shotId)}
-          hoverColor="error.main"
         />
       </FlexRow>
     </Box>
@@ -245,21 +217,19 @@ const EnqueuedCard = memo(function EnqueuedCard({
 });
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <Text
-    size="smaller"
+  <Caption
     color="secondary"
-    weight={600}
     sx={{
       display: "block",
-      px: 0.5,
-      pt: 2,
-      pb: 1,
+      px: SPACING.micro,
+      pt: SPACING.md,
+      pb: SPACING.xs,
       textTransform: "uppercase",
-      letterSpacing: "0.07em"
+      letterSpacing: "0.08em"
     }}
   >
     {children}
-  </Text>
+  </Caption>
 );
 
 const HeaderCount = ({
@@ -269,24 +239,22 @@ const HeaderCount = ({
   icon: React.ReactNode;
   count: number;
 }) => (
-  <FlexRow align="center" gap={0.4} sx={{ color: "text.secondary" }}>
+  <FlexRow align="center" gap={SPACING.micro} sx={{ color: "text.secondary" }}>
     {icon}
-    <Text size="smaller" color="secondary" family="secondary">
-      {count}
-    </Text>
+    <Caption color="secondary">{count}</Caption>
   </FlexRow>
 );
 
 const overlayStyles = (theme: Theme) =>
   css({
     position: "absolute",
-    bottom: "16px",
-    right: "16px",
-    width: "304px",
-    maxHeight: "min(420px, calc(100% - 32px))",
+    bottom: getSpacingPx(SPACING.xl),
+    right: getSpacingPx(SPACING.xl),
+    width: getSpacingPx(76),
+    maxHeight: `min(420px, calc(100% - ${getSpacingPx(SPACING.xxxl)}))`,
     display: "flex",
     flexDirection: "column",
-    zIndex: theme.zIndex.drawer,
+    zIndex: Z_INDEX.overlay,
     backgroundColor: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
     borderRadius: BORDER_RADIUS.xl,
@@ -362,15 +330,10 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
     const single = rendering.length === 1 ? rendering[0] : null;
     return (
       <Box css={overlayStyles(theme)}>
-        <FlexColumn gap={1} sx={{ p: 1.5 }}>
-          <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
+        <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
+          <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
             <Dot color={rendering.length ? "primary.main" : "grey.600"} />
-            <Text
-              size="small"
-              weight={500}
-              truncate
-              sx={{ flex: 1, minWidth: 0 }}
-            >
+            <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
               {single
                 ? single.name
                 : rendering.length
@@ -378,9 +341,10 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
                   : "Render queue"}
             </Text>
             {single && <KindTag kind={single.kind} />}
-            <IconButton
-              icon={<KeyboardArrowUpIcon sx={{ fontSize: 18 }} />}
-              label="Expand render queue"
+            <ToolbarIconButton
+              icon={<KeyboardArrowUpIcon sx={{ fontSize: "1em" }} />}
+              tooltip="Expand render queue"
+              ariaLabel="Expand render queue"
               onClick={() => setExpanded(true)}
             />
           </FlexRow>
@@ -388,11 +352,13 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
             <RenderBar progress={single?.progress} />
           )}
           {queued.length > 0 && (
-            <FlexRow align="center" gap={0.5} sx={{ color: "text.secondary" }}>
-              <ScheduleIcon sx={{ fontSize: 13 }} />
-              <Text size="smaller" color="secondary">
-                {queued.length} queued
-              </Text>
+            <FlexRow
+              align="center"
+              gap={SPACING.micro}
+              sx={{ color: "text.secondary" }}
+            >
+              <ScheduleIcon sx={{ fontSize: "1em" }} />
+              <Caption color="secondary">{queued.length} queued</Caption>
             </FlexRow>
           )}
         </FlexColumn>
@@ -402,39 +368,48 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
 
   return (
     <Box css={overlayStyles(theme)}>
-      <FlexRow align="center" gap={1} sx={{ px: 2, py: 1.5, flex: "0 0 auto" }}>
-        <TheatersIcon sx={{ fontSize: 17, color: "text.secondary" }} />
-        <Text size="normal" weight={600} sx={{ flex: 1 }}>
+      <FlexRow
+        align="center"
+        gap={SPACING.xs}
+        sx={{ px: SPACING.md, py: SPACING.sm, flex: "0 0 auto" }}
+      >
+        <TheatersIcon sx={{ fontSize: "1em", color: "text.secondary" }} />
+        <Text size="small" sx={{ flex: 1 }}>
           Render queue
         </Text>
-        <FlexRow align="center" gap={1.25}>
+        <FlexRow align="center" gap={SPACING.md}>
           <HeaderCount
-            icon={<PlayArrowOutlinedIcon sx={{ fontSize: 15 }} />}
+            icon={<PlayArrowOutlinedIcon sx={{ fontSize: "1em" }} />}
             count={rendering.length}
           />
           <HeaderCount
-            icon={<ScheduleIcon sx={{ fontSize: 14 }} />}
+            icon={<ScheduleIcon sx={{ fontSize: "1em" }} />}
             count={queued.length}
           />
         </FlexRow>
-        <IconButton
-          icon={<CloseIcon sx={{ fontSize: 15 }} />}
-          label="Cancel all renders"
+        <ToolbarIconButton
+          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+          tooltip="Cancel all renders"
+          ariaLabel="Cancel all renders"
+          variant="error"
           onClick={handleCancelAll}
-          hoverColor="error.main"
         />
-        <IconButton
-          icon={<RemoveIcon sx={{ fontSize: 16 }} />}
-          label="Collapse render queue"
+        <ToolbarIconButton
+          icon={<RemoveIcon sx={{ fontSize: "1em" }} />}
+          tooltip="Collapse render queue"
+          ariaLabel="Collapse render queue"
           onClick={() => setExpanded(false)}
         />
       </FlexRow>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 2, pb: 2 }}>
+      <ScrollArea
+        thin
+        sx={{ flex: 1, minHeight: 0, px: SPACING.md, pb: SPACING.md }}
+      >
         {rendering.length > 0 && (
           <>
             <SectionLabel>Rendering</SectionLabel>
-            <FlexColumn gap={1}>
+            <FlexColumn gap={SPACING.xs}>
               {rendering.map((row) => (
                 <RenderingCard
                   key={row.jobId}
@@ -448,7 +423,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         {queued.length > 0 && (
           <>
             <SectionLabel>Enqueued</SectionLabel>
-            <FlexColumn gap={1}>
+            <FlexColumn gap={SPACING.xs}>
               {queued.map((row, position) => (
                 <EnqueuedCard
                   key={row.jobId}
@@ -460,7 +435,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
             </FlexColumn>
           </>
         )}
-      </Box>
+      </ScrollArea>
     </Box>
   );
 });

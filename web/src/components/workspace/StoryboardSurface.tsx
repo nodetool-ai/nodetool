@@ -1,8 +1,6 @@
-/** @jsxImportSource @emotion/react */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import ViewListRoundedIcon from "@mui/icons-material/ViewListRounded";
 import TheatersIcon from "@mui/icons-material/Theaters";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
@@ -16,9 +14,8 @@ import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay"
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
-import { FlexColumn, TabGroup } from "../ui_primitives";
+import { Box, FlexColumn, FlexRow, TabGroup } from "../ui_primitives";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
-import StoryboardSidebar from "../storyboard/StoryboardSidebar";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
@@ -31,15 +28,14 @@ interface StoryboardSurfaceProps {
   active: boolean;
 }
 
-type MobilePane = "boards" | "board" | "assistant";
+type MobilePane = "board" | "assistant";
 
 const MOBILE_TABS = [
-  { value: "boards", label: "Boards", icon: <ViewListRoundedIcon /> },
   { value: "board", label: "Board", icon: <TheatersIcon /> },
   { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
 ];
 
-const MOBILE_PANES: readonly MobilePane[] = ["boards", "board", "assistant"];
+const MOBILE_PANES: readonly MobilePane[] = ["board", "assistant"];
 
 const isMobilePane = (value: string): value is MobilePane =>
   (MOBILE_PANES as readonly string[]).includes(value);
@@ -50,8 +46,8 @@ const isMobilePane = (value: string): value is MobilePane =>
  * board under its id for the ui_storyboard_* tools) and the generation
  * subscriptions, and renders the board read-only in view mode.
  *
- * On wide screens the sidebar, board, and assistant sit side by side. On phones
- * three columns don't fit, so edit mode collapses to a single pane with a
+ * On wide screens the board and assistant sit side by side. On phones two
+ * columns don't fit, so edit mode collapses to a single pane with a
  * segmented switcher; every pane stays mounted (toggled via `display`) so
  * board, chat, and scroll state survive switches.
  */
@@ -147,49 +143,33 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         {/* One pane visible at a time; each fills the switcher body and its
             child owns the layout, so plain block boxes (toggled via display)
             suffice — no flex wrapper needed. */}
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <div
-            style={{
-              height: "100%",
-              display: mobilePane === "boards" ? "block" : "none"
-            }}
-          >
-            <StoryboardSidebar activeBoardId={refId} />
-          </div>
-          <div
-            style={{
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <Box
+            sx={{
               height: "100%",
               display: mobilePane === "board" ? "block" : "none"
             }}
           >
             {board}
-          </div>
-          <div
-            style={{
+          </Box>
+          <Box
+            sx={{
               height: "100%",
               display: mobilePane === "assistant" ? "block" : "none"
             }}
           >
             <StoryboardAgentPanel boardId={refId} />
-          </div>
-        </div>
+          </Box>
+        </Box>
         <StoryboardQueueOverlay boardId={refId} />
       </FlexColumn>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        minHeight: 0,
-        position: "relative"
-      }}
-    >
-      {mode !== "view" && <StoryboardSidebar activeBoardId={refId} />}
+    <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
       <StoryboardQueueOverlay boardId={refId} />
-      <div style={{ flex: 1, minWidth: 0 }}>{board}</div>
+      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{board}</Box>
       {mode !== "view" && (
         <ResizableSideDock
           storageKey="storyboard_assistant"
@@ -198,7 +178,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           <StoryboardAgentPanel boardId={refId} />
         </ResizableSideDock>
       )}
-    </div>
+    </FlexRow>
   );
 };
 

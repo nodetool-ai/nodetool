@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * ShotTakesGallery
  *
@@ -12,20 +11,18 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 
 import {
+  Box,
   Caption,
   Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
+  BORDER_RADIUS,
   SPACING,
-  getSpacingPx,
-  BORDER_RADIUS
+  getSpacingPx
 } from "../ui_primitives";
 import OutputRenderer from "../node/OutputRenderer";
 import {
@@ -40,52 +37,33 @@ interface ShotTakesGalleryProps {
   readOnly?: boolean;
 }
 
-const styles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    gap: getSpacingPx(SPACING.xs),
-    ".take-thumb": {
-      width: "96px",
-      aspectRatio: "16 / 9",
-      padding: 0,
-      overflow: "hidden",
-      cursor: "pointer",
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.c_overlay_subtle,
-      display: "grid",
-      placeItems: "center",
-      color: theme.vars.palette.text.secondary,
-      "& img": {
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        display: "block"
-      },
-      "&[aria-pressed='true']": {
-        borderColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}`
-      },
-      "&:disabled": {
-        cursor: "default"
-      }
-    },
-    ".takes-viewer": {
-      display: "flex",
-      flexDirection: "column",
-      gap: getSpacingPx(SPACING.xs),
-      // OutputRenderer's video path sizes to its container; give clips their
-      // natural height inside the card instead of a collapsed 100%-of-auto.
-      "& video": {
-        width: "100%",
-        height: "auto"
-      }
-    },
-    ".takes-label": {
-      color: theme.vars.palette.text.secondary
-    }
-  });
+const takeThumbSx = {
+  width: getSpacingPx(24),
+  aspectRatio: "16 / 9",
+  p: 0,
+  overflow: "hidden",
+  cursor: "pointer",
+  borderRadius: BORDER_RADIUS.sm,
+  border: "1px solid",
+  borderColor: "divider",
+  bgcolor: "c_overlay_subtle",
+  display: "grid",
+  placeItems: "center",
+  color: "text.secondary",
+  "& img": {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block"
+  },
+  "&[aria-pressed='true']": {
+    borderColor: "primary.main",
+    boxShadow: "0 0 0 1px var(--palette-primary-main)"
+  },
+  "&:disabled": {
+    cursor: "default"
+  }
+} as const;
 
 const versionKey = (ref: ImageRef | VideoRef, index: number): string =>
   ref.asset_id ?? ref.uri ?? String(index);
@@ -95,7 +73,6 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   shot,
   readOnly
 }) => {
-  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const selectKeyframeVersion = useStoryboardStore(
     (state) => state.selectKeyframeVersion
@@ -156,34 +133,35 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     .join(" · ");
 
   return (
-    <div css={styles(theme)} className="takes">
-      <FlexRow align="center" justify="space-between" gap={1}>
-        <Caption className="takes-label">{`Takes — ${countLabel}`}</Caption>
+    <FlexColumn gap={SPACING.xs} className="takes">
+      <FlexRow align="center" justify="space-between" gap={SPACING.xs}>
+        <Caption color="secondary">{`Takes: ${countLabel}`}</Caption>
         <EditorButton onClick={handleToggle}>
           {expanded ? "Hide takes" : "View takes"}
         </EditorButton>
       </FlexRow>
 
       {stills.length > 1 && (
-        <FlexRow gap={0.5} align="center" wrap className="still-thumbs">
+        <FlexRow gap={SPACING.micro} align="center" wrap className="still-thumbs">
           {stills.map((still, i) => (
-            <button
+            <Box
               key={versionKey(still, i)}
+              component="button"
               type="button"
-              className="take-thumb"
               aria-label={`Use still ${i + 1}`}
               aria-pressed={i === selectedStill}
               disabled={readOnly}
               onClick={() => handleSelectStill(i)}
+              sx={takeThumbSx}
             >
               {still.uri ? <img src={still.uri} alt="" /> : <span>{i + 1}</span>}
-            </button>
+            </Box>
           ))}
         </FlexRow>
       )}
 
       {clips.length > 1 && (
-        <FlexRow gap={0.5} align="center" wrap className="clip-chips">
+        <FlexRow gap={SPACING.micro} align="center" wrap className="clip-chips">
           <Caption color="secondary">Clips</Caption>
           {clips.map((clip, i) => (
             <Chip
@@ -199,7 +177,10 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       )}
 
       {expanded && (
-        <FlexColumn gap={0.5} className="takes-viewer">
+        <FlexColumn
+          gap={SPACING.xs}
+          sx={{ "& video": { width: "100%", height: "auto" } }}
+        >
           {stills.length > 0 && (
             <>
               <Caption color="secondary">Stills</Caption>
@@ -214,7 +195,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           )}
         </FlexColumn>
       )}
-    </div>
+    </FlexColumn>
   );
 };
 

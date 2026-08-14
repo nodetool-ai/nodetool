@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * ShotCard
  *
@@ -11,32 +10,28 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import {
+  Box,
   Card,
-  FlexRow,
-  FlexColumn,
-  EditorButton,
-  StatusIndicator,
-  Chip,
-  Text,
   Caption,
-  VideoPlayer,
+  Chip,
   Dialog,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  HoverActionGroup,
+  StatusIndicator,
+  Text,
   TextInput,
   ToolbarIconButton,
-  HoverActionGroup,
-  SPACING,
-  getSpacingPx,
+  VideoPlayer,
   BORDER_RADIUS,
-  MOTION,
+  SPACING,
   type StatusType
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
@@ -68,85 +63,32 @@ const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse
   failed: { status: "error", label: "Failed" }
 };
 
-const styles = (theme: Theme) =>
-  css({
-    display: "grid",
-    gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
-    gap: getSpacingPx(SPACING.md),
-    alignItems: "start",
-    "@media (max-width: 720px)": {
-      gridTemplateColumns: "minmax(0, 1fr)"
-    },
-    ".preview": {
-      position: "relative",
-      width: "100%",
-      aspectRatio: "16 / 9",
-      borderRadius: BORDER_RADIUS.sm,
-      overflow: "hidden",
-      backgroundColor: theme.vars.palette.c_overlay_subtle,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      "& img": {
-        width: "100%",
-        height: "100%",
-        objectFit: "cover"
-      }
-    },
-    ".placeholder": {
-      color: theme.vars.palette.text.disabled,
-      textAlign: "center",
-      padding: getSpacingPx(SPACING.md)
-    },
-    ".details": {
-      minWidth: 0,
-      display: "flex",
-      flexDirection: "column",
-      gap: getSpacingPx(SPACING.sm)
-    },
-    ".camera": {
-      color: theme.vars.palette.text.secondary
-    },
-    // ── Generating: shimmer sweep + spark over the preview, glow on the card ──
-    "@keyframes shot-shimmer": {
-      from: { backgroundPosition: "200% 0" },
-      to: { backgroundPosition: "-200% 0" }
-    },
-    "@keyframes shot-spark": {
-      "0%, 100%": { opacity: 0.4, transform: "scale(0.9) rotate(0deg)" },
-      "50%": { opacity: 1, transform: "scale(1.2) rotate(90deg)" }
-    },
-    "@keyframes shot-breathe": {
-      "0%, 100%": { boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}33` },
-      "50%": { boxShadow: `0 0 14px 1px ${theme.vars.palette.primary.main}55` }
-    },
-    "&.generating": {
-      animation: `shot-breathe ${MOTION.pulse} infinite`
-    },
-    ".conjure": {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: getSpacingPx(SPACING.sm),
-      backgroundImage: `linear-gradient(100deg, transparent 40%, ${theme.vars.palette.action.selected} 50%, transparent 60%)`,
-      backgroundSize: "200% 100%",
-      animation: `shot-shimmer ${MOTION.spin} infinite`,
-      ".spark": {
-        fontSize: "1.5em",
-        color: theme.vars.palette.primary.main,
-        animation: `shot-spark ${MOTION.pulse} infinite`
-      },
-      ".conjure-label": {
-        color: theme.vars.palette.text.secondary
-      }
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      "&.generating, .conjure, .conjure .spark": { animation: "none" }
-    }
-  });
+const previewSx = {
+  position: "relative",
+  width: "100%",
+  aspectRatio: "16 / 9",
+  borderRadius: BORDER_RADIUS.sm,
+  overflow: "hidden",
+  bgcolor: "c_overlay_subtle",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  "& img": {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover"
+  }
+} as const;
+
+const cardGridSx = {
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
+  gap: SPACING.md,
+  alignItems: "start",
+  "@media (max-width: 720px)": {
+    gridTemplateColumns: "minmax(0, 1fr)"
+  }
+} as const;
 
 const cameraLine = (shot: Shot): string =>
   [
@@ -167,8 +109,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   isFirst,
   isLast
 }) => {
-  const theme = useTheme();
-  const cardStyles = useMemo(() => styles(theme), [theme]);
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
@@ -233,38 +173,56 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     <Card
       variant="outlined"
       padding="compact"
-      css={cardStyles}
-      className={`shot-card${isGenerating ? " generating" : ""}`}
+      className="shot-card"
+      sx={{
+        ...cardGridSx,
+        ...(isGenerating
+          ? { outline: "1px solid", outlineColor: "primary.main" }
+          : undefined)
+      }}
     >
-      <div className="preview">
+      <Box sx={previewSx}>
         {clipUri ? (
           <VideoPlayer src={clipUri} />
         ) : (
           <ImageRefPreview
             value={shot.keyframe}
             placeholder={
-              <Caption className="placeholder">No still yet</Caption>
+              <Caption
+                color="muted"
+                sx={{ textAlign: "center", p: SPACING.md }}
+              >
+                No still yet
+              </Caption>
             }
           />
         )}
         {isGenerating && (
-          <div className="conjure">
-            <span className="spark">✦</span>
-            <Caption className="conjure-label">
+          <FlexColumn
+            align="center"
+            justify="center"
+            gap={SPACING.sm}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: "c_scrim_soft"
+            }}
+          >
+            <Caption>
               {shot.status === "clip_generating"
                 ? "Rendering clip…"
-                : "Conjuring still…"}
+                : "Generating still…"}
             </Caption>
-          </div>
+          </FlexColumn>
         )}
-      </div>
+      </Box>
 
-      <FlexColumn className="details">
-        <FlexRow align="center" justify="space-between" gap={1} wrap>
-          <Text size="small" weight={600} truncate>
+      <FlexColumn gap={SPACING.sm} sx={{ minWidth: 0 }}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.xs} wrap>
+          <Text size="small" truncate>
             {shotName}
           </Text>
-          <FlexRow align="center" gap={1}>
+          <FlexRow align="center" gap={SPACING.xs}>
             {typeof shot.cost_estimate === "number" && (
               <Chip
                 compact
@@ -286,21 +244,21 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 sx={{ "@media (pointer: coarse)": { opacity: 1 } }}
               >
                 <ToolbarIconButton
-                  icon={<ArrowUpwardIcon sx={{ fontSize: 16 }} />}
+                  icon={<ArrowUpwardIcon sx={{ fontSize: "1em" }} />}
                   tooltip="Move up"
                   ariaLabel="Move shot up"
                   onClick={handleMoveUp}
                   disabled={isFirst}
                 />
                 <ToolbarIconButton
-                  icon={<ArrowDownwardIcon sx={{ fontSize: 16 }} />}
+                  icon={<ArrowDownwardIcon sx={{ fontSize: "1em" }} />}
                   tooltip="Move down"
                   ariaLabel="Move shot down"
                   onClick={handleMoveDown}
                   disabled={isLast}
                 />
                 <ToolbarIconButton
-                  icon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                  icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
                   tooltip="Delete shot"
                   ariaLabel="Delete shot"
                   variant="error"
@@ -312,18 +270,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           </FlexRow>
         </FlexRow>
 
-        <Text size="small" lineClamp={3}>
-          {shot.action}
-        </Text>
+        <Text lineClamp={3}>{shot.action}</Text>
 
         {camera.length > 0 && (
-          <Caption className="camera" noWrap>
+          <Caption color="secondary" noWrap>
             {camera}
           </Caption>
         )}
 
         {boardEntities.length > 0 && (
-          <FlexRow gap={0.5} wrap>
+          <FlexRow gap={SPACING.micro} wrap>
             {boardEntities.map((entity) => {
               const applied = appliedIds.includes(entity.id);
               return (
@@ -339,7 +295,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                   }}
                   title={
                     applied
-                      ? `${entity.descriptor || entity.name} — click to exclude from this shot`
+                      ? `${entity.descriptor || entity.name}: click to exclude from this shot`
                       : `Click to include ${entity.name} in this shot`
                   }
                   onClick={
@@ -357,7 +313,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
 
         {!readOnly && (
-          <FlexRow gap={0.5} wrap>
+          <FlexRow gap={SPACING.micro} wrap>
             <EditorButton
               onClick={handleGenerateStill}
               disabled={isGenerating}
@@ -395,7 +351,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         confirmText="Revise"
         confirmDisabled={reviseText.trim().length === 0}
       >
-        <FlexColumn gap={1}>
+        <FlexColumn gap={SPACING.xs}>
           <Caption color="secondary">
             Describe the change to make. The current clip is re-rendered with
             your note applied.
@@ -419,7 +375,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         confirmText="Delete"
         destructive
       >
-        <Text size="small">
+        <Text>
           {`Remove “${shotName}” from the board. Generated stills and clips stay in your asset library.`}
         </Text>
       </Dialog>

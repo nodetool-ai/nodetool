@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * Studio storyboard page: the existing storyboard editor (board + agent
  * panel + generation queue) inside the Studio chrome, minus the workspace
@@ -15,7 +14,7 @@
 import { useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { FlexColumn } from "../components/ui_primitives";
+import { Box, FlexColumn, FlexRow } from "../components/ui_primitives";
 import StoryboardBoard from "../components/storyboard/StoryboardBoard";
 import StoryboardAgentPanel from "../components/storyboard/StoryboardAgentPanel";
 import StoryboardQueueOverlay from "../components/storyboard/StoryboardQueueOverlay";
@@ -97,16 +96,15 @@ const StudioStoryboardPage = () => {
 
   return (
     <StudioShell title={title || "Untitled storyboard"}>
-      <div
-        style={{
-          display: "flex",
+      <FlexRow
+        sx={{
           flex: 1,
           minHeight: 0,
           position: "relative"
         }}
       >
         <StoryboardQueueOverlay boardId={boardId} />
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <StoryboardBoard
             boardId={boardId}
             readOnly={false}
@@ -117,7 +115,7 @@ const StudioStoryboardPage = () => {
             assembling={assembling}
             assembleError={assembleError}
           />
-        </div>
+        </Box>
         <FlexColumn
           fullHeight
           sx={{
@@ -129,7 +127,7 @@ const StudioStoryboardPage = () => {
         >
           <StoryboardAgentPanel boardId={boardId} />
         </FlexColumn>
-      </div>
+      </FlexRow>
     </StudioShell>
   );
 };
