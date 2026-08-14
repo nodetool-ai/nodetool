@@ -444,7 +444,7 @@ async function runBrowserGraphJobLocal(
         return { success: true, outputs };
       }
 
-      const message = next.value as unknown as WebSocketMessage;
+      const message = next.value as WebSocketMessage;
 
       // Resolve in-flight GPU-texture refs to a CPU buffer (read-back), then
       // normalize the same way the unified server does (raw-RGBA → PNG, inline

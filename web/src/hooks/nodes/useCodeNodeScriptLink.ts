@@ -177,7 +177,7 @@ export function useCodeNodeScriptLink(
         },
         dynamic_inputs: portsToSlots(document.inputs),
         dynamic_outputs: portsToOutputs(document.outputs)
-      } as unknown as Partial<NodeData>);
+      });
     },
     [findNode, nodeId, updateNodeData]
   );
@@ -228,7 +228,7 @@ export function useCodeNodeScriptLink(
   const detach = useCallback(() => {
     const properties = { ...(findNode(nodeId)?.data?.properties ?? {}) };
     delete properties.script;
-    updateNodeData(nodeId, { properties } as unknown as Partial<NodeData>);
+    updateNodeData(nodeId, { properties });
   }, [findNode, nodeId, updateNodeData]);
 
   return {

@@ -176,7 +176,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
       response.on("end", () => {
         try {
           const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
-          const packages = (registryData.packages || []).map((pkg) => ({
+          const packages: PackageInfo[] = (registryData.packages || []).map((pkg) => ({
             name: pkg.name,
             description: getPackageDescription(pkg),
             repo_id: pkg.repo_id,
@@ -186,7 +186,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
               pkg.latestVersion ??
               pkg.latest_version ??
               undefined,
-          })) as PackageInfo[];
+          }));
           const npmPackages = getNpmAvailablePackages();
           resolve({
             packages: [...packages, ...npmPackages],
