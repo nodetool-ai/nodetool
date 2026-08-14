@@ -23,6 +23,8 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import { getActiveSketchInstance } from "../../stores/sketch/SketchInstance";
 import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
+import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentForAsset";
+import { tabCanRename } from "./tabRename";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -48,18 +50,6 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   application: false,
   page: false
 };
-
-/** Tab types whose title can be renamed in place by double-clicking. */
-const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
-  "workflow",
-  "sketch",
-  "timeline",
-  "storyboard",
-  "script",
-  "jsscript",
-  "model3d",
-  "chat"
-]);
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   workflow: "⬡",
@@ -444,6 +434,25 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           case "sketch":
             await renameSketchDocument(getActiveSketchInstance(), trimmed);
             break;
+          case "image": {
+            const asset = await useAssetStore.getState().update({
+              id: tab.ref,
+              name: trimmed
+            });
+            const sketchId = readSketchDocumentId(asset);
+            if (sketchId) {
+              const instance = getActiveSketchInstance();
+              if (instance.session.getState().documentId === sketchId) {
+                await renameSketchDocument(instance, trimmed);
+              } else {
+                await trpcClient.sketch.update.mutate({
+                  id: sketchId,
+                  name: trimmed
+                });
+              }
+            }
+            break;
+          }
           case "timeline":
             await trpcClient.timeline.update.mutate({
               id: tab.ref,
@@ -565,7 +574,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
               tab={tab}
               isActive={tab.id === activeTabId}
               isEditing={editingTabId === tab.id}
-              canRename={RENAMEABLE_TYPES.has(tab.type)}
+              canRename={tabCanRename(tab.type)}
               dropPosition={
                 dropTarget?.id === tab.id ? dropTarget.position : null
               }

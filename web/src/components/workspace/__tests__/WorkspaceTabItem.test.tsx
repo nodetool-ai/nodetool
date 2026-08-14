@@ -8,6 +8,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import WorkspaceTabItem from "../WorkspaceTabItem";
 import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
+import { tabCanRename } from "../tabRename";
 
 jest.mock("../../../hooks/useWorkflowRunnerState", () => ({
   useIsWorkflowRunning: () => false
@@ -113,6 +114,29 @@ describe("WorkspaceTabItem rename input", () => {
     input.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("offers Rename on an image tab (sketch editor host)", async () => {
+    const user = userEvent.setup();
+    const imageTab = {
+      ...tab,
+      id: "image:img-1",
+      type: "image",
+      ref: "img-1",
+      title: "Untitled.png"
+    } as WorkspaceTab;
+    const handlers = renderTab({
+      tab: imageTab,
+      canRename: tabCanRename("image")
+    });
+
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByRole("tab")
+    });
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    expect(handlers.onBeginRename).toHaveBeenCalledWith(imageTab);
   });
 
   it("offers Rename in the tab menu when the tab can be renamed", async () => {

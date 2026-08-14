@@ -195,7 +195,12 @@ const WorkspaceTabItem = ({
                 color="primary"
               />
             )}
-            <span className="tab-name">{tab.title}</span>
+            <span
+              className="tab-name"
+              title={canRename ? "Double-click to rename" : undefined}
+            >
+              {tab.title}
+            </span>
             {isWorkflowDirty && (
               <span
                 className="dirty-dot"
