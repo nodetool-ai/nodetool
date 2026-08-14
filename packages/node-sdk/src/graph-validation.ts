@@ -15,6 +15,10 @@ import {
   getProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
+import {
+  inferredCodeInputNames,
+  inferredCodeOutputNames
+} from "./code-analysis.js";
 import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
 import {
   jsScriptPortMismatches,
@@ -798,6 +802,12 @@ export function validateGraph(
         ...Object.keys(readDynamicProperties(node)),
         ...connectedInputs
       ]);
+      // A named `inputs.foo` / `stream("foo")` read is a handle. The editor
+      // shows it; an agent can connect to it. Count it as declared so the
+      // body is not rejected for a slot the code itself just created.
+      for (const name of inferredCodeInputNames(String(props.code ?? ""))) {
+        if (!isReservedHandle(name)) availableInputs.add(name);
+      }
 
       // A linked node carries a *copy* of the pinned script's body, so the
       // body below is checked exactly like an inline one. What the link adds
@@ -823,9 +833,14 @@ export function validateGraph(
                   "available. The node runs the body it copied at link time.")
           });
         } else {
-          const nodeInputs = [...availableInputs].filter(
-            (name) => !isReservedHandle(name)
-          );
+          // Compare the script to slots the node actually stores. Names the
+          // body reads are implicit handles for the editor; they must not
+          // hide a missing stored slot on a linked node.
+          const nodeInputs = [
+            ...Object.keys(readDynamicInputs(node)),
+            ...Object.keys(readDynamicProperties(node)),
+            ...connectedInputs
+          ].filter((name) => !isReservedHandle(name));
           const nodeOutputs = Object.keys(readDynamicOutputs(node));
           for (const mismatch of jsScriptPortMismatches({
             scriptInputs: resolved.document.inputs.map((port) => port.name),
@@ -864,7 +879,12 @@ export function validateGraph(
           (name) => !isReservedHandle(name)
         ),
         connectedInputs,
-        declaredOutputs: Object.keys(readDynamicOutputs(node)),
+        declaredOutputs: [
+          ...new Set([
+            ...Object.keys(readDynamicOutputs(node)),
+            ...inferredCodeOutputNames(String(props.code ?? ""))
+          ])
+        ],
         connectedOutputs: [...(consumedByNode.get(id) ?? [])],
         declaredPackages: declarations,
         sandboxModuleCatalog
@@ -1009,7 +1029,13 @@ export function validateGraph(
         // populated one can say a handle is missing.
         const declaredOutputs = readDynamicOutputs(sourceNode);
         const names = Object.keys(declaredOutputs);
-        if (names.length > 0 && !(e.sourceHandle in declaredOutputs)) {
+        const inferredOut = isJsCodeNodeType(String(sourceNode.type ?? ""))
+          ? inferredCodeOutputNames(
+              String(readProperties(sourceNode).code ?? "")
+            )
+          : [];
+        const knownOut = new Set([...names, ...inferredOut]);
+        if (names.length > 0 && !knownOut.has(e.sourceHandle)) {
           issues.push({
             severity: "error",
             code: "unknown_handle",

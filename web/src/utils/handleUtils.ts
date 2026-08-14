@@ -8,6 +8,10 @@ import {
 } from "../stores/ApiTypes";
 import { inferOutputType } from "./outputTypeInference";
 import { ANY_TYPE, normalizeDynamicSlot, slotType } from "./dynamicSlots";
+import {
+  inferredCodeInputNamesFromData,
+  inferredCodeOutputNamesFromData
+} from "./codeNodeHandles";
 
 /**
  * Represents an output handle (either static or dynamic)
@@ -82,6 +86,17 @@ export function findOutputHandle(
     };
   }
 
+  if (
+    inferredCodeOutputNamesFromData(node.data, node.type).includes(handleName)
+  ) {
+    return {
+      name: handleName,
+      type: { ...ANY_TYPE },
+      stream: false,
+      isDynamic: true
+    };
+  }
+
   return undefined;
 }
 
@@ -143,6 +158,16 @@ export function findInputHandle(
     };
   }
 
+  if (
+    inferredCodeInputNamesFromData(node.data, node.type).includes(handleName)
+  ) {
+    return {
+      name: handleName,
+      type: { ...ANY_TYPE },
+      isDynamic: true
+    };
+  }
+
   return undefined;
 }
 
@@ -182,6 +207,17 @@ export function getAllOutputHandles(
     });
   });
 
+  const knownOutputs = new Set(handles.map((handle) => handle.name));
+  for (const name of inferredCodeOutputNamesFromData(node.data, node.type)) {
+    if (knownOutputs.has(name)) continue;
+    handles.push({
+      name,
+      type: { ...ANY_TYPE },
+      stream: false,
+      isDynamic: true
+    });
+  }
+
   return handles;
 }
 
@@ -212,9 +248,11 @@ export function getAllInputHandles(
   const dynamicInputs = node.data.dynamic_inputs || {};
   const dynamicProperties = node.data.dynamic_properties || {};
   const dynamicOutputs = node.data.dynamic_outputs || {};
+  const inferredInputs = inferredCodeInputNamesFromData(node.data, node.type);
   const dynamicHandleNames = new Set([
     ...Object.keys(dynamicInputs),
-    ...Object.keys(dynamicProperties)
+    ...Object.keys(dynamicProperties),
+    ...inferredInputs
   ]);
 
   dynamicHandleNames.forEach((name) => {
@@ -222,7 +260,9 @@ export function getAllInputHandles(
       return;
     }
     const isDynamicOutputOnly =
-      dynamicOutputs[name] !== undefined && dynamicInputs[name] === undefined;
+      dynamicOutputs[name] !== undefined &&
+      dynamicInputs[name] === undefined &&
+      !inferredInputs.includes(name);
     if (isDynamicOutputOnly) {
       return;
     }

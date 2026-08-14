@@ -248,4 +248,42 @@ describe("ui_update_node_data tool", () => {
       ).rejects.toThrow(`${fieldType} object, not a string`);
     }
   });
+
+  it("stamps inferred Code handles when the code property changes", async () => {
+    const nodes = [
+      {
+        id: "n1",
+        type: "nodetool.code.Code",
+        data: {
+          properties: { code: "" },
+          dynamic_properties: {},
+          dynamic_outputs: {},
+        },
+      },
+    ];
+    const store = createMockNodeStore(nodes);
+    const state = createMockState({
+      nodeMetadata: {
+        "nodetool.code.Code": { properties: [] } as never,
+      },
+      getNodeStore: jest.fn().mockReturnValue(store),
+    });
+
+    await FrontendToolRegistry.call(
+      "ui_update_node_data",
+      {
+        node_id: "n1",
+        data: { properties: { code: "return { sum: inputs.a + inputs.b };" } },
+      },
+      "tc-code",
+      { getState: () => state }
+    );
+
+    expect(store.getState().updateNodeData).toHaveBeenCalledWith("n1", {
+      dynamic_outputs: {
+        sum: { type: "any", type_args: [], optional: false },
+      },
+      dynamic_properties: { a: "", b: "" },
+    });
+  });
 });

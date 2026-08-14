@@ -62,6 +62,20 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
   const ast = tryParse(code);
   if (!ast) return null;
 
+  const emitKeys = new Set<string>();
+  walkAst(ast, (node) => {
+    if (node.type !== "CallExpression") return;
+    if (node.callee.type !== "Identifier") return;
+    if (node.callee.name !== "emit" && node.callee.name !== "output") return;
+    const first = node.arguments[0];
+    if (first?.type === "Literal" && typeof first.value === "string") {
+      emitKeys.add(first.value);
+    }
+  });
+  if (emitKeys.size > 0) {
+    return [...emitKeys];
+  }
+
   let lastReturnKeys: string[] | null = null;
 
   walkAst(ast, (node) => {
@@ -99,16 +113,29 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
  * Infer input names from JavaScript code.
  *
  * Declared inputs arrive on the `inputs` object, so inference is a scan for
- * `inputs.name` / `inputs["name"]` rather than a guess at which undeclared
- * identifier is a slot. That guess needed the full list of sandbox globals to
- * subtract, and every name missing from it invented a phantom input.
+ * `inputs.name` / `inputs["name"]` and `stream("name")` / `stream.first` /
+ * `stream.open`. A named read is a handle — the editor shows it without a
+ * separate Add-input step.
  *
- * A body that shadows `inputs` with its own binding, or reaches for it
- * dynamically (`inputs[key]`, `{...inputs}`), yields no names — there is
- * nothing to enumerate.
+ * A body that shadows `inputs` or `stream` with its own binding skips that
+ * source. A dynamic read (`inputs[key]`) yields no names from that source.
  *
  * Returns an array of input names, or null if none found.
  */
+/** Property names the Code node itself owns — not user input handles. */
+const CODE_NODE_OWN_PROPERTIES = new Set([
+  "code",
+  "script",
+  "packages",
+  "secrets",
+  "timeout",
+  "max_response_mb",
+  "allow_local_network",
+  "allow_host_filesystem"
+]);
+
+const STREAM_NAMED_MEMBERS = new Set(["first", "open"]);
+
 export function inferInputKeysFromCode(code: string): string[] | null {
   const ast = tryParse(code);
   if (!ast) return null;
@@ -126,27 +153,61 @@ export function inferInputKeysFromCode(code: string): string[] | null {
         break;
     }
   });
-  if (shadowed.has("inputs")) return null;
 
   const names = new Set<string>();
-  walkAst(ast, (node, ancestors) => {
-    if (node.type !== "Identifier" || node.name !== "inputs") return;
-    const parent = ancestors[ancestors.length - 2];
-    if (parent?.type !== "MemberExpression" || parent.object !== node) return;
-    if (!parent.computed && parent.property.type === "Identifier") {
-      names.add(parent.property.name);
-      return;
-    }
-    if (
-      parent.computed &&
-      parent.property.type === "Literal" &&
-      typeof parent.property.value === "string"
-    ) {
-      names.add(parent.property.value);
-    }
-  });
+  if (!shadowed.has("inputs")) {
+    walkAst(ast, (node, ancestors) => {
+      if (node.type !== "Identifier" || node.name !== "inputs") return;
+      const parent = ancestors[ancestors.length - 2];
+      if (parent?.type !== "MemberExpression" || parent.object !== node) return;
+      if (!parent.computed && parent.property.type === "Identifier") {
+        names.add(parent.property.name);
+        return;
+      }
+      if (
+        parent.computed &&
+        parent.property.type === "Literal" &&
+        typeof parent.property.value === "string"
+      ) {
+        names.add(parent.property.value);
+      }
+    });
+  }
+
+  if (!shadowed.has("stream")) {
+    walkAst(ast, (node) => {
+      if (node.type !== "CallExpression") return;
+      const callee = node.callee;
+      if (callee.type === "Identifier" && callee.name === "stream") {
+        addLiteralArg(node.arguments[0], names);
+        return;
+      }
+      if (
+        callee.type !== "MemberExpression" ||
+        callee.computed ||
+        callee.object.type !== "Identifier" ||
+        callee.object.name !== "stream" ||
+        callee.property.type !== "Identifier"
+      ) {
+        return;
+      }
+      if (STREAM_NAMED_MEMBERS.has(callee.property.name)) {
+        addLiteralArg(node.arguments[0], names);
+      }
+    });
+  }
+
+  for (const reserved of CODE_NODE_OWN_PROPERTIES) {
+    names.delete(reserved);
+  }
 
   return names.size > 0 ? [...names] : null;
+}
+
+function addLiteralArg(arg: acorn.AnyNode | undefined, names: Set<string>): void {
+  if (arg?.type === "Literal" && typeof arg.value === "string" && arg.value !== "") {
+    names.add(arg.value);
+  }
 }
 
 // ---------------------------------------------------------------------------

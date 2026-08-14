@@ -63,6 +63,18 @@ return { output: 42 };`;
 return { current: 2 };`;
     expect(inferOutputKeysFromCode(code)).toEqual(["current"]);
   });
+
+  it("reads emit and output handle names", () => {
+    expect(
+      inferOutputKeysFromCode('await output("sum", 1);\nawait emit("word", "a");')
+    ).toEqual(expect.arrayContaining(["sum", "word"]));
+  });
+
+  it("prefers emit names over a return object", () => {
+    expect(
+      inferOutputKeysFromCode('await output("sum", 1);\nreturn { ignored: 2 };')
+    ).toEqual(["sum"]);
+  });
 });
 
 describe("inferInputKeysFromCode", () => {
@@ -112,6 +124,17 @@ describe("inferInputKeysFromCode", () => {
     const code =
       '// inputs.ghost is not read\nconst s = "inputs.other";\nreturn { out: inputs.real + s };';
     expect(inferInputKeysFromCode(code)).toEqual(["real"]);
+  });
+
+  it("includes stream handle names", () => {
+    const result = inferInputKeysFromCode(
+      'for await (const x of stream("items")) { await emit("out", x * inputs.factor); }'
+    );
+    expect(result).toEqual(expect.arrayContaining(["items", "factor"]));
+  });
+
+  it("skips Code node property names", () => {
+    expect(inferInputKeysFromCode("return { out: inputs.code };")).toBeNull();
   });
 });
 
@@ -170,6 +193,19 @@ describe("deriveCodeIOUpdates", () => {
     ).toEqual({
       dynamic_outputs: existingOutputs,
       dynamic_properties: { a: "" }
+    });
+  });
+
+  it("adds a stream handle as an input", () => {
+    expect(
+      deriveCodeIOUpdates(
+        'for await (const x of stream("items")) { await emit("out", x); }'
+      )
+    ).toEqual({
+      dynamic_outputs: {
+        out: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { items: "" }
     });
   });
 });

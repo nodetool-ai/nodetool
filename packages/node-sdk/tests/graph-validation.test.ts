@@ -898,6 +898,36 @@ describe("Code nodes", () => {
     expect(report.ok).toBe(false);
   });
 
+  it("treats a named inputs read as a declared handle", () => {
+    const report = validateGraph(
+      graph({
+        properties: { code: "return { out: String(inputs.text) };" },
+        dynamic_outputs: { out: { type: "str" } }
+      }),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "code_undefined_input")).toBe(
+      false
+    );
+  });
+
+  it("treats a named emit as a declared output", () => {
+    const report = validateGraph(
+      graph({
+        properties: {
+          code: 'await output("out", String(inputs.text));'
+        }
+      }),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "code_undeclared_output")).toBe(
+      false
+    );
+    expect(report.issues.some((i) => i.code === "code_undefined_input")).toBe(
+      false
+    );
+  });
+
   it("flags code reading an input the node does not have", () => {
     const report = validateGraph(
       graph({

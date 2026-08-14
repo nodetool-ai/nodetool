@@ -1,5 +1,10 @@
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import {
+  inferredCodeInputNames,
+  inferredCodeOutputNames
+} from "./code-analysis.js";
+import { isJsCodeNodeType } from "./code-node-validation.js";
+import {
   typeMetaToString,
   typesIncompatible,
   valueIncompatibleWithType
@@ -137,6 +142,15 @@ function wouldCreateCycle(
   return false;
 }
 
+function nodeCode(node: GraphNode): string {
+  const data = nodeData(node);
+  const nested = isRecord(data.properties) ? data.properties.code : undefined;
+  const code = nested ?? data.code;
+  return typeof code === "string" ? code : "";
+}
+
+const ANY_TYPE: TypeMeta = { type: "any" };
+
 function outputType(
   node: GraphNode,
   metadata: WorkflowNodeMetadata,
@@ -147,7 +161,14 @@ function outputType(
   const dynamic = isRecord(node.dynamic_outputs)
     ? node.dynamic_outputs[handle]
     : undefined;
-  return isRecord(dynamic) ? dynamic : undefined;
+  if (isRecord(dynamic)) return dynamic;
+  if (
+    isJsCodeNodeType(String(node.type ?? "")) &&
+    inferredCodeOutputNames(nodeCode(node)).includes(handle)
+  ) {
+    return ANY_TYPE;
+  }
+  return undefined;
 }
 
 function inputType(
@@ -169,9 +190,35 @@ function inputType(
     const dynamic = dynamicInputs[handle] ?? dynamicProperties[handle];
     if (isRecord(dynamic) && isRecord(dynamic.type)) return dynamic.type;
     if (isRecord(dynamic) && typeof dynamic.type === "string") return dynamic;
-    return { type: "any" };
+    return ANY_TYPE;
+  }
+  if (
+    isJsCodeNodeType(String(node.type ?? "")) &&
+    inferredCodeInputNames(nodeCode(node)).includes(handle)
+  ) {
+    return ANY_TYPE;
   }
   return undefined;
+}
+
+/** Stamp inferred Code-node slots onto the node without replacing existing ones. */
+function applyInferredCodeHandles(node: GraphNode): void {
+  if (!isJsCodeNodeType(String(node.type ?? ""))) return;
+  const code = nodeCode(node);
+  const dynProps = isRecord(node.dynamic_properties)
+    ? { ...node.dynamic_properties }
+    : {};
+  const dynOuts = isRecord(node.dynamic_outputs)
+    ? { ...node.dynamic_outputs }
+    : {};
+  for (const name of inferredCodeInputNames(code)) {
+    if (!(name in dynProps)) dynProps[name] = "";
+  }
+  for (const name of inferredCodeOutputNames(code)) {
+    if (!(name in dynOuts)) dynOuts[name] = { type: "any" };
+  }
+  node.dynamic_properties = dynProps;
+  node.dynamic_outputs = dynOuts;
 }
 
 function projectGraph(
@@ -255,7 +302,7 @@ export function applyWorkflowDocumentTool(
         );
       }
     }
-    graph.nodes.push({
+    const added: GraphNode = {
       id,
       type,
       data: properties,
@@ -267,7 +314,9 @@ export function applyWorkflowDocumentTool(
       },
       dynamic_properties: {},
       dynamic_outputs: {}
-    });
+    };
+    applyInferredCodeHandles(added);
+    graph.nodes.push(added);
     return {
       graph,
       result: {
@@ -418,5 +467,6 @@ export function applyWorkflowDocumentTool(
   if (Object.keys(uiPatch).length > 0) {
     node.ui_properties = { ...nodeUi(node), ...uiPatch };
   }
+  applyInferredCodeHandles(node);
   return { graph, result: { ok: true, node_id: nodeId }, changed: true };
 }

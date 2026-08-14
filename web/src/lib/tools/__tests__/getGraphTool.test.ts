@@ -371,13 +371,13 @@ describe("ui_get_graph tool", () => {
       expect(errors.join("\n")).toContain("does not parse");
     });
 
-    it("reports an inputs read the node has no slot for", async () => {
+    it("treats a named inputs read as a handle, not an error", async () => {
       const errors = await codeGraph({
         properties: { code: "return { out: inputs.rows.concat(inputs.extra) };" },
         dynamic_properties: { rows: [] },
       });
-      expect(errors.join("\n")).toContain('"inputs.extra"');
-      expect(errors.join("\n")).not.toContain('"inputs.rows"');
+      expect(errors.join("\n")).not.toContain('"inputs.extra"');
+      expect(errors.join("\n")).not.toContain("does not parse");
     });
 
     it("accepts inputs that arrive over an edge", async () => {

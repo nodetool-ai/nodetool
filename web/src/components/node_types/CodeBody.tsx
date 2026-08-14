@@ -239,8 +239,9 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
   );
 
   // The universal Code node derives extra handles from the code: names
-  // read off `inputs` become input slots, keys of the last `return {…}`
-  // become outputs. Existing slots stay so Add input is not wiped on edit.
+  // read off `inputs` or `stream(...)` become input slots, keys of the
+  // last `return {…}` or `emit`/`output` calls become outputs. Existing
+  // slots stay so Add input is not wiped on edit.
   const inferIO = nodeType === "nodetool.code.Code";
 
   const {

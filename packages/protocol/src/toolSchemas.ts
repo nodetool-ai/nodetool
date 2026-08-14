@@ -199,7 +199,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_connect_nodes: {
     description:
-      "Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name).",
+      "Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name). On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle.",
     parameters: uiConnectNodesParams
   },
   ui_get_graph: {
