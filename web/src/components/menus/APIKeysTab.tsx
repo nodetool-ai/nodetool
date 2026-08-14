@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useState, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
