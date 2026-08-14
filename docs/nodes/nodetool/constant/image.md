@@ -23,7 +23,7 @@ Represents an image file constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `image` |  | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| value | `image` |  | - |
 
 ## Outputs
 

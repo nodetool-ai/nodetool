@@ -18,10 +18,11 @@ Transform images using text prompts with any supported image provider. Automatic
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `image_model` | The image generation model to use | `{"type":"image_model","provider":"huggingface_f...` |
+| model | `image_model` | The image generation model to use | `{"type":"image_model","provider":"fal_ai","id":...` |
 | image | `list[image]` | Input image(s) to transform. The first image is the primary subject; additional images are used as references by providers that support multi-image editing. | `[]` |
 | prompt | `str` | Text prompt describing the desired transformation | `A photorealistic version of the input image` |
 | negative_prompt | `str` | Text prompt describing what to avoid | `` |
+| entities | `list[dict]` | Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt and whose reference images are appended to the input images | `[]` |
 | strength | `float` | How much to transform the input image (subtle = minor edit, strong = major edit) | `0.65` |
 | aspect_ratio | `str` | Aspect ratio of the output image | `1:1` |
 | resolution | `str` | Output resolution (short edge in pixels) | `1K` |

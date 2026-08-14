@@ -18,7 +18,7 @@ Add an audio track to a video, replacing or mixing with existing audio.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to add audio to. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to add audio to. | - |
 | audio | `audio` | The audio file to add to the video. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | volume | `float` | Volume adjustment for the added audio. 1.0 is original volume. | `1` |
 | mix | `bool` | If True, mix new audio with existing. If False, replace existing audio. | `false` |

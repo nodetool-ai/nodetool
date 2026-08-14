@@ -5,8 +5,6 @@ title: "kie.dynamic_schema Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Kie AI](kieai.md)**
-
-[Back to all nodes](../../)
+- **[Kie AI](kieai.md)** - Dynamic Kie.ai node for running any kie.ai model.

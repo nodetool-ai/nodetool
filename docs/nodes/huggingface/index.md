@@ -5,7 +5,7 @@ title: "huggingface Nodes"
 
 This namespace contains 19 node(s).
 
-## Nodes
+## Available Nodes
 
 - **[Audio Classification](audioclassification.md)**
 - **[Automatic Speech Recognition](automaticspeechrecognition.md)**
@@ -26,5 +26,3 @@ This namespace contains 19 node(s).
 - **[Token Classification](tokenclassification.md)**
 - **[Translation](translation.md)**
 - **[Zero Shot Classification](zeroshotclassification.md)**
-
-[Back to all nodes](../)

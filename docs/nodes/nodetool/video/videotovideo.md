@@ -19,7 +19,7 @@ Restyle or edit an existing video with a text prompt using any supported video p
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | model | `video_model` | The video-to-video model to use | `{"type":"video_model","provider":"fal_ai","id":...` |
-| video | `video` | The input video to transform | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to transform | - |
 | prompt | `str` | Text prompt describing the desired transformation | `` |
 | negative_prompt | `str` | Text prompt describing what to avoid | `` |
 | strength | `float` | How much to transform the input video | `0.6` |

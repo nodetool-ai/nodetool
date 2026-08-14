@@ -18,9 +18,7 @@ Accepts image dimensions as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `image_size` | The image size to use as input. | null |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

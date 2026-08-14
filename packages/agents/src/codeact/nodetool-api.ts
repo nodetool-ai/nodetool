@@ -47,7 +47,9 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "embed_text",
     "critique_image",
     "compare_images",
-    "score_image_adherence"
+    "score_image_adherence",
+    "ffmpeg",
+    "yt_dlp"
   ],
   documents: [
     "convert_document",
@@ -691,7 +693,12 @@ const nodetool = (() => {
             opts,
             __merge(__model(model), { image: image, brief: brief })
           )
-        )
+        ),
+      /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
+      ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
+      /** Download a video with yt-dlp. */
+      downloadVideo: (url, outputFile, opts) =>
+        __need("yt_dlp")(__merge(opts, { url: url, output_file: outputFile }))
     },
 
     documents: {
@@ -1087,7 +1094,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
   \`scoreAdherence(image, brief, visionModel, {questions})\`. The judge takes a
   VISION chat model — \`pick("generate_message")\` on a vision-capable one, not
-  the image model that generated the picture.`
+  the image model that generated the picture.
+  Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
+  in the workspace (no shell); \`downloadVideo(url, outputFile, {format,
+  timeout_seconds})\` downloads with yt-dlp. Browse pages with
+  \`nodetool.web.browse(url)\`.`
   },
   {
     namespace: "documents",

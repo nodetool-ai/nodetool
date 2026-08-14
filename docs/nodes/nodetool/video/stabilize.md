@@ -18,7 +18,7 @@ Apply video stabilization to reduce camera shake and jitter.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to stabilize. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to stabilize. | - |
 | smoothing | `float` | Smoothing strength. Higher values result in smoother but potentially more cropped video. | `10` |
 | crop_black | `bool` | Whether to crop black borders that may appear after stabilization. | `true` |
 

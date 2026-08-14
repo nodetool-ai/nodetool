@@ -5,9 +5,7 @@ title: "openai.agents Nodes"
 
 This namespace contains 2 node(s).
 
-## Nodes
+## Available Nodes
 
 - **[Realtime Agent](realtimeagent.md)**
 - **[Realtime Transcription](realtimetranscription.md)**
-
-[Back to all nodes](../../)

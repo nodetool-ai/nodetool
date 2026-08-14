@@ -11,7 +11,7 @@ namespace: "nodetool.timeline"
 
 ## Description
 
-Render a timeline sequence to a video (rough cut: clips are concatenated in start order, audio tracks are mixed in at their offsets).
+Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset.
     timeline, render, video, export, cut
 
     Use cases:

@@ -24,7 +24,7 @@ Drop items while a predicate is truthy, then pass everything after.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input_item | `any` | Streaming input. | null |
-| predicate | `str` | JavaScript expression evaluated per item. The current value is bound to `item`. Items are dropped until the predicate first returns falsy; everything after is passed through. | `false` |
+| predicate | `str` | Safe expression evaluated per item (comparisons, boolean logic, arithmetic, property access on `item`). Items are dropped until the predicate first returns falsy; everything after is passed through. | `false` |
 
 ## Outputs
 

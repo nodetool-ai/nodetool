@@ -22,6 +22,7 @@ Animate static images into video with AI-powered motion using any supported vide
 | model | `video_model` | The video generation model to use | `{"type":"video_model","provider":"gemini","id":...` |
 | prompt | `str` | Optional text prompt to guide the video animation | `` |
 | negative_prompt | `str` | Text prompt describing what to avoid in the video | `` |
+| entities | `list[dict]` | Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt | `[]` |
 | aspect_ratio | `str` | Aspect ratio for the video | `16:9` |
 | resolution | `str` | Video resolution | `1080p` |
 | duration | `int` | Video duration in seconds | `4` |

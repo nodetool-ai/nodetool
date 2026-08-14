@@ -12,7 +12,7 @@ namespace: "nodetool.image"
 ## Description
 
 Expand the canvas around an image without scaling its pixels.
-    canvas, resize, pad, outpaint, expand
+    canvas, resize, pad, outpaint, expand, anchor
 
 ## Properties
 
@@ -20,6 +20,7 @@ Expand the canvas around an image without scaling its pixels.
 |----------|------|-------------|---------|
 | image | `image` | The image to place on the expanded canvas. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | mode | `enum` | How to resize the canvas. | `padding` |
+| anchor | `enum` | Where to place the original image on the new canvas (fixed/scale modes). | `center` |
 | width | `int` | Target canvas width (fixed mode). | `512` |
 | height | `int` | Target canvas height (fixed mode). | `512` |
 | scale | `float` | Canvas scale factor relative to the source image. | `1.25` |
@@ -28,6 +29,7 @@ Expand the canvas around an image without scaling its pixels.
 | bottom | `float` | Padding below the image. | `0` |
 | left | `float` | Padding to the left of the image. | `0` |
 | right | `float` | Padding to the right of the image. | `0` |
+| color | `color` | Background color for the expanded canvas area. | `{"type":"color","value":"#00000000"}` |
 
 ## Outputs
 

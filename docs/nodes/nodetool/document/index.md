@@ -5,10 +5,8 @@ title: "nodetool.document Nodes"
 
 This namespace contains 3 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[List Documents](listdocuments.md)**
-- **[Load Document File](loaddocumentfile.md)**
-- **[Save Document File](savedocumentfile.md)**
-
-[Back to all nodes](../../)
+- **[List Documents](listdocuments.md)** - List documents in a directory.
+- **[Load Document File](loaddocumentfile.md)** - Read a document from disk.
+- **[Save Document File](savedocumentfile.md)** - Write a document to disk.

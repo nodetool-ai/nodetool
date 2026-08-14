@@ -224,6 +224,9 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "browser",
   "http_request",
   "download_file",
+  // Host media binaries.
+  "ffmpeg",
+  "yt_dlp",
   // Workspace files — the Claude-agent core set (read/write/edit/glob/grep
   // above) stays top level in full.
   "read_file",

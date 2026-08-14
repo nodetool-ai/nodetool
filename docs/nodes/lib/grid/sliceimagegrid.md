@@ -24,8 +24,8 @@ Slice an image into a grid of tiles.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | image | `image` | The image to slice into a grid. | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| columns | `int` | Number of columns in the grid. | `0` |
-| rows | `int` | Number of rows in the grid. | `0` |
+| columns | `int` | Number of columns in the grid. 0 auto-derives from rows, or falls back to a 3x3 grid when rows is also 0. | `0` |
+| rows | `int` | Number of rows in the grid. 0 auto-derives from columns, or falls back to a 3x3 grid when columns is also 0. | `0` |
 
 ## Outputs
 

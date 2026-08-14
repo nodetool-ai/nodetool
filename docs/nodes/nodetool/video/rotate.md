@@ -18,7 +18,7 @@ Rotate a video by a specified angle.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to rotate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to rotate. | - |
 | angle | `float` | The angle of rotation in degrees. | `0` |
 
 ## Outputs

@@ -24,7 +24,7 @@ Drop duplicate items from a stream. Optional key expression for grouping.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input_item | `any` | Streaming input — duplicate items are dropped. | null |
-| key | `str` | Optional JavaScript expression for the dedup key. The item is bound to `item`. Examples: `item.id`, `item.url`. Empty means use the whole item. | `` |
+| key | `str` | Optional safe expression for the dedup key (property access on `item`, plus comparisons, boolean logic, and arithmetic). Examples: `item.id`, `item.url`. Empty means use the whole item. | `` |
 
 ## Outputs
 

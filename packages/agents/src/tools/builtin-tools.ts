@@ -122,6 +122,10 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "download_file",
   "http_request",
 
+  // Host media binaries
+  "ffmpeg",
+  "yt_dlp",
+
   // Email
   "search_email",
   "archive_email",

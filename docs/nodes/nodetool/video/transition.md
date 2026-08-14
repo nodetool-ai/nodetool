@@ -18,8 +18,8 @@ Create a transition effect between two videos, including audio transition when a
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video_a | `video` | The first video in the transition. | `{"type":"video","uri":"","asset_id":null,"data"...` |
-| video_b | `video` | The second video in the transition. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video_a | `video` | The first video in the transition. | - |
+| video_b | `video` | The second video in the transition. | - |
 | transition_type | `enum` | Type of transition effect | `fade` |
 | duration | `float` | Duration of the transition effect in seconds. | `1` |
 

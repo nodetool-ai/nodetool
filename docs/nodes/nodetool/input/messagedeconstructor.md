@@ -23,7 +23,7 @@ Deconstructs a chat message object into its individual fields.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `message` | The message object to deconstruct. | `{"type":"message","id":null,"workflow_id":null,...` |
+| value | `message` | The message object to deconstruct. | - |
 
 ## Outputs
 

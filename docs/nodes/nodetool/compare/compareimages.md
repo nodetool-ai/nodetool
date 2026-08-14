@@ -20,6 +20,10 @@ Compare two images side-by-side with an interactive slider.
     - Original vs edited images
     - A/B testing of image variations
 
+    The `equal` output reports whether the two refs are the same image by
+    identity (same inline bytes, same URI, or same asset id); it is not a
+    visual/perceptual similarity measure.
+
 ## Properties
 
 | Property | Type | Description | Default |

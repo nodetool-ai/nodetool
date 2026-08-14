@@ -5,8 +5,6 @@ title: "lib.charts Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Chart Renderer](chartrenderer.md)**
-
-[Back to all nodes](../../)
+- **[Chart Renderer](chartrenderer.md)** - Node responsible for rendering chart configurations into image format using s...

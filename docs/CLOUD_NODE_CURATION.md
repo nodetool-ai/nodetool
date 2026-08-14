@@ -157,19 +157,13 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 - **Out-of-scope providers:** `huggingface`, `transformers`, `minimax`, `reve`,
   `elevenlabs`, `replicate`, `together`, `topaz`, `atlascloud`
 
-### Agents trimmed within `nodetool.agents`
+### Agents in `nodetool.agents`
 
-The `nodetool.agents` namespace is kept, but the developer/automation agents are
-removed via `CLOUD_NODE_DENYLIST` because they wrap the very integrations the
-cloud profile drops:
-
-`BrowserAgent`, `LiveBrowserAgent`, `DocxAgent`, `EmailAgent`,
-`FilesystemAgent`, `GitAgent`, `HtmlAgent`, `HttpApiAgent`, `PdfLibAgent`,
-`PptxAgent`, `SQLiteAgent`, `ShellAgent`, `SpreadsheetAgent`, `SupabaseAgent`,
-`VectorStoreAgent`, `YtDlpDownloaderAgent`.
-
-**Kept agents:** `Agent`, `Classifier`, `Extractor`, `Summarizer`,
-`CreateThread`, `ImageAgent`, `MediaAgent`, `FfmpegAgent`, `DocumentAgent`.
+The namespace is kept. The product surface is the standard Agent plus
+Classifier, Extractor, Summarizer, CreateThread, and EnhancePrompt.
+Specialist tool-agent nodes were removed. ffmpeg, yt-dlp, and browser
+are CodeAct capabilities (`nodetool.media.ffmpeg`,
+`nodetool.media.downloadVideo`, `nodetool.web.browse`).
 
 ## Maintenance
 

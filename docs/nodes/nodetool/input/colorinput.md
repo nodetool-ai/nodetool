@@ -18,9 +18,7 @@ Accepts a color value as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `color` | The color to use as input. | `{"type":"color","value":null}` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `color` | The color to use as input. | - |
 
 ## Outputs
 

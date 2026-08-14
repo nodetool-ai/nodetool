@@ -20,9 +20,7 @@ Accepts a reference to a 3D model asset for workflows, specified by a 'Model3DRe
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `model_3d` | The 3D model to use as input. | `{"type":"model_3d","uri":"","asset_id":null,"da...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `model_3d` | The 3D model to use as input. | - |
 
 ## Outputs
 

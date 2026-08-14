@@ -18,7 +18,7 @@ Adjust the color balance of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to adjust color balance. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to adjust color balance. | - |
 | red_adjust | `float` | Red channel adjustment factor. | `1` |
 | green_adjust | `float` | Green channel adjustment factor. | `1` |
 | blue_adjust | `float` | Blue channel adjustment factor. | `1` |

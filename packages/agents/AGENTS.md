@@ -1857,13 +1857,10 @@ NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: en
 
 ## Authoring Agent Nodes — Pitfalls
 
-When building a node that wraps an agent (e.g. the `code-nodes` tool-agents, or
-`llm-nodes` `AgentNode`):
+When building a node that wraps an agent (e.g. `llm-nodes` `AgentNode`):
 
 - **Every tool named in an agent's system prompt must actually be registered in
-  its toolset.** `BrowserAgent`/`HttpApiAgent` prompts instructed the model to call
-  `browser`/`take_screenshot`/`http_request` tools that were never registered (only
-  `execute_bash` was) — a prompt-referenced-but-unregistered tool is a silent
+  its toolset.** A prompt-referenced-but-unregistered tool is a silent
   no-op. Resolve real builtin tools (`resolveBuiltinAgentTool`) and don't reference
   tools you didn't wire.
 - **Every declared prop must be consumed by `process()` or injected into the

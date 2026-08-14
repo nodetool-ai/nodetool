@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.
+Fuse a semantic ranking with a keyword-filtered semantic ranking via reciprocal rank fusion. The keyword leg runs the same semantic query constrained to documents containing the query tokens, so documents matching on both legs rank higher.
     vector, RAG, query, semantic, text, similarity
 
 ## Properties

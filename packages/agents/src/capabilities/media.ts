@@ -21,10 +21,17 @@
 
 import { Buffer } from "node:buffer";
 import { randomInt } from "node:crypto";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import {
+  HostBinaryMissingError,
+  clampTimeoutSeconds,
+  mimeFromFilename,
+  runHostBinary
+} from "../host-binaries.js";
 import { encodeBase64 as encodeMediaBase64 } from "../sandbox-bytes.js";
 import {
   DEFAULT_MIME,
@@ -33,6 +40,7 @@ import {
   mimeForRef
 } from "../sandbox-media-ref.js";
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
+import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
@@ -47,6 +55,8 @@ import {
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
+  ffmpegSpec,
+  ytDlpSpec,
   MAX_COMPARE_IMAGES,
   GENERATE_IMAGE_SCHEMA,
   EDIT_IMAGE_SCHEMA,
@@ -1077,6 +1087,198 @@ const readMediaBytes: CapabilityExport = {
   }
 };
 
+function requireWorkspaceDir(context: ProcessingContext): string | { error: string } {
+  const dir = context.workspaceDir;
+  if (typeof dir !== "string" || !dir) {
+    return { error: "workspaceDir is required to run a host media binary" };
+  }
+  return dir;
+}
+
+function stringArgs(raw: unknown): string[] | { error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { error: "args must be a non-empty array of strings" };
+  }
+  const args: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") {
+      return { error: "args must be a non-empty array of strings" };
+    }
+    args.push(item);
+  }
+  return args;
+}
+
+async function persistWorkspaceFile(
+  context: ProcessingContext,
+  relPath: string
+): Promise<Record<string, unknown> | undefined> {
+  let abs: string;
+  try {
+    abs = context.resolveWorkspacePath(relPath);
+  } catch (e) {
+    return { persist_error: e instanceof Error ? e.message : String(e) };
+  }
+  try {
+    const bytes = await readFile(abs);
+    const persisted = await persistBinaryOutput(context, bytes, {
+      outputFile: relPath,
+      contentType: mimeFromFilename(relPath),
+      uiPrefix: "media"
+    });
+    return { ...persisted };
+  } catch (e) {
+    return { persist_error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+const ffmpeg: CapabilityExport = {
+  spec: ffmpegSpec,
+  impl: async (run, params) => {
+    const workspace = requireWorkspaceDir(run.context);
+    if (typeof workspace !== "string") return workspace;
+    const args = stringArgs(params["args"]);
+    if ("error" in args) return args;
+
+    const outputFile =
+      typeof params["output_file"] === "string" && params["output_file"].trim()
+        ? params["output_file"].trim()
+        : "";
+    const argv = [...args];
+    if (outputFile && !argv.includes(outputFile)) {
+      argv.push(outputFile);
+    }
+
+    const timeoutMs =
+      clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
+    try {
+      const result = await runHostBinary("ffmpeg", argv, {
+        cwd: workspace,
+        timeoutMs
+      });
+      const persistTarget =
+        outputFile ||
+        [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
+        "";
+      const persisted =
+        result.exitCode === 0 && persistTarget
+          ? await persistWorkspaceFile(run.context, persistTarget)
+          : undefined;
+      return {
+        success: result.exitCode === 0,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        exit_code: result.exitCode,
+        ...(persisted ?? {})
+      };
+    } catch (e) {
+      if (e instanceof HostBinaryMissingError) {
+        return { error: e.message };
+      }
+      return {
+        error: `ffmpeg failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
+const DEFAULT_YT_DLP_OUTPUT = "downloads/yt-dlp/%(id)s.%(ext)s";
+
+const ytDlp: CapabilityExport = {
+  spec: ytDlpSpec,
+  impl: async (run, params) => {
+    const workspace = requireWorkspaceDir(run.context);
+    if (typeof workspace !== "string") return workspace;
+    const url = params["url"];
+    if (typeof url !== "string" || !url.trim()) {
+      return { error: "url is required" };
+    }
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { error: "url must be an http(s) URL" };
+      }
+    } catch {
+      return { error: `invalid url: ${url}` };
+    }
+
+    const outputFile =
+      typeof params["output_file"] === "string" && params["output_file"].trim()
+        ? params["output_file"].trim()
+        : DEFAULT_YT_DLP_OUTPUT;
+    const format =
+      typeof params["format"] === "string" && params["format"].trim()
+        ? params["format"].trim()
+        : "";
+    const timeoutMs =
+      clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
+
+    const outDir = path.dirname(outputFile);
+    if (outDir && outDir !== ".") {
+      try {
+        await mkdir(run.context.resolveWorkspacePath(outDir), {
+          recursive: true
+        });
+      } catch (e) {
+        return {
+          error: `could not create output directory: ${
+            e instanceof Error ? e.message : String(e)
+          }`
+        };
+      }
+    }
+
+    const argv = [
+      "--no-playlist",
+      "--no-warnings",
+      "--print",
+      "after_move:filepath",
+      "-o",
+      outputFile
+    ];
+    if (format) {
+      argv.push("-f", format);
+    }
+    argv.push(url);
+
+    try {
+      const result = await runHostBinary("yt-dlp", argv, {
+        cwd: workspace,
+        timeoutMs
+      });
+      const printed = result.stdout.trim().split("\n").filter(Boolean).at(-1);
+      const produced =
+        printed && !printed.startsWith("http")
+          ? path.isAbsolute(printed)
+            ? path.relative(workspace, printed)
+            : printed
+          : outputFile.includes("%(")
+            ? ""
+            : outputFile;
+      const persisted =
+        result.exitCode === 0 && produced
+          ? await persistWorkspaceFile(run.context, produced)
+          : undefined;
+      return {
+        success: result.exitCode === 0,
+        url,
+        output_file: produced || outputFile,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        exit_code: result.exitCode,
+        ...(persisted ?? {})
+      };
+    } catch (e) {
+      if (e instanceof HostBinaryMissingError) {
+        return { error: e.message };
+      }
+      return {
+        error: `yt-dlp failed: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
+  }
+};
+
 /** Every media capability, in the order `getAllMcpTools` offered them. */
 export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   generateImage,
@@ -1089,7 +1291,9 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   readMediaBytes,
   critiqueImage,
   compareImages,
-  scoreImageAdherence
+  scoreImageAdherence,
+  ffmpeg,
+  ytDlp
 ];
 
 export const module: CapabilityModule = {
@@ -1108,5 +1312,7 @@ export {
   readMediaBytes,
   critiqueImage,
   compareImages,
-  scoreImageAdherence
+  scoreImageAdherence,
+  ffmpeg,
+  ytDlp
 };

@@ -18,9 +18,7 @@ Accepts a list of image references as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `list[image]` | The list of images to use as input. | `[]` |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

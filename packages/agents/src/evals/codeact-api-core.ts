@@ -1065,6 +1065,38 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "ffmpeg",
+      "Run ffmpeg on workspace files.",
+      { args: { type: "array" }, output_file: s, timeout_seconds: { type: "number" } },
+      (params) => {
+        const output =
+          typeof params["output_file"] === "string" && params["output_file"]
+            ? params["output_file"]
+            : "out.mp4";
+        const asset = world.saveAsset(output, "ffmpeg", "video/mp4");
+        return { success: true, output_file: output, asset_uri: asset.uri };
+      }
+    ),
+    tool(
+      "yt_dlp",
+      "Download a video with yt-dlp.",
+      { url: s, output_file: s, format: s, timeout_seconds: { type: "number" } },
+      (params) => {
+        const url = str(params["url"]);
+        const output =
+          typeof params["output_file"] === "string" && params["output_file"]
+            ? params["output_file"]
+            : "download.mp4";
+        const asset = world.saveAsset(output, url, "video/mp4");
+        return {
+          success: true,
+          url,
+          output_file: output,
+          asset_uri: asset.uri
+        };
+      }
+    ),
+    tool(
       "list_jobs",
       "List background jobs.",
       { workflow_id: s, limit: { type: "number" } },

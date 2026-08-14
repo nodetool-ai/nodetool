@@ -24,7 +24,7 @@ Combine a grid of image tiles into a single image.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | tiles | `list[image]` | List of image tiles to combine. | `[]` |
-| columns | `int` | Number of columns in the grid. | `0` |
+| columns | `int` | Number of columns in the grid. 0 auto-derives from the tile count. Ignored when tiles carry grid placement metadata from SliceImageGrid. | `0` |
 
 ## Outputs
 

@@ -5,8 +5,6 @@ title: "nodetool.code Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
 - **[Code](code.md)**
-
-[Back to all nodes](../../)

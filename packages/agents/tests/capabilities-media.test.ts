@@ -30,7 +30,9 @@ import {
   generateSpeech,
   generateVideo,
   scoreImageAdherence,
-  transcribeAudio
+  transcribeAudio,
+  ffmpeg,
+  ytDlp
 } from "../src/capabilities/media.js";
 import {
   STYLE_CAPABILITIES,
@@ -77,7 +79,9 @@ describe("media and style capability modules", () => {
       "read_media_bytes",
       "critique_image",
       "compare_images",
-      "score_image_adherence"
+      "score_image_adherence",
+      "ffmpeg",
+      "yt_dlp"
     ]);
     const style = await loadCapabilityModule("style");
     expect(style.exports.map((e) => e.spec.name)).toEqual([
@@ -105,6 +109,8 @@ describe("wire identity: a Tool built from the spec", () => {
     [critiqueImage, toolForCapabilityName("critique_image")],
     [compareImages, toolForCapabilityName("compare_images")],
     [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
+    [ffmpeg, toolForCapabilityName("ffmpeg")],
+    [ytDlp, toolForCapabilityName("yt_dlp")],
     [recordStylePreference, toolForCapabilityName("record_style_preference")],
     [getStyleProfile, toolForCapabilityName("get_style_profile")]
   ];
@@ -248,5 +254,38 @@ describe("style capabilities through the adapter", () => {
       "visual style aesthetic preference taste",
       { k: 5 }
     );
+  });
+});
+
+describe("ffmpeg and yt_dlp capabilities", () => {
+  it("ffmpeg rejects missing args before spawn", async () => {
+    const result = (await asTool(ffmpeg).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { args: [] }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/args must be/);
+  });
+
+  it("ffmpeg requires a workspace", async () => {
+    const result = (await asTool(ffmpeg).process(makeContext(), {
+      args: ["-version"]
+    })) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/workspaceDir/);
+  });
+
+  it("yt_dlp rejects a missing url", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      {}
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/url is required/);
+  });
+
+  it("yt_dlp rejects a non-http url", async () => {
+    const result = (await asTool(ytDlp).process(
+      { workspaceDir: "/tmp" } as unknown as ProcessingContext,
+      { url: "file:///etc/passwd" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/http\(s\)/);
   });
 });

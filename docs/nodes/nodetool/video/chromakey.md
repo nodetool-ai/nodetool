@@ -18,7 +18,7 @@ Apply chroma key (green screen) effect to a video. The MP4 output has no alpha c
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to apply chroma key effect. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to apply chroma key effect. | - |
 | key_color | `color` | The color to key out (e.g., '#00FF00' for green). | `{"type":"color","value":"#00FF00"}` |
 | similarity | `float` | Similarity threshold for the key color. | `0.3` |
 | blend | `float` | Blending of the keyed area edges. | `0.1` |

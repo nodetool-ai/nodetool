@@ -5,8 +5,6 @@ title: "nodetool.workflows.subgraph Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Subgraph](subgraph.md)**
-
-[Back to all nodes](../../../)
+- **[Subgraph](subgraph.md)** - Execute an inline sub-graph as an isolated workflow. Inputs/outputs are deriv...

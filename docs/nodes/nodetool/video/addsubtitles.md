@@ -18,7 +18,7 @@ Add subtitles to a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to add subtitles to. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to add subtitles to. | - |
 | chunks | `list[audio_chunk]` | Audio chunks to add as subtitles. | `[]` |
 | font | `font` | The font to use. | `{"type":"font","name":"","source":"system","url...` |
 | align | `enum` | Vertical alignment of subtitles. | `bottom` |

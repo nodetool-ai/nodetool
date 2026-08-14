@@ -23,7 +23,7 @@ Represents a fixed DataFrame constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `dataframe` |  | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
+| value | `dataframe` |  | - |
 
 ## Outputs
 

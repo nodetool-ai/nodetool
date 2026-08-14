@@ -18,9 +18,7 @@ Accepts a list of video references as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `list[video]` | The list of videos to use as input. | `[]` |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

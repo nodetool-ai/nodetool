@@ -23,7 +23,7 @@ Represents a 3D model constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `model_3d` |  | `{"type":"model_3d","uri":"","asset_id":null,"da...` |
+| value | `model_3d` |  | - |
 
 ## Outputs
 

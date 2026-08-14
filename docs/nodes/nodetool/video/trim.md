@@ -18,9 +18,10 @@ Trim a video to a specific start and end time.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to trim. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to trim. | - |
 | start_time | `float` | The start time in seconds for the trimmed video. | `0` |
 | end_time | `float` | The end time in seconds for the trimmed video. Use -1 for the end of the video. | `-1` |
+| accurate | `bool` | Re-encode for frame-exact cuts. Off (default) stream-copies and snaps to the nearest keyframe — fast, but the cut points may be off by up to one GOP. | `false` |
 
 ## Outputs
 
