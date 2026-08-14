@@ -305,6 +305,33 @@ describe("ChatView", () => {
       });
     });
 
+    it("attaches chatSource and send-time uiContext to the outgoing message", async () => {
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          chatSource="sketch_assistant"
+          uiContext={() => ({
+            focused: { type: "sketch", id: "sk-1", title: "Fox" },
+            selection: { layer_ids: ["layer-2"] }
+          })}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId("send-message-btn"));
+
+      await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ui_context: expect.objectContaining({
+              source: "sketch_assistant",
+              focused: { type: "sketch", id: "sk-1", title: "Fox" },
+              selection: { layer_ids: ["layer-2"] }
+            })
+          })
+        );
+      });
+    });
+
     it("handles sendMessage errors gracefully", async () => {
       const consoleSpy = jest
         .spyOn(console, "error")

@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 526 NodeTool nodes across 71 namespaces.
+Complete reference documentation for all 531 NodeTool nodes across 71 namespaces.
 
 ## Namespaces
 
@@ -48,7 +48,7 @@ Complete reference documentation for all 526 NodeTool nodes across 71 namespaces
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
 - **[lib.mail](lib/mail/)** - 3 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
-- **[lib.pdf](lib/pdf/)** - 2 node(s)
+- **[lib.pdf](lib/pdf/)** - 7 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
 - **[lib.svg](lib/svg/)** - 14 node(s)

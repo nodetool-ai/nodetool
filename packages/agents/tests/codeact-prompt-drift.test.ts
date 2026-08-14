@@ -69,6 +69,23 @@ describe("CodeAct prompt / sandbox drift", () => {
     expect(undocumented(bogus)).toContain("lodash");
   });
 
+  it("tells both variants to stash generation results in state and reuse them", () => {
+    // A chat turn generated the same LTX clip three times: pick returned a
+    // model, the next action read state.model (never written), then each
+    // later throw re-ran generateVideo instead of reusing the asset.
+    for (const variant of VARIANTS) {
+      const prompt = buildCodeActSystemPrompt({ tools: [], variant });
+      expect(prompt).toContain("return` is the observation only");
+      expect(prompt).toContain("never re-run generate, speak, or fetch");
+      expect(prompt).toContain(
+        "state.video = state.video ?? await nodetool.media.generateVideo"
+      );
+      expect(prompt).toContain(
+        "so a later throw does not discard it"
+      );
+    }
+  });
+
   it("says the catalog holds calls, not tool names, before the signatures", () => {
     // A model read a signature as a tool name and emitted
     // `tools.ui_storyboard_set_screenplay` as a top-level call; the provider

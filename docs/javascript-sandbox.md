@@ -72,7 +72,9 @@ libraries are imports.**
 | `sleep(ms)` | The only timer |
 | `crypto.*` | `randomUUID`, `getRandomValues`, `digest`, `hmac` (WebCrypto-backed; SHA-1/256/384/512) |
 | `format.*` | `number`, `date`, `relativeTime`, `list` — host `Intl`, which QuickJS does not ship. All four are async |
-| `image.*` | `info`, `decode`, `encode`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert` over encoded bytes |
+| `image.*` | `info`, `stats`, `decode`, `blank`, `pad`, `grid`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert`. Transforms return image handles |
+| `audio.*` | `info`, `normalize`, `trim`, `concat`, `mix`, `reverse`, `fadeIn`, `fadeOut`, `repeat`. Transforms return audio handles |
+| `video.*` | `info`, `trim`, `resize`, `rotate`, `addAudio`, `extractAudio`, `extractFrame`. Transforms return video, audio, or image handles as appropriate |
 | `media.*` | `bytes`, `text`, `info` read a document/image/audio/video input; `toDocument`, `toImage`, `toAudio`, `toVideo` build one to emit or output. Needs a `ProcessingContext` |
 | `canvas.measureText` / `createCanvas(w, h)` | Canvas 2D drawing, recorded in the guest and replayed on a real host context by `await surface.toBytes()` |
 | `assetToSandbox(assetId, path)` / `sandboxToAsset(path)` | Move an asset in and out of the workspace |
@@ -124,6 +126,30 @@ These are **capabilities, not libraries**: they need a `ProcessingContext`, so
 they resolve inside a workflow run and throw in a bare `runInSandbox` call with
 no context. For the libraries that read what the bytes contain — a PDF, a
 spreadsheet, a zip — import a sandbox package.
+
+#### Media editing handles
+
+`image.*`, `audio.*`, and `video.*` accept a media ref, encoded bytes, or a
+handle from an earlier operation in the same run. A transform returns a small
+`sandbox://media/<id>` handle with its media type. The encoded payload stays on
+the host while calls
+chain:
+
+```js
+const joined = await audio.concat([inputs.intro, inputs.voiceover]);
+const clip = await video.trim(inputs.video, { start: 2, end: 12 });
+const finished = await video.addAudio(clip, joined, {
+  keepOriginalAudio: true
+});
+await output("video", await video.toAsset(finished));
+```
+
+Use `<type>.bytes(handle)` only when code must inspect the encoded payload.
+Use `<type>.toAsset(handle)` or `media.toImage/toAudio/toVideo(handle)` before
+the run ends when the result must persist. Handles do not work in a later run.
+Audio and video transforms use Mediabunny. Browsers use WebCodecs, and Node
+uses Mediabunny's server codec adapter. The sandbox does not expose workflow
+nodes or their packages.
 
 ### Libraries (imports)
 
@@ -178,6 +204,7 @@ Every default below is overridable per invocation through
 | Host module text input | 5 MB | `host-modules/limits.ts` | — |
 | Host module byte input | 10 MB | `host-modules/limits.ts` | — |
 | Image input | 25 MB, 32 M pixels, 16384 px longest edge | `assertSurfaceSize` | — |
+| Run media handles | 256 MB total encoded payload | `SandboxMediaStore` | — |
 | Canvas ops | 10 000 per render | `renderCanvas` | — |
 | Tool calls per action | 50 | `DEFAULT_MAX_TOOL_CALLS_PER_ACTION` | — |
 
@@ -451,7 +478,10 @@ What an action gets on top of the standard surface:
   invocation surfaces to the host as a `tool_call_update` (id `codeact_<n>`), so
   composition inside one action stays observable.
 - **`state`** — persists across the actions of a step, host-side, synced back
-  after every run.
+  after every run, including a run that throws. Assign generation results
+  (`asset://` refs) to `state` immediately so a later failure does not re-run
+  them. Handles from `image.*` / `audio.*` / `video.*` die between actions;
+  convert with `nodetool.media.toImage` / `toAudio` / `toVideo` first.
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates, and an invalid result throws in the guest with the violation list,
   so the same action can repair.

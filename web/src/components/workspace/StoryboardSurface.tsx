@@ -21,6 +21,7 @@ import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardSidebar from "../storyboard/StoryboardSidebar";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -190,17 +191,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       <StoryboardQueueOverlay boardId={refId} />
       <div style={{ flex: 1, minWidth: 0 }}>{board}</div>
       {mode !== "view" && (
-        <FlexColumn
-          fullHeight
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            minHeight: 0,
-            borderLeft: `1px solid ${theme.vars.palette.divider}`
-          }}
+        <ResizableSideDock
+          storageKey="storyboard_assistant"
+          ariaLabel="Resize storyboard assistant"
         >
           <StoryboardAgentPanel boardId={refId} />
-        </FlexColumn>
+        </ResizableSideDock>
       )}
     </div>
   );

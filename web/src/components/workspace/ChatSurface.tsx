@@ -215,6 +215,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentTaskUpdate={runtime.taskUpdate}
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
+        chatSource="workspace_chat"
         noMessagesPlaceholder={welcomePlaceholder}
         showNewChatButton
       />

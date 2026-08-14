@@ -18,6 +18,7 @@
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@llamaindex/liteparse": "^1.5.2",
+    "@mediabunny/server": "^1.54.0",
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
@@ -50,6 +51,7 @@
     "js-yaml": "^4.3.1",
     "mailparser": "^3.9.3",
     "mammoth": "^1.11.0",
+    "mediabunny": "^1.54.0",
     "office-text-extractor": "^4.0.0",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",

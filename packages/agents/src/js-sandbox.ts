@@ -81,11 +81,13 @@ import {
 import {
   createSandboxMediaStore,
   isSandboxMediaHandle,
-  MAX_RUN_MEDIA_BYTES
+  MAX_RUN_MEDIA_BYTES,
+  type SandboxMediaType
 } from "./sandbox-media-handle.js";
 import {
   createMediaRefBridge,
   looksLikeMediaRef,
+  mimeForRef,
   remapMediaRef,
   resolveRefBytes
 } from "./sandbox-media-ref.js";
@@ -451,9 +453,7 @@ async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
   // `process` is a Node global; the browser bundle (the in-process fallback
   // path there) has none, and there is no host process to guard against an
   // engine abort escaping as an unhandled rejection anyway.
-  const nodeProcess = (
-    globalThis as { process?: NodeJS.Process }
-  ).process;
+  const nodeProcess = (globalThis as { process?: NodeJS.Process }).process;
   if (!nodeProcess?.on || !nodeProcess?.off) {
     return run;
   }
@@ -590,6 +590,7 @@ async function assertWorkspaceContained(
 }
 
 export type SandboxMediaModule = typeof import("./sandbox-media.js");
+export type SandboxAvMediaModule = typeof import("./sandbox-av-media.js");
 
 /**
  * The media engine behind the `image` and `canvas` bridges. Loaded on first
@@ -599,6 +600,11 @@ export type SandboxMediaModule = typeof import("./sandbox-media.js");
  */
 async function loadSandboxMedia(): Promise<SandboxMediaModule> {
   return import("./sandbox-media.js");
+}
+
+/** Audio/video adapters are loaded only when a run uses those namespaces. */
+async function loadSandboxAvMedia(): Promise<SandboxAvMediaModule> {
+  return import("./sandbox-av-media.js");
 }
 
 /** True if the first two octets of an IPv4 address fall in a blocked range. */
@@ -622,7 +628,8 @@ function expandIpv6(h: string): number[] | null {
   const parts = h.split("::");
   if (parts.length > 2) return null;
   const head = parts[0] ? parts[0].split(":") : [];
-  const tail = parts.length === 2 ? (parts[1] ? parts[1].split(":") : []) : null;
+  const tail =
+    parts.length === 2 ? (parts[1] ? parts[1].split(":") : []) : null;
   let hextets: string[];
   if (tail === null) {
     hextets = head;
@@ -650,7 +657,10 @@ function embeddedV4FromHexIpv6(h: string): [number, number] | null {
   if (!nums) return null;
   const isZero = (from: number, to: number): boolean =>
     nums.slice(from, to).every((n) => n === 0);
-  const octets = (): [number, number] => [(nums[6] >> 8) & 0xff, nums[6] & 0xff];
+  const octets = (): [number, number] => [
+    (nums[6] >> 8) & 0xff,
+    nums[6] & 0xff
+  ];
   if (isZero(0, 5) && nums[5] === 0xffff) return octets(); // ::ffff:a.b.c.d
   if (isZero(0, 6)) return octets(); // ::a.b.c.d (IPv4-compatible, deprecated)
   if (nums[0] === 0x64 && nums[1] === 0xff9b && isZero(2, 6)) return octets(); // 64:ff9b::/96
@@ -1023,11 +1033,9 @@ export function buildSandbox(
   onProgress?: SandboxProgressCallback,
   onEmit?: SandboxEmitCallback,
   streams?: SandboxInputStreams,
-  resolveMediaRef?: (
-    where: string,
-    ref: unknown
-  ) => Promise<Uint8Array>,
+  resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>,
   promoteMedia?: (
+    type: "image" | "audio" | "video",
     bytes: Uint8Array,
     options?: Record<string, unknown>
   ) => Promise<unknown>
@@ -1094,7 +1102,10 @@ export function buildSandbox(
         requestHeaders["User-Agent"] = resolvedLimits.userAgent;
       }
       if (options?.headers && typeof options.headers === "object") {
-        Object.assign(requestHeaders, options.headers as Record<string, string>);
+        Object.assign(
+          requestHeaders,
+          options.headers as Record<string, string>
+        );
       }
       if (Object.keys(requestHeaders).length > 0) {
         fetchOptions.headers = requestHeaders;
@@ -1120,8 +1131,7 @@ export function buildSandbox(
       // opaque response whose Location is unreadable, and cross-origin bodies
       // are CORS-blocked anyway, so the browser keeps the single redirect:
       // "follow" call with only the already-run initial-URL check.
-      const onNode =
-        typeof globalThis.process?.versions?.node === "string";
+      const onNode = typeof globalThis.process?.versions?.node === "string";
       let response: Response;
       if (!onNode) {
         response = await fetch(url, { ...fetchOptions, redirect: "follow" });
@@ -1519,7 +1529,9 @@ export function buildSandbox(
           throw new Error("workspace.mkdir is not available without a context");
         },
         remove: async (_path: string): Promise<void> => {
-          throw new Error("workspace.remove is not available without a context");
+          throw new Error(
+            "workspace.remove is not available without a context"
+          );
         }
       };
 
@@ -1751,11 +1763,21 @@ export function buildSandbox(
     }
   };
 
-  // Bytes `image.*` produced and the guest only carries around. Lives for the
+  // Bytes media transforms produced and the guest only carries around. Lives for the
   // run, then goes; nothing here is durable until something promotes it.
-  const mediaStore = createSandboxMediaStore(
-    resolveSandboxLimits(limits).runMediaBytes
-  );
+  const mediaStore = createSandboxMediaStore(resolvedLimits.runMediaBytes);
+  let runAvMediaPromise:
+    | Promise<Pick<SandboxAvMediaModule, "audioOps" | "videoOps">>
+    | undefined;
+  const loadRunAvMedia = (): Promise<
+    Pick<SandboxAvMediaModule, "audioOps" | "videoOps">
+  > => {
+    runAvMediaPromise ??= loadSandboxAvMedia().then((media) => ({
+      audioOps: media.createAudioBridge(signal, resolvedLimits.runMediaBytes),
+      videoOps: media.createVideoBridge(signal, resolvedLimits.runMediaBytes)
+    }));
+    return runAvMediaPromise;
+  };
 
   // Media bridges. The engine (`sandbox-media.ts`) is imported on first use
   // like every other library-backed bridge, and picks its canvas backend from
@@ -1771,7 +1793,9 @@ export function buildSandbox(
   const mediaMember = <A extends unknown[]>(
     pick: (media: SandboxMediaModule) => (...args: A) => Promise<unknown>
   ): ((...args: A) => Promise<unknown>) =>
-    withGuestBytes(async (...args: A) => pick(await loadSandboxMedia())(...args));
+    withGuestBytes(async (...args: A) =>
+      pick(await loadSandboxMedia())(...args)
+    );
 
   // `image.*` trades in handles, not bytes. On the way in, every handle and
   // every media ref buried anywhere in the arguments is replaced by the bytes
@@ -1784,22 +1808,34 @@ export function buildSandbox(
   // `info` and `decode` are the deliberate exceptions: they exist to tell the
   // guest what is *in* an image, so their results stay plain data. `decode`
   // still hands over real pixels, which is the one call that has to.
-  const loadImageRef = async (
+  const loadMediaRef = async (
     where: string,
-    value: unknown
+    value: unknown,
+    maxBytes = resolvedLimits.runMediaBytes
   ): Promise<Uint8Array> => {
     const ref = remapMediaRef(value);
     if (context) {
-      return resolveRefBytes(where, ref, context, (path: string) =>
-        resolveGuestPath(context, path, false)
+      return resolveRefBytes(
+        where,
+        ref,
+        context,
+        (path: string) => resolveGuestPath(context, path, false),
+        maxBytes
       );
     }
     if (resolveMediaRef) {
-      return resolveMediaRef(where, ref);
+      const bytes = await resolveMediaRef(where, ref);
+      if (bytes.length > maxBytes) {
+        throw new Error(
+          `${where}: media input is ${bytes.length} bytes, over the ` +
+            `${maxBytes} byte remaining run media limit`
+        );
+      }
+      return bytes;
     }
     const label = ref.uri || ref.asset_id || "this media ref";
     throw new Error(
-      `${where}: cannot resolve ${label} in this run. Pass an image ` +
+      `${where}: cannot resolve ${label} in this run. Pass a media ` +
         `handle or a generation result (its asset_uri).`
     );
   };
@@ -1812,31 +1848,159 @@ export function buildSandbox(
     // only, or `media.bytes(assetRef)` would be handed bytes and no longer
     // have a ref to read.
     resolveRefs: boolean,
-    depth = 0
+    depth = 0,
+    expectedType?: SandboxMediaType,
+    budget = { used: 0 }
   ): Promise<unknown> => {
     if (depth >= SANDBOX_SERIALIZE_MAX_DEPTH) return value;
+    const accountBytes = <T extends ArrayBufferView>(bytes: T): T => {
+      if (bytes.byteLength > resolvedLimits.runMediaBytes - budget.used) {
+        throw new Error(
+          `${where}: aggregate media input exceeds the ` +
+            `${resolvedLimits.runMediaBytes} byte run media limit`
+        );
+      }
+      budget.used += bytes.byteLength;
+      return bytes;
+    };
     // Matched on the marker, not on store membership: a handle from an
     // earlier run must report *that*, rather than falling through to the ref
     // path and blaming the uri it happens to carry.
-    if (isSandboxMediaHandle(value)) return mediaStore.resolve(value);
-    if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return value;
+    if (isSandboxMediaHandle(value)) {
+      const bytes = mediaStore.resolve(value, expectedType);
+      if (!bytes) throw new Error(`${where}: media handle has no bytes`);
+      return accountBytes(bytes);
+    }
+    if (value instanceof Uint8Array || ArrayBuffer.isView(value)) {
+      return accountBytes(value);
+    }
     if (Array.isArray(value)) {
-      return Promise.all(
-        value.map((v) => resolveMediaArgs(where, v, resolveRefs, depth + 1))
-      );
+      const resolved: unknown[] = [];
+      for (const item of value) {
+        const result = await resolveMediaArgs(
+          where,
+          item,
+          resolveRefs,
+          depth + 1,
+          expectedType,
+          budget
+        );
+        resolved.push(result);
+      }
+      return resolved;
     }
     if (resolveRefs && looksLikeMediaRef(value)) {
-      return loadImageRef(where, value);
+      if (expectedType && value && typeof value === "object") {
+        const declared = (value as Record<string, unknown>).type;
+        if (
+          (declared === "image" ||
+            declared === "audio" ||
+            declared === "video") &&
+          declared !== expectedType
+        ) {
+          throw new Error(
+            `${where}: expected ${expectedType} media, but received ${declared}`
+          );
+        }
+      }
+      const remainingBytes = resolvedLimits.runMediaBytes - budget.used;
+      return accountBytes(await loadMediaRef(where, value, remainingBytes));
     }
     if (value !== null && typeof value === "object") {
       const record = value as Record<string, unknown>;
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(record)) {
-        out[k] = await resolveMediaArgs(where, v, resolveRefs, depth + 1);
+        out[k] = await resolveMediaArgs(
+          where,
+          v,
+          resolveRefs,
+          depth + 1,
+          expectedType,
+          budget
+        );
       }
       return out;
     }
     return value;
+  };
+
+  const defaultMediaMime = (type: SandboxMediaType): string =>
+    type === "image"
+      ? "image/png"
+      : type === "audio"
+        ? "audio/wav"
+        : "video/mp4";
+
+  const mediaMimeForValue = (
+    value: unknown,
+    expectedType: SandboxMediaType
+  ): string => {
+    if (isSandboxMediaHandle(value)) {
+      return (
+        mediaStore.entry(value, expectedType)?.mimeType ??
+        defaultMediaMime(expectedType)
+      );
+    }
+    const record =
+      value !== null && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined;
+    const declared = record?.mimeType ?? record?.mime_type;
+    const ref = {
+      ...remapMediaRef(value),
+      ...(typeof declared === "string" ? { mimeType: declared } : {})
+    };
+    return mimeForRef(ref, defaultMediaMime(expectedType));
+  };
+
+  const sniffMediaMime = (
+    type: SandboxMediaType,
+    bytes: Uint8Array,
+    fallback: string
+  ): string => {
+    const ascii = (start: number, length: number): string =>
+      String.fromCharCode(...bytes.subarray(start, start + length));
+    if (type === "image") {
+      if (bytes.length >= 8 && ascii(1, 3) === "PNG") return "image/png";
+      if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8)
+        return "image/jpeg";
+      if (bytes.length >= 6 && ascii(0, 3) === "GIF") return "image/gif";
+      if (
+        bytes.length >= 12 &&
+        ascii(0, 4) === "RIFF" &&
+        ascii(8, 4) === "WEBP"
+      )
+        return "image/webp";
+      return fallback;
+    }
+    if (type === "audio") {
+      if (
+        bytes.length >= 12 &&
+        ascii(0, 4) === "RIFF" &&
+        ascii(8, 4) === "WAVE"
+      )
+        return "audio/wav";
+      if (bytes.length >= 4 && ascii(0, 4) === "fLaC") return "audio/flac";
+      if (bytes.length >= 4 && ascii(0, 4) === "OggS") return "audio/ogg";
+      if (
+        (bytes.length >= 3 && ascii(0, 3) === "ID3") ||
+        (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+      )
+        return "audio/mpeg";
+      if (bytes.length >= 12 && ascii(4, 4) === "ftyp") return "audio/mp4";
+      return fallback;
+    }
+    if (bytes.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "AVI ")
+      return "video/x-msvideo";
+    if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45) {
+      return ascii(0, Math.min(bytes.length, 64)).includes("webm")
+        ? "video/webm"
+        : "video/x-matroska";
+    }
+    if (bytes.length >= 12 && ascii(4, 4) === "ftyp") {
+      return ascii(8, 4) === "qt  " ? "video/quicktime" : "video/mp4";
+    }
+    return fallback;
   };
 
   /** An `image.*` op: handles/refs in, a handle out. */
@@ -1846,7 +2010,13 @@ export function buildSandbox(
   ): ((...args: A) => Promise<unknown>) => {
     const where = `image.${name}`;
     return async (...args: A) => {
-      const resolved = (await resolveMediaArgs(where, args, true)) as A;
+      const resolved = (await resolveMediaArgs(
+        where,
+        args,
+        true,
+        0,
+        "image"
+      )) as A;
       const result = await pick(await loadSandboxMedia())(...resolved);
       if (result instanceof Uint8Array) {
         const media = await loadSandboxMedia();
@@ -1875,7 +2045,13 @@ export function buildSandbox(
      * works exactly as it did.
      */
     bytes: async (value: unknown): Promise<unknown> => {
-      const resolved = await resolveMediaArgs("image.bytes", value, true);
+      const resolved = await resolveMediaArgs(
+        "image.bytes",
+        value,
+        true,
+        0,
+        "image"
+      );
       const media = await loadSandboxMedia();
       return toGuestBytes(media.asImageBytes(resolved, "image.bytes"));
     },
@@ -1886,14 +2062,23 @@ export function buildSandbox(
       value: unknown,
       options?: Record<string, unknown>
     ): Promise<unknown> => {
-      const resolved = await resolveMediaArgs("image.toAsset", value, true);
+      const sourceMime = mediaMimeForValue(value, "image");
+      const resolved = await resolveMediaArgs(
+        "image.toAsset",
+        value,
+        true,
+        0,
+        "image"
+      );
       const media = await loadSandboxMedia();
       const bytes = media.asImageBytes(resolved, "image.toAsset");
+      const mimeType = sniffMediaMime("image", bytes, sourceMime);
+      const assetOptions = { mimeType, ...options };
       if (promoteMedia) {
-        return promoteMedia(bytes, options);
+        return promoteMedia("image", bytes, assetOptions);
       }
       if (context) {
-        return mediaRefBridge.toImage(bytes, options);
+        return mediaRefBridge.toImage(bytes, assetOptions);
       }
       throw new Error(
         "image.toAsset: cannot save an asset in this run. Use " +
@@ -1916,12 +2101,205 @@ export function buildSandbox(
     convert: imageMember("convert", (m) => m.imageOps.convert)
   };
 
+  const requireMediaBytes = (where: string, value: unknown): Uint8Array => {
+    if (value instanceof Uint8Array) return value;
+    if (ArrayBuffer.isView(value)) {
+      return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    }
+    throw new Error(
+      `${where}: expected media bytes, a media handle, or a media ref`
+    );
+  };
+
+  const avMember = <A extends unknown[]>(
+    namespace: "audio" | "video",
+    name: string,
+    inputTypes: readonly (SandboxMediaType | undefined)[],
+    outputType: SandboxMediaType | undefined,
+    pick: (
+      media: Pick<SandboxAvMediaModule, "audioOps" | "videoOps">
+    ) => (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) => {
+    const where = `${namespace}.${name}`;
+    return async (...args: A) => {
+      const budget = { used: 0 };
+      const resolved: unknown[] = [];
+      for (let index = 0; index < args.length; index += 1) {
+        resolved.push(
+          await resolveMediaArgs(
+            where,
+            args[index],
+            true,
+            0,
+            inputTypes[index],
+            budget
+          )
+        );
+      }
+      const result = await pick(await loadRunAvMedia())(...(resolved as A));
+      if (outputType && result instanceof Uint8Array) {
+        const sourceType = inputTypes[0] ?? outputType;
+        const sourceMime = mediaMimeForValue(args[0], sourceType);
+        return mediaStore.put(result, {
+          type: outputType,
+          mimeType: sniffMediaMime(
+            outputType,
+            result,
+            outputType === sourceType
+              ? sourceMime
+              : defaultMediaMime(outputType)
+          )
+        });
+      }
+      return toGuestBytesDeep(result);
+    };
+  };
+
+  const avBytes =
+    (namespace: "audio" | "video") =>
+    async (value: unknown): Promise<unknown> => {
+      const where = `${namespace}.bytes`;
+      const resolved = await resolveMediaArgs(where, value, true, 0, namespace);
+      return toGuestBytes(requireMediaBytes(where, resolved));
+    };
+
+  const avToAsset =
+    (type: "audio" | "video") =>
+    async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      const where = `${type}.toAsset`;
+      const sourceMime = mediaMimeForValue(value, type);
+      const resolved = await resolveMediaArgs(where, value, true, 0, type);
+      const bytes = requireMediaBytes(where, resolved);
+      const mimeType = sniffMediaMime(type, bytes, sourceMime);
+      const assetOptions = { mimeType, ...options };
+      if (promoteMedia) {
+        return promoteMedia(type, bytes, assetOptions);
+      }
+      if (context) {
+        return type === "audio"
+          ? mediaRefBridge.toAudio(bytes, assetOptions)
+          : mediaRefBridge.toVideo(bytes, assetOptions);
+      }
+      throw new Error(
+        `${where}: cannot save an asset in this run. Use media.to${
+          type === "audio" ? "Audio" : "Video"
+        } from a Code node.`
+      );
+    };
+
+  const audio = {
+    bytes: avBytes("audio"),
+    toAsset: avToAsset("audio"),
+    info: avMember(
+      "audio",
+      "info",
+      ["audio"],
+      undefined,
+      (m) => m.audioOps.info
+    ),
+    normalize: avMember(
+      "audio",
+      "normalize",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.normalize
+    ),
+    trim: avMember("audio", "trim", ["audio"], "audio", (m) => m.audioOps.trim),
+    concat: avMember(
+      "audio",
+      "concat",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.concat
+    ),
+    mix: avMember("audio", "mix", ["audio"], "audio", (m) => m.audioOps.mix),
+    reverse: avMember(
+      "audio",
+      "reverse",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.reverse
+    ),
+    fadeIn: avMember(
+      "audio",
+      "fadeIn",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.fadeIn
+    ),
+    fadeOut: avMember(
+      "audio",
+      "fadeOut",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.fadeOut
+    ),
+    repeat: avMember(
+      "audio",
+      "repeat",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.repeat
+    )
+  };
+
+  const video = {
+    bytes: avBytes("video"),
+    toAsset: avToAsset("video"),
+    info: avMember(
+      "video",
+      "info",
+      ["video"],
+      undefined,
+      (m) => m.videoOps.info
+    ),
+    trim: avMember("video", "trim", ["video"], "video", (m) => m.videoOps.trim),
+    resize: avMember(
+      "video",
+      "resize",
+      ["video"],
+      "video",
+      (m) => m.videoOps.resize
+    ),
+    rotate: avMember(
+      "video",
+      "rotate",
+      ["video"],
+      "video",
+      (m) => m.videoOps.rotate
+    ),
+    addAudio: avMember(
+      "video",
+      "addAudio",
+      ["video", "audio"],
+      "video",
+      (m) => m.videoOps.addAudio
+    ),
+    extractAudio: avMember(
+      "video",
+      "extractAudio",
+      ["video"],
+      "audio",
+      (m) => m.videoOps.extractAudio
+    ),
+    extractFrame: avMember(
+      "video",
+      "extractFrame",
+      ["video"],
+      "image",
+      (m) => m.videoOps.extractFrame
+    )
+  };
+
   const canvas = {
     render: imageMember("render", (m) => m.renderCanvas),
     measureText: mediaMember((m) => m.measureCanvasText)
   };
 
-  // Media refs in and out. Unlike `image`/`canvas` this one needs a
+  // Media refs in and out. Unlike the transform namespaces, this one needs a
   // ProcessingContext — it resolves `asset://`, storage keys and package assets
   // through the host's own resolver — so without one every member throws.
   // `media.*` reads files, so it resolves paths through the same
@@ -1930,23 +2308,52 @@ export function buildSandbox(
   const mediaRefBridge = createMediaRefBridge(
     context,
     context
-      ? { resolvePath: (path: string) => resolveGuestPath(context, path, false) }
+      ? {
+          resolvePath: (path: string) => resolveGuestPath(context, path, false)
+        }
       : {}
   );
 
-  // An `image.*` handle is accepted wherever `media.*` takes a ref or bytes,
-  // so the last step of a chain — `media.toImage(composited)` — promotes the
-  // handle to a durable asset without the guest ever holding the bytes. Only
-  // this promotion writes to storage; the intermediates never do.
-  const media = Object.fromEntries(
+  // A media handle is accepted wherever `media.*` takes a ref or bytes. The
+  // last step of a chain promotes the result with the matching `media.to*`
+  // call. Only this promotion writes to storage; intermediates never do.
+  const mediaMembers = Object.fromEntries(
     Object.entries(mediaRefBridge).map(([name, fn]) => [
       name,
       async (...args: unknown[]) =>
         (fn as (...a: unknown[]) => Promise<unknown>)(
-          ...((await resolveMediaArgs(`media.${name}`, args, false)) as unknown[])
+          ...((await resolveMediaArgs(
+            `media.${name}`,
+            args,
+            false
+          )) as unknown[])
         )
     ])
   ) as unknown as typeof mediaRefBridge;
+  const promoteTypedHandle = (
+    name: "toImage" | "toAudio" | "toVideo",
+    promote: (value: unknown, options?: Record<string, unknown>) => Promise<unknown>
+  ) =>
+    async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      if (isSandboxMediaHandle(value)) {
+        return promote(value, options);
+      }
+      return (
+        mediaMembers[name] as unknown as (
+          value: unknown,
+          options?: Record<string, unknown>
+        ) => Promise<unknown>
+      )(value, options);
+    };
+  const media = {
+    ...mediaMembers,
+    toImage: promoteTypedHandle("toImage", image.toAsset),
+    toAudio: promoteTypedHandle("toAudio", audio.toAsset),
+    toVideo: promoteTypedHandle("toVideo", video.toAsset)
+  } as typeof mediaRefBridge;
 
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
@@ -2015,6 +2422,8 @@ export function buildSandbox(
     [SANDBOX_STREAM_OPEN_BINDING]: streamOpen,
     format,
     image,
+    audio,
+    video,
     canvas,
     media,
     __maxIter: MAX_LOOP_ITERATIONS,
@@ -2067,7 +2476,11 @@ export {
  */
 export interface SandboxCapabilityMount {
   readonly facades: ReadonlyMap<string, string>;
-  call(moduleKey: unknown, exportName: unknown, args: unknown): Promise<unknown>;
+  call(
+    moduleKey: unknown,
+    exportName: unknown,
+    args: unknown
+  ): Promise<unknown>;
 }
 
 /**
@@ -2213,16 +2626,17 @@ export interface RunSandboxOptions {
    */
   wasmPool?: WasmWorkerPool;
   /**
-   * Load a media ref when this run has no ProcessingContext. Chat uses this
-   * so `image.adjust(generateImageResult)` resolves host-side and the guest
-   * only ever sees a handle.
+   * Load a media ref when this run has no ProcessingContext. Chat uses this so
+   * media transforms can resolve generated results host-side and the guest
+   * only sees handles.
    */
   resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>;
   /**
-   * Save host-side image bytes as an asset. Backs `image.toAsset` /
-   * `nodetool.media.toImage` in chat, so the guest never holds the payload.
+   * Save host-side media bytes as an asset. Backs each transform namespace's
+   * `toAsset` and `nodetool.media.toImage/toAudio/toVideo` in chat.
    */
   promoteMedia?: (
+    type: "image" | "audio" | "video",
     bytes: Uint8Array,
     options?: Record<string, unknown>
   ) => Promise<unknown>;

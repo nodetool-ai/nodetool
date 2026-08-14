@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { BuildUiContextOptions } from "../../lib/chat/uiContext";
+import { getPuckAgentHandler } from "./puck/puckAgentBridge";
 
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
@@ -148,10 +149,22 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
 
   // The App Builder names its own focused document — the application the
   // ui_app_* tools edit, which is not the workflow the graph tools edit.
-  const appBuilderUiContext = useMemo<BuildUiContextOptions>(
-    () => ({ focused: { type: "app", id: applicationId } }),
-    [applicationId]
-  );
+  const appBuilderUiContext = useCallback((): BuildUiContextOptions => {
+    let componentIds: string[] | undefined;
+    try {
+      const selectedId = getPuckAgentHandler(applicationId).getSnapshot()
+        .selectedId;
+      if (selectedId) {
+        componentIds = [selectedId];
+      }
+    } catch {
+      // No builder is registered yet — send the app id without a selection.
+    }
+    return {
+      focused: { type: "app", id: applicationId },
+      selection: componentIds ? { component_ids: componentIds } : undefined
+    };
+  }, [applicationId]);
 
   const viewStatus: ChatViewStatus =
     runtime.status === "idle" || runtime.status === "stopping"
@@ -208,6 +221,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           workflowId={workflowId}
           workflowAssistant={Boolean(workflowId)}
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
+          chatSource="app_builder"
           uiContext={appBuilderUiContext}
           composerVariant="media"
           hideModePicker

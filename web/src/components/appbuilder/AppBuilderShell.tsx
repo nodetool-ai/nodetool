@@ -24,6 +24,7 @@ import { createEmptyData, type AppDocument } from "./appData";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 import AppDataPanel from "./AppDataPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 
 export interface AppBuilderShellProps {
   /**
@@ -218,14 +219,26 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
           />
         </Box>
       )}
-      {agentOpen && (
-        <Box sx={panelSx}>
-          <AppBuilderAgentPanel
-            applicationId={applicationId}
-            workflowId={agentWorkflowId}
-          />
-        </Box>
-      )}
+      {agentOpen &&
+        (narrow ? (
+          <Box sx={overlayPanelSx}>
+            <AppBuilderAgentPanel
+              applicationId={applicationId}
+              workflowId={agentWorkflowId}
+            />
+          </Box>
+        ) : (
+          <ResizableSideDock
+            storageKey="app_builder"
+            defaultWidth={420}
+            ariaLabel="Resize app builder assistant"
+          >
+            <AppBuilderAgentPanel
+              applicationId={applicationId}
+              workflowId={agentWorkflowId}
+            />
+          </ResizableSideDock>
+        ))}
       {narrow && (
         <CircularActionButton
           icon={agentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}

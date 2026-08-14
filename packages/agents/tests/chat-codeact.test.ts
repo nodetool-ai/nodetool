@@ -252,6 +252,19 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     expect(second.result).toBe(42);
   });
 
+  it("keeps state written before an action throws", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const first = await runAction(
+      session,
+      `state.video = "asset://abc";\nthrow new Error("combine failed");`
+    );
+    expect(first.ok).toBe(false);
+    const second = await runAction(session, `return state.video;`);
+    expect(second.ok).toBe(true);
+    expect(second.result).toBe("asset://abc");
+  });
+
   it("rejects finish() with chat guidance", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);

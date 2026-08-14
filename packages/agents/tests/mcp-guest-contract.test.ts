@@ -32,6 +32,9 @@ describe("MCP guest contract", () => {
     expect(MCP_GUEST_CONTRACT).toContain("QuickJS");
     expect(MCP_GUEST_CONTRACT).toContain("nodetool.searchTools");
     expect(MCP_GUEST_CONTRACT).toContain("there is no `finish()`");
+    expect(MCP_GUEST_CONTRACT).toContain(
+      "Assign each generate or speak result to `state` at once"
+    );
     expect(MCP_GUEST_CONTRACT).toContain(MCP_SANDBOX_RESOURCE_URI);
     expect(MCP_GUEST_CONTRACT).toContain(MCP_SANDBOX_ACTION_SNIPPET);
   });

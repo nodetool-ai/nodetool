@@ -30,6 +30,11 @@ import { getSketchAgentHandler } from "../sketchAgentBridge";
 import { paintAgentStroke } from "../painting/agentStrokes";
 import { createDefaultDocument, type Layer } from "../types";
 
+jest.mock("../SketchAgentPanel", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const DOC_ID = "sketch-agent-paint-doc";

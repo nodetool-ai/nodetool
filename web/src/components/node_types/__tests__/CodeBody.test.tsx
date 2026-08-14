@@ -216,14 +216,20 @@ describe("CodeBody", () => {
     );
   });
 
-  it("toggles the full editor modal", () => {
+  it("does not offer the text editor on the Code node", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
-    expect(screen.queryByTestId("text-editor-modal")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /open editor/i }));
-    expect(screen.getByTestId("text-editor-modal")).toHaveAttribute(
-      "data-language",
-      "javascript"
+    expect(
+      screen.queryByRole("button", { name: /open editor/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ask ai/i })).toBeInTheDocument();
+  });
+
+  it("still offers the text editor on other inline-code nodes", () => {
+    renderWithTheme(
+      <CodeBody {...makeProps({ nodeType: "nodetool.other.Thing" })} />
     );
+    fireEvent.click(screen.getByRole("button", { name: /open editor/i }));
+    expect(screen.getByTestId("text-editor-modal")).toBeInTheDocument();
   });
 
   it("keeps the add input/output form for other nodes with inline code", () => {

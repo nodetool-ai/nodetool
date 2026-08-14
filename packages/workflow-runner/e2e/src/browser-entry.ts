@@ -40,6 +40,7 @@ import * as controlNodes from "@nodetool-ai/core-nodes/nodes/control";
 // from under that test.
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { sandboxModuleFixture } from "@nodetool-ai/agents/sandbox-module-fixtures";
+import { runInSandbox } from "@nodetool-ai/agents/js-sandbox";
 
 // ── Inline NodeExecutor map (plain objects, no BaseNode) ───────────────
 
@@ -124,6 +125,12 @@ interface SandboxFixtureResult {
   error?: string;
 }
 
+interface SandboxMediaResult {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
 declare global {
   interface Window {
     runWorkflowInBrowser: (
@@ -141,6 +148,7 @@ declare global {
     runSandboxFixtureInBrowser: (
       fixtureName: string
     ) => Promise<SandboxFixtureResult>;
+    runSandboxMediaInBrowser: () => Promise<SandboxMediaResult>;
     runtimeName: string;
   }
 }
@@ -545,6 +553,65 @@ window.runSandboxFixtureInBrowser = async (
       error: err instanceof Error ? err.message : String(err)
     };
   }
+};
+
+const SILENT_MP4_BASE64 =
+  "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAM+bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAARgAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAml0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAARgAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAEYAAAAAAABAAAAAAHhbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAyAAAADgBVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABjG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAUxzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2Mi4xMS4xMDAgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAK/+EAFmdCwArZHsBEAAADAAQAAAMAyDxImSABAAVoy4PLIAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAE7oAAAAAAAAABhzdHRzAAAAAAAAAAEAAAAHAAACAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAAHAAAAAQAAADBzdHN6AAAAAAAAAAAAAAAHAAACjAAAAAkAAAAKAAAACQAAAAkAAAAJAAAACQAAABRzdGNvAAAAAAAAAAEAAANuAAAAYXVkdGEAAABZbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAsaWxzdAAAACSpdG9vAAAAHGRhdGEAAAABAAAAAExhdmY2Mi4zLjEwMAAAAAhmcmVlAAACy21kYXQAAAJxBgX//23cRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY1IHIzMjIyIGIzNTYwNWEgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDI1IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MCByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgxOjB4MTExIG1lPWhleCBzdWJtZT03IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0wIHdlaWdodHA9MCBrZXlpbnQ9MjUwIGtleWludF9taW49MjUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAATZYiEDPEYoAApaxwABPajgACEzgAAAAVBmjgZ6gAAAAYBmlQGeoAAAABUGaYDPUAAAABUGagC/UAAAABUGaoC/UAAAABUGawCvUA==";
+
+function toneWavDataUri(): string {
+  const sampleRate = 8_000;
+  const sampleCount = 2_000;
+  const bytes = new Uint8Array(44 + sampleCount * 2);
+  const view = new DataView(bytes.buffer);
+  const text = (offset: number, value: string): void => {
+    for (let index = 0; index < value.length; index += 1) {
+      bytes[offset + index] = value.charCodeAt(index);
+    }
+  };
+  text(0, "RIFF");
+  view.setUint32(4, bytes.length - 8, true);
+  text(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  text(36, "data");
+  view.setUint32(40, sampleCount * 2, true);
+  for (let index = 0; index < sampleCount; index += 1) {
+    const sample = Math.sin((2 * Math.PI * 440 * index) / sampleRate) * 0.25;
+    view.setInt16(44 + index * 2, Math.round(sample * 0x7fff), true);
+  }
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
+
+window.runSandboxMediaInBrowser = async (): Promise<SandboxMediaResult> => {
+  const result = await runInSandbox({
+    code: `
+      const combined = await video.addAudio(sourceVideo, soundtrack);
+      const trimmed = await video.trim(combined, { start: 0, end: 0.2 });
+      const frame = await video.extractFrame(trimmed, 0);
+      return { combined, trimmed, frame, info: await video.info(trimmed) };
+    `,
+    context: {} as never,
+    timeoutMs: 60_000,
+    globals: {
+      sourceVideo: {
+        type: "video",
+        uri: `data:video/mp4;base64,${SILENT_MP4_BASE64}`
+      },
+      soundtrack: { type: "audio", uri: toneWavDataUri() }
+    }
+  });
+  return {
+    success: result.success,
+    result: result.result,
+    error: result.error
+  };
 };
 
 (window as unknown as { workflowRunnerReady: boolean }).workflowRunnerReady =

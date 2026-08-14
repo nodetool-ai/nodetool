@@ -412,12 +412,14 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
                 size="small"
               />
             )}
-            <ToolbarIconButton
-              tooltip="Open Editor"
-              icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
-              onClick={toggleExpand}
-              size="small"
-            />
+            {!supportsCodeGen && (
+              <ToolbarIconButton
+                tooltip="Open Editor"
+                icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+                onClick={toggleExpand}
+                size="small"
+              />
+            )}
             <CopyButton value={value} buttonSize="small" />
           </div>
         </div>
@@ -498,7 +500,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         )}
       </div>
 
-      {isExpanded && (
+      {!supportsCodeGen && isExpanded && (
         <TextEditorModal
           value={value}
           language={language}

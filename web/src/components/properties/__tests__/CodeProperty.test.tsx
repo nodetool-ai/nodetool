@@ -33,6 +33,13 @@ jest.mock("../../../hooks/editor/useMonacoEditor", () => ({
   })
 }));
 
+jest.mock("../TextEditorModal", () => ({
+  __esModule: true,
+  default: ({ language }: { language?: string }) => (
+    <div data-testid="text-editor-modal" data-language={language} />
+  )
+}));
+
 let mockEdges: Array<{ target: string; targetHandle: string }> = [];
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: (selector: (state: unknown) => unknown) =>
@@ -97,6 +104,14 @@ describe("CodeProperty", () => {
     mockEdges = [{ target: "node1", targetHandle: "code" }];
     renderProperty();
     expect(screen.queryByTestId("monaco")).not.toBeInTheDocument();
+  });
+
+  it("does not offer the text editor on the Code node", () => {
+    renderProperty();
+    fireEvent.mouseEnter(screen.getByText("Code"));
+    expect(
+      screen.queryByRole("button", { name: /open editor/i })
+    ).not.toBeInTheDocument();
   });
 
   it("falls back to plain text for a non-JavaScript code node", () => {

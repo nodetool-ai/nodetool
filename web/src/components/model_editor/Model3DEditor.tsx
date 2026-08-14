@@ -41,6 +41,7 @@ import {
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { buildSceneTree } from "./sceneTree";
 import { disposeObject } from "./sceneTree";
 import {
@@ -112,9 +113,7 @@ const styles = (theme: Theme) =>
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
-    ".side-panel.assistant": {
-      width: `${ASSISTANT_PANEL_WIDTH}px`
-    },
+
     ".panel-header": {
       padding: theme.spacing(2, 3),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -840,27 +839,29 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
 
         {/* Kept mounted (toggled via display) so the chat connection and
             scroll state survive hiding the panel. */}
-        <FlexColumn
-          className="side-panel right assistant"
-          fullHeight
-          style={{ display: showAssistant ? "flex" : "none" }}
-        >
-          <FlexRow className="panel-header" justify="space-between" align="center">
-            <FlexRow gap={1} align="center">
-              <AutoAwesomeIcon fontSize="small" />
-              <Text size="small" weight={600}>
-                Assistant
-              </Text>
+        <div style={{ display: showAssistant ? "contents" : "none" }}>
+          <ResizableSideDock
+            storageKey="model3d_assistant"
+            defaultWidth={ASSISTANT_PANEL_WIDTH}
+            ariaLabel="Resize 3D assistant"
+          >
+            <FlexRow className="panel-header" justify="space-between" align="center">
+              <FlexRow gap={1} align="center">
+                <AutoAwesomeIcon fontSize="small" />
+                <Text size="small" weight={600}>
+                  Assistant
+                </Text>
+              </FlexRow>
+              <CloseButton
+                onClick={() => toggleAssistant()}
+                tooltip="Hide assistant"
+              />
             </FlexRow>
-            <CloseButton
-              onClick={() => toggleAssistant()}
-              tooltip="Hide assistant"
-            />
-          </FlexRow>
-          <div className="panel-body">
-            <Model3DChatPanel />
-          </div>
-        </FlexColumn>
+            <div className="panel-body">
+              <Model3DChatPanel />
+            </div>
+          </ResizableSideDock>
+        </div>
       </FlexRow>
 
       {(isSaving || isLoading) && (

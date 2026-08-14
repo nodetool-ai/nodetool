@@ -369,4 +369,17 @@ describe("nodetool.documents", () => {
       "nodetool.documents"
     );
   });
+
+  it("tells the action to stash generation results in state", () => {
+    const section = buildNodetoolApiPromptSection([
+      "find_model",
+      "generate_image"
+    ]);
+    expect(section).toContain(
+      "state.clip = state.clip ?? await nodetool.media.generateVideo"
+    );
+    expect(section).toContain("so a later failure does not re-run generation");
+    expect(section).toContain("state.model ?? (state.model = await nodetool.models.pick");
+    expect(section).toContain("if (!state.images)");
+  });
 });

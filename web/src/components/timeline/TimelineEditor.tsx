@@ -66,6 +66,7 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import TimelineAgentPanel from "./TimelineAgentPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
@@ -299,32 +300,34 @@ const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
   const tabs = INSPECTOR_TABS;
 
   return (
-    <FlexColumn
-      css={inspectorRegionStyles(theme)}
-      fullHeight
-      sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
+    <ResizableSideDock
+      storageKey="timeline_assistant"
+      defaultWidth={360}
+      ariaLabel="Resize timeline side panel"
     >
-      <TabGroup
-        tabs={tabs}
-        value={tab}
-        onChange={(value) => setTab(value as InspectorTab)}
-        size="small"
-        fullWidth
-        sx={{
-          flexShrink: 0,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      />
-      <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {tab === "inspector" ? (
-          <TimelineInspector />
-        ) : tab === "agent" ? (
-          <TimelineAgentPanel />
-        ) : (
-          <TimelineVersionHistoryPanel sequenceId={sequenceId} />
-        )}
+      <FlexColumn css={inspectorRegionStyles(theme)} fullHeight sx={{ minHeight: 0 }}>
+        <TabGroup
+          tabs={tabs}
+          value={tab}
+          onChange={(value) => setTab(value as InspectorTab)}
+          size="small"
+          fullWidth
+          sx={{
+            flexShrink: 0,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        />
+        <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          {tab === "inspector" ? (
+            <TimelineInspector />
+          ) : tab === "agent" ? (
+            <TimelineAgentPanel />
+          ) : (
+            <TimelineVersionHistoryPanel sequenceId={sequenceId} />
+          )}
+        </FlexColumn>
       </FlexColumn>
-    </FlexColumn>
+    </ResizableSideDock>
   );
   }
 );

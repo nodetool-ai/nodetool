@@ -791,6 +791,22 @@ describe("GlobalChatStore", () => {
       expect(store.getState().threadWorkflowId[id]).toBeNull();
     });
 
+    it("createNewThread({ makeCurrent: false }) does not steal the canvas thread", async () => {
+      store.setState({
+        workflowId: "wf-1",
+        currentThreadId: "canvas",
+        workflowThreadId: { "wf-1": "canvas" }
+      });
+      const id = await store.getState().createNewThread(undefined, null, {
+        makeCurrent: false
+      });
+      const state = store.getState();
+      expect(id).not.toBe("canvas");
+      expect(state.currentThreadId).toBe("canvas");
+      expect(state.workflowThreadId["wf-1"]).toBe("canvas");
+      expect(state.threads[id].workflow_id).toBeNull();
+    });
+
     it("openWorkflowThread creates a fresh thread when the workflow has none", async () => {
       const id = await store.getState().openWorkflowThread("wf-new");
       const state = store.getState();

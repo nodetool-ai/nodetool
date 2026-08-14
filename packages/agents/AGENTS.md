@@ -153,7 +153,9 @@ than throwing), the pure guest-side helpers
 `TextEncoder`/`TextDecoder` — the old `uuid`/`utf8Encode`/`utf8Decode`
 aliases are gone),
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
-`image.{info,decode,encode,resize,crop,rotate,flip,adjust,composite,convert}`,
+`image.{info,stats,decode,blank,pad,grid,resize,crop,rotate,flip,adjust,composite,convert}`,
+`audio.{info,normalize,trim,concat,mix,reverse,fadeIn,fadeOut,repeat}`,
+`video.{info,trim,resize,rotate,addAudio,extractAudio,extractFrame}`,
 `canvas.measureText` (plus `canvas.render`, the undocumented plumbing behind
 `createCanvas(...).toBytes()`), and any caller-supplied `globals`. `fetch` sends
 a `Uint8Array` body as raw bytes instead of JSON. Every one of these is a
@@ -180,7 +182,8 @@ wires it to `context.postMessage({ type: "node_progress", … })`, the same
 channel the Python worker uses, so a long-running snippet drives the node's
 progress bar.
 
-`image` and `canvas` are the media namespaces, both host bridges over a real
+`image`, `audio`, `video`, and `canvas` are the media namespaces. Image and
+canvas are host bridges over a real
 2D canvas (`src/sandbox-media.ts`). The backend is picked at first use:
 `@napi-rs/canvas` (Skia) on Node, loaded through `importHidden` so no bundler
 pulls the native addon into a browser graph — it is already staged as an
@@ -213,9 +216,10 @@ reads them host-side and answers in a hundred bytes: per-channel mean/min/max,
 mean luminance, and whether the image is opaque. It carries no
 `MAX_DECODE_PIXELS` bound because it transfers nothing.
 
-**`image.*` trades in handles, not bytes** (`src/sandbox-media-handle.ts`). Each
-op takes a handle, a media ref (`asset://` and every uri `media.*` resolves) or
-raw bytes, and returns a *handle*: a small plain object
+**Media transforms trade in handles, not bytes**
+(`src/sandbox-media-handle.ts`). Each image, audio, or video op takes a handle,
+a media ref (`asset://` and every uri `media.*` resolves), or raw bytes, and
+returns a *handle*: a small plain object
 (`{uri: "sandbox://media/<id>", mimeType, byteLength, width, height}`) naming
 bytes the host holds for the run. So a chain — and a generated image fed
 straight in — moves nothing across the boundary but small objects.
@@ -227,7 +231,12 @@ per hop, ~2.3× the payload live in the guest, and past roughly 16 MB a run
 aborted the runtime at teardown. Measured on a 45-op chain over a 2.2 MB PNG:
 132 s and an abort at three ops, against 4.7 s with handles.
 
-Two deliberate exceptions, both returning plain data: `info` and `decode` exist
+Audio and video transforms use Mediabunny directly. Browsers use WebCodecs;
+Node registers Mediabunny's server codec adapter. No audio-node or video-node
+package is imported or exposed to guest code. `video.extractAudio` returns an
+audio handle and `video.extractFrame` returns an image handle.
+
+Two image exceptions, both returning plain data: `info` and `decode` exist
 to report what is *in* an image, and `decode` is the one call that must hand
 over real pixels. `image.bytes(handle)` is the only door back to encoded bytes
 and needs no context — reach for it when the body parses the bytes itself, not
@@ -858,9 +867,11 @@ every task failed throws instead of compiling a deliverable out of nothing.
 
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
-`tools.<name>()` functions, a `state` object that persists across actions, and
-`finish(result)` for host-validated completion. Design and the research it
-follows (CodeAct, ICML 2024): docs/codeact-design.md.
+`tools.<name>()` functions, a `state` object that persists across actions
+(including after a throw), and `finish(result)` for host-validated completion.
+The prompt tells the model to assign each generate/speak result to `state`
+immediately and reuse it — `return` is the observation only. Design and the
+research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged

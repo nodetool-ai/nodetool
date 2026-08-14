@@ -60,4 +60,43 @@ describe("useChatViewThread", () => {
     expect(sendMessage).toHaveBeenCalledWith(makeMessage("Send A"), "thread-a");
     expect(stopGeneration).toHaveBeenCalledWith("thread-b");
   });
+
+  it("isolated mode does not adopt or switch the current thread", async () => {
+    const switchThread = jest.fn();
+    const createNewThread = jest.fn().mockResolvedValue("isolated-1");
+    const sendMessage = jest.fn().mockResolvedValue(undefined);
+    useGlobalChatStore.setState({
+      currentThreadId: "canvas",
+      threads: {
+        canvas: makeThread("canvas"),
+        "isolated-1": makeThread("isolated-1")
+      },
+      messageCache: {
+        canvas: [makeMessage("Canvas")],
+        "isolated-1": []
+      },
+      switchThread,
+      createNewThread,
+      sendMessage,
+      stopGeneration: jest.fn()
+    });
+
+    const isolated = renderHook(() => useChatViewThread({ isolated: true }));
+
+    expect(isolated.result.current.threadId).toBeNull();
+
+    await act(async () => {
+      await isolated.result.current.sendMessage(makeMessage("from assistant"));
+    });
+
+    expect(createNewThread).toHaveBeenCalledWith(undefined, null, {
+      makeCurrent: false
+    });
+    expect(switchThread).not.toHaveBeenCalled();
+    expect(useGlobalChatStore.getState().currentThreadId).toBe("canvas");
+    expect(sendMessage).toHaveBeenCalledWith(
+      makeMessage("from assistant"),
+      "isolated-1"
+    );
+  });
 });

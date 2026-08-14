@@ -131,6 +131,7 @@ import type {
   WebSocketCommandEnvelope,
   WebSocketMode,
   RpcErrorPayload,
+  ChatSource,
   UiContext,
   UiDocumentRef,
   UiSurfaceType
@@ -1587,6 +1588,20 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
   chat: "chat"
 };
 
+const CHAT_SOURCE_LABELS: Record<ChatSource, string> = {
+  workspace_chat: "workspace chat",
+  workflow_canvas: "workflow canvas",
+  sketch_assistant: "sketch editor assistant",
+  timeline_assistant: "timeline editor assistant",
+  storyboard_assistant: "storyboard assistant",
+  script_assistant: "script editor assistant",
+  jsscript_assistant: "JS script assistant",
+  app_builder: "app builder assistant",
+  code_assistant: "code node assistant",
+  text_editor: "text editor assistant",
+  model3d_assistant: "3D editor assistant"
+};
+
 /**
  * Render the user's open documents into the system prompt. The `ui_*` tools all
  * take a required document id, so this block is how the agent learns which ids
@@ -1597,7 +1612,8 @@ function formatUiContext(uiContext?: UiContext | null): string {
   if (!uiContext) return "";
   const focused = uiContext.focused;
   const open = uiContext.open ?? [];
-  if (!focused && open.length === 0) return "";
+  const source = uiContext.source;
+  if (!focused && open.length === 0 && !source) return "";
 
   const describe = (ref: UiDocumentRef): string => {
     const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
@@ -1608,6 +1624,11 @@ function formatUiContext(uiContext?: UiContext | null): string {
   };
 
   const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (source) {
+    lines.push(
+      `The user sent this message from the ${CHAT_SOURCE_LABELS[source] ?? source}.`
+    );
+  }
   if (focused) {
     lines.push(`The user is currently in the ${describe(focused)}.`);
   }
