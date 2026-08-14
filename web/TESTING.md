@@ -49,7 +49,7 @@ npm run test:e2e:headed
 The web application uses the following testing stack:
 
 - **Jest** (v29.7.0): Core testing framework
-- **React Testing Library** (v16.1.0): For testing React components
+- **React Testing Library** (v16.3.2): For testing React components
 - **ts-jest**: TypeScript support for Jest
 - **@testing-library/user-event**: For simulating user interactions
 - **@testing-library/jest-dom**: Custom matchers for DOM assertions
@@ -122,7 +122,7 @@ The GitHub Actions workflow runs:
 
 ```bash
 npm run typecheck  # TypeScript compilation check
-npm run lint       # ESLint
+npm run lint       # oxlint
 npm test           # Jest tests
 ```
 
@@ -135,19 +135,27 @@ The application uses **Playwright** for end-to-end testing. E2E tests run the ac
 E2E tests are located in:
 
 ```
-web/tests/e2e/
-├── app-loads.spec.ts          # Basic app loading and navigation tests
-└── ...
+web/tests/
+├── journeys/         # User-journey suites (chat, editor, library, mini-app, subgraph)
+├── smoke/            # Page-load smoke suite
+├── e2e-runner/       # In-browser workflow harness suite
+├── debug-harness/    # Browser surface of `nodetool debug`
+└── benchmarks/       # Screenshot and performance suites
 ```
 
 ### Configuration
 
-- `playwright.config.ts`: Playwright configuration
-  - Test directory: `./tests/e2e`
-  - Base URL: `http://localhost:3000`
-  - Web servers: Backend (port 7777) and Frontend (port 3000)
-  - Browsers: Chromium
-  - Retries: 2 in CI, 0 locally
+Each suite has its own config; all of them run Chromium only and serve the app
+from Vite on port 3000 by default.
+
+- `playwright.config.ts` — the screenshot/benchmark config. Test directory
+  `./tests`, ignoring `**/e2e-runner/**` and `**/journeys/**`. Base URL
+  `http://localhost:3000`. Retries 0, a single worker. `tests/globalSetup.ts`
+  starts the real backend on port 7777.
+- `playwright.journeys.config.ts` — `./tests/journeys`, retries 1 in CI, 0 locally.
+- `playwright.smoke.config.ts` — `./tests/smoke`, retries 1 in CI, 0 locally.
+- `playwright.e2e-runner.config.ts` — `./tests/e2e-runner`, retries 0.
+- `playwright.debug-harness.config.ts` — `./tests/debug-harness`, retries 0.
 
 ### Running E2E Tests
 
@@ -178,8 +186,9 @@ npm run test:e2e:ui
 # Run in headed mode (see the browser)
 npm run test:e2e:headed
 
-# Run specific test file
-npx playwright test app-loads.spec.ts
+# Run a specific suite
+npm run test:journeys
+npm run test:smoke
 
 # Debug a test
 npx playwright test --debug
@@ -249,22 +258,19 @@ test('should interact with workflow', async ({ page }) => {
 
 4. **Test Real Scenarios**: E2E tests should test user flows, not implementation details
 
-### GitHub Actions E2E Workflow
+### GitHub Actions E2E Workflows
 
-The E2E workflow (`.github/workflows/e2e.yml`) runs automatically on:
-- Push to `main` branch (when web files change)
-- Pull requests to `main` branch (when web files change)
+Each Playwright suite has its own workflow:
 
-The workflow:
-1. Sets up Node.js 20
-2. Installs all npm dependencies
-3. Builds the TypeScript backend packages (`npm run build:packages`)
-4. Installs Playwright browsers
-5. Starts the TypeScript backend server in the background (`node packages/websocket/dist/server.js`)
-6. Waits for the server to be ready
-7. Runs Playwright tests (which start the frontend server)
-8. Stops the backend server
-9. Uploads test reports, results, and server logs as artifacts on failure
+- `.github/workflows/user-journeys.yml` — `npm run test:journeys`
+- `.github/workflows/page-load-smoke.yml` — the page-load smoke suite
+- `.github/workflows/e2e-runner.yml` — `npm run test:e2e-runner`
+- `.github/workflows/screenshots.yml` — `tests/benchmarks/screenshots.spec.ts`
+
+They all follow the same shape: check out, set up Node from `.nvmrc`, install
+dependencies, build the TypeScript backend packages (`npm run build:packages`),
+install Playwright's Chromium, run the suite, and upload the report as an
+artifact.
 
 ### Debugging E2E Test Failures in CI
 
@@ -415,15 +421,16 @@ describe('myUtilFunction', () => {
 
 The project includes pre-configured mocks in `src/__mocks__/`:
 
-- `apiClientMock.ts`: Mock API client for HTTP requests
+- `trpcClientMock.ts`: Mock tRPC client
 - `baseUrlMock.ts`: Mock base URL configuration
 - `canvas.ts`: Mock HTML5 Canvas API
-- `chroma-js.ts`: Mock chroma-js color library
+- `xyflowReact.tsx`: Mock `@xyflow/react`
 - `supabaseClientMock.ts`: Mock Supabase client
 - `themeMock.ts`: Mock MUI theme
 - `styleMock.ts`: Mock CSS imports
 - `fileMock.ts`: Mock file imports (images, etc.)
 - `svgReactMock.ts`: Mock SVG React components
+- `emptyModule.ts`: Stub for ESM-only deps that jsdom cannot load (monaco, react-pdf, remark-gfm)
 
 ### Using Existing Mocks
 
@@ -431,8 +438,8 @@ These mocks are automatically applied via `jest.config.ts` module name mapping:
 
 ```typescript
 // No explicit mock needed - automatically mocked
-import { ApiClient } from '../stores/ApiClient';
-import chroma from 'chroma-js';
+import { trpc } from '../trpc/client';
+import { useReactFlow } from '@xyflow/react';
 import theme from '../components/themes/ThemeNodetool';
 ```
 
@@ -473,17 +480,17 @@ jest.mock('../hooks/useMyHook', () => ({
 
 ### Mocking API Calls
 
-```typescript
-import { ApiClient } from '../stores/ApiClient';
+Domain calls go through the tRPC client, which `jest.config.ts` maps to
+`src/__mocks__/trpcClientMock.ts`. Import the mock's jest.fn for the procedure
+you need:
 
-// Mock specific methods
-const mockGet = jest.fn();
-jest.spyOn(ApiClient, 'get').mockImplementation(mockGet);
+```typescript
+import { mockWorkflowsGet } from '../__mocks__/trpcClientMock';
 
 // In test
-mockGet.mockResolvedValueOnce({ data: 'test data' });
+mockWorkflowsGet.mockResolvedValueOnce({ id: 'wf1' });
 // or
-mockGet.mockRejectedValueOnce(new Error('API Error'));
+mockWorkflowsGet.mockRejectedValueOnce(new Error('API Error'));
 ```
 
 ### Mocking Environment Variables
@@ -814,12 +821,11 @@ npm run lint           # Must pass
 npm test               # Must pass
 ```
 
-### Pre-commit Hooks
+### Before Committing
 
-The project uses Husky for pre-commit hooks:
+There are no pre-commit hooks — run the checks yourself:
 
 ```bash
-# Automatically runs before commit
 npm run typecheck
 npm run lint
 npm test

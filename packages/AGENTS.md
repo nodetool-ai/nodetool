@@ -213,7 +213,7 @@ you write or edit. Package-specific overlays (e.g. `audio-nodes`, `image-nodes`,
   node only as a terminal sink** — sinks collect every returned value regardless
   of slot name, so they hide slot-name mismatches. Assert the invariant
   "every returned key is a declared slot" (see
-  `automation-nodes/tests/output-slots-and-fixes.test.ts`).
+  `automation-nodes/tests/trigger-entry.test.ts`).
 - **A streaming output handle (`chunk`) must be produced by an `async *genProcess`
   generator**, and `outputCorrelation` must match: `iteration` for streamed
   chunks, `single` for the final aggregate. Declaring a `chunk` output on a node
