@@ -19,6 +19,7 @@ const styles = (theme: Theme) =>
       gap: "0.1em",
       padding: "0.35em 0.5em",
       minHeight: "28px",
+      flexShrink: 0,
       overflow: "hidden"
     },
     ".breadcrumb-item": {

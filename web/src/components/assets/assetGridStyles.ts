@@ -11,10 +11,17 @@ export const assetGridStyles = (theme: Theme) => {
       flexDirection: "column",
       justifyContent: "flex-start",
       height: "100%",
+      minHeight: 0,
+      overflow: "hidden",
       containerType: "inline-size"
     },
 
     // DROPZONE
+    // minHeight: 0 lets this flex child shrink to the remaining viewport.
+    // Without it the pane grows to the tile list and overflow:hidden on the
+    // manager page clips the grid — the inner list never becomes a scroller.
+    // The sidebar keeps the viewport-relative maxHeight; the Assets tab
+    // overrides that cap and relies on this shrink.
     ".dropzone": {
       display: "flex",
       outline: "none",
@@ -22,6 +29,8 @@ export const assetGridStyles = (theme: Theme) => {
       position: "relative",
       flexGrow: 1,
       flexShrink: 1,
+      minHeight: 0,
+      overflow: "hidden",
       width: "100%",
       maxHeight: "calc(-260px + 100vh)"
     },

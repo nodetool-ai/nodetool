@@ -7,6 +7,15 @@ import { MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
+    "&": {
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      minHeight: 0,
+      overflow: "hidden",
+      height: "100%",
+      position: "relative"
+    },
     ".dragging-overlay": {
       position: "absolute",
       top: 0,
