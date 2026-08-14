@@ -21,7 +21,7 @@ npm start                # Start Electron app (requires built web)
 npm run build            # Production build (tsc + vite + electron-builder)
 npm run vite:build       # Vite build only (main + preload)
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run unit tests
 npm run test:coverage    # Unit tests with coverage
@@ -140,4 +140,3 @@ directory for file tools); vaults sit one level above the database.
 
 - The app detects the active Conda environment via `config.ts`.
 - Python-based nodes (HuggingFace, MLX) require a Conda environment with the correct dependencies.
-- See `environment.yml` in the repo root for the Conda spec.

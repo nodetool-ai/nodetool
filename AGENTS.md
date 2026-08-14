@@ -248,7 +248,7 @@ npm install              # Install dependencies
 npm start                # Start dev server
 npm run build            # Production build
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run tests
 npm run test:watch       # Watch mode
@@ -264,7 +264,7 @@ npm install              # Install dependencies
 npm start                # Start electron
 npm run build            # Production build (tsc + vite + electron-builder)
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run tests
 ```

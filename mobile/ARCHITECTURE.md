@@ -25,8 +25,8 @@ The NodeTool mobile app is a React Native application built with Expo that enabl
 
 The mobile app reuses types, patterns, and logic from the web application wherever possible:
 
-- **Type Definitions**: Adapted from `web/src/components/miniapps/types.ts`
-- **API Patterns**: Based on `web/src/stores/ApiClient.ts`
+- **Type Definitions**: `@nodetool-ai/protocol`, imported directly
+- **Mini-app runtime**: `@nodetool-ai/app-runtime`, compiled from source (see `metro.config.js`)
 - **Business Logic**: Input handling mirrors web implementation
 
 ### 2. Configurable Server Host
@@ -325,58 +325,15 @@ document can at least be opened.
 App
 ├── NavigationContainer
     └── Stack.Navigator
-        ├── MiniAppsListScreen (initial route)
-        ├── MiniAppScreen
-        └── SettingsScreen
+        ├── LoginScreen                 (when signed out)
+        └── WorkflowsListScreen         (first screen when signed in)
+            └── every other screen in `src/screens/`
 ```
 
 **Responsibilities:**
 - Initialize navigation
 - Load API host from storage on startup
 - Provide global navigation context
-
-### MiniAppsListScreen
-
-**State:**
-- `workflows`: List of available workflows
-- `isLoading`: Loading state for initial fetch
-- `isRefreshing`: Refresh state for pull-to-refresh
-
-**Actions:**
-- `loadWorkflows()`: Fetch workflows from API
-- `handleRefresh()`: Pull-to-refresh action
-- `handleWorkflowPress()`: Navigate to MiniAppScreen
-
-**Error Handling:**
-- Shows alert on connection failure
-- Provides navigation to Settings
-- Offers retry option
-
-### MiniAppScreen
-
-**State:**
-- `workflow`: Full workflow data
-- `inputValues`: Record<string, any> - User input values
-- `isLoading`: Loading state
-- `isRunning`: Execution state
-- `results`: Execution results (stringified JSON)
-
-**Actions:**
-- `loadWorkflow()`: Fetch workflow details
-- `initializeInputs()`: Set default input values
-- `extractInputDefinitions()`: Parse workflow nodes to find inputs
-- `handleRun()`: Execute workflow with current input values
-
-**Input Types Supported:**
-- String (TextInput)
-- Integer (Numeric TextInput)
-- Float (Numeric TextInput)
-- Boolean (Switch)
-
-**Future Enhancements:**
-- Image input (file picker)
-- Audio input
-- File path input
 
 ### SettingsScreen
 
@@ -407,33 +364,15 @@ App
 ### Workflow List Flow
 
 ```
-1. MiniAppsListScreen mount
+1. WorkflowsListScreen mount
    ↓
-2. loadWorkflows()
+2. apiService.getWorkflows(limit)
    ↓
-3. apiService.getWorkflows()
+3. trpc.workflows.list.query({ limit })
    ↓
-4. GET /api/workflows/?limit=100
+4. Normalize each workflow
    ↓
-5. Update workflows state
-   ↓
-6. Render FlatList
-```
-
-### Workflow Execution Flow
-
-```
-1. User fills inputs
-   ↓
-2. User taps "Run"
-   ↓
-3. handleRun() called
-   ↓
-4. apiService.runWorkflow(workflowId, inputValues)
-   ↓
-5. POST /api/workflows/{id}/run
-   ↓
-6. Display results
+5. Render FlatList
 ```
 
 ## API Service
@@ -450,11 +389,15 @@ class ApiService {
   getApiHost(): string
   
   // API Calls
-  getWorkflows(limit?: number): Promise<any>
-  getWorkflow(id: string): Promise<any>
-  runWorkflow(id: string, params: Record<string, unknown>): Promise<any>
-  
+  getWorkflows(limit?: number)
+  getNodeMetadata()
+  listApplications(projectId?: string)
+  getApplication(id: string)
+  saveWorkflow(...)   createWorkflow(...)   uploadAsset(...)
+  getThread(threadId: string)
+
   // Utility
+  resolveUrl(urlOrPath: string | null | undefined): string | null
   getWebSocketUrl(path: string): string
 }
 ```
@@ -475,25 +418,20 @@ class ApiService {
 
 ### Stack Navigator
 
-```typescript
-type RootStackParamList = {
-  MiniAppsList: undefined;
-  MiniApp: {
-    workflowId: string;
-    workflowName: string;
-  };
-  Settings: undefined;
-  Chat: undefined;
-};
-```
+`RootStackParamList` in `src/navigation/types.ts` declares one route per screen
+in `src/screens/` — `Login`, `WorkflowsList`, `GraphEditor`, `Settings`, `Chat`,
+`LanguageModelSelection`, `Assets`, `AssetViewer`, `Documents`, `Apps`, `App`,
+`StoryboardEditor`, `ScriptEditor`, `TimelineViewer`, `SketchViewer`,
+`DocumentViewer`, `Secrets`, `Collections`, `Jobs`, `Triggers`, `JobDetail`,
+and `Threads`. Deep links map onto it in `src/navigation/linking.ts`.
 
 ### Navigation Flow
 
 ```
-MiniAppsListScreen
+WorkflowsListScreen
 ├── Settings (from header button)
 ├── Chat (from header button)
-└── MiniApp (from workflow card tap)
+└── GraphEditor (from workflow card tap)
     └── Settings (from error alert)
 ```
 
