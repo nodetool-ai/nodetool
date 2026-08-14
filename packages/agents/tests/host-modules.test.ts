@@ -1040,6 +1040,173 @@ describe("@nodetool-ai/sandbox-pptx", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Fabric.js (canvas rendering / SVG)
+// ---------------------------------------------------------------------------
+
+describe("sandbox-fabric in the guest", () => {
+  it("renders a scene to SVG", async () => {
+    const result = await run(
+      `import { renderSVG } from "@nodetool-ai/sandbox-fabric";
+       return await renderSVG({
+         width: 400,
+         height: 300,
+         objects: [
+           { type: "rect", left: 10, top: 10, width: 50, height: 50, fill: "blue" }
+         ]
+       });`,
+      "fabric"
+    );
+    expect(result.success).toBe(true);
+    expect(typeof result.result).toBe("string");
+    expect(result.result).toContain("<svg");
+    expect(result.result).toContain("</svg>");
+  });
+
+  it("exports data URL", async () => {
+    const result = await run(
+      `import { toDataURL } from "@nodetool-ai/sandbox-fabric";
+       return await toDataURL({
+         width: 200,
+         height: 200,
+         objects: [
+           { type: "circle", left: 100, top: 100, radius: 40, fill: "red" }
+         ]
+       });`,
+      "fabric"
+    );
+    expect(result.success).toBe(true);
+    expect(typeof result.result).toBe("string");
+    expect(result.result).toMatch(/^data:image\/png;base64,/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pdf-lib (write / merge)
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-pdflib", () => {
+  it("builds a one-page PDF", async () => {
+    const result = await run(
+      `import { build } from "@nodetool-ai/sandbox-pdflib";
+       const bytes = await build({
+         pages: [{ width: 200, height: 200, items: [
+           { type: "text", x: 20, y: 20, text: "Hello PDF", size: 14 }
+         ] }]
+       });
+       return { ok: bytes instanceof Uint8Array, len: bytes.length, head: String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]) };`,
+      "pdflib"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({ ok: true, head: "%PDF" });
+    expect((result.result as { len: number }).len).toBeGreaterThan(100);
+  });
+
+  it("merges two PDFs", async () => {
+    const result = await run(
+      `import { build, merge } from "@nodetool-ai/sandbox-pdflib";
+       const a = await build({ pages: [{ items: [{ type: "text", x: 40, y: 40, text: "A" }] }] });
+       const b = await build({ pages: [{ items: [{ type: "text", x: 40, y: 40, text: "B" }] }] });
+       const both = await merge([a, b]);
+       return { ok: both instanceof Uint8Array, bigger: both.length > a.length };`,
+      "pdflib"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ ok: true, bigger: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PptxGenJS (write)
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-chrono", () => {
+  it("parses a relative date against a fixed now", async () => {
+    const result = await run(
+      `import { parseDate } from "@nodetool-ai/sandbox-chrono";
+       return await parseDate("tomorrow", "2026-08-15T00:00:00.000Z");`,
+      "chrono"
+    );
+    expect(result.success).toBe(true);
+    expect(String(result.result)).toMatch(/^2026-08-16/);
+  });
+});
+
+describe("@nodetool-ai/sandbox-expr", () => {
+  it("evaluates a formula with variables", async () => {
+    const result = await run(
+      `import { evaluate } from "@nodetool-ai/sandbox-expr";
+       return await evaluate("2 * qty + fee", { qty: 3, fee: 1.5 });`,
+      "expr"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(7.5);
+  });
+});
+
+describe("@nodetool-ai/sandbox-ics", () => {
+  it("builds a one-event calendar", async () => {
+    const result = await run(
+      `import { createEvent } from "@nodetool-ai/sandbox-ics";
+       return await createEvent({
+         title: "Standup",
+         start: [2026, 8, 15, 10, 0],
+         duration: { hours: 1 }
+       });`,
+      "ics"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("BEGIN:VCALENDAR");
+    expect(result.result).toContain("Standup");
+  });
+});
+
+describe("@nodetool-ai/sandbox-subtitle", () => {
+  it("round-trips a cue", async () => {
+    const result = await run(
+      `import { parse, stringify } from "@nodetool-ai/sandbox-subtitle";
+       const cues = await parse("1\\n00:00:00,000 --> 00:00:01,000\\nHi\\n");
+       const srt = await stringify(cues, { format: "SRT" });
+       return { cues, srt };`,
+      "subtitle"
+    );
+    expect(result.success).toBe(true);
+    const payload = result.result as { cues: Array<{ text: string }>; srt: string };
+    expect(payload.cues[0]?.text).toBe("Hi");
+    expect(payload.srt).toContain("Hi");
+  });
+});
+
+describe("@nodetool-ai/sandbox-exif", () => {
+  it("rejects non-binary input", async () => {
+    const result = await run(
+      `import { parse } from "@nodetool-ai/sandbox-exif";
+       try { await parse("nope"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "exif"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/must be a Uint8Array/);
+  });
+});
+
+describe("@nodetool-ai/sandbox-pptxgen", () => {
+  it("builds a one-slide deck", async () => {
+    const result = await run(
+      `import { build } from "@nodetool-ai/sandbox-pptxgen";
+       const bytes = await build({
+         title: "Deck",
+         slides: [{ items: [{ type: "text", x: 0.5, y: 0.5, w: 8, h: 1, text: "Hello" }] }]
+       });
+       return { ok: bytes instanceof Uint8Array, len: bytes.length, zip: bytes[0] === 0x50 && bytes[1] === 0x4b };`,
+      "pptxgen"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({ ok: true, zip: true });
+    expect((result.result as { len: number }).len).toBeGreaterThan(1000);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Shared input caps
 // ---------------------------------------------------------------------------
 

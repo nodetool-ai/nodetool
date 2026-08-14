@@ -373,6 +373,12 @@ export {
   hasGraphDslTools,
   withGraphDslPackage
 } from "./codeact/graph-dsl-package.js";
+export {
+  FABRIC_PACKAGE,
+  FABRIC_PROMPT_SECTION,
+  catalogServesFabric,
+  withFabricPackage
+} from "./codeact/fabric-package.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";

@@ -1296,7 +1296,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships twenty-one packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-six packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1305,6 +1305,18 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-dates` | date-fns | guest |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
+| `@nodetool-ai/sandbox-qr` | uqr | guest |
+| `@nodetool-ai/sandbox-subtitle` | subtitle | host |
+| `@nodetool-ai/sandbox-color` | culori | guest |
+| `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
+| `@nodetool-ai/sandbox-expr` | expr-eval | host |
+| `@nodetool-ai/sandbox-jmespath` | jmespath | guest |
+| `@nodetool-ai/sandbox-chrono` | chrono-node | host |
+| `@nodetool-ai/sandbox-exif` | exifr | host |
+| `@nodetool-ai/sandbox-stats` | simple-statistics | guest |
+| `@nodetool-ai/sandbox-rrule` | rrule | guest |
+| `@nodetool-ai/sandbox-ics` | ics | host |
+| `@nodetool-ai/sandbox-gif` | gifenc | guest |
 | `@nodetool-ai/sandbox-csv` | papaparse | host |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
@@ -1316,6 +1328,9 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-docx` | docx | host |
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host |
 | `@nodetool-ai/sandbox-epub` | epub2 | host |
+| `@nodetool-ai/sandbox-fabric` | fabric | host |
+| `@nodetool-ai/sandbox-pdflib` | pdf-lib | host |
+| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
 | `@nodetool-ai/sandbox-pdf` | pdf-parse | host |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |

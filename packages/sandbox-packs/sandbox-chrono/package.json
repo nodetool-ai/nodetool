@@ -1,0 +1,40 @@
+{
+  "name": "@nodetool-ai/sandbox-chrono",
+  "version": "0.7.0-rc.35",
+  "description": "Parse natural-language dates inside the NodeTool sandbox, from chrono-node",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "chrono"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-chrono"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "chrono",
+    "date",
+    "nlp"
+  ]
+}

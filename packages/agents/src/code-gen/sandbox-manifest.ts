@@ -861,7 +861,7 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     signature:
       "createCanvas(width, height) -> { width, height, getContext, toBytes, toSpec }",
     description:
-      'A Canvas 2D surface. getContext with "2d" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec returns the recorded draw list.',
+      'A Canvas 2D raster surface. getContext with "2d" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec returns the recorded draw list. For SVG and vector scenes import @nodetool-ai/sandbox-fabric (renderSVG, loadSVG, render).',
     async: false
   }
 };
@@ -1198,7 +1198,7 @@ export function getSandboxManifest(): SandboxManifest {
         text: "Media and asset values are reference objects. Pass them through unchanged."
       },
       {
-        text: "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back."
+        text: "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back. SVG and vector scenes go through @nodetool-ai/sandbox-fabric (renderSVG, loadSVG, render)."
       },
       { text: SANDBOX_MODULE_RULE },
       {

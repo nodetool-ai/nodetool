@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-stats",
+  "version": "0.7.0-rc.35",
+  "description": "Descriptive statistics and simple regression inside the NodeTool sandbox, from simple-statistics",
+  "license": "MIT",
+  "dependencies": {
+    "simple-statistics": "^7.10.1"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "simple-statistics"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-stats"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "statistics",
+    "regression",
+    "mean"
+  ]
+}
