@@ -111,7 +111,8 @@ function selectCases<T extends { id: string }>(
   if (!caseIds) return all;
   const wanted = new Set(caseIds);
   const picked = all.filter((c) => wanted.has(c.id));
-  const missing = [...wanted].filter((id) => !picked.some((c) => c.id === id));
+  const pickedIds = new Set(picked.map((c) => c.id));
+  const missing = [...wanted].filter((id) => !pickedIds.has(id));
   if (missing.length > 0) {
     throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
   }
