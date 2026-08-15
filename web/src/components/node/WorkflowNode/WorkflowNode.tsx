@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
+import { Node, NodeProps } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { FlexColumn } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
@@ -7,44 +7,15 @@ import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
 import NodeStatus from "../NodeStatus";
 import NodeResizeHandle from "../NodeResizeHandle";
-import NodeToolButtons from "../NodeToolButtons";
+import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeExecutionTime from "../NodeExecutionTime";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNodeStatus } from "../../../hooks/nodes/useNodeExecState";
-import { useNodes } from "../../../contexts/NodeContext";
-import useSelect from "../../../hooks/nodes/useSelect";
-import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { WorkflowNodeContent } from "./WorkflowNodeContent";
 
-const TOOLBAR_SHOW_DELAY = 200;
-
 /** Accent color for WorkflowNode (blue-teal to distinguish from other node types) */
 const WORKFLOW_HEADER_COLOR = "#0891B2";
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
-  );
-});
 
 /**
  * Dedicated React Flow node for WorkflowNode (sub-workflow execution).
@@ -102,7 +73,13 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": WORKFLOW_HEADER_COLOR
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
+      {selected && (
+        <NodeSelectionToolbar
+          id={id}
+          selected={selected}
+          dragging={dragging}
+        />
+      )}
       <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader
         id={id}

@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
+import { Node, NodeProps } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
@@ -7,42 +7,13 @@ import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
 import NodeStatus from "../NodeStatus";
 import NodeResizeHandle from "../NodeResizeHandle";
-import NodeToolButtons from "../NodeToolButtons";
+import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeExecutionTime from "../NodeExecutionTime";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNodeStatus } from "../../../hooks/nodes/useNodeExecState";
-import { useNodes } from "../../../contexts/NodeContext";
-import useSelect from "../../../hooks/nodes/useSelect";
-import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { DynamicComfySchemaContent } from "./DynamicComfySchemaContent";
 import { ComfyWorkflowLoader } from "./ComfyWorkflowLoader";
-
-const TOOLBAR_SHOW_DELAY = 200;
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
-  );
-});
 
 /** ComfyUI node accent. */
 const COMFY_HEADER_COLOR = "#1F9E89";
@@ -98,7 +69,13 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": COMFY_HEADER_COLOR
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
+      {selected && (
+        <NodeSelectionToolbar
+          id={id}
+          selected={selected}
+          dragging={dragging}
+        />
+      )}
       <NodeResizeHandle
         minWidth={180}
         minHeight={150}

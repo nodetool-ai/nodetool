@@ -21,7 +21,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Box, Text, MOTION, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
@@ -31,7 +31,7 @@ import isEqual from "../../../utils/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import EditableTitle from "../EditableTitle";
-import NodeToolButtons from "../NodeToolButtons";
+import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeOutput from "../NodeOutput";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
@@ -56,8 +56,6 @@ import {
 import { useNodes } from "../../../contexts/NodeContext";
 import type { NodeStoreState } from "../../../stores/NodeStore";
 import type { Edge } from "@xyflow/react";
-import useSelect from "../../../hooks/nodes/useSelect";
-import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import {
@@ -292,8 +290,6 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       }
   });
 
-const TOOLBAR_SHOW_DELAY = 200;
-
 const EMPTY_ASSETS: Asset[] = [];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -321,30 +317,6 @@ const readSketchDocumentFromValue = (value: unknown): SketchDocument | null => {
   }
   return null;
 };
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
-  );
-});
 
 const imageTypeMetadata = {
   type: "image",
@@ -1355,7 +1327,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       }`}
     >
       {props.selected && (
-        <Toolbar
+        <NodeSelectionToolbar
           id={props.id}
           selected={props.selected}
           dragging={props.dragging}
