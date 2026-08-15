@@ -3,7 +3,8 @@
   "plugins": [],
   "categories": {},
   "rules": {
-    "anti-slop/no-reflect-apply": "error"
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-widen-then-assert": "error"
   },
   "jsPlugins": [
     {
