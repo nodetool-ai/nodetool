@@ -1224,6 +1224,19 @@ cases: required tools invoked, action rounds within bounds, result correct.
 npm run dev:nodetool -- eval codeact -p anthropic -m claude-sonnet-5
 ```
 
+A **`subtask`** suite scores delegation: each of its seven cases hands the
+parent an objective it should hand to a `run_subtask` child, and the check is
+that the *child* — not the parent — ran the inherited tools. The instrumented
+tools record the subtask depth of every call, so "the parent did it itself"
+scores differently from "the parent delegated". It also covers subtask count,
+recursion depth, error propagation, and whether the delegated result reached
+the parent's answer.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+```
+
 Alongside `graph-planner` (graph authoring) there are eleven **tool-loop**
 suites that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
