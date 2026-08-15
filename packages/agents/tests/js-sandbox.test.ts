@@ -1016,9 +1016,18 @@ describe("runInSandbox cancellation", () => {
  * absorb it — one CI run failed `elapsed < 3000` at 11191ms on a cancellation
  * that worked. Leaving an idle worker in the pool first keeps each budget
  * measuring what its test is named after.
+ *
+ * The warm-up has to outlive a cold boot, not just its own no-op run.
+ * `runInWorker` arms its backstop — `timeoutMs` + 5 s — before the worker has
+ * loaded a single module, so a 5 s warm-up was reaped at 10 s on a runner whose
+ * boot takes ~11 s. That terminates the worker, so the pool stayed cold and the
+ * budget below measured the boot after all: `elapsed < 3000` failed again, at
+ * 11175 ms. Asserting the warm run succeeded keeps a cold pool from arriving
+ * disguised as an interrupt-latency regression.
  */
 async function warmSandboxWorkerPool(): Promise<void> {
-  await runInSandbox({ code: "return 1;", timeoutMs: 5_000 });
+  const result = await runInSandbox({ code: "return 1;", timeoutMs: 120_000 });
+  expect(result.success).toBe(true);
 }
 
 describe("runInSandbox cancellation of CPU-bound guests", () => {
