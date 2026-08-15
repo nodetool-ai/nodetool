@@ -1,0 +1,184 @@
+name: Internal-Only Feature Shipper
+
+# Features that only exist in a dev build are features nobody uses. Each one
+# still costs: it compiles, it ships in the bundle, it drifts, and it makes the
+# code around it harder to read.
+#
+# This finds surfaces reachable only behind a dev/internal gate — `NODETOOL_ENV
+# === "development"`, `import.meta.env.DEV`, `__DEV__`, `NODE_ENV !==
+# "production"`, hidden routes, undocumented CLI commands — and forces a
+# decision on each: ship it (drop the gate and document it) or delete it. The
+# one outcome not allowed is leaving it as it is.
+
+on:
+  schedule:
+    - cron: "30 5 * * *" # Daily at 05:30 UTC
+  workflow_dispatch:
+
+jobs:
+  internal-only-shipper:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Find internal-only gates
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "## Internal-Only Gates" >> $GITHUB_STEP_SUMMARY
+          : > internal-only-gates.log
+
+          PATTERN='import\.meta\.env\.DEV|__DEV__|NODE_ENV *[!=]== *["'"'"']production|NODETOOL_ENV *[=!]== *["'"'"']development|isDev(elopment)?\b|INTERNAL_ONLY|internalOnly'
+
+          grep -rEn "$PATTERN" \
+            --include="*.ts" --include="*.tsx" \
+            web/src electron/src mobile/src packages/*/src 2>/dev/null \
+            | grep -vE "\.test\.|\.spec\.|__tests__|/tests/" \
+            > internal-only-gates.log || true
+
+          GATES=$(wc -l < internal-only-gates.log | tr -d ' ')
+          echo "Gated call sites: $GATES" >> $GITHUB_STEP_SUMMARY
+
+          # Last-touched date per gated file: a gate nobody has touched in a
+          # year is evidence of abandonment, not of caution.
+          : > gate-age.log
+          cut -d: -f1 internal-only-gates.log | sort -u | while IFS= read -r file; do
+            LAST=$(git log -1 --format=%ad --date=short -- "$file" 2>/dev/null)
+            echo "$LAST  $file" >> gate-age.log
+          done
+          sort gate-age.log | head -30 >> $GITHUB_STEP_SUMMARY
+
+          if [ "$GATES" -gt 0 ]; then echo "GATES_FOUND=1" >> $GITHUB_ENV; else echo "GATES_FOUND=0" >> $GITHUB_ENV; fi
+
+      - name: Run quality checks baseline
+        if: env.GATES_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.GATES_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+          prompt: |
+            # Ship or Delete an Internal-Only Feature
+
+            `internal-only-gates.log` lists every call site gated to a dev or
+            internal build. `gate-age.log` gives the last commit date per file,
+            oldest first.
+
+            Pick **one** feature — not one line, the whole feature behind the
+            gate — and either ship it or delete it.
+
+            ## Choose the feature
+            Prefer the oldest gate that is a real user-facing surface: a panel,
+            a menu entry, a route, a CLI command, a node, an API route. Skip:
+            - debug logging and dev-server plumbing (`vite`, HMR, source maps)
+            - React StrictMode and devtools wiring
+            - test-only helpers and fixtures
+            - anything under `__tests__/`, `tests/`, or `scripts/`
+
+            ## Gather the evidence, then decide
+            For the feature you picked, answer each of these with a command:
+            - When was it last touched? `git log -5 --oneline -- <paths>`
+            - Who references it? `grep -rn "<symbol>" --include="*.ts*" .`
+            - Is it documented? Search `docs/`, `AGENTS.md`, `README.md`.
+            - Is it covered by tests? Search `__tests__/` and `tests/`.
+            - Does it still work? Drive it headlessly — the CLI harnesses in
+              AGENTS.md (`nodetool validate`, `node run`, `app debug`) or the
+              package's own test suite.
+
+            **Ship it** when the feature works, is complete, and a user would
+            want it: remove the gate, wire it into the normal UI/CLI surface,
+            document it where its siblings are documented, and add a test if it
+            has none.
+
+            **Delete it** when it is abandoned — no commits for many months, no
+            references outside its own files, no docs, and no working path
+            through it. Remove the feature, its gate, its dead branches, its
+            styles, its types, and its now-unused imports.
+
+            State which one you chose and why, with the commands you ran, in the
+            PR body. "Unclear" is not a verdict — if the evidence is genuinely
+            split, delete it: it can be recovered from git, and an unused gate
+            cannot.
+
+            ## Rules
+            - One feature per PR. Do not sweep every gate in the log.
+            - Shipping means shipping: no gate left behind, no `if (false)`.
+            - Do not delete a gate that guards *correctness* rather than
+              visibility (dev-only assertions, mock providers used by tests,
+              error overlays). Those are not features.
+            - Do not touch CI workflow files.
+            - Maximum 15 files per PR.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a shipper PR is
+              already open.
+
+            ## Verification
+            ```bash
+            npm run typecheck && npm run lint && npm run test
+            ```
+            For a shipped feature, also drive it once headlessly and paste what
+            it produced.
+
+            ## Submit
+            Create a PR titled "feat: ship <feature>" or "chore: remove abandoned
+            <feature>", with the evidence table and the verdict.
+
+      - name: Post-change verification
+        if: always() && env.GATES_FOUND == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
