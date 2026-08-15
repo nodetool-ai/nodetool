@@ -3,6 +3,7 @@
  */
 import {
   resolveImageSize,
+  deriveImageSizePreset,
   IMAGE_ASPECT_RATIOS,
   VIDEO_ASPECT_RATIOS,
   IMAGE_RESOLUTIONS,
@@ -82,6 +83,137 @@ describe("resolveImageSize", () => {
     const size = resolveImageSize("1K", "3:4");
     expect(size.width).toBe(1024);
     expect(size.height).toBe(Math.round((1024 * 4) / 3));
+  });
+});
+
+describe("deriveImageSizePreset", () => {
+  /** The catalog carries both orientations of every entry except 21:9. */
+  const transposeOf = new Map(
+    IMAGE_ASPECT_RATIOS.flatMap((a) => {
+      const mirror = IMAGE_ASPECT_RATIOS.find(
+        (b) => b.width === a.height && b.height === a.width
+      );
+      return mirror ? [[a.id, mirror.id] as const] : [];
+    })
+  );
+
+  it("inverts resolveImageSize for every catalog pair", () => {
+    for (const resolution of IMAGE_RESOLUTIONS) {
+      for (const ar of IMAGE_ASPECT_RATIOS) {
+        const { width, height } = resolveImageSize(resolution, ar.id);
+        expect(deriveImageSizePreset(width, height)).toEqual({
+          aspectRatio: ar.id,
+          resolution
+        });
+      }
+    }
+  });
+
+  it("gives a rotated canvas the mirrored preset", () => {
+    // 1148x1024 sits just inside the 1:1 side of the 1:1 / 5:4 boundary, near
+    // enough that measuring the gap in raw ratios splits the two orientations.
+    expect(deriveImageSizePreset(1148, 1024).aspectRatio).toBe(
+      transposeOf.get(deriveImageSizePreset(1024, 1148).aspectRatio)
+    );
+
+    for (let width = 200; width <= 4000; width += 1) {
+      const landscape = deriveImageSizePreset(width, 1024).aspectRatio;
+      const portrait = deriveImageSizePreset(1024, width).aspectRatio;
+      // 21:9 has no 9:21 partner, so an ultra-wide box and its rotation cannot
+      // mirror — that is the catalog's shape, not the matcher's.
+      if (landscape === "21:9" || portrait === "21:9") continue;
+      expect({ width, portrait }).toEqual({
+        width,
+        portrait: transposeOf.get(landscape)
+      });
+    }
+  });
+
+  it("picks the nearer of two neighbouring presets", () => {
+    const cases: Array<[number, number, string]> = [
+      [1024, 1024, "1:1"],
+      [1920, 1080, "16:9"],
+      [3840, 2160, "16:9"],
+      [1080, 1920, "9:16"],
+      [1024, 768, "4:3"],
+      [768, 1024, "3:4"],
+      [2560, 1080, "21:9"],
+      [1200, 1000, "5:4"],
+      [1000, 1200, "4:5"],
+      // Just inside each side of the 1:1 / 5:4 boundary (geometric mean of
+      // 1 and 1.25 is 1.1180).
+      [1140, 1024, "1:1"],
+      [1150, 1024, "5:4"],
+      [1024, 1140, "1:1"],
+      [1024, 1150, "4:5"]
+    ];
+    for (const [width, height, aspectRatio] of cases) {
+      expect({
+        width,
+        height,
+        aspectRatio: deriveImageSizePreset(width, height).aspectRatio
+      }).toEqual({ width, height, aspectRatio });
+    }
+  });
+
+  it("rounds the resolution at the midpoint between two bases", () => {
+    const cases: Array<[number, string]> = [
+      [1, "1K"],
+      [1024, "1K"],
+      [1535, "1K"],
+      [1536, "2K"],
+      [2048, "2K"],
+      [3071, "2K"],
+      [3072, "4K"],
+      [4096, "4K"],
+      [8192, "4K"]
+    ];
+    for (const [shortEdge, resolution] of cases) {
+      expect(deriveImageSizePreset(shortEdge, shortEdge * 2).resolution).toBe(
+        resolution
+      );
+      expect(deriveImageSizePreset(shortEdge * 2, shortEdge).resolution).toBe(
+        resolution
+      );
+    }
+  });
+
+  it("falls back to the square for a box with no shape", () => {
+    // `?? 1024` at the call sites only guards null/undefined, so a stored
+    // width of 0 reaches here. A zero, negative or non-finite edge has no
+    // aspect ratio to be near.
+    const degenerate: Array<[number, number]> = [
+      [0, 0],
+      [0, 1024],
+      [1024, 0],
+      [-1024, 1024],
+      [1024, -1024],
+      [NaN, 1024],
+      [1024, NaN],
+      [Infinity, 1024],
+      [1024, Infinity]
+    ];
+    for (const [width, height] of degenerate) {
+      expect({ width, height, ...deriveImageSizePreset(width, height) }).toEqual(
+        {
+          width,
+          height,
+          aspectRatio: "1:1",
+          resolution: "1K"
+        }
+      );
+    }
+  });
+
+  it("only ever returns a catalog aspect id and resolution", () => {
+    const ids = new Set(IMAGE_ASPECT_RATIOS.map((a) => a.id));
+    for (let width = 1; width <= 5000; width += 7) {
+      for (const height of [1, 333, 1024, 2048, 5000]) {
+        const preset = deriveImageSizePreset(width, height);
+        expect(ids.has(preset.aspectRatio)).toBe(true);
+        expect(IMAGE_RESOLUTIONS).toContain(preset.resolution);
+      }
+    }
   });
 });
 

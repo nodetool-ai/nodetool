@@ -335,16 +335,22 @@ export function resolveImageSize(
  * Nearest aspect-ratio + resolution preset for a concrete pixel size — the
  * inverse of {@link resolveImageSize}. Used to seed the size controls from an
  * existing canvas or binding instead of a fixed default.
+ *
+ * Shapes are compared as log ratios so that a box and its 90° rotation land on
+ * mirrored presets. Subtracting raw ratios does not: it gives landscape the
+ * range 1…∞ and portrait 0…1, which pulls every boundary toward portrait.
  */
 export function deriveImageSizePreset(
   width: number,
   height: number
 ): { aspectRatio: string; resolution: ImageResolution } {
-  const ratio = width / height;
-  let aspectRatio = IMAGE_ASPECT_RATIOS[0].id;
+  const logRatio = Math.log(width / height);
+  // A zero, negative or non-finite edge has no shape to be near, and `?? 1024`
+  // at the call sites only covers null/undefined.
+  let aspectRatio = "1:1";
   let bestDiff = Infinity;
   for (const a of IMAGE_ASPECT_RATIOS) {
-    const diff = Math.abs(a.width / a.height - ratio);
+    const diff = Math.abs(Math.log(a.width / a.height) - logRatio);
     if (diff < bestDiff) {
       bestDiff = diff;
       aspectRatio = a.id;
