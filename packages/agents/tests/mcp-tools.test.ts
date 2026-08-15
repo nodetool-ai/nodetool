@@ -1371,7 +1371,10 @@ describe("getAllMcpTools", () => {
   });
 
   it("all tools have valid toProviderTool()", () => {
-    for (const tool of getAllMcpTools()) {
+    const tools = getAllMcpTools();
+    // An empty belt would satisfy every assertion below by matching nothing.
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
       const pt = tool.toProviderTool();
       expect(pt.name).toBeTruthy();
       expect(pt.description).toBeTruthy();

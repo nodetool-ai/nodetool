@@ -8,23 +8,35 @@ const ctx = {} as any;
 // ---------------------------------------------------------------------------
 
 describe("the gemini grounded-search backend", () => {
-  it("returns error when query is missing", async () => {
-    const result = (await googleGroundedSearch(ctx, {})) as any;
-    expect(result.error).toBeDefined();
+  // The query guard has to be what refuses, and it has to refuse before the
+  // request goes out — otherwise an empty query reaches Gemini and is billed,
+  // and the run only fails later on whatever the API says back.
+  it.each([
+    ["missing", {}],
+    ["empty string", { query: "" }]
+  ])("refuses a %s query without fetching", async (_label, params) => {
+    process.env["GEMINI_API_KEY"] = "fake-key";
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      const result = (await googleGroundedSearch(ctx, params)) as any;
+      expect(result.error).toBe("Search query is required");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env["GEMINI_API_KEY"];
+    }
   });
 
-  it("returns error when query is empty string", async () => {
-    const result = (await googleGroundedSearch(ctx, { query: "" })) as any;
-    expect(result.error).toBeDefined();
-  });
-
-  it("returns error when GEMINI_API_KEY is not set", async () => {
+  it("refuses without fetching when GEMINI_API_KEY is not set", async () => {
     const original = process.env["GEMINI_API_KEY"];
     delete process.env["GEMINI_API_KEY"];
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
     try {
       const result = (await googleGroundedSearch(ctx, { query: "test query" })) as any;
-      expect(result.error).toBeDefined();
+      expect(result.error).toContain("GEMINI_API_KEY is not set");
+      expect(fetchSpy).not.toHaveBeenCalled();
     } finally {
+      fetchSpy.mockRestore();
       if (original !== undefined) process.env["GEMINI_API_KEY"] = original;
     }
   });
@@ -96,7 +108,7 @@ describe("the gemini grounded-search backend", () => {
     }) as any;
     try {
       const result = (await googleGroundedSearch(ctx, { query: "test" })) as any;
-      expect(result.error).toBeDefined();
+      expect(result.error).toBe("No response received from Gemini API");
     } finally {
       globalThis.fetch = originalFetch;
       delete process.env["GEMINI_API_KEY"];
