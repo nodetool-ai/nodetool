@@ -596,6 +596,59 @@ nodetool models ollama
 nodetool models by-provider openai --kind image
 ```
 
+### `nodetool models` — HuggingFace Hub and cache
+
+Five subcommands search the Hub and manage the local HuggingFace cache. They
+talk to the Hub's HTTP API and the cache on disk, so they need no running
+NodeTool server. Reach for them when you want to find a repo id for a local
+model node, or pull the weights before a workflow needs them.
+
+- `hf-types` — print the nodetool HF model types, one per line, followed by a
+  `Generic types (require --task):` block. The types in that block need a
+  pipeline tag when you search them; the ones above it do not. `--json` prints
+  `{types, generic}` instead.
+- `list-hf <model_type>` — search the Hub for models matching a nodetool model
+  type. `--task <task>` supplies the HF pipeline tag (required for the generic
+  types); `--limit <n>` caps the results; `--json` prints the raw entries.
+  Without `--task`, a generic type fails with
+  `Model type 'hf.model' requires --task (e.g. 'text-to-image').`
+- `list-hf-all` — search across every nodetool HF model type at once.
+  `--limit <n>` caps the total; `--repo-only` drops file-level entries and keeps
+  one row per repo.
+- `hf-cache` — list the local cache with disk detail: repo id, path, type,
+  whether the repo is fully downloaded, size on disk, pipeline tag.
+  `--downloaded-only` keeps only complete repos; `--limit <n>` and `--json`
+  behave as elsewhere. `huggingface` (above) reads the same cache but prints
+  id/name/provider/type/repo_id and can search it (`--query`, `--type`) or
+  target a remote server (`--api-url`); use `hf-cache` when you care about what
+  is on disk and how big it is.
+- `download-hf --repo-id <owner/name>` — download a repo into the local
+  HuggingFace cache, printing progress to stderr. `--file-path <path>` fetches a
+  single file instead of the whole repo; `-a, --allow-patterns <glob>` and
+  `-i, --ignore-patterns <glob>` are repeatable globs that narrow the file set.
+  Passing `--cache-dir <dir>` switches the download to the flat llama.cpp cache
+  layout (`~/.cache/llama.cpp` on Linux, `~/Library/Caches/llama.cpp` on macOS)
+  — it does **not** redirect the files into `<dir>`.
+
+**Examples:**
+
+```bash
+# Which model types can be searched, and which need --task
+nodetool models hf-types
+
+# Search one type, then every type at once
+nodetool models list-hf qwen3 --limit 5
+nodetool models list-hf hf.text_to_image --task text-to-image --limit 5
+nodetool models list-hf-all --repo-only --limit 20
+
+# What is already on disk
+nodetool models hf-cache --downloaded-only
+
+# Pull weights ahead of a run — whole repo, then just the GGUF files
+nodetool models download-hf --repo-id Qwen/Qwen3-0.6B
+nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
+```
+
 ## Media Generation
 
 ### `nodetool generate <provider> <model> <prompt...>`
