@@ -134,6 +134,23 @@ function shippedWrappers(): readonly Wrapper[] {
   return wrappers;
 }
 
+/**
+ * How many `createNode(` calls the pack ships, counted by a pattern too simple
+ * to miss one — the yardstick {@link shippedWrappers}'s detailed regex is held
+ * against. The import each generated module opens with (`import { createNode }`)
+ * carries no paren, so it is not counted.
+ */
+function shippedWrapperCount(): number {
+  const dir = join(packDir(SPECIFIER), "sandbox", "generated");
+  let count = 0;
+  for (const file of readdirSync(dir).sort()) {
+    if (!file.endsWith(".js") || file === "index.js") continue;
+    const source = readFileSync(join(dir, file), "utf8");
+    count += (source.match(/createNode\(/g) ?? []).length;
+  }
+  return count;
+}
+
 describe("every namespace module in the guest", () => {
   it("initializes, and exports only node factories", async () => {
     const namespaces = manifestModules()
@@ -200,9 +217,13 @@ describe("every node type the DSL offers", () => {
   it("exists in the live node registry", () => {
     const registry = liveRegistry();
     const wrappers = shippedWrappers();
-    // The pack claims 472 wrappers; a regex that matched half of them would
-    // make the assertion below vacuous.
-    expect(wrappers.length).toBe(457);
+    // A regex that matched half the wrappers would make the assertion below
+    // vacuous, so check it caught every `createNode(` the pack ships. This was
+    // a hardcoded total, which went stale the first time the pack was
+    // regenerated — it read 472 against a 457-wrapper pack and failed CI on
+    // main for a day.
+    expect(wrappers.length).toBeGreaterThan(0);
+    expect(wrappers.length).toBe(shippedWrapperCount());
     // The pack ships one artifact for every platform, but base-nodes
     // registers `lib.apple.*` only on darwin (base-nodes/src/index.ts) —
     // off a Mac those wrappers are expected to miss, and nothing else is.

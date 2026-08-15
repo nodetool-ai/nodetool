@@ -9,11 +9,11 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
+import { edgesTargeting } from "../../hooks/nodes/edgeIndex";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import ExtensionIcon from "@mui/icons-material/Extension";
-import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
 import usePacksStore from "../../stores/PacksStore";
@@ -155,17 +155,11 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const hasParent = props.parentId !== null;
   const incomingEdgeHandles = useNodes(
     useMemo(() => {
-      let lastEdges: Edge[] | null = null;
       let lastResult: string[] = [];
       return (state: NodeStoreState) => {
-        if (state.edges === lastEdges) {
-          return lastResult;
-        }
-        lastEdges = state.edges;
-
-        const newHandles = state.edges
-          .filter((e) => e.target === props.id)
-          .map((e) => e.targetHandle || "");
+        const newHandles = edgesTargeting(state.edges, props.id).map(
+          (e) => e.targetHandle || ""
+        );
 
         // Only return new reference if contents actually changed
         if (

@@ -1,0 +1,239 @@
+name: Shipped Feature Inliner
+
+# A flag for a feature that shipped is a branch nobody takes, a config knob
+# nobody sets, and a second code path nobody tests. This finds gates that are
+# permanently on — constants initialized to `true`, env vars that default to
+# enabled and are never set, settings whose "off" branch no test and no caller
+# exercises — and inlines the live branch.
+#
+# Inlining a flag deletes the fallback. That is the point, and it is also the
+# risk: the routine only removes a flag when the off-path is provably unused,
+# and the rollback is a revert.
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # Daily at 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  shipped-feature-inliner:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Find flags that are always on
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS' > shipped-flags.log
+          import { readFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+
+          // The config corpus is tens of megabytes; the 1 MB default throws ENOBUFS.
+          const sh = (command) =>
+            execFileSync("bash", ["-c", command], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+
+          const sourceFiles = sh(
+            "git ls-files 'web/src/*.ts' 'web/src/*.tsx' 'electron/src/*.ts' " +
+              "'mobile/src/*.ts' 'mobile/src/*.tsx' 'packages/*/src/*.ts' " +
+              "| grep -vE '__tests__|\\.test\\.|\\.spec\\.|__mocks__|/generated/'",
+          )
+            .split("\n")
+            .filter(Boolean);
+
+          // Everything that could set a variable outside the source itself:
+          // env files, CI, container and deploy config, scripts, docs.
+          const configCorpus = sh(
+            "git ls-files | grep -vE '^(web|electron|mobile)/src/|^packages/[^/]+/src/' " +
+              "| grep -E '\\.(env|env\\..*|ya?ml|json|toml|sh|mjs|md|Dockerfile.*)$|Dockerfile|\\.env' " +
+              "| head -400 | xargs -r cat 2>/dev/null",
+          );
+
+          // Boolean-shaped gates only. A key or a URL read from the environment
+          // is configuration; `X === "1"` is a switch.
+          const GATE =
+            /(?:process|import\.meta)\.env\.([A-Z][A-Z0-9_]*)\s*(?:!==|===|==|!=)\s*["'](?:1|0|true|false)["']|(?:process|import\.meta)\.env\.([A-Z][A-Z0-9_]*)\s*(?:\?\?|\|\|)\s*["'](?:1|0|true|false)["']|Boolean\(\s*(?:process|import\.meta)\.env\.([A-Z][A-Z0-9_]*)\s*\)/g;
+
+          const gates = new Map();
+          for (const file of sourceFiles) {
+            const source = readFileSync(file, "utf8");
+            for (const match of source.matchAll(GATE)) {
+              const name = match[1] ?? match[2] ?? match[3];
+              const entry = gates.get(name) ?? { reads: 0, files: new Set() };
+              entry.reads += 1;
+              entry.files.add(file);
+              gates.set(name, entry);
+            }
+          }
+
+          const rows = [...gates.entries()]
+            .map(([name, entry]) => ({
+              name,
+              reads: entry.reads,
+              files: [...entry.files],
+              // Set anywhere outside the reading code? Then somebody flips it.
+              setInConfig: new RegExp(`${name}\\s*[:=]`).test(configCorpus),
+            }))
+            .sort((a, b) => Number(a.setInConfig) - Number(b.setInConfig) || a.reads - b.reads);
+
+          console.log("## Boolean env gates (never set in the repo first)");
+          for (const row of rows) {
+            console.log(
+              `  ${row.name}  reads=${row.reads}  set-in-config=${row.setInConfig}  ${row.files.join(" ")}`,
+            );
+          }
+
+          console.log("");
+          console.log("## Constants pinned to a boolean literal");
+          for (const file of sourceFiles) {
+            const source = readFileSync(file, "utf8");
+            for (const match of source.matchAll(
+              /^(?:export )?const ([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]+)?=\s*(true|false)(?: as const)?;/gm,
+            )) {
+              console.log(`  ${file}  ${match[1]} = ${match[2]}`);
+            }
+          }
+          JS
+
+          echo "## Candidate Flags" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -50 shipped-flags.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # The two section headers print unconditionally; findings are indented.
+          FLAGS=$(grep -c "^  " shipped-flags.log || true)
+          echo "Findings: $FLAGS" >> $GITHUB_STEP_SUMMARY
+          if [ "${FLAGS:-0}" -gt 0 ]; then echo "FLAGS_FOUND=1" >> $GITHUB_ENV; else echo "FLAGS_FOUND=0" >> $GITHUB_ENV; fi
+
+      - name: Run quality checks baseline
+        if: env.FLAGS_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.FLAGS_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+          prompt: |
+            # Inline a Shipped Feature Flag
+
+            `shipped-flags.log` has two sections. **Boolean env gates** —
+            environment variables compared against `"1"`/`"true"`, with the
+            number of read sites and whether anything in the repo sets them;
+            those never set, read in one place, are listed first. **Constants
+            pinned to a boolean literal** — a gate whose value is in the source.
+
+            Pick **one** flag whose feature has fully shipped and remove it.
+
+            ## Establish that it has shipped
+            Answer each with a command, in the PR body:
+            - What value does it actually take in every build? Read the
+              declaration and every override (`.env*`, `fly.toml`,
+              `docker-compose.yml`, `electron-builder.json`, CI workflows,
+              `packages/config`).
+            - Does anything set the other value? `grep -rn "<FLAG>" .` including
+              docs, scripts, and workflow files.
+            - When did it last change? `git log --oneline -- <file>` and
+              `git log -S "<FLAG>" --oneline | tail -5` for when it was
+              introduced. A gate added last month is not a shipped feature.
+            - Do any tests exercise the off-path? If they do, that path is alive
+              — pick a different flag.
+
+            A flag qualifies only when every build takes one branch, nothing in
+            the repo sets the other, and the feature has been live long enough
+            that reverting the flag is not the rollback plan anymore.
+
+            ## Then inline it
+            - Replace every read with the value it always has, and delete the
+              branch that value never takes.
+            - Delete the flag's declaration, its type, its config plumbing, its
+              env-var documentation, and any settings-UI control for it.
+            - Delete the now-unreachable implementation on the other side —
+              including files, components, and helpers only that path used.
+            - Delete the tests that only covered the dead path. Keep, and if
+              necessary un-parameterize, the tests covering the live one.
+            - Update the docs that mention the flag: `docs/`, `AGENTS.md`,
+              `README.md`, `.env.example`.
+
+            ## Rules
+            - One flag per PR. Maximum 20 files.
+            - Never inline a **kill switch** or a safety gate: rate limits, spend
+              caps, SSRF and sandbox guards, `NODETOOL_TRUST_*`, auth mode. Those
+              are configuration, not shipped features.
+            - Never inline a flag that selects between platforms or environments
+              (`NODETOOL_ENV`, `process.platform`, dev vs production).
+            - Never inline a flag that any test sets.
+            - Do not touch CI workflow files.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a flag-inlining
+              PR is already open.
+
+            ## Verification
+            ```bash
+            npm run typecheck && npm run lint && npm run test
+            ```
+            Backend packages also need `npm run test:packages`. Confirm the flag
+            name appears nowhere afterwards: `grep -rn "<FLAG>" . | grep -v .git`
+
+            ## Submit
+            Create a PR titled "chore: inline the <feature> flag" with the
+            evidence that it shipped, the branch that was removed, and everything
+            deleted along with it.
+
+      - name: Post-change verification
+        if: always() && env.FLAGS_FOUND == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

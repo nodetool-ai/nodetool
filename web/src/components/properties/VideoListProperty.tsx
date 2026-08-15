@@ -153,7 +153,7 @@ const flattenVideoItems = (items: unknown): VideoItem[] => {
   return result;
 };
 
-const VideoListProperty = (props: PropertyProps) => {
+const VideoListProperty = (props: PropertyProps<VideoItem[] | null>) => {
   const theme = useTheme();
   const id = `video-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();

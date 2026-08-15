@@ -218,6 +218,15 @@ You can also inspect the raw config:
 cat ~/.config/nodetool/deployment.yaml
 ```
 
+To change a field `deploy add` did not prompt for, open the file in `$EDITOR`:
+
+```bash
+nodetool deploy edit
+```
+
+`deploy edit` takes no deployment name — it opens the whole `deployment.yaml`.
+Without one on disk it stops and tells you to run `nodetool deploy init` first.
+
 ### 3. Apply Deployment
 
 ```bash
@@ -292,6 +301,40 @@ If a run fails, inspect logs:
 
 ```bash
 nodetool deploy logs local --tail 200
+```
+
+## API Users
+
+A deployment that serves more than one person needs API users. Four
+`nodetool deploy` subcommands manage them over the running server's admin API,
+so the deployment must already be applied and reachable.
+
+Every one of them needs an admin bearer token. It comes from `--token`, else
+from `NODETOOL_ADMIN_TOKEN`, else from an interactive prompt — with no TTY and
+neither set, the command exits with
+`Admin token required. Provide --token or set NODETOOL_ADMIN_TOKEN.`
+
+- `users-add <deployment> <username>` — create a user and print its token.
+  `--role <admin|user>` defaults to `user`; any other value is refused. The
+  token is printed once and never again.
+- `users-list <deployment>` — username, user id, role, a 16-character preview of
+  the stored token hash, and creation time. `--json` prints the raw records.
+- `users-remove <deployment> <username>` — delete a user. Prompts first;
+  `--force` skips the prompt.
+- `users-reset-token <deployment> <username>` — issue a new token and invalidate
+  the old one. Like `users-add`, the new token is shown once.
+
+**Examples:**
+
+```bash
+export NODETOOL_ADMIN_TOKEN=<admin token>
+
+nodetool deploy users-add local alice --role admin
+nodetool deploy users-list local
+nodetool deploy users-list local --json
+
+nodetool deploy users-reset-token local alice
+nodetool deploy users-remove local alice --force
 ```
 
 ## Manual Troubleshooting

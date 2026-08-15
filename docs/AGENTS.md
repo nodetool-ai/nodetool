@@ -216,9 +216,13 @@ tool**, not a flat catalog.
 
 `registerAgentMcpTools` (`packages/websocket/src/mcp-agent-tools.ts`) builds a
 `createChatCodeActSession` over the derived belt — `getAgentToolbelt()` plus
-`getAllMcpTools()` plus Google Workspace — and registers exactly two tools:
-`execute_code` and `view_image`, which is direct because pixels cannot ride a
-sandbox action's JSON observation envelope. Everything else on that belt is
+`getAllMcpTools()` plus Google Workspace — and registers `execute_code`,
+`view_image`, which is direct because pixels cannot ride a sandbox action's JSON
+observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
+`SDK_NATIVE_TOOL_REPLACEMENTS`, because an MCP client is the host agent that
+table describes and its own `read_file` must not sit beside NodeTool's. What
+survives is discovery, the server-side reach behind NodeTool's SSRF guard and
+secrets, and `run_subtask`. Everything else on that belt is
 reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
 model, or found with `await nodetool.searchTools("query")`. MCP has no system
 prompt, so the guest contract leads the `execute_code` description and is also
@@ -227,16 +231,18 @@ the server `instructions` string. The machine-readable form is
 
 It used to register all ~95 bridged tools flat, which made a scoped MCP session
 NodeTool's largest surface anywhere — 120 tools and ~27k tokens of schema before
-the caller did anything. It is two tools now, and it cannot drift from the chat
-surface because both call the same session builder.
+the caller did anything. It is one action tool plus the direct set now, and it
+cannot drift from the chat surface because both call the same session builder.
 
 `mcp-server.ts` used to hand-build a second product surface beside that one —
 native `run_workflow` / `get_asset` / `get_node_info` / collection tools, a flat
 `ui_*` renderer bridge, and seven MCP App HTML views. All of it is gone; each
-capability stays available inside an action. A **scoped** session does not get
-the `ui_*` renderer bridge at all — those tools serve a connected editor, and a
-scoped caller edits persisted documents through `openWorkflow()` in an action
-instead.
+capability stays available inside an action. The `ui_*` tools are on the belt of
+a scoped session: `runBridgedTool` routes one to a connected editor over the
+websocket renderer registry, optionally targeted with `renderer_id` (list them
+with `list_renderers`). A workflow-document tool falls back to its server-side
+implementation when no editor is open; any other `ui_*` call reports that it
+needs one.
 
 ### Workflow Harness Tools
 

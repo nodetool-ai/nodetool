@@ -13,7 +13,7 @@
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { SketchDocument } from "../types";
-import { createDefaultDocument, createDefaultLayer, makeAffineTransform, makeSingleQuadTransform } from "../types";
+import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import {
   getCanvasRasterBounds,
   getLayerGeometry,

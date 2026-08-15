@@ -59,6 +59,26 @@ function declaredViolations(journey: Journey, record: RunRecord) {
 
 const BLACK_HOLE_FAULTS = ["ws-drop-no-fin", "ws-stall-reads", "ws-abrupt-close"] as const;
 
+/**
+ * The manifest's `timeoutMs` serves two opposite purposes here. For
+ * `ws-delay`/`ws-fragment` it is a completion budget — it must be generous,
+ * because a run that is merely slow would otherwise read as a corrupted
+ * stream. For the three black-hole faults it is dead time: the frame it waits
+ * for is never coming, so every second of it is suite runtime spent on a known
+ * answer. One number cannot be both, and the number that was there (4000ms)
+ * was picked for the second job: a contended CI runner missed it on the very
+ * first run in this file — the one that pays the QuickJS worker's cold start,
+ * since `nodetool.text.ToUppercase` executes as a Code node — and reported
+ * `"timeout"` for a transport that was fine. The manifest now declares the
+ * completion budget every other pipeline journey declares, and the black-hole
+ * cases shorten it for themselves.
+ */
+const BLACK_HOLE_TIMEOUT_MS = 4000;
+
+function withTimeout(journey: Journey, timeoutMs: number): Journey {
+  return { ...journey, manifest: { ...journey.manifest, timeoutMs } };
+}
+
 describe("journey ws-transport-faults (task D2)", () => {
   it("declares exactly the fault matrix this suite covers", async () => {
     const journey = await load();
@@ -69,7 +89,9 @@ describe("journey ws-transport-faults (task D2)", () => {
 
   it(
     "ws-delay: completes normally, zero declared-invariant violations",
-    { timeout: 15000 },
+    // Above the journey's own budget, so a slow-but-correct run is reported as
+    // the driver's "timeout" verdict rather than cut short by vitest first.
+    { timeout: 45000 },
     async () => {
       const journey = await load();
       const record = await runWithFault(journey, "ws-delay");
@@ -81,7 +103,7 @@ describe("journey ws-transport-faults (task D2)", () => {
 
   it(
     "ws-fragment: completes normally even with 3-byte TCP writes",
-    { timeout: 15000 },
+    { timeout: 45000 },
     async () => {
       const journey = await load();
       const record = await runWithFault(journey, "ws-fragment");
@@ -96,7 +118,7 @@ describe("journey ws-transport-faults (task D2)", () => {
       "ends the run \"timeout\" — never hangs — and terminal-uniqueness legitimately flags the missing terminal",
       { timeout: 15000 },
       async () => {
-        const journey = await load();
+        const journey = withTimeout(await load(), BLACK_HOLE_TIMEOUT_MS);
         const record = await runWithFault(journey, faultName);
         expect(record.status).toBe("timeout");
         // This journey's own declared matrix (lifecycle-pairing,
@@ -114,10 +136,12 @@ describe("journey ws-transport-faults (task D2)", () => {
 
     it(
       "leaves the server healthy: a fresh unfaulted connection still runs this workflow to completion afterward",
-      { timeout: 20000 },
+      { timeout: 45000 },
       async () => {
         const journey = await load();
-        await runWithFault(journey, faultName);
+        // Only the faulted half is dead time. The clean run afterwards is the
+        // assertion, so it keeps the journey's own completion budget.
+        await runWithFault(withTimeout(journey, BLACK_HOLE_TIMEOUT_MS), faultName);
         const clean = await new WsServerDriver().run(journey);
         expect(clean.status).toBe("completed");
         expect(INVARIANT_CHECKS["terminal-uniqueness"](clean)).toEqual([]);

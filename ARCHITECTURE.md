@@ -87,7 +87,7 @@ This document describes the architecture of NodeTool — a visual AI workflow pl
 
 ```
 nodetool/
-├── packages/               # TypeScript backend monorepo (59 packages)
+├── packages/               # TypeScript backend monorepo (55 packages)
 │   ├── protocol/           #   Shared types & message definitions (Zod)
 │   ├── config/             #   Environment & settings management
 │   ├── security/           #   Encryption, secrets, master key
@@ -143,7 +143,7 @@ nodetool/
 
 ## Backend Architecture
 
-The backend is a TypeScript monorepo of 58 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
+The backend is a TypeScript monorepo of 55 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
 
 ### Package Dependency Graph
 
