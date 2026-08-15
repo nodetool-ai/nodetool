@@ -18,9 +18,7 @@ Accepts a boolean (true/false) value as a parameter for workflows.  This input i
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `bool` |  | `false` |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

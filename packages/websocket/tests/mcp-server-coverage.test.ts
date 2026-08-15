@@ -16,12 +16,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initTestDb } from "@nodetool-ai/models";
 import { getAgentToolbelt, getAllMcpTools } from "@nodetool-ai/agents";
-import type { AgentTransport } from "../src/agent/transport.js";
 import {
   createMcpServer,
-  registerMcpFrontendTransport,
-  setActiveMcpFrontendRenderer,
-  unregisterMcpFrontendTransport,
   getLocalMcpServerUrl,
   handleMcpHttpRequest
 } from "../src/mcp-server.js";
@@ -48,20 +44,6 @@ function callTool(
     }
   )._registeredTools;
   return tools[name].handler(args) as Promise<ToolResponse>;
-}
-
-function fakeTransport(
-  id: string,
-  executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
-): AgentTransport {
-  return {
-    id,
-    isAlive: true,
-    streamMessage: () => {},
-    requestToolManifest: async () => [],
-    executeTool,
-    abortTools: () => {}
-  };
 }
 
 beforeEach(() => {
@@ -143,29 +125,6 @@ describe("the CodeAct surface", () => {
     ]) {
       expect(names.has(retired)).toBe(false);
     }
-  });
-
-  it("puts the editor-steering ui_ schemas on the belt", async () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    const observed = await act(
-      server,
-      "return Object.keys(tools).filter((n) => n.startsWith('ui_'));"
-    );
-    expect(observed.ok).toBe(true);
-    const names = new Set(observed.result as string[]);
-    for (const name of [
-      "ui_open_workflow",
-      "ui_run_workflow",
-      "ui_switch_tab",
-      "ui_copy",
-      "ui_paste",
-      "ui_search_nodes",
-      "ui_search_models"
-    ]) {
-      expect(names.has(name)).toBe(true);
-    }
-    // The workflow document tools stay too — they are the graph object model.
-    expect(names.has("ui_add_node")).toBe(true);
   });
 
   it("exposes the graph object model alongside the document tools", async () => {
@@ -290,101 +249,6 @@ describe("the CodeAct surface", () => {
     );
     expect(observed.ok).toBe(false);
     expect(observed.error).toContain("content");
-  });
-});
-
-describe("frontend renderer registration lifecycle", () => {
-  async function renderers(
-    server: ReturnType<typeof createMcpServer>
-  ): Promise<Array<{ renderer_id: string; active: boolean }>> {
-    const res = await callTool(server, "execute_code", {
-      title: "list renderers",
-      code: "return await tools.list_renderers({});"
-    });
-    const observed = JSON.parse(res.content[0].text!) as {
-      result: { renderers: Array<{ renderer_id: string; active: boolean }> };
-    };
-    return observed.result.renderers;
-  }
-
-  it("unregistering the active renderer promotes another live one", async () => {
-    const a = fakeTransport("life-a");
-    const b = fakeTransport("life-b");
-    registerMcpFrontendTransport(a);
-    registerMcpFrontendTransport(b); // b becomes active
-    try {
-      unregisterMcpFrontendTransport(b);
-      const server = createMcpServer({ agentToolsScope: scope });
-      const live = await renderers(server);
-      expect(live.map((r) => r.renderer_id)).toEqual(["life-a"]);
-    } finally {
-      unregisterMcpFrontendTransport(a);
-    }
-  });
-
-  it("setActiveMcpFrontendRenderer only promotes registered renderers", async () => {
-    const a = fakeTransport("act-a");
-    const b = fakeTransport("act-b");
-    registerMcpFrontendTransport(a);
-    registerMcpFrontendTransport(b); // active = b
-    const unregistered = fakeTransport("ghost");
-    try {
-      // Promoting an unregistered renderer is a no-op; active stays b.
-      setActiveMcpFrontendRenderer(unregistered);
-      const server = createMcpServer({ agentToolsScope: scope });
-      const first = await renderers(server);
-      expect(first.find((r) => r.renderer_id === "act-b")?.active).toBe(true);
-      // Now promote a; it is registered so it becomes active.
-      setActiveMcpFrontendRenderer(a);
-      const second = await renderers(server);
-      expect(second.find((r) => r.renderer_id === "act-a")?.active).toBe(true);
-    } finally {
-      unregisterMcpFrontendTransport(a);
-      unregisterMcpFrontendTransport(b);
-    }
-  });
-
-  it("a dead (isAlive:false) renderer is not routed to", async () => {
-    const dead = fakeTransport("dead");
-    (dead as { isAlive: boolean }).isAlive = false;
-    registerMcpFrontendTransport(dead);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      expect(await renderers(server)).toEqual([]);
-      const res = await callTool(server, "execute_code", {
-        title: "steer a dead editor",
-        code: 'return await tools.ui_paste({ renderer_id: "dead" });'
-      });
-      const observed = JSON.parse(res.content[0].text!) as {
-        ok: boolean;
-        error?: string;
-      };
-      expect(observed.ok).toBe(false);
-    } finally {
-      unregisterMcpFrontendTransport(dead);
-    }
-  });
-
-  it("surfaces a renderer error to the calling action", async () => {
-    const transport = fakeTransport("r-err", async () => {
-      throw new Error("kaboom");
-    });
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      const res = await callTool(server, "execute_code", {
-        title: "failing editor call",
-        code: 'return await tools.ui_copy({ text: "x", renderer_id: "r-err" });'
-      });
-      const observed = JSON.parse(res.content[0].text!) as {
-        ok: boolean;
-        error?: string;
-      };
-      expect(observed.ok).toBe(false);
-      expect(observed.error).toContain("kaboom");
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
   });
 });
 

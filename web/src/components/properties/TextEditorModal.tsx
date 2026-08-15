@@ -41,6 +41,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
@@ -48,6 +49,7 @@ import EditorVariablesPanel from "../textEditor/EditorVariablesPanel";
 import AssistantQuickStarts from "../textEditor/AssistantQuickStarts";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
 import type { LanguageModel, Message } from "../../stores/ApiTypes";
@@ -517,9 +519,9 @@ const styles = (theme: Theme) =>
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04)`
       },
       ".assistant-pane": {
-        width: "35%",
-        minWidth: "320px",
-        maxWidth: "500px",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "none",
         background: `linear-gradient(180deg,
           rgba(${theme.vars.palette.background.paperChannel} / 0.6) 0%,
           rgba(${theme.vars.palette.background.paperChannel} / 0.4) 100%)`,
@@ -700,8 +702,7 @@ const styles = (theme: Theme) =>
       ...reducedMotion({ animation: "none" })
     },
     "@media (max-width: 1200px)": {
-      ".modal-content": { width: "96%" },
-      ".assistant-pane": { width: "36%", minWidth: "280px" }
+      ".modal-content": { width: "96%" }
     },
     "@media (max-width: 900px)": {
       ".modal-body": { flexDirection: "column" },
@@ -782,6 +783,7 @@ const TextEditorModal = ({
     storageKey: "textEditorModal_assistantVisible",
     defaultVisible: true
   });
+  const assistantStacks = useMediaQuery("(max-width: 900px)");
 
   const handleToggleEditorMode = useCallback(() => {
     toggleEditorMode();
@@ -861,10 +863,9 @@ const TextEditorModal = ({
   const getSelectedTextFnRef = useRef<(() => string) | null>(null);
 
   const {
-    status,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
+    threadId,
+    messages,
+    runtime,
     sendMessage,
     selectedModel,
     setSelectedModel,
@@ -1554,6 +1555,13 @@ const TextEditorModal = ({
                   )}
                 </div>
                 {showAssistant && (
+                  <ResizableSideDock
+                    storageKey="text_editor"
+                    defaultWidth={360}
+                    maxWidth={560}
+                    enabled={!assistantStacks}
+                    ariaLabel="Resize text editor assistant"
+                  >
                   <div className="assistant-pane">
                     <div className="assistant-header">
                       <div className="assistant-id">
@@ -1594,12 +1602,18 @@ const TextEditorModal = ({
                       </div>
                     </div>
                     <ChatView
-                      status={status === "stopping" ? "connected" : status}
-                      progress={progress.current}
-                      total={progress.total}
-                      messages={getCurrentMessagesSync()}
+                      threadId={threadId}
+                      status={
+                        runtime.status === "idle" ||
+                        runtime.status === "stopping"
+                          ? "connected"
+                          : runtime.status
+                      }
+                      progress={runtime.progress.current}
+                      total={runtime.progress.total}
+                      messages={messages}
                       sendMessage={sendMessage}
-                      progressMessage={statusMessage}
+                      progressMessage={runtime.statusMessage}
                       model={
                         (selectedModel as LanguageModel) || {
                           type: "language_model",
@@ -1610,7 +1624,13 @@ const TextEditorModal = ({
                       }
                       onModelChange={setSelectedModel}
                       workflowAssistant={true}
+                      chatSource="text_editor"
                       onStop={stopGeneration}
+                      currentPlanningUpdate={runtime.planningUpdate}
+                      currentTaskUpdate={runtime.taskUpdate}
+                      currentLogUpdate={runtime.logUpdate}
+                      runningToolCallId={runtime.runningToolCallId}
+                      runningToolMessage={runtime.toolMessage}
                       onNewChat={() => void createNewThread()}
                       onInsertCode={(text) => insertIntoEditor(text)}
                       composerPlaceholder="Ask the assistant to write or edit…"
@@ -1622,6 +1642,7 @@ const TextEditorModal = ({
                       }
                     />
                   </div>
+                  </ResizableSideDock>
                 )}
               </EditorInsertionProvider>
             )}

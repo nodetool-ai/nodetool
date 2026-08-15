@@ -1,10 +1,9 @@
 /**
  * `POST /api/applications/build` — the Fastify-facing half of the app build
  * service. The engine moved to `@nodetool-ai/agents`
- * (`src/app-build/build-service.ts`), because `buildApp` lives there and the
- * `build_app` agent tool has to reach it in-process. What stays here is the
- * registry the server bootstraps and the translation of the service's refusals
- * into API errors.
+ * (`src/app-build/build-service.ts`), because `buildApp` lives there. What
+ * stays here is the registry the server bootstraps and the translation of the
+ * service's refusals into API errors.
  */
 
 import { createLogger } from "@nodetool-ai/config";

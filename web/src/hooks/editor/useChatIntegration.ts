@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type * as monaco from "monaco-editor";
 import { useShallow } from "zustand/react/shallow";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../chat/useChatViewThread";
 import type {
   MessageContent,
   LanguageModel,
@@ -36,27 +37,21 @@ export function useChatIntegration(params: {
     currentText
   } = params;
 
+  const { selectedModel, setSelectedModel, createThread } = useGlobalChatStore(
+    useShallow((state) => ({
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      createThread: state.createNewThread
+    }))
+  );
   const {
-    sendMessageFn,
-    status,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
-    selectedModel,
-    setSelectedModel,
-    stopGeneration,
-    createNewThread
-  } = useGlobalChatStore(useShallow((state) => ({
-    sendMessageFn: state.sendMessage,
-    status: state.status,
-    progress: state.progress,
-    statusMessage: state.statusMessage,
-    getCurrentMessagesSync: state.getCurrentMessagesSync,
-    selectedModel: state.selectedModel,
-    setSelectedModel: state.setSelectedModel,
-    stopGeneration: state.stopGeneration,
-    createNewThread: state.createNewThread
-  })));
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage: sendThreadMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Register editor adapter so frontend tools can read/edit the document
   useEffect(() => {
@@ -191,7 +186,7 @@ IMAGES (encoded bytes in, encoded bytes out, so calls chain; png, jpeg, webp, av
 - await image.flip(bytes, options?) — horizontal (default true), vertical
 - await image.adjust(bytes, options) — brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity
 - await image.composite(bytes, layers, options?) — layer: image, x, y, width, height, opacity, blendMode
-- await image.convert(bytes, options) — format, quality; await image.decode(bytes) and await image.encode(pixels, options?) for raw RGBA
+- await image.convert(image, options) — format, quality; await image.blank(w, h, {color}) for a backdrop, await image.grid([...]) to combine, await image.stats(image) to inspect, await image.decode(image) for raw RGBA
 
 CANVAS (drawing):
 - createCanvas(width, height) → a surface; getContext with "2d" gives a Canvas 2D context
@@ -236,10 +231,16 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
           return content;
         });
       }
-      await sendMessageFn(message);
+      await sendThreadMessage(message);
     },
-    [sendMessageFn, buildContext]
+    [sendThreadMessage, buildContext]
   );
+
+  const createNewThread = useCallback(async () => {
+    const id = await createThread();
+    selectThread(id);
+    return id;
+  }, [createThread, selectThread]);
 
   const improvePendingRef = useRef<{
     active: boolean;
@@ -296,7 +297,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
       ];
 
       try {
-        const baseCount = getCurrentMessagesSync().length || 0;
+        const baseCount = messages.length;
         if (shouldReplace) {
           improvePendingRef.current = {
             active: true,
@@ -326,7 +327,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
       currentText,
       sendMessage,
       selectedModel,
-      getCurrentMessagesSync
+      messages.length
     ]
   );
 
@@ -338,7 +339,6 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
         return;
       }
 
-      const threadId = state.currentThreadId;
       if (!threadId) {
         return;
       }
@@ -346,7 +346,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
       if (messages.length <= pending.baseCount) {
         return;
       }
-      if (state.status === "streaming") {
+      if (state.threadRuntime[threadId]?.status === "streaming") {
         return;
       }
 
@@ -360,7 +360,9 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
       if (typeof content === "string") {
         responseText = content;
       } else if (Array.isArray(content)) {
-        const textItem = content.find((c) => (c as { type?: string }).type === "text");
+        const textItem = content.find(
+          (c) => (c as { type?: string }).type === "text"
+        );
         responseText = (textItem as { text?: string } | undefined)?.text || "";
       }
       if (!responseText) {
@@ -404,14 +406,19 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
         /* empty */
       }
     };
-  }, [monacoRef, replaceSelectionFnRef, setAllTextFnRef, setCurrentText]);
+  }, [
+    threadId,
+    monacoRef,
+    replaceSelectionFnRef,
+    setAllTextFnRef,
+    setCurrentText
+  ]);
 
   return {
     handleAITransform,
-    status,
-    progress,
-    statusMessage,
-    getCurrentMessagesSync,
+    threadId,
+    messages,
+    runtime,
     sendMessage,
     selectedModel: (selectedModel as LanguageModel) || null,
     setSelectedModel,

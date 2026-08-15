@@ -5,24 +5,20 @@
  *
  *   1. NATIVE — write the bytes to a real temp file Chrome can reach, resolve
  *      the input to a CDP nodeId, and `DOM.setFileInputFiles`. This is the
- *      faithful upload most sites accept. Requires the file to live on the same
- *      machine as Chrome (host process for local Chrome, container for the
- *      sandbox).
+ *      faithful upload most sites accept. Requires the file to live on the
+ *      same machine as Chrome (the host process).
  *   2. DATA_TRANSFER — when no reachable path exists (the extension transport
  *      drives the user's own Chrome from the server), build a `File` from the
  *      base64 bytes via `DataTransfer` inside the page, assign it to
  *      `input.files`, and dispatch `input`/`change`. Some upload widgets reject
  *      a programmatic `FileList`, but it is the only option without a shared
  *      filesystem.
- *
- * An IDENTICAL copy lives at
- * `packages/sandbox-agent/src/lib/browser-upload.ts`. Keep the two in sync.
  */
 
 import type {
   BrowserUploadAssetRaw,
   BrowserUploadAssetOutput
-} from "@nodetool-ai/sandbox/schemas";
+} from "./browser-schemas.js";
 import { Buffer } from "node:buffer";
 import { promises as fs, rmSync } from "node:fs";
 import os from "node:os";

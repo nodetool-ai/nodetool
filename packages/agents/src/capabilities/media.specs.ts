@@ -396,6 +396,86 @@ export const scoreImageAdherenceSpec: CapabilitySpec = {
   userMessage: () => "Scoring image adherence to the brief"
 };
 
+export const FFMPEG_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    args: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "ffmpeg arguments after the binary name. Paths are workspace-relative. " +
+        "Example: [\"-i\", \"in.mp4\", \"-vf\", \"scale=1280:-2\", \"out.mp4\"]."
+    },
+    output_file: {
+      type: "string" as const,
+      description:
+        "Optional workspace-relative output path. Appended as the last " +
+        "argument when it is not already in args. Persisted as an asset " +
+        "when the run succeeds."
+    },
+    timeout_seconds: {
+      type: "number" as const,
+      description: "Wall-clock timeout. Default 180, max 600."
+    }
+  },
+  required: ["args"]
+};
+
+export const ffmpegSpec: CapabilitySpec = {
+  name: "ffmpeg",
+  description:
+    "Run ffmpeg on workspace files. Pass argv after the binary name " +
+    "(no shell). Paths are workspace-relative. Install ffmpeg if the " +
+    "binary is missing. Use output_file to persist the result as an asset.",
+  inputSchema: FFMPEG_SCHEMA,
+  category: "execute",
+  userMessage: (params) => {
+    const out =
+      typeof params["output_file"] === "string" ? params["output_file"] : "";
+    return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
+  }
+};
+
+export const YT_DLP_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    url: {
+      type: "string" as const,
+      description: "http(s) URL of the video to download."
+    },
+    output_file: {
+      type: "string" as const,
+      description:
+        "Workspace-relative output path or yt-dlp template. " +
+        "Default: downloads/yt-dlp/%(id)s.%(ext)s."
+    },
+    format: {
+      type: "string" as const,
+      description: "Optional yt-dlp format selector (the -f value)."
+    },
+    timeout_seconds: {
+      type: "number" as const,
+      description: "Wall-clock timeout. Default 300, max 900."
+    }
+  },
+  required: ["url"]
+};
+
+export const ytDlpSpec: CapabilitySpec = {
+  name: "yt_dlp",
+  description:
+    "Download a video with yt-dlp into the workspace. Requires an http(s) " +
+    "URL. Install yt-dlp (and ffmpeg for merge/transcode) if the binary is " +
+    "missing. Returns the output path and an asset handle when possible.",
+  inputSchema: YT_DLP_SCHEMA,
+  category: "external",
+  userMessage: (params) => {
+    const url = typeof params["url"] === "string" ? params["url"] : "a URL";
+    const msg = `Downloading video from ${url}`;
+    return msg.length > 160 ? "Downloading a video" : msg;
+  }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const mediaSpecs: readonly CapabilitySpec[] = [
   generateImageSpec,
@@ -408,5 +488,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   readMediaBytesSpec,
   critiqueImageSpec,
   compareImagesSpec,
-  scoreImageAdherenceSpec
+  scoreImageAdherenceSpec,
+  ffmpegSpec,
+  ytDlpSpec
 ];

@@ -18,9 +18,7 @@ Accepts a floating-point number as a parameter for workflows, typically constrai
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `float` |  | `0` |
-| description | `str` | The description of the input for the workflow. | `` |
 | min | `float` |  | `0` |
 | max | `float` |  | `99999` |
 

@@ -84,6 +84,7 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       const selectedNodeIds = getSelectedNodes().map((node) => node.id);
       const uiContext = workflow?.id
         ? buildUiContext({
+            source: "workflow_canvas",
             focused: {
               type: "workflow",
               id: workflow.id,

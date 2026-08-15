@@ -94,6 +94,21 @@ interface MemoryEntry {
   resources: unknown[];
 }
 
+interface ChatMessage {
+  id: string;
+  thread_id: string;
+  role: string;
+  text: string;
+  created_at: string;
+  tool_calls?: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+}
+
+interface ChatThread {
+  id: string;
+  title: string;
+  updated_at: string;
+}
+
 interface SharedEntry {
   key: string;
   kind: string;
@@ -255,6 +270,58 @@ function createWorld() {
       }
     ] as MemoryEntry[],
     memorySeq: 1,
+    // Two past conversations. What was actually generated is only in a tool
+    // call's arguments, which the thread listing summarizes away — so the
+    // case has to read the message itself rather than the transcript.
+    threads: [
+      {
+        id: "th_banner",
+        title: "Launch banner images",
+        updated_at: "2026-02-10T09:00:00.000Z"
+      },
+      {
+        id: "th_refunds",
+        title: "Refund policy wording",
+        updated_at: "2026-01-05T09:00:00.000Z"
+      }
+    ] as ChatThread[],
+    chatMessages: [
+      {
+        id: "msg_refunds_1",
+        thread_id: "th_refunds",
+        role: "user",
+        text: "How long is the refund window?",
+        created_at: "2026-01-05T08:59:00.000Z"
+      },
+      {
+        id: "msg_refunds_2",
+        thread_id: "th_refunds",
+        role: "assistant",
+        text: "Thirty days from delivery.",
+        created_at: "2026-01-05T09:00:00.000Z"
+      },
+      {
+        id: "msg_banner_1",
+        thread_id: "th_banner",
+        role: "user",
+        text: "Make the launch banner.",
+        created_at: "2026-02-10T08:59:00.000Z"
+      },
+      {
+        id: "msg_banner_2",
+        thread_id: "th_banner",
+        role: "assistant",
+        text: "Generated the banner.",
+        created_at: "2026-02-10T09:00:00.000Z",
+        tool_calls: [
+          {
+            id: "call_1",
+            name: "generate_image",
+            args: { model: "fal_ai/flux/dev", prompt: "launch banner" }
+          }
+        ]
+      }
+    ] as ChatMessage[],
     // Run-scoped agent memory, seeded with what upstream steps left behind:
     // the numbers are only here, so the case has to read them.
     shared: [
@@ -310,7 +377,6 @@ function createWorld() {
       "Rejected the pastel palette."
     ] as string[],
     apps: new Set<string>(["app_notes"]),
-    appSeq: 0,
     timelines: new Map<string, TimelineDoc>([
       [
         "tl_promo",
@@ -1012,6 +1078,81 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
 
+    // -- threads ----------------------------------------------------------
+    tool(
+      "list_threads",
+      "List past chat threads, most recently updated first.",
+      obj({ limit: N, workflow_id: S, cursor: S, preview: B }),
+      (params) => {
+        const wanted = num(params["limit"], 20);
+        const rows = [...world.threads]
+          .sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1))
+          .slice(0, wanted);
+        return {
+          threads: rows.map((thread) => {
+            const last = [...world.chatMessages]
+              .filter((m) => m.thread_id === thread.id)
+              .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+            return {
+              ...clone(thread),
+              last_message:
+                params["preview"] === false || !last
+                  ? undefined
+                  : { id: last.id, role: last.role, text: last.text }
+            };
+          })
+        };
+      }
+    ),
+    tool(
+      "get_thread",
+      "Read one thread and a page of its messages.",
+      obj(
+        {
+          thread_id: S,
+          limit: N,
+          newest_first: B,
+          cursor: S,
+          max_chars: N
+        },
+        ["thread_id"]
+      ),
+      (params) => {
+        const id = str(params["thread_id"]);
+        const thread = world.threads.find((t) => t.id === id);
+        if (!thread) throw new Error(`no thread with id "${id}"`);
+        const ordered = world.chatMessages
+          .filter((m) => m.thread_id === id)
+          .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+        const rows = params["newest_first"] === true
+          ? ordered.reverse()
+          : ordered;
+        return {
+          ...clone(thread),
+          // Tool calls come back named but without their arguments — the
+          // summary the real capability returns.
+          messages: rows.slice(0, num(params["limit"], 50)).map((m) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+            created_at: m.created_at,
+            tool_calls: m.tool_calls?.map((c) => ({ id: c.id, name: c.name }))
+          }))
+        };
+      }
+    ),
+    tool(
+      "get_message",
+      "Read one chat message in full, arguments and all.",
+      obj({ message_id: S }, ["message_id"]),
+      (params) => {
+        const id = str(params["message_id"]);
+        const message = world.chatMessages.find((m) => m.id === id);
+        if (!message) throw new Error(`no message with id "${id}"`);
+        return clone(message);
+      }
+    ),
+
     // -- shared -----------------------------------------------------------
     tool(
       "list_shared",
@@ -1319,38 +1460,6 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
 
     // -- apps -------------------------------------------------------------
-    tool(
-      "build_app",
-      "Build a mini app from a prompt or a pinned spec.",
-      obj({
-        prompt: S,
-        spec: obj({}),
-        provider: S,
-        model: S,
-        workflow_ids: ANY_ARRAY,
-        max_repairs: N,
-        cost_cap_usd: N,
-        poll: B
-      }),
-      (params) => {
-        const prompt = str(params["prompt"]);
-        const spec = params["spec"];
-        if (!prompt && spec === undefined) {
-          throw new Error("build_app needs either a prompt or a spec");
-        }
-        const brief = prompt || JSON.stringify(spec);
-        const applicationId = `app_built_${++world.appSeq}`;
-        world.apps.add(applicationId);
-        return {
-          verdict: { ok: true, issues: [] },
-          application_id: applicationId,
-          // Did the caller carry the recorded taste into the request?
-          style_applied: /high-contrast/i.test(brief),
-          rounds: 1,
-          stages: ["spec", "plan", "author", "check", "run", "judge"]
-        };
-      }
-    ),
     tool(
       "debug_app",
       "Validate and simulate a saved app.",
@@ -1982,6 +2091,27 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     }
   },
   {
+    id: "threads-recall",
+    description: "Find a past conversation and read what it actually did",
+    namespaces: ["threads"],
+    objective:
+      "In an earlier conversation we made the launch banner. Find that " +
+      "thread among the past ones, read it, and report which image model the " +
+      "banner was really generated with — the model id is in the arguments " +
+      "of the tool call that made it, not in the text, so read that message " +
+      "in full rather than guessing from the transcript. Finish with " +
+      "{threadId, model}.",
+    outputSchema: obj({ threadId: S, model: S }, ["threadId", "model"]),
+    expect: {
+      requiredTools: ["list_threads", "get_thread", "get_message"],
+      maxActions: 4,
+      resultCheck: (r: unknown) =>
+        asString(field(r, "threadId")) === "th_banner" &&
+        asString(field(r, "model")) === "fal_ai/flux/dev",
+      resultCheckLabel: "th_banner generated with fal_ai/flux/dev"
+    }
+  },
+  {
     id: "shared-handoff",
     description: "Read what upstream steps shared, then publish a derived value",
     namespaces: ["shared"],
@@ -2215,36 +2345,35 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     }
   },
   {
-    id: "style-aware-app-build",
-    description: "Carry the user's recorded taste into a build, then check the app",
+    id: "style-aware-app-check",
+    description: "Check a saved app's wiring for free, and record the user's taste",
     namespaces: ["style", "apps"],
     objective:
-      "Build a mini app that drafts a short note from a prompt. The build " +
-      "request has to carry the user's recorded style, not your own taste — " +
-      "read it first and put it in. Then run the free wiring check (no run) " +
-      "on the app the build produced, and record that the user liked the " +
-      "dark, high-contrast variant with the style recorder. Finish with " +
-      "{styleApplied, verdictOk, debugOk, preferences} — the build's style " +
-      "flag, both verdicts, and the preference count the style profile's " +
-      "details report after your recording.",
+      "The app \"app_notes\" drafts a short note from a prompt. Read the " +
+      "user's recorded style first, then run the FREE wiring check on that " +
+      "app — no run, it costs nothing and spends nothing. Record that the " +
+      "user liked the dark, high-contrast variant with the style recorder. " +
+      "Finish with {verdictOk, ran, widgets, preferences} — the check's " +
+      "verdict, whether it executed the app, how many widgets it reported, " +
+      "and the preference count the style profile's details report after " +
+      "your recording.",
     outputSchema: obj(
-      { styleApplied: B, verdictOk: B, debugOk: B, preferences: N },
-      ["styleApplied", "verdictOk", "debugOk", "preferences"]
+      { verdictOk: B, ran: B, widgets: N, preferences: N },
+      ["verdictOk", "ran", "widgets", "preferences"]
     ),
     expect: {
       requiredTools: [
         "get_style_profile",
-        "build_app",
         "debug_app",
         "record_style_preference"
       ],
       maxActions: 5,
       resultCheck: (r: unknown) =>
-        field(r, "styleApplied") === true &&
         field(r, "verdictOk") === true &&
-        field(r, "debugOk") === true &&
+        field(r, "ran") === false &&
+        asNumber(field(r, "widgets")) === 3 &&
         asNumber(field(r, "preferences")) === 3,
-      resultCheckLabel: "style carried, both verdicts ok, 3 preferences"
+      resultCheckLabel: "free check ran, 3 widgets, 3 preferences"
     }
   }
 ].map((entry) => ({ ...entry, createTools: createSurfaceApiTools }));

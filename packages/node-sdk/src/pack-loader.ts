@@ -267,9 +267,18 @@ export function resolvePackTrust(
   const allowlist =
     options.allowlist ?? envList ?? fromFile.allow ?? [];
 
+  // Unlisted packs are trusted by default only in development. Production
+  // servers (NODETOOL_ENV=production) and the packaged desktop app
+  // (NODETOOL_PACKS_REQUIRE_ALLOWLIST=1 — set by Electron, which must NOT run
+  // in production mode because that disables local-only features like the
+  // Python bridge and the file browser) both require an explicit allowlist.
   const isProd = process.env["NODETOOL_ENV"] === "production";
+  const requireAllowlist =
+    process.env["NODETOOL_PACKS_REQUIRE_ALLOWLIST"] === "1";
   const allowUnlisted =
-    options.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd;
+    options.allowUnlisted ??
+    fromFile.allowUnlisted ??
+    !(isProd || requireAllowlist);
 
   return { allowlist, allowUnlisted };
 }

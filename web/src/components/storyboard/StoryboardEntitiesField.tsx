@@ -12,6 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import {
+  Box,
   Caption,
   Chip,
   EditorButton,
@@ -41,22 +42,28 @@ const EntityAvatar: React.FC<{ entity: Entity; size?: number }> = ({
 }) => {
   const thumb = entityThumb(entity);
   const Icon = ENTITY_KIND_ICON[entity.kind];
-  const frame: React.CSSProperties = {
+  const frameSx = {
     width: size,
     height: size,
     borderRadius: BORDER_RADIUS.circle,
     flex: "0 0 auto",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     overflow: "hidden"
-  };
+  } as const;
   return thumb ? (
-    <img src={thumb} alt="" style={{ ...frame, objectFit: "cover" }} />
+    <Box
+      component="img"
+      src={thumb}
+      alt=""
+      sx={{ ...frameSx, objectFit: "cover" }}
+    />
   ) : (
-    <span style={frame}>
-      <Icon sx={{ fontSize: size * 0.7 }} />
-    </span>
+    <FlexRow
+      align="center"
+      justify="center"
+      sx={{ ...frameSx, fontSize: size }}
+    >
+      <Icon sx={{ fontSize: "0.7em" }} />
+    </FlexRow>
   );
 };
 

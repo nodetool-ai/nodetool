@@ -18,9 +18,7 @@ Accepts a Hugging Face model as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `hf.model` | The Hugging Face model to use as input. | `{"type":"hf.model","repo_id":"","path":null,"va...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `hf.model` | The Hugging Face model to use as input. | - |
 
 ## Outputs
 

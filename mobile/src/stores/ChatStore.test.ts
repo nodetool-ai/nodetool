@@ -5,6 +5,7 @@
 import { useChatStore } from './ChatStore';
 import { WebSocketManager } from '../services/WebSocketManager';
 import { apiService } from '../services/api';
+import type { WebSocketMessageData } from '../types/chat';
 
 // Mock WebSocketManager
 jest.mock('../services/WebSocketManager', () => ({
@@ -557,9 +558,11 @@ describe('ChatStore', () => {
         callbacks.onMessage({
           type: 'node_update',
           status: 'running',
+          node_id: 'node-1',
           node_name: 'TestNode',
+          node_type: 'nodetool.text.Concat',
         });
-        
+
         expect(useChatStore.getState().statusMessage).toBe('TestNode');
       });
 
@@ -567,18 +570,22 @@ describe('ChatStore', () => {
         callbacks.onMessage({
           type: 'node_update',
           status: 'completed',
+          node_id: 'node-1',
+          node_name: 'TestNode',
+          node_type: 'nodetool.text.Concat',
         });
-        
+
         expect(useChatStore.getState().status).toBe('connected');
       });
 
       it('handles generation_stopped', () => {
         useChatStore.setState({ status: 'loading' });
-        
+
         callbacks.onMessage({
           type: 'generation_stopped',
+          message: 'Generation stopped by user',
         });
-        
+
         expect(useChatStore.getState().status).toBe('connected');
       });
 
@@ -602,11 +609,13 @@ describe('ChatStore', () => {
 
       it('ignores unknown message types', () => {
         const initialStatus = useChatStore.getState().status;
-        
+
+        // Deliberately outside the union: a newer server may send a type this
+        // client has never heard of, and the store must not react to it.
         callbacks.onMessage({
           type: 'unknown_type',
-        });
-        
+        } as unknown as WebSocketMessageData);
+
         expect(useChatStore.getState().status).toBe(initialStatus);
       });
 
@@ -625,11 +634,12 @@ describe('ChatStore', () => {
 
       it('processes generation_stopped while stopping', () => {
         useChatStore.setState({ status: 'stopping' });
-        
+
         callbacks.onMessage({
           type: 'generation_stopped',
+          message: 'Generation stopped by user',
         });
-        
+
         expect(useChatStore.getState().status).toBe('connected');
       });
 

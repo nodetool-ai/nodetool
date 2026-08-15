@@ -167,7 +167,7 @@ export function useApplicationApp(id: string | undefined): ApplicationApp {
         name: application.data?.name ?? '',
         description: application.data?.description ?? '',
         graph: pinned,
-      } as unknown as Workflow;
+      } as Workflow;
     }
     return liveWorkflow.data ? normalizeWorkflow(liveWorkflow.data) : null;
   }, [application.data, liveWorkflow.data, pinned, workflowId]);

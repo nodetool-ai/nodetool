@@ -27,12 +27,30 @@ export interface ApplicationSurfaceProps {
 type ApplicationView = "design" | "run" | "settings";
 
 /**
+ * Each view is a layer, and a layer stays mounted once it has been opened —
+ * the same trick the workspace shell plays with its tabs, for the same reason.
+ * Rendering only the active view unmounted the whole builder on the way to Run
+ * and back: the Puck canvas re-seeded from the saved document (losing unsaved
+ * edits), operations and variables reset, and the agent panel opened a new
+ * thread, so the conversation was gone too.
+ */
+const LAYER_SX = { position: "absolute", inset: 0 } as const;
+const ACTIVE_LAYER_SX = { ...LAYER_SX, opacity: 1, pointerEvents: "auto" } as const;
+const HIDDEN_LAYER_SX = {
+  ...LAYER_SX,
+  opacity: 0,
+  pointerEvents: "none"
+} as const;
+
+/**
  * Workspace surface for a mini app: the WYSIWYG canvas over the app's own
  * document, plus its publish and governance controls.
  */
 const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
   const { data: application, isLoading, isError, error } = useApplication(refId);
   const [view, setView] = useState<ApplicationView>("design");
+  // A view is mounted the first time it is opened, and never unmounted after.
+  const [opened, setOpened] = useState<ApplicationView[]>(["design"]);
   // Background tabs stay mounted, so the linked graphs only load once this
   // app is the focused tab.
   const isActiveTab = useWorkspaceTabsStore(
@@ -41,7 +59,9 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
 
   const handleViewChange = useCallback(
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
-      if (next) setView(next);
+      if (!next) return;
+      setView(next);
+      setOpened((views) => (views.includes(next) ? views : [...views, next]));
     },
     []
   );
@@ -99,17 +119,25 @@ const ApplicationSurface = ({ refId }: ApplicationSurfaceProps) => {
           </ToggleGroup>
         </FlexRow>
       </FlexRow>
-      <Box sx={{ flex: 1, minHeight: 0 }}>
-        {view === "design" ? (
-          <ApplicationAppBuilder applicationId={application.id} />
-        ) : view === "run" ? (
-          <ApplicationRunView applicationId={application.id} />
-        ) : (
-          <ScrollArea fullHeight>
-            <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
-              <ApplicationGovernancePanel applicationId={application.id} />
-            </FlexColumn>
-          </ScrollArea>
+      <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {opened.includes("design") && (
+          <Box sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <ApplicationAppBuilder applicationId={application.id} />
+          </Box>
+        )}
+        {opened.includes("run") && (
+          <Box sx={view === "run" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <ApplicationRunView applicationId={application.id} />
+          </Box>
+        )}
+        {opened.includes("settings") && (
+          <Box sx={view === "settings" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}>
+            <ScrollArea fullHeight>
+              <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
+                <ApplicationGovernancePanel applicationId={application.id} />
+              </FlexColumn>
+            </ScrollArea>
+          </Box>
         )}
       </Box>
     </FlexColumn>

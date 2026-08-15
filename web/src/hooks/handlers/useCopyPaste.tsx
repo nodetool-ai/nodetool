@@ -11,15 +11,25 @@ import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
 
 interface ClipboardData {
-  nodes: unknown[];
-  edges: unknown[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
 }
 
 const isValidNode = (node: unknown): node is Node<NodeData> =>
-  !!node && typeof node === "object" && "id" in node && typeof (node as Node<NodeData>).id === "string";
+  !!node && typeof node === "object" && "id" in node && typeof node.id === "string";
 
 const isValidEdge = (edge: unknown): edge is Edge =>
-  !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
+  !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof edge.source === "string" && typeof edge.target === "string";
+
+const isClipboardData = (value: unknown): value is ClipboardData =>
+  !!value &&
+  typeof value === "object" &&
+  "nodes" in value &&
+  "edges" in value &&
+  Array.isArray(value.nodes) &&
+  Array.isArray(value.edges) &&
+  value.nodes.every(isValidNode) &&
+  value.edges.every(isValidEdge);
 
 interface UseCopyPasteResult {
   handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
@@ -135,16 +145,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     if (clipboardText) {
       try {
         const parsed: unknown = JSON.parse(clipboardText);
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          "nodes" in parsed &&
-          "edges" in parsed &&
-          Array.isArray((parsed as ClipboardData).nodes) &&
-          Array.isArray((parsed as ClipboardData).edges) &&
-          (parsed as ClipboardData).nodes.every(isValidNode) &&
-          (parsed as ClipboardData).edges.every(isValidEdge)
-        ) {
+        if (isClipboardData(parsed)) {
           clipboardData = clipboardText;
         }
       } catch {
@@ -186,16 +187,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       return;
     }
 
-    if (
-      !parsedData ||
-      typeof parsedData !== "object" ||
-      !("nodes" in parsedData) ||
-      !("edges" in parsedData) ||
-      !Array.isArray((parsedData as ClipboardData).nodes) ||
-      !Array.isArray((parsedData as ClipboardData).edges) ||
-      !(parsedData as ClipboardData).nodes.every(isValidNode) ||
-      !(parsedData as ClipboardData).edges.every(isValidEdge)
-    ) {
+    if (!isClipboardData(parsedData)) {
       return;
     }
 
@@ -209,10 +201,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     // Read fresh state from the store so that cross-workflow paste always uses
     // the current workflow's nodes/edges/workflowId rather than a stale snapshot
     // captured when the callback was last created.
-    const { nodes: copiedNodes, edges: copiedEdges } = parsedData as {
-      nodes: Node<NodeData>[];
-      edges: Edge[];
-    };
+    const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
     const oldToNewIds = new Map<string, string>();
     const newNodes: Node<NodeData>[] = [];
     const newEdges: Edge[] = [];

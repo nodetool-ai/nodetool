@@ -113,6 +113,8 @@ function toolCall(
 
 describe("a CodeAct chat turn", () => {
   it("calls belt tools from sandboxed code and answers from the observation", async () => {
+    // A real QuickJS worker thread starts for this run, which can take
+    // longer than the default 5s under contended CI load.
     const echo = new EchoTool();
     const context = createMockContext();
     const session = createChatCodeActSession({
@@ -159,7 +161,7 @@ describe("a CodeAct chat turn", () => {
       result: "HI",
       toolCalls: 1
     });
-  });
+  }, 20000);
 
   it("forwards a tool's pixels as an image message, not as base64 text", async () => {
     const context = createMockContext();

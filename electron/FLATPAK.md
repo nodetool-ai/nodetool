@@ -10,7 +10,7 @@ Nodetool can be packaged and distributed as a Flatpak application for Linux syst
 
 ### Automated Builds
 
-Flatpak packages are automatically built by the [Flatpak CI workflow](.github/workflows/flatpak-ci.yml) which:
+Flatpak packages are automatically built by the [Flatpak CI workflow](../.github/workflows/flatpak-ci.yml) which:
 
 - Runs on every push to `main` branch
 - Can be manually triggered via workflow_dispatch
@@ -113,13 +113,12 @@ The manifest explicitly declares minimum required permissions:
 The manifest builds NodeTool from source:
 
 1. Checks out the repository
-2. Builds the web frontend (`web/`)
-3. Builds the Electron application (`electron/`)
-4. Downloads micromamba for Python environment
-5. Compiles TypeScript
+2. Installs workspace dependencies from the monorepo root (`npm ci`)
+3. Builds the backend packages (`npm run build:packages`)
+4. Builds the web frontend (`npm run build --workspace=web`)
+5. Builds the Electron main/preload bundles (`npm run vite:build --workspace=electron`)
 6. Packages everything into `/app/nodetool`
-7. Installs desktop integration files
-8. Creates launcher script
+7. Installs the launcher script, desktop entry, AppStream metadata, and icons
 
 ## Configuration Files
 

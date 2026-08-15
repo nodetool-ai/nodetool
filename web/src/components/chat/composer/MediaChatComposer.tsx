@@ -48,8 +48,6 @@ import MediaModeMenu from "./MediaModeMenu";
 import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
 import SelectModelBanner from "./SelectModelBanner";
 import { useModeProviderSetup } from "./useModeProviderSetup";
-import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
 import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
 import {
@@ -219,22 +217,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // as provider/model for media calls when a media model is not picked).
   const languageModel = useGlobalChatStore((s) => s.selectedModel);
 
-  // Unified routing mode: "pi" swaps the chat-model controls for the
-  // workspace-aware Pi agent and routes sends through the agent socket.
-  const globalMode = useGlobalChatStore((s) => s.mode);
-  const setGlobalMode = useGlobalChatStore((s) => s.setMode);
-
-  // Pure-chat panels force chat mode and ignore the global media/pi mode.
+  // Pure-chat panels force chat mode and ignore the global media mode.
   const mode = hideModePicker ? "chat" : storeMode;
-  const isPi = hideModePicker ? false : globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
   // When the selected mode's capability has no configured provider, surface a
   // setup banner and route the send into the provider-onboarding dialog
-  // instead of letting the request fail server-side. Pi routes through its own
-  // agent socket, so it is exempt.
-  const providerSetup = useModeProviderSetup(isPi ? null : mode);
+  // instead of letting the request fail server-side.
+  const providerSetup = useModeProviderSetup(mode);
 
   const [modeAnchor, setModeAnchor] = useState<HTMLButtonElement | null>(null);
   const [durationAnchor, setDurationAnchor] = useState<HTMLButtonElement | null>(null);
@@ -502,11 +493,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (placeholderOverride) {
       return placeholderOverride;
     }
-    if (isPi) {
-      return isMobile
-        ? "Message the Pi agent…"
-        : "Message the Pi agent — it works in your workspace…";
-    }
     if (mode === "image") {
       return isMobile
         ? "Describe an image…"
@@ -545,7 +531,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return isMobile
       ? "Message… or @ to add an asset"
       : "Continue the thread — or type @ to add an asset…";
-  }, [mode, isPi, isMobile, placeholderOverride]);
+  }, [mode, isMobile, placeholderOverride]);
 
   const isMediaMode =
     mode === "image" ||
@@ -561,7 +547,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     label: string;
     open: () => void;
   } | null => {
-    if (isPi) return null;
     if (mode === "chat")
       return {
         model: chatModel,
@@ -600,7 +585,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       };
     return null;
   }, [
-    isPi,
     mode,
     chatModel,
     imageParams.model,
@@ -712,7 +696,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   const modeIcon = useMemo(() => {
-    if (isPi) return <SmartToyOutlinedIcon fontSize="small" />;
     if (mode === "image") return <ImageIcon fontSize="small" />;
     if (mode === "image_edit") return <AutoFixHighIcon fontSize="small" />;
     if (mode === "video") return <VideocamIcon fontSize="small" />;
@@ -720,10 +703,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
     if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
     return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode, isPi]);
+  }, [mode]);
 
   const modeLabel = useMemo(() => {
-    if (isPi) return "Pi";
     if (mode === "image") return "Image";
     if (mode === "image_edit") return "Image Edit";
     if (mode === "video") return "Video";
@@ -734,7 +716,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "retake") return "Retake";
     if (mode === "extend") return "Extend";
     return "Motion";
-  }, [mode, isPi]);
+  }, [mode]);
 
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
@@ -1109,23 +1091,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 value={mode}
                 onChange={(m: MediaMode) => {
                   setMode(m);
-                  setGlobalMode("chat");
-                }}
-                showPi={piModeAvailable}
-                piSelected={isPi}
-                onSelectPi={() => {
-                  setMode("chat");
-                  setGlobalMode("pi");
                 }}
               />
             </>
           )}
 
-          {/* Pi mode: workspace + model pickers instead of the chat model. */}
-          {isPi && <PiComposerControls disabled={isBusy} />}
-
           {/* Model chip — changes based on mode */}
-          {!isPi && mode === "chat" && !hideModelPicker && (
+          {mode === "chat" && !hideModelPicker && (
             <>
               <MediaControlChip
                 ref={languageModelAnchorRef}
@@ -1137,7 +1109,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 truncate
                 maxWidth={140}
               />
-              <PermissionSelector />
+              <PermissionSelector threadId={threadId} />
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}

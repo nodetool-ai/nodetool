@@ -11,6 +11,7 @@
 // -----------------------------------------------------------------
 
 import type {
+  ChatSource,
   UiContext,
   UiDocumentRef,
   UiSurfaceType
@@ -60,7 +61,13 @@ export interface BuildUiContextOptions {
    */
   focused?: UiDocumentRef | null;
   selection?: UiContext["selection"];
+  /** Chat surface that sent this turn. Always forwarded to the LLM. */
+  source?: ChatSource | null;
 }
+
+export type UiContextInput =
+  | BuildUiContextOptions
+  | (() => BuildUiContextOptions);
 
 /**
  * Snapshot the open documents. Reads the store imperatively via `getState`
@@ -82,13 +89,27 @@ export const buildUiContext = (
     open.push(focused);
   }
 
-  if (!focused && open.length === 0) {
+  const source = options.source ?? null;
+  if (!focused && open.length === 0 && !source) {
     return null;
   }
 
   return {
     focused,
     open,
-    selection: options.selection ?? null
+    selection: options.selection ?? null,
+    source
   };
+};
+
+/** Resolve options that a composer may compute at send time. */
+export const resolveUiContext = (
+  input: UiContextInput | undefined,
+  source?: ChatSource | null
+): UiContext | null => {
+  const options = typeof input === "function" ? input() : (input ?? {});
+  return buildUiContext({
+    ...options,
+    source: source ?? options.source
+  });
 };

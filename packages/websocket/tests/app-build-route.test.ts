@@ -340,10 +340,10 @@ describe("POST /api/applications/build", () => {
   });
 });
 
-describe("build_app tool", () => {
-  it("is on the toolbelt the editor chat assembles", () => {
-    const tool = getAllMcpTools().find((t) => t.name === "build_app");
-    expect(tool).toBeDefined();
-    expect(tool?.description).toContain("import-bundle");
+describe("the app-build agent tool", () => {
+  it("is gone — an agent builds an app with the ui_app_* tools", () => {
+    const names = getAllMcpTools().map((t) => t.name);
+    expect(names).not.toContain("build_app");
+    expect(names).toContain("debug_app");
   });
 });

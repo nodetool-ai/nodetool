@@ -9,8 +9,8 @@
  * session bridges `tools.<name>()` to a caller-supplied `executeTool` and
  * leaves the routing where it is. Everything else matches the step executor:
  * one `execute_code` provider tool, a `state` object that persists across the
- * turn's actions, `nodetool.searchTools()` for the deferred long tail, and an
- * observation envelope as the tool result.
+ * turn's actions (including after a throw), `nodetool.searchTools()` for the
+ * deferred long tail, and an observation envelope as the tool result.
  *
  * When the belt carries the `ui_*` workflow document tools, actions also get
  * the graph object model (`openWorkflow()` — see graph-model.ts), so graph and
@@ -23,6 +23,8 @@ import {
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import { resolveRefBytes } from "../sandbox-media-ref.js";
+import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import { mountCapabilityModules } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
@@ -41,10 +43,12 @@ import {
   sandboxPackageDocsTool,
   sandboxPackageListTool
 } from "../capabilities/packs.js";
+import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import {
-  GRAPH_DSL_PACKAGE,
-  withGraphDslPackage
-} from "./graph-dsl-package.js";
+  FABRIC_PACKAGE,
+  FABRIC_PROMPT_SECTION,
+  withFabricPackage
+} from "./fabric-package.js";
 import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
@@ -134,7 +138,10 @@ export interface ChatCodeActSessionOptions {
    */
   capabilityRun?: CapabilityRun;
   /** Observability hook — fires before each bridged tool executes. */
-  onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
+  onToolCall?: (record: {
+    name: string;
+    args: Record<string, unknown>;
+  }) => void;
 }
 
 export interface ChatCodeActSession {
@@ -207,12 +214,16 @@ export function createChatCodeActSession(
   // Authoring a graph is a package, not a builder: a turn whose belt can save,
   // validate and run a workflow gets the DSL pack on its allowlist, provided
   // this machine installed it.
-  const sandboxPackages = withGraphDslPackage(
-    sessionAllowedPackages(options.sandboxPackages),
-    options.tools.map((t) => t.name),
+  const sandboxPackages = withFabricPackage(
+    withGraphDslPackage(
+      sessionAllowedPackages(options.sandboxPackages),
+      options.tools.map((t) => t.name),
+      sandboxModuleCatalog
+    ),
     sandboxModuleCatalog
   );
   const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
+  const withFabric = sandboxPackages.includes(FABRIC_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
   // in-session rather than through the chat router: it needs no permission gate
@@ -307,7 +318,10 @@ export function createChatCodeActSession(
       const own = inSession.get(name);
       const raw =
         own !== undefined
-          ? await own.process(options.context ?? ({} as ProcessingContext), args)
+          ? await own.process(
+              options.context ?? ({} as ProcessingContext),
+              args
+            )
           : await options.executeTool({
               id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
               name,
@@ -403,6 +417,7 @@ export function createChatCodeActSession(
   const extraSections: string[] = [];
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
   if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
+  if (withFabric) extraSections.push(FABRIC_PROMPT_SECTION);
 
   const systemPromptSection = buildCodeActSystemPrompt({
     tools: resident,
@@ -463,6 +478,51 @@ export function createChatCodeActSession(
     }
     actionCalls = 0;
 
+    const context = options.context;
+    const resolveMediaRef = context
+      ? (where: string, ref: unknown) =>
+          resolveRefBytes(
+            where,
+            ref as Parameters<typeof resolveRefBytes>[1],
+            context
+          )
+      : undefined;
+    const promoteMedia = context
+      ? async (
+          type: "image" | "audio" | "video",
+          bytes: Uint8Array,
+          opts?: Record<string, unknown>
+        ) => {
+          const mime =
+            typeof opts?.mimeType === "string" && opts.mimeType
+              ? opts.mimeType
+              : type === "image"
+                ? inferImageMime(bytes)
+                : type === "audio"
+                  ? "audio/wav"
+                  : "video/mp4";
+          const filename =
+            typeof opts?.filename === "string"
+              ? opts.filename
+              : typeof opts?.name === "string"
+                ? opts.name
+                : undefined;
+          const saved = await persistOutput(context, bytes, {
+            namePrefix: type,
+            mime,
+            ...(filename === undefined ? {} : { outputFile: filename })
+          });
+          if (!saved.asset_uri && !saved.path) {
+            throw new Error(
+              `nodetool.media.to${
+                type[0].toUpperCase() + type.slice(1)
+              }: cannot save an asset in this run`
+            );
+          }
+          return saved;
+        }
+      : undefined;
+
     const outcome = await runInSandbox({
       code: `${prelude}\n${code}`,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
@@ -471,6 +531,8 @@ export function createChatCodeActSession(
       limits: { maxFetchCalls: 0 },
       modules: mount.modules,
       capabilities: platform.mount,
+      ...(resolveMediaRef === undefined ? {} : { resolveMediaRef }),
+      ...(promoteMedia === undefined ? {} : { promoteMedia }),
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,

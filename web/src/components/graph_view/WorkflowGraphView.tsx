@@ -15,7 +15,7 @@
  * Sets data-ready="true" on the container once the graph is laid out,
  * so headless Chrome can `waitForSelector('[data-ready="true"]')`.
  */
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   ReactFlow,

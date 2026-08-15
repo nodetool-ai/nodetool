@@ -10,6 +10,7 @@ import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
@@ -99,9 +100,7 @@ export const useAddNodeFromAsset = () => {
             .replace(/\s+/g, "_");
         } else {
           newNode.data.properties.value = {
-            type: assetType,
-            asset_id: asset.id,
-            uri: asset.get_url,
+            ...mediaRefFromAsset(asset, assetType ?? "asset"),
             ...(content && { value: content })
           };
         }

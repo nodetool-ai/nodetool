@@ -5,8 +5,16 @@
  * state keys the streaming runner writes back into. Both are keyed by the node's
  * `name` so widget bindings stay stable across edits.
  */
+import type { ScriptOperationDocument } from "@nodetool-ai/app-runtime";
+import { scriptPortIO } from "@nodetool-ai/app-runtime";
+
 import { Node, Workflow } from "../../stores/ApiTypes";
-import { getWorkflowInputKind, WorkflowInputKind } from "./inputKinds";
+import {
+  getScriptPortInputKind,
+  getWorkflowInputKind,
+  nodeTypeForInputKind,
+  WorkflowInputKind
+} from "./inputKinds";
 import { parseNodeUIProperties } from "../../stores/nodeUiDefaults";
 
 export interface WorkflowInputIO {
@@ -41,6 +49,45 @@ export interface WorkflowIO {
 }
 
 const EMPTY_IO: WorkflowIO = { inputs: [], outputs: [] };
+
+/**
+ * A script port as a workflow input: the port name stands in for the node
+ * id, and the type picks the same property widget a mini-app InputNode uses.
+ */
+export const workflowInputForScriptPort = (port: {
+  name: string;
+  type: string;
+}): WorkflowInputIO => {
+  const kind = getScriptPortInputKind(port.type);
+  return {
+    nodeId: port.name,
+    nodeType: nodeTypeForInputKind(kind),
+    name: port.name,
+    label: port.name,
+    kind
+  };
+};
+
+/**
+ * The same surface for a script operation. A script has no nodes, so its
+ * declared port names stand in for node ids — the substitution `scriptPortIO`
+ * makes for every host — and the port's type picks the editing widget.
+ */
+export const extractScriptIO = (
+  document?: ScriptOperationDocument | null
+): WorkflowIO => {
+  if (!document) return EMPTY_IO;
+  const io = scriptPortIO(document);
+  return {
+    inputs: document.inputs.map((port) => workflowInputForScriptPort(port)),
+    outputs: io.outputs.map((port) => ({
+      nodeId: port.nodeId,
+      nodeType: port.nodeType,
+      name: port.name,
+      label: port.name
+    }))
+  };
+};
 
 const nodeName = (node: Node): string => {
   const data = (node.data ?? {}) as Record<string, unknown>;

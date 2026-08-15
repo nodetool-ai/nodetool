@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-rrule",
+  "version": "0.7.0-rc.35",
+  "description": "Recurrence rules (iCalendar RRULE) inside the NodeTool sandbox",
+  "license": "MIT",
+  "dependencies": {
+    "rrule": "^2.8.1"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "rrule"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-rrule"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "rrule",
+    "recurrence",
+    "calendar"
+  ]
+}

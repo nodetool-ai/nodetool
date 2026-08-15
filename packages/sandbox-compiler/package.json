@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "description": "Compiles a pack's npm dependency into a guest sandbox module: esbuild bundle, scope-aware scan, QuickJS admission probe, content-addressed cache",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,8 +27,20 @@
   "devDependencies": {
     "@nodetool-ai/agents": "*",
     "@types/node": "^22.0.0",
+    "chrono-node": "^2.10.1",
+    "culori": "^4.0.2",
     "date-fns": "^4.4.0",
+    "decimal.js": "^10.6.0",
+    "exifr": "^7.1.3",
+    "expr-eval": "^2.0.2",
+    "gifenc": "^1.0.3",
+    "ics": "^3.12.0",
+    "jmespath": "^0.16.0",
+    "rrule": "^2.8.1",
+    "simple-statistics": "^7.10.1",
+    "subtitle": "^4.2.2",
     "typescript": "^5.7.2",
+    "uqr": "^0.1.3",
     "vitest": "^4.1.2"
   },
   "exports": {

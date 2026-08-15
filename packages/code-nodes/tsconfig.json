@@ -13,8 +13,6 @@
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
     { "path": "../agents" },
-    { "path": "../llm-nodes" },
-    { "path": "../automation-nodes" },
-    { "path": "../sandbox" }
+    { "path": "../llm-nodes" }
   ]
 }

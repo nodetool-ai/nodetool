@@ -6,16 +6,22 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MessageView } from "../MessageView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { Message, ToolCall } from "../../../../stores/ApiTypes";
+import useGlobalChatStore from "../../../../stores/GlobalChatStore";
 
-// The store hook is called with a selector; return undefined for every slice
-// (no tool is "running") so ToolCallGroup renders its static collapsed state.
+// The store hook is called with a selector; default to an empty store so no
+// tool is "running". Tests can swap the implementation to inject runtime.
 jest.mock("../../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: (selector: (s: unknown) => unknown) => selector({})
+  default: jest.fn((selector: (s: unknown) => unknown) => selector({}))
 }));
 
 jest.mock("../../../../contexts/EditorInsertionContext", () => ({
   useEditorInsertion: () => undefined
+}));
+
+const mockWriteClipboard = jest.fn().mockResolvedValue(undefined);
+jest.mock("../../../../hooks/browser/useClipboard", () => ({
+  useClipboard: () => ({ writeClipboard: mockWriteClipboard })
 }));
 
 jest.mock("../ChatMarkdown", () => ({
@@ -146,7 +152,7 @@ describe("MessageView tool-call grouping", () => {
 });
 
 describe("MessageView CodeAct actions", () => {
-  it("renders execute_code's program as a code block, not JSON args", async () => {
+  it("renders execute_code's program as a formatted code block, not JSON args", async () => {
     const user = userEvent.setup();
     renderView({
       id: "m5",
@@ -155,18 +161,30 @@ describe("MessageView CodeAct actions", () => {
         {
           id: "a",
           name: "execute_code",
-          args: { code: 'const x = await tools.add({a: 1, b: 2});' }
+          args: {
+            code: "const x = await tools.add({a: 1, b: 2}); return x;"
+          }
         }
       ]
     } as Message);
 
-    // Expand the card, then the program shows under a "Code" section.
+    // CodeAct cards start collapsed — the program is behind the header.
+    expect(screen.queryByText("Code")).not.toBeInTheDocument();
+    expect(document.querySelector(".code-block-container")).toBeNull();
+
     await user.click(screen.getByRole("button", { name: /execute code/i }));
+
     expect(screen.getByText("Code")).toBeInTheDocument();
     // Prism splits the program into token spans; read the block's text.
     await waitFor(() => {
       const block = document.querySelector(".code-block-container");
-      expect(block?.textContent).toContain("tools.add({a: 1, b: 2})");
+      expect(block?.textContent).toContain("const x = await tools.add({");
+      expect(block?.textContent).toContain("return x;");
+    });
+    // Packed statements are split onto their own lines.
+    await waitFor(() => {
+      const block = document.querySelector(".code-block-container");
+      expect(block?.textContent).toMatch(/}\);\s*return x;/);
     });
     // The lone `code` arg is lifted out — no leftover Arguments JSON section.
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
@@ -191,9 +209,123 @@ describe("MessageView CodeAct actions", () => {
     expect(
       screen.getByRole("button", { name: /rendering product images from csv/i })
     ).toBeInTheDocument();
+    expect(screen.queryByText("Code")).not.toBeInTheDocument();
     // The generic tool-name fallback is replaced, and `title` is not
     // duplicated into an Arguments section.
     expect(screen.queryByText(/^execute code$/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
+  });
+
+  it("shows the in-flight media prediction on a running execute_code card", () => {
+    const store = useGlobalChatStore as unknown as jest.Mock;
+    const state = {
+      currentThreadId: "t1",
+      currentRunningToolCallId: "a",
+      currentToolMessage: "Running code",
+      threadRuntime: {
+        t1: {
+          activePredictions: [
+            {
+              id: "p1",
+              provider: "fal_ai",
+              model: "flux-schnell",
+              capability: "text_to_image",
+              startedAt: Date.now()
+            }
+          ]
+        }
+      }
+    };
+    store.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector(state)
+    );
+
+    renderView({
+      id: "m-running",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "a",
+          name: "execute_code",
+          args: {
+            title: "Render a fox",
+            code: "await nodetool.media.generateImage('fox', model);"
+          }
+        }
+      ]
+    } as Message);
+
+    expect(
+      screen.getByText(/generating image · fal_ai · flux-schnell/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText("0s")).toBeInTheDocument();
+
+    store.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({})
+    );
+  });
+});
+
+describe("MessageView tool-call result copy", () => {
+  beforeEach(() => {
+    mockWriteClipboard.mockClear();
+  });
+
+  it("copies a string result from the Result header", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m7",
+              role: "assistant",
+              tool_calls: [toolCall("a", "read_file")]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            a: { name: "read_file", content: "file body" }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /read file/i }));
+    expect(screen.getByText("Result")).toBeInTheDocument();
+    expect(screen.getByText("file body")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /copy result/i }));
+    expect(mockWriteClipboard).toHaveBeenCalledWith("file body", true);
+  });
+
+  it("copies a JSON result as pretty-printed text", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m8",
+              role: "assistant",
+              tool_calls: [toolCall("a", "search")]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            a: { name: "search", content: { hits: [1, 2] } }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /search/i }));
+    await user.click(screen.getByRole("button", { name: /copy result/i }));
+    expect(mockWriteClipboard).toHaveBeenCalledWith(
+      JSON.stringify({ hits: [1, 2] }, null, 2),
+      true
+    );
   });
 });

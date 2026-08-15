@@ -39,8 +39,35 @@ jest.mock("../../../../lib/workflow/browserWorkflowRunner", () => ({
 }));
 
 const cancelJob = jest.fn(async (_input: { id: string }) => ({ ok: true }));
+const getScript = jest.fn(async (_input: { id: string }) => ({
+  id: "script-1",
+  name: "Adder",
+  document: {
+    schemaVersion: 1,
+    description: "",
+    code: 'await output("sum", inputs.a + 1);',
+    inputs: [{ name: "a", type: "int" }],
+    outputs: [{ name: "sum", type: "int" }],
+    packages: [],
+    secrets: [],
+    timeoutSeconds: 30,
+    tests: []
+  }
+}));
 jest.mock("../../../../trpc/client", () => ({
-  trpcClient: { jobs: { cancel: { mutate: (input: { id: string }) => cancelJob(input) } } }
+  trpcClient: {
+    jobs: { cancel: { mutate: (input: { id: string }) => cancelJob(input) } },
+    jsScripts: { get: { query: (input: { id: string }) => getScript(input) } }
+  }
+}));
+
+const runJsScript = jest.fn();
+jest.mock("../../../jsScript/runJsScript", () => ({
+  runJsScript: (
+    id: string,
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ) => runJsScript(id, inputs, inputStreams)
 }));
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
@@ -150,7 +177,10 @@ beforeEach(() => {
   runners.clear();
   subscribers.length = 0;
   cancelJob.mockClear();
+  getScript.mockClear();
+  runJsScript.mockReset();
   window.localStorage.clear();
+  disposeAppRuntimeStore(appInstanceId("application:app-script"));
   disposeAppRuntimeStore(workflowInstanceId("wf-a"));
   disposeAppRuntimeStore(appInstanceId("application:app-1"));
   disposeAppRuntimeStore(appInstanceId("application:app-2"));
@@ -682,5 +712,101 @@ describe("useAppRuntime — activity", () => {
         "Searching the web"
       )
     );
+  });
+});
+
+describe("useAppRuntime — script operations", () => {
+  const scriptDoc = () =>
+    doc({
+      operations: [
+        {
+          id: "main",
+          name: "Add one",
+          workflowId: "",
+          target: { kind: "script", scriptId: "script-1", scriptVersion: 1 },
+          inputs: {},
+          outputs: { sum: { to: "variable", variableId: "total" } },
+          policy: "replace"
+        }
+      ],
+      variables: [
+        { id: "total", name: "Total", scope: "instance", persist: false }
+      ]
+    });
+
+  const renderScriptApp = () =>
+    renderHook(
+      () =>
+        useAppRuntime(workflowA, false, {
+          document: scriptDoc(),
+          application: { id: "app-script" }
+        }),
+      { wrapper }
+    );
+
+  it("derives the bindable surface from the script's declared ports", async () => {
+    const { result } = renderScriptApp();
+
+    await waitFor(() =>
+      expect(result.current.ioFor("main").inputs).toEqual([
+        expect.objectContaining({ nodeId: "a", name: "a", kind: "integer" })
+      ])
+    );
+    expect(result.current.ioFor("main").outputs).toEqual([
+      expect.objectContaining({ nodeId: "sum", name: "sum" })
+    ]);
+  });
+
+  it("runs the script and folds its result the way a workflow run folds", async () => {
+    runJsScript.mockResolvedValue({
+      ok: true,
+      outputs: { sum: 4 },
+      streamed: [],
+      logs: [],
+      duration_ms: 3
+    });
+    const { result } = renderScriptApp();
+    await waitFor(() =>
+      expect(result.current.ioFor("main").inputs).toHaveLength(1)
+    );
+
+    await act(async () => {
+      result.current.write({ kind: "input", operationId: "main", nodeId: "a" }, 3);
+    });
+    await act(async () => {
+      await result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    // Ports are the wire names, so the mapped value arrives keyed by port name.
+    expect(runJsScript).toHaveBeenCalledWith("script-1", { a: 3 }, undefined);
+    // No graph was submitted: a script run never touches a workflow runner.
+    expect(runnerState("wf-a").run).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(result.current.store.getState().variables.total).toBe(4)
+    );
+  });
+
+  it("reports a failed script run as a failed invocation", async () => {
+    runJsScript.mockResolvedValue({
+      ok: false,
+      logs: [],
+      error: "ReferenceError: nope",
+      duration_ms: 1
+    });
+    const { result } = renderScriptApp();
+    await waitFor(() =>
+      expect(result.current.ioFor("main").outputs).toHaveLength(1)
+    );
+
+    await act(async () => {
+      await result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    await waitFor(() => {
+      const state = result.current.store.getState();
+      const invocation = Object.values(state.invocations)[0];
+      expect(invocation?.status).toBe("failed");
+      expect(invocation?.error).toBe("ReferenceError: nope");
+    });
   });
 });

@@ -100,6 +100,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   search_nodes: "read",
   start_background_job: "execute",
   transcribe_audio: "write",
+  ffmpeg: "execute",
+  yt_dlp: "external",
   validate_workflow: "read",
   vector_batch_index: "write",
   vector_hybrid_search: "read",
@@ -121,7 +123,6 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   save_asset: "write",
   view_image: "read",
   // apps
-  build_app: "execute",
   debug_app: "execute",
   // --- web ---
   web_search: "read",
@@ -178,6 +179,10 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   voice_script_lines: "write",
   assemble_script_timeline: "write",
   edit_script: "write",
+  // threads (chat history — read-only)
+  list_threads: "read",
+  get_thread: "read",
+  get_message: "read",
   // storyboards
   list_storyboards: "read",
   get_storyboard: "read",

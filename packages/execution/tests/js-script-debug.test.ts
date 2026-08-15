@@ -12,6 +12,8 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
   buildJsScriptDebugReport,
+  emptyDeclaredJsScriptOutputsError,
+  missingDeclaredJsScriptOutputs,
   renderJsScriptReportMarkdown,
   validateJsScriptDoc
 } from "../src/js-script-debug/index.js";
@@ -83,6 +85,21 @@ describe("validateJsScriptDoc", () => {
     expect(codes(validation)).toContain("js_script_test_output");
   });
 
+  it("rejects a module-style export async function run body", async () => {
+    const validation = await validateJsScriptDoc(
+      doc({
+        code:
+          "export async function run(inputs) {\n" +
+          '  await output("total", inputs.n + 1);\n' +
+          "}"
+      })
+    );
+    expect(validation.ok).toBe(false);
+    const issue = validation.errors.find((item) => item.code === "code_module");
+    expect(issue?.message).toContain("`export`");
+    expect(issue?.message).not.toContain("return an object");
+  });
+
   it("makes the return contract an error", async () => {
     const legacy = await validateJsScriptDoc(
       doc({ code: "return { total: inputs.n + 1 };" })
@@ -135,7 +152,18 @@ describe("validateJsScriptDoc", () => {
     const undeclaredImport = await validateJsScriptDoc(
       doc({ code: 'import yaml from "@nodetool-ai/sandbox-yaml";\nawait output("total", 1);' })
     );
-    expect(undeclaredImport.ok).toBe(false);
+    // A script has no packages setting. Without a catalog the import cannot
+    // be checked offline, so it is not an error.
+    expect(undeclaredImport.ok).toBe(true);
+
+    const platformImport = await validateJsScriptDoc(
+      doc({
+        code:
+          'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+          'await output("total", typeof list_models);'
+      })
+    );
+    expect(platformImport.ok).toBe(true);
   });
 });
 
@@ -232,6 +260,42 @@ describe("validateJsScriptDoc — input streams", () => {
     );
     expect(validation.ok).toBe(true);
     expect(codes(validation)).toContain("js_script_tests_no_streams");
+  });
+});
+
+describe("missingDeclaredJsScriptOutputs", () => {
+  it("returns [] when nothing is declared", () => {
+    expect(missingDeclaredJsScriptOutputs([], {})).toEqual([]);
+    expect(missingDeclaredJsScriptOutputs([], undefined)).toEqual([]);
+  });
+
+  it("returns every name when the bag is empty of all of them", () => {
+    expect(
+      missingDeclaredJsScriptOutputs(
+        [{ name: "palette" }, { name: "hex" }],
+        {}
+      )
+    ).toEqual(["palette", "hex"]);
+    expect(
+      missingDeclaredJsScriptOutputs([{ name: "out" }], undefined)
+    ).toEqual(["out"]);
+  });
+
+  it("returns [] when any declared name is present", () => {
+    expect(
+      missingDeclaredJsScriptOutputs(
+        [{ name: "palette" }, { name: "hex" }],
+        { palette: [] }
+      )
+    ).toEqual([]);
+  });
+
+  it("names the missing ports in the shared error", () => {
+    expect(emptyDeclaredJsScriptOutputsError(["palette", "hex"])).toBe(
+      "The run produced none of the declared outputs: palette, hex. " +
+        "Leave values with `await output(name, value)` or `await emit(name, value)` — " +
+        "an empty output bag is not success."
+    );
   });
 });
 

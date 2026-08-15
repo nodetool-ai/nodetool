@@ -42,6 +42,24 @@ import {
   type Point,
   type StrokeStampState
 } from "@nodetool-ai/image-editor/painting.js";
+import {
+  adjustOnContext,
+  combineSelections,
+  cropLayerInPlace,
+  drawGradient,
+  drawShape,
+  ellipseSelection,
+  featherSelection,
+  fillOnContext,
+  hasSelectionPixels,
+  pickPixel,
+  polygonSelection,
+  rectSelection,
+  readFullImage,
+  requireRasterContext,
+  transformRaster,
+  type RasterSelection
+} from "@nodetool-ai/image-editor/raster.js";
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
@@ -446,7 +464,7 @@ export function createSketchToolBridge(
   let foregroundColor = "#000000";
   let backgroundColor = "#ffffff";
   let activeTool = "brush";
-  let hasSelection = false;
+  let selection: RasterSelection | null = null;
 
   let layerSeq = 0;
   const nextLayerId = () => `layer_${++layerSeq}`;
@@ -565,7 +583,7 @@ export function createSketchToolBridge(
           foregroundColor,
           backgroundColor,
           activeTool,
-          hasSelection,
+          hasSelection: hasSelectionPixels(selection),
           layers: layers.map((l, i) => ({ ...serialize(l), index: i }))
         };
       }
@@ -933,10 +951,372 @@ export function createSketchToolBridge(
       "Shape the pixel selection: `all` selects the whole canvas, `invert` inverts the current selection, `clear` deselects. Inpainting and selection-scoped edits act within this selection.",
       z.object({ op: z.enum(["all", "clear", "invert"]) }),
       async ({ op }) => {
-        if (op === "all") hasSelection = true;
-        else if (op === "clear") hasSelection = false;
-        else hasSelection = !hasSelection;
-        return { ok: true, hasSelection };
+        if (op === "all") {
+          selection = rectSelection(width, height, 0, 0, width, height);
+        } else if (op === "clear") {
+          selection = null;
+        } else if (!selection) {
+          selection = rectSelection(width, height, 0, 0, width, height);
+        } else {
+          const all = rectSelection(width, height, 0, 0, width, height);
+          selection = combineSelections(all, selection, "subtract");
+        }
+        return { ok: true, hasSelection: hasSelectionPixels(selection) };
+      }
+    ),
+
+    tool(
+      "ui_sketch_fill",
+      "Flood fill a connected region on a raster layer starting from canvas pixel coordinates (x, y) with color and tolerance.",
+      z.object({
+        target: targetParam.optional(),
+        x: z.number(),
+        y: z.number(),
+        color: z.string().optional(),
+        tolerance: z.number().min(0).max(255).optional(),
+        contiguous: z.boolean().optional()
+      }),
+      async ({ target, x, y, color, tolerance, contiguous }) => {
+        const layer = resolveTarget((target as string | undefined) ?? "active");
+        if (layer.locked) {
+          throw new Error(`Layer "${layer.name}" is locked and cannot take pixels.`);
+        }
+        if (layer.type !== "raster") {
+          throw new Error(
+            `Layer "${layer.name}" is a ${layer.type} layer; fill only writes raster layers.`
+          );
+        }
+        const fillColor = (color as string | undefined) ?? foregroundColor;
+        fillOnContext(requireRasterContext(paintContext(ensureRaster(layer))), x as number, y as number, {
+          color: fillColor,
+          tolerance: (tolerance as number | undefined) ?? 16,
+          contiguous: (contiguous as boolean | undefined) ?? true
+        });
+        return {
+          ok: true,
+          layerId: layer.id,
+          layerName: layer.name,
+          x,
+          y,
+          color: fillColor
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_gradient",
+      "Draw a linear or radial gradient across a raster layer from start to end points.",
+      z.object({
+        target: targetParam.optional(),
+        type: z.enum(["linear", "radial"]),
+        start: z.object({ x: z.number(), y: z.number() }),
+        end: z.object({ x: z.number(), y: z.number() }),
+        stops: z
+          .array(z.object({ offset: z.number().min(0).max(1), color: z.string() }))
+          .optional()
+      }),
+      async ({ target, type, start, end, stops }) => {
+        const layer = resolveTarget((target as string | undefined) ?? "active");
+        if (layer.locked || layer.type !== "raster") {
+          throw new Error(
+            `Layer "${layer.name}" cannot take a gradient.`
+          );
+        }
+        const ramp = (stops as
+          | { offset: number; color: string }[]
+          | undefined) ?? [
+          { offset: 0, color: foregroundColor },
+          { offset: 1, color: backgroundColor }
+        ];
+        if (ramp.length < 2) {
+          throw new Error("A gradient needs at least two color stops.");
+        }
+        drawGradient(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          type as "linear" | "radial",
+          start as { x: number; y: number },
+          end as { x: number; y: number },
+          ramp
+        );
+        return { ok: true, layerId: layer.id, layerName: layer.name, type };
+      }
+    ),
+
+    tool(
+      "ui_sketch_draw_shape",
+      "Draw geometric shapes (rect, ellipse, line, arrow, polygon, star) with optional fill, stroke, and corner radius.",
+      z.object({
+        target: targetParam.optional(),
+        shape: z.enum(["rect", "ellipse", "line", "arrow", "polygon", "star"]),
+        x: z.number(),
+        y: z.number(),
+        width: z.number().positive().optional(),
+        height: z.number().positive().optional(),
+        fill: z.string().optional(),
+        stroke: z.string().optional(),
+        strokeWidth: z.number().min(0).optional(),
+        cornerRadius: z.number().min(0).optional(),
+        points: z.number().int().min(3).optional(),
+        innerRadius: z.number().optional()
+      }),
+      async (args) => {
+        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        if (layer.locked || layer.type !== "raster") {
+          throw new Error(`Layer "${layer.name}" cannot take a shape.`);
+        }
+        const bounds = drawShape(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          {
+            shape: args.shape as
+              | "rect"
+              | "ellipse"
+              | "line"
+              | "arrow"
+              | "polygon"
+              | "star",
+            x: args.x as number,
+            y: args.y as number,
+            width: args.width as number | undefined,
+            height: args.height as number | undefined,
+            fill: args.fill as string | undefined,
+            stroke: args.stroke as string | undefined,
+            strokeWidth: args.strokeWidth as number | undefined,
+            cornerRadius: args.cornerRadius as number | undefined,
+            points: args.points as number | undefined,
+            innerRadius: args.innerRadius as number | undefined
+          }
+        );
+        return {
+          ok: true,
+          layerId: layer.id,
+          layerName: layer.name,
+          shape: args.shape,
+          bounds
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_set_selection_shape",
+      "Define or modify a pixel selection mask using geometric shapes (rect, ellipse) or polylines (lasso, polygon).",
+      z.object({
+        mode: z.enum(["replace", "add", "subtract", "intersect"]).optional(),
+        shape: z.enum(["rect", "ellipse", "lasso", "polygon"]),
+        bounds: z
+          .object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number(),
+            height: z.number()
+          })
+          .optional(),
+        points: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+        feather: z.number().min(0).optional()
+      }),
+      async ({ mode, shape, bounds, points, feather }) => {
+        const op = (mode as "replace" | "add" | "subtract" | "intersect") ?? "replace";
+        let overlay: RasterSelection;
+        if (shape === "rect" || shape === "ellipse") {
+          const box = bounds as
+            | { x: number; y: number; width: number; height: number }
+            | undefined;
+          if (!box) {
+            throw new Error(`Shape "${shape}" needs a bounds box.`);
+          }
+          overlay =
+            shape === "rect"
+              ? rectSelection(width, height, box.x, box.y, box.width, box.height)
+              : ellipseSelection(
+                  width,
+                  height,
+                  box.x,
+                  box.y,
+                  box.width,
+                  box.height
+                );
+        } else {
+          const pts = points as { x: number; y: number }[] | undefined;
+          if (!pts || pts.length < 3) {
+            throw new Error(`Shape "${shape}" needs at least three points.`);
+          }
+          overlay = polygonSelection(width, height, pts);
+        }
+        selection = combineSelections(selection, overlay, op);
+        if ((feather as number | undefined) && (feather as number) > 0) {
+          selection = featherSelection(selection, feather as number);
+        }
+        return {
+          ok: true,
+          hasSelection: hasSelectionPixels(selection),
+          shape,
+          mode: op
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_transform",
+      "Translate, scale, rotate, or flip a layer's raster pixels or active selection.",
+      z.object({
+        target: targetParam.optional(),
+        dx: z.number().optional(),
+        dy: z.number().optional(),
+        scaleX: z.number().optional(),
+        scaleY: z.number().optional(),
+        rotation: z.number().optional(),
+        flipH: z.boolean().optional(),
+        flipV: z.boolean().optional()
+      }),
+      async (args) => {
+        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        if (layer.locked || layer.type !== "raster") {
+          throw new Error(`Layer "${layer.name}" cannot be transformed.`);
+        }
+        const dx = (args.dx as number | undefined) ?? 0;
+        const dy = (args.dy as number | undefined) ?? 0;
+        const scaleX = (args.scaleX as number | undefined) ?? 1;
+        const scaleY = (args.scaleY as number | undefined) ?? 1;
+        const rotation = (args.rotation as number | undefined) ?? 0;
+        const flipH = (args.flipH as boolean | undefined) ?? false;
+        const flipV = (args.flipV as boolean | undefined) ?? false;
+        transformRaster(requireRasterContext(paintContext(ensureRaster(layer))), {
+          dx,
+          dy,
+          scaleX,
+          scaleY,
+          rotation,
+          flipH,
+          flipV
+        });
+        return {
+          ok: true,
+          layerId: layer.id,
+          layerName: layer.name,
+          dx,
+          dy,
+          scaleX,
+          scaleY,
+          rotation,
+          flipH,
+          flipV
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_adjust_layer",
+      "Apply tone and color adjustments (brightness, contrast, exposure, saturation, hue, blur) to a layer.",
+      z.object({
+        target: targetParam.optional(),
+        brightness: z.number().min(-1).max(1).optional(),
+        contrast: z.number().min(-1).max(1).optional(),
+        exposure: z.number().min(-2).max(2).optional(),
+        saturation: z.number().min(-1).max(1).optional(),
+        hue: z.number().min(-180).max(180).optional(),
+        blur: z.number().min(0).max(100).optional()
+      }),
+      async (args) => {
+        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        if (layer.locked || layer.type !== "raster") {
+          throw new Error(`Layer "${layer.name}" cannot be adjusted.`);
+        }
+        const adjustments = {
+          ...(args.brightness !== undefined
+            ? { brightness: args.brightness as number }
+            : {}),
+          ...(args.contrast !== undefined
+            ? { contrast: args.contrast as number }
+            : {}),
+          ...(args.exposure !== undefined
+            ? { exposure: args.exposure as number }
+            : {}),
+          ...(args.saturation !== undefined
+            ? { saturation: args.saturation as number }
+            : {}),
+          ...(args.hue !== undefined ? { hue: args.hue as number } : {}),
+          ...(args.blur !== undefined ? { blur: args.blur as number } : {})
+        };
+        if (Object.keys(adjustments).length === 0) {
+          throw new Error("Provide at least one adjustment.");
+        }
+        adjustOnContext(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          adjustments
+        );
+        return {
+          ok: true,
+          layerId: layer.id,
+          layerName: layer.name,
+          adjustments
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_crop",
+      "Crop the document canvas or a specific layer to a defined bounding box (x, y, width, height).",
+      z.object({
+        target: targetParam.nullable().optional(),
+        x: z.number(),
+        y: z.number(),
+        width: z.number().positive(),
+        height: z.number().positive()
+      }),
+      async ({ target, x, y, width: cw, height: ch }) => {
+        const box = {
+          x: Math.round(x as number),
+          y: Math.round(y as number),
+          width: Math.round(cw as number),
+          height: Math.round(ch as number)
+        };
+        if (target == null) {
+          for (const layer of layers) {
+            if (!layer.raster) {
+              continue;
+            }
+            const next = createCanvas(box.width, box.height);
+            paintContext(next).drawImage(layer.raster, -box.x, -box.y);
+            layer.raster = next;
+          }
+          width = box.width;
+          height = box.height;
+          return { ok: true, layerId: null, width, height };
+        }
+        const layer = resolveTarget(target as string);
+        if (layer.locked || layer.type !== "raster") {
+          throw new Error(`Layer "${layer.name}" cannot be cropped.`);
+        }
+        cropLayerInPlace(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          box.x,
+          box.y,
+          box.width,
+          box.height
+        );
+        return {
+          ok: true,
+          layerId: layer.id,
+          width: box.width,
+          height: box.height
+        };
+      }
+    ),
+
+    tool(
+      "ui_sketch_pick_color",
+      "Sample the pixel color at (x, y) on the composite canvas or on a specific layer (eyedropper).",
+      z.object({
+        target: targetParam.nullable().optional(),
+        x: z.number(),
+        y: z.number()
+      }),
+      async ({ target, x, y }) => {
+        const canvas =
+          target == null
+            ? composite()
+            : ensureRaster(resolveTarget(target as string));
+        const sample = pickPixel(readFullImage(requireRasterContext(paintContext(canvas))), x as number, y as number);
+        return { ok: true, ...sample };
       }
     ),
 
@@ -993,7 +1373,7 @@ export function createSketchToolBridge(
         foregroundColor,
         backgroundColor,
         activeTool,
-        hasSelection,
+        hasSelection: hasSelectionPixels(selection),
         paintedPixels,
         paintedFraction: paintedPixels / area,
         strokedFraction: strokedPixels / area,
@@ -1027,7 +1407,8 @@ Use the ui_sketch_* tools to inspect and modify the open image document:
 - Call ui_sketch_get_state first to see the layer stack, active layer, colors, and tool.
 - Layers are addressed by id, by (case-insensitive) name, or the literal "active" for the active layer.
 - Add layers with ui_sketch_add_layer, adjust them with ui_sketch_set_layer_props (opacity, blend mode, name, visibility, lock).
-- Generate imagery with ui_sketch_generate; recolor with ui_sketch_set_color; resize the canvas with ui_sketch_resize_canvas; shape the pixel selection with ui_sketch_selection.
+- Generate imagery with ui_sketch_generate; recolor with ui_sketch_set_color; resize the canvas with ui_sketch_resize_canvas; shape the pixel selection with ui_sketch_selection or ui_sketch_set_selection_shape.
+- Paint regions with ui_sketch_fill, ui_sketch_gradient, and ui_sketch_draw_shape. Transform or grade a layer with ui_sketch_transform and ui_sketch_adjust_layer. Crop with ui_sketch_crop. Sample a pixel with ui_sketch_pick_color.
 
 You can draw. ui_sketch_stroke paints real pixels with the editor's brush, pencil and eraser:
 - A stroke is a polyline of canvas-pixel points (x right, y down, origin top-left) plus its own color, size, opacity and hardness. The engine interpolates dabs along each segment, so a curve is just enough sampled points — a circle is about 24 points around it, and you can pass "closed": true to join the last point back to the first.

@@ -306,7 +306,7 @@ Reports land in each package's gitignored `reports/mutation/` directory.
 
 ## 11. Zod Validation
 
-Zod v4 is used in `protocol`, `deploy`, `sandbox`, `sandbox-agent`, `sandbox-tools`, `websocket`. It is the canonical validation library.
+Zod v4 is used in `protocol`, `deploy`, `websocket`. It is the canonical validation library.
 
 ### Rules
 

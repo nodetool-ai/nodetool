@@ -59,6 +59,7 @@ import {
   threadRuntimeUpdate,
   type ThreadRuntime
 } from "./threadRuntime";
+import { applyMediaPrediction } from "./mediaPrediction";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -267,7 +268,8 @@ const applyJobUpdate = (
       update: threadRuntimeUpdate(state, threadId, {
         status: "idle",
         progress: { current: 0, total: 0 },
-        statusMessage: null
+        statusMessage: null,
+        activePredictions: []
       })
     };
   }
@@ -277,7 +279,8 @@ const applyJobUpdate = (
         status: "error",
         error: update.error ?? null,
         progress: { current: 0, total: 0 },
-        statusMessage: update.error || null
+        statusMessage: update.error || null,
+        activePredictions: []
       })
     };
   }
@@ -1096,8 +1099,35 @@ const applyGenerationStopped = (
       statusMessage: null,
       planningUpdate: null,
       taskUpdate: null,
-      logUpdate: null
+      logUpdate: null,
+      activePredictions: []
     })
+  };
+};
+
+const applyPrediction = (
+  state: GlobalChatState,
+  update: Prediction,
+  threadId: string | null
+): ReducerResult => {
+  if (!threadId) {
+    return noopUpdate;
+  }
+  const next = applyMediaPrediction(
+    getThreadRuntime(state, threadId).activePredictions,
+    {
+      id: update.id,
+      status: update.status,
+      provider: update.provider,
+      model: update.model,
+      capability: update.capability
+    }
+  );
+  if (next == null) {
+    return noopUpdate;
+  }
+  return {
+    update: threadRuntimeUpdate(state, threadId, { activePredictions: next })
   };
 };
 
@@ -1113,7 +1143,8 @@ const applyError = (
       ? threadRuntimeUpdate(state, threadId, {
           error: message || "An error occurred",
           status: "error",
-          statusMessage: message
+          statusMessage: message,
+          activePredictions: []
         })
       : { status: "error" as const, statusMessage: message })
   }
@@ -1155,9 +1186,7 @@ async function executeToolCall(
 
   const startTime = Date.now();
   try {
-    // Resolve the canonical frontend-tool runtime state lazily — the same
-    // source the agent (`/ws/agent`) bridge uses, so `ui_*` tools behave
-    // identically in every chat mode. It is wired by the workflow editor
+    // Resolve the canonical frontend-tool runtime state lazily. It is wired by the workflow editor
     // (PanelRight); when no editor is mounted (e.g. the global /chat route
     // with no open workflow) accessing it throws, which surfaces as a tool
     // error instead of silently mutating a stub.
@@ -1299,8 +1328,7 @@ export async function handleChatWebSocketMessage(
     }));
   }
 
-  // Swallow stragglers for a thread the user is stopping. The top-level
-  // status check covers the pi transport, which drives the mirror directly.
+  // Swallow stragglers for a thread the user is stopping.
   const isStopping =
     getThreadRuntime(currentState, tid).status === "stopping" ||
     (currentState.status === "stopping" &&
@@ -1430,6 +1458,8 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyMessage, data);
   } else if (data.type === "node_progress") {
     applyReducer(applyNodeProgress, data);
+  } else if (data.type === "prediction") {
+    applyReducer(applyPrediction, data);
   } else if (data.type === "tool_call") {
     void executeToolCall(data, get, set, globalWebSocketManager);
   } else if (data.type === "tool_approval_request") {
@@ -1495,7 +1525,8 @@ export async function handleChatWebSocketMessage(
         threadRuntimeUpdate(state, tid, {
           status: stillRunning ? "loading" : "idle",
           statusMessage: null,
-          progress: { current: 0, total: 0 }
+          progress: { current: 0, total: 0 },
+          ...(stillRunning ? {} : { activePredictions: [] })
         })
       );
       void get()

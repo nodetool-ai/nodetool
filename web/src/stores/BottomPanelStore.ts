@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 /**
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
  * Grouped into:
- *  - "run":      logs, jobs, sandboxes
+ *  - "run":      logs, jobs
  *  - "workflow": versions, workspace
  *  - "debug":    trace
  *
@@ -15,7 +15,6 @@ import { persist } from "zustand/middleware";
 export type BottomPanelView =
   | "logs"
   | "queue"
-  | "sandboxes"
   | "workers"
   | "versions"
   | "workspace"
@@ -28,7 +27,7 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   label: string;
   views: readonly BottomPanelView[];
 }> = [
-  { id: "run", label: "Run", views: ["logs", "queue", "sandboxes", "workers"] },
+  { id: "run", label: "Run", views: ["logs", "queue", "workers"] },
   {
     id: "workflow",
     label: "Workflow",

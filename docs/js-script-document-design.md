@@ -86,6 +86,10 @@ Decisions baked into the shape:
   the caller's secrets; it runs with the intersection of its declared `secrets`
   and what the invoking context allows.
 
+  **Implementation note.** The `packages` field remains on the document so old
+  saves parse. A script does not use it. Every installed sandbox pack and
+  every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import.
+
 ## Storage and API
 
 Copy the sketch pattern (`image_documents` + `image_document_versions`), the
@@ -133,9 +137,10 @@ The surface is the Code node assistant dialog promoted to a document editor:
   assistant edits a draft and Apply commits to the node, the script assistant
   edits the document directly — undo is the document's own history plus the
   version snapshots.
-- **Header/sidebar**: ports (inputs/outputs with types), packages picker,
-  secrets list, timeout — the same controls the Code node property panel
-  renders for its dynamic slots and `packages` prop.
+- **Header/sidebar**: ports (inputs/outputs with types), secrets list, timeout
+  — the same controls the Code node property panel renders for its dynamic
+  slots. There is no packages picker: every installed pack resolves by import
+  (see the implementation note above).
 - **Bottom: run console.** A Run button (prompting for input values from the
   declared ports), a Test button running the saved cases, and a console
   showing logs, streamed emits, final outputs, and errors — the
@@ -162,7 +167,7 @@ id; `ui_open_document` bridges "an id exists" → "the tools work".
 | `ui_jsscript_get_state` | document + validation issues + last run/test result |
 | `ui_jsscript_set_code` | replace the body |
 | `ui_jsscript_set_ports` | replace inputs/outputs |
-| `ui_jsscript_set_packages` | replace pack declarations |
+| `ui_jsscript_set_packages` | leftover no-op: scripts have no packages setting |
 | `ui_jsscript_set_meta` | name, description, secrets, timeout |
 | `ui_jsscript_set_tests` | replace the saved case list |
 | `ui_jsscript_run` | run with given inputs, return outputs/streamed/logs/error |
@@ -175,8 +180,8 @@ CLI harness exercise one execution path.
 ## Execution semantics
 
 Execution reuses `runCodeBody` (`packages/agents/src/capabilities/code.ts`)
-— the hermetic core `run_code`/`test_code` already share — parameterized by
-the script document instead of ad-hoc arguments:
+— the same core `run_code`/`test_code` already share, with `withToolbelt`
+on — parameterized by the script document instead of ad-hoc arguments:
 
 - Globals: `{ inputs, state: {} }`. Fresh `state` per run; inputs JSON
   deep-copied.
@@ -184,12 +189,14 @@ the script document instead of ad-hoc arguments:
   the caller's allowance; `timeoutMs` from the document, capped by the caller.
 - Packages resolve through the process `SandboxModuleCatalog`; an undeclared
   import fails validation before it fails at run time.
-- **No toolbelt in v1.** A script is a function over its inputs — the same
-  hermeticity `run_code` enforces. `tools.*` / `nodetool.*` are absent from
-  the guest. This keeps "agent invokes script" free of privilege questions:
-  the script cannot do anything the sandbox defaults don't already allow
-  (capped `fetch`, scoped secrets). Widening scripts to a belt is a separate
-  decision with its own design if it's ever wanted.
+- **The Code-node toolbelt.** A script run prepends the same `tools.*` /
+  `nodetool.*` prelude a Code node does, wired to
+  `assembleSandboxToolbelt()` (`getAgentToolbelt()` plus
+  `getAllMcpTools({ registry })`). Chat `ui_*` tools stay off this belt —
+  they need a browser. `run_code` / `test_code` stay hermetic so an
+  authoring probe cannot spend money. Tool-backed calls (media generation,
+  workflow runs, `run_js_script`) use each tool's own permission gating;
+  a script that calls `run_js_script` on itself still hits the cycle gate.
 
 ## Invocation
 
@@ -302,10 +309,24 @@ simulator takes an injected `runScript`; the hosts that own both wire
 `createJsScriptAppRunner` (`@nodetool-ai/agents`) — the server's
 `/api/applications/debug`, the `debug_app` capability, and `nodetool app debug`.
 A host with no runner reports the operation as unexecutable rather than skipping
-it. The web app runtime is **not** wired yet: it still runs workflow operations
-only, and a script operation in the browser is the remaining gap — tracked here.
-The app builder has no script-operation authoring UI either; a script operation
-is authored through the document (bundle import, an agent's document edit).
+it. The browser runs one too: `useAppRuntime` loads the script document, derives
+its IO from the declared ports, calls the run endpoint, and folds the
+synthesized messages — so a script operation and a workflow operation differ
+only in how the messages are produced. The pure half of the adapter
+(`scriptRunMessages`, `scriptInvocationInput`, `scriptPortIO`) therefore lives in
+`@nodetool-ai/app-runtime` (`script-run.ts`), which the browser can depend on;
+`@nodetool-ai/execution` re-exports it and keeps the two parts that need a
+parser — binding the pinned Zod document, and reading the body to decide whether
+the mapped values are staged as streams.
+
+The app builder authors one: an operation's **Runs** field picks Workflow or JS
+script, and a script target picks from the user's scripts. Switching what an
+operation runs clears its input and output mappings, in `updateOperation` rather
+than in the panel, because they key on the old target's node ids or port names.
+The draft always runs the script's **saved** document — the run endpoint takes
+no version — so a target's `scriptVersion` records what the app was authored
+against, not what executes. Pinning a release to an exact version needs a
+version-aware run endpoint and is not built.
 
 `ApplicationBundle.scripts` carries each pinned document under a bundle-local
 key. Because a script row has its own version numbering, import snapshots every
@@ -323,9 +344,10 @@ a single shareable file.
 
 `validate_js_script` wraps `validateCodeNodeBody`
 (`packages/node-sdk/src/code-node-validation.ts`) with the document's declared
-ports and packages — the analysis (syntax, undeclared imports, undefined
-names, undeclared `inputs.*` reads, unreachable output handles) is shared, not
-forked. On top of the body check, document-level rules:
+ports and `allowInstalledPackages` — the analysis (syntax, missing installed
+packs, undefined names, undeclared `inputs.*` reads, unreachable output
+handles) is shared, not forked. A script does not declare packages. On top of
+the body check, document-level rules:
 
 - duplicate or non-identifier port names; a port type the type system lacks
 - a test case referencing an undeclared input, staging a stream for one, or
@@ -449,8 +471,8 @@ handle is reachable through `stream` and never through `inputs`.
    `jsscript-tools` eval. Agents and other scripts can invoke scripts.
 3. **Attachment**: Code node `script` link (link/extract/detach, pinned
    version, graph validation), mini-app `OperationTarget` + bundle scripts +
-   `app debug` coverage. Landed, minus the web app runtime's own execution
-   path for a script operation (see the note under *From mini apps*).
+   `app debug` coverage, the web app runtime's execution path, and the app
+   builder's target picker. Landed.
 
 Each phase lands green on its own; nothing in phase 1 depends on a later
 phase's schema.
@@ -462,22 +484,27 @@ phase's schema.
   rejects bad ports/tests. New checks proven failable with inverted fixtures.
 - Validation (`packages/node-sdk` + capability tests): each document-level
   rule red on a fixture built to violate it, green on the shipped fixtures.
-- Execution (`packages/agents`): `run_js_script` hermeticity (no `tools`
-  global), secret intersection, depth cap and cycle error, emit ordering
-  parity with `run_code`.
+- Execution (`packages/agents`): `run_js_script` exposes `tools` /
+  `nodetool` and can call `list_js_scripts`; `run_code` stays hermetic;
+  secret intersection, depth cap and cycle error (including a nested
+  `tools.run_js_script` of the same id), emit ordering parity with
+  `run_code`.
 - Web (`web/`): surface renders, autosave CAS retry, bridge
   registration/teardown, tools against a mounted surface (Jest, RTL).
 - Harness: `jsscript test` on a fixture with one deliberately failing case
   exits non-zero; `harness audit` passes with the new surface entry.
 - E2E (phase 3): a mini app with a script operation runs under
   `nodetool app debug`; a workflow with a linked-script Code node runs under
-  `nodetool debug`.
+  `nodetool debug`. In the browser (`useAppRuntime`): the ports become the
+  bindable IO, a run reaches the endpoint with the mapped values keyed by port
+  name and never touches a workflow runner, and a failed run lands as a failed
+  invocation. Switching an operation's target drops its stale mappings
+  (`doc-ops`), proven failable by inverting the check.
 
 ## Out of scope
 
 - Guest→guest `import` of scripts (module specifier) — deferred, see
   Invocation.
-- A toolbelt inside script bodies — scripts stay hermetic functions.
 - TypeScript bodies, npm dependencies beyond declared sandbox packs, and
   script sharing/marketplace.
 - Mobile editing — mobile opens documents read-only per its architecture;

@@ -12,7 +12,10 @@
  * Pure functions, no I/O — {@link validateCodeNodeBody} is called by
  * `validateGraph` and unit-tested directly.
  */
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
+import {
+  SANDBOX_CAPABILITY_PACK,
+  type SandboxModuleDeclaration
+} from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 import type { CodeBodyStatement } from "./code-analysis.js";
@@ -74,7 +77,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Host bridges
   "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "emit", "output", "format",
-  "image", "canvas", "media", "stream",
+  "image", "audio", "video", "canvas", "media", "stream",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",
   "parallelMap", "createCanvas",
@@ -160,10 +163,26 @@ export interface CodeNodeValidationInput {
    * a warning.
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * A JS script has no `packages` setting: every installed pack and every
+   * platform module (`@nodetool-ai/sandbox-nodetool/<namespace>`) resolves by
+   * import. When this is set, an undeclared import is not an error, unused
+   * declarations are not warned, and only imported pack specifiers are
+   * checked against the catalog.
+   */
+  allowInstalledPackages?: boolean;
 }
 
 function formatNames(names: readonly string[]): string {
   return names.map((name) => `"${name}"`).join(", ");
+}
+
+/** NodeTool's own guest modules — not pack declarations. */
+function isCapabilitySpecifier(specifier: string): boolean {
+  return (
+    specifier === SANDBOX_CAPABILITY_PACK ||
+    specifier.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)
+  );
 }
 
 /**
@@ -212,8 +231,8 @@ export function validateCodeNodeBody(
       code: "code_module",
       message:
         "The code uses `export` at the top level. The body runs inside an async " +
-        "function, which cannot contain an export declaration — return an object " +
-        "instead; its keys become the node's output handles."
+        "function, which cannot contain an export declaration. Write top-level " +
+        "statements only — do not wrap the body in `export async function run`."
     });
   }
 
@@ -221,8 +240,15 @@ export function validateCodeNodeBody(
     (input.declaredPackages ?? []).map((declaration) => declaration.specifier)
   );
   const imported = staticImportSpecifiers(parsed.statements);
+  const allowInstalled = input.allowInstalledPackages === true;
   const undeclaredImports = [
-    ...new Set(imported.filter((specifier) => !declaredSpecifiers.has(specifier)))
+    ...new Set(
+      imported.filter((specifier) => {
+        if (declaredSpecifiers.has(specifier)) return false;
+        if (allowInstalled && isCapabilitySpecifier(specifier)) return false;
+        return !allowInstalled;
+      })
+    )
   ].sort();
   if (undeclaredImports.length > 0) {
     issues.push({
@@ -245,14 +271,26 @@ export function validateCodeNodeBody(
     issues.push({
       severity: "error",
       code: "code_module",
-      message:
-        `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
-        "the loader denies every dynamic resolution. Declare the module in the node's " +
-        "`packages` property and import it with a static `import` at the top of the code."
+      message: allowInstalled
+        ? `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
+          "the loader denies every dynamic resolution. Import the module with a static " +
+          "`import` at the top of the code."
+        : `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
+          "the loader denies every dynamic resolution. Declare the module in the node's " +
+          "`packages` property and import it with a static `import` at the top of the code."
     });
   }
 
-  if (declaredSpecifiers.size > 0) {
+  if (allowInstalled) {
+    issues.push(
+      ...catalogIssues(
+        input.sandboxModuleCatalog,
+        imported
+          .filter((specifier) => !isCapabilitySpecifier(specifier))
+          .map((specifier) => ({ specifier }))
+      )
+    );
+  } else if (declaredSpecifiers.size > 0) {
     const unusedPackages = [...declaredSpecifiers].filter(
       (specifier) => !imported.includes(specifier)
     );

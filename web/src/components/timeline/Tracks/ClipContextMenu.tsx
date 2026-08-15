@@ -1,4 +1,3 @@
-import React from "react";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";

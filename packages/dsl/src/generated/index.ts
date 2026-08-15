@@ -52,7 +52,6 @@ export * as image from "./nodetool.image.js";
 export * as input from "./nodetool.input.js";
 export * as model3d from "./nodetool.model3d.js";
 export * as output from "./nodetool.output.js";
-export * as sandbox from "./nodetool.sandbox.js";
 export * as script from "./nodetool.script.js";
 export * as sketch from "./nodetool.sketch.js";
 export * as text from "./nodetool.text.js";

@@ -7,6 +7,14 @@
  * After load: watch the store and autosave with a debounce, using the
  * server's `updatedAt` as a CAS token (`baseUpdatedAt`). On a conflict the
  * server copy wins and is reloaded.
+ *
+ * A save that fails is reported to the user. A rejection the server will never
+ * accept — an invalid document, a permission error — is not retried at all; a
+ * transient one gets a bounded number of retries. The local edits stay in the
+ * store either way, so nothing is lost while the board is open.
+ *
+ * The hook also registers a flush in {@link registerStoryboardSaver}, so a
+ * caller that wrote into the store can learn whether the write persisted.
  */
 
 import { useEffect, useRef } from "react";
@@ -18,6 +26,15 @@ import {
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  isPermanentSaveError,
+  MAX_TRANSIENT_SAVE_RETRIES
+} from "../../utils/saveErrors";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  registerStoryboardSaver,
+  type StoryboardSaveResult
+} from "./storyboardSaveRegistry";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -65,15 +82,25 @@ const responseToBoard = (
 const isNotFound = (error: unknown): boolean =>
   /not found/i.test(getErrorMessage(error));
 
+const isConflict = (error: unknown): boolean =>
+  /modified since last read/i.test(getErrorMessage(error));
+
 export const useStoryboardServerSync = (boardId: string): void => {
   const utils = trpc.useUtils();
   // The board object reference last written to / read from the server; any
   // other reference in the store means unsaved local edits.
   const syncedRef = useRef<StoryboardBoard | null>(null);
   const inFlightRef = useRef(false);
+  // The save currently in flight, so a flush can await it instead of starting
+  // a second, overlapping save.
+  const inFlightPromiseRef = useRef<Promise<StoryboardSaveResult> | null>(null);
   // Set when unmount catches a save mid-flight: the finally block runs one
   // more flush save so the pending edit isn't lost with the timer.
   const flushAfterSaveRef = useRef(false);
+  // Consecutive failed attempts for the current edit. Reset by a new edit and
+  // by a save that lands.
+  const retriesRef = useRef(0);
+  const loadPromiseRef = useRef<Promise<void> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -116,18 +143,31 @@ export const useStoryboardServerSync = (boardId: string): void => {
       }
     };
 
-    const save = async (flush = false): Promise<void> => {
-      if (inFlightRef.current) {
-        if (flush) flushAfterSaveRef.current = true;
-        return;
-      }
-      if (disposed && !flush) return;
-      const board = store.getState().boards[boardId];
-      const revision = store.getState().serverRevisions[boardId];
-      if (!board || !revision || board === syncedRef.current) return;
+    /** Tell the user their storyboard is not on the server. */
+    const reportFailure = (message: string): void => {
+      const title = store.getState().boards[boardId]?.title;
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        alert: true,
+        dismissable: true,
+        dedupeKey: `storyboard-save-failed:${boardId}`,
+        replaceExisting: true,
+        content:
+          `Storyboard ${title ? `"${title}"` : boardId} could not be saved. ` +
+          `Your edits are still open here but are not on the server. ${message}`
+      });
+    };
 
-      inFlightRef.current = true;
+    /** The board's last known server state, for a caller that flushes. */
+    const currentRevision = (): string | null =>
+      store.getState().serverRevisions[boardId] ?? null;
+
+    const runSave = async (
+      board: StoryboardBoard,
+      revision: string
+    ): Promise<StoryboardSaveResult> => {
       let saved = false;
+      let result: StoryboardSaveResult;
       try {
         const updated = await trpcClient.storyboards.update.mutate({
           id: boardId,
@@ -139,6 +179,8 @@ export const useStoryboardServerSync = (boardId: string): void => {
         store.getState().setServerRevision(boardId, updated.updatedAt);
         syncedRef.current = board;
         saved = true;
+        retriesRef.current = 0;
+        result = { ok: true, updatedAt: updated.updatedAt };
         void utilsRef.current.storyboards.list.invalidate();
         // Edits landed while the save was in flight — go again (via the
         // flush chain when the hook is already unmounted).
@@ -150,24 +192,81 @@ export const useStoryboardServerSync = (boardId: string): void => {
           }
         }
       } catch (error) {
+        const message = getErrorMessage(error, "The server rejected the save.");
+        result = { ok: false, error: message };
         console.error("Storyboard autosave failed", error);
-        // Unmounted mid-flush: no live hook remains to retry or reload; the
-        // next mount reconciles against the server copy.
-        if (disposed) return;
-        if (/modified since last read/i.test(getErrorMessage(error))) {
-          // CAS conflict: the server copy wins.
-          await load();
-        } else {
-          // Transient failure: keep local edits, retry later.
+        if (isConflict(error)) {
+          // CAS conflict: the server copy wins. Unmounted mid-flush, no live
+          // hook remains to reload — the next mount reconciles instead.
+          if (!disposed) await load();
+        } else if (isPermanentSaveError(error)) {
+          // Resending the same document can never succeed. Say so once and
+          // stop, instead of a retry loop nobody can see.
+          retriesRef.current = 0;
+          reportFailure(message);
+        } else if (disposed) {
+          // No live hook remains to retry; the user must still learn of it.
+          reportFailure(message);
+        } else if (retriesRef.current < MAX_TRANSIENT_SAVE_RETRIES) {
+          retriesRef.current += 1;
           schedule(RETRY_DELAY_MS);
+        } else {
+          retriesRef.current = 0;
+          reportFailure(message);
         }
       } finally {
         inFlightRef.current = false;
+        inFlightPromiseRef.current = null;
         if (saved && flushAfterSaveRef.current) {
           flushAfterSaveRef.current = false;
           void save(true);
         }
       }
+      return result;
+    };
+
+    const save = (flush = false): Promise<StoryboardSaveResult> => {
+      if (inFlightRef.current) {
+        if (flush) flushAfterSaveRef.current = true;
+        return (
+          inFlightPromiseRef.current ??
+          Promise.resolve({ ok: true, updatedAt: currentRevision() })
+        );
+      }
+      const board = store.getState().boards[boardId];
+      const revision = store.getState().serverRevisions[boardId];
+      if (
+        (disposed && !flush) ||
+        !board ||
+        !revision ||
+        board === syncedRef.current
+      ) {
+        return Promise.resolve({ ok: true, updatedAt: revision ?? null });
+      }
+
+      inFlightRef.current = true;
+      const pending = runSave(board, revision);
+      inFlightPromiseRef.current = pending;
+      return pending;
+    };
+
+    /**
+     * Save now instead of on the debounce, and report the outcome. Waits out
+     * the initial load and any save already in flight, so two callers never
+     * produce two overlapping writes.
+     */
+    const flushNow = async (): Promise<StoryboardSaveResult> => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      await loadPromiseRef.current;
+      while (inFlightRef.current) {
+        const pending = inFlightPromiseRef.current;
+        if (!pending) break;
+        await pending;
+      }
+      return save(true);
     };
 
     const schedule = (delayMs: number = AUTOSAVE_DEBOUNCE_MS): void => {
@@ -182,6 +281,8 @@ export const useStoryboardServerSync = (boardId: string): void => {
       if (state.boards[boardId] === syncedRef.current) return;
       // Only autosave once the server revision is known (initial load done).
       if (!state.serverRevisions[boardId]) return;
+      // A new edit is new content: give it a full retry budget.
+      retriesRef.current = 0;
       schedule();
     });
 
@@ -199,10 +300,16 @@ export const useStoryboardServerSync = (boardId: string): void => {
       }
     });
 
-    void load();
+    // A caller that wrote into the store can flush and read the outcome for as
+    // long as this board is open.
+    registerStoryboardSaver(boardId, flushNow);
+
+    loadPromiseRef.current = load();
+    void loadPromiseRef.current;
 
     return () => {
       disposed = true;
+      registerStoryboardSaver(boardId, null);
       unwatch();
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);

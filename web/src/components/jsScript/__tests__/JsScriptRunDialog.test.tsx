@@ -1,6 +1,6 @@
 /**
- * The run dialog's two input modes: one value per handle for a buffered body,
- * a JSON array of staged items per handle for a body that reads `stream`.
+ * The run dialog's two input modes: typed property widgets for a buffered
+ * body, a JSON array of staged items per handle for a body that reads `stream`.
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,7 +12,7 @@ import JsScriptRunDialog, { parseStagedItems } from "../JsScriptRunDialog";
 const renderDialog = (element: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{element}</ThemeProvider>);
 
-const inputs = [{ name: "numbers", type: "int" }];
+const intPort = { name: "numbers", type: "int" };
 
 describe("parseStagedItems", () => {
   it("reads a JSON array as the items to stage", () => {
@@ -33,7 +33,7 @@ describe("JsScriptRunDialog", () => {
       <JsScriptRunDialog
         open
         streaming
-        inputs={inputs}
+        inputs={[intPort]}
         onClose={() => {}}
         onRun={onRun}
       />
@@ -53,20 +53,81 @@ describe("JsScriptRunDialog", () => {
     });
   });
 
-  it("passes one value per handle for a buffered body", async () => {
+  it("uses a number control for an int port and sends the displayed default", async () => {
     const onRun = jest.fn();
     renderDialog(
       <JsScriptRunDialog
         open
-        inputs={inputs}
+        inputs={[intPort]}
         onClose={() => {}}
         onRun={onRun}
       />
     );
 
-    await userEvent.type(screen.getByLabelText("numbers (int)"), "7");
+    expect(screen.getByLabelText("Increase numbers")).toBeInTheDocument();
+    expect(screen.queryByLabelText("numbers (int)")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Run" }));
 
-    expect(onRun).toHaveBeenCalledWith({ inputs: { numbers: 7 } });
+    expect(onRun).toHaveBeenCalledWith({ inputs: { numbers: 0 } });
+  });
+
+  it("uses a text control for a str port", async () => {
+    const onRun = jest.fn();
+    renderDialog(
+      <JsScriptRunDialog
+        open
+        inputs={[{ name: "prompt", type: "str" }]}
+        onClose={() => {}}
+        onRun={onRun}
+      />
+    );
+
+    await userEvent.type(screen.getByLabelText("Prompt"), "hello");
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    expect(onRun).toHaveBeenCalledWith({ inputs: { prompt: "hello" } });
+  });
+
+  it("uses a switch for a bool port", async () => {
+    const onRun = jest.fn();
+    renderDialog(
+      <JsScriptRunDialog
+        open
+        inputs={[{ name: "flag", type: "bool" }]}
+        onClose={() => {}}
+        onRun={onRun}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("switch"));
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    expect(onRun).toHaveBeenCalledWith({ inputs: { flag: true } });
+  });
+
+  it("reads list and dict ports as JSON", async () => {
+    const onRun = jest.fn();
+    renderDialog(
+      <JsScriptRunDialog
+        open
+        inputs={[
+          { name: "items", type: "list" },
+          { name: "meta", type: "dict" }
+        ]}
+        onClose={() => {}}
+        onRun={onRun}
+      />
+    );
+
+    await userEvent.type(
+      screen.getByLabelText("items (list)"),
+      "[[1, 2]"
+    );
+    await userEvent.type(screen.getByLabelText("meta (dict)"), '{{"a":1}');
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    expect(onRun).toHaveBeenCalledWith({
+      inputs: { items: [1, 2], meta: { a: 1 } }
+    });
   });
 });

@@ -168,34 +168,17 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
  *   creative-text toolkit and ASR, but the folder/asset loaders and the two
  *   filesystem writers (`SaveText`, `SaveTextFile` — both call fs.writeFile on
  *   an unsandboxed host path) are dropped, for the same reason.
- * - `nodetool.agents.*` — the developer/automation-flavored agents that wrap
- *   the very integrations the cloud profile drops (shell, git, sqlite,
- *   supabase, http, filesystem, browser, office docs). Kept agents: Agent,
- *   Classifier, Extractor, Summarizer, CreateThread, ImageAgent, MediaAgent,
- *   FfmpegAgent, DocumentAgent.
+ * - `nodetool.agents.*` — kept as a namespace for Agent, Classifier,
+ *   Extractor, Summarizer, CreateThread, and EnhancePrompt. Specialist
+ *   tool-agent nodes were removed; ffmpeg, yt-dlp, and browser are
+ *   CodeAct capabilities instead.
  */
 export const CLOUD_NODE_DENYLIST: readonly string[] = [
   ...CLOUD_HOST_FILE_NODES,
   "nodetool.text.LoadTextFolder",
   "nodetool.text.LoadTextAssets",
   "nodetool.text.SaveText",
-  "nodetool.text.SaveTextFile",
-  "nodetool.agents.BrowserAgent",
-  "nodetool.agents.LiveBrowserAgent",
-  "nodetool.agents.DocxAgent",
-  "nodetool.agents.EmailAgent",
-  "nodetool.agents.FilesystemAgent",
-  "nodetool.agents.GitAgent",
-  "nodetool.agents.HtmlAgent",
-  "nodetool.agents.HttpApiAgent",
-  "nodetool.agents.PdfLibAgent",
-  "nodetool.agents.PptxAgent",
-  "nodetool.agents.SQLiteAgent",
-  "nodetool.agents.ShellAgent",
-  "nodetool.agents.SpreadsheetAgent",
-  "nodetool.agents.SupabaseAgent",
-  "nodetool.agents.VectorStoreAgent",
-  "nodetool.agents.YtDlpDownloaderAgent"
+  "nodetool.text.SaveTextFile"
 ];
 
 /**

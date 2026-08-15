@@ -167,4 +167,50 @@ describe("arePropsEqual", () => {
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
+  it("detects a dynamic_inputs type change with unchanged values", () => {
+    // Connecting to an existing slot (or picking a type the current value
+    // still fits) writes only `dynamic_inputs`. The handle class is
+    // `Slugify(type)` — if this compare skips that map, the handle stays grey.
+    const values = { a: "" };
+    const a = makeProps({
+      data: {
+        ...makeProps().data,
+        dynamic_properties: values,
+        dynamic_inputs: {
+          a: { type: { type: "any", optional: false, type_args: [] } }
+        }
+      } as unknown as NodeData
+    });
+    const b = makeProps({
+      data: {
+        ...makeProps().data,
+        dynamic_properties: values,
+        dynamic_inputs: {
+          a: { type: { type: "image", optional: false, type_args: [] } }
+        }
+      } as unknown as NodeData
+    });
+    expect(arePropsEqual(a, b)).toBe(false);
+  });
+
+  it("detects a dynamic_outputs type change with the same keys", () => {
+    const a = makeProps({
+      data: {
+        ...makeProps().data,
+        dynamic_outputs: {
+          out: { type: "any", optional: false, type_args: [] }
+        }
+      } as unknown as NodeData
+    });
+    const b = makeProps({
+      data: {
+        ...makeProps().data,
+        dynamic_outputs: {
+          out: { type: "str", optional: false, type_args: [] }
+        }
+      } as unknown as NodeData
+    });
+    expect(arePropsEqual(a, b)).toBe(false);
+  });
+
 });

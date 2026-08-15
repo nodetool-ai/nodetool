@@ -75,6 +75,7 @@ import {
 } from "./editor-shell";
 import { ConnectedGeneratedLayerSection } from "./Inspector";
 import SketchAgentPanel from "./SketchAgentPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
@@ -333,6 +334,32 @@ function SketchEditor({
           );
         }
         return outcomes;
+      },
+      applyLayerRasterOp: (layerId, label, mutate) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          throw new Error("The canvas is not ready yet.");
+        }
+        canvas.drainPendingStrokeCommit();
+        pushHistory(label, { [layerId]: canvas.snapshotLayerCanvas(layerId) });
+        canvas.mutateLayerPixels(layerId, mutate);
+        session.canvasActions.handleStrokeEnd(
+          layerId,
+          canvas.getLayerData(layerId)
+        );
+      },
+      cropDocument: (x, y, width, height) => {
+        session.canvasActions.handleCropComplete(x, y, width, height);
+      },
+      sampleColor: (layerId, x, y) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          throw new Error("The canvas is not ready yet.");
+        }
+        if (layerId === null) {
+          return canvas.sampleComposite(x, y);
+        }
+        return canvas.sampleLayer(layerId, x, y);
       },
       clearActiveLayer: () => session.canvasActions.handleClearLayer(),
       fitViewToScreen: () => session.canvasActions.handleZoomFit()
@@ -628,22 +655,13 @@ function SketchEditor({
           same panelsHidden chrome toggle so Tab collapses it too. On mobile
           it moves into a bottom sheet (below). */}
         {!panelsHidden && !isMobile && assistantPanelOpen && (
-          <FlexColumn
+          <ResizableSideDock
+            storageKey="sketch_assistant"
             className="sketch-editor__assistant-panel"
-            sx={{
-              width: SKETCH_SIZE.assistantPanelWidth,
-              minWidth: SKETCH_SIZE.assistantPanelWidth,
-              maxWidth: SKETCH_SIZE.assistantPanelWidth,
-              minHeight: 0,
-              flexShrink: 0,
-              backgroundColor: theme.vars.palette.background.paper,
-              borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              overflow: "hidden"
-            }}
-            gap={0}
+            ariaLabel="Resize sketch assistant"
           >
             <SketchAgentPanel />
-          </FlexColumn>
+          </ResizableSideDock>
         )}
       </FlexRow>
 

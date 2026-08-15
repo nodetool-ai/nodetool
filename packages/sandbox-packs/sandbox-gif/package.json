@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-gif",
+  "version": "0.7.0-rc.35",
+  "description": "Encode an animated GIF from RGBA frames inside the NodeTool sandbox, from gifenc",
+  "license": "MIT",
+  "dependencies": {
+    "gifenc": "^1.0.3"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "gifenc"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-gif"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "gif",
+    "animation",
+    "encode"
+  ]
+}

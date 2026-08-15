@@ -88,6 +88,23 @@ const SOLUTIONS: Record<string, string[]> = {
        total: listed.memories.length
      });`
   ],
+  "threads-recall": [
+    `const listed = await nodetool.threads.list({limit: 10});
+     let threadId = null;
+     for (const t of listed.threads) {
+       if (t.title.toLowerCase().indexOf("banner") >= 0) threadId = t.id;
+     }
+     const thread = await nodetool.threads.get(threadId);
+     let messageId = null;
+     for (const m of thread.messages) {
+       if (m.tool_calls && m.tool_calls.length > 0) messageId = m.id;
+     }
+     const full = await nodetool.threads.message(messageId);
+     await finish({
+       threadId: threadId,
+       model: full.tool_calls[0].args.model
+     });`
+  ],
   "shared-handoff": [
     `const listed = await nodetool.shared.list();
      let pricingKey = null;
@@ -206,17 +223,15 @@ const SOLUTIONS: Record<string, string[]> = {
        remaining: again.messages.length
      });`
   ],
-  "style-aware-app-build": [
+  "style-aware-app-check": [
     `const profile = await nodetool.style.profile();
-     const build = await nodetool.apps.build(
-       "An app that drafts a short note from a prompt. Match this style: " + profile);
-     const dbg = await nodetool.apps.debug(build.application_id, {run: false});
+     const dbg = await nodetool.apps.debug("app_notes", {run: false});
      const pref = await nodetool.style.record(
        "Likes the dark, high-contrast variant of the note app", {chosen: "dark"});
      await finish({
-       styleApplied: build.style_applied,
-       verdictOk: build.verdict.ok,
-       debugOk: dbg.verdict.ok,
+       verdictOk: dbg.verdict.ok,
+       ran: dbg.ran,
+       widgets: dbg.widgets.length,
        preferences: pref.total
      });`
   ]

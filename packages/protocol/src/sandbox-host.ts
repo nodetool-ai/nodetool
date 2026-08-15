@@ -183,6 +183,63 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     library: "office-text-extractor",
     description: "Extract text from a PowerPoint file, whole or per slide.",
     exports: ["extractText", "extractSlides"]
+  },
+  fabric: {
+    id: "fabric",
+    packName: "@nodetool-ai/sandbox-fabric",
+    library: "fabric",
+    description:
+      "Build, parse, and rasterize SVG with Fabric.js (renderSVG, loadSVG, render).",
+    exports: ["render", "renderSVG", "loadSVG", "toDataURL"]
+  },
+  pdflib: {
+    id: "pdflib",
+    packName: "@nodetool-ai/sandbox-pdflib",
+    library: "pdf-lib",
+    description: "Build and merge PDF files from a JSON page list.",
+    exports: ["build", "merge"]
+  },
+  pptxgen: {
+    id: "pptxgen",
+    packName: "@nodetool-ai/sandbox-pptxgen",
+    library: "pptxgenjs",
+    description: "Build a PowerPoint file from a JSON slide list.",
+    exports: ["build"]
+  },
+  chrono: {
+    id: "chrono",
+    packName: "@nodetool-ai/sandbox-chrono",
+    library: "chrono-node",
+    description: "Parse natural-language dates into ISO timestamps.",
+    exports: ["parseDate", "parse"]
+  },
+  exif: {
+    id: "exif",
+    packName: "@nodetool-ai/sandbox-exif",
+    library: "exifr",
+    description: "Read EXIF and other photo metadata from image bytes.",
+    exports: ["parse"]
+  },
+  expr: {
+    id: "expr",
+    packName: "@nodetool-ai/sandbox-expr",
+    library: "expr-eval",
+    description: "Evaluate a math formula without eval.",
+    exports: ["evaluate"]
+  },
+  ics: {
+    id: "ics",
+    packName: "@nodetool-ai/sandbox-ics",
+    library: "ics",
+    description: "Build iCalendar (.ics) text from event objects.",
+    exports: ["createEvent", "createEvents"]
+  },
+  subtitle: {
+    id: "subtitle",
+    packName: "@nodetool-ai/sandbox-subtitle",
+    library: "subtitle",
+    description: "Parse and write SRT and WebVTT captions.",
+    exports: ["parse", "stringify"]
   }
 } as const;
 

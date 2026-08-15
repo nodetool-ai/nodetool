@@ -68,6 +68,7 @@ beforeEach(() => {
   mkdirSync(nodeModules, { recursive: true });
   for (const key of [
     "NODETOOL_ENV",
+    "NODETOOL_PACKS_REQUIRE_ALLOWLIST",
     "NODETOOL_PACKS_ALLOWLIST",
     "NODETOOL_PACKS_CONFIG"
   ]) {
@@ -298,6 +299,14 @@ describe("trust / allowlist", () => {
   it("defaults to allowUnlisted=true outside production", () => {
     delete process.env["NODETOOL_ENV"];
     expect(resolvePackTrust().allowUnlisted).toBe(true);
+  });
+
+  // The packaged desktop app must not run in production mode (that disables
+  // local-only features), so it requests the allowlist with this flag instead.
+  it("defaults to allowUnlisted=false when NODETOOL_PACKS_REQUIRE_ALLOWLIST=1", () => {
+    delete process.env["NODETOOL_ENV"];
+    process.env["NODETOOL_PACKS_REQUIRE_ALLOWLIST"] = "1";
+    expect(resolvePackTrust().allowUnlisted).toBe(false);
   });
 
   it("reads the allowlist from NODETOOL_PACKS_ALLOWLIST", () => {

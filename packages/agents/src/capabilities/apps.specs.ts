@@ -11,59 +11,6 @@
 import type { CapabilitySpec } from "./types.js";
 import { type JsonSchema } from "@nodetool-ai/runtime";
 
-export const BUILD_APP_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    prompt: {
-      type: "string",
-      description: "What the app should do, in the user's own terms"
-    },
-    spec: {
-      type: "object",
-      description:
-        "A pinned BuildSpec to build instead of writing one from the prompt"
-    },
-    provider: {
-      type: "string",
-      description:
-        "Provider id for the build's own model calls. Defaults to the " +
-        "provider of the agent making this call."
-    },
-    model: {
-      type: "string",
-      description:
-        "Model id the build authors with. Defaults to the model of the " +
-        "agent making this call."
-    },
-    workflow_ids: {
-      type: "array",
-      items: { type: "string" },
-      description:
-        "Existing workflow ids to pin, in the spec's operation order — " +
-        "these are bound instead of planned"
-    },
-    max_repairs: {
-      type: "number",
-      description: "Repair rounds allowed after the first pass (default 3)"
-    },
-    cost_cap_usd: {
-      type: "number",
-      description: "Ceiling on what the build may spend (default 2)"
-    },
-    timeout_ms: {
-      type: "number",
-      description: "Wall clock for the whole build (default 600000)"
-    },
-    poll: {
-      type: "boolean",
-      description:
-        "Return a session id as soon as the build starts instead of " +
-        "waiting for it (default false)"
-    }
-  },
-  required: [] as string[]
-};
-
 export const DEBUG_APP_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -114,31 +61,6 @@ export const DEBUG_APP_SCHEMA: JsonSchema = {
   required: [] as string[]
 };
 
-export const buildAppSpec: CapabilitySpec = {
-  name: "build_app",
-  description:
-    "Build a mini app from one sentence of intent and return the build " +
-    "report: the pinned spec, what each stage did, the issues repair rounds " +
-    "fixed, the simulated run of every interaction, a pass/fail verdict, and " +
-    "— only behind a passing verdict — the ApplicationBundle. The bundle is " +
-    "offered, not installed: show the user the verdict and install it with " +
-    "POST /api/applications/import-bundle once they agree. The build's own " +
-    "model calls default to the provider and model YOU are running on — omit " +
-    "provider/model to inherit them; pass both only to build with a " +
-    "different model. A build takes " +
-    "minutes; pass poll=true to get a session id back immediately, then read " +
-    "GET /api/debug/sessions/<id> until it settles or cancel it with POST " +
-    "/api/debug/sessions/<id>/cancel.",
-  inputSchema: BUILD_APP_SCHEMA,
-  category: "execute",
-  userMessage: (params) => {
-    const prompt = params["prompt"];
-    return typeof prompt === "string" && prompt.trim()
-      ? `Building an app: ${prompt}`
-      : "Building an app from the given spec";
-  }
-};
-
 export const debugAppSpec: CapabilitySpec = {
   name: "debug_app",
   description:
@@ -167,7 +89,4 @@ export const debugAppSpec: CapabilitySpec = {
 };
 
 /** Every spec this module declares, in declaration order. */
-export const appsSpecs: readonly CapabilitySpec[] = [
-  buildAppSpec,
-  debugAppSpec
-];
+export const appsSpecs: readonly CapabilitySpec[] = [debugAppSpec];

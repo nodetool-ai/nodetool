@@ -2,7 +2,7 @@
 
 PDF and generic document I/O nodes for [NodeTool](https://nodetool.ai).
 
-Load and save documents, and rasterize PDF pages, in visual AI workflows.
+Load and save documents, extract PDF text, and rasterize PDF pages, in visual AI workflows.
 
 ## Install
 
@@ -15,7 +15,8 @@ npm install @nodetool-ai/document-nodes
 **Document** (`nodetool.document.*`) — load and save documents:
 `LoadDocumentFile`, `SaveDocumentFile`, `ListDocuments`.
 
-**PDF** (`lib.pdf.*`) — `Screenshot`, `Pdftoppm`.
+**PDF** (`lib.pdf.*`) — `ExtractText`, `ExtractMarkdown`, `ExtractTables`,
+`ExtractStyledText`, `ExtractOcr`, `Screenshot`, `Pdftoppm`.
 
 ## Links
 

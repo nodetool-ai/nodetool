@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-color",
+  "version": "0.7.0-rc.35",
+  "description": "Color conversion, mixing, and difference (deltaE) inside the NodeTool sandbox, from culori",
+  "license": "MIT",
+  "dependencies": {
+    "culori": "^4.0.2"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "culori"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-color"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "color",
+    "culori",
+    "deltae"
+  ]
+}

@@ -63,17 +63,21 @@ describe("backend utilityProcess spawn contract", () => {
       "STATIC_FOLDER",
       "NODETOOL_PYTHON",
       "NODE_ENV",
-      "NODETOOL_ENV",
+      "NODETOOL_PACKS_REQUIRE_ALLOWLIST",
       "NODE_OPTIONS",
       "NODE_PATH",
     ];
+    // NODETOOL_ENV must stay OUT of this shape: production mode disables
+    // local-only server features (Python bridge, file browser, vector nodes)
+    // that the desktop app depends on. Pack trust comes from the dedicated
+    // NODETOOL_PACKS_REQUIRE_ALLOWLIST flag instead.
     const backendEnv: Record<string, string> = {
       PORT: "7777",
       HOST: "127.0.0.1",
       STATIC_FOLDER: "/mock/web",
       NODETOOL_PYTHON: "",
       NODE_ENV: "production",
-      NODETOOL_ENV: "production",
+      NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
       NODE_OPTIONS: "--conditions=nodetool-dev",
       NODE_PATH: "/mock/backend/node_modules",
     };
@@ -110,7 +114,7 @@ describe("backend utilityProcess spawn contract", () => {
           PORT: "7777",
           HOST: "127.0.0.1",
           NODE_ENV: "production",
-          NODETOOL_ENV: "production",
+          NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
         }),
       }),
     );

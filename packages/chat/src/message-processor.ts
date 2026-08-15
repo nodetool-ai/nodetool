@@ -160,8 +160,8 @@ export async function processChat(opts: {
     longTermMemory
   } = opts;
 
-  // Stamp the turn's own selection so harness-launching tools (build_app)
-  // inherit this chat's provider/model when the call doesn't name one.
+  // Stamp the turn's own selection so a tool that launches another harness
+  // inherits this chat's provider/model when the call doesn't name one.
   context.set(ACTIVE_MODEL_CONTEXT_KEY, {
     provider: provider.provider,
     model

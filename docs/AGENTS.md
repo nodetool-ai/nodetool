@@ -186,7 +186,7 @@ lazy implementation table disagree.
 | `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs` |
-| `apps` | `build_app`, `debug_app` |
+| `apps` | `debug_app` |
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script` |
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `critique_image`, `compare_images`, `score_image_adherence` |
@@ -216,9 +216,13 @@ tool**, not a flat catalog.
 
 `registerAgentMcpTools` (`packages/websocket/src/mcp-agent-tools.ts`) builds a
 `createChatCodeActSession` over the derived belt — `getAgentToolbelt()` plus
-`getAllMcpTools()` plus Google Workspace — and registers exactly two tools:
-`execute_code` and `view_image`, which is direct because pixels cannot ride a
-sandbox action's JSON observation envelope. Everything else on that belt is
+`getAllMcpTools()` plus Google Workspace — and registers `execute_code`,
+`view_image`, which is direct because pixels cannot ride a sandbox action's JSON
+observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
+`SDK_NATIVE_TOOL_REPLACEMENTS`, because an MCP client is the host agent that
+table describes and its own `read_file` must not sit beside NodeTool's. What
+survives is discovery, the server-side reach behind NodeTool's SSRF guard and
+secrets, and `run_subtask`. Everything else on that belt is
 reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
 model, or found with `await nodetool.searchTools("query")`. MCP has no system
 prompt, so the guest contract leads the `execute_code` description and is also
@@ -227,16 +231,18 @@ the server `instructions` string. The machine-readable form is
 
 It used to register all ~95 bridged tools flat, which made a scoped MCP session
 NodeTool's largest surface anywhere — 120 tools and ~27k tokens of schema before
-the caller did anything. It is two tools now, and it cannot drift from the chat
-surface because both call the same session builder.
+the caller did anything. It is one action tool plus the direct set now, and it
+cannot drift from the chat surface because both call the same session builder.
 
 `mcp-server.ts` used to hand-build a second product surface beside that one —
 native `run_workflow` / `get_asset` / `get_node_info` / collection tools, a flat
 `ui_*` renderer bridge, and seven MCP App HTML views. All of it is gone; each
-capability stays available inside an action. A **scoped** session does not get
-the `ui_*` renderer bridge at all — those tools serve a connected editor, and a
-scoped caller edits persisted documents through `openWorkflow()` in an action
-instead.
+capability stays available inside an action. The `ui_*` tools are on the belt of
+a scoped session: `runBridgedTool` routes one to a connected editor over the
+websocket renderer registry, optionally targeted with `renderer_id` (list them
+with `list_renderers`). A workflow-document tool falls back to its server-side
+implementation when no editor is open; any other `ui_*` call reports that it
+needs one.
 
 ### Workflow Harness Tools
 
@@ -254,13 +260,11 @@ from inside an agent:
   refused at save and at run rather than surfacing mid-execution.
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
-- **`build_app`** — build a mini app from a prompt (or a pinned `BuildSpec`) and
-  return the `BuildReport`: stages, repairs, the simulated interactions, a
-  verdict, and — only behind a passing verdict — the `ApplicationBundle`. Posts
-  to `POST /api/applications/build`. Minutes, not seconds: with `poll: true` it
-  returns a session id to read at `GET /api/debug/sessions/:id` or cancel at
-  `POST /api/debug/sessions/:id/cancel`. The bundle is offered, never installed
-  — install it with `POST /api/applications/import-bundle`.
+- **`debug_app`** — validate a mini app's bindings, simulate it, and return each
+  widget's final state with a verdict. `run: false` is the free, instant wiring
+  check an agent runs after every edit. There is no `build_app` tool: an app is
+  built with the `ui_app_*` editor tools and graded with this one. The batch
+  harness lives on at `POST /api/applications/build` and `nodetool app build`.
 - **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
   background job (poll with `get_job` / `get_job_logs`).
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,

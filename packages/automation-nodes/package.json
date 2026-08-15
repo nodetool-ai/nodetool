@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/automation-nodes",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "description": "NodeTool automation/system nodes — browser control, OS, workspace FS, triggers",
   "type": "module",
   "engines": {
@@ -22,7 +22,6 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/sandbox": "*",
     "@openclaw/fs-safe": "^0.1.2",
     "chrome-launcher": "^1.2.0",
     "chrome-remote-interface": "^0.34.0",

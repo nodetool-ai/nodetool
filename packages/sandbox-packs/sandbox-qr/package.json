@@ -1,0 +1,42 @@
+{
+  "name": "@nodetool-ai/sandbox-qr",
+  "version": "0.7.0-rc.35",
+  "description": "Encode QR codes as a matrix or SVG inside the NodeTool sandbox, from uqr",
+  "license": "MIT",
+  "dependencies": {
+    "uqr": "^0.1.3"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "uqr"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-qr"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "qr",
+    "barcode"
+  ]
+}

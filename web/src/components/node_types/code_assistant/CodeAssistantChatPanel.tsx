@@ -1,41 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useMemo } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { useShallow } from "zustand/react/shallow";
+import { memo, useCallback, useMemo } from "react";
 
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-
-import { FlexColumn, Text, SPACING, getSpacingPx } from "../../ui_primitives";
-import ChatView from "../../chat/containers/ChatView";
-import ChatPanelHeader from "../../chat/containers/ChatPanelHeader";
-import useGlobalChatStore from "../../../stores/GlobalChatStore";
-
-const styles = (_theme: Theme) =>
-  css({
-    "&": {
-      height: "100%",
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column"
-    },
-    // ChatView is tuned for the full-page global chat. Tighten it for this
-    // narrow side panel.
-    "& .chat-view": {
-      padding: `0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(
-        SPACING.xs
-      )} ${getSpacingPx(SPACING.xs)}`
-    },
-    "& .chat-input-section": {
-      width: "100%",
-      maxWidth: "100%"
-    },
-    "& .chat-thread-container": {
-      maxWidth: "100%",
-      paddingBottom: getSpacingPx(SPACING.md)
-    }
-  });
+import AssistantChatPanel from "../../chat/assistant/AssistantChatPanel";
 
 /** Teaches the agent the Code assistant surface and the sandbox contract. */
 const codeAssistantSystemPrompt = (nodeId: string): string =>
@@ -60,141 +25,29 @@ before its import resolves.`;
 export interface CodeAssistantChatPanelProps {
   /** The Code node whose draft the ui_code_* tools edit. */
   nodeId: string;
-  /** The workflow the chat turn is bound to (required for ui_* tools). */
+  /** Kept for the dialog's call site. Not bound onto the chat thread. */
   workflowId: string;
 }
 
-/**
- * Chat surface for the Code assistant dialog. Reuses {@link ChatView} wired to
- * the shared {@link useGlobalChatStore}, so the assistant can call the
- * `ui_code_*` frontend tools the dialog registers on the code assistant
- * bridge, plus the server-side `validate_code` / `run_code` / `test_code`
- * checkers.
- */
-const CodeAssistantChatPanel = ({
-  nodeId,
-  workflowId
-}: CodeAssistantChatPanelProps) => {
-  const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
-
-  const { status, statusMessage, progress } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      statusMessage: state.statusMessage,
-      progress: state.progress
-    }))
+const CodeAssistantChatPanel = ({ nodeId }: CodeAssistantChatPanelProps) => {
+  const getSelection = useCallback(
+    () => ({ node_ids: [nodeId] }),
+    [nodeId]
   );
-
-  const { selectedModel, setSelectedModel } = useGlobalChatStore(
-    useShallow((state) => ({
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel
-    }))
-  );
-
-  const {
-    sendMessage,
-    stopGeneration,
-    connect,
-    createNewThread,
-    switchThread
-  } = useGlobalChatStore(
-    useShallow((state) => ({
-      sendMessage: state.sendMessage,
-      stopGeneration: state.stopGeneration,
-      connect: state.connect,
-      createNewThread: state.createNewThread,
-      switchThread: state.switchThread
-    }))
-  );
-
-  const { currentThreadId, messageCache, getCurrentMessagesSync } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        currentThreadId: state.currentThreadId,
-        messageCache: state.messageCache,
-        getCurrentMessagesSync: state.getCurrentMessagesSync
-      }))
-    );
-  const messages = useMemo(
-    () => getCurrentMessagesSync(),
-    [getCurrentMessagesSync, currentThreadId, messageCache]
-  );
-
-  // Establish the chat connection (and send the frontend-tool manifest, which
-  // includes the ui_code_* tools) when the panel mounts.
-  useEffect(() => {
-    connect().catch((err) => {
-      console.error("Failed to connect Code assistant chat:", err);
-    });
-  }, [connect]);
-
-  const chatStatus = useMemo(
-    () => (status === "stopping" ? "loading" : status),
-    [status]
-  );
-
-  const handleNewChat = useCallback(async () => {
-    try {
-      const id = await createNewThread();
-      switchThread(id);
-    } catch (err) {
-      console.error("Failed to start new Code assistant chat:", err);
-    }
-  }, [createNewThread, switchThread]);
 
   const systemPrompt = useMemo(
     () => codeAssistantSystemPrompt(nodeId),
     [nodeId]
   );
 
-  const welcomePlaceholder = useMemo(
-    () => (
-      <FlexColumn
-        align="center"
-        justify="center"
-        fullHeight
-        padding={3}
-        sx={{ textAlign: "center" }}
-      >
-        <AutoAwesomeIcon sx={{ fontSize: 40, mb: 1.5, opacity: 0.5 }} />
-        <Text size="normal" weight={600} sx={{ mb: 1 }}>
-          Code Assistant
-        </Text>
-        <Text size="small" color="secondary" sx={{ maxWidth: 280 }}>
-          Ask me to write or change this node&apos;s code — e.g. &quot;merge the
-          two lists on id&quot;, &quot;add an error output&quot;, or &quot;test
-          this with a sample list&quot;.
-        </Text>
-      </FlexColumn>
-    ),
-    []
-  );
-
   return (
-    <div css={cssStyles}>
-      <ChatPanelHeader onNewChat={handleNewChat} />
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <ChatView
-          status={chatStatus}
-          messages={messages}
-          workflowId={workflowId}
-          sendMessage={sendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
-          model={selectedModel}
-          onModelChange={setSelectedModel}
-          onStop={stopGeneration}
-          onNewChat={handleNewChat}
-          systemPrompt={systemPrompt}
-          requireToolSupport
-          hideModePicker
-          noMessagesPlaceholder={welcomePlaceholder}
-        />
-      </div>
-    </div>
+    <AssistantChatPanel
+      chatSource="code_assistant"
+      getSelection={getSelection}
+      systemPrompt={systemPrompt}
+      welcomeTitle="Code Assistant"
+      welcomeBody='Ask me to write or change this node code — e.g. "merge the two lists on id", "add an error output", or "test this with a sample list".'
+    />
   );
 };
 

@@ -75,8 +75,10 @@ Inside the sandbox, on top of the standard surface (`console`, `fetch`,
   error-handling idiom. Per-action tool-call cap (`maxToolCallsPerAction`,
   default 50) so a runaway loop can't drain budgets silently.
 - **`state`** — a plain object that persists across actions within the step
-  (host-side, synced back after every run via the sandbox's global sync-back).
-  Fetch once, reuse every turn; never re-fetch to re-look at something.
+  (host-side, synced back after every run via the sandbox's global sync-back,
+  including after a throw). Fetch or generate once, reuse every turn; never
+  re-fetch or re-generate to re-look at something. `return` is the
+  observation only — it does not persist.
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates against the declared schema; an invalid result throws in the guest
   with the violation list, so the same action can repair and retry, or the

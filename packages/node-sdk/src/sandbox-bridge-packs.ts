@@ -41,6 +41,18 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-chrono",
+    packName: "@nodetool-ai/sandbox-chrono",
+    library: "chrono-node",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-color",
+    packName: "@nodetool-ai/sandbox-color",
+    library: "culori",
+    runs: "guest"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-csv",
     packName: "@nodetool-ai/sandbox-csv",
     library: "papaparse",
@@ -50,6 +62,12 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     specifier: "@nodetool-ai/sandbox-dates",
     packName: "@nodetool-ai/sandbox-dates",
     library: "date-fns",
+    runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-decimal",
+    packName: "@nodetool-ai/sandbox-decimal",
+    library: "decimal.js",
     runs: "guest"
   },
   {
@@ -71,10 +89,46 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-exif",
+    packName: "@nodetool-ai/sandbox-exif",
+    library: "exifr",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-expr",
+    packName: "@nodetool-ai/sandbox-expr",
+    library: "expr-eval",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-fabric",
+    packName: "@nodetool-ai/sandbox-fabric",
+    library: "fabric",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-gif",
+    packName: "@nodetool-ai/sandbox-gif",
+    library: "gifenc",
+    runs: "guest"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-html",
     packName: "@nodetool-ai/sandbox-html",
     library: "cheerio + turndown",
     runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-ics",
+    packName: "@nodetool-ai/sandbox-ics",
+    library: "ics",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-jmespath",
+    packName: "@nodetool-ai/sandbox-jmespath",
+    library: "jmespath",
+    runs: "guest"
   },
   {
     specifier: "@nodetool-ai/sandbox-mammoth",
@@ -107,9 +161,45 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-pdflib",
+    packName: "@nodetool-ai/sandbox-pdflib",
+    library: "pdf-lib",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-pptx",
     packName: "@nodetool-ai/sandbox-pptx",
     library: "office-text-extractor",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-pptxgen",
+    packName: "@nodetool-ai/sandbox-pptxgen",
+    library: "pptxgenjs",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-qr",
+    packName: "@nodetool-ai/sandbox-qr",
+    library: "uqr",
+    runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-rrule",
+    packName: "@nodetool-ai/sandbox-rrule",
+    library: "rrule",
+    runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-stats",
+    packName: "@nodetool-ai/sandbox-stats",
+    library: "simple-statistics",
+    runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-subtitle",
+    packName: "@nodetool-ai/sandbox-subtitle",
+    library: "subtitle",
     runs: "host"
   },
   {

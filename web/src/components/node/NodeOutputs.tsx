@@ -10,6 +10,8 @@ import { OutputSlot } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import { Z_INDEX } from "../ui_primitives";
+import { inferredCodeOutputNames } from "../../utils/codeNodeHandles";
+import { ANY_TYPE } from "../../utils/dynamicSlots";
 
 const HANDLE_ROW_HEIGHT = 18;
 
@@ -56,21 +58,41 @@ const NodeOutputsImpl: React.FC<NodeOutputsProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  const dynamicOutputs = useNodes(
-    (state) => state.findNode(id)?.data?.dynamic_outputs,
+  const nodeSlice = useNodes(
+    (state) => {
+      const node = state.findNode(id);
+      return {
+        dynamicOutputs: node?.data?.dynamic_outputs,
+        code: node?.data?.properties?.code,
+        nodeType: node?.type
+      };
+    },
     shallow
   );
 
   const allOutputs: OutputSlot[] = useMemo(() => {
-    const dyn = Object.entries(dynamicOutputs || {}).map(
+    const dyn = Object.entries(nodeSlice.dynamicOutputs || {}).map(
       ([name, type]) => ({ name, type, stream: false } as OutputSlot)
     );
     // A dynamic output supersedes a static one of the same name (e.g. a node
     // that re-types its `output` handle via `dynamic_outputs`), so the handle
     // isn't rendered twice.
     const dynNames = new Set(dyn.map((d) => d.name));
-    return [...outputs.filter((o) => !dynNames.has(o.name)), ...dyn];
-  }, [outputs, dynamicOutputs]);
+    const inferred = inferredCodeOutputNames(
+      typeof nodeSlice.code === "string" ? nodeSlice.code : "",
+      nodeSlice.nodeType
+    )
+      .filter((name) => !dynNames.has(name))
+      .map(
+        (name) =>
+          ({ name, type: { ...ANY_TYPE }, stream: false }) as OutputSlot
+      );
+    return [
+      ...outputs.filter((o) => !dynNames.has(o.name)),
+      ...dyn,
+      ...inferred
+    ];
+  }, [outputs, nodeSlice]);
 
   if (allOutputs.length === 0) {
     return null;

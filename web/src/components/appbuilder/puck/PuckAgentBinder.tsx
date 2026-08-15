@@ -37,6 +37,7 @@ import {
   type PuckData
 } from "@nodetool-ai/app-runtime";
 import type { WorkflowState } from "../workflowState";
+import { useOperationScripts } from "../useOperationScripts";
 
 interface PuckAgentBinderProps {
   config: Config;
@@ -52,6 +53,12 @@ interface PuckAgentBinderProps {
   onMetaChange: (next: AppDocMeta) => void;
   /** Host workflow's bindable surface, for `getBindingTargets`. */
   workflowState: WorkflowState;
+  /**
+   * The bindable surface of every other workflow the operations run, by
+   * workflow id. Without it an operation bound to anything but the host reports
+   * no inputs or outputs, and the agent is left guessing binding tokens.
+   */
+  workflowStates: ReadonlyMap<string, WorkflowState>;
 }
 
 const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
@@ -60,7 +67,8 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
   workflowId,
   meta,
   onMetaChange,
-  workflowState
+  workflowState,
+  workflowStates
 }) => {
   const puck = usePuck();
   const slotFields = useMemo(() => getSlotFields(config), [config]);
@@ -81,6 +89,13 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
   onMetaChangeRef.current = onMetaChange;
   const workflowStateRef = useRef<WorkflowState>(workflowState);
   workflowStateRef.current = workflowState;
+  const workflowStatesRef = useRef(workflowStates);
+  workflowStatesRef.current = workflowStates;
+  // A script operation binds against its ports, so the targets it reports need
+  // the script document — not just the id the operation stores.
+  const scripts = useOperationScripts(meta.operations);
+  const scriptsRef = useRef(scripts);
+  scriptsRef.current = scripts;
 
   useEffect(() => {
     const rand = () => Math.random().toString(36).slice(2, 8);
@@ -223,7 +238,13 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
       },
 
       getBindingTargets: () =>
-        bindingTargets(metaRef.current, workflowId, workflowStateRef.current),
+        bindingTargets(
+          metaRef.current,
+          workflowId,
+          workflowStateRef.current,
+          scriptsRef.current,
+          workflowStatesRef.current
+        ),
 
       // Assembled the way AppBuilderShell's save does — the theme the author
       // picked lives as a root field, everything else comes from the two live

@@ -18,9 +18,7 @@ Accepts a list of chat message objects for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `list[message]` | The list of message objects representing chat history. | `[]` |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

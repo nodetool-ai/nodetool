@@ -145,6 +145,11 @@ export type WorkflowManagerState = {
   queryClient: QueryClient;
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
+  // Workflows created in memory (createNew) that the server has never seen.
+  // Their first save must not send expected_updated_at — the client-fabricated
+  // timestamp makes the server's update route refuse the create-on-first-save
+  // upsert with "Workflow not found".
+  unsavedWorkflowIds: Record<string, true>;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   refreshWorkflow: (workflowId: string, etag?: string) => Promise<void>;
   addWorkflow: (workflow: Workflow) => void;
@@ -259,12 +264,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       nodeStores: {},
       openWorkflows: [],
       notifiedAutosaveVersions: {},
+      unsavedWorkflowIds: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       queryClient: queryClient,
 
       /**
        * Creates a new workflow with default properties.
-       * Uses a local ID (with "local-" prefix) to avoid immediate database save.
        * The workflow is only saved when saveWorkflow() is called for the first time.
        * @returns {Workflow} A new workflow object with default values
        */
@@ -294,8 +299,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       /**
        * Saves the workflow and creates a version entry.
-       * If the workflow has a local ID (starts with "local-"), it will be created
-       * in the database first, then updated with the real ID.
+       * A workflow the server has never seen (created via createNew) is
+       * created on this first save — the server's update route upserts when
+       * no expected_updated_at is sent.
        * @param {Workflow} workflow - The workflow to save
        * @returns {Promise<void>}
        * @throws {Error} If the save operation fails
@@ -307,6 +313,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // us whether the user edited the graph while the save was in flight.
         const nodeStoreBefore = get().nodeStores[workflow.id];
         const stateBefore = nodeStoreBefore?.getState();
+        // A never-persisted workflow only has a client-fabricated updated_at;
+        // sending it as expected_updated_at makes the server refuse the
+        // create-on-first-save upsert with "Workflow not found".
+        const neverPersisted = Boolean(get().unsavedWorkflowIds[workflow.id]);
 
         let data: Workflow;
         try {
@@ -326,10 +336,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             run_mode: workflow.run_mode,
             workspace_id: workflow.workspace_id,
             html_app: workflow.html_app,
-            expected_updated_at: workflow.updated_at ?? undefined
+            expected_updated_at: neverPersisted
+              ? undefined
+              : workflow.updated_at ?? undefined
           })) as Workflow;
         } catch (err) {
           throw createErrorMessage(err, "Failed to save workflow");
+        }
+
+        if (neverPersisted) {
+          set((state) => {
+            const { [workflow.id]: _saved, ...rest } = state.unsavedWorkflowIds;
+            return { unsavedWorkflowIds: rest };
+          });
         }
 
         // Version snapshot is best-effort — the main save already succeeded.
@@ -374,6 +393,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                 workflow: persistedWorkflow
               });
               nodeStore.getState().setWorkflowDirty(false);
+            } else {
+              // The save itself succeeded, so the server row now carries this
+              // response's updated_at. Adopt it as the concurrency token —
+              // keeping the old one makes every later save and autosave fail
+              // with an optimistic-concurrency conflict.
+              nodeStore
+                .getState()
+                .setWorkflowUpdatedAt(persistedWorkflow.updated_at);
             }
           }
 
@@ -408,6 +435,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       createNew: async () => {
         const workflow = get().newWorkflow();
         get().addWorkflow(workflow);
+        set((state) => ({
+          unsavedWorkflowIds: {
+            ...state.unsavedWorkflowIds,
+            [workflow.id]: true
+          }
+        }));
         get().setCurrentWorkflowId(workflow.id);
         return workflow;
       },
@@ -569,6 +602,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (!workflow) {
           throw new Error("Workflow not found");
         }
+        // Same first-save rule as saveWorkflow: a never-persisted workflow
+        // has no server revision to check against.
+        const neverPersisted = Boolean(get().unsavedWorkflowIds[workflow.id]);
         const data = await trpcClient.workflows.update.mutate({
           id: workflow.id,
           name: workflow.name,
@@ -578,8 +614,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           path: workflow.path,
           access: "public",
           graph: workflow.graph,
-          expected_updated_at: workflow.updated_at ?? undefined
+          expected_updated_at: neverPersisted
+            ? undefined
+            : workflow.updated_at ?? undefined
         });
+
+        if (neverPersisted) {
+          set((state) => {
+            const { [workflow.id]: _saved, ...rest } = state.unsavedWorkflowIds;
+            return { unsavedWorkflowIds: rest };
+          });
+        }
 
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({ queryKey: ["templates"] });
@@ -813,7 +858,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores,
           openWorkflows,
           currentWorkflowId,
-          notifiedAutosaveVersions
+          notifiedAutosaveVersions,
+          unsavedWorkflowIds
         } = get();
 
         // Tear down the per-workflow NodeStore (releases its metadata
@@ -867,6 +913,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const newNotified = { ...notifiedAutosaveVersions };
         delete newNotified[workflowId];
 
+        const newUnsaved = { ...unsavedWorkflowIds };
+        delete newUnsaved[workflowId];
+
         const newCurrentId = determineNextWorkflowId(
           openWorkflows,
           workflowId,
@@ -877,7 +926,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          notifiedAutosaveVersions: newNotified
+          notifiedAutosaveVersions: newNotified,
+          unsavedWorkflowIds: newUnsaved
         });
 
         storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));

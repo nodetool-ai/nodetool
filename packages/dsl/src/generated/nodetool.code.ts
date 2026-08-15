@@ -7,6 +7,7 @@ export type CodeInputs = {
   code?: Connectable<string>;
   packages?: Connectable<Record<string, unknown>[]>;
   secrets?: Connectable<string[]>;
+  script?: Connectable<Record<string, unknown>>;
   timeout?: Connectable<number>;
   max_response_mb?: Connectable<number>;
   allow_local_network?: Connectable<boolean>;

@@ -106,9 +106,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
     props,
-    state,
     setState,
-    inputIsFocused,
     setInputIsFocused,
     containerRef,
     dragStateRef,

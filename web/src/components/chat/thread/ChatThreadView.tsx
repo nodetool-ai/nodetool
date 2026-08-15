@@ -13,10 +13,13 @@ import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BORDER_RADIUS,
+  Caption,
   FONT_SIZE_SANS,
+  FlexRow,
   SPACING,
   SPACING_PX,
   ShimmerText,
+  Text,
   getSpacingPx,
   Z_INDEX
 } from "../../ui_primitives";
@@ -27,6 +30,7 @@ import {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { Progress } from "../feedback/Progress";
+import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
@@ -38,8 +42,15 @@ import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
+import {
+  DEFAULT_THREAD_RUNTIME,
+  getThreadRuntime
+} from "../../../core/chat/threadRuntime";
+import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
 
 interface ChatThreadViewProps {
+  /** Conversation rendered by this ChatView instance. */
+  threadId?: string | null;
   messages: Message[];
   status:
     | "disconnected"
@@ -146,24 +157,6 @@ function toolResultsAreEqual(
   });
 }
 
-const STATUS_ROW_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.md),
-  padding: `${getSpacingPx(SPACING.xs)} 0`
-};
-
-const STATUS_TEXT_STYLE: React.CSSProperties = {
-  fontSize: FONT_SIZE_SANS.body,
-  fontStyle: "italic"
-};
-
-const ELAPSED_STYLE: React.CSSProperties = {
-  fontSize: FONT_SIZE_SANS.label,
-  fontVariantNumeric: "tabular-nums",
-  marginLeft: "auto"
-};
-
 const LOG_WRAPPER_STYLE: React.CSSProperties = {
   position: "relative",
   paddingLeft: "1.5rem"
@@ -191,6 +184,7 @@ interface StatusFooterProps {
    *  when one is active. Swaps the plain busy row for a shimmering preview of
    *  the eventual output grid instead. */
   pendingMediaMessage: Message | null;
+  activePredictions: ActiveMediaPrediction[];
   theme: Theme;
 }
 
@@ -206,10 +200,12 @@ const StatusFooter = memo<StatusFooterProps>(
     currentLogUpdate,
     hasAgentExecutionMessages,
     pendingMediaMessage,
+    activePredictions,
     theme
   }) => {
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
+    const hasPredictions = activePredictions.length > 0;
     return (
       <>
         {isBusy && !hasAgentExecutionMessages && pendingMediaMessage && (
@@ -221,16 +217,22 @@ const StatusFooter = memo<StatusFooterProps>(
             />
           </div>
         )}
-        {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
+        {hasPredictions && (
+          <MediaPredictionStatus predictions={activePredictions} />
+        )}
+        {isBusy &&
+          !hasAgentExecutionMessages &&
+          !pendingMediaMessage &&
+          !hasPredictions && (
           <div className="chat-message-list-item">
-            <div style={STATUS_ROW_STYLE}>
-              <span
+            <FlexRow className="chat-status-row" align="center" gap={2} fullWidth>
+              <Text
+                component="span"
+                size="small"
+                color="secondary"
                 role="status"
                 aria-live="polite"
-                style={{
-                  ...STATUS_TEXT_STYLE,
-                  color: theme.vars.palette.text.secondary
-                }}
+                className="chat-status-label"
               >
                 <ShimmerText>
                   {progressMessage && !runningToolCallId
@@ -239,16 +241,11 @@ const StatusFooter = memo<StatusFooterProps>(
                       ? "Responding…"
                       : "Thinking…"}
                 </ShimmerText>
-              </span>
-              <span
-                style={{
-                  ...ELAPSED_STYLE,
-                  color: theme.vars.palette.text.disabled
-                }}
-              >
+              </Text>
+              <Caption className="chat-status-elapsed" color="muted">
                 {formatElapsed(elapsed)}
-              </span>
-            </div>
+              </Caption>
+            </FlexRow>
           </div>
         )}
         {progress > 0 && !hasAgentExecutionMessages && (
@@ -318,6 +315,7 @@ const StatusFooter = memo<StatusFooterProps>(
 StatusFooter.displayName = "StatusFooter";
 
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
+  threadId,
   messages,
   status,
   progress,
@@ -337,13 +335,19 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   // bottom of the thread. Resolving one sends the decision and removes it.
   const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const visibleThreadId = threadId ?? currentThreadId;
+  const activePredictions = useGlobalChatStore(
+    (s) =>
+      getThreadRuntime(s, visibleThreadId).activePredictions ??
+      DEFAULT_THREAD_RUNTIME.activePredictions
+  );
   const resolveApproval = useGlobalChatStore((s) => s.resolveApproval);
   const threadApprovals = useMemo(
     () =>
       Object.entries(pendingApprovals).filter(
-        ([, approval]) => approval.thread_id === currentThreadId
+        ([, approval]) => approval.thread_id === visibleThreadId
       ),
-    [pendingApprovals, currentThreadId]
+    [pendingApprovals, visibleThreadId]
   );
 
   // Pending plan-approval prompts. Plans from runs not bound to a thread
@@ -356,9 +360,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     () =>
       Object.entries(pendingPlanApprovals).filter(
         ([, approval]) =>
-          approval.thread_id === null || approval.thread_id === currentThreadId
+          approval.thread_id === visibleThreadId ||
+          (approval.thread_id === null && visibleThreadId === currentThreadId)
       ),
-    [pendingPlanApprovals, currentThreadId]
+    [pendingPlanApprovals, currentThreadId, visibleThreadId]
   );
 
   // The generating turn's own outgoing message carries `media_generation` —
@@ -663,7 +668,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     setAnchorTailHeight(0);
     viewportAnchorRef.current = null;
     setShowScrollToBottomButton(false);
-  }, [currentThreadId, setScrollMode]);
+  }, [visibleThreadId, setScrollMode]);
 
   // Land on the latest message when a thread first becomes visible — on mount,
   // thread switch, or once its messages finish loading. Without this the
@@ -673,8 +678,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const landedThreadRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (!scrollHost || filteredMessages.length === 0) return;
-    if (landedThreadRef.current === currentThreadId) return;
-    landedThreadRef.current = currentThreadId;
+    if (landedThreadRef.current === visibleThreadId) return;
+    landedThreadRef.current = visibleThreadId;
     previousMessageCountRef.current = messages.length;
     setScrollMode("following-end");
 
@@ -699,7 +704,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [
     scrollHost,
-    currentThreadId,
+    visibleThreadId,
     filteredMessages.length,
     messages.length,
     setScrollMode,
@@ -987,6 +992,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               currentLogUpdate={currentLogUpdate}
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}
+              activePredictions={activePredictions}
               theme={theme}
             />
           </div>

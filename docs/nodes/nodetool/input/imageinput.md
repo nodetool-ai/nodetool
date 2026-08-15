@@ -18,9 +18,7 @@ Accepts a reference to an image asset for workflows, specified by an 'ImageRef'.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `image` | The image to use as input. | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `image` | The image to use as input. | - |
 
 ## Outputs
 

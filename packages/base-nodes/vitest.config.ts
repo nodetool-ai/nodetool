@@ -20,6 +20,10 @@ export default defineConfig({
         __dirname,
         "../execution/src/sketch-debug/index.ts"
       ),
+      "@nodetool-ai/execution/js-script-debug": resolve(
+        __dirname,
+        "../execution/src/js-script-debug/index.ts"
+      ),
       "@nodetool-ai/execution/service": resolve(
         __dirname,
         "../execution/src/service/index.ts"
@@ -63,7 +67,16 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/e2e/**/*.test.ts"]
+    exclude: ["tests/e2e/**/*.test.ts"],
+    // The example-workflow suites execute real graphs, and a graph with a Code
+    // node spins up the QuickJS worker thread
+    // (packages/agents/src/js-sandbox-worker/). Under tsx that spawn
+    // recompiles the whole sandbox graph, so the first one in a file is the
+    // slowest thing here — and against CI's contended parallel load it does
+    // not fit in vitest's 5s default: one run lost six tests across three
+    // files, every one of them at exactly 5000ms. `code-nodes` carries the
+    // same allowance for the same reason.
+    testTimeout: 60000
     // No `passWithNoTests`: this package has 31 suites, and two blocking CI
     // commands select from them by filename substring — the `parity` leg
     // (`npm test -w @nodetool-ai/base-nodes -- parity example-workflows`) and

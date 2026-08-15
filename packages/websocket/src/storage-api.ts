@@ -30,16 +30,34 @@ const MIME_TYPES: Record<string, string> = {
   ".aac": "audio/aac",
   ".flac": "audio/flac",
   ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
   ".json": "application/json",
   ".txt": "text/plain",
   ".pdf": "application/pdf",
-  // Serve user-authored HTML as text/plain — never image/svg+xml-style inline
-  // rendering — so a stored `.html` asset can't execute script in the app's
-  // origin. `.svg` is deliberately omitted for the same reason (falls through
-  // to application/octet-stream).
+  // SVG must be image/svg+xml so the asset grid and fullscreen <img> can
+  // paint it. A sandbox CSP on the response (see svgSafeHeaders) stops a
+  // script inside the file from running if the URL is opened as a document.
+  ".svg": "image/svg+xml",
+  // User-authored HTML stays text/plain so it cannot execute in this origin.
   ".html": "text/plain",
   ".htm": "text/plain"
 };
+
+const SVG_MIME = "image/svg+xml";
+
+/**
+ * Extra headers for SVG responses. `<img>` and CSS backgrounds never run
+ * script; these apply when the URL is navigated to or framed.
+ */
+const SVG_SAFE_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "Content-Security-Policy":
+    "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+};
+
+function extraHeadersFor(contentType: string): Record<string, string> {
+  return contentType === SVG_MIME ? SVG_SAFE_HEADERS : {};
+}
 
 function getMimeType(filePath: string): string {
   return (
@@ -102,6 +120,20 @@ function legacyKeyFor(key: string): string | null {
   if (slash <= 0) return null;
   const base = normalized.slice(slash + 1);
   return base && base !== normalized ? base : null;
+}
+
+/**
+ * 3D models used to be stored as `.bin`. Swap `.glb`/`.gltf` ↔ `.bin` so a
+ * new get_url still finds the old object.
+ */
+function alternateModel3DKey(key: string): string | null {
+  if (key.endsWith(".glb") || key.endsWith(".gltf")) {
+    return key.replace(/\.(glb|gltf)$/, ".bin");
+  }
+  if (key.endsWith(".bin")) {
+    return key.slice(0, -4) + ".glb";
+  }
+  return null;
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -268,6 +300,16 @@ async function handleStorageRequest(
     }
   }
 
+  if (!(await pathExists(filePath))) {
+    const alt = alternateModel3DKey(key);
+    if (alt) {
+      const altPath = resolveStoragePath(rootDir, alt);
+      if (await pathExists(altPath)) {
+        filePath = altPath;
+      }
+    }
+  }
+
   // HEAD
   if (request.method === "HEAD") {
     let fileStat: Awaited<ReturnType<typeof stat>>;
@@ -276,13 +318,15 @@ async function handleStorageRequest(
     } catch {
       return new Response(null, { status: 404, headers: cors });
     }
+    const headType = getMimeType(filePath);
     return new Response(null, {
       status: 200,
       headers: {
         ...cors,
+        ...extraHeadersFor(headType),
         "Last-Modified": fileStat.mtime.toUTCString(),
         "Content-Length": String(fileStat.size),
-        "Content-Type": getMimeType(filePath),
+        "Content-Type": headType,
         "Accept-Ranges": "bytes"
       }
     });
@@ -340,6 +384,7 @@ async function handleStorageRequest(
       status: 206,
       headers: {
         ...cors,
+        ...extraHeadersFor(contentType),
         "Content-Type": contentType,
         "Content-Length": String(chunkSize),
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
@@ -355,6 +400,7 @@ async function handleStorageRequest(
     status: 200,
     headers: {
       ...cors,
+      ...extraHeadersFor(contentType),
       "Content-Type": contentType,
       "Content-Length": String(fileSize),
       "Last-Modified": lastModified,

@@ -81,7 +81,7 @@ describe("useAddNodeFromAsset", () => {
     expect(createdNode.data.properties.value).toEqual({
       type: "model_3d",
       asset_id: "asset-model-1",
-      uri: "/assets/mesh.glb"
+      uri: "asset://asset-model-1"
     });
     expect(mockAddNode).toHaveBeenCalledWith(createdNode);
   });

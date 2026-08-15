@@ -24,9 +24,7 @@ Accepts a reference to a document asset for workflows, specified by a 'DocumentR
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `document` | The document to use as input. | `{"type":"document","uri":"","asset_id":null,"da...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `document` | The document to use as input. | - |
 
 ## Outputs
 

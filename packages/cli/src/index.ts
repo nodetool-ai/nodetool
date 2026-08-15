@@ -24,14 +24,6 @@ import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import {
-  DockerSandboxProvider,
-  SessionStore,
-  type Sandbox
-} from "@nodetool-ai/sandbox";
-import { createSandboxTools } from "@nodetool-ai/sandbox-tools";
-import { randomUUID } from "node:crypto";
-import type { Tool } from "@nodetool-ai/agents";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -74,16 +66,8 @@ program
     "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)"
   )
   .option(
-    "--sandbox",
-    "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
-  )
-  .option(
     "--no-read-only-search",
     "Disable the read-only run_search fan-out primitive (on by default)"
-  )
-  .option(
-    "--sandbox-image <image>",
-    "Override the sandbox Docker image (default: ghcr.io/nodetool-ai/nodetool:latest)"
   )
   .option(
     "--trace-file <path>",
@@ -108,8 +92,6 @@ const opts = program.opts<{
   workspace?: string;
   tools?: string;
   url?: string;
-  sandbox?: boolean;
-  sandboxImage?: string;
   readOnlySearch?: boolean;
   traceFile?: string;
   traceStdout?: string | boolean;
@@ -222,53 +204,6 @@ await Promise.all([
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
-// --- Sandbox provisioning (optional) ---------------------------------------
-//
-// When `--sandbox` is set we bring up a DockerSandbox for this CLI process,
-// wrap its ToolClient with the agent adapter, and pass the resulting Tool
-// array into the App as `extraTools`. The sandbox is released on exit.
-
-let sandboxStore: SessionStore | null = null;
-let sandboxHandle: Sandbox | null = null;
-let sandboxExtraTools: Tool[] | undefined;
-
-if (opts.sandbox) {
-  const provider_ = new DockerSandboxProvider(
-    opts.sandboxImage ? { defaultImage: opts.sandboxImage } : {}
-  );
-  sandboxStore = new SessionStore({ provider: provider_ });
-  const sessionId = `cli-${randomUUID().slice(0, 8)}`;
-  try {
-    sandboxHandle = await sandboxStore.acquire(sessionId, {
-      workspaceDir: workspace
-    });
-    sandboxExtraTools = createSandboxTools(sandboxHandle.client);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `Failed to provision sandbox: ${err instanceof Error ? err.message : String(err)}`
-    );
-    process.exit(1);
-  }
-
-  const cleanup = async (): Promise<void> => {
-    try {
-      if (sandboxStore) await sandboxStore.close();
-    } catch {
-      // ignore
-    }
-    // Flush buffered OTLP/Traceloop spans before exit.
-    await shutdownTelemetry();
-  };
-  process.on("SIGINT", () => void cleanup().finally(() => process.exit(130)));
-  process.on("SIGTERM", () => void cleanup().finally(() => process.exit(143)));
-  process.on("exit", () => {
-    // Best-effort synchronous cleanup; `release` is async so we just
-    // kick it off and trust Docker to reap containers on daemon shutdown.
-    if (sandboxHandle) void sandboxHandle.release();
-  });
-}
-
 // Build a NodeRegistry once per session for the graph-native agent. Only
 // when running locally (no --url): the WebSocket server has its own
 // registry and doesn't need the CLI to provide one.
@@ -292,13 +227,11 @@ if (!process.stdin.isTTY) {
       model,
       workspaceDir: workspace,
       wsUrl: opts.url,
-      extraTools: sandboxExtraTools,
       registry: cliRegistry,
       agentProviders: cliAgentProviders,
       enableReadOnlySearch: opts.readOnlySearch !== false
     });
   } finally {
-    if (sandboxStore) await sandboxStore.close();
     await shutdownTelemetry();
   }
   process.exit(0);
@@ -311,7 +244,6 @@ const { waitUntilExit } = render(
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,
-    extraTools: sandboxExtraTools,
     registry: cliRegistry,
     agentProviders: cliAgentProviders
   }),
@@ -319,6 +251,5 @@ const { waitUntilExit } = render(
 );
 
 await waitUntilExit();
-if (sandboxStore) await sandboxStore.close();
 await shutdownTelemetry();
 process.exit(0);

@@ -4,17 +4,23 @@ import { globalWebSocketManager } from "../GlobalWebSocketManager";
 import { handleResourceChange } from "../../../stores/resourceChangeHandler";
 import { ResourceChangeUpdate } from "../../../stores/ApiTypes";
 import type { WebSocketMessage } from "../GlobalWebSocketManager";
+import { validateInboundMessage } from "../validateInboundMessage";
 
 Object.assign(global, { TextEncoder, TextDecoder });
 
 /** The private routing surface these tests drive, named so it stays checked. */
 interface ManagerInternals {
-  ingestMessage(message: WebSocketMessage): void;
   routeMessage(message: WebSocketMessage): void;
 }
 
 const internals = (): ManagerInternals =>
   globalWebSocketManager as unknown as ManagerInternals;
+
+/** Mirrors what the socket's "message" listener does with a decoded frame. */
+const ingest = (message: WebSocketMessage): void => {
+  validateInboundMessage(message);
+  internals().routeMessage(message);
+};
 
 // Mock dependencies before imports
 jest.mock("../../../stores/BASE_URL", () => ({
@@ -198,7 +204,7 @@ describe("GlobalWebSocketManager", () => {
         job_id: "job-valid"
       };
 
-      internals().ingestMessage(validMessage);
+      ingest(validMessage);
 
       expect(handler).toHaveBeenCalledWith(validMessage);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -217,7 +223,7 @@ describe("GlobalWebSocketManager", () => {
         job_id: "job-invalid"
       };
 
-      internals().ingestMessage(invalidMessage);
+      ingest(invalidMessage);
 
       // Observe-only: the message is still routed to subscribers.
       expect(handler).toHaveBeenCalledWith(invalidMessage);
@@ -233,7 +239,7 @@ describe("GlobalWebSocketManager", () => {
         anything: "goes"
       };
 
-      internals().ingestMessage(invalidButUnvalidated);
+      ingest(invalidButUnvalidated);
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });

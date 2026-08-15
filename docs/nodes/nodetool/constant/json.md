@@ -18,7 +18,7 @@ Represents a JSON constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `json` |  | `{"type":"json","uri":"","asset_id":null,"data":...` |
+| value | `json` |  | - |
 
 ## Outputs
 

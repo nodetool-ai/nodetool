@@ -126,7 +126,21 @@ function findWidget(spec: AppSpec, ref: string): AppWidgetSpec | string {
   if (byLabel.length > 1) {
     return `widget reference "${ref}" is ambiguous — ${byLabel.length} widgets share that label; use the component id.`;
   }
-  return `no widget matches "${ref}" (tried id, type, and label).`;
+  return `no widget matches "${ref}" (tried id, type, and label). Widgets: ${widgetRoster(spec)}`;
+}
+
+/**
+ * What the caller could have written instead. Naming only the miss sent one
+ * agent round after round guessing the step shape, because "no widget matches
+ * undefined" says nothing about what a target may be.
+ */
+function widgetRoster(spec: AppSpec): string {
+  if (spec.widgets.length === 0) return "none — the app has no widgets.";
+  const listed = spec.widgets
+    .slice(0, 12)
+    .map((w) => (w.label ? `${w.id} (${w.type}, label "${w.label}")` : `${w.id} (${w.type})`))
+    .join(", ");
+  return spec.widgets.length > 12 ? `${listed}, …` : listed;
 }
 
 /**
@@ -238,6 +252,34 @@ export function withNodePropertyOverlays(
   };
 }
 
+/**
+ * Whether a value that did arrive leaves the widget showing nothing. `""`,
+ * `[]` and `null` all render blank, so counting them as "received a value"
+ * reports an app that computed nothing as one that worked.
+ */
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.length === 0;
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+/**
+ * A workflow can complete while a node hands its own failure downstream as a
+ * plain value — a Code node that catches and emits the message, which is how
+ * the calculator app that motivated this check reported `'eval' is not
+ * defined` while every node reported success. The run carries no error in that
+ * case and neither does the invocation, so the value's own shape is the only
+ * signal there is. Kept to a stringified `Error` at the very start of the
+ * value, where prose that merely discusses an error does not match.
+ */
+const ERROR_VALUE = /^(?:[A-Z][A-Za-z]*)?Error:\s+\S/;
+
+function errorLikeValue(value: unknown): string | null {
+  if (typeof value !== "string" || !ERROR_VALUE.test(value)) return null;
+  return value.replace(/\s+/g, " ").slice(0, 200);
+}
+
 /** Node ids keyed by the `name` their data carries, for name-form bindings. */
 function nodeIdsByName(graph: DebugGraph): Map<string, string> {
   const byName = new Map<string, string>();
@@ -336,6 +378,15 @@ function buildAppVerdict(
       )
     );
     for (const w of report.widgets) {
+      if (w.bindingMode !== "read" || !w.binding) continue;
+      const message = errorLikeValue(w.display ?? w.value);
+      if (message) {
+        issues.push(
+          `${w.type} "${w.id}" shows an error message from "${w.binding}": ${message}`
+        );
+      }
+    }
+    for (const w of report.widgets) {
       if (w.bindingMode !== "read" || !w.binding || w.hasValue) continue;
       const ref = parseBinding(w.binding);
       if (ref?.kind === "variable" && uiWrittenVariables.has(ref.variableId)) {
@@ -365,6 +416,20 @@ function buildAppVerdict(
         // the same, and only running both branches tells them apart.
         warnings.push(
           `${w.type} "${w.id}" is bound to "${w.binding}", downstream of a branch that was not taken this run — run the other branch to confirm it can be reached.`
+        );
+        continue;
+      }
+      // The value arrived and is empty ("", [], null). A warning rather than an
+      // issue: an output is legitimately empty often enough — no matches, no
+      // remainder, nothing to say — that failing the verdict on it would call
+      // working apps broken. An app that computed nothing looks the same from
+      // here, so the report says what happened and leaves the call to the
+      // author. A widget whose `format` template renders nothing keeps the
+      // issue below: the value reached it and the template still dropped it,
+      // which is wiring, not data.
+      if (w.display === null && w.value !== undefined && !w.resourceBindingId) {
+        warnings.push(
+          `${w.type} "${w.id}" is bound to "${w.binding}" but received an empty value — confirm the output is meant to be empty.`
         );
         continue;
       }
@@ -1075,7 +1140,7 @@ export async function simulateApp(
           stateKey: w.stateKey,
           value: previewValue(value),
           display,
-          hasValue: display !== null ? display.length > 0 : value !== undefined,
+          hasValue: display !== null ? display.length > 0 : !isEmptyValue(value),
           visible: state?.visible ?? true,
           disabled: state?.disabled ?? false
         };

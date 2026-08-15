@@ -23,6 +23,11 @@ import {
 } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
+  DEFAULT_THREAD_RUNTIME,
+  getThreadRuntime
+} from "../../../core/chat/threadRuntime";
+import { MediaPredictionInline } from "../feedback/MediaPredictionStatus";
+import {
   CopyButton,
   Caption,
   Text,
@@ -42,6 +47,7 @@ import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
+import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
@@ -107,13 +113,18 @@ const ToolCallCard: React.FC<{
   result?: { name?: string | null; content: unknown };
   durationMs?: number | null;
 }> = React.memo(({ tc, result, durationMs }) => {
+  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+  const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
-  const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
+  const activePredictions = useGlobalChatStore(
+    (s) =>
+      getThreadRuntime(s, s.currentThreadId).activePredictions ??
+      DEFAULT_THREAD_RUNTIME.activePredictions
+  );
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
   // out of args into headline + expanded body. Tolerate the older
@@ -131,6 +142,10 @@ const ToolCallCard: React.FC<{
     ? (pickString("prompt") ?? pickString("instructions"))
     : null;
   const actionCode = isCodeAction ? pickString("code") : null;
+  const formattedActionCode = useMemo(
+    () => (actionCode ? formatJavaScriptForDisplay(actionCode) : null),
+    [actionCode]
+  );
   const actionTitle = isCodeAction ? pickString("title") : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
@@ -213,7 +228,6 @@ const ToolCallCard: React.FC<{
             <Text
               component="span"
               size="small"
-              weight={600}
               className="tool-call-badge"
             >
               {headlineLabel}
@@ -257,6 +271,11 @@ const ToolCallCard: React.FC<{
           )}
         </FlexRow>
       </FlexRow>
+      {isRunning &&
+        isCodeAction &&
+        activePredictions.map((prediction) => (
+          <MediaPredictionInline key={prediction.id} prediction={prediction} />
+        ))}
       <Collapse in={open} timeout="auto" unmountOnExit>
         <FlexColumn className="tool-call-details" gap={0.5}>
           {isSubtask && subtaskInstructions && (
@@ -267,11 +286,11 @@ const ToolCallCard: React.FC<{
               </Text>
             </FlexColumn>
           )}
-          {actionCode && (
+          {formattedActionCode && (
             <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Code</Caption>
               <CodeBlock inline={false} className="language-javascript">
-                {actionCode}
+                {formattedActionCode}
               </CodeBlock>
             </FlexColumn>
           )}
@@ -285,7 +304,19 @@ const ToolCallCard: React.FC<{
           )}
           {hasResult && (
             <FlexColumn gap={0.5}>
-              <Caption className="tool-section-title">Result</Caption>
+              <FlexRow
+                className="tool-section-header"
+                align="center"
+                justify="space-between"
+                fullWidth
+              >
+                <Caption className="tool-section-title">Result</Caption>
+                <CopyButton
+                  value={resultContent}
+                  tooltip="Copy result"
+                  buttonSize="small"
+                />
+              </FlexRow>
               <ToolResult toolName={tc.name} content={resultContent} />
             </FlexColumn>
           )}
@@ -396,8 +427,7 @@ const ToolCallGroup: React.FC<{
       >
         <Text
           component="span"
-          size="smaller"
-          weight={500}
+          size="small"
           className="tool-call-group-label"
         >
           {isRunning ? (

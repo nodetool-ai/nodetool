@@ -44,6 +44,21 @@ describe("imageUploadValidation", () => {
       );
     });
 
+    it("accepts clipboard SVG as image/svg+xml", async () => {
+      const svgBytes = new TextEncoder().encode(
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>'
+      );
+      const file = new File([svgBytes], "clipboard-image.svg", {
+        type: "image/svg+xml"
+      });
+
+      const prepared = await prepareUploadFile(file, "clipboard");
+
+      expect(prepared.finalMime).toBe("image/svg+xml");
+      expect(prepared.file.type).toBe("image/svg+xml");
+      expect(prepared.file.name.endsWith(".svg")).toBe(true);
+    });
+
     it("blocks invalid clipboard bytes declared as image", async () => {
       const invalidImageBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
       const file = new File([invalidImageBytes], "clipboard-image.jpg", {

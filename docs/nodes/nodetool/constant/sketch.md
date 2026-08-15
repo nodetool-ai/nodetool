@@ -23,10 +23,10 @@ Layered sketch document for drawing, masking, and image composition.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `sketch` |  | `{"type":"sketch","id":null,"data":null}` |
+| value | `sketch` |  | - |
 | sketch_data | `str` | Serialized editor document (managed by the UI). | `` |
-| image | `image` | Flattened composite (filled when you edit in the UI). | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| mask | `image` | Mask output when configured in the editor. | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| image | `image` | Flattened composite (filled when you edit in the UI). | - |
+| mask | `image` | Mask output when configured in the editor. | - |
 | layers | `list` | List of exposed layer image references. | `[]` |
 
 ## Outputs

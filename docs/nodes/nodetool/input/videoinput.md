@@ -18,9 +18,7 @@ Accepts a reference to a video asset for workflows, specified by a 'VideoRef'.  
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `video` | The video to use as input. | `{"type":"video","uri":"","asset_id":null,"data"...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `video` | The video to use as input. | - |
 
 ## Outputs
 

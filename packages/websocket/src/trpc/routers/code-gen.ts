@@ -6,10 +6,8 @@
  * logic lives here — the prompt, the submit tool, the validation rounds and the
  * failure taxonomy are all in `@nodetool-ai/agents`.
  *
- * Deliberately not on the agent WebSocket (`src/agent/`): that channel is
- * session-shaped — create a session, send a turn, stream against a thread that
- * writes message history — and the dialog needs an atomic result with no thread
- * state. There is no chat thread and no message-history write on this path.
+ * This dialog needs an atomic result with no chat thread or message-history
+ * write, so it uses a tRPC mutation instead of the chat stream.
  *
  * Procedures:
  *   generate (mutation) — CodeGenResponse

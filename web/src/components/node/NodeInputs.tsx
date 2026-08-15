@@ -10,6 +10,7 @@ import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
+import { inferredCodeInputNamesFromData } from "../../utils/codeNodeHandles";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 
 
@@ -226,11 +227,19 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
   // nothing.
   const dynamicInputNames = useMemo(() => {
     const names = Object.keys(dynamicProperties);
+    const seen = new Set(names);
     for (const name of Object.keys(dynamicInputs)) {
-      if (!(name in dynamicProperties)) names.push(name);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      names.push(name);
+    }
+    for (const name of inferredCodeInputNamesFromData(data, nodeType)) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      names.push(name);
     }
     return names;
-  }, [dynamicProperties, dynamicInputs]);
+  }, [dynamicProperties, dynamicInputs, data, nodeType]);
 
   const dynamicInputElements = useMemo(() => dynamicInputNames.map(
     (name, index) => {

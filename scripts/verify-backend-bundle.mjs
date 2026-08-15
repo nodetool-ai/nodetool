@@ -182,6 +182,26 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
     summary.push(`${assets.length} package asset(s) staged`);
   }
 
+  // 2b. The sandbox worker entry. A worker needs a real file URL, so it cannot
+  //     live inside server.mjs, and host.ts resolves this exact path relative
+  //     to server.mjs. Missing, the sandbox silently falls back to running the
+  //     interpreter in-process, where a CPU-bound guest blocks the event loop
+  //     for its whole timeout.
+  const sandboxWorker = path.join(
+    bundleDir,
+    "js-sandbox-worker",
+    "worker-entry.js"
+  );
+  if (!existsSync(sandboxWorker)) {
+    errors.push(
+      "js-sandbox-worker/worker-entry.js is not staged — the packaged backend " +
+        "would run every sandboxed program on the main thread. Check " +
+        "buildSandboxWorkerBundle in bundle-backend.mjs."
+    );
+  } else {
+    summary.push("sandbox worker entry staged");
+  }
+
   // 3. webgpu dawn binaries (desktop profile only). The GPU compositor loads
   //    `webgpu` through a variable-specifier dynamic import esbuild can't see,
   //    so nothing else fails the build when it's missing from _modules/.
@@ -260,6 +280,42 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
   //    the packaged app starts, where sharp's JS reads a format table the older
   //    binary doesn't expose and the backend dies on import.
   const modulesDir = path.join(bundleDir, "_modules");
+  const mediabunnyVersion = readPackageVersion(
+    path.join(modulesDir, "mediabunny")
+  );
+  const mediabunnyServerVersion = readPackageVersion(
+    path.join(modulesDir, "@mediabunny", "server")
+  );
+  const nodeAvVersion = readPackageVersion(path.join(modulesDir, "node-av"));
+  const targetPlatform = process.env.NODETOOL_BUNDLE_PLATFORM || process.platform;
+  const targetArch = process.env.NODETOOL_BUNDLE_ARCH || process.arch;
+  const nodeAvTarget =
+    targetPlatform === "win32"
+      ? `node-av-win32-${targetArch}-msvc`
+      : `node-av-${targetPlatform}-${targetArch}`;
+  const nodeAvBinary = path.join(
+    modulesDir,
+    "@seydx",
+    nodeAvTarget,
+    "node-av.node"
+  );
+  if (!mediabunnyVersion || !mediabunnyServerVersion || !nodeAvVersion) {
+    errors.push(
+      "Mediabunny, @mediabunny/server, and node-av must all be staged for " +
+        "sandbox audio/video operations in the packaged backend."
+    );
+  } else if (!existsSync(nodeAvBinary)) {
+    errors.push(
+      `@seydx/${nodeAvTarget}/node-av.node is not staged; Mediabunny cannot ` +
+        `decode or encode media for ${targetPlatform}/${targetArch}.`
+    );
+  } else {
+    summary.push(
+      `Mediabunny ${mediabunnyVersion} server codecs staged with ` +
+        nodeAvTarget
+    );
+  }
+
   const sharpVersion = readPackageVersion(path.join(modulesDir, "sharp"));
   if (!sharpVersion) {
     errors.push("_modules/sharp is missing or has no readable package.json");

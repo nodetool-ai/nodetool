@@ -46,6 +46,11 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "thread_memory_update",
   "thread_memory_delete",
 
+  // Chat history (past conversations and what was said in them)
+  "list_threads",
+  "get_thread",
+  "get_message",
+
   // Asset library (discover + reuse generated/uploaded media)
   "asset_search",
   "asset_list",
@@ -87,6 +92,14 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "run_code",
   "test_code",
 
+  // JS script documents (list → get → save → validate → run → test)
+  "list_js_scripts",
+  "get_js_script",
+  "save_js_script",
+  "validate_js_script",
+  "run_js_script",
+  "test_js_script",
+
   // Vision (lazy image loading: handles → pixels on demand)
   "list_images",
   "view_image",
@@ -108,6 +121,10 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "take_screenshot",
   "download_file",
   "http_request",
+
+  // Host media binaries
+  "ffmpeg",
+  "yt_dlp",
 
   // Email
   "search_email",

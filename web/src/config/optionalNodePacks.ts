@@ -85,8 +85,8 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "developer",
     label: "Developer Tools",
-    description: "Run code, sandboxes, ComfyUI, and internal test nodes.",
-    namespaces: ["nodetool.code", "nodetool.sandbox", "lib.comfy", "nodetool.test"]
+    description: "Run code, ComfyUI, and internal test nodes.",
+    namespaces: ["nodetool.code", "lib.comfy", "nodetool.test"]
   }
 ];
 

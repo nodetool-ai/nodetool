@@ -327,6 +327,52 @@ describe("getAllInputHandles", () => {
   });
 });
 
+describe("Code node inferred handles", () => {
+  const codeMeta = makeMetadata({
+    node_type: "nodetool.code.Code",
+    properties: [
+      { name: "code", type: makeType("str"), required: false },
+    ],
+    outputs: [],
+  });
+
+  function makeCodeNode(code: string): ReturnType<typeof makeNode> {
+    return makeNode({
+      type: "nodetool.code.Code",
+      data: {
+        properties: { code },
+        selectable: true,
+        dynamic_properties: {},
+        workflow_id: "wf-1",
+      },
+    });
+  }
+
+  it("finds an input the body reads off inputs", () => {
+    const node = makeCodeNode("return { out: inputs.text };");
+    const handle = findInputHandle(node, "text", codeMeta);
+    expect(handle).toBeDefined();
+    expect(handle!.isDynamic).toBe(true);
+    expect(handle!.type.type).toBe("any");
+  });
+
+  it("finds an output the body returns", () => {
+    const node = makeCodeNode("return { sum: inputs.a + inputs.b };");
+    expect(findOutputHandle(node, "sum", codeMeta)?.isDynamic).toBe(true);
+    expect(getAllInputHandles(node, codeMeta).map((h) => h.name)).toEqual(
+      expect.arrayContaining(["code", "a", "b"])
+    );
+    expect(getAllOutputHandles(node, codeMeta).map((h) => h.name)).toContain(
+      "sum"
+    );
+  });
+
+  it("does not invent a handle the body never names", () => {
+    const node = makeCodeNode("return { out: 1 };");
+    expect(findInputHandle(node, "ghost", codeMeta)).toBeUndefined();
+  });
+});
+
 describe("hasOutputHandle / hasInputHandle", () => {
   it("hasOutputHandle returns true for existing handle", () => {
     const meta = makeMetadata({

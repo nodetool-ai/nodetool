@@ -9,6 +9,7 @@ import {
   LoadingSpinner,
   SPACING
 } from "../ui_primitives";
+import type { OperationBinding } from "@nodetool-ai/app-runtime";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -72,6 +73,10 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   );
   // Bumped to remount the editor when the user asks for the latest document.
   const [seed, setSeed] = useState(0);
+  // The canvas's live operations, reported by the shell. Null until it mounts.
+  const [liveOperations, setLiveOperations] = useState<ReadonlyArray<
+    OperationBinding
+  > | null>(null);
 
   // The row revision this canvas is based on. Kept in a ref because the
   // `resource_change` for our own save can beat the mutation's cache write,
@@ -104,17 +109,28 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
     );
   }, [application]);
 
-  const operationWorkflowId = document?.operations[0]?.workflowId ?? "";
+  // The operations the canvas holds, which lead the saved row: the agent binds
+  // a workflow to an operation long before anything saves. Deriving the loads
+  // from `document` alone left that workflow unfetched, so the binding targets
+  // for the operation being authored came back `ioAvailable: false` and the
+  // agent had to guess its binding tokens.
+  const operations = liveOperations ?? document?.operations ?? [];
+
+  const operationWorkflowId = operations[0]?.workflowId ?? "";
 
   // Every workflow the app's operations run, not just the first: a binding
   // authored on the second operation is offered that workflow's own surface.
-  const workflowIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const operation of document?.operations ?? []) {
-      if (operation.workflowId) ids.add(operation.workflowId);
-    }
-    return [...ids].sort();
-  }, [document]);
+  // Keyed on the ids themselves so a re-render that changed no operation does
+  // not hand `useQueries` a new array.
+  const workflowIdKey = [
+    ...new Set(operations.map((operation) => operation.workflowId).filter(Boolean))
+  ]
+    .sort()
+    .join("|");
+  const workflowIds = useMemo(
+    () => (workflowIdKey ? workflowIdKey.split("|") : []),
+    [workflowIdKey]
+  );
 
   const workflowQueries = useQueries({
     queries: workflowIds.map((id) => ({
@@ -192,6 +208,9 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   const handleReload = useCallback(async () => {
     await utils.applications.get.invalidate({ id: applicationId });
     setConflict(null);
+    // The shell remounts and reseeds from the reloaded row, so its old
+    // operations must not outlive it.
+    setLiveOperations(null);
     setSeed((value) => value + 1);
   }, [applicationId, utils]);
 
@@ -217,6 +236,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       workflow={editorWorkflow}
       operationWorkflows={operationWorkflows}
       agentWorkflowId={workflow?.id}
+      onOperationsChange={setLiveOperations}
       onSave={(next) => void handleSave(next)}
       banner={
         conflict ? (

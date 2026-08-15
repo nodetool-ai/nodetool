@@ -40,6 +40,7 @@ import * as controlNodes from "@nodetool-ai/core-nodes/nodes/control";
 // from under that test.
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { sandboxModuleFixture } from "@nodetool-ai/agents/sandbox-module-fixtures";
+import { runInSandbox } from "@nodetool-ai/agents/js-sandbox";
 
 // ── Inline NodeExecutor map (plain objects, no BaseNode) ───────────────
 
@@ -124,6 +125,12 @@ interface SandboxFixtureResult {
   error?: string;
 }
 
+interface SandboxMediaResult {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
 declare global {
   interface Window {
     runWorkflowInBrowser: (
@@ -141,6 +148,7 @@ declare global {
     runSandboxFixtureInBrowser: (
       fixtureName: string
     ) => Promise<SandboxFixtureResult>;
+    runSandboxMediaInBrowser: () => Promise<SandboxMediaResult>;
     runtimeName: string;
   }
 }
@@ -545,6 +553,74 @@ window.runSandboxFixtureInBrowser = async (
       error: err instanceof Error ? err.message : String(err)
     };
   }
+};
+
+/**
+ * A silent 16x16 H.264 MP4, 7 frames at 25fps, encoded by Mediabunny.
+ *
+ * The blob it replaced was truncated — its `mdat` declared 707 payload bytes
+ * and carried 690 — so the last samples were missing and every conversion of
+ * it died on "First packet must be a key packet." Nothing reported that as a
+ * bad file, so re-cut this with Mediabunny rather than by hand, and check the
+ * result muxes: `video.addAudio` then `video.trim` then `video.extractFrame`.
+ */
+const SILENT_MP4_BASE64 =
+  "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";
+
+function toneWavDataUri(): string {
+  const sampleRate = 8_000;
+  const sampleCount = 2_000;
+  const bytes = new Uint8Array(44 + sampleCount * 2);
+  const view = new DataView(bytes.buffer);
+  const text = (offset: number, value: string): void => {
+    for (let index = 0; index < value.length; index += 1) {
+      bytes[offset + index] = value.charCodeAt(index);
+    }
+  };
+  text(0, "RIFF");
+  view.setUint32(4, bytes.length - 8, true);
+  text(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  text(36, "data");
+  view.setUint32(40, sampleCount * 2, true);
+  for (let index = 0; index < sampleCount; index += 1) {
+    const sample = Math.sin((2 * Math.PI * 440 * index) / sampleRate) * 0.25;
+    view.setInt16(44 + index * 2, Math.round(sample * 0x7fff), true);
+  }
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
+
+window.runSandboxMediaInBrowser = async (): Promise<SandboxMediaResult> => {
+  const result = await runInSandbox({
+    code: `
+      const combined = await video.addAudio(sourceVideo, soundtrack);
+      const trimmed = await video.trim(combined, { start: 0, end: 0.2 });
+      const frame = await video.extractFrame(trimmed, 0);
+      return { combined, trimmed, frame, info: await video.info(trimmed) };
+    `,
+    context: {} as never,
+    timeoutMs: 60_000,
+    globals: {
+      sourceVideo: {
+        type: "video",
+        uri: `data:video/mp4;base64,${SILENT_MP4_BASE64}`
+      },
+      soundtrack: { type: "audio", uri: toneWavDataUri() }
+    }
+  });
+  return {
+    success: result.success,
+    result: result.result,
+    error: result.error
+  };
 };
 
 (window as unknown as { workflowRunnerReady: boolean }).workflowRunnerReady =

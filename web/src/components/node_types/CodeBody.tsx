@@ -53,7 +53,6 @@ import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import {
   getCodeNodeLanguage,
   codeLanguageLabel,
-  getCodeNodeIOHint,
   isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
@@ -160,14 +159,6 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       cursor: "text"
     },
-    ".io-hint": {
-      flex: "0 0 auto",
-      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(0.5)}`,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: 1.4,
-      color: theme.vars.palette.text.secondary
-    },
     ".outputs-row": {
       flex: "0 0 auto"
     }
@@ -228,6 +219,16 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
   });
 
   const { handleAddProperty } = useDynamicProperty(id, data.dynamic_properties);
+  const handleAddInput = useCallback(
+    (name: string) => {
+      handleAddProperty(name, {
+        type: "any",
+        type_args: [],
+        optional: false
+      });
+    },
+    [handleAddProperty]
+  );
 
   const { findNode, updateNodeData } = useNodes(
     (state) => ({
@@ -237,9 +238,10 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     shallow
   );
 
-  // The universal Code node derives its input/output handles from the code
-  // itself (referenced-but-undeclared identifiers → inputs, last `return {…}`
-  // keys → outputs). Re-derive on every edit so the handles stay in sync.
+  // The universal Code node derives extra handles from the code: names
+  // read off `inputs` or `stream(...)` become input slots, keys of the
+  // last `return {…}` or `emit`/`output` calls become outputs. Existing
+  // slots stay so Add input is not wiped on edit.
   const inferIO = nodeType === "nodetool.code.Code";
 
   const {
@@ -299,11 +301,14 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     const { inferIO, findNode, updateNodeData } = inferRef.current;
     if (inferIO) {
       const node = findNode(id);
-      const existingDynProps = (node?.data?.dynamic_properties || {}) as Record<
-        string,
-        unknown
-      >;
-      updateNodeData(id, deriveCodeIOUpdates(code, existingDynProps));
+      updateNodeData(
+        id,
+        deriveCodeIOUpdates(
+          code,
+          (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+          node?.data?.dynamic_outputs || {}
+        )
+      );
     }
   }, [id]);
 
@@ -350,9 +355,14 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       setPropertyComplete();
       if (inferIO) {
         const node = findNode(id);
-        const existingDynProps = (node?.data?.dynamic_properties ||
-          {}) as Record<string, unknown>;
-        updateNodeData(id, deriveCodeIOUpdates(next, existingDynProps));
+        updateNodeData(
+          id,
+          deriveCodeIOUpdates(
+            next,
+            (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+            node?.data?.dynamic_outputs || {}
+          )
+        );
       }
     },
     [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData, id]
@@ -412,12 +422,14 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
                 size="small"
               />
             )}
-            <ToolbarIconButton
-              tooltip="Open Editor"
-              icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
-              onClick={toggleExpand}
-              size="small"
-            />
+            {!supportsCodeGen && (
+              <ToolbarIconButton
+                tooltip="Open Editor"
+                icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+                onClick={toggleExpand}
+                size="small"
+              />
+            )}
             <CopyButton value={value} buttonSize="small" />
           </div>
         </div>
@@ -473,19 +485,16 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           properties={properties}
         />
 
-        {isDynamic &&
-          (isCodeNode(nodeType) ? (
-            <div className="io-hint">{getCodeNodeIOHint()}</div>
-          ) : (
-            <NodePropertyForm
-              id={id}
-              isDynamic={nodeMetadata.supports_dynamic_inputs}
-              supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
-              dynamicOutputs={data.dynamic_outputs || {}}
-              onAddProperty={handleAddProperty}
-              nodeType={nodeType}
-            />
-          ))}
+        {isDynamic && (
+          <NodePropertyForm
+            id={id}
+            isDynamic={nodeMetadata.supports_dynamic_inputs}
+            supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
+            dynamicOutputs={data.dynamic_outputs || {}}
+            onAddProperty={handleAddInput}
+            nodeType={nodeType}
+          />
+        )}
 
         {!isOutputNode && (
           <div className="outputs-row">
@@ -498,7 +507,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         )}
       </div>
 
-      {isExpanded && (
+      {!supportsCodeGen && isExpanded && (
         <TextEditorModal
           value={value}
           language={language}

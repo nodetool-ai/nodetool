@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 528 NodeTool nodes across 72 namespaces.
+Complete reference documentation for all 501 NodeTool nodes across 74 namespaces.
 
 ## Namespaces
 
@@ -37,6 +37,7 @@ Complete reference documentation for all 528 NodeTool nodes across 72 namespaces
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
+- **[lib.google](lib/google/)** - 14 node(s)
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)
@@ -48,7 +49,7 @@ Complete reference documentation for all 528 NodeTool nodes across 72 namespaces
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
 - **[lib.mail](lib/mail/)** - 3 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
-- **[lib.pdf](lib/pdf/)** - 2 node(s)
+- **[lib.pdf](lib/pdf/)** - 7 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
 - **[lib.svg](lib/svg/)** - 14 node(s)
@@ -71,26 +72,27 @@ Complete reference documentation for all 528 NodeTool nodes across 72 namespaces
 
 ### nodetool
 
-- **[nodetool.agents](nodetool/agents/)** - 27 node(s)
+- **[nodetool.agents](nodetool/agents/)** - 7 node(s)
 - **[nodetool.audio](nodetool/audio/)** - 24 node(s)
 - **[nodetool.audio.realtime](nodetool/audio/realtime/)** - 6 node(s)
 - **[nodetool.audio.synth](nodetool/audio/synth/)** - 9 node(s)
 - **[nodetool.code](nodetool/code/)** - 1 node(s)
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
-- **[nodetool.constant](nodetool/constant/)** - 30 node(s)
+- **[nodetool.constant](nodetool/constant/)** - 31 node(s)
 - **[nodetool.control](nodetool/control/)** - 22 node(s)
+- **[nodetool.creative](nodetool/creative/)** - 5 node(s)
 - **[nodetool.data](nodetool/data/)** - 2 node(s)
 - **[nodetool.document](nodetool/document/)** - 3 node(s)
 - **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
-- **[nodetool.model3d](nodetool/model3d/)** - 17 node(s)
+- **[nodetool.model3d](nodetool/model3d/)** - 18 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
-- **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
+- **[nodetool.script](nodetool/script/)** - 4 node(s)
 - **[nodetool.sketch](nodetool/sketch/)** - 3 node(s)
 - **[nodetool.test](nodetool/test/)** - 22 node(s)
-- **[nodetool.text](nodetool/text/)** - 49 node(s)
+- **[nodetool.text](nodetool/text/)** - 14 node(s)
 - **[nodetool.timeline](nodetool/timeline/)** - 3 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)
 - **[nodetool.variable](nodetool/variable/)** - 2 node(s)

@@ -577,7 +577,7 @@ const fetchHfModelsByType = async (
 };
 
 const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
-  const providerId = "huggingface" as ImageModel["provider"];
+  const providerId: ImageModel["provider"] = "huggingface";
   const pipelineTask = model.pipeline_tag
     ? model.pipeline_tag.replace(/-/g, "_")
     : undefined;
@@ -643,7 +643,7 @@ const convertUnifiedToTransformersJsModel = (
   // ImageModel interface, so we widen via cast.
   return {
     type: "image_model",
-    provider: "transformers_js" as ImageModel["provider"],
+    provider: "transformers_js",
     id: model.id || model.repo_id || "",
     name: model.name || model.repo_id || model.id || "",
     path: model.path || undefined,

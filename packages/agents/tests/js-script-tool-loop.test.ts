@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createJsScriptToolBridge,
+  JS_SCRIPT_SYSTEM_PROMPT,
   JS_SCRIPT_TOOL_LOOP_CASES,
   type JsScriptBridgeFinalState
 } from "../src/evals/surfaces/js-script.js";
@@ -140,11 +141,61 @@ describe("createJsScriptToolBridge", () => {
     ).rejects.toThrow(/no saved test cases/);
   });
 
+  it("fails a run that emits nothing against declared outputs", async () => {
+    const bridge = createJsScriptToolBridge({
+      document: {
+        code: "const unused = 1;",
+        outputs: [
+          { name: "palette", type: "list[str]" },
+          { name: "hex", type: "str" }
+        ]
+      }
+    });
+    const run = (await call(bridge)("ui_jsscript_run", { inputs: {} })) as {
+      ok: boolean;
+      run: { ok: boolean; error?: string; outputs?: Record<string, unknown> };
+    };
+    expect(run.ok).toBe(false);
+    expect(run.run.ok).toBe(false);
+    expect(run.run.error).toContain("palette");
+    expect(run.run.error).toContain("hex");
+    expect(run.run.error).toContain("none of the declared outputs");
+    expect(bridge.finalState().lastRun?.ok).toBe(false);
+  });
+
+  it("does not fail a run when no outputs are declared", async () => {
+    const bridge = createJsScriptToolBridge({
+      document: { code: "const unused = 1;" }
+    });
+    const run = (await call(bridge)("ui_jsscript_run", { inputs: {} })) as {
+      ok: boolean;
+      run: { ok: boolean };
+    };
+    expect(run.ok).toBe(true);
+    expect(run.run.ok).toBe(true);
+  });
+
   it("hands the document out for a host to validate afterwards", async () => {
     const bridge = createJsScriptToolBridge({ name: "Adder" });
     await call(bridge)("ui_jsscript_set_meta", { description: "Adds." });
     expect(bridge.name()).toBe("Adder");
     expect(bridge.document().description).toBe("Adds.");
+  });
+});
+
+describe("JS_SCRIPT_SYSTEM_PROMPT", () => {
+  it("tells the model not to treat an empty bag or zero cases as success", () => {
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain("await output");
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain("Never `return` outputs");
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain(
+      "ui_jsscript_test with zero cases is an error"
+    );
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain(
+      "A run with declared outputs and an empty bag is not success"
+    );
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain("encode");
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain("differenceCiede2000");
+    expect(JS_SCRIPT_SYSTEM_PROMPT).toContain("renderSVG");
   });
 });
 

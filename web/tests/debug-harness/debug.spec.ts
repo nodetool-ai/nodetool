@@ -105,10 +105,9 @@ test("debug harness runs the target workflow", async ({ page }) => {
   const params = PARAMS_JSON ? (JSON.parse(PARAMS_JSON) as Record<string, unknown>) : {};
 
   // Known noise from the harness page scaffolding (not the workflow under test):
-  // it has no agent WebSocket backend and renders a component that calls
-  // useNavigate outside a Router. Filter these so the report reflects the
-  // workflow, not the test harness.
-  const HARNESS_NOISE = [/\/ws\/agent/, /useNavigate\(\) may be used only/];
+  // it renders a component that calls useNavigate outside a Router. Filter this
+  // so the report reflects the workflow, not the test harness.
+  const HARNESS_NOISE = [/useNavigate\(\) may be used only/];
   const isWorkflowError = (text: string) => !HARNESS_NOISE.some((re) => re.test(text));
 
   const consoleErrors: string[] = [];

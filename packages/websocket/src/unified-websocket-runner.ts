@@ -3,6 +3,11 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import {
+  SUPERSEDED_TOOL_RESULT,
+  repairOrphanedToolCalls
+} from "./chat-tool-call-repair.js";
+import { attachChatPredictionForwarder } from "./chat-prediction-forwarder.js";
 import { ApiErrorCode } from "./error-codes.js";
 import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
@@ -98,6 +103,7 @@ import {
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
   getCostReconciler,
+  getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   type ActiveModelSelection
@@ -127,6 +133,7 @@ import type {
   WebSocketCommandEnvelope,
   WebSocketMode,
   RpcErrorPayload,
+  ChatSource,
   UiContext,
   UiDocumentRef,
   UiSurfaceType
@@ -143,6 +150,7 @@ import { Tool, WORKFLOW_AUTHORING_KNOWLEDGE } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
+  sandboxPackagesForChat,
   type SandboxClock,
   CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
@@ -188,6 +196,11 @@ import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { getAssetFileName, retrieveAssetBytes } from "./lib/asset-paths.js";
 import { handleSdkV1LifecycleRpc } from "./sdk/sdk-lifecycle-rpc-handler.js";
+import type {
+  FrontendRendererRegistry,
+  FrontendRendererToolCall,
+  FrontendRendererToolResult
+} from "./frontend-renderer-registry.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]{1,100})?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -1301,9 +1314,9 @@ of assuming the only way forward is a workflow.
   \`@nodetool-ai/sandbox-dsl\` package for authoring one; see "Building
   workflows".
 - **app** — a mini app: widgets bound to workflow operations and variables.
-  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`), verify
-  with \`nodetool.apps.debug\`, or generate a whole one from a prompt with
-  \`nodetool.apps.build\`.
+  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`) and
+  verify with \`nodetool.apps.debug\` — \`{run: false}\` after every wiring change
+  is free and instant. A whole app is that loop, not a single call.
 - **storyboard** — a brief or screenplay broken into shots, each with a
   keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
   edits the shot list, renders stills and clips, and assembles them into a
@@ -1472,6 +1485,49 @@ export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Return the registered editor tools for the document the user is editing.
+ * These tools are useful only while their surface has focus, so keeping them
+ * resident avoids discovery rounds without permanently expanding the belt.
+ */
+export function focusedUiToolNames(
+  uiContext: UiContext | null,
+  toolNames: Iterable<string>
+): string[] {
+  const type = uiContext?.focused?.type;
+  if (!type) return [];
+
+  const prefix = `ui_${type}_`;
+  return [...toolNames].filter((name) => name.startsWith(prefix));
+}
+
+/**
+ * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
+ * Models sometimes emit that member expression verbatim as a top-level tool
+ * name, so the router strips it before looking the tool up.
+ */
+const GUEST_TOOL_PREFIX = "tools.";
+
+/** Recover the plain tool name from a `tools.<name>` slip. */
+export function normalizeToolCallName(name: string): string {
+  return name.startsWith(GUEST_TOOL_PREFIX)
+    ? name.slice(GUEST_TOOL_PREFIX.length)
+    : name;
+}
+
+/**
+ * The result handed back for a top-level call to a tool this turn does not
+ * carry at all. In CodeAct mode the belt lives inside the sandbox, so the
+ * recovery the model needs is the guest call shape and the discovery call —
+ * not a bare "no such tool".
+ */
+export function unroutableToolMessage(name: string): string {
+  return (
+    `Unknown tool "${name}". Tools are callable inside execute_code as: ` +
+    `await tools.<name>({...}). Use nodetool.searchTools() to discover tools.`
+  );
+}
+
+/**
  * Build the chat-agent system prompt for the given permission mode. A surface
  * (App Builder, timeline editor, …) can append its own guidance by sending a
  * `system_prompt` on the chat message — it is layered after the base prompt as
@@ -1535,6 +1591,20 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
   chat: "chat"
 };
 
+const CHAT_SOURCE_LABELS: Record<ChatSource, string> = {
+  workspace_chat: "workspace chat",
+  workflow_canvas: "workflow canvas",
+  sketch_assistant: "sketch editor assistant",
+  timeline_assistant: "timeline editor assistant",
+  storyboard_assistant: "storyboard assistant",
+  script_assistant: "script editor assistant",
+  jsscript_assistant: "JS script assistant",
+  app_builder: "app builder assistant",
+  code_assistant: "code node assistant",
+  text_editor: "text editor assistant",
+  model3d_assistant: "3D editor assistant"
+};
+
 /**
  * Render the user's open documents into the system prompt. The `ui_*` tools all
  * take a required document id, so this block is how the agent learns which ids
@@ -1545,7 +1615,8 @@ function formatUiContext(uiContext?: UiContext | null): string {
   if (!uiContext) return "";
   const focused = uiContext.focused;
   const open = uiContext.open ?? [];
-  if (!focused && open.length === 0) return "";
+  const source = uiContext.source;
+  if (!focused && open.length === 0 && !source) return "";
 
   const describe = (ref: UiDocumentRef): string => {
     const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
@@ -1556,6 +1627,11 @@ function formatUiContext(uiContext?: UiContext | null): string {
   };
 
   const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (source) {
+    lines.push(
+      `The user sent this message from the ${CHAT_SOURCE_LABELS[source] ?? source}.`
+    );
+  }
   if (focused) {
     lines.push(`The user is currently in the ${describe(focused)}.`);
   }
@@ -1892,6 +1968,12 @@ class ToolBridge {
     waiter.resolve(payload);
   }
 
+  rejectResult(toolCallId: string, error: Error): void {
+    const waiter = this.waiters.get(toolCallId);
+    if (!waiter) return;
+    waiter.reject(error);
+  }
+
   cancelAll(): void {
     const error = new Error("All pending tool calls cancelled");
     for (const waiter of this.waiters.values()) {
@@ -1976,6 +2058,8 @@ export interface UnifiedWebSocketRunnerOptions {
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
   apiOptions?: HttpApiOptions;
+  /** Registry used to expose this /ws connection as a live browser renderer. */
+  frontendRendererRegistry?: FrontendRendererRegistry;
 }
 
 export interface SdkExecutionCapacitySnapshot {
@@ -2007,6 +2091,8 @@ export class UnifiedWebSocketRunner {
   private pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
+  private frontendRendererRegistry?: FrontendRendererRegistry;
+  private frontendRendererId: string | null = null;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
     new Map();
 
@@ -2049,7 +2135,10 @@ export class UnifiedWebSocketRunner {
    */
   private chatAbort: AbortController | null = null;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
+  private clientToolsManifestReady = false;
   private toolBridge = new ToolBridge();
+  /** Separate bridge for connection-level renderer calls; never resolves chat tool_result waiters. */
+  private rendererToolBridge = new ToolBridge();
   /** Round-trips permission approvals for gated tool calls. */
   private approvalBridge = new ToolBridge();
   /**
@@ -2282,7 +2371,81 @@ export class UnifiedWebSocketRunner {
     this.pythonBridge = options.pythonBridge;
     this.getPythonBridgeReady = options.getPythonBridgeReady;
     this.apiOptions = options.apiOptions;
+    this.frontendRendererRegistry = options.frontendRendererRegistry;
     this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
+  }
+
+  isRendererConnected(): boolean {
+    return (
+      this.websocket !== null &&
+      this.websocket.clientState !== "disconnected" &&
+      this.websocket.applicationState !== "disconnected"
+    );
+  }
+
+  isRendererReady(): boolean {
+    return this.clientToolsManifestReady;
+  }
+
+  getRendererToolManifest(): Record<string, Record<string, unknown>> {
+    return Object.fromEntries(
+      Object.entries(this.clientToolsManifest).map(([name, manifest]) => [
+        name,
+        { ...manifest }
+      ])
+    );
+  }
+
+  /** Send a connection-level frontend tool call and await its renderer result. */
+  async executeRendererTool(
+    rendererId: string,
+    call: FrontendRendererToolCall,
+    timeoutMs = 300_000
+  ): Promise<FrontendRendererToolResult> {
+    if (this.frontendRendererId !== rendererId || !this.isRendererConnected()) {
+      throw new Error(`Renderer "${rendererId}" is not connected`);
+    }
+    if (!this.isRendererReady()) {
+      throw new Error(`Renderer "${rendererId}" is not ready`);
+    }
+    if (!this.clientToolsManifest[call.name]) {
+      throw new Error(`Tool "${call.name}" is not available in renderer`);
+    }
+    const resultPromise = this.rendererToolBridge.createWaiter(
+      call.tool_call_id,
+      timeoutMs
+    );
+    try {
+      await this.sendToSocket({
+        type: "renderer_tool_call",
+        renderer_id: rendererId,
+        tool_call_id: call.tool_call_id,
+        name: call.name,
+        args: call.args
+      });
+      if (!this.isRendererConnected()) {
+        throw new Error(
+          `Renderer "${rendererId}" disconnected during tool call`
+        );
+      }
+    } catch (error) {
+      this.rendererToolBridge.rejectResult(
+        call.tool_call_id,
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+    const result = await resultPromise;
+    if (result.ok !== true) {
+      throw new Error(
+        typeof result.error === "string" ? result.error : "Renderer tool failed"
+      );
+    }
+    return {
+      renderer_id: rendererId,
+      tool_call_id: call.tool_call_id,
+      ok: true,
+      result: result.result ?? result.content
+    };
   }
 
   async connect(
@@ -2296,6 +2459,16 @@ export class UnifiedWebSocketRunner {
 
     await websocket.accept();
     this.websocket = websocket;
+    if (this.frontendRendererRegistry) {
+      this.frontendRendererId = this.frontendRendererRegistry.register(
+        this.userId,
+        this
+      );
+      await this.sendToSocket({
+        type: "renderer_registered",
+        renderer_id: this.frontendRendererId
+      });
+    }
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
@@ -2311,6 +2484,11 @@ export class UnifiedWebSocketRunner {
     this.stopHeartbeat();
     this.stopStatsBroadcast();
     this.unregisterObserver();
+    if (this.frontendRendererId) {
+      this.frontendRendererRegistry?.unregister(this.frontendRendererId);
+      this.frontendRendererId = null;
+    }
+    this.rendererToolBridge.cancelAll();
 
     // A resilient chat turn survives the socket: detach it (frames keep
     // buffering in the session for replay) instead of aborting. The session's
@@ -5271,7 +5449,11 @@ export class UnifiedWebSocketRunner {
         const pm = this.dbMessageToProviderMessage(m);
         if (pm) out.push(pm);
       }
-      return out;
+      // A thread that took an interleave before this was fixed still holds a
+      // tool call with no result. Anthropic 400s on one, so loading such a
+      // thread under a different provider or model would fail every turn from
+      // here on. Patch the history we send; the stored rows are left alone.
+      return repairOrphanedToolCalls(out);
     };
 
     let chatHistory: ProviderMessage[];
@@ -5538,11 +5720,16 @@ export class UnifiedWebSocketRunner {
       workspaceDir: chatWorkspaceDir,
       authToken: this.authToken
     });
+    const detachPredictions = attachChatPredictionForwarder(
+      (listener) => ctx.addMessageListener(listener),
+      (msg) => this.sendDetached(msg),
+      { threadId: threadId || null, workflowId }
+    );
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null, codeactClock);
-    // Stamp the turn's own selection so harness-launching tools (build_app)
-    // inherit this chat's provider/model when the call doesn't name one.
+    // Stamp the turn's own selection so a tool that launches another harness
+    // inherits this chat's provider/model when the call doesn't name one.
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
       provider: providerId,
       model
@@ -5589,6 +5776,11 @@ export class UnifiedWebSocketRunner {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        sandboxPackages: sandboxPackagesForChat({
+          source: uiContext?.source,
+          focusedType: uiContext?.focused?.type,
+          catalog: getProcessSandboxModuleCatalog()
+        }),
         directToolNames: directSchemas.map((s) => s.name),
         executeTool: async (call: ChatCodeActToolCall) => {
           if (!codeactExecuteToolRef) {
@@ -5602,7 +5794,11 @@ export class UnifiedWebSocketRunner {
         },
         residentToolNames: [
           ...CODEACT_RESIDENT_TOOL_NAMES,
-          ...RESIDENT_TOOL_NAMES
+          ...RESIDENT_TOOL_NAMES,
+          ...focusedUiToolNames(
+            uiContext,
+            allSchemas.map((schema) => schema.name)
+          )
         ],
         context: ctx,
         signal,
@@ -5696,6 +5892,9 @@ export class UnifiedWebSocketRunner {
     // build a multi-component app UI or run a long edit session in one turn —
     // 10 was too low and cut off the app builder mid-build.
     const MAX_TOOL_ROUNDS = 50;
+    // Items still read from a superseded turn, purely to catch tool results
+    // already in flight. A provider that honors the abort ends well inside it.
+    const MAX_SUPERSEDED_DRAIN_ITEMS = 200;
     const useTools = providerToolSchemas.length > 0;
 
     // The wire messages: chat history + the ephemeral memory block (which goes
@@ -5825,18 +6024,123 @@ export class UnifiedWebSocketRunner {
     // `view_image` is offered in codeact mode) keeps the normal path.
     codeactExecuteToolRef = executeTool;
     const session = codeactSession;
-    const effectiveExecuteTool = session
-      ? async (
-          toolCall: ProviderToolCall
-        ): Promise<string | MessageContent[]> =>
-          toolCall.name === EXECUTE_CODE_TOOL_NAME
-            ? session.executeAction(toolCall.args)
-            : executeTool(toolCall)
-      : executeTool;
+    const beltToolNames = new Set(allSchemas.map((s) => s.name));
+    const effectiveExecuteTool = async (
+      rawCall: ProviderToolCall
+    ): Promise<string | MessageContent[]> => {
+      // A model that read the CodeAct prompt sometimes calls
+      // `tools.<name>` at the top level. Recover the plain name first, so the
+      // call reaches the tool instead of dying as "no such tool".
+      const name = normalizeToolCallName(rawCall.name);
+      const toolCall = name === rawCall.name ? rawCall : { ...rawCall, name };
+      if (!session) return executeTool(toolCall);
+      if (name === EXECUTE_CODE_TOOL_NAME) {
+        return session.executeAction(toolCall.args);
+      }
+      // A belt tool named directly still runs: the router is the same gate the
+      // sandbox bridge goes through, so answering the call is strictly better
+      // than refusing it and spending a round on the correction.
+      if (beltToolNames.has(name)) return executeTool(toolCall);
+      // Answer, do not throw: the model can only correct course if the
+      // recovery instructions arrive as this call's tool result.
+      return JSON.stringify({ error: unroutableToolMessage(name) });
+    };
 
     // Tool name by call id, so persisted tool messages keep their name (the
     // provider Message carries only the id).
     const toolNames = new Map<string, string>();
+    // Calls announced by an assistant message that have not been answered by a
+    // tool message yet. Whatever is still here when the turn tears down never
+    // got its result row, and the `finally` below writes a stand-in so the
+    // transcript stays well-formed.
+    const openToolCalls = new Set<string>();
+    // Set when a newer turn supersedes this one. The loop then stops feeding
+    // the client and only rescues the results still coming.
+    let superseded = false;
+    let drainedItems = 0;
+
+    /**
+     * Write one message this turn produced. `echo` is false for a superseded
+     * turn: the row still belongs in the thread, but the client has moved on
+     * and replaying it there would interleave a dead turn into a live one.
+     */
+    const persistTurnMessage = async (
+      m: ProviderMessage,
+      echo: boolean
+    ): Promise<void> => {
+      if (m.role === "assistant") {
+        // Content may be a plain string or a MessageContent[] carrying
+        // native-image blocks. Raw image bytes are turned into real assets
+        // here so base64 never lands in the DB or on the wire.
+        let persistedContent: unknown = m.content ?? null;
+        if (typeof m.content === "string") {
+          if (echo) content = m.content;
+        } else if (Array.isArray(m.content)) {
+          const materialized = await this.materializeAssistantImageContent(
+            m.content,
+            userId,
+            workflowId
+          );
+          persistedContent = materialized;
+          if (echo) {
+            content = materialized
+              .filter((c) => c.type === "text" && typeof c.text === "string")
+              .map((c) => c.text as string)
+              .join("");
+          }
+        }
+        const toolCalls = Array.isArray(m.toolCalls)
+          ? m.toolCalls.map((tc) => ({
+              id: tc.id,
+              name: tc.name,
+              args: tc.args,
+              result: null
+            }))
+          : null;
+        for (const tc of toolCalls ?? []) {
+          if (typeof tc.id !== "string") continue;
+          openToolCalls.add(tc.id);
+          toolNames.set(tc.id, tc.name);
+        }
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: persistedContent,
+          ...(toolCalls ? { tool_calls: toolCalls } : {}),
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model,
+          provider_session: sessionForPersist()
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        if (echo) await this.sendMessage(assistantMsgData);
+        return;
+      }
+      if (m.role !== "tool") return;
+      // Image tool results carry MessageContent blocks; persist/echo only
+      // their note text so chat history stays light (the base64 rode the
+      // in-flight provider message, never the DB).
+      const toolContent = Array.isArray(m.content)
+        ? this.toolResultDisplayText(m.content)
+        : typeof m.content === "string"
+          ? m.content
+          : "";
+      if (typeof m.toolCallId === "string") openToolCalls.delete(m.toolCallId);
+      const toolMsgData: Record<string, unknown> = {
+        type: "message",
+        role: "tool",
+        tool_call_id: m.toolCallId ?? null,
+        name: m.toolCallId ? (toolNames.get(m.toolCallId) ?? null) : null,
+        content: toolContent,
+        thread_id: threadId,
+        workflow_id: workflowId,
+        provider: providerId,
+        model
+      };
+      await this.saveMessageToDb(toolMsgData);
+      if (echo) await this.sendMessage(toolMsgData);
+    };
 
     try {
       for await (const item of provider.generateLoop({
@@ -5852,8 +6156,39 @@ export class UnifiedWebSocketRunner {
         workspaceDir: chatWorkspaceDir ?? undefined,
         signal
       })) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-          return;
+        // A newer turn has taken over. Stop driving the client, but do NOT
+        // drop what this turn already produced: the provider checks its abort
+        // signal before dispatching a tool, never during one, so a call in
+        // flight runs to completion and its result is arriving right now.
+        // Discarding it left the model blind to a side effect it had already
+        // caused, and it silently redid the work.
+        if (
+          !superseded &&
+          requestSeq !== undefined &&
+          requestSeq !== this.chatRequestSeq
+        ) {
+          superseded = true;
+        }
+        if (superseded) {
+          if (isProviderMessageEvent(item)) {
+            await persistTurnMessage(item.message, false);
+          }
+          // Nothing left outstanding: the rest of this turn is work the user
+          // has already moved on from.
+          if (openToolCalls.size === 0) break;
+          // The turn's signal is already aborted, so a provider that honors it
+          // ends within a few items. One that does not must never hold this
+          // handler open — stop reading and let the `finally` stand in for
+          // whatever is still missing.
+          if (++drainedItems > MAX_SUPERSEDED_DRAIN_ITEMS) {
+            log.warn("Superseded turn kept producing; stopped draining", {
+              threadId,
+              openToolCalls: openToolCalls.size
+            });
+            break;
+          }
+          continue;
+        }
 
         if (isProviderSessionUpdate(item)) {
           // Internal continuity token — capture for persistence, never wired.
@@ -5862,70 +6197,7 @@ export class UnifiedWebSocketRunner {
         }
 
         if (isProviderMessageEvent(item)) {
-          const m = item.message;
-          if (m.role === "assistant") {
-            // Content may be a plain string or a MessageContent[] carrying
-            // native-image blocks. Raw image bytes are turned into real assets
-            // here so base64 never lands in the DB or on the wire.
-            let persistedContent: unknown = m.content ?? null;
-            if (typeof m.content === "string") {
-              content = m.content;
-            } else if (Array.isArray(m.content)) {
-              const materialized = await this.materializeAssistantImageContent(
-                m.content,
-                userId,
-                workflowId
-              );
-              persistedContent = materialized;
-              content = materialized
-                .filter((c) => c.type === "text" && typeof c.text === "string")
-                .map((c) => c.text as string)
-                .join("");
-            }
-            const toolCalls = Array.isArray(m.toolCalls)
-              ? m.toolCalls.map((tc) => ({
-                  id: tc.id,
-                  name: tc.name,
-                  args: tc.args,
-                  result: null
-                }))
-              : null;
-            const assistantMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "assistant",
-              content: persistedContent,
-              ...(toolCalls ? { tool_calls: toolCalls } : {}),
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              provider_session: sessionForPersist()
-            };
-            await this.saveMessageToDb(assistantMsgData);
-            await this.sendMessage(assistantMsgData);
-          } else if (m.role === "tool") {
-            // Image tool results carry MessageContent blocks; persist/echo only
-            // their note text so chat history stays light (the base64 rode the
-            // in-flight provider message, never the DB).
-            const toolContent = Array.isArray(m.content)
-              ? this.toolResultDisplayText(m.content)
-              : typeof m.content === "string"
-                ? m.content
-                : "";
-            const toolMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "tool",
-              tool_call_id: m.toolCallId ?? null,
-              name: m.toolCallId ? (toolNames.get(m.toolCallId) ?? null) : null,
-              content: toolContent,
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model
-            };
-            await this.saveMessageToDb(toolMsgData);
-            await this.sendMessage(toolMsgData);
-          }
+          await persistTurnMessage(item.message, true);
           continue;
         }
 
@@ -5942,6 +6214,11 @@ export class UnifiedWebSocketRunner {
           log.info("Tool call", { tool: tc.name, args: tc.args });
         }
       }
+
+      // A superseded turn is done once its outstanding results are saved. The
+      // completion chunk and the memory pass belong to the turn the user is
+      // actually watching, which has its own.
+      if (superseded) return;
 
       // Log provider call for cost tracking — matches Python's _log_provider_call()
       await this._logProviderCall(
@@ -6087,6 +6364,31 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
+    } finally {
+      detachPredictions();
+      // Whatever is still outstanding never got a result row. Leaving the gap
+      // makes the thread malformed — Anthropic rejects a `tool_use` with no
+      // `tool_result` — and leaves the model unaware the call was abandoned,
+      // which is what made it silently redo the work.
+      for (const toolCallId of openToolCalls) {
+        try {
+          await this.saveMessageToDb({
+            type: "message",
+            role: "tool",
+            tool_call_id: toolCallId,
+            name: toolNames.get(toolCallId) ?? null,
+            content: SUPERSEDED_TOOL_RESULT,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model
+          });
+        } catch (err) {
+          // Best effort: a turn that already failed must not fail again here.
+          this.logError("superseded tool result save failed", err);
+        }
+      }
+      openToolCalls.clear();
     }
   }
 
@@ -8824,12 +9126,12 @@ export class UnifiedWebSocketRunner {
   };
 
   async run(websocket: WebSocketConnection): Promise<void> {
-    await this.connect(
-      websocket,
-      this.userId ?? undefined,
-      this.authToken ?? undefined
-    );
     try {
+      await this.connect(
+        websocket,
+        this.userId ?? undefined,
+        this.authToken ?? undefined
+      );
       await this.receiveMessages();
     } finally {
       await this.disconnect();
@@ -8884,6 +9186,12 @@ export class UnifiedWebSocketRunner {
         }
       }
 
+      // Heartbeats show that the connection is alive, not that the user is
+      // working in this editor.
+      if (this.frontendRendererId && msgType !== "ping" && msgType !== "pong") {
+        this.frontendRendererRegistry?.touch(this.frontendRendererId);
+      }
+
       if (msgType === "client_tools_manifest") {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         this.clientToolsManifest = {};
@@ -8896,6 +9204,26 @@ export class UnifiedWebSocketRunner {
             const name = (tool as Record<string, unknown>).name as string;
             this.clientToolsManifest[name] = tool as Record<string, unknown>;
           }
+        }
+        this.clientToolsManifestReady = true;
+        if (this.frontendRendererId) {
+          this.frontendRendererRegistry?.markReady(this.frontendRendererId);
+        }
+        continue;
+      }
+
+      if (msgType === "renderer_tool_result") {
+        const rendererId =
+          typeof data.renderer_id === "string" ? data.renderer_id : null;
+        const toolCallId =
+          typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+        if (
+          rendererId &&
+          toolCallId &&
+          rendererId === this.frontendRendererId
+        ) {
+          this.frontendRendererRegistry?.touch(rendererId);
+          this.rendererToolBridge.resolveResult(toolCallId, data);
         }
         continue;
       }

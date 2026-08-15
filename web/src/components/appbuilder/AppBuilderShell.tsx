@@ -1,6 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Data } from "@puckeditor/core";
-import { type AppDocMeta } from "@nodetool-ai/app-runtime";
+import {
+  type AppDocMeta,
+  type OperationBinding
+} from "@nodetool-ai/app-runtime";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -21,6 +24,7 @@ import { createEmptyData, type AppDocument } from "./appData";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 import AppDataPanel from "./AppDataPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 
 export interface AppBuilderShellProps {
   /**
@@ -39,9 +43,17 @@ export interface AppBuilderShellProps {
   operationWorkflows?: Record<string, Workflow>;
   /**
    * Workflow the agent panel edits. Omitted when the app has no workflow bound
-   * yet, which also hides the panel.
+   * yet; the panel still opens, on a thread of its own.
    */
   agentWorkflowId?: string;
+  /**
+   * The operations the canvas holds right now, reported whenever they change.
+   * `document` is the saved row, so a parent that derives the workflows to load
+   * from it alone loads nothing for an operation the agent bound in this
+   * session — and `ui_app_get_binding_targets` answers `ioAvailable: false` for
+   * the one operation the author is working on.
+   */
+  onOperationsChange?: (operations: ReadonlyArray<OperationBinding>) => void;
   /** Title bar above the canvas. */
   header?: React.ReactNode;
   /** Banner between the header and the canvas (a save conflict, say). */
@@ -97,6 +109,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   workflow,
   operationWorkflows,
   agentWorkflowId,
+  onOperationsChange,
   header,
   banner,
   onSave,
@@ -133,6 +146,16 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   useEffect(() => {
     if (agentWorkflowId) setCurrentWorkflowId(agentWorkflowId);
   }, [agentWorkflowId, setCurrentWorkflowId]);
+
+  // Report the operations upward on every change, including the seed, so the
+  // parent's idea of which workflows to load never lags the canvas. Read
+  // through a ref: a caller passing a fresh closure each render must not make
+  // this fire again.
+  const onOperationsChangeRef = useRef(onOperationsChange);
+  onOperationsChangeRef.current = onOperationsChange;
+  useEffect(() => {
+    onOperationsChangeRef.current?.(meta.operations);
+  }, [meta.operations]);
 
   const handleSave = useCallback(
     (nextData: Data) => {
@@ -177,7 +200,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             onPublish={handleSave}
             onClose={onClose}
             agentOpen={agentOpen}
-            onToggleAgent={agentWorkflowId ? toggleAgent : undefined}
+            onToggleAgent={toggleAgent}
             meta={meta}
             onMetaChange={setMeta}
             dataOpen={dataOpen}
@@ -196,15 +219,27 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
           />
         </Box>
       )}
-      {agentOpen && agentWorkflowId && (
-        <Box sx={panelSx}>
-          <AppBuilderAgentPanel
-            applicationId={applicationId}
-            workflowId={agentWorkflowId}
-          />
-        </Box>
-      )}
-      {narrow && agentWorkflowId && (
+      {agentOpen &&
+        (narrow ? (
+          <Box sx={overlayPanelSx}>
+            <AppBuilderAgentPanel
+              applicationId={applicationId}
+              workflowId={agentWorkflowId}
+            />
+          </Box>
+        ) : (
+          <ResizableSideDock
+            storageKey="app_builder"
+            defaultWidth={420}
+            ariaLabel="Resize app builder assistant"
+          >
+            <AppBuilderAgentPanel
+              applicationId={applicationId}
+              workflowId={agentWorkflowId}
+            />
+          </ResizableSideDock>
+        ))}
+      {narrow && (
         <CircularActionButton
           icon={agentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
           onClick={toggleAgent}

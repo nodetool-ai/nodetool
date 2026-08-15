@@ -12,23 +12,61 @@ import {
   MCP_SANDBOX_PROBE_SNIPPET
 } from "@nodetool-ai/agents";
 import { initTestDb } from "@nodetool-ai/models";
+import {
+  DIRECT_TOOL_NAMES,
+  SDK_NATIVE_TOOL_REPLACEMENTS
+} from "@nodetool-ai/runtime";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
   createMcpServer,
   createMcpStdioTransport,
   handleMcpHttpRequest,
-  registerMcpFrontendTransport,
-  unregisterMcpFrontendTransport,
   MCP_SCOPE_REQUIRED_MESSAGE
 } from "../src/mcp-server.js";
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
   MCP_SANDBOX_RESOURCE_URI
 } from "../src/mcp-agent-tools.js";
-import type { AgentTransport } from "../src/agent/transport.js";
 
 const scope = { userId: "1", source: "stdio-local" as const };
+
+function fakeRendererRegistry() {
+  const calls: Array<Record<string, unknown>> = [];
+  return {
+    calls,
+    list: (userId: string) =>
+      userId === "1"
+        ? [
+            {
+              renderer_id: "renderer-1",
+              user_id: "1",
+              ready: true,
+              connected: true,
+              active: true,
+              last_active_at: 1,
+              tools: {}
+            }
+          ]
+        : [],
+    execute: async (request: {
+      userId: string;
+      rendererId?: string;
+      toolName: string;
+      args: Record<string, unknown>;
+    }) => {
+      const { userId, rendererId, toolName, args } = request;
+      calls.push({ userId, rendererId, toolName, args });
+      if (userId !== "1" || rendererId === "missing") {
+        return { handled: false };
+      }
+      return {
+        handled: true,
+        result: { renderer_id: rendererId ?? "renderer-1", ok: true }
+      };
+    }
+  };
+}
 
 // The bridged file tools are rooted under the NodeTool data dir, and
 // constructing the server creates that directory. Point it at a temp dir so the
@@ -52,20 +90,6 @@ afterAll(() => {
 beforeEach(() => {
   initTestDb();
 });
-
-function fakeTransport(
-  id: string,
-  executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
-): AgentTransport {
-  return {
-    id,
-    isAlive: true,
-    streamMessage: () => {},
-    requestToolManifest: async () => [],
-    executeTool,
-    abortTools: () => {}
-  };
-}
 
 /** Initialize a real MCP client against a scoped session. */
 async function connectClient(): Promise<Client> {
@@ -127,18 +151,95 @@ describe("MCP server surface", () => {
     expect(createMcpStdioTransport()).toBeDefined();
   });
 
-  it("registers exactly execute_code and view_image", () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    expect(toolNames(server).sort()).toEqual(["execute_code", "view_image"]);
+  it("registers the action, view_image, and the direct tools no client serves", () => {
+    // Derived, not hand-listed: DIRECT_TOOL_NAMES minus the tools an MCP host
+    // (Claude Code, ChatGPT) already covers with its own. Pinned as a set so a
+    // tool added to either table shows up here as a one-line diff.
+    const names = toolNames(createMcpServer({ agentToolsScope: scope }));
+
+    // Nothing beyond the action, the pixel channel, and the direct set.
+    for (const name of names) {
+      if (name === "execute_code" || name === "view_image") continue;
+      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+    }
+    // The ones this session can actually build are all there. Node discovery
+    // needs an injected registry, which this harness has none of, so the
+    // promotion correctly leaves those out rather than advertising a tool
+    // whose dependency is missing.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "execute_code",
+        "view_image",
+        "find_model",
+        "list_models",
+        "list_directory",
+        "browser",
+        "http_request",
+        "download_file"
+      ])
+    );
   });
 
-  it("lists exactly two tools over a real MCP session", async () => {
-    const client = await connectClient();
-    const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([
-      "execute_code",
-      "view_image"
+  it("exposes renderer tools on the CodeAct belt and scopes calls", async () => {
+    const renderer = fakeRendererRegistry();
+    const server = createMcpServer({
+      agentToolsScope: scope,
+      frontendRendererRegistry: renderer
+    });
+    expect(toolNames(server)).not.toContain("list_renderers");
+    const observation = await act(
+      server,
+      "return [await tools.list_renderers(), await tools.ui_switch_tab({ tab_index: 2 })];"
+    );
+    expect(observation.ok).toBe(true);
+    expect(observation.result).toEqual([
+      { renderers: [{ renderer_id: "renderer-1", active: true }] },
+      { renderer_id: "renderer-1", ok: true }
     ]);
+    expect(renderer.calls).toHaveLength(1);
+    expect(renderer.calls[0]).toMatchObject({
+      userId: "1",
+      toolName: "ui_switch_tab",
+      args: { tab_index: 2 }
+    });
+  });
+
+  it("reports an explicitly unavailable renderer", async () => {
+    const server = createMcpServer({
+      agentToolsScope: scope,
+      frontendRendererRegistry: fakeRendererRegistry()
+    });
+    const observation = await act(
+      server,
+      'return await tools.ui_switch_tab({ tab_index: 2, renderer_id: "missing" });'
+    );
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain(
+      'No connected NodeTool renderer with id "missing"'
+    );
+  });
+
+  it("never offers a tool the client already serves natively", () => {
+    // Two `read_file`s with two different roots in front of one model is worse
+    // than one, which is why the file/search half stays inside the sandbox.
+    const names = new Set(toolNames(createMcpServer({ agentToolsScope: scope })));
+    for (const substituted of SDK_NATIVE_TOOL_REPLACEMENTS.keys()) {
+      expect(names.has(substituted)).toBe(false);
+    }
+  });
+
+  it("keeps every promoted tool callable from inside an action too", async () => {
+    // Promotion moves where the prompt documents a tool; it must not remove it
+    // from the belt, or `nodetool.*` code paths that call it would break.
+    const client = await connectClient();
+    const res = (await client.callTool({
+      name: "execute_code",
+      arguments: {
+        code: `return typeof tools.find_model + "," + typeof tools.browser;`
+      }
+    })) as { content: Array<{ text: string }>; isError?: boolean };
+    expect(res.isError).toBeFalsy();
+    expect(res.content[0].text).toContain("function,function");
     await client.close();
   });
 
@@ -152,6 +253,31 @@ describe("MCP server surface", () => {
     expect(description.startsWith(MCP_GUEST_CONTRACT)).toBe(true);
     expect(description).toContain("searchTools");
     expect(description).toContain("nodetool");
+    await client.close();
+  });
+
+  it("runs an action from a client that sends no title", async () => {
+    // The label is for NodeTool's own UI and the action path discards it, so
+    // requiring it on MCP only rejected callers over a field nobody reads.
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const schema = tools.find((t) => t.name === "execute_code")
+      ?.inputSchema as {
+      required?: string[];
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.required).toEqual(["code"]);
+    // Still advertised, so a client that has a label sends it.
+    expect(Object.keys(schema.properties ?? {})).toContain("title");
+
+    const res = (await client.callTool({
+      name: "execute_code",
+      arguments: { code: "return 6 * 7;" }
+    })) as { content: Array<{ text: string }>; isError?: boolean };
+    expect(JSON.parse(res.content[0].text)).toMatchObject({
+      ok: true,
+      result: 42
+    });
     await client.close();
   });
 
@@ -182,7 +308,15 @@ describe("MCP server surface", () => {
         permission_category: string;
       }>;
     };
-    expect(catalog.direct_tools).toEqual(["execute_code", "view_image"]);
+    // The catalog names every tool offered at the top level, so a client
+    // reading it sees the same surface listTools reports.
+    expect(catalog.direct_tools).toEqual(
+      expect.arrayContaining(["execute_code", "view_image", "find_model"])
+    );
+    for (const name of catalog.direct_tools) {
+      if (name === "execute_code" || name === "view_image") continue;
+      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+    }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
     const listWorkflows = catalog.tools.find((t) => t.name === "list_workflows");
     expect(listWorkflows?.permission_category).toBe("read");
@@ -273,100 +407,5 @@ describe("session scope", () => {
     const body = (await response!.json()) as { error: { message: string } };
     expect(body.error.message).toBe(MCP_SCOPE_REQUIRED_MESSAGE);
     expect(body.error.message).toContain("nodetool mcp serve");
-  });
-});
-
-describe("editor steering through the belt", () => {
-  it("routes an editor-steering ui_ tool to the connected renderer", async () => {
-    let received: { name?: string; args?: unknown } = {};
-    const transport = fakeTransport("r-1", async (_s, _c, name, args) => {
-      received = { name, args };
-      return { ok: true };
-    });
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      expect(toolNames(server)).not.toContain("ui_open_workflow");
-
-      const observed = await act(
-        server,
-        'return await tools.ui_open_workflow({ workflow_id: "wf-1", renderer_id: "r-1" });'
-      );
-      expect(observed.ok).toBe(true);
-      expect(received.name).toBe("ui_open_workflow");
-      expect(received.args).toMatchObject({ workflow_id: "wf-1" });
-      expect(received.args).not.toHaveProperty("renderer_id");
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
-  });
-
-  it("reports a missing renderer instead of silently succeeding", async () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    const observed = await act(
-      server,
-      'return await tools.ui_switch_tab({ tab_index: 0 });'
-    );
-    expect(observed.ok).toBe(false);
-    expect(observed.error).toContain("connected NodeTool editor");
-  });
-
-  it("names an unknown renderer_id", async () => {
-    const transport = fakeTransport("r-1");
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      const observed = await act(
-        server,
-        'return await tools.ui_copy({ text: "x", renderer_id: "missing" });'
-      );
-      expect(observed.ok).toBe(false);
-      expect(observed.error).toContain('renderer with id "missing"');
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
-  });
-
-  it("list_renderers is on the belt, not an MCP tool", async () => {
-    const a = fakeTransport("r-a");
-    const b = fakeTransport("r-b");
-    registerMcpFrontendTransport(a);
-    registerMcpFrontendTransport(b);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      expect(toolNames(server)).not.toContain("list_renderers");
-
-      const observed = await act(server, "return await tools.list_renderers({});");
-      expect(observed.ok).toBe(true);
-      const body = observed.result as {
-        renderers: Array<{ renderer_id: string; active: boolean }>;
-      };
-      const ids = body.renderers.map((r) => r.renderer_id);
-      expect(ids).toContain("r-a");
-      expect(ids).toContain("r-b");
-      // Most-recently-registered renderer is the active default.
-      expect(body.renderers.find((r) => r.renderer_id === "r-b")?.active).toBe(
-        true
-      );
-    } finally {
-      unregisterMcpFrontendTransport(a);
-      unregisterMcpFrontendTransport(b);
-    }
-  });
-
-  it("prefers live editor state for the workflow document tools", async () => {
-    const transport = fakeTransport("r-live", async () => ({
-      ok: true,
-      workflow_id: "live-workflow"
-    }));
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer({ agentToolsScope: scope });
-      const observed = await act(server, "return await tools.ui_get_graph({});");
-      expect(observed.ok).toBe(true);
-      expect(observed.result).toMatchObject({ workflow_id: "live-workflow" });
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
   });
 });

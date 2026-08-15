@@ -60,10 +60,7 @@ describe("apps capability module", () => {
   });
 
   it("carries the wire names the tools carried", () => {
-    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual([
-      "build_app",
-      "debug_app"
-    ]);
+    expect(APP_CAPABILITIES.map((e) => e.spec.name)).toEqual(["debug_app"]);
   });
 
   it("classifies every capability the way the gate does today", () => {
@@ -73,10 +70,7 @@ describe("apps capability module", () => {
   });
 
   it("renders as a Tool, spec for spec", () => {
-    for (const tool of [
-      toolForCapabilityName("build_app"),
-      toolForCapabilityName("debug_app")
-    ] as Tool[]) {
+    for (const tool of [toolForCapabilityName("debug_app")] as Tool[]) {
       const entry = APP_CAPABILITIES.find((e) => e.spec.name === tool.name);
       expect(entry).toBeDefined();
       expect(tool.description).toBe(entry!.spec.description);
@@ -87,12 +81,6 @@ describe("apps capability module", () => {
   it("keeps the user-facing message templates", () => {
     const byName = (name: string) =>
       APP_CAPABILITIES.find((e) => e.spec.name === name)!.spec;
-    expect(byName("build_app").userMessage?.({ prompt: "a note app" })).toBe(
-      "Building an app: a note app"
-    );
-    expect(byName("build_app").userMessage?.({})).toBe(
-      "Building an app from the given spec"
-    );
     expect(
       byName("debug_app").userMessage?.({ application_id: "app-1", run: false })
     ).toBe("Checking app app-1 wiring");
@@ -101,13 +89,10 @@ describe("apps capability module", () => {
 
 describe("apps capabilities against the run", () => {
   it("refuses without a node registry on the run", async () => {
-    for (const name of ["build_app", "debug_app"]) {
-      const result = (await asTool(name).process(ctx, {
-        application_id: "app-1",
-        prompt: "x"
-      })) as Record<string, unknown>;
-      expect(String(result.error)).toContain("no node registry");
-    }
+    const result = (await asTool("debug_app").process(ctx, {
+      application_id: "app-1"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no node registry");
   });
 
   it("reaches the service once the run carries one", async () => {

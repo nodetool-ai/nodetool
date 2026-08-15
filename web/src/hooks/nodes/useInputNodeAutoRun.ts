@@ -39,15 +39,10 @@ interface UseNodeAutoRunReturn {
   onPropertyChangeComplete: () => void;
 }
 
-// Auto-run fires for every node type when instantUpdate is enabled, and never
-// when it is disabled.
-const shouldAutoRun = (nodeType: string, instantUpdate: boolean): boolean =>
-  instantUpdate;
-
 export const useNodeAutoRun = (
   options: UseNodeAutoRunOptions
 ): UseNodeAutoRunReturn => {
-  const { nodeId, nodeType, propertyName } = options;
+  const { nodeId, propertyName } = options;
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get store reference without subscribing to state changes
@@ -71,7 +66,7 @@ export const useNodeAutoRun = (
    * external upstream's cached result as an override.
    */
   const executeDownstreamSubgraph = useCallback(() => {
-    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
+    if (!instantUpdateRef.current) {
       return;
     }
 
@@ -106,21 +101,14 @@ export const useNodeAutoRun = (
 
     run({}, workflow, built.nodes, built.edges);
     // Generation accessors read from stores at call time, no need to include in deps
-  }, [
-    nodeType,
-    nodeId,
-    nodeStore,
-    isWorkflowRunning,
-    run,
-    propertyName
-  ]);
+  }, [nodeId, nodeStore, isWorkflowRunning, run, propertyName]);
 
   /**
    * Called when a property value changes (for non-slider inputs).
    * Debounces to avoid triggering too many runs.
    */
   const onPropertyChange = useCallback(() => {
-    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
+    if (!instantUpdateRef.current) {
       return;
     }
 
@@ -132,14 +120,14 @@ export const useNodeAutoRun = (
     debounceTimerRef.current = setTimeout(() => {
       executeDownstreamSubgraph();
     }, AUTO_RUN_DEBOUNCE_MS);
-  }, [nodeType, executeDownstreamSubgraph]);
+  }, [executeDownstreamSubgraph]);
 
   /**
    * Called when a slider/number input finishes changing (on mouseup/blur).
    * Triggers auto-run immediately without additional debounce.
    */
   const onPropertyChangeComplete = useCallback(() => {
-    if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
+    if (!instantUpdateRef.current) {
       return;
     }
 
@@ -149,7 +137,7 @@ export const useNodeAutoRun = (
     }
 
     executeDownstreamSubgraph();
-  }, [nodeType, executeDownstreamSubgraph]);
+  }, [executeDownstreamSubgraph]);
 
   return {
     onPropertyChange,

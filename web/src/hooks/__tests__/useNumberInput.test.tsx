@@ -137,7 +137,6 @@ describe("useNumberInput", () => {
       const props = createMockProps();
       const state = createMockState();
       const setState = jest.fn();
-      const inputIsFocused = true;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -146,9 +145,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -166,7 +163,6 @@ describe("useNumberInput", () => {
       const props = createMockProps();
       const state = createMockState({ isDragging: false });
       const setState = jest.fn();
-      const inputIsFocused = true;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -175,9 +171,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -202,7 +196,6 @@ describe("useNumberInput", () => {
         currentDragValue: 50,
       });
       const setState = jest.fn();
-      const inputIsFocused = true;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -211,9 +204,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -242,7 +233,6 @@ describe("useNumberInput", () => {
         currentDragValue: 50,
       });
       const setState = jest.fn();
-      const inputIsFocused = false;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -251,9 +241,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -279,7 +267,6 @@ describe("useNumberInput", () => {
         currentDragValue: 55,
       });
       const setState = jest.fn();
-      const inputIsFocused = false;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -288,9 +275,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -313,7 +298,6 @@ describe("useNumberInput", () => {
         currentDragValue: 50,
       });
       const setState = jest.fn();
-      const inputIsFocused = false;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -322,9 +306,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,
@@ -342,7 +324,6 @@ describe("useNumberInput", () => {
       const props = createMockProps();
       const state = createMockState({ isDragging: false });
       const setState = jest.fn();
-      const inputIsFocused = true;
       const setInputIsFocused = jest.fn();
       const containerRef = { current: createMockContainer() };
       const dragStateRef = { current: state };
@@ -351,9 +332,7 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() =>
         useDragHandling(
           props,
-          state,
           setState,
-          inputIsFocused,
           setInputIsFocused,
           containerRef as any,
           dragStateRef as any,

@@ -60,6 +60,14 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   paintStrokes: jest.fn(),
   resizeCanvas: jest.fn(),
   setSelection: jest.fn(),
+  fill: jest.fn(),
+  gradient: jest.fn(),
+  drawShape: jest.fn(),
+  setSelectionShape: jest.fn(),
+  transform: jest.fn(),
+  adjustLayer: jest.fn(),
+  crop: jest.fn(),
+  pickColor: jest.fn(),
   getLayerImage: jest.fn(),
   renderLayerToAsset: jest.fn(),
   renderLayersToAssets: jest.fn()
@@ -91,6 +99,14 @@ describe("ui_sketch_* tools", () => {
         "ui_sketch_set_tool",
         "ui_sketch_resize_canvas",
         "ui_sketch_selection",
+        "ui_sketch_fill",
+        "ui_sketch_gradient",
+        "ui_sketch_draw_shape",
+        "ui_sketch_set_selection_shape",
+        "ui_sketch_transform",
+        "ui_sketch_adjust_layer",
+        "ui_sketch_crop",
+        "ui_sketch_pick_color",
         "ui_sketch_get_layer_image",
         "ui_sketch_render_to_asset"
       ])
@@ -467,5 +483,58 @@ describe("ui_sketch_* tools", () => {
     expect(handler.resizeCanvas).toHaveBeenCalledWith(512, 768);
     expect(result.width).toBe(512);
     expect(result.height).toBe(768);
+  });
+
+  it("forwards flood fill to the handler", async () => {
+    const handler = createMockHandler();
+    handler.fill.mockResolvedValue({
+      layerId: "layer-1",
+      layerName: "Layer 1",
+      x: 4,
+      y: 6,
+      color: "#ff0000"
+    });
+    setSketchAgentHandler(DOC, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_sketch_fill",
+      { sketch_id: DOC, x: 4, y: 6, color: "#ff0000", tolerance: 8 },
+      "sk-fill",
+      ctx
+    );
+
+    expect(handler.fill).toHaveBeenCalledWith({
+      target: undefined,
+      x: 4,
+      y: 6,
+      color: "#ff0000",
+      tolerance: 8,
+      contiguous: undefined
+    });
+  });
+
+  it("forwards pick_color to the handler", async () => {
+    const handler = createMockHandler();
+    handler.pickColor.mockResolvedValue({
+      x: 1,
+      y: 2,
+      color: "#112233",
+      rgba: { r: 17, g: 34, b: 51, a: 255 }
+    });
+    setSketchAgentHandler(DOC, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_pick_color",
+      { sketch_id: DOC, x: 1, y: 2 },
+      "sk-pick",
+      ctx
+    )) as { color: string };
+
+    expect(handler.pickColor).toHaveBeenCalledWith({
+      target: undefined,
+      x: 1,
+      y: 2
+    });
+    expect(result.color).toBe("#112233");
   });
 });

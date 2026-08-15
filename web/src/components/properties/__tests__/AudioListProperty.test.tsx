@@ -12,6 +12,11 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
     isUploading: false
   })
 }));
+jest.mock("../../../serverState/useAsset", () => ({
+  useAsset: ({ audio }: { audio?: { uri?: string } }) => ({
+    uri: audio?.uri
+  })
+}));
 
 const defaultProps = {
   property: {

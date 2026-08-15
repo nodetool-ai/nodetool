@@ -135,4 +135,22 @@ describe("ApplicationRunView", () => {
     expect(await screen.findByText(/Workflow unavailable/)).toBeInTheDocument();
     expect(screen.queryByTestId("runtime")).not.toBeInTheDocument();
   });
+
+  it("runs an app that binds no workflow at all", async () => {
+    useApplication.mockReturnValue({
+      data: {
+        id: "app-1",
+        name: "App",
+        document: { ...appDocument("Draft"), operations: [] }
+      },
+      isLoading: false
+    });
+
+    renderView();
+
+    expect(await screen.findByTestId("runtime")).toBeInTheDocument();
+    expect(screen.getByTestId("workflow")).toHaveTextContent("app-1");
+    expect(screen.queryByText(/Workflow unavailable/)).not.toBeInTheDocument();
+    expect(fetchWorkflow).not.toHaveBeenCalled();
+  });
 });

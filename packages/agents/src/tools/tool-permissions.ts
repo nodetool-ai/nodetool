@@ -66,6 +66,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   validate_code: "read",
   list_scripts: "read",
   get_script: "read",
+  list_threads: "read",
+  get_thread: "read",
+  get_message: "read",
   validate_timeline: "read",
   validate_sketch: "read",
   validate_js_script: "read",
@@ -193,13 +196,14 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   test_js_script: "execute",
   run_workflow: "execute",
   debug_workflow: "execute",
-  build_app: "execute",
   debug_app: "execute",
   start_background_job: "execute",
+  ffmpeg: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",
   http_request: "external",
+  yt_dlp: "external",
   archive_email: "external",
   add_label_to_email: "external"
 };

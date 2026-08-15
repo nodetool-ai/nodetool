@@ -27,6 +27,28 @@ export interface SketchCanvasRefState {
     | ((strokes: readonly AgentStrokeRequest[]) => AgentStrokeOutcome[])
     | null;
   /**
+   * Apply a pixel mutation to a layer, commit one undo step, and persist.
+   */
+  applyLayerRasterOp:
+    | ((
+        layerId: string,
+        label: string,
+        mutate: (canvas: HTMLCanvasElement) => void
+      ) => void)
+    | null;
+  /** Crop the whole document to a document-space box. */
+  cropDocument:
+    | ((x: number, y: number, width: number, height: number) => void)
+    | null;
+  /** Sample composite (layerId null) or a layer at a document-space point. */
+  sampleColor:
+    | ((
+        layerId: string | null,
+        x: number,
+        y: number
+      ) => { r: number; g: number; b: number; a: number } | null)
+    | null;
+  /**
    * Clears the active layer — within the active selection if one exists,
    * otherwise the whole layer. Pushes its own history entry.
    */
@@ -43,6 +65,22 @@ export interface SketchCanvasRefState {
     paintStrokes?: (
       strokes: readonly AgentStrokeRequest[]
     ) => AgentStrokeOutcome[];
+    applyLayerRasterOp?: (
+      layerId: string,
+      label: string,
+      mutate: (canvas: HTMLCanvasElement) => void
+    ) => void;
+    cropDocument?: (
+      x: number,
+      y: number,
+      width: number,
+      height: number
+    ) => void;
+    sampleColor?: (
+      layerId: string | null,
+      x: number,
+      y: number
+    ) => { r: number; g: number; b: number; a: number } | null;
     clearActiveLayer: () => void;
     fitViewToScreen?: () => void;
   }) => void;
@@ -62,6 +100,9 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
     getLayerData: null,
     fillLayerWithColor: null,
     paintStrokes: null,
+    applyLayerRasterOp: null,
+    cropDocument: null,
+    sampleColor: null,
     clearActiveLayer: null,
     fitViewToScreen: null,
 
@@ -73,6 +114,9 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         getLayerData: getters.getLayerData ?? null,
         fillLayerWithColor: getters.fillLayerWithColor ?? null,
         paintStrokes: getters.paintStrokes ?? null,
+        applyLayerRasterOp: getters.applyLayerRasterOp ?? null,
+        cropDocument: getters.cropDocument ?? null,
+        sampleColor: getters.sampleColor ?? null,
         clearActiveLayer: getters.clearActiveLayer,
         fitViewToScreen: getters.fitViewToScreen ?? null
       }),
@@ -85,6 +129,9 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         getLayerData: null,
         fillLayerWithColor: null,
         paintStrokes: null,
+        applyLayerRasterOp: null,
+        cropDocument: null,
+        sampleColor: null,
         clearActiveLayer: null,
         fitViewToScreen: null
       })

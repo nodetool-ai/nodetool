@@ -54,8 +54,10 @@ export type {
 } from "./code-grading.js";
 
 /**
- * Run one Code-node body the way the node runs it, minus the toolbelt.
- * Returns rather than throws: a failing body is a result to report.
+ * Run one Code-node body the way the node runs it. Off by default this is
+ * hermetic (no `tools.*` / `nodetool.*`); pass `withToolbelt` for a JS
+ * script run. Returns rather than throws: a failing body is a result to
+ * report.
  *
  * Takes a `ProcessingContext` rather than a `CapabilityRun` because that is
  * all it ever used, and the JS-script run endpoint reaches it from a host that
@@ -70,6 +72,13 @@ export async function runCodeBody(
     secrets: readonly string[];
     timeoutSeconds: number;
     inputStreams?: Record<string, unknown[]>;
+    /**
+     * Give the guest the Code-node belt (`tools.*` / `nodetool.*`) and every
+     * installed sandbox pack plus platform module by import. Off for
+     * `run_code` / `test_code` (authoring stays hermetic). On for every JS
+     * script run.
+     */
+    withToolbelt?: boolean;
   }
 ): Promise<HarnessRunResult> {
   const {
@@ -90,31 +99,44 @@ export async function runCodeBody(
     duration_ms: Date.now() - started
   });
 
-  const { declarations, invalid } = parseSandboxModuleDeclarations(
-    params.packages.length > 0 ? [...params.packages] : undefined
-  );
-  if (invalid.length > 0) {
-    return fail(`Invalid \`packages\` declarations: ${invalid.join(", ")}`);
-  }
   let modules;
-  if (declarations.length > 0) {
-    const catalog = context.sandboxModuleCatalog;
-    if (!catalog) {
-      return fail(
-        "Sandbox packages are not available in this process, so the declared " +
-          "packages cannot be imported."
-      );
+  let capabilities;
+  if (params.withToolbelt) {
+    // A JS script has no packages setting: every installed pack and every
+    // platform module resolves from the import.
+    const { mountJsScriptSandbox } = await import("../js-script-sandbox.js");
+    const mounted = await mountJsScriptSandbox(params.code, context);
+    if (!mounted.ok) {
+      return fail(mounted.error);
     }
-    modules = catalog.resolveForExecution(declarations);
-    const errors = modules.statuses.filter(
-      (status) => status.status === "error"
+    modules = mounted.modules;
+    capabilities = mounted.capabilities;
+  } else {
+    const { declarations, invalid } = parseSandboxModuleDeclarations(
+      params.packages.length > 0 ? [...params.packages] : undefined
     );
-    if (errors.length > 0) {
-      return fail(
-        errors
-          .map((status) => `${status.message} (pack "${status.packName}")`)
-          .join(" ")
+    if (invalid.length > 0) {
+      return fail(`Invalid \`packages\` declarations: ${invalid.join(", ")}`);
+    }
+    if (declarations.length > 0) {
+      const catalog = context.sandboxModuleCatalog;
+      if (!catalog) {
+        return fail(
+          "Sandbox packages are not available in this process, so the declared " +
+            "packages cannot be imported."
+        );
+      }
+      modules = catalog.resolveForExecution(declarations);
+      const errors = modules.statuses.filter(
+        (status) => status.status === "error"
       );
+      if (errors.length > 0) {
+        return fail(
+          errors
+            .map((status) => `${status.message} (pack "${status.packName}")`)
+            .join(" ")
+        );
+      }
     }
   }
 
@@ -134,10 +156,18 @@ return __yielded;`
         ? code
         : wrapImplicitReturn(code);
 
-  const globals = {
+  const globals: Record<string, unknown> = {
     inputs: params.inputs,
     state: {} as Record<string, unknown>
   };
+  let source = body;
+  if (params.withToolbelt) {
+    const { NODETOOL_PRELUDE, sandboxToolBridgeGlobals } = await import(
+      "../sandbox-toolbelt.js"
+    );
+    source = `${NODETOOL_PRELUDE}\n${body}`;
+    Object.assign(globals, sandboxToolBridgeGlobals(context));
+  }
 
   // A body reading `stream` needs a source, or every verb throws. Only a call
   // that staged items gets one — without `inputStreams` the harness behaves
@@ -147,12 +177,13 @@ return __yielded;`
     : undefined;
 
   const result = await runInSandbox({
-    code: body,
+    code: source,
     context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,
     limits: { secretScope: [...params.secrets] },
     ...(modules ? { modules } : {}),
+    ...(capabilities ? { capabilities } : {}),
     ...(staged ?? {})
   });
 

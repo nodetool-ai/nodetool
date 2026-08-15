@@ -1437,7 +1437,4 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // The agent runtime moved out of the Electron main process; agent
-  // sessions now live on the NodeTool server. The renderer talks directly
-  // to the server over the `/ws/agent` WebSocket — no IPC bridge required.
 }

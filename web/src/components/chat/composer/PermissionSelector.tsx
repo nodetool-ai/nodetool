@@ -98,27 +98,32 @@ const dotCss = (color: string) =>
  * and a check on the active mode. Reads/writes the active thread's
  * `permissionMode` directly from GlobalChatStore.
  */
-const PermissionSelector: React.FC = () => {
+interface PermissionSelectorProps {
+  threadId?: string | null;
+}
+
+const PermissionSelector: React.FC<PermissionSelectorProps> = ({
+  threadId
+}) => {
   const theme = useTheme();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
-  const mode = useGlobalChatStore((s) =>
-    s.getPermissionMode(s.currentThreadId)
-  );
+  const selectedThreadId = threadId ?? currentThreadId;
+  const mode = useGlobalChatStore((s) => s.getPermissionMode(selectedThreadId));
   const setPermissionMode = useGlobalChatStore((s) => s.setPermissionMode);
 
   const activeMode = MODES.find((m) => m.id === mode) ?? MODES[1];
 
   const handleSelect = useCallback(
     (next: PermissionMode) => {
-      if (currentThreadId) {
-        setPermissionMode(currentThreadId, next);
+      if (selectedThreadId) {
+        setPermissionMode(selectedThreadId, next);
       }
       setOpen(false);
     },
-    [currentThreadId, setPermissionMode]
+    [selectedThreadId, setPermissionMode]
   );
 
   return (

@@ -19,8 +19,7 @@ Accepts streaming audio data for workflows.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | name | `str` | The parameter name for the workflow. | `audio` |
-| value | `audio` | The audio to use as input. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `audio` | The audio to use as input. | - |
 
 ## Outputs
 

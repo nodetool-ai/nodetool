@@ -232,6 +232,69 @@ describe("useScriptServerSync", () => {
     );
   });
 
+  it("never resends a payload the server rejected as invalid", async () => {
+    jest.useFakeTimers();
+    try {
+      updateMutate.mockRejectedValue(
+        Object.assign(new Error("Invalid input: sections is required"), {
+          data: { code: "BAD_REQUEST", httpStatus: 400 }
+        })
+      );
+      const { unmount } = renderHook(() => useScriptServerSync("script-1"));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      act(() => useScriptStore.getState().setTitle("script-1", "Rejected"));
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(updateMutate).toHaveBeenCalledTimes(1);
+
+      // Ten minutes of retry windows leave the attempt count where it was.
+      await act(async () => {
+        jest.advanceTimersByTime(600_000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(updateMutate).toHaveBeenCalledTimes(1);
+      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error");
+      unmount();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("bounds the retries of a transient save failure", async () => {
+    jest.useFakeTimers();
+    try {
+      updateMutate.mockRejectedValue(new Error("Failed to fetch"));
+      const { unmount } = renderHook(() => useScriptServerSync("script-1"));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      act(() => useScriptStore.getState().setTitle("script-1", "Offline"));
+      for (let i = 0; i < 40; i += 1) {
+        await act(async () => {
+          jest.advanceTimersByTime(6_000);
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+      }
+
+      expect(updateMutate.mock.calls.length).toBeGreaterThan(1);
+      expect(updateMutate.mock.calls.length).toBeLessThanOrEqual(10);
+      unmount();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("reconciles a stale error back to saved when the script is reopened", async () => {
     // Seed a stale error left behind by a prior failed save.
     act(() => useScriptStore.getState().setSaveStatus("script-1", "error"));

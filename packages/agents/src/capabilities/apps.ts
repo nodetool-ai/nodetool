@@ -1,59 +1,28 @@
 /**
- * The `apps` capability module — building and debugging mini apps.
+ * The `apps` capability module — debugging mini apps.
  *
- * Two capabilities that used to be two `Tool` subclasses in
- * `../tools/mcp-tools.ts`. The node registry each took as a constructor
- * argument is `run.nodeRegistry` now; without one they answer with the same
- * "no registry in this process" refusal they answered with before.
+ * A capability that used to be a `Tool` subclass in `../tools/mcp-tools.ts`.
+ * The node registry it took as a constructor argument is `run.nodeRegistry`
+ * now; without one it answers with the same "no registry in this process"
+ * refusal it answered with before.
  *
- * The build harness (`../app-build/build-service.js`) and the app-debug service
- * are imported inside the implementation that needs them — both drag in the
- * execution service, and a host that never builds an app should never pay for
- * it.
+ * The app-debug service is imported inside the implementation — it drags in
+ * the execution service, and a host that never debugs an app should never pay
+ * for it.
+ *
+ * Building a whole app is not a capability. `buildApp`
+ * (`../app-build/build.js`) stays the CLI harness and the
+ * `POST /api/applications/build` route; an agent builds an app by driving the
+ * `ui_app_*` editor tools and checking its work with `debug_app`, rather than
+ * by handing the job to a second agent it cannot see into.
  */
 
-import {
-  ACTIVE_MODEL_CONTEXT_KEY,
-  type ActiveModelSelection,
-  type JsonSchema
-} from "@nodetool-ai/runtime";
 import { noRegistryError, userIdOf } from "../tools/mcp-tool-support.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
-import type { AppBuildRequest } from "../app-build/build-service.js";
 import type { AppDebugRequest } from "@nodetool-ai/execution/service";
-import {
-  buildAppSpec,
-  debugAppSpec,
-  BUILD_APP_SCHEMA,
-  DEBUG_APP_SCHEMA
-} from "./apps.specs.js";
+import { debugAppSpec } from "./apps.specs.js";
 
-export { BUILD_APP_SCHEMA, DEBUG_APP_SCHEMA } from "./apps.specs.js";
-
-const buildApp: CapabilityExport = {
-  spec: buildAppSpec,
-  impl: async (run, params) => {
-    const registry = run.nodeRegistry;
-    if (!registry) return noRegistryError("build an app");
-    const inherited = run.context.get<ActiveModelSelection | undefined>(
-      ACTIVE_MODEL_CONTEXT_KEY
-    );
-    const body = { ...params } as AppBuildRequest;
-    if (inherited) {
-      body.provider ??= inherited.provider;
-      body.model ??= inherited.model;
-    }
-    const { runApplicationBuild } =
-      await import("../app-build/build-service.js");
-    try {
-      return await runApplicationBuild(userIdOf(run.context), body, registry);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-};
+export { DEBUG_APP_SCHEMA } from "./apps.specs.js";
 
 const debugApp: CapabilityExport = {
   spec: debugAppSpec,
@@ -84,14 +53,11 @@ const debugApp: CapabilityExport = {
 };
 
 /** Every app capability, in the order `getAllMcpTools` offered them. */
-export const APP_CAPABILITIES: readonly CapabilityExport[] = [
-  buildApp,
-  debugApp
-];
+export const APP_CAPABILITIES: readonly CapabilityExport[] = [debugApp];
 
 export const module: CapabilityModule = {
   module: "apps",
   exports: APP_CAPABILITIES
 };
 
-export { buildApp, debugApp };
+export { debugApp };

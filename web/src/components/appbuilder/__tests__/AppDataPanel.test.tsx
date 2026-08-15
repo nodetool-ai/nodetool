@@ -23,6 +23,14 @@ jest.mock("../../../trpc/client", () => ({
           ]
         })
       }
+    },
+    jsScripts: {
+      list: {
+        query: jest.fn().mockResolvedValue([
+          { id: "js1", name: "Running total" },
+          { id: "js2", name: "Slugify" }
+        ])
+      }
     }
   }
 }));
@@ -149,6 +157,72 @@ describe("AppDataPanel", () => {
       expect(screen.getByRole("combobox", { name: /workflow/i })).toHaveTextContent(
         "wf-gone"
       )
+    );
+  });
+
+  it("binds an operation to a JS script", async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderPanel({
+      ...EMPTY_DOC_META,
+      operations: [
+        {
+          id: "main",
+          name: "Main",
+          workflowId: "wf1",
+          // Mappings against the workflow's nodes, which the script cannot honour.
+          inputs: { "node-1": { from: "widget" } },
+          outputs: { "node-2": { to: "display" } },
+          policy: "replace"
+        }
+      ]
+    });
+
+    await user.click(screen.getByRole("combobox", { name: /^runs$/i }));
+    await user.click(screen.getByRole("option", { name: /js script/i }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          expect.objectContaining({
+            workflowId: "",
+            target: { kind: "script", scriptId: "", scriptVersion: 0 },
+            // The old target's mappings mean nothing against a script.
+            inputs: {},
+            outputs: {}
+          })
+        ]
+      })
+    );
+  });
+
+  it("picks from the user's scripts for a script operation", async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderPanel({
+      ...EMPTY_DOC_META,
+      operations: [
+        {
+          id: "main",
+          name: "Main",
+          workflowId: "",
+          target: { kind: "script", scriptId: "", scriptVersion: 0 },
+          inputs: {},
+          outputs: {},
+          policy: "replace"
+        }
+      ]
+    });
+
+    await user.click(await screen.findByRole("combobox", { name: /^script$/i }));
+    await user.click(await screen.findByRole("option", { name: /slugify/i }));
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          expect.objectContaining({
+            target: { kind: "script", scriptId: "js2", scriptVersion: 0 }
+          })
+        ]
+      })
     );
   });
 

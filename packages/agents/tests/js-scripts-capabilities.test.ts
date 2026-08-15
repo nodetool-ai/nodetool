@@ -1,16 +1,19 @@
 /**
  * The `js-scripts` capability module.
  *
- * Real QuickJS sandbox and a real in-memory database, no network: the guest is
- * hermetic (no toolbelt), a script reads only the secrets its envelope allows,
- * the recursion gate refuses a cycle and a run too deep, `test_js_script`
- * grades a document's saved cases exactly the way `test_code` grades the same
- * cases, and every validation rule is shown red on a fixture built to violate
- * it and green on one that does not.
+ * Real QuickJS sandbox and a real in-memory database, no network: the guest
+ * gets the Code-node toolbelt, a script reads only the secrets its envelope
+ * allows, the recursion gate refuses a cycle and a run too deep,
+ * `test_js_script` grades a document's saved cases exactly the way
+ * `test_code` grades the same cases, and every validation rule is shown red
+ * on a fixture built to violate it and green on one that does not.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  refuseSandboxDelivery
+} from "@nodetool-ai/runtime";
 import { JsScript, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import {
   emptyJsScriptDocument,
@@ -26,6 +29,8 @@ import {
   MAX_JS_SCRIPT_DEPTH
 } from "../src/capabilities/js-scripts.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
+import { assembleSandboxToolbelt } from "../src/sandbox-toolbelt.js";
 
 const USER = "u1";
 
@@ -97,6 +102,76 @@ describe("run_js_script", () => {
     expect(result.outputs).toEqual({ sum: 5 });
     expect(result.streamed).toEqual([{ name: "step", value: 1 }]);
     expect(result.logs.join("\n")).toContain("hi");
+  });
+
+  it("imports an installed pack without a packages list", async () => {
+    const { GEO_MODULE } = await import("../src/sandbox-module-fixtures.js");
+    const catalog = {
+      summaries: () => [
+        {
+          specifier: "@acme/geo",
+          packName: "@acme/nodetool-geo",
+          kind: "js" as const
+        }
+      ],
+      diagnostics: () => [],
+      authorizeDelivery: async (moduleId: string) =>
+        refuseSandboxDelivery(moduleId),
+      resolveForExecution: (
+        declarations: readonly { specifier: string }[]
+      ) => {
+        const wanted = declarations.some((d) => d.specifier === "@acme/geo");
+        return wanted
+          ? { modules: [GEO_MODULE], statuses: [] }
+          : {
+              modules: [],
+              statuses: declarations.map((declaration) => ({
+                packName: declaration.specifier,
+                specifier: declaration.specifier,
+                status: "error" as const,
+                code: "module-not-found" as const,
+                message: `Sandbox module ${declaration.specifier} is not installed.`
+              }))
+            };
+      }
+    };
+    const script = await makeScript({
+      code:
+        'import { haversine } from "@acme/geo";\n' +
+        'await output("km", haversine(1, 2));',
+      outputs: [{ name: "km", type: "float" }]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      new ProcessingContext({
+        jobId: `job-${Math.random()}`,
+        userId: USER,
+        sandboxModuleCatalog: catalog
+      }),
+      { js_script_id: script.id, inputs: {} }
+    )) as { ok: boolean; outputs?: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({ km: 111 });
+  });
+
+  it("imports @nodetool-ai/sandbox-nodetool without a packages list", async () => {
+    const script = await makeScript({
+      code:
+        'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+        'await output("kind", typeof list_models);',
+      outputs: [{ name: "kind", type: "str" }]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, inputs: {} }
+    )) as { ok: boolean; outputs?: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({ kind: "function" });
   });
 
   // The running-total body from docs/code-node-input-streaming-design.md: one
@@ -179,26 +254,60 @@ describe("run_js_script", () => {
     expect(result.error).toContain("was not found");
   });
 
-  // Hermeticity: a script is a function over its inputs. The toolbelt globals
-  // the CodeAct guest carries must not be reachable from a script body.
-  it("gives the guest no toolbelt", async () => {
+  it("gives the guest the Code-node toolbelt", async () => {
     const script = await makeScript({
-      code: 'await output("tools", typeof tools);\nawait output("nodetool", typeof nodetool);',
+      code:
+        "const caps = nodetool.capabilities();\n" +
+        'await output("tools", typeof tools);\n' +
+        'await output("nodetool", typeof nodetool);\n' +
+        'await output("hasList", typeof tools.list_js_scripts);\n' +
+        'await output("hasWorkflows", Boolean(caps.workflows));\n' +
+        "const listed = await tools.list_js_scripts();\n" +
+        'await output("count", listed.js_scripts.length);',
       outputs: [
         { name: "tools", type: "str" },
-        { name: "nodetool", type: "str" }
+        { name: "nodetool", type: "str" },
+        { name: "hasList", type: "str" },
+        { name: "hasWorkflows", type: "bool" },
+        { name: "count", type: "int" }
       ]
     });
     const result = (await toolForCapabilityName("run_js_script").execute(
       context(),
       { js_script_id: script.id }
-    )) as { ok: boolean; outputs: Record<string, unknown> };
+    )) as { ok: boolean; outputs: Record<string, unknown>; error?: string };
 
+    expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
     expect(result.outputs).toEqual({
-      tools: "undefined",
-      nodetool: "undefined"
+      tools: "object",
+      nodetool: "object",
+      hasList: "function",
+      hasWorkflows: true,
+      count: 1
     });
+  });
+
+  it("refuses a nested run_js_script of the same script, naming the cycle", async () => {
+    const script = await makeScript({
+      code:
+        "try {\n" +
+        "  await tools.run_js_script({ js_script_id: inputs.id });\n" +
+        '  await output("err", "");\n' +
+        "} catch (e) {\n" +
+        '  await output("err", String(e.message));\n' +
+        "}",
+      inputs: [{ name: "id", type: "str" }],
+      outputs: [{ name: "err", type: "str" }]
+    });
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, inputs: { id: script.id } }
+    )) as { ok: boolean; outputs: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(String(result.outputs.err)).toContain("already running");
   });
 });
 
@@ -651,5 +760,21 @@ describe("permission categories", () => {
     expect(permissionCategoryFor("save_js_script")).toBe("write");
     expect(permissionCategoryFor("run_js_script")).toBe("execute");
     expect(permissionCategoryFor("test_js_script")).toBe("execute");
+  });
+
+  it("is on the builtin belt the Code node and a script share", () => {
+    for (const name of [
+      "list_js_scripts",
+      "get_js_script",
+      "save_js_script",
+      "validate_js_script",
+      "run_js_script",
+      "test_js_script"
+    ]) {
+      expect(BUILTIN_TOOL_NAMES).toContain(name);
+    }
+    const belt = assembleSandboxToolbelt().map((tool) => tool.name);
+    expect(belt).toContain("run_js_script");
+    expect(belt).toContain("list_workflows");
   });
 });

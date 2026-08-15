@@ -24,6 +24,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
 import { isTextInputActive } from "../../utils/browser";
 import { shallow } from "zustand/shallow";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 
 /**
  * Supported image file extensions for clipboard file handling
@@ -369,9 +370,7 @@ export const useClipboardContentPaste = () => {
 
       const newNode = createNode(metadata, position);
       newNode.data.properties.value = {
-        type: "image",
-        uri: asset.get_url,
-        asset_id: asset.id,
+        ...mediaRefFromAsset(asset, "image"),
         temp_id: null
       };
       addNode(newNode);

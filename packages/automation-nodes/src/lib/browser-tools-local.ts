@@ -1,9 +1,9 @@
 /**
  * Local browser-action functions backed by Chrome DevTools Protocol.
  *
- * Mirrors `packages/sandbox-agent/src/tools/browser.ts` but runs inside the
- * host process — the agent shares a single Chrome instance across calls so
- * cookies, navigation history, and indexed elements persist between actions.
+ * Runs inside the host process — the agent shares a single Chrome instance
+ * across calls so cookies, navigation history, and indexed elements persist
+ * between actions.
  *
  * Element indexing on `browser_view`: a JS expression assigns a sequential
  * `data-nt-idx` attribute to interactive elements; subsequent click/input/
@@ -40,7 +40,7 @@ import type {
   BrowserUploadAssetOutput,
   BrowserElement,
   BrowserConsoleMessage
-} from "@nodetool-ai/sandbox/schemas";
+} from "./browser-schemas.js";
 import { Buffer } from "node:buffer";
 import { createLogger } from "@nodetool-ai/config";
 import type { CdpPage } from "./cdp-page.js";

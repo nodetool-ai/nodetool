@@ -1,9 +1,22 @@
 /**
  * @jest-environment node
  */
+jest.mock("../../../serverState/useWorkflow", () => ({
+  fetchWorkflowById: jest.fn()
+}));
+
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
+import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import "../builtin/getGraph";
+
+const fetchWorkflowByIdMock = fetchWorkflowById as jest.MockedFunction<
+  typeof fetchWorkflowById
+>;
+
+afterEach(() => {
+  fetchWorkflowByIdMock.mockReset();
+});
 
 function createMockNodeStore(
   nodes: Array<{ id: string; type?: string; position: { x: number; y: number }; data: Record<string, unknown> }>,
@@ -89,16 +102,99 @@ describe("ui_get_graph tool", () => {
     expect(typed.edges).toHaveLength(0);
   });
 
-  it("throws when no node store found for workflow", async () => {
+  it("reads the workflow from the server when no editor is open", async () => {
+    fetchWorkflowByIdMock.mockResolvedValue({
+      id: "wf-1",
+      name: "Created over the API",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.code.Code",
+            data: { code: "return { out: 1 };" },
+            ui_properties: { position: { x: 10, y: 20 } },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "n0", target: "n1", targetHandle: "code" },
+        ],
+      },
+    } as never);
+
+    const state = createMockState({
+      getNodeStore: jest.fn().mockReturnValue(undefined),
+    });
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_get_graph",
+      { workflow_id: "wf-1" },
+      "tc-3",
+      { getState: () => state }
+    )) as {
+      ok: boolean;
+      source: string;
+      nodes: Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>;
+      edges: unknown[];
+    };
+
+    expect(fetchWorkflowByIdMock).toHaveBeenCalledWith("wf-1");
+    expect(result.ok).toBe(true);
+    expect(result.source).toBe("server");
+    expect(result.nodes).toHaveLength(1);
+    expect(result.nodes[0].position).toEqual({ x: 10, y: 20 });
+    expect(result.nodes[0].data.properties).toEqual({
+      code: "return { out: 1 };",
+    });
+    expect(result.edges).toHaveLength(1);
+  });
+
+  it("reads the already-cached workflow without a server call", async () => {
+    const state = createMockState({
+      getNodeStore: jest.fn().mockReturnValue(undefined),
+      getWorkflow: jest.fn().mockReturnValue({
+        id: "wf-1",
+        name: "Cached",
+        graph: { nodes: [], edges: [] },
+      }),
+    });
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_get_graph",
+      {},
+      "tc-3b",
+      { getState: () => state }
+    )) as { ok: boolean; source: string };
+
+    expect(fetchWorkflowByIdMock).not.toHaveBeenCalled();
+    expect(result.source).toBe("server");
+  });
+
+  it("names the workflow when neither an editor nor the server has it", async () => {
+    fetchWorkflowByIdMock.mockRejectedValue(new Error("404 not found"));
     const state = createMockState({
       getNodeStore: jest.fn().mockReturnValue(undefined),
     });
 
     await expect(
-      FrontendToolRegistry.call("ui_get_graph", {}, "tc-3", {
+      FrontendToolRegistry.call("ui_get_graph", {}, "tc-3c", {
         getState: () => state,
       })
-    ).rejects.toThrow("No node store for workflow");
+    ).rejects.toThrow(/Cannot read workflow wf-1.*404 not found/s);
+  });
+
+  it("marks a graph read from an open editor as source editor", async () => {
+    const state = createMockState({
+      getNodeStore: jest.fn().mockReturnValue(createMockNodeStore([], [])),
+    });
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_get_graph",
+      {},
+      "tc-3d",
+      { getState: () => state }
+    )) as { source: string };
+
+    expect(result.source).toBe("editor");
   });
 
   it("throws when no current workflow is selected", async () => {
@@ -275,13 +371,13 @@ describe("ui_get_graph tool", () => {
       expect(errors.join("\n")).toContain("does not parse");
     });
 
-    it("reports an inputs read the node has no slot for", async () => {
+    it("treats a named inputs read as a handle, not an error", async () => {
       const errors = await codeGraph({
         properties: { code: "return { out: inputs.rows.concat(inputs.extra) };" },
         dynamic_properties: { rows: [] },
       });
-      expect(errors.join("\n")).toContain('"inputs.extra"');
-      expect(errors.join("\n")).not.toContain('"inputs.rows"');
+      expect(errors.join("\n")).not.toContain('"inputs.extra"');
+      expect(errors.join("\n")).not.toContain("does not parse");
     });
 
     it("accepts inputs that arrive over an edge", async () => {

@@ -8,7 +8,12 @@ import { handleSystemStats, SystemStatsMessage } from "../../stores/systemStatsH
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
+import { getFrontendToolRuntimeState } from "../tools/frontendToolRuntimeState";
 import { validateInboundMessage } from "./validateInboundMessage";
+import type {
+  RendererRegisteredMessage,
+  RendererToolCallMessage
+} from "@nodetool-ai/protocol";
 
 /**
  * Base shape of every message routed through the WebSocket.
@@ -32,13 +37,57 @@ function isSystemStats(msg: WebSocketMessage): msg is WebSocketMessage & SystemS
   return msg.type === "system_stats";
 }
 
+function isRendererRegistered(
+  msg: WebSocketMessage
+): msg is WebSocketMessage & RendererRegisteredMessage {
+  return (
+    msg.type === "renderer_registered" &&
+    typeof msg.renderer_id === "string" &&
+    msg.renderer_id.length > 0
+  );
+}
+
+function isRendererToolCall(
+  msg: WebSocketMessage
+): msg is WebSocketMessage & RendererToolCallMessage {
+  return (
+    msg.type === "renderer_tool_call" &&
+    typeof msg.renderer_id === "string" &&
+    msg.renderer_id.length > 0 &&
+    typeof msg.tool_call_id === "string" &&
+    msg.tool_call_id.length > 0 &&
+    typeof msg.name === "string" &&
+    msg.name.length > 0 &&
+    "args" in msg
+  );
+}
+
+function requestRendererToolConsent(name: string, args: unknown): boolean {
+  if (typeof window === "undefined" || typeof window.confirm !== "function") {
+    return false;
+  }
+  let details: string;
+  try {
+    details = JSON.stringify(args, null, 2);
+  } catch {
+    details = String(args);
+  }
+  return window.confirm(
+    `Allow the connected MCP client to run ${name}?\n\nArguments:\n${details}`
+  );
+}
+
 interface RpcResponse extends WebSocketMessage {
   type: "rpc_response";
   request_id: string;
 }
 
 function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
-  return msg.type === "rpc_response" && "request_id" in msg && typeof msg.request_id === "string";
+  return (
+    msg.type === "rpc_response" &&
+    "request_id" in msg &&
+    typeof msg.request_id === "string"
+  );
 }
 
 interface GlobalWebSocketEvents {
@@ -92,6 +141,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private networkListenersSetup = false;
   private hasEverConnected = false;
   private networkCleanup: (() => void) | null = null;
+  private rendererId: string | null = null;
 
   private constructor() {
     super();
@@ -196,7 +246,16 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
       this.wsManager.on("message", (data: unknown) => {
         const message = data as WebSocketMessage;
-        this.ingestMessage(message);
+        validateInboundMessage(message);
+        if (isRendererRegistered(message)) {
+          this.rendererId = message.renderer_id;
+          return;
+        }
+        if (isRendererToolCall(message)) {
+          void this.executeRendererToolCall(message);
+          return;
+        }
+        this.routeMessage(message);
         this.emit("message", message);
       });
 
@@ -241,17 +300,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       this.isConnecting = false;
       throw error;
     }
-  }
-
-  /**
-   * Validate (dev/test only — see `validateInboundMessage`) then route an
-   * inbound, already msgpack-decoded message. Validation never affects
-   * dispatch: a message that fails the protocol schema is still routed
-   * exactly as before, just logged.
-   */
-  private ingestMessage(message: WebSocketMessage): void {
-    validateInboundMessage(message);
-    this.routeMessage(message);
   }
 
   /**
@@ -395,6 +443,93 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
+   * Execute a connection-level UI tool request from the MCP/server bridge.
+   * This deliberately has its own frame type so it never enters the chat
+   * reducer or requires a thread id.
+   */
+  private async executeRendererToolCall(
+    message: RendererToolCallMessage
+  ): Promise<void> {
+    const startedAt = Date.now();
+    const sendResult = async (
+      payload:
+        | { ok: true; result?: unknown }
+        | { ok: false; error: string }
+    ): Promise<void> => {
+      try {
+        await this.send({
+          type: "renderer_tool_result",
+          renderer_id: message.renderer_id,
+          tool_call_id: message.tool_call_id,
+          ...payload,
+          elapsed_ms: Date.now() - startedAt
+        });
+      } catch (error) {
+        console.error(
+          "GlobalWebSocketManager: Failed to send renderer tool result:",
+          error
+        );
+      }
+    };
+
+    if (message.renderer_id !== this.rendererId) {
+      const error = `Renderer id mismatch: this connection is ${this.rendererId}`;
+      await sendResult({
+        ok: false,
+        error
+      });
+      return;
+    }
+
+    const tool = FrontendToolRegistry.get(message.name);
+    if (!tool) {
+      await sendResult({
+        ok: false,
+        error: `Unsupported tool: ${message.name}`
+      });
+      return;
+    }
+
+    if (
+      tool.requireUserConsent &&
+      !requestRendererToolConsent(message.name, message.args)
+    ) {
+      const error = `User denied consent for tool: ${message.name}`;
+      await sendResult({
+        ok: false,
+        error
+      });
+      return;
+    }
+
+    try {
+      const result = await FrontendToolRegistry.call(
+        message.name,
+        message.args,
+        message.tool_call_id,
+        { getState: () => getFrontendToolRuntimeState() }
+      );
+      await sendResult({ ok: true, result });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error(
+        `GlobalWebSocketManager: Renderer tool ${message.name} failed:`,
+        error
+      );
+      await sendResult({
+        ok: false,
+        error: errorMessage
+      });
+    }
+  }
+
+  /** The server-assigned identity of this browser connection, if registered. */
+  getRendererId(): string | null {
+    return this.rendererId;
+  }
+
+  /**
    * Close and fully detach the current manager. Dropping the reference alone
    * is not enough: the manager keeps its socket and its reconnect timer, and
    * its listeners keep feeding `routeMessage`.
@@ -406,6 +541,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
     this.wsManager = null;
     this.isConnected = false;
+    this.rendererId = null;
     manager.disconnect();
     manager.destroy();
   }

@@ -79,11 +79,88 @@ describe("createStoryboardToolBridge", () => {
     const bridge = createStoryboardToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
+    // The parameter schema names `type` and `shots`, so the call is refused
+    // before the bridge runs.
     await expect(
       byName["ui_storyboard_set_screenplay"].execute({
         screenplay: { not: "a screenplay" }
       })
-    ).rejects.toThrow(/must be a Screenplay object/);
+    ).rejects.toThrow(/shots/);
+  });
+
+  // The shape a model writes when it authors a screenplay instead of copying
+  // one: no `type`, `id`, `index` or `status` on any shot, duration camelCase.
+  // This is what `author-screenplay` asks a real model to produce.
+  const authoredScreenplay = {
+    type: "screenplay",
+    title: "Lighthouse Dawn",
+    shots: [
+      {
+        slug: "Dusk",
+        action: "A lighthouse at dusk",
+        camera: { framing: "wide" },
+        durationSeconds: 4
+      },
+      {
+        slug: "The climb",
+        action: "The keeper climbs the stairs",
+        camera: { framing: "medium" },
+        durationSeconds: 6
+      }
+    ]
+  };
+
+  it("normalizes an authored screenplay into savable shots", async () => {
+    const bridge = createStoryboardToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const result = (await byName["ui_storyboard_set_screenplay"].execute({
+      screenplay: authoredScreenplay
+    })) as {
+      ok: boolean;
+      title: string;
+      shots: { index: number; action: string; durationSeconds?: number }[];
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.title).toBe("Lighthouse Dawn");
+    expect(result.shots).toHaveLength(2);
+    expect(result.shots.map((s) => s.index)).toEqual([0, 1]);
+    expect(result.shots.map((s) => s.durationSeconds)).toEqual([4, 6]);
+  });
+
+  it("reports the board as savable after an authored screenplay loads", async () => {
+    const bridge = createStoryboardToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_storyboard_set_screenplay"].execute({
+      screenplay: authoredScreenplay
+    });
+
+    const state = bridge.finalState();
+    expect(state.saveIssues).toEqual([]);
+    expect(state.savable).toBe(true);
+  });
+
+  it("reports the board as savable after add_shot and generate", async () => {
+    const bridge = createStoryboardToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const added = (await byName["ui_storyboard_add_shot"].execute({
+      action: "A dog runs across a field.",
+      durationSeconds: 3
+    })) as { shot: { id: string } };
+    await byName["ui_storyboard_generate_keyframe"].execute({
+      target: added.shot.id
+    });
+    await byName["ui_storyboard_generate_clip"].execute({
+      target: added.shot.id
+    });
+
+    const state = bridge.finalState();
+    expect(state.saveIssues).toEqual([]);
+    expect(state.shots[0].hasClip).toBe(true);
+    expect(state.shots[0].durationSeconds).toBe(3);
   });
 
   it("errors generating a clip without a keyframe first", async () => {

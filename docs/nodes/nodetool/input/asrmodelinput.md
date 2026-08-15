@@ -18,9 +18,7 @@ Accepts an automatic speech recognition model as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
-| value | `asr_model` | The speech recognition model to use as input. | `{"type":"asr_model","provider":"empty","id":"",...` |
-| description | `str` | The description of the input for the workflow. | `` |
+| value | `asr_model` | The speech recognition model to use as input. | - |
 
 ## Outputs
 

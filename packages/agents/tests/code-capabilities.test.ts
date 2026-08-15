@@ -133,6 +133,18 @@ return { ignored: true };`,
     expect(result.outputs).toEqual({ count: 2 });
   });
 
+  it("keeps the guest hermetic: no tools or nodetool", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: 'return { tools: typeof tools, nodetool: typeof nodetool };'
+    })) as { ok: boolean; outputs: Record<string, unknown> };
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({
+      tools: "undefined",
+      nodetool: "undefined"
+    });
+  });
+
   it("reports a thrown error instead of throwing", async () => {
     const tool = toolForCapabilityName("run_code");
     const result = (await tool.execute(context(), {

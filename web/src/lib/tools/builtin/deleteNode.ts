@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { uiDeleteNodeParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { resolveWorkflowId } from "./workflow";
+import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
   name: "ui_delete_node",
@@ -13,7 +13,7 @@ FrontendToolRegistry.register({
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) {
-      throw new Error(`No node store for workflow ${workflowId}`);
+      throw noNodeStoreError(state, workflowId);
     }
 
     const node = nodeStore.findNode(node_id);

@@ -3,60 +3,21 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-This namespace contains 52 node(s).
+This namespace contains 14 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Automatic Speech Recognition](automaticspeechrecognition.md)**
-- **[Capitalize Text](capitalizetext.md)**
-- **[Check Length](checklength.md)**
-- **[Collapse Whitespace](collapsewhitespace.md)**
-- **[Collect Text](collecttext.md)**
-- **[Compare Text](comparetext.md)**
-- **[Concat](concat.md)**
-- **[Concatenate Text](concatenatetext.md)**
-- **[Contains Text](containstext.md)**
-- **[Count Tokens](counttokens.md)**
-- **[Embedding](embedding.md)**
-- **[Ends With](endswith.md)**
-- **[Equals](equals.md)**
-- **[Extract JSON](extractjson.md)**
-- **[Extract Regex Groups](extractregexgroups.md)**
-- **[Extract Text](extracttext.md)**
-- **[Filter Regex String](filterregexstring.md)**
-- **[Filter String](filterstring.md)**
-- **[Find All Regex Matches](findallregexmatches.md)**
-- **[Find Regex Matches](findregexmatches.md)**
-- **[Format Text](formattext.md)**
-- **[Index Of](indexof.md)**
-- **[Is Empty](isempty.md)**
-- **[Join](join.md)**
-- **[Load Text Assets](loadtextassets.md)**
-- **[Load Text Folder](loadtextfolder.md)**
-- **[Measure Length](measurelength.md)**
-- **[Pad Text](padtext.md)**
-- **[Parse JSON String](parsejsonstring.md)**
-- **[Prompt](prompt.md)**
-- **[Remove Punctuation](removepunctuation.md)**
-- **[Replace Text](replacetext.md)**
-- **[Replace with Regex](replacewithregex.md)**
-- **[Save Text](savetext.md)**
-- **[Save Text File](savetextfile.md)**
-- **[Slice Text](slicetext.md)**
-- **[Slugify](slugify.md)**
-- **[Split Text](splittext.md)**
-- **[Split Text into Chunks](splittextintochunks.md)**
-- **[Split with Regex](splitwithregex.md)**
-- **[Starts With](startswith.md)**
-- **[Strip Accents](stripaccents.md)**
-- **[Surround With](surroundwith.md)**
-- **[Template](template.md)**
-- **[To Lowercase](tolowercase.md)**
-- **[To String](tostring.md)**
-- **[To Title Case](totitlecase.md)**
-- **[To Uppercase](touppercase.md)**
-- **[Trim Whitespace](trimwhitespace.md)**
-- **[Truncate Text](truncatetext.md)**
-- **[Validate with Regex](validatewithregex.md)**
-
-[Back to all nodes](../../)
+- **[Automatic Speech Recognition](automaticspeechrecognition.md)** - Transcribe audio to text using automatic speech recognition models.
+- **[Collect Text](collecttext.md)** - Collects streaming text inputs into a single concatenated string.
+- **[Concat](concat.md)** - Concatenates text inputs into a single output. Add inputs dynamically with th...
+- **[Count Tokens](counttokens.md)** - Counts the number of tokens in text using tiktoken.
+- **[Embedding](embedding.md)** - Generate vector representations of text using any supported embedding provide...
+- **[Filter Regex String](filterregexstring.md)** - Filters a stream of strings using regular expressions.
+- **[Filter String](filterstring.md)** - Filters a stream of strings based on various criteria.
+- **[Join](join.md)** - Joins a list of strings into a single string using a specified separator.
+- **[Load Text Assets](loadtextassets.md)** - Load text files from an asset folder.
+- **[Load Text Folder](loadtextfolder.md)** - Load all text files from a folder, optionally including subfolders.
+- **[Prompt](prompt.md)** - Compose a prompt string with named variables. Add variables via the Add Varia...
+- **[Save Text](savetext.md)** - Saves input text to a file in the assets folder.
+- **[Save Text File](savetextfile.md)** - Saves input text to a file in the assets folder.
+- **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {{ variable }...

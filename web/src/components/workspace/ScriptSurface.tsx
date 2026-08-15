@@ -28,6 +28,7 @@ import {
 import ScriptDocumentPane from "../script/ScriptDocumentPane";
 import ScriptCastPanel from "../script/ScriptCastPanel";
 import ScriptAgentPanel from "../script/ScriptAgentPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 
 interface ScriptSurfaceProps {
   refId: string;
@@ -175,14 +176,9 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
       <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
       {!readOnly && (
-        <FlexColumn
-          fullHeight
-          sx={{
-            width: 320,
-            flexShrink: 0,
-            minHeight: 0,
-            borderLeft: `1px solid ${theme.vars.palette.divider}`
-          }}
+        <ResizableSideDock
+          storageKey="script_assistant"
+          ariaLabel="Resize script assistant"
         >
           {dockTabGroup}
           <FlexColumn
@@ -191,7 +187,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
           >
             {dockPanel}
           </FlexColumn>
-        </FlexColumn>
+        </ResizableSideDock>
       )}
     </FlexRow>
   );

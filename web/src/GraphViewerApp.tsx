@@ -5,7 +5,7 @@
  * No backend needed — workflow data comes via ?data=<base64 JSON> param.
  * Mounted by graph-entry.tsx.
  */
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,

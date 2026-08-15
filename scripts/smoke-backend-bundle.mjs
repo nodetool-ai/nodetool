@@ -43,7 +43,7 @@ import fsp from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -106,6 +106,80 @@ async function withPackagedModuleLayout(bundleDir) {
   return async () => {
     await fsp.rename(packaged, staged);
   };
+}
+
+function toneWav() {
+  const sampleRate = 8_000;
+  const frames = 800;
+  const bytes = new Uint8Array(44 + frames * 2);
+  const view = new DataView(bytes.buffer);
+  const text = (offset, value) => {
+    for (let i = 0; i < value.length; i += 1) {
+      bytes[offset + i] = value.charCodeAt(i);
+    }
+  };
+  text(0, "RIFF");
+  view.setUint32(4, bytes.length - 8, true);
+  text(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  text(36, "data");
+  view.setUint32(40, frames * 2, true);
+  for (let i = 0; i < frames; i += 1) {
+    const sample = Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 0.2;
+    view.setInt16(44 + i * 2, Math.round(sample * 0x7fff), true);
+  }
+  return bytes;
+}
+
+/** Prove the staged native codec loads and performs work after relocation. */
+async function probeMediabunnyCodecs(bundleDir) {
+  const modulesDir = path.join(bundleDir, "node_modules");
+  const mediabunny = await import(
+    pathToFileURL(
+      path.join(modulesDir, "mediabunny", "dist", "modules", "src", "index.js")
+    ).href
+  );
+  const server = await import(
+    pathToFileURL(
+      path.join(
+        modulesDir,
+        "@mediabunny",
+        "server",
+        "dist",
+        "bundles",
+        "mediabunny-server.mjs"
+      )
+    ).href
+  );
+  server.registerMediabunnyServer();
+
+  const target = new mediabunny.BufferTarget();
+  const output = new mediabunny.Output({
+    format: new mediabunny.Mp4OutputFormat(),
+    target,
+  });
+  const conversion = await mediabunny.Conversion.init({
+    input: new mediabunny.Input({
+      source: new mediabunny.BufferSource(toneWav()),
+      formats: mediabunny.ALL_FORMATS,
+    }),
+    output,
+    audio: { codec: "aac" },
+    showWarnings: false,
+  });
+  if (!conversion.isValid) {
+    throw new Error("staged Mediabunny codecs cannot convert WAV to AAC");
+  }
+  await conversion.execute();
+  if (!target.buffer || target.buffer.byteLength === 0) {
+    throw new Error("staged Mediabunny WAV-to-AAC conversion returned no data");
+  }
 }
 
 /**
@@ -191,6 +265,7 @@ export async function smokeBackendBundle(
   const restore = await withPackagedModuleLayout(bundleDir);
   let result;
   try {
+    await probeMediabunnyCodecs(bundleDir);
     result = await bootAndProbe(bundleDir, timeoutMs, nodeBinary);
   } finally {
     await restore();

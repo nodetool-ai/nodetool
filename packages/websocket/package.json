@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/websocket",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -27,7 +27,6 @@
     "@fastify/static": "^10.1.2",
     "@fastify/websocket": "^11.0.1",
     "@hyzyla/pdfium": "^2.1.12",
-    "@mariozechner/pi-coding-agent": "^0.73.1",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/agents": "*",

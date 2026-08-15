@@ -394,6 +394,115 @@ describe("createSketchToolBridge — painting", () => {
   });
 });
 
+describe("createSketchToolBridge — raster tools", () => {
+  it("flood-fills a connected white region", async () => {
+    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_add_layer"].execute({
+      name: "Paint",
+      fillColor: "#ffffff"
+    });
+    await t["ui_sketch_fill"].execute({
+      target: "Paint",
+      x: 2,
+      y: 2,
+      color: "#ff0000",
+      tolerance: 0
+    });
+    expect(await compositePixel(bridge, 8, 8)).toEqual({
+      r: 255,
+      g: 0,
+      b: 0,
+      a: 255
+    });
+  });
+
+  it("draws a filled rectangle", async () => {
+    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_draw_shape"].execute({
+      shape: "rect",
+      x: 4,
+      y: 4,
+      width: 12,
+      height: 12,
+      fill: "#00ff00"
+    });
+    expect(await compositePixel(bridge, 8, 8)).toMatchObject({
+      r: 0,
+      g: 255,
+      b: 0
+    });
+    expect((await compositePixel(bridge, 30, 30)).a).toBe(0);
+  });
+
+  it("paints a linear gradient and samples the start color", async () => {
+    const bridge = createSketchToolBridge({ width: 32, height: 8 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_gradient"].execute({
+      type: "linear",
+      start: { x: 0, y: 4 },
+      end: { x: 31, y: 4 },
+      stops: [
+        { offset: 0, color: "#0000ff" },
+        { offset: 1, color: "#ff0000" }
+      ]
+    });
+    const picked = (await t["ui_sketch_pick_color"].execute({
+      x: 0,
+      y: 4
+    })) as { color: string; rgba: { b: number } };
+    expect(picked.rgba.b).toBeGreaterThan(200);
+  });
+
+  it("sets a rect selection and inverts it", async () => {
+    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_set_selection_shape"].execute({
+      shape: "rect",
+      bounds: { x: 0, y: 0, width: 8, height: 8 }
+    });
+    expect(bridge.finalState().hasSelection).toBe(true);
+    await t["ui_sketch_selection"].execute({ op: "clear" });
+    expect(bridge.finalState().hasSelection).toBe(false);
+  });
+
+  it("flips a painted layer and crops the canvas", async () => {
+    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_draw_shape"].execute({
+      shape: "rect",
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 4,
+      fill: "#ffffff"
+    });
+    await t["ui_sketch_transform"].execute({ flipH: true });
+    const right = await compositePixel(bridge, 14, 1);
+    expect(right.a).toBeGreaterThan(0);
+    await t["ui_sketch_crop"].execute({ x: 8, y: 0, width: 8, height: 8 });
+    expect(bridge.finalState().width).toBe(8);
+    expect(bridge.finalState().height).toBe(8);
+  });
+
+  it("raises brightness of a dark layer", async () => {
+    const bridge = createSketchToolBridge({ width: 8, height: 8 });
+    const t = toolsOf(bridge);
+    await t["ui_sketch_add_layer"].execute({
+      name: "Tone",
+      fillColor: "#404040"
+    });
+    const before = await compositePixel(bridge, 2, 2);
+    await t["ui_sketch_adjust_layer"].execute({
+      target: "Tone",
+      brightness: 0.4
+    });
+    const after = await compositePixel(bridge, 2, 2);
+    expect(after.r).toBeGreaterThan(before.r);
+  });
+});
+
 describe("createSketchToolBridge — compositing", () => {
   it("honors layer opacity", async () => {
     const bridge = createSketchToolBridge({ width: 16, height: 16 });

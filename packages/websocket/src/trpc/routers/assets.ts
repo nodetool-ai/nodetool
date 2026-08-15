@@ -27,10 +27,13 @@ import {
 } from "@nodetool-ai/storage";
 import {
   getAssetFileName,
-  getAssetStorageKey
+  getAssetStorageKey,
+  normalizeAssetContentType,
+  assetFileNameCandidates
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import {
+  assetHasRasterThumbnail,
   generateThumbnailForStoredAsset,
   storeAssetWithThumbnail,
   thumbnailKey,
@@ -87,11 +90,7 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
       )
     : null;
 
-  const hasThumbnail =
-    asset.content_type.startsWith("image/") ||
-    asset.content_type.startsWith("video/") ||
-    asset.content_type.startsWith("audio/") ||
-    asset.content_type === "application/pdf";
+  const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
   const thumbUrl = hasThumbnail
     ? await getUrlBuilder()(
         assetObjectKey(asset.user_id, thumbnailKey(asset.id))
@@ -131,7 +130,7 @@ async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   if (asset.content_type === "folder") return;
   const adapter = getAssetAdapter();
   const fileNames = [
-    getAssetFileName(asset.id, asset.content_type),
+    ...assetFileNameCandidates(asset.id, asset.content_type),
     thumbnailKey(asset.id)
   ];
   for (const fileName of fileNames) {
@@ -346,10 +345,22 @@ export const assetsRouter = router({
         );
       }
 
+      const adapter = getAssetAdapter();
+      // Local file store has no signed upload URL. The client falls back to
+      // POST /api/assets. Do not create a pending row that would stay empty.
+      if (!adapter.createUploadUrl) {
+        return { asset_id: "", key: "", upload: null };
+      }
+
+      const contentType = normalizeAssetContentType(
+        input.content_type,
+        input.name
+      );
+
       const asset = (await Asset.create({
         user_id: ctx.userId,
         name: input.name,
-        content_type: input.content_type,
+        content_type: contentType,
         parent_id: input.parent_id || ctx.userId,
         workflow_id: input.workflow_id ?? null,
         node_id: input.node_id ?? null,
@@ -365,12 +376,9 @@ export const assetsRouter = router({
         asset.id,
         asset.content_type
       );
-      const adapter = getAssetAdapter();
-      const target = adapter.createUploadUrl
-        ? await adapter.createUploadUrl(key, {
-            contentType: input.content_type
-          })
-        : null;
+      const target = await adapter.createUploadUrl(key, {
+        contentType
+      });
 
       return {
         asset_id: asset.id,

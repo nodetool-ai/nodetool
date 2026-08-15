@@ -368,6 +368,12 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         title: screenplay.title || board.title,
         aspectRatio: screenplay.aspect_ratio ?? board.aspectRatio,
         style: screenplay.style_bible ?? board.style,
+        // An explicit `brief` wins. A logline fills an empty brief only — the
+        // editor directs *from* the brief, so a returned logline must never
+        // overwrite what the user wrote.
+        brief:
+          screenplay.brief ??
+          (board.brief.trim() ? board.brief : (screenplay.logline ?? "")),
         updatedAt: Date.now()
       };
       const patch: Partial<StoryboardStoreState> = {

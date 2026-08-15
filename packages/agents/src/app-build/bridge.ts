@@ -51,7 +51,6 @@ import {
   type AppDocMeta,
   type BindableWorkflow,
   type BindingTargets,
-  type OperationTargets,
   type InputMapping,
   type OperationBinding,
   type OperationPatch,
@@ -129,8 +128,8 @@ export interface AppBridgeInitialState {
   meta?: AppDocMeta;
   /**
    * Id of the host workflow this editor has loaded — NOT the app's identity.
-   * `ui_app_get_binding_targets` reports node-level targets only for operations
-   * pointing at it, mirroring an editor that has loaded exactly one workflow.
+   * An operation pointing at it resolves against {@link workflow}; every other
+   * operation resolves against {@link workflows}.
    */
   workflowId?: string;
   /** Bindable surface of that host workflow: its input/output nodes and channels. */
@@ -316,28 +315,9 @@ export function createAppToolBridge(
     ...Object.entries(initial.workflows ?? {})
   ]);
 
-  /**
-   * Binding targets across every loaded workflow. `bindingTargets` resolves one
-   * host workflow per call, so each further one is resolved in its own call and
-   * its operations replace the empty entries the host pass produced.
-   */
-  const allBindingTargets = (): BindingTargets => {
-    const base = bindingTargets(meta, hostWorkflowId, hostWorkflow);
-    const resolved = new Map<string, OperationTargets>();
-    for (const [workflowId, workflow] of loadedWorkflows) {
-      if (workflowId === hostWorkflowId) continue;
-      for (const operation of bindingTargets(meta, workflowId, workflow)
-        .operations) {
-        if (operation.ioAvailable) resolved.set(operation.operationId, operation);
-      }
-    }
-    return {
-      ...base,
-      operations: base.operations.map(
-        (operation) => resolved.get(operation.operationId) ?? operation
-      )
-    };
-  };
+  /** Binding targets across every loaded workflow. */
+  const allBindingTargets = (): BindingTargets =>
+    bindingTargets(meta, hostWorkflowId, hostWorkflow, undefined, loadedWorkflows);
   let idSeq = 0;
   // Track every id in use so generated ids never collide with an explicitly
   // seeded one (e.g. seeding "Heading-1" then adding a Heading).

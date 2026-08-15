@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/code-nodes",
-  "version": "0.7.0-rc.34",
-  "description": "NodeTool code-execution nodes — JS code, sandboxed code, agent tool wrappers",
+  "version": "0.7.0-rc.35",
+  "description": "NodeTool code-execution nodes — JS code and Claude Code Agent",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -16,14 +16,12 @@
   },
   "dependencies": {
     "@nodetool-ai/agents": "*",
-    "@nodetool-ai/automation-nodes": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/llm-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/sandbox": "*"
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@nodetool-ai/kernel": "*",

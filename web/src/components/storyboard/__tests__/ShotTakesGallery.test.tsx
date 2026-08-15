@@ -81,7 +81,7 @@ describe("ShotTakesGallery", () => {
     });
     renderGallery(shot);
 
-    expect(screen.getByText("Takes — 2 stills · 3 clips")).toBeInTheDocument();
+    expect(screen.getByText("Takes: 2 stills · 3 clips")).toBeInTheDocument();
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "View takes" }));

@@ -72,7 +72,9 @@ libraries are imports.**
 | `sleep(ms)` | The only timer |
 | `crypto.*` | `randomUUID`, `getRandomValues`, `digest`, `hmac` (WebCrypto-backed; SHA-1/256/384/512) |
 | `format.*` | `number`, `date`, `relativeTime`, `list` — host `Intl`, which QuickJS does not ship. All four are async |
-| `image.*` | `info`, `decode`, `encode`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert` over encoded bytes |
+| `image.*` | `info`, `stats`, `decode`, `blank`, `pad`, `grid`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert`. Transforms return image handles |
+| `audio.*` | `info`, `normalize`, `trim`, `concat`, `mix`, `reverse`, `fadeIn`, `fadeOut`, `repeat`. Transforms return audio handles |
+| `video.*` | `info`, `trim`, `resize`, `rotate`, `addAudio`, `extractAudio`, `extractFrame`. Transforms return video, audio, or image handles as appropriate |
 | `media.*` | `bytes`, `text`, `info` read a document/image/audio/video input; `toDocument`, `toImage`, `toAudio`, `toVideo` build one to emit or output. Needs a `ProcessingContext` |
 | `canvas.measureText` / `createCanvas(w, h)` | Canvas 2D drawing, recorded in the guest and replayed on a real host context by `await surface.toBytes()` |
 | `assetToSandbox(assetId, path)` / `sandboxToAsset(path)` | Move an asset in and out of the workspace |
@@ -125,6 +127,30 @@ they resolve inside a workflow run and throw in a bare `runInSandbox` call with
 no context. For the libraries that read what the bytes contain — a PDF, a
 spreadsheet, a zip — import a sandbox package.
 
+#### Media editing handles
+
+`image.*`, `audio.*`, and `video.*` accept a media ref, encoded bytes, or a
+handle from an earlier operation in the same run. A transform returns a small
+`sandbox://media/<id>` handle with its media type. The encoded payload stays on
+the host while calls
+chain:
+
+```js
+const joined = await audio.concat([inputs.intro, inputs.voiceover]);
+const clip = await video.trim(inputs.video, { start: 2, end: 12 });
+const finished = await video.addAudio(clip, joined, {
+  keepOriginalAudio: true
+});
+await output("video", await video.toAsset(finished));
+```
+
+Use `<type>.bytes(handle)` only when code must inspect the encoded payload.
+Use `<type>.toAsset(handle)` or `media.toImage/toAudio/toVideo(handle)` before
+the run ends when the result must persist. Handles do not work in a later run.
+Audio and video transforms use Mediabunny. Browsers use WebCodecs, and Node
+uses Mediabunny's server codec adapter. The sandbox does not expose workflow
+nodes or their packages.
+
 ### Libraries (imports)
 
 There is no library global. Every library the sandbox offers is a **sandbox
@@ -136,15 +162,20 @@ const config = yaml.load(inputs.text);
 await output("config", config);
 ```
 
-NodeTool ships twenty-one (`packages/sandbox-packs/`): `-dates` (date-fns),
-`-yaml` (js-yaml) and `-markdown` (marked) run inside the guest; `-csv`
-(papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser), `-xlsx`
-(exceljs), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js), `-tfjs`
-(TensorFlow.js and its model zoo), `-docx` (docx), `-mammoth` (mammoth),
-`-epub` (epub2), `-pptx` (office-text-extractor) and `-pdf` (pdf-parse) run on
-the host behind a generated facade, because they need Node builtins or a DOM,
-or carry a limit the guest could not enforce on itself (zip's 50 MB inflation
-cap), or hold state no run can keep alive (the tfjs weights). Five more carry
+NodeTool ships thirty-six (`packages/sandbox-packs/`): `-dates` (date-fns),
+`-yaml` (js-yaml), `-markdown` (marked), `-qr` (uqr), `-subtitle` (subtitle),
+`-color` (culori), `-decimal` (decimal.js), `-jmespath` (jmespath), `-stats`
+(simple-statistics), `-rrule` (rrule) and `-gif` (gifenc) run
+inside the guest; `-csv` (papaparse), `-html` (cheerio + turndown), `-xml`
+(fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr`
+(tesseract.js), `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx),
+`-mammoth` (mammoth), `-epub` (epub2), `-fabric` (Fabric.js — SVG and vector
+scenes), `-pdflib` (pdf-lib), `-pptxgen` (PptxGenJS), `-chrono` (chrono-node),
+`-exif` (exifr), `-expr` (expr-eval), `-ics` (ics), `-subtitle` (subtitle),
+`-pptx` (office-text-extractor) and `-pdf` (pdf-parse) run on the host behind a
+generated facade, because they need Node builtins or a DOM, or carry a limit
+the guest could not enforce on itself (zip's 50 MB inflation cap), or hold
+state no run can keep alive (the tfjs weights). Five more carry
 NodeTool's own code rather than a library — `-aws` signs a request with SigV4,
 and `-notion`, `-supabase`, `-twilio` and `-apify` build an authenticated one —
 and none of them sends it:
@@ -178,6 +209,7 @@ Every default below is overridable per invocation through
 | Host module text input | 5 MB | `host-modules/limits.ts` | — |
 | Host module byte input | 10 MB | `host-modules/limits.ts` | — |
 | Image input | 25 MB, 32 M pixels, 16384 px longest edge | `assertSurfaceSize` | — |
+| Run media handles | 256 MB total encoded payload | `SandboxMediaStore` | — |
 | Canvas ops | 10 000 per render | `renderCanvas` | — |
 | Tool calls per action | 50 | `DEFAULT_MAX_TOOL_CALLS_PER_ACTION` | — |
 
@@ -417,10 +449,11 @@ before the guest starts rather than surfacing as a resolve error inside it;
 version or digest drift only warns on the node's log.
 
 On a server host the node's code also gets the `nodetool` object model, backed
-by the agent toolbelt. The belt is loaded lazily and only on Node, since the
-in-browser runner bundles this module: without one,
-`nodetool.capabilities()` reports `{}` and each method throws naming the tool it
-needs instead of a `ReferenceError`.
+by the agent toolbelt. A JS script run uses that same belt. The belt is loaded
+lazily and only on Node, since the in-browser runner bundles this module:
+without one, `nodetool.capabilities()` reports `{}` and each method throws
+naming the tool it needs instead of a `ReferenceError`. `run_code` stays
+hermetic so an authoring probe does not get the belt.
 
 **Static checking.** `nodetool validate` parses each Code node body and reports
 what a run would hit: invalid JavaScript, top-level `export`, an import the
@@ -450,7 +483,10 @@ What an action gets on top of the standard surface:
   invocation surfaces to the host as a `tool_call_update` (id `codeact_<n>`), so
   composition inside one action stays observable.
 - **`state`** — persists across the actions of a step, host-side, synced back
-  after every run.
+  after every run, including a run that throws. Assign generation results
+  (`asset://` refs) to `state` immediately so a later failure does not re-run
+  them. Handles from `image.*` / `audio.*` / `video.*` die between actions;
+  convert with `nodetool.media.toImage` / `toAudio` / `toVideo` first.
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates, and an invalid result throws in the guest with the violation list,
   so the same action can repair.

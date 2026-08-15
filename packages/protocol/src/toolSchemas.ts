@@ -2,7 +2,6 @@
 //
 // Shared Zod tool schemas for frontend UI tools.
 // Exported as ZodRawShape (plain objects of Zod types) for:
-//   - Agent SDK MCP server registration (electron/src/agent.ts)
 //   - Frontend tool validation (web/src/lib/tools/builtin/*.ts wraps with z.object())
 //
 // If you update a schema here, update the corresponding builtin tool file too.
@@ -200,7 +199,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_connect_nodes: {
     description:
-      "Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name).",
+      "Connect two nodes by port name. Required: `source_node_id`, `source_handle` (output name), `target_node_id`, `target_handle` (input/property name). On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle.",
     parameters: uiConnectNodesParams
   },
   ui_get_graph: {

@@ -32,6 +32,38 @@ describe("buildChatAgentSystemPrompt — the workflow the turn is bound to", () 
     expect(prompt.match(/## What the user is looking at/g)).toHaveLength(1);
   });
 
+  it("names the chat surface that sent the turn", () => {
+    const prompt = buildChatAgentSystemPrompt(
+      "default",
+      null,
+      {
+        focused: { type: "sketch", id: "sk-1", title: "Fox" },
+        open: [{ type: "sketch", id: "sk-1", title: "Fox" }],
+        selection: { layer_ids: ["layer-2"] },
+        source: "sketch_assistant"
+      },
+      null
+    );
+    expect(prompt).toContain(
+      "The user sent this message from the sketch editor assistant."
+    );
+    expect(prompt).toContain('image document "Fox" (id: sk-1)');
+    expect(prompt).toContain("layer: layer-2");
+  });
+
+  it("still names a source when no document is open", () => {
+    const prompt = buildChatAgentSystemPrompt(
+      "default",
+      null,
+      { source: "model3d_assistant" },
+      null
+    );
+    expect(prompt).toContain(
+      "The user sent this message from the 3D editor assistant."
+    );
+    expect(prompt).toContain("## What the user is looking at");
+  });
+
   it("still names a bound workflow that the ui_context does not list", () => {
     const uiContext = {
       focused: { type: "timeline" as const, id: "tl-1", title: "Cut" },

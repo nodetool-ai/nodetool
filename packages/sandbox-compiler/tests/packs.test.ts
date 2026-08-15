@@ -150,6 +150,36 @@ describe("sandbox-yaml end to end, in the guest", () => {
   });
 });
 
+describe("sandbox-decimal end to end, in the guest", () => {
+  it("adds decimals without float noise", async () => {
+    const { resolution } = await resolveOne("@nodetool-ai/sandbox-decimal");
+    const result = await runInSandbox({
+      code: `
+        import Decimal from "@nodetool-ai/sandbox-decimal";
+        return new Decimal("0.1").plus("0.2").toFixed(1);
+      `,
+      modules: resolution
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.result).toBe("0.3");
+  });
+});
+
+describe("sandbox-jmespath end to end, in the guest", () => {
+  it("queries a JSON document", async () => {
+    const { resolution } = await resolveOne("@nodetool-ai/sandbox-jmespath");
+    const result = await runInSandbox({
+      code: `
+        import jmespath from "@nodetool-ai/sandbox-jmespath";
+        return jmespath.search({ items: [{ name: "a" }, { name: "b" }] }, "items[*].name");
+      `,
+      modules: resolution
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.result).toEqual(["a", "b"]);
+  });
+});
+
 describe("sandbox-markdown end to end, in the guest", () => {
   it("lexes headers, links, and code blocks through the M1 loader", async () => {
     const { resolution } = await resolveOne("@nodetool-ai/sandbox-markdown");

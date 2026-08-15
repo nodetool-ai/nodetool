@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli",
-  "version": "0.7.0-rc.34",
+  "version": "0.7.0-rc.35",
   "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
   "type": "module",
   "engines": {
@@ -47,8 +47,6 @@
     "@nodetool-ai/reliability-harness": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/sandbox-compiler": "*",
-    "@nodetool-ai/sandbox": "*",
-    "@nodetool-ai/sandbox-tools": "*",
     "@nodetool-ai/security": "*",
     "@inquirer/prompts": "^5.0.0",
     "chalk": "^5.3.0",

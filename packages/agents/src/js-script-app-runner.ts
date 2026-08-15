@@ -6,14 +6,15 @@
  * lives here, above it in the dependency order. This is the runner every host
  * that owns both — the server, the CLI, the agent tools — passes down.
  *
- * Execution is `runCodeBody`, the same hermetic core `run_code`, `test_code`,
- * `run_js_script` and the run endpoint use, with the script's own envelope: its
- * declared packages, its declared secrets, and its timeout capped at
- * `JS_SCRIPT_MAX_TIMEOUT_SECONDS`. No toolbelt.
+ * Execution is `runCodeBody`, the same core `run_code`, `test_code`,
+ * `run_js_script` and the run endpoint use, with the script's own envelope:
+ * every installed pack by import, its declared secrets, its timeout capped at
+ * `JS_SCRIPT_MAX_TIMEOUT_SECONDS`, and the Code-node toolbelt.
  */
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";
 import { JS_SCRIPT_MAX_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { runCodeBody } from "./capabilities/code.js";
 
 /**
@@ -33,6 +34,7 @@ export function createJsScriptAppRunner(
     const context = new ProcessingContext({
       jobId: `js-script-op-${input.scriptId}-${Date.now()}`,
       userId,
+      storage: new FileStorageAdapter(getDefaultAssetsPath()),
       ...(options.secretResolver
         ? { secretResolver: options.secretResolver }
         : {})
@@ -50,7 +52,8 @@ export function createJsScriptAppRunner(
       timeoutSeconds:
         input.timeoutMs === undefined
           ? declared
-          : Math.min(declared, Math.max(1, Math.round(input.timeoutMs / 1000)))
+          : Math.min(declared, Math.max(1, Math.round(input.timeoutMs / 1000))),
+      withToolbelt: true
     });
   };
 }

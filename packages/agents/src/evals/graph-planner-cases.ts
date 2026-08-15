@@ -42,7 +42,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       // The document must arrive as a document, not as a string the caller
       // was expected to have extracted. Either document input node passes.
       requiredNodeTypePatterns: ["^nodetool\\.input\\.Document"],
-      // Any LLM step family — Agent, Summarizer, DocumentAgent — is a valid
+      // Any LLM step family — Agent, Summarizer — is a valid
       // answer; which one is the model's call, so none is pinned.
       requiredReachablePaths: [
         { from: "^nodetool\\.input\\.Document", to: "^nodetool\\.agents\\." }

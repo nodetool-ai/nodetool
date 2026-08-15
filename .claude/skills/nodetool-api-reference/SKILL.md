@@ -11,7 +11,7 @@ You help users integrate with NodeTool's HTTP + WebSocket server (default `http:
 |---------|-------------|----------|
 | **REST** | `/api/...` | Workflows, assets, collections, models, health |
 | **OpenAI-compatible** | `/v1/...` | Chat completions + model list |
-| **WebSocket** | `/ws`, `/ws/agent` | Run/cancel/stream jobs, live chat |
+| **WebSocket** | `/ws` | Run/cancel/stream jobs, live chat, live editor tools |
 
 The server mode (`desktop` / `private` / `public`) and auth are controlled by
 environment variables (`NODETOOL_SERVER_MODE`, `AUTH_PROVIDER`), not CLI flags.

@@ -8,6 +8,9 @@
  * conflict the server copy wins and is reloaded.
  *
  * Copied from useScriptServerSync — same machinery, js-script payload.
+ *
+ * The hook also registers a flush in {@link registerJsScriptSaver}, so a
+ * caller that wrote into the store can learn whether the write persisted.
  */
 
 import { useEffect, useRef } from "react";
@@ -20,6 +23,14 @@ import {
 } from "../../stores/jsScript/JsScriptStore";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { registerDocumentSync } from "../../stores/documentSync";
+import {
+  isPermanentSaveError,
+  MAX_TRANSIENT_SAVE_RETRIES
+} from "../../utils/saveErrors";
+import {
+  registerJsScriptSaver,
+  type JsScriptSaveResult
+} from "./jsScriptSaveRegistry";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -49,7 +60,14 @@ export const useJsScriptServerSync = (scriptId: string): void => {
   const utils = trpc.useUtils();
   const syncedRef = useRef<JsScriptEntry | null>(null);
   const inFlightRef = useRef(false);
+  // The save currently in flight, so a flush can await it instead of starting
+  // a second, overlapping save.
+  const inFlightPromiseRef = useRef<Promise<JsScriptSaveResult> | null>(null);
   const flushAfterSaveRef = useRef(false);
+  // Consecutive failed attempts for the current edit. Reset by a new edit and
+  // by a save that lands.
+  const retriesRef = useRef(0);
+  const loadPromiseRef = useRef<Promise<void> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -108,18 +126,18 @@ export const useJsScriptServerSync = (scriptId: string): void => {
       }
     };
 
-    const save = async (flush = false): Promise<void> => {
-      if (inFlightRef.current) {
-        if (flush) flushAfterSaveRef.current = true;
-        return;
-      }
-      if (disposed && !flush) return;
-      const entry = store.getState().scripts[scriptId];
-      const revision = store.getState().serverRevisions[scriptId];
-      if (!entry || !revision || entry === syncedRef.current) return;
+    const currentRevision = (): string | null =>
+      store.getState().serverRevisions[scriptId] ?? null;
 
-      inFlightRef.current = true;
+    const runSave = async (
+      entry: JsScriptEntry,
+      revision: string
+    ): Promise<JsScriptSaveResult> => {
       let saved = false;
+      let result: JsScriptSaveResult = {
+        ok: true,
+        updatedAt: currentRevision()
+      };
       store.getState().setSaveStatus(scriptId, "saving");
       try {
         const updated = await trpcClient.jsScripts.update.mutate({
@@ -131,6 +149,8 @@ export const useJsScriptServerSync = (scriptId: string): void => {
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = entry;
         saved = true;
+        retriesRef.current = 0;
+        result = { ok: true, updatedAt: updated.updatedAt };
         void utilsRef.current.jsScripts.list.invalidate();
         // Only claim "saved" when the saved snapshot still matches the store;
         // edits that landed mid-flight leave newer work queued.
@@ -145,24 +165,83 @@ export const useJsScriptServerSync = (scriptId: string): void => {
           store.getState().setSaveStatus(scriptId, "saved");
         }
       } catch (error) {
+        const message = getErrorMessage(error, "JS script save failed");
+        result = { ok: false, error: message };
         console.error("JS script autosave failed", error);
         if (disposed) {
           store.getState().setSaveStatus(scriptId, "error");
-          return;
+          return result;
         }
         if (/modified since last read/i.test(getErrorMessage(error))) {
           await load("reloaded");
         } else {
           store.getState().setSaveStatus(scriptId, "error");
-          schedule(RETRY_DELAY_MS);
+          // A payload the server will reject again — an invalid document, a
+          // permission error — must not be resent, and even a transient
+          // failure gets a bounded number of retries rather than a loop.
+          if (
+            !isPermanentSaveError(error) &&
+            retriesRef.current < MAX_TRANSIENT_SAVE_RETRIES
+          ) {
+            retriesRef.current += 1;
+            schedule(RETRY_DELAY_MS);
+          } else {
+            retriesRef.current = 0;
+          }
         }
       } finally {
         inFlightRef.current = false;
+        inFlightPromiseRef.current = null;
         if (saved && flushAfterSaveRef.current) {
           flushAfterSaveRef.current = false;
           void save(true);
         }
       }
+      return result;
+    };
+
+    const save = (flush = false): Promise<JsScriptSaveResult> => {
+      if (inFlightRef.current) {
+        if (flush) flushAfterSaveRef.current = true;
+        return (
+          inFlightPromiseRef.current ??
+          Promise.resolve({ ok: true, updatedAt: currentRevision() })
+        );
+      }
+      const entry = store.getState().scripts[scriptId];
+      const revision = store.getState().serverRevisions[scriptId];
+      if (
+        (disposed && !flush) ||
+        !entry ||
+        !revision ||
+        entry === syncedRef.current
+      ) {
+        return Promise.resolve({ ok: true, updatedAt: revision ?? null });
+      }
+
+      inFlightRef.current = true;
+      const pending = runSave(entry, revision);
+      inFlightPromiseRef.current = pending;
+      return pending;
+    };
+
+    /**
+     * Save now instead of on the debounce, and report the outcome. Waits out
+     * the initial load and any save already in flight, so two callers never
+     * produce two overlapping writes.
+     */
+    const flushNow = async (): Promise<JsScriptSaveResult> => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      await loadPromiseRef.current;
+      while (inFlightRef.current) {
+        const pending = inFlightPromiseRef.current;
+        if (!pending) break;
+        await pending;
+      }
+      return save(true);
     };
 
     const schedule = (delayMs: number = AUTOSAVE_DEBOUNCE_MS): void => {
@@ -177,6 +256,8 @@ export const useJsScriptServerSync = (scriptId: string): void => {
       if (state.scripts[scriptId] === syncedRef.current) return;
       if (!state.serverRevisions[scriptId]) return;
       store.getState().setSaveStatus(scriptId, "unsaved");
+      // A new edit is new content: give it a full retry budget.
+      retriesRef.current = 0;
       schedule();
     });
 
@@ -193,10 +274,14 @@ export const useJsScriptServerSync = (scriptId: string): void => {
       }
     });
 
-    void load();
+    registerJsScriptSaver(scriptId, flushNow);
+
+    loadPromiseRef.current = load();
+    void loadPromiseRef.current;
 
     return () => {
       disposed = true;
+      registerJsScriptSaver(scriptId, null);
       unwatch();
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);

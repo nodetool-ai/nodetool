@@ -6,6 +6,28 @@ import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
 import { buildLayersPanelRows } from "../../types";
 
+const ASSISTANT_OPEN_KEY = "sketch.assistantPanelOpen";
+
+function readAssistantPanelOpen(): boolean {
+  try {
+    const saved = localStorage.getItem(ASSISTANT_OPEN_KEY);
+    if (saved === "true" || saved === "false") {
+      return saved === "true";
+    }
+  } catch {
+    /* private mode */
+  }
+  return true;
+}
+
+function writeAssistantPanelOpen(open: boolean): void {
+  try {
+    localStorage.setItem(ASSISTANT_OPEN_KEY, open ? "true" : "false");
+  } catch {
+    /* private mode */
+  }
+}
+
 export interface UiSlice {
   /** True while Ctrl/Cmd is held for spring-loaded move. */
   transientMoveModifierHeld: boolean;
@@ -97,10 +119,17 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   setToolSettingsCollapsed: (collapsed: boolean) =>
     set({ toolSettingsCollapsed: collapsed }),
 
-  assistantPanelOpen: false,
+  assistantPanelOpen: readAssistantPanelOpen(),
   toggleAssistantPanel: () =>
-    set((state) => ({ assistantPanelOpen: !state.assistantPanelOpen })),
-  setAssistantPanelOpen: (open: boolean) => set({ assistantPanelOpen: open }),
+    set((state) => {
+      const assistantPanelOpen = !state.assistantPanelOpen;
+      writeAssistantPanelOpen(assistantPanelOpen);
+      return { assistantPanelOpen };
+    }),
+  setAssistantPanelOpen: (open: boolean) => {
+    writeAssistantPanelOpen(open);
+    set({ assistantPanelOpen: open });
+  },
 
   mobilePanelsOpen: false,
   toggleMobilePanels: () =>

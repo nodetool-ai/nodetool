@@ -1,15 +1,15 @@
 /**
  * `nodetool app build` as a callable service — the engine behind
- * `POST /api/applications/build` and the `build_app` agent tool.
+ * `POST /api/applications/build`.
  *
  * The build itself is `buildApp`, unchanged: this module only supplies the four
  * things the orchestrator cannot get for itself — a provider, the node
  * registry, a kernel runner for the Run stage, and a workflow loader for
  * operations that bind an existing workflow.
  *
- * It lives in this package rather than in `websocket` because `buildApp` does:
- * an agent calling `build_app` must reach it in-process, and `packages/agents`
- * cannot import upward. The server keeps only the route and the error mapping.
+ * It lives in this package rather than in `websocket` because `buildApp` does,
+ * and `packages/agents` cannot import upward. The server keeps only the route
+ * and the error mapping.
  *
  * A build runs for minutes, so it is fronted by the same session registry an
  * interactive debug run uses (`@nodetool-ai/execution/service`): `poll: true`

@@ -199,6 +199,32 @@ describe("AppBuilderShell", () => {
     });
   });
 
+  it("reports the operations upward as the agent binds them", async () => {
+    const user = userEvent.setup();
+    const onOperationsChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AppBuilderShell
+          applicationId="app-1"
+          document={document}
+          workflow={workflow}
+          agentWorkflowId="wf-1"
+          onSave={jest.fn()}
+          onOperationsChange={onOperationsChange}
+        />
+      </ThemeProvider>
+    );
+
+    // The seed first, so the parent starts from what the canvas actually holds.
+    expect(onOperationsChange).toHaveBeenCalledWith([]);
+
+    await user.click(screen.getByRole("button", { name: "Edit meta" }));
+
+    // Then the bound operation, long before any save — this is what lets the
+    // parent load wf-1's graph and answer the agent's binding targets.
+    expect(onOperationsChange).toHaveBeenLastCalledWith(EDITED_META.operations);
+  });
+
   it("writes the theme the author picked on the root back to the document", async () => {
     const user = userEvent.setup();
     const onSave = renderShell();
@@ -249,7 +275,7 @@ describe("AppBuilderShell", () => {
     expect(screen.getAllByRole("button", { name: "Ask Agent" })).toHaveLength(1);
   });
 
-  it("hides the agent when no workflow is bound", () => {
+  it("offers the agent when no workflow is bound — it is what authors one", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <AppBuilderShell
@@ -262,8 +288,8 @@ describe("AppBuilderShell", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "Ask Agent" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Ask Agent" })
+    ).toBeInTheDocument();
     expect(setCurrentWorkflowId).not.toHaveBeenCalled();
   });
 });

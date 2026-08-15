@@ -6,6 +6,7 @@
  * - Inputs: names read off the `inputs` object
  */
 import * as acorn from "acorn";
+import type { TypeMetadata } from "../stores/ApiTypes";
 
 // ---------------------------------------------------------------------------
 // Minimal AST walker (replaces acorn-walk for the node types used below)
@@ -61,6 +62,20 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
   const ast = tryParse(code);
   if (!ast) return null;
 
+  const emitKeys = new Set<string>();
+  walkAst(ast, (node) => {
+    if (node.type !== "CallExpression") return;
+    if (node.callee.type !== "Identifier") return;
+    if (node.callee.name !== "emit" && node.callee.name !== "output") return;
+    const first = node.arguments[0];
+    if (first?.type === "Literal" && typeof first.value === "string") {
+      emitKeys.add(first.value);
+    }
+  });
+  if (emitKeys.size > 0) {
+    return [...emitKeys];
+  }
+
   let lastReturnKeys: string[] | null = null;
 
   walkAst(ast, (node) => {
@@ -98,16 +113,29 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
  * Infer input names from JavaScript code.
  *
  * Declared inputs arrive on the `inputs` object, so inference is a scan for
- * `inputs.name` / `inputs["name"]` rather than a guess at which undeclared
- * identifier is a slot. That guess needed the full list of sandbox globals to
- * subtract, and every name missing from it invented a phantom input.
+ * `inputs.name` / `inputs["name"]` and `stream("name")` / `stream.first` /
+ * `stream.open`. A named read is a handle — the editor shows it without a
+ * separate Add-input step.
  *
- * A body that shadows `inputs` with its own binding, or reaches for it
- * dynamically (`inputs[key]`, `{...inputs}`), yields no names — there is
- * nothing to enumerate.
+ * A body that shadows `inputs` or `stream` with its own binding skips that
+ * source. A dynamic read (`inputs[key]`) yields no names from that source.
  *
  * Returns an array of input names, or null if none found.
  */
+/** Property names the Code node itself owns — not user input handles. */
+const CODE_NODE_OWN_PROPERTIES = new Set([
+  "code",
+  "script",
+  "packages",
+  "secrets",
+  "timeout",
+  "max_response_mb",
+  "allow_local_network",
+  "allow_host_filesystem"
+]);
+
+const STREAM_NAMED_MEMBERS = new Set(["first", "open"]);
+
 export function inferInputKeysFromCode(code: string): string[] | null {
   const ast = tryParse(code);
   if (!ast) return null;
@@ -125,27 +153,61 @@ export function inferInputKeysFromCode(code: string): string[] | null {
         break;
     }
   });
-  if (shadowed.has("inputs")) return null;
 
   const names = new Set<string>();
-  walkAst(ast, (node, ancestors) => {
-    if (node.type !== "Identifier" || node.name !== "inputs") return;
-    const parent = ancestors[ancestors.length - 2];
-    if (parent?.type !== "MemberExpression" || parent.object !== node) return;
-    if (!parent.computed && parent.property.type === "Identifier") {
-      names.add(parent.property.name);
-      return;
-    }
-    if (
-      parent.computed &&
-      parent.property.type === "Literal" &&
-      typeof parent.property.value === "string"
-    ) {
-      names.add(parent.property.value);
-    }
-  });
+  if (!shadowed.has("inputs")) {
+    walkAst(ast, (node, ancestors) => {
+      if (node.type !== "Identifier" || node.name !== "inputs") return;
+      const parent = ancestors[ancestors.length - 2];
+      if (parent?.type !== "MemberExpression" || parent.object !== node) return;
+      if (!parent.computed && parent.property.type === "Identifier") {
+        names.add(parent.property.name);
+        return;
+      }
+      if (
+        parent.computed &&
+        parent.property.type === "Literal" &&
+        typeof parent.property.value === "string"
+      ) {
+        names.add(parent.property.value);
+      }
+    });
+  }
+
+  if (!shadowed.has("stream")) {
+    walkAst(ast, (node) => {
+      if (node.type !== "CallExpression") return;
+      const callee = node.callee;
+      if (callee.type === "Identifier" && callee.name === "stream") {
+        addLiteralArg(node.arguments[0], names);
+        return;
+      }
+      if (
+        callee.type !== "MemberExpression" ||
+        callee.computed ||
+        callee.object.type !== "Identifier" ||
+        callee.object.name !== "stream" ||
+        callee.property.type !== "Identifier"
+      ) {
+        return;
+      }
+      if (STREAM_NAMED_MEMBERS.has(callee.property.name)) {
+        addLiteralArg(node.arguments[0], names);
+      }
+    });
+  }
+
+  for (const reserved of CODE_NODE_OWN_PROPERTIES) {
+    names.delete(reserved);
+  }
 
   return names.size > 0 ? [...names] : null;
+}
+
+function addLiteralArg(arg: acorn.AnyNode | undefined, names: Set<string>): void {
+  if (arg?.type === "Literal" && typeof arg.value === "string" && arg.value !== "") {
+    names.add(arg.value);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -153,24 +215,31 @@ export function inferInputKeysFromCode(code: string): string[] | null {
 // ---------------------------------------------------------------------------
 
 interface CodeIOUpdates {
-  dynamic_outputs: Record<
-    string,
-    { type: string; type_args: never[]; optional: boolean }
-  >;
+  dynamic_outputs: Record<string, TypeMetadata>;
   dynamic_properties: Record<string, unknown>;
 }
 
+const ANY_TYPE: TypeMetadata = { type: "any", type_args: [], optional: false };
+
 /**
  * Derive the `dynamic_outputs` / `dynamic_properties` node-data updates from the
- * `code` property of a Code node. Inferred inputs preserve any existing value;
- * inputs/outputs no longer referenced by the code are dropped.
+ * `code` property of a Code node.
+ *
+ * Outputs follow the last `return {…}`: inferred keys replace the map. When
+ * the body does not parse or has no object return, existing outputs stay.
+ *
+ * Inputs are a union: every existing slot is kept (the Add-input button and
+ * dropped connections write them before the body names them), and every
+ * newly referenced `inputs.name` is added. A keystroke of incomplete
+ * JavaScript must not wipe a slot the user just created.
  *
  * Shared by the inline property editor and the Monaco-based CodeBody so both
  * keep the node's handles in sync with the code.
  */
 export function deriveCodeIOUpdates(
   code: string,
-  existingDynProps: Record<string, unknown> = {}
+  existingDynProps: Record<string, unknown> = {},
+  existingDynOutputs: CodeIOUpdates["dynamic_outputs"] = {}
 ): CodeIOUpdates {
   const outputKeys = inferOutputKeysFromCode(code);
   const inputKeys = inferInputKeysFromCode(code);
@@ -178,15 +247,18 @@ export function deriveCodeIOUpdates(
   const dynamic_outputs: CodeIOUpdates["dynamic_outputs"] = {};
   if (outputKeys) {
     for (const key of outputKeys) {
-      dynamic_outputs[key] = { type: "any", type_args: [], optional: false };
+      dynamic_outputs[key] = { ...ANY_TYPE };
     }
+  } else {
+    Object.assign(dynamic_outputs, existingDynOutputs);
   }
 
-  const dynamic_properties: Record<string, unknown> = {};
+  const dynamic_properties: Record<string, unknown> = { ...existingDynProps };
   if (inputKeys) {
     for (const key of inputKeys) {
-      dynamic_properties[key] =
-        key in existingDynProps ? existingDynProps[key] : "";
+      if (!(key in dynamic_properties)) {
+        dynamic_properties[key] = "";
+      }
     }
   }
 

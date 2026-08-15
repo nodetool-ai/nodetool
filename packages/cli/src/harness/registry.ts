@@ -146,7 +146,6 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool app build <prompt|spec.json> -p <provider> -m <model>",
     kind: "execution",
     capabilities: ["json", "watch", "supervise", "gated"],
-    agentTool: "build_app",
     docs: "AGENTS.md § nodetool app build",
     selfcheck: {
       // The suite's two deterministic cases: scripted author, real kernel,

@@ -34,6 +34,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "100%",
+      minHeight: 0,
       backgroundColor: theme.vars.palette.background.default
     },
     ".manager-page-hero": {

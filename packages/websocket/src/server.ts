@@ -122,6 +122,7 @@ import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
+import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
@@ -134,11 +135,6 @@ import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
-import {
-  agentSocketRoute,
-  getAgentRuntime,
-  setLlmAgentNodeRegistry
-} from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -420,7 +416,6 @@ const registry = await bootstrapNodeRegistry({
   log
 });
 log.info(`Node registry ready [${startupMs()}]`);
-setLlmAgentNodeRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
@@ -966,6 +961,7 @@ if (_resolvedExamplesDir) {
 // ---------------------------------------------------------------------------
 
 const sdkLiveRunnerRegistry = new SdkLiveRunnerRegistry();
+const frontendRendererRegistry = new FrontendRendererRegistry();
 const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
   getActiveWorker: () => workerManager.getActiveWorker()
 });
@@ -1187,6 +1183,7 @@ await app.register(websocketPlugin, {
   pythonBridge,
   apiOptions,
   sdkLiveRunnerRegistry,
+  frontendRendererRegistry,
   workerManager,
   getPythonBridgeReady,
   ensurePythonBridge: async () => {
@@ -1341,6 +1338,7 @@ if (!isProduction) {
       metadataRoots,
       registry,
       examplesDir: apiOptions.examplesDir,
+      frontendRendererRegistry,
       agentToolsScope: { userId: "1", source: "local-dev-http" }
     });
     if (!response) {
@@ -1356,8 +1354,6 @@ if (!isProduction) {
     reply.send(payload);
   });
 }
-
-await app.register(agentSocketRoute);
 
 log.info(`Routes registered [${startupMs()}]`);
 
@@ -1513,11 +1509,6 @@ const stopReaper = startReaper(
 async function shutdown(signal: string): Promise<void> {
   log.info(`${signal} received — shutting down`);
   log.info("Closing Python bridge");
-  try {
-    getAgentRuntime().closeAllSessions();
-  } catch {
-    // best-effort cleanup
-  }
   stopReaper();
   stopJobCancelPoller();
   try {

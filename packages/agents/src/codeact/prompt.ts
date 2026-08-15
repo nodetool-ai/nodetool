@@ -31,6 +31,16 @@ const BOUNDED_FANOUT_NODETOOL_BATCH = `Use
   per-action tool budget; it keeps at most N in flight and settles each entry
   as \`{ok, value | error}\` instead of rejecting.`;
 
+/**
+ * The catalog renders each tool as the call an action writes. Read as a tool
+ * list, `tools.<name>` becomes a tool name a model emits at the top level, and
+ * the provider rejects the turn.
+ */
+export const TOOL_CATALOG_GUIDANCE =
+  "Each line is code you write inside an `execute_code` action, not the name " +
+  "of a tool. Nothing here is callable as a top-level tool call — a turn that " +
+  "names one fails.";
+
 const actionContractBase = (
   boundedFanout: string
 ) => `# CodeAct Execution
@@ -46,10 +56,12 @@ Rules:
   the only thing the user sees while your code runs.
 - Chain the WHOLE pipeline into one action: call several tools, loop over
   items, branch on intermediate results, retry inside try/catch, and
-  post-process in the same program. An action that makes one tool call and
-  returns to look at it is JSON tool-calling with extra steps — reach for a
-  new action only when you genuinely cannot decide the next call without
-  seeing an observation first (and then finish the rest in that next action).
+  post-process in the same program. Assign each expensive intermediate to
+  \`state\` as you go, so a later throw does not discard it. An action that
+  makes one tool call and returns to look at it is JSON tool-calling with
+  extra steps — reach for a new action only when you genuinely cannot
+  decide the next call without seeing an observation first (and then
+  finish the rest in that next action).
 - Multi-round protocols (poll a job, answer run escalations, retry a flaky
   call) are ONE action: write the loop, not one action per round.
 - Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
@@ -59,9 +71,15 @@ Rules:
   ten independent lookups take one round trip, not ten. ${boundedFanout}
   \`Promise.allSettled\` when some are allowed to fail. Sequence only what
   genuinely depends on a previous result.
-- \`state\` is a plain object that persists across your actions in this step.
-  Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
-  them next turn — never re-fetch what you already have.
+- \`state\` is a plain object that persists across your actions in this step,
+  including after an action throws. \`return\` is the observation only — it
+  does not persist. Assign each expensive result to \`state\` immediately
+  (\`state.video = state.video ?? await nodetool.media.generateVideo(prompt, model)\`),
+  then continue. The next action must reuse what \`state\` already holds —
+  never re-run generate, speak, or fetch. Write a large literal into \`state\`
+  in the action that builds it. If that action fails, patch the copy in
+  \`state\` (\`state.doc.type = "screenplay"\`) and retry — do not emit the
+  literal a second time.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
   fields you need); large payloads belong in \`state\` or agent memory — not in
   the transcript.
@@ -93,11 +111,10 @@ function actionContractChat(
   ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
   with no context and a zero-request fetch limit.
 - The \`nodetool\` object model covers what those bridges did, past the gate:
-  \`nodetool.media.bytes(ref)\` for the bytes behind an image you generated
-  (pass the generation result or its \`asset_uri\`), \`nodetool.assets.read\` /
-  \`save\` for the library, \`nodetool.web.fetch\` / \`browse\` for the network.
-  \`image.*\` and \`canvas\` need no context, so decode, resize, composite and
-  encode in the same action you read the bytes in.
+  feed a generation result (or its \`asset_uri\`) straight into \`image.*\`,
+  then \`nodetool.media.toImage(handle)\` to save. The guest holds handles,
+  never encoded bytes. \`nodetool.assets.read\` / \`save\` for the library,
+  \`nodetool.web.fetch\` / \`browse\` for the network.
 - When you need the user's decision, stop writing code and ask in a plain
   assistant message.`;
 }
@@ -332,7 +349,9 @@ export function buildCodeActSystemPrompt(
       );
     }
   }
-  sections.push(`# Tools\n${renderToolCatalog(options.tools)}`);
+  sections.push(
+    `# Tools\n${TOOL_CATALOG_GUIDANCE}\n\n${renderToolCatalog(options.tools)}`
+  );
   const deferred = options.deferredTools ?? [];
   if (deferred.length > 0) {
     sections.push(

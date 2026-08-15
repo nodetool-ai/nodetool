@@ -28,7 +28,13 @@ function metadata(
 const metadataByType: Record<string, NodeMetadata> = {
   "test.Source": metadata("test.Source", {}, { output: "str" }),
   "test.Sink": metadata("test.Sink", { value: "str" }, {}),
-  "test.NumberSink": metadata("test.NumberSink", { value: "float" }, {})
+  "test.NumberSink": metadata("test.NumberSink", { value: "float" }, {}),
+  "nodetool.code.Code": {
+    ...metadata("nodetool.code.Code", { code: "str" }, {}),
+    properties: [
+      { name: "code", required: false, type: { type: "str", type_args: [] } }
+    ]
+  }
 };
 
 const options = {
@@ -302,5 +308,59 @@ describe("applyWorkflowDocumentTool", () => {
         })
       })
     ]);
+  });
+
+  it("stamps inferred Code handles when adding a node", () => {
+    const applied = applyWorkflowDocumentTool(
+      emptyGraph(),
+      "ui_add_node",
+      {
+        id: "code",
+        type: "nodetool.code.Code",
+        position: { x: 0, y: 0 },
+        properties: { code: "return { sum: inputs.a + inputs.b };" }
+      },
+      options
+    );
+
+    expect(applied.graph.nodes[0].dynamic_properties).toEqual({
+      a: "",
+      b: ""
+    });
+    expect(applied.graph.nodes[0].dynamic_outputs).toEqual({
+      sum: { type: "any" }
+    });
+  });
+
+  it("connects to a Code handle the body names even when it is not stored yet", () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "source", type: "test.Source", data: {} },
+        {
+          id: "code",
+          type: "nodetool.code.Code",
+          data: { code: "return { out: inputs.text };" },
+          dynamic_properties: {},
+          dynamic_outputs: {}
+        }
+      ],
+      edges: []
+    };
+
+    const applied = applyWorkflowDocumentTool(
+      graph,
+      "ui_connect_nodes",
+      {
+        source_node_id: "source",
+        source_handle: "output",
+        target_node_id: "code",
+        target_handle: "text"
+      },
+      options
+    );
+
+    expect(applied.changed).toBe(true);
+    expect(applied.graph.edges).toHaveLength(1);
+    expect(applied.graph.edges[0].targetHandle).toBe("text");
   });
 });

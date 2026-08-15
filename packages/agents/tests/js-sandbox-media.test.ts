@@ -36,6 +36,19 @@ const SOLID = (
   const solid = await __c.toBytes();
 `;
 
+/** The same drawing, kept host-side: `toImage` answers with a handle. */
+const SOLID_HANDLE = (
+  width: number,
+  height: number,
+  color: string
+): string => `
+  const __ch = createCanvas(${width}, ${height});
+  const __gh = __ch.getContext("2d");
+  __gh.fillStyle = ${JSON.stringify(color)};
+  __gh.fillRect(0, 0, ${width}, ${height});
+  const solid = await __ch.toImage();
+`;
+
 /** RGBA at (x, y) of a decoded image, as a plain array. */
 const PIXEL = `
   const pixelAt = (decoded, x, y) => {
@@ -345,21 +358,22 @@ describe("image transforms", () => {
       let error = null;
       try { await image.convert(solid, { format: "tiff" }); }
       catch (e) { error = e.message; }
-      return { webp: Array.from(webp.slice(0, 4)), error };
+      // An op returns a handle; reading the encoded bytes is the explicit ask.
+      const raw = await image.bytes(webp);
+      return { webp: Array.from(raw.slice(0, 4)), mime: webp.mimeType, error };
     `)) as { webp: number[]; error: string };
 
     expect(String.fromCharCode(...result.webp)).toBe("RIFF");
     expect(result.error).toMatch(/format must be one of/);
   });
 
-  it("round-trips raw pixels through decode and encode", async () => {
+  it("decodes raw pixels out of an image", async () => {
+    // `image.encode` is gone, so there is no pixels-in path to round-trip
+    // against: `decode` is one-way now, for a body that reads pixels itself.
     const result = (await run(`
       ${PIXEL}
-      const decoded = await image.decode(await (async () => {
-        ${SOLID(6, 6, "#00ff00")}
-        return solid;
-      })());
-      const again = await image.decode(await image.encode(decoded));
+      ${SOLID(6, 6, "#00ff00")}
+      const again = await image.decode(solid);
       return { size: [again.width, again.height], pixel: pixelAt(again, 3, 3) };
     `)) as { size: number[]; pixel: number[] };
 
@@ -398,5 +412,310 @@ describe("byte coercion and format sniffing", () => {
       sniffImageFormat(new TextEncoder().encode("RIFF????WEBPVP8 "))
     ).toBe("webp");
     expect(sniffImageFormat(new Uint8Array([1, 2, 3, 4]))).toBe("unknown");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Media handles
+//
+// `image.*` trades in handles so an intermediate image never enters the guest.
+// Before this, a chain moved the whole payload across the boundary on every
+// hop — base64 out, decode back in — and a large enough run aborted the
+// runtime at teardown, discarding an answer it had already computed.
+// ---------------------------------------------------------------------------
+
+describe("image handles", () => {
+  it("returns a handle, not bytes, and reports the image without a round trip", async () => {
+    const out = (await run(`
+      ${SOLID_HANDLE(32, 16, "#3366ff")}
+      return solid;
+    `)) as Record<string, unknown>;
+
+    expect(out.uri).toMatch(/^sandbox:\/\/media\//);
+    expect(out.type).toBe("image");
+    expect(out.mimeType).toBe("image/png");
+    expect(out.width).toBe(32);
+    expect(out.height).toBe(16);
+    expect(typeof out.byteLength).toBe("number");
+    // The bytes themselves are host-side; the guest holds a small object.
+    expect(out["0"]).toBeUndefined();
+  });
+
+  it("chains handle → handle without the bytes crossing", async () => {
+    const out = (await run(`
+      ${SOLID(64, 64, "#ff0000")}
+      let img = solid;
+      for (let i = 0; i < 6; i++) {
+        img = await image.resize(img, { width: 48, height: 48, fit: "cover" });
+        img = await image.adjust(img, { brightness: 1.01 });
+      }
+      const info = await image.info(img);
+      return { uri: img.uri, w: info.width, h: info.height };
+    `)) as { uri: string; w: number; h: number };
+
+    expect(out.uri).toMatch(/^sandbox:\/\/media\//);
+    expect(out.w).toBe(48);
+    expect(out.h).toBe(48);
+  });
+
+  it("accepts a media ref as input, so a generated image never enters the guest", async () => {
+    const png = (await run(`${SOLID(8, 8, "#00ff00")} return await image.bytes(solid);`)) as Uint8Array;
+    const ref = {
+      type: "image",
+      uri: `data:image/png;base64,${Buffer.from(png).toString("base64")}`
+    };
+
+    const result = await runInSandbox({
+      // `source` is the shape a generation result has. It goes straight into
+      // an op — no media.bytes, no fromBase64.
+      code: `const out = await image.resize(source, { width: 4, height: 4, fit: "cover" });
+             return { uri: out.uri, w: out.width, h: out.height };`,
+      context: {} as never,
+      timeoutMs: 60_000,
+      globals: { source: ref }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.result).toMatchObject({ w: 4, h: 4 });
+  });
+
+  it("names how to resolve a generation result when this run has no loader", async () => {
+    const result = await runInSandbox({
+      code: `return await image.adjust(source, { grayscale: true });`,
+      timeoutMs: 60_000,
+      globals: {
+        source: {
+          type: "image",
+          asset_id: "img1",
+          asset_uri: "asset://img1.png",
+          uri: "file:///var/assets/img1.png"
+        }
+      }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/cannot resolve asset:\/\/img1\.png/);
+    expect(result.error).toMatch(/generation result/);
+  });
+
+  it("loads a generation result through resolveMediaRef and accepts grayscale: true", async () => {
+    const png = (await run(`${SOLID(8, 8, "#ff0000")} return await image.bytes(solid);`)) as Uint8Array;
+    const seen: string[] = [];
+
+    const result = await runInSandbox({
+      code: `
+        const grey = await image.adjust(source, { grayscale: true });
+        const decoded = await image.decode(grey);
+        const i = 0;
+        return [decoded.pixels[i], decoded.pixels[i + 1], decoded.pixels[i + 2]];
+      `,
+      timeoutMs: 60_000,
+      globals: {
+        source: {
+          type: "image",
+          asset_id: "img1",
+          asset_uri: "asset://img1.png",
+          uri: "file:///secret/img1.png"
+        }
+      },
+      resolveMediaRef: async (_where, ref) => {
+        seen.push(String((ref as { uri?: string }).uri));
+        return png;
+      }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(seen).toEqual(["asset://img1.png"]);
+    const rgb = result.result as number[];
+    expect(rgb[0]).toBe(rgb[1]);
+    expect(rgb[1]).toBe(rgb[2]);
+  });
+
+  it("hands over real bytes only when asked", async () => {
+    const bytes = (await run(`
+      ${SOLID(8, 8, "#ffffff")}
+      return await image.bytes(solid);
+    `)) as Uint8Array;
+
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(sniffImageFormat(bytes)).toBe("png");
+  });
+
+  it("names the run's media budget instead of aborting the runtime", async () => {
+    // The aggregate nothing used to bound: per-call caps existed, but fifty
+    // legal calls could still kill the run with an Emscripten assertion.
+    const result = await runInSandbox({
+      code: `
+        for (let i = 0; i < 200; i++) {
+          await image.blank(2048, 2048, { color: "rgb(" + (i % 256) + ",40,90)" });
+        }
+        return "no limit hit";
+      `,
+      context: {} as never,
+      timeoutMs: 300_000,
+      limits: { runMediaBytes: 1024 * 1024 }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/limit for one run/);
+    expect(result.error).not.toMatch(/gc_obj_list|Assertion failed/);
+  }, 300_000);
+
+  it("survives inside one action but not across two, as an action's own sandbox implies", async () => {
+    // The failed chat thread carried generated images between `execute_code`
+    // actions in `state`. Each action is its own runInSandbox, so a handle
+    // parked there is dead on arrival — the message has to say so, and say
+    // what to do instead.
+    const state: Record<string, unknown> = {};
+    const first = await runInSandbox({
+      code: `${SOLID_HANDLE(8, 8, "#abcdef")} state.img = solid; return solid.uri;`,
+      context: {} as never,
+      timeoutMs: 60_000,
+      globals: { state }
+    });
+    expect(first.success).toBe(true);
+    expect(String(first.result)).toMatch(/^sandbox:\/\/media\//);
+
+    const second = await runInSandbox({
+      code: `return await image.info(state.img);`,
+      context: {} as never,
+      timeoutMs: 60_000,
+      globals: { state }
+    });
+    expect(second.success).toBe(false);
+    expect(second.error).toMatch(/only lives for the action that produced it/);
+    expect(second.error).toMatch(/save it as an asset/);
+  });
+
+  it("says so when a handle outlives its run", async () => {
+    const handle = (await run(
+      `${SOLID_HANDLE(8, 8, "#123456")} return solid;`
+    )) as Record<string, unknown>;
+
+    const result = await runInSandbox({
+      // Rebuilt inside the guest: a handle names bytes its own run holds, so
+      // one from an earlier run resolves to nothing here.
+      code: `return await image.info(${JSON.stringify(handle)});`,
+      context: {} as never,
+      timeoutMs: 60_000
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/only lives for the action that produced it/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The ops that replaced `image.encode`
+//
+// `encode` took `width*height*4` bytes from the guest, and every observed use
+// was a backdrop: 6 MB of zeros shipped across the boundary to make a 6 KB PNG,
+// the largest guest→host payload left after handles. These do the same jobs
+// host-side, and answer the questions decoding used to be needed for.
+// ---------------------------------------------------------------------------
+
+describe("image.blank / pad / grid / stats", () => {
+  it("makes a surface with nothing crossing the boundary", async () => {
+    const out = (await run(`
+      const t = await image.blank(320, 200);
+      const solid = await image.blank(320, 200, { color: "#204080" });
+      const ts = await image.stats(t);
+      const ss = await image.stats(solid);
+      return {
+        dims: [t.width, t.height],
+        transparentAlpha: ts.channels.a.max,
+        solidOpaque: ss.opaque,
+        solidBlue: Math.round(ss.channels.b.mean)
+      };
+    `)) as Record<string, unknown>;
+
+    expect(out.dims).toEqual([320, 200]);
+    expect(out.transparentAlpha).toBe(0);
+    expect(out.solidOpaque).toBe(true);
+    expect(out.solidBlue).toBe(0x80);
+  });
+
+  it("pads without scaling, keeping the image where it was put", async () => {
+    const out = (await run(`
+      ${PIXEL}
+      ${SOLID(10, 10, "#ff0000")}
+      const padded = await image.pad(solid, { all: 5, color: "#0000ff" });
+      const d = await image.decode(padded);
+      return {
+        dims: [padded.width, padded.height],
+        margin: pixelAt(d, 1, 1),
+        centre: pixelAt(d, 10, 10)
+      };
+    `)) as { dims: number[]; margin: number[]; centre: number[] };
+
+    expect(out.dims).toEqual([20, 20]);
+    expect(out.margin).toEqual([0, 0, 255, 255]);
+    expect(out.centre).toEqual([255, 0, 0, 255]);
+  });
+
+  it("takes per-side padding, not just a uniform margin", async () => {
+    const out = (await run(`
+      ${SOLID(10, 10, "#ff0000")}
+      const p = await image.pad(solid, { left: 4, top: 2 });
+      return [p.width, p.height];
+    `)) as number[];
+
+    expect(out).toEqual([14, 12]);
+  });
+
+  it("combines images into a grid — the task that started all this", async () => {
+    const out = (await run(`
+      ${PIXEL}
+      const a = await image.blank(20, 20, { color: "#ff0000" });
+      const b = await image.blank(20, 20, { color: "#00ff00" });
+      const row = await image.grid([a, b]);
+      const wrapped = await image.grid([a, b, a, b], { columns: 2 });
+      const d = await image.decode(row);
+      return {
+        row: [row.width, row.height],
+        wrapped: [wrapped.width, wrapped.height],
+        left: pixelAt(d, 5, 10),
+        right: pixelAt(d, 25, 10)
+      };
+    `)) as Record<string, number[]>;
+
+    // One row by default; columns wraps it.
+    expect(out.row).toEqual([40, 20]);
+    expect(out.wrapped).toEqual([40, 40]);
+    expect(out.left).toEqual([255, 0, 0, 255]);
+    expect(out.right).toEqual([0, 255, 0, 255]);
+  });
+
+  it("leaves a gap between cells when asked", async () => {
+    const out = (await run(`
+      const a = await image.blank(10, 10, { color: "#ff0000" });
+      const g = await image.grid([a, a, a], { gap: 4 });
+      return [g.width, g.height];
+    `)) as number[];
+
+    expect(out).toEqual([38, 10]);
+  });
+
+  it("reports what an image looks like without moving it", async () => {
+    const out = (await run(`
+      const dark = await image.blank(64, 64, { color: "#000000" });
+      const light = await image.blank(64, 64, { color: "#ffffff" });
+      const d = await image.stats(dark);
+      const l = await image.stats(light);
+      return { darkL: d.luminance, lightL: l.luminance, pixels: d.pixels };
+    `)) as { darkL: number; lightL: number; pixels: number };
+
+    expect(out.darkL).toBeCloseTo(0, 1);
+    expect(out.lightL).toBeCloseTo(255, 1);
+    expect(out.pixels).toBe(64 * 64);
+  });
+
+  it("has no image.encode left to ship pixels through", async () => {
+    const result = await runInSandbox({
+      code: `return typeof image.encode;`,
+      context: {} as never,
+      timeoutMs: 60_000
+    });
+    expect(result.result).toBe("undefined");
   });
 });

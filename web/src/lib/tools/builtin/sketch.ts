@@ -384,6 +384,396 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_sketch_fill",
+  description:
+    "Flood fill a connected region on a raster layer starting from canvas pixel coordinates (x, y) with color and tolerance.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .optional()
+      .describe("Layer to fill; defaults to the active layer."),
+    x: z.number().describe("Start X coordinate in canvas pixels."),
+    y: z.number().describe("Start Y coordinate in canvas pixels."),
+    color: z
+      .string()
+      .optional()
+      .describe("Fill color (hex/rgba); defaults to the foreground color."),
+    tolerance: z
+      .number()
+      .min(0)
+      .max(255)
+      .optional()
+      .describe("Color matching tolerance (0-255, default 16)."),
+    contiguous: z
+      .boolean()
+      .optional()
+      .describe("True to fill connected pixels only (default true).")
+  }),
+  async execute({ sketch_id, target, x, y, color, tolerance, contiguous }) {
+    const result = await getSketchAgentHandler(sketch_id).fill({
+      target,
+      x,
+      y,
+      color,
+      tolerance,
+      contiguous
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_gradient",
+  description:
+    "Draw a linear or radial gradient across a raster layer from start to end points.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .optional()
+      .describe("Layer to paint gradient on; defaults to active layer."),
+    type: z.enum(["linear", "radial"]).describe("Gradient style."),
+    start: z
+      .object({ x: z.number(), y: z.number() })
+      .describe("Start point in canvas pixels."),
+    end: z
+      .object({ x: z.number(), y: z.number() })
+      .describe("End point in canvas pixels."),
+    stops: z
+      .array(
+        z.object({
+          offset: z.number().min(0).max(1),
+          color: z.string()
+        })
+      )
+      .optional()
+      .describe(
+        "Color stops (offset 0..1, color hex/rgba). Defaults to foreground -> background."
+      )
+  }),
+  async execute({ sketch_id, target, type, start, end, stops }) {
+    const result = await getSketchAgentHandler(sketch_id).gradient({
+      target,
+      type,
+      start,
+      end,
+      stops
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_draw_shape",
+  description:
+    "Draw geometric shapes (rect, ellipse, line, arrow, polygon, star) with optional fill, stroke, and corner radius.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .optional()
+      .describe("Layer to draw shape on; defaults to active layer."),
+    shape: z
+      .enum(["rect", "ellipse", "line", "arrow", "polygon", "star"])
+      .describe("Type of shape."),
+    x: z.number().describe("Origin / start X coordinate in canvas pixels."),
+    y: z.number().describe("Origin / start Y coordinate in canvas pixels."),
+    width: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Width in canvas pixels (for rect, ellipse, polygon, star)."),
+    height: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Height in canvas pixels (for rect, ellipse, polygon, star)."),
+    fill: z
+      .string()
+      .optional()
+      .describe("Fill color (hex/rgba); omit for transparent fill."),
+    stroke: z.string().optional().describe("Stroke color (hex/rgba)."),
+    strokeWidth: z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Stroke width in pixels (default 1)."),
+    cornerRadius: z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Corner radius for rounded rectangles."),
+    points: z
+      .number()
+      .int()
+      .min(3)
+      .optional()
+      .describe("Number of vertices for polygons and stars (e.g. 5)."),
+    innerRadius: z
+      .number()
+      .optional()
+      .describe("Inner radius for star shapes.")
+  }),
+  async execute({
+    sketch_id,
+    target,
+    shape,
+    x,
+    y,
+    width,
+    height,
+    fill,
+    stroke,
+    strokeWidth,
+    cornerRadius,
+    points,
+    innerRadius
+  }) {
+    const result = await getSketchAgentHandler(sketch_id).drawShape({
+      target,
+      shape,
+      x,
+      y,
+      width,
+      height,
+      fill,
+      stroke,
+      strokeWidth,
+      cornerRadius,
+      points,
+      innerRadius
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_set_selection_shape",
+  description:
+    "Define or modify a pixel selection mask using geometric shapes (rect, ellipse) or polylines (lasso, polygon).",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    mode: z
+      .enum(["replace", "add", "subtract", "intersect"])
+      .optional()
+      .describe("Selection combination mode (default replace)."),
+    shape: z.enum(["rect", "ellipse", "lasso", "polygon"]),
+    bounds: z
+      .object({
+        x: z.number(),
+        y: z.number(),
+        width: z.number(),
+        height: z.number()
+      })
+      .optional()
+      .describe("Bounding box for rect/ellipse shapes."),
+    points: z
+      .array(z.object({ x: z.number(), y: z.number() }))
+      .optional()
+      .describe("Polyline vertices for lasso/polygon shapes."),
+    feather: z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Feather radius in pixels (default 0).")
+  }),
+  async execute({ sketch_id, mode, shape, bounds, points, feather }) {
+    const result = getSketchAgentHandler(sketch_id).setSelectionShape({
+      mode,
+      shape,
+      bounds,
+      points,
+      feather
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_transform",
+  description:
+    "Translate, scale, rotate, or flip a layer's raster pixels or active selection.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .optional()
+      .describe("Layer to transform; defaults to active layer."),
+    dx: z
+      .number()
+      .optional()
+      .describe("Horizontal translation in pixels (default 0)."),
+    dy: z
+      .number()
+      .optional()
+      .describe("Vertical translation in pixels (default 0)."),
+    scaleX: z
+      .number()
+      .optional()
+      .describe("Horizontal scale factor (default 1)."),
+    scaleY: z
+      .number()
+      .optional()
+      .describe("Vertical scale factor (default 1)."),
+    rotation: z
+      .number()
+      .optional()
+      .describe("Rotation in degrees (clockwise, default 0)."),
+    flipH: z
+      .boolean()
+      .optional()
+      .describe("Flip horizontally (default false)."),
+    flipV: z
+      .boolean()
+      .optional()
+      .describe("Flip vertically (default false).")
+  }),
+  async execute({
+    sketch_id,
+    target,
+    dx,
+    dy,
+    scaleX,
+    scaleY,
+    rotation,
+    flipH,
+    flipV
+  }) {
+    const result = await getSketchAgentHandler(sketch_id).transform({
+      target,
+      dx,
+      dy,
+      scaleX,
+      scaleY,
+      rotation,
+      flipH,
+      flipV
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_adjust_layer",
+  description:
+    "Apply tone and color adjustments (brightness, contrast, exposure, saturation, hue, blur) to a layer.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .optional()
+      .describe("Layer to adjust; defaults to active layer."),
+    brightness: z
+      .number()
+      .min(-1)
+      .max(1)
+      .optional()
+      .describe("Brightness delta in [-1, 1]."),
+    contrast: z
+      .number()
+      .min(-1)
+      .max(1)
+      .optional()
+      .describe("Contrast delta in [-1, 1]."),
+    exposure: z
+      .number()
+      .min(-2)
+      .max(2)
+      .optional()
+      .describe("Exposure EV adjustment in [-2, 2]."),
+    saturation: z
+      .number()
+      .min(-1)
+      .max(1)
+      .optional()
+      .describe("Saturation delta in [-1, 1]."),
+    hue: z
+      .number()
+      .min(-180)
+      .max(180)
+      .optional()
+      .describe("Hue rotation in degrees [-180, 180]."),
+    blur: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe("Gaussian blur radius in pixels (>= 0).")
+  }),
+  async execute({
+    sketch_id,
+    target,
+    brightness,
+    contrast,
+    exposure,
+    saturation,
+    hue,
+    blur
+  }) {
+    const result = await getSketchAgentHandler(sketch_id).adjustLayer({
+      target,
+      brightness,
+      contrast,
+      exposure,
+      saturation,
+      hue,
+      blur
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_crop",
+  description:
+    "Crop the document canvas or a specific layer to a defined bounding box (x, y, width, height).",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .nullable()
+      .optional()
+      .describe(
+        "Layer to crop; omit or pass null to crop the entire document canvas."
+      ),
+    x: z.number().describe("Crop origin X in canvas pixels."),
+    y: z.number().describe("Crop origin Y in canvas pixels."),
+    width: z.number().positive().describe("Crop width in pixels."),
+    height: z.number().positive().describe("Crop height in pixels.")
+  }),
+  async execute({ sketch_id, target, x, y, width, height }) {
+    const result = await getSketchAgentHandler(sketch_id).crop({
+      target,
+      x,
+      y,
+      width,
+      height
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_pick_color",
+  description:
+    "Sample the pixel color at (x, y) on the composite canvas or on a specific layer (eyedropper).",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    target: targetParam
+      .nullable()
+      .optional()
+      .describe(
+        "Layer to sample; omit or pass null for the flattened composite."
+      ),
+    x: z.number().describe("Sample X in canvas pixels."),
+    y: z.number().describe("Sample Y in canvas pixels.")
+  }),
+  async execute({ sketch_id, target, x, y }) {
+    const result = await getSketchAgentHandler(sketch_id).pickColor({
+      target,
+      x,
+      y
+    });
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_sketch_get_layer_image",
   description:
     "Inspect the canvas as an image. Omit `target` (or pass null) for the flattened composite of all visible layers; pass a layer id/name to read that single layer's pixels. Returns the dimensions plus an image you can visually inspect, so you can see the current artwork before editing it.",

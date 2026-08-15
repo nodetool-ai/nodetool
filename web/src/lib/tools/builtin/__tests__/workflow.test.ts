@@ -1,4 +1,4 @@
-import { resolveWorkflowId } from "../workflow";
+import { noNodeStoreError, resolveWorkflowId } from "../workflow";
 import type { FrontendToolState } from "../../frontendTools";
 
 function createMockState(
@@ -69,5 +69,31 @@ describe("resolveWorkflowId", () => {
     const state = createMockState({ currentWorkflowId: "current-wf" });
     resolveWorkflowId(state);
     expect(state.setCurrentWorkflowId).not.toHaveBeenCalled();
+  });
+});
+
+describe("noNodeStoreError", () => {
+  it("names both ways to get the edit through", () => {
+    const state = createMockState();
+    const message = noNodeStoreError(state, "wf-9").message;
+    expect(message).toContain("No node store for workflow wf-9");
+    expect(message).toContain("ui_open_workflow");
+    expect(message).toContain("create_workflow");
+  });
+
+  it("lists the workflows that do have an editor open", () => {
+    const state = createMockState({
+      getOpenWorkflowIds: () => ["wf-1", "wf-2"]
+    });
+    expect(noNodeStoreError(state, "wf-9").message).toContain(
+      "Open workflows: wf-1, wf-2"
+    );
+  });
+
+  it("says so when nothing is open", () => {
+    const state = createMockState({ getOpenWorkflowIds: () => [] });
+    expect(noNodeStoreError(state, "wf-9").message).toContain(
+      "No workflow editors are open"
+    );
   });
 });

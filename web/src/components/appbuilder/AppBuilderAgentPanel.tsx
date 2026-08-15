@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { BuildUiContextOptions } from "../../lib/chat/uiContext";
+import { getPuckAgentHandler } from "./puck/puckAgentBridge";
 
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useChatViewThread } from "../../hooks/chat/useChatViewThread";
 import { Box, Caption, FlexColumn, Text } from "../ui_primitives";
 
 type ChatViewStatus = React.ComponentProps<typeof ChatView>["status"];
@@ -27,6 +29,8 @@ Sequence when asked to build or rebuild an app:
 
 1. Read the workflow with \`get_workflow\` (the active workflow id): its Input
    and Output nodes, their types, and any min/max/options. That is the contract.
+   When the app binds no workflow yet there is no active id: author one with
+   \`create_workflow\` first, then bind it in step 3.
 2. \`ui_app_get_snapshot\` to see what's already placed, and
    \`ui_app_list_component_types\` for valid widget types and props.
 3. Declare the operations with \`ui_app_add_operation\` (one per workflow the app
@@ -56,16 +60,21 @@ Verify — don't assume:
   Script a specific flow with \`interact\` (set / click / change / run) when the
   natural run trigger isn't what you want to test.
 
-If the user asks for a whole new app and nothing is open to edit, the
-\`build_app\` tool drafts and verifies a complete app as a bundle to import; the
-\`ui_app_*\` tools are for refining the app in this editor. Build incrementally;
-keep labels concise.`;
+A whole new app is the same sequence from an empty document: author the
+workflow with \`create_workflow\`, declare the operation, place the widgets,
+grade it with \`ui_app_debug\`. There is no one-shot build tool — you build the
+app here, a step at a time, and the harness names what is still wrong. Build
+incrementally; keep labels concise.`;
 
 interface AppBuilderAgentPanelProps {
   /** The app being edited — the id the `ui_app_*` tools take. */
   applicationId: string;
-  /** Workflow the `ui_*` graph tools and the chat thread target. */
-  workflowId: string;
+  /**
+   * Workflow the `ui_*` graph tools and the chat thread target. Absent until
+   * the app binds an operation — the agent still edits the document, so the
+   * panel opens on a plain thread instead.
+   */
+  workflowId?: string;
 }
 
 /**
@@ -78,59 +87,47 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
   applicationId,
   workflowId
 }) => {
-  const {
-    status,
-    progress,
-    statusMessage,
-    currentThreadId,
-    runningToolCallId,
-    runningToolMessage,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentLogUpdate,
-    selectedModel
-  } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      progress: state.progress,
-      statusMessage: state.statusMessage,
-      currentThreadId: state.currentThreadId,
-      runningToolCallId: state.currentRunningToolCallId,
-      runningToolMessage: state.currentToolMessage,
-      currentPlanningUpdate: state.currentPlanningUpdate,
-      currentTaskUpdate: state.currentTaskUpdate,
-      currentLogUpdate: state.currentLogUpdate,
-      selectedModel: state.selectedModel
-    }))
-  );
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
 
   const {
     connect,
     openWorkflowThread,
     newWorkflowThread,
-    sendMessage,
-    stopGeneration,
-    setSelectedModel,
-    getCurrentMessagesSync
+    createNewThread,
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       connect: state.connect,
       openWorkflowThread: state.openWorkflowThread,
       newWorkflowThread: state.newWorkflowThread,
-      sendMessage: state.sendMessage,
-      stopGeneration: state.stopGeneration,
-      setSelectedModel: state.setSelectedModel,
-      getCurrentMessagesSync: state.getCurrentMessagesSync
+      createNewThread: state.createNewThread,
+      setSelectedModel: state.setSelectedModel
     }))
   );
+  const {
+    threadId,
+    messages,
+    runtime,
+    selectThread,
+    sendMessage,
+    stopGeneration
+  } = useChatViewThread();
 
   // Connect and bind a thread to this workflow so the agent's runs and graph
-  // edits target it.
+  // edits target it. Without a workflow the panel opens one plain thread —
+  // guarded by a ref so a remount does not pile up empty threads.
+  const plainThreadStarted = useRef(false);
   useEffect(() => {
     let cancelled = false;
     connect()
       .then(() => {
-        if (!cancelled) return openWorkflowThread(workflowId);
+        if (cancelled) return undefined;
+        if (workflowId) {
+          return openWorkflowThread(workflowId).then(selectThread);
+        }
+        if (plainThreadStarted.current) return undefined;
+        plainThreadStarted.current = true;
+        return createNewThread().then(selectThread);
       })
       .catch((err) => {
         console.error("AppBuilder agent: failed to connect", err);
@@ -138,22 +135,41 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [connect, openWorkflowThread, workflowId]);
+  }, [connect, createNewThread, openWorkflowThread, selectThread, workflowId]);
 
   const handleNewChat = useCallback(async () => {
-    await newWorkflowThread(workflowId);
-  }, [newWorkflowThread, workflowId]);
+    if (workflowId) {
+      const id = await newWorkflowThread(workflowId);
+      selectThread(id);
+      return;
+    }
+    const id = await createNewThread();
+    selectThread(id);
+  }, [createNewThread, newWorkflowThread, selectThread, workflowId]);
 
   // The App Builder names its own focused document — the application the
   // ui_app_* tools edit, which is not the workflow the graph tools edit.
-  const appBuilderUiContext = useMemo<BuildUiContextOptions>(
-    () => ({ focused: { type: "app", id: applicationId } }),
-    [applicationId]
-  );
+  const appBuilderUiContext = useCallback((): BuildUiContextOptions => {
+    let componentIds: string[] | undefined;
+    try {
+      const selectedId = getPuckAgentHandler(applicationId).getSnapshot()
+        .selectedId;
+      if (selectedId) {
+        componentIds = [selectedId];
+      }
+    } catch {
+      // No builder is registered yet — send the app id without a selection.
+    }
+    return {
+      focused: { type: "app", id: applicationId },
+      selection: componentIds ? { component_ids: componentIds } : undefined
+    };
+  }, [applicationId]);
 
-  const messages = getCurrentMessagesSync();
   const viewStatus: ChatViewStatus =
-    status === "stopping" ? "connected" : (status as ChatViewStatus);
+    runtime.status === "idle" || runtime.status === "stopping"
+      ? "connected"
+      : runtime.status;
 
   return (
     <FlexColumn
@@ -180,6 +196,8 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
       </Box>
       <ChatPanelHeader
         onNewChat={handleNewChat}
+        onSelectThread={selectThread}
+        threadId={threadId}
         docsTopic="appBuilder"
         docsLabel="App builder"
       />
@@ -188,26 +206,28 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           status={viewStatus}
           messages={messages}
           sendMessage={sendMessage}
-          progress={progress.current}
-          total={progress.total}
-          progressMessage={statusMessage}
-          runningToolCallId={runningToolCallId}
-          runningToolMessage={runningToolMessage}
+          progress={runtime.progress.current}
+          total={runtime.progress.total}
+          progressMessage={runtime.statusMessage}
+          runningToolCallId={runtime.runningToolCallId}
+          runningToolMessage={runtime.toolMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
           onStop={stopGeneration}
           onNewChat={handleNewChat}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-          currentLogUpdate={currentLogUpdate}
+          currentPlanningUpdate={runtime.planningUpdate}
+          currentTaskUpdate={runtime.taskUpdate}
+          currentLogUpdate={runtime.logUpdate}
           workflowId={workflowId}
-          workflowAssistant
+          workflowAssistant={Boolean(workflowId)}
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
+          chatSource="app_builder"
           uiContext={appBuilderUiContext}
           composerVariant="media"
           hideModePicker
           composerPlaceholder="Ask the agent to build your app or edit the workflow…"
-          key={currentThreadId ?? "no-thread"}
+          threadId={threadId}
+          key={threadId ?? "no-thread"}
         />
       </Box>
     </FlexColumn>

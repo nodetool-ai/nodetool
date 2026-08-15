@@ -7,7 +7,7 @@ This file is the single source of truth for agents working in this repository:
 architecture, commands, harnesses, and linter-like rules. `CLAUDE.md` is a macro
 that points here — never put content there.
 
-> _Last updated: 2026-08-11._ When the architecture, commands, or rules below
+> _Last updated: 2026-08-13._ When the architecture, commands, or rules below
 > drift from the codebase, update this file in the same PR.
 
 > **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).**
@@ -47,7 +47,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 ## Architecture
 
 ```
-packages/           # 59 npm workspace packages (TypeScript backend)
+packages/           # 55 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -248,7 +248,7 @@ npm install              # Install dependencies
 npm start                # Start dev server
 npm run build            # Production build
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run tests
 npm run test:watch       # Watch mode
@@ -264,7 +264,7 @@ npm install              # Install dependencies
 npm start                # Start electron
 npm run build            # Production build (tsc + vite + electron-builder)
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run tests
 ```
@@ -384,7 +384,7 @@ reference is the [CLI](#cli) section below, plus [docs/cli.md](docs/cli.md).
 |---|---|---|---|
 | Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
 | Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
-| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | `build_app` (`POST /api/applications/build`; poll/cancel via the debug-session endpoints) | minutes |
+| Build a mini app from a prompt and verify it end to end | `nodetool app build "<prompt>" -p <provider> -m <model>` | — (an agent builds an app with the `ui_app_*` tools and grades it with `debug_app`) | minutes |
 | Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
 | Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
 | Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
@@ -794,18 +794,20 @@ stages, the `ui_app_*` bridge the `app-tools` eval also scores); the CLI keeps
 the flags and the bundle. Design:
 [docs/mini-app-build-harness-design.md](docs/mini-app-build-harness-design.md).
 
-#### On the server: `POST /api/applications/build` and `build_app`
+#### On the server: `POST /api/applications/build`
 
 The same `buildApp` runs on the server:
 `POST /api/applications/build {prompt | spec, provider, model, workflow_ids,
-max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`, and an agent
-reaches it through the **`build_app`** tool. Provider and model come from the
-body; a `build_app` call that omits them inherits the calling agent's own
-provider/model (stamped on the ProcessingContext under
-`ACTIVE_MODEL_CONTEXT_KEY` by every tool-calling loop — chat turns and
-`run_subtask` sub-agents alike), and the server falls back to
+max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`. Provider and
+model come from the body, and the server falls back to
 `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`. The cost cap
 defaults to the harness's own $2.
+
+**There is no `build_app` agent tool.** An agent builds an app the way a person
+does — declare the operations, place the widgets, and grade every change with
+`debug_app` / `ui_app_debug` — instead of handing the job to a second agent it
+cannot see into. The route stays for the CLI, the eval suite, and a caller that
+wants the batch build.
 
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
@@ -846,8 +848,10 @@ node's `packages` property does not declare (the guest loader resolves only
 declared sandbox packages),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
-too — reads an `inputs.<name>` the node does not declare, never returns, or
-leaves a declared output unset on some return path is reported against the node.
+too — never returns, or leaves a declared output unset on some return path is
+reported against the node. A named `inputs.<name>` read or `stream("name")` /
+`emit("name")` call is not an error: the validator, the editor and the graph
+tools all count it as a declared handle.
 The analysis lives in `@nodetool-ai/node-sdk` (`code-analysis.ts`,
 `code-node-validation.ts`), so the graph validator, the `submit_code` planner
 and the editor read one AST.
@@ -1023,7 +1027,7 @@ npm run dev:nodetool -- jsscript versions list|show|create|restore|delete <id>
 ```
 
 `validate` reads what a headless check can decide: the body's syntax, imports
-against the declared packages, undefined names, undeclared `inputs.*` reads,
+against the installed catalog (a script has no packages setting), undefined names, undeclared `inputs.*` reads,
 outputs no `emit`/`output` call reaches, duplicate or non-identifier port names,
 and tests naming ports the script does not declare. A body that declares outputs
 and returns them instead of emitting them is an **error** — a script has no
@@ -1051,9 +1055,11 @@ Agents reach the same surface through the `js-scripts` capability module —
 **`list_js_scripts`** (id, name, description, ports: the discovery surface),
 **`get_js_script`**, **`save_js_script`** (validated first, CAS on update),
 **`validate_js_script`**, **`run_js_script`** and **`test_js_script`**. A script
-runs inside its own envelope: its declared packages, its declared secrets
-intersected with whatever allowance the invoking context carries, its own
-timeout, and no toolbelt. Composition is bounded like sub-agents: depth cap 4
+runs inside its own envelope: every installed sandbox pack and every
+`@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
+secrets intersected with whatever allowance the invoking context carries, its
+own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
 target resolution, the interaction script, and the bundle. Eval suite:
@@ -1218,6 +1224,19 @@ cases: required tools invoked, action rounds within bounds, result correct.
 npm run dev:nodetool -- eval codeact -p anthropic -m claude-sonnet-5
 ```
 
+A **`subtask`** suite scores delegation: each of its seven cases hands the
+parent an objective it should hand to a `run_subtask` child, and the check is
+that the *child* — not the parent — ran the inherited tools. The instrumented
+tools record the subtask depth of every call, so "the parent did it itself"
+scores differently from "the parent delegated". It also covers subtask count,
+recursion depth, error propagation, and whether the delegated result reached
+the parent's answer.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+```
+
 Alongside `graph-planner` (graph authoring) there are eleven **tool-loop**
 suites that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
@@ -1292,7 +1311,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships twenty-one packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-six packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1301,6 +1320,18 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-dates` | date-fns | guest |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
+| `@nodetool-ai/sandbox-qr` | uqr | guest |
+| `@nodetool-ai/sandbox-subtitle` | subtitle | host |
+| `@nodetool-ai/sandbox-color` | culori | guest |
+| `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
+| `@nodetool-ai/sandbox-expr` | expr-eval | host |
+| `@nodetool-ai/sandbox-jmespath` | jmespath | guest |
+| `@nodetool-ai/sandbox-chrono` | chrono-node | host |
+| `@nodetool-ai/sandbox-exif` | exifr | host |
+| `@nodetool-ai/sandbox-stats` | simple-statistics | guest |
+| `@nodetool-ai/sandbox-rrule` | rrule | guest |
+| `@nodetool-ai/sandbox-ics` | ics | host |
+| `@nodetool-ai/sandbox-gif` | gifenc | guest |
 | `@nodetool-ai/sandbox-csv` | papaparse | host |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
@@ -1312,6 +1343,9 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-docx` | docx | host |
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host |
 | `@nodetool-ai/sandbox-epub` | epub2 | host |
+| `@nodetool-ai/sandbox-fabric` | fabric | host |
+| `@nodetool-ai/sandbox-pdflib` | pdf-lib | host |
+| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
 | `@nodetool-ai/sandbox-pdf` | pdf-parse | host |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |

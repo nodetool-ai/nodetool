@@ -49,26 +49,9 @@
  * the never-reject/abort-guard conventions every bridge follows.
  */
 
+import { loadQuickJs } from "@sebastianwessel/quickjs";
 import {
-  addSerializer,
-  expose,
-  getModuleLoader as createDefaultModuleLoader,
-  loadQuickJs,
-  modulePathNormalizer as defaultModulePathNormalizer
-} from "@sebastianwessel/quickjs";
-import * as acorn from "acorn";
-import {
-  generateSandboxHostFacade,
-  generateSandboxWasmFacade,
-  sandboxHostModule,
-  SANDBOX_CAPABILITY_BRIDGE_SOURCE,
-  SANDBOX_CAPABILITY_BRIDGE_SPECIFIER,
   SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
-  SANDBOX_HOST_BRIDGE_SOURCE,
-  SANDBOX_HOST_BRIDGE_SPECIFIER,
-  SANDBOX_HOST_DISPATCH_GLOBAL,
-  SANDBOX_WASM_BRIDGE_SOURCE,
-  SANDBOX_WASM_BRIDGE_SPECIFIER,
   SANDBOX_WASM_DISPATCH_GLOBAL,
   type SandboxModuleResolution
 } from "@nodetool-ai/protocol";
@@ -78,20 +61,49 @@ import {
   type SandboxHostDispatcher
 } from "./host-modules/dispatcher.js";
 import {
-  BASE64_ALPHABET,
-  SANDBOX_BYTES_MARKER,
+  EXPOSED_BRIDGE_NAMES,
+  MAX_ENGINE_TIMEOUT_MS,
+  NO_INPUT_STREAM_MESSAGE,
+  registerTypedArraySerializers,
+  runInterpreter,
+  SANDBOX_CAPABILITY_BRIDGE_BINDING,
+  SANDBOX_INPUT_TAKE_BINDING,
+  SANDBOX_STREAM_OPEN_BINDING,
+  SANDBOX_WASM_BRIDGE_BINDING,
+  type InterpreterOutcome,
+  type SandboxDispatchCall
+} from "./js-sandbox-worker/interpreter.js";
+import {
+  SANDBOX_SERIALIZE_MAX_DEPTH,
   toGuestBytes,
   toGuestBytesDeep
 } from "./sandbox-bytes.js";
 import {
+  createSandboxMediaStore,
+  isSandboxMediaHandle,
+  MAX_RUN_MEDIA_BYTES,
+  type SandboxMediaType
+} from "./sandbox-media-handle.js";
+import {
   createMediaRefBridge,
-  MEDIA_REF_MEMBERS
+  looksLikeMediaRef,
+  mimeForRef,
+  remapMediaRef,
+  resolveRefBytes
 } from "./sandbox-media-ref.js";
 import {
   createSandboxWasmDispatcher,
   type SandboxWasmDispatcher,
   type WasmWorkerPool
 } from "./wasm-sandbox/host.js";
+import { runInWorker } from "./js-sandbox-worker/host.js";
+import {
+  deriveBridgeShape,
+  precheckCloneSafety,
+  SANDBOX_DISPATCHER_BINDINGS,
+  type ResultMessage as SandboxWorkerResult,
+  type SandboxDispatcherKind
+} from "./js-sandbox-worker/protocol.js";
 // The variant package uses a `default` export. With `esModuleInterop` this
 // typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
@@ -100,14 +112,7 @@ const quickJsVariant = (
     default: Parameters<typeof loadQuickJs>[0];
   }
 ).default;
-import { Scope } from "quickjs-emscripten-core";
 import { importNodeBuiltin } from "@nodetool-ai/config";
-import {
-  CANVAS_GRADIENT_FACTORIES,
-  CANVAS_GRADIENT_MARKER,
-  CANVAS_METHODS,
-  CANVAS_PROPERTIES
-} from "./sandbox-canvas-api.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
@@ -149,11 +154,6 @@ export const MAX_PROGRESS_MESSAGE_CHARS = 500;
  * run may stay suspended in total, so a prompt nobody ever answers still ends.
  */
 export const DEFAULT_SUSPEND_ALLOWANCE_MS = 30 * 60 * 1000;
-/**
- * The engine's wall-clock abort is a `setTimeout`, and Node fires a delay past
- * this immediately instead of never — so this is the practical "no backstop".
- */
-const MAX_ENGINE_TIMEOUT_MS = 2_147_483_647;
 /**
  * Suspension allowance a run with an input stream gets by default.
  *
@@ -224,10 +224,10 @@ export type SandboxStreamOpenCallback = (handle: string) => boolean;
 /**
  * What the guest is told when it calls `stream` in a run that has no input
  * stream behind it. Shared by the host bridge and the guest prelude so both
- * paths say the same thing.
+ * paths say the same thing — the prelude lives with the interpreter, so the
+ * message does too.
  */
-export const NO_INPUT_STREAM_MESSAGE =
-  "stream() requires streaming-input mode; this run has no input stream";
+export { NO_INPUT_STREAM_MESSAGE } from "./js-sandbox-worker/interpreter.js";
 
 /** The input-side bridges {@link buildSandbox} wires behind the `stream` global. */
 export interface SandboxInputStreams {
@@ -252,6 +252,11 @@ export interface SandboxLimits {
   maxResponseBodyBytes?: number;
   maxOutputSize?: number;
   memoryLimitBytes?: number;
+  /**
+   * Total bytes of media one run may hold host-side for its handles. The
+   * aggregate the per-call image/media ceilings never bounded.
+   */
+  runMediaBytes?: number;
   stackLimitBytes?: number;
   fetchTimeoutMs?: number;
   /**
@@ -351,6 +356,12 @@ export function resolveSandboxLimits(
       1024 * 1024,
       512 * 1024 * 1024
     ),
+    runMediaBytes: clampLimit(
+      limits?.runMediaBytes,
+      MAX_RUN_MEDIA_BYTES,
+      1024 * 1024,
+      2 * 1024 * 1024 * 1024
+    ),
     stackLimitBytes: clampLimit(
       limits?.stackLimitBytes,
       GUEST_STACK_LIMIT,
@@ -378,40 +389,6 @@ export function resolveSandboxLimits(
 // ---------------------------------------------------------------------------
 
 let enginePromise: ReturnType<typeof loadQuickJs> | null = null;
-let serializersRegistered = false;
-
-function registerTypedArraySerializers(): void {
-  if (serializersRegistered) return;
-  serializersRegistered = true;
-
-  // Map every typed-array class to a native Uint8Array on the host side.
-  // The guest returns `new Uint8Array([...])` (or friends); without this,
-  // the library's generic object serializer produces a plain object with
-  // numeric keys, which downstream code (CodeNode's normalizeOutput) would
-  // miss when detecting binary values.
-  const typedArrayNames = [
-    "Uint8Array",
-    "Int8Array",
-    "Uint8ClampedArray",
-    "Int16Array",
-    "Uint16Array",
-    "Int32Array",
-    "Uint32Array",
-    "Float32Array",
-    "Float64Array"
-  ];
-  for (const name of typedArrayNames) {
-    addSerializer(name, (ctx, handle) => {
-      const bufferHandle = ctx.getProp(handle, "buffer");
-      try {
-        const ab = ctx.getArrayBuffer(bufferHandle);
-        return Uint8Array.from(ab.value);
-      } finally {
-        bufferHandle.dispose();
-      }
-    });
-  }
-}
 
 function getEngine(): ReturnType<typeof loadQuickJs> {
   registerTypedArraySerializers();
@@ -422,56 +399,91 @@ function getEngine(): ReturnType<typeof loadQuickJs> {
 }
 
 /**
- * Marker key placed on an object to signal a sandboxed error. A host async
- * function that would normally `throw` instead resolves with one of these
- * objects; a prelude inside the guest rewraps them as real guest-side errors.
+ * The guest engine can fail in two ways that never reach `runInSandbox`'s own
+ * `await`, and both used to end the same way: the host process died, the tool
+ * call it was serving returned *nothing*, and the agent driving it saw a turn
+ * that simply stopped. A missing result is worse than any error — there is
+ * nothing to read and nothing to retry.
  *
- * This indirection exists because the current `@sebastianwessel/quickjs`
- * runtime leaks handles whenever a host-backed guest Promise is *rejected*,
- * tripping an internal assertion (`list_empty(&rt->gc_obj_list)`) in
- * quickjs-ng when the runtime is freed. Routing failures through a resolved
- * tagged value sidesteps the leak while preserving the guest-visible
- * behaviour (the user still gets a thrown Error with name + message).
+ * 1. An Emscripten `abort()` (the `list_empty(&rt->gc_obj_list)` assertion in
+ *    `JS_FreeRuntime`) surfaces as a `RuntimeError` from the WASM module.
+ * 2. A marshaling failure — most often guest OOM while a host return value is
+ *    being written into the guest — throws inside a promise continuation the
+ *    library created and never catches, so it lands as an unhandled rejection.
+ *
+ * `guardHostProcess` races the run against those escapes. A rejection that
+ * looks like the engine's fails the run; anything else is re-thrown on the next
+ * tick so a genuine host bug still crashes the way it should.
  */
-const SANDBOX_ERROR_MARKER = "__nodetool_sandbox_error__";
-
-function neverReject<Args extends unknown[], R>(
-  fn: (...args: Args) => Promise<R>
-): (...args: Args) => Promise<R | Record<string, unknown>> {
-  return async (...args: Args) => {
-    try {
-      return await fn(...args);
-    } catch (e) {
-      return {
-        [SANDBOX_ERROR_MARKER]: true,
-        name: e instanceof Error ? e.name : "Error",
-        message: e instanceof Error ? e.message : String(e)
-      };
-    }
-  };
+function isEngineFailure(error: unknown): boolean {
+  const name = (error as Error)?.constructor?.name ?? "";
+  const message = String((error as Error)?.message ?? error);
+  const stack = String((error as Error)?.stack ?? "");
+  return (
+    name.startsWith("QuickJS") ||
+    message.includes("Assertion failed") ||
+    message.includes("gc_obj_list") ||
+    /\bAborted\(/.test(message) ||
+    stack.includes("quickjs")
+  );
 }
 
-/**
- * Compose with {@link neverReject}: once `signal` fires, every subsequent host
- * bridge call fails fast instead of doing work. The guest prelude rewraps the
- * marker into a real `throw`, so an awaiting script unwinds on its next bridge
- * call rather than running to completion after the user cancelled.
- */
-function guardAbort<Args extends unknown[], R>(
-  fn: (...args: Args) => Promise<R | Record<string, unknown>>,
-  signal?: AbortSignal
-): (...args: Args) => Promise<R | Record<string, unknown>> {
-  if (!signal) return fn;
-  return async (...args: Args) => {
-    if (signal.aborted) {
-      return {
-        [SANDBOX_ERROR_MARKER]: true,
-        name: "ExecutionCancelled",
-        message: "Execution cancelled"
-      };
-    }
-    return fn(...args);
-  };
+/** The agent-facing translation of an engine failure. */
+export function describeEngineFailure(error: unknown): string {
+  const message = String((error as Error)?.message ?? error);
+  if (/gc_obj_list|Assertion failed|\bAborted\(/.test(message)) {
+    return (
+      "The JavaScript sandbox runtime aborted while cleaning up, so this " +
+      "action produced no result. It is usually triggered by moving a large " +
+      "amount of binary data across the sandbox boundary in one run. Retry " +
+      "with smaller pieces — process one image at a time, or hand large " +
+      "payloads between steps as assets instead of as bytes."
+    );
+  }
+  if (/out of memory/i.test(message)) {
+    return (
+      "The JavaScript sandbox ran out of guest memory, so this action " +
+      "produced no result. Retry with less data held live at once."
+    );
+  }
+  return message;
+}
+
+async function guardHostProcess<T>(run: Promise<T>): Promise<T> {
+  // `process` is a Node global; the browser bundle (the in-process fallback
+  // path there) has none, and there is no host process to guard against an
+  // engine abort escaping as an unhandled rejection anyway.
+  const nodeProcess = (globalThis as { process?: NodeJS.Process }).process;
+  if (!nodeProcess?.on || !nodeProcess?.off) {
+    return run;
+  }
+  let onRejection: ((reason: unknown) => void) | undefined;
+  const escaped = new Promise<never>((_resolve, reject) => {
+    onRejection = (reason: unknown) => {
+      if (isEngineFailure(reason)) {
+        reject(reason instanceof Error ? reason : new Error(String(reason)));
+        return;
+      }
+      // Not ours. Restore the default "unhandled rejection crashes the
+      // process" behaviour rather than silently swallowing someone's bug.
+      setImmediate(() => {
+        throw reason;
+      });
+    };
+    nodeProcess.on("unhandledRejection", onRejection);
+  });
+  try {
+    return await Promise.race([run, escaped]);
+  } finally {
+    if (onRejection) nodeProcess.off("unhandledRejection", onRejection);
+    // The loser of the race stays pending forever; make sure neither promise
+    // can later re-trigger the default handler.
+    void escaped.catch(() => {});
+    void run.then?.(
+      () => {},
+      () => {}
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -578,6 +590,7 @@ async function assertWorkspaceContained(
 }
 
 export type SandboxMediaModule = typeof import("./sandbox-media.js");
+export type SandboxAvMediaModule = typeof import("./sandbox-av-media.js");
 
 /**
  * The media engine behind the `image` and `canvas` bridges. Loaded on first
@@ -587,6 +600,11 @@ export type SandboxMediaModule = typeof import("./sandbox-media.js");
  */
 async function loadSandboxMedia(): Promise<SandboxMediaModule> {
   return import("./sandbox-media.js");
+}
+
+/** Audio/video adapters are loaded only when a run uses those namespaces. */
+async function loadSandboxAvMedia(): Promise<SandboxAvMediaModule> {
+  return import("./sandbox-av-media.js");
 }
 
 /** True if the first two octets of an IPv4 address fall in a blocked range. */
@@ -610,7 +628,8 @@ function expandIpv6(h: string): number[] | null {
   const parts = h.split("::");
   if (parts.length > 2) return null;
   const head = parts[0] ? parts[0].split(":") : [];
-  const tail = parts.length === 2 ? (parts[1] ? parts[1].split(":") : []) : null;
+  const tail =
+    parts.length === 2 ? (parts[1] ? parts[1].split(":") : []) : null;
   let hextets: string[];
   if (tail === null) {
     hextets = head;
@@ -638,7 +657,10 @@ function embeddedV4FromHexIpv6(h: string): [number, number] | null {
   if (!nums) return null;
   const isZero = (from: number, to: number): boolean =>
     nums.slice(from, to).every((n) => n === 0);
-  const octets = (): [number, number] => [(nums[6] >> 8) & 0xff, nums[6] & 0xff];
+  const octets = (): [number, number] => [
+    (nums[6] >> 8) & 0xff,
+    nums[6] & 0xff
+  ];
   if (isZero(0, 5) && nums[5] === 0xffff) return octets(); // ::ffff:a.b.c.d
   if (isZero(0, 6)) return octets(); // ::a.b.c.d (IPv4-compatible, deprecated)
   if (nums[0] === 0x64 && nums[1] === 0xff9b && isZero(2, 6)) return octets(); // 64:ff9b::/96
@@ -1000,6 +1022,9 @@ export interface SandboxResult {
  * @param streams  Optional input bridges behind the guest `stream` global.
  *                 Without an `onTakeInput` every `stream` call throws
  *                 {@link NO_INPUT_STREAM_MESSAGE}.
+ * @param resolveMediaRef Optional host loader for media refs when this run
+ *                 has no ProcessingContext (chat). `image.*` uses it so a
+ *                 generation result can go straight into the next op.
  */
 export function buildSandbox(
   context?: ProcessingContext,
@@ -1007,7 +1032,13 @@ export function buildSandbox(
   limits?: SandboxLimits,
   onProgress?: SandboxProgressCallback,
   onEmit?: SandboxEmitCallback,
-  streams?: SandboxInputStreams
+  streams?: SandboxInputStreams,
+  resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>,
+  promoteMedia?: (
+    type: "image" | "audio" | "video",
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ) => Promise<unknown>
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -1071,7 +1102,10 @@ export function buildSandbox(
         requestHeaders["User-Agent"] = resolvedLimits.userAgent;
       }
       if (options?.headers && typeof options.headers === "object") {
-        Object.assign(requestHeaders, options.headers as Record<string, string>);
+        Object.assign(
+          requestHeaders,
+          options.headers as Record<string, string>
+        );
       }
       if (Object.keys(requestHeaders).length > 0) {
         fetchOptions.headers = requestHeaders;
@@ -1097,8 +1131,7 @@ export function buildSandbox(
       // opaque response whose Location is unreadable, and cross-origin bodies
       // are CORS-blocked anyway, so the browser keeps the single redirect:
       // "follow" call with only the already-run initial-URL check.
-      const onNode =
-        typeof globalThis.process?.versions?.node === "string";
+      const onNode = typeof globalThis.process?.versions?.node === "string";
       let response: Response;
       if (!onNode) {
         response = await fetch(url, { ...fetchOptions, redirect: "follow" });
@@ -1214,6 +1247,11 @@ export function buildSandbox(
         parsedJson = undefined;
       }
 
+      // Plain data only — no methods. A function in a bridge result cannot
+      // cross the worker boundary (`postMessage` refuses it), so the guest
+      // prelude's fetch wrapper builds `text()`/`bytes()`/`arrayBuffer()` over
+      // these fields instead. The body is already fully buffered and capped
+      // here, so shipping it eagerly costs no extra read.
       return {
         ok,
         status,
@@ -1221,11 +1259,7 @@ export function buildSandbox(
         headers,
         body: getText(),
         json: parsedJson,
-        text: async () => getText(),
-        // Both binary accessors return the bytes marker; the guest prelude's
-        // fetch wrapper turns them back into a Uint8Array / ArrayBuffer.
-        arrayBuffer: async () => toGuestBytes(rawBytes),
-        bytes: async () => toGuestBytes(rawBytes)
+        bodyBytes: toGuestBytes(rawBytes)
       };
     } finally {
       clearTimeout(timer);
@@ -1495,7 +1529,9 @@ export function buildSandbox(
           throw new Error("workspace.mkdir is not available without a context");
         },
         remove: async (_path: string): Promise<void> => {
-          throw new Error("workspace.remove is not available without a context");
+          throw new Error(
+            "workspace.remove is not available without a context"
+          );
         }
       };
 
@@ -1727,6 +1763,22 @@ export function buildSandbox(
     }
   };
 
+  // Bytes media transforms produced and the guest only carries around. Lives for the
+  // run, then goes; nothing here is durable until something promotes it.
+  const mediaStore = createSandboxMediaStore(resolvedLimits.runMediaBytes);
+  let runAvMediaPromise:
+    | Promise<Pick<SandboxAvMediaModule, "audioOps" | "videoOps">>
+    | undefined;
+  const loadRunAvMedia = (): Promise<
+    Pick<SandboxAvMediaModule, "audioOps" | "videoOps">
+  > => {
+    runAvMediaPromise ??= loadSandboxAvMedia().then((media) => ({
+      audioOps: media.createAudioBridge(signal, resolvedLimits.runMediaBytes),
+      videoOps: media.createVideoBridge(signal, resolvedLimits.runMediaBytes)
+    }));
+    return runAvMediaPromise;
+  };
+
   // Media bridges. The engine (`sandbox-media.ts`) is imported on first use
   // like every other library-backed bridge, and picks its canvas backend from
   // the runtime — `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser
@@ -1741,38 +1793,567 @@ export function buildSandbox(
   const mediaMember = <A extends unknown[]>(
     pick: (media: SandboxMediaModule) => (...args: A) => Promise<unknown>
   ): ((...args: A) => Promise<unknown>) =>
-    withGuestBytes(async (...args: A) => pick(await loadSandboxMedia())(...args));
+    withGuestBytes(async (...args: A) =>
+      pick(await loadSandboxMedia())(...args)
+    );
+
+  // `image.*` trades in handles, not bytes. On the way in, every handle and
+  // every media ref buried anywhere in the arguments is replaced by the bytes
+  // it names — resolved host-side, so an `asset://` a generator produced goes
+  // straight into the next operation without being pulled through the guest.
+  // On the way out, encoded bytes become a handle instead of a base64 payload.
+  // A chain (resize → adjust → composite) therefore moves nothing across the
+  // boundary but small objects.
+  //
+  // `info` and `decode` are the deliberate exceptions: they exist to tell the
+  // guest what is *in* an image, so their results stay plain data. `decode`
+  // still hands over real pixels, which is the one call that has to.
+  const loadMediaRef = async (
+    where: string,
+    value: unknown,
+    maxBytes = resolvedLimits.runMediaBytes
+  ): Promise<Uint8Array> => {
+    const ref = remapMediaRef(value);
+    if (context) {
+      return resolveRefBytes(
+        where,
+        ref,
+        context,
+        (path: string) => resolveGuestPath(context, path, false),
+        maxBytes
+      );
+    }
+    if (resolveMediaRef) {
+      const bytes = await resolveMediaRef(where, ref);
+      if (bytes.length > maxBytes) {
+        throw new Error(
+          `${where}: media input is ${bytes.length} bytes, over the ` +
+            `${maxBytes} byte remaining run media limit`
+        );
+      }
+      return bytes;
+    }
+    const label = ref.uri || ref.asset_id || "this media ref";
+    throw new Error(
+      `${where}: cannot resolve ${label} in this run. Pass a media ` +
+        `handle or a generation result (its asset_uri).`
+    );
+  };
+
+  const resolveMediaArgs = async (
+    where: string,
+    value: unknown,
+    // `image.*` wants a ref flattened to bytes it can operate on. `media.*`
+    // takes refs *as* refs — that is its whole job — so it resolves handles
+    // only, or `media.bytes(assetRef)` would be handed bytes and no longer
+    // have a ref to read.
+    resolveRefs: boolean,
+    depth = 0,
+    expectedType?: SandboxMediaType,
+    budget = { used: 0 }
+  ): Promise<unknown> => {
+    if (depth >= SANDBOX_SERIALIZE_MAX_DEPTH) return value;
+    const accountBytes = <T extends ArrayBufferView>(bytes: T): T => {
+      if (bytes.byteLength > resolvedLimits.runMediaBytes - budget.used) {
+        throw new Error(
+          `${where}: aggregate media input exceeds the ` +
+            `${resolvedLimits.runMediaBytes} byte run media limit`
+        );
+      }
+      budget.used += bytes.byteLength;
+      return bytes;
+    };
+    // Matched on the marker, not on store membership: a handle from an
+    // earlier run must report *that*, rather than falling through to the ref
+    // path and blaming the uri it happens to carry.
+    if (isSandboxMediaHandle(value)) {
+      const bytes = mediaStore.resolve(value, expectedType);
+      if (!bytes) throw new Error(`${where}: media handle has no bytes`);
+      return accountBytes(bytes);
+    }
+    if (value instanceof Uint8Array || ArrayBuffer.isView(value)) {
+      return accountBytes(value);
+    }
+    if (Array.isArray(value)) {
+      const resolved: unknown[] = [];
+      for (const item of value) {
+        const result = await resolveMediaArgs(
+          where,
+          item,
+          resolveRefs,
+          depth + 1,
+          expectedType,
+          budget
+        );
+        resolved.push(result);
+      }
+      return resolved;
+    }
+    if (resolveRefs && looksLikeMediaRef(value)) {
+      if (expectedType && value && typeof value === "object") {
+        const declared = (value as Record<string, unknown>).type;
+        if (
+          (declared === "image" ||
+            declared === "audio" ||
+            declared === "video") &&
+          declared !== expectedType
+        ) {
+          throw new Error(
+            `${where}: expected ${expectedType} media, but received ${declared}`
+          );
+        }
+      }
+      const remainingBytes = resolvedLimits.runMediaBytes - budget.used;
+      return accountBytes(await loadMediaRef(where, value, remainingBytes));
+    }
+    if (value !== null && typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(record)) {
+        out[k] = await resolveMediaArgs(
+          where,
+          v,
+          resolveRefs,
+          depth + 1,
+          expectedType,
+          budget
+        );
+      }
+      return out;
+    }
+    return value;
+  };
+
+  const defaultMediaMime = (type: SandboxMediaType): string =>
+    type === "image"
+      ? "image/png"
+      : type === "audio"
+        ? "audio/wav"
+        : "video/mp4";
+
+  const mediaMimeForValue = (
+    value: unknown,
+    expectedType: SandboxMediaType
+  ): string => {
+    if (isSandboxMediaHandle(value)) {
+      return (
+        mediaStore.entry(value, expectedType)?.mimeType ??
+        defaultMediaMime(expectedType)
+      );
+    }
+    const record =
+      value !== null && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined;
+    const declared = record?.mimeType ?? record?.mime_type;
+    const ref = {
+      ...remapMediaRef(value),
+      ...(typeof declared === "string" ? { mimeType: declared } : {})
+    };
+    return mimeForRef(ref, defaultMediaMime(expectedType));
+  };
+
+  const sniffMediaMime = (
+    type: SandboxMediaType,
+    bytes: Uint8Array,
+    fallback: string
+  ): string => {
+    const ascii = (start: number, length: number): string =>
+      String.fromCharCode(...bytes.subarray(start, start + length));
+    if (type === "image") {
+      if (bytes.length >= 8 && ascii(1, 3) === "PNG") return "image/png";
+      if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8)
+        return "image/jpeg";
+      if (bytes.length >= 6 && ascii(0, 3) === "GIF") return "image/gif";
+      if (
+        bytes.length >= 12 &&
+        ascii(0, 4) === "RIFF" &&
+        ascii(8, 4) === "WEBP"
+      )
+        return "image/webp";
+      return fallback;
+    }
+    if (type === "audio") {
+      if (
+        bytes.length >= 12 &&
+        ascii(0, 4) === "RIFF" &&
+        ascii(8, 4) === "WAVE"
+      )
+        return "audio/wav";
+      if (bytes.length >= 4 && ascii(0, 4) === "fLaC") return "audio/flac";
+      if (bytes.length >= 4 && ascii(0, 4) === "OggS") return "audio/ogg";
+      if (
+        (bytes.length >= 3 && ascii(0, 3) === "ID3") ||
+        (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+      )
+        return "audio/mpeg";
+      if (bytes.length >= 12 && ascii(4, 4) === "ftyp") return "audio/mp4";
+      return fallback;
+    }
+    if (bytes.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "AVI ")
+      return "video/x-msvideo";
+    if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45) {
+      return ascii(0, Math.min(bytes.length, 64)).includes("webm")
+        ? "video/webm"
+        : "video/x-matroska";
+    }
+    if (bytes.length >= 12 && ascii(4, 4) === "ftyp") {
+      return ascii(8, 4) === "qt  " ? "video/quicktime" : "video/mp4";
+    }
+    return fallback;
+  };
+
+  /** An `image.*` op: handles/refs in, a handle out. */
+  const imageMember = <A extends unknown[]>(
+    name: string,
+    pick: (media: SandboxMediaModule) => (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) => {
+    const where = `image.${name}`;
+    return async (...args: A) => {
+      const resolved = (await resolveMediaArgs(
+        where,
+        args,
+        true,
+        0,
+        "image"
+      )) as A;
+      const result = await pick(await loadSandboxMedia())(...resolved);
+      if (result instanceof Uint8Array) {
+        const media = await loadSandboxMedia();
+        const info = (await media.imageOps.info(result)) as {
+          width?: number;
+          height?: number;
+          format?: string;
+        };
+        return mediaStore.put(result, {
+          mimeType: info.format ? `image/${info.format}` : "image/png",
+          ...(info.width === undefined ? {} : { width: info.width }),
+          ...(info.height === undefined ? {} : { height: info.height })
+        });
+      }
+      return toGuestBytesDeep(result);
+    };
+  };
 
   const image = {
-    info: mediaMember((m) => m.imageOps.info),
-    decode: mediaMember((m) => m.imageOps.decode),
-    encode: mediaMember((m) => m.imageOps.encode),
-    resize: mediaMember((m) => m.imageOps.resize),
-    crop: mediaMember((m) => m.imageOps.crop),
-    rotate: mediaMember((m) => m.imageOps.rotate),
-    flip: mediaMember((m) => m.imageOps.flip),
-    adjust: mediaMember((m) => m.imageOps.adjust),
-    composite: mediaMember((m) => m.imageOps.composite),
-    convert: mediaMember((m) => m.imageOps.convert)
+    /**
+     * The one door from a handle back to real bytes, and deliberately the only
+     * one. Every other op keeps the payload host-side, so a body that reaches
+     * for this is saying it will read the bytes itself — the cost is explicit
+     * at the call site instead of hidden in every hop. It needs no
+     * ProcessingContext, so a Code node that really does parse an encoded image
+     * works exactly as it did.
+     */
+    bytes: async (value: unknown): Promise<unknown> => {
+      const resolved = await resolveMediaArgs(
+        "image.bytes",
+        value,
+        true,
+        0,
+        "image"
+      );
+      const media = await loadSandboxMedia();
+      return toGuestBytes(media.asImageBytes(resolved, "image.bytes"));
+    },
+    /**
+     * Handle → durable asset. Bytes stay on the host; the guest gets a ref.
+     */
+    toAsset: async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      const sourceMime = mediaMimeForValue(value, "image");
+      const resolved = await resolveMediaArgs(
+        "image.toAsset",
+        value,
+        true,
+        0,
+        "image"
+      );
+      const media = await loadSandboxMedia();
+      const bytes = media.asImageBytes(resolved, "image.toAsset");
+      const mimeType = sniffMediaMime("image", bytes, sourceMime);
+      const assetOptions = { mimeType, ...options };
+      if (promoteMedia) {
+        return promoteMedia("image", bytes, assetOptions);
+      }
+      if (context) {
+        return mediaRefBridge.toImage(bytes, assetOptions);
+      }
+      throw new Error(
+        "image.toAsset: cannot save an asset in this run. Use " +
+          "nodetool.media.toImage from a chat action, or media.toImage " +
+          "from a Code node."
+      );
+    },
+    info: imageMember("info", (m) => m.imageOps.info),
+    decode: imageMember("decode", (m) => m.imageOps.decode),
+    stats: imageMember("stats", (m) => m.imageOps.stats),
+    blank: imageMember("blank", (m) => m.imageOps.blank),
+    pad: imageMember("pad", (m) => m.imageOps.pad),
+    grid: imageMember("grid", (m) => m.imageOps.grid),
+    resize: imageMember("resize", (m) => m.imageOps.resize),
+    crop: imageMember("crop", (m) => m.imageOps.crop),
+    rotate: imageMember("rotate", (m) => m.imageOps.rotate),
+    flip: imageMember("flip", (m) => m.imageOps.flip),
+    adjust: imageMember("adjust", (m) => m.imageOps.adjust),
+    composite: imageMember("composite", (m) => m.imageOps.composite),
+    convert: imageMember("convert", (m) => m.imageOps.convert)
+  };
+
+  const requireMediaBytes = (where: string, value: unknown): Uint8Array => {
+    if (value instanceof Uint8Array) return value;
+    if (ArrayBuffer.isView(value)) {
+      return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    }
+    throw new Error(
+      `${where}: expected media bytes, a media handle, or a media ref`
+    );
+  };
+
+  const avMember = <A extends unknown[]>(
+    namespace: "audio" | "video",
+    name: string,
+    inputTypes: readonly (SandboxMediaType | undefined)[],
+    outputType: SandboxMediaType | undefined,
+    pick: (
+      media: Pick<SandboxAvMediaModule, "audioOps" | "videoOps">
+    ) => (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) => {
+    const where = `${namespace}.${name}`;
+    return async (...args: A) => {
+      const budget = { used: 0 };
+      const resolved: unknown[] = [];
+      for (let index = 0; index < args.length; index += 1) {
+        resolved.push(
+          await resolveMediaArgs(
+            where,
+            args[index],
+            true,
+            0,
+            inputTypes[index],
+            budget
+          )
+        );
+      }
+      const result = await pick(await loadRunAvMedia())(...(resolved as A));
+      if (outputType && result instanceof Uint8Array) {
+        const sourceType = inputTypes[0] ?? outputType;
+        const sourceMime = mediaMimeForValue(args[0], sourceType);
+        return mediaStore.put(result, {
+          type: outputType,
+          mimeType: sniffMediaMime(
+            outputType,
+            result,
+            outputType === sourceType
+              ? sourceMime
+              : defaultMediaMime(outputType)
+          )
+        });
+      }
+      return toGuestBytesDeep(result);
+    };
+  };
+
+  const avBytes =
+    (namespace: "audio" | "video") =>
+    async (value: unknown): Promise<unknown> => {
+      const where = `${namespace}.bytes`;
+      const resolved = await resolveMediaArgs(where, value, true, 0, namespace);
+      return toGuestBytes(requireMediaBytes(where, resolved));
+    };
+
+  const avToAsset =
+    (type: "audio" | "video") =>
+    async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      const where = `${type}.toAsset`;
+      const sourceMime = mediaMimeForValue(value, type);
+      const resolved = await resolveMediaArgs(where, value, true, 0, type);
+      const bytes = requireMediaBytes(where, resolved);
+      const mimeType = sniffMediaMime(type, bytes, sourceMime);
+      const assetOptions = { mimeType, ...options };
+      if (promoteMedia) {
+        return promoteMedia(type, bytes, assetOptions);
+      }
+      if (context) {
+        return type === "audio"
+          ? mediaRefBridge.toAudio(bytes, assetOptions)
+          : mediaRefBridge.toVideo(bytes, assetOptions);
+      }
+      throw new Error(
+        `${where}: cannot save an asset in this run. Use media.to${
+          type === "audio" ? "Audio" : "Video"
+        } from a Code node.`
+      );
+    };
+
+  const audio = {
+    bytes: avBytes("audio"),
+    toAsset: avToAsset("audio"),
+    info: avMember(
+      "audio",
+      "info",
+      ["audio"],
+      undefined,
+      (m) => m.audioOps.info
+    ),
+    normalize: avMember(
+      "audio",
+      "normalize",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.normalize
+    ),
+    trim: avMember("audio", "trim", ["audio"], "audio", (m) => m.audioOps.trim),
+    concat: avMember(
+      "audio",
+      "concat",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.concat
+    ),
+    mix: avMember("audio", "mix", ["audio"], "audio", (m) => m.audioOps.mix),
+    reverse: avMember(
+      "audio",
+      "reverse",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.reverse
+    ),
+    fadeIn: avMember(
+      "audio",
+      "fadeIn",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.fadeIn
+    ),
+    fadeOut: avMember(
+      "audio",
+      "fadeOut",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.fadeOut
+    ),
+    repeat: avMember(
+      "audio",
+      "repeat",
+      ["audio"],
+      "audio",
+      (m) => m.audioOps.repeat
+    )
+  };
+
+  const video = {
+    bytes: avBytes("video"),
+    toAsset: avToAsset("video"),
+    info: avMember(
+      "video",
+      "info",
+      ["video"],
+      undefined,
+      (m) => m.videoOps.info
+    ),
+    trim: avMember("video", "trim", ["video"], "video", (m) => m.videoOps.trim),
+    resize: avMember(
+      "video",
+      "resize",
+      ["video"],
+      "video",
+      (m) => m.videoOps.resize
+    ),
+    rotate: avMember(
+      "video",
+      "rotate",
+      ["video"],
+      "video",
+      (m) => m.videoOps.rotate
+    ),
+    addAudio: avMember(
+      "video",
+      "addAudio",
+      ["video", "audio"],
+      "video",
+      (m) => m.videoOps.addAudio
+    ),
+    extractAudio: avMember(
+      "video",
+      "extractAudio",
+      ["video"],
+      "audio",
+      (m) => m.videoOps.extractAudio
+    ),
+    extractFrame: avMember(
+      "video",
+      "extractFrame",
+      ["video"],
+      "image",
+      (m) => m.videoOps.extractFrame
+    )
   };
 
   const canvas = {
-    render: mediaMember((m) => m.renderCanvas),
+    render: imageMember("render", (m) => m.renderCanvas),
     measureText: mediaMember((m) => m.measureCanvasText)
   };
 
-  // Media refs in and out. Unlike `image`/`canvas` this one needs a
+  // Media refs in and out. Unlike the transform namespaces, this one needs a
   // ProcessingContext — it resolves `asset://`, storage keys and package assets
   // through the host's own resolver — so without one every member throws.
   // `media.*` reads files, so it resolves paths through the same
   // `resolveGuestPath` `workspace.*` uses — one containment rule, one
   // `filesystemAccess` scope, no second scheme to keep in step.
-  const media = createMediaRefBridge(
+  const mediaRefBridge = createMediaRefBridge(
     context,
     context
-      ? { resolvePath: (path: string) => resolveGuestPath(context, path, false) }
+      ? {
+          resolvePath: (path: string) => resolveGuestPath(context, path, false)
+        }
       : {}
   );
+
+  // A media handle is accepted wherever `media.*` takes a ref or bytes. The
+  // last step of a chain promotes the result with the matching `media.to*`
+  // call. Only this promotion writes to storage; intermediates never do.
+  const mediaMembers = Object.fromEntries(
+    Object.entries(mediaRefBridge).map(([name, fn]) => [
+      name,
+      async (...args: unknown[]) =>
+        (fn as (...a: unknown[]) => Promise<unknown>)(
+          ...((await resolveMediaArgs(
+            `media.${name}`,
+            args,
+            false
+          )) as unknown[])
+        )
+    ])
+  ) as unknown as typeof mediaRefBridge;
+  const promoteTypedHandle = (
+    name: "toImage" | "toAudio" | "toVideo",
+    promote: (value: unknown, options?: Record<string, unknown>) => Promise<unknown>
+  ) =>
+    async (
+      value: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      if (isSandboxMediaHandle(value)) {
+        return promote(value, options);
+      }
+      return (
+        mediaMembers[name] as unknown as (
+          value: unknown,
+          options?: Record<string, unknown>
+        ) => Promise<unknown>
+      )(value, options);
+    };
+  const media = {
+    ...mediaMembers,
+    toImage: promoteTypedHandle("toImage", image.toAsset),
+    toAudio: promoteTypedHandle("toAudio", audio.toAsset),
+    toVideo: promoteTypedHandle("toVideo", video.toAsset)
+  } as typeof mediaRefBridge;
 
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
@@ -1841,6 +2422,8 @@ export function buildSandbox(
     [SANDBOX_STREAM_OPEN_BINDING]: streamOpen,
     format,
     image,
+    audio,
+    video,
     canvas,
     media,
     __maxIter: MAX_LOOP_ITERATIONS,
@@ -1863,162 +2446,25 @@ export function buildSandbox(
 // ---------------------------------------------------------------------------
 
 /**
- * Timer globals the guest must not see. The documented contract has always
- * been "`sleep` is the only timer", but `@sebastianwessel/quickjs` installs
- * host-backed `setTimeout`/`setInterval`/`setImmediate` into the context on
- * every `evalCode` call — *after* the init prelude runs — so a prelude-time
- * `delete` does not stick. {@link wrapCode} deletes them inside the user-code
- * module itself, which evaluates after the library's re-install. They are
- * blocked deliberately: their callbacks fire through `ctx.callFunction` with
- * errors silently discarded, outside the never-reject and abort-guard
- * conventions every bridge follows. Concurrency does not need them —
- * bridge calls run in parallel under `Promise.all`/`parallelMap`.
+ * User-code wrapping and the guest module loader live with the interpreter:
+ * the worker path evaluates the same entry module and resolves through the
+ * same loader, and a second copy of either would be a second security policy.
  */
-export const BLOCKED_TIMER_GLOBALS = [
-  "setTimeout",
-  "clearTimeout",
-  "setInterval",
-  "clearInterval",
-  "setImmediate",
-  "clearImmediate"
-] as const;
-
-/**
- * Wrap user code as the default export of an ES module with a top-level-awaited
- * async IIFE body, so `return <value>` inside the snippet becomes the module's
- * default export and `await` at the top level works. The module first drops
- * the timer globals the engine re-installs per evaluation (see
- * {@link BLOCKED_TIMER_GLOBALS}).
- */
-export function wrapCode(code: string, prelude = ""): string {
-  return `${dropTimersStatement()}${prelude}
-export default await (async () => {
-${code}
-})();`;
-}
-
-function dropTimersStatement(): string {
-  return BLOCKED_TIMER_GLOBALS.map((n) => `delete globalThis.${n};`).join(" ");
-}
-
-/**
- * Build the entry module for user code, hoisting static `import` declarations
- * out of the async IIFE {@link wrapCode} wraps the body in.
- *
- * An `import` is only legal at module top level, so the IIFE body cannot hold
- * one. The imports are spliced out by source range and re-emitted on a single
- * line above the wrapper; the ranges they vacate are blanked with spaces (never
- * with fewer newlines), so every remaining line of user code keeps its content
- * and its offset from the body's start. The whole body shifts down by exactly
- * one line relative to {@link wrapCode}'s output.
- *
- * Import-free code takes the {@link wrapCode} path unchanged, and so does code
- * acorn cannot parse — a syntax error must reach the guest exactly as the user
- * wrote it, not as this transform's complaint about it.
- *
- * Dynamic `import()` expressions are left where they are. The module loader
- * denies them at runtime (see {@link createGuestModuleHost}); rewriting them
- * here would only move a runtime denial into a confusing compile-time one.
- */
-export function buildEntryModule(code: string, prelude = ""): string {
-  let program: acorn.Program;
-  try {
-    program = acorn.parse(code, {
-      ecmaVersion: "latest",
-      sourceType: "module",
-      allowAwaitOutsideFunction: true,
-      allowReturnOutsideFunction: true
-    });
-  } catch {
-    return wrapCode(code, prelude);
-  }
-
-  const imports = program.body.filter(
-    (node): node is acorn.ImportDeclaration => node.type === "ImportDeclaration"
-  );
-  if (imports.length === 0) return wrapCode(code, prelude);
-
-  const hoisted: string[] = [];
-  let body = "";
-  let cursor = 0;
-  for (const declaration of imports) {
-    const text = code.slice(declaration.start, declaration.end);
-    hoisted.push(text.endsWith(";") ? text : `${text};`);
-    body += code.slice(cursor, declaration.start);
-    body += text.replace(/[^\n]/g, " ");
-    cursor = declaration.end;
-  }
-  body += code.slice(cursor);
-
-  return `${hoisted.join(" ")}
-${dropTimersStatement()}${prelude}
-export default await (async () => {
-${body}
-})();`;
-}
-
-// ---------------------------------------------------------------------------
-// Guest module loading
-// ---------------------------------------------------------------------------
-
-/** Prefix of every module id this host resolves. Not a path — nothing mounts it. */
-const GUEST_MODULE_PREFIX = "nodetool-sandbox:";
-
-/**
- * The module id every denial normalizes to. QuickJS never caches a module whose
- * load failed, so one constant id serves every denial in a run: the normalizer
- * records the reason, the loader immediately turns it into a guest-side Error.
- */
-const DENIED_MODULE_ID = `${GUEST_MODULE_PREFIX}denied`;
-
-/** Separator between a pack name and a file id inside a module id. */
-const GUEST_MODULE_SEPARATOR = "|";
-
-/**
- * The private bridge module's guest id.
- *
- * Only a generated WASM facade may import it. The denial is decided by the
- * importing module, so neither user code nor a pack's authored JavaScript can
- * reach it by name — and a module that reaches the dispatcher some other way
- * gains nothing beyond the run's declared WASM surface, because the
- * dispatcher's own checks are the boundary.
- */
-const WASM_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}wasm-bridge`;
-
-/** Name the host parks the raw (never-rejecting) dispatcher bridge on. */
-export const SANDBOX_WASM_BRIDGE_BINDING = "__wasmCall";
-
-/**
- * The private host-bridge module's guest id.
- *
- * Only a generated host facade may import it, decided by the importing module —
- * so neither user code nor a pack's authored JavaScript can reach it by name.
- * A module that reaches the dispatcher some other way gains nothing beyond the
- * run's declared host surface, because the dispatcher's checks are the boundary.
- */
-const HOST_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}host-bridge`;
-
-/** Name the host parks the raw (never-rejecting) host dispatcher bridge on. */
-export const SANDBOX_HOST_BRIDGE_BINDING = "__hostCall";
-
-/**
- * The private capability-bridge module's guest id.
- *
- * Same rule as the host bridge: only a generated capability facade may import
- * it. What differs is who mounts a capability module — the host, per session,
- * never a pack's manifest and never the model's consent allowlist.
- */
-const CAPABILITY_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}capability-bridge`;
-
-/** Name the host parks the raw (never-rejecting) capability dispatcher on. */
-export const SANDBOX_CAPABILITY_BRIDGE_BINDING = "__capabilityCall";
-
-/**
- * Names the host parks the input bridges on, which the prelude captures and
- * then deletes — the guest reaches them only through `stream`.
- */
-export const SANDBOX_INPUT_TAKE_BINDING = "__takeInput";
-export const SANDBOX_STREAM_OPEN_BINDING = "__streamOpen";
+export {
+  BLOCKED_TIMER_GLOBALS,
+  buildEntryModule,
+  createGuestModuleHost,
+  DELETED_GUEST_GLOBALS,
+  EXPOSED_BRIDGE_NAMES,
+  SANDBOX_CAPABILITY_BRIDGE_BINDING,
+  SANDBOX_HOST_BRIDGE_BINDING,
+  SANDBOX_INPUT_TAKE_BINDING,
+  SANDBOX_STREAM_OPEN_BINDING,
+  SANDBOX_WASM_BRIDGE_BINDING,
+  wrapCode,
+  type ExposedBridgeName,
+  type GuestModuleHost
+} from "./js-sandbox-worker/interpreter.js";
 
 /**
  * The platform modules one run mounts: guest specifier → generated facade
@@ -2030,209 +2476,11 @@ export const SANDBOX_STREAM_OPEN_BINDING = "__streamOpen";
  */
 export interface SandboxCapabilityMount {
   readonly facades: ReadonlyMap<string, string>;
-  call(moduleKey: unknown, exportName: unknown, args: unknown): Promise<unknown>;
-}
-
-function guestModuleId(packName: string, fileId: string): string {
-  return `${GUEST_MODULE_PREFIX}${packName}${GUEST_MODULE_SEPARATOR}${fileId}`;
-}
-
-/** Resolve a `./`-relative specifier against a pack-relative file id. */
-function resolveRelativeFileId(fromFileId: string, specifier: string): string {
-  const parts = fromFileId.split("/").slice(0, -1);
-  for (const segment of specifier.split("/")) {
-    if (segment === "" || segment === ".") continue;
-    if (segment === "..") parts.pop();
-    else parts.push(segment);
-  }
-  return parts.join("/");
-}
-
-type SandboxRunOptions = NonNullable<
-  Parameters<Awaited<ReturnType<typeof loadQuickJs>>["runSandboxed"]>[1]
->;
-
-export interface GuestModuleHost {
-  /** Loader and normalizer to hand `runSandboxed`. */
-  readonly options: Pick<
-    SandboxRunOptions,
-    "getModuleLoader" | "modulePathNormalizer"
-  >;
-  /** Stop delegating to the wrapper's own Node-compat resolution. */
-  enterGuestPhase(): void;
-  /** After the entry's static graph is linked, every further resolve is dynamic. */
-  lockStaticGraph(): void;
-}
-
-/**
- * Install the run's declared sandbox modules as the *only* importable modules.
- *
- * The enforcement point is the **normalizer**, not the loader: QuickJS resolves
- * an already-loaded module straight out of its cache without consulting the
- * loader, but it normalizes every specifier first. A denial decided in the
- * normalizer therefore also holds for `node:buffer` and friends, which the
- * wrapper imports into the cache during its own bootstrap
- * (`prepareNodeCompatibility`) before guest code exists.
- *
- * Three phases, in order:
- *
- * 1. **bootstrap** — the wrapper's `import 'node:buffer'` and the rest of its
- *    compat preamble run before our sandboxed function is called. They resolve
- *    through the library's own normalizer and loader, or the runtime never
- *    starts.
- * 2. **guest, linking** — only the run's declared specifiers and their
- *    intra-pack siblings resolve. Everything else — `node:*`, the compat
- *    modules the bootstrap warmed, absolute paths, `../` escapes, encoded
- *    traversals, another pack's internal files — is denied by name.
- * 3. **guest, locked** — the entry module's static graph is linked, so any
- *    further resolution is a dynamic `import()`, and every one of those is
- *    denied. A computed specifier is unknowable ahead of the call, and the
- *    declaration is the whole contract, so the stricter rule is the honest one.
- *
- * Loaded module sources are prefixed with the timer deletions
- * ({@link BLOCKED_TIMER_GLOBALS}) on the same line as their first statement:
- * dependencies evaluate *before* the entry body, so the entry's own deletions
- * come too late to harden them. `eval`/`Function` need no such treatment — the
- * init prelude deletes them for the whole context before any user `evalCode`.
- */
-export function createGuestModuleHost(
-  modules: SandboxModuleResolution | undefined,
-  capabilityFacades?: ReadonlyMap<string, string>
-): GuestModuleHost | undefined {
-  const sources = new Map<string, string>();
-  const specifiers = new Map<string, string>();
-  const facades = new Set<string>();
-  const hostFacades = new Set<string>();
-  const platformFacades = new Set<string>();
-  for (const [specifier, source] of capabilityFacades ?? []) {
-    // A platform module has no pack behind it, so its guest id is derived from
-    // the specifier rather than from a pack/file pair.
-    const entryId = `${GUEST_MODULE_PREFIX}capability${GUEST_MODULE_SEPARATOR}${specifier}`;
-    specifiers.set(specifier, entryId);
-    sources.set(entryId, source);
-    platformFacades.add(entryId);
-  }
-  for (const module of modules?.modules ?? []) {
-    const entryId = guestModuleId(module.packName, module.moduleId);
-    if (module.kind === "host") {
-      // A host entry has no guest source of its own either: its specifier
-      // resolves to a facade generated from the protocol registry, so the guest
-      // surface of a host module is decided by NodeTool, never by the pack.
-      const spec = sandboxHostModule(module.hostId);
-      if (spec === undefined) {
-        throw new Error(
-          `${module.specifier}: "${module.hostId}" is not a host module NodeTool implements`
-        );
-      }
-      specifiers.set(module.specifier, entryId);
-      sources.set(entryId, generateSandboxHostFacade(module.specifier, spec));
-      hostFacades.add(entryId);
-      continue;
-    }
-    if (module.kind === "wasm") {
-      // A WASM entry has no guest source of its own: its specifier resolves to
-      // a generated facade over the per-run dispatcher. An authored sibling
-      // importing "./thing.wasm" lands on the same id, so it gets the same
-      // facade.
-      specifiers.set(module.specifier, entryId);
-      sources.set(entryId, generateSandboxWasmFacade(module.specifier, module.wasm));
-      facades.add(entryId);
-      continue;
-    }
-    specifiers.set(module.specifier, entryId);
-    sources.set(entryId, module.source);
-    for (const file of module.graph) {
-      if (file.kind !== "js") continue;
-      sources.set(guestModuleId(module.packName, file.id), file.source);
-    }
-  }
-  if (sources.size === 0) return undefined;
-  if (facades.size > 0) sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
-  if (hostFacades.size > 0) {
-    sources.set(HOST_BRIDGE_MODULE_ID, SANDBOX_HOST_BRIDGE_SOURCE);
-  }
-  if (platformFacades.size > 0) {
-    sources.set(CAPABILITY_BRIDGE_MODULE_ID, SANDBOX_CAPABILITY_BRIDGE_SOURCE);
-  }
-
-  const hardening = dropTimersStatement();
-  let phase: "bootstrap" | "guest" = "bootstrap";
-  let locked = false;
-  let denial = "";
-
-  const deny = (message: string): string => {
-    denial = message;
-    return DENIED_MODULE_ID;
-  };
-
-  const resolve = (baseName: string, requested: string): string => {
-    if (locked) {
-      return deny(
-        `dynamic import() is not allowed in the sandbox (requested "${requested}")`
-      );
-    }
-    if (requested === SANDBOX_HOST_BRIDGE_SPECIFIER) {
-      if (hostFacades.has(baseName)) return HOST_BRIDGE_MODULE_ID;
-      return deny(
-        `"${SANDBOX_HOST_BRIDGE_SPECIFIER}" is private to the sandbox's generated host facades and cannot be imported`
-      );
-    }
-    if (requested === SANDBOX_CAPABILITY_BRIDGE_SPECIFIER) {
-      if (platformFacades.has(baseName)) return CAPABILITY_BRIDGE_MODULE_ID;
-      return deny(
-        `"${SANDBOX_CAPABILITY_BRIDGE_SPECIFIER}" is private to the sandbox's generated capability facades and cannot be imported`
-      );
-    }
-    if (requested === SANDBOX_WASM_BRIDGE_SPECIFIER) {
-      if (facades.has(baseName)) return WASM_BRIDGE_MODULE_ID;
-      return deny(
-        `"${SANDBOX_WASM_BRIDGE_SPECIFIER}" is private to the sandbox's generated WASM facades and cannot be imported`
-      );
-    }
-    const declared = specifiers.get(requested);
-    if (declared !== undefined) return declared;
-    if (requested.startsWith(".") && baseName.startsWith(GUEST_MODULE_PREFIX)) {
-      const separator = baseName.indexOf(GUEST_MODULE_SEPARATOR);
-      const pack = baseName.slice(GUEST_MODULE_PREFIX.length, separator);
-      const fileId = baseName.slice(separator + 1);
-      const target = resolveRelativeFileId(fileId, requested);
-      for (const candidate of [target, `${target}.js`, `${target}/index.js`]) {
-        const id = guestModuleId(pack, candidate);
-        if (sources.has(id)) return id;
-      }
-      return deny(`"${requested}" is not a file of the ${pack} sandbox package`);
-    }
-    return deny(
-      `"${requested}" is not a sandbox package declared by this node — add it to the node's packages declaration to import it`
-    );
-  };
-
-  return {
-    options: {
-      modulePathNormalizer: (baseName, requestedName, context) =>
-        phase === "bootstrap"
-          ? defaultModulePathNormalizer(baseName, requestedName, context)
-          : resolve(baseName, requestedName),
-      getModuleLoader: (fs, runtimeOptions) => {
-        const fallback = createDefaultModuleLoader(fs, runtimeOptions);
-        return (moduleName, context) => {
-          if (moduleName === DENIED_MODULE_ID) {
-            return { error: new Error(denial) };
-          }
-          const source = sources.get(moduleName);
-          if (source !== undefined) return { value: `${hardening}${source}` };
-          if (phase === "bootstrap") return fallback(moduleName, context);
-          return { error: new Error(`Module "${moduleName}" is not available`) };
-        };
-      }
-    },
-    enterGuestPhase() {
-      phase = "guest";
-    },
-    lockStaticGraph() {
-      locked = true;
-    }
-  };
+  call(
+    moduleKey: unknown,
+    exportName: unknown,
+    args: unknown
+  ): Promise<unknown>;
 }
 
 /**
@@ -2290,10 +2538,15 @@ export interface RunSandboxOptions {
   /**
    * External cancellation. On abort, in-flight host operations are aborted,
    * `sleep` returns immediately, and every subsequent bridge call fails fast so
-   * the guest unwinds. The QuickJS library exposes no interrupt input of its
-   * own, so a purely CPU-bound guest loop still runs to its execution timeout —
-   * but `runInSandbox` returns as soon as the signal fires rather than waiting
-   * for it.
+   * the guest unwinds — a program that awaits anything stops within a bridge
+   * call, and `runInSandbox` returns the cancelled result at once.
+   *
+   * A purely CPU-bound guest is the exception, and only on the in-process path.
+   * The interrupt handler QuickJS polls reads the abort flag, but on this
+   * thread only the event loop the spinning guest is blocking can set it — so
+   * the guest runs to its deadline and `runInSandbox` returns ahead of it,
+   * leaving an orphaned run to wind down on its own. Running the interpreter
+   * off-thread is what makes that case abort promptly too.
    */
   signal?: AbortSignal;
   /**
@@ -2372,6 +2625,21 @@ export interface RunSandboxOptions {
    * the pool without sharing it with every other test in the file.
    */
   wasmPool?: WasmWorkerPool;
+  /**
+   * Load a media ref when this run has no ProcessingContext. Chat uses this so
+   * media transforms can resolve generated results host-side and the guest
+   * only sees handles.
+   */
+  resolveMediaRef?: (where: string, ref: unknown) => Promise<Uint8Array>;
+  /**
+   * Save host-side media bytes as an asset. Backs each transform namespace's
+   * `toAsset` and `nodetool.media.toImage/toAudio/toVideo` in chat.
+   */
+  promoteMedia?: (
+    type: "image" | "audio" | "video",
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ) => Promise<unknown>;
 }
 
 export interface RunSandboxResult {
@@ -2416,35 +2684,6 @@ function replaceInPlace(target: unknown, source: unknown): void {
 }
 
 /**
- * Names injected as bridge bindings into the QuickJS guest. The rest of the
- * `buildSandbox` record (JSON, Math, Date, URL, etc.) is deliberately NOT
- * marshaled — QuickJS already provides native implementations, and re-exposing
- * host versions creates thousands of handles that slow execution and leak on
- * teardown.
- */
-export const EXPOSED_BRIDGE_NAMES = [
-  "console",
-  "fetch",
-  "crypto",
-  "sleep",
-  "getSecret",
-  "workspace",
-  "assetToSandbox",
-  "sandboxToAsset",
-  "progress",
-  "emit",
-  "output",
-  "format",
-  "image",
-  "canvas",
-  "media",
-  "__maxIter",
-  "__secretScope"
-] as const;
-
-export type ExposedBridgeName = (typeof EXPOSED_BRIDGE_NAMES)[number];
-
-/**
  * Globals the guest prelude defines rather than the host marshals. All but
  * `stream` are pure — no host call behind them; `stream` is built here because
  * an async iterable cannot cross the bridge, so the prelude wraps the two
@@ -2463,27 +2702,25 @@ export const GUEST_HELPER_NAMES = [
 export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
 
 /**
- * Globals the init prelude removes. `eval` and `Function` go so the guest
- * cannot re-enter code generation. The rest are stubs
- * `@sebastianwessel/quickjs` installs unconditionally (its node-compatibility
- * layer and `provideEnv` have no off switch): `Buffer`, `process`, `env`,
- * `Headers`, `Request`, `Response`, `performance`. Nothing in the sandbox's
- * own machinery uses them — the fetch bridge returns plain objects and the
- * guest-to-host serializers dispatch on constructor names no guest code can
- * reach once the classes are gone — so they are deleted to keep the guest
- * surface minimal instead of documented as stubs.
+ * A dispatcher's entry point as a bare function, or nothing when the run
+ * declared no such modules — which is what decides whether the guest gets the
+ * binding at all.
  */
-export const DELETED_GUEST_GLOBALS = [
-  "eval",
-  "Function",
-  "Buffer",
-  "process",
-  "env",
-  "Headers",
-  "Request",
-  "Response",
-  "performance"
-] as const;
+function dispatchCallOf(
+  dispatcher:
+    | {
+        call(
+          moduleKey: unknown,
+          exportName: unknown,
+          args: unknown
+        ): Promise<unknown>;
+      }
+    | undefined
+): SandboxDispatchCall | undefined {
+  if (dispatcher === undefined) return undefined;
+  return async (moduleKey, exportName, args) =>
+    dispatcher.call(moduleKey, exportName, args);
+}
 
 /** Names that should never be reassigned via `globals` — core sandbox APIs. */
 export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
@@ -2496,6 +2733,31 @@ export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
   SANDBOX_INPUT_TAKE_BINDING,
   SANDBOX_STREAM_OPEN_BINDING
 ]);
+
+/**
+ * Combine a guest error's name and message the way the report reads best:
+ * include the name when it carries signal (`ExecutionTimeout`), drop it when
+ * it is `Error` or already inside the message.
+ */
+function combineGuestError(name: string, message: string): string {
+  return name &&
+    name !== "Error" &&
+    !message.toLowerCase().includes(name.toLowerCase())
+    ? `${name}: ${message}`
+    : message || name;
+}
+
+/** Warn once per process when the worker path silently falls back in-process. */
+let warnedWorkerFallback = false;
+
+function noteWorkerFallback(reason: string): void {
+  if (warnedWorkerFallback) return;
+  warnedWorkerFallback = true;
+  console.warn(
+    `sandbox: running in-process (${reason}); a CPU-bound guest will block ` +
+      "this thread until its timeout"
+  );
+}
 
 /**
  * Execute JavaScript code inside a QuickJS WebAssembly sandbox.
@@ -2520,7 +2782,9 @@ export async function runInSandbox(
     clock,
     modules,
     capabilities,
-    wasmPool
+    wasmPool,
+    resolveMediaRef,
+    promoteMedia
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
   // A streaming run needs a clock whether or not the caller brought one: the
@@ -2541,7 +2805,6 @@ export async function runInSandbox(
   // broken facade the guest imports.
   let wasm: SandboxWasmDispatcher | undefined;
   let hostModules: SandboxHostDispatcher | undefined;
-  let moduleHost: GuestModuleHost | undefined;
   try {
     wasm = modules
       ? createSandboxWasmDispatcher(modules.modules, {
@@ -2554,10 +2817,6 @@ export async function runInSandbox(
           ...(signal === undefined ? {} : { signal })
         })
       : undefined;
-    moduleHost =
-      modules || capabilities
-        ? createGuestModuleHost(modules, capabilities?.facades)
-        : undefined;
   } catch (error) {
     return {
       success: false,
@@ -2580,7 +2839,9 @@ export async function runInSandbox(
       ...(onTakeInput === undefined ? {} : { onTakeInput }),
       ...(onStreamOpen === undefined ? {} : { onStreamOpen }),
       ...(activeClock === undefined ? {} : { clock: activeClock })
-    }
+    },
+    resolveMediaRef,
+    promoteMedia
   );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
@@ -2599,525 +2860,215 @@ export async function runInSandbox(
     .filter(([, v]) => v !== null && typeof v === "object")
     .map(([k]) => k);
 
+  // Write the extracted object-global snapshots back into the caller's own
+  // objects. Both paths end here: node:vm shared the host heap, QuickJS does
+  // not, and a worker makes the separation literal. CodeNode relies on this to
+  // make its `state` object persist across invocations.
+  const writeBackGlobals = (
+    extracted: Record<string, unknown> | undefined
+  ): void => {
+    if (!extracted) return;
+    for (const name of syncTargetNames) {
+      const hostValue = userGlobals[name] as unknown;
+      const guestValue = extracted[name];
+      if (
+        hostValue !== null &&
+        typeof hostValue === "object" &&
+        guestValue !== null &&
+        typeof guestValue === "object"
+      ) {
+        replaceInPlace(hostValue, guestValue);
+      }
+    }
+  };
+
+  // Off the main thread whenever possible. A CPU-bound guest blocks whichever
+  // thread runs it; on the server's main thread that freeze takes the whole
+  // event loop — including the websocket `stop` frame that would have
+  // cancelled the run — down with it. On a worker, abort is `terminate()`,
+  // immediate for spinning and parked guests alike; the logs and emitted
+  // values survive because they accumulate on this side of the port.
+  //
+  // Streaming runs stay in-process: the synchronous `stream.open` probe is
+  // served from a worker-local mirror that must be seeded with the handle
+  // names, which this signature does not carry. Those runs park on takes and
+  // yield the thread constantly, so the freeze this path exists for cannot
+  // build up there.
+  const env =
+    typeof globalThis.process?.env === "object"
+      ? globalThis.process.env
+      : undefined;
+  const workerRequired = env?.NODETOOL_SANDBOX_WORKER === "require";
+  let workerUnavailable: string | null = null;
+  // A chosen or designed fallback is quiet; an environmental one warns once.
+  let fallbackByDesign = false;
+  if (env?.NODETOOL_SANDBOX_INPROC === "1") {
+    workerUnavailable = "NODETOOL_SANDBOX_INPROC=1";
+    fallbackByDesign = true;
+  } else if (onTakeInput !== undefined || onStreamOpen !== undefined) {
+    workerUnavailable = "the run streams inputs";
+    fallbackByDesign = true;
+  } else {
+    const safety = precheckCloneSafety(userGlobals);
+    if (!safety.ok) {
+      workerUnavailable = safety.reason;
+    }
+  }
+  if (workerUnavailable === null) {
+    const dispatcherKinds: SandboxDispatcherKind[] = [];
+    const dispatch: Record<string, unknown> = { ...sandbox };
+    const bindDispatcher = (
+      kind: SandboxDispatcherKind,
+      call: SandboxDispatchCall | undefined
+    ): void => {
+      if (call === undefined) return;
+      dispatch[SANDBOX_DISPATCHER_BINDINGS[kind]] = call;
+      dispatcherKinds.push(kind);
+    };
+    bindDispatcher("wasm", dispatchCallOf(wasm));
+    bindDispatcher("host", dispatchCallOf(hostModules));
+    bindDispatcher("capability", dispatchCallOf(capabilities));
+    for (const [name, value] of Object.entries(userGlobals)) {
+      if (typeof value === "function") dispatch[name] = value;
+    }
+
+    const message: SandboxWorkerResult | null = await runInWorker({
+      run: {
+        runId: globalThis.crypto.randomUUID(),
+        code,
+        timeoutMs,
+        limits: resolvedLimits,
+        suspendAllowanceMs,
+        hasClock: activeClock !== undefined,
+        engineTimeoutMs:
+          activeClock !== undefined
+            ? Math.min(timeoutMs + suspendAllowanceMs, MAX_ENGINE_TIMEOUT_MS)
+            : timeoutMs,
+        ...(modules === undefined ? {} : { modules }),
+        ...(capabilities?.facades === undefined
+          ? {}
+          : { capabilityFacades: capabilities.facades }),
+        streamOpenSeed: null,
+        bridgeShape: deriveBridgeShape({
+          bridges: sandbox,
+          dispatchers: dispatcherKinds,
+          globals: userGlobals
+        })
+      },
+      dispatch,
+      // Console and progress already reach their accumulators through the
+      // RPC'd bridges; the push channel exists for a worker that has nothing
+      // else to say, which this integration does not use.
+      onLog: () => {},
+      onProgress: () => {},
+      ...(signal === undefined ? {} : { signal }),
+      ...(activeClock === undefined
+        ? {}
+        : { suspendedMs: () => activeClock.suspendedMs() })
+    });
+    if (message === null) {
+      workerUnavailable = "no sandbox worker could be started here";
+    } else {
+      writeBackGlobals(message.syncedGlobals);
+      const logs = getLogs();
+      // Cancellation wins over whatever the guest was doing when the interrupt
+      // handler cut it — the in-process race has the same rule. The interrupted
+      // guest's own error (`InternalError: interrupted`) is an implementation
+      // detail, not a result.
+      if (signal?.aborted === true) {
+        return {
+          success: false,
+          error: "Execution cancelled",
+          logs,
+          emitted: getEmitted()
+        };
+      }
+      if (message.failure === "cancelled") {
+        return {
+          success: false,
+          error: "Execution cancelled",
+          logs,
+          emitted: getEmitted()
+        };
+      }
+      if (message.failure === "worker") {
+        return {
+          success: false,
+          error: describeEngineFailure(
+            new Error(message.errorMessage ?? "the sandbox worker failed")
+          ),
+          logs: logs.length > 0 ? logs : undefined,
+          emitted: getEmitted()
+        };
+      }
+      if (!message.evalOk) {
+        return {
+          success: false,
+          error: combineGuestError(
+            message.errorName ?? "",
+            message.errorMessage ?? ""
+          ),
+          stack: message.errorStack
+            ? cleanStack(message.errorStack)
+            : undefined,
+          logs: logs.length > 0 ? logs : undefined,
+          emitted: getEmitted()
+        };
+      }
+      return {
+        success: true,
+        result: serializeResult(message.data, resolvedLimits.maxOutputSize),
+        logs: logs.length > 0 ? logs : undefined,
+        outputs: getOutputs(),
+        emitted: getEmitted()
+      };
+    }
+  }
+  if (workerRequired) {
+    return {
+      success: false,
+      error: `the sandbox worker path is required (NODETOOL_SANDBOX_WORKER=require) but unavailable: ${workerUnavailable}`,
+      logs: []
+    };
+  }
+  if (!fallbackByDesign) {
+    noteWorkerFallback(workerUnavailable);
+  }
+
   try {
     const { runSandboxed } = await getEngine();
 
-    const sandboxRun = runSandboxed(
-      async ({ ctx, evalCode }) => {
-        // Past this point the wrapper's own Node-compat bootstrap has run, so
-        // nothing else may resolve outside the run's declared modules.
-        moduleHost?.enterGuestPhase();
-        // A CPU-bound guest never yields to the host event loop, so an abort
-        // listener can't fire and Promise.race can't help. QuickJS polls this
-        // interrupt handler from inside the interpreter, which is the only
-        // mechanism that can stop a spinning loop. Compose cancellation with
-        // the library's own wall-clock deadline (it installed one before
-        // calling us; replacing it means re-implementing the deadline here).
-        // Suspended time is added back, so a program parked on a permission
-        // prompt resumes with the budget it had when it asked.
-        const deadline = Date.now() + timeoutMs;
-        ctx.runtime.setInterruptHandler(
-          () =>
-            signal?.aborted === true ||
-            Date.now() > deadline + (activeClock?.suspendedMs() ?? 0)
-        );
-
-        const bridges: Record<string, unknown> = {};
-        for (const name of EXPOSED_BRIDGE_NAMES) {
-          bridges[name] = sandbox[name];
-        }
-        // Wrap every async bridge in a never-reject adapter (see
-        // SANDBOX_ERROR_MARKER above). The guest prelude rewraps them back into
-        // throwing functions before user code runs.
-        // guardAbort short-circuits each bridge once the run is cancelled;
-        // neverReject keeps the QuickJS handle-leak convention intact.
-        const wrap = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
-          guardAbort(neverReject(fn), signal);
-        bridges.fetch = wrap(bridges.fetch as never);
-        bridges.sleep = wrap(bridges.sleep as never);
-        bridges.getSecret = wrap(bridges.getSecret as never);
-        bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
-        bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
-        bridges.emit = wrap(bridges.emit as never);
-        bridges.output = wrap(bridges.output as never);
-        // The input bridges are not in EXPOSED_BRIDGE_NAMES — the prelude
-        // captures them, builds `stream` on top, and deletes them. The take is
-        // async like every other host call; the open probe is synchronous and
-        // never throws, so it stays unwrapped (the `crypto.randomUUID` rule).
-        bridges[SANDBOX_INPUT_TAKE_BINDING] = wrap(
-          sandbox[SANDBOX_INPUT_TAKE_BINDING] as never
-        );
-        bridges[SANDBOX_STREAM_OPEN_BINDING] =
-          sandbox[SANDBOX_STREAM_OPEN_BINDING];
-        // Object bridges whose members are all async: wrap each member.
-        const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
-          const out: Record<string, unknown> = {};
-          const members = bridge as Record<
-            string,
-            (...a: never[]) => Promise<unknown>
-          >;
-          for (const [name, fn] of Object.entries(members)) {
-            out[name] = wrap(fn as never);
-          }
-          return out;
-        };
-        bridges.workspace = wrapAllMembers(bridges.workspace);
-        bridges.format = wrapAllMembers(bridges.format);
-        bridges.image = wrapAllMembers(bridges.image);
-        bridges.canvas = wrapAllMembers(bridges.canvas);
-        bridges.media = wrapAllMembers(bridges.media);
-        const hostCrypto = bridges.crypto as {
-          randomUUID: () => string;
-          getRandomValues: (n: number) => Record<string, string>;
-          digest: (...a: never[]) => Promise<unknown>;
-          hmac: (...a: never[]) => Promise<unknown>;
-        };
-        bridges.crypto = {
-          // randomUUID/getRandomValues are synchronous and never throw, so they
-          // stay unwrapped; the async pair follows the never-reject convention.
-          randomUUID: hostCrypto.randomUUID,
-          getRandomValues: hostCrypto.getRandomValues,
-          digest: wrap(hostCrypto.digest),
-          hmac: wrap(hostCrypto.hmac)
-        };
-        // The WASM dispatcher rides the same never-reject convention as every
-        // other async bridge. It is exposed only when the run declares WASM
-        // modules, so a run without them has no such binding at any point.
-        if (wasm !== undefined) {
-          const dispatcher = wasm;
-          bridges[SANDBOX_WASM_BRIDGE_BINDING] = wrap(
-            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
-              dispatcher.call(moduleKey, exportName, args)
-          );
-        }
-        // Same treatment for host modules, exposed only when the run declares
-        // one, so a run without them has no such binding at any point.
-        if (hostModules !== undefined) {
-          const dispatcher = hostModules;
-          bridges[SANDBOX_HOST_BRIDGE_BINDING] = wrap(
-            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
-              dispatcher.call(moduleKey, exportName, args)
-          );
-        }
-        // And for the platform's own modules, exposed only when the host
-        // mounted some — a session with no capability run has no such binding.
-        if (capabilities !== undefined) {
-          const dispatcher = capabilities;
-          bridges[SANDBOX_CAPABILITY_BRIDGE_BINDING] = wrap(
-            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
-              dispatcher.call(moduleKey, exportName, args)
-          );
-        }
-        // Caller-injected globals are host functions too — guard the async
-        // ones or a cancelled run keeps driving real work through them after
-        // runInSandbox has returned.
-        for (const [name, value] of Object.entries(userGlobals)) {
-          bridges[name] =
-            typeof value === "function"
-              ? wrap(value as (...a: unknown[]) => Promise<unknown>)
-              : value;
-        }
-
-        // `expose` manages its own internal Scope; the second arg is unused.
-        const disposable = new Scope();
-        try {
-          expose(ctx, disposable, bridges);
-        } finally {
-          disposable.dispose();
-        }
-
-        // Block dynamic code generation and re-wrap the never-reject bridges as
-        // throwing guest-side functions. Direct eval in QuickJS can't be neutered
-        // by overwriting `globalThis.eval` (QuickJS still resolves the builtin),
-        // but a plain `delete` removes the binding entirely so any reference
-        // throws ReferenceError — same for `Function`.
-        await evalCode(
-          `const __marker = "${SANDBOX_ERROR_MARKER}";
-const __bytesMarker = "${SANDBOX_BYTES_MARKER}";
-const __b64chars = "${BASE64_ALPHABET}";
-globalThis.toBase64 = (input) => {
-  const b = typeof input === "string" ? new TextEncoder().encode(input) : input;
-  let out = "";
-  for (let i = 0; i < b.length; i += 3) {
-    const c = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);
-    out += __b64chars[(c >> 18) & 63] + __b64chars[(c >> 12) & 63] +
-      (i + 1 < b.length ? __b64chars[(c >> 6) & 63] : "=") +
-      (i + 2 < b.length ? __b64chars[c & 63] : "=");
-  }
-  return out;
-};
-globalThis.fromBase64 = (s) => {
-  const clean = String(s).replace(/-/g, "+").replace(/_/g, "/").replace(/[^A-Za-z0-9+/]/g, "");
-  const out = new Uint8Array((clean.length * 6) >> 3);
-  let acc = 0, bits = 0, o = 0;
-  for (let i = 0; i < clean.length; i++) {
-    acc = (acc << 6) | __b64chars.indexOf(clean[i]);
-    bits += 6;
-    if (bits >= 8) { bits -= 8; out[o++] = (acc >> bits) & 255; }
-  }
-  return out;
-};
-globalThis.toHex = (b) => {
-  let s = "";
-  for (let i = 0; i < b.length; i++) s += (b[i] < 16 ? "0" : "") + b[i].toString(16);
-  return s;
-};
-globalThis.fromHex = (s) => {
-  const t = String(s).replace(/[^0-9a-fA-F]/g, "");
-  const out = new Uint8Array(t.length >> 1);
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(t.substr(i * 2, 2), 16);
-  return out;
-};
-globalThis.parallelMap = async (items, fn, concurrency) => {
-  if (typeof fn !== "function") {
-    throw new TypeError("parallelMap: fn must be a function");
-  }
-  const list = Array.from(items);
-  const raw = Number(concurrency === undefined ? 5 : concurrency);
-  const limit = Number.isFinite(raw)
-    ? Math.min(Math.max(Math.floor(raw), 1), 32)
-    : 5;
-  const results = new Array(list.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < list.length) {
-      const i = next++;
-      results[i] = await fn(list[i], i);
-    }
-  };
-  const workers = [];
-  for (let w = 0; w < Math.min(limit, list.length); w++) workers.push(worker());
-  await Promise.all(workers);
-  return results;
-};
-const __revive = (v) => (v && typeof v === "object" && typeof v[__bytesMarker] === "string")
-  ? globalThis.fromBase64(v[__bytesMarker])
-  : v;
-const __wrap = (fn) => async (...args) => {
-  const r = await fn(...args);
-  if (r && r[__marker]) {
-    const e = new Error(r.message);
-    e.name = r.name;
-    throw e;
-  }
-  return __revive(r);
-};
-const __rawFetch = __wrap(globalThis.fetch);
-globalThis.fetch = async (...args) => {
-  const r = await __rawFetch(...args);
-  if (r && typeof r === "object") {
-    const rb = r.bytes, rab = r.arrayBuffer;
-    if (typeof rb === "function") r.bytes = async () => __revive(await rb());
-    if (typeof rab === "function") r.arrayBuffer = async () => __revive(await rab()).buffer;
-  }
-  return r;
-};
-globalThis.sleep = __wrap(globalThis.sleep);
-globalThis.getSecret = __wrap(globalThis.getSecret);
-globalThis.assetToSandbox = __wrap(globalThis.assetToSandbox);
-globalThis.sandboxToAsset = __wrap(globalThis.sandboxToAsset);
-globalThis.emit = __wrap(globalThis.emit);
-globalThis.output = __wrap(globalThis.output);
-const __ws = globalThis.workspace;
-globalThis.workspace = {
-  read: __wrap(__ws.read),
-  write: __wrap(__ws.write),
-  list: __wrap(__ws.list),
-  readBytes: __wrap(__ws.readBytes),
-  writeBytes: __wrap(__ws.writeBytes),
-  stat: __wrap(__ws.stat),
-  root: __wrap(__ws.root),
-  copy: __wrap(__ws.copy),
-  move: __wrap(__ws.move),
-  mkdir: __wrap(__ws.mkdir),
-  remove: __wrap(__ws.remove)
-};
-const __fmt = globalThis.format;
-globalThis.format = {
-  number: __wrap(__fmt.number),
-  date: __wrap(__fmt.date),
-  relativeTime: __wrap(__fmt.relativeTime),
-  list: __wrap(__fmt.list)
-};
-const __reviveDeep = (v) => {
-  const r = __revive(v);
-  if (r !== v) return r;
-  if (Array.isArray(v)) {
-    for (let i = 0; i < v.length; i++) v[i] = __reviveDeep(v[i]);
-    return v;
-  }
-  if (v && typeof v === "object") {
-    for (const k of Object.keys(v)) v[k] = __reviveDeep(v[k]);
-    return v;
-  }
-  return v;
-};
-const __wrapDeep = (fn) => {
-  const wrapped = __wrap(fn);
-  return async (...args) => __reviveDeep(await wrapped(...args));
-};
-const __image = globalThis.image;
-globalThis.image = {
-  info: __wrapDeep(__image.info),
-  decode: __wrapDeep(__image.decode),
-  encode: __wrapDeep(__image.encode),
-  resize: __wrapDeep(__image.resize),
-  crop: __wrapDeep(__image.crop),
-  rotate: __wrapDeep(__image.rotate),
-  flip: __wrapDeep(__image.flip),
-  adjust: __wrapDeep(__image.adjust),
-  composite: __wrapDeep(__image.composite),
-  convert: __wrapDeep(__image.convert)
-};
-const __canvasBridge = globalThis.canvas;
-globalThis.canvas = {
-  render: __wrapDeep(__canvasBridge.render),
-  measureText: __wrapDeep(__canvasBridge.measureText)
-};
-const __mediaBridge = globalThis.media;
-const __mediaOut = {};
-for (const __m of ${JSON.stringify(MEDIA_REF_MEMBERS)}) {
-  __mediaOut[__m] = __wrapDeep(__mediaBridge[__m]);
-}
-globalThis.media = __mediaOut;
-// The input side of emit. An async iterable cannot cross the bridge, so the
-// guest builds one over a take-one-value host call: the body pulls, and an item
-// it has not asked for stays in the host's inbox. The raw bindings are captured
-// and deleted, so \`stream\` is the only way to reach them.
-const __takeInput = __wrapDeep(globalThis.${SANDBOX_INPUT_TAKE_BINDING});
-const __streamOpen = globalThis.${SANDBOX_STREAM_OPEN_BINDING};
-delete globalThis.${SANDBOX_INPUT_TAKE_BINDING};
-delete globalThis.${SANDBOX_STREAM_OPEN_BINDING};
-const __streamName = (fn, name) => {
-  if (typeof name !== "string") {
-    throw new TypeError(fn + ": name must be a string");
-  }
-  return name;
-};
-// \`handle\` is null for stream.any(), which yields [handle, value] pairs.
-const __streamIterable = (handle) => ({
-  [Symbol.asyncIterator]: () => ({
-    next: async () => {
-      const take = await __takeInput(handle);
-      if (take.done) return { done: true, value: undefined };
-      return {
-        done: false,
-        value: handle === null ? [take.handle, take.value] : take.value
-      };
-    }
-  })
-});
-globalThis.stream = (name) => __streamIterable(__streamName("stream", name));
-globalThis.stream.any = () => __streamIterable(null);
-globalThis.stream.first = async (name) => {
-  const take = await __takeInput(__streamName("stream.first", name));
-  return take.done ? undefined : take.value;
-};
-globalThis.stream.open = (name) => {
-  const open = __streamOpen(__streamName("stream.open", name));
-  // null is the host saying this run has no input stream at all. Every other
-  // stream verb reports that by throwing; this one has to do it here, because
-  // a synchronous bridge cannot.
-  if (open === null) {
-    throw new Error(${JSON.stringify(NO_INPUT_STREAM_MESSAGE)});
-  }
-  return open;
-};
-const __canvasProps = ${JSON.stringify(CANVAS_PROPERTIES)};
-const __canvasMethods = ${JSON.stringify(CANVAS_METHODS)};
-const __canvasGradients = ${JSON.stringify(CANVAS_GRADIENT_FACTORIES)};
-const __gradMarker = "${CANVAS_GRADIENT_MARKER}";
-// A canvas context is a host object with methods, which the bridge contract
-// cannot carry. So this records the ordinary Canvas 2D calls synchronously and
-// ships the whole draw list in one canvas.render() when toBytes() is awaited.
-globalThis.createCanvas = (width, height) => {
-  const ops = [];
-  const gradients = {};
-  let gradientSeq = 0;
-  const asStyle = (value) =>
-    value && typeof value === "object" && typeof value[__gradMarker] === "string"
-      ? { [__gradMarker]: value[__gradMarker] }
-      : value;
-  const ctx = {};
-  for (const name of __canvasMethods) {
-    ctx[name] = (...args) => {
-      ops.push({ op: name, args });
-      return ctx;
-    };
-  }
-  ctx.drawImage = (source, ...rest) => {
-    ops.push({ op: "drawImage", args: [source, ...rest] });
-    return ctx;
-  };
-  const values = {};
-  for (const prop of __canvasProps) {
-    Object.defineProperty(ctx, prop, {
-      enumerable: true,
-      get: () => values[prop],
-      set: (value) => {
-        values[prop] = value;
-        ops.push({ op: "set", args: [prop, asStyle(value)] });
-      }
+    // The dispatchers stay on this side of the boundary — the interpreter only
+    // ever sees a call function, which is as true of a worker's RPC proxy as it
+    // is of the real dispatcher here.
+    const sandboxRun = runInterpreter({
+      runSandboxed,
+      code,
+      sandbox,
+      globals: userGlobals,
+      syncTargetNames,
+      timeoutMs,
+      limits: resolvedLimits,
+      suspendAllowanceMs,
+      hasClock: activeClock !== undefined,
+      wasmCall: dispatchCallOf(wasm),
+      hostCall: dispatchCallOf(hostModules),
+      capabilityCall: dispatchCallOf(capabilities),
+      modules,
+      capabilityFacades: capabilities?.facades,
+      // The interpreter cannot hold either host object: neither an AbortSignal
+      // nor a clock survives a thread boundary, so both arrive as a probe.
+      ...(signal === undefined ? {} : { isAborted: () => signal.aborted }),
+      ...(activeClock === undefined
+        ? {}
+        : { suspendedMs: () => activeClock.suspendedMs() })
+    }).then((outcome: InterpreterOutcome) => {
+      // The write-back runs as soon as the guest is done, even when
+      // cancellation already won the race below — an orphaned run still owns
+      // the answer it computed.
+      writeBackGlobals(outcome.syncedGlobals);
+      return outcome;
     });
-  }
-  for (const factory of Object.keys(__canvasGradients)) {
-    ctx[factory] = (...coords) => {
-      const id = "g" + gradientSeq++;
-      const spec = { type: __canvasGradients[factory], coords, stops: [] };
-      gradients[id] = spec;
-      const handle = {
-        [__gradMarker]: id,
-        addColorStop: (offset, color) => {
-          spec.stops.push([offset, color]);
-          return handle;
-        }
-      };
-      return handle;
-    };
-  }
-  const surface = {
-    width,
-    height,
-    getContext: (kind) => {
-      if (kind !== undefined && kind !== "2d") {
-        throw new Error('createCanvas: only the "2d" context exists');
-      }
-      return ctx;
-    },
-    toSpec: (options) => ({
-      width,
-      height,
-      gradients,
-      ops,
-      ...(options || {})
-    }),
-    toBytes: (options) => globalThis.canvas.render(surface.toSpec(options))
-  };
-  return surface;
-};
-const __crypto = globalThis.crypto;
-globalThis.crypto = {
-  randomUUID: () => __crypto.randomUUID(),
-  getRandomValues: (n) => {
-    const len = Number(n);
-    if (!Number.isFinite(len) || len < 0) {
-      throw new TypeError("crypto.getRandomValues: length must be a non-negative number");
-    }
-    return __revive(__crypto.getRandomValues(Math.floor(len)));
-  },
-  digest: __wrap(__crypto.digest),
-  hmac: __wrap(__crypto.hmac)
-};
-${DELETED_GUEST_GLOBALS.map((n) => `delete globalThis.${n};`).join("\n")}
-${
-  wasm === undefined
-    ? ""
-    : `globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL} = __wrap(globalThis.${SANDBOX_WASM_BRIDGE_BINDING});
-delete globalThis.${SANDBOX_WASM_BRIDGE_BINDING};`
-}
-${
-  hostModules === undefined
-    ? ""
-    : `globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL} = __wrapDeep(globalThis.${SANDBOX_HOST_BRIDGE_BINDING});
-delete globalThis.${SANDBOX_HOST_BRIDGE_BINDING};`
-}
-${
-  capabilities === undefined
-    ? ""
-    : `globalThis.${SANDBOX_CAPABILITY_DISPATCH_GLOBAL} = __wrapDeep(globalThis.${SANDBOX_CAPABILITY_BRIDGE_BINDING});
-delete globalThis.${SANDBOX_CAPABILITY_BRIDGE_BINDING};`
-}
-export default true;`,
-          "sandbox-init"
-        );
-
-        // `evalCode` compiles and links the module — resolving its whole static
-        // import graph — before its first await, so a resolution that arrives
-        // after this call has returned can only come from a dynamic `import()`.
-        // The dispatcher binding lives only long enough for the bridge module
-        // to capture it while the entry's static graph links. This deletion is
-        // the entry module's first statement, so it runs after every imported
-        // module has evaluated and before the user IIFE starts.
-        const pendingUserResult = evalCode(
-          buildEntryModule(
-            code,
-            `${
-              wasm === undefined
-                ? ""
-                : ` delete globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL};`
-            }${
-              hostModules === undefined
-                ? ""
-                : ` delete globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL};`
-            }${
-              capabilities === undefined
-                ? ""
-                : ` delete globalThis.${SANDBOX_CAPABILITY_DISPATCH_GLOBAL};`
-            }`
-          ),
-          "user-code"
-        );
-        moduleHost?.lockStaticGraph();
-        const userResult = await pendingUserResult;
-
-        // Sync mutable globals back to the host. node:vm shared the host heap,
-        // so `state.counter++` in user code mutated the caller's object directly.
-        // With QuickJS the guest heap is isolated, so after user code runs we
-        // extract the current values of the object-typed user globals and
-        // replace the contents of the host-side objects in place. CodeNode
-        // relies on this to make its `state` object persist across invocations.
-        if (syncTargetNames.length > 0) {
-          const extractor = `export default {${syncTargetNames
-            .map(
-              (n) =>
-                `${n}: (typeof ${n} !== 'undefined' && ${n} !== null) ? ${n} : null`
-            )
-            .join(", ")}};`;
-          const syncResp = await evalCode(extractor, "sandbox-sync");
-          if (
-            syncResp.ok &&
-            syncResp.data &&
-            typeof syncResp.data === "object"
-          ) {
-            const extracted = syncResp.data as Record<string, unknown>;
-            for (const name of syncTargetNames) {
-              const hostValue = userGlobals[name] as unknown;
-              const guestValue = extracted[name];
-              if (
-                hostValue !== null &&
-                typeof hostValue === "object" &&
-                guestValue !== null &&
-                typeof guestValue === "object"
-              ) {
-                replaceInPlace(hostValue, guestValue);
-              }
-            }
-          }
-        }
-
-        return userResult;
-      },
-      {
-        // The engine's own abort is a plain `setTimeout` armed when evaluation
-        // starts — it cannot be paused. With a clock in play it becomes the
-        // backstop for a run that stays suspended forever, while the interrupt
-        // handler above keeps the exact bound on guest execution.
-        executionTimeout: activeClock
-          ? Math.min(
-              timeoutMs + Math.max(0, suspendAllowanceMs),
-              MAX_ENGINE_TIMEOUT_MS
-            )
-          : timeoutMs,
-        memoryLimit: resolvedLimits.memoryLimitBytes,
-        maxStackSize: resolvedLimits.stackLimitBytes,
-        // The library defaults this to `{NODE_DEBUG: "true"}`, which reaches
-        // the guest as `process.env` and can flip debug paths in its `node:util`
-        // polyfill. Guest code has no business reading host-shaped environment
-        // variables, so the stub carries nothing.
-        env: {},
-        ...moduleHost?.options
-      }
-    );
 
     // Return as soon as cancellation lands. The bridges above make a guest that
     // awaits anything unwind almost immediately; this race additionally covers
@@ -3127,7 +3078,9 @@ export default true;`,
       if (!signal) return;
       signal.addEventListener("abort", () => resolve(null), { once: true });
     });
-    const raced = await Promise.race([sandboxRun, cancellation]);
+    const raced = await guardHostProcess(
+      Promise.race([sandboxRun, cancellation])
+    );
     if (raced === null) {
       return {
         success: false,
@@ -3141,17 +3094,10 @@ export default true;`,
     const logs = getLogs();
 
     if (!evalResponse.ok) {
-      // Include the error name alongside the message when the name carries
-      // useful signal (e.g. `ExecutionTimeout` for the library's wall-clock
-      // abort). `Error` is redundant, so omit it.
-      const name = evalResponse.error.name;
-      const message = evalResponse.error.message;
-      const combined =
-        name &&
-        name !== "Error" &&
-        !message.toLowerCase().includes(name.toLowerCase())
-          ? `${name}: ${message}`
-          : message || name;
+      const combined = combineGuestError(
+        evalResponse.error.name,
+        evalResponse.error.message
+      );
       return {
         success: false,
         error: combined,
@@ -3173,10 +3119,12 @@ export default true;`,
       emitted: getEmitted()
     };
   } catch (e: unknown) {
-    // Host-side failures (engine load error, marshaling bug, etc.). Guest-side
-    // errors go through evalResponse.ok=false above.
+    // Host-side failures (engine load error, marshaling bug, an aborted
+    // runtime). Guest-side errors go through evalResponse.ok=false above.
+    // An engine failure is reported in terms the caller can act on: the raw
+    // Emscripten assertion text tells an agent nothing it can retry against.
     const logs = getLogs();
-    const errorMessage = e instanceof Error ? e.message : String(e);
+    const errorMessage = describeEngineFailure(e);
     const errorStack =
       e instanceof Error ? cleanStack(e.stack ?? "") : undefined;
 

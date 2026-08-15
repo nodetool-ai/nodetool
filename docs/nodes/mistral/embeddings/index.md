@@ -5,8 +5,6 @@ title: "mistral.embeddings Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Embedding](embedding.md)**
-
-[Back to all nodes](../../)
+- **[Embedding](embedding.md)** - Generate vector embeddings using Mistral AI.

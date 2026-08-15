@@ -307,13 +307,17 @@ async function startServer(): Promise<void> {
     NODETOOL_PYTHON: pythonPath,
     NODE_ENV: isDevMode() ? "development" : "production",
     // Electron's optional-node directory holds user-installed code in every
-    // build mode; host packs need an explicit allowlist even during app development.
-    NODETOOL_ENV: "production",
-    // The line above asks for the pack allowlist, not for the curated cloud
-    // catalog. Without an explicit profile, production alone would activate it
-    // and unregister every local and OAuth-backed provider — Ollama, LM Studio,
-    // llama.cpp, vLLM, and the Claude subscription — on the one surface where
-    // they are the point. Set `NODETOOL_NODE_PROFILE=cloud` to opt back in.
+    // build mode; host packs need an explicit allowlist even during app
+    // development. This dedicated flag asks for exactly that. The backend must
+    // NOT run with NODETOOL_ENV=production — the server treats production as
+    // "hosted cloud" and disables local-only features the desktop app is built
+    // around: the Python bridge, vector nodes, the file browser, workspaces,
+    // MCP config, and local model scanning.
+    NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
+    // Keep the full node catalog and the local providers (Ollama, LM Studio,
+    // llama.cpp, vLLM, the Claude subscription) — the desktop app is the one
+    // surface where they are the point. Set `NODETOOL_NODE_PROFILE=cloud` in
+    // the launching environment to opt into the curated cloud catalog.
     NODETOOL_NODE_PROFILE: getProcessEnv()["NODETOOL_NODE_PROFILE"] ?? "full",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,

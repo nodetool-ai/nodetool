@@ -8,8 +8,7 @@
  *   - a visible React error boundary,
  *   - a `console.error`, or
  *   - a 4xx/5xx on a critical resource (document / script / stylesheet).
- * It complements the visual-regression suite: that one guards how pages look,
- * this one guards that they mount at all.
+ * It guards that every page mounts at all.
  *
  * Environment noise expected on GPU-less CI runners (WebGPU adapter probing,
  * favicon 404s, aborted in-flight fetches on unmount, the transient agent
@@ -58,10 +57,8 @@ const IGNORED_CONSOLE_PATTERNS: RegExp[] = [
   /The user aborted a request/i,
   /AbortError/i,
   /net::ERR_ABORTED/i,
-  // WebSocket connectivity is transient by design — the client retries. The
-  // seeded screenshot backend serves /ws but not the Pi agent bridge
-  // (/ws/agent), so Global Chat's connect attempt fails on every route while
-  // the page still mounts. A dropped/failed socket is not a page-mount error.
+  // WebSocket connectivity is transient by design — the client retries. A
+  // dropped or failed socket is not a page-mount error.
   /WebSocket connection to .* failed/i,
   /WebSocket is closed before the connection is established/i,
   // React DevTools nudge printed in dev builds.
@@ -115,7 +112,7 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
 
   page.on("requestfailed", (request) => {
     // Only a failed document/script/stylesheet load white-screens a page. A
-    // failed xhr/fetch/websocket (e.g. the transient /ws/agent socket) is
+    // failed xhr/fetch/websocket is
     // data-level and handled elsewhere, so scope this to the same critical
     // resource types as the `response` listener. Once scoped, always record:
     // the console allowlist is for noisy non-critical logs, and applying it

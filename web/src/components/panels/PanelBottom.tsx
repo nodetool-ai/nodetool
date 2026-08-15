@@ -25,7 +25,6 @@ import isEqual from "../../utils/isEqual";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
-import SandboxesPanel from "../dashboard/SandboxesPanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
@@ -47,14 +46,12 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 // icons
 import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
-import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import MemoryIcon from "@mui/icons-material/Memory";
 
 const workspacesEnabled = !isProduction;
-const sandboxesEnabled = !isProduction;
 
 const HEADER_HEIGHT = 32;
 
@@ -131,12 +128,6 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     label: "Queue",
     icon: <PlaylistPlayIcon />,
     enabled: true
-  },
-  sandboxes: {
-    id: "sandboxes",
-    label: "Sandboxes",
-    icon: <DesktopWindowsIcon />,
-    enabled: sandboxesEnabled
   },
   workers: {
     id: "workers",
@@ -463,8 +454,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
           <QueuePanel />
         </FlexColumn>
       );
-    case "sandboxes":
-      return sandboxesEnabled ? <SandboxesPanel /> : null;
     case "workers":
       return <WorkersPanel />;
     case "versions":
@@ -528,7 +517,7 @@ const PanelBottom: React.FC = () => {
   useCombo(["l"], () => handlePanelToggle("logs"), false);
 
   // Production-disabled-view safeguard: if a previous session persisted a
-  // gated-off view (workspace/sandboxes), migrate the store to "logs" so the
+  // gated-off view (workspace), migrate the store to "logs" so the
   // active view and the rendered body stay in sync.
   useEffect(() => {
     if (!VIEW_SPECS[activeView]?.enabled) {

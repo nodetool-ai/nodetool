@@ -19,9 +19,7 @@ import { createDefaultDocument, makeSingleQuadTransform } from "../types";
 import { fxEnsureTransform as ensureTransformMatrix, aff } from "./_transformFixtures";
 import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
-import type { PreviewSession } from "../tools/previewSession";
 import {
-  getVisualBounds,
   computeTransformedExtents,
   computeTransformedCenter
 } from "../transform/geometry/layerGeometry";

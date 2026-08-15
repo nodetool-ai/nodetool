@@ -10,7 +10,12 @@ import { createDefaultDocument, type HistoryEntry } from "../../../components/sk
 import { useSketchStore } from "../../../components/sketch/state";
 import { useAssetStore } from "../../AssetStore";
 import { useNotificationStore } from "../../NotificationStore";
-import { useStandaloneSketchDocument, useSketchSessionStore } from "../SketchSessionStore";
+import {
+  renameSketchDocument,
+  useStandaloneSketchDocument,
+  useSketchSessionStore
+} from "../SketchSessionStore";
+import { getActiveSketchInstance } from "../SketchInstance";
 
 const updateMutate = trpcClient.sketch.update.mutate as unknown as jest.Mock;
 type StandaloneResponse = NonNullable<
@@ -210,5 +215,57 @@ describe("useStandaloneSketchDocument", () => {
         .getState()
         .notifications.some((n) => n.content.includes("externalized"))
     ).toBe(true);
+  });
+});
+
+describe("renameSketchDocument", () => {
+  beforeEach(() => {
+    updateMutate.mockReset();
+    (updateMutate as any).mockResolvedValue({
+      ...buildResponse(),
+      name: "Fox",
+      updatedAt: "2026-01-01T00:00:02Z"
+    });
+    useSketchSessionStore.getState().reset();
+  });
+
+  it("sets the session name and persists it", async () => {
+    const instance = getActiveSketchInstance();
+    instance.session.getState().setLoadedDocument(
+      { id: "doc-1", name: "Sketch", updatedAt: "2026-01-01T00:00:00Z" },
+      "hash-1"
+    );
+
+    await renameSketchDocument(instance, "Fox");
+
+    expect(instance.session.getState().name).toBe("Fox");
+    expect(updateMutate).toHaveBeenCalledWith({
+      id: "doc-1",
+      name: "Fox",
+      baseUpdatedAt: "2026-01-01T00:00:00Z"
+    });
+    expect(instance.session.getState().baseUpdatedAt).toBe(
+      "2026-01-01T00:00:02Z"
+    );
+  });
+
+  it("retries once after a concurrency conflict", async () => {
+    const instance = getActiveSketchInstance();
+    instance.session.getState().setLoadedDocument(
+      { id: "doc-1", name: "Sketch", updatedAt: "2026-01-01T00:00:00Z" },
+      "hash-1"
+    );
+    (updateMutate as any)
+      .mockRejectedValueOnce(new Error("Document was modified (concurrent)"))
+      .mockResolvedValueOnce({
+        ...buildResponse(),
+        name: "Fox",
+        updatedAt: "2026-01-01T00:00:03Z"
+      });
+
+    await renameSketchDocument(instance, "Fox");
+
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+    expect(instance.session.getState().name).toBe("Fox");
   });
 });

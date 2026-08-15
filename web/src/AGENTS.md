@@ -14,7 +14,7 @@ npm install              # Install dependencies
 npm start                # Start dev server (http://localhost:3000)
 npm run build            # Production build
 npm run typecheck        # TypeScript check
-npm run lint             # ESLint
+npm run lint             # oxlint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run all tests
 npm run test:watch       # Watch mode
@@ -63,16 +63,16 @@ web/src/
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| React | 18.2 | UI framework |
-| TypeScript | 5.7 | Type safety |
-| Vite | 6.4 | Build tool and dev server |
-| MUI | v7.2 | Component library (with Emotion for CSS-in-JS) |
-| Zustand | 4.5.7 | State management |
-| ReactFlow | 12.10 | Node graph editor |
-| TanStack Query | v5.62.3 | Server state management |
-| React Router | v7.12 | Client-side routing |
+| React | 19.2 | UI framework |
+| TypeScript | 5.9 | Type safety |
+| Vite | 8.0 | Build tool and dev server |
+| MUI | v7.3 | Component library (with Emotion for CSS-in-JS) |
+| Zustand | 5.0 | State management |
+| ReactFlow | 12.11 | Node graph editor |
+| TanStack Query | v5.101 | Server state management |
+| React Router | v7.16 | Client-side routing |
 | Jest | 29.7 | Unit testing |
-| React Testing Library | 16.1 | Component testing |
+| React Testing Library | 16.3 | Component testing |
 | Playwright | — | E2E testing |
 
 ## State Management Architecture
@@ -136,4 +136,5 @@ When writing or editing any style, check these rules. Violations in the file you
 The Vite dev server proxies these paths to the backend:
 - `/api/*` → `http://localhost:7777`
 - `/ws/*` → `ws://localhost:7777`
-- `/storage/*` → `http://localhost:7777`
+- `/trpc/*` → `http://localhost:7777`
+- `/storage/*` → `http://localhost:7777/api/storage`

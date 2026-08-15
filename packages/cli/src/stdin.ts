@@ -34,7 +34,7 @@ import {
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { createProvider, WebSocketProvider } from "./providers.js";
+import { createProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import {
   isCodeAction,
@@ -48,11 +48,6 @@ export interface StdinModeOptions {
   model: string;
   workspaceDir: string;
   wsUrl?: string;
-  /**
-   * Extra tools (e.g. from --sandbox) appended to the unified loop's tool
-   * list. `run_subtask` is always available; the agent decides when to use it.
-   */
-  extraTools?: Tool[];
   /** NodeRegistry — currently unused by the unified loop, kept for parity. */
   registry?: NodeRegistry;
   /** Configured BaseProvider instances by id (passed through to subtasks). */
@@ -237,12 +232,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   // Build the unified-loop toolset for direct mode. `run_subtask` lets the
   // agent decompose work recursively without any flag — the same primitive
   // the websocket server exposes.
-  const buildDirectTools = (
-    prov: BaseProvider | null,
-    extras: Tool[]
-  ): Tool[] => {
-    if (!prov) return extras;
-    const baseTools = extras.slice();
+  const buildDirectTools = (prov: BaseProvider | null): Tool[] => {
+    if (!prov) return [];
+    const baseTools: Tool[] = [];
     const forwardMessage = (msg: ProcessingMessage) => {
       if (msg.type === "chunk") {
         process.stdout.write((msg as { content?: string }).content ?? "");
@@ -357,7 +349,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       continue;
     }
 
-    if (wsClient && !opts.extraTools?.length) {
+    if (wsClient) {
       // --- Regular chat via WebSocket (server handles everything) ---
       for await (const event of wsClient.chat(
         trimmed,
@@ -406,20 +398,12 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           break;
         }
       }
-    } else if (wsClient && opts.extraTools?.length) {
-      // --- Regular chat via WebSocket inference + local sandbox tool execution ---
-      const prov = new WebSocketProvider(wsClient, opts.model, opts.provider);
-      await runCodeActTurn(
-        trimmed,
-        prov,
-        buildDirectTools(prov, opts.extraTools)
-      );
     } else {
       // --- Regular chat via direct provider ---
       await runCodeActTurn(
         trimmed,
         directProvider!,
-        buildDirectTools(directProvider, opts.extraTools ?? [])
+        buildDirectTools(directProvider)
       );
     }
 

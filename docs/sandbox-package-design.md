@@ -129,7 +129,8 @@ not enforce on itself. A pack can pair kinds: a WASM module plus a guest JS
 wrapper that gives it an ergonomic API.
 
 Capability globals are a different thing and stay as they are: `fetch`,
-`workspace`, `getSecret`, the asset bridges, `format.*`, `image.*`, `canvas.*`
+`workspace`, `getSecret`, the asset bridges, `format.*`, `image.*`, `audio.*`,
+`video.*`, `canvas.*`
 and `crypto.*` are what the node granted this run, not libraries it chose.
 
 ### Trust model: explicit dependency consent

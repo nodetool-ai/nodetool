@@ -1005,6 +1005,22 @@ describe("runInSandbox cancellation", () => {
   });
 });
 
+/**
+ * Both tests below time how fast a cancellation reaches a spinning guest, and
+ * both cancel by terminating the worker — which drops it from the pool, so the
+ * next run spawns a fresh one. Spawning is the expensive part (a WASM
+ * instantiation, and under tsx a recompile of the whole sandbox graph):
+ * measured here, a cold cancellation run takes ~900ms against a ~16ms warm one,
+ * and a contended CI runner has been seen paying 7-13s for a single spawn. That
+ * is startup, not interrupt latency, and a budget written for the latter cannot
+ * absorb it — one CI run failed `elapsed < 3000` at 11191ms on a cancellation
+ * that worked. Leaving an idle worker in the pool first keeps each budget
+ * measuring what its test is named after.
+ */
+async function warmSandboxWorkerPool(): Promise<void> {
+  await runInSandbox({ code: "return 1;", timeoutMs: 5_000 });
+}
+
 describe("runInSandbox cancellation of CPU-bound guests", () => {
   it("interrupts a CPU-bound loop once cancellation has landed", async () => {
     // Regression: Promise.race cannot stop a CPU-bound guest — it never yields,
@@ -1016,6 +1032,7 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     // real orchestration scripts have — they await sub-agents constantly — and
     // it is what lets the abort flag get set in the first place. See the test
     // below for the case this cannot cover.
+    await warmSandboxWorkerPool();
     const controller = new AbortController();
     const started = Date.now();
 
@@ -1036,26 +1053,27 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     expect(elapsed).toBeLessThan(3000);
   });
 
-  it("documents the limit: a guest that never yields cannot be cancelled in-process", async () => {
-    // A guest that spins from its first instruction blocks the host event loop,
-    // so the Stop message cannot even be read and the abort flag can never be
-    // set — the interrupt handler polls a flag that stays false. Cancelling
-    // this case requires running QuickJS in a terminable worker.
-    // This test pins the known behavior so a future worker migration has a
-    // failing assertion to flip.
+  it("cancels a guest that never yields", async () => {
+    // The case the worker exists for. A guest that spins from its first
+    // instruction used to block the host event loop until its execution
+    // timeout — the abort listener could never run, so the flag the interrupt
+    // handler polled stayed false. On the worker path the host thread stays
+    // free and abort terminates the worker outright.
+    await warmSandboxWorkerPool();
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 25);
     const started = Date.now();
 
     const result = await runInSandbox({
       code: "while (true) {}\nreturn 'never';",
-      timeoutMs: 1_000,
+      timeoutMs: 30_000,
       signal: controller.signal
     });
 
     expect(result.success).toBe(false);
-    // Runs to its execution timeout despite the 25ms abort.
-    expect(Date.now() - started).toBeGreaterThanOrEqual(900);
+    expect(result.error).toBe("Execution cancelled");
+    // Well before the 30s execution timeout.
+    expect(Date.now() - started).toBeLessThan(5_000);
   });
 
   it("guards caller-injected async globals after cancel", async () => {
@@ -2015,5 +2033,66 @@ describe("serializeResult binary preservation", () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
     expect(typeof serializeResult(cyclic)).toBe("string");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Engine failure containment
+//
+// Both cases here used to end with the host process dead and the tool call
+// that was running it returning nothing at all — the worst failure mode there
+// is, because the agent driving it cannot even retry.
+// ---------------------------------------------------------------------------
+
+describe("guest→host binary volume", () => {
+  it("moves far more than the old ~8 MB ceiling without aborting the runtime", async () => {
+    // The typed-array serializer took a `Lifetime` from `getArrayBuffer` and
+    // never disposed it. The leaked handles tripped
+    // `list_empty(&rt->gc_obj_list)` in JS_FreeRuntime — an Emscripten abort
+    // fired *after* the guest had already computed its answer, so the result
+    // was produced and then thrown away. 16 MB failed before the fix.
+    const result = await runInSandbox({
+      code: `
+        let total = 0;
+        for (let i = 0; i < 24; i++) {
+          total += await eat(new Uint8Array(1024 * 1024));
+        }
+        return total;
+      `,
+      context: {} as never,
+      timeoutMs: 120_000,
+      globals: { eat: async (a: unknown) => (a as Uint8Array).length }
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(24 * 1024 * 1024);
+  }, 180_000);
+});
+
+describe("engine failure never takes the host process down", () => {
+  it("fails the run, with an actionable message, when marshaling blows up", async () => {
+    // A host global returning a raw Uint8Array breaks the byte-tagging
+    // contract: the value is marshaled property-by-property, the guest OOMs,
+    // and the throw lands in a promise continuation the engine never catches.
+    // That used to be an unhandled rejection, i.e. a dead process.
+    const result = await runInSandbox({
+      code: `const a = await big(); return "unreachable";`,
+      context: {} as never,
+      timeoutMs: 120_000,
+      globals: { big: async () => new Uint8Array(16 * 1024 * 1024) }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    // Not the raw Emscripten assertion text — an agent can't act on that.
+    expect(result.error).not.toMatch(/gc_obj_list|Assertion failed/);
+    expect(result.error).toMatch(/sandbox/i);
+  }, 180_000);
+
+  it("still runs normally afterwards", async () => {
+    const result = await runInSandbox({ code: `return 1 + 1;`, context: {} as never });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(2);
   });
 });

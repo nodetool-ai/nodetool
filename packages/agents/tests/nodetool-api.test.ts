@@ -37,7 +37,9 @@ const MODEL_TOOLS = ["find_model", "list_models"].map(toolDef);
 const MEDIA_TOOLS = [
   "generate_image",
   "generate_speech",
-  "transcribe_audio"
+  "transcribe_audio",
+  "ffmpeg",
+  "yt_dlp"
 ].map(toolDef);
 const TIMELINE_TOOLS = ["list_timelines", "validate_timeline"].map(toolDef);
 
@@ -131,6 +133,14 @@ function createFakeRouter() {
         });
       case "generate_speech":
         return JSON.stringify({ type: "audio", asset_uri: "asset://a1.mp3" });
+      case "ffmpeg":
+        return JSON.stringify({ success: true, args: args["args"] });
+      case "yt_dlp":
+        return JSON.stringify({
+          success: true,
+          url: args["url"],
+          output_file: args["output_file"]
+        });
       case "list_timelines":
         return JSON.stringify({ timelines: [] });
       case "validate_timeline":
@@ -207,6 +217,37 @@ describe("nodetool object model", () => {
         model: "fal-ai/flux/schnell",
         prompt: "a fox",
         width: 512
+      }
+    });
+  });
+
+  it("routes ffmpeg and downloadVideo to the host binaries", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(MEDIA_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const ff = await nodetool.media.ffmpeg(["-i", "in.mp4", "out.mp4"], {
+         timeout_seconds: 30
+       });
+       const dl = await nodetool.media.downloadVideo(
+         "https://example.com/v",
+         "clip.mp4"
+       );
+       return { ff: ff.success, out: dl.output_file };`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls[0]).toMatchObject({
+      name: "ffmpeg",
+      args: {
+        args: ["-i", "in.mp4", "out.mp4"],
+        timeout_seconds: 30
+      }
+    });
+    expect(calls[1]).toMatchObject({
+      name: "yt_dlp",
+      args: {
+        url: "https://example.com/v",
+        output_file: "clip.mp4"
       }
     });
   });

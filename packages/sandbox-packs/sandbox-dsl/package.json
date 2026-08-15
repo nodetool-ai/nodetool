@@ -273,11 +273,6 @@
         "file": "sandbox/generated/nodetool.output.js"
       },
       {
-        "name": "nodetool.sandbox",
-        "kind": "js",
-        "file": "sandbox/generated/nodetool.sandbox.js"
-      },
-      {
         "name": "nodetool.script",
         "kind": "js",
         "file": "sandbox/generated/nodetool.script.js"

@@ -5,8 +5,6 @@ title: "lib.video.download Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[YouTube Downloader](youtubedownloader.md)**
-
-[Back to all nodes](../../../)
+- **[YouTube Downloader](youtubedownloader.md)** - Download media from URLs using yt-dlp.

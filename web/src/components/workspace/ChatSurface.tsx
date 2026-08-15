@@ -70,14 +70,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       state.threads[refId]?.workflow_id ?? state.threadWorkflowId[refId] ?? null
   );
 
-  // The pi transport drives the legacy top-level status (single-thread), not
-  // threadRuntime — fall back to it so a pi run still shows as streaming.
-  const piStatus = useGlobalChatStore((state) =>
-    state.mode === "pi" && state.currentThreadId === refId
-      ? state.status
-      : null
-  );
-
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
 
@@ -203,7 +195,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       <ChatView
         threadId={refId}
         status={(() => {
-          const status = piStatus ?? runtime.status;
+          const status = runtime.status;
           if (status === "idle") return "connected";
           if (status === "stopping") return "connected";
           return status;
@@ -223,6 +215,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentTaskUpdate={runtime.taskUpdate}
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
+        chatSource="workspace_chat"
         noMessagesPlaceholder={welcomePlaceholder}
         showNewChatButton
       />

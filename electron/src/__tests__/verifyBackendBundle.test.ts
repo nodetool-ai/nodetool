@@ -42,7 +42,20 @@ function writeValidBundle(dir: string): void {
     optionalDependencies: { "@img/sharp-libvips-linux-x64": "1.3.2" },
   });
   writeStagedPackage(dir, "@img/sharp-libvips-linux-x64", { version: "1.3.2" });
+  writeStagedPackage(dir, "mediabunny", { version: "1.54.0" });
+  writeStagedPackage(dir, "@mediabunny/server", { version: "1.54.0" });
+  writeStagedPackage(dir, "node-av", { version: "6.1.1" });
+  writeStagedPackage(dir, "@seydx/node-av-linux-x64", { version: "6.1.1" });
+  fs.writeFileSync(
+    path.join(dir, "_modules", "@seydx", "node-av-linux-x64", "node-av.node"),
+    "x"
+  );
   writeShippedSandboxPacks(dir);
+  fs.mkdirSync(path.join(dir, "js-sandbox-worker"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "js-sandbox-worker", "worker-entry.js"),
+    "export {};"
+  );
 }
 
 const SANDBOX_PACKS_DIR = path.join(
@@ -123,6 +136,11 @@ function writeSandboxPack(dir: string, { helper }: { helper: boolean }): void {
 function runVerify(dir: string) {
   const result = spawnSync(process.execPath, [SCRIPT, dir], {
     encoding: "utf8",
+    env: {
+      ...process.env,
+      NODETOOL_BUNDLE_PLATFORM: "linux",
+      NODETOOL_BUNDLE_ARCH: "x64",
+    },
   });
   return {
     status: result.status,
@@ -208,6 +226,13 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("@img/sharp-<platform> prebuild");
+  });
+
+  it("fails when the Mediabunny server codec prebuild is missing", () => {
+    fs.rmSync(path.join(tempDir, "_modules", "@seydx"), { recursive: true });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("node-av-linux-x64/node-av.node");
   });
 
   it("fails when the staged libvips does not match what the prebuild pins", () => {

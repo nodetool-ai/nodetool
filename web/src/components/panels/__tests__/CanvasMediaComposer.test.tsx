@@ -119,8 +119,10 @@ describe("CanvasMediaComposer", () => {
         focused?: { type: string; id: string; title?: string | null } | null;
         open?: { type: string; id: string }[] | null;
         selection?: { node_ids?: string[] | null } | null;
+        source?: string | null;
       } | null;
     };
+    expect(outgoing.ui_context?.source).toBe("workflow_canvas");
     expect(outgoing.ui_context?.focused).toEqual({
       type: "workflow",
       id: "canvas-doc-id",

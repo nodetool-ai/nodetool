@@ -41,11 +41,19 @@ jest.mock("../LinkedWorkflowsMenu", () => ({
   }
 }));
 
+const builderMounted = jest.fn();
 jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
   __esModule: true,
-  default: ({ applicationId }: { applicationId: string }) => (
-    <div data-testid="app-builder">{applicationId}</div>
-  )
+  default: function MockApplicationAppBuilder({
+    applicationId
+  }: {
+    applicationId: string;
+  }) {
+    React.useEffect(() => {
+      builderMounted(applicationId);
+    }, [applicationId]);
+    return <div data-testid="app-builder">{applicationId}</div>;
+  }
 }));
 
 jest.mock("../../applications/ApplicationGovernancePanel", () => ({
@@ -84,7 +92,19 @@ describe("ApplicationSurface", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
 
     expect(screen.getByTestId("governance")).toHaveTextContent("app-1");
-    expect(screen.queryByTestId("app-builder")).not.toBeInTheDocument();
+  });
+
+  it("keeps the builder mounted while another view is showing", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    expect(builderMounted).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "Design" }));
+
+    // One mount for the whole round trip: the canvas, its unsaved edits, and
+    // the agent thread beside it are the same ones the user left.
+    expect(builderMounted).toHaveBeenCalledTimes(1);
   });
 
   it("links its workflows without opening one", () => {

@@ -1,4 +1,10 @@
-import { getWorkflowInputKind, clampNumber } from "../inputKinds";
+import {
+  getWorkflowInputKind,
+  getScriptPortInputKind,
+  isJsonScriptPortType,
+  nodeTypeForInputKind,
+  clampNumber
+} from "../inputKinds";
 
 describe("appbuilder/inputKinds", () => {
   describe("getWorkflowInputKind", () => {
@@ -40,6 +46,43 @@ describe("appbuilder/inputKinds", () => {
       expect(getWorkflowInputKind("nodetool.input.Unknown")).toBeNull();
       expect(getWorkflowInputKind("")).toBeNull();
       expect(getWorkflowInputKind("some.other.Type")).toBeNull();
+    });
+  });
+
+  describe("getScriptPortInputKind", () => {
+    it.each([
+      ["int", "integer"],
+      ["float", "float"],
+      ["bool", "boolean"],
+      ["str", "string"],
+      ["image", "image"],
+      ["ImageRef", "image"],
+      ["list[str]", "text_list"],
+      ["list[image]", "image_list"],
+      ["list", "string"],
+      ["dict", "string"],
+      ["any", "string"]
+    ] as const)("maps %s to %s", (portType, expected) => {
+      expect(getScriptPortInputKind(portType)).toBe(expected);
+    });
+  });
+
+  describe("isJsonScriptPortType", () => {
+    it("treats unmapped types as JSON, not str", () => {
+      expect(isJsonScriptPortType("list")).toBe(true);
+      expect(isJsonScriptPortType("dict")).toBe(true);
+      expect(isJsonScriptPortType("any")).toBe(true);
+      expect(isJsonScriptPortType("str")).toBe(false);
+      expect(isJsonScriptPortType("int")).toBe(false);
+    });
+  });
+
+  describe("nodeTypeForInputKind", () => {
+    it("returns the InputNode type the property widgets expect", () => {
+      expect(nodeTypeForInputKind("integer")).toBe(
+        "nodetool.input.IntegerInput"
+      );
+      expect(nodeTypeForInputKind("image")).toBe("nodetool.input.ImageInput");
     });
   });
 

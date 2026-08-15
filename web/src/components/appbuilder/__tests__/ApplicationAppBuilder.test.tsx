@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -84,30 +84,62 @@ const EDITED: Pick<AppDocument, "ui" | "variables"> = {
   ]
 };
 
+/** An operation the agent binds mid-session, before anything is saved. */
+const ADDED_OPERATION = {
+  id: "calc",
+  name: "Calculate",
+  workflowId: "wf-2",
+  inputs: {},
+  outputs: {},
+  policy: "replace" as const
+};
+
 jest.mock("../AppBuilderShell", () => ({
   __esModule: true,
-  default: ({
+  default: function MockAppBuilderShell({
     document,
     workflow,
+    operationWorkflows,
     banner,
-    onSave
+    onSave,
+    onOperationsChange
   }: {
     document: AppDocument;
     workflow: { id: string };
+    operationWorkflows?: Record<string, unknown>;
     banner?: React.ReactNode;
     onSave: (document: AppDocument) => void;
-  }) => (
-    <div>
-      <div data-testid="bound-workflow">{workflow.id}</div>
-      <button
-        type="button"
-        onClick={() => onSave({ ...document, ...EDITED })}
-      >
-        Save
-      </button>
-      {banner}
-    </div>
-  )
+    onOperationsChange?: (operations: AppDocument["operations"]) => void;
+  }) {
+    // The real shell reports its seeded operations on mount, then again on
+    // every change the agent's ui_app_* tools make.
+    React.useEffect(() => {
+      // Mount only, exactly as the shell seeds its own meta once.
+      onOperationsChange?.(document.operations);
+    }, []);
+    return (
+      <div>
+        <div data-testid="bound-workflow">{workflow.id}</div>
+        <div data-testid="loaded-workflows">
+          {Object.keys(operationWorkflows ?? {})
+            .sort()
+            .join(",")}
+        </div>
+        <button type="button" onClick={() => onSave({ ...document, ...EDITED })}>
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            onOperationsChange?.([...document.operations, ADDED_OPERATION])
+          }
+        >
+          Add operation
+        </button>
+        {banner}
+      </div>
+    );
+  }
 }));
 
 import ApplicationAppBuilder from "../ApplicationAppBuilder";
@@ -130,15 +162,15 @@ beforeEach(() => {
   state.application = application;
   state.error = null;
   mutateAsync.mockResolvedValue(application);
-  fetchWorkflow.mockResolvedValue({
-    id: "wf-1",
+  fetchWorkflow.mockImplementation(async (id: string) => ({
+    id,
     name: "Workflow",
     description: "",
     graph: { nodes: [], edges: [] },
     access: "private",
     created_at: "",
     updated_at: ""
-  });
+  }));
 });
 
 describe("ApplicationAppBuilder", () => {
@@ -207,6 +239,43 @@ describe("ApplicationAppBuilder", () => {
       content: "Server down"
     });
     expect(screen.queryByText("Saved elsewhere")).not.toBeInTheDocument();
+  });
+
+  it("loads the graph of an operation bound before the first save", async () => {
+    const user = userEvent.setup();
+    renderBuilder();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("loaded-workflows")).toHaveTextContent("wf-1")
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add operation" }));
+
+    // Without this the binding targets for `calc` answer ioAvailable: false,
+    // because the saved row still names only wf-1.
+    await waitFor(() =>
+      expect(screen.getByTestId("loaded-workflows")).toHaveTextContent(
+        "wf-1,wf-2"
+      )
+    );
+    expect(fetchWorkflow).toHaveBeenCalledWith("wf-2");
+  });
+
+  it("binds the canvas to the first operation's workflow before any save", async () => {
+    state.application = {
+      ...application,
+      document: { ...application.document, operations: [] }
+    };
+    const user = userEvent.setup();
+    renderBuilder();
+
+    expect(screen.getByTestId("bound-workflow")).toHaveTextContent("app-1");
+
+    await user.click(screen.getByRole("button", { name: "Add operation" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("bound-workflow")).toHaveTextContent("wf-2")
+    );
   });
 
   it("opens on a canvas even before a workflow is bound", () => {

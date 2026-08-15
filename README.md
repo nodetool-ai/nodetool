@@ -230,7 +230,7 @@ NodeTool is a monorepo with a TypeScript backend, React frontend, Electron deskt
 
 ```
 nodetool/
-├── packages/          # Backend monorepo (58 packages)
+├── packages/          # Backend monorepo (55 packages)
 │   ├── kernel/        #   Workflow graph & runner
 │   ├── node-sdk/      #   BaseNode class & node registry
 │   ├── base-nodes/    #   100+ built-in node types
@@ -297,7 +297,7 @@ server starts with no node types registered.
 
 The repo ships a starter kit in [`.claude/`](.claude/README.md): a SessionStart
 hook that installs dependencies in web sessions, slash commands (`/serve`,
-`/verify`, `/onboard`), and 10 NodeTool skills covering workflow building,
+`/verify`, `/onboard`), and 9 NodeTool skills covering workflow building,
 custom nodes, the API, deployment, and troubleshooting.
 
 ### Python Nodes (optional)
@@ -356,7 +356,6 @@ cd web && npx playwright install chromium && npm run test:e2e
 Electron has no Playwright suite; `cd electron && npm test` runs its Jest tests.
 
 For detailed testing documentation, see [web/TESTING.md](web/TESTING.md).
-For visual regression testing and baseline management, see [VISUAL_TESTING.md](VISUAL_TESTING.md).
 
 ______________________________________________________________________
 

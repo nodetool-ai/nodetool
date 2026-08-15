@@ -24,6 +24,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SaveIcon from "@mui/icons-material/Save";
 
 import {
   FlexColumn,
@@ -36,11 +37,11 @@ import {
   ToggleOption,
   EditorButton,
   CloseButton,
-  DownloadButton,
   BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
+import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { buildSceneTree } from "./sceneTree";
 import { disposeObject } from "./sceneTree";
 import {
@@ -49,6 +50,7 @@ import {
   type PrimitiveKind
 } from "./objectFactory";
 import { exportSceneToGlb } from "./exportGltf";
+import { model3DEditorHotkey } from "./editorHotkeys";
 import {
   setModel3DToolHandler,
   type Model3DSceneNode,
@@ -112,9 +114,7 @@ const styles = (theme: Theme) =>
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
-    ".side-panel.assistant": {
-      width: `${ASSISTANT_PANEL_WIDTH}px`
-    },
+
     ".panel-header": {
       padding: theme.spacing(2, 3),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -543,7 +543,12 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
     setSelectedUuid(e.object.uuid);
   }, []);
 
+  const savingRef = useRef(false);
   const handleSave = useCallback(async () => {
+    if (savingRef.current) {
+      return;
+    }
+    savingRef.current = true;
     setIsSaving(true);
     try {
       const blob = await exportSceneToGlb(root);
@@ -554,6 +559,7 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
         error instanceof Error ? error.message : "Failed to export model"
       );
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
   }, [root, onSave]);
@@ -683,7 +689,6 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
     return () => setModel3DToolHandler(null);
   }, [root, findObject, toNode, addPrimitiveObject, bump, captureView]);
 
-  // Delete key removes the selected object.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -695,19 +700,25 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
       if (typing) {
         return;
       }
-      if (e.key === "Delete" || e.key === "Backspace") {
+      const command = model3DEditorHotkey(e);
+      if (command === "save") {
+        e.preventDefault();
+        void handleSave();
+        return;
+      }
+      if (command === "delete") {
         handleDelete();
-      } else if (e.key === "g") {
+      } else if (command === "translate") {
         setGizmoMode("translate");
-      } else if (e.key === "r") {
+      } else if (command === "rotate") {
         setGizmoMode("rotate");
-      } else if (e.key === "s") {
+      } else if (command === "scale") {
         setGizmoMode("scale");
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleDelete]);
+  }, [handleDelete, handleSave]);
 
   return (
     <FlexColumn css={styles(theme)} className="model-3d-editor" fullWidth fullHeight>
@@ -762,7 +773,15 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
             active={showAssistant}
             size="small"
           />
-          <DownloadButton onClick={handleSave} tooltip="Save to asset" />
+          <EditorButton
+            density="compact"
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={() => void handleSave()}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving…" : "Save"}
+          </EditorButton>
           <CloseButton onClick={onClose} tooltip="Close editor" />
         </FlexRow>
       </FlexRow>
@@ -840,27 +859,29 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
 
         {/* Kept mounted (toggled via display) so the chat connection and
             scroll state survive hiding the panel. */}
-        <FlexColumn
-          className="side-panel right assistant"
-          fullHeight
-          style={{ display: showAssistant ? "flex" : "none" }}
-        >
-          <FlexRow className="panel-header" justify="space-between" align="center">
-            <FlexRow gap={1} align="center">
-              <AutoAwesomeIcon fontSize="small" />
-              <Text size="small" weight={600}>
-                Assistant
-              </Text>
+        <div style={{ display: showAssistant ? "contents" : "none" }}>
+          <ResizableSideDock
+            storageKey="model3d_assistant"
+            defaultWidth={ASSISTANT_PANEL_WIDTH}
+            ariaLabel="Resize 3D assistant"
+          >
+            <FlexRow className="panel-header" justify="space-between" align="center">
+              <FlexRow gap={1} align="center">
+                <AutoAwesomeIcon fontSize="small" />
+                <Text size="small" weight={600}>
+                  Assistant
+                </Text>
+              </FlexRow>
+              <CloseButton
+                onClick={() => toggleAssistant()}
+                tooltip="Hide assistant"
+              />
             </FlexRow>
-            <CloseButton
-              onClick={() => toggleAssistant()}
-              tooltip="Hide assistant"
-            />
-          </FlexRow>
-          <div className="panel-body">
-            <Model3DChatPanel />
-          </div>
-        </FlexColumn>
+            <div className="panel-body">
+              <Model3DChatPanel />
+            </div>
+          </ResizableSideDock>
+        </div>
       </FlexRow>
 
       {(isSaving || isLoading) && (

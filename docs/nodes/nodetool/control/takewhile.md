@@ -24,7 +24,7 @@ Pass items through while a predicate is truthy. Stops at the first failure.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input_item | `any` | Streaming input. | null |
-| predicate | `str` | JavaScript expression evaluated per item. The current value is bound to `item`. Stream stops at the first item where the predicate is falsy. | `true` |
+| predicate | `str` | Safe expression evaluated per item (comparisons, boolean logic, arithmetic, property access on `item`). Stream stops at the first item where the predicate is falsy. | `true` |
 
 ## Outputs
 

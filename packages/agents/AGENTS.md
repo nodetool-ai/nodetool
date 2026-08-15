@@ -77,6 +77,29 @@ User-authored JS from a CodeAct action and `nodetool.code.Code` runs in a
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
 
+On Node the interpreter runs on a **`worker_threads` worker**
+(`src/js-sandbox-worker/`): `buildSandbox` and every host bridge stay on the
+main thread, the worker rebuilds each bridge as an RPC proxy over the port, and
+a CPU-bound guest therefore blocks only its own thread — the server keeps
+serving, and the websocket `stop` frame that cancels the run can still be read.
+Abort is `worker.terminate()`, immediately — equally instant for a spinning
+guest and a parked one, and nothing of value dies with the thread: logs and
+emitted values accumulate main-side through the RPC dispatches, and a cancelled
+action leaving no partial `state` write-back is the cleaner contract. Three
+runs stay in-process: the browser (no `worker_threads`), a run with input
+streams (the synchronous `stream.open` mirror has no handle names to seed), and
+`NODETOOL_SANDBOX_INPROC=1`. `NODETOOL_SANDBOX_WORKER=require` turns any other
+fallback into an error for CI. Under tsx/vitest the worker boots from an eval'd
+bootstrap that registers `tsx/esm/api` — tsx's own `--import` hook skips worker
+threads, and Node's built-in strip-only TS loader cannot parse the workspace
+packages. The packaged backend ships the worker as a second esbuild bundle
+(`scripts/bundle-backend.mjs` → `backend/js-sandbox-worker/worker-entry.js`).
+The interpreter itself (`js-sandbox-worker/interpreter.ts`) is shared by both
+paths, so they cannot drift; bridge results must be plain data — a function in
+a bridge return value cannot cross `postMessage`, which is why the fetch bridge
+returns body bytes and the guest prelude builds `text()`/`bytes()`/
+`arrayBuffer()` over them.
+
 Hard limits enforced by the runtime. Each row's default can be overridden per
 invocation via `RunSandboxOptions.limits`, clamped to the ceiling in the last
 column by `resolveSandboxLimits`:
@@ -130,7 +153,9 @@ than throwing), the pure guest-side helpers
 `TextEncoder`/`TextDecoder` — the old `uuid`/`utf8Encode`/`utf8Decode`
 aliases are gone),
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
-`image.{info,decode,encode,resize,crop,rotate,flip,adjust,composite,convert}`,
+`image.{info,stats,decode,blank,pad,grid,resize,crop,rotate,flip,adjust,composite,convert}`,
+`audio.{info,normalize,trim,concat,mix,reverse,fadeIn,fadeOut,repeat}`,
+`video.{info,trim,resize,rotate,addAudio,extractAudio,extractFrame}`,
 `canvas.measureText` (plus `canvas.render`, the undocumented plumbing behind
 `createCanvas(...).toBytes()`), and any caller-supplied `globals`. `fetch` sends
 a `Uint8Array` body as raw bytes instead of JSON. Every one of these is a
@@ -157,25 +182,79 @@ wires it to `context.postMessage({ type: "node_progress", … })`, the same
 channel the Python worker uses, so a long-running snippet drives the node's
 progress bar.
 
-`image` and `canvas` are the media namespaces, both host bridges over a real
+`image`, `audio`, `video`, and `canvas` are the media namespaces. Image and
+canvas are host bridges over a real
 2D canvas (`src/sandbox-media.ts`). The backend is picked at first use:
 `@napi-rs/canvas` (Skia) on Node, loaded through `importHidden` so no bundler
 pulls the native addon into a browser graph — it is already staged as an
 external by `scripts/bundle-backend.mjs` — and `OffscreenCanvas` +
-`createImageBitmap` in the browser runner. `image` takes and returns *encoded*
-bytes (`png`/`jpeg`/`webp`/`avif`), so `resize` → `adjust` → `convert` chains
-without the guest ever holding a surface: `info`, `decode`, `encode`, `resize`
-(`fit`: cover/contain/fill), `crop`, `rotate` (grows to the rotated bounding
-box), `flip`, `adjust` (the CSS filter set), `composite` (layers with position,
-size, opacity and `globalCompositeOperation` blend mode) and `convert`.
-Encoding to `jpeg` fills transparency with `background`, white by default.
+`createImageBitmap` in the browser runner. Ops: `info`, `stats`, `decode`,
+`blank`, `pad`, `grid`, `resize` (`fit`: cover/contain/fill), `crop`, `rotate`
+(grows to the rotated bounding box), `flip`, `adjust` (the CSS filter set),
+`composite` (layers with position, size, opacity and `globalCompositeOperation`
+blend mode) and `convert`. Encoding to `jpeg` fills transparency with
+`background`, white by default.
+
+**`image.encode` is gone.** It took `width*height*4` bytes *from the guest*, so
+using it meant building a pixel array in the guest heap and shipping it across
+— and every observed use was a backdrop, 6 MB of zeros moved to produce a 6 KB
+PNG. After handles it was the largest guest→host payload left in a normal image
+run, and the manifest advertised it, so it read as the way to make an image.
+Three ops cover what it was reached for, all host-side with nothing crossing:
+`blank(width, height, {color})` for a surface, `pad(image, {all|top|right|
+bottom|left, color})` to grow the canvas without scaling (what
+`nodetool.image.CanvasResize` does in a graph), and `grid([image, …],
+{columns, gap})` to lay images out (what `lib.grid.CombineImageGrid` does) —
+which is the whole of "generate two images and combine them", the task that
+started this. Host code that genuinely holds pixels keeps the direct path
+through `encodePixels`, which is not on the guest bridge.
+
+`image.stats(image)` is the counterpart to handles: once the guest stops
+holding images it cannot answer anything about one, and `decode` — the only way
+to look — pulls every pixel across, which is the cost handles removed. `stats`
+reads them host-side and answers in a hundred bytes: per-channel mean/min/max,
+mean luminance, and whether the image is opaque. It carries no
+`MAX_DECODE_PIXELS` bound because it transfers nothing.
+
+**Media transforms trade in handles, not bytes**
+(`src/sandbox-media-handle.ts`). Each image, audio, or video op takes a handle,
+a media ref (`asset://` and every uri `media.*` resolves), or raw bytes, and
+returns a *handle*: a small plain object
+(`{uri: "sandbox://media/<id>", mimeType, byteLength, width, height}`) naming
+bytes the host holds for the run. So a chain — and a generated image fed
+straight in — moves nothing across the boundary but small objects.
+
+That is the difference between working and not. The guest is a courier: in the
+shape that motivated this (generate two images, combine them) it never reads a
+pixel. Carrying them *as* bytes cost a guest→host copy plus a base64 round trip
+per hop, ~2.3× the payload live in the guest, and past roughly 16 MB a run
+aborted the runtime at teardown. Measured on a 45-op chain over a 2.2 MB PNG:
+132 s and an abort at three ops, against 4.7 s with handles.
+
+Audio and video transforms use Mediabunny directly. Browsers use WebCodecs;
+Node registers Mediabunny's server codec adapter. No audio-node or video-node
+package is imported or exposed to guest code. `video.extractAudio` returns an
+audio handle and `video.extractFrame` returns an image handle.
+
+Two image exceptions, both returning plain data: `info` and `decode` exist
+to report what is *in* an image, and `decode` is the one call that must hand
+over real pixels. `image.bytes(handle)` is the only door back to encoded bytes
+and needs no context — reach for it when the body parses the bytes itself, not
+to move an image between calls. `media.toImage(handle)` promotes a handle to a
+durable asset; nothing else writes storage, so a three-op chain does not leave
+three rows behind. A handle lives for its run: using a stale one says so rather
+than blaming its uri. `limits.runMediaBytes` (default 256 MB) bounds what one
+run may hold — the aggregate the per-call ceilings never covered, so exhaustion
+is a sentence naming the limit instead of an Emscripten assertion.
 
 A canvas *context* is a host object with methods, which the plain-data bridge
 contract cannot carry, so drawing is recorded rather than proxied: the guest
 helper `createCanvas(width, height)` returns a surface whose `getContext("2d")`
 takes the ordinary Canvas 2D calls **synchronously**, appending each to a draw
-list, and `await surface.toBytes({format, quality, background})` ships the whole
-list through `canvas.render` to be replayed against a real context and encoded.
+list, and `await surface.toImage({format, quality, background})` ships the whole
+list through `canvas.render` to be replayed against a real context and encoded,
+answering with a handle like every other image producer. `toBytes()` keeps its
+name's promise and pays for the bytes explicitly.
 `drawImage` takes image bytes, not an image object. Gradients work the same way
 — `createLinearGradient` returns a tagged handle that the renderer swaps for the
 real gradient when it is assigned to `fillStyle`. The method and property
@@ -353,6 +432,23 @@ around every tool- and plan-approval round trip.
   prelude rewraps into a real `throw`. Working around a known handle leak in
   `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
   assertion on runtime dispose).
+- Every `Lifetime` taken from the engine must be disposed, including the one
+  `ctx.getArrayBuffer()` returns. The typed-array serializer dropped it, so
+  each `Uint8Array` crossing guest → host leaked a handle and a run moving
+  ~16 MB tripped the same `list_empty(&rt->gc_obj_list)` assertion — *after*
+  the guest had computed its answer, so the result was produced and then
+  thrown away. Fixed; pinned by "guest→host binary volume" in
+  `tests/js-sandbox.test.ts`.
+- An engine failure never reaches `runInSandbox`'s own `await`: an Emscripten
+  `abort()` arrives as a WASM `RuntimeError`, and a marshaling failure (guest
+  OOM while a host return value is written into the guest) throws inside a
+  promise continuation the library never catches. Unhandled, that killed the
+  host process and the tool call it was serving returned *nothing* — a chat
+  turn that simply stopped, with nothing for the agent to read or retry.
+  `guardHostProcess` claims those rejections and fails the run;
+  `describeEngineFailure` turns them into an actionable message instead of raw
+  assertion text. Anything not attributable to the engine is re-thrown, so a
+  genuine host bug still crashes.
 - Binary crosses the boundary asymmetrically. Guest → host is handled by the
   typed-array serializers (`addSerializer`), so a guest `Uint8Array` reaches a
   bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives
@@ -771,9 +867,11 @@ every task failed throws instead of compiling a deliverable out of nothing.
 
 The action space of the step loop, and the only one. Each step acts by writing
 JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
-`tools.<name>()` functions, a `state` object that persists across actions, and
-`finish(result)` for host-validated completion. Design and the research it
-follows (CodeAct, ICML 2024): docs/codeact-design.md.
+`tools.<name>()` functions, a `state` object that persists across actions
+(including after a throw), and `finish(result)` for host-validated completion.
+The prompt tells the model to assign each generate/speak result to `state`
+immediately and reuse it — `return` is the observation only. Design and the
+research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged
@@ -794,11 +892,25 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   has — one question with one answer, and a wrong answer is a hallucinated
   model id that fails at generation time, after the run was paid for. The two
   sets stay apart because only the core set has SDK built-ins behind it:
-  `DIRECT_TOOL_NAMES` is their union and is what the three offer sites read
-  (`splitCoreTools`, the CLI turn, the websocket runner), while
-  `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
+  `DIRECT_TOOL_NAMES` is their union and is what the four offer sites read
+  (`splitCoreTools`, the CLI turn, the websocket runner, and the MCP mount),
+  while `SDK_NATIVE_TOOL_REPLACEMENTS` still reads `CORE_TOOL_NAMES` alone.
   `nodetool.models.pick` and `nodetool.nodes.search` are unchanged — the belt
   keeps every tool, so an action still composes them.
+- The MCP mount subtracts. It offers `DIRECT_TOOL_NAMES` **minus every key of
+  `SDK_NATIVE_TOOL_REPLACEMENTS`**, because an MCP client (Claude Code,
+  ChatGPT) *is* the host agent that table describes: offering NodeTool's
+  workspace-scoped `read_file` beside the client's own would put two tools of
+  one name and two different roots in front of one model. What survives has no
+  host equivalent — discovery, the server-side reach that runs behind
+  NodeTool's SSRF guard and secrets (`browser`, `http_request`,
+  `download_file`, `list_directory`), and `run_subtask`, whose child gets the
+  NodeTool belt rather than the client's. It is a `belt.filter`, so a session
+  missing an injected dependency (no node registry, say) advertises no node
+  tools instead of a tool that cannot run. Before this the mount registered
+  only `execute_code` and `view_image`: everything was still reachable as
+  `tools.*` inside an action, but every discovery question cost a sandbox round
+  trip, which is the tax the direct set exists to remove.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
   `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,
@@ -872,7 +984,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
   (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
-  run's own scratchpad, beside thread-scoped `nodetool.memory`), `nodetool.style`
+  run's own scratchpad, beside thread-scoped `nodetool.memory`),
+  `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
+  `get_message` — the chat history itself, read-only), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
@@ -1201,11 +1315,50 @@ reports token usage on its terminal `result` message — which a cancelled query
 never emits. The run is not free; the usage is simply unobservable. Score,
 timing, and call counts are unaffected.
 
+### Sub-agent execution eval suite (`subtask`)
+
+Where the tool-loop suites score a model driving one flat tool surface, this
+suite scores `RunSubtaskTool` — the primitive that decomposes work by spawning
+a child agent that inherits the parent's toolset.
+
+The harness drives a real `CodeActExecutor` equipped with `RunSubtaskTool` plus
+a library of instrumented tools. Each tool records every call together with the
+`SUBTASK_DEPTH_KEY` it read from its context — 0 for a parent-level call, >= 1
+for one made inside a subtask. The same tool instances serve both levels, so
+that field is the ground truth for who ran what, and the scorer can separate a
+parent that delegated from one that did the job itself.
+
+Scoring is structural (`checkSubtaskExpectations`): required parent and child
+tools, forbidden tools, subtask-count and depth bounds, no failed subtasks,
+required store keys, and answer substrings — never an exact transcript, so many
+valid delegations pass. Metrics per case: expectation score, subtasks spawned,
+deepest sub-agent level, tool calls at any depth, duration, cost. The aggregate
+reports **success rate** (accepted over non-skipped), **mean score**, average
+subtasks, and total cost; `--min-success` gates on the success rate.
+
+The seven cases cover one tool per delegation (`delegate-compute`,
+`delegate-read-write`, `delegate-lookup`, `delegate-transform`), fan-out
+(`parallel-subtasks`), a child whose tool fails so the error must surface
+rather than be swallowed (`error-propagation`), and one objective that
+exercises every inherited tool (`all-tools`).
+
+Cases and the instrumented tool library live in `src/evals/subtask-cases.ts`,
+the runner in `src/evals/subtask-eval.ts`. The parent step and each subtask
+share a turn cap of 16 unless `--max-iterations` says otherwise.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases delegate-compute,all-tools
+```
+
+Harness tests (scripted provider, no network): `tests/subtask-eval.test.ts`.
+
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 
 Where the graph-planner eval measures graph authoring, the tool-loop harness
-measures the incremental, multi-turn tool-calling flow the browser UI
-and the agent WebSocket bridge actually expose. A real provider is handed the
+measures the incremental, multi-turn tool-calling flow the browser UI exposes.
+A real provider is handed the
 frontend tool contract (names/descriptions/Zod schemas mirrored from
 `web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
 a node-side fake that holds the same state shape and applies the same
@@ -1401,10 +1554,11 @@ Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
 clip/track factories) — rather than reimplement. The sketch surface reimplements
 its layer-stack ops directly, but not its pixels: every raster layer is an
-`@napi-rs/canvas` bitmap and `ui_sketch_stroke` runs the editor's own paint core
-(`@nodetool-ai/image-editor/painting.js`, pointed at skia with
-`setPaintSurfaceFactory(createCanvas)`), so a headless stroke is the stroke the
-browser would paint. `ui_sketch_get_layer_image` composites those layers —
+`@napi-rs/canvas` bitmap. `ui_sketch_stroke` runs the editor's paint core
+(`@nodetool-ai/image-editor/painting.js`) and fill / gradient / shape / transform
+/ adjust / crop / selection-shape run `@nodetool-ai/image-editor/raster.js`, both
+pointed at skia with `setPaintSurfaceFactory(createCanvas)`, so a headless edit
+is the edit the browser would paint. `ui_sketch_get_layer_image` composites those layers —
 opacity and blend mode included, NodeTool's `"normal"`/`"add"` mapping onto
 Canvas's `"source-over"`/`"lighter"` — and hands the model a PNG of its own
 work. `SketchToolBridge.compositePng()` (or `getLastSketchToolBridge()`, for a
@@ -1417,7 +1571,13 @@ Browser-only tools (asset capture, WebGL viewport render) are scoped out:
 `ui_sketch_render_to_asset`,
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
-generate/render jobs are faked by flipping shot status. The app-builder surface
+generate/render jobs are faked by flipping shot status. Its board holds wire
+`Shot` objects and normalizes every write through
+`normalizeStoryboardScreenplay` (`@nodetool-ai/protocol/api-schemas`), and
+`finalState().savable` reports whether `storyboards.update` would accept what
+the board now holds — a bridge that minted the `id`/`index`/`status` a model
+omits kept this suite green through a bug that lost a user's board. The
+app-builder surface
 reimplements only the Puck *layout* ops (nested slot tree: top-level content plus
 slot-valued props on Panel/Columns) headlessly — those live in `web/`
 (`puckDataOps.ts`), which a backend package can't import. Its operation,
@@ -1437,8 +1597,10 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
 plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,thread-memory,creative-pipeline}-tool-loop.test.ts`).
-A live check against a local Ollama model runs when a daemon is reachable:
-`tests/tool-loop-eval.ollama.test.ts`.
+For a live check against a real model, run the eval command above — a suite
+whose verdict depends on what a model chose belongs behind an explicit
+invocation, not in the unit suite, where a weak local model fails the run for
+everyone.
 
 **Running against the `claude_agent_sdk` provider.** Two gotchas, both from the
 SDK's own agent loop (not the harness):
@@ -1735,13 +1897,10 @@ NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: en
 
 ## Authoring Agent Nodes — Pitfalls
 
-When building a node that wraps an agent (e.g. the `code-nodes` tool-agents, or
-`llm-nodes` `AgentNode`):
+When building a node that wraps an agent (e.g. `llm-nodes` `AgentNode`):
 
 - **Every tool named in an agent's system prompt must actually be registered in
-  its toolset.** `BrowserAgent`/`HttpApiAgent` prompts instructed the model to call
-  `browser`/`take_screenshot`/`http_request` tools that were never registered (only
-  `execute_bash` was) — a prompt-referenced-but-unregistered tool is a silent
+  its toolset.** A prompt-referenced-but-unregistered tool is a silent
   no-op. Resolve real builtin tools (`resolveBuiltinAgentTool`) and don't reference
   tools you didn't wire.
 - **Every declared prop must be consumed by `process()` or injected into the

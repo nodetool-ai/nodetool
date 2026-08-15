@@ -28,9 +28,7 @@ export const useValueCalculation = () => {
 
 export const useDragHandling = (
   props: InputProps,
-  state: NumberInputState,
   setState: React.Dispatch<React.SetStateAction<NumberInputState>>,
-  inputIsFocused: boolean,
   setInputIsFocused: (focused: boolean) => void,
   containerRef: React.RefObject<HTMLDivElement | null>,
   dragStateRef: React.MutableRefObject<NumberInputState>,

@@ -223,8 +223,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       comment &&
       typeof comment === "object" &&
-      "root" in (comment as Record<string, unknown>) &&
-      Object.keys(comment as Record<string, unknown>).length > 0
+      "root" in comment &&
+      Object.keys(comment).length > 0
     ) {
       editorState = JSON.stringify(comment);
     }

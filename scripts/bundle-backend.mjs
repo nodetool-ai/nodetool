@@ -7,7 +7,7 @@
  *
  * Usage:
  *   node scripts/bundle-backend.mjs [--out <dir>] [--profile desktop|server]
- *                                   [--with-migrate] [--with-sandbox-agent]
+ *                                   [--with-migrate]
  *
  * Defaults preserve the Electron flow: --out electron/backend-bundle,
  * --profile desktop, no migrate entry.
@@ -17,9 +17,9 @@
  *   <out>/server.mjs.map      — source map
  *   <out>/_modules/           — external packages staged for the target
  *   <out>/package.json        — { "type": "module" }
+ *   <out>/js-sandbox-worker/worker-entry.js
+ *                             — QuickJS sandbox worker thread entry
  *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
- *   <out>/sandbox-agent.mjs   — bundled in-container tool server
- *                               (--with-sandbox-agent only)
  */
 
 import esbuild from "esbuild";
@@ -43,12 +43,13 @@ const ENTRY_POINT = path.join(
   "server.js"
 );
 const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
-const SANDBOX_AGENT_ENTRY_POINT = path.join(
+const SANDBOX_WORKER_ENTRY_POINT = path.join(
   ROOT_DIR,
   "packages",
-  "sandbox-agent",
+  "agents",
   "dist",
-  "entry.js"
+  "js-sandbox-worker",
+  "worker-entry.js"
 );
 
 // --- CLI flags -------------------------------------------------------------
@@ -58,7 +59,6 @@ function parseArgs(argv) {
     out: path.join(ELECTRON_DIR, "backend-bundle"),
     profile: "desktop",
     withMigrate: false,
-    withSandboxAgent: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -76,8 +76,6 @@ function parseArgs(argv) {
       opts.profile = value;
     } else if (arg === "--with-migrate") {
       opts.withMigrate = true;
-    } else if (arg === "--with-sandbox-agent") {
-      opts.withSandboxAgent = true;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -103,6 +101,9 @@ const COMMON_REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  "mediabunny",
+  "@mediabunny/server",
+  "node-av",
 ];
 // webgpu is required on desktop only: the GPU compositor needs the dawn.node
 // binary there, while the server profile does no local GPU compute (the gpu
@@ -148,6 +149,12 @@ const COMMON_EXTERNAL_PACKAGES = [
   "pdfjs-dist",
   "@napi-rs/canvas",
   "chart.js",
+  // The sandbox uses Mediabunny in browsers and on Node. Keep both packages
+  // external in the backend so the server adapter registers codecs on the
+  // same Mediabunny module instance used by the sandbox media bridge.
+  "mediabunny",
+  "@mediabunny/server",
+  "node-av",
   // Modules that source code lazy-imports but whose own top-level imports
   // would be hoisted into server.mjs if inlined, defeating the lazy intent.
   // pdf-parse hoisted `pdfjs-dist/legacy/build/pdf.mjs` and crashed on
@@ -165,6 +172,10 @@ const COMMON_EXTERNAL_PACKAGES = [
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@supabase/supabase-js",
+
+  // HuggingFaceProvider loads this through Function("return import(...)"), which
+  // esbuild cannot see, so nothing stages it implicitly.
+  "@huggingface/inference",
 
   // Telemetry (conditionally loaded)
   "@opentelemetry/sdk-node",
@@ -210,6 +221,9 @@ const EXTERNAL_PACKAGES =
 // is unavailable). Copying these would trigger a node-gyp rebuild on Linux CI.
 const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   "canvas",
+  // unzipper requires this only inside its optional S3 source adapter but
+  // does not declare it. Keep the optional branch unresolved unless used.
+  "@aws-sdk/client-s3",
 ];
 const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
@@ -615,6 +629,10 @@ async function copyExternalPackages() {
       const optionalDeps = pkgJson.optionalDependencies ?? {};
       const deps = { ...(pkgJson.dependencies ?? {}), ...optionalDeps };
       for (const depName of Object.keys(deps)) {
+        // node-av uses werift only for optional WebRTC sources. Sandbox media
+        // operations read in-memory files, so staging that graph adds weight
+        // without providing a reachable runtime path.
+        if (pkgName === "node-av" && depName === "werift") continue;
         // Skip packages that are external for esbuild but must NOT be staged.
         // These are loaded via runtime try/catch with a fallback (e.g. linkedom
         // → canvas) and copying them would trigger a node-gyp rebuild.
@@ -886,30 +904,31 @@ async function buildMigrateBundle() {
 }
 
 /**
- * Bundle the in-container sandbox tool server (@nodetool-ai/sandbox-agent)
- * into a single <out>/sandbox-agent.mjs. It shares the Docker image with the
- * main server and is started by an alternate entrypoint
- * (packages/sandbox-agent/docker/entrypoint.sh) instead of a separate image.
- * Its dependency closure (fastify, chrome-launcher, chrome-remote-interface,
- * zod, @nodetool-ai/{config,sandbox}) is pure JS, so everything bundles in;
- * the shared external list keeps native modules resolving from the adjacent
- * staged node_modules if they ever enter the closure.
+ * Bundle the QuickJS sandbox worker entry into
+ * <out>/js-sandbox-worker/worker-entry.js.
+ *
+ * The sandbox interpreter runs on a worker thread, and a worker needs a real
+ * file URL — server.mjs is one module, so the entry cannot be reached inside
+ * it. host.ts resolves this path relative to its own import.meta.url, which in
+ * the packaged app is server.mjs, so the directory name is part of the
+ * contract. quickjs and its wasm variant stay external and resolve from the
+ * adjacent promoted node_modules, exactly as they do for the server.
  */
-async function buildSandboxAgentBundle() {
-  console.log("\nBundling sandbox tool server (sandbox-agent.mjs)...");
-  if (!fs.existsSync(SANDBOX_AGENT_ENTRY_POINT)) {
+async function buildSandboxWorkerBundle() {
+  console.log("\nBundling sandbox worker (js-sandbox-worker/worker-entry.js)...");
+  if (!fs.existsSync(SANDBOX_WORKER_ENTRY_POINT)) {
     throw new Error(
-      `Sandbox agent entry point not found: ${SANDBOX_AGENT_ENTRY_POINT}\n` +
+      `Sandbox worker entry point not found: ${SANDBOX_WORKER_ENTRY_POINT}\n` +
         "Run 'npm run build:packages' first."
     );
   }
   await esbuild.build({
-    entryPoints: [SANDBOX_AGENT_ENTRY_POINT],
+    entryPoints: [SANDBOX_WORKER_ENTRY_POINT],
     bundle: true,
     platform: "node",
     format: "esm",
     target: "node20",
-    outfile: path.join(BUNDLE_DIR, "sandbox-agent.mjs"),
+    outfile: path.join(BUNDLE_DIR, "js-sandbox-worker", "worker-entry.js"),
     external: ESBUILD_EXTERNAL_PACKAGES,
     sourcemap: "external",
     banner: {
@@ -920,7 +939,7 @@ async function buildSandboxAgentBundle() {
     },
     logLevel: "warning",
   });
-  console.log("  Wrote sandbox-agent.mjs");
+  console.log("  Wrote js-sandbox-worker/worker-entry.js");
 }
 
 async function main() {
@@ -1173,14 +1192,13 @@ async function main() {
     JSON.stringify({ type: "module" }, null, 2) + "\n"
   );
 
+  // --- Sandbox worker entry (always: the sandbox falls back to running
+  //     in-process without it, which blocks the event loop for a whole run) ---
+  await buildSandboxWorkerBundle();
+
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {
     await buildMigrateBundle();
-  }
-
-  // --- Sandbox tool server entry (opt-in) ---
-  if (OPTIONS.withSandboxAgent) {
-    await buildSandboxAgentBundle();
   }
 
   // --- Stats ---

@@ -138,11 +138,15 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   });
 
   // Surface an early exit (bad key, port race, import failure) as itself rather
-  // than as a startup timeout 90s later.
-  let exited: { code: number | null; signal: NodeJS.Signals | null } | null =
-    null;
+  // than as a startup timeout 90s later. Held in a mutable object rather than
+  // reassigning a `let` directly — TS narrows a variable only ever assigned
+  // inside a callback to its initializer's literal type, which turns
+  // `exited.code` below into a `never` access.
+  const exitState: {
+    exited: { code: number | null; signal: NodeJS.Signals | null } | null;
+  } = { exited: null };
   serverProcess.once("exit", (code, signal) => {
-    exited = { code, signal };
+    exitState.exited = { code, signal };
   });
 
   // Wait for the server to accept TCP connections
@@ -163,9 +167,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     serverProcess.kill("SIGKILL");
     throw err;
   }
-  if (exited) {
+  if (exitState.exited) {
     throw new Error(
-      `[globalSetup] Backend exited during startup (code=${exited.code}).`
+      `[globalSetup] Backend exited during startup (code=${exitState.exited.code}).`
     );
   }
 

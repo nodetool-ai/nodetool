@@ -1,4 +1,4 @@
-import { extractWorkflowIO } from "../workflowIO";
+import { extractWorkflowIO, workflowInputForScriptPort } from "../workflowIO";
 import { Workflow } from "../../../stores/ApiTypes";
 
 const makeWorkflow = (nodes: unknown[]): Workflow =>
@@ -73,5 +73,17 @@ describe("extractWorkflowIO", () => {
       ])
     );
     expect(io.inputs[0].name).toBe("n1");
+  });
+});
+
+describe("workflowInputForScriptPort", () => {
+  it("maps a script port onto the InputNode the property widget uses", () => {
+    expect(workflowInputForScriptPort({ name: "count", type: "int" })).toEqual({
+      nodeId: "count",
+      nodeType: "nodetool.input.IntegerInput",
+      name: "count",
+      label: "count",
+      kind: "integer"
+    });
   });
 });

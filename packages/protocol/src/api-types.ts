@@ -710,6 +710,23 @@ export type UiSurfaceType =
   | "app"
   | "chat";
 
+/**
+ * Chat surface that sent a turn. Distinct from {@link UiContext.focused}: the
+ * user can have a sketch tab focused and still send from workspace chat.
+ */
+export type ChatSource =
+  | "workspace_chat"
+  | "workflow_canvas"
+  | "sketch_assistant"
+  | "timeline_assistant"
+  | "storyboard_assistant"
+  | "script_assistant"
+  | "jsscript_assistant"
+  | "app_builder"
+  | "code_assistant"
+  | "text_editor"
+  | "model3d_assistant";
+
 export interface UiContext {
   /** The surface the user is currently looking at. */
   focused?: UiDocumentRef | null;
@@ -724,6 +741,8 @@ export interface UiContext {
     line_ids?: string[] | null;
     component_ids?: string[] | null;
   } | null;
+  /** Chat surface the user typed in. The server names it in the system prompt. */
+  source?: ChatSource | null;
 }
 
 export interface MessageCreateRequest {

@@ -200,7 +200,7 @@ function hashInputs(packDir: string, metafile: Metafile | undefined): InputDiges
   if (metafile === undefined) return [];
   const digests: InputDigest[] = [];
   for (const relativePath of Object.keys(metafile.inputs)) {
-    if (relativePath.startsWith(`${NAMESPACE}.js`)) continue;
+    if (isSyntheticEntry(packDir, relativePath)) continue;
     const absolute = resolve(packDir, relativePath);
     let bytes: Buffer;
     try {
@@ -241,7 +241,7 @@ function hashResolution(
   const paths = new Set<string>(shadowCandidates(packDir, npmName));
   paths.add(join(packDir, "package.json"));
   for (const relativePath of Object.keys(metafile?.inputs ?? {})) {
-    if (relativePath.startsWith(`${NAMESPACE}.js`)) continue;
+    if (isSyntheticEntry(packDir, relativePath)) continue;
     for (const manifest of manifestsGoverning(packDir, resolve(packDir, relativePath))) {
       paths.add(manifest);
     }
@@ -261,6 +261,10 @@ function hashResolution(
     });
   }
   return digests.sort(byPath);
+}
+
+function isSyntheticEntry(packDir: string, inputPath: string): boolean {
+  return resolve(packDir, inputPath) === join(packDir, `${NAMESPACE}.js`);
 }
 
 /**

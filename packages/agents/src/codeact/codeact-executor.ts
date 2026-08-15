@@ -78,6 +78,11 @@ import {
   withGraphDslPackage
 } from "./graph-dsl-package.js";
 import {
+  FABRIC_PACKAGE,
+  FABRIC_PROMPT_SECTION,
+  withFabricPackage
+} from "./fabric-package.js";
+import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
   GRAPH_MODEL_TOOL_NAMES,
@@ -224,6 +229,9 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "browser",
   "http_request",
   "download_file",
+  // Host media binaries.
+  "ffmpeg",
+  "yt_dlp",
   // Workspace files — the Claude-agent core set (read/write/edit/glob/grep
   // above) stays top level in full.
   "read_file",
@@ -347,6 +355,7 @@ export class CodeActExecutor {
   private readonly sandboxPackages: string[];
   /** Whether the graph DSL pack is among them — the prompt section turns on it. */
   private readonly withGraphDsl: boolean;
+  private readonly withFabric: boolean;
   /** The run whose capability modules an action may import, when a host has one. */
   private readonly capabilityRun?: CapabilityRun;
   /** Persists across actions within the step (CaveAgent-style runtime state). */
@@ -383,12 +392,16 @@ export class CodeActExecutor {
     // Authoring a graph is a package, not a builder: a belt that can save,
     // validate and run a workflow gets the DSL pack on its allowlist, provided
     // this machine installed it.
-    this.sandboxPackages = withGraphDslPackage(
-      this.sandboxPackages,
-      this.tools.map((t) => t.name),
+    this.sandboxPackages = withFabricPackage(
+      withGraphDslPackage(
+        this.sandboxPackages,
+        this.tools.map((t) => t.name),
+        this.context.sandboxModuleCatalog
+      ),
       this.context.sandboxModuleCatalog
     );
     this.withGraphDsl = this.sandboxPackages.includes(GRAPH_DSL_PACKAGE);
+    this.withFabric = this.sandboxPackages.includes(FABRIC_PACKAGE);
 
     // A session that allows packages can read what they document. The prompt
     // carries one line per package; the body is fetched, never injected.
@@ -474,6 +487,7 @@ export class CodeActExecutor {
     const extraSections: string[] = [];
     if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
     if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
+    if (this.withFabric) extraSections.push(FABRIC_PROMPT_SECTION);
     const preludeParts = [CODEACT_PRELUDE];
     if (withGraphModel) preludeParts.push(GRAPH_MODEL_PRELUDE);
     // Always: `nodetool` carries tool discovery and package discovery, which a

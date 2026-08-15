@@ -339,25 +339,10 @@ function textToCodeMigration(
 
 const PDF_PACK = "@nodetool-ai/sandbox-pdf";
 
-/**
- * The page range the removed nodes computed in `resolvePageRange`: a start
- * clamped up to 0, and an end of -1 meaning the last page, otherwise clamped
- * down to it. A start past the end yields nothing, as it did before.
- */
 const PDF_PAGE_RANGE = `const start = Math.max(0, Number(inputs.start_page ?? 0));
 const requestedEnd = Number(inputs.end_page ?? -1);
 const end = requestedEnd === -1 ? pages.length - 1 : Math.min(requestedEnd, pages.length - 1);`;
 
-/**
- * Build a `lib.pdf.*` → Code node migration. The removed nodes resolved their
- * `document` input with `requireDocumentBytes`; `media.bytes` is the same
- * resolution from inside the guest, so the body reads the ref shapes the node
- * used to accept. `@nodetool-ai/sandbox-pdf` then reads the text layer, which
- * is all the three migrated nodes ever needed. The rest of the family read
- * layout, tables, styling or OCR through `@llamaindex/liteparse` and have no
- * faithful equivalent, so they stay unmigrated and keep failing by name rather
- * than returning something else.
- */
 function pdfToCodeMigration(from: string, code: string): NodeTypeMigration {
   return {
     from,
@@ -750,25 +735,11 @@ if (typeof v === "object") return { output: toJsonString(v) };
 return { output: String(v) };`
   ),
 
-  // The `lib.pdf.*` nodes removed in #4830. Only the three that read plain
-  // text are migrated — see `pdfToCodeMigration`.
+  // PageCount and SearchText stay as Code rewrites. ExtractTextBlocks and
+  // PageMetadata have no text-layer equivalent, so they stay unmigrated.
   pdfToCodeMigration("lib.pdf.PageCount", "return { output: pages.length };"),
   pdfToCodeMigration(
-    "lib.pdf.ExtractText",
-    `${PDF_PAGE_RANGE}
-const parts = [];
-for (let i = start; i <= end; i++) {
-  const page = pages[i];
-  if (page) parts.push(page.text);
-}
-return { output: parts.join("\\n\\n").trim() };`
-  ),
-  pdfToCodeMigration(
     "lib.pdf.SearchText",
-    // The old node searched the text items liteparse laid out, so every match
-    // carried a bounding box. A text layer has no coordinates: each match keeps
-    // its page and its text, and the `x`/`y`/`width`/`height`/`fontName`/
-    // `fontSize` keys are gone rather than filled with invented numbers.
     `${PDF_PAGE_RANGE}
 const phrase = String(inputs.phrase ?? "");
 const caseSensitive = Boolean(inputs.case_sensitive ?? false);

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import ChatThreadView from "./ChatThreadView";
 import mockTheme from "../../../__mocks__/themeMock";
 import { Message } from "../../../stores/ApiTypes";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 const mockScrollToIndex = jest.fn();
 let mockTotalSize: number | null = null;
@@ -130,6 +131,35 @@ describe("ChatThreadView", () => {
     renderWithTheme(<ChatThreadView {...defaultProps} />);
     expect(screen.getByTestId("message-1")).toHaveTextContent("Hello");
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
+  });
+
+  it("shows approvals only for the conversation rendered by this instance", () => {
+    useGlobalChatStore.setState({
+      currentThreadId: "thread-b",
+      pendingApprovals: {
+        "approval-a": {
+          thread_id: "thread-a",
+          tool_name: "write_file",
+          category: "write",
+          message: "Approval for A",
+          args: {}
+        },
+        "approval-b": {
+          thread_id: "thread-b",
+          tool_name: "run_command",
+          category: "execute",
+          message: "Approval for B",
+          args: {}
+        }
+      }
+    });
+
+    renderWithTheme(<ChatThreadView {...defaultProps} threadId="thread-a" />);
+
+    expect(screen.getByText("Approval for A")).toBeInTheDocument();
+    expect(screen.queryByText("Approval for B")).not.toBeInTheDocument();
+
+    act(() => useGlobalChatStore.setState({ pendingApprovals: {} }));
   });
 
   it("does not scroll for streaming tokens that leave layout unchanged", () => {
@@ -360,7 +390,63 @@ describe("ChatThreadView", () => {
         messages={mockMessages}
       />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Thinking…");
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Thinking…");
+    expect(status).toHaveClass("chat-status-label");
+    expect(status.closest(".chat-status-row")).not.toBeNull();
+  });
+
+  it("shows provider, model, and a timer while a media prediction is running", () => {
+    act(() =>
+      useGlobalChatStore.setState({
+        currentThreadId: "thread-media",
+        threadRuntime: {
+          "thread-media": {
+            status: "loading",
+            statusMessage: null,
+            progress: { current: 0, total: 0 },
+            error: null,
+            planningUpdate: null,
+            taskUpdate: null,
+            logUpdate: null,
+            runningToolCallId: "exec-1",
+            toolMessage: "Running code",
+            activePredictions: [
+              {
+                id: "p1",
+                provider: "fal_ai",
+                model: "flux-schnell",
+                capability: "text_to_image",
+                startedAt: Date.now() - 4000
+              }
+            ],
+            sendMessageTimeoutId: null
+          }
+        }
+      })
+    );
+
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        threadId="thread-media"
+        status="loading"
+        runningToolCallId="exec-1"
+        messages={mockMessages}
+      />
+    );
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Generating image · fal_ai · flux-schnell");
+    expect(screen.getByText("4s")).toBeInTheDocument();
+    expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
+
+    act(() =>
+      useGlobalChatStore.setState({
+        currentThreadId: null,
+        threadRuntime: {}
+      })
+    );
   });
 
   it("renders progress bar when progress > 0", () => {

@@ -55,10 +55,10 @@ RUN npm run build:packages
 # globs exclude any "node_modules" dir; that constraint doesn't exist here, so
 # rename it to node_modules and let server.mjs / db-migrate.mjs resolve their
 # externals via normal Node resolution. Source maps are dev artifacts — drop.
-RUN node scripts/bundle-backend.mjs --out /app/backend --profile server --with-migrate --with-sandbox-agent \
+RUN node scripts/bundle-backend.mjs --out /app/backend --profile server --with-migrate \
     && node scripts/verify-backend-bundle.mjs /app/backend --profile server \
     && mv /app/backend/_modules /app/backend/node_modules \
-    && rm -f /app/backend/server.mjs.map /app/backend/db-migrate.mjs.map /app/backend/sandbox-agent.mjs.map
+    && rm -f /app/backend/server.mjs.map /app/backend/db-migrate.mjs.map
 
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
@@ -111,13 +111,8 @@ ENV NODE_ENV=production \
 #                     shaderUniform*ArrayDynamicIndexing required" and still
 #                     hands back a null adapter. 25.0 satisfies it.
 #
-# The image doubles as the agent sandbox (see the sandbox entrypoint below),
-# so it also carries the sandbox desktop/browser stack:
-#   xvfb/fluxbox/x11vnc/websockify/novnc — virtual desktop + live VNC viewing
-#   chromium (+ fonts/libs)              — browser_* tools drive it over CDP
-#   xdotool/scrot/xterm                  — desktop_* tools (input, screenshots)
-#   imagemagick/tesseract-ocr/weasyprint — screenshot post-processing, OCR, PDF
-#   tmux/wget                            — shell tool conveniences
+# chromium (+ fonts/libs) backs the browser_* agent tools, which drive it
+# over CDP from the host process. tmux/wget are shell tool conveniences.
 RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/backports.list \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -126,8 +121,6 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
     poppler-utils qpdf pandoc \
     postgresql-client \
     python3 python3-venv \
-    xvfb fluxbox x11vnc websockify novnc xterm \
-    xdotool scrot imagemagick tesseract-ocr weasyprint \
     chromium fonts-liberation fonts-noto-color-emoji \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
@@ -138,7 +131,7 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
     && mkdir -p /workspace \
     && chown node:node /workspace
 
-# chrome-launcher (sandbox browser tools) locates the system Chromium.
+# chrome-launcher (browser_* agent tools) locates the system Chromium.
 ENV CHROME_PATH=/usr/bin/chromium
 
 # Python tool venv on PATH for every execute_bash call: yt-dlp for the
@@ -176,14 +169,6 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/backend ./backend
 COPY --from=build --chown=node:node /app/web/dist ./web/dist
 
-# Alternate entrypoint that turns a container from this image into an agent
-# sandbox: desktop stack (Xvfb/fluxbox/x11vnc/websockify) + the bundled tool
-# server (backend/sandbox-agent.mjs) on :7788 instead of the main server.
-# DockerSandboxProvider (@nodetool-ai/sandbox) starts containers with
-# `--entrypoint sandbox-agent-entrypoint.sh`.
-COPY packages/sandbox-agent/docker/entrypoint.sh /usr/local/bin/sandbox-agent-entrypoint.sh
-RUN chmod +x /usr/local/bin/sandbox-agent-entrypoint.sh
-
 # If no master key is configured, persist a generated 32-byte base64 key next
 # to the SQLite database so encrypted secrets survive restarts when /workspace
 # is mounted as a volume. For production, pass
@@ -214,9 +199,7 @@ RUN printf '%s\n' \
 
 USER node
 
-# 7777: main server. 7788/6080: sandbox tool server + noVNC websocket, only
-# bound when the container runs the sandbox entrypoint.
-EXPOSE 7777 7788 6080
+EXPOSE 7777
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
     CMD curl -fsk https://localhost:7777/health \

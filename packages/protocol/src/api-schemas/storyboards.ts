@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Screenplay, Shot } from "../creative.js";
 
 // ── Shot / screenplay ───────────────────────────────────────────────────────
 // Mirrors the interfaces in `creative.ts`. Loose objects: the shapes evolve
@@ -37,6 +38,145 @@ export const storyboardScreenplay = z
     shots: z.array(storyboardShot)
   })
   .passthrough();
+export type StoryboardScreenplay = z.infer<typeof storyboardScreenplay>;
+
+// ── Normalization ───────────────────────────────────────────────────────────
+// The agent tool surface speaks camelCase (`durationSeconds`), the persisted
+// wire shape speaks snake_case (`duration_seconds`), and an agent supplies
+// neither ids nor indexes. This is the one place that converts between them and
+// fills in what the save requires, so a screenplay that reaches the store is a
+// screenplay the server accepts. Every `ui_storyboard_*` write path and the
+// headless eval bridge call it.
+
+/** Tool-surface shot key → wire key. */
+const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
+  durationSeconds: "duration_seconds",
+  entityIds: "entity_ids",
+  locationId: "location_id",
+  keyframeVersions: "keyframe_versions",
+  clipVersions: "clip_versions",
+  costEstimate: "cost_estimate"
+};
+
+/** Tool-surface screenplay key → wire key. `style` is the Director's alias. */
+const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
+  styleBible: "style_bible",
+  style: "style_bible",
+  aspectRatio: "aspect_ratio",
+  musicPrompt: "music_prompt",
+  entityIds: "entity_ids",
+  createdAt: "created_at",
+  updatedAt: "updated_at"
+};
+
+const DEFAULT_SHOT_STATUS = "planned";
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Move each alias onto its wire key. An explicit wire key always wins. */
+function applyAliases(
+  source: Record<string, unknown>,
+  aliases: Readonly<Record<string, string>>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    const wireKey = aliases[key] ?? key;
+    if (wireKey !== key && source[wireKey] !== undefined) {
+      continue;
+    }
+    if (value !== undefined) {
+      out[wireKey] = value;
+    }
+  }
+  return out;
+}
+
+/** Options every normalizer takes. */
+export interface StoryboardNormalizeOptions {
+  /** Mints an id for a screenplay or shot that arrives without one. */
+  generateId?: () => string;
+}
+
+let idCounter = 0;
+const fallbackId = (): string => {
+  idCounter += 1;
+  return `sb_${Date.now().toString(36)}_${idCounter.toString(36)}`;
+};
+
+/**
+ * Normalize one agent-supplied shot into the wire shape: camelCase keys become
+ * snake_case, `type`/`id`/`index`/`status` are filled in. `action` is the one
+ * field nothing can derive — a shot without it throws, naming its position.
+ */
+export function normalizeStoryboardShot(
+  input: unknown,
+  index: number,
+  options: StoryboardNormalizeOptions = {}
+): Shot {
+  const newId = options.generateId ?? fallbackId;
+  if (!isPlainObject(input)) {
+    throw new Error(`Shot at position ${index} must be an object.`);
+  }
+  const shot = applyAliases(input, SHOT_KEY_ALIASES);
+  const slug = typeof shot.slug === "string" ? shot.slug : undefined;
+  const label = slug ? `${index} ("${slug}")` : `${index}`;
+  if (typeof shot.action !== "string" || shot.action.trim() === "") {
+    throw new Error(
+      `Shot at position ${label} needs a non-empty \`action\` — the concrete visual to render.`
+    );
+  }
+  return {
+    ...shot,
+    type: "shot",
+    id: typeof shot.id === "string" && shot.id ? shot.id : newId(),
+    index: typeof shot.index === "number" ? shot.index : index,
+    status: typeof shot.status === "string" ? shot.status : DEFAULT_SHOT_STATUS
+  } as unknown as Shot;
+}
+
+/**
+ * Normalize an agent-supplied screenplay into the exact shape the storyboard
+ * save accepts, then validate it against {@link storyboardScreenplay} — the
+ * schema `storyboards.update` uses. Throws with the failing paths when the
+ * result still does not validate, so an unsavable screenplay never reaches the
+ * store.
+ */
+export function normalizeStoryboardScreenplay(
+  input: unknown,
+  options: StoryboardNormalizeOptions = {}
+): Screenplay {
+  const newId = options.generateId ?? fallbackId;
+  if (!isPlainObject(input)) {
+    throw new Error(
+      "`screenplay` must be a Screenplay object ({ type: 'screenplay', title, shots: [...] })."
+    );
+  }
+  if (!Array.isArray(input.shots)) {
+    throw new Error(
+      "`screenplay.shots` must be an array of shots, each with an `action`."
+    );
+  }
+  const play = applyAliases(input, SCREENPLAY_KEY_ALIASES);
+  const candidate = {
+    ...play,
+    type: "screenplay",
+    id: typeof play.id === "string" && play.id ? play.id : newId(),
+    title: typeof play.title === "string" ? play.title : "",
+    shots: (play.shots as unknown[]).map((shot, index) =>
+      normalizeStoryboardShot(shot, index, options)
+    )
+  };
+  const parsed = storyboardScreenplay.safeParse(candidate);
+  if (!parsed.success) {
+    const paths = parsed.error.issues
+      .map((issue) => `${issue.path.join(".") || "screenplay"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`\`screenplay\` is not savable — ${paths}`);
+  }
+  return parsed.data as unknown as Screenplay;
+}
 
 /** A model selection (language/image/video) as the pickers emit it. */
 const modelSelection = z

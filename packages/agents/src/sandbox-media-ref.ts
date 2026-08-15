@@ -58,7 +58,10 @@ export interface MediaRefBridge {
   bytes(ref: unknown): Promise<unknown>;
   text(ref: unknown, options?: unknown): Promise<string>;
   info(ref: unknown): Promise<MediaRefInfo>;
-  toDocument(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
+  toDocument(
+    bytes: unknown,
+    options?: unknown
+  ): Promise<Record<string, unknown>>;
   toImage(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
   toAudio(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
   toVideo(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
@@ -136,6 +139,108 @@ function optionalString(
     throw new Error(`${where}: ${key} must be a string`);
   }
   return value;
+}
+
+/**
+ * Locator fields on a generation result, in the order a chat action may read.
+ * `uri` is last: a generation also carries a host filesystem path there, and
+ * the guest must not follow it.
+ */
+export const MEDIA_LOCATOR_KEYS = [
+  "asset_uri",
+  "asset_id",
+  "url",
+  "uri"
+] as const;
+
+/**
+ * The one string `read_media_bytes` / `image.*` should load for a value.
+ * Accepts a generation result, its `asset_uri`, a bare asset id, or a URI.
+ *
+ * A remapped ref keeps both `uri` (the preferred locator) and `asset_id`.
+ * Prefer a non-filesystem URI so a bare id does not win over `asset://…`.
+ */
+export function mediaLocatorFrom(value: unknown): string {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value.trim();
+  }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const values: string[] = [];
+    for (const key of MEDIA_LOCATOR_KEYS) {
+      const locator = record[key];
+      if (typeof locator === "string" && locator.trim() !== "") {
+        values.push(locator.trim());
+      }
+    }
+    const safeUri = values.find(
+      (candidate) =>
+        (candidate.includes("://") || candidate.startsWith("/api/")) &&
+        filesystemPathForUri(candidate) === null
+    );
+    if (safeUri) return safeUri;
+    if (typeof record.asset_id === "string" && record.asset_id.trim() !== "") {
+      return record.asset_id.trim();
+    }
+    if (values[0]) return values[0];
+  }
+  throw new Error(
+    "pass what a generation returned (its asset_uri), an asset id, " +
+      "a /api/storage/ key, or a data:/http(s) URL"
+  );
+}
+
+/** A string that names media, not an option like `"png"` or `"cover"`. */
+export function isMediaLocatorString(value: string): boolean {
+  const locator = value.trim();
+  return locator.includes("://") || locator.startsWith("/api/");
+}
+
+/** Whether `image.*` should treat the value as a media ref, not as nested data. */
+export function looksLikeMediaRef(value: unknown): boolean {
+  if (typeof value === "string") {
+    return isMediaLocatorString(value);
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.uri === "string" ||
+    typeof record.asset_id === "string" ||
+    typeof record.asset_uri === "string" ||
+    record.data !== undefined
+  );
+}
+
+/**
+ * Flatten a generation result (or a bare locator) to the ref `loadMediaRefBytes`
+ * understands. Prefers `asset_uri` so a host `file://` on the same object is
+ * never the path that is read.
+ */
+export function remapMediaRef(value: unknown): MediaRefValue {
+  if (typeof value === "string") {
+    const locator = value.trim();
+    return locator.includes("://") || locator.startsWith("/api/")
+      ? { uri: locator }
+      : { uri: locator, asset_id: locator };
+  }
+  const record =
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  let locator: string | undefined;
+  try {
+    locator = mediaLocatorFrom(value);
+  } catch {
+    locator = undefined;
+  }
+  return {
+    type: typeof record.type === "string" ? record.type : undefined,
+    uri: locator,
+    asset_id: typeof record.asset_id === "string" ? record.asset_id : undefined,
+    data: record.data
+  };
 }
 
 /** The ref argument, checked. A guest can pass anything, including `undefined`. */
@@ -221,11 +326,21 @@ async function readContainedPath(
   }
 }
 
-async function resolveRefBytes(
+/**
+ * Read the bytes a media ref names, with this run's containment applied.
+ *
+ * Exported because media transforms accept refs anywhere they accept bytes.
+ * The guest passes a generator's `asset://…` result straight into the next
+ * operation, and the bytes stay on the host. `maxBytes` remains 16 MB for
+ * `media.*`, whose bytes enter the guest, while handle-based transforms use
+ * the larger per-run media budget.
+ */
+export async function resolveRefBytes(
   where: string,
   ref: MediaRefValue,
   context: ProcessingContext,
-  resolvePath?: (path: string) => Promise<string>
+  resolvePath?: (path: string) => Promise<string>,
+  maxBytes: number = MAX_MEDIA_REF_BYTES
 ): Promise<Uint8Array> {
   // A filesystem-shaped uri is withheld from `loadMediaRefBytes`, whose own
   // absolute and `file://` branches read any path this process can reach. The
@@ -239,9 +354,9 @@ async function resolveRefBytes(
   if (!resolved) {
     throw new Error(`${where}: could not read ${describeRef(ref)}`);
   }
-  if (resolved.length > MAX_MEDIA_REF_BYTES) {
+  if (resolved.length > maxBytes) {
     throw new Error(
-      `${where}: ${describeRef(ref)} is ${resolved.length} bytes, over the ${MAX_MEDIA_REF_BYTES} byte limit`
+      `${where}: ${describeRef(ref)} is ${resolved.length} bytes, over the ${maxBytes} byte limit`
     );
   }
   return resolved;
@@ -289,29 +404,47 @@ function encodeBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Turn bytes into the ref's `uri`.
+ * Turn bytes into a portable locator.
  *
- * Storage wins whenever the context has it: the ref then carries a short
- * `/api/storage/<key>` URI that `loadMediaRefBytes` reads back, and the bytes
- * stay out of every graph message. Without storage a small payload becomes a
- * `data:` URI and a large one is refused.
+ * `createAsset` wins: the ref is `asset://<id>` plus `asset_id`, which any
+ * host can resolve. Otherwise the bytes go to storage under a sandbox key
+ * and the locator is `/api/storage/<key>` — never the `file://` path
+ * `store()` returns on the local adapter. Without storage a small payload
+ * becomes a `data:` URI and a large one is refused.
  */
 async function storeOrInline(
   where: string,
   bytes: Uint8Array,
   mimeType: string,
+  filename: string | undefined,
   context: ProcessingContext
-): Promise<string> {
+): Promise<{ uri: string; asset_id: string | null }> {
+  if (context.hasModelInterface?.("createAsset")) {
+    const ext = extForMime(mimeType);
+    const name = filename ?? `sandbox-${crypto.randomUUID()}.${ext}`;
+    const created = (await context.createAsset({
+      name,
+      contentType: mimeType,
+      content: bytes
+    })) as { id?: unknown };
+    if (typeof created?.id === "string" && created.id.length > 0) {
+      return { uri: `asset://${created.id}`, asset_id: created.id };
+    }
+  }
   if (context.storage) {
     const key = `sandbox/${crypto.randomUUID()}.${extForMime(mimeType)}`;
-    return context.storage.store(key, bytes, mimeType);
+    await context.storage.store(key, bytes, mimeType);
+    return { uri: `/api/storage/${key}`, asset_id: null };
   }
   if (bytes.length > MAX_DATA_URI_BYTES) {
     throw new Error(
       `${where}: ${bytes.length} bytes needs storage, which this run has none of; a data URI is capped at ${MAX_DATA_URI_BYTES} bytes`
     );
   }
-  return `data:${mimeType};base64,${encodeBase64(bytes)}`;
+  return {
+    uri: `data:${mimeType};base64,${encodeBase64(bytes)}`,
+    asset_id: null
+  };
 }
 
 async function buildRef(
@@ -328,8 +461,14 @@ async function buildRef(
     optionalString(options, "mimeType", where) ??
     (filename ? mimeForPath(filename) : undefined) ??
     DEFAULT_MIME[kind];
-  const uri = await storeOrInline(where, bytes, mimeType, context);
-  const ref: Record<string, unknown> = { type: kind, uri, asset_id: null };
+  const { uri, asset_id } = await storeOrInline(
+    where,
+    bytes,
+    mimeType,
+    filename,
+    context
+  );
+  const ref: Record<string, unknown> = { type: kind, uri, asset_id };
   if (kind !== "document") {
     ref.mimeType = mimeType;
   }

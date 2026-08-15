@@ -3,7 +3,8 @@ import { RESOURCE_KINDS } from "@nodetool-ai/protocol";
 import { nodetoolApiCoveredToolNames } from "@nodetool-ai/agents";
 import {
   RESIDENT_TOOL_NAMES,
-  CHAT_AGENT_SYSTEM_PROMPT
+  CHAT_AGENT_SYSTEM_PROMPT,
+  focusedUiToolNames
 } from "../src/unified-websocket-runner.js";
 
 describe("resident toolbelt", () => {
@@ -20,6 +21,23 @@ describe("resident toolbelt", () => {
 
   it("keeps opening a document resident, so a closed document is never a dead end", () => {
     expect(RESIDENT_TOOL_NAMES.has("ui_open_document")).toBe(true);
+  });
+
+  it("keeps only the focused surface's registered UI tools resident", () => {
+    const names = [
+      "ui_app_add_component",
+      "ui_app_get_snapshot",
+      "ui_timeline_add_track",
+      "ui_open_document"
+    ];
+
+    expect(
+      focusedUiToolNames({ focused: { type: "app", id: "app-1" } }, names)
+    ).toEqual(["ui_app_add_component", "ui_app_get_snapshot"]);
+  });
+
+  it("does not add UI tools when no document has focus", () => {
+    expect(focusedUiToolNames(null, ["ui_app_add_component"])).toEqual([]);
   });
 
   it("teaches the build-and-verify loop as `nodetool.*` code", () => {

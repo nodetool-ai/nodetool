@@ -30,10 +30,8 @@ export const useStartTrackChat = (): ((
       }
       useOnboardingStore.getState().markStep("open-template");
 
-      // The composer reads both axes: the media mode decides what the send
-      // generates, and the routing mode has to be plain chat rather than Pi.
+      // The composer mode decides what the send generates.
       useMediaGenerationStore.getState().setMode(track.chatMode);
-      useGlobalChatStore.getState().setMode("chat");
 
       try {
         const threadId = await useGlobalChatStore

@@ -66,11 +66,6 @@ interface AppProps {
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
-  /**
-   * Pre-built tools appended to the tool list returned from buildTools().
-   * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
-   */
-  extraTools?: import("@nodetool-ai/agents").Tool[];
   /** NodeRegistry — unused by the unified loop; kept for back-compat. */
   registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
   /** Configured BaseProvider instances by id (passed through to subtasks). */
@@ -347,7 +342,6 @@ export function App({
   enabledTools,
   workspaceDir,
   wsUrl,
-  extraTools,
   registry,
   agentProviders,
 }: AppProps) {
@@ -564,31 +558,9 @@ export function App({
     })) {
       toolMap[tool.name] = tool;
     }
-    // When sandbox tools are present, exclude host tools that have sandbox
-    // equivalents so the agent is forced to execute inside the sandbox.
-    const sandboxMode = extraTools && extraTools.length > 0;
-    const hostToolsToExclude = sandboxMode
-      ? new Set([
-          "read_file",
-          "write_file",
-          "edit_file",
-          "list_directory",
-          "glob",
-          "grep",
-          "browser",
-          "take_screenshot",
-          "google_search",
-          "google_news",
-          "google_images"
-        ])
-      : null;
-
-    const enabled = enabledTools
-      .filter(name => name in toolMap && !(hostToolsToExclude?.has(name)))
+    return enabledTools
+      .filter(name => name in toolMap)
       .map(name => toolMap[name]);
-    return extraTools && extraTools.length > 0
-      ? [...enabled, ...extraTools]
-      : enabled;
   }
 
   // ---------------------------------------------------------------------------
@@ -834,7 +806,7 @@ export function App({
       void registry;
       void agentProviders;
 
-      if (wsClientRef.current && !extraTools?.length) {
+      if (wsClientRef.current) {
         // --- Regular chat via WebSocket (server handles everything) ---
         const wsClient = wsClientRef.current;
         const toolSchemas = tools.map(t => t.toProviderTool());

@@ -22,7 +22,7 @@ Write a video file to disk.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The video to save | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The video to save | - |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` |          Name of the file to save.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
 

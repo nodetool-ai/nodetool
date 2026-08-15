@@ -87,7 +87,7 @@ This document describes the architecture of NodeTool — a visual AI workflow pl
 
 ```
 nodetool/
-├── packages/               # TypeScript backend monorepo (58 packages)
+├── packages/               # TypeScript backend monorepo (55 packages)
 │   ├── protocol/           #   Shared types & message definitions (Zod)
 │   ├── config/             #   Environment & settings management
 │   ├── security/           #   Encryption, secrets, master key
@@ -120,7 +120,6 @@ nodetool/
 ├── mobile/                 # React Native mobile app (Expo)
 ├── docs/                   # Jekyll documentation site
 ├── scripts/                # Build, release, and dev helper scripts
-├── workflow_runner/        # Standalone workflow execution utilities
 ├── examples/               # Example workflows
 ├── package.json            # npm workspace configuration (build/test/lint scripts)
 └── tsconfig.base.json      # Shared TypeScript configuration
@@ -144,7 +143,7 @@ nodetool/
 
 ## Backend Architecture
 
-The backend is a TypeScript monorepo of 58 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
+The backend is a TypeScript monorepo of 55 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
 
 ### Package Dependency Graph
 
@@ -813,7 +812,7 @@ Vite dev server runs on port 3000 with hot module replacement. API calls are pro
 |---|---|---|
 | Backend packages | Vitest | `packages/*/tests/` |
 | Web unit tests | Jest + React Testing Library | `web/src/__tests__/`, `web/src/components/__tests__/` |
-| Web E2E tests | Playwright | `web/tests/` (`e2e-runner/`, `journeys/`, `visual/`, `smoke/`, `debug-harness/`) |
+| Web E2E tests | Playwright | `web/tests/` (`e2e-runner/`, `journeys/`, `smoke/`, `debug-harness/`, `benchmarks/`) |
 | Electron unit tests | Jest | `electron/src/__tests__/` |
 | Mobile tests | Jest | `mobile/src/**/__tests__/` |
 
@@ -829,4 +828,4 @@ cd web && npm test
 cd web && npm run test:e2e
 ```
 
-CI/CD is managed through 26 GitHub Actions workflows covering unit tests, E2E tests, code quality, security auditing, accessibility, performance monitoring, and release automation.
+CI/CD is managed through 41 GitHub Actions workflows covering unit tests, E2E tests, code quality, security auditing, accessibility, performance monitoring, and release automation.

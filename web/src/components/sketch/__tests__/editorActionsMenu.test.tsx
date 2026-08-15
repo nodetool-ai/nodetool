@@ -29,9 +29,10 @@ describe("editor actions menu", () => {
     const user = userEvent.setup();
     renderActions();
 
+    expect(screen.getByTestId("sketch-assistant-toggle")).toBeTruthy();
+
     await user.click(screen.getByTestId("sketch-editor-menu"));
 
-    expect(screen.getByTestId("sketch-assistant-toggle")).toBeTruthy();
     expect(screen.getByTestId("sketch-fit-view")).toBeTruthy();
     await user.click(screen.getByTestId("sketch-hide-panels"));
     expect(useSketchStore.getState().panelsHidden).toBe(true);

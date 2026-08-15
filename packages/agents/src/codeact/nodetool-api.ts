@@ -48,7 +48,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "critique_image",
     "compare_images",
     "score_image_adherence",
-    "read_media_bytes"
+    "ffmpeg",
+    "yt_dlp"
   ],
   documents: [
     "convert_document",
@@ -73,6 +74,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "thread_memory_delete"
   ],
   shared: ["list_shared", "read_shared", "share_result"],
+  threads: ["list_threads", "get_thread", "get_message"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
   assets: [
@@ -92,7 +94,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "vector_text_search",
     "vector_hybrid_search"
   ],
-  apps: ["build_app", "debug_app"],
+  apps: ["debug_app"],
   timelines: [
     "list_timelines",
     "list_timeline_versions",
@@ -218,24 +220,6 @@ const nodetool = (() => {
       "nodetool: a model is required — pass a nodetool.models.find/pick " +
       'result, {provider, model_id}, or "provider/model_id". Use ' +
       'await nodetool.models.pick("<capability>") to resolve one.'
-    );
-  };
-
-  /**
-   * Normalize what a generation returns into the one reference
-   * \`read_media_bytes\` takes. A generation result carries \`asset_uri\`,
-   * \`asset_id\`, \`url\` and a host \`uri\` — the last is a filesystem path the
-   * guest may not read, so it is never chosen. A bare string passes through.
-   */
-  const __mediaUri = (ref) => {
-    if (typeof ref === "string" && ref) return ref;
-    if (ref && typeof ref === "object") {
-      const uri = ref.asset_uri || ref.asset_id || ref.url || ref.uri;
-      if (typeof uri === "string" && uri) return uri;
-    }
-    throw new Error(
-      "nodetool.media.bytes: pass what a generation returned (its " +
-      "asset_uri), an asset id, a /api/storage/ key, or a data:/http(s) URL."
     );
   };
 
@@ -654,21 +638,14 @@ const nodetool = (() => {
           )
         ),
       /**
-       * The bytes behind anything a generation returned — the way to get at an
-       * image you just made and hand it to \`image.*\`. Takes the result object
-       * itself, its \`asset_uri\`, a bare asset id, a /api/storage/ key, or a
-       * data:/http(s) URL. Returns a Uint8Array.
+       * Promote an image handle (or a generation result) to a durable asset.
+       * Bytes stay on the host; the guest only sees the asset:// ref.
        */
-      bytes: (ref) =>
-        __need("read_media_bytes")({ uri: __mediaUri(ref) }).then((r) => {
-          if (!r || typeof r.content_base64 !== "string") {
-            throw new Error(
-              "nodetool.media.bytes: " +
-              ((r && r.error) || "no bytes came back for this reference")
-            );
-          }
-          return fromBase64(r.content_base64);
-        }),
+      toImage: (src, opts) => image.toAsset(src, opts),
+      /** Promote an audio handle to a durable asset. */
+      toAudio: (src, opts) => audio.toAsset(src, opts),
+      /** Promote a video handle to a durable asset. */
+      toVideo: (src, opts) => video.toAsset(src, opts),
       generateVideo: (prompt, model, opts) =>
         __need("generate_video")(
           __merge(opts, __merge(__model(model), { prompt: prompt }))
@@ -716,7 +693,12 @@ const nodetool = (() => {
             opts,
             __merge(__model(model), { image: image, brief: brief })
           )
-        )
+        ),
+      /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
+      ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
+      /** Download a video with yt-dlp. */
+      downloadVideo: (url, outputFile, opts) =>
+        __need("yt_dlp")(__merge(opts, { url: url, output_file: outputFile }))
     },
 
     documents: {
@@ -784,6 +766,24 @@ const nodetool = (() => {
         ),
       remove: (memoryId) =>
         __need("thread_memory_delete")({ memory_id: memoryId })
+    },
+
+    threads: {
+      /** Past conversations, most recently updated first. */
+      list: (opts) => __need("list_threads")(__merge(opts)),
+      /** One thread and a page of its messages. */
+      get: (threadId, opts) =>
+        __need("get_thread")(__merge(opts, { thread_id: threadId })),
+      /** The newest message in a thread, or undefined when it has none. */
+      last: (threadId) =>
+        __need("get_thread")({
+          thread_id: threadId,
+          limit: 1,
+          newest_first: true
+        }).then((t) => (t && t.messages ? t.messages[0] : undefined)),
+      /** One message in full — untruncated content and every tool call. */
+      message: (messageId) =>
+        __need("get_message")({ message_id: messageId })
     },
 
     shared: {
@@ -893,20 +893,6 @@ const nodetool = (() => {
     },
 
     apps: {
-      /**
-       * Build a mini app. Pass a sentence of intent (goes in as the prompt)
-       * or a pinned BuildSpec object (goes in as the spec). Minutes-long —
-       * pass {poll: true} for a session id to read instead of waiting.
-       */
-      build: (promptOrSpec, opts) =>
-        __need("build_app")(
-          __merge(
-            opts,
-            typeof promptOrSpec === "string"
-              ? { prompt: promptOrSpec }
-              : { spec: promptOrSpec }
-          )
-        ),
       /** Validate + simulate a saved app. {run: false} is the free check. */
       debug: (id, opts) =>
         __need("debug_app")(__merge(opts, { application_id: id }))
@@ -1093,15 +1079,26 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`animateImage(inputFile, model)\`, \`speak(text, model, {voice})\`,
   \`transcribe(inputFile, model)\`, \`embed(text, model)\`. Results are saved as
   assets (\`asset://\` URI); pass \`output_file\` for a workspace copy too.
-  \`await nodetool.media.bytes(result)\` reads the bytes back — pass the
-  generation result itself, its \`asset_uri\`, or an asset id — so
-  generate → \`image.resize/composite\` → \`nodetool.assets.save\` is one action.
+  Assign each result to \`state\` before the next call
+  (\`state.clip = state.clip ?? await nodetool.media.generateVideo(prompt, model)\`)
+  so a later failure does not re-run generation. Feed generation results
+  straight into \`image.*\`, \`audio.*\`, or \`video.*\`. These namespaces take a
+  result, its \`asset_uri\`, or an asset id and return run-local handles. They
+  can combine media too: for example, \`video.addAudio(videoHandle, audioHandle)\`.
+  Save finished handles with \`nodetool.media.toImage/toAudio/toVideo\` before
+  the action ends; keep the returned \`asset://\` ref in \`state\`. Do not pull
+  bytes into the guest, and do not keep a handle in \`state\` because it is
+  dead in the next action.
   Judging lives here too, so generate → critique → regenerate is one namespace:
   \`critique(image, brief, visionModel, {taste_profile})\`,
   \`compare([imageA, imageB, ...], brief, visionModel)\` (pairwise knockout),
   \`scoreAdherence(image, brief, visionModel, {questions})\`. The judge takes a
   VISION chat model — \`pick("generate_message")\` on a vision-capable one, not
-  the image model that generated the picture.`
+  the image model that generated the picture.
+  Host binaries: \`ffmpeg(args, {output_file, timeout_seconds})\` runs ffmpeg
+  in the workspace (no shell); \`downloadVideo(url, outputFile, {format,
+  timeout_seconds})\` downloads with yt-dlp. Browse pages with
+  \`nodetool.web.browse(url)\`.`
   },
   {
     namespace: "documents",
@@ -1128,6 +1125,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   put the assets, workflows and collections you produce in \`resources\` so you
   can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
   title, resources})\`, and \`remove(memoryId)\`.`
+  },
+  {
+    namespace: "threads",
+    doc: `- \`nodetool.threads\` — the chat history, read-only. \`list({limit,
+  workflow_id, cursor})\` returns past conversations newest first, each with
+  its last message; \`get(threadId, {limit, newest_first, cursor, max_chars})\`
+  reads a page of messages; \`last(threadId)\` is the newest one; and
+  \`message(messageId)\` is the full record when a summarized message is not
+  enough. Use it to answer "what did we decide last time" instead of asking
+  the user to repeat it.`
   },
   {
     namespace: "shared",
@@ -1160,8 +1167,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`get(assetId)\` (the row — no bytes), \`save(name, {content_base64,
   content_type})\`, \`read(nameOrUri)\` (an \`asset://\` URI, an asset id, a
   /api/storage/ key, or a stored file name → \`{content, content_base64}\`).
-  For bytes you intend to compute on, \`nodetool.media.bytes(ref)\` is the
-  direct route.`
+  To edit a generated image, pass the generation result to \`image.*\` and
+  save with \`nodetool.media.toImage(handle).\``
   },
   {
     namespace: "jobs",
@@ -1184,14 +1191,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "apps",
-    doc: `- \`nodetool.apps\` — \`build(promptOrSpec, {provider, model, workflow_ids,
-  max_repairs, cost_cap_usd, poll})\` builds a mini app (a string is the intent
-  prompt, an object is a pinned BuildSpec) and returns the build report; the
-  bundle behind a passing verdict is offered, not installed. A build runs for
-  MINUTES — pass \`{poll: true}\` to get a session id back at once and read
-  \`GET /api/debug/sessions/<id>\` until it settles. \`debug(applicationId,
-  {params, interact, run, poll})\` validates and simulates a saved app;
-  \`{run: false}\` is the free, instant wiring check.`
+    doc: `- \`nodetool.apps\` — \`debug(applicationId, {params, interact, run,
+  poll})\` validates and simulates a saved app; \`{run: false}\` is the free,
+  instant wiring check. Build an app by driving the \`ui_app_*\` editor tools
+  and checking each change with \`{run: false}\`.`
   },
   {
     namespace: "timelines",
@@ -1246,14 +1249,18 @@ entry settles as \`{ok, index, item, value | error}\`. A handful of items is one
 \`batch\` call in one action; only lists big enough to threaten the sandbox
 limits get chunked across actions with progress in \`state\`.`;
 
-const MEDIA_EXAMPLE = `Pick a model once, then generate — batching included:
+const MEDIA_EXAMPLE = `Pick a model once, stash results in \`state\`, then generate —
+batching included. Skip work \`state\` already holds:
 
 \`\`\`js
-const model = await nodetool.models.pick("text_to_image");
-const shots = ["a red fox in snow", "a fox by a river"];
-const images = await nodetool.batch(shots, (prompt) =>
-  nodetool.media.generateImage(prompt, model), { concurrency: 2 });
-return images.map((r) => (r.ok ? r.value.asset_uri : r.error));
+const model = state.model ?? (state.model = await nodetool.models.pick("text_to_image"));
+if (!state.images) {
+  const shots = ["a red fox in snow", "a fox by a river"];
+  const images = await nodetool.batch(shots, (prompt) =>
+    nodetool.media.generateImage(prompt, model), { concurrency: 2 });
+  state.images = images.map((r) => (r.ok ? r.value : null));
+}
+return state.images.map((img) => (img ? img.asset_uri : "failed"));
 \`\`\``;
 
 /**
@@ -1340,7 +1347,11 @@ fails the action by name, before any code runs.`,
     sections.push(MEDIA_EXAMPLE);
   }
   if (names.has("run_workflow")) sections.push(BATCH_EXAMPLE);
-  if ([...names].some((name) => DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p)))) {
+  if (
+    [...names].some((name) =>
+      DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p))
+    )
+  ) {
     sections.push(DOCUMENT_SURFACE_GUIDANCE);
   }
   return sections.join("\n\n");

@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/document-nodes",
-  "version": "0.7.0-rc.34",
-  "description": "NodeTool document nodes — PDF rasterization, generic document I/O",
+  "version": "0.7.0-rc.35",
+  "description": "NodeTool document nodes — PDF text extraction, rasterization, generic document I/O",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hyzyla/pdfium": "^2.1.12",
+    "@llamaindex/liteparse": "^1.5.2",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",

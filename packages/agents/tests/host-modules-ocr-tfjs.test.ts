@@ -413,12 +413,8 @@ const FIXTURE_RGBA = new Uint8Array([
 let fixturePng: Uint8Array;
 
 beforeAll(async () => {
-  const { imageOps } = await import("../src/sandbox-media.js");
-  fixturePng = await imageOps.encode({
-    width: 2,
-    height: 2,
-    pixels: FIXTURE_RGBA
-  });
+  const { encodePixels } = await import("../src/sandbox-media.js");
+  fixturePng = await encodePixels(FIXTURE_RGBA, 2, 2);
 });
 
 describe("tfjs.classify", () => {

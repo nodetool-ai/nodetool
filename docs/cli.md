@@ -449,6 +449,45 @@ nodetool assets list --query "landscape"
 nodetool assets get <asset_id>
 ```
 
+## Vector Collections
+
+### `nodetool collections`
+
+Manage the RAG vector-store collections behind semantic search. Runs in-process
+against the default vector provider — sqlite-vec unless
+`NODETOOL_VECTOR_PROVIDER` points elsewhere — so no server has to be running.
+
+**Subcommands:** `list`, `get`, `create`, `delete`, `query`, `index`
+
+**Options:**
+
+- `--embedding-model <model>` / `--embedding-provider <provider>` — record the
+  embedding model and provider on a new collection (for `create`).
+- `-n, --n-results <n>` — number of matches to return (for `query`, default `10`).
+- `-y, --yes` — skip the confirmation prompt (for `delete`).
+- `--json` — output as JSON. Available on every subcommand.
+
+**Examples:**
+
+```bash
+# Create a collection and record what embeds it
+nodetool collections create my_docs --embedding-model text-embedding-3-small
+
+# Chunk and index files, with the same splitter the server uses
+nodetool collections index my_docs notes.md report.txt
+
+# Semantic search
+nodetool collections query my_docs "how does the runner cancel a job" -n 5
+
+# Inspect and remove
+nodetool collections list
+nodetool collections get my_docs
+nodetool collections delete my_docs --yes
+```
+
+Re-indexing the same file replaces its chunks rather than adding a second copy,
+so an `index` run is safe to repeat after a document changes.
+
 ## Secrets Management
 
 ### `nodetool secrets`
@@ -469,6 +508,52 @@ nodetool secrets store OPENAI_API_KEY
 # Retrieve a secret value
 nodetool secrets get OPENAI_API_KEY
 ```
+
+## Provider Sign-In
+
+### `nodetool auth`
+
+Sign in to providers that use an account instead of an API key. Today that is
+Claude: `auth claude` runs the same OAuth flow the `claude` CLI does and writes
+the tokens to the Claude Agent SDK's credential file
+(`~/.claude/.credentials.json`), so a NodeTool login and a `claude login` are
+interchangeable. The Claude Agent provider picks the file up with no further
+configuration. No database and no server are involved.
+
+Reach for it when you want to run agents on a Claude subscription rather than
+store an `ANTHROPIC_API_KEY`.
+
+**Subcommands:** `claude login`, `claude status`, `claude refresh`, `claude logout`
+
+**Options:**
+
+- `--console` — sign in with a Console (API-billed) account instead of a
+  subscription (for `login`).
+- `--manual` — skip the loopback listener and paste the code the browser shows.
+  This is the flow for a headless or remote machine (for `login`).
+- `--no-browser` — print the URL instead of opening a browser (for `login`).
+- `--force` — refresh even when the current token is still valid (for `refresh`).
+- `--json` — output as JSON. Available on `login`, `status`, and `refresh`.
+
+**Examples:**
+
+```bash
+# Browser opens, loopback callback completes the flow
+nodetool auth claude login
+
+# Headless box: paste the code yourself
+nodetool auth claude login --manual
+
+# Check and refresh
+nodetool auth claude status
+nodetool auth claude refresh --force
+
+nodetool auth claude logout
+```
+
+The same flow is available over HTTP at
+`/api/oauth/claude/{start,complete,tokens,disconnect}` and as a sign-in card on
+the **Models & Providers** settings page.
 
 ## Settings
 
@@ -511,6 +596,106 @@ nodetool models ollama
 nodetool models by-provider openai --kind image
 ```
 
+### `nodetool models` — HuggingFace Hub and cache
+
+Five subcommands search the Hub and manage the local HuggingFace cache. They
+talk to the Hub's HTTP API and the cache on disk, so they need no running
+NodeTool server. Reach for them when you want to find a repo id for a local
+model node, or pull the weights before a workflow needs them.
+
+- `hf-types` — print the nodetool HF model types, one per line, followed by a
+  `Generic types (require --task):` block. The types in that block need a
+  pipeline tag when you search them; the ones above it do not. `--json` prints
+  `{types, generic}` instead.
+- `list-hf <model_type>` — search the Hub for models matching a nodetool model
+  type. `--task <task>` supplies the HF pipeline tag (required for the generic
+  types); `--limit <n>` caps the results; `--json` prints the raw entries.
+  Without `--task`, a generic type fails with
+  `Model type 'hf.model' requires --task (e.g. 'text-to-image').`
+- `list-hf-all` — search across every nodetool HF model type at once.
+  `--limit <n>` caps the total; `--repo-only` drops file-level entries and keeps
+  one row per repo.
+- `hf-cache` — list the local cache with disk detail: repo id, path, type,
+  whether the repo is fully downloaded, size on disk, pipeline tag.
+  `--downloaded-only` keeps only complete repos; `--limit <n>` and `--json`
+  behave as elsewhere. `huggingface` (above) reads the same cache but prints
+  id/name/provider/type/repo_id and can search it (`--query`, `--type`) or
+  target a remote server (`--api-url`); use `hf-cache` when you care about what
+  is on disk and how big it is.
+- `download-hf --repo-id <owner/name>` — download a repo into the local
+  HuggingFace cache, printing progress to stderr. `--file-path <path>` fetches a
+  single file instead of the whole repo; `-a, --allow-patterns <glob>` and
+  `-i, --ignore-patterns <glob>` are repeatable globs that narrow the file set.
+  Passing `--cache-dir <dir>` switches the download to the flat llama.cpp cache
+  layout (`~/.cache/llama.cpp` on Linux, `~/Library/Caches/llama.cpp` on macOS)
+  — it does **not** redirect the files into `<dir>`.
+
+**Examples:**
+
+```bash
+# Which model types can be searched, and which need --task
+nodetool models hf-types
+
+# Search one type, then every type at once
+nodetool models list-hf qwen3 --limit 5
+nodetool models list-hf hf.text_to_image --task text-to-image --limit 5
+nodetool models list-hf-all --repo-only --limit 20
+
+# What is already on disk
+nodetool models hf-cache --downloaded-only
+
+# Pull weights ahead of a run — whole repo, then just the GGUF files
+nodetool models download-hf --repo-id Qwen/Qwen3-0.6B
+nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
+```
+
+## Media Generation
+
+### `nodetool generate <provider> <model> <prompt...>`
+
+Generate an image from any registered provider straight to a file, with no
+workflow in between. Use it to try a model, check that a provider's key resolves,
+or produce one image from a script.
+
+Provider and model names are matched leniently against the registry and the
+provider's own model manifest, so `fal-ai` finds `fal_ai` and `flux-schnell`
+finds `fal-ai/flux/schnell`. The API key comes from the secret store or the
+environment; when it is missing the error names the variable to set.
+
+**Options:**
+
+- `-o, --output <path>` — output file or directory. A directory (or a path
+  ending in a separator) keeps the generated name; a file path is used as the
+  base name. Default is a `nodetool-<model>-<timestamp>.<ext>` file in the
+  working directory.
+- `--width <n>` / `--height <n>` / `--aspect-ratio <ratio>` — output size, e.g.
+  `--aspect-ratio 16:9`.
+- `--negative-prompt <text>` — what to avoid in the image.
+- `--seed <n>` — random seed, for reproducible output.
+- `-n, --num-images <n>` — number of images (default `1`). Extra images get a
+  `-2`, `-3`, … suffix.
+- `--steps <n>` / `--guidance <n>` — inference steps and guidance scale.
+- `--image <path...>` — input image(s); switches to image-to-image.
+- `--strength <n>` — image-to-image strength, with `--image`.
+- `--list-models` — list the provider's image models and exit.
+- `--json` — print the result as JSON.
+
+**Examples:**
+
+```bash
+# Discover model ids for a provider
+nodetool generate fal-ai --list-models
+
+# Text to image
+nodetool generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+
+# Four square variants into a directory
+nodetool generate fal-ai flux-schnell "a logo" --aspect-ratio 1:1 -n 4 -o ./out/
+
+# Image to image
+nodetool generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
+```
+
 ## MCP Integration
 
 ### `nodetool mcp`
@@ -546,7 +731,7 @@ Exactly two tools land on `/mcp` and on `nodetool mcp serve`:
 - **`execute_code`** — the CodeAct action tool, built by the same
   `createChatCodeActSession` the in-app chat agent runs on, so the two surfaces cannot drift.
   Everything NodeTool can do is reached from inside an action: workflow building and debugging
-  (`create_workflow`, `validate_workflow`, `debug_workflow`, `build_app`, `debug_app`, the `ui_*`
+  (`create_workflow`, `validate_workflow`, `debug_workflow`, `debug_app`, the `ui_*`
   graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
   `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
   (`web_search`, `browser`, `http_request`), collections, documents, code execution, image

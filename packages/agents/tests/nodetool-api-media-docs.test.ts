@@ -3,6 +3,7 @@
  * in the real QuickJS sandbox against a fake chat tool router. No network, no
  * model, no pandoc.
  */
+import { Buffer } from "node:buffer";
 import { describe, it, expect } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -26,7 +27,11 @@ const CRITIQUE_TOOLS = [
   "score_image_adherence"
 ].map(toolDef);
 
-const READ_BYTES_TOOLS = ["generate_image", "read_media_bytes"].map(toolDef);
+const PIPELINE_TOOLS = ["generate_image"].map(toolDef);
+
+/** 1×1 red PNG — valid input for `image.adjust`. */
+const RED_PNG_B64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 const DOCUMENT_TOOLS = [
   "convert_document",
@@ -36,7 +41,7 @@ const DOCUMENT_TOOLS = [
   "convert_pdf_to_markdown"
 ].map(toolDef);
 
-function createFakeRouter() {
+function createFakeRouter(opts: { imageBytes?: "tiny" | "png" } = {}) {
   const calls: ChatCodeActToolCall[] = [];
   const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
     calls.push(call);
@@ -60,15 +65,28 @@ function createFakeRouter() {
           url: "asset://img1",
           uri: "file:///var/assets/img1.png"
         });
-      case "read_media_bytes":
-        return args["uri"] === "asset://img1.png"
-          ? JSON.stringify({
-              uri: args["uri"],
-              size: 3,
-              mime_type: "image/png",
-              content_base64: "AQID"
-            })
-          : JSON.stringify({ error: `Could not read ${String(args["uri"])}` });
+      case "read_media_bytes": {
+        if (args["uri"] !== "asset://img1.png") {
+          return JSON.stringify({ error: `Could not read ${String(args["uri"])}` });
+        }
+        const content_base64 =
+          opts.imageBytes === "png" ? RED_PNG_B64 : "AQID";
+        return JSON.stringify({
+          uri: args["uri"],
+          size: Buffer.from(content_base64, "base64").length,
+          mime_type: "image/png",
+          content_base64
+        });
+      }
+      case "save_asset":
+        return JSON.stringify({
+          success: true,
+          name: args["name"],
+          asset_id: "grey1",
+          asset_uri: "asset://grey1.png",
+          content_type: args["content_type"] ?? "image/png",
+          size: 12
+        });
       case "critique_image":
         return JSON.stringify({
           type: "critique",
@@ -105,13 +123,30 @@ function createFakeRouter() {
 
 function makeSession(
   tools: Array<{ name: string; description: string; inputSchema: unknown }>,
-  executeTool: (call: ChatCodeActToolCall) => Promise<unknown>
+  executeTool: (call: ChatCodeActToolCall) => Promise<unknown>,
+  context: ProcessingContext = createMockContext() as unknown as ProcessingContext
 ) {
   return createChatCodeActSession({
     tools,
     executeTool,
-    context: createMockContext() as unknown as ProcessingContext
+    context
   });
+}
+
+function pipelineContext(): ProcessingContext {
+  const png = Buffer.from(RED_PNG_B64, "base64");
+  const ctx = createMockContext() as unknown as ProcessingContext & {
+    resolveAssetBytes: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
+    hasModelInterface: (name: string) => boolean;
+    createAsset: (args: unknown) => Promise<{ id: string }>;
+  };
+  ctx.resolveAssetBytes = async (uri: string) =>
+    uri.includes("img1")
+      ? { bytes: png }
+      : { bytes: null };
+  ctx.hasModelInterface = (name: string) => name === "createAsset";
+  ctx.createAsset = async () => ({ id: "grey1" });
+  return ctx;
 }
 
 async function runAction(
@@ -211,64 +246,31 @@ describe("nodetool.media judging", () => {
   });
 });
 
-describe("nodetool.media.bytes", () => {
-  it("reads the bytes behind a generation result", async () => {
+describe("generate → image.adjust → nodetool.media.toImage", () => {
+  it("feeds a generation result into image.adjust and saves the handle", async () => {
     const { executeTool, calls } = createFakeRouter();
-    const session = makeSession(READ_BYTES_TOOLS, executeTool);
+    const session = makeSession(PIPELINE_TOOLS, executeTool, pipelineContext());
     const obs = await runAction(
       session,
-      `const image = await nodetool.media.generateImage("a fox",
-         { provider: "fal_ai", model_id: "fal-ai/flux/schnell" });
-       const bytes = await nodetool.media.bytes(image);
-       return [bytes.length, Array.from(bytes)];`
+      `const img = await nodetool.media.generateImage(
+         "a clockmaker", { provider: "fal_ai", model_id: "fal-ai/flux/schnell" });
+       const grey = await image.adjust(img, { grayscale: true });
+       const saved = await nodetool.media.toImage(grey);
+       return {
+         uri: saved.asset_uri,
+         handle: grey.uri,
+         hasBytes: typeof nodetool.media.bytes
+       };`
     );
     expect(obs.ok).toBe(true);
-    expect(obs.result).toEqual([3, [1, 2, 3]]);
-    // The generation's `uri` is a host path; the asset URI is what goes over.
-    expect(calls[1]).toMatchObject({
-      name: "read_media_bytes",
-      args: { uri: "asset://img1.png" }
+    expect(obs.result).toMatchObject({
+      uri: "asset://grey1.png",
+      hasBytes: "undefined"
     });
-  });
-
-  it("takes a bare URI too", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(READ_BYTES_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `const bytes = await nodetool.media.bytes("asset://img1.png");
-       return bytes.length;`
+    expect(String((obs.result as { handle?: string }).handle)).toMatch(
+      /^sandbox:\/\/media\//
     );
-    expect(obs.ok).toBe(true);
-    expect(obs.result).toBe(3);
-  });
-
-  it("throws the tool's own error instead of returning undefined bytes", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(READ_BYTES_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `try {
-         await nodetool.media.bytes("asset://missing.png");
-         return "no throw";
-       } catch (e) { return e.message; }`
-    );
-    expect(obs.ok).toBe(true);
-    expect(String(obs.result)).toContain("Could not read asset://missing.png");
-  });
-
-  it("names the accepted references when handed nothing usable", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(READ_BYTES_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `try {
-         await nodetool.media.bytes({ type: "image" });
-         return "no throw";
-       } catch (e) { return e.message; }`
-    );
-    expect(obs.ok).toBe(true);
-    expect(String(obs.result)).toContain("asset_uri");
+    expect(calls.map((c) => c.name)).toEqual(["generate_image"]);
   });
 });
 
@@ -366,5 +368,18 @@ describe("nodetool.documents", () => {
     expect(buildNodetoolApiPromptSection(["web_search"])).not.toContain(
       "nodetool.documents"
     );
+  });
+
+  it("tells the action to stash generation results in state", () => {
+    const section = buildNodetoolApiPromptSection([
+      "find_model",
+      "generate_image"
+    ]);
+    expect(section).toContain(
+      "state.clip = state.clip ?? await nodetool.media.generateVideo"
+    );
+    expect(section).toContain("so a later failure does not re-run generation");
+    expect(section).toContain("state.model ?? (state.model = await nodetool.models.pick");
+    expect(section).toContain("if (!state.images)");
   });
 });

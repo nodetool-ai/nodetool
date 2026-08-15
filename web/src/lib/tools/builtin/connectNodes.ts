@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { uiConnectNodesParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
-import { resolveWorkflowId } from "./workflow";
+import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 import {
   findInputHandle,
   findOutputHandle,
@@ -15,7 +15,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
-    "Connect two nodes by port name. Required: source/target node ids and handle (port) names.",
+    "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first.",
   parameters: z.object(uiConnectNodesParams),
   async execute(
     {
@@ -31,7 +31,7 @@ FrontendToolRegistry.register({
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
     if (!nodeStore) {
-      throw new Error(`No node store for workflow ${workflowId}`);
+      throw noNodeStoreError(state, workflowId);
     }
 
     const src = nodeStore.findNode(source_node_id);

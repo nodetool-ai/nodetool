@@ -15,13 +15,14 @@
  *   run_js_script      — execute with inputs
  *   test_js_script     — run the document's own saved cases
  *
- * Execution goes through `runCodeBody`, the hermetic core `run_code` and
- * `test_code` already share, so a script run, a Code-node authoring run, and
- * the `POST /api/js-scripts/:id/run` endpoint are one execution path. What the
- * guest gets is the script's own envelope and nothing else: its declared
- * packages, its declared secrets narrowed by whatever allowance the invoking
- * context carries, its own timeout, and no toolbelt. Grading is
- * `gradeCodeCases`, shared with `test_code` rather than copied.
+ * Execution goes through `runCodeBody`, the same core `run_code` and
+ * `test_code` already share, so a script run, a Code-node run, and the
+ * `POST /api/js-scripts/:id/run` endpoint are one execution path. What the
+ * guest gets is the script's own envelope plus the Code-node toolbelt:
+ * every installed pack and platform module by import, its declared secrets
+ * narrowed by whatever allowance the invoking context carries, its own
+ * timeout, and `tools.*` / `nodetool.*`.
+ * Grading is `gradeCodeCases`, shared with `test_code` rather than copied.
  *
  * Composition is bounded the way sub-agents are: the context carries a depth
  * counter and the chain of script ids, and a script already on the chain fails
@@ -274,7 +275,8 @@ async function runDocument(
     timeoutSeconds: Math.min(
       document.timeoutSeconds,
       MAX_JS_SCRIPT_TIMEOUT_SECONDS
-    )
+    ),
+    withToolbelt: true
   });
 }
 

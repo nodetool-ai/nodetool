@@ -18,6 +18,7 @@ import {
   removeOperation,
   removeResource,
   removeVariable,
+  operationTarget,
   updateOperation,
   updateVariable,
   type AppDocMeta,
@@ -55,6 +56,11 @@ export interface AppDataPanelProps {
   workflowId: string;
   workflowName?: string;
 }
+
+const TARGET_KIND_OPTIONS = [
+  { label: "Workflow", value: "workflow" },
+  { label: "JS script", value: "script" }
+];
 
 const POLICY_OPTIONS = [
   { label: "Replace running", value: "replace" },
@@ -120,20 +126,51 @@ const EntryCard: React.FC<{
   </Card>
 );
 
+/** Keep a pinned-but-unlistable target selectable rather than rebinding it. */
+const withPinned = (
+  options: { label: string; value: string }[],
+  value: string
+): { label: string; value: string }[] =>
+  !value || options.some((o) => o.value === value)
+    ? options
+    : [{ label: value, value }, ...options];
+
 const OperationRow: React.FC<{
   operation: OperationBinding;
   workflowOptions: { label: string; value: string }[];
+  scriptOptions: { label: string; value: string }[];
+  defaultWorkflowId: string;
   onPatch: (patch: Partial<OperationBinding>) => void;
   onRemove: () => void;
-}> = ({ operation, workflowOptions, onPatch, onRemove }) => {
-  // A release pins a workflow this app can no longer list (deleted, or owned
-  // elsewhere); keep it selectable rather than silently switching the binding.
-  const options = workflowOptions.some((o) => o.value === operation.workflowId)
-    ? workflowOptions
-    : [
-        { label: operation.workflowId, value: operation.workflowId },
-        ...workflowOptions
-      ];
+}> = ({
+  operation,
+  workflowOptions,
+  scriptOptions,
+  defaultWorkflowId,
+  onPatch,
+  onRemove
+}) => {
+  const target = operationTarget(operation);
+  // Switching kind clears the mappings: they key on the old target's node ids
+  // or port names, and none of them mean anything against the new one.
+  const setKind = (kind: string) => {
+    if (kind === target.kind) return;
+    onPatch(
+      kind === "script"
+        ? {
+            workflowId: "",
+            target: { kind: "script", scriptId: "", scriptVersion: 0 },
+            inputs: {},
+            outputs: {}
+          }
+        : {
+            workflowId: defaultWorkflowId,
+            target: undefined,
+            inputs: {},
+            outputs: {}
+          }
+    );
+  };
   return (
     <EntryCard
       title={operation.name || operation.id}
@@ -149,11 +186,33 @@ const OperationRow: React.FC<{
         onChange={(e) => onPatch({ name: e.target.value })}
       />
       <SelectField
-        label="Workflow"
-        value={operation.workflowId}
-        options={options}
-        onChange={(value) => onPatch({ workflowId: value })}
+        label="Runs"
+        value={target.kind}
+        options={TARGET_KIND_OPTIONS}
+        onChange={setKind}
       />
+      {target.kind === "script" ? (
+        <SelectField
+          label="Script"
+          value={target.scriptId}
+          options={withPinned(scriptOptions, target.scriptId)}
+          onChange={(value) =>
+            onPatch({
+              workflowId: "",
+              target: { kind: "script", scriptId: value, scriptVersion: 0 },
+              inputs: {},
+              outputs: {}
+            })
+          }
+        />
+      ) : (
+        <SelectField
+          label="Workflow"
+          value={operation.workflowId}
+          options={withPinned(workflowOptions, operation.workflowId)}
+          onChange={(value) => onPatch({ workflowId: value })}
+        />
+      )}
       <SelectField
         label="While one is running"
         value={operation.policy}
@@ -324,6 +383,21 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
     return [{ label: workflowName || workflowId, value: workflowId }, ...listed];
   }, [workflowId, workflowName, workflows]);
 
+  const { data: scripts } = useQuery({
+    queryKey: ["app-data-panel-js-scripts"],
+    queryFn: () => trpcClient.jsScripts.list.query({}),
+    staleTime: 60_000
+  });
+
+  const scriptOptions = useMemo(
+    () =>
+      (scripts ?? []).map((script) => ({
+        label: script.name || script.id,
+        value: script.id
+      })),
+    [scripts]
+  );
+
   const addOp = useCallback(() => {
     if (!workflowId) return;
     onChange(
@@ -362,13 +436,16 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
         <CollapsibleSection title="Operations" defaultOpen compact>
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
-              The workflows this app runs. A Run action names one of these.
+              The workflows and scripts this app runs. A Run action names one of
+              these.
             </Caption>
             {meta.operations.map((operation) => (
               <OperationRow
                 key={operation.id}
                 operation={operation}
                 workflowOptions={workflowOptions}
+                scriptOptions={scriptOptions}
+                defaultWorkflowId={workflowId}
                 onPatch={(patch) =>
                   onChange(updateOperation(meta, operation.id, patch).meta)
                 }

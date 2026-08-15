@@ -117,6 +117,11 @@ export type ClaudeCreateMcpServerFn = (opts: {
 /** MCP server name under which NodeTool's tools are exposed to the SDK. */
 const TOOL_SERVER_NAME = "nodetool_tools";
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
+/**
+ * How the CodeAct prompt spells a guest tool call: `await tools.<name>({…})`.
+ * Models sometimes emit the member expression verbatim as a tool name.
+ */
+const GUEST_TOOL_PREFIX = "tools.";
 /** Default cap on internal agent turns when tools are in play. */
 const DEFAULT_TOOL_TURNS = 16;
 
@@ -186,11 +191,6 @@ async function loadSdk(): Promise<
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
-  /** The SDK defers tool schemas and exposes its own built-in `ToolSearch`. */
-  override get usesNativeToolSearch(): boolean {
-    return true;
-  }
-
   /** The SDK runs with bypassPermissions, so its built-in `WebSearch` is live. */
   override get supportsNativeWebSearch(): boolean {
     return true;
@@ -588,9 +588,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       // The test is `toolsOffered`, not `mcp`: a caller whose every tool was
       // replaced by a built-in offered tools and has no MCP server, and
       // disabling the built-ins there would leave it with nothing.
-      ...(plan.config.toolsOffered
-        ? {}
-        : { disallowedTools: SDK_BUILTIN_TOOLS }),
+      //
+      // `ToolSearch` is disabled on BOTH paths. It searches tools the SDK has
+      // deferred, and NodeTool defers none — it registers its handful of tools
+      // in-process — so the search always comes back empty. A model that fell
+      // back to it after a mis-named tool call got nothing and stalled the turn.
+      disallowedTools: plan.config.toolsOffered
+        ? ["ToolSearch"]
+        : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
       // Anchor the path-scoped built-ins to the run's workspace, which is where
       // the NodeTool tools they replace were contained.
       ...(plan.config.cwd ? { cwd: plan.config.cwd } : {}),
@@ -883,10 +888,20 @@ function finalBlocks(
   return out;
 }
 
-/** Drop the `mcp__<server>__` prefix the SDK adds to in-process MCP tool names. */
+/**
+ * Recover the plain tool name from what the model emitted.
+ *
+ * Two prefixes get stripped, in order:
+ *  - `mcp__<server>__`, which the SDK adds to in-process MCP tool names.
+ *  - `tools.`, because the CodeAct prompt documents every guest tool as
+ *    `await tools.<name>({…})` and models turn that member expression into a
+ *    top-level tool name. Without this the call reaches no tool at all.
+ */
 function stripToolPrefix(name: unknown): string {
-  const n = typeof name === "string" ? name : "";
-  return n.startsWith(TOOL_PREFIX) ? n.slice(TOOL_PREFIX.length) : n;
+  let n = typeof name === "string" ? name : "";
+  if (n.startsWith(TOOL_PREFIX)) n = n.slice(TOOL_PREFIX.length);
+  if (n.startsWith(GUEST_TOOL_PREFIX)) n = n.slice(GUEST_TOOL_PREFIX.length);
+  return n;
 }
 
 /** Split a final assistant message into its text and its tool calls. */

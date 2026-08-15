@@ -31,7 +31,7 @@ import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useNodes } from "../../contexts/NodeContext";
-import { getCodeNodeLanguage } from "../node/codeNodeUi";
+import { getCodeNodeLanguage, isCodeNode } from "../node/codeNodeUi";
 
 const EDITOR_OPTIONS: Record<string, unknown> = {
   minimap: { enabled: false },
@@ -68,6 +68,7 @@ const CodeProperty = ({
   const id = `code-${property.name}-${propertyIndex}`;
   const storeValue = typeof value === "string" ? value : "";
   const language = getCodeNodeLanguage(nodeType);
+  const showExpandEditor = !isCodeNode(nodeType);
 
   const [code, setCode] = useState(storeValue);
   const [isFocused, setIsFocused] = useState(false);
@@ -159,14 +160,16 @@ const CodeProperty = ({
   const editorActions = useMemo(
     () => (
       <>
-        <ToolbarIconButton
-          className="inspector-supplemental-action"
-          tooltip="Open Editor"
-          icon={<OpenInFullIcon />}
-          onClick={toggleExpand}
-          size="small"
-          sx={inspectorToolbarActionSx}
-        />
+        {showExpandEditor && (
+          <ToolbarIconButton
+            className="inspector-supplemental-action"
+            tooltip="Open Editor"
+            icon={<OpenInFullIcon />}
+            onClick={toggleExpand}
+            size="small"
+            sx={inspectorToolbarActionSx}
+          />
+        )}
         <CopyButton
           className="inspector-supplemental-action"
           value={code}
@@ -175,7 +178,7 @@ const CodeProperty = ({
         />
       </>
     ),
-    [code, inspectorToolbarActionSx, toggleExpand]
+    [code, inspectorToolbarActionSx, showExpandEditor, toggleExpand]
   );
 
   useInspectorHeaderSupplementalRegistration(
@@ -265,12 +268,14 @@ const CodeProperty = ({
         />
         {!isInspector && isHovered ? (
           <div className="code-action-buttons">
-            <ToolbarIconButton
-              tooltip="Open Editor"
-              icon={<OpenInFullIcon />}
-              onClick={toggleExpand}
-              size="small"
-            />
+            {showExpandEditor && (
+              <ToolbarIconButton
+                tooltip="Open Editor"
+                icon={<OpenInFullIcon />}
+                onClick={toggleExpand}
+                size="small"
+              />
+            )}
             <CopyButton value={code} buttonSize="small" />
           </div>
         ) : null}
@@ -301,7 +306,7 @@ const CodeProperty = ({
           )}
         </div>
       </div>
-      {isExpanded && (
+      {showExpandEditor && isExpanded && (
         <TextEditorModal
           value={code}
           language={language}

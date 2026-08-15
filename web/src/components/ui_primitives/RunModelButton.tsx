@@ -11,7 +11,7 @@
  * For full-workflow run/stop controls, use `RunWorkflowButton` instead.
  */
 
-import React, { forwardRef, memo, useCallback, useMemo } from "react";
+import { forwardRef, memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

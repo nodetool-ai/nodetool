@@ -1,11 +1,11 @@
 /**
  * The JS script's execution envelope, side by side in one panel: what the
- * script says it does, the ports it declares, the sandbox packages it may
- * import, the secrets it may read, and the timeout it runs under. Every field
+ * script says it does, the ports it declares, the secrets it may read, and
+ * the timeout it runs under. Every installed sandbox pack and every platform
+ * module resolves by import — there is no packages setting. Every field
  * writes straight into the document, which autosaves.
  */
 import { memo, useCallback } from "react";
-import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 
 import {
   Divider,
@@ -22,7 +22,6 @@ import {
   type JsScriptPort
 } from "../../stores/jsScript/JsScriptStore";
 import JsScriptPortsEditor from "./JsScriptPortsEditor";
-import JsScriptPackagesEditor from "./JsScriptPackagesEditor";
 import JsScriptSecretsEditor from "./JsScriptSecretsEditor";
 
 export interface JsScriptSettingsPanelProps {
@@ -37,7 +36,6 @@ const JsScriptSettingsPanel = ({
   const document = useJsScriptDocument(scriptId);
   const setDescription = useJsScriptStore((state) => state.setDescription);
   const setPorts = useJsScriptStore((state) => state.setPorts);
-  const setPackages = useJsScriptStore((state) => state.setPackages);
   const setSecrets = useJsScriptStore((state) => state.setSecrets);
   const setTimeoutSeconds = useJsScriptStore(
     (state) => state.setTimeoutSeconds
@@ -50,10 +48,6 @@ const JsScriptSettingsPanel = ({
   const handleOutputs = useCallback(
     (outputs: JsScriptPort[]) => setPorts(scriptId, { outputs }),
     [scriptId, setPorts]
-  );
-  const handlePackages = useCallback(
-    (packages: SandboxModuleDeclaration[]) => setPackages(scriptId, packages),
-    [scriptId, setPackages]
   );
   const handleSecrets = useCallback(
     (secrets: string[]) => setSecrets(scriptId, secrets),
@@ -93,13 +87,6 @@ const JsScriptSettingsPanel = ({
           ports={document.outputs}
           readOnly={readOnly}
           onChange={handleOutputs}
-        />
-
-        <Divider />
-        <JsScriptPackagesEditor
-          packages={document.packages}
-          readOnly={readOnly}
-          onChange={handlePackages}
         />
 
         <Divider />

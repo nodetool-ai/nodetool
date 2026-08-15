@@ -18,11 +18,13 @@ import {
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
-import { resolveUri } from "../../utils/imageUtils";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { ListImageThumb } from "./PropertyListThumb";
 
 interface ImageItem {
   uri: string;
   type: string;
+  asset_id?: string;
 }
 
 const styles = (theme: Theme) =>
@@ -161,7 +163,7 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
   return result;
 };
 
-const ImageListProperty = (props: PropertyProps) => {
+const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
@@ -270,8 +272,8 @@ const ImageListProperty = (props: PropertyProps) => {
           );
 
           uniqueAssets.forEach(asset => {
-            if (asset.get_url && asset.content_type?.startsWith("image/")) {
-              droppedImages.push({ uri: asset.get_url, type: "image" });
+            if (asset.id && asset.content_type?.startsWith("image/")) {
+              droppedImages.push(mediaRefFromAsset(asset, "image"));
             }
           });
         }
@@ -279,8 +281,8 @@ const ImageListProperty = (props: PropertyProps) => {
         // Handle single asset
         if (droppedImages.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          if (asset.get_url && asset.content_type?.startsWith("image/")) {
-            droppedImages.push({ uri: asset.get_url, type: "image" });
+          if (asset.id && asset.content_type?.startsWith("image/")) {
+            droppedImages.push(mediaRefFromAsset(asset, "image"));
           }
         }
 
@@ -311,15 +313,11 @@ const ImageListProperty = (props: PropertyProps) => {
               file,
               onCompleted: (asset: Asset) => {
                 // Validate asset URL before adding
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({
-                  uri,
-                  type: "image"
-                });
+                resolve(mediaRefFromAsset(asset, "image"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -378,12 +376,11 @@ const ImageListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({ uri, type: "image" });
+                resolve(mediaRefFromAsset(asset, "image"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -420,12 +417,11 @@ const ImageListProperty = (props: PropertyProps) => {
           uploadAsset({
             file,
             onCompleted: (asset: Asset) => {
-              const uri = asset.get_url;
-              if (!uri) {
-                reject(new Error("Asset URL is missing"));
+              if (!asset.id) {
+                reject(new Error("Asset id is missing"));
                 return;
               }
-              resolve({ uri, type: "image" });
+              resolve(mediaRefFromAsset(asset, "image"));
             },
             onFailed: (error: string) => {
               reject(new Error(error));
@@ -469,10 +465,9 @@ const ImageListProperty = (props: PropertyProps) => {
             {upstreamImages.map((image, index) => (
               <div key={image.uri} className="image-item">
                 <div className="image-content">
-                  <img
-                    src={resolveUri(image.uri)}
+                  <ListImageThumb
+                    item={image}
                     alt={`Item ${index + 1}`}
-                    draggable={false}
                   />
                 </div>
               </div>
@@ -521,15 +516,14 @@ const ImageListProperty = (props: PropertyProps) => {
           {images.map((image, index) => (
             <div key={image.uri} className="image-item">
               <div className="image-content">
-                <img
-                  ref={(el) => {
+                <ListImageThumb
+                  item={image}
+                  alt={`Item ${index + 1}`}
+                  imgRef={(el) => {
                     if (el) {
                       imageRefs.current[image.uri] = el;
                     }
                   }}
-                  src={resolveUri(image.uri)}
-                  alt={`Item ${index + 1}`}
-                  draggable={false}
                   onLoad={loadHandlers[image.uri]}
                 />
                 {imageDimensions[image.uri] && (

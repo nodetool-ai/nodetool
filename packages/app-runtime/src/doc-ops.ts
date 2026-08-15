@@ -9,6 +9,8 @@
  */
 import { encodeBinding, type ExecutionField } from "./bindings.js";
 import { implicitOperation, mergeVariables } from "./operations.js";
+import type { ScriptOperationDocument } from "./script-run.js";
+import { operationTarget } from "./document.js";
 import type {
   InputMapping,
   OperationBinding,
@@ -119,6 +121,14 @@ export const addOperation = (
   };
 };
 
+/** What an operation runs, as one comparable key. Version changes are not a retarget. */
+const targetKey = (binding: OperationBinding): string => {
+  const target = operationTarget(binding);
+  return target.kind === "script"
+    ? `script:${target.scriptId}`
+    : `workflow:${target.workflowId}`;
+};
+
 export const updateOperation = (
   meta: AppDocMeta,
   id: string,
@@ -127,18 +137,25 @@ export const updateOperation = (
   const index = meta.operations.findIndex((op) => op.id === id);
   if (index < 0) return { meta, operation: null };
   const current = meta.operations[index];
+  const retargeted =
+    targetKey({ ...current, ...patch, id }) !== targetKey(current);
   const operation: OperationBinding = {
     ...current,
     ...patch,
     id,
     // Mappings merge per node id so an agent can set one input without
-    // restating the rest.
-    inputs: patch.inputs
-      ? { ...current.inputs, ...patch.inputs }
-      : current.inputs,
-    outputs: patch.outputs
-      ? { ...current.outputs, ...patch.outputs }
-      : current.outputs
+    // restating the rest — unless the operation now runs something else, whose
+    // node ids and port names the old mappings mean nothing against.
+    inputs: retargeted
+      ? patch.inputs ?? {}
+      : patch.inputs
+        ? { ...current.inputs, ...patch.inputs }
+        : current.inputs,
+    outputs: retargeted
+      ? patch.outputs ?? {}
+      : patch.outputs
+        ? { ...current.outputs, ...patch.outputs }
+        : current.outputs
   };
   const operations = [...meta.operations];
   operations[index] = operation;
@@ -329,11 +346,24 @@ export interface BindingTargets {
  * Every slot a widget can bind to, with both the display name and the ID-form
  * token to store. A document with no declared operations reports the implicit
  * one bound to the host workflow, which is what a legacy app runs.
+ *
+ * `scripts` carries the documents of the script operations the caller has
+ * loaded, keyed by script id. A script operation whose document is absent
+ * reports `ioAvailable: false`, exactly as an operation over an unloaded
+ * workflow does.
+ *
+ * `workflows` carries every other graph the caller has loaded, keyed by
+ * workflow id. An app binds more than one workflow, so resolving only the host
+ * left every other operation permanently empty — and a caller that worked
+ * around it by calling this once per workflow and merging the results was
+ * answering the same question twice, differently.
  */
 export const bindingTargets = (
   meta: AppDocMeta,
   hostWorkflowId: string,
-  workflow: BindableWorkflow
+  workflow: BindableWorkflow,
+  scripts: ReadonlyMap<string, ScriptOperationDocument> = new Map(),
+  workflows: ReadonlyMap<string, BindableWorkflow> = new Map()
 ): BindingTargets => {
   const operations =
     meta.operations.length > 0
@@ -342,14 +372,39 @@ export const bindingTargets = (
 
   return {
     operations: operations.map((op) => {
-      const ioAvailable = op.workflowId === hostWorkflowId;
+      const target = operationTarget(op);
+      const script =
+        target.kind === "script" ? scripts.get(target.scriptId) : undefined;
+      // A script's ports are its bindable surface — its names stand in for the
+      // node ids a graph would supply.
+      const bindable: BindableWorkflow | undefined = script
+        ? {
+            inputs: script.inputs.map((port) => ({
+              nodeId: port.name,
+              name: port.name,
+              label: port.name
+            })),
+            outputs: script.outputs.map((port) => ({
+              nodeId: port.name,
+              name: port.name,
+              label: port.name
+            })),
+            variables: []
+          }
+        : target.kind === "script"
+          ? undefined
+          : op.workflowId === hostWorkflowId
+            ? workflow
+            : workflows.get(op.workflowId);
+      const ioAvailable = bindable !== undefined;
+      const io = bindable ?? { inputs: [], outputs: [], variables: [] };
       return {
         operationId: op.id,
         name: op.name,
         workflowId: op.workflowId,
         ioAvailable,
         inputs: ioAvailable
-          ? workflow.inputs.map((input) => ({
+          ? io.inputs.map((input) => ({
               nodeId: input.nodeId,
               name: input.name,
               label: input.label,
@@ -361,7 +416,7 @@ export const bindingTargets = (
             }))
           : [],
         outputs: ioAvailable
-          ? workflow.outputs.map((output) => ({
+          ? io.outputs.map((output) => ({
               nodeId: output.nodeId,
               name: output.name,
               label: output.label,

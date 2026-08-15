@@ -16,14 +16,19 @@
  * `unified-websocket-runner` assembles for a chat turn, so a tool added to
  * either catalog reaches the sandbox belt with no edit here. Only tools whose
  * constructor needs something the catalogs can't supply (a timeline loader, the
- * lazily probed provider map, the editor-steering `ui_*` schemas) are named
+ * lazily probed provider map) are named
  * individually below.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import { ProcessingContext as ProcessingContextImpl } from "@nodetool-ai/runtime";
+import {
+  DIRECT_TOOL_NAMES,
+  ProcessingContext as ProcessingContextImpl,
+  SDK_NATIVE_TOOL_REPLACEMENTS,
+  zodToJsonSchema
+} from "@nodetool-ai/runtime";
 import {
   Tool,
   CODEACT_RESIDENT_TOOL_NAMES,
@@ -43,7 +48,7 @@ import {
   MCP_SANDBOX_PROMPTS,
   buildMcpSandboxCatalog
 } from "@nodetool-ai/agents";
-import { FileStorageAdapter, zodToJsonSchema } from "@nodetool-ai/runtime";
+import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
@@ -64,22 +69,7 @@ import { join } from "node:path";
 import { getAssetAdapter } from "./lib/storage.js";
 import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
-
-export type FrontendDocumentToolExecutor = (
-  name: string,
-  args: Record<string, unknown>
-) => Promise<{ handled: boolean; result?: unknown }>;
-
-/**
- * The connected-editor side of the mount. `execute` routes one `ui_*` call to a
- * live renderer (honouring an optional `renderer_id` argument) and reports
- * `handled: false` when none is connected; `listRenderers` reports the renderers
- * that could be targeted.
- */
-export interface McpFrontendBridge {
-  execute: FrontendDocumentToolExecutor;
-  listRenderers: () => { renderer_id: string; active: boolean }[];
-}
+import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 
@@ -318,8 +308,8 @@ function collectBridgedTools(
     // are dropped because `nodetool.media` / `web_search` route across
     // backends, and this surface now has the object model that does it.
     ...getAgentToolbelt(),
-    // Workflow / node / job / asset / app tools, plus the ui_* workflow
-    // document tools. The read tools among them (list_workflows, get_asset, …)
+    // Workflow / node / job / asset / app tools. The read tools among them
+    // (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.
     // Thread this mount's own configuration into the host deps — a server
     // configured with a non-default examples dir or metadata roots must not
@@ -389,13 +379,35 @@ const RENDERER_ID_PROPERTY = {
     "most-recently-active one. List ids with list_renderers()."
 };
 
-/**
- * One editor-steering `ui_*` schema as a belt tool. These have no host
- * implementation — they are a request to a connected editor — so the whole tool
- * is the round trip. They used to be native MCP registrations; on the belt they
- * are reachable from inside an action, which is where every other capability
- * now lives.
- */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+type RendererResult = { handled: boolean; result?: unknown };
+
+async function executeFrontendTool(
+  options: McpServerOptions,
+  userId: string,
+  name: string,
+  args: Record<string, unknown>
+): Promise<RendererResult> {
+  const registry: FrontendRendererService | undefined =
+    options.frontendRendererRegistry;
+  if (!registry) return { handled: false };
+  const { renderer_id, ...toolArgs } = args;
+  return registry.execute({
+    userId,
+    rendererId: typeof renderer_id === "string" ? renderer_id : undefined,
+    toolName: name,
+    args: toolArgs
+  });
+}
+
+/** A `ui_*` request that must be handled by a connected editor. */
 class FrontendUiTool extends Tool {
   readonly name: string;
   readonly description: string;
@@ -405,7 +417,8 @@ class FrontendUiTool extends Tool {
     name: string,
     description: string,
     jsonSchema: JsonSchema,
-    private readonly bridge: McpFrontendBridge
+    private readonly options: McpServerOptions,
+    private readonly userId: string
   ) {
     super();
     this.name = name;
@@ -417,7 +430,12 @@ class FrontendUiTool extends Tool {
     _context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const outcome = await this.bridge.execute(this.name, params);
+    const outcome = await executeFrontendTool(
+      this.options,
+      this.userId,
+      this.name,
+      params
+    );
     if (!outcome.handled) {
       const rendererId = params["renderer_id"];
       throw new Error(
@@ -427,6 +445,36 @@ class FrontendUiTool extends Tool {
       );
     }
     return outcome.result;
+  }
+}
+
+/** Adds the optional renderer selector to a workflow document tool schema. */
+class RendererAwareDocumentTool extends Tool {
+  readonly name: string;
+  readonly description: string;
+  protected readonly jsonSchema: JsonSchema;
+
+  constructor(private readonly delegate: Tool) {
+    super();
+    this.name = delegate.name;
+    this.description = delegate.description;
+    const schema = delegate.inputSchema;
+    this.jsonSchema = {
+      ...schema,
+      type: "object",
+      properties: {
+        ...recordValue(schema["properties"]),
+        renderer_id: RENDERER_ID_PROPERTY
+      }
+    };
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const { renderer_id: _rendererId, ...serverArgs } = params;
+    return this.delegate.process(context, serverArgs);
   }
 }
 
@@ -442,40 +490,50 @@ class ListRenderersTool extends Tool {
     properties: {}
   };
 
-  constructor(private readonly bridge: McpFrontendBridge) {
+  constructor(
+    private readonly options: McpServerOptions,
+    private readonly userId: string
+  ) {
     super();
   }
 
   async process(): Promise<unknown> {
-    return { renderers: this.bridge.listRenderers() };
+    const renderers = this.options.frontendRendererRegistry
+      ? this.options.frontendRendererRegistry
+          .list(this.userId)
+          .map((renderer, index) => ({
+            renderer_id: renderer.renderer_id,
+            active: index === 0
+          }))
+      : [];
+    return { renderers };
   }
 }
 
 /**
- * The `ui_*` schemas that steer a connected editor rather than edit a persisted
- * workflow document (`ui_open_workflow`, `ui_run_workflow`, `ui_switch_tab`,
- * `ui_copy`, `ui_paste`, `ui_search_nodes`, `ui_search_models`), plus
- * `list_renderers`.
+ * The `ui_*` schemas that steer a connected editor rather than edit a
+ * persisted workflow document, plus `list_renderers`.
  */
-function editorSteeringTools(bridge: McpFrontendBridge): Tool[] {
+function editorSteeringTools(
+  options: McpServerOptions,
+  userId: string
+): Tool[] {
   const documentToolNames = new Set<string>(WORKFLOW_DOCUMENT_TOOL_NAMES);
-  const tools: Tool[] = [new ListRenderersTool(bridge)];
+  const tools: Tool[] = [new ListRenderersTool(options, userId)];
   for (const [name, schema] of Object.entries(uiToolSchemas)) {
     if (documentToolNames.has(name)) continue;
-    const params = zodToJsonSchema(z.object(schema.parameters)) as Record<
-      string,
-      unknown
-    >;
+    const params = zodToJsonSchema(z.object(schema.parameters));
     const properties = {
-      ...((params["properties"] as Record<string, unknown>) ?? {}),
+      ...recordValue(params["properties"]),
       renderer_id: RENDERER_ID_PROPERTY
     };
     tools.push(
       new FrontendUiTool(
         name,
         schema.description,
-        { ...params, type: "object", properties } as JsonSchema,
-        bridge
+        { ...params, type: "object", properties },
+        options,
+        userId
       )
     );
   }
@@ -535,8 +593,7 @@ function buildCapabilityCatalog(
  */
 export function registerAgentMcpTools(
   server: McpServer,
-  options: McpServerOptions,
-  frontend: McpFrontendBridge
+  options: McpServerOptions
 ): CapabilityRun {
   // Every bridged tool runs against one user's secrets and assets, so a session
   // without an explicit user binding has no surface at all — a default user
@@ -588,6 +645,7 @@ export function registerAgentMcpTools(
   const workflowDocumentToolNames = new Set<string>(
     WORKFLOW_DOCUMENT_TOOL_NAMES
   );
+
   /**
    * Run one bridged tool. The single execution path for both surfaces — a
    * direct MCP call and a `tools.<name>()` call inside an action — so a
@@ -602,11 +660,35 @@ export function registerAgentMcpTools(
     if (tool.name === "find_model" || tool.name === "list_models") {
       await ensureProviders();
     }
-    if (workflowDocumentToolNames.has(tool.name)) {
-      const live = await frontend.execute(tool.name, args);
+    const isWorkflowDocumentTool = workflowDocumentToolNames.has(tool.name);
+    const isFrontendTool = tool.name.startsWith("ui_");
+    if (isWorkflowDocumentTool || isFrontendTool) {
+      const live = await executeFrontendTool(
+        options,
+        scope.userId,
+        tool.name,
+        args
+      );
       if (live.handled) return live.result;
+
+      const rendererId = args["renderer_id"];
+      if (typeof rendererId === "string") {
+        throw new Error(
+          `No connected NodeTool renderer with id "${rendererId}".`
+        );
+      }
+
+      // Workflow document tools have a server-side implementation and use the
+      // live editor when one is available. Other editor tools only exist in a
+      // connected renderer, so report the missing target clearly.
+      if (isFrontendTool && !isWorkflowDocumentTool) {
+        throw new Error(
+          `${tool.name} needs a connected NodeTool editor; none is open.`
+        );
+      }
     }
-    return tool.process(context, args);
+    const { renderer_id: _rendererId, ...serverArgs } = args;
+    return tool.process(context, serverArgs);
   };
 
   const register = (tool: Tool): void => {
@@ -630,10 +712,13 @@ export function registerAgentMcpTools(
   // overlap and a session must not offer one tool under two instances.
   const belt: Tool[] = [];
   const beltNames = new Set<string>();
-  for (const tool of [
+  for (const originalTool of [
     ...collectBridgedTools(options, sharedProviders),
-    ...editorSteeringTools(frontend)
+    ...editorSteeringTools(options, scope.userId)
   ]) {
+    const tool = workflowDocumentToolNames.has(originalTool.name)
+      ? new RendererAwareDocumentTool(originalTool)
+      : originalTool;
     if (beltNames.has(tool.name)) continue;
     beltNames.add(tool.name);
     belt.push(tool);
@@ -644,7 +729,38 @@ export function registerAgentMcpTools(
   // and pixels cannot ride the sandbox's JSON observation envelope — so it is a
   // direct tool and is kept off the belt, exactly as the chat runner does.
   const beltForSandbox = belt.filter((tool) => tool.name !== "view_image");
-  const directToolNames = ["view_image"];
+
+  // The direct set, derived the way the CLI turn and the websocket runner
+  // derive theirs — minus the tools an MCP *client* already serves natively.
+  //
+  // `DIRECT_TOOL_NAMES` goes top level everywhere else because those are the
+  // shapes models are trained on, so a sandbox round trip whose only job is to
+  // forward one buys nothing. That argument holds here too. What does not hold
+  // is the file/search half: `SDK_NATIVE_TOOL_REPLACEMENTS` already names the
+  // tools a host agent covers with its own — and an MCP client (Claude Code,
+  // ChatGPT) is that host. Offering NodeTool's workspace-scoped `read_file`
+  // beside the client's own would put two tools of one name and two different
+  // roots in front of the same model.
+  //
+  // What is left has no host equivalent: discovery (which providers, models
+  // and node types this install has — a guess there is a hallucinated id that
+  // fails at generation time, after the run was paid for), the server-side
+  // reach that runs behind NodeTool's own SSRF guard and secrets, and
+  // `run_subtask`, whose child gets the NodeTool belt rather than the client's.
+  //
+  // Derived from both tables rather than hand-listed, so a tool added to
+  // either reaches this mount with no edit here.
+  const promotedDirect = belt.filter(
+    (tool) =>
+      DIRECT_TOOL_NAMES.has(tool.name) &&
+      !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)
+  );
+  // They stay on the belt: an action still calls them from code. Listing them
+  // as direct only moves where the prompt documents them.
+  const directToolNames = [
+    "view_image",
+    ...promotedDirect.map((tool) => tool.name)
+  ];
 
   const session = createChatCodeActSession({
     tools: beltForSandbox.map((tool) => ({
@@ -666,10 +782,29 @@ export function registerAgentMcpTools(
   // catalog and the sandbox summary ride in the description — the only field
   // every MCP client is guaranteed to show the model. The short contract
   // leads: many clients truncate a long description.
+  // `title` is a display label for NodeTool's own chat UI, and the action path
+  // never reads it — `executeAction` takes `code` and discards the rest. On the
+  // provider tool it is required because a system prompt teaches the contract
+  // and the label is what the user watches. MCP has neither: a client whose
+  // model skipped a field this server does not use had its whole action
+  // rejected on validation. It stays in the schema — described, and the
+  // contract in the description still asks for one — but is optional here.
+  const actionSchema = session.providerTool.inputSchema as Record<
+    string,
+    unknown
+  >;
+  const actionShape = jsonSchemaToZodShape({
+    ...actionSchema,
+    required: (Array.isArray(actionSchema["required"])
+      ? (actionSchema["required"] as string[])
+      : []
+    ).filter((name) => name !== "title")
+  } as unknown as JsonSchema);
+
   server.tool(
     session.providerTool.name,
     `${MCP_GUEST_CONTRACT}\n\n${session.providerTool.description}\n\n${session.systemPromptSection}`,
-    jsonSchemaToZodShape(session.providerTool.inputSchema),
+    actionShape,
     async (args) => {
       try {
         // The session already returns the observation envelope as JSON text.
@@ -687,10 +822,13 @@ export function registerAgentMcpTools(
     }
   );
 
-  // `view_image` is the second and last tool: its result carries image content,
-  // which an action's observation envelope cannot.
+  // `view_image` carries image content, which an action's observation envelope
+  // cannot, so it is direct for a reason no other tool shares.
   const viewImage = byName.get("view_image");
   if (viewImage) register(viewImage);
+
+  // The rest of the direct set, for parity with every other entrance.
+  for (const tool of promotedDirect) register(tool);
 
   // The structured catalog, for clients that want more than a description.
   const catalog = buildCapabilityCatalog(belt, [

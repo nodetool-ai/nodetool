@@ -59,10 +59,10 @@ Rules:
 - Call \`nodetool.<namespace>.<method>()\`. Do not invent MCP tools. Do not call \`tools.*\` when a \`nodetool.*\` method exists.
 - Unknown tool: \`await nodetool.searchTools("query")\` first. Do not guess arguments.
 - Static \`import\` only for allowed packs. This session lists them below; anything else fails.
-- \`return\` a small summary. Keep large data in \`state\`.
+- \`return\` a small summary. Keep large data in \`state\`. Assign each generate or speak result to \`state\` at once. The next action must reuse it — do not generate again.
 - A failed tool throws. Use \`try/catch\`.
 - This is a chat turn: there is no \`finish()\`. A plain assistant message ends the turn.
-- \`fetch\`, \`workspace\`, \`media\`, and \`getSecret\` are not available here. Files and assets go through \`nodetool.*\`: \`nodetool.media.bytes(ref)\` reads the bytes behind a generated image, \`nodetool.assets.read/save\` the library, \`nodetool.web.fetch\` the network. \`image.*\` works on those bytes without a context.
+- \`fetch\`, \`workspace\`, \`media\`, and \`getSecret\` are not available here. Files and assets go through \`nodetool.*\`: feed a generation result into \`image.*\`, save with \`nodetool.media.toImage(handle)\`. The guest holds handles, never encoded bytes. \`nodetool.assets.read/save\` the library, \`nodetool.web.fetch\` the network.
 - Full guest surface: resource \`${MCP_SANDBOX_RESOURCE_URI}\`. Tool catalog: \`nodetool://capabilities\`.`;
 
 export interface McpSandboxBridge {

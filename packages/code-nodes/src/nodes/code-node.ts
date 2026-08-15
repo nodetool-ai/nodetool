@@ -198,11 +198,12 @@ export function setCodeNodeTools(tools: AgentTool[] | null): void {
 
 /**
  * Assemble the belt the way an agent loop would: `getAgentToolbelt()` plus
- * the in-process core API tools. Only the node registry is constructible
- * here (`NodeRegistry.global` — populated in any process that registered
- * node packages); the example catalog, DSL exporter and provider set live
- * above this package, so their tools stay dark and the `nodetool` prelude
- * reports the difference via `capabilities()`.
+ * the in-process core API tools. Must match `assembleSandboxToolbelt` in
+ * `@nodetool-ai/agents` — that is the belt a JS script run uses. Only the
+ * node registry is constructible here (`NodeRegistry.global`); the example
+ * catalog, DSL exporter and provider set live above this package, so their
+ * tools stay dark and the `nodetool` prelude reports the difference via
+ * `capabilities()`.
  */
 function assembleToolbelt(mod: AgentsModule): AgentTool[] {
   const byName = new Map<string, AgentTool>();

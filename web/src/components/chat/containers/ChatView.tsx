@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useMemo, memo } from "react";
+import type { ChatSource } from "@nodetool-ai/protocol";
 import {
   Node,
   Edge,
@@ -34,8 +35,8 @@ import { useThreadMemoryPanelStore } from "../../../stores/ThreadMemoryPanelStor
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import {
-  buildUiContext,
-  type BuildUiContextOptions
+  resolveUiContext,
+  type UiContextInput
 } from "../../../lib/chat/uiContext";
 import type {
   ChatOutgoingMessage,
@@ -139,9 +140,12 @@ type ChatViewProps = {
    * Overrides for the `ui_context` sent with each message. Surfaces that aren't
    * workspace tabs (the App Builder) name their focused document here; surfaces
    * with a selection worth telling the agent about pass it too. When omitted the
-   * context is derived from the open workspace tabs.
+   * context is derived from the open workspace tabs. Pass a function to read
+   * the selection at send time.
    */
-  uiContext?: BuildUiContextOptions;
+  uiContext?: UiContextInput;
+  /** Chat surface that sent this turn. Always attached to `ui_context.source`. */
+  chatSource?: ChatSource;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -211,6 +215,7 @@ const ChatView = ({
   onMemoryToggle,
   systemPrompt,
   uiContext,
+  chatSource,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
@@ -254,7 +259,7 @@ const ChatView = ({
               : model?.id,
           content: content,
           system_prompt: systemPrompt,
-          ui_context: buildUiContext(uiContext),
+          ui_context: resolveUiContext(uiContext, chatSource),
           graph: graph,
           workflow_id: workflowId ?? undefined,
           workflow_target: graph ? "workflow" : undefined,
@@ -268,7 +273,7 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, systemPrompt, uiContext, graph, workflowId]
+    [sendMessage, model, systemPrompt, uiContext, chatSource, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {
@@ -342,6 +347,7 @@ const ChatView = ({
         <div className="chat-thread-container">
           {messages.length > 0 ? (
             <ChatThreadView
+              threadId={effectiveThreadId}
               messages={messages}
               status={status}
               progress={progress}

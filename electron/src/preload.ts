@@ -772,10 +772,6 @@ const api = {
     },
   },
 
-  // The agent runtime moved out of the Electron main process and now lives
-  // on the NodeTool server. The renderer talks to it directly over the
-  // `/ws/agent` WebSocket — see `web/src/lib/agent/AgentSocketClient.ts`.
-
   // ============================================================================
   // logging: Renderer -> main logging bridge
   // ============================================================================

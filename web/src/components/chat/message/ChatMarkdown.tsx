@@ -20,11 +20,19 @@ import ResourceChip from "./ResourceChip";
 import "../../../styles/markdown/github-markdown.css";
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
+const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".mkv", ".m4v", ".ogv"];
+const AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac", ".opus"];
 
-const isImageHref = (href: string): boolean => {
-  const lower = href.toLowerCase().split(/[?#]/)[0];
-  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+const hrefPath = (href: string): string => href.toLowerCase().split(/[?#]/)[0];
+
+const hasExtension = (href: string, extensions: readonly string[]): boolean => {
+  const path = hrefPath(href);
+  return extensions.some((ext) => path.endsWith(ext));
 };
+
+const isImageHref = (href: string): boolean => hasExtension(href, IMAGE_EXTENSIONS);
+const isVideoHref = (href: string): boolean => hasExtension(href, VIDEO_EXTENSIONS);
+const isAudioHref = (href: string): boolean => hasExtension(href, AUDIO_EXTENSIONS);
 
 interface ChatMarkdownProps {
   content: string;
@@ -38,19 +46,6 @@ const markdownStyles = css({
   overflow: "hidden",
   wordBreak: "break-word",
   overflowWrap: "anywhere",
-  ".code-block-header": {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "var(--palette-grey-800)",
-    color: "var(--palette-text-primary)",
-    paddingTop: getSpacingPx(1.5),
-    paddingBottom: getSpacingPx(1.5),
-    paddingLeft: "1em",
-    paddingRight: "1em",
-    borderTopLeftRadius: "8px",
-    borderTopRightRadius: "8px"
-  },
   pre: {
     borderRadius: BORDER_RADIUS.lg,
     borderTopLeftRadius: "0px",
@@ -81,6 +76,13 @@ const linkText = (node: React.ReactNode): string => {
 const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: getSpacingPx(SPACING.md), verticalAlign: "middle" });
 const audioCss = css({ height: "32px" });
 const imageCss = css({ maxWidth: "100%", height: "auto", borderRadius: BORDER_RADIUS.md });
+const videoCss = css({
+  display: "block",
+  maxWidth: "100%",
+  height: "auto",
+  borderRadius: BORDER_RADIUS.md,
+  backgroundColor: "var(--palette-grey-900)"
+});
 
 const extractStorageKey = (uri: string | null | undefined): string | null => {
   if (!uri) return null;
@@ -111,9 +113,8 @@ const useChatAssetSrc = (src: string | undefined): string | undefined => {
 };
 
 /**
- * A paragraph that carries an inline document preview renders as a `<div>`:
- * the preview is a block element (canvas frame + chip), which is invalid
- * inside `<p>` and would trip React's DOM-nesting warning.
+ * A paragraph that carries a block embed (sketch/timeline preview, video,
+ * audio) renders as a `<div>`: those elements are invalid inside `<p>`.
  */
 interface HastNodeLike {
   type?: string;
@@ -122,7 +123,10 @@ interface HastNodeLike {
   children?: HastNodeLike[];
 }
 
-const containsInlinePreview = (node: unknown): boolean => {
+const isBlockEmbedSrc = (src: string): boolean =>
+  isInlinePreviewUri(src) || isVideoHref(src) || isAudioHref(src);
+
+const containsBlockEmbed = (node: unknown): boolean => {
   const children = (node as HastNodeLike | undefined)?.children;
   return Boolean(
     children?.some(
@@ -130,7 +134,7 @@ const containsInlinePreview = (node: unknown): boolean => {
         child.type === "element" &&
         child.tagName === "img" &&
         typeof child.properties?.src === "string" &&
-        isInlinePreviewUri(child.properties.src)
+        isBlockEmbedSrc(child.properties.src)
     )
   );
 };
@@ -140,7 +144,31 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   alt,
   ...props
 }) => {
-  const resolvedSrc = useChatAssetSrc(typeof src === "string" ? src : undefined);
+  const href = typeof src === "string" ? src : "";
+  const resolvedSrc = useChatAssetSrc(href || undefined);
+  if (href && isVideoHref(href)) {
+    return (
+      <video
+        src={resolvedSrc}
+        controls
+        playsInline
+        preload="metadata"
+        css={videoCss}
+        aria-label={alt || "Video content"}
+      />
+    );
+  }
+  if (href && isAudioHref(href)) {
+    return (
+      <audio
+        src={resolvedSrc}
+        controls
+        preload="metadata"
+        css={audioCss}
+        aria-label={alt || "Audio content"}
+      />
+    );
+  }
   return (
     <img
       {...props}
@@ -186,7 +214,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         children,
         ...props
       }: { node?: unknown } & React.ComponentPropsWithoutRef<"p">) =>
-        containsInlinePreview(node) ? (
+        containsBlockEmbed(node) ? (
           <div {...props}>{children}</div>
         ) : (
           <p {...props}>{children}</p>
@@ -199,15 +227,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         if (href && isImageHref(href)) {
           return <ChatMarkdownImageLink href={href}>{children}</ChatMarkdownImageLink>;
         }
-        const isAudio =
-          href &&
-          (href.toLowerCase().endsWith(".mp3") ||
-            href.toLowerCase().endsWith(".wav") ||
-            href.toLowerCase().endsWith(".ogg") ||
-            href.toLowerCase().endsWith(".m4a") ||
-            href.toLowerCase().endsWith(".webm"));
-
-        if (isAudio && href) {
+        if (href && isAudioHref(href)) {
           return (
             <span css={audioSpanCss}>
               <audio controls src={href} css={audioCss} aria-label="Audio content" />

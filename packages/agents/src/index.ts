@@ -342,6 +342,11 @@ export {
   CODEACT_INJECTED_GLOBALS,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION
 } from "./codeact/tool-api.js";
+export {
+  assembleSandboxToolbelt,
+  sandboxToolBridgeGlobals,
+  NODETOOL_PRELUDE
+} from "./sandbox-toolbelt.js";
 export type { ToolSignatureSource } from "./codeact/tool-api.js";
 export { createChatCodeActSession } from "./codeact/chat-codeact.js";
 export type {
@@ -363,11 +368,21 @@ export {
   nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
 export {
+  installedPackAllowlist,
+  sandboxPackagesForChat
+} from "./codeact/sandbox-packages.js";
+export {
   GRAPH_DSL_PACKAGE,
   GRAPH_DSL_PROMPT_SECTION,
   hasGraphDslTools,
   withGraphDslPackage
 } from "./codeact/graph-dsl-package.js";
+export {
+  FABRIC_PACKAGE,
+  FABRIC_PROMPT_SECTION,
+  catalogServesFabric,
+  withFabricPackage
+} from "./codeact/fabric-package.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
@@ -881,16 +896,17 @@ export type {
   JudgeWidgetState
 } from "./app-build/judge.js";
 export { renderBuildReportMarkdown } from "./app-build/markdown.js";
-// The build as a service: what `POST /api/applications/build` and the
-// `build_app` tool both call, minus request parsing.
+// The build as a service: what `POST /api/applications/build` calls, minus
+// request parsing.
 export { runApplicationBuild } from "./app-build/build-service.js";
 export type {
   AppBuildDeps,
   AppBuildRequest
 } from "./app-build/build-service.js";
 
-// The hermetic Code-body executor `run_code`/`test_code` share, and what the
-// JS-script run endpoint executes a script document with.
+// The Code-body executor `run_code`/`test_code` share (hermetic), and what
+// the JS-script run endpoint executes a script document with (with the
+// Code-node toolbelt).
 export { runCodeBody } from "./capabilities/code.js";
 export { createJsScriptAppRunner } from "./js-script-app-runner.js";
 export type { HarnessRunResult } from "./capabilities/code.js";

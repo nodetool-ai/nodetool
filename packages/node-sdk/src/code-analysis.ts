@@ -764,3 +764,64 @@ export function migrateCodeBodyToInputs(
     rewritten: [...new Set(edits.map((e) => e.name))].sort()
   };
 }
+
+/**
+ * Property names the Code node itself owns. A body that reads `inputs.code`
+ * is not naming a user handle — it is colliding with the editor field.
+ */
+export const CODE_NODE_OWN_PROPERTIES: ReadonlySet<string> = new Set([
+  "code",
+  "script",
+  "packages",
+  "secrets",
+  "timeout",
+  "max_response_mb",
+  "allow_local_network",
+  "allow_host_filesystem"
+]);
+
+function isUserHandleName(name: string): boolean {
+  return name !== "" && !CODE_NODE_OWN_PROPERTIES.has(name);
+}
+
+/**
+ * Input handle names the body itself names: `inputs.foo` / `inputs["foo"]`
+ * and `stream("foo")` / `stream.first("foo")` / `stream.open("foo")`.
+ *
+ * A named read is a handle. The editor shows it and an agent can connect to
+ * it without a separate "add dynamic input" step.
+ */
+export function inferredCodeInputNames(code: string): string[] {
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return [];
+  const names = new Set<string>();
+  for (const name of inputsMemberReads(parsed.statements).names) {
+    if (isUserHandleName(name)) names.add(name);
+  }
+  for (const name of streamCallNames(parsed.statements).names) {
+    if (isUserHandleName(name)) names.add(name);
+  }
+  return [...names];
+}
+
+/**
+ * Output handle names the body itself names: `emit("foo")` / `output("foo")`,
+ * or — when the body uses neither — the keys of the last `return { … }`.
+ */
+export function inferredCodeOutputNames(code: string): string[] {
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return [];
+  const emitted = outputCallNames(parsed.statements);
+  if (emitted.names.length > 0) {
+    return emitted.names.filter(isUserHandleName);
+  }
+  const { returns } = analyzeCodeBody(parsed.statements);
+  for (let i = returns.length - 1; i >= 0; i--) {
+    const shapes = returnShapes(returns[i].argument);
+    if (shapes.length !== 1) continue;
+    const shape = shapes[0];
+    if (shape.opaque || shape.notAnObject || shape.keys.size === 0) continue;
+    return [...shape.keys].filter(isUserHandleName);
+  }
+  return [];
+}

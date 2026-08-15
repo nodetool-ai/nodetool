@@ -193,6 +193,39 @@ surface at its source:
 NODETOOL_VALIDATE_OUTBOUND_WS=1 nodetool serve
 ```
 
+## JavaScript Sandbox Threading
+
+The QuickJS sandbox behind Code nodes, CodeAct, and JS scripts runs on a worker
+thread whenever it can. A CPU-bound guest blocks whichever thread runs it, and
+on the server's main thread that freeze takes the event loop with it — including
+the WebSocket `stop` frame that would have cancelled the run. On a worker,
+cancelling is `terminate()`, immediate for a spinning guest and a parked one
+alike.
+
+Two settings change that choice:
+
+- `NODETOOL_SANDBOX_INPROC=1` runs every guest on the calling thread. It is
+  treated as a chosen fallback, so it warns about nothing.
+- `NODETOOL_SANDBOX_WORKER=require` refuses to fall back at all. A run that
+  cannot reach a worker fails with `the sandbox worker path is required
+  (NODETOOL_SANDBOX_WORKER=require) but unavailable: <reason>` instead of
+  running in-process.
+
+Some runs stay in-process with no setting involved. A run that streams its
+inputs does, because the synchronous `stream.open` probe is served from a
+worker-local mirror that must be seeded with the handle names; those runs park
+on takes and yield constantly, so the freeze the worker exists for cannot build
+up. Globals that cannot be structured-cloned keep a run on this thread too. The
+by-design cases are quiet; an environmental one warns once per process:
+
+```
+sandbox: running in-process (<reason>); a CPU-bound guest will block this thread until its timeout
+```
+
+```bash
+NODETOOL_SANDBOX_INPROC=1 nodetool serve
+```
+
 ## Development-Only Settings
 
 Two settings exist for local development and are off unless set:
@@ -250,6 +283,34 @@ hermetic backend on `127.0.0.1:7777`, so stop any server already on that port
 first; the harness refuses to run against one rather than exercise a real
 database with real providers.
 
+### Hermetic providers
+
+The user-journey suite (`web/tests/journeys`) sends chat messages and runs whole
+workflows with no API keys and no network. `NODETOOL_FAKE_PROVIDERS=1` puts the
+suite's backend (`screenshot-server.ts`) in hermetic mode: every registered LLM
+provider is re-registered as a deterministic fake, and external or
+media-generating nodes — fal, Replicate, search, HTTP, image/video/audio
+generation — resolve to an executor that returns type-correct placeholder
+outputs derived from the node's output metadata. Structural nodes
+(input/output/control) and pure-compute nodes (text, data, math) still run for
+real, so the assertions mean something. Every faked LLM call returns the string
+`deterministic e2e response`.
+
+`npm run test:journeys` sets the variable itself — `tests/journeys/globalSetup.ts`
+does `process.env.NODETOOL_FAKE_PROVIDERS ??= "1"`. Set it by hand only when
+starting that backend yourself. The screenshot and visual suites leave it off,
+because they only render pages and never run a node.
+
+- `NODETOOL_FAKE_DEBUG=1` logs each node's REAL/FAKE resolution to stderr, which
+  is how you find out why a node you expected to be faked ran for real.
+- `NODETOOL_ENABLE_FAKE_PROVIDER=1` registers the separate `fake` provider id as
+  a builtin, so a workflow can select it the way it selects any other provider.
+  Ignored when `NODETOOL_ENV=production`.
+
+```bash
+NODETOOL_FAKE_PROVIDERS=1 NODETOOL_FAKE_DEBUG=1 npm run test:journeys
+```
+
 ## Chat Turn Replay
 
 A chat or agent turn outlives the WebSocket connection that started it. Every
@@ -301,46 +362,6 @@ These size one process's buffer. Getting a reconnect to the process that *holds*
 the run is a separate concern; see
 [Multi-instance deployments](websocket-api.md#multi-instance-deployments).
 
-## Sandbox Container Variables
-
-The Docker sandbox — the container behind the agent's shell, browser, and
-desktop tools — has no image of its own. It runs
-`ghcr.io/nodetool-ai/nodetool:latest` with
-`/usr/local/bin/sandbox-agent-entrypoint.sh` as the entrypoint. The provider
-injects a fixed set of variables when it creates the container, so most of these
-are values you read, not values you set:
-
-| Variable | Injected as | Read by |
-|----------|-------------|---------|
-| `NODETOOL_SESSION_ID` | The sandbox session id | Nothing in the image; it identifies the container in `docker inspect` |
-| `NODETOOL_TOOL_PORT` | `7788` | The container entrypoint and the tool server it starts |
-| `NODETOOL_VNC_PORT` | `6080` | The entrypoint, for websockify |
-| `NODETOOL_USER_SERVICE_PORTS` | `3000,5000,8000,8080` | Nothing in the image; it tells whatever runs inside which ports are published to the host |
-| `NODETOOL_USER_ID` | The owning user, when a Code node starts the sandbox | The provider, which copies it into the `com.nodetool.sandbox.owner` container label |
-
-The container name is derived from the session id
-(`nodetool-sandbox-<session_id>`), and every published port — the tool server,
-noVNC, and the user-service ports — is bound to an ephemeral host port on
-loopback. The provider refuses a non-loopback host IP, so a sandbox port is
-never reachable off the machine.
-
-`NODETOOL_HEADLESS`, `NODETOOL_WORKSPACE`, `NODETOOL_VNC_DISPLAY`, and
-`NODETOOL_VNC_GEOMETRY` are read inside the container too, but the provider does
-**not** forward them from the server's own environment — it injects the four
-values above and nothing else. They apply when you start the container yourself:
-
-```bash
-docker run --rm -e NODETOOL_HEADLESS=1 \
-  --entrypoint /usr/local/bin/sandbox-agent-entrypoint.sh \
-  ghcr.io/nodetool-ai/nodetool:latest
-```
-
-`NODETOOL_HEADLESS=1` drops the X11 stack — no Xvfb, fluxbox, x11vnc, or
-websockify. The tool server still starts and `browser_*` tools launch headless
-Chromium on demand, while `desktop_*` tools and noVNC have nothing to act on.
-A host embedding `@nodetool-ai/sandbox` directly can pass the same variables
-through the sandbox options' `env` map.
-
 ## Environment Variables Index
 
 ![API Settings](assets/screenshots/settings-api-keys.png)
@@ -383,14 +404,10 @@ through the sandbox options' `env` map.
 | `NODETOOL_DISABLE_TRIGGERS` | Skip trigger ingestion on this process (no dispatcher, scheduler, file watcher, or webhook route) | no | Ingestion is **on** by default. Set to `1` when a second server shares one database, or for an embedded server that must not start background work |
 | `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
 | `NODETOOL_ENABLE_EXTENSION_BRIDGE` | Keep the `/ws/extension` CDP bridge open when `NODETOOL_ENV=production` | no | Off in production unless set to exactly `1`; on everywhere else. The bridge is unauthenticated and single-connection — whoever connects becomes *the* extension socket and can proxy CDP through the server — so enable it only on a deployment that actually drives the browser extension. When disabled the server logs that at startup and the route is not registered |
-| `NODETOOL_BROWSER_HEADLESS` | Whether browser-automation nodes launch Chrome headless | no | Server-side browser tools are headless unless this is exactly `false`. Inside a sandbox container the default follows `DISPLAY` instead — visible when an X display is attached so you can watch over noVNC — and `true`/`false` here overrides that either way |
-| `NODETOOL_SHELL_VNC` | Whether a sandbox shell opens a visible `xterm` alongside its tmux session | no | On whenever `DISPLAY` is set, so anyone watching the sandbox over noVNC sees the agent's keystrokes live; `NODETOOL_SHELL_VNC=0` disables it. With no `DISPLAY` attached nothing is spawned either way. The xterm exits on its own when the shell is killed |
-| `NODETOOL_HEADLESS` | Skip the sandbox container's X11 desktop stack | no | Container-side, `1` only. The entrypoint then starts neither Xvfb, fluxbox, x11vnc, nor websockify — the tool server still starts, and `browser_*` tools launch headless Chromium on demand. `desktop_*` tools and noVNC viewing need the stack. See [Sandbox container variables](#sandbox-container-variables) |
-| `NODETOOL_TOOL_PORT` | Port the in-container tool server listens on | no | Default `7788`, and what the sandbox provider injects. The container binds `0.0.0.0` because the container is the isolation boundary; the host publishes the port on its own loopback address |
-| `NODETOOL_VNC_PORT` | Port websockify serves noVNC on inside the sandbox container | no | Default `6080`, and what the provider injects. x11vnc itself stays on `5900` bound to container-localhost; the WebSocket port is the one published to the host |
-| `NODETOOL_VNC_DISPLAY` / `NODETOOL_VNC_GEOMETRY` | X display and screen geometry the sandbox desktop runs at | no | Container-side. Defaults `:99` and `1280x900x24`; ignored when `NODETOOL_HEADLESS=1` |
-| `NODETOOL_WORKSPACE` | Directory the in-container tool server treats as the workspace | no | Container-side. Default `/workspace`, which is where the host bind-mounts the session's workspace directory |
+| `NODETOOL_BROWSER_HEADLESS` | Whether browser-automation nodes launch Chrome headless | no | Server-side browser tools are headless unless this is exactly `false` |
 | `NODETOOL_SHIPPED_PACKS_DIR` | Roots the sandbox packs that ship with NodeTool are read from | no | Comma-, semicolon-, or `PATH`-separator-delimited, same as `NODETOOL_PACK_SEARCH_PATHS`. Candidates that do not exist are dropped, so a bad path yields no packs rather than an error. Unset, the loader looks for `_sandbox/` beside the bundled `server.mjs` (packaged desktop app, Docker image), then walks up to `packages/sandbox-packs` (a checkout). Set it only for a host that stages the packs somewhere else. See [Sandbox package design](sandbox-package-design.md) |
+| `NODETOOL_SANDBOX_INPROC` | Run every QuickJS guest on the calling thread instead of a worker | no | `1` only. A chosen fallback, so it warns about nothing. A CPU-bound guest then blocks the thread — on the server's main thread that freezes the event loop, including the frame that would have cancelled the run. See [JavaScript sandbox threading](#javascript-sandbox-threading) |
+| `NODETOOL_SANDBOX_WORKER` | Require the sandbox worker path | no | `require` only. A run that cannot reach a worker fails with `the sandbox worker path is required (NODETOOL_SANDBOX_WORKER=require) but unavailable: <reason>` rather than falling back in-process. Runs that stream their inputs never reach a worker, so this fails them |
 | `NODETOOL_GPU_VALIDATE` | Escape hatch for the WGSL linearity validator | no | `off` disables it. The validator rejects a shader module whose WGSL contradicts its declared premultiplied-alpha contract, at module load. Use it to ship a hotfix while the shader is corrected, not as a standing setting; read once per process |
 | `NODETOOL_GPU_DEBUG` | Comma-separated GPU debug passes to enable | no | `premul` scans every premultiplied output texture after dispatch and logs texels that break the invariant (`rgb ≤ a`, `rgb ≥ 0`, no NaN): `NODETOOL_GPU_DEBUG=premul`. Off by default and zero cost when off — the pass is never encoded. Read once per process |
 | `NODETOOL_CACHE_DIR` | Per-user cache root for derived artifacts NodeTool can always rebuild | no | Everything under it is safe to delete — it is deliberately separate from the data directory. Unset, it is `%LOCALAPPDATA%\nodetool\cache` on Windows and `$XDG_CACHE_HOME/nodetool` (falling back to `~/.cache/nodetool`) elsewhere. The compiled sandbox guest modules live in `sandbox-modules/` under it, cached by content digest; see [Sandbox package design](sandbox-package-design.md) |
@@ -404,14 +421,17 @@ through the sandbox options' `env` map.
 | `NODETOOL_WORKER_NAMESPACES` | Narrow which Python node namespaces the worker loads | no | Passed through unchanged as `--namespaces <value>`. Unset, the flag is not passed and the worker loads everything installed. See [Python Nodes](#python-nodes) |
 | `NODETOOL_VALIDATE_OUTBOUND_WS` | Schema-check every server→client WebSocket frame before sending | no | `1`/`true` on, `0`/`false` off. Unset, on under `NODE_ENV=test`/Vitest and off elsewhere. See [Protocol validation](#protocol-validation) |
 | `NODETOOL_VALIDATE_BRIDGE_FRAMES` | Schema-check every frame arriving from the Python worker | no | Same values and default as `NODETOOL_VALIDATE_OUTBOUND_WS`. A failing frame is rejected, not dispatched |
-| `NODETOOL_SEARCH_PROVIDER` | Web-search provider the sandbox agent's search tool uses | no | `tavily` (default), `brave`, or `serper`; an unrecognized value falls back to `tavily`. Each reads its own key — `TAVILY_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY` — and throws when it is missing. `mock` returns no results, for a sandbox that must not reach the network |
 | `NODETOOL_ENABLE_TEST_TOPUP` | Allow the credits top-up that mints credits with no payment | no | `1`/`true` only; off otherwise and the mutation is refused. Development servers only. See [Development-only settings](#development-only-settings) |
 | `NODETOOL_SEED_DEMO_COSTS` | Seed demo spend for the Costs dashboard at startup | no | `1` only. Idempotent — a marker row stops it re-running |
 | `NODETOOL_DEBUG_STAGES` | Capture a canvas screenshot at every stage of a browser debug run | no | `1` or `true`. Set by `nodetool debug --stages`; off otherwise. Up to 16 intermediate frames land in `stages/` under the output directory. See [Test harness settings](#test-harness-settings) |
 | `NODETOOL_DEBUG_TIMEOUT` | Per-run timeout (ms) for the in-page run of the browser debug harness | no | How `nodetool debug --timeout` reaches the browser surface. Read as a positive integer; anything else is ignored and the harness's 5-minute floor applies |
 | `NODETOOL_E2E_EXAMPLES_DIR` | Examples directory the e2e test server serves at `/api/examples` | no | A path that does not exist is ignored; the server then tries `packages/base-nodes/nodetool/examples/nodetool-base` and `examples/workflows` under the repo root |
+| `NODETOOL_FAKE_PROVIDERS` | Run the user-journey backend hermetically — every LLM provider and every external/media node is a deterministic fake | no | `1` only. `npm run test:journeys` sets it itself; the screenshot and visual suites leave it off. Structural and pure-compute nodes still run for real. See [Hermetic providers](#hermetic-providers) |
+| `NODETOOL_FAKE_DEBUG` | Log each node's REAL/FAKE resolution in hermetic mode | no | `1` only, written to stderr. Use it when a node you expected to be faked ran for real |
+| `NODETOOL_ENABLE_FAKE_PROVIDER` | Register the `fake` provider id as a builtin, so a workflow can select it | no | `1` only, and ignored when `NODETOOL_ENV=production`. Separate from `NODETOOL_FAKE_PROVIDERS`, which fakes the providers that are already registered |
 | `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
 | `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
+| `NODETOOL_PACKS_REQUIRE_ALLOWLIST` | Default `allowUnlisted` to false without production mode | no | `1` only. Same trust default `NODETOOL_ENV=production` gives, without disabling the local-only features production mode turns off. The packaged desktop app sets it — its optional-node directory holds user-installed code, but it needs the Python bridge, file browser, and the rest of the local surface. An explicit `allowUnlisted` in `packs.json` still wins |
 | `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |
 | `NODETOOL_CHAT_REPLAY_RETENTION_MS` | How long a finished turn is kept for a late reconnect | no | Default `300000` (5 minutes) |
 | `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` | Frames buffered per turn for replay | no | Default `2000`. A client whose `last_seq` predates the buffer is told the replay is incomplete and refetches thread history over REST |
