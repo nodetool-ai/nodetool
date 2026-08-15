@@ -197,6 +197,8 @@ describe("message round trip", () => {
 class FakeWorker implements SandboxWorkerHandle {
   readonly received: HostToWorkerMessage[] = [];
   terminated = 0;
+  /** Every ref/unref the pool asked for, in order. */
+  readonly refLog: ("ref" | "unref")[] = [];
   private sink: ((message: WorkerToHostMessage) => void) | undefined;
   private death: ((error: Error) => void) | undefined;
   private announceStart: (() => void) | undefined;
@@ -217,6 +219,12 @@ class FakeWorker implements SandboxWorkerHandle {
   }
   terminate(): void {
     this.terminated++;
+  }
+  ref(): void {
+    this.refLog.push("ref");
+  }
+  unref(): void {
+    this.refLog.push("unref");
   }
 
   /** Speak as the worker. */
@@ -504,6 +512,40 @@ describe("SandboxWorkerPool", () => {
 
     first?.release(false);
     expect((await second)?.handle).toBe(first?.handle);
+    pool.destroy();
+  });
+
+  // A warm pool that stays ref'd keeps the process alive forever: the CLI's
+  // app-build leg ran its cases in under a second and then sat until its
+  // 45-minute CI job timeout. Ref'ing only for the lease is what lets the
+  // process exit while still keeping a run in flight from being cut short.
+  it("holds the process only while a worker is leased", async () => {
+    const worker = new FakeWorker();
+    const pool = poolOf(worker);
+
+    const first = await pool.acquire();
+    expect(worker.refLog).toEqual(["ref"]);
+
+    first?.release(false);
+    expect(worker.refLog).toEqual(["ref", "unref"]);
+
+    const second = await pool.acquire();
+    expect(worker.refLog).toEqual(["ref", "unref", "ref"]);
+    second?.release(false);
+    pool.destroy();
+  });
+
+  it("keeps a worker ref'd when it passes straight to a waiting run", async () => {
+    const worker = new FakeWorker();
+    const pool = poolOf(worker);
+
+    const first = await pool.acquire();
+    const second = pool.acquire();
+    first?.release(false);
+    await second;
+
+    // Handed over without ever going idle, so it must not have been unref'd.
+    expect(worker.refLog).toEqual(["ref", "ref"]);
     pool.destroy();
   });
 });

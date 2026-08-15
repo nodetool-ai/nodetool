@@ -159,6 +159,14 @@ export interface SandboxWorkerHandle {
   /** Called when the thread dies — an `error` event or an unexpected `exit`. */
   onDeath(handler: (error: Error) => void): void;
   terminate(): void;
+  /**
+   * Hold and release the process for this worker. A leased worker refs, so a
+   * run in flight cannot be cut short by the event loop draining; an idle
+   * pooled worker unrefs, so a warm pool never keeps the process alive on its
+   * own. Optional: a handle with no thread behind it has nothing to manage.
+   */
+  ref?(): void;
+  unref?(): void;
 }
 
 export type SandboxWorkerFactory = () => Promise<SandboxWorkerHandle | null>;
@@ -167,6 +175,7 @@ type NodeWorkerInstance = {
   postMessage(message: unknown): void;
   on(event: string, handler: (payload: never) => void): void;
   terminate(): Promise<number> | void;
+  ref(): void;
   unref(): void;
 };
 
@@ -192,9 +201,6 @@ export const defaultSandboxWorkerFactory: SandboxWorkerFactory = async () => {
           workerData: { tsxApiHref: entry.tsxApiHref, entryHref: entry.href },
           execArgv: [...entry.execArgv]
         });
-  // A pooled worker must never hold the process open on its own.
-  worker.unref();
-
   let sink: ((message: WorkerToHostMessage) => void) | undefined;
   let death: ((error: Error) => void) | undefined;
   let dead = false;
@@ -215,6 +221,13 @@ export const defaultSandboxWorkerFactory: SandboxWorkerFactory = async () => {
     die(new Error(`the sandbox worker exited with code ${String(code)}`));
   });
 
+  // A pooled worker must never hold the process open on its own — and this has
+  // to come *after* the listeners above. Attaching a `message` listener starts
+  // the worker's public port, which re-refs it, so unreffing first is silently
+  // undone: a CLI run that left a worker pooled then hung until its 45-minute
+  // CI job timeout instead of exiting.
+  worker.unref();
+
   return {
     postMessage: (message) => worker.postMessage(message),
     onMessage: (handler) => {
@@ -227,7 +240,9 @@ export const defaultSandboxWorkerFactory: SandboxWorkerFactory = async () => {
     terminate: () => {
       dead = true;
       void worker.terminate();
-    }
+    },
+    ref: () => worker.ref(),
+    unref: () => worker.unref()
   };
 };
 
@@ -258,6 +273,8 @@ export class SandboxWorkerPool {
   async acquire(): Promise<Lease | null> {
     const handle = await this.take();
     if (handle === null) return null;
+    // Leased: hold the process until the run gives it back.
+    handle.ref?.();
     return {
       handle,
       release: (discard) => this.give(handle, discard)
@@ -326,9 +343,12 @@ export class SandboxWorkerPool {
     }
     const waiter = this.waiting.shift();
     if (waiter !== undefined) {
+      // Straight into the next run, so it stays leased and stays ref'd.
       waiter(handle);
       return;
     }
+    // Idle again: stop holding the process open.
+    handle.unref?.();
     this.idle.push(handle);
   }
 }
@@ -531,9 +551,16 @@ export async function runInWorker(
 
     // Backstop for a worker that answers nothing at all — a wedged thread never
     // reaches its own deadline, so the main thread keeps one of its own.
+    //
+    // The suspend allowance only widens it when the run can actually suspend,
+    // the way the engine's own abort is sized in `js-sandbox.ts` and
+    // `interpreter.ts`. Adding it unconditionally put a ~30 minute floor
+    // (`DEFAULT_SUSPEND_ALLOWANCE_MS`) under every run, so a wedged worker —
+    // a guest that OOMs marshaling a host value, say — outlived its
+    // `timeoutMs` by half an hour instead of failing.
     const backstop =
       options.run.timeoutMs +
-      Math.max(0, options.run.suspendAllowanceMs) +
+      (options.run.hasClock ? Math.max(0, options.run.suspendAllowanceMs) : 0) +
       DEADLINE_MARGIN_MS;
     deadlineTimer = setTimeout(() => {
       settle(
