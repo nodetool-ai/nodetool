@@ -1005,6 +1005,22 @@ describe("runInSandbox cancellation", () => {
   });
 });
 
+/**
+ * Both tests below time how fast a cancellation reaches a spinning guest, and
+ * both cancel by terminating the worker — which drops it from the pool, so the
+ * next run spawns a fresh one. Spawning is the expensive part (a WASM
+ * instantiation, and under tsx a recompile of the whole sandbox graph):
+ * measured here, a cold cancellation run takes ~900ms against a ~16ms warm one,
+ * and a contended CI runner has been seen paying 7-13s for a single spawn. That
+ * is startup, not interrupt latency, and a budget written for the latter cannot
+ * absorb it — one CI run failed `elapsed < 3000` at 11191ms on a cancellation
+ * that worked. Leaving an idle worker in the pool first keeps each budget
+ * measuring what its test is named after.
+ */
+async function warmSandboxWorkerPool(): Promise<void> {
+  await runInSandbox({ code: "return 1;", timeoutMs: 5_000 });
+}
+
 describe("runInSandbox cancellation of CPU-bound guests", () => {
   it("interrupts a CPU-bound loop once cancellation has landed", async () => {
     // Regression: Promise.race cannot stop a CPU-bound guest — it never yields,
@@ -1016,6 +1032,7 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     // real orchestration scripts have — they await sub-agents constantly — and
     // it is what lets the abort flag get set in the first place. See the test
     // below for the case this cannot cover.
+    await warmSandboxWorkerPool();
     const controller = new AbortController();
     const started = Date.now();
 
@@ -1042,6 +1059,7 @@ describe("runInSandbox cancellation of CPU-bound guests", () => {
     // timeout — the abort listener could never run, so the flag the interrupt
     // handler polled stayed false. On the worker path the host thread stays
     // free and abort terminates the worker outright.
+    await warmSandboxWorkerPool();
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 25);
     const started = Date.now();

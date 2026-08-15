@@ -11,6 +11,7 @@ import {
   ALL_FORMATS,
   BufferSource,
   Conversion,
+  getFirstEncodableAudioCodec,
   Input,
   Mp4OutputFormat,
   Output,
@@ -723,7 +724,23 @@ export function createVideoBridge(
           showWarnings: false,
           audio: { discard: !keepOriginal }
         });
-        const audioOptions: ConversionAudioOptions = { codec: "aac" };
+        // AAC first — every MP4 player takes it. Chrome ships no AAC encoder on
+        // Linux (it encodes through Media Foundation on Windows and
+        // AudioToolbox on macOS), so fall back to Opus, which MP4 also carries.
+        const [numberOfChannels, sampleRate] = await Promise.all([
+          audioTrack.getNumberOfChannels(),
+          audioTrack.getSampleRate()
+        ]);
+        const audioCodec = await getFirstEncodableAudioCodec(["aac", "opus"], {
+          numberOfChannels,
+          sampleRate
+        });
+        if (!audioCodec) {
+          throw new Error(
+            "video.addAudio: this platform can encode neither AAC nor Opus audio"
+          );
+        }
+        const audioOptions: ConversionAudioOptions = { codec: audioCodec };
         audioConversion = await Conversion.init({
           input: audioInput,
           output,
