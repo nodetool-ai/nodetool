@@ -8,6 +8,15 @@ import { render, screen, act } from '@testing-library/react-native';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { MessageContent } from '../../types/ApiTypes';
 
+jest.mock("../../trpc/client", () => ({
+  // Media widgets resolve an `asset://` locator through `assets.get`; these
+  // cases render non-asset sources, so the lookup never settles.
+  trpc: {
+    assets: { get: { useQuery: () => ({ data: undefined, isLoading: false }) } },
+    useQueries: () => [],
+  },
+}));
+
 /** The content box MessageView's bubble gives a message at a given window width. */
 const bubbleContentWidth = (windowWidth: number) => (windowWidth - 28) * 0.85 - 28;
 

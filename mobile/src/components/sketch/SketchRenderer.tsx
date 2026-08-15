@@ -41,6 +41,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { apiService } from '../../services/api';
 import { trpc } from '../../trpc/client';
+import { assetIdFromLocator } from '../../hooks/useResolvedMediaUri';
 import type { ThemeColors } from '../../utils/theme';
 
 // ── Document shape ─────────────────────────────────────────────────────────
@@ -277,7 +278,11 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
     const binding = bindings.get(layer.id) ?? null;
     const status = binding?.status ?? null;
     const inlineUri = layerDataImageUri(layer.data);
+    // `resolveUrl` returns null for an `asset://` reference — that one resolves
+    // through the asset lookup below, so route its id there rather than
+    // dropping the layer's only image.
     const referenceUri = apiService.resolveUrl(layer.imageReference?.uri);
+    const referenceAssetId = assetIdFromLocator(layer.imageReference?.uri);
     const hasPixels = !statusHasNoPixels(status);
 
     return {
@@ -288,7 +293,9 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
       opacity: ownOpacity * groupOpacity,
       rect,
       directUri: hasPixels ? (referenceUri ?? inlineUri) : null,
-      assetId: hasPixels ? (binding?.currentAssetId ?? null) : null,
+      assetId: hasPixels
+        ? (binding?.currentAssetId ?? referenceAssetId ?? null)
+        : null,
       status,
       prompt: binding?.prompt ?? null,
       model: binding?.model ?? null,

@@ -1,6 +1,6 @@
 import { zipSync } from "fflate";
 import { createAssetFile } from "./createAssetFile";
-import { resolveAssetUri } from "../components/node/output/hooks";
+import { resolveMediaUri } from "./resolveMediaUri";
 
 interface DownloadOptions {
   nodeId: string;
@@ -38,15 +38,19 @@ export const downloadPreviewAssets = async ({
       typeof payload === "object" && payload && "uri" in payload
         ? (payload as { uri?: string }).uri
         : undefined;
-    if (uri) {
-      const resolvedUri = resolveAssetUri(uri);
+    // An `asset://` locator needs the asset's own `get_url` — the anchor
+    // cannot fetch the raw locator.
+    const resolvedUri = uri ? await resolveMediaUri(uri) : "";
+    if (resolvedUri) {
       console.warn(
         "[downloadPreviewAssets] Falling back to direct URI download due to error",
         error
       );
       const anchor = document.createElement("a");
       anchor.href = resolvedUri;
-      anchor.download = resolvedUri.split("/").pop() ?? "preview_download";
+      // A signed URL carries a query string; it is not part of the file name.
+      anchor.download =
+        resolvedUri.split(/[?#]/)[0].split("/").pop() || "preview_download";
       anchor.rel = "noopener";
       document.body.appendChild(anchor);
       anchor.click();

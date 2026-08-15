@@ -187,7 +187,15 @@ describe("createAssetFile", () => {
     expect(result.file.size).toBe(64);
   });
 
-  it("fetches image from asset:// when asset_id is absent (URI-only image ref)", async () => {
+  // The locator carries no path — the bytes are behind the asset's own
+  // `get_url`, so a URI-only ref still costs one `assets.get`.
+  it("resolves an asset:// URI through the asset record when asset_id is absent", async () => {
+    assetGetQuery.mockResolvedValueOnce({
+      id: "abc123",
+      name: "abc123.png",
+      content_type: "image/png",
+      get_url: "https://cdn.example.com/signed/user-1/abc123.png?sig=x"
+    });
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer
@@ -201,11 +209,11 @@ describe("createAssetFile", () => {
       "node"
     );
 
-    expect(assetGetQuery).not.toHaveBeenCalled();
-    expect(global.fetch).toHaveBeenCalled();
+    expect(assetGetQuery).toHaveBeenCalledWith({ id: "abc123" });
     const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
-    expect(fetchUrl).toContain("/api/storage/");
-    expect(fetchUrl).toContain("abc123.png");
+    expect(fetchUrl).toBe(
+      "https://cdn.example.com/signed/user-1/abc123.png?sig=x"
+    );
     expect(result.file.size).toBe(4);
   });
 

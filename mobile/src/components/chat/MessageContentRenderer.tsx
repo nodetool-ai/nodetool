@@ -16,7 +16,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { MediaPlayerView } from '../media/MediaPlayerView';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
-import { apiService } from '../../services/api';
+import { useResolvedMediaUri } from '../../hooks/useResolvedMediaUri';
 
 /**
  * Media is sized to the bubble's content box, derived from the live window width
@@ -56,6 +56,15 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
   const { colors } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const mediaWidth = mediaWidthFor(windowWidth);
+  // Persisted chat media is sanitized to `asset://<asset_id>`, which no native
+  // loader can fetch — each branch's ref resolves through the asset's own
+  // `get_url`. Hooks run unconditionally, so all three resolve here.
+  const media = content as Partial<
+    Record<'image' | 'audio' | 'video', { uri?: string; asset_id?: string }>
+  >;
+  const imageUri = useResolvedMediaUri(media.image);
+  const audioUri = useResolvedMediaUri(media.audio);
+  const videoUri = useResolvedMediaUri(media.video);
 
   switch (content.type) {
     case 'text': {
@@ -64,7 +73,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     }
 
     case 'image_url': {
-      const imageUri = getMediaUri(content.image);
       if (!imageUri) {
         return <Text style={[styles.errorText, { color: colors.textSecondary }]}>Unable to load image</Text>;
       }
@@ -76,7 +84,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     }
 
     case 'audio': {
-      const audioUri = getMediaUri(content.audio);
       if (!audioUri) {
         return <Text style={[styles.errorText, { color: colors.textSecondary }]}>Unable to load audio</Text>;
       }
@@ -88,7 +95,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     }
 
     case 'video': {
-      const videoUri = getMediaUri(content.video);
       if (!videoUri) {
         return <Text style={[styles.errorText, { color: colors.textSecondary }]}>Unable to load video</Text>;
       }
@@ -223,24 +229,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
     </View>
   );
 };
-
-/**
- * Extract URI from media content object
- */
-function getMediaUri(
-  media: { uri?: string; data?: unknown; type?: string } | undefined
-): string | undefined {
-  if (!media) {return undefined;}
-  
-  // If URI exists and is not empty, resolve it against the API host
-  if (media.uri && media.uri !== '') {
-    return apiService.resolveUrl(media.uri) ?? undefined;
-  }
-  
-  // For binary data, we would need to convert to base64
-  // This is typically handled server-side for mobile
-  return undefined;
-}
 
 const styles = StyleSheet.create({
   mediaContainer: {

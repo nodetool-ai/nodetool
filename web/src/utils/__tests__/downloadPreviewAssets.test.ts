@@ -5,6 +5,11 @@ const mockCreateAssetFile = createAssetFile as jest.Mock;
 
 jest.mock("../createAssetFile");
 
+const mockGetAsset = jest.fn();
+jest.mock("../../stores/AssetStore", () => ({
+  useAssetStore: { getState: () => ({ get: mockGetAsset }) }
+}));
+
 describe("downloadPreviewAssets", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -126,8 +131,14 @@ describe("downloadPreviewAssets", () => {
     consoleWarnSpy.mockRestore();
   });
 
-  it("resolves asset:// URIs in direct-download fallback", async () => {
+  // The locator has no fetchable form of its own — the anchor gets the
+  // asset's `get_url`, which is signed on the cloud backends.
+  it("resolves asset:// URIs through the asset record in the fallback", async () => {
     mockCreateAssetFile.mockRejectedValue(new Error("Failed to create asset"));
+    mockGetAsset.mockResolvedValue({
+      id: "123",
+      get_url: "https://cdn.example.com/signed/user-1/123.mp4?sig=x"
+    });
 
     const mockAnchor = {
       href: "",
@@ -146,7 +157,10 @@ describe("downloadPreviewAssets", () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalled();
-    expect(mockAnchor.href).toBe("http://localhost:7777/api/storage/123.mp4");
+    expect(mockGetAsset).toHaveBeenCalledWith("123");
+    expect(mockAnchor.href).toBe(
+      "https://cdn.example.com/signed/user-1/123.mp4?sig=x"
+    );
     expect(mockAnchor.download).toBe("123.mp4");
     expect(mockAnchor.click).toHaveBeenCalled();
 

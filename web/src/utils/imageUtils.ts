@@ -13,16 +13,18 @@ export interface ImageSource {
 }
 
 /**
- * Resolve a URI string to a fetchable URL.
- * - `asset://{id}` → `${BASE_URL}/api/storage/{id}`.
+ * Resolve a URI string to a fetchable URL, without a server round trip.
  * - `package://{pkg}/{path}` → `${BASE_URL}/api/assets/packages/{pkg}/{path}`.
  * - `/api/...` → prefixed with `BASE_URL`.
  * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
+ * - `asset://{id}` → `""`. An asset locator is an identifier, not a path: the
+ *   bytes live under `<user_id>/<asset_id>.<ext>` behind a signed URL, so
+ *   rewriting it to `/api/storage/{id}` 404s on any cloud deploy. Resolve it
+ *   with `useResolvedMediaUri` instead.
  */
 export const resolveUri = (uri: string): string => {
   if (uri.startsWith("asset://")) {
-    const assetId = uri.slice("asset://".length);
-    return `${BASE_URL}/api/storage/${assetId}`;
+    return "";
   }
   const pkgPath = packageAssetHttpPath(uri);
   if (pkgPath) {

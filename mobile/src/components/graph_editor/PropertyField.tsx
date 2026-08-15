@@ -24,6 +24,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useModelsForType } from "../../hooks/useModelsByProvider";
 import { ModelSelectModal } from "./ModelSelectModal";
 import { apiService } from "../../services/api";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import type { Property } from "../../types/ApiTypes";
 
 // ── Shared types ────────────────────────────────────────────────────
@@ -411,7 +412,7 @@ const ImageWidget: React.FC<{
   onChange: (v: unknown) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -495,7 +496,7 @@ const AudioWidget: React.FC<{
   onChange: (v: unknown) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickAudio = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -565,7 +566,7 @@ const VideoWidget: React.FC<{
   onChange: (v: unknown) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickVideo = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -629,18 +630,22 @@ const VideoWidget: React.FC<{
   );
 };
 
-/** Extract URI from value — handles {uri: ...}, {id: ...}, or raw string */
 /**
- * The URI a media widget can actually load. Property values carry `asset://`
- * URNs, which no native loader understands, so resolve before rendering.
+ * The URI a media widget can actually load, from a `{uri}`, `{id}`, or raw
+ * string value. Property values carry `asset://` URNs, which no native loader
+ * understands and which resolve only through the asset's own `get_url`.
  */
-function extractUri(value: unknown): string | null {
+function useExtractedUri(value: unknown): string | null {
+  return useResolvedMediaUri(mediaLocatorOf(value));
+}
+
+function mediaLocatorOf(value: unknown): string | null {
   if (!value) {return null;}
-  if (typeof value === "string") {return apiService.resolveUrl(value);}
+  if (typeof value === "string") {return value;}
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") {return apiService.resolveUrl(v.uri);}
-    if (typeof v.id === "string") {return apiService.resolveUrl(v.id);}
+    if (typeof v.uri === "string") {return v.uri;}
+    if (typeof v.id === "string") {return v.id;}
   }
   return null;
 }

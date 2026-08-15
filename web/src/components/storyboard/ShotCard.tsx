@@ -41,6 +41,7 @@ import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useEntities } from "../../serverState/useEntities";
 import { ENTITY_KIND_COLOR } from "../entities/entityKind";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface ShotCardProps {
   boardId: string;
@@ -136,7 +137,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const isGenerating =
     shot.status === "keyframe_generating" || shot.status === "clip_generating";
   const camera = cameraLine(shot);
-  const clipUri = shot.clip?.uri;
+  // The clip's `uri` is an `asset://` locator — the player needs the asset's
+  // own `get_url`.
+  const clipUri = useResolvedMediaUri(shot.clip);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
 
   const handleGenerateStill = useCallback(() => {
