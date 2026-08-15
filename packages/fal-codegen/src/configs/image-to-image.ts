@@ -5076,7 +5076,16 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
-      ]
+      ],
+      fieldOverrides: {
+        image_size: {
+          customSizeConstraints: {
+            maxEdge: 3840,
+            maxPixels: 8_294_400,
+            multipleOf: 16
+          }
+        }
+      }
     },
     "fal-ai/bytedance/seedream/v5/lite/edit": {
       className: "BytedanceSeedreamV5LiteEdit",

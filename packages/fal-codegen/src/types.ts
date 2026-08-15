@@ -15,6 +15,14 @@ export interface FieldDef {
   required: boolean;
   enumRef?: string; // Name of referenced enum
   enumValues?: string[]; // Raw values for @prop values array
+  /** The schema accepts an object in addition to the primary propType. */
+  acceptsObject?: boolean;
+  /** Declarative limits for object-shaped image_size values. */
+  customSizeConstraints?: {
+    maxEdge?: number;
+    maxPixels?: number;
+    multipleOf?: number;
+  };
   nestedAssetKey?: string; // Key inside nested object for asset URL
   parentField?: string; // If part of a nested structure
   min?: number;

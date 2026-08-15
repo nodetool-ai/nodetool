@@ -2675,7 +2675,16 @@ export const config: ModuleConfig = {
         "Batch processing",
         "Professional applications",
         "Rapid prototyping"
-      ]
+      ],
+      fieldOverrides: {
+        image_size: {
+          customSizeConstraints: {
+            maxEdge: 3840,
+            maxPixels: 8_294_400,
+            multipleOf: 16
+          }
+        }
+      }
     },
     "imagineart/imagineart-2.0-preview/text-to-image": {
       className: "ImagineartImagineart20PreviewTextToImage",

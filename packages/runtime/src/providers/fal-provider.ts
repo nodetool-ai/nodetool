@@ -94,6 +94,12 @@ interface FalManifestField {
   name: string;
   apiParamName?: string;
   propType: string;
+  acceptsObject?: boolean;
+  customSizeConstraints?: {
+    maxEdge?: number;
+    maxPixels?: number;
+    multipleOf?: number;
+  };
 }
 interface FalManifestEntry {
   endpointId?: string;
@@ -282,17 +288,52 @@ class FalArgsBuilder {
 
   /**
    * Set `image_size`. fal endpoints typically declare it as an enum string
-   * ("square_hd", ...) — passing `{width, height}` to those returns 422. Only
-   * write the dict shape when the manifest field exists and isn't enum.
+   * ("square_hd", ...), but OpenAPI may declare an object as another accepted
+   * branch. Use object dimensions only when the manifest preserves that
+   * capability, fitting them to any declarative constraints it carries.
    */
   setImageSize(width?: number | null, height?: number | null): this {
-    if (!width || !height) return this;
-    const t = this.propType("image_size");
-    if (!this.known) {
+    if (!width || !height || width < 1 || height < 1) return this;
+    const field = this.accepted.get("image_size");
+    const acceptsObject =
+      !this.known ||
+      field?.acceptsObject === true ||
+      (field != null && field.propType.toLowerCase() !== "enum");
+    if (!acceptsObject) return this;
+
+    const constraints = field?.customSizeConstraints;
+    if (!constraints) {
       this.args.image_size = { width, height };
-    } else if (t && t !== "enum") {
-      this.args.image_size = { width, height };
+      return this;
     }
+
+    const multiple = Math.max(1, constraints.multipleOf ?? 1);
+    const maxScale = Math.min(
+      1,
+      constraints.maxEdge ? constraints.maxEdge / width : 1,
+      constraints.maxEdge ? constraints.maxEdge / height : 1,
+      constraints.maxPixels
+        ? Math.sqrt(constraints.maxPixels / (width * height))
+        : 1
+    );
+    const snap = (value: number) =>
+      Math.max(multiple, Math.round(value / multiple) * multiple);
+    let fittedWidth = snap(width * maxScale);
+    let fittedHeight = snap(height * maxScale);
+    if (constraints.maxEdge) {
+      const snappedMaxEdge =
+        Math.floor(constraints.maxEdge / multiple) * multiple;
+      fittedWidth = Math.min(fittedWidth, snappedMaxEdge);
+      fittedHeight = Math.min(fittedHeight, snappedMaxEdge);
+    }
+    while (
+      constraints.maxPixels &&
+      fittedWidth * fittedHeight > constraints.maxPixels
+    ) {
+      if (fittedWidth >= fittedHeight) fittedWidth -= multiple;
+      else fittedHeight -= multiple;
+    }
+    this.args.image_size = { width: fittedWidth, height: fittedHeight };
     return this;
   }
 

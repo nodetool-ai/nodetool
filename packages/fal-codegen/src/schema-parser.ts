@@ -325,6 +325,7 @@ export class SchemaParser {
 
       const propRec = prop as AnyRecord;
       const bounds = this._getBounds(propRec, propType);
+      const acceptsObject = this._acceptsObjectVariant(propRec);
       fields.push({
         name,
         tsType,
@@ -335,12 +336,30 @@ export class SchemaParser {
         required: required.includes(name),
         enumRef,
         enumValues: enumRef ? enumValues : undefined,
+        ...(acceptsObject && { acceptsObject: true }),
         ...(bounds.min !== undefined && { min: bounds.min }),
         ...(bounds.max !== undefined && { max: bounds.max })
       });
     }
 
     return fields;
+  }
+
+  /** Whether an anyOf/oneOf branch resolves to an object schema. */
+  private _acceptsObjectVariant(prop: AnyRecord): boolean {
+    const variants = (prop["anyOf"] ?? prop["oneOf"]) as
+      | AnyRecord[]
+      | undefined;
+    return (
+      variants?.some((variant) => {
+        const resolved = this._resolveRef(this._rootSchema, variant);
+        return (
+          resolved["type"] === "object" ||
+          (resolved["properties"] != null &&
+            typeof resolved["properties"] === "object")
+        );
+      }) ?? false
+    );
   }
 
   private _numericValue(value: unknown): number | undefined {

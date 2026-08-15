@@ -84075,7 +84075,13 @@
           "landscape_4_3",
           "landscape_16_9",
           "auto"
-        ]
+        ],
+        "acceptsObject": true,
+        "customSizeConstraints": {
+          "maxEdge": 3840,
+          "maxPixels": 8294400,
+          "multipleOf": 16
+        }
       },
       {
         "name": "prompt",
@@ -197921,7 +197927,13 @@
           "landscape_4_3",
           "landscape_16_9",
           "auto"
-        ]
+        ],
+        "acceptsObject": true,
+        "customSizeConstraints": {
+          "maxEdge": 3840,
+          "maxPixels": 8294400,
+          "multipleOf": 16
+        }
       },
       {
         "name": "prompt",

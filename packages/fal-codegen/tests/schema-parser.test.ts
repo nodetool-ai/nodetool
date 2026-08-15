@@ -190,6 +190,20 @@ describe("parse() with flux-dev schema", () => {
     expect(field?.enumRef).toBe("Acceleration");
   });
 
+  it("preserves object capability for enum-or-object fields", () => {
+    const spec = parser.parse(fluxDevSchema);
+    const imageSize = spec.inputFields.find((f) => f.name === "image_size");
+    const outputFormat = spec.inputFields.find(
+      (f) => f.name === "output_format"
+    );
+
+    expect(imageSize).toMatchObject({
+      propType: "enum",
+      acceptsObject: true
+    });
+    expect(outputFormat?.acceptsObject).toBeUndefined();
+  });
+
   it("determines output type as image (images array in output)", () => {
     const spec = parser.parse(fluxDevSchema);
     // FluxDevOutput has "images" property → output type should be "image"

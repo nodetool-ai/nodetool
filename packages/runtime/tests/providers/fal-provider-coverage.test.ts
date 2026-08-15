@@ -168,6 +168,37 @@ describe("FalProvider — textToImage arg shaping", () => {
     await p.textToImage({ prompt: "x", model: IMG_MODEL, seed: 99 });
     expect(captured.seed).toBe(99);
   });
+
+  it("sends a legal 4K custom size to GPT Image 2 Edit", async () => {
+    let captured: Record<string, unknown> = {};
+    const subscribeMock = vi.fn(
+      async (_id: string, opts: { input: Record<string, unknown> }) => {
+        captured = opts.input;
+        return { data: { images: [{ url: "https://fal.ai/r.png" }] } };
+      }
+    );
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: {
+        upload: vi.fn().mockResolvedValue("https://fal.ai/input.png")
+      }
+    };
+
+    await p.imageToImage([new Uint8Array([1, 2, 3])], {
+      prompt: "edit",
+      model: {
+        id: "openai/gpt-image-2/edit",
+        name: "GPT Image 2 Edit",
+        provider: "fal_ai"
+      },
+      targetWidth: 7282,
+      targetHeight: 4096
+    });
+
+    expect(captured.image_size).toEqual({ width: 3840, height: 2160 });
+  });
 });
 
 describe("FalProvider — multi-image variants", () => {
