@@ -23,6 +23,11 @@ import {
 } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
+  DEFAULT_THREAD_RUNTIME,
+  getThreadRuntime
+} from "../../../core/chat/threadRuntime";
+import { MediaPredictionInline } from "../feedback/MediaPredictionStatus";
+import {
   CopyButton,
   Caption,
   Text,
@@ -115,6 +120,11 @@ const ToolCallCard: React.FC<{
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+  const activePredictions = useGlobalChatStore(
+    (s) =>
+      getThreadRuntime(s, s.currentThreadId).activePredictions ??
+      DEFAULT_THREAD_RUNTIME.activePredictions
+  );
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
   // out of args into headline + expanded body. Tolerate the older
@@ -261,6 +271,11 @@ const ToolCallCard: React.FC<{
           )}
         </FlexRow>
       </FlexRow>
+      {isRunning &&
+        isCodeAction &&
+        activePredictions.map((prediction) => (
+          <MediaPredictionInline key={prediction.id} prediction={prediction} />
+        ))}
       <Collapse in={open} timeout="auto" unmountOnExit>
         <FlexColumn className="tool-call-details" gap={0.5}>
           {isSubtask && subtaskInstructions && (

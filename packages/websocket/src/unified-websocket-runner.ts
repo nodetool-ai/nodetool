@@ -7,6 +7,7 @@ import {
   SUPERSEDED_TOOL_RESULT,
   repairOrphanedToolCalls
 } from "./chat-tool-call-repair.js";
+import { attachChatPredictionForwarder } from "./chat-prediction-forwarder.js";
 import { ApiErrorCode } from "./error-codes.js";
 import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
@@ -5719,6 +5720,11 @@ export class UnifiedWebSocketRunner {
       workspaceDir: chatWorkspaceDir,
       authToken: this.authToken
     });
+    const detachPredictions = attachChatPredictionForwarder(
+      (listener) => ctx.addMessageListener(listener),
+      (msg) => this.sendDetached(msg),
+      { threadId: threadId || null, workflowId }
+    );
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null, codeactClock);
@@ -6359,6 +6365,7 @@ export class UnifiedWebSocketRunner {
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
     } finally {
+      detachPredictions();
       // Whatever is still outstanding never got a result row. Leaving the gap
       // makes the thread malformed — Anthropic rejects a `tool_use` with no
       // `tool_result` — and leaves the model unaware the call was abandoned,

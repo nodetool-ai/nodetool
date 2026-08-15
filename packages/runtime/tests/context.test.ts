@@ -1620,6 +1620,9 @@ describe("ProcessingContext – provider prediction pipeline", () => {
     expect((predictionMessages[0] as { status: string }).status).toBe(
       "running"
     );
+    expect((predictionMessages[0] as { capability?: string }).capability).toBe(
+      "generate_message"
+    );
     expect((predictionMessages[1] as { status: string }).status).toBe(
       "completed"
     );

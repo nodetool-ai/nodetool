@@ -600,6 +600,10 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.secondary
     },
 
+    ".media-prediction-inline": {
+      padding: theme.spacing(0, 1.5, 1, 1.5)
+    },
+
     ".expand-icon": {
       transition: MOTION.transform,
       color: theme.vars.palette.text.disabled,

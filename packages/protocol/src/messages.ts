@@ -619,6 +619,7 @@ export const predictionSchema = z
     workflow_id: z.string().nullable().optional(),
     provider: z.string().nullable().optional(),
     model: z.string().nullable().optional(),
+    capability: z.string().nullable().optional(),
     version: z.string().nullable().optional(),
     node_type: z.string().nullable().optional(),
     status: z.string(),

@@ -789,3 +789,102 @@ describe("chatProtocol", () => {
     );
   });
 });
+
+describe("chatProtocol media predictions", () => {
+  const runtime = {
+    status: "loading" as const,
+    statusMessage: null,
+    progress: { current: 0, total: 0 },
+    error: null,
+    planningUpdate: null,
+    taskUpdate: null,
+    logUpdate: null,
+    runningToolCallId: "exec-1",
+    toolMessage: "Running code",
+    activePredictions: [] as Array<{
+      id: string;
+      provider: string;
+      model: string;
+      capability: string;
+      startedAt: number;
+    }>,
+    sendMessageTimeoutId: null
+  };
+
+  const makeState = (): GlobalChatState =>
+    partialChatState({
+      status: "loading",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      threadRuntime: { "thread-1": { ...runtime, activePredictions: [] } },
+      messageCache: { "thread-1": [] },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+
+  const run = async (state: GlobalChatState, msg: Record<string, unknown>) => {
+    let captured = state;
+    const set = jest.fn((updater) => {
+      captured = {
+        ...captured,
+        ...(typeof updater === "function" ? updater(captured) : updater)
+      };
+    });
+    await handleChatWebSocketMessage(
+      msg as unknown as WebSocketMessage,
+      set,
+      () => captured
+    );
+    return captured;
+  };
+
+  it("records a running media prediction and clears it on complete", async () => {
+    let state = makeState();
+    state = await run(state, {
+      type: "prediction",
+      id: "p1",
+      thread_id: "thread-1",
+      provider: "fal_ai",
+      model: "flux-schnell",
+      capability: "text_to_image",
+      status: "running"
+    });
+    expect(state.threadRuntime["thread-1"].activePredictions).toEqual([
+      expect.objectContaining({
+        id: "p1",
+        provider: "fal_ai",
+        model: "flux-schnell",
+        capability: "text_to_image"
+      })
+    ]);
+
+    state = await run(state, {
+      type: "prediction",
+      id: "p1",
+      thread_id: "thread-1",
+      capability: "text_to_image",
+      status: "completed"
+    });
+    expect(state.threadRuntime["thread-1"].activePredictions).toEqual([]);
+  });
+
+  it("ignores generate_messages predictions", async () => {
+    const state = await run(makeState(), {
+      type: "prediction",
+      id: "p2",
+      thread_id: "thread-1",
+      provider: "openai",
+      model: "gpt-5.4",
+      capability: "generate_messages",
+      status: "running"
+    });
+    expect(state.threadRuntime["thread-1"].activePredictions).toEqual([]);
+  });
+});

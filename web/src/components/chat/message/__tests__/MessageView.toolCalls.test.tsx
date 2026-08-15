@@ -6,12 +6,13 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MessageView } from "../MessageView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { Message, ToolCall } from "../../../../stores/ApiTypes";
+import useGlobalChatStore from "../../../../stores/GlobalChatStore";
 
-// The store hook is called with a selector; return undefined for every slice
-// (no tool is "running") so ToolCallGroup renders its static collapsed state.
+// The store hook is called with a selector; default to an empty store so no
+// tool is "running". Tests can swap the implementation to inject runtime.
 jest.mock("../../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: (selector: (s: unknown) => unknown) => selector({})
+  default: jest.fn((selector: (s: unknown) => unknown) => selector({}))
 }));
 
 jest.mock("../../../../contexts/EditorInsertionContext", () => ({
@@ -213,6 +214,55 @@ describe("MessageView CodeAct actions", () => {
     // duplicated into an Arguments section.
     expect(screen.queryByText(/^execute code$/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
+  });
+
+  it("shows the in-flight media prediction on a running execute_code card", () => {
+    const store = useGlobalChatStore as unknown as jest.Mock;
+    const state = {
+      currentThreadId: "t1",
+      currentRunningToolCallId: "a",
+      currentToolMessage: "Running code",
+      threadRuntime: {
+        t1: {
+          activePredictions: [
+            {
+              id: "p1",
+              provider: "fal_ai",
+              model: "flux-schnell",
+              capability: "text_to_image",
+              startedAt: Date.now()
+            }
+          ]
+        }
+      }
+    };
+    store.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector(state)
+    );
+
+    renderView({
+      id: "m-running",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "a",
+          name: "execute_code",
+          args: {
+            title: "Render a fox",
+            code: "await nodetool.media.generateImage('fox', model);"
+          }
+        }
+      ]
+    } as Message);
+
+    expect(
+      screen.getByText(/generating image · fal_ai · flux-schnell/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText("0s")).toBeInTheDocument();
+
+    store.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({})
+    );
   });
 });
 

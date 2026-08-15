@@ -30,6 +30,7 @@ import {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { Progress } from "../feedback/Progress";
+import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
@@ -41,6 +42,11 @@ import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
+import {
+  DEFAULT_THREAD_RUNTIME,
+  getThreadRuntime
+} from "../../../core/chat/threadRuntime";
+import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
 
 interface ChatThreadViewProps {
   /** Conversation rendered by this ChatView instance. */
@@ -178,6 +184,7 @@ interface StatusFooterProps {
    *  when one is active. Swaps the plain busy row for a shimmering preview of
    *  the eventual output grid instead. */
   pendingMediaMessage: Message | null;
+  activePredictions: ActiveMediaPrediction[];
   theme: Theme;
 }
 
@@ -193,10 +200,12 @@ const StatusFooter = memo<StatusFooterProps>(
     currentLogUpdate,
     hasAgentExecutionMessages,
     pendingMediaMessage,
+    activePredictions,
     theme
   }) => {
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
+    const hasPredictions = activePredictions.length > 0;
     return (
       <>
         {isBusy && !hasAgentExecutionMessages && pendingMediaMessage && (
@@ -208,7 +217,13 @@ const StatusFooter = memo<StatusFooterProps>(
             />
           </div>
         )}
-        {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
+        {hasPredictions && (
+          <MediaPredictionStatus predictions={activePredictions} />
+        )}
+        {isBusy &&
+          !hasAgentExecutionMessages &&
+          !pendingMediaMessage &&
+          !hasPredictions && (
           <div className="chat-message-list-item">
             <FlexRow className="chat-status-row" align="center" gap={2} fullWidth>
               <Text
@@ -321,6 +336,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
   const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
   const visibleThreadId = threadId ?? currentThreadId;
+  const activePredictions = useGlobalChatStore(
+    (s) =>
+      getThreadRuntime(s, visibleThreadId).activePredictions ??
+      DEFAULT_THREAD_RUNTIME.activePredictions
+  );
   const resolveApproval = useGlobalChatStore((s) => s.resolveApproval);
   const threadApprovals = useMemo(
     () =>
@@ -972,6 +992,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               currentLogUpdate={currentLogUpdate}
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}
+              activePredictions={activePredictions}
               theme={theme}
             />
           </div>
