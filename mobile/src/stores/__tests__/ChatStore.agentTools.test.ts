@@ -108,7 +108,7 @@ describe('ChatStore agent tool wiring', () => {
   it('answers a tool_call with a tool_result on the same id', async () => {
     await useChatStore.getState().connect();
     registerDocumentHandler('storyboard', 'sb1', 'Board', {
-      getSnapshot: () => ({ boardId: 'sb1', shots: [] }),
+      getSnapshot: () => ({ boardId: 'sb1', title: 'Board', shots: [] }),
     });
 
     callbacks.onMessage?.({

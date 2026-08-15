@@ -1,6 +1,7 @@
 import Anthropic, { type ClientOptions } from "@anthropic-ai/sdk";
 import type {
   Message as AnthropicMessage,
+  ContentBlock,
   MessageCreateParamsNonStreaming,
   MessageCreateParamsStreaming,
   TextCitation
@@ -55,7 +56,7 @@ type AnthropicToolCall = ToolCall & {
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_PAUSE_TURN_CONTINUATIONS = 5;
 
-function toRawBlock(block: object): AnthropicRawBlock {
+function toRawBlock(block: ContentBlock): AnthropicRawBlock {
   return Object.fromEntries(Object.entries(block));
 }
 

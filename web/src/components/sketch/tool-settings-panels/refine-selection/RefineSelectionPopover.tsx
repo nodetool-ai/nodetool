@@ -22,6 +22,7 @@ import {
   Text,
   Slider
 } from "../../../ui_primitives";
+import type { PopoverProps } from "../../../ui_primitives";
 import { sketchSliderSx } from "../../sketchStyles";
 import { cloneSelectionMask, MAX_SELECTION_FEATHER_RADIUS } from "../../selection";
 import type { SelectSettings, Selection } from "../../types";
@@ -184,8 +185,8 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
   // MUI Popover's onClose fires for both backdrop click and escape — split them
   // so escape = Cancel (discard) and backdrop click = Apply (keep, less
   // destructive default for an accidental click outside).
-  const handlePopoverClose = useCallback(
-    (_event: object, reason: "backdropClick" | "escapeKeyDown") => {
+  const handlePopoverClose = useCallback<NonNullable<PopoverProps["onClose"]>>(
+    (_event, reason) => {
       if (reason === "escapeKeyDown") {
         handleCancel();
       } else {
