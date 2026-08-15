@@ -44,22 +44,26 @@ describe("the openai web-search backend", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns error when query is missing", async () => {
+  // The guards have to be what refuses, and they have to refuse before the
+  // completion call — otherwise an empty query reaches the search model and is
+  // billed, and the run only fails later on whatever the SDK says back.
+  it.each([
+    ["missing", {}],
+    ["empty string", { query: "" }]
+  ])("refuses a %s query without calling the model", async (_label, params) => {
     setApiKey("fake");
-    const result = (await openAiWebSearch(ctx, {})) as any;
-    expect(result.error).toBeDefined();
+    mockCreate.mockClear();
+    const result = (await openAiWebSearch(ctx, params)) as any;
+    expect(result.error).toBe("Search query is required");
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it("returns error when query is empty string", async () => {
-    setApiKey("fake");
-    const result = (await openAiWebSearch(ctx, { query: "" })) as any;
-    expect(result.error).toBeDefined();
-  });
-
-  it("returns error when OPENAI_API_KEY is not set", async () => {
+  it("refuses without calling the model when OPENAI_API_KEY is not set", async () => {
     setApiKey(undefined);
+    mockCreate.mockClear();
     const result = (await openAiWebSearch(ctx, { query: "test" })) as any;
-    expect(result.error).toBeDefined();
+    expect(result.error).toContain("OPENAI_API_KEY is not set");
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("returns error shape when API call fails with fake key", async () => {

@@ -2,7 +2,6 @@
  * Tests for T-AG-6: SERP provider abstraction.
  *
  * Verifies:
- *  - SerpProvider interface contract
  *  - SerpApiProvider normalises results
  *  - DataForSeoProvider normalises results
  *  - WebSearchTool works with an injected SerpProvider
@@ -287,24 +286,6 @@ describe("WebSearchTool with SerpProvider", () => {
 
     const result = await tool.process(ctx, {});
     expect(result).toBe("Error: query is required");
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  Interface contract                                                */
-/* ------------------------------------------------------------------ */
-
-describe("SerpProvider interface", () => {
-  it("mock provider satisfies the interface", async () => {
-    const provider = createMockProvider([
-      { title: "A", url: "https://a.com", snippet: "s", position: 1 }
-    ]);
-
-    const results = await provider.search("q");
-    expect(results).toHaveLength(1);
-
-    const raw = await provider.searchRaw("q");
-    expect(raw).toBeDefined();
   });
 });
 

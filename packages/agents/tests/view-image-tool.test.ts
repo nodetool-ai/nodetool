@@ -183,13 +183,14 @@ describe("ViewImageTool", () => {
 
 describe("ListImagesTool", () => {
   it("returns an error envelope when the asset store is unavailable", async () => {
-    // No DB in the unit-test runtime → Asset.paginate throws, caught into error.
+    // No DB in the unit-test runtime → the asset query throws, caught into error.
     const tool = listImagesTool();
     const result = (await tool.process(imageContext(null), {})) as Record<
       string,
       any
     >;
-    expect(result.error ?? result.images).toBeDefined();
+    expect(result.error).toContain("Could not list image assets");
+    expect(result.images).toBeUndefined();
   });
 });
 
