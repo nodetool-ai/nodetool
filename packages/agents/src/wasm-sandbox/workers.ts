@@ -148,8 +148,6 @@ async function createNodeWorker(): Promise<WasmCallWorker> {
     throw new Error("node:worker_threads is unavailable, so WASM sandbox modules cannot run");
   }
   const worker = new threads.Worker(NODE_WORKER_SOURCE, { eval: true });
-  // A pooled worker must never hold the process open on its own.
-  worker.unref();
   const channel = new ChannelWorker(
     (message) => worker.postMessage(message),
     () => void worker.terminate()
@@ -158,6 +156,9 @@ async function createNodeWorker(): Promise<WasmCallWorker> {
     channel.receive(reply)
   );
   worker.on("error", (error: Error) => channel.fail(error));
+  // A pooled worker must never hold the process open on its own — and this has
+  // to come *after* the listeners above, which re-ref the worker's public port.
+  worker.unref();
   return channel;
 }
 

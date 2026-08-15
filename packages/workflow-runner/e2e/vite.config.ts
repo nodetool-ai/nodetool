@@ -7,46 +7,104 @@ import { resolve } from "node:path";
  *
  * Imports the kernel + a small inline executor map. The kernel pulls
  * `@nodetool-ai/config` which statically imports `node:fs` / `node:os`
- * / `node:path` / `node:url` for non-browser code paths; explicit
- * `resolve.alias` entries map every `node:*` specifier to a stub that
- * exposes the named exports those modules destructure. The stubs throw
- * on call but browser-tagged execution never reaches them.
+ * / `node:path` / `node:url` for non-browser code paths; {@link SPECIFIER_STUBS}
+ * maps those builtins to a stub that exposes the named exports those modules
+ * destructure. The stubs throw on call but browser-tagged execution never
+ * reaches them.
  */
 const STUBS = resolve(import.meta.dirname, "stubs");
 
-const NODE_PROTOCOL_STUBS: Record<string, string> = {
-  "node:fs/promises": `${STUBS}/fs-promises-stub.js`,
-  "node:fs": `${STUBS}/fs-stub.js`,
-  "node:path": `${STUBS}/path-stub.js`,
-  "node:url": `${STUBS}/url-stub.js`,
-  "node:crypto": `${STUBS}/crypto-stub.js`,
-  "node:os": `${STUBS}/os-stub.js`,
-  "node:events": `${STUBS}/events-stub.js`,
-  "node:child_process": `${STUBS}/child-process-stub.js`,
-  "node:worker_threads": `${STUBS}/empty.js`,
-  "node:cluster": `${STUBS}/empty.js`,
-  "node:dgram": `${STUBS}/empty.js`,
-  "node:dns": `${STUBS}/empty.js`,
-  "node:net": `${STUBS}/empty.js`,
-  "node:tls": `${STUBS}/empty.js`,
-  "node:zlib": `${STUBS}/empty.js`,
-  "node:http": `${STUBS}/empty.js`,
-  "node:https": `${STUBS}/empty.js`,
-  "node:http2": `${STUBS}/empty.js`,
-  "node:perf_hooks": `${STUBS}/empty.js`,
-  "node:vm": `${STUBS}/empty.js`,
+/** Node builtins the harness answers with a stub, keyed by bare name. */
+const BUILTIN_STUBS: Record<string, string> = {
+  "fs/promises": `${STUBS}/fs-promises-stub.js`,
+  fs: `${STUBS}/fs-stub.js`,
+  path: `${STUBS}/path-stub.js`,
+  url: `${STUBS}/url-stub.js`,
+  crypto: `${STUBS}/crypto-stub.js`,
+  os: `${STUBS}/os-stub.js`,
+  events: `${STUBS}/events-stub.js`,
+  child_process: `${STUBS}/child-process-stub.js`,
+  worker_threads: `${STUBS}/empty.js`,
+  cluster: `${STUBS}/empty.js`,
+  dgram: `${STUBS}/empty.js`,
+  dns: `${STUBS}/empty.js`,
+  net: `${STUBS}/empty.js`,
+  tls: `${STUBS}/empty.js`,
+  zlib: `${STUBS}/empty.js`,
+  http: `${STUBS}/empty.js`,
+  https: `${STUBS}/empty.js`,
+  http2: `${STUBS}/empty.js`,
+  perf_hooks: `${STUBS}/empty.js`,
+  vm: `${STUBS}/empty.js`,
   // Not empty: memfs — pulled in by the QuickJS sandbox behind the Code node —
   // subclasses stream.Readable/Writable at module scope, and an undefined
   // super constructor throws while the chunk evaluates.
-  "node:stream": `${STUBS}/stream-stub.js`,
-  "node:util": `${STUBS}/empty.js`,
+  stream: `${STUBS}/stream-stub.js`,
+  util: `${STUBS}/empty.js`,
   // Not empty either: the QuickJS wrapper touches Buffer at module load.
-  "node:buffer": `${STUBS}/buffer-stub.js`,
-  "node:assert": `${STUBS}/empty.js`,
-  "node:process": `${STUBS}/empty.js`,
-  "node:async_hooks": `${STUBS}/empty.js`,
-  "node:module": `${STUBS}/empty.js`
+  buffer: `${STUBS}/buffer-stub.js`,
+  assert: `${STUBS}/empty.js`,
+  process: `${STUBS}/empty.js`,
+  async_hooks: `${STUBS}/empty.js`,
+  module: `${STUBS}/empty.js`
 };
+
+/**
+ * Builtins stubbed for their **bare** specifier too, not just `node:x`.
+ *
+ * A bare builtin name is not a builtin to a bundler — it resolves against
+ * `node_modules` first, and whatever it finds wins. `pptxgenjs` depends on an
+ * empty squatter package literally named `https` (one package.json, a `main`
+ * pointing at a file that does not exist), so esbuild resolved the
+ * `import('https')` inside `@opentelemetry/otlp-exporter-base` to it and the
+ * dep optimizer died with "Failed to resolve entry for package". That killed
+ * pre-bundling outright: every module request answered 504 and all 27 specs
+ * timed out waiting for the harness page to boot.
+ *
+ * The browserify-shim names — `buffer`, `events`, `stream`, `util`,
+ * `process`, `assert`, `url`, `crypto`, `path` — stay off this list on
+ * purpose. `buffer-stub.js` imports the real npm `buffer`, and
+ * `stream-stub.js` pulls `readable-stream`, which reaches npm `events`,
+ * `string_decoder` and `buffer` by bare name. Stubbing those bare specifiers
+ * would make the stubs import themselves.
+ */
+const BARE_STUBBED = new Set([
+  "fs/promises",
+  "fs",
+  "os",
+  "child_process",
+  "worker_threads",
+  "cluster",
+  "dgram",
+  "dns",
+  "net",
+  "tls",
+  "zlib",
+  "http",
+  "https",
+  "http2",
+  "perf_hooks",
+  "vm",
+  "async_hooks",
+  "module"
+]);
+
+/**
+ * Every specifier form that maps to a stub. Insertion order matters: Vite's
+ * alias matches a string `find` as a path prefix, so `fs/promises` has to be
+ * offered before `fs`.
+ */
+const SPECIFIER_STUBS: Record<string, string> = {};
+for (const [name, stub] of Object.entries(BUILTIN_STUBS)) {
+  SPECIFIER_STUBS[`node:${name}`] = stub;
+  if (BARE_STUBBED.has(name)) SPECIFIER_STUBS[name] = stub;
+}
+
+const STUB_SPECIFIER_FILTER = new RegExp(
+  `^(${Object.keys(SPECIFIER_STUBS)
+    .map((s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&"))
+    .join("|")})$`
+);
 
 /**
  * The esbuild counterpart of {@link stubNodeProtocolPlugin}, for Vite's
@@ -59,8 +117,8 @@ function stubNodeBuiltinsEsbuildPlugin(): EsbuildPlugin {
   return {
     name: "stub-node-builtins-esbuild",
     setup(build) {
-      build.onResolve({ filter: /^node:/ }, (args) => {
-        const stub = NODE_PROTOCOL_STUBS[args.path];
+      build.onResolve({ filter: STUB_SPECIFIER_FILTER }, (args) => {
+        const stub = SPECIFIER_STUBS[args.path];
         return stub ? { path: stub } : undefined;
       });
     }
@@ -78,7 +136,7 @@ function stubNodeProtocolPlugin(): Plugin {
     name: "stub-node-protocol",
     enforce: "pre",
     resolveId(source) {
-      const stub = NODE_PROTOCOL_STUBS[source];
+      const stub = SPECIFIER_STUBS[source];
       if (stub) return stub;
       return null;
     }
@@ -92,35 +150,10 @@ export default defineConfig({
   // so neither should this harness. Browser-portable code must gate on
   // `typeof process !== "undefined"` (see ProcessingContext's safeProcessEnv).
   resolve: {
-    alias: [
-      { find: "node:fs/promises", replacement: `${STUBS}/fs-promises-stub.js` },
-      { find: "node:fs", replacement: `${STUBS}/fs-stub.js` },
-      { find: "node:path", replacement: `${STUBS}/path-stub.js` },
-      { find: "node:url", replacement: `${STUBS}/url-stub.js` },
-      { find: "node:crypto", replacement: `${STUBS}/crypto-stub.js` },
-      { find: "node:os", replacement: `${STUBS}/os-stub.js` },
-      { find: "node:events", replacement: `${STUBS}/events-stub.js` },
-      { find: "node:child_process", replacement: `${STUBS}/child-process-stub.js` },
-      { find: "node:worker_threads", replacement: `${STUBS}/empty.js` },
-      { find: "node:cluster", replacement: `${STUBS}/empty.js` },
-      { find: "node:dgram", replacement: `${STUBS}/empty.js` },
-      { find: "node:dns", replacement: `${STUBS}/empty.js` },
-      { find: "node:net", replacement: `${STUBS}/empty.js` },
-      { find: "node:tls", replacement: `${STUBS}/empty.js` },
-      { find: "node:zlib", replacement: `${STUBS}/empty.js` },
-      { find: "node:http", replacement: `${STUBS}/empty.js` },
-      { find: "node:https", replacement: `${STUBS}/empty.js` },
-      { find: "node:http2", replacement: `${STUBS}/empty.js` },
-      { find: "node:perf_hooks", replacement: `${STUBS}/empty.js` },
-      { find: "node:vm", replacement: `${STUBS}/empty.js` },
-      { find: "node:stream", replacement: `${STUBS}/stream-stub.js` },
-      { find: "node:util", replacement: `${STUBS}/empty.js` },
-      { find: "node:buffer", replacement: `${STUBS}/buffer-stub.js` },
-      { find: "node:assert", replacement: `${STUBS}/empty.js` },
-      { find: "node:process", replacement: `${STUBS}/empty.js` },
-      { find: "node:async_hooks", replacement: `${STUBS}/empty.js` },
-      { find: "node:module", replacement: `${STUBS}/empty.js` }
-    ]
+    alias: Object.entries(SPECIFIER_STUBS).map(([find, replacement]) => ({
+      find,
+      replacement
+    }))
   },
   esbuild: {
     tsconfigRaw: {
@@ -153,7 +186,13 @@ export default defineConfig({
       // the module is served from its own directory and the URL resolves.
       "@jitl/quickjs-ng-wasmfile-release-sync",
       "quickjs-emscripten-core"
-    ]
+    ],
+    // Nothing imports mediabunny statically — the `video.*` bridge behind the
+    // Code node reaches it only once a test calls it. Vite would then discover
+    // it mid-run, re-optimize, and reload the page out from under
+    // `page.evaluate`, which surfaces as "Execution context was destroyed".
+    // Only the first (cold) run is affected, which is every CI run.
+    include: ["mediabunny"]
   },
   server: {
     port: 5179,
