@@ -226,10 +226,20 @@ npm run build            # Build all packages
 npm run typecheck        # Type check web, electron, and mobile
 npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
 npm run lint:fix         # Auto-fix linting issues
+npm run lint:anti-slop   # anti-slop rules only — report-only, not part of `lint`
 npm run test             # Run web, electron, and mobile tests
 npm run check            # Workspace/lockfile/boundary checks, build:packages,
                          # typecheck, lint, test:packages, test
 ```
+
+`lint:anti-slop` runs the vendored [anti-slop](https://github.com/dmmulroy/anti-slop)
+Oxlint plugin (`tools/oxlint/anti-slop/`, config `.oxlintrc.anti-slop.json`) —
+fifteen rules against `unknown` parameters/returns/dictionary values, assertion
+chains, assertions without a `SAFETY:` comment, runtime `typeof` narrowing, and
+conditional empty-object spread. It finds 15,264 violations today, so it is a
+backlog to work down, not a merge gate; `npm run lint` and CI do not run it. Get
+a rule to zero, then move it into `.oxlintrc.json`. See
+[tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
 
 ### Backend Packages
 

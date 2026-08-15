@@ -1,0 +1,5 @@
+{
+  "name": "oxlint-plugin-anti-slop-vendored",
+  "private": true,
+  "type": "module"
+}
