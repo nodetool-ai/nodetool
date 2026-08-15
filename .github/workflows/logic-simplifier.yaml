@@ -1,0 +1,229 @@
+name: Logic Simplifier
+
+# Ranks source files by branch density and nesting depth, then rewrites the
+# worst offender's logic without changing what it does.
+#
+# The ranking is a crude proxy — a switch over twenty node kinds scores high and
+# is fine as it is — so the scan only nominates candidates. The agent reads the
+# code and decides whether there is a simplification worth making, and proves
+# behavior is unchanged by running the existing tests, or by adding
+# characterization tests first when there are none.
+
+on:
+  schedule:
+    - cron: "0 6 * * 2" # Tuesdays at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  logic-simplifier:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Rank complexity hotspots
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS' > complexity-hotspots.log
+          import { readFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+
+          const files = execFileSync(
+            "bash",
+            [
+              "-c",
+              "git ls-files 'web/src/*.ts' 'web/src/*.tsx' 'electron/src/*.ts' " +
+                "'mobile/src/*.ts' 'mobile/src/*.tsx' 'packages/*/src/*.ts' " +
+                "| grep -vE '__tests__|\\.test\\.|\\.spec\\.|/generated/|/configs/|/data/|\\.d\\.ts$'",
+            ],
+            { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+          )
+            .split("\n")
+            .filter(Boolean);
+
+          const BRANCH = /\b(if|else if|switch|case|catch|while|for)\b|&&|\|\||\?\?|\?\./g;
+
+          const scored = [];
+          for (const file of files) {
+            const source = readFileSync(file, "utf8");
+            const lines = source.split("\n");
+            if (lines.length < 60) continue;
+
+            const branches = (source.match(BRANCH) ?? []).length;
+            // A 5000-line lookup table has no logic to simplify, however long
+            // it is. Branches are what this routine can act on.
+            if (branches < 15) continue;
+
+            // Max indent depth, tabs counted as one level, comments skipped.
+            let depth = 0;
+            for (const line of lines) {
+              if (!line.trim() || line.trim().startsWith("*") || line.trim().startsWith("//")) continue;
+              const indent = line.match(/^[ \t]*/)[0].replace(/\t/g, "  ").length;
+              depth = Math.max(depth, Math.floor(indent / 2));
+            }
+
+            // Longest run of consecutive non-blank lines: a 200-line function
+            // body and a 200-line file of small functions read very differently.
+            let run = 0;
+            let longestRun = 0;
+            for (const line of lines) {
+              run = line.trim() ? run + 1 : 0;
+              longestRun = Math.max(longestRun, run);
+            }
+
+            const score = branches + depth * 4;
+            scored.push({ file, score, branches, depth, longestRun, lines: lines.length });
+          }
+
+          scored.sort((a, b) => b.score - a.score);
+          for (const entry of scored.slice(0, 25)) {
+            console.log(
+              `${String(entry.score).padStart(5)}  branches=${entry.branches} depth=${entry.depth} ` +
+                `longest-run=${entry.longestRun} lines=${entry.lines}  ${entry.file}`,
+            );
+          }
+          JS
+
+          echo "## Complexity Hotspots" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -25 complexity-hotspots.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if [ -s complexity-hotspots.log ]; then
+            echo "HOTSPOTS_FOUND=1" >> $GITHUB_ENV
+          else
+            echo "HOTSPOTS_FOUND=0" >> $GITHUB_ENV
+          fi
+
+      - name: Run quality checks baseline
+        if: env.HOTSPOTS_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.HOTSPOTS_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+          prompt: |
+            # Simplify Convoluted Logic
+
+            `complexity-hotspots.log` ranks source files by branch count, nesting
+            depth, and longest unbroken run of code. It is a proxy, not a
+            verdict — read the code before touching it.
+
+            Pick **one** function or closely related group of functions and make
+            the logic easier to follow without changing what it does.
+
+            ## What to look for
+            - **Deep nesting** that inverts cleanly: guard clauses and early
+              returns instead of an arrow of `if`s.
+            - **Boolean expressions** carrying three or more terms: name the
+              sub-conditions, or express them as a small predicate.
+            - **Repeated condition chains**: the same `a && b.c && b.c.d` test in
+              five places, computed once instead.
+            - **Flag arguments** that make a function do two unrelated things:
+              split it in two.
+            - **Manual loops** that are a `map`/`filter`/`find`/`some` in
+              disguise, and reduces that reimplement `Object.fromEntries`.
+            - **State machines written as booleans**: three `isLoading` /
+              `isError` / `isDone` flags with implicit invariants become one
+              discriminated union (AGENTS.md prefers this).
+            - **Dead branches**: conditions that cannot hold given the types.
+
+            ## What NOT to touch
+            - Exhaustive `switch` over a union. That is the language working.
+            - Ordering that looks arbitrary but is load-bearing (initialization
+              order, event ordering, `await` sequencing). If you cannot explain
+              why an order is safe to change, leave it.
+            - Anything whose complexity is inherent: parsers, schedulers, the
+              streaming fold, protocol framing.
+            - Generated code (`packages/*/src/generated/**`, DSL codegen output).
+
+            ## Method
+            1. Read the function and write down, in the PR body, what it does —
+               inputs, outputs, side effects, error paths.
+            2. Find its tests. If there are none, **write characterization tests
+               first** against the current behavior, in their own commit, and
+               confirm they pass before you change anything.
+            3. Refactor in small steps, running the tests after each.
+            4. Diff the behavior, not the shape: every branch the old code took
+               must still be reachable, including the error paths.
+
+            ## Rules
+            - Behavior-preserving only. No bug fixes, no new features. If you
+              find a bug, leave it and report it in the PR body.
+            - No new abstractions. This routine removes indirection; it does not
+              add a strategy object to flatten an `if`.
+            - One function or one tight cluster per PR. Maximum 6 files.
+            - Do not touch CI workflow files.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a simplification
+              PR is already open.
+
+            ## Verification
+            ```bash
+            npm run typecheck && npm run lint && npm run test
+            ```
+            Backend packages also need `npm run test:packages`.
+
+            ## Submit
+            Create a PR titled "refactor: simplify <function> in <area>" with the
+            before/after description of the logic and the tests that pin it.
+
+      - name: Post-change verification
+        if: always() && env.HOTSPOTS_FOUND == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

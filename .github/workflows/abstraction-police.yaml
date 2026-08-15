@@ -1,0 +1,242 @@
+name: Abstraction Police
+
+# Enforces the layering AGENTS.md describes: the package dependency order, the
+# `@nodetool-ai/<package>` import rule, no reaching into another package's
+# `dist/` or `src/`, the ui_primitives boundary in the frontend, and the
+# Electron main/renderer split.
+#
+# The repo already ships boundary checks — check:deps, check:circular,
+# check:keys, check:coupled-deps, check:execution-boundary — and they run in
+# `npm run check`. This runs them plus the greps for violations no script covers
+# yet, and has the agent fix the layering rather than widen an allowlist.
+
+on:
+  schedule:
+    - cron: "0 4 * * 3" # Wednesdays at 04:00 UTC
+  workflow_dispatch:
+
+jobs:
+  abstraction-police:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Run the repo's boundary checks
+        id: checks
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "## Boundary Checks" >> $GITHUB_STEP_SUMMARY
+          : > layering-violations.log
+          VIOLATIONS=0
+
+          for check in check:deps check:circular check:keys check:coupled-deps check:execution-boundary; do
+            if npm run "$check" > "/tmp/$check.log" 2>&1; then
+              echo "- OK: $check" >> $GITHUB_STEP_SUMMARY
+            else
+              VIOLATIONS=1
+              echo "- FAIL: $check" >> $GITHUB_STEP_SUMMARY
+              { echo "### npm run $check"; echo '```'; tail -60 "/tmp/$check.log"; echo '```'; echo; } >> layering-violations.log
+            fi
+          done
+
+          echo "SCRIPT_VIOLATIONS=$VIOLATIONS" >> $GITHUB_ENV
+
+      - name: Grep for violations no script covers
+        id: grep
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "## Import-Rule Violations" >> $GITHUB_STEP_SUMMARY
+          FOUND=0
+
+          record() {
+            local title="$1"; local file="$2"
+            if [ -s "$file" ]; then
+              FOUND=1
+              COUNT=$(wc -l < "$file" | tr -d ' ')
+              echo "- $title: $COUNT" >> $GITHUB_STEP_SUMMARY
+              { echo "### $title"; echo '```'; head -40 "$file"; echo '```'; echo; } >> layering-violations.log
+            else
+              echo "- $title: 0" >> $GITHUB_STEP_SUMMARY
+            fi
+          }
+
+          # AGENTS.md: never import from dist/, and never reach into another
+          # package's src/ — inter-package imports go through the package name.
+          grep -rEn "from \"[^\"]*@nodetool-ai/[a-z-]+/(dist|src)/" \
+            --include="*.ts" --include="*.tsx" \
+            packages/*/src web/src electron/src mobile/src 2>/dev/null > /tmp/deep-imports.log || true
+          record "Deep imports into another package's dist/ or src/" /tmp/deep-imports.log
+
+          # Relative paths that climb out of one workspace into another.
+          grep -rEn "from \"(\.\./)+(packages|web|electron|mobile)/" \
+            --include="*.ts" --include="*.tsx" \
+            packages/*/src web/src electron/src mobile/src 2>/dev/null > /tmp/relative-crossing.log || true
+          record "Relative imports crossing a workspace boundary" /tmp/relative-crossing.log
+
+          # AGENTS.md: raw MUI is allowed only inside ui_primitives/ and editor_ui/.
+          grep -rEn "from \"@mui/(material|icons-material)" \
+            --include="*.tsx" --include="*.ts" web/src 2>/dev/null \
+            | grep -vE "web/src/components/(ui_primitives|editor_ui)/" > /tmp/raw-mui.log || true
+          record "Raw MUI imports outside ui_primitives/ and editor_ui/" /tmp/raw-mui.log
+
+          # Node builtins in the renderer: the frontend has no Node runtime, and
+          # reaching for one means the boundary was crossed somewhere upstream.
+          grep -rEn "from \"(node:)?(fs|path|child_process|os|net|worker_threads)\"" \
+            --include="*.ts" --include="*.tsx" web/src mobile/src 2>/dev/null > /tmp/node-builtins.log || true
+          record "Node builtins imported in a renderer surface" /tmp/node-builtins.log
+
+          # Electron: the renderer talks to the main process through the
+          # contextBridge preload, never through electron's own module.
+          grep -rEn "from \"electron\"" --include="*.ts" --include="*.tsx" \
+            electron/src/renderer 2>/dev/null > /tmp/electron-renderer.log || true
+          record "electron imported from the renderer" /tmp/electron-renderer.log
+
+          echo "GREP_VIOLATIONS=$FOUND" >> $GITHUB_ENV
+
+      - name: Decide whether there is anything to fix
+        run: |
+          if [ "$SCRIPT_VIOLATIONS" = "1" ] || [ "$GREP_VIOLATIONS" = "1" ]; then
+            echo "LAYERING_VIOLATIONS=1" >> $GITHUB_ENV
+          else
+            echo "LAYERING_VIOLATIONS=0" >> $GITHUB_ENV
+          fi
+
+      - name: Run quality checks baseline
+        if: env.LAYERING_VIOLATIONS == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.LAYERING_VIOLATIONS == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+          prompt: |
+            # Fix Layering Violations
+
+            `layering-violations.log` holds the output of the repo's boundary
+            checks and the import greps that found something.
+
+            ## The layering, from AGENTS.md
+            Package dependency order — imports go left to right, never back:
+            ```
+            protocol → config → security → auth → storage
+                                         → runtime → kernel → node-sdk → base-nodes
+                                         → models → agents → chat → websocket ← cli
+            ```
+            Plus:
+            - Inter-package imports use `@nodetool-ai/<package>`. Never
+              `dist/`, never another package's `src/`, never a relative path
+              that climbs out of the workspace.
+            - `web/` and `mobile/` are renderer surfaces: no Node builtins.
+            - Mobile shares exactly two packages: `@nodetool-ai/protocol` and
+              `@nodetool-ai/app-runtime`.
+            - Raw MUI imports belong only in `web/src/components/ui_primitives/`
+              and `editor_ui/`. Everything else uses the primitives.
+            - The Electron renderer reaches the main process through the
+              `contextBridge` preload API, never by importing `electron`.
+            - `WorkflowRunner` is constructed only in `@nodetool-ai/execution`
+              (`scripts/check-execution-boundary.mjs`).
+
+            ## How to fix a violation
+            Fix the direction of the dependency, not the check:
+            - **Wrong-direction import** → move the shared type or helper down to
+              a package both sides already depend on (often `protocol` or
+              `config`), or invert the dependency by passing the value in.
+            - **Deep import** → export the symbol from the package's entry point
+              and import it by package name. If it is not meant to be public,
+              that is the real finding: say so and move the caller instead.
+            - **Relative crossing** → same fix, via the workspace package name.
+              Add the dependency to the importing package's `package.json`
+              (`npm run check:deps` verifies that).
+            - **Node builtin in a renderer** → move the work behind the API the
+              renderer already talks to (HTTP route, IPC handler, preload).
+            - **Raw MUI** → use the primitive, or add one to `ui_primitives/`
+              following its STRATEGY.md.
+            - **Cycle** → break it by extracting the shared piece into the lower
+              package. Do not paper over it with a dynamic import.
+
+            ## Rules
+            - **Never widen an allowlist to make a check pass.** The grandfathered
+              list in `check-execution-boundary.mjs` may only shrink. If a
+              violation genuinely cannot be fixed now, leave it, and say why in
+              the PR body — do not add an entry.
+            - Do not delete or weaken a check script.
+            - Do not move code across a package boundary to hide a violation
+              unless the destination is where the code belongs on its own merits.
+            - One boundary per PR. Maximum 15 files.
+            - Do not touch CI workflow files.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a layering PR is
+              already open.
+
+            ## Verification
+            ```bash
+            npm run check:deps && npm run check:circular && npm run check:keys && \
+              npm run check:coupled-deps && npm run check:execution-boundary
+            npm run build:packages && npm run typecheck && npm run lint && npm run test
+            ```
+            Re-run the grep that found your violation and show it returns nothing.
+
+            ## Submit
+            Create a PR titled "refactor: fix <boundary> layering violation"
+            naming the rule, the violating imports, and the direction the
+            dependency now runs.
+
+      - name: Post-change verification
+        if: always() && env.LAYERING_VIOLATIONS == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

@@ -1,0 +1,254 @@
+name: Abstraction Improver
+
+# Flattens abstractions that carry no variation: an interface with one
+# implementation, a factory that returns one thing, a wrapper that only
+# forwards, a barrel that only re-exports, a type parameter used once.
+#
+# Each of them costs a hop when reading and a file when navigating, and pays for
+# it only if a second implementation ever arrives. This routine removes the ones
+# where it did not. The seams that carry real variation — LLM providers, storage
+# backends, vector stores, execution surfaces — are explicitly out of scope.
+
+on:
+  schedule:
+    - cron: "0 6 * * 6" # Saturdays at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  abstraction-improver:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Find abstractions with one implementation
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS' > thin-abstractions.log
+          import { readFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+
+          const files = execFileSync(
+            "bash",
+            [
+              "-c",
+              "git ls-files 'web/src/*.ts' 'web/src/*.tsx' 'electron/src/*.ts' " +
+                "'mobile/src/*.ts' 'mobile/src/*.tsx' 'packages/*/src/*.ts' " +
+                "| grep -vE '__tests__|\\.test\\.|\\.spec\\.|/generated/|\\.d\\.ts$'",
+            ],
+            { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+          )
+            .split("\n")
+            .filter(Boolean);
+
+          const sources = new Map(files.map((file) => [file, readFileSync(file, "utf8")]));
+          const corpus = [...sources.values()].join("\n");
+
+          const countRefs = (name) =>
+            (corpus.match(new RegExp(`\\b${name}\\b`, "g")) ?? []).length;
+
+          console.log("## Interfaces with exactly one implementer");
+          // A props/options/result type is a record shape, not an abstraction —
+          // it has nothing to flatten. What matters here is an interface that
+          // declares behavior and has one implementation of it.
+          const SHAPE_SUFFIX = /(Props|Options|Params|Result|Deps|Config|State|Snapshot|Payload|Args)$/;
+          for (const [file, source] of sources) {
+            for (const match of source.matchAll(
+              /export (?:interface|abstract class) ([A-Z][A-Za-z0-9]*)[^{]*\{([\s\S]*?)\n\}/g,
+            )) {
+              const [, name, body] = match;
+              if (SHAPE_SUFFIX.test(name)) continue;
+              const methods = (body.match(/^\s+[a-zA-Z][A-Za-z0-9]*(\??\s*\(|\??:\s*\()/gm) ?? []).length;
+              if (methods === 0) continue;
+              const implementers = (corpus.match(new RegExp(`(?:implements|extends) ${name}\\b`, "g")) ?? []).length;
+              if (implementers === 1) {
+                console.log(`  ${file}  ${name}  methods=${methods}  implementers=1  refs=${countRefs(name)}`);
+              }
+            }
+          }
+
+          console.log("");
+          console.log("## Barrel files that only re-export");
+          for (const [file, source] of sources) {
+            const lines = source.split("\n").filter((line) => line.trim() && !line.trim().startsWith("//"));
+            if (lines.length < 3) continue;
+            if (lines.every((line) => /^\s*export .*from ["']/.test(line))) {
+              // Importers of the barrel, by the directory it fronts. Counting
+              // the word "index" instead would match every occurrence of it in
+              // the repo and report a number that means nothing.
+              const dir = file.replace(/\/index\.tsx?$/, "").split("/").pop();
+              const importers = (corpus.match(new RegExp(`from "[^"]*/${dir}(/index)?"`, "g")) ?? []).length;
+              console.log(`  ${file}  ${lines.length} re-exports  importers=${importers}`);
+            }
+          }
+
+          console.log("");
+          console.log("## Exported functions that only forward to one call");
+          for (const [file, source] of sources) {
+            // export const f = (a) => g(a)  /  export function f(a) { return g(a) }
+            for (const match of source.matchAll(
+              /export (?:const ([a-zA-Z][A-Za-z0-9]*) *(?::[^=]+)?= *(?:async )?\([^)]*\) *=> *([a-zA-Z][A-Za-z0-9.]*)\([^)]*\);?|function ([a-zA-Z][A-Za-z0-9]*)\([^)]*\)[^{]*\{\s*return ([a-zA-Z][A-Za-z0-9.]*)\([^)]*\);?\s*\})/g,
+            )) {
+              const name = match[1] ?? match[4];
+              const delegate = match[2] ?? match[5];
+              if (!name || name === delegate) continue;
+              console.log(`  ${file}  ${name} -> ${delegate}  refs=${countRefs(name)}`);
+            }
+          }
+
+          console.log("");
+          console.log("## Single-method classes");
+          for (const [file, source] of sources) {
+            for (const match of source.matchAll(/export class ([A-Z][A-Za-z0-9]*)[^{]*\{([\s\S]*?)\n\}/g)) {
+              const [, name, body] = match;
+              const methods = (body.match(/^\s{2}(?:public |private |protected )?(?:async )?[a-zA-Z][A-Za-z0-9]*\s*\(/gm) ?? []).length;
+              if (methods === 1 && !/extends|implements/.test(match[0].slice(0, 120))) {
+                console.log(`  ${file}  ${name}  methods=1  refs=${countRefs(name)}`);
+              }
+            }
+          }
+          JS
+
+          echo "## Thin Abstractions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -70 thin-abstractions.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # The scan prints its four section headers whatever it finds, so
+          # emptiness is measured by the indented findings under them.
+          FINDINGS=$(grep -c "^  " thin-abstractions.log || true)
+          echo "Findings: $FINDINGS" >> $GITHUB_STEP_SUMMARY
+          if [ "${FINDINGS:-0}" -gt 0 ]; then echo "THIN_FOUND=1" >> $GITHUB_ENV; else echo "THIN_FOUND=0" >> $GITHUB_ENV; fi
+
+      - name: Run quality checks baseline
+        if: env.THIN_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.THIN_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+          prompt: |
+            # Flatten an Over-Engineered Abstraction
+
+            `thin-abstractions.log` groups candidates into four kinds:
+            interfaces with a single implementer, barrel files that only
+            re-export, exported functions that only forward to one call, and
+            classes with one method.
+
+            Read `.claude/skills/codebase-design/SKILL.md` for the vocabulary
+            this repo uses to talk about module depth. Prefer removing a shallow
+            layer over deepening it.
+
+            Pick **one** abstraction and remove the indirection.
+
+            ## What to remove
+            - **Interface with one implementer** and no second one in sight:
+              delete the interface, use the concrete type. Keep it when it exists
+              to break a dependency cycle or to let tests substitute a fake —
+              check for both before deleting.
+            - **Wrapper that only forwards**: inline it at the call sites and
+              delete it. Keep it when it adapts types, narrows a surface
+              deliberately, or is a package's public entry point.
+            - **Barrel that only re-exports**: point the importers at the real
+              modules and delete the barrel. Keep a package's own `index.ts` —
+              that is its API.
+            - **Class with one method** that holds no state: make it a function.
+            - **Generic parameter used once**: replace it with the concrete type.
+            - **Config object with one caller** passing the same literal every
+              time: take the value as an argument.
+
+            ## What to leave alone
+            These seams carry real variation and are load-bearing:
+            - `packages/runtime/src/providers/**` — one interface, many providers.
+            - Storage backends, vector stores, secret stores.
+            - `@nodetool-ai/execution`'s `ExecutionSession` facade — several
+              surfaces go through it on purpose
+              (`scripts/check-execution-boundary.mjs` enforces that).
+            - `web/src/components/ui_primitives/**` — the primitives layer is
+              mandatory by AGENTS.md, however thin an individual primitive looks.
+            - The protocol types shared by web, mobile and the backend.
+            - Anything a public API, a plugin, or a sandbox pack depends on.
+
+            An abstraction with one implementation **today** but an obvious
+            second one arriving (a provider, a backend, an OS) stays.
+
+            ## Rules
+            - Behavior-preserving. No feature or bug-fix changes.
+            - Update every call site. Do not leave a deprecated alias behind.
+            - Do not replace one abstraction with another. The diff should be
+              net-negative in lines and in files.
+            - One abstraction per PR. Maximum 15 files.
+            - Do not touch CI workflow files.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if an abstraction PR
+              is already open.
+
+            ## Verification
+            ```bash
+            npm run typecheck && npm run lint && npm run test
+            ```
+            Backend packages also need `npm run build:packages && npm run test:packages`.
+
+            ## Submit
+            Create a PR titled "refactor: flatten <abstraction>" explaining what
+            the layer was for, why nothing needs it, and what now calls what.
+
+      - name: Post-change verification
+        if: always() && env.THIN_FOUND == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

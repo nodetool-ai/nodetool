@@ -43,22 +43,30 @@ see below.
 | `user-journeys.yml` | `journeys`: nightly Playwright journey suite (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `journeys`: advisory until 2026-08-15, then required. `reliability-ring1`: required |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
+| `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
+| `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
 | `app-build-eval.yml` | Nightly `app-build` eval suite; reports the one-shot rate, gates nothing | none/maintenance | Advisory (report only) |
 | `aur-publish.yml` | Publish the AUR package on a GitHub release | none/maintenance | Required for its own job |
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
 | `claude.yml` | Claude responds to `@claude` mentions and comments | none/maintenance | Advisory |
 | `copilot-setup-steps.yml` | Environment setup for the Copilot coding agent | none/maintenance | n/a (setup only) |
+| `crash-fuzzer.yaml` | Weekly fuzz of `validate` / `jsscript validate` / `node run` over mutated documents; agent root-causes each crash or hang | none/maintenance | Advisory (`continue-on-error`) |
 | `dead-code-cleanup.yaml` | Scheduled agent removes unused exports/imports/code | none/maintenance | Advisory (`continue-on-error`) |
 | `dependency-cleanup.yaml` | Scheduled agent prunes unused deps, aligns/updates versions | none/maintenance | Advisory (`continue-on-error`) |
 | `docs-ci.yml` | Docs site build + internal link/image check on PR | none/maintenance | Required for `docs/**` |
 | `docs-completeness.yaml` | Daily agent documents undocumented CLI commands, routes, env vars, packages | none/maintenance | Advisory |
 | `docs-correctness.yaml` | Daily agent checks docs claims against the code and fixes stale ones | none/maintenance | Advisory |
 | `docs-lint.yml` | Markdown lint on push/PR | none/maintenance | Required for `**/*.md` |
+| `duplicate-unifier.yaml` | Scheduled agent merges duplicated implementations found by a sliding-window hash | none/maintenance | Advisory (`continue-on-error`) |
 | `eas-build.yml` | Cloud-build the Expo app in `mobile/` on EAS | none/maintenance | Manual / tag-gated |
+| `flaky-test-fixer.yaml` | Twice-weekly agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
 | `flatpak-ci.yml` | Build the Flatpak desktop package | none/maintenance | Required for its own job |
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
+| `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
 | `issue-triage.yml` | Labels new issues, flags duplicates, requests repro details | none/maintenance | n/a (read-only) |
 | `jekyll.yml` | Build and deploy the docs site to GitHub Pages | none/maintenance | Required for docs deploy |
+| `logic-bugfixer.yaml` | Scheduled agent models one decidable function, enumerates its inputs, and fixes divergences with a reproduction | none/maintenance | Advisory (`continue-on-error`) |
+| `logic-simplifier.yaml` | Scheduled agent simplifies the logic in one branch-dense function | none/maintenance | Advisory (`continue-on-error`) |
 | `marketing-ci.yml` | Typecheck/lint/build/Playwright smoke for the marketing site; deploys to Cloudflare Workers on push to main | none/maintenance | Required for `marketing/**` |
 | `model-watch.yml` | Weekly scan for new/changed provider models, files issues | none/maintenance | n/a |
 | `mutation-testing.yaml` | Weekly Stryker mutation-testing report | none/maintenance | Advisory |
@@ -70,12 +78,14 @@ see below.
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |
 | `security-audit.yaml` | Manual scan for dependency CVEs, dangerous patterns, Electron misconfig | none/maintenance | Advisory (`continue-on-error`) |
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
+| `shipped-feature-inliner.yaml` | Scheduled agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
 | `test-coverage.yaml` | Scheduled agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
 | `type-safety.yaml` | Scheduled agent removes `any`, tightens types | none/maintenance | Advisory (`continue-on-error`) |
 | `ui-primitives-compliance.yaml` | Scheduled agent migrates raw MUI imports to `ui_primitives/`, fixes hardcoded design tokens | none/maintenance | Advisory (`continue-on-error`) |
+| `useless-test-pruner.yaml` | Scheduled agent deletes or strengthens tests proven unable to fail under mutation | none/maintenance | Advisory (`continue-on-error`) |
 | `workflow-example-validation.yaml` | Weekly `nodetool validate` + repair of shipped example workflows | none/maintenance | Advisory (`continue-on-error`) |
 
-43 workflow files, 12 in the three rings (5 Ring 0, 5 Ring 1, 2 Ring 2), 31 none/maintenance.
+51 workflow files, 10 in the three rings (3 Ring 0, 5 Ring 1, 2 Ring 2), 41 none/maintenance.
 
 F2 wires this table into the actual gates:
 
@@ -153,6 +163,16 @@ gh workflow run ui-primitives-compliance.yaml
 gh workflow run workflow-example-validation.yaml
 gh workflow run docs-correctness.yaml
 gh workflow run docs-completeness.yaml
+gh workflow run crash-fuzzer.yaml
+gh workflow run internal-only-shipper.yaml
+gh workflow run logic-simplifier.yaml
+gh workflow run logic-bugfixer.yaml
+gh workflow run duplicate-unifier.yaml
+gh workflow run useless-test-pruner.yaml
+gh workflow run shipped-feature-inliner.yaml
+gh workflow run flaky-test-fixer.yaml
+gh workflow run abstraction-improver.yaml
+gh workflow run abstraction-police.yaml
 gh workflow run example-smoke-debug.yml
 gh workflow run user-journeys.yml
 ```

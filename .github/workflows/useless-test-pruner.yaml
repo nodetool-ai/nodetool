@@ -1,0 +1,276 @@
+name: Useless Test Pruner
+
+# A test that cannot fail is worse than no test: it costs CI time and it reads
+# as coverage. This finds the usual shapes — no assertion at all, assertions
+# only about mocks the test itself wrote, tautologies, snapshots of a literal —
+# and requires proof before anything is deleted.
+#
+# The proof is a mutation: break the code the test claims to cover, run the test,
+# and watch it pass anyway. Only then is it established that the test cannot
+# fail. A candidate that turns red under mutation is doing its job and stays.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays at 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  useless-test-pruner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Find tests that cannot fail
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          node --input-type=module - <<'JS' > useless-tests.log
+          import { readFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+
+          const files = execFileSync(
+            "bash",
+            [
+              "-c",
+              // Playwright suites are out of scope: the proof loop below runs
+              // single cases under Jest and Vitest.
+              "git ls-files '*.test.ts' '*.test.tsx' '*.spec.ts' '*.spec.tsx' " +
+                "| grep -vE '^(marketing|reliability)/|^web/(tests|e2e)/'",
+            ],
+            { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+          )
+            .split("\n")
+            .filter(Boolean);
+
+          // Split a test file into cases by `it(`/`test(` at the start of a line,
+          // which is how every suite in this repo is written. `describe` is not
+          // a case: counting it as one would report every suite whose header
+          // sits above its first assertion.
+          const splitCases = (source) => {
+            const lines = source.split("\n");
+            const cases = [];
+            let current = null;
+            for (let i = 0; i < lines.length; i += 1) {
+              const start = /^\s*(it|test)(\.(each|concurrent|failing|only))?\s*[(`]/.test(lines[i]);
+              if (start) {
+                if (current) cases.push(current);
+                current = { line: i + 1, body: [] };
+              }
+              if (current) current.body.push(lines[i]);
+            }
+            if (current) cases.push(current);
+            return cases;
+          };
+
+          const findings = [];
+          for (const file of files) {
+            const source = readFileSync(file, "utf8");
+            for (const testCase of splitCases(source)) {
+              const body = testCase.body.join("\n");
+              const title = testCase.body[0].trim().slice(0, 90);
+              const reasons = [];
+
+              const assertions = body.match(/\bexpect\s*\(|\bassert[.(]/g) ?? [];
+              if (assertions.length === 0) {
+                reasons.push("no assertion");
+              }
+              if (/expect\(true\)\.(toBe|toEqual)\(true\)|expect\(1\)\.toBe\(1\)/.test(body)) {
+                reasons.push("tautological assertion");
+              }
+              // Every assertion is `toBeDefined`/`toBeTruthy` on something the
+              // test just constructed: it asserts that JavaScript works.
+              if (
+                assertions.length > 0 &&
+                /expect\([^)]*\)\.(toBeDefined|toBeTruthy|not\.toBeNull|not\.toBeUndefined)\(\)/.test(body) &&
+                !/toBe\(|toEqual\(|toMatch|toThrow|toHaveBeenCalledWith|toContain|toStrictEqual/.test(body)
+              ) {
+                reasons.push("only existence assertions");
+              }
+              // Asserting a mock returns what the same test told it to return.
+              // The subject of every assertion has to be the mock itself —
+              // asserting the *code under test* while a dependency is mocked is
+              // just normal testing.
+              const subjects = [...body.matchAll(/expect\(\s*([A-Za-z0-9_.]+)/g)].map((m) => m[1]);
+              if (
+                subjects.length > 0 &&
+                /mockReturnValue|mockResolvedValue|mockImplementation/.test(body) &&
+                !/toHaveBeenCalled/.test(body) &&
+                subjects.every((subject) => /^mock|Mock$|^jest\./.test(subject))
+              ) {
+                reasons.push("asserts its own mock");
+              }
+              if (/expect\([^)]*\)\.toMatchSnapshot\(\)/.test(body) && assertions.length === 1) {
+                reasons.push("snapshot-only");
+              }
+
+              if (reasons.length) {
+                findings.push(`${file}:${testCase.line}  [${reasons.join(", ")}]  ${title}`);
+              }
+            }
+          }
+
+          for (const finding of findings.slice(0, 60)) console.log(finding);
+          console.error(`${findings.length} candidates`);
+          JS
+
+          echo "## Tests That May Not Be Able To Fail" >> $GITHUB_STEP_SUMMARY
+          CANDIDATES=$(wc -l < useless-tests.log | tr -d ' ')
+          echo "Candidates: $CANDIDATES" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -40 useless-tests.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if [ "$CANDIDATES" -gt 0 ]; then echo "USELESS_FOUND=1" >> $GITHUB_ENV; else echo "USELESS_FOUND=0" >> $GITHUB_ENV; fi
+
+      - name: Run quality checks baseline
+        if: env.USELESS_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          echo "PKG_TEST_PRE_EXIT=$PKG_TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.USELESS_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
+          prompt: |
+            # Delete Tests That Cannot Fail
+
+            `useless-tests.log` lists test cases whose shape suggests they assert
+            nothing real: no assertion, a tautology, existence checks only, an
+            assertion about a mock the test itself configured, a lone snapshot.
+
+            The scan is a heuristic. **Nothing gets deleted without proof.**
+
+            ## The proof
+            For each candidate, before touching it:
+            1. Find the code it claims to cover.
+            2. Break that code — invert a condition, return a wrong constant,
+               drop a call. One mutation at a time.
+            3. Run only that test:
+               ```bash
+               npm test --workspace=web -- -t "<test name>"
+               npm run test --workspace=packages/<name> -- -t "<test name>"
+               ```
+            4. If it **still passes**, it cannot fail: it is a candidate for
+               real. If it **fails**, the test is doing its job — revert the
+               mutation, drop the candidate, and say so.
+            5. Revert the mutation before moving on. `git diff` must be clean of
+               it before you commit anything.
+
+            Paste the mutation and the result for every case you act on.
+
+            ## Then choose: strengthen or delete
+            - **Strengthen** when the behavior deserves coverage and the test is
+              merely weak: assert the value, not its existence; assert
+              `toHaveBeenCalledWith`, not that a mock was configured; assert the
+              error, not that something threw.
+            - **Delete** when the behavior is already covered elsewhere, or the
+              test only exercises the framework, the mock, or the type system.
+              Name the test that covers it instead, or say plainly that the
+              behavior is untested and worth someone's attention.
+
+            Prefer strengthening. A deleted test is coverage lost; a strengthened
+            one is coverage gained.
+
+            ## Rules
+            - Never delete a test to make CI green. This routine runs against a
+              green tree.
+            - Do not touch `test.skip`, `describe.skipIf`, or `test.fixme`
+              markers — those are tracked debt, not useless tests (AGENTS.md).
+            - Do not delete a test whose mutation you could not run.
+            - Snapshot tests over rendered components are not automatically
+              useless — check whether the snapshot has content.
+            - Do not touch CI workflow files.
+            - Maximum 12 test cases per PR.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a test-pruning
+              PR is already open.
+
+            ## Verification
+            ```bash
+            npm run lint && npm run test && npm run test:packages
+            ```
+
+            ## Submit
+            Create a PR titled "test: remove tests that cannot fail in <area>"
+            with a table: test, mutation applied, result, verdict (strengthened /
+            deleted), and where the behavior is covered now.
+
+      - name: Post-change verification
+        if: always() && env.USELESS_FOUND == '1'
+        run: |
+          LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$PKG_TEST_PRE_EXIT" -eq 0 ] && [ $PKG_TEST_EXIT -ne 0 ]; then
+            echo "New package test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+
+      - name: Confirm no mutation was committed
+        if: always() && env.USELESS_FOUND == '1'
+        shell: bash
+        run: |
+          # A mutation left behind by the proof step would land as a source
+          # change in a PR that is meant to touch tests only.
+          BASE="origin/${{ github.event.repository.default_branch }}"
+          if ! git rev-parse --verify --quiet "$BASE" > /dev/null; then
+            echo "Base ref $BASE not available — skipping the test-only check" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          CHANGED_SRC=$(git diff --name-only "$BASE"...HEAD \
+            | grep -vE "\.test\.|\.spec\.|__tests__|__snapshots__" || true)
+          if [ -n "$CHANGED_SRC" ]; then
+            echo "Non-test files changed by a test-pruning run:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$CHANGED_SRC" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

@@ -1,0 +1,203 @@
+name: Logic Bugfixer
+
+# Picks one piece of tricky logic, builds an independent model of what it should
+# do, and runs both over the whole input space. Every divergence is either a bug
+# in the code or a bug in the model — and finding out which is the work.
+#
+# The candidates are pure, decidable functions: predicates, reducers, comparators,
+# state transitions, window and range math, retry and backoff, the streaming
+# fold. Anything whose behavior depends on a network, a clock, or a model is out
+# of scope: this routine only reports what it can prove.
+
+on:
+  schedule:
+    - cron: "0 6 * * 4" # Thursdays at 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Optional file or symbol to model (default: pick from the scan)"
+        required: false
+        default: ""
+
+jobs:
+  logic-bugfixer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Nominate decidable logic
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "## Candidate Logic" >> $GITHUB_STEP_SUMMARY
+          : > logic-candidates.log
+
+          # Exported functions whose names say "this is a decision, and it is
+          # decidable": predicates, comparators, folds, range and state math.
+          grep -rEn "export (async )?function (is|has|can|should|needs|match|compare|merge|fold|clamp|resolve|normalize|select|next|derive|apply|reduce)[A-Z][A-Za-z0-9]*" \
+            --include="*.ts" \
+            packages/*/src web/src electron/src mobile/src 2>/dev/null \
+            | grep -vE "__tests__|\.test\.|\.spec\.|/generated/" \
+            >> logic-candidates.log || true
+
+          CANDIDATES=$(wc -l < logic-candidates.log | tr -d ' ')
+          echo "Candidates: $CANDIDATES" >> $GITHUB_STEP_SUMMARY
+
+          # Which of them nothing tests yet — those are where divergences live.
+          : > untested-candidates.log
+          while IFS= read -r hit; do
+            SYMBOL=$(echo "$hit" | sed -E 's/.*export (async )?function ([A-Za-z0-9_]+).*/\2/')
+            [ -z "$SYMBOL" ] && continue
+            if ! grep -rqE "\b$SYMBOL\b" --include="*.test.ts" --include="*.test.tsx" \
+                 --include="*.spec.ts" packages web/src electron mobile/src 2>/dev/null; then
+              echo "$hit" >> untested-candidates.log
+            fi
+          done < logic-candidates.log
+
+          UNTESTED=$(wc -l < untested-candidates.log | tr -d ' ')
+          echo "Untested candidates: $UNTESTED" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -20 untested-candidates.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if [ "$CANDIDATES" -gt 0 ]; then echo "LOGIC_FOUND=1" >> $GITHUB_ENV; else echo "LOGIC_FOUND=0" >> $GITHUB_ENV; fi
+
+      - name: Run quality checks baseline
+        if: env.LOGIC_FOUND == '1'
+        id: pre-check
+        continue-on-error: true
+        run: |
+          LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          echo "PKG_TEST_PRE_EXIT=$PKG_TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.LOGIC_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
+          prompt: |
+            # Model Tricky Logic and Fix What It Gets Wrong
+
+            Requested target: `${{ github.event.inputs.target }}` (empty means
+            choose one yourself).
+
+            `logic-candidates.log` lists exported predicates, comparators,
+            folds, and state transitions. `untested-candidates.log` is the
+            subset nothing tests yet — prefer those.
+
+            ## Method
+            1. **Pick one function** that is pure and decidable: its result
+               depends only on its arguments, and its interesting input space is
+               small enough to enumerate (a handful of enums, booleans, small
+               integers, short arrays) or to sample densely.
+
+            2. **Write down the specification** in the PR body, from the docs,
+               the call sites, and the types — not from the implementation.
+               If the spec is genuinely ambiguous, say which reading you chose.
+
+            3. **Write an independent model** in a scratch file under
+               `/tmp` — a second implementation of the spec, written from the
+               spec, deliberately structured differently from the code.
+
+            4. **Enumerate the input space** and compare the model against the
+               real function, imported from its real module. Never copy the
+               implementation into the scratch file: a copy proves nothing.
+               ```bash
+               npx tsx /tmp/model-check.ts
+               ```
+               Cover the boundaries explicitly: empty, one element, duplicates,
+               equal keys, min/max, negative, zero, `undefined` vs missing,
+               NaN, unicode, and the transitions in and out of every state.
+
+            5. **Triage every divergence.** For each one decide whether the code
+               or the model is wrong, and say how you know — a doc, a call site
+               that depends on it, a downstream test. A divergence you cannot
+               adjudicate goes in the PR body as an open question, not into a
+               fix.
+
+            6. **Ship the reproduction with the fix.** For each real bug: add a
+               failing test in the repo's own suite first (`__tests__/` next to
+               the code, Vitest for `packages/`, Jest for `web`/`electron`),
+               watch it fail, then fix the code and watch it pass. AGENTS.md
+               requires the reproduction — a fix without one does not ship.
+
+            ## Rules
+            - No behavior changes without a failing test that proves the bug.
+            - Do not "fix" a divergence by weakening the test or by rewriting
+              the model to agree with the code.
+            - Do not change a public signature to make modelling easier.
+            - The scratch model stays in `/tmp`. What lands in the repo is the
+              regression tests and the fix.
+            - If the enumeration finds nothing, that is a fine outcome: land the
+              enumeration as a table-driven test instead, and say the code held.
+            - Do not touch CI workflow files.
+            - One function per PR.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a logic-bugfix
+              PR is already open.
+
+            ## Verification
+            ```bash
+            npm run lint && npm run test && npm run test:packages
+            ```
+
+            ## Submit
+            Create a PR titled "fix: <function> mishandles <case>" (or
+            "test: pin <function> behavior" when nothing diverged) containing the
+            spec, the input space enumerated, every divergence and its verdict,
+            and the tests that now cover them.
+
+      - name: Post-change verification
+        if: always() && env.LOGIC_FOUND == '1'
+        run: |
+          LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$PKG_TEST_PRE_EXIT" -eq 0 ] && [ $PKG_TEST_EXIT -ne 0 ]; then
+            echo "New package test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
