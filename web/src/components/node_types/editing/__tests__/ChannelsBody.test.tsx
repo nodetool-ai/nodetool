@@ -8,6 +8,11 @@ import "@testing-library/jest-dom";
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
+
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
     setProperty: mockSetProperty,

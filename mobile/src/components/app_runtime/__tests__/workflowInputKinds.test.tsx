@@ -14,6 +14,15 @@ import {
 
 import type { Workflow } from "../../../types/workflow";
 
+jest.mock("../../../trpc/client", () => ({
+  // Media widgets resolve an `asset://` locator through `assets.get`; these
+  // cases render non-asset sources, so the lookup never settles.
+  trpc: {
+    assets: { get: { useQuery: () => ({ data: undefined, isLoading: false }) } },
+    useQueries: () => [],
+  },
+}));
+
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));

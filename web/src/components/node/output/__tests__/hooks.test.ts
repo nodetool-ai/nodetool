@@ -17,16 +17,15 @@ describe("output/hooks", () => {
       expect(resolveAssetUri("")).toBe("");
     });
 
-    it("converts asset:// URIs to the API storage URL", () => {
-      expect(resolveAssetUri("asset://abc123")).toBe(
-        "http://localhost:7777/api/storage/abc123"
-      );
+    // An asset locator carries no path: the bytes live under
+    // `<user_id>/<asset_id>.<ext>` behind a signed URL, so there is no correct
+    // rewrite here. Callers must resolve it via `useResolvedMediaUri`.
+    it("refuses asset:// URIs", () => {
+      expect(resolveAssetUri("asset://abc123")).toBe("");
     });
 
-    it("converts asset:// URIs with sub-paths", () => {
-      expect(resolveAssetUri("asset://user-1/image.png")).toBe(
-        "http://localhost:7777/api/storage/user-1/image.png"
-      );
+    it("refuses asset:// URIs with sub-paths", () => {
+      expect(resolveAssetUri("asset://user-1/image.png")).toBe("");
     });
 
     it("prepends BASE_URL to /api/storage/ relative paths", () => {

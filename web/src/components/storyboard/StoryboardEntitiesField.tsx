@@ -26,21 +26,21 @@ import {
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../entities/entityKind";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 export interface StoryboardEntitiesFieldProps {
   boardId: string;
   entityIds: string[];
 }
 
-const entityThumb = (entity: Entity): string | undefined =>
-  entity.reference_images?.[0]?.uri;
-
 /** Round reference-image avatar with the kind icon as its empty state. */
 const EntityAvatar: React.FC<{ entity: Entity; size?: number }> = ({
   entity,
   size = 20
 }) => {
-  const thumb = entityThumb(entity);
+  // A reference image is an `asset://` locator by construction — it needs the
+  // asset's own `get_url` before an <img> can load it.
+  const thumb = useResolvedMediaUri(entity.reference_images?.[0]);
   const Icon = ENTITY_KIND_ICON[entity.kind];
   const frameSx = {
     width: size,

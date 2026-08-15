@@ -22,7 +22,7 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { parseResourceUri, type ResourceKind, type ResourceUri } from "@nodetool-ai/protocol";
 
 import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx } from "../../ui_primitives";
-import { resolveUri } from "../../../utils/imageUtils";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { canOpenResource, openResource } from "../../../lib/chat/openResource";
 import type { ToolAccent } from "./toolCallIcon";
 
@@ -63,28 +63,26 @@ const looksLikeImage = (value: string): boolean => {
 };
 
 /**
- * Only the id decides: `/api/storage/<key>` serves the file name, so an id
- * without an extension has nothing to fetch — an image-looking *label* over an
+ * Only the id decides: the storage key carries the file name, so an id without
+ * an extension has nothing to fetch — an image-looking *label* over an
  * extensionless id would render a broken thumbnail.
  */
-const thumbnailFor = (ref: ResourceUri): string | null => {
-  if (ref.kind !== "asset" || !looksLikeImage(ref.id)) {
-    return null;
-  }
-  return resolveUri(`asset://${ref.id}`);
-};
+const thumbnailLocatorFor = (ref: ResourceUri | null): string | undefined =>
+  ref && ref.kind === "asset" && looksLikeImage(ref.id)
+    ? `asset://${ref.id}`
+    : undefined;
 
 const THUMBNAIL_SIZE = 18;
 
 const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
   const ref = useMemo(() => parseResourceUri(uri), [uri]);
+  const thumbnail = useResolvedMediaUri(thumbnailLocatorFor(ref));
 
   if (!ref) {
     return <>{label}</>;
   }
 
   const { Icon, accent } = KIND_VISUALS[ref.kind];
-  const thumbnail = thumbnailFor(ref);
   const navigable = canOpenResource(ref.kind);
 
   return (

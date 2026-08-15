@@ -66,13 +66,12 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
-import { useAsset } from "../../../serverState/useAsset";
 import type { Asset } from "../../../stores/ApiTypes";
 import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 import { asImageRef, isRawRgbaRef } from "../../../utils/imageRef";
 import { rawRgbaToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 import { createImageUrl } from "../../../utils/imageUtils";
-import { resolveAssetUri } from "../../node/output/hooks";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // Max number of undo states retained. Keeps memory bounded; older
@@ -364,12 +363,14 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         : undefined,
     [inputValue]
   );
-  const { uri: assetUri } = useAsset({ image: imageProp });
+  // An upstream ref's own `uri` is an `asset://` locator, which fetches
+  // nowhere — resolve it (and any bare `asset_id`) to the asset's `get_url`.
+  const resolvedSourceUri = useResolvedMediaUri(sourceImage ?? imageProp);
 
   // Blob URL lifecycle: revoke previous URL on change / unmount.
   const blobUrlRef = useRef<string | null>(null);
   const sourceSrc = useMemo(() => {
-    if (!sourceImage && !assetUri) {
+    if (!sourceImage && !resolvedSourceUri) {
       return undefined;
     }
     // Raw-RGBA upstream → encode via canvas; createImageUrl below would treat
@@ -383,10 +384,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         ) || undefined
       );
     }
-    const uriCandidate =
-      sourceImage?.uri && sourceImage.uri.length > 0
-        ? sourceImage.uri
-        : assetUri;
+    const uriCandidate = resolvedSourceUri;
     const result = createImageUrl(
       uriCandidate || sourceImage?.data != null
         ? {
@@ -397,8 +395,8 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       blobUrlRef.current
     );
     blobUrlRef.current = result.blobUrl;
-    return result.url ? resolveAssetUri(result.url) : undefined;
-  }, [sourceImage, assetUri]);
+    return result.url || undefined;
+  }, [sourceImage, resolvedSourceUri]);
   useEffect(() => {
     return () => {
       if (blobUrlRef.current) {

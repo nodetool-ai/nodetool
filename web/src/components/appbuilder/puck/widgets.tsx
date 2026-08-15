@@ -37,6 +37,7 @@ import {
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 
@@ -135,44 +136,58 @@ const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
   </FlexColumn>
 );
 
+/**
+ * A bound media value carries an `asset://` locator, which fetches nowhere —
+ * every media leaf resolves its source to the asset's own `get_url` first.
+ * Anything else (data:, blob:, http:, package://) passes through unchanged.
+ */
 const ImageItem: React.FC<{ src: string; fit?: string; height: number }> = ({
   src,
   fit,
   height
-}) => (
-  <Box
-    component="img"
-    src={src}
-    alt=""
-    sx={{
-      width: "100%",
-      height,
-      objectFit: fit === "cover" ? "cover" : "contain",
-      borderRadius: BORDER_RADIUS.md
-    }}
-  />
-);
+}) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box
+      component="img"
+      src={resolved}
+      alt=""
+      sx={{
+        width: "100%",
+        height,
+        objectFit: fit === "cover" ? "cover" : "contain",
+        borderRadius: BORDER_RADIUS.md
+      }}
+    />
+  );
+};
 
-const AudioItem: React.FC<{ src: string }> = ({ src }) => (
-  <Box component="audio" controls src={src} sx={{ width: "100%" }} />
-);
+const AudioItem: React.FC<{ src: string }> = ({ src }) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box component="audio" controls src={resolved} sx={{ width: "100%" }} />
+  );
+};
 
 const VideoItem: React.FC<{ src: string; height: number }> = ({
   src,
   height
-}) => (
-  <Box
-    component="video"
-    controls
-    src={src}
-    sx={{
-      width: "100%",
-      maxHeight: height,
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: "common.black"
-    }}
-  />
-);
+}) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box
+      component="video"
+      controls
+      src={resolved}
+      sx={{
+        width: "100%",
+        maxHeight: height,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: "common.black"
+      }}
+    />
+  );
+};
 
 export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
   ({ text }) => (
@@ -727,7 +742,7 @@ export const DownloadWidget: React.FC<WidgetCommon & {
   placeholder?: string;
 }> = (props) => {
   const { value, designMode } = useBinding(props, "read");
-  const href = resolveImageSrc(asItems(value)[0]);
+  const href = useResolvedMediaUri(resolveImageSrc(asItems(value)[0])) ?? null;
   if (!href && !designMode) {
     return (
       <Caption color="secondary">

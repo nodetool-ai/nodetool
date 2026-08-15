@@ -354,12 +354,12 @@ class ApiService {
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
     if (!urlOrPath) {return null;}
-    // Workflow outputs and node properties reference stored assets by URN.
-    // React Native's image loader has no handler for the scheme, so map it to
-    // the HTTP endpoint (same mapping as web's resolveUri).
+    // An `asset://` URN is an identifier, not a path: the bytes live under
+    // `<user_id>/<asset_id>.<ext>` behind a signed URL, so `/api/storage/<id>`
+    // 404s on any cloud deploy. Resolving it needs an `assets.get` lookup —
+    // callers use `useResolvedMediaUri`, and get null here.
     if (urlOrPath.startsWith('asset://')) {
-      const assetId = urlOrPath.slice('asset://'.length);
-      return `${getSharedApiHost()}/api/storage/${assetId}`;
+      return null;
     }
     // Anything else already carrying a scheme (http, https, file, data,
     // content, blob) is fetchable as-is; only bare paths get the API host.

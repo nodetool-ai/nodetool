@@ -181,14 +181,13 @@ describe('ApiService.uploadAsset', () => {
 });
 
 describe('ApiService.resolveUrl', () => {
-  it('maps an asset:// URN to the storage endpoint', () => {
-    // React Native's image loader has no asset:// handler, so an unmapped URN
-    // surfaces as "No suitable image URL loader found".
+  it('refuses an asset:// URN', () => {
+    // The bytes live under `<user_id>/<asset_id>.<ext>` behind a signed URL,
+    // so there is no correct rewrite here — `useResolvedMediaUri` looks the
+    // asset up and reads its `get_url` instead.
     expect(
       apiService.resolveUrl('asset://5262eb0ff8f14873ac673ace9eff8ad8.png')
-    ).toBe(
-      'http://localhost:7777/api/storage/5262eb0ff8f14873ac673ace9eff8ad8.png'
-    );
+    ).toBeNull();
   });
 
   it('leaves absolute URLs untouched', () => {

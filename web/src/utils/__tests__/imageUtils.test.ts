@@ -82,21 +82,21 @@ describe("imageUtils", () => {
       expect(result.blobUrl).toBeNull();
     });
 
-    it("resolves asset:// URI on ImageSource to /api/storage/{id}", () => {
+    // An asset locator has no fetchable rewrite — the bytes sit under
+    // `<user_id>/<asset_id>.<ext>` behind a signed URL. Callers resolve it
+    // through `useResolvedMediaUri`; here it must come back empty rather than
+    // as a URL that 404s in production.
+    it("refuses an asset:// URI on ImageSource", () => {
       const source: ImageSource = { uri: "asset://abc123.png" };
       const result = createImageUrl(source, null);
-      expect(result.url).toBe(
-        "http://localhost:7777/api/storage/abc123.png"
-      );
+      expect(result.url).toBe("");
       expect(result.blobUrl).toBeNull();
     });
 
-    it("resolves raw asset:// string to /api/storage/{id}", () => {
+    it("refuses a raw asset:// string", () => {
       const source: ImageData = "asset://abc123.png";
       const result = createImageUrl(source, null);
-      expect(result.url).toBe(
-        "http://localhost:7777/api/storage/abc123.png"
-      );
+      expect(result.url).toBe("");
       expect(result.blobUrl).toBeNull();
     });
 

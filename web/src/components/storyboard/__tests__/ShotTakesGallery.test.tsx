@@ -7,6 +7,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 // The gallery reuses the node-results renderer; stub it so this test asserts
 // wiring (what value it receives), not the renderer's own media pipeline.
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../hooks/useResolvedMediaUri");
+
 jest.mock("../../node/OutputRenderer", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown[] }) => (

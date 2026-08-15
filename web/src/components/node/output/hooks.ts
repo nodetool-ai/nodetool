@@ -5,6 +5,10 @@ import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
 import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 import { fileUriToHttpUrl } from "../../../utils/localFile";
+import {
+  useResolvedMediaUris,
+  type MediaLocator
+} from "../../../hooks/useResolvedMediaUri";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -82,19 +86,18 @@ function extractStorageKey(uri: string | null | undefined): string | null {
 }
 
 /**
- * Resolves asset URIs to their actual URLs.
- * Converts asset:// URIs to /api/storage/ URLs and package:// URIs to the
- * /api/assets/packages/ route. Passes through other URI schemes unchanged.
+ * Resolves a media URI to a fetchable URL, without a server round trip.
+ * Converts package:// URIs to the /api/assets/packages/ route and prefixes
+ * relative /api/storage/ paths. Passes through other URI schemes unchanged.
+ *
+ * `asset://` returns "" on purpose: it is an identifier, not a path. The bytes
+ * live under `<user_id>/<asset_id>.<ext>` behind a signed URL, so the old
+ * `${BASE_URL}/api/storage/<id>` rewrite 404s on any cloud deploy. Resolve it
+ * with `useResolvedMediaUri` (or the asset's `get_url`) instead.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
-  if (!uri) {
+  if (!uri || uri.startsWith("asset://")) {
     return "";
-  }
-
-  // Handle asset:// scheme - convert to API storage URL
-  if (uri.startsWith("asset://")) {
-    const assetId = uri.slice("asset://".length);
-    return `${BASE_URL}/api/storage/${assetId}`;
   }
 
   // Handle package:// scheme - constant assets shipped with a package
@@ -227,70 +230,78 @@ export function useVideoSrc(value: unknown): React.RefObject<HTMLVideoElement | 
 }
 
 export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[] } {
-  return useMemo(() => {
-    if (!isImageValueArray(value)) {
-      return { assets: [], urls: [] };
-    }
-    const imageValues = value;
-    const urls: string[] = [];
-    const assets: Asset[] = imageValues.map(
-      (imageItem: ImageValue, index: number): Asset => {
-        const contentType = "image/png";
-        let url = "";
-        if (imageItem.uri) {
-          url = resolveAssetUri(imageItem.uri);
-        } else if (isBitmapImage(imageItem)) {
-          // Preview-bitmap ref from the in-browser runner (no uri/data) —
-          // encode it for the grid. Memoized with the value, so this runs
-          // once per output, not per render.
-          url = bitmapToPngDataUrl(imageItem.bitmap as ImageBitmap);
-        } else if (imageItem.data) {
-          try {
-            // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)
-            const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(
-              imageItem.data
-            );
-            const blob = new Blob([safeBytes], {
-              type: contentType
-            });
-            url = URL.createObjectURL(blob);
-            urls.push(url);
-          } catch {
-            // Blob creation failed (may be due to shared ArrayBuffer), use empty URL
-            url = "";
-          }
-        } else if (imageItem.id) {
-          // A bare asset ref carrying only `id` (no uri/data/bitmap). The
-          // storage route serves by filename, so `/api/storage/<id>` with no
-          // extension 404s. Build an `asset://<id>.<ext>` ref — extension from
-          // the item name, defaulting to `png` when the name has none (these
-          // grid items carry no mime, and png is the assumed content type) —
-          // and resolve it the same way as `uri`.
-          const cleanName = (imageItem.name ?? "").split(/[?#]/)[0];
-          const dot = cleanName.lastIndexOf(".");
-          const ext =
-            dot > 0 && dot < cleanName.length - 1
-              ? cleanName.slice(dot + 1).toLowerCase()
-              : "png";
-          url = resolveAssetUri(`asset://${imageItem.id}.${ext}`);
+  const items: ImageValue[] = useMemo(
+    () => (isImageValueArray(value) ? value : []),
+    [value]
+  );
+
+  // Encoding a bitmap and creating a blob URL are side effects — do them once
+  // per value, not per render. `null` marks an item whose URL comes from the
+  // asset lookup below.
+  const { localUrls, blobUrls } = useMemo(() => {
+    const blobs: string[] = [];
+    const locals = items.map((item): string | null => {
+      if (item.uri) {
+        return null;
+      }
+      if (isBitmapImage(item)) {
+        return bitmapToPngDataUrl(item.bitmap as ImageBitmap);
+      }
+      if (item.data) {
+        try {
+          // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)
+          const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(item.data);
+          const url = URL.createObjectURL(
+            new Blob([safeBytes], { type: "image/png" })
+          );
+          blobs.push(url);
+          return url;
+        } catch {
+          // Blob creation failed (may be due to shared ArrayBuffer), no URL
+          return "";
         }
+      }
+      return null;
+    });
+    return { localUrls: locals, blobUrls: blobs };
+  }, [items]);
+
+  // Anything left resolves through the asset record: an `asset://` uri or a
+  // bare `id` both need the asset's own `get_url`, which is signed on the
+  // cloud backends and owner-prefixed everywhere.
+  const locators = useMemo(
+    () =>
+      items.map((item, i): MediaLocator =>
+        localUrls[i] !== null
+          ? undefined
+          : item.uri ?? (item.id ? { asset_id: item.id } : undefined)
+      ),
+    [items, localUrls]
+  );
+  const resolved = useResolvedMediaUris(locators);
+
+  const assets: Asset[] = useMemo(
+    () =>
+      items.map((item, index): Asset => {
+        const url = localUrls[index] ?? resolved[index] ?? "";
         return {
-          id: imageItem.id || `output-image-${index}`,
+          id: item.id || `output-image-${index}`,
           user_id: "",
           workflow_id: null,
           parent_id: "",
-          name: imageItem.name || `Image ${index + 1}.png`,
-          content_type: contentType,
+          name: item.name || `Image ${index + 1}.png`,
+          content_type: "image/png",
           metadata: {},
           created_at: new Date().toISOString(),
           get_url: url,
           thumb_url: url,
           duration: null
         };
-      }
-    );
-    return { assets, urls };
-  }, [value]);
+      }),
+    [items, localUrls, resolved]
+  );
+
+  return { assets, urls: blobUrls };
 }
 
 export function useRevokeBlobUrls(urls: string[]): void {
