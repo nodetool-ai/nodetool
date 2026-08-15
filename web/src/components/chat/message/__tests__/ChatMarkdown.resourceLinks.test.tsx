@@ -12,6 +12,11 @@ import mockTheme from "../../../../__mocks__/themeMock";
  * href through `urlTransform` the way react-markdown does, and hand what
  * survives to `components.a`.
  */
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
+
 jest.mock("react-markdown", () => {
   const react = jest.requireActual<typeof import("react")>("react");
   const SAFE_SCHEME = /^(https?|mailto|irc|ircs|xmpp):/i;

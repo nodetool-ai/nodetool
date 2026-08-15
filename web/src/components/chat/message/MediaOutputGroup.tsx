@@ -42,7 +42,10 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
-import { resolveUri } from "../../../utils/imageUtils";
+import {
+  useResolvedMediaUris,
+  type MediaLocator
+} from "../../../hooks/useResolvedMediaUri";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -272,6 +275,21 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
+  // Generated media persists as `asset://<asset_id>`, which no renderer can
+  // fetch — resolve every tile's ref to the asset's `get_url` up front, since
+  // the grid below maps over the list and cannot call a hook per item.
+  const mediaLocators = useMemo(
+    (): MediaLocator[] =>
+      mediaContents.map((c) => {
+        if (isImageContent(c)) return c.image;
+        if (isVideoContent(c)) return c.video;
+        if (isAudioContent(c)) return c.audio;
+        return undefined;
+      }),
+    [mediaContents]
+  );
+  const resolvedMediaSrcs = useResolvedMediaUris(mediaLocators);
+
   const prompt = useMemo(() => {
     const content = message.content;
     if (typeof content === "string") return content;
@@ -395,7 +413,9 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
             const src =
-              c.image?.uri || (c.image?.data as string | undefined) || "";
+              resolvedMediaSrcs[i] ||
+              (c.image?.data as string | undefined) ||
+              "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
               <div
@@ -418,10 +438,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isVideoContent(c)) {
-            // Through `resolveUri` like the image tile above: a relative
-            // `/api/storage/…` needs the BASE_URL prefix when the API lives on
-            // another origin, and a signed cloud URL passes through unchanged.
-            const src = c.video?.uri ? resolveUri(c.video.uri) : "";
+            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
               <div
@@ -451,7 +468,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isAudioContent(c)) {
-            const src = c.audio?.uri ? resolveUri(c.audio.uri) : "";
+            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
               <div

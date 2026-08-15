@@ -1,6 +1,8 @@
 /** @jest-environment node */
-jest.mock("../../../node/output/hooks", () => ({
-  resolveAssetUri: (uri: string | undefined | null) => uri ?? ""
+jest.mock("../../../../utils/resolveMediaUri", () => ({
+  // Stands in for the asset lookup: every locator resolves to itself, so the
+  // assertions below read on the input they were given.
+  resolveMediaUri: async (uri: string | undefined | null) => uri ?? ""
 }));
 
 import { normalizeSamMasks } from "../normalizeSamMasks";
@@ -12,8 +14,8 @@ describe("normalizeSamMasks", () => {
     nodeType: "nodetool.segment.Sam"
   };
 
-  it("extracts masks from a flat array of image refs", () => {
-    const result = normalizeSamMasks({
+  it("extracts masks from a flat array of image refs", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [
         { uri: "asset://mask1", width: 100, height: 200 },
@@ -25,8 +27,8 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[1].maskDataUrl).toBe("asset://mask2");
   });
 
-  it("extracts masks from { output: [...] } wrapper", () => {
-    const result = normalizeSamMasks({
+  it("extracts masks from { output: [...] } wrapper", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: {
         output: [{ uri: "asset://m1", width: 64, height: 64 }]
@@ -36,8 +38,8 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].id).toBe("mask_0");
   });
 
-  it("extracts a single image ref as a one-element mask list", () => {
-    const result = normalizeSamMasks({
+  it("extracts a single image ref as a one-element mask list", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: { uri: "asset://single", width: 50, height: 50 }
     });
@@ -45,16 +47,16 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].maskDataUrl).toBe("asset://single");
   });
 
-  it("skips entries with no resolvable URI", () => {
-    const result = normalizeSamMasks({
+  it("skips entries with no resolvable URI", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [{ width: 10, height: 10 }]
     });
     expect(result.masks).toHaveLength(0);
   });
 
-  it("uses url field when uri is missing", () => {
-    const result = normalizeSamMasks({
+  it("uses url field when uri is missing", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [{ url: "https://example.com/mask.png", width: 32, height: 32 }]
     });
@@ -62,8 +64,8 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].maskDataUrl).toBe("https://example.com/mask.png");
   });
 
-  it("assigns sequential mask ids", () => {
-    const result = normalizeSamMasks({
+  it("assigns sequential mask ids", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [
         { uri: "a://1", width: 10, height: 10 },
@@ -78,8 +80,8 @@ describe("normalizeSamMasks", () => {
     ]);
   });
 
-  it("uses explicit label from entry", () => {
-    const result = normalizeSamMasks({
+  it("uses explicit label from entry", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [
         { uri: "a://1", width: 10, height: 10, label: "Person" }
@@ -88,8 +90,8 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].label).toBe("Person");
   });
 
-  it("uses name field as fallback label", () => {
-    const result = normalizeSamMasks({
+  it("uses name field as fallback label", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [
         { uri: "a://1", width: 10, height: 10, name: "Background" }
@@ -98,16 +100,16 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].label).toBe("Background");
   });
 
-  it("generates default label when none provided", () => {
-    const result = normalizeSamMasks({
+  it("generates default label when none provided", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: [{ uri: "a://1", width: 10, height: 10 }]
     });
     expect(result.masks[0].label).toBe("Mask 1");
   });
 
-  it("applies inverse scale to width and height", () => {
-    const result = normalizeSamMasks({
+  it("applies inverse scale to width and height", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       scale: 2,
       rawOutput: [{ uri: "a://1", width: 200, height: 100 }]
@@ -116,8 +118,8 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].bounds.height).toBe(50);
   });
 
-  it("falls back to sourceMetadata dimensions", () => {
-    const result = normalizeSamMasks({
+  it("falls back to sourceMetadata dimensions", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       sourceMetadata: {
         layerId: "layer-1",
@@ -132,24 +134,24 @@ describe("normalizeSamMasks", () => {
     expect(result.masks[0].bounds.height).toBe(150);
   });
 
-  it("returns empty masks for non-array non-object input", () => {
-    const result = normalizeSamMasks({
+  it("returns empty masks for non-array non-object input", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: "not an object"
     });
     expect(result.masks).toHaveLength(0);
   });
 
-  it("returns empty masks for null input", () => {
-    const result = normalizeSamMasks({
+  it("returns empty masks for null input", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: null
     });
     expect(result.masks).toHaveLength(0);
   });
 
-  it("propagates metadata fields to the response", () => {
-    const result = normalizeSamMasks({
+  it("propagates metadata fields to the response", async () => {
+    const result = await normalizeSamMasks({
       ...baseParams,
       rawOutput: []
     });

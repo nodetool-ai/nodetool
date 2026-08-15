@@ -58,7 +58,10 @@ describe("useLayerHydration", () => {
     );
   });
 
-  it("resolves asset-backed imageReference uris before hydrating locked input layers", () => {
+  // The locator is handed on verbatim: an `asset://` reference resolves to the
+  // asset's own `get_url`, an async lookup the runtime does right before it
+  // loads the image. Rewriting it to `/api/storage/<id>` here would 404.
+  it("passes an asset-backed imageReference uri through to the runtime", () => {
     const doc = createDefaultDocument(64, 64);
     const layer = doc.layers[0];
     layer.locked = true;
@@ -101,7 +104,7 @@ describe("useLayerHydration", () => {
 
     expect((runtime.setLayerData as jest.Mock)).toHaveBeenCalledWith(
       layer.id,
-      expect.stringContaining("/api/storage/input-layer.png"),
+      "asset://input-layer.png",
       expect.any(Object),
       expect.any(Function)
     );

@@ -30,6 +30,7 @@ import {
   useStoryboardStore
 } from "../../stores/storyboard/StoryboardStore";
 import { syncShotClipToTimeline } from "../../stores/storyboard/timelineSync";
+import { useResolvedMediaUris } from "../../hooks/useResolvedMediaUri";
 
 interface ShotTakesGalleryProps {
   boardId: string;
@@ -89,6 +90,9 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
     () => shot.clip_versions ?? (shot.clip ? [shot.clip] : []),
     [shot.clip_versions, shot.clip]
   );
+  // A still's `uri` is an `asset://` locator, which no browser can fetch —
+  // the thumbnails need each asset's own `get_url`.
+  const stillThumbSrcs = useResolvedMediaUris(stills);
 
   const selectedStill = shot.keyframe
     ? stills.findIndex((v) => sameMediaRef(v, shot.keyframe as ImageRef))
@@ -154,7 +158,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
               onClick={() => handleSelectStill(i)}
               sx={takeThumbSx}
             >
-              {still.uri ? <img src={still.uri} alt="" /> : <span>{i + 1}</span>}
+              {stillThumbSrcs[i] ? (
+                <img src={stillThumbSrcs[i]} alt="" />
+              ) : (
+                <span>{i + 1}</span>
+              )}
             </Box>
           ))}
         </FlexRow>

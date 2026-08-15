@@ -21,7 +21,7 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
-import { resolveAssetUri } from "../node/output/hooks";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import {
   SKETCH_FONT,
   SKETCH_SPACING,
@@ -148,10 +148,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
   bindingStatus
 }) => {
   const isGroup = layer.type === "group";
-  // Resolve the image ref to a fetchable URL — a raw `asset://` scheme is
-  // blocked by the page CSP when set directly as an <img src>.
+  // Resolve the image ref to a fetchable URL — a raw `asset://` locator is not
+  // a path any <img src> can load.
   const layerImage = isGroup ? null : getLayerDataImageUrl(layer.data);
-  const thumbnailSrc = layerImage ? resolveAssetUri(layerImage) : null;
+  const thumbnailSrc = useResolvedMediaUri(layerImage) ?? null;
   const isLayerGenerating =
     bindingStatus === "queued" || bindingStatus === "generating";
 

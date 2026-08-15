@@ -6,6 +6,11 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import MediaOutputGroup from "../MediaOutputGroup";
 import type { Message, MessageContent } from "../../../../stores/ApiTypes";
 
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
+
 jest.mock("../../../../stores/BASE_URL", () => ({
   BASE_URL: "https://api.test",
   prefixBaseUrl: (url: string) => `https://api.test${url}`

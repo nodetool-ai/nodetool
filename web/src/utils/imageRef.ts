@@ -2,6 +2,7 @@ import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 
 export interface ImageRefLike {
   uri?: string;
+  asset_id?: string;
   width?: number;
   height?: number;
   data?: unknown;
@@ -12,6 +13,10 @@ export const asImageRef = (value: unknown): ImageRefLike | undefined => {
   if (!value || typeof value !== "object") return undefined;
   return {
     uri: "uri" in value && typeof value.uri === "string" ? value.uri : undefined,
+    asset_id:
+      "asset_id" in value && typeof value.asset_id === "string"
+        ? value.asset_id
+        : undefined,
     width: "width" in value && typeof value.width === "number" ? value.width : undefined,
     height: "height" in value && typeof value.height === "number" ? value.height : undefined,
     data: "data" in value ? value.data : undefined,

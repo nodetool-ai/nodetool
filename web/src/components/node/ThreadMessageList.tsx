@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import ImageView from "./ImageView";
+import ImageRefPreview from "./ImageRefPreview";
 import isEqual from "../../utils/isEqual";
 import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 
@@ -180,7 +180,14 @@ const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={`text-${i}`} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <ImageView key={c.image?.uri ?? `img-${i}`} source={c.image?.uri} />;
+            // Through `ImageRefPreview`, which resolves an `asset://` locator
+            // to the asset's `get_url` — a raw locator is fetchable nowhere.
+            return (
+              <ImageRefPreview
+                key={c.image?.asset_id ?? c.image?.uri ?? `img-${i}`}
+                value={c.image}
+              />
+            );
           } else {
             return null;
           }
