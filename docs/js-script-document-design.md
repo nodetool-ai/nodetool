@@ -137,9 +137,10 @@ The surface is the Code node assistant dialog promoted to a document editor:
   assistant edits a draft and Apply commits to the node, the script assistant
   edits the document directly — undo is the document's own history plus the
   version snapshots.
-- **Header/sidebar**: ports (inputs/outputs with types), packages picker,
-  secrets list, timeout — the same controls the Code node property panel
-  renders for its dynamic slots and `packages` prop.
+- **Header/sidebar**: ports (inputs/outputs with types), secrets list, timeout
+  — the same controls the Code node property panel renders for its dynamic
+  slots. There is no packages picker: every installed pack resolves by import
+  (see the implementation note above).
 - **Bottom: run console.** A Run button (prompting for input values from the
   declared ports), a Test button running the saved cases, and a console
   showing logs, streamed emits, final outputs, and errors — the
