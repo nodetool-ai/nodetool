@@ -11,7 +11,6 @@ import {
   Node,
   NodeProps,
   NodeResizer,
-  NodeToolbar,
   Position,
   ResizeParams
 } from "@xyflow/react";
@@ -45,12 +44,11 @@ import NodeContent from "./NodeContent";
 import { edgesTargeting, isHandleConnected } from "../../hooks/nodes/edgeIndex";
 import { NodeSelectionContext } from "./NodeSelectionContext";
 import { getBaseNodeSelectionStyles } from "./selectionStyles";
-import NodeToolButtons from "./NodeToolButtons";
+import NodeSelectionToolbar from "./NodeSelectionToolbar";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import useMetadataStore from "../../stores/MetadataStore";
-import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
@@ -58,7 +56,6 @@ import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import NodeChunkDisplay from "./NodeChunkDisplay";
 import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -136,38 +133,6 @@ const ResizeOverlay = memo(function ResizeOverlay({
         />
       </div>
     </div>
-  );
-});
-
-const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state: NodeStoreState) =>
-    state.getSelectedNodeCount()
-  );
-
-  // Delay showing toolbar to avoid flash when clicking to drag
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-
-  // Only show toolbar when exactly one node is selected
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
   );
 });
 
@@ -792,7 +757,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className={`control-handle control-handle-top ${hasControlEdge || isCreatingControlEdge ? "control-handle-visible" : "control-handle-hidden"}`}
         isConnectable={true}
       />
-      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
+      {selected && (
+        <NodeSelectionToolbar
+          id={id}
+          selected={selected}
+          dragging={dragging}
+        />
+      )}
       <NodeResizeHandle
         minWidth={150}
         minHeight={styleProps.minHeight}

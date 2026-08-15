@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
+import { Node, NodeProps } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
@@ -7,42 +7,13 @@ import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
 import NodeStatus from "../NodeStatus";
 import NodeResizeHandle from "../NodeResizeHandle";
-import NodeToolButtons from "../NodeToolButtons";
+import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeExecutionTime from "../NodeExecutionTime";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNodeStatus, useNodeResultValue } from "../../../hooks/nodes/useNodeExecState";
-import { useNodes } from "../../../contexts/NodeContext";
-import useSelect from "../../../hooks/nodes/useSelect";
-import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { DynamicReplicateContent } from "./DynamicReplicateContent";
 import { ReplicateSchemaLoader } from "./ReplicateSchemaLoader";
-
-const TOOLBAR_SHOW_DELAY = 200;
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
-  );
-});
 
 const REPLICATE_HEADER_COLOR = "#3D6CEB";
 
@@ -104,7 +75,13 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": REPLICATE_HEADER_COLOR
       }}
     >
-      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
+      {selected && (
+        <NodeSelectionToolbar
+          id={id}
+          selected={selected}
+          dragging={dragging}
+        />
+      )}
       <NodeResizeHandle
         minWidth={150}
         minHeight={150}
