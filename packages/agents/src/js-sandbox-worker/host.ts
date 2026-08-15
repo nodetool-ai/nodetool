@@ -551,9 +551,16 @@ export async function runInWorker(
 
     // Backstop for a worker that answers nothing at all — a wedged thread never
     // reaches its own deadline, so the main thread keeps one of its own.
+    //
+    // The suspend allowance only widens it when the run can actually suspend,
+    // the way the engine's own abort is sized in `js-sandbox.ts` and
+    // `interpreter.ts`. Adding it unconditionally put a ~30 minute floor
+    // (`DEFAULT_SUSPEND_ALLOWANCE_MS`) under every run, so a wedged worker —
+    // a guest that OOMs marshaling a host value, say — outlived its
+    // `timeoutMs` by half an hour instead of failing.
     const backstop =
       options.run.timeoutMs +
-      Math.max(0, options.run.suspendAllowanceMs) +
+      (options.run.hasClock ? Math.max(0, options.run.suspendAllowanceMs) : 0) +
       DEADLINE_MARGIN_MS;
     deadlineTimer = setTimeout(() => {
       settle(
