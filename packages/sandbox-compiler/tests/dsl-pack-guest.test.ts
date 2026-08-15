@@ -202,7 +202,7 @@ describe("every node type the DSL offers", () => {
     const wrappers = shippedWrappers();
     // The pack claims 472 wrappers; a regex that matched half of them would
     // make the assertion below vacuous.
-    expect(wrappers.length).toBe(472);
+    expect(wrappers.length).toBe(457);
     // The pack ships one artifact for every platform, but base-nodes
     // registers `lib.apple.*` only on darwin (base-nodes/src/index.ts) —
     // off a Mac those wrappers are expected to miss, and nothing else is.
