@@ -41,7 +41,7 @@ import {
   GIZMO_PRIMARY_COLOR,
   HANDLE_FILL_DEFAULT
 } from "../tools/gizmo/gizmoConstants";
-import type { AffineTransform, LayerTransform, LayerContentBounds, Point } from "../types";
+import type { AffineTransform, LayerContentBounds, Point } from "../types";
 import { makeAffineTransform } from "../types";
 import { aff } from "./_transformFixtures";
 import { computeTransformedCorners } from "../transform/geometry/layerGeometry";
