@@ -173,7 +173,7 @@ const flattenTextItems = (items: unknown): TextItem[] => {
   return result;
 };
 
-const TextListProperty = (props: PropertyProps) => {
+const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
