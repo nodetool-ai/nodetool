@@ -103,6 +103,11 @@ export async function resolveTarget(
   if (!rawGraph?.nodes || !rawGraph?.edges) {
     throw new Error("Invalid workflow: missing nodes or edges");
   }
+  // A truthy non-array (`"nodes": 3`, `"edges": {}`) clears the check above and
+  // used to reach `.map()` below as a raw TypeError.
+  if (!Array.isArray(rawGraph.nodes) || !Array.isArray(rawGraph.edges)) {
+    throw new Error("Invalid workflow: nodes and edges must be arrays");
+  }
   const graph = normalizeGraph(rawGraph);
 
   return {

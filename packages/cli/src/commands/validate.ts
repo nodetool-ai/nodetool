@@ -75,6 +75,7 @@ export function registerValidateCommand(program: Command): void {
  * explains itself without a trip to the docs.
  */
 const CODE_LEGEND: Readonly<Record<string, string>> = {
+  invalid_graph: "the graph's nodes or edges is not an array",
   unknown_node: "node type is not in the registry",
   duplicate_id: "two nodes share an id",
   property: "property is missing, empty, or the wrong shape",
