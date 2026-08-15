@@ -17,7 +17,7 @@ name: Crash Fuzzer
 
 on:
   schedule:
-    - cron: "0 5 * * 1" # Mondays at 05:00 UTC
+    - cron: "0 5 * * *" # Daily at 05:00 UTC
   workflow_dispatch:
     inputs:
       seed:

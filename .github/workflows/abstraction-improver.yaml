@@ -11,7 +11,7 @@ name: Abstraction Improver
 
 on:
   schedule:
-    - cron: "0 6 * * 6" # Saturdays at 06:00 UTC
+    - cron: "30 8 * * *" # Daily at 08:30 UTC
   workflow_dispatch:
 
 jobs:

@@ -13,7 +13,7 @@ name: Flaky Test Fixer
 
 on:
   schedule:
-    - cron: "0 2 * * 1,4" # Mondays and Thursdays at 02:00 UTC
+    - cron: "0 2 * * *" # Daily at 02:00 UTC
   workflow_dispatch:
     inputs:
       repeats:

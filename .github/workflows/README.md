@@ -50,7 +50,7 @@ see below.
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
 | `claude.yml` | Claude responds to `@claude` mentions and comments | none/maintenance | Advisory |
 | `copilot-setup-steps.yml` | Environment setup for the Copilot coding agent | none/maintenance | n/a (setup only) |
-| `crash-fuzzer.yaml` | Weekly fuzz of `validate` / `jsscript validate` / `node run` over mutated documents; agent root-causes each crash or hang | none/maintenance | Advisory (`continue-on-error`) |
+| `crash-fuzzer.yaml` | Daily fuzz of `validate` / `jsscript validate` / `node run` over mutated documents; agent root-causes each crash or hang | none/maintenance | Advisory (`continue-on-error`) |
 | `dead-code-cleanup.yaml` | Scheduled agent removes unused exports/imports/code | none/maintenance | Advisory (`continue-on-error`) |
 | `dependency-cleanup.yaml` | Scheduled agent prunes unused deps, aligns/updates versions | none/maintenance | Advisory (`continue-on-error`) |
 | `docs-ci.yml` | Docs site build + internal link/image check on PR | none/maintenance | Required for `docs/**` |
@@ -59,7 +59,7 @@ see below.
 | `docs-lint.yml` | Markdown lint on push/PR | none/maintenance | Required for `**/*.md` |
 | `duplicate-unifier.yaml` | Scheduled agent merges duplicated implementations found by a sliding-window hash | none/maintenance | Advisory (`continue-on-error`) |
 | `eas-build.yml` | Cloud-build the Expo app in `mobile/` on EAS | none/maintenance | Manual / tag-gated |
-| `flaky-test-fixer.yaml` | Twice-weekly agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
+| `flaky-test-fixer.yaml` | Daily agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
 | `flatpak-ci.yml` | Build the Flatpak desktop package | none/maintenance | Required for its own job |
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |

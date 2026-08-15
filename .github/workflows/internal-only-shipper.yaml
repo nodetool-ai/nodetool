@@ -12,7 +12,7 @@ name: Internal-Only Feature Shipper
 
 on:
   schedule:
-    - cron: "0 5 * * 3" # Wednesdays at 05:00 UTC
+    - cron: "30 5 * * *" # Daily at 05:30 UTC
   workflow_dispatch:
 
 jobs:

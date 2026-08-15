@@ -12,7 +12,7 @@ name: Abstraction Police
 
 on:
   schedule:
-    - cron: "0 4 * * 3" # Wednesdays at 04:00 UTC
+    - cron: "30 4 * * *" # Daily at 04:30 UTC
   workflow_dispatch:
 
 jobs:

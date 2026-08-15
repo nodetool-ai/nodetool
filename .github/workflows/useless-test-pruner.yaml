@@ -11,7 +11,7 @@ name: Useless Test Pruner
 
 on:
   schedule:
-    - cron: "0 7 * * 1" # Mondays at 07:00 UTC
+    - cron: "30 7 * * *" # Daily at 07:30 UTC
   workflow_dispatch:
 
 jobs:

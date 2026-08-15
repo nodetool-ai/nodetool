@@ -11,7 +11,7 @@ name: Logic Bugfixer
 
 on:
   schedule:
-    - cron: "0 6 * * 4" # Thursdays at 06:00 UTC
+    - cron: "30 6 * * *" # Daily at 06:30 UTC
   workflow_dispatch:
     inputs:
       target:

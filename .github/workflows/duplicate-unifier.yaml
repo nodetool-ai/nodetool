@@ -11,7 +11,7 @@ name: Duplicate Unifier
 
 on:
   schedule:
-    - cron: "0 5 * * 5" # Fridays at 05:00 UTC
+    - cron: "0 7 * * *" # Daily at 07:00 UTC
   workflow_dispatch:
     inputs:
       window:
