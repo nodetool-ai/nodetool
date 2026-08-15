@@ -655,97 +655,80 @@ export const createNodeStore = (
             }
           },
           onConnect: (connection: Connection): void => {
-            const srcNode = get().findNode(connection.source);
-            const targetNode = get().findNode(connection.target);
-            if (!connection.targetHandle) {
+            const { source, target, sourceHandle, targetHandle } = connection;
+            if (!targetHandle) {
+              return;
+            }
+            const srcNode = get().findNode(source);
+            const targetNode = get().findNode(target);
+            if (!srcNode || !targetNode) {
               return;
             }
 
             const isControlEdge =
-              connection.targetHandle === CONTROL_HANDLE_ID ||
-              connection.sourceHandle === CONTROL_HANDLE_ID;
+              targetHandle === CONTROL_HANDLE_ID ||
+              sourceHandle === CONTROL_HANDLE_ID;
 
             const isDynamicProperty =
-              targetNode?.data.dynamic_properties[connection.targetHandle] !==
-              undefined;
+              targetNode.data.dynamic_properties[targetHandle] !== undefined;
             // A *typed* dynamic slot is gated like a static handle; only
             // undeclared (legacy) slots keep the promiscuous bypass.
-            const targetSlot =
-              targetNode?.data.dynamic_inputs?.[connection.targetHandle];
             const isUntypedDynamicProperty =
-              isDynamicProperty && !isTypedSlot(targetSlot);
+              isDynamicProperty &&
+              !isTypedSlot(targetNode.data.dynamic_inputs?.[targetHandle]);
+
             if (
-              !srcNode ||
-              !targetNode ||
-              !(
-                isUntypedDynamicProperty ||
-                isControlEdge ||
-                get().validateConnection(connection, srcNode, targetNode)
-              )
+              !isUntypedDynamicProperty &&
+              !isControlEdge &&
+              !get().validateConnection(connection, srcNode, targetNode)
             ) {
               return;
             }
-
-            // For control edges, validate that source is an Agent node
-            if (isControlEdge) {
-              if (!isAgentNodeType(srcNode.type)) {
-                return;
-              }
+            // Control edges skip `validateConnection`, so their own gate — the
+            // source has to be an Agent node — is checked here.
+            if (isControlEdge && !isAgentNodeType(srcNode.type)) {
+              return;
             }
 
-            // Check if the target handle is a "collect" handle (list[T])
-            // Collect handles allow multiple incoming connections
-            let isCollectHandle = false;
-            if (targetNode && connection.targetHandle && !isControlEdge) {
-              const targetMetadata = useMetadataStore
-                .getState()
-                .getMetadata(targetNode.type || "");
-              if (targetMetadata) {
-                const targetHandle = findInputHandle(
-                  targetNode,
-                  connection.targetHandle,
-                  targetMetadata
-                );
-                if (targetHandle?.type && isCollectType(targetHandle.type)) {
-                  isCollectHandle = true;
-                }
-              }
-            }
+            const targetMetadata = useMetadataStore
+              .getState()
+              .getMetadata(targetNode.type || "");
 
-            // Remove any existing connections to this target handle
-            // UNLESS it's a collect handle, which allows multiple connections
+            // A "collect" handle (list[T]) takes more than one incoming edge.
+            // Every other handle keeps only the newest, so the edges already
+            // landing on it are dropped.
+            const targetInput =
+              targetMetadata && !isControlEdge
+                ? findInputHandle(targetNode, targetHandle, targetMetadata)
+                : undefined;
+            const isCollectHandle =
+              !!targetInput && isCollectType(targetInput.type);
+
             const filteredEdges = isCollectHandle
               ? get().edges
               : get().edges.filter(
                   (edge) =>
                     !(
-                      edge.target === connection.target &&
-                      edge.targetHandle === connection.targetHandle
+                      edge.target === target &&
+                      edge.targetHandle === targetHandle
                     )
                 );
 
-            if (
-              wouldCreateCycle(
-                filteredEdges,
-                connection.source,
-                connection.target
-              )
-            ) {
+            if (wouldCreateCycle(filteredEdges, source, target)) {
               return;
             }
 
             const newEdge: Edge = {
               ...connection,
               id: get().generateEdgeId(),
-              sourceHandle: connection.sourceHandle || null,
-              targetHandle: connection.targetHandle || null,
+              sourceHandle: sourceHandle || null,
+              targetHandle,
               ...(isControlEdge
                 ? { type: "control", data: { edge_type: "control" } }
                 : {})
             };
 
-            // Normalize handles to null if undefined for consistency
-            // This is necessary because edge comparison and serialization expect null, not undefined
+            // Edge comparison and serialization expect null, not undefined.
             const normalizedEdges = filteredEdges.map((edge) => ({
               ...edge,
               sourceHandle: edge.sourceHandle || null,
@@ -756,56 +739,46 @@ export const createNodeStore = (
               edges: addEdge(newEdge, normalizedEdges)
             });
 
-            // Persist the target as an exposed input so its handle survives
-            // disconnection. Skipped for dynamic props and control edges
-            // (those have their own surfaces) and for properties already
-            // declared as a handle by metadata (`input_fields` / inline rows
-            // render their own handle).
             // Connect-time type inference: an undeclared dynamic slot adopts
             // the source output's type, so most slots end up typed with no
             // user effort. Slots that already carry a declaration are left be.
-            if (
-              isUntypedDynamicProperty &&
-              !isControlEdge &&
-              connection.sourceHandle
-            ) {
+            if (isUntypedDynamicProperty && !isControlEdge && sourceHandle) {
               const srcMetadata = useMetadataStore
                 .getState()
                 .getMetadata(srcNode.type || "");
               const srcHandle = srcMetadata
-                ? findOutputHandle(
-                    srcNode,
-                    connection.sourceHandle,
-                    srcMetadata
-                  )
+                ? findOutputHandle(srcNode, sourceHandle, srcMetadata)
                 : undefined;
               if (srcHandle && srcHandle.type.type !== "any") {
                 get().updateNodeData(targetNode.id, {
                   dynamic_inputs: {
                     ...normalizeDynamicSlots(targetNode.data.dynamic_inputs),
-                    [connection.targetHandle]: { type: srcHandle.type }
+                    [targetHandle]: { type: srcHandle.type }
                   }
                 });
               }
             }
 
-            if (!isDynamicProperty && !isControlEdge) {
-              const targetMetadata = useMetadataStore
-                .getState()
-                .getMetadata(targetNode.type || "");
-              const inlineFields = targetMetadata?.inline_fields ?? [];
-              const inputFields = targetMetadata?.input_fields ?? [];
-              const isMetadataHandle =
-                inlineFields.includes(connection.targetHandle) ||
-                inputFields.includes(connection.targetHandle);
-              if (targetMetadata && !isMetadataHandle) {
-                const next = addExposedInput(
-                  targetNode.data.exposedInputs,
-                  connection.targetHandle
-                );
-                if (next !== targetNode.data.exposedInputs) {
-                  get().updateNodeData(targetNode.id, { exposedInputs: next });
-                }
+            // Persist the target as an exposed input so its handle survives
+            // disconnection. Skipped for dynamic props and control edges
+            // (those have their own surfaces) and for properties already
+            // declared as a handle by metadata (`input_fields` / inline rows
+            // render their own handle).
+            const isMetadataHandle =
+              (targetMetadata?.inline_fields ?? []).includes(targetHandle) ||
+              (targetMetadata?.input_fields ?? []).includes(targetHandle);
+            if (
+              !isDynamicProperty &&
+              !isControlEdge &&
+              targetMetadata &&
+              !isMetadataHandle
+            ) {
+              const next = addExposedInput(
+                targetNode.data.exposedInputs,
+                targetHandle
+              );
+              if (next !== targetNode.data.exposedInputs) {
+                get().updateNodeData(targetNode.id, { exposedInputs: next });
               }
             }
 
