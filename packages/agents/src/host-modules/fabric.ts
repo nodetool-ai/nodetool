@@ -6,6 +6,8 @@
  * scene graph construction and rasterization/SVG generation on the host.
  */
 
+import { importOptionalModule } from "@nodetool-ai/config";
+
 import { toGuestBytes } from "../sandbox-bytes.js";
 import {
   importOptionalLibrary,
@@ -56,10 +58,18 @@ interface FabricLike {
 }
 
 async function loadFabric(where: string): Promise<FabricLike> {
-  const mod = await importOptionalLibrary<Record<string, unknown>>(
-    where,
-    "fabric"
-  );
+  // Fabric's default entry is its *browser* build: constructing a canvas there
+  // reaches for `document`, so on Node every call failed with "document is not
+  // defined". The package ships `fabric/node`, which wires a real canvas
+  // backend. In a browser — where this host module is the page — that subpath
+  // does not resolve and the default entry is the right one, so try the Node
+  // build first and fall back rather than branching on a runtime flag.
+  const node = await importOptionalModule<Record<string, unknown>>(
+    "fabric/node"
+  ).catch(() => undefined);
+  const mod =
+    node ??
+    (await importOptionalLibrary<Record<string, unknown>>(where, "fabric"));
   return unwrapLibrary<FabricLike>(
     mod,
     where,
