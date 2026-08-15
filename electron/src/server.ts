@@ -314,6 +314,11 @@ async function startServer(): Promise<void> {
     // around: the Python bridge, vector nodes, the file browser, workspaces,
     // MCP config, and local model scanning.
     NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
+    // Explicitly prevent the backend from running in hosted-cloud mode even
+    // if the user launched Electron with NODETOOL_ENV=production in their
+    // shell. The desktop app is always a local install; production mode would
+    // disable the Python bridge, file browser, and local providers.
+    NODETOOL_ENV: "development",
     // Keep the full node catalog and the local providers (Ollama, LM Studio,
     // llama.cpp, vLLM, the Claude subscription) — the desktop app is the one
     // surface where they are the point. Set `NODETOOL_NODE_PROFILE=cloud` in

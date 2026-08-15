@@ -376,9 +376,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         set((state) => {
           const nodeStore = state.nodeStores[persistedWorkflow.id];
+          let editedDuringSave = false;
           if (nodeStore) {
             const current = nodeStore.getState();
-            const editedDuringSave =
+            editedDuringSave =
               nodeStore !== nodeStoreBefore ||
               !stateBefore ||
               current.nodes !== stateBefore.nodes ||
@@ -410,7 +411,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           if (index === -1) return state;
 
           const newWorkflows = [...state.openWorkflows];
-          newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
+          if (editedDuringSave) {
+            // Preserve the user's in-flight edits to tab metadata (e.g. a
+            // rename completed while the save was running). Only adopt the
+            // server's updated_at so the next save uses the correct token.
+            newWorkflows[index] = {
+              ...newWorkflows[index],
+              updated_at: persistedWorkflow.updated_at
+            };
+          } else {
+            newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
+          }
 
           return {
             openWorkflows: newWorkflows
@@ -626,6 +637,31 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           });
         }
 
+        const persistedExample = data as Workflow;
+
+        // Adopt the server's updated_at so the next saveWorkflow / autosave
+        // sends the correct concurrency token and does not get a conflict.
+        set((state) => {
+          const nodeStore = state.nodeStores[persistedExample.id];
+          if (nodeStore) {
+            nodeStore
+              .getState()
+              .setWorkflowUpdatedAt(persistedExample.updated_at);
+          }
+
+          const index = state.openWorkflows.findIndex(
+            (w) => w.id === persistedExample.id
+          );
+          if (index === -1) return state;
+
+          const newWorkflows = [...state.openWorkflows];
+          newWorkflows[index] = {
+            ...newWorkflows[index],
+            updated_at: persistedExample.updated_at
+          };
+          return { openWorkflows: newWorkflows };
+        });
+
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
         get().queryClient?.invalidateQueries({ queryKey: ["templates"] });
         get().queryClient?.invalidateQueries({
@@ -633,7 +669,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
         get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
 
-        return data as Workflow;
+        return persistedExample;
       },
 
       /**
