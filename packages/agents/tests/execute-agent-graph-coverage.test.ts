@@ -3,7 +3,7 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 /**
- * AgentWorkflowRunner drives the kernel's WorkflowRunner over a planned graph.
+ * executeAgentGraph drives the kernel's WorkflowRunner over a planned graph.
  * We mock the kernel so no real actor runtime spins up: a module-level
  * `runBehavior` lets each test decide what `runner.run` does (emit live
  * messages via the intercepted context.emit, resolve a result, reject, etc.),
@@ -57,13 +57,16 @@ vi.mock("@nodetool-ai/kernel", () => ({
   }
 }));
 
-const hydrateSpy = vi.fn((g: unknown) => ({ ...(g as object), __hydrated: true }));
+const hydrateSpy = vi.fn((g: unknown) => ({
+  ...(g as object),
+  __hydrated: true
+}));
 vi.mock("@nodetool-ai/node-sdk", () => ({
   hydrateGraphNodeFlags: hydrateSpy
 }));
 
 // Import AFTER mocks are registered.
-const { AgentWorkflowRunner } = await import("../src/agent-workflow-runner.js");
+const { executeAgentGraph } = await import("../src/execute-agent-graph.js");
 
 const emptyGraph = { nodes: [], edges: [] } as any;
 
@@ -87,8 +90,10 @@ async function drain(gen: AsyncGenerator<ProcessingMessage>) {
   return out;
 }
 
-const msg = (type: string, extra: Record<string, unknown> = {}): ProcessingMessage =>
-  ({ type, ...extra } as unknown as ProcessingMessage);
+const msg = (
+  type: string,
+  extra: Record<string, unknown> = {}
+): ProcessingMessage => ({ type, ...extra }) as unknown as ProcessingMessage;
 
 beforeEach(() => {
   runnerInstances.length = 0;
@@ -96,16 +101,16 @@ beforeEach(() => {
   runBehavior = async () => ({ status: "completed", outputs: {} });
 });
 
-describe("AgentWorkflowRunner.execute — happy path", () => {
+describe("executeAgentGraph — happy path", () => {
   it("streams kernel-emitted messages live, then a final step_result", async () => {
     runBehavior = async (ctx) => {
       ctx.emit(msg("log_update", { content: "a" }));
       ctx.emit(msg("node_update", { status: "running" }));
       return { status: "completed", outputs: { answer: 42 } };
     };
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    const messages = await drain(runner.execute(emptyGraph));
+    const messages = await drain(executeAgentGraph(emptyGraph, opts));
 
     expect(messages.map((m) => m.type)).toEqual([
       "log_update",
@@ -115,23 +120,26 @@ describe("AgentWorkflowRunner.execute — happy path", () => {
     const final = messages[2] as any;
     expect(final.is_task_result).toBe(true);
     expect(final.result).toEqual({ answer: 42 });
-    expect(final.step).toMatchObject({ name: "graph_execution", status: "completed" });
+    expect(final.step).toMatchObject({
+      name: "graph_execution",
+      status: "completed"
+    });
   });
 
   it("does not yield a final step_result when there are no outputs", async () => {
     runBehavior = async () => ({ status: "completed", outputs: {} });
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    const messages = await drain(runner.execute(emptyGraph));
+    const messages = await drain(executeAgentGraph(emptyGraph, opts));
 
     expect(messages).toEqual([]);
   });
 
   it("hydrates the graph flags and passes job_id + inputs to run", async () => {
     const inputs = { topic: "cats" };
-    const runner = new AgentWorkflowRunner(makeOpts({ inputs }));
+    const opts = makeOpts({ inputs });
 
-    await drain(runner.execute(emptyGraph));
+    await drain(executeAgentGraph(emptyGraph, opts));
 
     expect(hydrateSpy).toHaveBeenCalledOnce();
     const inst = runnerInstances[0];
@@ -144,9 +152,8 @@ describe("AgentWorkflowRunner.execute — happy path", () => {
   it("restores context.emit after execution (delegates to the original)", async () => {
     const opts = makeOpts();
     const orig = opts.context.emit;
-    const runner = new AgentWorkflowRunner(opts);
 
-    await drain(runner.execute(emptyGraph));
+    await drain(executeAgentGraph(emptyGraph, opts));
 
     orig.mockClear();
     const after = msg("log_update", { content: "post-run" });
@@ -156,12 +163,11 @@ describe("AgentWorkflowRunner.execute — happy path", () => {
   });
 });
 
-describe("AgentWorkflowRunner.execute — node resolution", () => {
+describe("executeAgentGraph — node resolution", () => {
   it("resolves every node through the registry", async () => {
     const opts = makeOpts();
-    const runner = new AgentWorkflowRunner(opts);
 
-    await drain(runner.execute(emptyGraph));
+    await drain(executeAgentGraph(emptyGraph, opts));
 
     const resolve = runnerInstances[0].opts.resolveExecutor;
     const resolved = resolve({ id: "n2", type: "nodetool.text.Concat" });
@@ -175,7 +181,7 @@ describe("AgentWorkflowRunner.execute — node resolution", () => {
 
   it("injects the run's tools into a scoped child context, not the caller's", async () => {
     const opts = makeOpts();
-    await drain(new AgentWorkflowRunner(opts).execute(emptyGraph));
+    await drain(executeAgentGraph(emptyGraph, opts));
 
     // The kernel runs against the child, which carries the tools…
     const runContext = runnerInstances[0].opts.executionContext as any;
@@ -189,14 +195,14 @@ describe("AgentWorkflowRunner.execute — node resolution", () => {
 
   it("shares agent memory with the caller's context", async () => {
     const opts = makeOpts();
-    await drain(new AgentWorkflowRunner(opts).execute(emptyGraph));
+    await drain(executeAgentGraph(emptyGraph, opts));
 
     const runContext = runnerInstances[0].opts.executionContext as any;
     expect(runContext.memory).toBe(opts.context.memory);
   });
 });
 
-describe("AgentWorkflowRunner.execute — cancellation", () => {
+describe("executeAgentGraph — cancellation", () => {
   it("cancels the kernel run when the external signal aborts mid-run", async () => {
     const controller = new AbortController();
     let release: () => void = () => {};
@@ -207,9 +213,10 @@ describe("AgentWorkflowRunner.execute — cancellation", () => {
       return { status: "completed", outputs: {} };
     };
 
-    const gen = new AgentWorkflowRunner(
+    const gen = executeAgentGraph(
+      emptyGraph,
       makeOpts({ signal: controller.signal })
-    ).execute(emptyGraph);
+    );
     const drained = drain(gen);
     await Promise.resolve();
 
@@ -222,9 +229,7 @@ describe("AgentWorkflowRunner.execute — cancellation", () => {
 
   it("cancels immediately when handed an already-aborted signal", async () => {
     await drain(
-      new AgentWorkflowRunner(
-        makeOpts({ signal: AbortSignal.abort() })
-      ).execute(emptyGraph)
+      executeAgentGraph(emptyGraph, makeOpts({ signal: AbortSignal.abort() }))
     );
 
     expect(runnerInstances[0].cancelCount).toBe(1);
@@ -233,9 +238,7 @@ describe("AgentWorkflowRunner.execute — cancellation", () => {
   it("detaches the abort listener once the run is over", async () => {
     const controller = new AbortController();
     await drain(
-      new AgentWorkflowRunner(
-        makeOpts({ signal: controller.signal })
-      ).execute(emptyGraph)
+      executeAgentGraph(emptyGraph, makeOpts({ signal: controller.signal }))
     );
 
     controller.abort();
@@ -244,7 +247,7 @@ describe("AgentWorkflowRunner.execute — cancellation", () => {
   });
 });
 
-describe("AgentWorkflowRunner.execute — model stamping", () => {
+describe("executeAgentGraph — model stamping", () => {
   const graphWith = (properties: Record<string, unknown>) =>
     ({
       nodes: [{ id: "a1", type: "nodetool.agents.Agent", properties }],
@@ -254,9 +257,7 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
   const stampedNodes = () => hydrateSpy.mock.calls[0][0] as any;
 
   it("stamps the configured provider+model onto a model-less Agent node", async () => {
-    await drain(new AgentWorkflowRunner(makeOpts()).execute(
-      graphWith({ prompt: "hi" })
-    ));
+    await drain(executeAgentGraph(graphWith({ prompt: "hi" }), makeOpts()));
 
     expect(stampedNodes().nodes[0].properties).toMatchObject({
       prompt: "hi",
@@ -265,9 +266,14 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
   });
 
   it("stamps over the empty-model default", async () => {
-    await drain(new AgentWorkflowRunner(makeOpts()).execute(
-      graphWith({ model: { type: "language_model", provider: "empty", id: "" } })
-    ));
+    await drain(
+      executeAgentGraph(
+        graphWith({
+          model: { type: "language_model", provider: "empty", id: "" }
+        }),
+        makeOpts()
+      )
+    );
 
     expect(stampedNodes().nodes[0].properties.model).toMatchObject({
       provider: "mock",
@@ -276,9 +282,12 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
   });
 
   it("leaves a node that already names a model alone", async () => {
-    await drain(new AgentWorkflowRunner(makeOpts()).execute(
-      graphWith({ model: { provider: "openai", id: "gpt-5.4-mini" } })
-    ));
+    await drain(
+      executeAgentGraph(
+        graphWith({ model: { provider: "openai", id: "gpt-5.4-mini" } }),
+        makeOpts()
+      )
+    );
 
     expect(stampedNodes().nodes[0].properties.model).toEqual({
       provider: "openai",
@@ -288,9 +297,10 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
 
   it("stamps the run's system prompt and turn budget", async () => {
     await drain(
-      new AgentWorkflowRunner(
+      executeAgentGraph(
+        graphWith({ prompt: "hi" }),
         makeOpts({ systemPrompt: "be terse", maxStepIterations: 5 })
-      ).execute(graphWith({ prompt: "hi" }))
+      )
     );
 
     expect(stampedNodes().nodes[0].properties).toMatchObject({
@@ -301,9 +311,10 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
 
   it("leaves a node's own system prompt and turn budget alone", async () => {
     await drain(
-      new AgentWorkflowRunner(
+      executeAgentGraph(
+        graphWith({ prompt: "hi", system: "own", max_turns: 3 }),
         makeOpts({ systemPrompt: "be terse", maxStepIterations: 5 })
-      ).execute(graphWith({ prompt: "hi", system: "own", max_turns: 3 }))
+      )
     );
 
     expect(stampedNodes().nodes[0].properties).toMatchObject({
@@ -313,9 +324,7 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
   });
 
   it("omits policy properties the run did not configure", async () => {
-    await drain(
-      new AgentWorkflowRunner(makeOpts()).execute(graphWith({ prompt: "hi" }))
-    );
+    await drain(executeAgentGraph(graphWith({ prompt: "hi" }), makeOpts()));
 
     const properties = stampedNodes().nodes[0].properties;
     expect(properties.system).toBeUndefined();
@@ -324,23 +333,25 @@ describe("AgentWorkflowRunner.execute — model stamping", () => {
 
   it("does not touch non-Agent nodes", async () => {
     const graph = {
-      nodes: [{ id: "c1", type: "nodetool.text.Concat", properties: { a: "x" } }],
+      nodes: [
+        { id: "c1", type: "nodetool.text.Concat", properties: { a: "x" } }
+      ],
       edges: []
     } as any;
-    await drain(new AgentWorkflowRunner(makeOpts()).execute(graph));
+    await drain(executeAgentGraph(graph, makeOpts()));
 
     expect(stampedNodes().nodes[0].properties).toEqual({ a: "x" });
   });
 });
 
-describe("AgentWorkflowRunner.execute — error propagation", () => {
+describe("executeAgentGraph — error propagation", () => {
   it("re-throws an Error rejected by runner.run", async () => {
     runBehavior = async () => {
       throw new Error("kernel exploded");
     };
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow(
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "kernel exploded"
     );
   });
@@ -349,9 +360,9 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
     runBehavior = async () => {
       throw "string failure";
     };
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow(
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "string failure"
     );
   });
@@ -361,8 +372,8 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
       ctx.emit(msg("log_update", { content: "before crash" }));
       throw new Error("boom");
     };
-    const runner = new AgentWorkflowRunner(makeOpts());
-    const gen = runner.execute(emptyGraph);
+    const opts = makeOpts();
+    const gen = executeAgentGraph(emptyGraph, opts);
 
     const first = await gen.next();
     expect((first.value as any).type).toBe("log_update");
@@ -371,9 +382,9 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
 
   it("throws when the run resolves with no result", async () => {
     runBehavior = async () => undefined;
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow(
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "Workflow execution produced no result"
     );
   });
@@ -384,18 +395,18 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
       outputs: {},
       error: "node blew up"
     });
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow(
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "node blew up"
     );
   });
 
   it("throws a generic message when a failed result has no error string", async () => {
     runBehavior = async () => ({ status: "failed", outputs: {} });
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow(
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "Workflow execution failed"
     );
   });
@@ -406,9 +417,10 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
     runBehavior = async () => {
       throw new Error("boom");
     };
-    const runner = new AgentWorkflowRunner(opts);
 
-    await expect(drain(runner.execute(emptyGraph))).rejects.toThrow("boom");
+    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
+      "boom"
+    );
     orig.mockClear();
     const after = msg("log_update", { content: "post-crash" });
     opts.context.emit(after);
@@ -416,7 +428,7 @@ describe("AgentWorkflowRunner.execute — error propagation", () => {
   });
 });
 
-describe("AgentWorkflowRunner.execute — node error logging", () => {
+describe("executeAgentGraph — node error logging", () => {
   it("completes and still yields the final step_result when node_update errors are present", async () => {
     runBehavior = async () => ({
       status: "completed",
@@ -426,9 +438,9 @@ describe("AgentWorkflowRunner.execute — node error logging", () => {
         msg("node_update", { status: "completed" })
       ]
     });
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    const messages = await drain(runner.execute(emptyGraph));
+    const messages = await drain(executeAgentGraph(emptyGraph, opts));
 
     // Node errors are logged, not thrown; the final step_result is still emitted.
     expect(messages).toHaveLength(1);
@@ -438,9 +450,9 @@ describe("AgentWorkflowRunner.execute — node error logging", () => {
 
   it("tolerates a completed result with a missing messages array", async () => {
     runBehavior = async () => ({ status: "completed", outputs: { a: 1 } });
-    const runner = new AgentWorkflowRunner(makeOpts());
+    const opts = makeOpts();
 
-    const messages = await drain(runner.execute(emptyGraph));
+    const messages = await drain(executeAgentGraph(emptyGraph, opts));
 
     expect((messages[0] as any).result).toEqual({ a: 1 });
   });

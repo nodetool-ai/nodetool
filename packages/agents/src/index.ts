@@ -793,14 +793,11 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";
 export type { AuthorGraphOptions } from "./author-graph.js";
-export {
-  AgentWorkflowRunner,
-  applyRunPolicy
-} from "./agent-workflow-runner.js";
+export { executeAgentGraph, applyRunPolicy } from "./execute-agent-graph.js";
 export type {
-  AgentWorkflowRunnerOptions,
+  ExecuteAgentGraphOptions,
   RunPolicy
-} from "./agent-workflow-runner.js";
+} from "./execute-agent-graph.js";
 export { resolveAgentGraph, runWorkflowAsAgent } from "./workflow-agent.js";
 export type {
   AgentGraphSource,

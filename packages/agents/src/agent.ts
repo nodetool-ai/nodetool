@@ -40,7 +40,7 @@ import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { authorGraph } from "./author-graph.js";
-import { AgentWorkflowRunner, applyRunPolicy } from "./agent-workflow-runner.js";
+import { executeAgentGraph, applyRunPolicy } from "./execute-agent-graph.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./capabilities/gate-tools.js";
 import {
@@ -235,7 +235,7 @@ export interface AgentOptions {
   /**
    * Use the graph-native planner: build a DAG of nodes directly instead of a
    * TaskPlan. Requires {@link registry}. When set, planning emits a workflow
-   * graph executed by {@link AgentWorkflowRunner}.
+   * graph executed by {@link executeAgentGraph}.
    */
   useGraphPlanner?: boolean;
   /**
@@ -1055,7 +1055,7 @@ export class Agent {
 
   /**
    * Graph-native plan: author a DAG of nodes with {@link authorGraph}, then
-   * execute it with AgentWorkflowRunner.
+   * execute it with executeAgentGraph.
    */
   private async *executeGraphPlan(
     context: ProcessingContext,
@@ -1128,7 +1128,7 @@ export class Agent {
       severity: "info"
     } satisfies LogUpdate;
 
-    const runner = new AgentWorkflowRunner({
+    const run = executeAgentGraph(graphData, {
       provider: this.provider,
       model: this.model,
       registry: this.registry!,
@@ -1141,7 +1141,7 @@ export class Agent {
       signal: this.signal
     });
 
-    for await (const item of runner.execute(graphData)) {
+    for await (const item of run) {
       if (item.type === "step_result") {
         const sr = item as StepResult;
         if (sr.is_task_result) {

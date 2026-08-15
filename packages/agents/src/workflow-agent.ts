@@ -4,7 +4,7 @@
  * A saved workflow is already a plan, so this path has no planning phase: the
  * graph runs on the kernel through `ExecutionSession`, and the agent supplies
  * judgment only where a node breaks, as the run's `SupervisorHandle`. That is
- * the whole difference from `AgentWorkflowRunner`, which executes a graph the
+ * the whole difference from `executeAgentGraph`, which executes a graph the
  * planner just wrote and cannot supervise it.
  *
  * See docs/workflow-supervisor-design.md §7 entry point 3.
@@ -63,7 +63,7 @@ export async function resolveAgentGraph(
  * is the generator's return value.
  *
  * Messages are forwarded to the caller's context as well as yielded, matching
- * `AgentWorkflowRunner`: a host that only reads the shared context's queue (the
+ * `executeAgentGraph`: a host that only reads the shared context's queue (the
  * websocket runner, when an Agent node runs inside a workflow) must still see
  * the inner run.
  */
@@ -74,7 +74,7 @@ export async function* runWorkflowAsAgent(
   const jobId = randomUUID();
 
   // A child context keeps the inner run's listeners off the caller's, the same
-  // separation `AgentWorkflowRunner` makes; memory is shared so sub-agents
+  // separation `executeAgentGraph` makes; memory is shared so sub-agents
   // inside the graph — and the supervisor's `supervisor:` keys — land in the
   // run's one memory.
   const runContext = context.copy({
