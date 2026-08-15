@@ -20,6 +20,10 @@ export default defineConfig({
         __dirname,
         "../execution/src/sketch-debug/index.ts"
       ),
+      "@nodetool-ai/execution/js-script-debug": resolve(
+        __dirname,
+        "../execution/src/js-script-debug/index.ts"
+      ),
       "@nodetool-ai/execution/service": resolve(
         __dirname,
         "../execution/src/service/index.ts"
