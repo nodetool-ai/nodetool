@@ -47,7 +47,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 ## Architecture
 
 ```
-packages/           # 59 npm workspace packages (TypeScript backend)
+packages/           # 55 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -848,8 +848,10 @@ node's `packages` property does not declare (the guest loader resolves only
 declared sandbox packages),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
-too — reads an `inputs.<name>` the node does not declare, never returns, or
-leaves a declared output unset on some return path is reported against the node.
+too — never returns, or leaves a declared output unset on some return path is
+reported against the node. A named `inputs.<name>` read or `stream("name")` /
+`emit("name")` call is not an error: the validator, the editor and the graph
+tools all count it as a declared handle.
 The analysis lives in `@nodetool-ai/node-sdk` (`code-analysis.ts`,
 `code-node-validation.ts`), so the graph validator, the `submit_code` planner
 and the editor read one AST.
