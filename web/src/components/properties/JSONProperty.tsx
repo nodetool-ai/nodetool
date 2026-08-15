@@ -12,7 +12,12 @@ import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
-const JSONProperty = (props: PropertyProps) => {
+interface JSONValue {
+  type: "json";
+  data: string;
+}
+
+const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
   const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
   const inspectorToolbarActionSx = useMemo(

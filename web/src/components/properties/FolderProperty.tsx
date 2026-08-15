@@ -21,7 +21,12 @@ import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import { FlexRow, DialogActionButtons } from "../ui_primitives";
 
-const FolderProperty = (props: PropertyProps) => {
+interface FolderValue {
+  type: "folder";
+  asset_id: string;
+}
+
+const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const createFolder = useAssetStore((state) => state.createFolder);

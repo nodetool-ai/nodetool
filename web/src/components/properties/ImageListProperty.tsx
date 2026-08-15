@@ -163,7 +163,7 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
   return result;
 };
 
-const ImageListProperty = (props: PropertyProps) => {
+const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;

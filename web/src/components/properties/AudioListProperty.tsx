@@ -161,7 +161,7 @@ const flattenAudioItems = (items: unknown): AudioItem[] => {
   return result;
 };
 
-const AudioListProperty = (props: PropertyProps) => {
+const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
   const theme = useTheme();
   const id = `audio-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();

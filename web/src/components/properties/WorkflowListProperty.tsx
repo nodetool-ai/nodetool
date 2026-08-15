@@ -8,13 +8,14 @@ import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
+import type { WorkflowValue } from "./WorkflowProperty";
 
 import {
   OutlinedInput
 } from "../ui_primitives";
-const WorkflowListProperty = (props: PropertyProps) => {
+const WorkflowListProperty = (props: PropertyProps<WorkflowValue[] | null>) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
-  const workflowIds: string[] = props.value?.map((workflow: { id: string }) => workflow.id) || [];
+  const workflowIds: string[] = props.value?.map((workflow) => workflow.id) || [];
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({

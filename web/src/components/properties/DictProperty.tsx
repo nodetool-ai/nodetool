@@ -1,16 +1,16 @@
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
-import DictTable, { DictDataType } from "../node/DataTable/DictTable";
+import DictTable, { DictCellValue, DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
-const detectTypeFromDict = (dict: unknown) => {
+const detectTypeFromDict = (dict: unknown): DictDataType => {
   if (!Array.isArray(dict) || dict.length === 0) {
     return "string";
   }
-  const first = dict[0];
+  const first: unknown = dict[0];
   if (typeof first === "number") {
     if (Number.isInteger(first)) {
       return "int";
@@ -24,7 +24,7 @@ const detectTypeFromDict = (dict: unknown) => {
   return "string";
 };
 
-const DictProperty = (props: PropertyProps) => {
+const DictProperty = (props: PropertyProps<Record<string, DictCellValue>>) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = useMemo(() => ["int", "string", "datetime", "float"], []);
 
