@@ -14,6 +14,7 @@ import {
   Check,
   Download,
   Zap,
+  Clapperboard,
   Shield,
   Command,
   Monitor,
@@ -55,6 +56,18 @@ const creativeFeatures = [
       "Frame-accurate edits",
       "Motion smoothing",
       "Convert between formats",
+    ],
+  },
+  {
+    title: "Storyboard, script, and cut",
+    description:
+      "Turn a one-line brief into a shot list, approve the cheap stills before paying to render clips, voice the script line by line, and assemble the result in the timeline editor.",
+    icon: Clapperboard,
+    image: "/screen_storyboard.png",
+    features: [
+      "Stills cost cents, clips cost dollars",
+      "A cast voice per speaker, takes you can compare",
+      "One click from board to timeline",
     ],
   },
   {

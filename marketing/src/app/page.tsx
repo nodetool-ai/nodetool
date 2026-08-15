@@ -13,8 +13,11 @@ import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
 import CostDashboardSection from "../components/CostDashboardSection";
+import StoryboardSection from "../components/StoryboardSection";
+import ScriptEditorSection from "../components/ScriptEditorSection";
 import TimelineEditorSection from "../components/TimelineEditorSection";
 import SketchEditorSection from "../components/SketchEditorSection";
+import AppBuilderSection from "../components/AppBuilderSection";
 import FeaturesSection from "../components/FeaturesSection";
 import NodeMenuSection from "../components/NodeMenuSection";
 import ChatUISection from "../components/ChatUISection";
@@ -320,11 +323,18 @@ export default function Home() {
         {/* What the canvas does */}
         <FeaturesSection />
 
+        {/* Plan the piece before paying for it — storyboard, then the script it speaks */}
+        <StoryboardSection />
+        <ScriptEditorSection />
+
         {/* Assemble the generated clips — built-in timeline editor */}
         <TimelineEditorSection />
 
         {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
         <SketchEditorSection />
+
+        {/* Wrap a finished workflow in a screen someone else can run */}
+        <AppBuilderSection />
 
         {/* What's in the canvas */}
         <NodeMenuSection />

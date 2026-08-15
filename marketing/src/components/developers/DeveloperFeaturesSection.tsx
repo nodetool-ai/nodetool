@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Code2, Terminal, Blocks } from "lucide-react";
+import { Code2, Terminal, Blocks, Braces } from "lucide-react";
 import CodeBlock from "./CodeBlock";
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
@@ -59,6 +59,22 @@ export class MyNode extends BaseNode {
     return { output: await myLogic(this.prompt) };
   }
 }`,
+  },
+  {
+    title: "JS scripts",
+    description:
+      "A named, versioned script with declared ports, saved test cases, and a QuickJS sandbox. Call it from a mini app, a Code node, an agent, or another script.",
+    icon: Braces,
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/20",
+    code: `import { parse } from "@nodetool-ai/sandbox-csv";
+
+const rows = await parse(inputs.csv);
+for (const row of rows) {
+  await emit("row", row);
+}
+await output("count", rows.length);`,
   },
 ];
 
