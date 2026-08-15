@@ -226,20 +226,43 @@ npm run build            # Build all packages
 npm run typecheck        # Type check web, electron, and mobile
 npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
 npm run lint:fix         # Auto-fix linting issues
-npm run lint:anti-slop   # anti-slop rules only — report-only, not part of `lint`
+npm run lint:anti-slop   # anti-slop backlog rules — report-only, not part of `lint`
 npm run test             # Run web, electron, and mobile tests
 npm run check            # Workspace/lockfile/boundary checks, build:packages,
                          # typecheck, lint, test:packages, test
 ```
 
-`lint:anti-slop` runs the vendored [anti-slop](https://github.com/dmmulroy/anti-slop)
-Oxlint plugin (`tools/oxlint/anti-slop/`, config `.oxlintrc.anti-slop.json`) —
-fifteen rules against `unknown` parameters/returns/dictionary values, assertion
-chains, assertions without a `SAFETY:` comment, runtime `typeof` narrowing, and
-conditional empty-object spread. It finds 15,264 violations today, so it is a
-backlog to work down, not a merge gate; `npm run lint` and CI do not run it. Get
-a rule to zero, then move it into `.oxlintrc.json`. See
-[tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
+The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
+(`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
+exactly one of them:
+
+- `.oxlintrc.anti-slop.json` — the **backlog**, 28,689 findings. Run it with
+  `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
+- `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
+  inside `npm run lint`, so they cannot come back.
+
+Getting a rule to zero and moving its entry from the first config to the second
+is one change. Promotion goes through the enforced config, not `.oxlintrc.json`,
+because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
+oxlint resolves the nearest config per file — a rule added at the root silently
+skips those trees. Remaining backlog, largest first:
+
+| rule | findings |
+|---|---:|
+| `require-safety-comment-for-type-assertion` | 10300 |
+| `no-unsafe-dictionary-type` | 5174 |
+| `no-runtime-typeof` | 4421 |
+| `no-known-value-widening` | 1946 |
+| `no-unknown-parameters` | 1944 |
+| `no-module-mocking` | 1545 |
+| `no-chained-type-assertions` | 1053 |
+| `no-shape-in-symbol-names` | 921 |
+| `no-conditional-empty-object-spread` | 772 |
+| `no-unknown-returns` | 604 |
+| `no-object-parameters` | 8 |
+| `no-reflect-get` | 1 |
+
+See [tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
 
 ### Backend Packages
 
