@@ -186,7 +186,13 @@ export default defineConfig({
       // the module is served from its own directory and the URL resolves.
       "@jitl/quickjs-ng-wasmfile-release-sync",
       "quickjs-emscripten-core"
-    ]
+    ],
+    // Nothing imports mediabunny statically — the `video.*` bridge behind the
+    // Code node reaches it only once a test calls it. Vite would then discover
+    // it mid-run, re-optimize, and reload the page out from under
+    // `page.evaluate`, which surfaces as "Execution context was destroyed".
+    // Only the first (cold) run is affected, which is every CI run.
+    include: ["mediabunny"]
   },
   server: {
     port: 5179,
