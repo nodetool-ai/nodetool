@@ -86,6 +86,10 @@ Decisions baked into the shape:
   the caller's secrets; it runs with the intersection of its declared `secrets`
   and what the invoking context allows.
 
+  **Implementation note.** The `packages` field remains on the document so old
+  saves parse. A script does not use it. Every installed sandbox pack and
+  every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import.
+
 ## Storage and API
 
 Copy the sketch pattern (`image_documents` + `image_document_versions`), the
@@ -133,9 +137,10 @@ The surface is the Code node assistant dialog promoted to a document editor:
   assistant edits a draft and Apply commits to the node, the script assistant
   edits the document directly — undo is the document's own history plus the
   version snapshots.
-- **Header/sidebar**: ports (inputs/outputs with types), packages picker,
-  secrets list, timeout — the same controls the Code node property panel
-  renders for its dynamic slots and `packages` prop.
+- **Header/sidebar**: ports (inputs/outputs with types), secrets list, timeout
+  — the same controls the Code node property panel renders for its dynamic
+  slots. There is no packages picker: every installed pack resolves by import
+  (see the implementation note above).
 - **Bottom: run console.** A Run button (prompting for input values from the
   declared ports), a Test button running the saved cases, and a console
   showing logs, streamed emits, final outputs, and errors — the
@@ -162,7 +167,7 @@ id; `ui_open_document` bridges "an id exists" → "the tools work".
 | `ui_jsscript_get_state` | document + validation issues + last run/test result |
 | `ui_jsscript_set_code` | replace the body |
 | `ui_jsscript_set_ports` | replace inputs/outputs |
-| `ui_jsscript_set_packages` | replace pack declarations |
+| `ui_jsscript_set_packages` | leftover no-op: scripts have no packages setting |
 | `ui_jsscript_set_meta` | name, description, secrets, timeout |
 | `ui_jsscript_set_tests` | replace the saved case list |
 | `ui_jsscript_run` | run with given inputs, return outputs/streamed/logs/error |
@@ -339,9 +344,10 @@ a single shareable file.
 
 `validate_js_script` wraps `validateCodeNodeBody`
 (`packages/node-sdk/src/code-node-validation.ts`) with the document's declared
-ports and packages — the analysis (syntax, undeclared imports, undefined
-names, undeclared `inputs.*` reads, unreachable output handles) is shared, not
-forked. On top of the body check, document-level rules:
+ports and `allowInstalledPackages` — the analysis (syntax, missing installed
+packs, undefined names, undeclared `inputs.*` reads, unreachable output
+handles) is shared, not forked. A script does not declare packages. On top of
+the body check, document-level rules:
 
 - duplicate or non-identifier port names; a port type the type system lacks
 - a test case referencing an undeclared input, staging a stream for one, or

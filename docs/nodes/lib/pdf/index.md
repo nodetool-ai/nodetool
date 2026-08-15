@@ -5,14 +5,12 @@ title: "lib.pdf Nodes"
 
 This namespace contains 7 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[PDF Extract Styled Text](pdfextractstyledtext.md)**
-- **[PDF Extract Tables](pdfextracttables.md)**
-- **[PDF Extract Text](pdfextracttext.md)**
-- **[PDF Extract Text (OCR)](pdfextracttextocr.md)**
-- **[PDF Page Screenshot](pdfpagescreenshot.md)**
-- **[PDF Rasterize (pdftoppm)](pdfrasterizepdftoppm.md)**
-- **[PDF to Markdown](pdftomarkdown.md)**
-
-[Back to all nodes](../../)
+- **[PDF Extract Styled Text](pdfextractstyledtext.md)** - Extract text spans with font name, size, bounding box, and color (always null...
+- **[PDF Extract Tables](pdfextracttables.md)** - Detect and extract tables from a PDF by analysing text layout.
+- **[PDF Extract Text](pdfextracttext.md)** - Extract plain text from a PDF, preserving line breaks based on layout position.
+- **[PDF Extract Text (OCR)](pdfextracttextocr.md)** - Extract text from a PDF using OCR, suitable for scanned documents and image-b...
+- **[PDF Page Screenshot](pdfpagescreenshot.md)** - Render PDF pages as PNG images.
+- **[PDF Rasterize (pdftoppm)](pdfrasterizepdftoppm.md)** - Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-...
+- **[PDF to Markdown](pdftomarkdown.md)** - Convert PDF to Markdown, inferring headings from font size.

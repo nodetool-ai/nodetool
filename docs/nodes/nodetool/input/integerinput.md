@@ -18,9 +18,7 @@ Accepts an integer (whole number) as a parameter for workflows, typically constr
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `int` |  | `0` |
-| description | `str` | The description of the input for the workflow. | `` |
 | min | `int` |  | `0` |
 | max | `int` |  | `99999` |
 

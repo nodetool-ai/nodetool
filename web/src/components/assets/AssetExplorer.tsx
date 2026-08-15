@@ -22,17 +22,23 @@ const gridFillStyles = css({
     flex: 1,
     minHeight: 0,
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
+    overflow: "hidden"
   },
   ".asset-grid-container": {
     marginTop: 0,
     flex: 1,
-    minHeight: 0
+    minHeight: 0,
+    overflow: "hidden"
   },
   ".dropzone": {
     // Override the grid's viewport-relative cap (and its mobile media-query
     // variant) so the grid fills the remaining height instead of leaving a gap.
-    maxHeight: "none !important"
+    // minHeight: 0 keeps the pane from growing with the tiles after the cap
+    // is removed — otherwise the virtualized list never gets a scroll box.
+    maxHeight: "none !important",
+    minHeight: 0,
+    overflow: "hidden"
   }
 });
 

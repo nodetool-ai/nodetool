@@ -3,6 +3,8 @@ import { uiAddNodeParams } from "@nodetool-ai/protocol";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
 import { noNodeStoreError, resolveWorkflowId } from "./workflow";
+import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
+import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 
 const addNodeParametersSchema = z.object(uiAddNodeParams);
 
@@ -109,6 +111,10 @@ FrontendToolRegistry.register({
         }
       }
     }
+    const inferredIO =
+      isCodeNodeType(type) && typeof resolvedProperties.code === "string"
+        ? deriveCodeIOUpdates(resolvedProperties.code)
+        : { dynamic_properties: {}, dynamic_outputs: {} };
 
     nodeStore.addNode({
       id,
@@ -125,8 +131,8 @@ FrontendToolRegistry.register({
       zIndex: 0,
       data: {
         properties: resolvedProperties,
-        dynamic_properties: {},
-        dynamic_outputs: {},
+        dynamic_properties: inferredIO.dynamic_properties,
+        dynamic_outputs: inferredIO.dynamic_outputs,
         workflow_id: workflowId,
         selectable: true
       }

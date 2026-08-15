@@ -388,6 +388,8 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     );
     const issue = issues.find((i) => i.code === "code_module");
     expect(issue?.message).toContain("`export`");
+    expect(issue?.message).toContain("top-level statements");
+    expect(issue?.message).not.toContain("return an object");
   });
 
   it("reports a specifier the catalog cannot resolve", () => {
@@ -442,6 +444,57 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     expect(
       validateCodeNodeBody(body("return { out: 1 };", [], ["out"]))
     ).toEqual([]);
+  });
+
+  it("lets a JS script import an installed pack and a platform module without a packages list", () => {
+    const issues = validateCodeNodeBody({
+      ...body(
+        'import yaml from "@nodetool-ai/sandbox-yaml";\n' +
+          'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+          "return { out: typeof yaml + typeof list_models };",
+        [],
+        ["out"]
+      ),
+      allowInstalledPackages: true,
+      sandboxModuleCatalog: {
+        ...fakeCatalog(),
+        summaries: () => [
+          {
+            specifier: "@nodetool-ai/sandbox-yaml",
+            packName: "@nodetool-ai/sandbox-yaml",
+            kind: "js",
+            contentDigest: "a".repeat(64)
+          }
+        ],
+        resolveForExecution: (declarations) => ({
+          modules: [],
+          statuses: declarations
+            .filter((declaration) => declaration.specifier !== "@nodetool-ai/sandbox-yaml")
+            .map((declaration) => ({
+              packName: declaration.specifier,
+              specifier: declaration.specifier,
+              status: "error" as const,
+              code: "module-not-found",
+              message: `Sandbox module ${declaration.specifier} is not installed.`
+            }))
+        })
+      }
+    });
+    expect(issues.filter((issue) => issue.code === "code_module")).toEqual([]);
+    expect(
+      issues.filter((issue) => issue.code === "code_package_unavailable")
+    ).toEqual([]);
+  });
+
+  it("still names a pack a JS script imports that is not installed", () => {
+    const issues = validateCodeNodeBody({
+      ...body('import { x } from "@nope/pack";\nreturn { out: x };', [], ["out"]),
+      allowInstalledPackages: true,
+      sandboxModuleCatalog: fakeCatalog()
+    });
+    const issue = issues.find((i) => i.code === "code_package_unavailable");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("@nope/pack");
   });
 
   it("checks nothing against a catalog when none is given", () => {

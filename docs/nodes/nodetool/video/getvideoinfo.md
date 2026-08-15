@@ -18,7 +18,7 @@ Get metadata about a video file including duration, resolution, frame rate, and 
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to analyze. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to analyze. | - |
 
 ## Outputs
 

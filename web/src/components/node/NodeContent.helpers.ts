@@ -127,14 +127,33 @@ export const arePropsEqual = (
     }
   }
 
-  const prevDynamicOutputsKeys = Object.keys(
-    prevProps.data.dynamic_outputs || {}
-  );
-  const nextDynamicOutputsKeys = Object.keys(
-    nextProps.data.dynamic_outputs || {}
-  );
-  if (prevDynamicOutputsKeys.length !== nextDynamicOutputsKeys.length) {
+  // Slot declarations paint handle colors (`Slugify(type)`). Connecting to
+  // an existing slot, or picking a type the current value still fits, writes
+  // only this map — values stay put.
+  const prevDynInputs = prevProps.data.dynamic_inputs || {};
+  const nextDynInputs = nextProps.data.dynamic_inputs || {};
+  const prevDynInputKeys = Object.keys(prevDynInputs);
+  const nextDynInputKeys = Object.keys(nextDynInputs);
+  if (prevDynInputKeys.length !== nextDynInputKeys.length) {
     return false;
+  }
+  for (const key of prevDynInputKeys) {
+    if (prevDynInputs[key] !== nextDynInputs[key]) {
+      return false;
+    }
+  }
+
+  const prevDynOut = prevProps.data.dynamic_outputs || {};
+  const nextDynOut = nextProps.data.dynamic_outputs || {};
+  const prevDynOutKeys = Object.keys(prevDynOut);
+  const nextDynOutKeys = Object.keys(nextDynOut);
+  if (prevDynOutKeys.length !== nextDynOutKeys.length) {
+    return false;
+  }
+  for (const key of prevDynOutKeys) {
+    if (prevDynOut[key] !== nextDynOut[key]) {
+      return false;
+    }
   }
 
   return true;

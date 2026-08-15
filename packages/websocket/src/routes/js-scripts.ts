@@ -17,6 +17,10 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { runCodeBody } from "@nodetool-ai/agents";
+import {
+  emptyDeclaredJsScriptOutputsError,
+  missingDeclaredJsScriptOutputs
+} from "@nodetool-ai/execution/js-script-debug";
 import { getSecret, JsScript } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -24,11 +28,14 @@ import {
   runJsScriptRequest,
   type RunJsScriptResponse
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
+import { getAssetAdapter } from "../lib/storage.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
+  storage?: StorageAdapter;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -97,7 +104,8 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const context = new ProcessingContext({
         jobId: `js-script-${script.id}-${Date.now()}`,
         userId,
-        secretResolver: getSecret
+        secretResolver: getSecret,
+        storage: opts.storage ?? getAssetAdapter()
       });
 
       const result = await runCodeBody(context, {
@@ -113,12 +121,22 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         withToolbelt: true
       });
 
+      // A declared-output script that finishes with `outputs: {}` is a
+      // failed contract, not a 500 — same shape as a body that throws.
+      const missing = result.ok
+        ? missingDeclaredJsScriptOutputs(document.outputs, result.outputs)
+        : [];
+      const failedEmptyBag = missing.length > 0;
       const body: RunJsScriptResponse = {
-        ok: result.ok,
+        ok: failedEmptyBag ? false : result.ok,
         ...(result.outputs !== undefined ? { outputs: result.outputs } : {}),
         ...(result.streamed !== undefined ? { streamed: result.streamed } : {}),
         logs: result.logs,
-        ...(result.error !== undefined ? { error: result.error } : {}),
+        ...(failedEmptyBag
+          ? { error: emptyDeclaredJsScriptOutputsError(missing) }
+          : result.error !== undefined
+            ? { error: result.error }
+            : {}),
         duration_ms: result.duration_ms
       };
       return jsonResponse(body);

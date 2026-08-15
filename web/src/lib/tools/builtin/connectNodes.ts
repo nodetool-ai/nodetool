@@ -15,7 +15,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
-    "Connect two nodes by port name. Required: source/target node ids and handle (port) names.",
+    "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first.",
   parameters: z.object(uiConnectNodesParams),
   async execute(
     {

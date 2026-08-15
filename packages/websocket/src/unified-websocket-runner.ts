@@ -7,6 +7,7 @@ import {
   SUPERSEDED_TOOL_RESULT,
   repairOrphanedToolCalls
 } from "./chat-tool-call-repair.js";
+import { attachChatPredictionForwarder } from "./chat-prediction-forwarder.js";
 import { ApiErrorCode } from "./error-codes.js";
 import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
@@ -102,6 +103,7 @@ import {
   DIRECT_TOOL_NAMES,
   encodeRawRgbaToPng,
   getCostReconciler,
+  getProcessSandboxModuleCatalog,
   isProviderSessionUpdate,
   isProviderMessageEvent,
   type ActiveModelSelection
@@ -148,6 +150,7 @@ import { Tool, WORKFLOW_AUTHORING_KNOWLEDGE } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
+  sandboxPackagesForChat,
   type SandboxClock,
   CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
@@ -5717,6 +5720,11 @@ export class UnifiedWebSocketRunner {
       workspaceDir: chatWorkspaceDir,
       authToken: this.authToken
     });
+    const detachPredictions = attachChatPredictionForwarder(
+      (listener) => ctx.addMessageListener(listener),
+      (msg) => this.sendDetached(msg),
+      { threadId: threadId || null, workflowId }
+    );
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null, codeactClock);
@@ -5768,6 +5776,11 @@ export class UnifiedWebSocketRunner {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        sandboxPackages: sandboxPackagesForChat({
+          source: uiContext?.source,
+          focusedType: uiContext?.focused?.type,
+          catalog: getProcessSandboxModuleCatalog()
+        }),
         directToolNames: directSchemas.map((s) => s.name),
         executeTool: async (call: ChatCodeActToolCall) => {
           if (!codeactExecuteToolRef) {
@@ -6352,6 +6365,7 @@ export class UnifiedWebSocketRunner {
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
     } finally {
+      detachPredictions();
       // Whatever is still outstanding never got a result row. Leaving the gap
       // makes the thread malformed — Anthropic rejects a `tool_use` with no
       // `tool_result` — and leaves the model unaware the call was abandoned,

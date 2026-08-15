@@ -18,7 +18,7 @@ Apply a blur effect to a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to apply blur effect. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to apply blur effect. | - |
 | strength | `float` | The strength of the blur effect. Higher values create a stronger blur. | `5` |
 
 ## Outputs

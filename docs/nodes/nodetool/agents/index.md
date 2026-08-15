@@ -3,36 +3,14 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-This namespace contains 27 node(s).
+This namespace contains 7 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Agent](agent.md)**
-- **[Browser Agent](browseragent.md)**
-- **[Classifier](classifier.md)**
+- **[Agent](agent.md)** - Chat with an LLM: send a prompt (plus optional images or audio), call tools, ...
+- **[Classifier](classifier.md)** - Classify text into predefined or dynamic categories using LLM.
 - **[Claude Code Agent](claudecodeagent.md)**
-- **[Create Thread](createthread.md)**
-- **[Document Agent](documentagent.md)**
-- **[DOCX Agent](docxagent.md)**
-- **[Email Agent](emailagent.md)**
-- **[Enhance Prompt](enhanceprompt.md)**
-- **[Extractor](extractor.md)**
-- **[FFmpeg Agent](ffmpegagent.md)**
-- **[Filesystem Agent](filesystemagent.md)**
-- **[Git Agent](gitagent.md)**
-- **[HTML Agent](htmlagent.md)**
-- **[HTTP API Agent](httpapiagent.md)**
-- **[Image Agent](imageagent.md)**
-- **[Live Browser Agent](livebrowseragent.md)**
-- **[Media Agent](mediaagent.md)**
-- **[PDF-lib Agent](pdflibagent.md)**
-- **[PPTX Agent](pptxagent.md)**
-- **[Shell Agent](shellagent.md)**
-- **[Spreadsheet Agent](spreadsheetagent.md)**
-- **[SQLite Agent](sqliteagent.md)**
-- **[Summarizer](summarizer.md)**
-- **[Supabase Agent](supabaseagent.md)**
-- **[Vector Store Agent](vectorstoreagent.md)**
-- **[yt-dlp Downloader Agent](ytdlpdownloaderagent.md)**
-
-[Back to all nodes](../../)
+- **[Create Thread](createthread.md)** - Create a new conversation thread and return its ID.
+- **[Enhance Prompt](enhanceprompt.md)** - Rewrite a rough draft into a clearer, more detailed prompt using an LLM, with...
+- **[Extractor](extractor.md)** - Extract structured data from text content using LLM providers.
+- **[Summarizer](summarizer.md)** - Generate concise summaries of text content using LLM providers with streaming...

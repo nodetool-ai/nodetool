@@ -39,11 +39,68 @@ const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
   "video/mpeg": "mpeg",
   "video/quicktime": "mov",
   "video/x-msvideo": "avi",
-  "video/webm": "webm"
+  "video/webm": "webm",
+  "model/gltf-binary": "glb",
+  "model/gltf+json": "gltf"
 };
+
+const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
+  glb: "model/gltf-binary",
+  gltf: "model/gltf+json",
+  svg: "image/svg+xml"
+};
+
+const GENERIC_CONTENT_TYPES = new Set(["", "application/octet-stream"]);
 
 function getFileExtension(contentType: string): string {
   return CONTENT_TYPE_TO_EXTENSION[contentType] ?? "bin";
+}
+
+function fileExtensionOf(fileName: string | undefined): string | undefined {
+  if (!fileName) {
+    return undefined;
+  }
+  const base = fileName.split(/[\\/]/).pop() ?? "";
+  const dot = base.lastIndexOf(".");
+  if (dot <= 0 || dot === base.length - 1) {
+    return undefined;
+  }
+  return base.slice(dot + 1).toLowerCase();
+}
+
+/**
+ * Fill in a missing or generic content type from the file name. Browsers
+ * often send `application/octet-stream` (or nothing) for `.glb` / `.gltf`
+ * / `.svg`.
+ */
+export function normalizeAssetContentType(
+  contentType: string,
+  fileName?: string
+): string {
+  if (CONTENT_TYPE_TO_EXTENSION[contentType]) {
+    return contentType;
+  }
+  const ext = fileExtensionOf(fileName);
+  const inferred = ext ? EXTENSION_TO_INFERRED_TYPE[ext] : undefined;
+  if (inferred && GENERIC_CONTENT_TYPES.has(contentType)) {
+    return inferred;
+  }
+  return contentType || "application/octet-stream";
+}
+
+/**
+ * Names to try when reading an asset, newest first. 3D models used to be
+ * stored as `.bin` because this map had no `model/*` entries.
+ */
+export function assetFileNameCandidates(
+  assetId: string,
+  contentType: string
+): string[] {
+  const canonical = getAssetFileName(assetId, contentType);
+  if (canonical.endsWith(".glb") || canonical.endsWith(".gltf")) {
+    return [canonical, `${assetId}.bin`];
+  }
+  return [canonical];
 }
 
 /**
@@ -111,10 +168,11 @@ export async function retrieveAssetBytes(
   assetId: string,
   contentType: string
 ): Promise<Uint8Array | null> {
-  const fileName = getAssetFileName(assetId, contentType);
-  for (const candidate of assetKeyCandidates(userId, fileName)) {
-    const bytes = await adapter.retrieve(adapter.uriForKey(candidate));
-    if (bytes) return bytes;
+  for (const fileName of assetFileNameCandidates(assetId, contentType)) {
+    for (const candidate of assetKeyCandidates(userId, fileName)) {
+      const bytes = await adapter.retrieve(adapter.uriForKey(candidate));
+      if (bytes) return bytes;
+    }
   }
   return null;
 }

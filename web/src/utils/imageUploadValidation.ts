@@ -4,7 +4,8 @@ type SniffedImageMime =
   | "image/png"
   | "image/jpeg"
   | "image/gif"
-  | "image/webp";
+  | "image/webp"
+  | "image/svg+xml";
 
 interface PreparedUploadFile {
   file: File;
@@ -25,8 +26,11 @@ const IMAGE_EXTENSION_MAP: Record<SniffedImageMime, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/gif": "gif",
-  "image/webp": "webp"
+  "image/webp": "webp",
+  "image/svg+xml": "svg"
 };
+
+const HEADER_BYTES = 512;
 
 const splitFileName = (fileName: string): { base: string; extension: string } => {
   const lastDot = fileName.lastIndexOf(".");
@@ -84,6 +88,23 @@ const isWebp = (bytes: Uint8Array): boolean =>
   bytes[10] === 0x42 &&
   bytes[11] === 0x50;
 
+const isSvg = (bytes: Uint8Array): boolean => {
+  let start = 0;
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xef &&
+    bytes[1] === 0xbb &&
+    bytes[2] === 0xbf
+  ) {
+    start = 3;
+  }
+  const text = new TextDecoder("utf-8").decode(bytes.subarray(start)).trimStart();
+  if (text.startsWith("<svg")) {
+    return true;
+  }
+  return text.startsWith("<?xml") && /<svg[\s>]/i.test(text);
+};
+
 export const sniffImageMimeType = (bytes: Uint8Array): SniffedImageMime | null => {
   if (isPng(bytes)) {
     return "image/png";
@@ -96,6 +117,9 @@ export const sniffImageMimeType = (bytes: Uint8Array): SniffedImageMime | null =
   }
   if (isWebp(bytes)) {
     return "image/webp";
+  }
+  if (isSvg(bytes)) {
+    return "image/svg+xml";
   }
   return null;
 };
@@ -139,7 +163,7 @@ export const prepareUploadFile = async (
   }
 
   const headerBytes = await (async (): Promise<Uint8Array> => {
-    const sliced = file.slice(0, 16) as Blob & {
+    const sliced = file.slice(0, HEADER_BYTES) as Blob & {
       arrayBuffer?: () => Promise<ArrayBuffer>;
     };
     if (typeof sliced.arrayBuffer === "function") {
@@ -171,6 +195,20 @@ export const prepareUploadFile = async (
       declaredMime,
       sniffedMime,
       finalMime: sniffedMime,
+      size: file.size
+    };
+  }
+
+  const declaredSvg =
+    declaredMime === "image/svg+xml" ||
+    file.name.toLowerCase().endsWith(".svg");
+  if (declaredSvg) {
+    const normalizedFile = createRenamedFile(file, "image/svg+xml", "svg");
+    return {
+      file: normalizedFile,
+      declaredMime,
+      sniffedMime: null,
+      finalMime: "image/svg+xml",
       size: file.size
     };
   }

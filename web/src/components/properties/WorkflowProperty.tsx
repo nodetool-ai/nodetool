@@ -9,7 +9,7 @@ import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 import type { SelectChangeEvent } from "../ui_primitives";
 
-interface WorkflowValue {
+export interface WorkflowValue {
   type: "workflow";
   id: string;
 }

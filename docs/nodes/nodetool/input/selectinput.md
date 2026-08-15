@@ -25,9 +25,7 @@ Accepts a selection from a predefined set of options as a parameter for workflow
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `str` | The currently selected value. | `` |
-| description | `str` | The description of the input for the workflow. | `` |
 | options | `list[str]` | The list of available options to choose from. | `[]` |
 | enum_type_name | `str` | The enum type name this select corresponds to (for type matching). | `` |
 

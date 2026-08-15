@@ -83,11 +83,8 @@ describe("isCloudNodeType", () => {
     }
   });
 
-  it("applies the denylist inside an allowed namespace", () => {
-    expect(isCloudNodeType("nodetool.agents.ShellAgent")).toBe(false);
-    expect(isCloudNodeType("nodetool.agents.SQLiteAgent")).toBe(false);
-    // …but keeps the creative agents in the same namespace.
-    expect(isCloudNodeType("nodetool.agents.ImageAgent")).toBe(true);
+  it("keeps the standard agents in the allowed namespace", () => {
+    expect(isCloudNodeType("nodetool.agents.Agent")).toBe(true);
     expect(isCloudNodeType("nodetool.agents.Summarizer")).toBe(true);
   });
 

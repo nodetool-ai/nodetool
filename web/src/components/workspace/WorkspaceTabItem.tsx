@@ -103,11 +103,17 @@ const WorkspaceTabItem = ({
     [onClose, tab]
   );
 
-  const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (event.button === 0) {
-      event.preventDefault();
-    }
-  }, []);
+  const handleMouseDown = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      // While renaming, the input must receive the mousedown so it can
+      // focus and accept the caret. preventDefault here is only for the
+      // idle tab, where it stops text-selection during a drag.
+      if (event.button === 0 && !isEditing) {
+        event.preventDefault();
+      }
+    },
+    [isEditing]
+  );
 
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -189,7 +195,12 @@ const WorkspaceTabItem = ({
                 color="primary"
               />
             )}
-            <span className="tab-name">{tab.title}</span>
+            <span
+              className="tab-name"
+              title={canRename ? "Double-click to rename" : undefined}
+            >
+              {tab.title}
+            </span>
             {isWorkflowDirty && (
               <span
                 className="dirty-dot"
@@ -216,6 +227,16 @@ const WorkspaceTabItem = ({
         onClose={closeContextMenu}
         compact
       >
+        {canRename && (
+          <MenuItemPrimitive
+            label="Rename"
+            compact
+            onClick={() => {
+              closeContextMenu();
+              onBeginRename(tab);
+            }}
+          />
+        )}
         <MenuItemPrimitive
           label="Close Tab"
           compact

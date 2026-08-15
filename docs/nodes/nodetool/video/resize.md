@@ -18,7 +18,7 @@ Resize a video to a specific width and height.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to resize. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to resize. | - |
 | width | `int` | The target width. Use -1 to maintain aspect ratio. | `-1` |
 | height | `int` | The target height. Use -1 to maintain aspect ratio. | `-1` |
 

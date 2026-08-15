@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, TYPOGRAPHY } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -9,7 +9,7 @@ export const createStyles = (theme: Theme) => ({
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    padding: "1.5em 0 0.75em",
+    padding: theme.spacing(6, 0, 3),
     minHeight: 0,
   }),
   messageWrapper: css({
@@ -20,8 +20,8 @@ export const createStyles = (theme: Theme) => ({
     alignItems: "center",
     overflowY: "auto",
     overflowAnchor: "none",
-    padding: ".5em",
-    marginTop: ".2em",
+    padding: theme.spacing(2),
+    marginTop: 0,
     position: "relative",
 
     "&::-webkit-scrollbar": {
@@ -61,8 +61,8 @@ export const createStyles = (theme: Theme) => ({
       transition: MOTION.border
     },
     ".chat-message.assistant": {
-      padding: "0.75em 1em",
-      borderRadius: "1em",
+      padding: theme.spacing(3, 4),
+      borderRadius: BORDER_RADIUS.xl,
       transition: MOTION.border
     },
     ".chat-message.assistant:hover": {
@@ -327,6 +327,38 @@ export const createStyles = (theme: Theme) => ({
       overflowWrap: "anywhere"
     },
 
+    // Status chrome ("Thinking…", elapsed time) shares the assistant
+    // message's left edge and the label type style (13px / 500).
+    ".chat-status-row": {
+      padding: theme.spacing(1, 4),
+      minHeight: theme.spacing(6)
+    },
+
+    ".chat-status-label": {
+      ...TYPOGRAPHY.sans.label,
+      color: theme.vars.palette.text.secondary,
+      margin: 0
+    },
+
+    ".chat-status-elapsed": {
+      ...TYPOGRAPHY.sans.caption,
+      marginLeft: "auto",
+      fontVariantNumeric: "tabular-nums"
+    },
+
+    ".thought-section-container": {
+      margin: theme.spacing(1, 0)
+    },
+
+    ".thought-section-container .labeled-toggle": {
+      paddingLeft: 0,
+      paddingRight: 0
+    },
+
+    ".thought-section-container .labeled-toggle-label": {
+      ...TYPOGRAPHY.sans.label
+    },
+
     // ── Tool execution chain ────────────────────────────────────────────────
     // A message's tool calls render as a chain: tiny uppercase section label
     // with a hairline rule, one bordered card per call, and a summary bar.
@@ -441,7 +473,11 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-call-details": {
       padding: theme.spacing(1, 1.5, 1.25),
-      borderTop: `1px solid ${theme.vars.palette.divider}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      minWidth: 0,
+      ".code-block-container": {
+        marginBottom: 0
+      }
     },
 
     ".tool-call-card.running .tool-call-name": {
@@ -457,8 +493,6 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card.run-subtask .tool-call-badge": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
       letterSpacing: "0.04em",
       textTransform: "uppercase",
       color: theme.vars.palette.primary.main,
@@ -566,6 +600,10 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.secondary
     },
 
+    ".media-prediction-inline": {
+      padding: theme.spacing(0, 1.5, 1, 1.5)
+    },
+
     ".expand-icon": {
       transition: MOTION.transform,
       color: theme.vars.palette.text.disabled,
@@ -576,10 +614,18 @@ export const createStyles = (theme: Theme) => ({
       transform: "rotate(180deg)"
     },
 
+    ".tool-section-header": {
+      minHeight: theme.spacing(6)
+    },
+
     ".tool-section-title": {
       color: theme.vars.palette.text.disabled,
       display: "block",
       marginBottom: theme.spacing(0.5)
+    },
+
+    ".tool-section-header .tool-section-title": {
+      marginBottom: 0
     },
 
     ".pretty-json": {

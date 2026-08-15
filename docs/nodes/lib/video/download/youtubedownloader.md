@@ -29,6 +29,7 @@ Download media from URLs using yt-dlp.
 | format_selector | `str` | yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio') | `best` |
 | container | `str` | Output container format (e.g., 'mp4', 'webm', 'auto') | `auto` |
 | subtitles | `bool` | Download subtitles if available | `false` |
+| sub_langs | `str` | Comma-separated subtitle language codes in yt-dlp syntax (e.g., 'en,en-US,en-GB', 'de.*', 'all'). Only used when Subtitles is enabled. | - |
 | thumbnail | `bool` | Download thumbnail if available | `false` |
 | overwrite | `bool` | Overwrite existing files | `false` |
 | rate_limit_kbps | `int` | Rate limit in KB/s (0 = unlimited) | `0` |

@@ -119,6 +119,18 @@ describe("MIME type detection", () => {
     expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
   });
 
+  it("serves a legacy .bin 3D object when the request asks for .glb", async () => {
+    const handler = makeHandler();
+    const ownerDir = path.join(tmpDir, "1");
+    await fs.mkdir(ownerDir, { recursive: true });
+    await fs.writeFile(path.join(ownerDir, "mesh.bin"), "glTF-bytes");
+    const res = await handler(
+      makeRequest("/api/storage/1/mesh.glb", "GET")
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("glTF-bytes");
+  });
+
   it.each([
     ["clip.webm", "video/webm"],
     ["sound.ogg", "audio/ogg"],
@@ -145,12 +157,16 @@ describe("MIME type detection", () => {
     expect(res.headers.get("Content-Type")).toBe("text/plain");
   });
 
-  it("does not serve SVG as image/svg+xml (leaves it octet-stream)", async () => {
+  it("serves SVG as image/svg+xml with a sandbox CSP", async () => {
     const handler = makeHandler();
     await fs.writeFile(path.join(tmpDir, "vec.svg"), "<svg/>");
     const res = await handler(makeRequest("/api/storage/vec.svg", "HEAD"));
     expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
+    expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    const csp = res.headers.get("Content-Security-Policy") ?? "";
+    expect(csp).toContain("sandbox");
+    expect(csp).toContain("default-src 'none'");
   });
 });
 

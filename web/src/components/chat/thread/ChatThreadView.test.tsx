@@ -390,7 +390,63 @@ describe("ChatThreadView", () => {
         messages={mockMessages}
       />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Thinking…");
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Thinking…");
+    expect(status).toHaveClass("chat-status-label");
+    expect(status.closest(".chat-status-row")).not.toBeNull();
+  });
+
+  it("shows provider, model, and a timer while a media prediction is running", () => {
+    act(() =>
+      useGlobalChatStore.setState({
+        currentThreadId: "thread-media",
+        threadRuntime: {
+          "thread-media": {
+            status: "loading",
+            statusMessage: null,
+            progress: { current: 0, total: 0 },
+            error: null,
+            planningUpdate: null,
+            taskUpdate: null,
+            logUpdate: null,
+            runningToolCallId: "exec-1",
+            toolMessage: "Running code",
+            activePredictions: [
+              {
+                id: "p1",
+                provider: "fal_ai",
+                model: "flux-schnell",
+                capability: "text_to_image",
+                startedAt: Date.now() - 4000
+              }
+            ],
+            sendMessageTimeoutId: null
+          }
+        }
+      })
+    );
+
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        threadId="thread-media"
+        status="loading"
+        runningToolCallId="exec-1"
+        messages={mockMessages}
+      />
+    );
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Generating image · fal_ai · flux-schnell");
+    expect(screen.getByText("4s")).toBeInTheDocument();
+    expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
+
+    act(() =>
+      useGlobalChatStore.setState({
+        currentThreadId: null,
+        threadRuntime: {}
+      })
+    );
   });
 
   it("renders progress bar when progress > 0", () => {

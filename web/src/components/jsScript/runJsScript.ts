@@ -4,10 +4,10 @@
  * assistant tools, and the CLI harness share. Nothing runs in the browser — the
  * body only ever executes in the server's QuickJS sandbox.
  *
- * The endpoint runs the *saved* document, so a caller has to let autosave land
- * before a run reflects the latest edit. A body that reads its inputs with
- * `stream` takes staged items instead of values: they go in `input_streams`,
- * one array per declared input.
+ * The endpoint runs the *saved* document. Callers flush the live document
+ * first (`flushJsScriptSave`); the endpoint still runs the saved row. A body
+ * that reads its inputs with `stream` takes staged items instead of values:
+ * they go in `input_streams`, one array per declared input.
  */
 
 import { restFetch } from "../../lib/rest-fetch";

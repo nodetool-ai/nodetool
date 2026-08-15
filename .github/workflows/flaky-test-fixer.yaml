@@ -1,0 +1,251 @@
+name: Flaky Test Fixer
+
+# Finds tests that pass and fail on the same code, and fixes the cause.
+#
+# Two sources of evidence. The GitHub API says which jobs went red and then
+# green on a re-run of the same commit — the definition of a flake, straight
+# from CI history. Locally, the suites run twice in randomized order, which
+# surfaces the largest class of flakes in this repo: order dependence through
+# shared module state.
+#
+# The only acceptable fix is the cause. Adding a retry, widening a timeout, or
+# skipping the test hides a race that will reappear in production.
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # Daily at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: "Randomized repeat runs of each suite"
+        required: false
+        default: "2"
+
+jobs:
+  flaky-test-fixer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Read flakes out of CI history
+        id: history
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          echo "## Flakes in CI History" >> $GITHUB_STEP_SUMMARY
+          : > ci-flakes.log
+
+          # A run with more than one attempt whose final conclusion is success
+          # went red and then green on the same commit.
+          gh api "repos/${{ github.repository }}/actions/runs?branch=${{ github.event.repository.default_branch }}&per_page=100" \
+            --jq '.workflow_runs[] | select(.run_attempt > 1) | "\(.name)\t\(.head_sha[0:8])\tattempts=\(.run_attempt)\t\(.conclusion)\t\(.html_url)"' \
+            >> ci-flakes.log 2>/dev/null || echo "(GitHub API unavailable)" >> ci-flakes.log
+
+          RERUNS=$(grep -c "attempts=" ci-flakes.log || true)
+          echo "Re-run runs on the default branch (last 100): $RERUNS" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -25 ci-flakes.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Repeat the suites in randomized order
+        id: repeat
+        continue-on-error: true
+        shell: bash
+        run: |
+          REPEATS="${{ github.event.inputs.repeats }}"
+          if [ -z "$REPEATS" ]; then REPEATS=2; fi
+          : > flaky-runs.log
+          FLAKY=0
+
+          # Jest randomizes case order within a file with --randomize; Vitest
+          # does the same with --sequence.shuffle. Order dependence — a module
+          # mock, a module-level cache, a global left dirty — shows up as a
+          # failure that moves between runs.
+          for i in $(seq 1 "$REPEATS"); do
+            echo "::group::web attempt $i"
+            if ! npm test --workspace=web -- --randomize > "/tmp/web-$i.log" 2>&1; then
+              FLAKY=1
+              { echo "### web attempt $i failed"; echo '```'; grep -E "●|✕|FAIL|Expected|Received" "/tmp/web-$i.log" | head -60; echo '```'; echo; } >> flaky-runs.log
+            fi
+            echo "::endgroup::"
+
+            echo "::group::packages attempt $i"
+            if ! npx turbo run test --filter="./packages/*" -- --sequence.shuffle > "/tmp/pkg-$i.log" 2>&1; then
+              FLAKY=1
+              { echo "### packages attempt $i failed"; echo '```'; grep -E "FAIL|✕|AssertionError|Expected|Received" "/tmp/pkg-$i.log" | head -60; echo '```'; echo; } >> flaky-runs.log
+            fi
+            echo "::endgroup::"
+          done
+
+          echo "## Randomized Repeat Runs" >> $GITHUB_STEP_SUMMARY
+          if [ "$FLAKY" -eq 0 ]; then
+            echo "All $REPEATS randomized runs passed." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "At least one randomized run failed — see flaky-runs.log." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "REPEAT_FAILURES=$FLAKY" >> $GITHUB_ENV
+
+      - name: Decide whether there is anything to fix
+        shell: bash
+        run: |
+          # CI history alone is enough to work from: a re-run that went green is
+          # a flake even if today's randomized runs happened to pass.
+          RERUNS=$(grep -c "attempts=" ci-flakes.log || true)
+          if [ "$REPEAT_FAILURES" = "1" ] || [ "${RERUNS:-0}" -gt 0 ]; then
+            echo "FLAKES_FOUND=1" >> $GITHUB_ENV
+          else
+            echo "FLAKES_FOUND=0" >> $GITHUB_ENV
+          fi
+
+      - name: Upload run logs
+        if: env.FLAKES_FOUND == '1'
+        uses: actions/upload-artifact@v7
+        with:
+          name: flaky-run-logs
+          path: |
+            ci-flakes.log
+            flaky-runs.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Run Claude Code
+        if: env.FLAKES_FOUND == '1'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
+          prompt: |
+            # Root-Cause a Flaky Test
+
+            Two sources of evidence:
+            - `ci-flakes.log` — runs on the default branch that needed more than
+              one attempt. Same commit, red then green.
+            - `flaky-runs.log` — failures from running the suites twice with
+              randomized order (`jest --randomize`,
+              `vitest --sequence.shuffle`).
+
+            Pick **one** flaky test and fix what makes it non-deterministic.
+
+            ## Reproduce it first
+            A flake you cannot reproduce is a flake you cannot claim to have
+            fixed. Try, in order:
+            ```bash
+            npm test --workspace=web -- --randomize -t "<test name>"
+            npm run test --workspace=packages/<name> -- --sequence.shuffle
+            # order dependence: run the suspected neighbour first
+            npm test --workspace=web -- <fileA> <fileB>
+            ```
+            Loop it 20 times and count the failures. Record the rate before and
+            after your fix. If it never reproduces, say so and inspect the CI
+            logs from `ci-flakes.log` instead — `gh run view <id> --log-failed`.
+
+            ## The usual causes, in this repo's terms
+            - **Shared module state** between test files: a module-level cache, a
+              Zustand store that is never reset, a registry that accumulates.
+            - **Unawaited promises**: an assertion running before the effect it
+              depends on; a `void`-ed promise that settles into the next test.
+            - **Real timers and real time**: `setTimeout`-based waits, dates near
+              midnight, durations asserted with `toBe`.
+            - **`waitFor` misuse**: asserting on the first render instead of the
+              settled state, or a `waitFor` with a side effect inside it.
+            - **Order or index assumptions** over unordered data: `Object.keys`,
+              a `Map` iteration, results from a query with no `ORDER BY`.
+            - **Ports, files, and databases** shared between parallel workers.
+            - **The network**: a test that reaches a real endpoint. Mock it.
+            - **WebSocket and MsgPack framing**: assertions that assume one
+              message per frame, or a fixed arrival order.
+
+            ## Fix the cause
+            Acceptable: reset the shared state in `beforeEach`, await what the
+            code awaits, use fake timers, assert on the settled state, sort
+            before comparing, isolate the resource, mock the boundary.
+
+            **Not acceptable**, and a PR that does any of these will be rejected:
+            - retrying the test (`jest.retryTimes`, `test.retry`)
+            - `test.skip` / `describe.skip` / `.fixme` on a flaky test
+            - raising a timeout without showing the operation genuinely needs
+              longer
+            - loosening the assertion until it always passes
+            - `await new Promise(r => setTimeout(r, 500))` as a synchronization
+              device
+
+            If the flake is caused by a **product** race rather than a test bug,
+            fix the product code and say so — that race reaches users too.
+
+            ## Rules
+            - One flake per PR. Maximum 8 files.
+            - Show the failure rate before and after, from an actual loop.
+            - Do not touch CI workflow files.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a flaky-test PR
+              is already open.
+
+            ## Verification
+            ```bash
+            npm run lint && npm run test && npm run test:packages
+            ```
+            Plus the repeat loop for the test you fixed.
+
+            ## Submit
+            Create a PR titled "fix(test): deflake <test>" naming the source of
+            non-determinism, the reproduction command, the failure rate before
+            and after, and why the fix removes the cause rather than the symptom.
+
+      - name: Post-change verification
+        if: always() && env.FLAKES_FOUND == '1'
+        run: |
+          echo "## Post-Change Suites" >> $GITHUB_STEP_SUMMARY
+          FAIL=0
+          npm run lint || FAIL=1
+          npm run test || FAIL=1
+          npm run test:packages || FAIL=1
+
+          if [ $FAIL -eq 0 ]; then
+            echo "Suites passed" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # The randomized repeats above are this run's baseline. If they were
+          # already failing, a red suite here says nothing new — the whole point
+          # of this workflow is that these suites fail intermittently.
+          if [ "$REPEAT_FAILURES" = "1" ]; then
+            echo "Suites failed, but they were already failing before the change" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          echo "Suites failed after the deflake change, having passed before it" >> $GITHUB_STEP_SUMMARY
+          exit 1

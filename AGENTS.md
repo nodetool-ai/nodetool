@@ -47,7 +47,7 @@ Talk to the user in ASD-STE100 Simplified Technical English.
 ## Architecture
 
 ```
-packages/           # 59 npm workspace packages (TypeScript backend)
+packages/           # 55 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -848,8 +848,10 @@ node's `packages` property does not declare (the guest loader resolves only
 declared sandbox packages),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
-too — reads an `inputs.<name>` the node does not declare, never returns, or
-leaves a declared output unset on some return path is reported against the node.
+too — never returns, or leaves a declared output unset on some return path is
+reported against the node. A named `inputs.<name>` read or `stream("name")` /
+`emit("name")` call is not an error: the validator, the editor and the graph
+tools all count it as a declared handle.
 The analysis lives in `@nodetool-ai/node-sdk` (`code-analysis.ts`,
 `code-node-validation.ts`), so the graph validator, the `submit_code` planner
 and the editor read one AST.
@@ -1025,7 +1027,7 @@ npm run dev:nodetool -- jsscript versions list|show|create|restore|delete <id>
 ```
 
 `validate` reads what a headless check can decide: the body's syntax, imports
-against the declared packages, undefined names, undeclared `inputs.*` reads,
+against the installed catalog (a script has no packages setting), undefined names, undeclared `inputs.*` reads,
 outputs no `emit`/`output` call reaches, duplicate or non-identifier port names,
 and tests naming ports the script does not declare. A body that declares outputs
 and returns them instead of emitting them is an **error** — a script has no
@@ -1053,9 +1055,10 @@ Agents reach the same surface through the `js-scripts` capability module —
 **`list_js_scripts`** (id, name, description, ports: the discovery surface),
 **`get_js_script`**, **`save_js_script`** (validated first, CAS on update),
 **`validate_js_script`**, **`run_js_script`** and **`test_js_script`**. A script
-runs inside its own envelope: its declared packages, its declared secrets
-intersected with whatever allowance the invoking context carries, its own
-timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
+runs inside its own envelope: every installed sandbox pack and every
+`@nodetool-ai/sandbox-nodetool/<namespace>` module by import, its declared
+secrets intersected with whatever allowance the invoking context carries, its
+own timeout, and the same `tools.*` / `nodetool.*` belt a Code node has.
 Composition is bounded like sub-agents: depth cap 4
 and a script id chain, so a cycle fails the call naming it. Validation and
 report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
@@ -1221,6 +1224,19 @@ cases: required tools invoked, action rounds within bounds, result correct.
 npm run dev:nodetool -- eval codeact -p anthropic -m claude-sonnet-5
 ```
 
+A **`subtask`** suite scores delegation: each of its seven cases hands the
+parent an objective it should hand to a `run_subtask` child, and the check is
+that the *child* — not the parent — ran the inherited tools. The instrumented
+tools record the subtask depth of every call, so "the parent did it itself"
+scores differently from "the parent delegated". It also covers subtask count,
+recursion depth, error propagation, and whether the delegated result reached
+the parent's answer.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+```
+
 Alongside `graph-planner` (graph authoring) there are eleven **tool-loop**
 suites that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
@@ -1295,7 +1311,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships twenty-one packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-six packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1304,6 +1320,18 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-dates` | date-fns | guest |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
+| `@nodetool-ai/sandbox-qr` | uqr | guest |
+| `@nodetool-ai/sandbox-subtitle` | subtitle | host |
+| `@nodetool-ai/sandbox-color` | culori | guest |
+| `@nodetool-ai/sandbox-decimal` | decimal.js | guest |
+| `@nodetool-ai/sandbox-expr` | expr-eval | host |
+| `@nodetool-ai/sandbox-jmespath` | jmespath | guest |
+| `@nodetool-ai/sandbox-chrono` | chrono-node | host |
+| `@nodetool-ai/sandbox-exif` | exifr | host |
+| `@nodetool-ai/sandbox-stats` | simple-statistics | guest |
+| `@nodetool-ai/sandbox-rrule` | rrule | guest |
+| `@nodetool-ai/sandbox-ics` | ics | host |
+| `@nodetool-ai/sandbox-gif` | gifenc | guest |
 | `@nodetool-ai/sandbox-csv` | papaparse | host |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
@@ -1315,6 +1343,9 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-docx` | docx | host |
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host |
 | `@nodetool-ai/sandbox-epub` | epub2 | host |
+| `@nodetool-ai/sandbox-fabric` | fabric | host |
+| `@nodetool-ai/sandbox-pdflib` | pdf-lib | host |
+| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
 | `@nodetool-ai/sandbox-pdf` | pdf-parse | host |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |

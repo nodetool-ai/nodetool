@@ -121,6 +121,43 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   pptx: async () => {
     const mod = await import("./pptx.js");
     return { extractText: mod.extractText, extractSlides: mod.extractSlides };
+  },
+  fabric: async () => {
+    const mod = await import("./fabric.js");
+    return {
+      render: mod.render,
+      renderSVG: mod.renderSVG,
+      loadSVG: mod.loadSVG,
+      toDataURL: mod.toDataURL
+    };
+  },
+  pdflib: async () => {
+    const mod = await import("./pdflib.js");
+    return { build: mod.build, merge: mod.merge };
+  },
+  pptxgen: async () => {
+    const mod = await import("./pptxgen.js");
+    return { build: mod.build };
+  },
+  chrono: async () => {
+    const mod = await import("./chrono.js");
+    return { parseDate: mod.parseDate, parse: mod.parse };
+  },
+  exif: async () => {
+    const mod = await import("./exif.js");
+    return { parse: mod.parse };
+  },
+  expr: async () => {
+    const mod = await import("./expr.js");
+    return { evaluate: mod.evaluate };
+  },
+  ics: async () => {
+    const mod = await import("./ics.js");
+    return { createEvent: mod.createEvent, createEvents: mod.createEvents };
+  },
+  subtitle: async () => {
+    const mod = await import("./subtitle.js");
+    return { parse: mod.parse, stringify: mod.stringify };
   }
 };
 

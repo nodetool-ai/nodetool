@@ -1315,6 +1315,45 @@ reports token usage on its terminal `result` message — which a cancelled query
 never emits. The run is not free; the usage is simply unobservable. Score,
 timing, and call counts are unaffected.
 
+### Sub-agent execution eval suite (`subtask`)
+
+Where the tool-loop suites score a model driving one flat tool surface, this
+suite scores `RunSubtaskTool` — the primitive that decomposes work by spawning
+a child agent that inherits the parent's toolset.
+
+The harness drives a real `CodeActExecutor` equipped with `RunSubtaskTool` plus
+a library of instrumented tools. Each tool records every call together with the
+`SUBTASK_DEPTH_KEY` it read from its context — 0 for a parent-level call, >= 1
+for one made inside a subtask. The same tool instances serve both levels, so
+that field is the ground truth for who ran what, and the scorer can separate a
+parent that delegated from one that did the job itself.
+
+Scoring is structural (`checkSubtaskExpectations`): required parent and child
+tools, forbidden tools, subtask-count and depth bounds, no failed subtasks,
+required store keys, and answer substrings — never an exact transcript, so many
+valid delegations pass. Metrics per case: expectation score, subtasks spawned,
+deepest sub-agent level, tool calls at any depth, duration, cost. The aggregate
+reports **success rate** (accepted over non-skipped), **mean score**, average
+subtasks, and total cost; `--min-success` gates on the success rate.
+
+The seven cases cover one tool per delegation (`delegate-compute`,
+`delegate-read-write`, `delegate-lookup`, `delegate-transform`), fan-out
+(`parallel-subtasks`), a child whose tool fails so the error must surface
+rather than be swallowed (`error-propagation`), and one objective that
+exercises every inherited tool (`all-tools`).
+
+Cases and the instrumented tool library live in `src/evals/subtask-cases.ts`,
+the runner in `src/evals/subtask-eval.ts`. The parent step and each subtask
+share a turn cap of 16 unless `--max-iterations` says otherwise.
+
+```bash
+npm run dev:nodetool -- eval subtask --list
+npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval subtask -p openai -m gpt-5.4-mini --cases delegate-compute,all-tools
+```
+
+Harness tests (scripted provider, no network): `tests/subtask-eval.test.ts`.
+
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 
 Where the graph-planner eval measures graph authoring, the tool-loop harness
@@ -1515,10 +1554,11 @@ Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
 clip/track factories) — rather than reimplement. The sketch surface reimplements
 its layer-stack ops directly, but not its pixels: every raster layer is an
-`@napi-rs/canvas` bitmap and `ui_sketch_stroke` runs the editor's own paint core
-(`@nodetool-ai/image-editor/painting.js`, pointed at skia with
-`setPaintSurfaceFactory(createCanvas)`), so a headless stroke is the stroke the
-browser would paint. `ui_sketch_get_layer_image` composites those layers —
+`@napi-rs/canvas` bitmap. `ui_sketch_stroke` runs the editor's paint core
+(`@nodetool-ai/image-editor/painting.js`) and fill / gradient / shape / transform
+/ adjust / crop / selection-shape run `@nodetool-ai/image-editor/raster.js`, both
+pointed at skia with `setPaintSurfaceFactory(createCanvas)`, so a headless edit
+is the edit the browser would paint. `ui_sketch_get_layer_image` composites those layers —
 opacity and blend mode included, NodeTool's `"normal"`/`"add"` mapping onto
 Canvas's `"source-over"`/`"lighter"` — and hands the model a PNG of its own
 work. `SketchToolBridge.compositePng()` (or `getLastSketchToolBridge()`, for a
@@ -1857,13 +1897,10 @@ NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: en
 
 ## Authoring Agent Nodes — Pitfalls
 
-When building a node that wraps an agent (e.g. the `code-nodes` tool-agents, or
-`llm-nodes` `AgentNode`):
+When building a node that wraps an agent (e.g. `llm-nodes` `AgentNode`):
 
 - **Every tool named in an agent's system prompt must actually be registered in
-  its toolset.** `BrowserAgent`/`HttpApiAgent` prompts instructed the model to call
-  `browser`/`take_screenshot`/`http_request` tools that were never registered (only
-  `execute_bash` was) — a prompt-referenced-but-unregistered tool is a silent
+  its toolset.** A prompt-referenced-but-unregistered tool is a silent
   no-op. Resolve real builtin tools (`resolveBuiltinAgentTool`) and don't reference
   tools you didn't wire.
 - **Every declared prop must be consumed by `process()` or injected into the

@@ -11,14 +11,14 @@ namespace: "nodetool.video"
 
 ## Description
 
-Extract frames from a video file using OpenCV.
+Extract frames from a video file with ffmpeg.
     video, frames, extract, sequence
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to extract frames from. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to extract frames from. | - |
 | start | `int` | The frame to start extracting from. | `0` |
 | end | `int` | The frame to stop extracting from. | `-1` |
 

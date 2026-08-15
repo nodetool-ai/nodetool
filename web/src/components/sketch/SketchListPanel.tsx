@@ -465,6 +465,7 @@ const SketchListPanel = () => {
       setEditingId(null);
       if (trimmed && current && trimmed !== current.name) {
         updateSketch.mutate({ id, name: trimmed });
+        useWorkspaceTabsStore.getState().setTitle(id, "sketch", trimmed);
       }
     },
     [data, updateSketch]

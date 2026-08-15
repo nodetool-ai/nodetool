@@ -12,6 +12,7 @@ import { Node, Workflow } from "../../stores/ApiTypes";
 import {
   getScriptPortInputKind,
   getWorkflowInputKind,
+  nodeTypeForInputKind,
   WorkflowInputKind
 } from "./inputKinds";
 import { parseNodeUIProperties } from "../../stores/nodeUiDefaults";
@@ -50,6 +51,24 @@ export interface WorkflowIO {
 const EMPTY_IO: WorkflowIO = { inputs: [], outputs: [] };
 
 /**
+ * A script port as a workflow input: the port name stands in for the node
+ * id, and the type picks the same property widget a mini-app InputNode uses.
+ */
+export const workflowInputForScriptPort = (port: {
+  name: string;
+  type: string;
+}): WorkflowInputIO => {
+  const kind = getScriptPortInputKind(port.type);
+  return {
+    nodeId: port.name,
+    nodeType: nodeTypeForInputKind(kind),
+    name: port.name,
+    label: port.name,
+    kind
+  };
+};
+
+/**
  * The same surface for a script operation. A script has no nodes, so its
  * declared port names stand in for node ids — the substitution `scriptPortIO`
  * makes for every host — and the port's type picks the editing widget.
@@ -60,13 +79,7 @@ export const extractScriptIO = (
   if (!document) return EMPTY_IO;
   const io = scriptPortIO(document);
   return {
-    inputs: io.inputs.map((port, index) => ({
-      nodeId: port.nodeId,
-      nodeType: port.nodeType,
-      name: port.name,
-      label: port.name,
-      kind: getScriptPortInputKind(document.inputs[index].type)
-    })),
+    inputs: document.inputs.map((port) => workflowInputForScriptPort(port)),
     outputs: io.outputs.map((port) => ({
       nodeId: port.nodeId,
       nodeType: port.nodeType,

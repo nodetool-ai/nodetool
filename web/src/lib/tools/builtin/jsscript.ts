@@ -11,8 +11,7 @@ import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAg
  * throws, naming the requested id and listing the open ones.
  *
  * Unlike the Code node assistant, these edits are the document: they autosave.
- * Run and test execute server-side in the QuickJS sandbox against the *saved*
- * document, so an edit needs a moment to land before a run reflects it.
+ * Run and test flush the live document first, then execute the saved row.
  */
 
 const scriptIdParam = z
@@ -64,7 +63,7 @@ const testCaseParam = z.object({
 FrontendToolRegistry.register({
   name: "ui_jsscript_get_state",
   description:
-    "Read the specified JS script: its name and full document (description, code, declared inputs/outputs, sandbox packages, secrets, timeout, saved test cases), the document-level validation issues, and the last run and test results from this editor. Call this first.",
+    "Read the specified JS script: its name and full document (description, code, declared inputs/outputs, secrets, timeout, saved test cases), the document-level validation issues, and the last run and test results from this editor. Call this first.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const snapshot = getJsScriptAgentHandler(script_id).getSnapshot();
@@ -75,7 +74,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_set_code",
   description:
-    "Replace the script's body; the editor updates live and autosaves. Declared inputs arrive on the `inputs` object (`inputs.<name>`); outputs leave through `emit(name, value)` / `output(name, value)`, never through `return`. A sandbox package must be declared with ui_jsscript_set_packages before its import resolves.",
+    "Replace the script's body; the editor updates live and autosaves. Write top-level statements only — the host wraps the body in an async function. Do not write `export` or `function run`. Declared inputs arrive on `inputs.<name>`; outputs leave through `await emit(name, value)` / `await output(name, value)`, never through `return`. Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly — there is no packages setting.",
   parameters: z.object({
     script_id: scriptIdParam,
     code: z.string().describe("The full new JavaScript body.")
@@ -118,7 +117,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_set_packages",
   description:
-    "Replace the sandbox packages the body may import. Pass the complete list; an undeclared import fails validation before it fails at run time.",
+    "No-op leftover: a JS script does not declare packages. Every installed sandbox pack and every `@nodetool-ai/sandbox-nodetool/<namespace>` module resolves by import. The field is kept so old documents still parse.",
   parameters: z.object({
     script_id: scriptIdParam,
     packages: z
@@ -188,7 +187,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_run",
   description:
-    "Run the script server-side in the QuickJS sandbox with the given inputs — or, for a body that reads `stream`, with items staged per handle in `input_streams` — and return its outputs, emitted stream, logs, error and duration. The run executes the SAVED document, so make edits and then run — an edit still riding the autosave debounce will not be reflected.",
+    "Flush the live document, then run the saved script server-side in the QuickJS sandbox with the given inputs — or, for a body that reads `stream`, with items staged per handle in `input_streams` — and return its outputs, emitted stream, logs, error and duration. The run executes the saved document after the flush. The run fails when declared outputs are all empty.",
   parameters: z.object({
     script_id: scriptIdParam,
     inputs: z
@@ -207,14 +206,16 @@ FrontendToolRegistry.register({
       inputs ?? {},
       input_streams
     );
-    return { ok: true, run: outcome };
+    // The nested `run.ok` is what the body did. Mirror it on the tool
+    // result so a failed run is not a successful tool call.
+    return { ok: outcome.ok, run: outcome };
   }
 });
 
 FrontendToolRegistry.register({
   name: "ui_jsscript_test",
   description:
-    "Run every saved test case against the script and return the grade report: how many passed and failed, and for each case its outputs, emitted stream, logs, error, and the mismatches between what it expected and what it got. Save cases first with ui_jsscript_set_tests.",
+    "Flush the live document, then run every saved test case and return the grade report: how many passed and failed, and for each case its outputs, emitted stream, logs, error, and the mismatches. Fails when there are no saved cases. Add cases first with ui_jsscript_set_tests.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const report = await getJsScriptAgentHandler(script_id).test();

@@ -38,6 +38,19 @@ A simple table:
 | Bob | 25 | LA |
 `;
 
+const SVG_BLOCK = `
+A fenced SVG block should render as a graphic, not as source:
+
+\`\`\`svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200">
+  <rect width="120" height="200" rx="8" fill="#1b3a4b"/>
+  <circle cx="60" cy="56" r="22" fill="#f4a261"/>
+  <text x="60" y="120" text-anchor="middle" fill="#e9c46a" font-size="16" font-family="sans-serif">SVG</text>
+  <text x="60" y="160" text-anchor="middle" fill="#e9c46a" font-size="12" font-family="sans-serif">tall frame</text>
+</svg>
+\`\`\`
+`;
+
 const CODE_BLOCK = `
 Here is some code:
 
@@ -177,6 +190,7 @@ const ChatMarkdownTest: React.FC = () => {
     { label: "Multiple Tables", content: MULTIPLE_TABLES },
     { label: "Simple Table", content: SIMPLE_TABLE },
     { label: "Code Block", content: CODE_BLOCK },
+    { label: "SVG Block", content: SVG_BLOCK },
     { label: "Long Text", content: LONG_TEXT },
     { label: "Nested", content: NESTED_CONTENT }
   ];

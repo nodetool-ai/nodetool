@@ -41,8 +41,8 @@ const styles = (theme: Theme) =>
     },
 
     ".planning-name": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 500,
       color: theme.vars.palette.text.secondary,
       textTransform: "capitalize",
       minWidth: "5rem"
@@ -50,8 +50,9 @@ const styles = (theme: Theme) =>
 
     ".planning-message": {
       fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 400,
       color: theme.vars.palette.text.disabled,
-      lineHeight: "1.3",
+      lineHeight: "1.4",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"

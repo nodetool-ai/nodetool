@@ -1,4 +1,8 @@
-import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../codeOutputInference";
+import {
+  inferOutputKeysFromCode,
+  inferInputKeysFromCode,
+  deriveCodeIOUpdates
+} from "../codeOutputInference";
 
 describe("inferOutputKeysFromCode", () => {
   it("returns null for empty code", () => {
@@ -59,6 +63,18 @@ return { output: 42 };`;
 return { current: 2 };`;
     expect(inferOutputKeysFromCode(code)).toEqual(["current"]);
   });
+
+  it("reads emit and output handle names", () => {
+    expect(
+      inferOutputKeysFromCode('await output("sum", 1);\nawait emit("word", "a");')
+    ).toEqual(expect.arrayContaining(["sum", "word"]));
+  });
+
+  it("prefers emit names over a return object", () => {
+    expect(
+      inferOutputKeysFromCode('await output("sum", 1);\nreturn { ignored: 2 };')
+    ).toEqual(["sum"]);
+  });
 });
 
 describe("inferInputKeysFromCode", () => {
@@ -108,5 +124,88 @@ describe("inferInputKeysFromCode", () => {
     const code =
       '// inputs.ghost is not read\nconst s = "inputs.other";\nreturn { out: inputs.real + s };';
     expect(inferInputKeysFromCode(code)).toEqual(["real"]);
+  });
+
+  it("includes stream handle names", () => {
+    const result = inferInputKeysFromCode(
+      'for await (const x of stream("items")) { await emit("out", x * inputs.factor); }'
+    );
+    expect(result).toEqual(expect.arrayContaining(["items", "factor"]));
+  });
+
+  it("skips Code node property names", () => {
+    expect(inferInputKeysFromCode("return { out: inputs.code };")).toBeNull();
+  });
+});
+
+describe("deriveCodeIOUpdates", () => {
+  it("adds inferred inputs and outputs from a complete body", () => {
+    expect(
+      deriveCodeIOUpdates("return { sum: inputs.a + inputs.b };")
+    ).toEqual({
+      dynamic_outputs: {
+        sum: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { a: "", b: "" }
+    });
+  });
+
+  it("keeps a button-added input that the body does not read yet", () => {
+    expect(
+      deriveCodeIOUpdates("return { out: 1 };", { prompt: "hi" })
+    ).toEqual({
+      dynamic_outputs: {
+        out: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { prompt: "hi" }
+    });
+  });
+
+  it("adds a newly referenced input without dropping existing ones", () => {
+    expect(
+      deriveCodeIOUpdates("return { out: inputs.b };", { a: 1 })
+    ).toEqual({
+      dynamic_outputs: {
+        out: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { a: 1, b: "" }
+    });
+  });
+
+  it("does not wipe existing IO when the body does not parse", () => {
+    const existingOutputs = {
+      result: { type: "str", type_args: [], optional: false }
+    };
+    expect(
+      deriveCodeIOUpdates("return { result: inputs.a +", { a: 2 }, existingOutputs)
+    ).toEqual({
+      dynamic_outputs: existingOutputs,
+      dynamic_properties: { a: 2 }
+    });
+  });
+
+  it("keeps existing outputs when the body has no object return", () => {
+    const existingOutputs = {
+      result: { type: "str", type_args: [], optional: false }
+    };
+    expect(
+      deriveCodeIOUpdates("const x = inputs.a;", { a: "" }, existingOutputs)
+    ).toEqual({
+      dynamic_outputs: existingOutputs,
+      dynamic_properties: { a: "" }
+    });
+  });
+
+  it("adds a stream handle as an input", () => {
+    expect(
+      deriveCodeIOUpdates(
+        'for await (const x of stream("items")) { await emit("out", x); }'
+      )
+    ).toEqual({
+      dynamic_outputs: {
+        out: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { items: "" }
+    });
   });
 });

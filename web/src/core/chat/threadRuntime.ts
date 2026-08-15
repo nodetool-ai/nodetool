@@ -15,6 +15,7 @@ import type {
   LogUpdate
 } from "../../stores/ApiTypes";
 import type { GlobalChatState } from "../../stores/GlobalChatStore";
+import type { ActiveMediaPrediction } from "./mediaPrediction";
 
 /**
  * A thread's generation lifecycle. "idle" means no generation in flight — the
@@ -37,6 +38,8 @@ export interface ThreadRuntime {
   logUpdate: LogUpdate | null;
   runningToolCallId: string | null;
   toolMessage: string | null;
+  /** In-flight media provider calls from CodeAct (or any chat tool). */
+  activePredictions: ActiveMediaPrediction[];
   /** Safety timeout that resets a stuck loading/streaming state. */
   sendMessageTimeoutId: ReturnType<typeof setTimeout> | null;
 }
@@ -51,6 +54,7 @@ export const DEFAULT_THREAD_RUNTIME: ThreadRuntime = {
   logUpdate: null,
   runningToolCallId: null,
   toolMessage: null,
+  activePredictions: [],
   sendMessageTimeoutId: null
 };
 

@@ -28,6 +28,7 @@ Write an image to disk.
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `image` |  |
+| path | `str` |  |
 
 ## Related Nodes
 

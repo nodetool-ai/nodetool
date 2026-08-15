@@ -2,7 +2,8 @@
  * The bug this pins: an authored graph could not declare a dynamic output
  * handle, so a Code node returning `{ line }` and wired onward by `line`
  * reported `code_undeclared_output` — and no graph the agent could write would
- * fix it. An outgoing edge now declares the handle.
+ * fix it. A named return/emit is a handle now, and an outgoing edge still
+ * declares one the body has not named yet.
  */
 import { describe, it, expect } from "vitest";
 import { validateGraph } from "@nodetool-ai/node-sdk";
@@ -86,13 +87,13 @@ describe("a Code node's returned key wired onward", () => {
     expect(outputIssueCodes(declared)).not.toContain("code_undeclared_output");
   });
 
-  it("still reports the key nothing declares and nothing reads", () => {
+  it("treats a returned key as a handle even when nothing declares it", () => {
     const builder = new GraphBuilder();
     builder.addNode("code", "nodetool.code.Code", {
       code: CODE_BODY
     });
 
-    expect(outputIssueCodes(builder.snapshot())).toContain(
+    expect(outputIssueCodes(builder.snapshot())).not.toContain(
       "code_undeclared_output"
     );
   });

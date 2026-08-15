@@ -36,7 +36,9 @@ jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
   }))
 }));
 
-const mockFindNode = jest.fn(() => ({ data: { dynamic_properties: {} } }));
+const mockFindNode = jest.fn(() => ({
+  data: { dynamic_properties: {} as Record<string, unknown>, dynamic_outputs: {} }
+}));
 const mockUpdateNodeData = jest.fn();
 // Edges decide whether Ask AI is offered: generation replaces the node's
 // handles wholesale, so a connected node is not eligible.
@@ -58,9 +60,10 @@ jest.mock("../CodeNodeScriptLink", () => ({
   default: () => null
 }));
 
+const mockHandleAddProperty = jest.fn();
 jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({
-    handleAddProperty: jest.fn(),
+    handleAddProperty: mockHandleAddProperty,
     handleDeleteProperty: jest.fn(),
     handleUpdatePropertyName: jest.fn()
   })
@@ -118,7 +121,19 @@ jest.mock("../../node/NodeProgress", () => ({
 
 jest.mock("../../node/NodePropertyForm", () => ({
   __esModule: true,
-  default: () => <div data-testid="node-property-form" />
+  default: ({
+    onAddProperty
+  }: {
+    onAddProperty: (name: string) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="node-property-form"
+      onClick={() => onAddProperty("prompt")}
+    >
+      Add input
+    </button>
+  )
 }));
 
 jest.mock("../../node/ExposedLabeledInputs", () => ({
@@ -237,12 +252,9 @@ describe("CodeBody", () => {
       <CodeBody {...makeProps({ nodeType: "nodetool.other.Thing" })} />
     );
     expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
-    expect(
-      screen.queryByText(/reference an undefined variable to add an input/i)
-    ).not.toBeInTheDocument();
   });
 
-  it("shows the IO hint instead of the form for the Code node", () => {
+  it("shows the add input/output form for the Code node", () => {
     renderWithTheme(
       <CodeBody
         {...makeProps({
@@ -251,10 +263,27 @@ describe("CodeBody", () => {
         })}
       />
     );
+    expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
     expect(
-      screen.getByText(/reference an undefined variable to add an input/i)
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("node-property-form")).not.toBeInTheDocument();
+      screen.queryByText(/reference an undefined variable to add an input/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("declares a typed any slot when adding an input on the Code node", () => {
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add input" }));
+    expect(mockHandleAddProperty).toHaveBeenCalledWith("prompt", {
+      type: "any",
+      type_args: [],
+      optional: false
+    });
   });
 
   it("derives dynamic inputs/outputs from code for the Code node", () => {
@@ -276,6 +305,30 @@ describe("CodeBody", () => {
         sum: { type: "any", type_args: [], optional: false }
       },
       dynamic_properties: { a: "", b: "" }
+    });
+  });
+
+  it("keeps a button-added input when the code does not read it yet", () => {
+    mockFindNode.mockReturnValueOnce({
+      data: { dynamic_properties: { prompt: "" }, dynamic_outputs: {} }
+    });
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    fireEvent.change(screen.getByTestId("monaco"), {
+      target: { value: "return { out: 1 };" }
+    });
+
+    expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
+      dynamic_outputs: {
+        out: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { prompt: "" }
     });
   });
 

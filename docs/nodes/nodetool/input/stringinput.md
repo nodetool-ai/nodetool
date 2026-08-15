@@ -25,9 +25,7 @@ Accepts a string value as a parameter for workflows.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `str` |  | `` |
-| description | `str` | The description of the input for the workflow. | `` |
 | max_length | `int` | Maximum number of characters allowed. Use 0 for unlimited. | `0` |
 | line_mode | `str` | Controls whether the UI should render the input as single-line or multiline. | `single_line` |
 

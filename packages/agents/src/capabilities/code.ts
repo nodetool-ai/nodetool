@@ -73,7 +73,8 @@ export async function runCodeBody(
     timeoutSeconds: number;
     inputStreams?: Record<string, unknown[]>;
     /**
-     * Give the guest the Code-node belt (`tools.*` / `nodetool.*`). Off for
+     * Give the guest the Code-node belt (`tools.*` / `nodetool.*`) and every
+     * installed sandbox pack plus platform module by import. Off for
      * `run_code` / `test_code` (authoring stays hermetic). On for every JS
      * script run.
      */
@@ -98,31 +99,44 @@ export async function runCodeBody(
     duration_ms: Date.now() - started
   });
 
-  const { declarations, invalid } = parseSandboxModuleDeclarations(
-    params.packages.length > 0 ? [...params.packages] : undefined
-  );
-  if (invalid.length > 0) {
-    return fail(`Invalid \`packages\` declarations: ${invalid.join(", ")}`);
-  }
   let modules;
-  if (declarations.length > 0) {
-    const catalog = context.sandboxModuleCatalog;
-    if (!catalog) {
-      return fail(
-        "Sandbox packages are not available in this process, so the declared " +
-          "packages cannot be imported."
-      );
+  let capabilities;
+  if (params.withToolbelt) {
+    // A JS script has no packages setting: every installed pack and every
+    // platform module resolves from the import.
+    const { mountJsScriptSandbox } = await import("../js-script-sandbox.js");
+    const mounted = await mountJsScriptSandbox(params.code, context);
+    if (!mounted.ok) {
+      return fail(mounted.error);
     }
-    modules = catalog.resolveForExecution(declarations);
-    const errors = modules.statuses.filter(
-      (status) => status.status === "error"
+    modules = mounted.modules;
+    capabilities = mounted.capabilities;
+  } else {
+    const { declarations, invalid } = parseSandboxModuleDeclarations(
+      params.packages.length > 0 ? [...params.packages] : undefined
     );
-    if (errors.length > 0) {
-      return fail(
-        errors
-          .map((status) => `${status.message} (pack "${status.packName}")`)
-          .join(" ")
+    if (invalid.length > 0) {
+      return fail(`Invalid \`packages\` declarations: ${invalid.join(", ")}`);
+    }
+    if (declarations.length > 0) {
+      const catalog = context.sandboxModuleCatalog;
+      if (!catalog) {
+        return fail(
+          "Sandbox packages are not available in this process, so the declared " +
+            "packages cannot be imported."
+        );
+      }
+      modules = catalog.resolveForExecution(declarations);
+      const errors = modules.statuses.filter(
+        (status) => status.status === "error"
       );
+      if (errors.length > 0) {
+        return fail(
+          errors
+            .map((status) => `${status.message} (pack "${status.packName}")`)
+            .join(" ")
+        );
+      }
     }
   }
 
@@ -169,6 +183,7 @@ return __yielded;`
     globals,
     limits: { secretScope: [...params.secrets] },
     ...(modules ? { modules } : {}),
+    ...(capabilities ? { capabilities } : {}),
     ...(staged ?? {})
   });
 

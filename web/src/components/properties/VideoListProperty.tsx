@@ -16,10 +16,13 @@ import {
   resolveAssetsMultiple
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { ListVideoThumb } from "./PropertyListThumb";
 
 interface VideoItem {
   uri: string;
   type: string;
+  asset_id?: string;
 }
 
 const styles = (theme: Theme) =>
@@ -150,7 +153,7 @@ const flattenVideoItems = (items: unknown): VideoItem[] => {
   return result;
 };
 
-const VideoListProperty = (props: PropertyProps) => {
+const VideoListProperty = (props: PropertyProps<VideoItem[] | null>) => {
   const theme = useTheme();
   const id = `video-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
@@ -213,16 +216,16 @@ const VideoListProperty = (props: PropertyProps) => {
           );
 
           uniqueAssets.forEach(asset => {
-            if (asset.get_url && asset.content_type?.startsWith("video/")) {
-              droppedVideos.push({ uri: asset.get_url, type: "video" });
+            if (asset.id && asset.content_type?.startsWith("video/")) {
+              droppedVideos.push(mediaRefFromAsset(asset, "video"));
             }
           });
         }
 
         if (droppedVideos.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          if (asset.get_url && asset.content_type?.startsWith("video/")) {
-            droppedVideos.push({ uri: asset.get_url, type: "video" });
+          if (asset.id && asset.content_type?.startsWith("video/")) {
+            droppedVideos.push(mediaRefFromAsset(asset, "video"));
           }
         }
 
@@ -250,15 +253,11 @@ const VideoListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({
-                  uri,
-                  type: "video"
-                });
+                resolve(mediaRefFromAsset(asset, "video"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -318,12 +317,11 @@ const VideoListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({ uri, type: "video" });
+                resolve(mediaRefFromAsset(asset, "video"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -358,12 +356,11 @@ const VideoListProperty = (props: PropertyProps) => {
           uploadAsset({
             file,
             onCompleted: (asset: Asset) => {
-              const uri = asset.get_url;
-              if (!uri) {
-                reject(new Error("Asset URL is missing"));
+              if (!asset.id) {
+                reject(new Error("Asset id is missing"));
                 return;
               }
-              resolve({ uri, type: "video" });
+              resolve(mediaRefFromAsset(asset, "video"));
             },
             onFailed: (error: string) => {
               reject(new Error(error));
@@ -415,13 +412,7 @@ const VideoListProperty = (props: PropertyProps) => {
           {videos.map((video, index) => (
             <div key={video.uri} className="video-item">
               <div className="video-content">
-                <video
-                  src={video.uri}
-                  controls
-                  muted
-                  preload="metadata"
-                  aria-label={`Video ${index + 1}`}
-                />
+                <ListVideoThumb item={video} label={`Video ${index + 1}`} />
               </div>
               <CloseButton
                 className="remove-button"

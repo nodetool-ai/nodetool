@@ -18,7 +18,7 @@ Extract a single frame from a video at a specific time position.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to extract a frame from. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to extract a frame from. | - |
 | time | `float` | Time position in seconds to extract the frame from. | `0` |
 
 ## Outputs

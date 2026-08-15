@@ -68,14 +68,29 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
   const theme = useTheme();
 
   return (
-    <div style={{ height: "100%", overflow: "hidden", backgroundColor: theme.vars.palette.c_editor_bg_color }}>
+    <div
+      style={{
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: theme.vars.palette.c_editor_bg_color
+      }}
+    >
       <div
         className={`asset-content-wrapper ${
           isGlobalSearchModeLocal && isGlobalSearchActiveLocal
             ? "global-search-mode"
             : "normal-grid-mode"
         }`}
-        style={{ height: "100%" }}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }}
         ref={containerRef}
       >
         <BreadcrumbNav />

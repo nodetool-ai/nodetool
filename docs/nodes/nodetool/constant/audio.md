@@ -23,7 +23,7 @@ Represents an audio file constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `audio` |  | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| value | `audio` |  | - |
 
 ## Outputs
 

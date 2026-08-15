@@ -33,6 +33,7 @@ import type {
   StepToolCallEntry,
   PlanningEntry
 } from "../../hooks/useExecutionTreeState";
+import { formatJavaScriptForDisplay } from "../../utils/formatJavaScript";
 
 type NodeStatus = "waiting" | "running" | "completed" | "failed";
 
@@ -472,7 +473,7 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
   const args = call.args;
   const codeArg =
     call.name === "execute_code" && typeof args?.["code"] === "string"
-      ? (args["code"] as string)
+      ? formatJavaScriptForDisplay(args["code"] as string)
       : null;
   const argsText = useMemo(
     () =>

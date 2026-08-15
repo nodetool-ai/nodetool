@@ -34,7 +34,8 @@ const DOCUMENT_DESCRIPTION =
   "A JsScriptDocument: {schemaVersion: 1, description, code, inputs, " +
   "outputs, packages, secrets, timeoutSeconds, tests}. Ports are " +
   "{name, type}; a test is {name, inputs, expect?, expectedStreamed?}. " +
-  "Outputs leave the body through `await emit(name, value)` and " +
+  "The body is top-level statements (no `export`, no `function run`). " +
+  "Outputs leave through `await emit(name, value)` and " +
   "`await output(name, value)` — never through `return`.";
 
 const DOCUMENT_FIELD: JsonSchema = {

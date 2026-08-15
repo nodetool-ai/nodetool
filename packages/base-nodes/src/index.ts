@@ -444,7 +444,6 @@ export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
   ClaudeCodeAgentNode,
   CLAUDE_CODE_NODES
@@ -512,8 +511,9 @@ import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 import { CLAUDE_CODE_NODES } from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
+import { registerBuiltinAgentToolFactory } from "@nodetool-ai/llm-nodes";
+import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
 import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 import { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
@@ -578,7 +578,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
-  ...TOOL_AGENT_NODES,
   ...CLAUDE_CODE_NODES,
   ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,
@@ -590,6 +589,10 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_FILTER_EXTRAS_NODES,
   ...LIB_IMAGE_COLOR_NODES
 ];
+
+// Live Chrome CDP tools stay on the Agent tool picker after the specialist
+// LiveBrowserAgent node was removed.
+registerBuiltinAgentToolFactory(() => buildBrowserAgentToolClasses());
 
 export { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
 export { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";

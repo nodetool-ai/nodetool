@@ -198,10 +198,12 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   debug_workflow: "execute",
   debug_app: "execute",
   start_background_job: "execute",
+  ffmpeg: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",
   http_request: "external",
+  yt_dlp: "external",
   archive_email: "external",
   add_label_to_email: "external"
 };

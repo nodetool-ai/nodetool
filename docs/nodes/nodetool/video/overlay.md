@@ -18,8 +18,8 @@ Overlay one video on top of another, including audio overlay when available.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| main_video | `video` | The main (background) video. | `{"type":"video","uri":"","asset_id":null,"data"...` |
-| overlay_video | `video` | The video to overlay on top. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| main_video | `video` | The main (background) video. | - |
+| overlay_video | `video` | The video to overlay on top. | - |
 | x | `int` | X-coordinate for overlay placement. | `0` |
 | y | `int` | Y-coordinate for overlay placement. | `0` |
 | scale | `float` | Scale factor for the overlay video. | `1` |

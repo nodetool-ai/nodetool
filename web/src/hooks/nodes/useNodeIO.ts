@@ -16,6 +16,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../stores/WorkflowAssetStore";
 import { useNodeResultValue } from "./useNodeExecState";
+import { edgesTargeting } from "./edgeIndex";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import {
   assetToGeneration,
@@ -114,13 +115,10 @@ export const useUpstreamValue = (
   constantFallback?: unknown
 ): unknown => {
   const upstreamEdgesSelector = useMemo(() => {
-    let lastEdges: Edge[] | null = null;
     let lastResult: Edge[] = [];
     return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) return lastResult;
-      lastEdges = state.edges;
-      const newResult = state.edges.filter(
-        (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
+      const newResult = edgesTargeting(state.edges, nodeId).filter(
+        (e) => (e.targetHandle ?? "") === inputName
       );
       if (
         lastResult.length === newResult.length &&
@@ -203,12 +201,9 @@ export const useUpstreamValues = (
   constants?: Record<string, unknown>
 ): Record<string, unknown> => {
   const edgesSelector = useMemo(() => {
-    let lastEdges: Edge[] | null = null;
     let lastResult: Edge[] = [];
     return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) return lastResult;
-      lastEdges = state.edges;
-      const newResult = state.edges.filter((e) => e.target === nodeId);
+      const newResult = edgesTargeting(state.edges, nodeId);
       if (
         lastResult.length === newResult.length &&
         lastResult.every((edge, i) => edge === newResult[i])

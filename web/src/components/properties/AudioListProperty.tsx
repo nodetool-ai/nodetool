@@ -17,10 +17,13 @@ import {
   resolveAssetsMultiple
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { ListAudioThumb } from "./PropertyListThumb";
 
 interface AudioItem {
   uri: string;
   type: string;
+  asset_id?: string;
 }
 
 const styles = (theme: Theme) =>
@@ -158,7 +161,7 @@ const flattenAudioItems = (items: unknown): AudioItem[] => {
   return result;
 };
 
-const AudioListProperty = (props: PropertyProps) => {
+const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
   const theme = useTheme();
   const id = `audio-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
@@ -234,8 +237,8 @@ const AudioListProperty = (props: PropertyProps) => {
           );
 
           uniqueAssets.forEach(asset => {
-            if (asset.get_url && asset.content_type?.startsWith("audio/")) {
-              droppedAudios.push({ uri: asset.get_url, type: "audio" });
+            if (asset.id && asset.content_type?.startsWith("audio/")) {
+              droppedAudios.push(mediaRefFromAsset(asset, "audio"));
             }
           });
         }
@@ -243,8 +246,8 @@ const AudioListProperty = (props: PropertyProps) => {
         // Handle single asset
         if (droppedAudios.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          if (asset.get_url && asset.content_type?.startsWith("audio/")) {
-            droppedAudios.push({ uri: asset.get_url, type: "audio" });
+          if (asset.id && asset.content_type?.startsWith("audio/")) {
+            droppedAudios.push(mediaRefFromAsset(asset, "audio"));
           }
         }
 
@@ -274,16 +277,11 @@ const AudioListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                // Validate asset URL before adding
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({
-                  uri,
-                  type: "audio"
-                });
+                resolve(mediaRefFromAsset(asset, "audio"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -344,12 +342,11 @@ const AudioListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({ uri, type: "audio" });
+                resolve(mediaRefFromAsset(asset, "audio"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -386,12 +383,11 @@ const AudioListProperty = (props: PropertyProps) => {
           uploadAsset({
             file,
             onCompleted: (asset: Asset) => {
-              const uri = asset.get_url;
-              if (!uri) {
-                reject(new Error("Asset URL is missing"));
+              if (!asset.id) {
+                reject(new Error("Asset id is missing"));
                 return;
               }
-              resolve({ uri, type: "audio" });
+              resolve(mediaRefFromAsset(asset, "audio"));
             },
             onFailed: (error: string) => {
               reject(new Error(error));
@@ -447,12 +443,7 @@ const AudioListProperty = (props: PropertyProps) => {
             <div key={audio.uri} className="audio-item">
               <AudioFileIcon className="audio-icon" />
               <div className="audio-content">
-                <audio
-                  src={audio.uri}
-                  controls
-                  preload="metadata"
-                  aria-label={getFilename(audio.uri)}
-                />
+                <ListAudioThumb item={audio} label={getFilename(audio.uri)} />
                 <Text className="audio-filename" title={getFilename(audio.uri)}>
                   {getFilename(audio.uri)}
                 </Text>

@@ -299,4 +299,43 @@ describe("ui_add_node tool", () => {
     const addedNode = store.getState().nodes[0] as { position: { x: number; y: number } };
     expect(addedNode.position).toEqual({ x: -100, y: -200 });
   });
+
+  it("stamps inferred Code handles from the body", async () => {
+    const store = createMockNodeStore();
+    const state = createMockState({
+      nodeMetadata: {
+        "nodetool.code.Code": {
+          node_type: "nodetool.code.Code",
+          properties: [
+            { name: "code", required: false, type: { type: "str" }, default: "" },
+          ],
+          outputs: [],
+        },
+      } as never,
+      getNodeStore: jest.fn().mockReturnValue(store),
+    });
+
+    await FrontendToolRegistry.call(
+      "ui_add_node",
+      {
+        id: "code-1",
+        type: "nodetool.code.Code",
+        position: { x: 0, y: 0 },
+        properties: { code: "return { sum: inputs.a + inputs.b };" },
+      },
+      "tc-code",
+      { getState: () => state }
+    );
+
+    const added = store.getState().nodes[0] as {
+      data: {
+        dynamic_properties: Record<string, unknown>;
+        dynamic_outputs: Record<string, unknown>;
+      };
+    };
+    expect(added.data.dynamic_properties).toEqual({ a: "", b: "" });
+    expect(added.data.dynamic_outputs).toEqual({
+      sum: { type: "any", type_args: [], optional: false },
+    });
+  });
 });

@@ -5,8 +5,6 @@ title: "lib.browser Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Screenshot](screenshot.md)**
-
-[Back to all nodes](../../)
+- **[Screenshot](screenshot.md)** - Takes a screenshot of a web page or specific element.

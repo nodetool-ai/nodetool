@@ -4,7 +4,16 @@ import React, { useCallback, useMemo, memo } from "react";
 import Prism from "prismjs";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
-import { CopyButton, BORDER_RADIUS, FlexRow, FONT_SIZE_SANS, FONT_WEIGHT, SPACING, getSpacingPx } from "../../../ui_primitives";
+import {
+  CopyButton,
+  BORDER_RADIUS,
+  FlexRow,
+  FONT_SIZE_MONO,
+  FONT_SIZE_SANS,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx
+} from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import {
   CodeThemeColors,
@@ -24,27 +33,49 @@ interface CodeBlockProps {
 }
 
 const cssStyles = css({
+  minWidth: 0,
+  maxWidth: "100%",
   ".code-block-header": {
-    padding: ".5em 1em"
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.md),
+    backgroundColor: "var(--palette-grey-800)",
+    color: "var(--palette-text-primary)",
+    paddingTop: getSpacingPx(SPACING.sm),
+    paddingBottom: getSpacingPx(SPACING.sm),
+    paddingLeft: getSpacingPx(SPACING.xl),
+    paddingRight: getSpacingPx(SPACING.xl),
+    borderTopLeftRadius: BORDER_RADIUS.md,
+    borderTopRightRadius: BORDER_RADIUS.md
+  },
+  ".code-block-language": {
+    fontFamily: "var(--fontFamily2)",
+    fontSize: FONT_SIZE_MONO.caption,
+    color: "var(--palette-text-secondary)",
+    textTransform: "lowercase"
   }
 });
 
 const contentStyles = (colors: CodeThemeColors) =>
   css({
-    fontFamily: '"JetBrains Mono", monospace',
-    padding: "1em",
+    fontFamily: "var(--fontFamily2)",
+    fontSize: FONT_SIZE_MONO.code,
+    padding: getSpacingPx(SPACING.xl),
     margin: 0,
-    border: "2px solid var(--palette-grey-800)",
+    border: "1px solid var(--palette-grey-800)",
     boxSizing: "border-box",
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: BORDER_RADIUS.sm,
-    borderBottomRightRadius: BORDER_RADIUS.sm,
+    borderBottomLeftRadius: BORDER_RADIUS.md,
+    borderBottomRightRadius: BORDER_RADIUS.md,
     backgroundColor: colors.background,
     color: colors.foreground,
-    whiteSpace: "pre",
-    wordBreak: "normal",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
     overflow: "auto",
+    maxHeight: "40vh",
     lineHeight: 1.5,
     tabSize: 2,
     "& code": {
@@ -91,6 +122,119 @@ const contentStyles = (colors: CodeThemeColors) =>
 const darkContentStyles = contentStyles(oneDarkColors);
 const lightContentStyles = contentStyles(oneLightColors);
 
+const svgPreviewStyles = css({
+  padding: getSpacingPx(SPACING.xl),
+  margin: 0,
+  border: "1px solid var(--palette-grey-800)",
+  boxSizing: "border-box",
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  borderBottomLeftRadius: BORDER_RADIUS.md,
+  borderBottomRightRadius: BORDER_RADIUS.md,
+  backgroundColor: "var(--palette-background-paper)",
+  overflow: "visible",
+  "& svg": {
+    display: "block",
+    width: "100%",
+    height: "auto",
+    maxWidth: "100%"
+  }
+});
+
+/** Languages that may carry a whole SVG document as the block body. */
+const SVG_BLOCK_LANGUAGES = new Set(["svg", "xml", "html", "plaintext"]);
+
+/**
+ * Returns the `<svg>…</svg>` document when the block body is an SVG,
+ * after stripping a BOM, XML declaration, or SVG doctype. Returns null
+ * when the block is not an SVG document.
+ */
+export function extractSvgDocument(source: string): string | null {
+  const trimmed = source.trim().replace(/^\uFEFF/, "");
+  if (!trimmed) {
+    return null;
+  }
+  const body = trimmed
+    .replace(/^<\?xml\b[\s\S]*?\?>\s*/i, "")
+    .replace(/^<!DOCTYPE\s+svg\b[\s\S]*?>\s*/i, "");
+  if (!/^<svg(\s|>|\/)/i.test(body)) {
+    return null;
+  }
+  return body;
+}
+
+function parseSvgLength(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || /[%a-z]/i.test(trimmed.replace(/px$/i, ""))) {
+    return null;
+  }
+  const n = parseFloat(trimmed);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * ViewBox-only SVGs default to 300×150 as a replaced element, which clips
+ * tall drawings. Pin width to the column and set aspect-ratio from the
+ * document so the frame is as tall as the graphic.
+ */
+function sizeSvgToFrame(clean: string): string {
+  if (typeof DOMParser === "undefined") {
+    return clean;
+  }
+  const doc = new DOMParser().parseFromString(clean, "image/svg+xml");
+  const svg = doc.documentElement;
+  if (!svg || svg.localName.toLowerCase() !== "svg") {
+    return clean;
+  }
+  if (svg.getElementsByTagName("parsererror").length > 0) {
+    return clean;
+  }
+
+  let width = parseSvgLength(svg.getAttribute("width"));
+  let height = parseSvgLength(svg.getAttribute("height"));
+  const parts = svg.getAttribute("viewBox")?.trim().split(/[\s,]+/).filter(Boolean);
+  if (parts && parts.length === 4) {
+    const viewWidth = parseFloat(parts[2]);
+    const viewHeight = parseFloat(parts[3]);
+    if (viewWidth > 0 && viewHeight > 0 && !(width && height)) {
+      width = viewWidth;
+      height = viewHeight;
+    }
+  }
+  if (!width || !height) {
+    return clean;
+  }
+
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  const frameStyle = `width:100%;height:auto;aspect-ratio:${width} / ${height}`;
+  const prior = svg.getAttribute("style")?.trim() ?? "";
+  svg.setAttribute(
+    "style",
+    prior ? `${prior}${prior.endsWith(";") ? "" : ";"}${frameStyle}` : frameStyle
+  );
+  return new XMLSerializer().serializeToString(svg);
+}
+
+function sanitizeSvgDocument(source: string): string | null {
+  const extracted = extractSvgDocument(source);
+  if (!extracted) {
+    return null;
+  }
+  const clean = DOMPurify.sanitize(extracted, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    FORBID_TAGS: ["script", "foreignObject"],
+    KEEP_CONTENT: false
+  });
+  if (typeof clean !== "string" || !/<svg(\s|>|\/)/i.test(clean)) {
+    return null;
+  }
+  return sizeSvgToFrame(clean);
+}
+
 export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   node: _node,
   inline,
@@ -129,8 +273,15 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   // highlights. The header keeps displaying the original casing.
   const language = (match ? match[1] : "plaintext").toLowerCase();
 
+  const svgMarkup = useMemo(() => {
+    if (!renderAsBlock || !SVG_BLOCK_LANGUAGES.has(language)) {
+      return null;
+    }
+    return sanitizeSvgDocument(codeContent);
+  }, [renderAsBlock, language, codeContent]);
+
   const highlightedHtml = useMemo(() => {
-    if (!renderAsBlock) {
+    if (!renderAsBlock || svgMarkup) {
       return null;
     }
     const grammar = Prism.languages[language];
@@ -145,7 +296,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
       // Prism highlighting failed — fall back to plain text
       return null;
     }
-  }, [renderAsBlock, language, codeContent]);
+  }, [renderAsBlock, svgMarkup, language, codeContent]);
 
   if (renderAsBlock) {
     return (
@@ -175,20 +326,29 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
             <CopyButton value={codeContent} />
           </FlexRow>
         </div>
-        <div
-          className="code-block-content"
-          css={isDarkMode ? darkContentStyles : lightContentStyles}
-          {...props}
-        >
-          {highlightedHtml !== null ? (
-            <code
-              className={`language-${language}`}
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-            />
-          ) : (
-            <code className={`language-${language}`}>{codeContent}</code>
-          )}
-        </div>
+        {svgMarkup ? (
+          <div
+            className="svg-preview"
+            css={svgPreviewStyles}
+            data-testid="svg-preview"
+            dangerouslySetInnerHTML={{ __html: svgMarkup }}
+          />
+        ) : (
+          <div
+            className="code-block-content"
+            css={isDarkMode ? darkContentStyles : lightContentStyles}
+            {...props}
+          >
+            {highlightedHtml !== null ? (
+              <code
+                className={`language-${language}`}
+                dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+              />
+            ) : (
+              <code className={`language-${language}`}>{codeContent}</code>
+            )}
+          </div>
+        )}
       </div>
     );
   } else {

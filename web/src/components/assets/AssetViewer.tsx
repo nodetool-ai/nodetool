@@ -354,9 +354,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { handleDownload } = useAssetDownload({ currentAsset, url });
 
   const isImage = useMemo(() => {
-    const ct = currentAsset?.content_type || contentType;
-    return ct?.startsWith("image/") || false;
-  }, [currentAsset?.content_type, contentType]);
+    const ct = currentAsset?.content_type || contentType || "";
+    const name = (currentAsset?.name || "").toLowerCase();
+    const src = (currentAsset?.get_url || url || "").toLowerCase().split("?")[0];
+    return ct.startsWith("image/") || name.endsWith(".svg") || src.endsWith(".svg");
+  }, [currentAsset?.content_type, currentAsset?.name, currentAsset?.get_url, contentType, url]);
 
   // Check if current asset is an editable 3D model (.glb/.gltf)
   const isModel3D = useMemo(

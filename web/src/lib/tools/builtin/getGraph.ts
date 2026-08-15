@@ -5,10 +5,7 @@ import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
-import {
-  inferInputKeysFromCode,
-  parsesAsCodeBody
-} from "../../../utils/codeOutputInference";
+import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -54,11 +51,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 /**
- * Check a Code node's body: it is the one property whose mistakes are only
- * found by running the workflow. A body that does not parse, or that reads a
- * name the node has no input for, throws the moment the node executes.
- * `inferInputKeysFromCode` returns exactly the names that resolve against
- * neither the sandbox nor the code's own bindings.
+ * Check a Code node's body. A body that does not parse fails here; named
+ * `inputs.*` / `stream("…")` reads are handles and are not errors.
  */
 function validateCodeNode(
   node: { id: string; data: Record<string, unknown> },
@@ -74,27 +68,6 @@ function validateCodeNode(
   if (!parsesAsCodeBody(code)) {
     errors.push(
       `Node ${nodeLabel}: the code does not parse as JavaScript.`
-    );
-    return;
-  }
-
-  const available = new Set([
-    ...Object.keys(asRecord(node.data?.dynamic_properties)),
-    ...Object.keys(asRecord(node.data?.dynamic_inputs))
-  ]);
-  // Reads off the `inputs` object that no slot or edge feeds. A bare undefined
-  // name (`lodash`) is not decidable here — that needs the sandbox global list,
-  // which lives in node-sdk's validator; `validate_workflow` and the run-time
-  // graph check report those.
-  const undefinedNames = (inferInputKeysFromCode(code) ?? []).filter(
-    (name) =>
-      !available.has(name) && !connectedInputs.has(`${node.id}::${name}`)
-  );
-  if (undefinedNames.length > 0) {
-    errors.push(
-      `Node ${nodeLabel}: the code reads ${undefinedNames
-        .map((name) => `"inputs.${name}"`)
-        .join(", ")}, which ${undefinedNames.length > 1 ? "are" : "is"} not an input of this node.`
     );
   }
 }

@@ -17,10 +17,12 @@ import {
   resolveAssetsMultiple
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 
 interface TextItem {
   uri: string;
   type: string;
+  asset_id?: string;
 }
 
 const styles = (theme: Theme) =>
@@ -171,7 +173,7 @@ const flattenTextItems = (items: unknown): TextItem[] => {
   return result;
 };
 
-const TextListProperty = (props: PropertyProps) => {
+const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
@@ -243,16 +245,16 @@ const TextListProperty = (props: PropertyProps) => {
           );
 
           uniqueAssets.forEach(asset => {
-            if (asset.get_url && isTextAsset(asset.content_type)) {
-              droppedTexts.push({ uri: asset.get_url, type: "text" });
+            if (asset.id && isTextAsset(asset.content_type)) {
+              droppedTexts.push(mediaRefFromAsset(asset, "text"));
             }
           });
         }
 
         if (droppedTexts.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          if (asset.get_url && isTextAsset(asset.content_type)) {
-            droppedTexts.push({ uri: asset.get_url, type: "text" });
+          if (asset.id && isTextAsset(asset.content_type)) {
+            droppedTexts.push(mediaRefFromAsset(asset, "text"));
           }
         }
 
@@ -278,15 +280,11 @@ const TextListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({
-                  uri,
-                  type: "text"
-                });
+                resolve(mediaRefFromAsset(asset, "text"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -346,12 +344,11 @@ const TextListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                const uri = asset.get_url;
-                if (!uri) {
-                  reject(new Error("Asset URL is missing"));
+                if (!asset.id) {
+                  reject(new Error("Asset id is missing"));
                   return;
                 }
-                resolve({ uri, type: "text" });
+                resolve(mediaRefFromAsset(asset, "text"));
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -384,12 +381,11 @@ const TextListProperty = (props: PropertyProps) => {
           uploadAsset({
             file,
             onCompleted: (asset: Asset) => {
-              const uri = asset.get_url;
-              if (!uri) {
-                reject(new Error("Asset URL is missing"));
+              if (!asset.id) {
+                reject(new Error("Asset id is missing"));
                 return;
               }
-              resolve({ uri, type: "text" });
+              resolve(mediaRefFromAsset(asset, "text"));
             },
             onFailed: (error: string) => {
               reject(new Error(error));

@@ -2,6 +2,8 @@ import { z } from "zod";
 import { uiUpdateNodeDataParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { noNodeStoreError, resolveWorkflowId } from "./workflow";
+import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
+import { isCodeNodeType } from "../../../utils/codeNodeHandles";
 
 const TYPED_MODEL_FIELDS = new Set([
   "language_model",
@@ -62,6 +64,21 @@ FrontendToolRegistry.register({
     }
     if (propsUpdate && typeof propsUpdate === "object") {
       nodeStore.updateNodeProperties(node_id, propsUpdate);
+    }
+    if (
+      isCodeNodeType(node.type) &&
+      propsUpdate &&
+      typeof propsUpdate.code === "string"
+    ) {
+      const latest = nodeStore.findNode(node_id);
+      nodeStore.updateNodeData(
+        node_id,
+        deriveCodeIOUpdates(
+          propsUpdate.code,
+          (latest?.data?.dynamic_properties || {}) as Record<string, unknown>,
+          latest?.data?.dynamic_outputs || {}
+        )
+      );
     }
     return { ok: true, node_id };
   }

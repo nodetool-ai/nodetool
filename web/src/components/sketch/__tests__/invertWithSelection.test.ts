@@ -18,7 +18,7 @@ import {
 } from "../selection";
 import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { SketchDocument } from "../types";
-import { createDefaultDocument, createDefaultLayer } from "../types/document";
+import { createDefaultDocument } from "../types/document";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

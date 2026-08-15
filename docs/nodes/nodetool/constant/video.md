@@ -23,7 +23,7 @@ Represents a video file constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `video` |  | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| value | `video` |  | - |
 
 ## Outputs
 

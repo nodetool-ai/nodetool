@@ -5,6 +5,9 @@
  * body, ports and timeout are what executes, and that another user's script is
  * unreachable.
  */
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -12,18 +15,23 @@ import {
   type JsScriptDocument
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { JsScript, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
+import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 
 import jsScriptsRoutes from "../src/routes/js-scripts.js";
 
 const USER_ID = "user-1";
 
-async function buildServer(userId: string | null): Promise<FastifyInstance> {
+async function buildServer(
+  userId: string | null,
+  storage?: StorageAdapter
+): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   app.decorateRequest("userId", null);
   app.addHook("onRequest", async (req) => {
     req.userId = userId;
   });
-  await app.register(jsScriptsRoutes, { apiOptions: {} });
+  await app.register(jsScriptsRoutes, { apiOptions: {}, storage });
   await app.ready();
   return app;
 }
@@ -48,6 +56,7 @@ describe("POST /api/js-scripts/:id/run", () => {
   beforeEach(() => initTestDb());
   afterEach(async () => {
     ModelObserver.clear();
+    setDefaultModelInterfaces(null);
     await app?.close();
     app = null;
   });
@@ -122,6 +131,47 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(String(response.json().detail)).toContain("nope");
   });
 
+  it("does not fail a completed run when no outputs are declared", async () => {
+    const script = await seedScript({
+      code: "const unused = 1;"
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Record<string, unknown>;
+    expect(body.ok).toBe(true);
+  });
+
+  it("fails a completed run that emits nothing against declared outputs", async () => {
+    const script = await seedScript({
+      code: "const unused = 1;",
+      outputs: [
+        { name: "palette", type: "list[str]" },
+        { name: "hex", type: "str" }
+      ]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Record<string, unknown>;
+    expect(body.ok).toBe(false);
+    expect(String(body.error)).toContain("palette");
+    expect(String(body.error)).toContain("hex");
+    expect(String(body.error)).toContain("none of the declared outputs");
+  });
+
   it("reports a body that throws instead of failing the request", async () => {
     const script = await seedScript({
       code: "throw new Error('boom');",
@@ -178,5 +228,82 @@ describe("POST /api/js-scripts/:id/run", () => {
       payload: { inputs: {} }
     });
     expect(response.statusCode).toBe(404);
+  });
+
+  it("reads a video /api/storage ref the way extractFrame does", async () => {
+    // Uploaded files arrive as /api/storage/<user>/<id>.bin. extractFrame
+    // and media.bytes share that resolver.
+    const dir = await mkdtemp(join(tmpdir(), "jsscript-video-"));
+    try {
+      const storage = new FileStorageAdapter(dir);
+      const key = "1/87c6124bc9684facabb8cb3575dcb8ad.bin";
+      const payload = new Uint8Array([1, 2, 3, 4, 5]);
+      await storage.store(key, payload);
+      const script = await seedScript({
+        code:
+          "const bytes = await media.bytes(inputs.video);\n" +
+          'await output("size", bytes.length);',
+        inputs: [{ name: "video", type: "video" }],
+        outputs: [{ name: "size", type: "int" }]
+      });
+      app = await buildServer(USER_ID, storage);
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/js-scripts/${script.id}/run`,
+        payload: {
+          inputs: {
+            video: { type: "video", uri: `/api/storage/${key}` }
+          }
+        }
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as {
+        ok: boolean;
+        error?: string;
+        outputs?: Record<string, unknown>;
+      };
+      expect(body.error).toBeUndefined();
+      expect(body.ok).toBe(true);
+      expect(body.outputs).toEqual({ size: payload.length });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("promotes image.toAsset to an asset:// ref", async () => {
+    setDefaultModelInterfaces({
+      createAsset: async () => ({ id: "frame-1" })
+    });
+    const script = await seedScript({
+      code:
+        'await output("image", await image.toAsset(new Uint8Array([1, 2, 3]), { mimeType: "image/png" }));',
+      outputs: [{ name: "image", type: "image" }]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as {
+      ok: boolean;
+      error?: string;
+      outputs?: Record<string, unknown>;
+    };
+    expect(body.error).toBeUndefined();
+    expect(body.ok).toBe(true);
+    expect(body.outputs).toEqual({
+      image: {
+        type: "image",
+        uri: "asset://frame-1",
+        asset_id: "frame-1",
+        mimeType: "image/png"
+      }
+    });
   });
 }, 60_000);

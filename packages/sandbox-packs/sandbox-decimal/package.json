@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-decimal",
+  "version": "0.7.0-rc.35",
+  "description": "Arbitrary-precision decimal arithmetic inside the NodeTool sandbox, from decimal.js",
+  "license": "MIT",
+  "dependencies": {
+    "decimal.js": "^10.6.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "decimal.js"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-decimal"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "decimal",
+    "money",
+    "precision"
+  ]
+}

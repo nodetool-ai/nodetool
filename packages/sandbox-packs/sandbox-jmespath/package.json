@@ -1,0 +1,43 @@
+{
+  "name": "@nodetool-ai/sandbox-jmespath",
+  "version": "0.7.0-rc.35",
+  "description": "Query JSON with JMESPath inside the NodeTool sandbox",
+  "license": "MIT",
+  "dependencies": {
+    "jmespath": "^0.16.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "npm": "jmespath"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-jmespath"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "jmespath",
+    "json",
+    "query"
+  ]
+}

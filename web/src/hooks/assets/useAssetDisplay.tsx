@@ -7,6 +7,21 @@ import VideoViewer from "../../components/asset_viewer/VideoViewer";
 import LazyPDFViewer from "../../components/asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../../components/asset_viewer/LazyModel3DViewer";
 
+const hasSvgExtension = (value?: string | null): boolean => {
+  if (!value) {
+    return false;
+  }
+  try {
+    const pathname = new URL(value, "http://localhost").pathname;
+    return pathname.toLowerCase().endsWith(".svg");
+  } catch {
+    return value.toLowerCase().split("?")[0].endsWith(".svg");
+  }
+};
+
+const isSvg = (type: string, name?: string, url?: string): boolean =>
+  type === "image/svg+xml" || hasSvgExtension(name) || hasSvgExtension(url);
+
 const isModel3D = (type: string, url?: string): boolean => {
   if (
     type.startsWith("model/") ||
@@ -45,7 +60,7 @@ export function useAssetDisplay(params: {
   const component = useMemo(() => {
     const type = asset?.content_type || contentType || "";
     if (asset) {
-      if (type.startsWith("image/")) {
+      if (type.startsWith("image/") || isSvg(type, asset.name, asset.get_url ?? undefined)) {
         return <ImageViewer asset={asset} />;
       }
       if (type.startsWith("audio/")) {
@@ -65,7 +80,7 @@ export function useAssetDisplay(params: {
       }
     }
     if (url) {
-      if (type.startsWith("image/")) {
+      if (type.startsWith("image/") || isSvg(type, asset?.name, url)) {
         return <ImageViewer url={url} />;
       }
       if (type.startsWith("audio/")) {

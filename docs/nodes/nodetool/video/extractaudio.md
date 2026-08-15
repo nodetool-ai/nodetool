@@ -18,7 +18,7 @@ Separate and extract audio track from a video file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to separate. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to separate. | - |
 
 ## Outputs
 

@@ -46,19 +46,6 @@ const markdownStyles = css({
   overflow: "hidden",
   wordBreak: "break-word",
   overflowWrap: "anywhere",
-  ".code-block-header": {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "var(--palette-grey-800)",
-    color: "var(--palette-text-primary)",
-    paddingTop: getSpacingPx(1.5),
-    paddingBottom: getSpacingPx(1.5),
-    paddingLeft: "1em",
-    paddingRight: "1em",
-    borderTopLeftRadius: "8px",
-    borderTopRightRadius: "8px"
-  },
   pre: {
     borderRadius: BORDER_RADIUS.lg,
     borderTopLeftRadius: "0px",

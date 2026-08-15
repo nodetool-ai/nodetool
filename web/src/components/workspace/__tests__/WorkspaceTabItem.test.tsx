@@ -8,6 +8,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import WorkspaceTabItem from "../WorkspaceTabItem";
 import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
+import { tabCanRename } from "../tabRename";
 
 jest.mock("../../../hooks/useWorkflowRunnerState", () => ({
   useIsWorkflowRunning: () => false
@@ -81,5 +82,70 @@ describe("WorkspaceTabItem rename input", () => {
     await user.keyboard(" ");
 
     expect(handlers.onActivate).toHaveBeenCalledWith("tab-1");
+  });
+
+  it("starts rename on double-click when the tab can be renamed", async () => {
+    const user = userEvent.setup();
+    const handlers = renderTab({ canRename: true });
+
+    await user.dblClick(screen.getByRole("tab"));
+
+    expect(handlers.onBeginRename).toHaveBeenCalledWith(tab);
+  });
+
+  it("does not start rename on double-click when the tab cannot be renamed", async () => {
+    const user = userEvent.setup();
+    const handlers = renderTab({ canRename: false });
+
+    await user.dblClick(screen.getByRole("tab"));
+
+    expect(handlers.onBeginRename).not.toHaveBeenCalled();
+  });
+
+  it("lets the rename input take focus while editing", () => {
+    renderTab({ isEditing: true });
+
+    const input = screen.getByLabelText("Tab name");
+    const event = new MouseEvent("mousedown", {
+      button: 0,
+      bubbles: true,
+      cancelable: true
+    });
+    input.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("offers Rename on an image tab (sketch editor host)", async () => {
+    const user = userEvent.setup();
+    const imageTab = {
+      ...tab,
+      id: "image:img-1",
+      type: "image",
+      ref: "img-1",
+      title: "Untitled.png"
+    } as WorkspaceTab;
+    const handlers = renderTab({
+      tab: imageTab,
+      canRename: tabCanRename("image")
+    });
+
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByRole("tab")
+    });
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    expect(handlers.onBeginRename).toHaveBeenCalledWith(imageTab);
+  });
+
+  it("offers Rename in the tab menu when the tab can be renamed", async () => {
+    const user = userEvent.setup();
+    const handlers = renderTab({ canRename: true });
+
+    await user.pointer({ keys: "[MouseRight]", target: screen.getByRole("tab") });
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    expect(handlers.onBeginRename).toHaveBeenCalledWith(tab);
   });
 });

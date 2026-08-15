@@ -270,9 +270,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         typeof value === "string"
       ) {
         const node = findNode(id);
-        const existingDynProps = (node?.data?.dynamic_properties ||
-          {}) as Record<string, unknown>;
-        updateNodeData(id, deriveCodeIOUpdates(value, existingDynProps));
+        updateNodeData(
+          id,
+          deriveCodeIOUpdates(
+            value,
+            (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+            node?.data?.dynamic_outputs || {}
+          )
+        );
       }
 
       // Trigger auto-run (hook decides based on settings and node type)

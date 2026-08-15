@@ -35,7 +35,9 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
+      flex: 1,
       height: "100%",
+      minHeight: 0,
       overflow: "hidden",
       paddingBottom: ".5em",
       display: "flex",
@@ -43,8 +45,9 @@ const styles = (theme: Theme) =>
     },
     ".asset-list": {
       flex: 1,
+      minHeight: 0,
       marginTop: "1em",
-      overflow: "hidden"
+      overflow: "auto"
     },
     ".autosizer-list": {
       paddingBottom: "14em"

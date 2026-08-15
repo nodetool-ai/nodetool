@@ -7,22 +7,10 @@
  */
 import { Asset } from "@nodetool-ai/models";
 import { storeAssetWithThumbnail } from "./thumbnail.js";
-
-const MIME_TO_EXT: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "audio/mpeg": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "application/pdf": "pdf",
-  "text/plain": "txt",
-  "text/html": "html",
-  "model/gltf-binary": "glb"
-};
+import {
+  getAssetFileName,
+  normalizeAssetContentType
+} from "./asset-paths.js";
 
 export interface CreateAssetArgs {
   userId: string;
@@ -44,21 +32,20 @@ export async function createAssetModelInterface(
     node_id: args.nodeId ?? null,
     job_id: args.jobId ?? null,
     name: args.name,
-    content_type: args.contentType,
+    content_type: normalizeAssetContentType(args.contentType, args.name),
     // No explicit parent means the user's home folder — the same default the
     // upload path uses. `null` orphaned generated assets from every
     // folder-scoped listing while global search still found them.
     parent_id: args.parentId ?? args.userId
   });
   if (args.content) {
-    const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-    const key = `${asset.id}.${ext}`;
+    const key = getAssetFileName(asset.id, asset.content_type);
     await storeAssetWithThumbnail(
       asset.user_id,
       asset.id,
       key,
       args.content,
-      args.contentType
+      asset.content_type
     );
     asset.size = args.content.length;
   }

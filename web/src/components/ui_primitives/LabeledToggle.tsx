@@ -36,7 +36,8 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
+import { MOTION, FONT_SIZE_SANS } from "./tokens";
+import { Text } from "./Text";
 
 export interface LabeledToggleProps {
   /**
@@ -147,32 +148,41 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   const expandButtonSx: SxProps<Theme> = useMemo(() => ({
     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
     transition: MOTION.transform,
-    padding: size === "small" ? 0.5 : 1
-  }), [isOpen, size]);
+    padding: 0,
+    width: theme.spacing(6),
+    height: theme.spacing(6),
+    color: "inherit",
+    "& svg": {
+      fontSize: FONT_SIZE_SANS.label
+    }
+  }), [isOpen, theme]);
 
   const iconBoxSx: SxProps<Theme> = useMemo(() => ({
     display: "inline-flex",
     alignItems: "center",
-    gap: 0.5,
-    color: isOpen
-      ? theme.vars.palette.text.primary
-      : theme.vars.palette.text.secondary,
-    transition: `color ${MOTION.normal}`
-  }), [isOpen, theme]);
+    lineHeight: 1,
+    "& svg": {
+      fontSize: FONT_SIZE_SANS.label
+    }
+  }), []);
 
   const containerSx: SxProps<Theme> = useMemo(() => ({
     display: "flex",
     alignItems: "center",
     width: "fit-content",
     gap: 1,
-    px: 1,
+    px: 0,
     py: 0.5,
+    lineHeight: 1.35,
+    color: isOpen
+      ? theme.vars.palette.text.primary
+      : theme.vars.palette.text.secondary,
     cursor: disabled ? "default" : "pointer",
     userSelect: "none",
     opacity: disabled ? 0.5 : 1,
     transition: MOTION.opacity,
     ...sx
-  }), [disabled, sx]);
+  }), [disabled, isOpen, sx, theme]);
 
   const expandIconNode = showExpandIcon ? (
     <IconButton
@@ -213,6 +223,14 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     >
       {expandIconNode}
       {iconNode}
+      <Text
+        component="span"
+        size="small"
+        className="labeled-toggle-label"
+        sx={{ m: 0, lineHeight: 1.35, color: "inherit" }}
+      >
+        {labelText}
+      </Text>
     </Box>
   );
 

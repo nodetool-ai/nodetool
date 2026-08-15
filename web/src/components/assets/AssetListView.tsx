@@ -45,12 +45,14 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       width: "100%",
-      height: "100%"
+      height: "100%",
+      minHeight: 0
     },
     ".asset-list-container": {
       display: "flex",
       flexDirection: "column",
-      height: "100%"
+      height: "100%",
+      minHeight: 0
     },
     ".asset-list-header": {
       display: "flex",
@@ -87,7 +89,8 @@ const styles = (theme: Theme) =>
     },
     ".asset-list-content": {
       flex: 1,
-      overflow: "hidden"
+      minHeight: 0,
+      overflow: "auto"
     },
     ".asset-virtual-list": {
       paddingBottom: "14em"
@@ -414,10 +417,18 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     const isSelected = selectedAssetIdsRef.current.includes(asset.id);
     const isFolder = asset.content_type === "folder";
     const assetSize = asset.size;
+    const isSvg =
+      asset.content_type === "image/svg+xml" ||
+      (asset.name ?? "").toLowerCase().endsWith(".svg");
     const hasVisualContent =
-      (asset.content_type?.startsWith("image/") || asset.content_type?.startsWith("video/")) &&
+      (asset.content_type?.startsWith("image/") ||
+        asset.content_type?.startsWith("video/") ||
+        isSvg) &&
       asset.get_url &&
       asset.get_url !== "/images/placeholder.png";
+    const previewUrl = isSvg
+      ? asset.get_url
+      : asset.thumb_url || asset.get_url;
 
     return (
       <div
@@ -444,7 +455,8 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           <div
             className="asset-item-thumbnail"
             style={{
-              backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+              backgroundImage: `url(${previewUrl})`,
+              backgroundSize: isSvg ? "contain" : undefined
             }}
             title={`${asset.content_type} thumbnail`}
           />

@@ -5,8 +5,6 @@ title: "nodetool.workflows.base_node Nodes"
 
 This namespace contains 1 node(s).
 
-## Nodes
+## Available Nodes
 
-- **[Preview](preview.md)**
-
-[Back to all nodes](../../../)
+- **[Preview](preview.md)** - Preview values inside the workflow graph

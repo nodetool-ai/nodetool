@@ -114,6 +114,23 @@ describe("LabeledToggle", () => {
     expect(screen.getByTestId("mock-icon")).toBeInTheDocument();
   });
 
+  it("renders the label as visible text with the label type style", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle
+          isOpen={false}
+          onToggle={mockOnToggle}
+          showLabel="Show thought"
+          hideLabel="Hide thought"
+        />
+      </ThemeProvider>
+    );
+
+    const label = screen.getByText("Show thought");
+    expect(label).toBeInTheDocument();
+    expect(label).toHaveClass("labeled-toggle-label");
+  });
+
   it("uses showLabel when isOpen is false", () => {
     render(
       <ThemeProvider theme={mockTheme}>

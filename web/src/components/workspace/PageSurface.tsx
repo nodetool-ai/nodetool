@@ -39,8 +39,17 @@ const surfaceStyle: React.CSSProperties = {
   width: "100%",
   height: "100%",
   minHeight: 0,
+  overflow: "hidden"
+};
+
+const SCROLLING_SURFACE_STYLE: React.CSSProperties = {
+  ...surfaceStyle,
   overflow: "auto"
 };
+
+// These pages fill the tab and scroll inside their own chrome. The rest
+// (settings, costs, …) are document-length and scroll this surface.
+const SELF_SCROLLING_PAGES = new Set<PageTabKey>(["assets"]);
 
 interface PageSurfaceProps {
   pageKey: PageTabKey;
@@ -53,8 +62,11 @@ interface PageSurfaceProps {
  */
 const PageSurface = ({ pageKey }: PageSurfaceProps) => {
   const Component = PAGE_COMPONENTS[pageKey];
+  const style = SELF_SCROLLING_PAGES.has(pageKey)
+    ? surfaceStyle
+    : SCROLLING_SURFACE_STYLE;
   return (
-    <div style={surfaceStyle} aria-label={PAGE_TAB_TITLES[pageKey]}>
+    <div style={style} aria-label={PAGE_TAB_TITLES[pageKey]}>
       <Suspense fallback={<LoadingSpinner />}>
         <Component />
       </Suspense>

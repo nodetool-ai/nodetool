@@ -2792,6 +2792,7 @@ export class ProcessingContext {
       workflow_id: req.workflowId ?? this.workflowId ?? null,
       provider: req.provider,
       model: req.model,
+      capability: req.capability,
       status,
       params: req.params ?? {},
       data: data ?? null,

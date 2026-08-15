@@ -2,9 +2,7 @@
 
 Code-execution and agent-tool nodes for [NodeTool](https://nodetool.ai).
 
-Run JavaScript inside visual AI workflows in a QuickJS WASM sandbox, and drive
-single-purpose LLM tool agents for shell, browser, filesystem, git, media, and
-document tasks.
+Run JavaScript inside visual AI workflows in a QuickJS WASM sandbox.
 
 ## Install
 
@@ -20,12 +18,11 @@ Dynamic inputs arrive on the `inputs` object; the returned object becomes the
 outputs. Libraries are sandbox packages the node declares and imports. Full
 reference: [JavaScript Sandbox](https://docs.nodetool.ai/javascript-sandbox).
 
-**Tool agents** (`nodetool.agents.*`) — LLM agents scoped to one toolset:
-`ShellAgent`, `BrowserAgent`, `LiveBrowserAgent`, `FilesystemAgent`, `GitAgent`,
-`HttpApiAgent`, `HtmlAgent`, `ImageAgent`, `MediaAgent`, `FfmpegAgent`,
-`DocumentAgent`, `DocxAgent`, `PdfLibAgent`, `PptxAgent`, `SpreadsheetAgent`,
-`EmailAgent`, `SQLiteAgent`, `SupabaseAgent`, `VectorStoreAgent`,
-`YtDlpDownloaderAgent`, and `ClaudeCodeAgent`.
+**Claude Code Agent** (`nodetool.agents.ClaudeCodeAgent`) — run Claude Code
+in a tmux session from a workflow node. The general Agent node lives in
+`@nodetool-ai/llm-nodes`. Host binaries such as ffmpeg, yt-dlp, and the
+browser capability are CodeAct tools (`nodetool.media.ffmpeg`,
+`nodetool.media.downloadVideo`, `nodetool.web.browse`).
 
 ## Links
 

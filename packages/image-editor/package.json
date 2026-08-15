@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/image-editor",
-  "version": "0.7.0-rc.34",
-  "description": "Shared image-editor types, dependency hashing, seeded layer templates, and the host-neutral brush/pencil/eraser paint core",
+  "version": "0.7.0-rc.35",
+  "description": "Shared image-editor types, dependency hashing, seeded layer templates, the paint core, and host-neutral raster ops",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -37,6 +37,12 @@
       "types": "./dist/painting/index.d.ts",
       "import": "./dist/painting/index.js",
       "default": "./dist/painting/index.js"
+    },
+    "./raster.js": {
+      "nodetool-dev": "./src/raster/index.ts",
+      "types": "./dist/raster/index.d.ts",
+      "import": "./dist/raster/index.js",
+      "default": "./dist/raster/index.js"
     }
   },
   "license": "MIT",

@@ -18,9 +18,7 @@ Accepts a local file path pointing to a document and converts it into a 'Documen
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| name | `str` | The parameter name for the workflow. | `` |
 | value | `str` | The path to the document file. | `` |
-| description | `str` | The description of the input for the workflow. | `` |
 
 ## Outputs
 

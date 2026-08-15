@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 

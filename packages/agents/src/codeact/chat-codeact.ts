@@ -45,6 +45,11 @@ import {
 } from "../capabilities/packs.js";
 import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import {
+  FABRIC_PACKAGE,
+  FABRIC_PROMPT_SECTION,
+  withFabricPackage
+} from "./fabric-package.js";
+import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
   extractErrorPayload,
@@ -209,12 +214,16 @@ export function createChatCodeActSession(
   // Authoring a graph is a package, not a builder: a turn whose belt can save,
   // validate and run a workflow gets the DSL pack on its allowlist, provided
   // this machine installed it.
-  const sandboxPackages = withGraphDslPackage(
-    sessionAllowedPackages(options.sandboxPackages),
-    options.tools.map((t) => t.name),
+  const sandboxPackages = withFabricPackage(
+    withGraphDslPackage(
+      sessionAllowedPackages(options.sandboxPackages),
+      options.tools.map((t) => t.name),
+      sandboxModuleCatalog
+    ),
     sandboxModuleCatalog
   );
   const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
+  const withFabric = sandboxPackages.includes(FABRIC_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
   // in-session rather than through the chat router: it needs no permission gate
@@ -408,6 +417,7 @@ export function createChatCodeActSession(
   const extraSections: string[] = [];
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
   if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
+  if (withFabric) extraSections.push(FABRIC_PROMPT_SECTION);
 
   const systemPromptSection = buildCodeActSystemPrompt({
     tools: resident,

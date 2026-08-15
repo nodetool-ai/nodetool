@@ -335,6 +335,32 @@ function SketchEditor({
         }
         return outcomes;
       },
+      applyLayerRasterOp: (layerId, label, mutate) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          throw new Error("The canvas is not ready yet.");
+        }
+        canvas.drainPendingStrokeCommit();
+        pushHistory(label, { [layerId]: canvas.snapshotLayerCanvas(layerId) });
+        canvas.mutateLayerPixels(layerId, mutate);
+        session.canvasActions.handleStrokeEnd(
+          layerId,
+          canvas.getLayerData(layerId)
+        );
+      },
+      cropDocument: (x, y, width, height) => {
+        session.canvasActions.handleCropComplete(x, y, width, height);
+      },
+      sampleColor: (layerId, x, y) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          throw new Error("The canvas is not ready yet.");
+        }
+        if (layerId === null) {
+          return canvas.sampleComposite(x, y);
+        }
+        return canvas.sampleLayer(layerId, x, y);
+      },
       clearActiveLayer: () => session.canvasActions.handleClearLayer(),
       fitViewToScreen: () => session.canvasActions.handleZoomFit()
     });

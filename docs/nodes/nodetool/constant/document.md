@@ -18,7 +18,7 @@ Represents a document constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `document` |  | `{"type":"document","uri":"","asset_id":null,"da...` |
+| value | `document` |  | - |
 
 ## Outputs
 

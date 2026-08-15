@@ -15,6 +15,18 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-dates` | date-fns | guest | compiler admits it |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest | compiler admits it |
 | `@nodetool-ai/sandbox-markdown` | marked | guest | compiler admits it |
+| `@nodetool-ai/sandbox-qr` | uqr | guest | compiler admits it |
+| `@nodetool-ai/sandbox-subtitle` | subtitle | host | stream internals |
+| `@nodetool-ai/sandbox-color` | culori | guest | compiler admits it |
+| `@nodetool-ai/sandbox-decimal` | decimal.js | guest | compiler admits it |
+| `@nodetool-ai/sandbox-expr` | expr-eval | host | bundle uses Function |
+| `@nodetool-ai/sandbox-jmespath` | jmespath | guest | compiler admits it |
+| `@nodetool-ai/sandbox-chrono` | chrono-node | host | locale tables / Date internals |
+| `@nodetool-ai/sandbox-exif` | exifr | host | workers / DOM-shaped globals |
+| `@nodetool-ai/sandbox-stats` | simple-statistics | guest | compiler admits it |
+| `@nodetool-ai/sandbox-rrule` | rrule | guest | compiler admits it |
+| `@nodetool-ai/sandbox-ics` | ics | host | Node-shaped helpers |
+| `@nodetool-ai/sandbox-gif` | gifenc | guest | compiler admits it |
 | `@nodetool-ai/sandbox-csv` | papaparse | host | imports `node:stream` |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host | 25 Node builtins; turndown wants a DOM |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host | reads a bare `window` |
@@ -26,6 +38,9 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-docx` | docx | host | builds from class instances, not data |
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host | Node's own zip/XML stack |
 | `@nodetool-ai/sandbox-epub` | epub2 | host | reads from a file path, not a buffer |
+| `@nodetool-ai/sandbox-fabric` | fabric | host | DOM/Canvas APIs, rasterization |
+| `@nodetool-ai/sandbox-pdflib` | pdf-lib | host | builds from class instances, not data |
+| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host | builds from class instances, not data |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host | Node's own zip/XML stack |
 | `@nodetool-ai/sandbox-pdf` | pdf-parse | host | pdf.js wants Node builtins and a canvas |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host | signing chain the guest has no library for |

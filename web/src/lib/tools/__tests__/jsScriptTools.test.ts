@@ -69,6 +69,15 @@ describe("ui_jsscript_* tools", () => {
     );
   });
 
+  it("tells set_code not to wrap the body in a module function", () => {
+    const setCode = FrontendToolRegistry.getManifest().find(
+      (tool) => tool.name === "ui_jsscript_set_code"
+    );
+    expect(setCode?.description).toContain("top-level statements");
+    expect(setCode?.description).toContain("function run");
+    expect(setCode?.description).toContain("`export`");
+  });
+
   it("requires the script id on every tool", () => {
     const jsScriptTools = FrontendToolRegistry.getManifest().filter((tool) =>
       tool.name.startsWith("ui_jsscript_")
@@ -189,7 +198,30 @@ describe("ui_jsscript_* tools", () => {
     )) as { ok: boolean; run: { outputs?: Record<string, unknown> } };
 
     expect(handler.run).toHaveBeenCalledWith({ a: "x" }, undefined);
+    expect(result.ok).toBe(true);
     expect(result.run.outputs).toEqual({ out: "x" });
+  });
+
+  it("mirrors a failed run on the tool result", async () => {
+    const handler = createMockHandler();
+    handler.run.mockResolvedValue({
+      ok: false,
+      logs: [],
+      duration_ms: 4,
+      error: "The script declares output ports (out) but the run produced none of them."
+    });
+    setJsScriptAgentHandler(SCRIPT_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_jsscript_run",
+      { script_id: SCRIPT_ID },
+      "tc-6c",
+      ctx
+    )) as { ok: boolean; run: { ok: boolean; error?: string } };
+
+    expect(result.ok).toBe(false);
+    expect(result.run.ok).toBe(false);
+    expect(result.run.error).toMatch(/produced none/);
   });
 
   it("stages input_streams for a body that reads them with stream()", async () => {
@@ -220,6 +252,22 @@ describe("ui_jsscript_* tools", () => {
     );
 
     expect(handler.run).toHaveBeenCalledWith({}, undefined);
+  });
+
+  it("tells run that it flushes first and fails on empty declared outputs", () => {
+    const run = FrontendToolRegistry.getManifest().find(
+      (tool) => tool.name === "ui_jsscript_run"
+    );
+    expect(run?.description).toMatch(/flush/i);
+    expect(run?.description).toMatch(/declared outputs/i);
+  });
+
+  it("tells test that it flushes first and fails when there are no cases", () => {
+    const test = FrontendToolRegistry.getManifest().find(
+      (tool) => tool.name === "ui_jsscript_test"
+    );
+    expect(test?.description).toMatch(/flush/i);
+    expect(test?.description).toMatch(/no saved cases|no saved test cases/i);
   });
 
   it("returns the graded report from the test tool", async () => {

@@ -23,7 +23,7 @@ References a timeline sequence in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `timeline` |  | `{"type":"timeline","id":null,"data":null}` |
+| value | `timeline` |  | - |
 
 ## Outputs
 

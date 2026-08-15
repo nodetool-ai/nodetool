@@ -18,7 +18,7 @@ Reverse the playback of a video.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| video | `video` | The input video to reverse. | `{"type":"video","uri":"","asset_id":null,"data"...` |
+| video | `video` | The input video to reverse. | - |
 
 ## Outputs
 

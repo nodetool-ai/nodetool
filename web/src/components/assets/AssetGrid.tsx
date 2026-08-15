@@ -333,7 +333,17 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
-        <div className="dropzone" style={{ height: "100%" }}>
+        <div
+          className="asset-dropzone-fill"
+          style={{
+            height: "100%",
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            flex: 1
+          }}
+        >
           {showFolders ? (
             <AssetGridSplit
               orientation={foldersDocked ? "horizontal" : "vertical"}

@@ -1,0 +1,36 @@
+{
+  "name": "@nodetool-ai/sandbox-fabric",
+  "version": "0.7.0-rc.35",
+  "description": "Build, parse, and rasterize SVG with Fabric.js (renderSVG, loadSVG, render)",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      { "name": ".", "kind": "host", "host": "fabric" }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-fabric"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "fabric",
+    "canvas",
+    "svg"
+  ]
+}

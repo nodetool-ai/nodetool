@@ -275,6 +275,74 @@ describe("media.info", () => {
 });
 
 describe("media output builders", () => {
+  it("persists through createAsset as asset:// plus asset_id", async () => {
+    const created: { id: string; name: string; contentType: string }[] = [];
+    const context = {
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async (args: {
+        name: string;
+        contentType: string;
+        content: Uint8Array;
+      }) => {
+        const id = "out-1";
+        created.push({
+          id,
+          name: args.name,
+          contentType: args.contentType
+        });
+        return { id };
+      },
+      resolveAssetBytes: async () => ({ bytes: null, attempts: [] })
+    } as unknown as Ctx;
+    const result = await runInSandbox({
+      code: `
+        const ref = await image.toAsset(new Uint8Array([1, 2, 3]), {
+          mimeType: "image/png",
+          filename: "frame.png"
+        });
+        return ref;
+      `,
+      context
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      type: "image",
+      uri: "asset://out-1",
+      asset_id: "out-1",
+      mimeType: "image/png",
+      metadata: { filename: "frame.png" }
+    });
+    expect(created).toEqual([
+      { id: "out-1", name: "frame.png", contentType: "image/png" }
+    ]);
+  });
+
+  it("does not emit the file:// path a local store() returns", async () => {
+    const entries = new Map<string, Uint8Array>();
+    const fileStore = {
+      store: async (key: string, data: Uint8Array) => {
+        entries.set(key, data);
+        return `file:///var/assets/${key}`;
+      },
+      retrieve: async (uri: string) =>
+        entries.get(uri.replace(/^\/api\/storage\//, "")) ?? null,
+      uriForKey: (key: string) => `file:///var/assets/${key}`
+    };
+    const result = await runInSandbox({
+      code: `
+        return await media.toImage(new Uint8Array([1, 2, 3]), {
+          mimeType: "image/png"
+        });
+      `,
+      context: contextWith(fileStore)
+    });
+    expect(result.success).toBe(true);
+    const ref = result.result as Record<string, unknown>;
+    expect(String(ref.uri)).toMatch(/^\/api\/storage\/sandbox\/[\w-]+\.png$/);
+    expect(String(ref.uri)).not.toContain("file://");
+    expect(ref.asset_id).toBeNull();
+  });
+
   it("writes through storage when the context has it", async () => {
     const { adapter, entries } = createStorage();
     const result = await runInSandbox({

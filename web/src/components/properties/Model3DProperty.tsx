@@ -16,6 +16,7 @@ import { Tooltip, EditorButton, NodeTextField, MOTION, BORDER_RADIUS, SPACING, Z
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 
 const styles = (theme: Theme) =>
   css({
@@ -154,7 +155,7 @@ const Model3DProperty = (props: PropertyProps) => {
   const { onDrop, onDragOver } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) =>
-      props.onChange({ uri: asset.get_url || "", type: "model_3d" }),
+      props.onChange(mediaRefFromAsset(asset, "model_3d")),
     type: "all" // Accept all file types for 3D models (GLB, GLTF, OBJ, etc.)
   });
 

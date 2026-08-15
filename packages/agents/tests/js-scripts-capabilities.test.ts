@@ -10,7 +10,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  refuseSandboxDelivery
+} from "@nodetool-ai/runtime";
 import { JsScript, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import {
   emptyJsScriptDocument,
@@ -99,6 +102,76 @@ describe("run_js_script", () => {
     expect(result.outputs).toEqual({ sum: 5 });
     expect(result.streamed).toEqual([{ name: "step", value: 1 }]);
     expect(result.logs.join("\n")).toContain("hi");
+  });
+
+  it("imports an installed pack without a packages list", async () => {
+    const { GEO_MODULE } = await import("../src/sandbox-module-fixtures.js");
+    const catalog = {
+      summaries: () => [
+        {
+          specifier: "@acme/geo",
+          packName: "@acme/nodetool-geo",
+          kind: "js" as const
+        }
+      ],
+      diagnostics: () => [],
+      authorizeDelivery: async (moduleId: string) =>
+        refuseSandboxDelivery(moduleId),
+      resolveForExecution: (
+        declarations: readonly { specifier: string }[]
+      ) => {
+        const wanted = declarations.some((d) => d.specifier === "@acme/geo");
+        return wanted
+          ? { modules: [GEO_MODULE], statuses: [] }
+          : {
+              modules: [],
+              statuses: declarations.map((declaration) => ({
+                packName: declaration.specifier,
+                specifier: declaration.specifier,
+                status: "error" as const,
+                code: "module-not-found" as const,
+                message: `Sandbox module ${declaration.specifier} is not installed.`
+              }))
+            };
+      }
+    };
+    const script = await makeScript({
+      code:
+        'import { haversine } from "@acme/geo";\n' +
+        'await output("km", haversine(1, 2));',
+      outputs: [{ name: "km", type: "float" }]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      new ProcessingContext({
+        jobId: `job-${Math.random()}`,
+        userId: USER,
+        sandboxModuleCatalog: catalog
+      }),
+      { js_script_id: script.id, inputs: {} }
+    )) as { ok: boolean; outputs?: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({ km: 111 });
+  });
+
+  it("imports @nodetool-ai/sandbox-nodetool without a packages list", async () => {
+    const script = await makeScript({
+      code:
+        'import { list_models } from "@nodetool-ai/sandbox-nodetool/models";\n' +
+        'await output("kind", typeof list_models);',
+      outputs: [{ name: "kind", type: "str" }]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, inputs: {} }
+    )) as { ok: boolean; outputs?: Record<string, unknown>; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({ kind: "function" });
   });
 
   // The running-total body from docs/code-node-input-streaming-design.md: one
