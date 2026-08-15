@@ -6,6 +6,7 @@ import { NodeData } from "../NodeData";
 import useErrorStore from "../ErrorStore";
 import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
+import { CONTROL_HANDLE_ID } from "../graphEdgeToReactFlowEdge";
 import { NodeMetadata } from "../ApiTypes";
 
 const makeNode = (
@@ -531,6 +532,257 @@ describe("Edge Validation", () => {
 
     const target = store.getState().findNode("b");
     expect(target?.data.exposedInputs).toEqual(["input1"]);
+  });
+
+  test("onConnect ignores a connection that names no target handle", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    store.getState().addNode(makeNode("b", store.getState().workflow.id));
+    store.getState().setWorkflowDirty(false);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: null
+    });
+
+    expect(store.getState().edges).toHaveLength(0);
+    expect(store.getState().workflowIsDirty).toBe(false);
+  });
+
+  test("onConnect ignores a connection whose source node is missing", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("b", store.getState().workflow.id));
+    store.getState().setWorkflowDirty(false);
+
+    store.getState().onConnect({
+      source: "ghost",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    expect(store.getState().edges).toHaveLength(0);
+    expect(store.getState().workflowIsDirty).toBe(false);
+  });
+
+  test("onConnect replaces the existing edge into a non-collect handle", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    store.getState().addNode(makeNode("a2", store.getState().workflow.id));
+    store.getState().addNode(makeNode("b", store.getState().workflow.id));
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+    store.getState().onConnect({
+      source: "a2",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    expect(store.getState().edges[0].source).toBe("a2");
+  });
+
+  test("onConnect rejects a control edge from a non-agent source", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    store.getState().addNode(makeNode("b", store.getState().workflow.id));
+    store.getState().setWorkflowDirty(false);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: CONTROL_HANDLE_ID,
+      targetHandle: CONTROL_HANDLE_ID
+    });
+
+    expect(store.getState().edges).toHaveLength(0);
+    expect(store.getState().workflowIsDirty).toBe(false);
+  });
+
+  test("onConnect accepts a control edge from an agent source and tags it", () => {
+    restoreAddEdge();
+    store
+      .getState()
+      .addNode(
+        makeNode("a", store.getState().workflow.id, "nodetool.agents.Agent")
+      );
+    const target = makeNode("b", store.getState().workflow.id);
+    target.data.exposedInputs = [];
+    store.getState().addNode(target);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: CONTROL_HANDLE_ID,
+      targetHandle: CONTROL_HANDLE_ID
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    expect(store.getState().edges[0].type).toBe("control");
+    expect(store.getState().edges[0].data).toEqual({ edge_type: "control" });
+    // Control edges have their own surface — they never expose an input.
+    expect(store.getState().findNode("b")?.data.exposedInputs).toEqual([]);
+  });
+
+  test("onConnect rejects a connection that would create a cycle", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    store.getState().addNode(makeNode("b", store.getState().workflow.id));
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+    store.getState().onConnect({
+      source: "b",
+      target: "a",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    expect(store.getState().edges[0].source).toBe("a");
+  });
+
+  // Untyped dynamic slots bypass `validateConnection` (and with it its own
+  // cycle check), so onConnect's guard is the only one standing here.
+  test("onConnect rejects a cycle through untyped dynamic slots", () => {
+    restoreAddEdge();
+    const nodeA = makeNode("a", store.getState().workflow.id, "dynamic_test");
+    nodeA.data.dynamic_properties = { slot: "" };
+    const nodeB = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    nodeB.data.dynamic_properties = { slot: "" };
+    store.getState().addNode(nodeA);
+    store.getState().addNode(nodeB);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "slot"
+    });
+    store.getState().onConnect({
+      source: "b",
+      target: "a",
+      sourceHandle: "output1",
+      targetHandle: "slot"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    expect(store.getState().edges[0].source).toBe("a");
+  });
+
+  test("onConnect types an undeclared dynamic slot from the source output", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    const target = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    target.data.dynamic_properties = { slot: "" };
+    store.getState().addNode(target);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "slot"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    const slots = store.getState().findNode("b")?.data.dynamic_inputs;
+    expect(slots?.slot).toEqual({
+      type: {
+        type: "str",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      }
+    });
+    // A dynamic property has its own surface — it is never exposed.
+    expect(store.getState().findNode("b")?.data.exposedInputs).toBeUndefined();
+  });
+
+  test("onConnect leaves an undeclared dynamic slot untyped for an any output", () => {
+    restoreAddEdge();
+    useMetadataStore.setState(
+      {
+        ...useMetadataStore.getState(),
+        metadata: {
+          ...mockMetadata,
+          any_source: {
+            ...mockMetadata.test,
+            node_type: "any_source",
+            outputs: [
+              {
+                name: "output1",
+                type: {
+                  type: "any",
+                  optional: false,
+                  values: null,
+                  type_args: [],
+                  type_name: null
+                },
+                stream: false
+              }
+            ]
+          } as NodeMetadata
+        }
+      },
+      true
+    );
+    store
+      .getState()
+      .addNode(makeNode("a", store.getState().workflow.id, "any_source"));
+    const target = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    target.data.dynamic_properties = { slot: "" };
+    store.getState().addNode(target);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "slot"
+    });
+
+    expect(store.getState().edges).toHaveLength(1);
+    expect(store.getState().findNode("b")?.data.dynamic_inputs).toBeUndefined();
+  });
+
+  test("onConnect validates a typed dynamic slot like a static handle", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id));
+    const target = makeNode("b", store.getState().workflow.id, "dynamic_test");
+    target.data.dynamic_properties = { slot: "" };
+    target.data.dynamic_inputs = {
+      slot: {
+        type: {
+          type: "image",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }
+    };
+    store.getState().addNode(target);
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "slot"
+    });
+
+    expect(store.getState().edges).toHaveLength(0);
   });
 });
 
