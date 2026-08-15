@@ -13,8 +13,7 @@ import {
   NodeProps,
   Node,
   Handle,
-  Position,
-  Edge
+  Position
 } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
@@ -29,6 +28,7 @@ import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACIN
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { isHandleConnected } from "../../hooks/nodes/edgeIndex";
 import { colorForType } from "../../config/data_types";
 import { editorClassNames, cn } from "../editor_ui";
 import HandleTooltip from "../HandleTooltip";
@@ -162,20 +162,11 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   const isConnected = useNodes(
-    useMemo(() => {
-      let lastEdges: Edge[] | null = null;
-      let lastResult = false;
-      return (state: NodeStoreState) => {
-        if (state.edges === lastEdges) {
-          return lastResult;
-        }
-        lastEdges = state.edges;
-        lastResult = state.edges.some(
-          (edge: Edge) => edge.target === id && edge.targetHandle === "value"
-        );
-        return lastResult;
-      };
-    }, [id])
+    useMemo(
+      () => (state: NodeStoreState) =>
+        isHandleConnected(state.edges, id, "value"),
+      [id]
+    )
   );
 
   const value = (data.properties?.value as string) ?? "";

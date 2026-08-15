@@ -7,7 +7,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Edge,
   Handle,
   Node,
   NodeProps,
@@ -43,6 +42,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import { edgesTargeting, isHandleConnected } from "../../hooks/nodes/edgeIndex";
 import { NodeSelectionContext } from "./NodeSelectionContext";
 import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
@@ -548,38 +548,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { result, terminal, toolCall, planningUpdate, task } =
     useNodeArtifacts(workflow_id, id);
 
-  // Optimize: Use memoized selectors that only perform O(E) filter operations when the
-  // state.edges array reference actually changes (e.g. adding/removing edges), rather than
-  // on every store update (like during 60fps node drag operations).
-  // Returning primitive booleans prevents this node from re-rendering when unrelated edges change.
-  const hasConnectedInputSelector = useMemo(() => {
-    let lastEdges: Edge[] | null = null;
-    let lastResult = false;
-    return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) {
-        return lastResult;
-      }
-      lastEdges = state.edges;
-      lastResult = state.edges.some((edge: Edge) => edge.target === id);
-      return lastResult;
-    };
-  }, [id]);
+  // Both selectors return a primitive, so an unrelated edge change never
+  // re-renders this node.
+  const hasConnectedInputSelector = useMemo(
+    () => (state: NodeStoreState) =>
+      edgesTargeting(state.edges, id).length > 0,
+    [id]
+  );
   const hasConnectedInput = useNodes(hasConnectedInputSelector);
 
-  const hasControlEdgeSelector = useMemo(() => {
-    let lastEdges: Edge[] | null = null;
-    let lastResult = false;
-    return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) {
-        return lastResult;
-      }
-      lastEdges = state.edges;
-      lastResult = state.edges.some(
-        (edge: Edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
-      );
-      return lastResult;
-    };
-  }, [id]);
+  const hasControlEdgeSelector = useMemo(
+    () => (state: NodeStoreState) =>
+      isHandleConnected(state.edges, id, CONTROL_HANDLE_ID),
+    [id]
+  );
   const hasControlEdge = useNodes(hasControlEdgeSelector);
 
   // Show control handle when dragging a control edge from an Agent node

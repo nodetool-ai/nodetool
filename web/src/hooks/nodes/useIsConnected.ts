@@ -1,20 +1,11 @@
 import { useMemo } from "react";
-import { Edge } from "@xyflow/react";
 import { NodeStoreState } from "../../stores/NodeStore";
+import { isHandleConnected } from "./edgeIndex";
 
 export const useIsConnectedSelector = (nodeId: string, propertyName: string): ((state: NodeStoreState) => boolean) => {
-  return useMemo(() => {
-    let lastEdges: Edge[] | null = null;
-    let lastResult = false;
-    return (state: NodeStoreState) => {
-      if (state.edges === lastEdges) {
-        return lastResult;
-      }
-      lastEdges = state.edges;
-      lastResult = state.edges.some(
-        (edge) => edge.target === nodeId && edge.targetHandle === propertyName
-      );
-      return lastResult;
-    };
-  }, [nodeId, propertyName]);
+  return useMemo(
+    () => (state: NodeStoreState) =>
+      isHandleConnected(state.edges, nodeId, propertyName),
+    [nodeId, propertyName]
+  );
 };

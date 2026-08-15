@@ -55,6 +55,7 @@ import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import type { NodeStoreState } from "../../../stores/NodeStore";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
+import { edgesTargeting } from "../../../hooks/nodes/edgeIndex";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
@@ -214,21 +215,19 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
   // ── Edge / upstream resolution for per-layer thumbnails ──────────
   // `edges` is still needed when deleting a layer (to drop its edge).
-  const edgesCacheRef = useRef<{ src: unknown; result: Edge[] }>({ src: undefined, result: [] });
+  const lastEdgesRef = useRef<Edge[]>([]);
   const edgesSelector = useMemo(() => {
     return (state: NodeStoreState) => {
-      if (state.edges === edgesCacheRef.current.src) return edgesCacheRef.current.result;
-      const filtered = state.edges.filter((e) => e.target === id);
-      const prev = edgesCacheRef.current.result;
+      const connected = edgesTargeting(state.edges, id);
+      const prev = lastEdgesRef.current;
       if (
-        prev.length === filtered.length &&
-        prev.every((edge, i) => edge === filtered[i])
+        prev.length === connected.length &&
+        prev.every((edge, i) => edge === connected[i])
       ) {
-        edgesCacheRef.current = { src: state.edges, result: prev };
         return prev;
       }
-      edgesCacheRef.current = { src: state.edges, result: filtered };
-      return filtered;
+      lastEdgesRef.current = connected;
+      return connected;
     };
   }, [id]);
   const edges = useNodes(edgesSelector);
