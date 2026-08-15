@@ -18,7 +18,6 @@ import type { ToolContext, ToolPointerEvent } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import {
   createDefaultDocument,
-  makeAffineTransform,
   isSingleQuadTransform,
   type LayerTransform
 } from "../types";

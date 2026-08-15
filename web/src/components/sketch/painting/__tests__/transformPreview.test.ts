@@ -10,7 +10,6 @@ import {
 import {
   makeAffineTransform,
   makeSingleQuadTransform,
-  IDENTITY_AFFINE,
 } from "../../types";
 import type { LayerTransform } from "../../types";
 

@@ -4,13 +4,11 @@
  * JSDOM doesn't have WebGPU, so these tests verify:
  * - isWebGPUAvailable returns false in JSDOM
  * - createRuntime falls back to Canvas2D when WebGPU is unavailable
- * - WebGPURuntime class exists and has correct shape
  * - Phase 3: createRuntime accepts onDeviceLost callback
  * - Phase 3: evaluateLayerEffects exists on both runtime prototypes
  */
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
-import { WebGPURuntime } from "../rendering/WebGPURuntime";
 import { isWebGPUAvailable, createRuntime } from "../rendering/initWebGPU";
 import type { LayerEffect } from "../types";
 

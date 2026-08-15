@@ -10,8 +10,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import {
   sortImageKeys,
   nextImageIndex,
-  useImageUrl,
-  type ImageRefLike
+  useImageUrl
 } from "../CompositorBody.helpers";
 import { LayerRow, type LayerRowProps } from "../LayerRow";
 

@@ -12,10 +12,7 @@ import {
   shapeConstraintFromRefs,
   type ModifierSnapshot
 } from "../tools/modifierIntent";
-import {
-  applySelectionFinalization,
-  type SelectionFinalizationParams
-} from "../tools/selectionFinalization";
+import { applySelectionFinalization } from "../tools/selectionFinalization";
 import {
   createPreviewSession,
   type PreviewSession
