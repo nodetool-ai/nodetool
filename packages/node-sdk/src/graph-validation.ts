@@ -87,9 +87,11 @@ export interface GraphValidationIssue {
    * "property" | "dangling_edge" | "unknown_handle" | "missing_handle" |
    * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
    * "dynamic_type_mismatch" | "unknown_provider" | "missing_provider" |
-   * "unknown_model" | "slot_type_alias", plus the `code_*` categories a Code
-   * node body produces (see {@link validateCodeNodeBody}).
+   * "unknown_model" | "slot_type_alias" | "invalid_graph", plus the `code_*`
+   * categories a Code node body produces (see {@link validateCodeNodeBody}).
    *
+   * - "invalid_graph" (error): `nodes` or `edges` is not an array, so that half
+   *   of the graph cannot be read at all.
    * - "missing_id" (error): a node with no id — unaddressable by any edge.
    * - "missing_handle" (error): an edge whose endpoints both exist but which
    *   names no source/target handle, so the kernel cannot route it.
@@ -187,6 +189,30 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     return undefined;
   }
   return value as Record<string, unknown>;
+}
+
+/**
+ * `nodes` / `edges` as the arrays their types promise. The graph is parsed from
+ * untrusted JSON on every entry point — a file, a stored row, an LLM's inline
+ * graph — so a member that is a number or an object reaches here and has to be
+ * reported rather than thrown at `.map`. Absent stays absent: an empty half of
+ * a graph is what the other checks already read it as.
+ */
+function graphMembers<T>(
+  value: unknown,
+  field: "nodes" | "edges",
+  issues: GraphValidationIssue[]
+): T[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value as T[];
+  issues.push({
+    severity: "error",
+    code: "invalid_graph",
+    message: `graph.${field} must be an array, not ${
+      typeof value === "object" ? "an object" : `a ${typeof value}`
+    }`
+  });
+  return [];
 }
 
 /**
@@ -626,8 +652,8 @@ export function validateGraph(
       ? options.sandboxModuleCatalog
       : getProcessSandboxModuleCatalog();
   const issues: GraphValidationIssue[] = [];
-  const nodes = graph.nodes ?? [];
-  const edges = graph.edges ?? [];
+  const nodes = graphMembers<GraphValidationNode>(graph.nodes, "nodes", issues);
+  const edges = graphMembers<GraphValidationEdge>(graph.edges, "edges", issues);
 
   // ── Nodes: ids, types, properties ────────────────────────────────────────
   const byId = new Map<string, GraphValidationNode>();

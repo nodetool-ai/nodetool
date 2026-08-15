@@ -1330,6 +1330,38 @@ describe("validateGraph — node/edge shape", () => {
     expect(report.issues.some((i) => i.code === "missing_id")).toBe(true);
   });
 
+  // A graph is untrusted JSON: both shapes below threw a TypeError out of
+  // `validateGraph` before they were reported.
+  it("reports edges that are not an array", () => {
+    const report = validateGraph(
+      { nodes: [{ id: "1", type: "a.Source" }], edges: -1 as never },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    expect(report.edgeCount).toBe(0);
+    expect(report.issues.find((i) => i.code === "invalid_graph")?.message).toBe(
+      "graph.edges must be an array, not a number"
+    );
+  });
+
+  it("reports nodes that are not an array", () => {
+    const report = validateGraph({ nodes: {} as never, edges: [] }, registry);
+    expect(report.ok).toBe(false);
+    expect(report.nodeCount).toBe(0);
+    expect(report.issues.find((i) => i.code === "invalid_graph")?.message).toBe(
+      "graph.nodes must be an array, not an object"
+    );
+  });
+
+  it("treats an absent half of the graph as empty, not as an error", () => {
+    const report = validateGraph(
+      { nodes: [{ id: "1", type: "a.Source" }] },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "invalid_graph")).toBe(false);
+    expect(report.ok).toBe(true);
+  });
+
   it("reports a duplicate id's properties only once", () => {
     const report = validateGraph(
       {

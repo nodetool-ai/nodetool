@@ -14,6 +14,12 @@ import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import type { RawGraphInput } from "./types.js";
 
 export function normalizeGraph(graph: RawGraphInput): GraphData {
+  // `RawGraphInput` declares two arrays; the stored row or file behind it has
+  // never been checked against that, and a non-array used to reach `.filter()`.
+  if (!Array.isArray(graph?.nodes) || !Array.isArray(graph?.edges)) {
+    throw new Error("Invalid workflow: nodes and edges must be arrays");
+  }
+
   const executable = graph.nodes.filter(
     (n) => !isEditorOnlyType(String(n["type"] ?? ""))
   );
