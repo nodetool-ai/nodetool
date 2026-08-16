@@ -425,9 +425,12 @@ export function streamCallNames(
 }
 
 /** Names a binding pattern introduces (`const { a, b: [c] } = x`). */
-function patternNames(pattern: unknown, out: Set<string>): void {
-  if (typeof pattern !== "object" || pattern === null) return;
-  const node = pattern as acorn.AnyNode;
+function patternNames(
+  pattern: acorn.AnyNode | null | undefined,
+  out: Set<string>
+): void {
+  if (pattern == null) return;
+  const node = pattern;
   switch (node.type) {
     case "Identifier":
       out.add(node.name);

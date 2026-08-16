@@ -260,7 +260,9 @@ function responsesSystemPrompt(messages: Message[]): string {
  * null for any other stream item. The multi-megabyte base64 blob must be
  * absorbed here, never yielded onward as a chunk.
  */
-function imageContentFromChunk(item: unknown): MessageImageContent | null {
+function imageContentFromChunk(
+  item: ProviderStreamItem
+): MessageImageContent | null {
   if (
     !isRecord(item) ||
     item.type !== "chunk" ||

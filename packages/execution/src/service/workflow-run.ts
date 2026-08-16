@@ -146,7 +146,7 @@ export const MAX_INTERACTIVE_DECISION_TIMEOUT_MS = 30 * 60_000;
  * instead of a bound that fails every decision instantly.
  */
 export function boundedRunOption(
-  value: unknown,
+  value: number | undefined,
   min: number,
   max: number
 ): number | undefined {

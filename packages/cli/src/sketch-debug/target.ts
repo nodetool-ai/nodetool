@@ -100,7 +100,7 @@ function settingsOf(raw: unknown): SketchCanvasSettings {
 }
 
 /** A document is anything with a `sketch` object and a `layerBindings` array. */
-const looksLikeDocument = (value: unknown): boolean =>
+const looksLikeDocument = (value: JsonValue): boolean =>
   isRecord(value) &&
   isRecord(value.sketch) &&
   Array.isArray(value.layerBindings);
@@ -131,7 +131,7 @@ const layerType = (value: unknown): SketchLayerView["type"] =>
   value === "mask" || value === "group" ? value : "raster";
 
 /** Read a document as a canvas + layer stack, defaulting what is missing. */
-function asDocument(raw: unknown): SketchDocumentView {
+function asDocument(raw: JsonValue): SketchDocumentView {
   const record = isRecord(raw) ? raw : {};
   const sketch = isRecord(record.sketch) ? record.sketch : {};
   const layers: SketchLayerView[] = [];

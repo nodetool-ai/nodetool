@@ -298,6 +298,8 @@ export abstract class BaseProvider {
    * sent (secrets redacted, large fields truncated). Safe to call even outside
    * a traced call — it is a no-op when no capture slot is active.
    */
+  // HOLDOUT (anti-slop/no-unknown-parameters): see `setLastRequest` — the
+  // honest type is `object | null`, which `no-object-parameters` forbids.
   protected recordRequestPayload(payload: unknown): void {
     setLastRequest(payload);
   }
