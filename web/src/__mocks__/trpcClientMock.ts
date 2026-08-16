@@ -75,7 +75,14 @@ const makeUtilsProxy = () =>
 export const trpc = {
   Provider: ({ children }: { children: unknown }) => children as never,
   createClient: jest.fn(),
-  useUtils: () => makeUtilsProxy() as never
+  useUtils: () => makeUtilsProxy() as never,
+  // `useScriptLineShotLink` reads a linked board through this hook, so any test
+  // that renders a script line reaches it. Answering with no data leaves the
+  // hook on its `openShots` fallback — the store path those tests drive —
+  // rather than standing in for a board they never set up.
+  storyboards: {
+    get: { useQuery: jest.fn(() => ({ data: undefined })) }
+  }
 };
 
 export const trpcClient = {
