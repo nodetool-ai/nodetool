@@ -22,6 +22,7 @@ import {
 import { useGenerateShot } from "./useGenerateShot";
 import { useAssembleTimeline } from "./useAssembleTimeline";
 import { useExtractScriptFromBoard } from "./useExtractScriptFromBoard";
+import { useReprojectShots } from "./useReprojectShots";
 import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 
 const toShotNode = (shot: Shot): StoryboardShotNode => ({
@@ -43,6 +44,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
     useGenerateShot();
   const { assemble } = useAssembleTimeline();
   const { extract } = useExtractScriptFromBoard();
+  const { reproject } = useReprojectShots();
 
   const handler = useMemo<StoryboardAgentHandler>(() => {
     const store = () => useStoryboardStore.getState();
@@ -174,6 +176,11 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         return extract(boardId, { relink: options?.relink });
       },
 
+      async reprojectShots(targets) {
+        const shotIds = targets?.map((target) => requireShot(target).id);
+        return reproject(boardId, { shotIds });
+      },
+
       selectShot(target) {
         if (!target) {
           store().selectShot(boardId, null);
@@ -190,7 +197,8 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
     generateClip,
     generateRevisedClip,
     assemble,
-    extract
+    extract,
+    reproject
   ]);
 
   useEffect(() => {

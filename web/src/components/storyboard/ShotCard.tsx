@@ -36,6 +36,7 @@ import {
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
 import ShotTakesGallery from "./ShotTakesGallery";
+import ShotScriptPanel from "./ShotScriptPanel";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
@@ -317,6 +318,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         )}
 
         <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
+
+        <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
 
         {!readOnly && (
           <FlexRow gap={SPACING.micro} wrap>

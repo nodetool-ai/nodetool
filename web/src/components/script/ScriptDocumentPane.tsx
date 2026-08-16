@@ -43,6 +43,7 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
+import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
@@ -218,6 +219,10 @@ const SectionLine = memo(function SectionLine({
     [onDragStart, line.id]
   );
 
+  // The storyboard side of the link: which shot covers this line, or that none
+  // does. Nothing when the script links no board.
+  const { shotLink, orphaned } = useScriptLineShotLink(scriptId, line.id);
+
   return (
     <div>
       {!readOnly && (
@@ -236,6 +241,8 @@ const SectionLine = memo(function SectionLine({
         highlighted={highlighted}
         readOnly={readOnly}
         mobile={mobile}
+        shotLink={shotLink}
+        orphaned={orphaned}
         onKeyNav={onKeyNav}
         isDragging={isDragging}
         onDragStart={readOnly ? undefined : handleDragStart}

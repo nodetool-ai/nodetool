@@ -15,7 +15,10 @@ import {
   extractScriptFromScreenplay,
   deriveShotScaffold,
   joinLineTexts,
+  shotDialogueDrifted,
   validateScriptLink,
+  NARRATOR_SPEAKER_ID,
+  NARRATOR_SPEAKER_NAME,
   type Entity,
   type ExtractedScript,
   type Screenplay,
@@ -122,6 +125,140 @@ export const linkedShots = (
       duration_source: shot.duration_source ?? "audio"
     };
   });
+
+// ── Re-projection: script text → shot text ───────────────────────────────────
+//
+// The opposite direction from `extractScriptFromBoard`: once a script exists,
+// its lines own the words (design §2.5). Re-project recomputes a shot's
+// `dialogue`/`narration` *and* its `script_text_snapshot` from the lines it
+// links, so the writer's edit reaches the board instead of being overwritten
+// by it.
+
+/** The script side of a re-projection: every line by id, plus the cast. */
+export interface ScriptProjectionSource {
+  linesById: Map<string, scripts.ScriptLine>;
+  cast: scripts.Speaker[];
+}
+
+/** Read a script document as the source a re-projection reads lines from. */
+export const projectionSource = (
+  document: scripts.ScriptDocumentSchema
+): ScriptProjectionSource => ({
+  linesById: new Map(
+    document.sections.flatMap((section) =>
+      section.lines.map((line) => [line.id, line] as const)
+    )
+  ),
+  cast: document.cast
+});
+
+/** The same source read from the live editor draft rather than the server copy. */
+export const draftProjectionSource = (
+  draft: ScriptDraft
+): ScriptProjectionSource => ({
+  linesById: new Map(
+    draft.sections.flatMap((section) =>
+      section.lines.map((line) => [line.id, line] as const)
+    )
+  ),
+  cast: draft.cast
+});
+
+/**
+ * A line reads as narration when nothing casts it or its speaker is the
+ * narrator — the same rule `deriveShotScaffold` applies, kept here because
+ * the protocol does not export it.
+ */
+const isNarration = (
+  line: scripts.ScriptLine,
+  cast: scripts.Speaker[]
+): boolean => {
+  if (!line.speakerId || line.speakerId === NARRATOR_SPEAKER_ID) {
+    return true;
+  }
+  const speaker = cast.find((entry) => entry.id === line.speakerId);
+  return (
+    speaker?.name.trim().toLowerCase() === NARRATOR_SPEAKER_NAME.toLowerCase()
+  );
+};
+
+/** Ids of the shots whose linked lines now read differently from the snapshot. */
+export const driftedShotIds = (
+  shots: Shot[],
+  linesById: Map<string, scripts.ScriptLine>
+): string[] =>
+  shots
+    .filter((shot) => shotDialogueDrifted(shot, linesById))
+    .map((shot) => shot.id);
+
+/**
+ * One shot re-projected from the script: dialogue and narration re-read from
+ * the lines it links, and the snapshot they were read from. A line the source
+ * does not carry contributes nothing, exactly as drift measures it. Returns
+ * the SAME shot when it links no lines or nothing changed, so a re-projection
+ * that has nothing to do writes nothing.
+ */
+export const reprojectShot = (
+  shot: Shot,
+  source: ScriptProjectionSource
+): Shot => {
+  const lineIds = shot.script_line_ids ?? [];
+  if (lineIds.length === 0) {
+    return shot;
+  }
+  const lines = lineIds
+    .map((id) => source.linesById.get(id))
+    .filter((line): line is scripts.ScriptLine => line !== undefined);
+  const dialogue = joinLineTexts(
+    lines.filter((line) => !isNarration(line, source.cast)).map((l) => l.text)
+  );
+  const narration = joinLineTexts(
+    lines.filter((line) => isNarration(line, source.cast)).map((l) => l.text)
+  );
+  const snapshot = joinLineTexts(lines.map((line) => line.text));
+  const next: Shot = { ...shot, script_text_snapshot: snapshot };
+  if (dialogue) {
+    next.dialogue = dialogue;
+  } else {
+    delete next.dialogue;
+  }
+  if (narration) {
+    next.narration = narration;
+  } else {
+    delete next.narration;
+  }
+  const unchanged =
+    next.script_text_snapshot === shot.script_text_snapshot &&
+    next.dialogue === shot.dialogue &&
+    next.narration === shot.narration;
+  return unchanged ? shot : next;
+};
+
+/**
+ * Every drifted shot re-projected. `shotIds`, when given, names the shots to
+ * pass over instead — an explicit re-projection of a shot whose words were
+ * edited on the board rather than in the script. Returns the SAME array when
+ * no shot changed.
+ */
+export const reprojectedShots = (
+  shots: Shot[],
+  source: ScriptProjectionSource,
+  shotIds?: string[]
+): Shot[] => {
+  const only = new Set(shotIds ?? driftedShotIds(shots, source.linesById));
+  let changed = false;
+  const next = shots.map((shot) => {
+    if (!only.has(shot.id)) {
+      return shot;
+    }
+    const projected = reprojectShot(shot, source);
+    if (projected !== shot) {
+      changed = true;
+    }
+    return projected;
+  });
+  return changed ? next : shots;
+};
 
 /** Every line of an extracted document, by id, for snapshot stamping. */
 export const lineTextsById = (
