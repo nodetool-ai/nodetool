@@ -51,9 +51,11 @@ const seedBoard = (target: Shot, scriptId: string | null = SCRIPT): void => {
     type: "screenplay",
     id: "sp-1",
     title: "My film",
-    shots: [target],
-    ...(scriptId ? { script_id: scriptId } : {})
+    shots: [target]
   };
+  if (scriptId) {
+    screenplay.script_id = scriptId;
+  }
   useStoryboardStore.setState({ boards: {}, serverRevisions: {}, history: {} });
   useStoryboardStore.getState().ensureBoard(BOARD);
   useStoryboardStore.getState().loadBoard(BOARD, {
