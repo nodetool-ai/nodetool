@@ -181,6 +181,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   save_js_script: "write",
   edit_script: "write",
   edit_storyboard: "write",
+  // Each creates a second document and links the pair.
+  extract_script_from_storyboard: "write",
+  derive_storyboard_from_script: "write",
   transcribe_audio: "write",
   embed_text: "write",
   vector_index: "write",

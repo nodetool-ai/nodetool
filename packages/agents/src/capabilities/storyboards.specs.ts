@@ -144,6 +144,26 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
   required: ["storyboard_id", "ops"]
 };
 
+export const EXTRACT_SCRIPT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    storyboard_id: { type: "string", description: "Storyboard id." },
+    name: {
+      type: "string",
+      description:
+        "Name for the created script. Defaults to the board's name + ' script'."
+    },
+    relink: {
+      type: "boolean",
+      description:
+        "Re-project onto the script the board already links, instead of " +
+        "failing. Rewrites that script's lines and the board's line " +
+        "references; every take voiced from a changed line becomes stale."
+    }
+  },
+  required: ["storyboard_id"]
+};
+
 export const listStoryboardsSpec: CapabilitySpec = {
   name: "list_storyboards",
   description:
@@ -249,6 +269,22 @@ export const editStoryboardSpec: CapabilitySpec = {
   }
 };
 
+export const extractScriptFromStoryboardSpec: CapabilitySpec = {
+  name: "extract_script_from_storyboard",
+  description:
+    "Project a storyboard's spoken words into a new script resource and link " +
+    "the two: every shot's dialogue and narration becomes a script line, the " +
+    "character entity a shot names becomes a cast member, and each shot keeps " +
+    "the ids of the lines it covers. The board keeps its visuals, the script " +
+    "owns the words from here on — voice them with voice_script_lines. Fails " +
+    "when the board already links a script; pass relink: true to re-project " +
+    "onto that script instead.",
+  inputSchema: EXTRACT_SCRIPT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Extracting a script from storyboard ${String(params["storyboard_id"])}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
   listStoryboardsSpec,
@@ -257,5 +293,6 @@ export const storyboardsSpecs: readonly CapabilitySpec[] = [
   renderStoryboardClipsSpec,
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
-  editStoryboardSpec
+  editStoryboardSpec,
+  extractScriptFromStoryboardSpec
 ];

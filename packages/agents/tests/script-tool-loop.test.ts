@@ -60,7 +60,7 @@ describe("createScriptToolBridge", () => {
     const bridge = createScriptToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     expect(byName).toHaveProperty("ui_script_get_state");
-    expect(Object.keys(byName)).toHaveLength(10);
+    expect(Object.keys(byName)).toHaveLength(11);
 
     const speakerResult = (await byName["ui_script_add_speaker"].execute({
       name: "Narrator",
@@ -220,11 +220,12 @@ describe("createScriptToolBridge", () => {
 // --- SCRIPT_TOOL_LOOP_CASES ---------------------------------------------------
 
 describe("SCRIPT_TOOL_LOOP_CASES", () => {
-  it("has three cases with the expected ids", () => {
+  it("has four cases with the expected ids", () => {
     expect(SCRIPT_TOOL_LOOP_CASES.map((c) => c.id)).toEqual([
       "voice-and-assemble",
       "write-dialogue",
-      "export-subtitles"
+      "export-subtitles",
+      "derive-storyboard"
     ]);
   });
 
@@ -290,6 +291,26 @@ describe("SCRIPT_TOOL_LOOP_CASES", () => {
       { name: "ui_script_get_state", args: {} },
       { name: "ui_script_voice_line", args: { target: "line_1" } },
       { name: "ui_script_export_subtitles", args: { format: "srt" } }
+    ];
+    const provider = createScriptedProvider(script);
+    const report = await runToolLoopEval<ScriptBridgeFinalState>({
+      provider,
+      model: "test",
+      cases: [evalCase]
+    });
+    const result = report.cases[0];
+    expect(result.checks.filter((c) => !c.pass)).toEqual([]);
+    expect(result.accepted).toBe(true);
+    expect(result.score).toBe(1);
+  });
+
+  it("derive-storyboard is solved by one derive call", async () => {
+    const evalCase = SCRIPT_TOOL_LOOP_CASES.find(
+      (c) => c.id === "derive-storyboard"
+    )!;
+    const script: ScriptedCall[] = [
+      { name: "ui_script_get_state", args: {} },
+      { name: "ui_script_derive_storyboard", args: {} }
     ];
     const provider = createScriptedProvider(script);
     const report = await runToolLoopEval<ScriptBridgeFinalState>({

@@ -134,7 +134,11 @@ const PAIRS: Array<[string, () => Tool]> = [
     "assemble_script_timeline",
     () => toolForCapabilityName("assemble_script_timeline")
   ],
-  ["edit_script", () => toolForCapabilityName("edit_script")]
+  ["edit_script", () => toolForCapabilityName("edit_script")],
+  [
+    "derive_storyboard_from_script",
+    () => toolForCapabilityName("derive_storyboard_from_script")
+  ]
 ];
 
 describe("scripts capability module", () => {
@@ -145,7 +149,8 @@ describe("scripts capability module", () => {
       "get_script",
       "voice_script_lines",
       "assemble_script_timeline",
-      "edit_script"
+      "edit_script",
+      "derive_storyboard_from_script"
     ]);
   });
 

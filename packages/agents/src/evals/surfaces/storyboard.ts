@@ -27,6 +27,10 @@ import type {
   Shot,
   ShotStatus
 } from "@nodetool-ai/protocol";
+import {
+  extractScriptFromScreenplay,
+  joinLineTexts
+} from "@nodetool-ai/protocol";
 import { storyboards } from "@nodetool-ai/protocol/api-schemas";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
@@ -143,6 +147,8 @@ export interface StoryboardBridgeInitialState {
     camera?: CameraDirection;
     motion?: string;
     durationSeconds?: number;
+    dialogue?: string;
+    narration?: string;
   }[];
 }
 
@@ -164,6 +170,12 @@ export interface StoryboardBridgeFinalState {
   savable: boolean;
   /** The failing schema paths when `savable` is false. */
   saveIssues: string[];
+  /** The script this board links, once one has been extracted. */
+  scriptId: string | null;
+  /** Lines the extracted script holds. */
+  scriptLineCount: number;
+  /** Shots carrying the ids of the script lines they cover. */
+  linkedShotIds: string[];
 }
 
 function tool<TResult>(
@@ -212,6 +224,8 @@ export function createStoryboardToolBridge(
   let hasScreenplay = false;
   let selectedShotId: string | null = null;
   let shotSeq = 0;
+  let scriptId: string | null = null;
+  let scriptLineCount = 0;
 
   const nextShotId = () => `shot_${++shotSeq}`;
 
@@ -280,6 +294,7 @@ export function createStoryboardToolBridge(
   function snapshot() {
     return {
       boardId,
+      scriptId,
       title,
       brief,
       style,
@@ -436,6 +451,75 @@ export function createStoryboardToolBridge(
     ),
 
     tool(
+      "ui_storyboard_extract_script",
+      "Extract the board's spoken words into a linked script resource: every shot's dialogue and narration becomes a script line, and each shot keeps the ids of the lines it covers. Fails when the board already links a script — pass relink: true to re-project onto that script instead. Voice the lines from the script surface afterwards.",
+      z.object({
+        name: z
+          .string()
+          .optional()
+          .describe("Name for the created script. Defaults to the board's name."),
+        relink: z
+          .boolean()
+          .optional()
+          .describe(
+            "Re-project onto the script the board already links, instead of failing."
+          )
+      }),
+      async ({ relink }) => {
+        if (scriptId && relink !== true) {
+          throw new Error(
+            `This board already links script "${scriptId}". Pass relink: true to re-project onto it.`
+          );
+        }
+        const play: Screenplay = {
+          type: "screenplay",
+          id: screenplayId,
+          title,
+          shots
+        };
+        // The same pure mapping the headless `extract_script_from_storyboard`
+        // tool runs, so the eval cannot pass on a projection the tool refuses.
+        const extracted = extractScriptFromScreenplay(play, []);
+        const lines = extracted.document.sections.flatMap((s) => s.lines);
+        if (lines.length === 0) {
+          throw new Error(
+            "No shot carries dialogue or narration, so there is nothing to extract."
+          );
+        }
+        const textByLineId = new Map(lines.map((l) => [l.id, l.text]));
+        for (const shot of shots) {
+          const lineIds = extracted.lineIdsByShotId[shot.id];
+          if (!lineIds || lineIds.length === 0) {
+            delete shot.script_line_ids;
+            delete shot.script_text_snapshot;
+            continue;
+          }
+          shot.script_line_ids = lineIds;
+          shot.script_text_snapshot = joinLineTexts(
+            lineIds.map((id) => textByLineId.get(id) ?? "")
+          );
+        }
+        scriptId = scriptId && relink === true ? scriptId : "script_1";
+        scriptLineCount = lines.length;
+        return {
+          ok: true,
+          scriptId,
+          relinked: relink === true,
+          lineCount: lines.length,
+          castCount: extracted.document.cast.length,
+          lines: lines.map((l) => ({
+            id: l.id,
+            speakerId: l.speakerId ?? null,
+            text: l.text
+          })),
+          linkedShotIds: shots
+            .filter((s) => (s.script_line_ids ?? []).length > 0)
+            .map((s) => s.id)
+        };
+      }
+    ),
+
+    tool(
       "ui_storyboard_select_shot",
       "Select a shot on the specified storyboard (driving the surface's focus). Pass null to clear the selection.",
       z.object({ target: targetParam.nullable() }),
@@ -468,7 +552,12 @@ export function createStoryboardToolBridge(
         hasClip: !!s.clip
       })),
       savable: saveIssues().length === 0,
-      saveIssues: saveIssues()
+      saveIssues: saveIssues(),
+      scriptId,
+      scriptLineCount,
+      linkedShotIds: shots
+        .filter((s) => (s.script_line_ids ?? []).length > 0)
+        .map((s) => s.id)
     })
   };
 }
@@ -482,6 +571,7 @@ Use the ui_storyboard_* tools to inspect and drive the board:
 - Address shots by id, 0-based index, or the literal "selected" for generate_keyframe / generate_clip / revise_shot / select_shot.
 - Generate a keyframe still before generating a clip; a clip must exist before revising it.
 - ui_storyboard_assemble_timeline cuts every shot with a rendered clip into a sequence.
+- ui_storyboard_extract_script moves the board's dialogue and narration into a linked script, one line per shot's words.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
@@ -664,6 +754,57 @@ export const STORYBOARD_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<StoryboardBri
             name: "screenplayIsSavable",
             detail: "the loaded screenplay would be refused by the save",
             test: (s) => s.savable === true
+          }
+        ]
+      }
+    },
+    {
+      // The board already carries the words; the script is where they belong
+      // once anyone means to voice them. What is scored is the link the
+      // extraction leaves behind, not that a tool was called.
+      id: "extract-script",
+      description:
+        "Extract a spoken board's dialogue and narration into a linked script",
+      objective:
+        "The board's shots already carry the spoken words. Extract them into a script linked to this board.",
+      createBridge: () =>
+        createStoryboardToolBridge({
+          shots: [
+            {
+              action: "The keeper looks out over the water.",
+              dialogue: "The light goes out tonight."
+            },
+            {
+              action: "The keeper turns to the stairs.",
+              narration: "He had kept it for forty years."
+            }
+          ]
+        }),
+      systemPrompt: STORYBOARD_SYSTEM_PROMPT,
+      userPrompt:
+        "Objective: Both shots on this board already carry spoken words. Extract them into a script linked to the board, so the lines can be voiced.",
+      needsModelProviders: false,
+      expect: {
+        requiredTools: ["ui_storyboard_extract_script"],
+        noErrorResults: true,
+        minToolCalls: 1,
+        maxToolCalls: 10,
+        finalState: [
+          {
+            name: "boardLinksAScript",
+            detail: "the board links no script",
+            test: (s) => s.scriptId !== null
+          },
+          {
+            name: "everyShotKeepsItsLines",
+            detail: "a shot reached the script with no line references",
+            test: (s) =>
+              s.shots.length > 0 && s.linkedShotIds.length === s.shots.length
+          },
+          {
+            name: "bothSpeechesBecameLines",
+            detail: "the script does not hold a line per spoken shot",
+            test: (s) => s.scriptLineCount >= 2
           }
         ]
       }

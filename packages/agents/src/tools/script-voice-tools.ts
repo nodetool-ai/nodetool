@@ -19,5 +19,6 @@ export const SCRIPT_VOICE_TOOL_NAMES = [
   "get_script",
   "voice_script_lines",
   "assemble_script_timeline",
-  "edit_script"
+  "edit_script",
+  "derive_storyboard_from_script"
 ] as const;
