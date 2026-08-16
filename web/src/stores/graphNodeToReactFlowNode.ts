@@ -92,7 +92,7 @@ export function graphNodeToReactFlowNode(
 
   const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
   const expandedHeightPxForData =
-    isCollapsed && typeof defaultHeight === "number" && defaultHeight > strip
+    isCollapsed && defaultHeight != null && defaultHeight > strip
       ? defaultHeight
       : undefined;
   const reactFlowHeight = isCollapsed ? strip : defaultHeight;

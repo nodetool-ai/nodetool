@@ -74,7 +74,7 @@ const toItems = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value
       .map(pullString)
-      .filter((s): s is string => typeof s === "string");
+      .filter((s): s is string => s != null);
   }
   const single = pullString(value);
   return single !== undefined ? [single] : [];

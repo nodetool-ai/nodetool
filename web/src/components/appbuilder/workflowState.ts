@@ -77,7 +77,7 @@ const extractBindableNodes = (
     bindable.push({
       id: node.id,
       type: node.type,
-      title: typeof title === "string" && title ? title : undefined
+      title: title != null && title ? title : undefined
     });
   }
   return bindable;

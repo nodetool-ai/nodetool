@@ -33,7 +33,7 @@ export function formatCredits(data: FalCredits): string {
   if (typeof bal === "object") {
     const amount = bal.amount;
     const currency = (bal.currency ?? "USD").toUpperCase();
-    if (typeof amount === "number") {
+    if (amount != null) {
       try {
         return new Intl.NumberFormat(undefined, {
           style: "currency",

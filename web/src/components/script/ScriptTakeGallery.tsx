@@ -104,7 +104,7 @@ const TakeRow = ({
         <Text size="smaller" color="secondary">
           {formatDuration(take.durationMs)}
           {take.voiceSnapshot ? ` · ${take.voiceSnapshot.voice}` : ""}
-          {typeof take.costCredits === "number"
+          {take.costCredits != null
             ? ` · ${take.costCredits} cr`
             : ""}
         </Text>

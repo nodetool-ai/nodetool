@@ -34,7 +34,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   // Persist explicit user resize dimensions
   // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
   // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
-  if (typeof node.width === "number") {
+  if (node.width != null) {
     ui_properties.width = node.width;
   } else if (
     node.style &&
@@ -47,11 +47,11 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
   if (
     node.data.collapsed &&
-    typeof node.data.expandedHeightPx === "number" &&
+    node.data.expandedHeightPx != null &&
     node.data.expandedHeightPx > strip
   ) {
     ui_properties.height = node.data.expandedHeightPx;
-  } else if (typeof node.height === "number") {
+  } else if (node.height != null) {
     ui_properties.height = node.height;
   } else if (
     node.style &&

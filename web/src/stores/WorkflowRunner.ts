@@ -65,7 +65,7 @@ export const deriveJobTitle = (
       // Same precedence as NodeHeader: the node's custom title, else the node
       // type's metadata title.
       const custom =
-        typeof node.data?.title === "string" ? node.data.title.trim() : "";
+        node.data?.title != null ? node.data.title.trim() : "";
       const metadataTitle = node.type
         ? useMetadataStore.getState().getMetadata(node.type)?.title
         : undefined;
@@ -432,7 +432,7 @@ export const createWorkflowRunnerStore = (
       const activeNodeTypes = nodes
         .filter((node) => !node.data?.bypassed)
         .map((node) => node.type)
-        .filter((type): type is string => typeof type === "string");
+        .filter((type): type is string => type != null);
       console.info(
         `WorkflowRunner[${workflowId}]: run() called — ${activeNodeTypes.length} active node(s)`,
         {

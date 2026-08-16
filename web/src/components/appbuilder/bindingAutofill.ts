@@ -88,8 +88,8 @@ export const computeAutofillProps = (
   defaults: WidgetNumericDefaults
 ): AutofillProps => {
   const out: AutofillProps = {};
-  const hasMin = typeof target.min === "number" && Number.isFinite(target.min);
-  const hasMax = typeof target.max === "number" && Number.isFinite(target.max);
+  const hasMin = target.min != null && Number.isFinite(target.min);
+  const hasMax = target.max != null && Number.isFinite(target.max);
 
   if (hasMin && current.min === defaults.min) out.min = target.min;
   if (hasMax && current.max === defaults.max) out.max = target.max;

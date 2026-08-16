@@ -35,7 +35,7 @@ export const InspectorTabs: React.FC<InspectorTabsProps> = ({
           onClick={() => onChange(tab.value)}
         >
           {tab.label}
-          {tab.hasCount && typeof count === "number" ? (
+          {tab.hasCount && count != null ? (
             <span className="tab-count">{count}</span>
           ) : null}
         </button>

@@ -451,7 +451,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       // `index` on the live Generation even though the type permits it.
       const { index, ...rest } = patch;
 
-      if (typeof index === "number") {
+      if (index != null) {
         const id = index === 0 ? jobId : `${jobId}#${index}`;
         const at = list.findIndex((g) => g.jobId === jobId && g.id === id);
         if (at >= 0) {

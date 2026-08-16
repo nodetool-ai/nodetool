@@ -200,7 +200,7 @@ export const clampNumber = (
   max?: number
 ): number => {
   let result = value;
-  if (typeof min === "number") result = Math.max(result, min);
-  if (typeof max === "number") result = Math.min(result, max);
+  if (min != null) result = Math.max(result, min);
+  if (max != null) result = Math.min(result, max);
   return result;
 };

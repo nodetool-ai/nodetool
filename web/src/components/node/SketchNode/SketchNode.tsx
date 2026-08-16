@@ -614,7 +614,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       edges.filter(
         (e) =>
           e.target === props.id &&
-          typeof e.targetHandle === "string" &&
+          e.targetHandle != null &&
           e.targetHandle.startsWith("layer_in_")
       ),
     [edges, props.id]

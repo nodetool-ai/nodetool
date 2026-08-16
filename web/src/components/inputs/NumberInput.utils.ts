@@ -15,7 +15,7 @@ export const calculateStep = (
   inputType: "int" | "float"
 ): number => {
   let baseStep: number;
-  if (typeof min === "number" && typeof max === "number") {
+  if (min != null && max != null) {
     const range = max - min;
 
     if (inputType === "float") {
@@ -85,7 +85,7 @@ export const applyValueConstraints = (
 ): number => {
   let constrainedValue = value;
 
-  if (typeof min === "number" && typeof max === "number" && min > max) {
+  if (min != null && max != null && min > max) {
     if (!warnedInvalidBounds) {
       console.warn(`Invalid bounds: min (${min}) > max (${max})`);
       warnedInvalidBounds = true;
@@ -111,10 +111,10 @@ export const applyValueConstraints = (
   }
 
   // Clamp to min/max bounds if they exist
-  if (typeof min === "number") {
+  if (min != null) {
     constrainedValue = Math.max(min, constrainedValue);
   }
-  if (typeof max === "number") {
+  if (max != null) {
     constrainedValue = Math.min(max, constrainedValue);
   }
   return constrainedValue;

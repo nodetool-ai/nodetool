@@ -38,9 +38,9 @@ const locatorParts = (
   if (!source) {
     return {};
   }
-  const uri = typeof source.uri === "string" && source.uri ? source.uri : undefined;
+  const uri = source.uri || undefined;
   const declared =
-    typeof source.asset_id === "string" && source.asset_id.trim() !== ""
+    source.asset_id != null && source.asset_id.trim() !== ""
       ? source.asset_id.trim()
       : undefined;
   return { uri, assetId: declared ?? assetIdFromLocator(uri) };

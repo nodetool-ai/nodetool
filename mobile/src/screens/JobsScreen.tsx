@@ -155,7 +155,7 @@ const JobCard = React.memo(function JobCard({
             <Text style={[styles.metaText, { color: colors.textSecondary }]}>{job.job_type}</Text>
           </View>
         ) : null}
-        {typeof job.cost === 'number' ? (
+        {job.cost != null ? (
           <View style={styles.metaItem}>
             <Ionicons name="card-outline" size={13} color={colors.textSecondary} />
             <Text style={[styles.metaText, { color: colors.textSecondary }]}>

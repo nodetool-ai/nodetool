@@ -190,7 +190,7 @@ export const normalizeInputValue = (
   if (
     input.kind === "string" &&
     typeof value === "string" &&
-    typeof input.maxLength === "number" &&
+    input.maxLength != null &&
     input.maxLength > 0
   ) {
     return value.slice(0, input.maxLength);

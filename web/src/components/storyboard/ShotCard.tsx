@@ -229,7 +229,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             {shotName}
           </Text>
           <FlexRow align="center" gap={SPACING.xs}>
-            {typeof shot.cost_estimate === "number" && (
+            {shot.cost_estimate != null && (
               <Chip
                 compact
                 color="info"

@@ -94,7 +94,7 @@ const progressStyles = (theme: Theme) =>
  */
 const RenderBar = memo(function RenderBar({ progress }: { progress?: number }) {
   const theme = useTheme();
-  if (typeof progress === "number" && progress > 0 && progress < 100) {
+  if (progress != null && progress > 0 && progress < 100) {
     return (
       <Box
         sx={{

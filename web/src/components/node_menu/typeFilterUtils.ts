@@ -70,7 +70,7 @@ export function isConnectableCached(
   const targetKey = hashType(targetType);
   const cached = connectabilityMatrix?.[sourceKey]?.[targetKey];
 
-  if (typeof cached === "boolean") {
+  if (cached != null) {
     return cached;
   }
 

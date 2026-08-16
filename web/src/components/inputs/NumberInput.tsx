@@ -74,7 +74,7 @@ export interface NumberInputState {
 const NumberInput: React.FC<InputProps> = (props) => {
   const theme = useTheme();
   const hasBounds =
-    typeof props.min === "number" && typeof props.max === "number";
+    props.min != null && props.max != null;
   const sliderVisible = (props.showSlider ?? hasBounds) && hasBounds;
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
@@ -157,10 +157,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
           finalValue =
             props.value ?? state.originalValue ?? props.min ?? props.max ?? 0;
         }
-        if (typeof props.min === "number") {
+        if (props.min != null) {
           finalValue = Math.max(props.min, finalValue);
         }
-        if (typeof props.max === "number") {
+        if (props.max != null) {
           finalValue = Math.min(props.max, finalValue);
         }
         setInputIsFocused(false);
@@ -275,10 +275,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
         : (Number.isFinite(inputValue) ? Math.round(inputValue) : 0);
       let nextValue = currentValue + delta;
 
-      if (typeof min === "number") {
+      if (min != null) {
         nextValue = Math.max(min, nextValue);
       }
-      if (typeof max === "number") {
+      if (max != null) {
         nextValue = Math.min(max, nextValue);
       }
 
@@ -414,8 +414,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
         </div>
       </div>
       {sliderVisible &&
-        typeof props.min === "number" &&
-        typeof props.max === "number" && (
+        props.min != null &&
+        props.max != null && (
           <RangeIndicator
             value={props.value}
             min={props.min}

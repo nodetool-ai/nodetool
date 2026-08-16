@@ -227,8 +227,8 @@ const numericTargetFromProperty = (
   const isFloat = t === "float";
   if (!isInt && !isFloat) return undefined;
   return {
-    min: typeof prop.min === "number" ? prop.min : undefined,
-    max: typeof prop.max === "number" ? prop.max : undefined,
+    min: prop.min ?? undefined,
+    max: prop.max ?? undefined,
     isInt,
     label: prop.title || prop.name
   };

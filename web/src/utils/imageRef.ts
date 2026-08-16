@@ -45,8 +45,8 @@ export const isRawRgbaRef = (
   !!ref &&
   ref.mimeType === RAW_RGBA_MIME &&
   ref.data instanceof Uint8Array &&
-  typeof ref.width === "number" &&
-  typeof ref.height === "number" &&
+  ref.width != null &&
+  ref.height != null &&
   ref.width > 0 &&
   ref.height > 0 &&
   ref.data.length === ref.width * ref.height * 4;

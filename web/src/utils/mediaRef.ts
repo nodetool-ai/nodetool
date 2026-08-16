@@ -19,7 +19,7 @@ export function assetLocator(assetId: string): string {
 export function assetIdFromLocator(
   uri: string | undefined | null
 ): string | undefined {
-  if (typeof uri !== "string" || !uri.startsWith("asset://")) {
+  if (uri == null || !uri.startsWith("asset://")) {
     return undefined;
   }
   const rest = uri.slice("asset://".length).split(/[?#]/)[0];

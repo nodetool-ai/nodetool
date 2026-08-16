@@ -174,7 +174,7 @@ const ToolCallCard: React.FC<{
     !!hasArgs || (isSubtask && !!subtaskInstructions) || !!actionCode || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
   const durationLabel =
-    !isRunning && typeof durationMs === "number"
+    !isRunning && durationMs != null
       ? formatDuration(durationMs)
       : null;
 
@@ -398,7 +398,7 @@ const ToolCallGroup: React.FC<{
       if (toolResult !== undefined) {
         completed++;
       }
-      if (typeof durationMs === "number" && Number.isFinite(durationMs)) {
+      if (durationMs != null && Number.isFinite(durationMs)) {
         maxMs = maxMs === null ? durationMs : Math.max(maxMs, durationMs);
       }
     }

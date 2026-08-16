@@ -186,7 +186,7 @@ function formatCountdown(iso: string | null | undefined): string | null {
 }
 
 export function formatInterval(seconds: number | null | undefined): string | null {
-  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) {
     return null;
   }
   if (seconds < 60) { return `every ${Math.round(seconds)}s`; }

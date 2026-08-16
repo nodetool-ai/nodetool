@@ -21,7 +21,7 @@ import { trpc } from '../trpc/client';
 export function assetIdFromLocator(
   uri: string | null | undefined
 ): string | null {
-  if (typeof uri !== 'string' || !uri.startsWith('asset://')) {
+  if (uri == null || !uri.startsWith('asset://')) {
     return null;
   }
   const rest = uri.slice('asset://'.length).split(/[?#]/)[0];

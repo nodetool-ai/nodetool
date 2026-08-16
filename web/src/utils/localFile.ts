@@ -69,7 +69,7 @@ export const fileUriToPath = (uri: string): string => {
 };
 
 export const isFileUri = (uri: string | null | undefined): uri is string =>
-  typeof uri === "string" && uri.startsWith("file://");
+  uri != null && uri.startsWith("file://");
 
 /**
  * Map a local `file://` URI to the backend endpoint that streams it over HTTP.

@@ -144,7 +144,7 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   alt,
   ...props
 }) => {
-  const href = typeof src === "string" ? src : "";
+  const href = src != null ? src : "";
   const resolvedSrc = useChatAssetSrc(href || undefined);
   if (href && isVideoHref(href)) {
     return (
@@ -201,7 +201,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
       code: (props: React.ComponentPropsWithoutRef<"code">) => <CodeBlock {...props} onInsert={onInsertCode} />,
       pre: (props: React.ComponentPropsWithoutRef<"pre">) => <PreRenderer {...props} onInsert={onInsertCode} />,
       img: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => {
-        const src = typeof props.src === "string" ? props.src : undefined;
+        const src = props.src;
         if (src && isInlinePreviewUri(src)) {
           return (
             <InlineResourcePreview uri={src} label={props.alt || src} />
