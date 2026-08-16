@@ -70,16 +70,25 @@ export function useDropZone<T extends DragDataType = DragDataType>(
   const checkCanDrop = useCallback(
     async (data: DragData | null, event: React.DragEvent): Promise<boolean> => {
       if (hasExternalFiles(event.dataTransfer)) {
+        // SAFETY: not a claim that this zone accepts files — `includes` types
+        // its argument as T, so the assertion only lets the literal be tested
+        // against `accepts`. A zone that does not list "file" returns false.
         return config.accepts.includes("file" as T);
       }
 
       if (!data) {return false;}
 
+      // SAFETY: `includes` types its argument as T; the assertion only lets
+      // `data.type` be tested against `accepts`, and an unaccepted type falls
+      // out here rather than reaching a handler.
       if (!config.accepts.includes(data.type as T)) {
         return false;
       }
 
       if (config.validate) {
+        // SAFETY: the check above proved `data.type` is one of T, and
+        // `DragData` is a union discriminated by `type`, so `data` is the
+        // member of `DragData<T>` that carries that type's payload.
         return await config.validate(data as DragData<T>, event);
       }
 
@@ -138,10 +147,17 @@ export function useDropZone<T extends DragDataType = DragDataType>(
 
       if (
         hasExternalFiles(event.dataTransfer) &&
+        // SAFETY: not a claim that this zone accepts files — `includes` types
+        // its argument as T, so the assertion only lets the literal be tested
+        // against `accepts`. A zone that omits "file" fails the test.
         config.accepts.includes("file" as T)
       ) {
         const files = extractFiles(event.dataTransfer);
         for (const file of files) {
+          // SAFETY: this branch is entered only when `accepts` contains
+          // "file", so "file" is one of T and the literal below is exactly
+          // `DragDataFor<"file">` — a File payload, which `extractFiles`
+          // returns.
           await config.onDrop(
             { type: "file", payload: file } as DragData<T>,
             event,
@@ -154,15 +170,23 @@ export function useDropZone<T extends DragDataType = DragDataType>(
       const data = deserializeDragData(event.dataTransfer);
       if (!data) {return;}
 
+      // SAFETY: `includes` types its argument as T; the assertion only lets
+      // `data.type` be tested against `accepts`, and an unaccepted type
+      // returns here without reaching a handler.
       if (!config.accepts.includes(data.type as T)) {return;}
 
       if (
         config.validate &&
+        // SAFETY: the `accepts.includes` check above proved `data.type` is one
+        // of T, and `DragData` is a union discriminated by `type`, so `data`
+        // is the member of `DragData<T>` carrying that type's payload.
         !(await config.validate(data as DragData<T>, event))
       ) {
         return;
       }
 
+      // SAFETY: same check — `data.type` is one of T, and `DragData` is
+      // discriminated by `type`, so `data` is a `DragData<T>`.
       await config.onDrop(data as DragData<T>, event, position);
     },
     [config, getPosition]

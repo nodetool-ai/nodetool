@@ -386,7 +386,7 @@ function SketchCanvas({ ref, ...props }: SketchCanvasProps) {
       e.preventDefault();
       const dragData = deserializeDragData(e.dataTransfer);
       const draggedAsset =
-        dragData?.type === "asset" ? (dragData.payload as Asset) : null;
+        dragData?.type === "asset" ? dragData.payload : null;
       if (
         draggedAsset &&
         draggedAsset.content_type.startsWith("image/") &&

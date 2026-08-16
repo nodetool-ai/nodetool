@@ -3,7 +3,7 @@ import { create } from "zustand";
 type Key = `${string}:${string}:${string}`;
 
 const key = (workflowId: string, nodeId: string, property: string): Key =>
-  `${workflowId}:${nodeId}:${property}` as Key;
+  `${workflowId}:${nodeId}:${property}`;
 
 const nodePrefix = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}:`;

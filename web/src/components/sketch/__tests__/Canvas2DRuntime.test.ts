@@ -766,7 +766,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
 
   /** Extract the shared fake context from the mocked getContext spy. */
   function getFakeContext(): Record<string, jest.Mock> | undefined {
-    const spy = HTMLCanvasElement.prototype.getContext as jest.Mock;
+    const spy = jest.mocked(HTMLCanvasElement.prototype.getContext);
     return spy.mock.results.find(
       (r: jest.MockResult<unknown>) => r.type === "return" && r.value
     )?.value;

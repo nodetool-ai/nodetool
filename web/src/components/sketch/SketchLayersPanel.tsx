@@ -51,7 +51,7 @@ import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import TrashIconSvg from "../../icons/trash.svg?react";
-const DeleteIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
+const DeleteIcon = TrashIconSvg;
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 const MaskIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
@@ -1392,7 +1392,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onChange={(e) =>
                 onLayerBlendModeChange(
                   activeLayerId,
-                  e.target.value as BlendMode
+                  e.target.value
                 )
               }
               onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}

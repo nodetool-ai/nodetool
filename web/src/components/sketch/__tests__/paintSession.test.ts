@@ -866,7 +866,7 @@ describe("ShapeTool (transform-aware commit)", () => {
       const overlayCanvas = window.document.createElement("canvas");
       overlayCanvas.width = 64;
       overlayCanvas.height = 64;
-      (ctx.overlayCanvasRef as { current: HTMLCanvasElement | null }).current = overlayCanvas;
+      ctx.overlayCanvasRef.current = overlayCanvas;
       tool.onDown(ctx, makePointerEvent());
       tool.onUp!(ctx, makePointerEvent());
       expect(ctx.onStrokeEnd).toHaveBeenCalledWith(ctx.doc.activeLayerId, null, undefined);
@@ -923,8 +923,8 @@ describe("PaintSession stroke-start latency optimizations", () => {
     const ctx = makeToolContext();
     session.begin(ctx, makePointerEvent());
 
-    (ctx.redraw as jest.Mock).mockClear();
-    (ctx.requestRedraw as jest.Mock).mockClear();
+    jest.mocked(ctx.redraw).mockClear();
+    jest.mocked(ctx.requestRedraw).mockClear();
 
     session.move(
       ctx,

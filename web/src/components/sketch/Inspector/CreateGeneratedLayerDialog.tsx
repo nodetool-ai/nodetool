@@ -100,11 +100,7 @@ function shortNodeLabel(node: { id: string; type?: string; data?: unknown }) {
 }
 
 function extractImageOutputs(workflow: Workflow): ImageOutputNode[] {
-  const nodes = (workflow.graph?.nodes ?? []) as Array<{
-    id: string;
-    type: string;
-    data?: unknown;
-  }>;
+  const nodes = workflow.graph?.nodes ?? [];
   return nodes
     .filter((n) => IMAGE_OUTPUT_TYPES.has(n.type))
     .map((n) => ({ id: n.id, label: shortNodeLabel(n) }));

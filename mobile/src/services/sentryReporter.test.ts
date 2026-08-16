@@ -50,7 +50,7 @@ describe('sentryReporter', () => {
       installSentryReporter();
 
       expect(Sentry.init).toHaveBeenCalledTimes(1);
-      const options = (Sentry.init as jest.Mock).mock.calls[0][0];
+      const options = jest.mocked(Sentry.init).mock.calls[0][0];
       expect(options).toMatchObject({
         dsn: DSN,
         sendDefaultPii: false,
@@ -68,7 +68,7 @@ describe('sentryReporter', () => {
       installSentryReporter();
 
       expect(Sentry.init).toHaveBeenCalledTimes(1);
-      expect((Sentry.init as jest.Mock).mock.calls[0][0].dsn).toBe(DSN);
+      expect(jest.mocked(Sentry.init).mock.calls[0][0].dsn).toBe(DSN);
     });
 
     it('installs itself once', () => {
@@ -111,7 +111,7 @@ describe('sentryReporter', () => {
     it('does not throw when Sentry.captureException throws', () => {
       extra.sentryDsn = DSN;
       installSentryReporter();
-      (Sentry.captureException as jest.Mock).mockImplementationOnce(() => {
+      jest.mocked(Sentry.captureException).mockImplementationOnce(() => {
         throw new Error('sdk broke');
       });
 
@@ -122,7 +122,7 @@ describe('sentryReporter', () => {
       extra.sentryDsn = DSN;
       const existing = jest.fn();
       setErrorReporter({ captureException: existing });
-      (Sentry.init as jest.Mock).mockImplementationOnce(() => {
+      jest.mocked(Sentry.init).mockImplementationOnce(() => {
         throw new Error('init broke');
       });
 

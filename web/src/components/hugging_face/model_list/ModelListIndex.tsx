@@ -622,7 +622,7 @@ const ModelListIndex: React.FC = () => {
                   const displayModel = {
                     ...item.model,
                     downloaded: isDownloaded
-                  } as UnifiedModel & { downloaded: boolean };
+                  };
                   return (
                     <Box key={vi.key} style={itemStyle}>
                       <ModelListItem

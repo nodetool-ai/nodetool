@@ -74,7 +74,7 @@ describe("useCopyPaste handleCut", () => {
       readClipboardContent: jest.fn(),
       readClipboardText: jest.fn()
     });
-    (isTextInputActive as jest.Mock).mockReturnValue(false);
+    jest.mocked(isTextInputActive).mockReturnValue(false);
 
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: jest.fn().mockResolvedValue(undefined) },

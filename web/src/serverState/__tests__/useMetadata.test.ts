@@ -102,7 +102,7 @@ describe("loadMetadata", () => {
 
     await loadMetadata();
 
-    const setMetadataCall = (useMetadataStore.getState().setMetadata as jest.Mock)
+    const setMetadataCall = jest.mocked(useMetadataStore.getState().setMetadata)
       .mock.calls[0][0];
     expect(setMetadataCall["nodetool.workflows.base_node.Preview"]).toBeDefined();
     expect(setMetadataCall[WORKFLOW_NODE_TYPE]).toBeDefined();
@@ -116,7 +116,7 @@ describe("loadMetadata", () => {
 
     await loadMetadata();
 
-    const setMetadataCall = (useMetadataStore.getState().setMetadata as jest.Mock)
+    const setMetadataCall = jest.mocked(useMetadataStore.getState().setMetadata)
       .mock.calls[0][0];
     expect(setMetadataCall["snippet.test"]).toBeDefined();
   });
@@ -129,7 +129,7 @@ describe("loadMetadata", () => {
 
     await loadMetadata();
 
-    const setMetadataCall = (useMetadataStore.getState().setMetadata as jest.Mock)
+    const setMetadataCall = jest.mocked(useMetadataStore.getState().setMetadata)
       .mock.calls[0][0];
     expect(setMetadataCall["nodetool.code.WriteCodeWithAI"]).toBeDefined();
   });
@@ -166,9 +166,7 @@ describe("loadMetadata", () => {
 
     await loadMetadata();
 
-    const setModelsCall = (
-      useMetadataStore.getState().setRecommendedModels as jest.Mock
-    ).mock.calls[0][0];
+    const setModelsCall = jest.mocked(useMetadataStore.getState().setRecommendedModels).mock.calls[0][0];
     expect(setModelsCall).toHaveLength(2);
   });
 

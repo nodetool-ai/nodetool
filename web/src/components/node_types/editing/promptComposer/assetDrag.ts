@@ -37,10 +37,10 @@ export const readAssetDrag = (
     return null;
   }
   if (data.type === "asset") {
-    return { assets: [data.payload as Asset], pendingIds: [] };
+    return { assets: [data.payload], pendingIds: [] };
   }
   if (data.type === "assets-multiple") {
-    return { assets: [], pendingIds: data.payload as string[] };
+    return { assets: [], pendingIds: data.payload };
   }
   return null;
 };

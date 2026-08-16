@@ -11,8 +11,8 @@ jest.mock("../../trpc/client", () => ({
 }));
 
 import { trpcClient } from "../../trpc/client";
-const listQuery = trpcClient.settings.list.query as jest.Mock;
-const updateMutate = trpcClient.settings.update.mutate as jest.Mock;
+const listQuery = jest.mocked(trpcClient.settings.list.query);
+const updateMutate = jest.mocked(trpcClient.settings.update.mutate);
 
 describe("RemoteSettingStore", () => {
   beforeEach(() => {

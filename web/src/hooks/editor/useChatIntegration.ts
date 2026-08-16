@@ -5,7 +5,6 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useChatViewThread } from "../chat/useChatViewThread";
 import type {
   MessageContent,
-  LanguageModel,
   Message
 } from "../../stores/ApiTypes";
 import { setEditorAdapter } from "../../lib/tools/builtin/editorTools";
@@ -420,7 +419,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
     messages,
     runtime,
     sendMessage,
-    selectedModel: (selectedModel as LanguageModel) || null,
+    selectedModel: selectedModel || null,
     setSelectedModel,
     stopGeneration,
     createNewThread

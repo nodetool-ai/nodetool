@@ -262,7 +262,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       // Resolve asset: only single-asset drags are supported for clip creation
       let asset: Asset | null = null;
       if (dragData.type === "asset") {
-        asset = dragData.payload as Asset;
+        asset = dragData.payload;
       }
 
       if (!asset) {

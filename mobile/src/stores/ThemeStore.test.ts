@@ -84,7 +84,7 @@ describe('ThemeStore', () => {
   });
 
   it('toggleTheme switches from system to opposite of current system theme', () => {
-    (Appearance.getColorScheme as jest.Mock).mockReturnValue('dark');
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('dark');
     const { result } = renderHook(() => useThemeStore());
     
     // Should start with system
@@ -161,7 +161,7 @@ describe('ThemeStore', () => {
   });
 
   it('uses dark colors when system is dark', () => {
-    (Appearance.getColorScheme as jest.Mock).mockReturnValue('dark');
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('dark');
     
     const { result } = renderHook(() => useThemeStore());
     
@@ -174,7 +174,7 @@ describe('ThemeStore', () => {
   });
 
   it('uses light colors when system is light', () => {
-    (Appearance.getColorScheme as jest.Mock).mockReturnValue('light');
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('light');
     
     const { result } = renderHook(() => useThemeStore());
     

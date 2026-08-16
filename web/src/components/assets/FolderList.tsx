@@ -371,7 +371,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             </div>
           </AccordionSummary>
           <AccordionDetails>
-            {(("children" in folder ? folder.children : []) as FolderNode[]).map(
+            {("children" in folder ? folder.children : []).map(
               (childNode: FolderNode) => renderFolder(childNode, level + 1)
             )}
           </AccordionDetails>

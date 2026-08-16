@@ -210,7 +210,7 @@ export const buildDownstreamRunGraph = ({
     return null;
   }
 
-  const downstream = subgraph(edges, nodes, node as Node<NodeData>);
+  const downstream = subgraph(edges, nodes, node);
   const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
 
   const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);

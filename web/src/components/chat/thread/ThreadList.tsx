@@ -6,7 +6,6 @@ import { createStyles } from "./ThreadList.styles";
 import { ThreadItem } from "./ThreadItem";
 import { EmptyThreadList } from "./EmptyThreadList";
 import type { ThreadListProps } from "../types/thread.types";
-import { ThreadInfo } from "../types/thread.types";
 import { sortThreadsByDate } from "../utils/threadUtils";
 import { groupByDate } from "../../../utils/groupByDate";
 
@@ -35,7 +34,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
     const elements: React.ReactNode[] = [];
 
     if (threads && Object.keys(threads).length > 0) {
-      const threadEntries = sortThreadsByDate(threads as Record<string, ThreadInfo>);
+      const threadEntries = sortThreadsByDate(threads);
 
       // If there is only one thread, just render it with date
       if (threadEntries.length === 1) {

@@ -126,7 +126,7 @@ describe("PainterBody", () => {
 
     renderWithTheme(<PainterBody {...makeProps()} />);
 
-    const img = document.querySelector("img.source") as HTMLImageElement | null;
+    const img = document.querySelector("img.source");
     expect(img).toBeTruthy();
     expect(img?.getAttribute("src")).toContain("/api/storage/test-image.png");
   });

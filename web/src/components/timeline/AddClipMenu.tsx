@@ -615,7 +615,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                                 name: directModel,
                                 voices: directVoice ? [directVoice] : [],
                                 selected_voice: directVoice ?? ""
-                              } as TTSModelValue)
+                              })
                             : ""
                         }
                         onChange={handleDirectTTSModelChange}

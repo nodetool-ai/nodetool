@@ -579,7 +579,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       if (typeof firstItem === "string" && arr.every((item) => typeof item === "string")) {
         return (
           <View style={styles.container}>
-            {(arr as string[]).map((item: string, i: number) => (
+            {arr.map((item: string, i: number) => (
               <View
                 key={i}
                 style={[styles.listItem, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#F0F0F0" }]}

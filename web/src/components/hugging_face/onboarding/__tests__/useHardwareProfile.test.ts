@@ -15,7 +15,7 @@ const setStats = (stats: Partial<SystemStats> | null) => {
       cpu_percent: 0,
       memory_percent: 0,
       ...stats
-    } as SystemStats);
+    });
   }
 };
 

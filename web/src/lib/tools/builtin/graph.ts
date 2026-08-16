@@ -185,7 +185,7 @@ FrontendToolRegistry.register({
       const metadata = state.nodeMetadata[nodeType];
       if (!metadata) {throw new Error(`Node type not found: ${nodeType}`);}
 
-      const rawData = (node.data ?? {}) as Record<string, unknown>;
+      const rawData = node.data ?? {};
       const properties = (rawData.properties ?? {}) as Record<string, unknown>;
 
       for (const property of metadata.properties) {

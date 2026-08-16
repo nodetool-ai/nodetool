@@ -407,7 +407,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        const t = (e.currentTarget as HTMLElement).dataset.tag;
+                        const t = e.currentTarget.dataset.tag;
                         if (t) {
                           useNodeMenuStore.getState().openNodeMenu({ x: 500, y: 200 });
                           useNodeMenuStore.getState().setSearchTerm(t.trim());

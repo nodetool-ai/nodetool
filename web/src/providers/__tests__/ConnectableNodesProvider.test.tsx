@@ -10,7 +10,7 @@ jest.mock("../../stores/MetadataStore", () => {
   return { __esModule: true, default: { getState } };
 });
 // Access the mocked getState function
-const getState = (metadataStore as any).getState as jest.Mock;
+const getState = jest.mocked((metadataStore as any).getState);
 
 // Mock filter utilities
 const mockFilterByInput = jest.fn();

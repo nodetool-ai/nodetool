@@ -401,7 +401,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         maxWidth:
           typeof width === "number"
             ? `${width}px`
-            : (width as string | undefined)
+            : width
       }}
     >
       <Tooltip

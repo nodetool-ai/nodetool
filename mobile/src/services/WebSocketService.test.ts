@@ -329,7 +329,7 @@ describe('WebSocketService', () => {
 
   describe('inbound protocol validation (B4)', () => {
     beforeEach(() => {
-      (console.error as jest.Mock).mockClear();
+      jest.mocked(console.error).mockClear();
     });
 
     it('does not log for a valid message and still dispatches it', async () => {
@@ -370,7 +370,7 @@ describe('WebSocketService', () => {
       // Observe-only: the message is still routed to subscribers.
       expect(handler).toHaveBeenCalledWith(invalidMessage);
       expect(console.error).toHaveBeenCalledTimes(1);
-      expect((console.error as jest.Mock).mock.calls[0][0]).toContain('node_update');
+      expect(jest.mocked(console.error).mock.calls[0][0]).toContain('node_update');
       unsubscribe();
     });
 

@@ -77,7 +77,7 @@ const mockRunnerStore = {
 const mockUseWorkflow = useWorkflow as jest.MockedFunction<typeof useWorkflow>;
 const mockUseJobAssets = useJobAssets as jest.MockedFunction<typeof useJobAssets>;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.MockedFunction<typeof getWorkflowRunnerStore>;
-const mockCancelJob = trpcClient.jobs.cancel.mutate as jest.Mock;
+const mockCancelJob = jest.mocked(trpcClient.jobs.cancel.mutate);
 const mockUseQueryClient = useQueryClient as jest.MockedFunction<typeof useQueryClient>;
 
 describe("JobItem", () => {
@@ -86,7 +86,7 @@ describe("JobItem", () => {
     jest.useFakeTimers();
 
     // Setup default mock implementations
-    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     mockUseWorkflow.mockReturnValue({ data: mockWorkflow } as any);
     mockUseJobAssets.mockReturnValue({ data: [], isLoading: false, error: null } as any);

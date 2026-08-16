@@ -105,7 +105,7 @@ const useNamespaceTree = (): NamespaceTree => {
         foundFirstDisabled = true;
         if (!tree[rootNamespace]) {
           tree[rootNamespace] = {
-            children: {} as NamespaceTree,
+            children: {},
             disabled: true,
             firstDisabled: true,
             requiredKey,
@@ -124,7 +124,7 @@ const useNamespaceTree = (): NamespaceTree => {
       parts.forEach((part) => {
         if (!current[part]) {
           const newNode = {
-            children: {} as NamespaceTree,
+            children: {},
             disabled: isDisabled,
             requiredKey,
             providerKind

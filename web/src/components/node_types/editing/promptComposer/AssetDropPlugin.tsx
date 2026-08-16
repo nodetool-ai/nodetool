@@ -32,12 +32,7 @@ const rangeFromPoint = (x: number, y: number): Range | null => {
     return document.caretRangeFromPoint(x, y);
   }
   const pos = (
-    document as Document & {
-      caretPositionFromPoint?: (
-        x: number,
-        y: number
-      ) => { offsetNode: Node; offset: number } | null;
-    }
+    document
   ).caretPositionFromPoint?.(x, y);
   if (pos) {
     const range = document.createRange();

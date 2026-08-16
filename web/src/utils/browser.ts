@@ -21,7 +21,7 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
   // Primary check: the preload bridge (window.api) is the most reliable indicator
   const hasElectronBridge =
     hasWindow &&
-    typeof (window as typeof window & { api?: unknown }).api !== "undefined";
+    typeof window.api !== "undefined";
 
   const isRendererProcess =
     hasWindow &&

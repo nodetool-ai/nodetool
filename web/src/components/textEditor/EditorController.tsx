@@ -101,8 +101,8 @@ const EditorController = ({
   const highlightCurrentName = "findCurrent";
 
   const clearHighlights = useCallback(() => {
-    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightAllName);
-    (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightCurrentName);
+    CSS?.highlights?.delete?.(highlightAllName);
+    CSS?.highlights?.delete?.(highlightCurrentName);
   }, [highlightAllName, highlightCurrentName]);
 
   // Given a single match offset, return a DOM Range corresponding to it.

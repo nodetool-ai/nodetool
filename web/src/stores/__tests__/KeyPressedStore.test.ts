@@ -352,7 +352,7 @@ describe("KeyPressedStore", () => {
       registerComboCallback("c+control", { callback, preventDefault: false });
 
       // Ensure no input is focused (focus body)
-      (document.body as HTMLElement).focus();
+      document.body.focus();
 
       const { setKeysPressed } = useKeyPressedStore.getState();
       const event = new KeyboardEvent("keydown", {
@@ -470,7 +470,7 @@ describe("KeyPressedStore", () => {
         preventDefault: false
       });
 
-      (document.body as HTMLElement).focus();
+      document.body.focus();
       const { setKeysPressed } = useKeyPressedStore.getState();
 
       // Press Cmd+1
@@ -542,7 +542,7 @@ describe("KeyPressedStore", () => {
     // toolbar all bind "escape"), so shortcuts intermittently stopped working.
 
     const pressEscape = () => {
-      (document.body as HTMLElement).focus();
+      document.body.focus();
       const { setKeysPressed } = useKeyPressedStore.getState();
       act(() => {
         setKeysPressed(

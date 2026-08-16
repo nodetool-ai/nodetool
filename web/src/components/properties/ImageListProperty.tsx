@@ -264,7 +264,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
 
         // Handle multiple assets
         if (dragData.type === "assets-multiple") {
-          const selectedIds = dragData.payload as string[];
+          const selectedIds = dragData.payload;
           const uniqueAssets = resolveAssetsMultiple(
             selectedIds,
             dragData.metadata?.assets,
@@ -280,7 +280,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
 
         // Handle single asset
         if (droppedImages.length === 0 && dragData.type === "asset") {
-          const asset = dragData.payload as Asset;
+          const asset = dragData.payload;
           if (asset.id && asset.content_type?.startsWith("image/")) {
             droppedImages.push(mediaRefFromAsset(asset, "image"));
           }

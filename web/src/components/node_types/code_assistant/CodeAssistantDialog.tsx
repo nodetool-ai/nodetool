@@ -115,7 +115,7 @@ const CodeAssistantDialogInner = ({
     const data = node?.data;
     const code =
       typeof data?.properties?.code === "string"
-        ? (data.properties.code as string)
+        ? data.properties.code
         : "";
     const inputPorts: CodeAssistantPort[] = Object.entries(
       data?.dynamic_inputs ?? {}

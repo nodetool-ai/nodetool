@@ -107,7 +107,7 @@ FrontendToolRegistry.register({
   async execute({ application_id, type, props, parent_id, slot, index }) {
     const component = getPuckAgentHandler(application_id).addComponent({
       type,
-      props: props as Record<string, unknown> | undefined,
+      props: props,
       parentId: parent_id ?? null,
       slot: slot ?? null,
       index
@@ -151,7 +151,7 @@ FrontendToolRegistry.register({
   async execute({ application_id, id, props }) {
     const component = getPuckAgentHandler(application_id).updateComponent(
       id,
-      props as Record<string, unknown>
+      props
     );
     if (!component) {
       return { ok: false, error: `No widget with id ${id}` };
@@ -931,7 +931,7 @@ FrontendToolRegistry.register({
     if (!response.ok) {
       const detail =
         report && typeof report === "object" && "detail" in report
-          ? String((report as { detail: unknown }).detail)
+          ? String(report.detail)
           : `App debug failed (${response.status})`;
       return { ok: false, error: detail };
     }
