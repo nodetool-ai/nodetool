@@ -60,13 +60,20 @@ async function readPages(where: string, bytes: unknown): Promise<PageTextResult[
 }
 
 /** A PDF's text, all pages concatenated. */
-export async function extractText(bytes: unknown): Promise<unknown> {
+export async function extractText(bytes: unknown): Promise<string> {
   const pages = await readPages("pdf.extractText", bytes);
   return pages.map((page) => page.text.trim()).join("\n\n");
 }
 
+/** One page of a PDF, as `extractPages` reports it. */
+export interface PdfPage {
+  index: number;
+  pageNumber: number;
+  text: string;
+}
+
 /** Each page's text as its own item, in page order. */
-export async function extractPages(bytes: unknown): Promise<unknown> {
+export async function extractPages(bytes: unknown): Promise<PdfPage[]> {
   const pages = await readPages("pdf.extractPages", bytes);
   return pages.map((page, index) => ({
     index,

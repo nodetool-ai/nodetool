@@ -22,6 +22,7 @@ import {
   extractInjectableImages,
   stripImagePayload
 } from "../tools/image-injection.js";
+import type { JsonValue } from "../utils/json-parser.js";
 import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
 import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
 import { TOOLS_PRELUDE } from "./tools-prelude.js";
@@ -64,7 +65,7 @@ export interface ToolBridge {
 }
 
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
-export function toTransferable(value: unknown): unknown {
+export function toTransferable(value: unknown): JsonValue {
   if (value === null || value === undefined) return null;
   if (
     typeof value === "string" ||

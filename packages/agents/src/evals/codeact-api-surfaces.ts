@@ -900,11 +900,11 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
  */
 export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = createWorld();
-  const tool = (
+  const tool = <TResult,>(
     name: string,
     description: string,
     schema: Record<string, unknown>,
-    impl: (params: Record<string, unknown>) => unknown
+    impl: (params: Record<string, unknown>) => TResult
   ): Tool => new RecordingTool(name, description, schema, recorder, impl);
 
   return [

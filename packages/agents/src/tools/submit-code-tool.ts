@@ -185,6 +185,16 @@ function checkSeededPorts(
   return errors;
 }
 
+/** What {@link SubmitCodeTool} answers: the accepted submission, or why not. */
+export type SubmitCodeResult =
+  | { status: "code_rejected"; errors: string[] }
+  | {
+      status: "code_accepted";
+      title: string;
+      inputs: string[];
+      outputs: string[];
+    };
+
 export class SubmitCodeTool extends Tool {
   readonly name = "submit_code";
   readonly description =
@@ -212,7 +222,7 @@ export class SubmitCodeTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<SubmitCodeResult> {
     this.rounds++;
     this.lastCode =
       typeof params["code"] === "string" ? (params["code"] as string) : null;

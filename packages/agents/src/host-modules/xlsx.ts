@@ -50,7 +50,7 @@ interface ExcelWorksheetLike {
 }
 interface ExcelWorkbookLike {
   xlsx: {
-    load: (buffer: ArrayBuffer) => Promise<unknown>;
+    load: (buffer: ArrayBuffer) => Promise<ExcelWorkbookLike>;
     writeBuffer: () => Promise<ArrayBuffer | Uint8Array>;
   };
   eachSheet: (cb: (sheet: ExcelWorksheetLike, id: number) => void) => void;
@@ -74,7 +74,10 @@ async function loadExcelJs(where: string): Promise<ExcelJsLike> {
  * Excel workbook bytes to records per sheet; pass `sheet` to get one sheet's
  * rows directly. Formula cells yield their computed result.
  */
-export async function parse(bytes: unknown, options?: unknown): Promise<unknown> {
+export async function parse(
+  bytes: unknown,
+  options?: unknown
+): Promise<unknown[] | Record<string, unknown[]>> {
   const where = "xlsx.parse";
   const workbookBytes = requireBytes(where, bytes);
   const opts = optionsOf(options);

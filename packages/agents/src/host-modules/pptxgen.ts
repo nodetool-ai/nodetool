@@ -6,7 +6,7 @@
  * into PPTX bytes.
  */
 
-import { toGuestBytes } from "../sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
 
 const MAX_SLIDES = 200;
@@ -50,7 +50,7 @@ function toDataUrl(bytes: Uint8Array): string {
 /**
  * Build a PPTX from a JSON slide list. Positions are inches from the top-left.
  */
-export async function build(spec: unknown): Promise<unknown> {
+export async function build(spec: unknown): Promise<GuestBytes> {
   const where = "pptxgen.build";
   const input = optionsOf(spec);
   const slides = Array.isArray(input.slides) ? input.slides : [];

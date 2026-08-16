@@ -276,7 +276,7 @@ function lineStatus(
   line: ScriptLine,
   voice: ScriptVoiceBinding | null,
   helpers: {
-    currentTake: (line: ScriptLine) => unknown;
+    currentTake: (line: ScriptLine) => ScriptTake | undefined;
     needsVoicing: (line: ScriptLine, voice: ScriptVoiceBinding) => boolean;
   }
 ): "draft" | "stale" | "voiced" | "no_voice" {

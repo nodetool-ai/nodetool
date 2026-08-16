@@ -8,7 +8,7 @@
 
 import { importOptionalModule } from "@nodetool-ai/config";
 
-import { toGuestBytes } from "../sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import {
   importOptionalLibrary,
   optionsOf,
@@ -31,7 +31,7 @@ interface FabricStaticCanvas {
   width?: number;
   height?: number;
   backgroundColor?: unknown;
-  loadFromJSON: (json: unknown) => Promise<unknown>;
+  loadFromJSON: (json: unknown) => Promise<FabricStaticCanvas>;
   renderAll: () => void;
   toDataURL: (options?: {
     format?: string;
@@ -125,7 +125,7 @@ function normalizeDimension(
 export async function render(
   spec: unknown,
   options?: unknown
-): Promise<unknown> {
+): Promise<GuestBytes> {
   const where = "fabric.render";
   const scene = parseSceneSpec(where, spec);
   const opts = optionsOf(options);
@@ -286,10 +286,16 @@ export async function toDataURL(
   }
 }
 
+/** Fabric's own parse of an SVG document: its objects and canvas options. */
+export interface FabricSvgScene {
+  objects: unknown[];
+  options: unknown;
+}
+
 /**
  * Parse an SVG string into Fabric objects and canvas options.
  */
-export async function loadSVG(svg: unknown): Promise<unknown> {
+export async function loadSVG(svg: unknown): Promise<FabricSvgScene> {
   const where = "fabric.loadSVG";
   const svgText = requireText(where, svg, "svg");
   const fabricLib = await loadFabric(where);

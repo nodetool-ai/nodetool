@@ -115,6 +115,17 @@ export interface MediaBackend {
   ): Promise<Uint8Array>;
 }
 
+declare const canvasImageDataBrand: unique symbol;
+
+/**
+ * A canvas `ImageData`. The backend constructs it and `putImageData` consumes
+ * it; nothing on this side reads its fields, so it is opaque by contract
+ * rather than by omission.
+ */
+interface CanvasImageData {
+  readonly [canvasImageDataBrand]?: never;
+}
+
 interface NapiCanvasModule {
   createCanvas: (
     w: number,
@@ -132,7 +143,7 @@ interface NapiCanvasModule {
     data: Uint8ClampedArray,
     width: number,
     height: number
-  ) => unknown;
+  ) => CanvasImageData;
 }
 
 function napiQuality(format: ImageFormat, quality: number): number | undefined {

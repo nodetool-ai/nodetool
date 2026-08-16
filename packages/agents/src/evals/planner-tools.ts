@@ -33,7 +33,7 @@ class DeclarativeTool extends Tool {
   async process(
     _context: ProcessingContext,
     _params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<never> {
     throw new Error(
       `${this.name} is a planning-eval placeholder and must never be executed`
     );
