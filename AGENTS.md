@@ -236,7 +236,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 21,217 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 20,031 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
   inside `npm run lint`, so they cannot come back.
@@ -249,17 +249,28 @@ identifier, and here that is the sketch editor's drawing tools, tensor shapes,
 and third-party contracts. Promotion goes through the enforced config, not `.oxlintrc.json`,
 because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
 oxlint resolves the nearest config per file — a rule added at the root silently
-skips those trees. Remaining backlog, largest first:
+skips those trees. `no-runtime-typeof` runs with `allowInTypeGuards: true`: a `typeof` directly
+inside a function returning `v is T` is the rule's sanctioned form, so working
+the backlog means consolidating repeated inline checks into named predicates
+(each tree has a predicate module: `packages/protocol/src/predicates.ts`,
+`web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
+deleting guards. The rule is already enforced for `packages/protocol/src` via
+an override in the enforced config, with the decoder `typecheck.ts` exempt —
+in the package that owns the schemas, an inline `typeof` means someone bypassed
+the parse. One tradeoff: predicates take `value: unknown`, so consolidation
+moves a handful of findings into `no-unknown-parameters`.
+
+Remaining backlog, largest first:
 
 | rule | findings |
 |---|---:|
-| `require-safety-comment-for-type-assertion` | 8099 |
-| `no-unsafe-dictionary-type` | 4839 |
-| `no-runtime-typeof` | 4237 |
-| `no-unknown-parameters` | 1763 |
+| `require-safety-comment-for-type-assertion` | 8030 |
+| `no-unsafe-dictionary-type` | 4797 |
+| `no-runtime-typeof` | 3097 |
+| `no-unknown-parameters` | 1821 |
 | `no-module-mocking` | 1403 |
 | `no-known-value-widening` | 672 |
-| `no-unknown-returns` | 163 |
+| `no-unknown-returns` | 170 |
 | `no-chained-type-assertions` | 41 |
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what
