@@ -8,6 +8,13 @@
  * document itself still has something true to show.
  */
 
+import {
+  isNonEmptyString,
+  isNumber,
+  isRecord,
+  isString
+} from "./predicates.js";
+
 /** What a widget needs to know about a bound sketch/timeline value. */
 export interface DocumentBinding<TDoc> {
   /** The inline document, when the value carried one. */
@@ -29,9 +36,6 @@ export interface TimelineSummary {
   clipCount: number;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /** A bound output holds one value or an accumulated list of streamed items. */
 const lastItem = <TItem>(value: TItem | TItem[]): TItem | undefined =>
   Array.isArray(value) ? value[value.length - 1] : value;
@@ -40,7 +44,7 @@ const refId = (value: unknown): string | null => {
   if (!isRecord(value)) {
     return null;
   }
-  return typeof value.id === "string" && value.id.length > 0 ? value.id : null;
+  return isNonEmptyString(value.id) ? value.id : null;
 };
 
 /**
@@ -79,15 +83,15 @@ export const isSketchDocumentLike = (value: unknown): boolean => {
   const canvas = value.canvas;
   return (
     isRecord(canvas) &&
-    typeof canvas.width === "number" &&
-    typeof canvas.height === "number" &&
+    isNumber(canvas.width) &&
+    isNumber(canvas.height) &&
     Array.isArray(value.layers)
   );
 };
 
 export const isTimelineSequenceLike = (value: unknown): boolean =>
   isRecord(value) &&
-  typeof value.durationMs === "number" &&
+  isNumber(value.durationMs) &&
   Array.isArray(value.tracks) &&
   Array.isArray(value.clips);
 
@@ -148,7 +152,7 @@ export const timelineSummary = (document: unknown): TimelineSummary | null => {
   }
   const doc = document as Record<string, unknown>;
   return {
-    name: typeof doc.name === "string" ? doc.name : "",
+    name: isString(doc.name) ? doc.name : "",
     durationMs: doc.durationMs as number,
     trackCount: (doc.tracks as unknown[]).length,
     clipCount: (doc.clips as unknown[]).length

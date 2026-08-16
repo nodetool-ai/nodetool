@@ -54,6 +54,7 @@ import {
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
 import { validateBridgeFrame } from "@nodetool-ai/protocol";
+import { isNumber } from "./type-predicates.js";
 
 const log = createLogger("nodetool.runtime.python-bridge-base");
 
@@ -259,7 +260,7 @@ export abstract class PythonBridgeBase
         // that pre-date the protocol_version field are treated as version 1
         // (the initial release) — same wire format, they just don't announce.
         const workerVersion =
-          typeof data.protocol_version === "number" ? data.protocol_version : 1;
+          isNumber(data.protocol_version) ? data.protocol_version : 1;
         if (workerVersion < MIN_BRIDGE_PROTOCOL_VERSION) {
           this._pending.delete(requestId);
           pending.reject(
@@ -1216,7 +1217,7 @@ export abstract class PythonBridgeBase
       // reply that is not an array is treated as evicting nothing.
       evicted: Array.isArray(result.evicted) ? (result.evicted as string[]) : []
     };
-    if (typeof result.freed_vram_gb === "number") {
+    if (isNumber(result.freed_vram_gb)) {
       evictResult.freed_vram_gb = result.freed_vram_gb;
     }
     return evictResult;

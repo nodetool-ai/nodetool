@@ -18,6 +18,7 @@ import type { Mutable } from "./mutable.js";
  * same way in each.
  */
 import type { AppStateEvent, Disposition, InvocationState } from "./state.js";
+import { isNumber, isObjectLike, isString } from "./predicates.js";
 
 export interface FoldContext {
   /**
@@ -38,18 +39,18 @@ export interface FoldContext {
 }
 
 const str = (value: unknown): string =>
-  typeof value === "string" ? value : value == null ? "" : String(value);
+  isString(value) ? value : value == null ? "" : String(value);
 
 /** Display text for a node/job error, which the kernel sends in several shapes. */
 export const errorText = (value: unknown): string => {
   if (value == null) return "";
-  if (typeof value === "string") return value.trim();
+  if (isString(value)) return value.trim();
   if (value instanceof Error) return value.message;
-  if (typeof value === "object") {
+  if (isObjectLike(value)) {
     const record = value as Record<string, unknown>;
     for (const field of ["message", "error", "detail"]) {
       const candidate = record[field];
-      if (typeof candidate === "string" && candidate.trim() !== "") {
+      if (isString(candidate) && candidate.trim() !== "") {
         return candidate.trim();
       }
     }
@@ -148,10 +149,10 @@ export const messageToEvents = (
   ctx: FoldContext
 ): AppStateEvent[] => {
   const type = message.type;
-  if (typeof type !== "string") return [];
+  if (!isString(type)) return [];
 
   const invocation = ctx.resolveInvocation(
-    typeof message.job_id === "string" ? message.job_id : null
+    isString(message.job_id) ? message.job_id : null
   );
   if (!invocation) return [];
 
@@ -182,8 +183,7 @@ export const messageToEvents = (
 
     case "node_progress": {
       const { progress, total } = message;
-      const hasRatio =
-        typeof progress === "number" && typeof total === "number" && total > 0;
+      const hasRatio = isNumber(progress) && isNumber(total) && total > 0;
       return [
         {
           type: "invocationProgress",

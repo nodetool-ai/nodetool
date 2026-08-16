@@ -27,6 +27,8 @@
  *   - **Reactive**: subscribers can react to writes.
  */
 
+import { isString } from "./type-predicates.js";
+
 export type MemoryKind = "task_result" | "step_result" | "input" | "shared";
 
 export interface MemoryEntry {
@@ -174,7 +176,7 @@ export class AgentMemory {
       lines.push(`## [${entry.kind}] ${heading} (${entry.key})`);
       if (entry.description) lines.push(entry.description);
       const valueStr =
-        typeof entry.value === "string"
+        isString(entry.value)
           ? entry.value
           : JSON.stringify(entry.value, null, 2);
       lines.push("```");

@@ -1,3 +1,5 @@
+import { isObjectLike } from "./type-predicates.js";
+
 export interface AvailablePackage {
   name: string;
   repo_id: string;
@@ -39,7 +41,7 @@ export async function fetchAvailablePackages(): Promise<AvailablePackage[]> {
     const parsed: unknown = await res.json();
     const asRecord = parsed as Record<string, unknown>;
     // Stryker disable next-line all: every branch funnels to `return []` — a non-array `parsed`/`packages` yields null (→ the !list guard) or makes list.filter throw into the outer catch, so these mutants are behaviourally equivalent.
-    const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" && Array.isArray(asRecord["packages"]) ? (asRecord["packages"] as unknown[]) : null;
+    const list = Array.isArray(parsed) ? parsed : isObjectLike(parsed) && Array.isArray(asRecord["packages"]) ? (asRecord["packages"] as unknown[]) : null;
     // Stryker disable next-line ConditionalExpression,BlockStatement: a null list would otherwise reach list.filter and throw into the outer catch, which also returns [] — so this guard is behaviourally equivalent to letting it fall through.
     if (!list) {
       // Stryker disable next-line StringLiteral: diagnostic text only.

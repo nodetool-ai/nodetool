@@ -14,6 +14,7 @@
  * types NodeTool already has under another name.
  */
 import type { TypeMetaLike } from "./type-compat.js";
+import { isObjectLike, isString } from "./type-predicates.js";
 
 /** Scalar and container types every NodeTool install understands. */
 export const CORE_PORT_TYPES = [
@@ -76,9 +77,9 @@ export interface PortTypeAlias {
 export function portTypeAliases(type: unknown): PortTypeAlias[] {
   const found: PortTypeAlias[] = [];
   const visit = (candidate: unknown): void => {
-    if (typeof candidate !== "object" || candidate === null) return;
+    if (!isObjectLike(candidate)) return;
     const meta = candidate as TypeMetaLike;
-    if (typeof meta.type === "string") {
+    if (isString(meta.type)) {
       const canonical = canonicalPortType(meta.type);
       if (canonical) found.push({ used: meta.type, canonical });
     }

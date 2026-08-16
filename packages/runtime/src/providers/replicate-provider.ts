@@ -1,5 +1,6 @@
 import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
+import { isObjectLike, isString } from "../type-predicates.js";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { sniffAudioMime } from "./audio-mime.js";
@@ -110,7 +111,7 @@ export class ReplicateProvider extends BaseProvider {
 
     for (const msg of messages) {
       const text =
-        typeof msg.content === "string"
+        isString(msg.content)
           ? msg.content
           : Array.isArray(msg.content)
             ? msg.content
@@ -156,7 +157,7 @@ export class ReplicateProvider extends BaseProvider {
     // Replicate LLMs return output as a string, array of token strings,
     // or a ReadableStream/FileOutput.
     let text: string;
-    if (typeof output === "string") {
+    if (isString(output)) {
       text = output;
     } else if (Array.isArray(output)) {
       text = output.join("");
@@ -763,7 +764,7 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     // FileOutput is a ReadableStream — read it to bytes
-    if (target && typeof target === "object" && "getReader" in target) {
+    if (isObjectLike(target) && "getReader" in target) {
       const reader = (target as ReadableStream<Uint8Array>).getReader();
       const chunks: Uint8Array[] = [];
       while (true) {
@@ -782,7 +783,7 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     // String URL — fetch the bytes
-    if (typeof target === "string") {
+    if (isString(target)) {
       const res = await safeFetch(target);
       if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());

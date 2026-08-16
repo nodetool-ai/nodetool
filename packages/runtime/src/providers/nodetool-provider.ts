@@ -34,6 +34,7 @@ import type {
 } from "./types.js";
 import { FalProvider } from "./fal-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
+import { isNonEmptyString } from "../type-predicates.js";
 
 const PLATFORM_KEYS: Record<string, string> = {
   fal_ai: "NODETOOL_PLATFORM_FAL_KEY",
@@ -56,7 +57,7 @@ export class NodetoolProvider extends BaseProvider {
   private platformKey(delegateProvider: string): string | null {
     const keyName = PLATFORM_KEYS[delegateProvider];
     const value = keyName ? this.secrets[keyName] : null;
-    return typeof value === "string" && value.length > 0 ? value : null;
+    return isNonEmptyString(value) ? value : null;
   }
 
   private isFunded(delegateProvider: string): boolean {

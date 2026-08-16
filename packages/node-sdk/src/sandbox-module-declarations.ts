@@ -10,6 +10,7 @@ import {
   SandboxModuleDeclarationSchema,
   type SandboxModuleDeclaration
 } from "@nodetool-ai/protocol";
+import { isObjectLike, isString } from "./type-predicates.js";
 
 export interface ParsedSandboxModuleDeclarations {
   /** Declarations the schema accepted, de-duplicated by specifier. */
@@ -33,7 +34,7 @@ export function parseSandboxModuleDeclarations(
   const invalid: string[] = [];
   const seen = new Set<string>();
   for (const entry of value) {
-    const candidate = typeof entry === "string" ? { specifier: entry } : entry;
+    const candidate = isString(entry) ? { specifier: entry } : entry;
     const parsed = SandboxModuleDeclarationSchema.safeParse(candidate);
     if (!parsed.success) {
       invalid.push(describe(entry));
@@ -47,11 +48,11 @@ export function parseSandboxModuleDeclarations(
 }
 
 function describe(value: unknown): string {
-  if (typeof value === "string") return `"${value}"`;
+  if (isString(value)) return `"${value}"`;
   if (value === null || value === undefined) return String(value);
-  if (typeof value === "object") {
+  if (isObjectLike(value)) {
     const specifier = (value as { specifier?: unknown }).specifier;
-    if (typeof specifier === "string") return `"${specifier}"`;
+    if (isString(specifier)) return `"${specifier}"`;
   }
   return JSON.stringify(value) ?? String(value);
 }

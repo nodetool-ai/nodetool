@@ -38,6 +38,7 @@ import {
   usesStreamInputContract
 } from "./code-body.js";
 import { installHintFor } from "./sandbox-bridge-packs.js";
+import { isString } from "./type-predicates.js";
 
 /** Node types whose `code` property is a JavaScript sandbox body. */
 export const JS_CODE_NODE_TYPES: ReadonlySet<string> = new Set([
@@ -195,7 +196,7 @@ function isCapabilitySpecifier(specifier: string): boolean {
 export function validateCodeNodeBody(
   input: CodeNodeValidationInput
 ): CodeNodeIssue[] {
-  const code = typeof input.code === "string" ? input.code : "";
+  const code = isString(input.code) ? input.code : "";
   const declared = [...new Set(input.declaredOutputs)];
   const connected = [...new Set(input.connectedOutputs ?? [])];
 

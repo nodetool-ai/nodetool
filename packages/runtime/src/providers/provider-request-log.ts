@@ -13,6 +13,7 @@
  */
 
 import { createLogger, type Logger } from "@nodetool-ai/config";
+import { isNumber, isObjectLike, isString } from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.provider.request");
 
@@ -152,18 +153,18 @@ export interface ProviderFailureLog {
 
 /** Caller cancellations (AbortSignal) are not provider failures — skip them. */
 function isAbortError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
+  if (!isObjectLike(error)) return false;
   const name = (error as { name?: unknown }).name;
-  if (typeof name === "string" && /abort/i.test(name)) return true;
+  if (isString(name) && /abort/i.test(name)) return true;
   const code = (error as { code?: unknown }).code;
   return code === 20 || code === "ABORT_ERR";
 }
 
 function httpStatus(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined;
+  if (!isObjectLike(error)) return undefined;
   const e = error as { status?: unknown; statusCode?: unknown };
-  if (typeof e.status === "number") return e.status;
-  if (typeof e.statusCode === "number") return e.statusCode;
+  if (isNumber(e.status)) return e.status;
+  if (isNumber(e.statusCode)) return e.statusCode;
   return undefined;
 }
 

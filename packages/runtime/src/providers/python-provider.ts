@@ -24,6 +24,7 @@ import type {
 } from "./types.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
+import { isString } from "../type-predicates.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
@@ -46,7 +47,7 @@ export class PythonProvider extends BaseProvider {
     bridge?: PythonBridgeBase,
     secrets: Record<string, string> = {}
   ) {
-    if (typeof providerIdOrOptions === "string") {
+    if (isString(providerIdOrOptions)) {
       super(providerIdOrOptions);
       if (!bridge) {
         throw new Error("PythonProvider requires a bridge instance");
@@ -277,7 +278,7 @@ export class PythonProvider extends BaseProvider {
 function serializeMessage(msg: Message) {
   const result: Record<string, unknown> = { role: msg.role };
 
-  if (typeof msg.content === "string") {
+  if (isString(msg.content)) {
     result.content = msg.content;
   } else if (Array.isArray(msg.content)) {
     result.content = msg.content;

@@ -18,6 +18,7 @@ import { createPythonBridge } from "./python-bridge-factory.js";
 import { PythonNodeExecutor } from "./python-node-executor.js";
 import type { PythonBridgeBase } from "./python-bridge-base.js";
 import type { PythonBridgeOptions } from "./python-bridge-types.js";
+import { isNonEmptyString } from "./type-predicates.js";
 
 const log = createLogger("nodetool.runtime.python-graph-resolver");
 
@@ -58,7 +59,7 @@ export async function connectPythonBridgeForGraph(
 ): Promise<PythonBridgeBase | null> {
   const needsPython = nodes.some(
     (n) =>
-      typeof n.type === "string" && n.type.length > 0 && !hasTsExecutor(n.type)
+      isNonEmptyString(n.type) && !hasTsExecutor(n.type)
   );
   if (!needsPython) return null;
 

@@ -11,12 +11,18 @@
  * and safe to import from any layer.
  */
 
+import {
+  isNonEmptyString,
+  isRecord,
+  isString
+} from "../../type-predicates.js";
+
 /** OIDC namespace under which OpenAI nests its custom auth claims. */
 const OPENAI_AUTH_CLAIM = "https://api.openai.com/auth";
 
 /** Decode the JSON payload (the middle segment) of a JWT. */
 export function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  if (typeof token !== "string") return null;
+  if (!isString(token)) return null;
   const segments = token.split(".");
   // A well-formed JWS has three dot-separated segments: header.payload.signature.
   if (segments.length !== 3) return null;
@@ -32,10 +38,10 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
 
   try {
     const parsed = JSON.parse(json) as unknown;
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (!isRecord(parsed)) {
       return null;
     }
-    return parsed as Record<string, unknown>;
+    return parsed;
   } catch {
     return null;
   }
@@ -53,13 +59,13 @@ export function extractChatGptAccountId(token: string): string | null {
   if (!payload) return null;
 
   const namespaced = payload[OPENAI_AUTH_CLAIM];
-  if (namespaced && typeof namespaced === "object" && !Array.isArray(namespaced)) {
-    const id = (namespaced as Record<string, unknown>).chatgpt_account_id;
-    if (typeof id === "string" && id.length > 0) return id;
+  if (isRecord(namespaced)) {
+    const id = namespaced.chatgpt_account_id;
+    if (isNonEmptyString(id)) return id;
   }
 
   const topLevel = payload.chatgpt_account_id;
-  if (typeof topLevel === "string" && topLevel.length > 0) return topLevel;
+  if (isNonEmptyString(topLevel)) return topLevel;
 
   return null;
 }

@@ -3,6 +3,12 @@ import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
+import {
+  isBoolean,
+  isFiniteNumber,
+  isNonEmptyString,
+  isString
+} from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
 import type {
@@ -192,10 +198,10 @@ const GEMINI_DATA_KEYS = new Set([
 ]);
 
 function isArraySchemaType(type: unknown): boolean {
-  if (typeof type === "string") return type.toLowerCase() === "array";
+  if (isString(type)) return type.toLowerCase() === "array";
   if (Array.isArray(type)) {
     return type.some(
-      (t) => typeof t === "string" && t.toLowerCase() === "array"
+      (t) => isString(t) && t.toLowerCase() === "array"
     );
   }
   return false;
@@ -207,9 +213,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 /** The JSON Schema type name for a primitive literal, if it has one. */
 function primitiveSchemaType(value: unknown): string | undefined {
-  if (typeof value === "string") return "string";
-  if (typeof value === "boolean") return "boolean";
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (isString(value)) return "string";
+  if (isBoolean(value)) return "boolean";
+  if (isFiniteNumber(value)) {
     return Number.isInteger(value) ? "integer" : "number";
   }
   return undefined;
@@ -271,7 +277,7 @@ function inlineGeminiRefs(
   // scalar — this walker is only ever handed a decoded JSON Schema.
   if (!isPlainObject(node)) return node as SchemaNode;
 
-  if (typeof node.$ref === "string") {
+  if (isString(node.$ref)) {
     const { $ref, ...rest } = node;
     if (seen.has($ref)) return { type: "object", ...rest };
     const { found, value } = resolveJsonPointer(root, $ref);
@@ -383,7 +389,7 @@ function sanitizeSchemaNode(value: unknown): SchemaNode {
       out.type ??= literalType;
       const hint = `Must be ${JSON.stringify(value.const)}.`;
       out.description =
-        typeof out.description === "string" && out.description
+        isNonEmptyString(out.description)
           ? `${out.description} ${hint}`
           : hint;
     }
@@ -450,7 +456,7 @@ function geminiResponseError(data: GeminiResponse): Error | null {
 }
 
 function parseGeminiResponse(value: unknown): GeminiResponse {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!isPlainObject(value)) {
     throw new Error("Gemini returned an invalid response envelope");
   }
   const response = value as GeminiResponse;
@@ -516,7 +522,7 @@ async function* decodeGeminiSse(
             cause: error
           });
         }
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        if (!isPlainObject(parsed)) {
           throw new Error("Gemini returned an invalid SSE event");
         }
         yield parseGeminiResponse(parsed);
@@ -642,10 +648,10 @@ export class GeminiProvider extends BaseProvider {
       };
 
       if (
-        (typeof img.data === "string" && img.data.length > 0) ||
+        isNonEmptyString(img.data) ||
         (img.data instanceof Uint8Array && img.data.length > 0)
       ) {
-        if (typeof img.data === "string") {
+        if (isString(img.data)) {
           // Inline data may itself be a data: URI — strip the prefix and take
           // the real mime type from it rather than shipping the header as
           // base64 payload.
@@ -692,10 +698,10 @@ export class GeminiProvider extends BaseProvider {
       };
 
       if (
-        (typeof aud.data === "string" && aud.data.length > 0) ||
+        isNonEmptyString(aud.data) ||
         (aud.data instanceof Uint8Array && aud.data.length > 0)
       ) {
-        if (typeof aud.data === "string") {
+        if (isString(aud.data)) {
           base64Data = aud.data.startsWith("data:")
             ? parseAudioDataUri(aud.data)
             : aud.data;
@@ -761,7 +767,7 @@ export class GeminiProvider extends BaseProvider {
     for (const msg of messages) {
       if (msg.role === "system") {
         const instruction =
-          typeof msg.content === "string"
+          isString(msg.content)
             ? msg.content
             : (msg.content ?? [])
                 .filter((c): c is MessageTextContent => c.type === "text")
@@ -777,7 +783,7 @@ export class GeminiProvider extends BaseProvider {
         // Tool result → user role with functionResponse part. The name must
         // match the originating functionCall's name, resolved from the call id.
         const responseText =
-          typeof msg.content === "string"
+          isString(msg.content)
             ? msg.content
             : JSON.stringify(msg.content);
 
@@ -841,7 +847,7 @@ export class GeminiProvider extends BaseProvider {
           }
         }
 
-        if (typeof msg.content === "string" && msg.content) {
+        if (isNonEmptyString(msg.content)) {
           parts.push({ text: msg.content });
         } else if (Array.isArray(msg.content)) {
           for (const c of msg.content) {
@@ -856,7 +862,7 @@ export class GeminiProvider extends BaseProvider {
       }
 
       const parts: GeminiPart[] = [];
-      if (typeof msg.content === "string") {
+      if (isString(msg.content)) {
         parts.push({ text: msg.content });
       } else if (Array.isArray(msg.content)) {
         for (const c of msg.content) {
@@ -1447,7 +1453,7 @@ export class GeminiProvider extends BaseProvider {
       throw new Error("text must not be empty");
     }
 
-    const texts = typeof text === "string" ? [text] : text;
+    const texts = isString(text) ? [text] : text;
 
     // Gemini embedContent supports a single content; batch by calling per text
     const embeddings: number[][] = [];

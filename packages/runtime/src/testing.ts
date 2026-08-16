@@ -21,6 +21,7 @@ const fs = getNodeBuiltinSync<typeof import("node:fs")>(
 import { ProcessingContext, InMemoryStorageAdapter, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";
+import { isString } from "./type-predicates.js";
 
 export interface FakeContextOptions {
   /**
@@ -90,7 +91,7 @@ function defaultFakeFetch(): (
   init?: RequestInit
 ) => Promise<Response> {
   return async (input: string, _init?: RequestInit) => {
-    const url = typeof input === "string" ? input : String(input);
+    const url = isString(input) ? input : String(input);
     const body = url.endsWith(".json") || url.includes("/api/") ? "{}" : "";
     return new Response(body, {
       status: 200,
@@ -187,7 +188,7 @@ export function stubGlobalFetch(
     init?: RequestInit
   ): Promise<Response> => {
     const url =
-      typeof input === "string"
+      isString(input)
         ? input
         : input instanceof URL
           ? input.toString()

@@ -55,6 +55,12 @@ import {
 } from "../tracing-helpers.js";
 import type { TurnBudget } from "../turn-budget.js";
 import { countTokens } from "../token-counter.js";
+import {
+  isCallable,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../type-predicates.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import { annotateProviderError } from "./provider-error.js";
 import { applyEntityReferences } from "./entity-references.js";
@@ -70,7 +76,7 @@ const log = createLogger("nodetool.runtime.provider");
  * {@link MessageContent} blocks they can't render — keep the text, drop images.
  */
 export function toolResultToText(result: string | MessageContent[]): string {
-  if (typeof result === "string") return result;
+  if (isString(result)) return result;
   const text = result
     .filter(
       (c): c is MessageContent & { type: "text"; text: string } =>
@@ -100,7 +106,7 @@ export type ToolResultSplit = {
 export function splitToolResultImages(
   result: string | MessageContent[]
 ): ToolResultSplit {
-  if (typeof result === "string") {
+  if (isString(result)) {
     return { toolContent: result, imageMessage: null };
   }
   const images = result.filter((c) => c.type === "image_url");
@@ -246,7 +252,7 @@ function estimatePromptTokens(messages: readonly Message[]): number {
   for (const message of messages) {
     const content = message.content;
     total += countTokens(
-      typeof content === "string" ? content : JSON.stringify(content ?? "")
+      isString(content) ? content : JSON.stringify(content ?? "")
     );
     if (message.toolCalls?.length) {
       total += countTokens(JSON.stringify(message.toolCalls));
@@ -326,7 +332,7 @@ export abstract class BaseProvider {
   private installModalityFailureLogging(): void {
     for (const name of MODALITY_PROMISE_METHODS) {
       const fn = this[name];
-      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
+      if (!isCallable(fn) || fn === BaseProvider.prototype[name]) {
         continue;
       }
       // SAFETY: `name` comes from MODALITY_PROMISE_METHODS and the check above
@@ -361,7 +367,7 @@ export abstract class BaseProvider {
 
     for (const name of MODALITY_GENERATOR_METHODS) {
       const fn = this[name];
-      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
+      if (!isCallable(fn) || fn === BaseProvider.prototype[name]) {
         continue;
       }
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
@@ -628,7 +634,7 @@ export abstract class BaseProvider {
           try {
             const result = await this.generateMessage(args);
             const content =
-              typeof result.content === "string"
+              isString(result.content)
                 ? result.content
                 : JSON.stringify(result.content);
             span.setAttributes({
@@ -979,7 +985,7 @@ export abstract class BaseProvider {
           if (isProviderToolErrorResult(result)) {
             return toolResultToText(result.content);
           }
-          return typeof result === "string" ? result : toolResultToText(result);
+          return isString(result) ? result : toolResultToText(result);
         }
       : turnArgs.onToolCall;
 
@@ -1035,7 +1041,7 @@ export abstract class BaseProvider {
           const isTextChunk =
             chunk.content_type === undefined || chunk.content_type === "text";
           if (
-            typeof chunk.content === "string" &&
+            isString(chunk.content) &&
             !chunk.thinking &&
             isTextChunk
           ) {
@@ -1492,16 +1498,16 @@ export abstract class BaseProvider {
   }
 
   protected parseToolCallArgs(raw: unknown): Record<string, unknown> {
-    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      return raw as Record<string, unknown>;
+    if (isRecord(raw)) {
+      return raw;
     }
-    if (typeof raw !== "string") {
+    if (!isString(raw)) {
       return {};
     }
     try {
       const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
+      if (isRecord(parsed)) {
+        return parsed;
       }
       return {};
     } catch {
@@ -1645,12 +1651,12 @@ const MODALITY_GENERATOR_METHODS = ["textToSpeech"] as const;
  */
 function extractModelId(args: unknown[]): string {
   for (const arg of args) {
-    if (!arg || typeof arg !== "object") continue;
+    if (!isObjectLike(arg)) continue;
     const model = (arg as { model?: unknown }).model;
-    if (typeof model === "string") return model;
-    if (model && typeof model === "object") {
+    if (isString(model)) return model;
+    if (isObjectLike(model)) {
       const id = (model as { id?: unknown }).id;
-      if (typeof id === "string") return id;
+      if (isString(id)) return id;
     }
   }
   return "unknown";

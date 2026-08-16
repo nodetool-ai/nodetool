@@ -10,22 +10,22 @@ import type {
 } from "./types.js";
 import type { UsageInfo } from "./cost-calculator.js";
 
-import { isRecord } from "../type-predicates.js";
+import { isRecord, isString } from "../type-predicates.js";
 
 export { isRecord };
 
 export function stringifyContent(
   value: string | MessageContent[] | null | undefined
 ): string {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   if (value == null) return "";
   return JSON.stringify(value);
 }
 
 export function dataUri(mimeType: string, data: Uint8Array | string): string {
-  if (typeof data === "string" && data.startsWith("data:")) return data;
+  if (isString(data) && data.startsWith("data:")) return data;
   const base64 =
-    typeof data === "string" ? data : Buffer.from(data).toString("base64");
+    isString(data) ? data : Buffer.from(data).toString("base64");
   return `data:${mimeType};base64,${base64}`;
 }
 
@@ -85,7 +85,7 @@ export async function messagesToResponsesInput(
 
     if (message.role === "assistant") {
       const outputParts: Array<Record<string, unknown>> = [];
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         if (message.content) {
           outputParts.push({ type: "output_text", text: message.content });
         }
@@ -132,7 +132,7 @@ export async function messagesToResponsesInput(
     }
 
     const content: Array<Record<string, unknown>> = [];
-    if (typeof message.content === "string") {
+    if (isString(message.content)) {
       content.push({ type: "input_text", text: message.content });
     } else if (Array.isArray(message.content)) {
       for (const part of message.content) {
@@ -218,12 +218,12 @@ export function extractResponsesImages(output: unknown): MessageImageContent[] {
     if (
       !isRecord(item) ||
       item.type !== "image_generation_call" ||
-      typeof item.result !== "string"
+      !isString(item.result)
     ) {
       continue;
     }
     const format =
-      typeof item.output_format === "string" ? item.output_format : "png";
+      isString(item.output_format) ? item.output_format : "png";
     images.push({
       type: "image_url",
       image: { data: item.result, mimeType: `image/${format}` }
@@ -273,7 +273,7 @@ export async function* streamResponsesEvents(
     const type = event.type;
     if (type === "response.created" || type === "response.completed") {
       const response = event.response;
-      if (isRecord(response) && typeof response.id === "string") {
+      if (isRecord(response) && isString(response.id)) {
         options.onResponseId?.(response.id);
       }
     }
@@ -336,19 +336,19 @@ export async function* streamResponsesEvents(
       if (
         isRecord(item) &&
         item.type === "image_generation_call" &&
-        typeof item.result === "string"
+        isString(item.result)
       ) {
         const format =
-          typeof item.output_format === "string" ? item.output_format : "png";
+          isString(item.output_format) ? item.output_format : "png";
         const chunk: Chunk = {
           type: "chunk",
           content: item.result,
           content_type: "image",
           content_metadata: {
             mimeType: `image/${format}`,
-            itemId: typeof item.id === "string" ? item.id : undefined,
+            itemId: isString(item.id) ? item.id : undefined,
             revisedPrompt:
-              typeof item.revised_prompt === "string"
+              isString(item.revised_prompt)
                 ? item.revised_prompt
                 : undefined
           },

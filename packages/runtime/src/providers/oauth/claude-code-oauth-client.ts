@@ -28,6 +28,7 @@ import {
 } from "./errors.js";
 import { redactObject } from "./redaction.js";
 import { type Clock, systemClock } from "./types.js";
+import { isNonEmptyString, isNumber } from "../../type-predicates.js";
 
 /** Minimal `fetch` surface this client needs — satisfied by global `fetch`. */
 export type JsonFetchLike = (
@@ -324,8 +325,7 @@ export class ClaudeCodeOAuthClient {
         `Token ${kind} response missing access_token`
       );
     }
-    const expiresIn =
-      typeof payload.expires_in === "number" ? payload.expires_in : null;
+    const expiresIn = isNumber(payload.expires_in) ? payload.expires_in : null;
     const scope = str(payload.scope);
     const accountUuid = str(payload.account?.uuid);
     const email = str(payload.account?.email_address);
@@ -364,5 +364,5 @@ function subscriptionTypeOf(organizationType: unknown): string | null {
 }
 
 function str(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return isNonEmptyString(value) ? value : null;
 }

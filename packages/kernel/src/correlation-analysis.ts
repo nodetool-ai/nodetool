@@ -23,6 +23,7 @@ import type {
   OutputKind
 } from "@nodetool-ai/protocol";
 import { TypeMetadata, isDataEdge } from "@nodetool-ai/protocol";
+import { isNonEmptyString } from "./predicates.js";
 
 /** Ordered chain of iteration-root ids, outermost parent first. */
 export type Scope = readonly string[];
@@ -289,7 +290,7 @@ function isListTypeHandle(node: NodeDescriptor, handle: string): boolean {
   const typeStr = propertyTypes[handle];
   // Guard non-string/empty values here so TypeMetadata.fromString only ever
   // sees a valid type string (it is total over strings and never throws).
-  if (typeof typeStr !== "string" || !typeStr) return false;
+  if (!isNonEmptyString(typeStr)) return false;
   return TypeMetadata.fromString(typeStr).isListType();
 }
 

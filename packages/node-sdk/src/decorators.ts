@@ -1,3 +1,5 @@
+import { isCallable } from "./type-predicates.js";
+
 export interface PropOptions {
   type: string;
   default?: unknown;
@@ -35,7 +37,7 @@ function collectDeclaredProps(ctor: Function): DeclaredPropertyMetadata[] {
   const chain: Function[] = [];
   let current: unknown = ctor;
   // Stryker disable next-line ConditionalExpression: a constructor's prototype chain always terminates at Function.prototype via the right-hand guard, which carries no declared props, so neither guard can change the collected chain (equivalent).
-  while (typeof current === "function" && current !== Function.prototype) {
+  while (isCallable(current) && current !== Function.prototype) {
     chain.push(current);
     current = Object.getPrototypeOf(current);
   }

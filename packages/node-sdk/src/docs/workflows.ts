@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isNonEmptyString, isString } from "../type-predicates.js";
 
 export interface WorkflowDocOptions {
   packageName?: string;
@@ -34,19 +35,19 @@ function filterIO(
   prefix: "nodetool.input." | "nodetool.output."
 ): WorkflowNode[] {
   return nodes.filter(
-    (n) => typeof n.type === "string" && n.type.startsWith(prefix)
+    (n) => isString(n.type) && n.type.startsWith(prefix)
   );
 }
 
 function slotName(node: WorkflowNode): string {
   const props = (node.properties ?? node.data ?? {}) as Record<string, unknown>;
-  if (typeof props["name"] === "string" && props["name"]) return props["name"];
+  if (isNonEmptyString(props["name"])) return props["name"];
   return node.id ?? (node.type ?? "unknown");
 }
 
 function slotDescription(node: WorkflowNode): string {
   const props = (node.properties ?? node.data ?? {}) as Record<string, unknown>;
-  if (typeof props["description"] === "string") return props["description"];
+  if (isString(props["description"])) return props["description"];
   return "";
 }
 
@@ -67,11 +68,11 @@ function slugifyWorkflowName(name: string): string {
 export function generateWorkflowMarkdown(wf: WorkflowFile): string {
   const { nodes, edges } = asGraph(wf.data);
   const name =
-    typeof wf.data["name"] === "string"
+    isString(wf.data["name"])
       ? wf.data["name"]
       : path.basename(wf.path, ".json");
   const description =
-    typeof wf.data["description"] === "string" ? wf.data["description"] : "";
+    isString(wf.data["description"]) ? wf.data["description"] : "";
 
   const inputs = filterIO(nodes, "nodetool.input.");
   const outputs = filterIO(nodes, "nodetool.output.");
@@ -138,10 +139,10 @@ export function generateAllWorkflowDocs(
   for (const wf of workflows) {
     if (opts.packageName) {
       const pkg = wf.data["package_name"];
-      if (typeof pkg === "string" && pkg !== opts.packageName) continue;
+      if (isString(pkg) && pkg !== opts.packageName) continue;
     }
     const name =
-      typeof wf.data["name"] === "string"
+      isString(wf.data["name"])
         ? wf.data["name"]
         : path.basename(wf.path, ".json");
     const filename = `${slugifyWorkflowName(name)}.md`;

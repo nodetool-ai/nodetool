@@ -39,6 +39,7 @@ import type {
   PythonWorkerLoadError,
   PythonWorkerStatus
 } from "./python-bridge-types.js";
+import { isCallable } from "./type-predicates.js";
 
 export type {
   PythonNodeMetadata,
@@ -100,7 +101,7 @@ function attachErrorSinks(ws: WebSocket): void {
   // socket on `_socket`; the optional declaration and the guard below cover a
   // build that does not.
   const rawSocket = (ws as WebSocketWithRawSocket)._socket;
-  if (rawSocket && typeof rawSocket.on === "function") {
+  if (rawSocket && isCallable(rawSocket.on)) {
     try {
       rawSocket.on("error", () => {});
     } catch {

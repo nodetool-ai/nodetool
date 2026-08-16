@@ -7,6 +7,8 @@
  * renders as one long assistant turn on a phone.
  */
 
+import { isRecord, isString } from "./predicates.js";
+
 /** One turn of a conversation. `content` is text, or a list of content parts. */
 export interface ChatMessage {
   role: string;
@@ -15,9 +17,6 @@ export interface ChatMessage {
 
 /** What a composer writes to its bound input when the user sends. */
 export type ComposerValueFormat = "text" | "message" | "history";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
  * Read a bound value as a conversation. A list of `{role, content}` objects is
@@ -35,12 +34,12 @@ export const messagesFrom = (value: unknown): ChatMessage[] => {
   let streaming = false;
   for (const item of items) {
     if (item == null || item === "") continue;
-    if (isRecord(item) && typeof item.role === "string") {
+    if (isRecord(item) && isString(item.role)) {
       messages.push({ role: item.role, content: item.content ?? "" });
       streaming = false;
       continue;
     }
-    const chunk = typeof item === "string" ? item : null;
+    const chunk = isString(item) ? item : null;
     const last = messages[messages.length - 1];
     if (chunk !== null && streaming && last) {
       last.content = `${last.content as string}${chunk}`;
@@ -79,11 +78,11 @@ export const composeUserMessage = (
 
 /** The plain text of a message's content, ignoring media parts. */
 export const messageText = (content: unknown): string => {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!Array.isArray(content)) return content == null ? "" : String(content);
   return content
     .filter((part): part is Record<string, unknown> => isRecord(part))
-    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .filter((part) => part.type === "text" && isString(part.text))
     .map((part) => part.text as string)
     .join("\n");
 };

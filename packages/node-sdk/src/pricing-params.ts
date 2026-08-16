@@ -44,6 +44,7 @@
  */
 
 import type { ModelPriceParams } from "./cost-estimate.js";
+import { isBoolean, isNumber, isString } from "./type-predicates.js";
 
 /** Duration properties, most specific first. The first present value wins. */
 const DURATION_PROPERTIES = [
@@ -71,10 +72,10 @@ const FPS_PROPERTIES = ["fps", "frames_per_second", "frame_rate"] as const;
 
 /** A finite positive number from a number or a string like `"5"` / `"5s"`. */
 function readSeconds(value: unknown): number | undefined {
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     return Number.isFinite(value) && value > 0 ? value : undefined;
   }
-  if (typeof value !== "string") return undefined;
+  if (!isString(value)) return undefined;
   // Trim and collapse runs before matching: adjacent unbounded whitespace
   // quantifiers around an optional group backtrack polynomially (CodeQL).
   const compact = value.trim().replace(/\s+/g, " ");
@@ -85,8 +86,8 @@ function readSeconds(value: unknown): number | undefined {
 }
 
 function readPositiveNumber(value: unknown): number | undefined {
-  const parsed = typeof value === "string" ? Number(value.trim()) : value;
-  return typeof parsed === "number" && Number.isFinite(parsed) && parsed > 0
+  const parsed = isString(value) ? Number(value.trim()) : value;
+  return isNumber(parsed) && Number.isFinite(parsed) && parsed > 0
     ? parsed
     : undefined;
 }
@@ -124,10 +125,10 @@ function tierForPixels(pixels: number): string | undefined {
  * `high`) return undefined, which prices at the base spec instead of guessing.
  */
 function readResolution(value: unknown): string | undefined {
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     return Number.isFinite(value) && value > 0 ? String(value) : undefined;
   }
-  if (typeof value !== "string") return undefined;
+  if (!isString(value)) return undefined;
   const text = value.trim();
   if (!text) return undefined;
   // `1280*720` / `768x512`: a pixel pair, not a tier name.
@@ -187,7 +188,7 @@ export function extractPricingParams(
 
   for (const name of AUDIO_PROPERTIES) {
     const value = values[name];
-    if (typeof value === "boolean") {
+    if (isBoolean(value)) {
       params.withAudio = value;
       break;
     }

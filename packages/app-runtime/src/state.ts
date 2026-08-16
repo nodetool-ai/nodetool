@@ -21,6 +21,8 @@
  * agent workflow shows a spinner and nothing else.
  */
 
+import { isString } from "./predicates.js";
+
 export type InvocationStatus =
   | "pending"
   | "running"
@@ -146,7 +148,7 @@ export type AppStateEvent =
   | { type: "reset" };
 
 const asString = (value: unknown): string =>
-  typeof value === "string" ? value : value == null ? "" : String(value);
+  isString(value) ? value : value == null ? "" : String(value);
 
 /**
  * Append semantics, matching the protocol: streamed text concatenates (one
@@ -156,7 +158,7 @@ const asString = (value: unknown): string =>
 // HOLDOUT (anti-slop/no-unknown-returns): app state holds workflow values —
 // whatever a node emitted — and this fold answers in the same open domain.
 export const appendValue = (previous: unknown, next: unknown) => {
-  if (typeof next === "string") return asString(previous) + next;
+  if (isString(next)) return asString(previous) + next;
   if (previous === undefined) return next;
   if (Array.isArray(previous)) return [...previous, next];
   return [previous, next];

@@ -43,6 +43,11 @@ import {
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
@@ -159,7 +164,7 @@ class FalArgsBuilder {
    */
   set(apiName: string, value: unknown): this {
     if (value == null) return this;
-    if (typeof value === "string" && value === "") return this;
+    if (isString(value) && value === "") return this;
     if (!this.has(apiName)) return this;
     const t = this.propType(apiName);
     if (t === "enum") {
@@ -167,7 +172,7 @@ class FalArgsBuilder {
       if (v !== undefined) this.args[apiName] = v;
       return this;
     }
-    if (t === "str" && typeof value !== "string") {
+    if (t === "str" && !isString(value)) {
       this.args[apiName] = String(value);
       return this;
     }
@@ -644,7 +649,7 @@ export class FalProvider extends BaseProvider {
     const toolCapable = new Set<string>();
     const models: LanguageModel[] = [];
     for (const row of rows) {
-      if (typeof row.id !== "string" || row.id.length === 0) continue;
+      if (!isNonEmptyString(row.id)) continue;
       if (row.supported_parameters?.includes("tools")) toolCapable.add(row.id);
       models.push({ id: row.id, name: row.name ?? row.id, provider: "fal_ai" });
     }
@@ -1109,8 +1114,8 @@ function extractVideoUrl(result: Record<string, unknown>): string {
   // FAL video endpoints return { video: { url } } or { video_url } or { url }
   const video = result.video as Record<string, unknown> | undefined;
   if (video?.url) return video.url as string;
-  if (typeof result.video_url === "string") return result.video_url;
-  if (typeof result.url === "string") return result.url;
+  if (isString(result.video_url)) return result.video_url;
+  if (isString(result.url)) return result.url;
   // Some endpoints return an array of videos
   const videos = result.videos as Array<Record<string, unknown>> | undefined;
   if (videos && videos.length > 0) {
@@ -1124,12 +1129,12 @@ function extractAudioUrl(result: Record<string, unknown>): string {
   // FAL TTS endpoints return { audio: { url } } or { audio: "url" } or
   // { audio_url } or a bare { url }.
   const audio = result.audio as Record<string, unknown> | string | undefined;
-  if (audio && typeof audio === "object" && typeof audio.url === "string") {
+  if (isObjectLike(audio) && isString(audio.url)) {
     return audio.url;
   }
-  if (typeof audio === "string") return audio;
-  if (typeof result.audio_url === "string") return result.audio_url;
-  if (typeof result.url === "string") return result.url;
+  if (isString(audio)) return audio;
+  if (isString(result.audio_url)) return result.audio_url;
+  if (isString(result.url)) return result.url;
   throw new Error(`Unexpected FAL audio response: ${JSON.stringify(result)}`);
 }
 

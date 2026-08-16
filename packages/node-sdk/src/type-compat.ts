@@ -8,6 +8,7 @@
  * `args` instead of `type_args`, so both spellings are accepted.
  */
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
+import { isBoolean, isNumber, isString } from "./type-predicates.js";
 
 /** Structural view of a type-metadata object, whatever produced it. */
 export interface TypeMetaLike {
@@ -20,7 +21,7 @@ export interface TypeMetaLike {
 export function typeMetaToString(
   tm: TypeMetaLike | null | undefined
 ): string {
-  if (!tm || typeof tm.type !== "string" || !tm.type) return "";
+  if (!tm || !isString(tm.type) || !tm.type) return "";
   const rawArgs = Array.isArray(tm.type_args)
     ? tm.type_args
     : Array.isArray(tm.args)
@@ -109,16 +110,16 @@ export function valueIncompatibleWithType(
   if (PERMISSIVE_TYPES.has(base)) return false;
   switch (base) {
     case "str":
-      return typeof value !== "string";
+      return !isString(value);
     // NaN and ±Infinity are numbers to `typeof` but nothing downstream can use
     // them: they do not survive JSON, and an `int` slot holding 3.5 is the same
     // defect as one holding "3.5".
     case "int":
       return !Number.isInteger(value);
     case "float":
-      return typeof value !== "number" || !Number.isFinite(value);
+      return !isNumber(value) || !Number.isFinite(value);
     case "bool":
-      return typeof value !== "boolean";
+      return !isBoolean(value);
     default:
       return false;
   }

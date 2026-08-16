@@ -29,6 +29,7 @@ import {
 } from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
 import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
+import { isCallable, isObjectValue, isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Graph errors
@@ -122,7 +123,7 @@ function resolveNodeTypeWith(
   resolver: NodeTypeResolver,
   nodeType: string
 ): Promise<ResolvedNodeType | null> | ResolvedNodeType | null {
-  if (typeof resolver === "function") {
+  if (isCallable(resolver)) {
     return resolver(nodeType);
   }
   return resolver.resolveNodeType(nodeType);
@@ -203,7 +204,7 @@ export class Graph {
       allowUndefinedProperties = true,
       validateNodeType
     } = options;
-    if (!data || typeof data !== "object") {
+    if (!isObjectValue(data)) {
       throw new GraphValidationError("Graph data must be an object");
     }
     const obj = data as Record<string, unknown>;
@@ -229,14 +230,14 @@ export class Graph {
     const validNodeIds = new Set<string>();
     for (const node of migratedNodes) {
       // Stryker disable next-line ConditionalExpression,LogicalOperator: the typeof/operator variants are equivalent — a non-object node yields {} after the spread below and is then dropped by the id/type guard
-      if (!node || typeof node !== "object") {
+      if (!isObjectValue(node)) {
         if (skipErrors) continue;
         throw new GraphValidationError("Node entries must be objects");
       }
 
       const nodeObj = { ...(node as Record<string, unknown>) };
-      const id = typeof nodeObj.id === "string" ? nodeObj.id : undefined;
-      const type = typeof nodeObj.type === "string" ? nodeObj.type : undefined;
+      const id = isString(nodeObj.id) ? nodeObj.id : undefined;
+      const type = isString(nodeObj.type) ? nodeObj.type : undefined;
       if (!id || !type) {
         if (skipErrors) continue;
         throw new GraphValidationError(
@@ -250,20 +251,17 @@ export class Graph {
 
       const rawProperties =
         // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — a non-object properties value spreads to {}, the same as falling through to data/{}
-        nodeObj.properties && typeof nodeObj.properties === "object"
+        isObjectValue(nodeObj.properties)
           ? { ...(nodeObj.properties as Record<string, unknown>) }
           : // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — a non-object data value spreads to {}
-            nodeObj.data && typeof nodeObj.data === "object"
+            isObjectValue(nodeObj.data)
             ? { ...(nodeObj.data as Record<string, unknown>) }
             : {};
 
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
-      if (
-        nodeObj.dynamic_properties &&
-        typeof nodeObj.dynamic_properties === "object"
-      ) {
+      if (isObjectValue(nodeObj.dynamic_properties)) {
         Object.assign(
           rawProperties,
           nodeObj.dynamic_properties as Record<string, unknown>
@@ -280,8 +278,7 @@ export class Graph {
       );
       if (
         Object.keys(slotTypes).length > 0 &&
-        nodeObj.propertyTypes != null &&
-        typeof nodeObj.propertyTypes === "object" &&
+        isObjectValue(nodeObj.propertyTypes) &&
         Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0
       ) {
         nodeObj.propertyTypes = {
@@ -295,8 +292,7 @@ export class Graph {
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
         const hasPropertyTypes =
-          nodeObj.propertyTypes != null &&
-          typeof nodeObj.propertyTypes === "object" &&
+          isObjectValue(nodeObj.propertyTypes) &&
           Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
             0;
 
@@ -330,17 +326,17 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of migratedEdges) {
-      if (!edge || typeof edge !== "object") {
+      if (!isObjectValue(edge)) {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");
       }
 
       const edgeObj = edge as Record<string, unknown>;
       const hasRequiredFields =
-        typeof edgeObj.source === "string" &&
-        typeof edgeObj.sourceHandle === "string" &&
-        typeof edgeObj.target === "string" &&
-        typeof edgeObj.targetHandle === "string";
+        isString(edgeObj.source) &&
+        isString(edgeObj.sourceHandle) &&
+        isString(edgeObj.target) &&
+        isString(edgeObj.targetHandle);
 
       if (!hasRequiredFields) {
         if (skipErrors) continue;
@@ -1021,10 +1017,9 @@ export class Graph {
       if (!targetType) {
         const targetProp = targetNode.properties?.[edge.targetHandle];
         if (
-          typeof targetProp === "object" &&
-          targetProp !== null &&
+          isObjectValue(targetProp) &&
           "type" in targetProp &&
-          typeof (targetProp as { type: unknown }).type === "string"
+          isString(targetProp.type)
         ) {
           targetType = (targetProp as { type: string }).type;
         }

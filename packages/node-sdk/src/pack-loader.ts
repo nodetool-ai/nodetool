@@ -38,6 +38,12 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import {
+  isBoolean,
+  isCallable,
+  isObjectLike,
+  isString
+} from "./type-predicates.js";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -326,7 +332,7 @@ function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile 
     return {
       allow: stringArray(parsed.allow),
       allowUnlisted:
-        typeof parsed.allowUnlisted === "boolean"
+        isBoolean(parsed.allowUnlisted)
           ? parsed.allowUnlisted
           : undefined,
       enabledBuiltins: stringArray(parsed.enabledBuiltins),
@@ -577,7 +583,7 @@ function resolveRegisterFn(
   const candidate =
     mod[exportName] ??
     (mod["default"] as Record<string, unknown> | undefined)?.[exportName];
-  return typeof candidate === "function"
+  return isCallable(candidate)
     ? (candidate as (registry: PackRegistry) => void | Promise<void>)
     : undefined;
 }
@@ -678,7 +684,7 @@ function isSandboxOnlyManifest(manifest: PackManifest): boolean {
 /** Resolve the entry module from `exports["."]` (import condition) or `main`. */
 function resolveEntry(pkg: PackageJsonShape): string | undefined {
   const dot = (pkg.exports as Record<string, unknown> | undefined)?.["."];
-  if (typeof dot === "string") return dot;
+  if (isString(dot)) return dot;
   const picked = pickExportCondition(dot);
   if (picked != null) return picked;
   return pkg.main ?? "index.js";
@@ -691,9 +697,9 @@ function resolveEntry(pkg: PackageJsonShape): string | undefined {
  */
 function pickExportCondition(dot: unknown, depth = 0): string | undefined {
   // Stryker disable next-line ConditionalExpression: a nullish or non-object dot has no conditions to pick — every guard variant resolves to undefined and falls through to `main` (covered by the exports/main entry tests).
-  if (!dot || typeof dot !== "object" || depth > 4) return undefined;
+  if (!isObjectLike(dot) || depth > 4) return undefined;
   const conds = dot as Record<string, unknown>;
   const picked = conds["import"] ?? conds["default"];
-  if (typeof picked === "string") return picked;
+  if (isString(picked)) return picked;
   return pickExportCondition(picked, depth + 1);
 }

@@ -8,6 +8,7 @@
  */
 
 import { createLogger, type Logger } from "@nodetool-ai/config";
+import { isNonEmptyString, isNumber, isString } from "../../type-predicates.js";
 import {
   CredentialsRevokedError,
   InvalidRefreshTokenError,
@@ -186,9 +187,9 @@ export class OAuthClient {
   }
 
   private mapErrorResponse(status: number, payload: TokenResponseBody, kind: string): OAuthError {
-    const code = typeof payload.error === "string" ? payload.error : undefined;
+    const code = isString(payload.error) ? payload.error : undefined;
     const description =
-      typeof payload.error_description === "string" ? payload.error_description : undefined;
+      isString(payload.error_description) ? payload.error_description : undefined;
     // Never include the raw body in the message; log a redacted copy instead.
     this.logger.warn("Token endpoint returned an error", {
       status,
@@ -215,16 +216,16 @@ export class OAuthClient {
 
   private normalizeTokens(payload: TokenResponseBody, kind: string): OAuthTokens {
     const accessToken = payload.access_token;
-    if (typeof accessToken !== "string" || accessToken.length === 0) {
+    if (!isNonEmptyString(accessToken)) {
       throw new TokenExchangeError(`Token ${kind} response missing access_token`);
     }
     const receivedAt = this.clock.now();
-    const expiresIn = typeof payload.expires_in === "number" ? payload.expires_in : null;
+    const expiresIn = isNumber(payload.expires_in) ? payload.expires_in : null;
     return {
       accessToken,
-      refreshToken: typeof payload.refresh_token === "string" ? payload.refresh_token : null,
-      tokenType: typeof payload.token_type === "string" ? payload.token_type : "Bearer",
-      scope: typeof payload.scope === "string" ? payload.scope : null,
+      refreshToken: isString(payload.refresh_token) ? payload.refresh_token : null,
+      tokenType: isString(payload.token_type) ? payload.token_type : "Bearer",
+      scope: isString(payload.scope) ? payload.scope : null,
       expiresAt: expiresIn != null ? receivedAt + expiresIn * 1000 : null,
       receivedAt
     };

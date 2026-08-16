@@ -17,6 +17,7 @@ import type {
   LanguageModel,
   TextToImageParams
 } from "./types.js";
+import { isString } from "../type-predicates.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.aki");
@@ -35,7 +36,7 @@ export function isStringRecord(value: unknown): value is Record<string, string> 
   return (
     !!value &&
     typeof value === "object" &&
-    Object.values(value).every((v) => typeof v === "string")
+    Object.values(value).every((v) => isString(v))
   );
 }
 
@@ -191,7 +192,7 @@ export function responseImageToBytes(images: ApiResponse["images"]): Uint8Array 
   if (Buffer.isBuffer(firstValue)) {
     return new Uint8Array(firstValue);
   }
-  if (typeof firstValue === "string") {
+  if (isString(firstValue)) {
     const [, decoded] = decodeBinary(firstValue);
     return decoded ? new Uint8Array(decoded) : null;
   }

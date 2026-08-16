@@ -15,6 +15,7 @@ import type {
   ExecutionField
 } from "./bindings.js";
 import { resolveBinding, stateKey } from "./bindings.js";
+import { isBoolean, isNumber, isString } from "./predicates.js";
 import type { AppInstanceState } from "./state.js";
 import {
   isOperationRunning,
@@ -162,7 +163,7 @@ export const readRef = (
 
 const isEmpty = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
-  if (typeof value === "string") return value.length === 0;
+  if (isString(value)) return value.length === 0;
   if (Array.isArray(value)) return value.length === 0;
   if (value === false) return true;
   return false;
@@ -174,11 +175,11 @@ const isEmpty = (value: unknown): boolean => {
  * `dark eq "true"` must compare booleans.
  */
 const coerceLike = <T>(value: T, sample: unknown): T | number | boolean => {
-  if (typeof sample === "number" && typeof value === "string") {
+  if (isNumber(sample) && isString(value)) {
     const parsed = Number(value);
     return Number.isNaN(parsed) ? value : parsed;
   }
-  if (typeof sample === "boolean" && typeof value === "string") {
+  if (isBoolean(sample) && isString(value)) {
     if (value === "true") return true;
     if (value === "false") return false;
   }
@@ -195,7 +196,7 @@ const compareNumeric = (
   compare: (a: number, b: number) => boolean
 ): boolean => {
   const expected = Number(coerceLike(value, 0));
-  if (typeof actual !== "number" || Number.isNaN(expected)) return false;
+  if (!isNumber(actual) || Number.isNaN(expected)) return false;
   return compare(actual, expected);
 };
 
@@ -222,7 +223,7 @@ export const evaluateCondition = (
     case "lte":
       return compareNumeric(actual, condition.value, (a, b) => a <= b);
     case "contains": {
-      if (typeof actual === "string") {
+      if (isString(actual)) {
         return actual.includes(
           condition.value == null ? "" : String(condition.value)
         );
@@ -237,7 +238,7 @@ export const evaluateCondition = (
 
 const FILTERS: Record<string, (value: unknown, arg?: string) => string> = {
   number: (value, arg) => {
-    const n = typeof value === "number" ? value : Number(value);
+    const n = isNumber(value) ? value : Number(value);
     if (Number.isNaN(n)) return "";
     const digits = arg === undefined ? undefined : Number(arg);
     return digits === undefined || Number.isNaN(digits)
@@ -248,7 +249,7 @@ const FILTERS: Record<string, (value: unknown, arg?: string) => string> = {
     const date =
       value instanceof Date
         ? value
-        : new Date(typeof value === "number" ? value : String(value));
+        : new Date(isNumber(value) ? value : String(value));
     if (Number.isNaN(date.getTime())) return "";
     return arg === "short" ? date.toLocaleDateString() : date.toLocaleString();
   },

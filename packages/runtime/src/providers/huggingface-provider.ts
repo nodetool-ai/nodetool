@@ -1,5 +1,6 @@
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { isCallable, isNumber, isString } from "../type-predicates.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,
@@ -84,11 +85,11 @@ function normalizeEmbedding(
   result: number[] | number[][] | number[][][]
 ): number[][] {
   if (!Array.isArray(result) || result.length === 0) return [];
-  if (typeof result[0] === "number") {
+  if (isNumber(result[0])) {
     return [result as number[]];
   }
   const rows = result as number[][] | number[][][];
-  if (Array.isArray(rows[0]) && typeof (rows[0] as number[])[0] === "number") {
+  if (Array.isArray(rows[0]) && isNumber((rows[0] as number[])[0])) {
     return rows as number[][];
   }
   // number[][][] — mean-pool the token dimension of each input.
@@ -110,7 +111,7 @@ function meanPool(tokens: number[][]): number[] {
 async function toBytes(result: HfBinary): Promise<Uint8Array> {
   if (result instanceof Uint8Array) return result;
   if (result instanceof ArrayBuffer) return new Uint8Array(result);
-  if (typeof result?.arrayBuffer === "function") {
+  if (isCallable(result?.arrayBuffer)) {
     return new Uint8Array(await result.arrayBuffer());
   }
   throw new Error("HuggingFace returned an unexpected binary result type");
@@ -264,7 +265,7 @@ interface HuggingFaceProviderOptions {
 function extractTextContent(
   content: string | MessageContent[] | null | undefined
 ): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!content) return "";
   return content
     .filter((c): c is MessageTextContent => c.type === "text")
@@ -685,7 +686,7 @@ export class HuggingFaceProvider extends BaseProvider {
       bytes = result;
     } else if (result instanceof ArrayBuffer) {
       bytes = new Uint8Array(result);
-    } else if (typeof result?.arrayBuffer === "function") {
+    } else if (isCallable(result?.arrayBuffer)) {
       bytes = new Uint8Array(await result.arrayBuffer());
     } else {
       throw new Error(

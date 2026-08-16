@@ -18,6 +18,13 @@ import type {
   DecidedBy
 } from "@nodetool-ai/protocol";
 import type { RunStateReader } from "./run-state.js";
+import {
+  isBoolean,
+  isNonEmptyString,
+  isNumber,
+  isObjectValue,
+  isString
+} from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // The interface
@@ -118,10 +125,9 @@ export function redactValue(
   depth = 0
 ): RedactedValue {
   if (value === null || value === undefined) return value;
-  if (typeof value === "string") return truncate(maskSecrets(value, secrets));
-  // SAFETY: the `typeof` above proved which of the two it is.
-  if (typeof value === "number" || typeof value === "boolean") {
-    return value as number | boolean;
+  if (isString(value)) return truncate(maskSecrets(value, secrets));
+  if (isNumber(value) || isBoolean(value)) {
+    return value;
   }
   if (depth >= 6) return MASK;
   if (Array.isArray(value)) {
@@ -129,7 +135,7 @@ export function redactValue(
       .slice(0, 100)
       .map((item) => redactValue(item, secrets, depth + 1));
   }
-  if (typeof value === "object") {
+  if (isObjectValue(value)) {
     const proto = Object.getPrototypeOf(value);
     if (proto === Object.prototype || proto === null) {
       const out: { [key: string]: RedactedValue } = {};
@@ -175,23 +181,21 @@ export function redactRecord(
  * own.
  */
 export function failureSignature(err: unknown): string | undefined {
-  if (typeof err !== "object" || err === null) return undefined;
+  if (!isObjectValue(err)) return undefined;
   const e = err as Record<string, unknown>;
 
-  if (typeof e.code === "string" && e.code.length > 0) return `code:${e.code}`;
+  if (isNonEmptyString(e.code)) return `code:${e.code}`;
 
-  const status =
-    typeof e.status === "number"
-      ? e.status
-      : typeof e.statusCode === "number"
-        ? e.statusCode
-        : typeof (e.response as { status?: unknown } | undefined)?.status ===
-            "number"
-          ? ((e.response as { status: number }).status as number)
-          : undefined;
+  const status = isNumber(e.status)
+    ? e.status
+    : isNumber(e.statusCode)
+      ? e.statusCode
+      : isNumber((e.response as { status?: unknown } | undefined)?.status)
+        ? ((e.response as { status: number }).status as number)
+        : undefined;
   if (status !== undefined) return `http:${status}`;
 
-  if (typeof e.errno === "string" || typeof e.errno === "number") {
+  if (isString(e.errno) || isNumber(e.errno)) {
     return `errno:${e.errno}`;
   }
   return undefined;

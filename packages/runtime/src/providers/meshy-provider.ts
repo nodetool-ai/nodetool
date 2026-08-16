@@ -23,6 +23,7 @@ import type {
   ProviderStreamItem,
   TextTo3DParams
 } from "./types.js";
+import { isNonEmptyString } from "../type-predicates.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.meshy");
@@ -313,7 +314,7 @@ export class MeshyProvider extends BaseProvider {
     }
     const data = (await res.json()) as Record<string, unknown>;
     const taskId = data.result;
-    if (typeof taskId !== "string" || !taskId) {
+    if (!isNonEmptyString(taskId)) {
       throw new Error(
         `Meshy submit returned no task id: ${JSON.stringify(data)}`
       );

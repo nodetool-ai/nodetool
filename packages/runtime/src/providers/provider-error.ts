@@ -10,6 +10,7 @@
  */
 
 import { getProviderSecretKey } from "./provider-registry.js";
+import { isNumber, isObjectLike, isString } from "../type-predicates.js";
 
 /** Marks an error already annotated, so nested wrappers don't stack hints. */
 const ANNOTATED = Symbol.for("nodetool.provider.errorAnnotated");
@@ -49,13 +50,13 @@ interface ErrorLike {
 export function providerFailureDetail(
   error: unknown
 ): ProviderFailureDetail | null {
-  if (!error || typeof error !== "object") return null;
+  if (!isObjectLike(error)) return null;
   return (error as ErrorLike)[FAILURE_DETAIL] ?? null;
 }
 
 function numericStatus(value: unknown): number | null {
-  const status = typeof value === "string" ? Number(value) : value;
-  if (typeof status !== "number" || !Number.isInteger(status)) return null;
+  const status = isString(value) ? Number(value) : value;
+  if (!isNumber(status) || !Number.isInteger(status)) return null;
   return status >= 100 && status <= 599 ? status : null;
 }
 
@@ -68,7 +69,7 @@ function numericStatus(value: unknown): number | null {
  * are far more often model ids or token counts than statuses.
  */
 export function httpStatusFromError(error: unknown): number | null {
-  if (!error || typeof error !== "object") return null;
+  if (!isObjectLike(error)) return null;
   const candidate = error as ErrorLike;
   const direct =
     numericStatus(candidate.status) ??
@@ -76,8 +77,7 @@ export function httpStatusFromError(error: unknown): number | null {
     numericStatus(candidate.response?.status);
   if (direct !== null) return direct;
 
-  const message =
-    typeof candidate.message === "string" ? candidate.message : "";
+  const message = isString(candidate.message) ? candidate.message : "";
   const leading = message.match(/^\s*(\d{3})\b/);
   if (leading) return numericStatus(leading[1]);
   const labelled = message.match(
@@ -87,9 +87,9 @@ export function httpStatusFromError(error: unknown): number | null {
 }
 
 function isAbort(error: ErrorLike): boolean {
-  const name = typeof error.name === "string" ? error.name : "";
+  const name = isString(error.name) ? error.name : "";
   if (name === "AbortError" || name === "TimeoutError") return true;
-  const code = typeof error.code === "string" ? error.code : "";
+  const code = isString(error.code) ? error.code : "";
   return code === "ABORT_ERR";
 }
 
@@ -106,9 +106,9 @@ const NETWORK_CODES = new Set([
 ]);
 
 function isNetworkFailure(error: ErrorLike): boolean {
-  const code = typeof error.code === "string" ? error.code : "";
+  const code = isString(error.code) ? error.code : "";
   if (NETWORK_CODES.has(code)) return true;
-  const message = typeof error.message === "string" ? error.message : "";
+  const message = isString(error.message) ? error.message : "";
   return /fetch failed|network error|socket hang up/i.test(message);
 }
 
