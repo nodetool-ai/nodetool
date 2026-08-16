@@ -32,8 +32,11 @@ import {
   linkedShotDurationMs,
   scriptLinesById
 } from "./script-link.js";
-import { isAssemblableShot, shotDurationMs } from "./storyboard.js";
-import type { AssembledTimeline } from "./storyboard.js";
+import {
+  isAssemblableShot,
+  shotDurationMs,
+  type AssembledTimeline
+} from "./storyboard.js";
 import type { TimelineClip, TimelineTrack } from "./types.js";
 
 export interface LinkedAssemblyInput {
