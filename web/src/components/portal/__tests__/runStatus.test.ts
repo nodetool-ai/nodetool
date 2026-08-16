@@ -100,6 +100,13 @@ describe("lastRunByWorkflow", () => {
     expect(runs.get("wf-1")).toEqual({ tone: "failed", label: "failed 1h ago" });
   });
 
+  it("says 'just now' rather than 'now ago' for a fresh run", () => {
+    const runs = lastRunByWorkflow([
+      job({ status: "completed", started_at: ago(0), finished_at: ago(0) })
+    ]);
+    expect(runs.get("wf-1")).toEqual({ tone: "done", label: "ran just now" });
+  });
+
   it("still labels a run whose timestamps are missing", () => {
     const runs = lastRunByWorkflow([
       job({ status: "completed", started_at: null, finished_at: null })

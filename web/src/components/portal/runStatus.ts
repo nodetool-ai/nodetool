@@ -76,15 +76,19 @@ export function lastRunByWorkflow(
   const result = new Map<string, WorkflowLastRun>();
   for (const [workflowId, job] of latest) {
     const tone = toneFor(job.status);
+    if (tone === "running") {
+      result.set(workflowId, { tone, label: "running" });
+      continue;
+    }
+    const verb = tone === "failed" ? "failed" : "ran";
     const when = shortAgo(job.finished_at ?? job.started_at);
-    const label =
-      tone === "running"
-        ? "running"
-        : when
-          ? `${tone === "failed" ? "failed" : "ran"} ${when} ago`
-          : tone === "failed"
-            ? "failed"
-            : "ran";
+    // shortAgo says "now" for anything under a minute, which does not take
+    // an "ago".
+    const label = !when
+      ? verb
+      : when === "now"
+        ? `${verb} just now`
+        : `${verb} ${when} ago`;
     result.set(workflowId, { tone, label });
   }
   return result;

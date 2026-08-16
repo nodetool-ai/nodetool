@@ -33,8 +33,8 @@ const heroStyles = (theme: Theme, compact: boolean) =>
     },
     ".hero-wrap": {
       position: "relative",
-      paddingTop: getSpacingPx(SPACING.md),
-      paddingBottom: getSpacingPx(SPACING.md),
+      paddingTop: getSpacingPx(compact ? SPACING.xxl : SPACING.md),
+      paddingBottom: getSpacingPx(compact ? SPACING.xxl : SPACING.md),
       [theme.breakpoints.down("sm")]: {
         paddingTop: getSpacingPx(SPACING.md),
         paddingBottom: getSpacingPx(SPACING.md)

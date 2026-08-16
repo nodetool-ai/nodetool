@@ -209,9 +209,9 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
       </div>
       <h1 className="welcome-heading">What do you want to make today?</h1>
       <p className="welcome-sub">
-        Pick one. We&apos;ll open a chat in that mode with an example prompt ready
-        to go — press send, or write your own. You can always change your mind,
-        or skip and explore.
+        {commandBar
+          ? "Describe it, or pick a starting point below. Either opens a chat with the prompt already written — press send, or edit it first."
+          : "Pick one. We'll open a chat in that mode with an example prompt ready to go — press send, or write your own. You can always change your mind, or skip and explore."}
       </p>
 
       {commandBar && <div className="welcome-command">{commandBar}</div>}

@@ -25,7 +25,12 @@ import DashboardFooter from "./DashboardFooter";
 import { useStartTrackChat } from "../../hooks/useStartTrackChat";
 import { openSettingsTab } from "../workspace/openPageTab";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
-import { Box, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Box,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -73,6 +78,15 @@ const columnStyles = (theme: Theme) =>
       [theme.breakpoints.down("lg")]: {
         position: "static"
       }
+    },
+    ".dash-rail-panel": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.lg,
+      background: theme.vars.palette.c_node_bg,
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
+      // The checklist retires itself once complete; without this the panel
+      // would stay behind as an empty box.
+      "&:empty": { display: "none" }
     }
   });
 
@@ -191,13 +205,15 @@ const Portal: React.FC = () => {
                 </DashboardColumn>
               </div>
               <aside className="dash-rail">
-                <GettingStartedChecklist
-                  variant="inline"
-                  hasConfiguredProvider={hasConfiguredProvider}
-                  onConnectProvider={handleConnectProvider}
-                  onOpenTemplates={handleOpenTemplates}
-                  onCreateWorkflow={handleCreateNewWorkflow}
-                />
+                <div className="dash-rail-panel">
+                  <GettingStartedChecklist
+                    variant="inline"
+                    hasConfiguredProvider={hasConfiguredProvider}
+                    onConnectProvider={handleConnectProvider}
+                    onOpenTemplates={handleOpenTemplates}
+                    onCreateWorkflow={handleCreateNewWorkflow}
+                  />
+                </div>
                 <DashboardActivity
                   workflows={sortedWorkflows}
                   onOpenWorkflow={handleOpenWorkflow}
