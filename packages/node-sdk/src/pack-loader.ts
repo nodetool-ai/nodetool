@@ -680,7 +680,7 @@ function resolveEntry(pkg: PackageJsonShape): string | undefined {
   const dot = (pkg.exports as Record<string, unknown> | undefined)?.["."];
   if (typeof dot === "string") return dot;
   const picked = pickExportCondition(dot);
-  if (typeof picked === "string") return picked;
+  if (picked != null) return picked;
   return pkg.main ?? "index.js";
 }
 

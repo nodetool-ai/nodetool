@@ -882,7 +882,7 @@ async function autoSaveAssets(
       parent_id: null
     });
     const mediaMeta: Record<string, unknown> = { ...promptMeta };
-    if (typeof opts.generationIndex === "number") {
+    if (opts.generationIndex != null) {
       mediaMeta.generation_index = opts.generationIndex;
     }
     if (Object.keys(mediaMeta).length > 0) {
@@ -943,7 +943,7 @@ async function autoSaveAssets(
         parent_id: null
       });
       asset.metadata =
-        typeof opts.generationIndex === "number"
+        opts.generationIndex != null
           ? { text: previewText, generation_index: opts.generationIndex }
           : { text: previewText };
       const fileName = `${asset.id}.txt`;
@@ -1009,7 +1009,7 @@ async function autoSaveAssets(
         if (inline !== undefined) {
           metadata.json = inline;
         }
-        if (typeof opts.generationIndex === "number") {
+        if (opts.generationIndex != null) {
           metadata.generation_index = opts.generationIndex;
         }
         asset.metadata = metadata;
