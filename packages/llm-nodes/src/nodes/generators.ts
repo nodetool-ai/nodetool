@@ -181,8 +181,8 @@ function buildMessageContent(
 function getModelConfig(props: Record<string, unknown>) {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
+    providerId: model.provider ?? "",
+    modelId: model.id ?? ""
   };
 }
 
