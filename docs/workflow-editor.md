@@ -248,9 +248,11 @@ Right-click for options anywhere:
 | Location | Options |
 |----------|---------|
 | **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, duplicate, delete, group, bypass |
+| **Node header** | Copy, copy as JSON, duplicate, delete, group, bypass |
 | **Input/Output** | Disconnect, add compatible node |
 | **Connection** | Delete, add node in middle |
+
+**Copy as JSON** puts the node's data — its property values, title, and dynamic slots — on the clipboard as formatted JSON. Paste it into a bug report, or hand it to an agent.
 
 ---
 
