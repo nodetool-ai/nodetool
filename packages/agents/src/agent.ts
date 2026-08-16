@@ -1313,7 +1313,9 @@ export class Agent {
           yield {
             type: "task_update",
             event: TaskUpdateEvent.TaskCompleted,
-            task: task as unknown as TaskUpdate["task"]
+            // `TaskRef`/`StepRef` are the open wire shapes of `Task`/`Step`;
+            // a shallow copy of each is one, without asserting it is.
+            task: { ...task, steps: task.steps.map((step) => ({ ...step })) }
           } satisfies TaskUpdate;
         }
       }

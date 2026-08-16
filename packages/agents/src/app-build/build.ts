@@ -568,8 +568,8 @@ async function planGraph(
   const graph = next.value;
   return graph
     ? {
-        nodes: graph.nodes as unknown as Array<Record<string, unknown>>,
-        edges: graph.edges as unknown as Array<Record<string, unknown>>
+        nodes: graph.nodes.map((n) => ({ ...n })),
+        edges: graph.edges.map((e) => ({ ...e }))
       }
     : null;
 }

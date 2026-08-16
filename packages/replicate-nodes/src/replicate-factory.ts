@@ -201,19 +201,23 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
 }
 
 /**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ *
+ * SAFETY: every declared property is registered from a manifest field, whose
+ * declared types are exactly the scalars, media refs, and lists or dicts of
+ * those that `NodeValue` names.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  return Reflect.get(instance, name);
+}
+
+/**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
  * empty image/audio/video inputs (and strip the mentions from the text).
  * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
  */
-/**
- * Read one declared property off a node instance. Declared properties are
- * plain instance fields, and a manifest-built node looks them up by the name
- * the manifest gave — reflection, not dictionary access.
- */
-function propertyOf(instance: BaseNode, name: string): unknown {
-  return Reflect.get(instance, name);
-}
-
 async function promptAssetOverrides(
   instance: BaseNode,
   spec: ReplicateManifestEntry,

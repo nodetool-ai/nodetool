@@ -1130,7 +1130,10 @@ export function buildSandbox(
           // Binary request body. A guest Uint8Array reaches the host as a
           // native one via the typed-array serializers, but normalize anyway
           // so a numeric-keyed object is sent as raw bytes, not as JSON.
-          fetchOptions.body = toNativeUint8Array(body) as unknown as BodyInit;
+          // SAFETY: `BodyInit`'s view member is pinned to a plain
+          // ArrayBuffer; these bytes are copied out of the guest heap by
+          // `toNativeUint8Array`, never off a SharedArrayBuffer.
+          fetchOptions.body = toNativeUint8Array(body) as BodyInit;
         } else {
           fetchOptions.body = JSON.stringify(body);
         }

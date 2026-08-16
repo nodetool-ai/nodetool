@@ -37,9 +37,9 @@ describe('linking', () => {
     mockedLinking.addEventListener.mockReturnValue({
       remove: jest.fn(),
     } as unknown as ReturnType<typeof Linking.addEventListener>);
-    mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue({
-      remove: jest.fn(),
-    } as unknown as Notifications.EventSubscription);
+    mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue(
+      { remove: jest.fn() }
+    );
   });
 
   it('includes the app scheme and the Expo-generated prefix', () => {
@@ -182,9 +182,9 @@ describe('linking', () => {
       mockedLinking.addEventListener.mockReturnValue({
         remove: removeUrl,
       } as unknown as ReturnType<typeof Linking.addEventListener>);
-      mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue({
-        remove: removeNotification,
-      } as unknown as Notifications.EventSubscription);
+      mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue(
+        { remove: removeNotification }
+      );
 
       linking.subscribe?.(jest.fn())?.();
 

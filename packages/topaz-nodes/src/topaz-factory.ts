@@ -67,6 +67,20 @@ function isAssetType(type: string): boolean {
 /** A scalar as the Topaz API takes it, after coercion from the stored value. */
 type CoercedScalar = string | number | boolean | null | undefined;
 
+/**
+ * A value held by a node property: NodeTool's property types are scalars,
+ * media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
 function castValue(value: unknown, type: string): CoercedScalar {
   if (value === null || value === undefined) return value;
   switch (type) {
@@ -143,8 +157,12 @@ function collectScalarFields(
  * Read one declared property off a node instance. Declared properties are
  * plain instance fields, and a manifest-built node looks them up by the name
  * the manifest gave — reflection, not dictionary access.
+ *
+ * SAFETY: every declared property is registered from a manifest field, whose
+ * declared types are exactly the scalars, media refs, and lists or dicts of
+ * those that `NodeValue` names.
  */
-function propertyOf(instance: BaseNode, name: string): unknown {
+function propertyOf(instance: BaseNode, name: string): NodeValue {
   return Reflect.get(instance, name);
 }
 

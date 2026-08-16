@@ -68,7 +68,7 @@ export class OAuthClient {
 
   constructor(options: OAuthClientOptions) {
     this.config = options.config;
-    this.fetchFn = options.fetchFn ?? (globalThis.fetch as unknown as FetchLike);
+    this.fetchFn = options.fetchFn ?? globalThis.fetch;
     this.clock = options.clock ?? systemClock;
     this.logger = options.logger ?? createLogger("nodetool.runtime.oauth.client");
   }

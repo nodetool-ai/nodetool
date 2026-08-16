@@ -27,7 +27,7 @@ function collectFonts(): string[] {
     for (const dir of fontDirs) {
       if (!existsSync(dir)) continue;
       try {
-        for (const entry of readdirSync(dir) as unknown as string[]) {
+        for (const entry of readdirSync(dir)) {
           const ext = extname(entry).toLowerCase();
           if ([".ttf", ".otf", ".ttc", ".dfont"].includes(ext)) {
             fonts.push(basename(entry, ext));
@@ -41,7 +41,7 @@ function collectFonts(): string[] {
     const fontDir = join(process.env["WINDIR"] ?? "C:\\Windows", "Fonts");
     if (existsSync(fontDir)) {
       try {
-        for (const entry of readdirSync(fontDir) as unknown as string[]) {
+        for (const entry of readdirSync(fontDir)) {
           const ext = extname(entry).toLowerCase();
           if ([".ttf", ".otf", ".ttc"].includes(ext)) {
             fonts.push(basename(entry, ext));

@@ -556,21 +556,25 @@ function refHasSource(value: unknown): boolean {
 }
 
 /**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ *
+ * SAFETY: every declared property is registered from a manifest field, whose
+ * declared types are exactly the scalars, media refs, and lists or dicts of
+ * those that `NodeValue` names.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  return Reflect.get(instance, name);
+}
+
+/**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
  * empty image/audio/video inputs (and strip the mentions from the text). Shared
  * with FAL / KIE / Replicate / image-to-image via `mapPromptAssetsToInputs` —
  * lets a Seedance reference-to-video node pull its reference image, audio track
  * and video clip straight from the prompt's @-mentions.
  */
-/**
- * Read one declared property off a node instance. Declared properties are
- * plain instance fields, and a manifest-built node looks them up by the name
- * the manifest gave — reflection, not dictionary access.
- */
-function propertyOf(instance: BaseNode, name: string): unknown {
-  return Reflect.get(instance, name);
-}
-
 function promptAssetOverrides(
   instance: BaseNode,
   spec: AtlasManifestEntry,

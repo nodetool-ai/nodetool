@@ -50,8 +50,12 @@ beforeEach(() => {
   // useAppLifecycle only emits 'background' when it believes the app was active.
   (AppState as { currentState: AppStateStatus }).currentState = 'active';
 
-  eventHook.mockImplementation((name: string, listener: Listener) => {
-    listeners[name] = listener;
+  eventHook.mockImplementation((name, listener) => {
+    // SAFETY: `listener` is the hook's handler for the single event `name`, and
+    // each test fires that event's own payload shape. The union of per-event
+    // listener types cannot express that pairing, so the payload is handed over
+    // as `never`.
+    listeners[name] = (event) => listener(event as never);
   });
   speech.isRecognitionAvailable.mockReturnValue(true);
   speech.getPermissionsAsync.mockResolvedValue(GRANTED);

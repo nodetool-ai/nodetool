@@ -154,7 +154,10 @@ function documentProvider(
     async delete(userId, id) {
       const row = await owned(userId, id);
       if (!row) return false;
-      await (row as unknown as { delete(): Promise<void> }).delete();
+      // SAFETY: every document row here extends the base model, which
+      // defines `delete()`; only the generic `model` binding loses it.
+      const remove = Reflect.get(row, "delete") as () => Promise<void>;
+      await remove.call(row);
       return true;
     }
   };

@@ -38,10 +38,7 @@ import {
   type NodeTypeResolver,
   type NodeValidator
 } from "@nodetool-ai/kernel";
-import {
-  ExecutionSession,
-  type RawGraphInput as ExecutionSessionRawGraph
-} from "@nodetool-ai/execution";
+import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
 import { createRunSupervisor } from "./run-supervisor.js";
 import {
   chatTurnRegistry,
@@ -1071,7 +1068,7 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
       // own, so filter the rows the same way the tRPC messages router does.
       const owned = msgs.filter((m) => m.user_id === userId);
       return {
-        messages: owned as unknown as Array<Record<string, unknown>>,
+        messages: owned.map((m) => ({ ...m })),
         next: cursor || null
       };
     },
@@ -2861,7 +2858,25 @@ export class UnifiedWebSocketRunner {
     if (!this.resolveNodeType) {
       // No registry resolver configured — behavior flags can only come from
       // the saved graph itself; absent ones are explicitly defaulted off.
-      return withExplicitNodeFlags(normalized as unknown as GraphData);
+      // `normalizeGraph` above moved a saved node's `data` to `properties`
+      // and settled `edge_type`; what a saved record still lacks is the
+      // declared string type of the four identity fields, so read them out
+      // rather than assert them.
+      const asGraphData: GraphData = {
+        nodes: normalized.nodes.map((n) => ({
+          ...n,
+          id: String(n.id ?? ""),
+          type: String(n.type ?? "")
+        })),
+        edges: normalized.edges.map((e) => ({
+          ...e,
+          source: String(e.source ?? ""),
+          sourceHandle: String(e.sourceHandle ?? ""),
+          target: String(e.target ?? ""),
+          targetHandle: String(e.targetHandle ?? "")
+        }))
+      };
+      return withExplicitNodeFlags(asGraphData);
     }
 
     const hydrated = await Graph.loadFromDict(normalized, {
@@ -3719,7 +3734,7 @@ export class UnifiedWebSocketRunner {
     });
 
     const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
-      graph: graph as unknown as ExecutionSessionRawGraph,
+      graph: toRawGraphInput(graph),
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
@@ -4075,14 +4090,9 @@ export class UnifiedWebSocketRunner {
       while (active.context.hasMessages()) {
         const msg = active.context.popMessage();
         if (!msg) break;
-        const outbound: Record<string, unknown> = {
-          ...(msg as unknown as Record<string, unknown>),
-          job_id:
-            (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
-          workflow_id:
-            (msg as unknown as Record<string, unknown>).workflow_id ??
-            active.workflowId
-        };
+        const outbound: Record<string, unknown> = { ...msg };
+        outbound.job_id ??= active.jobId;
+        outbound.workflow_id ??= active.workflowId;
         // Leave a nullish error untouched (the kernel stamps `error: null` on
         // every update) — only sanitize a real error value. Formatting null here
         // would ship the literal string "null" to clients.
@@ -4489,14 +4499,14 @@ export class UnifiedWebSocketRunner {
 
     for (const status of Object.values(active.context.getNodeStatuses())) {
       await this.sendMessage({
-        ...(status as unknown as Record<string, unknown>),
+        ...status,
         job_id: jobId,
         workflow_id: workflowId ?? active.workflowId
       });
     }
     for (const status of Object.values(active.context.getEdgeStatuses())) {
       await this.sendMessage({
-        ...(status as unknown as Record<string, unknown>),
+        ...status,
         job_id: jobId,
         workflow_id: workflowId ?? active.workflowId
       });
@@ -4764,7 +4774,7 @@ export class UnifiedWebSocketRunner {
     const out: Array<Record<string, unknown>> = [];
     for (const block of content) {
       if (block.type !== "image_url") {
-        out.push(block as unknown as Record<string, unknown>);
+        out.push({ ...block });
         continue;
       }
       const image = block.image;
@@ -4777,7 +4787,7 @@ export class UnifiedWebSocketRunner {
       }
       if (!bytes) {
         // Already an asset/uri reference (or empty) — leave as-is.
-        out.push(block as unknown as Record<string, unknown>);
+        out.push({ ...block });
         continue;
       }
       const mimeType =
@@ -5258,7 +5268,7 @@ export class UnifiedWebSocketRunner {
     }
 
     const session = await ExecutionSession.create({
-      graph: graph as unknown as ExecutionSessionRawGraph,
+      graph: toRawGraphInput(graph),
       resolveExecutor: (node) =>
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
@@ -5626,9 +5636,7 @@ export class UnifiedWebSocketRunner {
       const subtaskThreadId = threadId;
       const subtaskWorkflowId = workflowId;
       const forwardSubtaskMessage = async (msg: ProcessingMessage) => {
-        const enriched: Record<string, unknown> = {
-          ...(msg as unknown as Record<string, unknown>)
-        };
+        const enriched: Record<string, unknown> = { ...msg };
         if (enriched.thread_id == null) enriched.thread_id = subtaskThreadId;
         if (enriched.workflow_id == null)
           enriched.workflow_id = subtaskWorkflowId;
@@ -7636,7 +7644,7 @@ export class UnifiedWebSocketRunner {
       // Create and run workflow (A5: via the ExecutionSession facade — see
       // the identical note in `startJobInner`).
       const session = await ExecutionSession.create({
-        graph: graph as unknown as ExecutionSessionRawGraph,
+        graph: toRawGraphInput(graph),
         resolveExecutor: (node) =>
           this.resolveExecutor(
             node as { id: string; type: string; [key: string]: unknown }
@@ -7773,13 +7781,9 @@ export class UnifiedWebSocketRunner {
         while (active.context.hasMessages()) {
           const msg = active.context.popMessage();
           if (!msg) break;
-          const outbound: Record<string, unknown> = {
-            ...(msg as unknown as Record<string, unknown>),
-            job_id: (msg as unknown as Record<string, unknown>).job_id ?? jobId,
-            workflow_id:
-              (msg as unknown as Record<string, unknown>).workflow_id ??
-              workflowId
-          };
+          const outbound: Record<string, unknown> = { ...msg };
+          outbound.job_id ??= jobId;
+          outbound.workflow_id ??= workflowId;
 
           if (
             outbound.type === "node_update" ||
@@ -8032,10 +8036,7 @@ export class UnifiedWebSocketRunner {
     })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {
-        await this.sendMessage({
-          ...(item as unknown as Record<string, unknown>),
-          seq: requestSeq
-        });
+        await this.sendMessage({ ...item, seq: requestSeq });
       } else if ("name" in item) {
         const toolItem = item as {
           id: string;
@@ -9355,8 +9356,19 @@ export class UnifiedWebSocketRunner {
           }
         }
         try {
-          const command = data as unknown as WebSocketCommandEnvelope;
-          const response = await this.handleCommand(command);
+          // The envelope Zod-parsed above is the same frame — its schema
+          // passes every key through, so nothing was dropped.
+          // SAFETY: the schema types `command` as a bare string on purpose;
+          // `handleCommand`'s switch answers `{ error: "Unknown command" }`
+          // for anything this build does not implement.
+          const response = await this.handleCommand({
+            ...envelopeParsed.data,
+            command: envelopeParsed.data.command as UnifiedCommandType,
+            data: envelopeParsed.data.data ?? {},
+            // MessagePack clients encode an absent request_id as nil; the
+            // envelope declares it optional, not nullable.
+            request_id: envelopeParsed.data.request_id ?? undefined
+          });
           // RPC commands send their `rpc_response` frame inline (in runRpc)
           // and return null so we don't send a stray legacy reply.
           if (response) await this.sendMessage(response);

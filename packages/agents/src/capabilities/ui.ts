@@ -121,7 +121,7 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     const persisted = await Workflow.updateFieldsIfUnchanged(
       workflowId,
       stored.updated_at,
-      { graph: applied.graph as unknown as WorkflowRow["graph"] }
+      { graph: applied.graph }
     );
     if (!persisted) {
       return {

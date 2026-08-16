@@ -201,9 +201,8 @@ export function stubGlobalFetch(
       headers: { "content-type": "text/plain" }
     });
   };
-  (globalThis as unknown as { fetch: typeof fetch }).fetch =
-    stub as typeof fetch;
+  globalThis.fetch = stub as typeof fetch;
   return () => {
-    (globalThis as unknown as { fetch: typeof fetch }).fetch = original;
+    globalThis.fetch = original;
   };
 }

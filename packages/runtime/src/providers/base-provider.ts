@@ -318,16 +318,17 @@ export abstract class BaseProvider {
    * markers, secrets redacted).
    */
   private installModalityFailureLogging(): void {
-    const proto = BaseProvider.prototype as unknown as Record<string, unknown>;
-    const self = this as unknown as Record<string, unknown>;
-
     for (const name of MODALITY_PROMISE_METHODS) {
-      const fn = self[name];
-      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const fn = Reflect.get(this, name);
+      if (
+        typeof fn !== "function" ||
+        fn === Reflect.get(BaseProvider.prototype, name)
+      )
+        continue;
       // SAFETY: `name` comes from MODALITY_PROMISE_METHODS and the check above
       // proved this instance overrides it, so `fn` is that modality method.
       const original = fn as (...args: unknown[]) => Promise<ModalityResult>;
-      self[name] = (...rawArgs: unknown[]): Promise<ModalityResult> =>
+      Reflect.set(this, name, (...rawArgs: unknown[]): Promise<ModalityResult> =>
         withModalityCapture(async (alreadyActive) => {
           // Central entity expansion: descriptors into the prompt, reference
           // images onto the source list, before the concrete provider runs.
@@ -350,15 +351,21 @@ export abstract class BaseProvider {
             }
             throw err;
           }
-        });
+        })
+      );
     }
 
     for (const name of MODALITY_GENERATOR_METHODS) {
-      const fn = self[name];
-      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const fn = Reflect.get(this, name);
+      if (
+        typeof fn !== "function" ||
+        fn === Reflect.get(BaseProvider.prototype, name)
+      )
+        continue;
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
-      self[name] = (...args: unknown[]): AsyncGenerator<unknown> =>
-        wrapModalityGenerator(this, original, args);
+      Reflect.set(this, name, (...args: unknown[]): AsyncGenerator<unknown> =>
+        wrapModalityGenerator(this, original, args)
+      );
     }
   }
 

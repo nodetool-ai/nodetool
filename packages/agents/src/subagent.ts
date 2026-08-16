@@ -201,16 +201,15 @@ export function tagSubAgentMessage(
   if (tag.parentToolCallId === undefined && tag.depth === undefined) {
     return msg;
   }
-  const tagged: Record<string, unknown> = {
-    ...(msg as unknown as Record<string, unknown>)
+  // The two tag keys ride on the copy as extra fields; every message type in
+  // the union transports them, and the copy keeps the emitter's object clean.
+  return {
+    ...msg,
+    ...(tag.parentToolCallId !== undefined
+      ? { parent_tool_call_id: tag.parentToolCallId }
+      : {}),
+    ...(tag.depth !== undefined ? { subtask_depth: tag.depth } : {})
   };
-  if (tag.parentToolCallId !== undefined) {
-    tagged.parent_tool_call_id = tag.parentToolCallId;
-  }
-  if (tag.depth !== undefined) {
-    tagged.subtask_depth = tag.depth;
-  }
-  return tagged as unknown as ProcessingMessage;
 }
 
 export interface ForwardSubAgentStreamOptions extends SubAgentStreamTag {

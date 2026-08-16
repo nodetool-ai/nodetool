@@ -259,11 +259,12 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
   // Border color reflects execution state (running pulse, completed, error),
   // falling back to the namespace color when expanded.
-  const borderColor = isRunning
-    ? (pulseAnim.interpolate({
+  const borderColor: string | Animated.AnimatedInterpolation<string | number> =
+    isRunning
+    ? pulseAnim.interpolate({
         inputRange: [0, 1],
         outputRange: [nsColor + "50", nsColor],
-      }) as unknown as string)
+      })
     : isError
       ? colors.error
       : isCompleted

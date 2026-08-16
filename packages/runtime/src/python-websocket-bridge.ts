@@ -88,9 +88,11 @@ function attachErrorSinks(ws: WebSocket): void {
     /* best-effort */
   }
   // The raw TCP socket can emit its own error during a CONNECTING teardown.
-  const rawSocket = (
-    ws as unknown as { _socket?: { on?: (e: string, l: () => void) => void } }
-  )._socket;
+  // SAFETY: `ws` is a Node `ws` socket, which keeps the underlying TCP
+  // socket on `_socket`; the guard below covers a build that does not.
+  const rawSocket = Reflect.get(ws, "_socket") as
+    | { on?: (e: string, l: () => void) => void }
+    | undefined;
   if (rawSocket && typeof rawSocket.on === "function") {
     try {
       rawSocket.on("error", () => {});

@@ -20,7 +20,7 @@ import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
   normalizeGraph,
-  type RawGraphInput,
+  toRawGraphInput,
   type RunResult
 } from "@nodetool-ai/execution";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
@@ -162,7 +162,7 @@ export async function startHeadlessJob(
     name: options.jobName ?? workflow.name ?? "",
     started_at: new Date().toISOString(),
     params,
-    graph: graph as unknown as Record<string, unknown>
+    graph: { ...graph }
   };
   if (options.jobId !== undefined) {
     jobFields.id = options.jobId;
@@ -210,7 +210,7 @@ export async function startHeadlessJob(
   });
 
   const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
-    graph: graph as unknown as RawGraphInput,
+    graph: toRawGraphInput(graph),
     registry,
     // `normalizeGraph` fixes shape, not types: it never fills `propertyTypes`,
     // and correlation analysis reads list-ness only from that map. Without the

@@ -182,7 +182,7 @@ export function planScript(taskSpec: TaskPlanSpec): ScriptFn {
     {
       type: "tool_call",
       name: "create_task",
-      args: taskSpec as unknown as Record<string, unknown>
+      args: { ...taskSpec }
     }
   ];
 }
@@ -196,7 +196,7 @@ export function multiTaskPlanScript(planSpec: MultiTaskPlanSpec): ScriptFn {
     {
       type: "tool_call",
       name: "create_plan",
-      args: planSpec as unknown as Record<string, unknown>
+      args: { ...planSpec }
     }
   ];
 }
@@ -325,7 +325,7 @@ export function autoScript(opts: {
           {
             type: "tool_call",
             name: "add_task",
-            args: task as unknown as Record<string, unknown>
+            args: { ...task }
           }
         ];
       }
@@ -355,7 +355,7 @@ export function autoScript(opts: {
         {
           type: "tool_call",
           name: "create_plan",
-          args: planArgs as unknown as Record<string, unknown>
+          args: { ...planArgs }
         }
       ];
     }
@@ -364,7 +364,7 @@ export function autoScript(opts: {
         {
           type: "tool_call",
           name: "create_task",
-          args: opts.plan as unknown as Record<string, unknown>
+          args: { ...opts.plan }
         }
       ];
     }

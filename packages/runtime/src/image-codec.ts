@@ -44,7 +44,7 @@ async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
+      return "default" in mod ? mod.default : mod;
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {

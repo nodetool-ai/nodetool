@@ -19,8 +19,8 @@ export function attachChatPredictionForwarder(
     if (msg.type !== "prediction") {
       return;
     }
-    const forwarded = {
-      ...(msg as unknown as Record<string, unknown>),
+    const forwarded: Record<string, unknown> = {
+      ...msg,
       thread_id: ids.threadId
     };
     send(
