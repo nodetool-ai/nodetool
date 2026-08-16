@@ -5,6 +5,7 @@ import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { restFetch } from "../../lib/rest-fetch";
 import { isGoogleWorkspaceEnabled } from "../../lib/runtimeConfig";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useAuth from "../../stores/useAuth";
 import googleColorIcon from "../../icons/providers/google-color.svg";
 import {
   Box,
@@ -27,18 +28,21 @@ interface GoogleTokensResponse {
 const QUERY_KEY = ["oauth-token", "google"];
 
 /**
- * Google Workspace connection status.
+ * Google Workspace connection status, and the button that grants it.
  *
- * There is no connect button: access comes from signing in with Google, which
- * grants Drive, Gmail, Docs, Sheets and Calendar in the same consent step. The
- * card renders nothing on servers without a login (Local mode), where the
- * integration does not exist.
+ * Connecting is deliberately separate from signing in: Gmail and Drive are
+ * *restricted* Google scopes, and asking for them on the login consent screen
+ * confronts every first-time visitor with an app-verification prompt. This card
+ * is where someone who actually wants the Drive/Gmail/Docs/Sheets/Calendar
+ * tools opts in. The card renders nothing on servers without a login (Local
+ * mode), where the integration does not exist.
  */
 const GoogleWorkspaceCard = () => {
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const connectGoogleWorkspace = useAuth((state) => state.connectGoogleWorkspace);
   const enabled = isGoogleWorkspaceEnabled();
 
   const { data } = useQuery({
@@ -56,6 +60,10 @@ const GoogleWorkspaceCard = () => {
   const account = data?.tokens?.[0]?.username ?? null;
   const isConnected = (data?.tokens?.length ?? 0) > 0;
 
+  const connect = useCallback(async () => {
+    await connectGoogleWorkspace();
+  }, [connectGoogleWorkspace]);
+
   const disconnect = useCallback(async () => {
     try {
       const response = await restFetch("/api/oauth/google/disconnect", {
@@ -67,7 +75,7 @@ const GoogleWorkspaceCard = () => {
       await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       addNotification({
         content:
-          "Disconnected Google Workspace. Sign in with Google again to restore access.",
+          "Disconnected Google Workspace. Use Connect to restore access.",
         type: "success",
         alert: true
       });
@@ -108,12 +116,12 @@ const GoogleWorkspaceCard = () => {
                 ? `Drive, Gmail, Docs, Sheets and Calendar${
                     account ? ` as ${account}` : ""
                   }`
-                : "Sign in with Google to give agents and nodes access to Drive, Gmail, Docs, Sheets and Calendar."}
+                : "Connect to give agents and nodes access to Drive, Gmail, Docs, Sheets and Calendar."}
             </Caption>
           </FlexColumn>
         </FlexRow>
 
-        {isConnected && (
+        {isConnected ? (
           <EditorButton
             density="compact"
             variant="text"
@@ -122,6 +130,15 @@ const GoogleWorkspaceCard = () => {
             onClick={disconnect}
           >
             Disconnect
+          </EditorButton>
+        ) : (
+          <EditorButton
+            density="compact"
+            variant="text"
+            size="small"
+            onClick={connect}
+          >
+            Connect
           </EditorButton>
         )}
       </FlexRow>

@@ -9,7 +9,10 @@ import {
   isRuntimeConfigFromBackend
 } from "../lib/runtimeConfig";
 import { getBuildEnv } from "../lib/buildEnv";
-import { syncGoogleProviderToken } from "../lib/googleSession";
+import {
+  markWorkspaceGrantPending,
+  syncGoogleProviderToken
+} from "../lib/googleSession";
 
 type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
@@ -61,6 +64,8 @@ interface LoginStore {
   _authSubscription: SupabaseSubscription | null;
   /** Initiates the OAuth sign-in flow with the specified provider. */
   signInWithProvider: (provider: OAuthProviderSupabase) => Promise<void>;
+  /** Asks Google for the Workspace scopes, separately from signing in. */
+  connectGoogleWorkspace: () => Promise<void>;
   /** Signs the current user out. */
   signOut: () => Promise<void>;
   /** Initializes the auth store, checking for existing sessions and setting up listeners. */
@@ -201,23 +206,16 @@ export const useAuth = create<LoginStore>((set, get) => ({
   signInWithProvider: async (provider: OAuthProviderSupabase) => {
     set({ state: "loading", error: null });
     try {
-      // Ask Google for the Workspace scopes up front so one consent screen
-      // covers login and the Drive/Gmail/Docs/Sheets/Calendar tools.
-      // `access_type=offline` is what yields a refresh token, and Google only
-      // re-issues one when consent is shown again.
-      const googleScopes =
-        provider === "google" && isGoogleWorkspaceEnabled()
-          ? getRuntimeConfig().googleScopes
-          : [];
+      // Signing in asks for identity only. Requesting the Workspace scopes here
+      // put Gmail and Drive — scopes Google classes as *restricted* — on the
+      // consent screen of every first-time visitor, which turns a one-click
+      // login into an app-verification prompt users abandon. The Workspace
+      // grant is its own opt-in step now (see `connectGoogleWorkspace`), taken
+      // when someone actually reaches for a Drive/Gmail/Docs/Sheets/Calendar
+      // tool.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          ...(googleScopes.length > 0
-            ? {
-                scopes: googleScopes.join(" "),
-                queryParams: { access_type: "offline", prompt: "consent" }
-              }
-            : {}),
           // URL to redirect to after successful authentication.
           // Must be added to your Supabase project's redirect allow list,
           // otherwise Supabase falls back to the project's Site URL
@@ -235,6 +233,45 @@ export const useAuth = create<LoginStore>((set, get) => ({
         state: "error",
         error: errorMessage.message
       });
+    }
+  },
+
+  /**
+   * Ask Google for the Workspace scopes, as a step of its own.
+   *
+   * Re-runs the Google OAuth flow for an already-signed-in user, this time
+   * requesting Drive/Gmail/Docs/Sheets/Calendar. `access_type=offline` is what
+   * yields a refresh token, and Google only re-issues one when consent is shown
+   * again, so `prompt=consent` stays. On return, `syncGoogleProviderToken`
+   * posts the token to the backend.
+   */
+  connectGoogleWorkspace: async () => {
+    if (!isGoogleWorkspaceEnabled()) {
+      return;
+    }
+    const googleScopes = getRuntimeConfig().googleScopes;
+    if (googleScopes.length === 0) {
+      return;
+    }
+    set({ error: null });
+    try {
+      markWorkspaceGrantPending(googleScopes);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          scopes: googleScopes.join(" "),
+          queryParams: { access_type: "offline", prompt: "consent" },
+          redirectTo: getAuthRedirectUrl()
+        }
+      });
+      if (error) {throw error;}
+    } catch (error: unknown) {
+      const errorMessage = createErrorMessage(
+        error,
+        "Failed to connect Google Workspace"
+      );
+      console.info("Auth: Google Workspace connect error", errorMessage);
+      set({ error: errorMessage.message });
     }
   },
 

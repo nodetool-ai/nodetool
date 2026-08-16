@@ -18,7 +18,23 @@ jest.mock("../runtimeConfig", () => ({
   })
 }));
 
-import { syncGoogleProviderToken } from "../googleSession";
+import {
+  markWorkspaceGrantPending,
+  syncGoogleProviderToken
+} from "../googleSession";
+
+const WORKSPACE_SCOPES = ["https://www.googleapis.com/auth/drive"];
+
+// The module reads sessionStorage, which the node test environment lacks.
+const installSessionStorage = (): void => {
+  const store = new Map<string, string>();
+  (globalThis as { sessionStorage?: unknown }).sessionStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+    removeItem: (key: string) => void store.delete(key),
+    clear: () => store.clear()
+  };
+};
 
 const googleSession = (
   overrides: Partial<Session> = {}
@@ -37,10 +53,12 @@ describe("syncGoogleProviderToken", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGoogleEnabled = true;
+    installSessionStorage();
     mockRestFetch.mockResolvedValue(new Response("{}", { status: 200 }));
   });
 
-  it("posts the provider tokens to the backend", async () => {
+  it("posts the provider tokens after a Workspace connect", async () => {
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
     await syncGoogleProviderToken(googleSession());
 
     expect(mockRestFetch).toHaveBeenCalledTimes(1);
@@ -60,11 +78,40 @@ describe("syncGoogleProviderToken", () => {
 
   it("does nothing when the backend has the integration disabled", async () => {
     mockGoogleEnabled = false;
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
     await syncGoogleProviderToken(googleSession());
     expect(mockRestFetch).not.toHaveBeenCalled();
   });
 
+  // Signing in no longer asks for the Workspace scopes, so a login session
+  // carries a provider token good for identity alone. Posting it would register
+  // a Workspace connection that cannot read anything.
+  it("does not post after a plain login that asked for no Workspace scopes", async () => {
+    await syncGoogleProviderToken(googleSession());
+    expect(mockRestFetch).not.toHaveBeenCalled();
+  });
+
+  it("consumes the grant so a later session does not re-post", async () => {
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
+    await syncGoogleProviderToken(googleSession());
+    await syncGoogleProviderToken(googleSession());
+    expect(mockRestFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the grant when the session carries no provider token", async () => {
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
+    await syncGoogleProviderToken(
+      googleSession({ provider_token: null } as Partial<Session>)
+    );
+    expect(mockRestFetch).not.toHaveBeenCalled();
+
+    // The grant survives, so the session that does carry the token still posts.
+    await syncGoogleProviderToken(googleSession());
+    expect(mockRestFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores a session issued by another provider", async () => {
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
     await syncGoogleProviderToken(
       googleSession({
         user: {
@@ -77,6 +124,7 @@ describe("syncGoogleProviderToken", () => {
   });
 
   it("swallows a backend failure so login still completes", async () => {
+    markWorkspaceGrantPending(WORKSPACE_SCOPES);
     mockRestFetch.mockRejectedValue(new Error("network down"));
     await expect(
       syncGoogleProviderToken(googleSession())
