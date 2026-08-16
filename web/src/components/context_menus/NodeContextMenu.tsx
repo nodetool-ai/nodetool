@@ -21,7 +21,6 @@ import SouthIcon from "@mui/icons-material/South";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
-import { isDevelopment } from "../../lib/env";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useNodes } from "../../contexts/NodeContext";
@@ -91,6 +90,13 @@ const NodeContextMenu: React.FC = () => {
           </div>
         </div>
       }
+    />,
+    <ContextMenuItem
+      key="copy-nodedata"
+      onClick={handlers.handleCopyMetadataToClipboard}
+      label="Copy Node as JSON"
+      IconComponent={<DataArrayIcon />}
+      tooltip="Copy this node's data as JSON to the clipboard"
     />,
     <ContextMenuItem
       key="duplicate"
@@ -223,17 +229,7 @@ const NodeContextMenu: React.FC = () => {
       label="Delete Node"
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
-    />,
-    isDevelopment && <Divider key="dev-divider" />,
-    isDevelopment && (
-      <ContextMenuItem
-        key="copy-nodedata"
-        onClick={handlers.handleCopyMetadataToClipboard}
-        label="Copy NodeData"
-        IconComponent={<DataArrayIcon />}
-        tooltip="Copy node data to the clipboard"
-      />
-    )
+    />
   ];
 
   return (

@@ -15,6 +15,7 @@ import {
   // lib-seaborn
   ChartRendererLibNode
 } from "../src/index.js";
+import { parseWavBytes, toBytes, type WavData } from "@nodetool-ai/audio-nodes";
 
 // ── Helper: create a minimal WAV audio ref ──────────────────────────
 function makeAudioRef(
@@ -74,6 +75,47 @@ function makeLongerSine(
   return makeAudioRef(samples, sr);
 }
 
+/** 0.2 s at 8 kHz: a loud first half and a quiet second half, 20 dB apart. */
+function makeTwoLevelSine(): { uri: string; data: string } {
+  const sr = 8000;
+  const n = Math.floor(sr * 0.2);
+  const samples = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const amp = i < n / 2 ? 0.9 : 0.09;
+    samples[i] = amp * Math.sin((2 * Math.PI * 440 * i) / sr);
+  }
+  return makeAudioRef(samples, sr);
+}
+
+/** Decode an AudioRef back to interleaved PCM so its content can be asserted. */
+function decode(ref: { data?: Uint8Array | string }): WavData {
+  const wav = parseWavBytes(toBytes(ref.data));
+  if (!wav) {
+    throw new Error("audio ref is not decodable WAV");
+  }
+  return wav;
+}
+
+function decodeOutput(res: Record<string, unknown>): WavData {
+  return decode(res.output as { data?: Uint8Array | string });
+}
+
+function peak(samples: Float32Array): number {
+  let max = 0;
+  for (const s of samples) {
+    max = Math.max(max, Math.abs(s));
+  }
+  return max;
+}
+
+function rms(samples: Float32Array, from: number, to: number): number {
+  let total = 0;
+  for (let i = from; i < to; i++) {
+    total += samples[i] * samples[i];
+  }
+  return Math.sqrt(total / (to - from));
+}
+
 const arr = (data: number[], shape: number[]) => ({ data, shape });
 
 // =====================================================================
@@ -81,7 +123,7 @@ const arr = (data: number[], shape: number[]) => ({ data, shape });
 // =====================================================================
 
 describe("BitcrushNode", () => {
-  it("applies bitcrushing effect", async () => {
+  it("quantizes to the bit depth and holds samples across the reduced rate", async () => {
     const audio = makeShortSine();
     const __n303 = new BitcrushNode();
     __n303.assign({
@@ -89,9 +131,29 @@ describe("BitcrushNode", () => {
       bit_depth: 4,
       sample_rate_reduction: 2
     });
-    const res = await __n303.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    const out = decodeOutput(await __n303.process()).samples;
+
+    // 4 bits => 15 quantization steps, so the sine's 101 distinct input levels
+    // collapse onto a 15-step grid.
+    const levels = Math.pow(2, 4) - 1;
+    expect(new Set(out).size).toBeLessThanOrEqual(levels + 1);
+    let maxGridError = 0;
+    for (const s of out) {
+      maxGridError = Math.max(
+        maxGridError,
+        Math.abs(s * levels - Math.round(s * levels)) / levels
+      );
+    }
+    expect(maxGridError).toBeLessThan(1e-3);
+
+    // sample_rate_reduction: 2 holds each source sample for two output frames.
+    let heldPairs = 0;
+    for (let i = 0; i + 1 < out.length; i += 2) {
+      if (out[i] === out[i + 1]) {
+        heldPairs++;
+      }
+    }
+    expect(heldPairs).toBe(Math.floor(out.length / 2));
   });
 
   it("throws when no audio data", async () => {
@@ -102,19 +164,30 @@ describe("BitcrushNode", () => {
 });
 
 describe("CompressNode", () => {
-  it("applies compression", async () => {
-    const audio = makeShortSine();
-    const __n305 = new CompressNode();
-    __n305.assign({
-      audio,
-      threshold: -10,
-      ratio: 4,
-      attack: 5,
-      release: 50
-    });
-    const res = await __n305.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+  it("narrows dynamic range, and narrows it further at a higher ratio", async () => {
+    const audio = makeTwoLevelSine();
+    const range = (s: Float32Array) => rms(s, 100, 800) / rms(s, 900, 1600);
+
+    const rangeAtRatio = async (ratio: number) => {
+      const node = new CompressNode();
+      node.assign({
+        audio,
+        threshold: -10,
+        ratio,
+        attack: 5,
+        release: 50,
+        // Makeup gain would rescale both halves equally; off, so the assertion
+        // reads the compression itself rather than the level it restores.
+        auto_gain: false
+      });
+      return range(decodeOutput(await node.process()).samples);
+    };
+
+    expect(range(decode(audio).samples)).toBeCloseTo(10, 1);
+
+    const atFour = await rangeAtRatio(4);
+    expect(atFour).toBeLessThan(7);
+    expect(await rangeAtRatio(8)).toBeLessThan(atFour);
   });
 
   it("throws when no audio data", async () => {
@@ -125,16 +198,18 @@ describe("CompressNode", () => {
 });
 
 describe("DistortionNode", () => {
-  it("applies distortion effect", async () => {
+  it("saturates through the atan curve without clipping", async () => {
     const audio = makeShortSine();
     const __n307 = new DistortionNode();
     __n307.assign({
       audio,
       drive_db: 20
     });
-    const res = await __n307.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    const outPeak = peak(decodeOutput(await __n307.process()).samples);
+
+    // 20 dB of drive is x10, so the sine's 0.5 peak maps to (2/pi)*atan(5).
+    expect(outPeak).toBeCloseTo((2 / Math.PI) * Math.atan(5), 3);
+    expect(outPeak).toBeLessThan(1);
   });
 
   it("throws when no audio data", async () => {
@@ -145,7 +220,7 @@ describe("DistortionNode", () => {
 });
 
 describe("LimiterNode", () => {
-  it("applies limiter effect", async () => {
+  it("lifts peaks to the auto-gain ceiling without passing it", async () => {
     const audio = makeShortSine();
     const __n309 = new LimiterNode();
     __n309.assign({
@@ -153,9 +228,12 @@ describe("LimiterNode", () => {
       threshold_db: -6,
       release_ms: 100
     });
-    const res = await __n309.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    const outPeak = peak(decodeOutput(await __n309.process()).samples);
+
+    // auto_gain (on by default) normalizes the -6 dB ceiling to full scale, so
+    // the 0.5 input peak ends up just under 1 and never above it.
+    expect(outPeak).toBeGreaterThan(0.9);
+    expect(outPeak).toBeLessThanOrEqual(1);
   });
 
   it("throws when no audio data", async () => {
@@ -166,7 +244,7 @@ describe("LimiterNode", () => {
 });
 
 describe("ReverbNode", () => {
-  it("applies reverb effect", async () => {
+  it("mixes a wet tail on top of the dry signal", async () => {
     const audio = makeShortSine();
     const __n311 = new ReverbNode();
     __n311.assign({
@@ -176,9 +254,16 @@ describe("ReverbNode", () => {
       wet_level: 0.3,
       dry_level: 0.7
     });
-    const res = await __n311.process();
-    const out = res.output as { data: string };
-    expect(out.data).toBeTruthy();
+    const out = decodeOutput(await __n311.process()).samples;
+    const dry = decode(audio).samples;
+
+    expect(out.length).toBe(dry.length);
+    // Without the comb/allpass path the output would be exactly dry * 0.7.
+    let maxWet = 0;
+    for (let i = 0; i < dry.length; i++) {
+      maxWet = Math.max(maxWet, Math.abs(out[i] - dry[i] * 0.7));
+    }
+    expect(maxWet).toBeGreaterThan(0.1);
   });
 
   it("throws when no audio data", async () => {

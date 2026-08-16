@@ -2,6 +2,7 @@ import { handleChatWebSocketMessage } from "../chatProtocol";
 import { stub } from "../../../test-utils/doubles";
 import type { WebSocketMessage } from "../../../lib/websocket/GlobalWebSocketManager";
 import type { GlobalChatState } from "../../../stores/GlobalChatStore";
+import type { Message } from "../../../stores/ApiTypes";
 
 /**
  * Each case stands up only the slice of GlobalChatState its reducer reads; the
@@ -712,6 +713,214 @@ describe("chatProtocol", () => {
       content: "Searching"
     });
     expect(messages[3].id).not.toMatch(/^local-stream-/);
+  });
+
+  // The two cases above pin the happy path of the streaming-placeholder
+  // reconciliation. These pin the rest of it: which candidates count as a
+  // placeholder, and when a placeholder is left alone.
+  describe("streaming placeholder reconciliation", () => {
+    const stateWith = (messages: unknown[]): GlobalChatState =>
+      partialChatState({
+        status: "streaming",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": {
+            id: "thread-1",
+            title: "T",
+            updated_at: new Date().toISOString()
+          }
+        },
+        messageCache: { "thread-1": messages },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+
+    /** Feed one finalized assistant tool_call message and return the cache. */
+    const finalize = async (
+      messages: unknown[],
+      content: string | null
+    ): Promise<Message[]> => {
+      let capturedState = stateWith(messages);
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(typeof updater === "function" ? updater(capturedState) : updater)
+        };
+      });
+      await handleChatWebSocketMessage(
+        {
+          type: "message",
+          id: "server-msg",
+          role: "assistant",
+          thread_id: "thread-1",
+          created_at: new Date().toISOString(),
+          content,
+          tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
+        } as unknown as WebSocketMessage,
+        set,
+        () => capturedState
+      );
+      return capturedState.messageCache["thread-1"];
+    };
+
+    it("appends when the thread holds no assistant message", async () => {
+      const messages = await finalize(
+        [{ role: "user", type: "message", content: "Search" }],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("scans past a server-authored assistant message to the placeholder behind it", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Searching"
+          },
+          {
+            id: "server-earlier",
+            role: "assistant",
+            type: "message",
+            created_at: new Date().toISOString(),
+            content: "Earlier finalized reply."
+          }
+        ],
+        "Searching"
+      );
+      // Three, not four: the placeholder at index 1 was replaced in place.
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+      expect(messages[2]).toMatchObject({ id: "server-earlier" });
+    });
+
+    it("treats an assistant message with no id and no created_at as a placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          { role: "assistant", type: "message", content: "Searching" }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("replaces the placeholder when the finalized text extends the streamed prefix", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Search"
+          }
+        ],
+        "Searching the web."
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({
+        id: "server-msg",
+        content: "Searching the web."
+      });
+    });
+
+    it("appends when the finalized text does not extend the placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Let me think about it."
+          }
+        ],
+        "Searching the web."
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+      expect(messages[2]).toMatchObject({ id: "server-msg" });
+    });
+
+    // A tool-call-only message carries no text, so there is nothing to match a
+    // placeholder against — the streamed text has to survive beside it.
+    it("appends a tool-call-only message rather than replacing the placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Let me search."
+          }
+        ],
+        null
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+    });
+
+    it("appends when the placeholder holds no text", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: ""
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+    });
+
+    it("matches placeholder text held as content blocks", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: [
+              { type: "text", text: "Search" },
+              { type: "text", text: "ing" }
+            ]
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("ignores an assistant entry that is not a plain message", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "tool_call",
+            content: "Searching"
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[2]).toMatchObject({ id: "server-msg" });
+    });
   });
 
   it("returns tool errors for unknown client tools", async () => {
