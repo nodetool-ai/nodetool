@@ -1,8 +1,11 @@
 import { Edge } from "@xyflow/react";
-import { edgesTargeting, isHandleConnected } from "../edgeIndex";
+import { edgesFrom, edgesTargeting, isHandleConnected } from "../edgeIndex";
 
 const edge = (id: string, target: string, targetHandle?: string): Edge =>
   ({ id, source: "s", target, targetHandle } as Edge);
+
+const fromTo = (id: string, source: string, target: string): Edge =>
+  ({ id, source, target } as Edge);
 
 describe("edgeIndex", () => {
   it("groups edges by target in graph order", () => {
@@ -38,6 +41,25 @@ describe("edgeIndex", () => {
     expect(isHandleConnected(edges, "n1", "prompt")).toBe(true);
     expect(isHandleConnected(edges, "n1", "model")).toBe(false);
     expect(isHandleConnected(edges, "n2", "prompt")).toBe(false);
+  });
+
+  it("groups edges by source in graph order", () => {
+    const a = fromTo("e1", "n1", "n2");
+    const b = fromTo("e2", "n2", "n3");
+    const c = fromTo("e3", "n1", "n3");
+    const edges = [a, b, c];
+
+    expect(edgesFrom(edges, "n1")).toEqual([a, c]);
+    expect(edgesFrom(edges, "n2")).toEqual([b]);
+    expect(edgesFrom(edges, "missing")).toEqual([]);
+  });
+
+  it("caches the source index separately from the target index", () => {
+    const edges = [fromTo("e1", "n1", "n2")];
+
+    expect(edgesFrom(edges, "n1")).toBe(edgesFrom(edges, "n1"));
+    expect(edgesTargeting(edges, "n1")).toEqual([]);
+    expect(edgesFrom(edges, "n2")).toEqual([]);
   });
 
   it("matches the whole node id, not a prefix of it", () => {

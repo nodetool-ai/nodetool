@@ -8,6 +8,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import HandleTooltip from "../HandleTooltip";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
 import {
   useInspectorHeaderActions,
@@ -42,6 +43,113 @@ interface PropertyLabelProps {
   handleTooltipPosition?: "left" | "right";
 }
 
+const labelMainStyles = css({
+  flex: "1 1 auto",
+  minWidth: 0,
+  overflow: "hidden"
+});
+
+const inlineDescriptionStyles = (theme: Theme) =>
+  css({
+    display: "block",
+    fontSize: theme.fontSizeSmaller,
+    color: theme.vars.palette.text.disabled,
+    lineHeight: 1.3,
+    marginTop: getSpacingPx(SPACING.micro),
+    marginBottom: theme.spacing(0.5),
+    userSelect: "none"
+  });
+
+const rootStyles = (theme: Theme, density: "compact" | "normal") =>
+  css({
+    width: "100%",
+    height: "auto",
+    padding: 0,
+    overflow: "visible",
+    flexGrow: 1,
+    marginBottom: density === "compact" ? 0 : theme.spacing(1),
+    "&:hover": {
+      "& label": {
+        opacity: 0.94
+      }
+    },
+    "& label": {
+      display: "block",
+      fontWeight: 500,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.secondary,
+      padding: 0,
+      margin: 0,
+      lineHeight: "1em",
+      maxHeight: "2em",
+      minHeight: "13px",
+      textTransform: "capitalize",
+      letterSpacing: "0.01em",
+      userSelect: "none"
+    },
+    ".inspector-header-toolbar .inspector-reset-button": {
+      padding: 0,
+      margin: 0,
+      width: 26,
+      height: 26,
+      flexShrink: 0,
+      "& svg": {
+        fontSize: "1.0625rem !important"
+      }
+    },
+    ".inspector-header-toolbar .inspector-reset-button.is-changed": {
+      color: theme.vars.palette.common.white,
+      opacity: 1
+    },
+    ".inspector-header-toolbar .inspector-reset-button.is-changed:hover": {
+      color: theme.vars.palette.common.white,
+      opacity: 0.85
+    },
+    ".inspector-header-toolbar .inspector-reset-button.Mui-disabled": {
+      opacity: 0.5,
+      color: theme.vars.palette.text.disabled
+    },
+    ".inspector-header-toolbar .MuiIconButton-root": {
+      padding: 0,
+      margin: 0,
+      width: 20,
+      height: 20
+    },
+    ".inspector-header-toolbar .MuiIconButton-root svg": {
+      fontSize: "var(--fontSizeSmall)"
+    },
+    ".inspector-header-toolbar .inspector-supplemental-action": {
+      width: 22,
+      height: 22,
+      padding: 0,
+      margin: 0,
+      flexShrink: 0,
+      color: theme.vars.palette.common.white,
+      "& svg": {
+        fontSize: "0.9375rem !important"
+      },
+      "&:hover": {
+        color: theme.vars.palette.common.white,
+        opacity: 0.85,
+        backgroundColor: theme.vars.palette.c_overlay
+      }
+    },
+    ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg":
+      {
+        fontSize: "0.75rem !important"
+      },
+    ".inspector-header-toolbar .property-visibility-toggle": {
+      width: 22,
+      height: 22,
+      padding: 0,
+      margin: 0,
+      flexShrink: 0
+    },
+    ".inspector-header-toolbar .property-visibility-toggle svg": {
+      fontSize: "0.9375rem !important"
+    }
+  });
+
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
   id,
   name,
@@ -73,10 +181,10 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     (headerActions != null ||
       headerReset != null ||
       headerSupplemental != null);
-  const labelFontSize = theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
+  const rootCss = useMemo(() => rootStyles(theme, density), [theme, density]);
+  const descriptionCss = useMemo(() => inlineDescriptionStyles(theme), [theme]);
 
   const label = (
     <label draggable={false} htmlFor={id}>
@@ -132,10 +240,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           gap={0.5}
           sx={{ width: "100%", minWidth: 0 }}
         >
-          <div
-            className="property-label-main"
-            css={css({ flex: "1 1 auto", minWidth: 0, overflow: "hidden" })}
-          >
+          <div className="property-label-main" css={labelMainStyles}>
             {labelWithTooltip}
           </div>
           <FlexRow
@@ -153,19 +258,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         labelWithTooltip
       )}
       {shouldShowInlineDescription && description && (
-        <span
-          css={css({
-            display: "block",
-            fontSize: theme.fontSizeSmaller,
-            color: theme.vars.palette.text.disabled,
-            lineHeight: 1.3,
-            marginTop: getSpacingPx(SPACING.micro), // was 1px
-            marginBottom: theme.spacing(0.5),
-            userSelect: "none",
-          })}
-        >
-          {description}
-        </span>
+        <span css={descriptionCss}>{description}</span>
       )}
     </>
   );
@@ -173,93 +266,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   return (
     <div
       className={`property-label${hasHeaderActions ? " property-label-with-actions" : ""}`}
-      css={css({
-        width: "100%",
-        height: "auto",
-        padding: 0,
-        overflow: "visible",
-        flexGrow: 1,
-        marginBottom: labelMarginBottom,
-        "&:hover": {
-          "& label": {
-            opacity: 0.94
-          }
-        },
-        "& label": {
-          display: "block",
-          fontWeight: 500,
-          fontSize: labelFontSize,
-          color: theme.vars.palette.text.secondary,
-          padding: 0,
-          margin: 0,
-          lineHeight: "1em",
-          maxHeight: "2em",
-          minHeight: "13px",
-          textTransform: "capitalize",
-          letterSpacing: "0.01em",
-          userSelect: "none"
-        },
-        ".inspector-header-toolbar .inspector-reset-button": {
-          padding: 0,
-          margin: 0,
-          width: 26,
-          height: 26,
-          flexShrink: 0,
-          "& svg": {
-            fontSize: "1.0625rem !important"
-          }
-        },
-        ".inspector-header-toolbar .inspector-reset-button.is-changed": {
-          color: theme.vars.palette.common.white,
-          opacity: 1
-        },
-        ".inspector-header-toolbar .inspector-reset-button.is-changed:hover": {
-          color: theme.vars.palette.common.white,
-          opacity: 0.85
-        },
-        ".inspector-header-toolbar .inspector-reset-button.Mui-disabled": {
-          opacity: 0.5,
-          color: theme.vars.palette.text.disabled
-        },
-        ".inspector-header-toolbar .MuiIconButton-root": {
-          padding: 0,
-          margin: 0,
-          width: 20,
-          height: 20
-        },
-        ".inspector-header-toolbar .MuiIconButton-root svg": {
-          fontSize: "var(--fontSizeSmall)"
-        },
-        ".inspector-header-toolbar .inspector-supplemental-action": {
-          width: 22,
-          height: 22,
-          padding: 0,
-          margin: 0,
-          flexShrink: 0,
-          color: theme.vars.palette.common.white,
-          "& svg": {
-            fontSize: "0.9375rem !important"
-          },
-          "&:hover": {
-            color: theme.vars.palette.common.white,
-            opacity: 0.85,
-            backgroundColor: theme.vars.palette.c_overlay
-          }
-        },
-        ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg": {
-          fontSize: "0.75rem !important"
-        },
-        ".inspector-header-toolbar .property-visibility-toggle": {
-          width: 22,
-          height: 22,
-          padding: 0,
-          margin: 0,
-          flexShrink: 0
-        },
-        ".inspector-header-toolbar .property-visibility-toggle svg": {
-          fontSize: "0.9375rem !important"
-        }
-      })}
+      css={rootCss}
     >
       {labelBlock}
     </div>
