@@ -66,7 +66,7 @@ function isRecordWithId(value: unknown): value is { id: string; name: string } {
 }
 
 /** Legacy key mapping for backward compatibility */
-const LEGACY_KEY_MAP: Record<DragDataType, string> = {
+const LEGACY_KEY_MAP = {
   "create-node": "create-node",
   asset: "asset",
   "assets-multiple": "selectedAssetIds",
@@ -76,7 +76,7 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   tab: "text/plain",
   "collection-file": "",
   "chat-media": "" // Only carried in the unified format
-};
+} satisfies Record<DragDataType, string>;
 
 /**
  * Serialize drag data, setting both the unified MIME format and the legacy

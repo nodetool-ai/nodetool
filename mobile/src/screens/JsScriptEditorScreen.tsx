@@ -106,7 +106,7 @@ const asText = (value: unknown): string => {
  * and everything else goes in as the string the user typed, which is what makes
  * `hello` work without quotes.
  */
-export function parseRunInput(raw: string): unknown {
+export function parseRunInput(raw: string) {
   const trimmed = raw.trim();
   if (trimmed === '') {
     return '';

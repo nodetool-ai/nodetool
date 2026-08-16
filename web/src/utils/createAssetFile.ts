@@ -271,7 +271,7 @@ const chunkToOutput = (chunk: Chunk) => {
 const concatTextChunksSafely = (
   chunks: Chunk[],
   maxChars: number
-): { text: string; truncated: boolean } => {
+) => {
   const parts: string[] = [];
   let currentLen = 0;
 

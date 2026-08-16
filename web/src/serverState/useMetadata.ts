@@ -11,7 +11,7 @@ import { WORKFLOW_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 
 export { WORKFLOW_NODE_TYPE };
 
-const defaultMetadata: Record<string, NodeMetadata> = {
+const defaultMetadata = {
   [PREVIEW_NODE_TYPE]: {
     title: "Preview",
     description: "Preview",
@@ -63,7 +63,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     is_streaming_output: true,
     required_settings: []
   }
-};
+} satisfies Record<string, NodeMetadata>;
 
 const METADATA_ENDPOINT = "/api/nodes/metadata?fields=full&limit=10000";
 

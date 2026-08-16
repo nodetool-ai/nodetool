@@ -92,10 +92,14 @@ export function toolResultToText(result: string | MessageContent[]): string {
  * assistant) message, so image-bearing tool results must ride a user message.
  * Returns `imageMessage: null` for plain (text/no-image) results.
  */
-export function splitToolResultImages(result: string | MessageContent[]): {
+export type ToolResultSplit = {
   toolContent: string | MessageContent[];
   imageMessage: Message | null;
-} {
+};
+
+export function splitToolResultImages(
+  result: string | MessageContent[]
+): ToolResultSplit {
   if (typeof result === "string") {
     return { toolContent: result, imageMessage: null };
   }

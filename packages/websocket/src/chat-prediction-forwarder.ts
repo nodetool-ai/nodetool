@@ -19,10 +19,10 @@ export function attachChatPredictionForwarder(
     if (msg.type !== "prediction") {
       return;
     }
-    const forwarded: Record<string, unknown> = {
+    const forwarded = {
       ...msg,
       thread_id: ids.threadId
-    };
+    } satisfies Record<string, unknown>;
     send(
       ids.workflowId == null
         ? forwarded

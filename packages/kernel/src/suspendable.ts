@@ -36,7 +36,7 @@ export class WorkflowSuspendedError extends Error {
     this.metadata = opts.metadata ?? {};
   }
 
-  toDict(): Record<string, unknown> {
+  toDict() {
     return {
       node_id: this.nodeId,
       reason: this.reason,

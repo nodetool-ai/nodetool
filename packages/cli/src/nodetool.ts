@@ -1563,7 +1563,7 @@ type ModelRowInput = {
   repo_id?: unknown;
 };
 
-function modelRow(m: ModelRowInput): Record<string, unknown> {
+function modelRow(m: ModelRowInput) {
   return {
     id: m["id"],
     name: m["name"],

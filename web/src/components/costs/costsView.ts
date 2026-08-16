@@ -86,12 +86,12 @@ export interface CostsView {
   stats: CostsStatsView;
 }
 
-const RANGE_DAYS: Record<DateRange, number> = {
+const RANGE_DAYS = {
   "7d": 7,
   "14d": 14,
   "30d": 30,
   "90d": 90
-};
+} satisfies Record<DateRange, number>;
 
 export const rangeToDays = (range: DateRange): number => RANGE_DAYS[range];
 

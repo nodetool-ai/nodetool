@@ -26,21 +26,21 @@ export interface SupervisedRunSummary {
   costUsd: number;
 }
 
-const ZERO_ACTIONS: Record<VerdictAction, number> = {
+const ZERO_ACTIONS = {
   retry: 0,
   substitute: 0,
   skip: 0,
   end_stream: 0,
   fail: 0
-};
+} satisfies Record<VerdictAction, number>;
 
-const ZERO_DECIDERS: Record<DecidedBy, number> = {
+const ZERO_DECIDERS = {
   agent: 0,
   sticky: 0,
   bounds: 0,
   default: 0,
   kernel: 0
-};
+} satisfies Record<DecidedBy, number>;
 
 export function summarizeInterventions(
   interventions: readonly Intervention[]

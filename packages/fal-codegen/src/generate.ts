@@ -68,10 +68,7 @@ function throwIfStrictFailures(
   );
 }
 
-function pricingPaths(manifestPath: string): {
-  byNodeTypePath: string;
-  catalogPath: string;
-} {
+function pricingPaths(manifestPath: string) {
   const generatedDir = join(dirname(manifestPath), "generated");
   return {
     byNodeTypePath: join(generatedDir, "fal-node-type-pricing.json"),

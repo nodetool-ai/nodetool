@@ -14,6 +14,9 @@ type NumericBounds = { min?: number; max?: number };
 
 type AnyRecord = Record<string, any>;
 
+/** TypeScript type string plus the matching `@prop` type value. */
+export type JsonTypeInfo = { tsType: string; propType: string };
+
 export class SchemaParser {
   private _rootSchema: AnyRecord = {};
 
@@ -475,7 +478,7 @@ export class SchemaParser {
     prop: AnyRecord,
     enumRef: string | undefined,
     propName: string = ""
-  ): { tsType: string; propType: string } {
+  ): JsonTypeInfo {
     if (enumRef) {
       return { tsType: "enum", propType: "enum" };
     }

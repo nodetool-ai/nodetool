@@ -72,7 +72,7 @@ const AUTHORING_CAPABILITIES = [
  * The shape `finish()` must carry. Deliberately loose about what a node or an
  * edge holds — `validate_workflow` is what judges that, against the registry.
  */
-const GRAPH_RESULT_SCHEMA: Record<string, unknown> = {
+const GRAPH_RESULT_SCHEMA = {
   type: "object",
   properties: {
     nodes: {
@@ -87,7 +87,7 @@ const GRAPH_RESULT_SCHEMA: Record<string, unknown> = {
     }
   },
   required: ["nodes", "edges"]
-};
+} satisfies Record<string, unknown>;
 
 export interface AuthorGraphOptions {
   /** The context the sub-agent runs in — tools, sandbox catalog, memory. */

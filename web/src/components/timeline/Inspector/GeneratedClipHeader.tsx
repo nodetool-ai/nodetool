@@ -25,10 +25,7 @@ import { relativeTime } from "../../../utils/formatDateAndTime";
 
 // ── Status mapping (PRD §5.5) ─────────────────────────────────────────────
 
-const CLIP_STATUS_MAP: Record<
-  ClipStatus,
-  { status: StatusType; label: string; pulse: boolean }
-> = {
+const CLIP_STATUS_MAP = {
   draft: { status: "default", label: "Draft", pulse: false },
   queued: { status: "pending", label: "Queued", pulse: false },
   generating: { status: "pending", label: "Generating", pulse: true },
@@ -37,7 +34,7 @@ const CLIP_STATUS_MAP: Record<
   failed: { status: "error", label: "Failed", pulse: false },
   locked: { status: "info", label: "Locked", pulse: false },
   missing: { status: "error", label: "Missing", pulse: false }
-};
+} satisfies Record<ClipStatus, { status: StatusType; label: string; pulse: boolean }>;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 

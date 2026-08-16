@@ -81,7 +81,7 @@ export const savePersistedVariables = async (
 export const persistableValues = (
   variables: Record<string, unknown>,
   ids: ReadonlySet<string>
-): Record<string, unknown> => {
+) => {
   const values: Record<string, unknown> = {};
   for (const id of [...ids].sort()) {
     const value = variables[id];

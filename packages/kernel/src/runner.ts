@@ -2506,7 +2506,7 @@ export class WorkflowRunner {
    */
   private _buildControlActionProperties(
     node: NodeDescriptor
-  ): Record<string, Record<string, unknown>> {
+  ) {
     const result: Record<string, Record<string, unknown>> = {};
 
     const props = (node.properties ?? {}) as Record<string, unknown>;

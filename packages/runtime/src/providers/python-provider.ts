@@ -274,7 +274,7 @@ export class PythonProvider extends BaseProvider {
 
 // ── Wire format helpers ───────────────────────────────────────────────
 
-function serializeMessage(msg: Message): Record<string, unknown> {
+function serializeMessage(msg: Message) {
   const result: Record<string, unknown> = { role: msg.role };
 
   if (typeof msg.content === "string") {

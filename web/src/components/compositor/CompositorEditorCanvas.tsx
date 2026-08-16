@@ -152,7 +152,7 @@ const CompositorEditorCanvasInner: React.FC<CompositorEditorCanvasProps> = ({
 
   // Dimensions per layer come from the decoded bitmap.
   const dimsFor = useCallback(
-    (id: string): { width: number; height: number } => {
+    (id: string) => {
       const b = bitmaps[id];
       return { width: b?.width ?? 1, height: b?.height ?? 1 };
     },

@@ -67,7 +67,7 @@ function targetInfo(
  * free-form JSON that {@link parseAppSpec} validates downstream; naming a type
  * here would claim a shape this function never checks.
  */
-function rawDocumentOf(stored: unknown): unknown {
+function rawDocumentOf(stored: unknown) {
   if (typeof stored !== "string") return stored;
   try {
     return JSON.parse(stored);

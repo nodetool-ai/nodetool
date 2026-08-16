@@ -33,10 +33,7 @@ const even = (n: number): number => Math.max(2, Math.round(n / 2) * 2);
  * are 1080 tall, portrait boards 1080 wide; anything unparseable falls back to
  * 1920×1080.
  */
-export function previewDimensions(aspectRatio: string | undefined): {
-  width: number;
-  height: number;
-} {
+export function previewDimensions(aspectRatio: string | undefined) {
   const [w, h] = (aspectRatio ?? DEFAULT_ASPECT_RATIO)
     .split(":")
     .map((part) => Number(part.trim()));

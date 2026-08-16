@@ -104,7 +104,7 @@ export function makeSignalChunk(
   channels: number,
   done: boolean,
   encoding: SignalEncoding
-): Record<string, unknown> {
+) {
   return {
     type: "chunk",
     content: samples.length > 0 ? samples : "",

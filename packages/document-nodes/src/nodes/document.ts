@@ -143,10 +143,10 @@ export class ListDocumentsNode extends BaseNode {
   };
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     document: { kind: "iteration", source: "__execution__", group: "items" },
     documents: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

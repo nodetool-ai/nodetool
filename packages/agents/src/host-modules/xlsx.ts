@@ -89,7 +89,7 @@ export async function parse(
   const copy = new Uint8Array(workbookBytes);
   await workbook.xlsx.load(copy.buffer);
 
-  const cellValue = (cell: ExcelCellLike): unknown => {
+  const cellValue = (cell: ExcelCellLike) => {
     const v = cell.value;
     if (v === null || v === undefined) return null;
     if (v instanceof Date) return v.toISOString();
@@ -187,7 +187,7 @@ function parseRange(where: string, range: unknown): CellRange {
   if (cells.length > 2) {
     throw new Error(`${where}: "${range}" is not a cell range`);
   }
-  const corner = (cell: string): { row: number; col: number } => {
+  const corner = (cell: string) => {
     const match = /^([A-Za-z]+)([0-9]+)$/.exec(cell.trim());
     if (match === null) {
       throw new Error(`${where}: "${range}" is not a cell range`);
@@ -298,7 +298,7 @@ function readSheetSpecs(
 }
 
 /** What exceljs should store for one guest value. */
-function writeValue(value: unknown): unknown {
+function writeValue(value: unknown) {
   if (value === undefined) return null;
   if (value === null || typeof value !== "object") return value;
   if (value instanceof Uint8Array) {

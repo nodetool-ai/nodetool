@@ -12,20 +12,17 @@ import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import type { EntityKind } from "@nodetool-ai/protocol";
 
 /** ui_primitives Chip color per entity kind. */
-export const ENTITY_KIND_COLOR: Record<
-  EntityKind,
-  "primary" | "secondary" | "info" | "success"
-> = {
+export const ENTITY_KIND_COLOR = {
   character: "primary",
   location: "info",
   style: "secondary",
   prop: "success"
-};
+} satisfies Record<EntityKind, "primary" | "secondary" | "info" | "success">;
 
 /** Icon per entity kind, used where a thumbnail is missing or too small. */
-export const ENTITY_KIND_ICON: Record<EntityKind, SvgIconComponent> = {
+export const ENTITY_KIND_ICON = {
   character: PersonOutlineIcon,
   location: PlaceOutlinedIcon,
   style: PaletteOutlinedIcon,
   prop: CategoryOutlinedIcon
-};
+} satisfies Record<EntityKind, SvgIconComponent>;

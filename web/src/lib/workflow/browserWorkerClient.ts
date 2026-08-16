@@ -52,7 +52,7 @@ type FromWorker =
 let worker: Worker | null = null;
 let ready: Promise<Set<string>> | null = null;
 
-function spawn(): { worker: Worker; ready: Promise<Set<string>> } {
+function spawn() {
   if (!worker) {
     const w = new Worker(
       new URL("./browserRunner.worker.ts", import.meta.url),

@@ -92,7 +92,7 @@ export class PrefixTreeSearch {
     });
   }
 
-  getStats(): { nodeCount: number; fields: string[] } {
+  getStats() {
     return {
       nodeCount: this.nodeCount,
       fields: Array.from(this.roots.keys())

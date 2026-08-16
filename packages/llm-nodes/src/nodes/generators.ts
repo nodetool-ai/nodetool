@@ -178,10 +178,7 @@ function buildMessageContent(
   return parts;
 }
 
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function getModelConfig(props: Record<string, unknown>) {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -316,7 +313,7 @@ async function* streamListItemsViaToolCalls(
 function dataframeFromRows(
   rows: Row[],
   columnsInput: unknown
-): Record<string, unknown> {
+) {
   const names =
     rows.length > 0
       ? Object.keys(rows[0])
@@ -564,11 +561,11 @@ export class DataGeneratorNode extends BaseNode {
   static readonly primaryOutput = "dataframe";
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     record: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     dataframe: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "language_model",
@@ -685,11 +682,11 @@ export class ListGeneratorNode extends BaseNode {
   static readonly primaryOutput = "output";
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     item: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     output: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "language_model",

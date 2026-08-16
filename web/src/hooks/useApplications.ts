@@ -177,7 +177,7 @@ const operationsOf = (document: unknown): OperationBinding[] =>
 export const useLinkedWorkflows = (
   applicationId: string | null | undefined,
   enabled = true
-): { links: LinkedWorkflow[]; isLoading: boolean } => {
+) => {
   const { data: application } = useApplication(applicationId);
   const { data: release } = useReleasedApplicationDocument(applicationId);
 

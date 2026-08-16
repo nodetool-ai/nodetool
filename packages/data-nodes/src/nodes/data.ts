@@ -61,7 +61,7 @@ export function asRows(value: unknown): Row[] {
   return [];
 }
 
-function toDataframe(rows: Row[]): { rows: Row[] } {
+function toDataframe(rows: Row[]) {
   return { rows };
 }
 
@@ -92,10 +92,10 @@ export class ForEachRowNode extends BaseNode {
   };
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     row: { kind: "iteration", source: "dataframe", group: "items" },
     index: { kind: "iteration", source: "dataframe", group: "items" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "dataframe",
@@ -140,12 +140,12 @@ export class LoadCSVAssetsNode extends BaseNode {
   };
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     dataframe: { kind: "iteration", source: "folder", group: "items" },
     name: { kind: "iteration", source: "folder", group: "items" },
     dataframes: { kind: "single", source: "folder" },
     names: { kind: "single", source: "folder" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "folder",

@@ -51,20 +51,17 @@ import {
 import { extractVideoFrames } from "../../components/timeline/Tracks/clipThumbnails";
 import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
 
-const KIND_TO_MODEL_KIND: Record<TimelineGenerateKind, ModelKind> = {
+const KIND_TO_MODEL_KIND = {
   "text-to-video": "video",
   "text-to-image": "image",
   "text-to-audio": "audio"
-};
+} satisfies Record<TimelineGenerateKind, ModelKind>;
 
-const KIND_TO_MEDIA_TYPE: Record<
-  TimelineGenerateKind,
-  "image" | "video" | "audio" | "overlay"
-> = {
+const KIND_TO_MEDIA_TYPE = {
   "text-to-video": "video",
   "text-to-image": "image",
   "text-to-audio": "audio"
-};
+} satisfies Record<TimelineGenerateKind, "image" | "video" | "audio" | "overlay">;
 
 const DEFAULT_FRAME_COUNT = 3;
 const MAX_FRAME_COUNT = 8;

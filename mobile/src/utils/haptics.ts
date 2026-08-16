@@ -21,20 +21,20 @@ export function hapticsSupported(): boolean {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
 
-const IMPACT_STYLES: Record<HapticImpactStyle, Haptics.ImpactFeedbackStyle> = {
+const IMPACT_STYLES = {
   light: Haptics.ImpactFeedbackStyle.Light,
   medium: Haptics.ImpactFeedbackStyle.Medium,
   heavy: Haptics.ImpactFeedbackStyle.Heavy,
-};
+} satisfies Record<HapticImpactStyle, Haptics.ImpactFeedbackStyle>;
 
-const NOTIFICATION_TYPES: Record<
-  HapticNotificationType,
-  Haptics.NotificationFeedbackType
-> = {
+const NOTIFICATION_TYPES = {
   success: Haptics.NotificationFeedbackType.Success,
   warning: Haptics.NotificationFeedbackType.Warning,
   error: Haptics.NotificationFeedbackType.Error,
-};
+} satisfies Record<
+  HapticNotificationType,
+  Haptics.NotificationFeedbackType
+>;
 
 function fire(run: () => Promise<void>): void {
   if (!hapticsSupported()) {return;}

@@ -229,7 +229,7 @@ export function useVideoSrc(value: unknown): React.RefObject<HTMLVideoElement | 
   return videoRef;
 }
 
-export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[] } {
+export function useImageAssets(value: unknown) {
   const items: ImageValue[] = useMemo(
     () => (isImageValueArray(value) ? value : []),
     [value]

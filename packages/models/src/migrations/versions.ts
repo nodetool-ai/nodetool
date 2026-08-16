@@ -1169,7 +1169,7 @@ export const migrations: MigrationDef[] = [
       "nodetool_settings"
     ],
     async up(db) {
-      const tableColumns: Record<string, Record<string, string>> = {
+      const tableColumns = {
         nodetool_workflows: {
           id: "TEXT",
           user_id: "TEXT",
@@ -1404,7 +1404,7 @@ export const migrations: MigrationDef[] = [
           created_at: "TEXT",
           updated_at: "TEXT"
         }
-      };
+      } satisfies Record<string, Record<string, string>>;
 
       for (const [tableName, columns] of Object.entries(tableColumns)) {
         if (!(await db.tableExists(tableName))) {
@@ -1521,12 +1521,12 @@ export const migrations: MigrationDef[] = [
     createsTables: [],
     modifiesTables: ["nodetool_predictions"],
     async up(db) {
-      const columns: Record<string, string> = {
+      const columns = {
         billing_unit: "TEXT",
         quantity: "REAL",
         unit_price: "REAL",
         currency: "TEXT"
-      };
+      } satisfies Record<string, string>;
       if (!(await db.tableExists("nodetool_predictions"))) return;
       for (const [columnName, columnType] of Object.entries(columns)) {
         if (!(await db.columnExists("nodetool_predictions", columnName))) {
@@ -2699,6 +2699,26 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_jsv_user");
       await db.execute("DROP INDEX IF EXISTS idx_jsv_script");
       await db.execute("DROP TABLE IF EXISTS js_script_versions");
+    }
+  },
+
+  // ── Link a script back to its storyboard ────────────────────────────
+  // The storyboard owns the link (it projects line text into shots); the
+  // script keeps a back-pointer so "open storyboard" works from the script
+  // editor, exactly like the existing timeline_id back-pointer.
+  {
+    version: "20260816_000000",
+    name: "add_storyboard_id_to_scripts",
+    createsTables: [],
+    modifiesTables: ["scripts"],
+    async up(db) {
+      if (!(await db.tableExists("scripts"))) return;
+      if (!(await db.columnExists("scripts", "storyboard_id"))) {
+        await db.execute("ALTER TABLE scripts ADD COLUMN storyboard_id TEXT");
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
     }
   }
 ];

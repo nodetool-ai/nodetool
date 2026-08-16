@@ -140,7 +140,7 @@ export function parseSupervisorFlags(
 export function parseModelSpec(
   spec: string,
   isRegisteredProvider: (id: string) => boolean
-): { providerId: string; model: string } {
+) {
   const cut = spec.indexOf("/");
   const head = cut === -1 ? spec : spec.slice(0, cut);
   if (cut === -1 || !isRegisteredProvider(head.toLowerCase())) {

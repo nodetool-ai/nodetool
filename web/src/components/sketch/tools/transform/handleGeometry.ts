@@ -160,7 +160,7 @@ export function computeLayerCenter(
 export function scaledHalfExtents(
   rasterBounds: LayerContentBounds,
   transform: LayerTransform
-): { hw: number; hh: number } {
+) {
   const sx = transform.kind === "affine" ? transform.scaleX : 1;
   const sy = transform.kind === "affine" ? transform.scaleY : 1;
   return {
@@ -558,7 +558,7 @@ export function docRectToScreen(
   containerW: number,
   containerH: number,
   dpr: number
-): { x: number; y: number; w: number; h: number } {
+) {
   const topLeft = docToScreen(
     docX,
     docY,

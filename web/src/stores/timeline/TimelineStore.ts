@@ -683,19 +683,7 @@ function mergeClipsAtTime(
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
 
-const emptyState: {
-  sequenceId: string | null;
-  baseUpdatedAt: string | null;
-  fps: number;
-  width: number;
-  height: number;
-  durationMs: number;
-  tracks: TimelineTrack[];
-  clips: TimelineClip[];
-  markers: TimelineMarker[];
-  transcript: TranscriptLine[];
-  scriptEnabled: boolean;
-} = {
+const emptyState = {
   sequenceId: null,
   baseUpdatedAt: null,
   fps: 30,
@@ -707,6 +695,18 @@ const emptyState: {
   markers: [],
   transcript: [],
   scriptEnabled: false
+} satisfies {
+  sequenceId: string | null;
+  baseUpdatedAt: string | null;
+  fps: number;
+  width: number;
+  height: number;
+  durationMs: number;
+  tracks: TimelineTrack[];
+  clips: TimelineClip[];
+  markers: TimelineMarker[];
+  transcript: TranscriptLine[];
+  scriptEnabled: boolean;
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────

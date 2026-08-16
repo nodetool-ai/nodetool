@@ -142,7 +142,7 @@ function computeFieldClassification(fields: TopazFieldDef[]) {
 function collectScalarFields(
   instance: BaseNode,
   spec: TopazManifestEntry
-): Record<string, unknown> {
+) {
   const fields: Record<string, unknown> = {};
   for (const field of spec.fields) {
     if (field.uploadField || isAssetType(field.type)) continue;

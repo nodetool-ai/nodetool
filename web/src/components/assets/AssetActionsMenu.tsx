@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const TYPE_FILTER_ICONS: Record<TypeFilterKey, React.ReactNode> = {
+const TYPE_FILTER_ICONS = {
   all: <FilterAltOffIcon />,
   image: <ImageIcon />,
   video: <VideocamIcon />,
@@ -77,7 +77,7 @@ const TYPE_FILTER_ICONS: Record<TypeFilterKey, React.ReactNode> = {
   text: <DescriptionIcon />,
   application: <InsertDriveFileIcon />,
   other: <MoreHorizIcon />
-};
+} satisfies Record<TypeFilterKey, React.ReactNode>;
 
 const fullscreenFiltersStyles = css({
   "&": {

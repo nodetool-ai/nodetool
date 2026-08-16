@@ -8,11 +8,7 @@ interface UseModalResizeOptions {
   maxHeight?: number;
 }
 
-export function useModalResize(options: UseModalResizeOptions = {}): Readonly<{
-  modalHeight: number;
-  setModalHeight: Dispatch<SetStateAction<number>>;
-  handleResizeMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
-}> {
+export function useModalResize(options: UseModalResizeOptions = {}) {
   const {
     storageKey = "textEditorModal_height",
     minHeight = 250,

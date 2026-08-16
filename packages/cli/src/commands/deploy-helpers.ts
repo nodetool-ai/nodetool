@@ -72,11 +72,11 @@ export function getDeploymentOrExit(
 }
 
 /** Deployer factory map — wraps concrete deployers into the Deployer interface. */
-export function defaultDeployerFactories(): Record<string, DeployerFactory> {
+export function defaultDeployerFactories() {
   return {
     docker: (name, deployment, state) =>
       adaptDocker(new DockerDeployer(name, deployment as DockerDeployment, state))
-  };
+  } satisfies Record<string, DeployerFactory>;
 }
 
 function adaptDocker(d: DockerDeployer): Deployer {
@@ -287,7 +287,7 @@ function contentTypeToExt(contentType: string): string {
 // Misc
 // ---------------------------------------------------------------------------
 
-export function parseParamPairs(pairs: string[]): Record<string, unknown> {
+export function parseParamPairs(pairs: string[]) {
   const result: Record<string, unknown> = {};
   for (const raw of pairs) {
     const eq = raw.indexOf("=");

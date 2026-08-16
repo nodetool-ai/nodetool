@@ -210,7 +210,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     this._minimaxFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { MINIMAX_API_KEY: this.apiKey };
   }
 
@@ -218,7 +218,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     return true;
   }
 
-  private headers(): Record<string, string> {
+  private headers() {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json"

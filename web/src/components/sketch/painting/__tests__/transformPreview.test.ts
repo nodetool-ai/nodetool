@@ -32,7 +32,7 @@ function makeDoc(layers: Array<{ id: string; transform: LayerTransform }>) {
 function makeLayer(
   id: string,
   transform: LayerTransform
-): { id: string; transform: LayerTransform } {
+) {
   return { id, transform } as any;
 }
 

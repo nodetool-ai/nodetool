@@ -35,13 +35,7 @@ export interface PopoverProps extends MuiPopoverProps {
   paperSx?: SxProps<Theme>;
 }
 
-const PLACEMENT_MAP: Record<
-  PopoverPlacement,
-  {
-    anchorOrigin: MuiPopoverProps["anchorOrigin"];
-    transformOrigin: MuiPopoverProps["transformOrigin"];
-  }
-> = {
+const PLACEMENT_MAP = {
   "bottom-left": {
     anchorOrigin: { vertical: "bottom", horizontal: "left" },
     transformOrigin: { vertical: "top", horizontal: "left" }
@@ -66,7 +60,13 @@ const PLACEMENT_MAP: Record<
     anchorOrigin: { vertical: "top", horizontal: "center" },
     transformOrigin: { vertical: "bottom", horizontal: "center" }
   }
-};
+} satisfies Record<
+  PopoverPlacement,
+  {
+    anchorOrigin: MuiPopoverProps["anchorOrigin"];
+    transformOrigin: MuiPopoverProps["transformOrigin"];
+  }
+>;
 
 /**
  * Popover - Simplified popover with semantic positioning

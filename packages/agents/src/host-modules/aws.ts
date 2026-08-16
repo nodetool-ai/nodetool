@@ -145,7 +145,7 @@ function canonicalQuery(params: URLSearchParams): string {
 }
 
 /** `20240115T093000Z` and its `20240115` date part. */
-function amzDate(now: Date): { stamp: string; date: string } {
+function amzDate(now: Date) {
   const stamp = `${now
     .toISOString()
     .replace(/[:-]|\.\d{3}/g, "")
@@ -187,7 +187,7 @@ function readUrl(where: string, opts: Record<string, unknown>): URL {
   }
 }
 
-function readHeaders(where: string, value: unknown): Record<string, string> {
+function readHeaders(where: string, value: unknown) {
   const out: Record<string, string> = {};
   const source = optionsOf(value);
   for (const [name, headerValue] of Object.entries(source)) {

@@ -79,14 +79,14 @@ export class MinimaxTextToImageNode extends BaseNode {
       ? `${basePrompt.trim()}\n\nDo not include: ${negative}`
       : basePrompt;
 
-    const body: Record<string, unknown> = {
+    const body = {
       model: String(this.model ?? "image-01") || "image-01",
       prompt,
       aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       n: 1,
       response_format: "base64",
       prompt_optimizer: Boolean(this.prompt_optimizer ?? true)
-    };
+    } satisfies Record<string, unknown>;
 
     const res = await fetch(`${MINIMAX_BASE_URL}/v1/image_generation`, {
       method: "POST",

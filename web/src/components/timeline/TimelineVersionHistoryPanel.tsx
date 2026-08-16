@@ -48,20 +48,17 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 
-const SAVE_TYPE_LABEL: Record<TimelineVersionSaveType, string> = {
+const SAVE_TYPE_LABEL = {
   manual: "Manual",
   autosave: "Auto",
   restore: "Restore"
-};
+} satisfies Record<TimelineVersionSaveType, string>;
 
-const SAVE_TYPE_COLOR: Record<
-  TimelineVersionSaveType,
-  "primary" | "default" | "info"
-> = {
+const SAVE_TYPE_COLOR = {
   manual: "primary",
   autosave: "default",
   restore: "info"
-};
+} satisfies Record<TimelineVersionSaveType, "primary" | "default" | "info">;
 
 const listStyles = (theme: Theme) =>
   css({

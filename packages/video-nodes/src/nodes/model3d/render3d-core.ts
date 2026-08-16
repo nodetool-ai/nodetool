@@ -77,7 +77,7 @@ export function orbitOffset(
   azimuthDeg: number,
   elevationDeg: number,
   distance: number
-): { x: number; y: number; z: number } {
+) {
   const az = (azimuthDeg * Math.PI) / 180;
   const el = (Math.min(Math.max(elevationDeg, -89.9), 89.9) * Math.PI) / 180;
   return {

@@ -185,7 +185,7 @@ export async function reveImageToRef(
 // ---------------------------------------------------------------------------
 
 /** Drop null/undefined/empty fields and an all-"none" postprocessing array. */
-function cleanBody(body: Record<string, unknown>): Record<string, unknown> {
+function cleanBody(body: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(body)) {
     if (v === null || v === undefined || v === "") continue;

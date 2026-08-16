@@ -26,7 +26,7 @@ import {
 } from "../VariableNode";
 import { $serializePrompt } from "../promptEditorState";
 
-const makeRichTextEditor = (): { editor: LexicalEditor; cleanup: () => void } => {
+const makeRichTextEditor = () => {
   const editor = createEditor({
     namespace: "rich-inline-test",
     nodes: [AssetMentionNode, VariableNode],

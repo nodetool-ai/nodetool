@@ -24,11 +24,7 @@ const FALLBACK_ANON_KEY = "public-anon-key";
 const makeClient = (
   url: string | null | undefined,
   key: string | null | undefined
-): {
-  client: SupabaseClient;
-  anonKey: string;
-  url: string;
-} => {
+) => {
   const resolvedUrl = url || buildTimeUrl || FALLBACK_URL;
   const resolvedKey = key || buildTimeAnonKey || FALLBACK_ANON_KEY;
   if (!url && !buildTimeUrl) {

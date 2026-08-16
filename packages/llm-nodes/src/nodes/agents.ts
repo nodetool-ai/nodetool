@@ -132,10 +132,10 @@ export class SummarizerNode extends BaseNode {
   static readonly inputFields = ["image", "audio", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final aggregated summary is the `text` single output.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = SUMMARIZER_RECOMMENDED_MODELS;
 
   @prop({
@@ -307,10 +307,10 @@ export class EnhancePromptNode extends BaseNode {
   static readonly inputFields = ["target", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final improved prompt is the `text` single output.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = ENHANCE_PROMPT_RECOMMENDED_MODELS;
 
   @prop({
@@ -773,12 +773,12 @@ export class AgentNode extends BaseNode {
   // iteration step. Without this, the analyzer defaults to `single`, which
   // gives every yield the same lineage key — downstream collapses to the
   // last value and early chunks are dropped.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" },
     thinking: { kind: "iteration", source: "__execution__", group: "stream" },
     audio: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = AGENT_RECOMMENDED_MODELS;
 
   @prop({

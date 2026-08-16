@@ -111,12 +111,12 @@ interface IconForTypeProps extends IconProps {
 
 type IconSizeOption = "small" | "normal" | "medium" | "large";
 
-const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
+const ICON_SIZE_MAP = {
   small: 20,
   normal: 24,
   medium: 32,
   large: 40
-};
+} satisfies Record<IconSizeOption, number>;
 
 // Theme-independent, so it lives at module scope: one instance renders per node
 // handle on the canvas, and a fresh object per render missed emotion's cache.

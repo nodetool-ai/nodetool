@@ -29,7 +29,7 @@ export function getApiKey(secrets: Record<string, string> | undefined): string {
   return key.trim();
 }
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -411,7 +411,7 @@ export interface VideoPollOptions {
 export function resolveVideoDimensions(
   aspectRatio?: string | null,
   resolution?: string | null
-): { width: number; height: number } {
+) {
   const ar = (aspectRatio ?? "16:9").replace(/\s/g, "");
   const res = (resolution ?? "720p").toLowerCase();
 

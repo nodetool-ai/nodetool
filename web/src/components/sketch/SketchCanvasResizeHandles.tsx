@@ -82,7 +82,7 @@ function applyCornerUniformScale(
   maxW: number,
   minH: number,
   maxH: number
-): { width: number; height: number } {
+) {
   if (origW <= 0 || origH <= 0) {
     return {
       width: Math.round(tentativeW),
@@ -110,7 +110,7 @@ function layerTranslateForResizeEdge(
   edge: ResizeEdge,
   dW: number,
   dH: number
-): { x: number; y: number } {
+) {
   let x = 0;
   let y = 0;
   if (edge === "w" || edge === "nw" || edge === "sw") {
@@ -122,7 +122,7 @@ function layerTranslateForResizeEdge(
   return { x, y };
 }
 
-const CURSOR_MAP: Record<ResizeEdge, string> = {
+const CURSOR_MAP = {
   n: "ns-resize",
   s: "ns-resize",
   e: "ew-resize",
@@ -131,7 +131,7 @@ const CURSOR_MAP: Record<ResizeEdge, string> = {
   nw: "nwse-resize",
   se: "nwse-resize",
   sw: "nesw-resize"
-};
+} satisfies Record<ResizeEdge, string>;
 
 const containerStyles = css({
   position: "absolute",
@@ -197,7 +197,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
   }, [activeEdge]);
 
   const clampSize = useCallback(
-    (w: number, h: number): { width: number; height: number } => ({
+    (w: number, h: number) => ({
       width: Math.round(Math.max(minWidth, Math.min(maxWidth, w))),
       height: Math.round(Math.max(minHeight, Math.min(maxHeight, h)))
     }),

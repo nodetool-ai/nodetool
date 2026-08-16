@@ -2,13 +2,13 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Box, FlexColumn, FlexRow } from "../components/ui_primitives";
 import { CONTROL } from "../components/ui_primitives/tokens";
 
-const HEIGHT_ROLES: Record<keyof typeof CONTROL.height, string> = {
+const HEIGHT_ROLES = {
   xs: "toolbar buttons",
   sm: "node-canvas controls",
   md: "inspector controls",
   lg: "form controls",
   xl: "touch targets"
-};
+} satisfies Record<keyof typeof CONTROL.height, string>;
 
 const ControlScale = () => (
   <FlexColumn gap={4} sx={{ maxWidth: 720 }}>
@@ -76,11 +76,11 @@ const ControlScale = () => (
   </FlexColumn>
 );
 
-const meta = {
+const meta: Meta<typeof ControlScale> = {
   title: "Design Tokens/Control",
   component: ControlScale,
   parameters: { layout: "padded" }
-} satisfies Meta<typeof ControlScale>;
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;

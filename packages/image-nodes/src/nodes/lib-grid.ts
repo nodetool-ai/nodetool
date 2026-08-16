@@ -40,7 +40,7 @@ type TilePlacement = {
 function toImageRef(
   buf: Buffer,
   placement?: TilePlacement
-): Record<string, unknown> {
+) {
   return {
     type: "image",
     data: new Uint8Array(buf),

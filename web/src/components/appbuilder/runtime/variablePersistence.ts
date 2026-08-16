@@ -50,7 +50,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const loadPersistedVariables = (
   appIdentity: string | null,
   variables: ReadonlyArray<VariableDeclaration>
-): Record<string, unknown> => {
+) => {
   const declared = persistable(variables);
   if (!appIdentity || declared.length === 0) return {};
   let stored: unknown;

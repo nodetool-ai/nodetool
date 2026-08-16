@@ -12,7 +12,7 @@ import type { CaptionWord, TimelineClip } from "./types.js";
  */
 function splitAnimations(
   animations: ReadonlyArray<ClipAnimation>
-): { left: ClipAnimation[]; right: ClipAnimation[] } {
+) {
   const left: ClipAnimation[] = [];
   const right: ClipAnimation[] = [];
   for (const anim of animations) {
@@ -40,7 +40,7 @@ function splitCaptionWords(
   words: ReadonlyArray<CaptionWord>,
   splitMs: number,
   rightDurationMs: number
-): { left: CaptionWord[]; right: CaptionWord[] } {
+) {
   const left: CaptionWord[] = [];
   const right: CaptionWord[] = [];
   for (const word of words) {

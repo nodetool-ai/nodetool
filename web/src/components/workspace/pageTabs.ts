@@ -13,7 +13,7 @@ export type PageTabKey =
   | "entities"
   | "settings";
 
-export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
+export const PAGE_TAB_TITLES = {
   assets: "Assets",
   tutorials: "Tutorials",
   examples: "Examples",
@@ -24,7 +24,7 @@ export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
   workspaces: "Workspaces",
   entities: "Entities",
   settings: "Settings"
-};
+} satisfies Record<PageTabKey, string>;
 
 export const isPageTabKey = (value: string): value is PageTabKey =>
   Object.prototype.hasOwnProperty.call(PAGE_TAB_TITLES, value);

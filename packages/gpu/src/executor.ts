@@ -212,7 +212,7 @@ export function createExecutor(): Executor {
    */
   function convertAlphaIfNeeded(
     args: EncodeArgs<AnyWgslStruct>
-  ): { inputs: Record<string, LabeledTexture>; scratchToRelease: LabeledTexture[] } {
+  ) {
     const { ctx, module, encoder, inputs } = args;
     const converted: Record<string, LabeledTexture> = { ...inputs };
     const scratchToRelease: LabeledTexture[] = [];

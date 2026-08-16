@@ -778,10 +778,7 @@ export class NodeActor {
 
     const collect = (
       key: string
-    ): {
-      values: Record<string, unknown>;
-      envelopes: Map<string, MessageEnvelope>;
-    } => {
+    ) => {
       const values: Record<string, unknown> = {};
       const envelopes = new Map<string, MessageEnvelope>();
       for (const h of dataHandles) {
@@ -2026,7 +2023,7 @@ export class NodeActor {
 
   private _filterStreamingPartial(
     partial: Record<string, unknown>
-  ): Record<string, unknown> {
+  ) {
     const filtered: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(partial)) {
       if (value === null || value === undefined) continue;

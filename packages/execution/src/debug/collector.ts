@@ -24,13 +24,13 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
  * a new value in the protocol enum fails this file rather than slipping
  * through as an unrecognized string.
  */
-const DECIDED_BY: Record<Intervention["decidedBy"], true> = {
+const DECIDED_BY = {
   agent: true,
   sticky: true,
   bounds: true,
   default: true,
   kernel: true
-};
+} satisfies Record<Intervention["decidedBy"], true>;
 
 const MAX_STRING_PREVIEW = 2000;
 const MAX_ARRAY_PREVIEW = 50;

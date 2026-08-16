@@ -62,7 +62,7 @@ type WorkflowView = Pick<Workflow, "id" | "name" | "graph">;
  * Accepts either a full Workflow (with graph.nodes/graph.edges) or
  * the simplified format from team-workflow.json (with top-level nodes/edges).
  */
-function parseWorkflowJSON(raw: unknown): { workflow: WorkflowView } {
+function parseWorkflowJSON(raw: unknown) {
   const obj = raw as Record<string, unknown>;
 
   // Simplified format: { nodes: [...], edges: [...] }

@@ -335,7 +335,7 @@ export class NodeOutputs {
   /**
    * Return a snapshot of all collected outputs (slot → last emitted value).
    */
-  collected(): Record<string, unknown> {
+  collected() {
     return { ...this._collected };
   }
 }

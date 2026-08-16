@@ -77,9 +77,9 @@ describe("applyTransformPreviews", () => {
       transform: makeTransform({ x: 0, y: 0, scaleX: 2, scaleY: 2 })
     });
     const doc = makeDoc([layer]);
-    const preview: Record<string, LayerTransform> = {
+    const preview = {
       [layer.id]: makeAffineTransform({ x: 10, y: 20, scaleX: 2, scaleY: 2 })
-    };
+    } satisfies Record<string, LayerTransform>;
 
     const result = applyTransformPreviews(doc, preview);
     expect(result).not.toBeNull();
@@ -94,9 +94,9 @@ describe("applyTransformPreviews", () => {
   it("does not mutate the original document", () => {
     const layer = makeLayer();
     const doc = makeDoc([layer]);
-    const preview: Record<string, LayerTransform> = {
+    const preview = {
       [layer.id]: makeAffineTransform({ x: 99, y: 99 })
-    };
+    } satisfies Record<string, LayerTransform>;
 
     applyTransformPreviews(doc, preview);
     expect(aff(doc.layers[0].transform).x).toBe(0);
@@ -107,9 +107,9 @@ describe("applyTransformPreviews", () => {
     const layer1 = makeLayer({ id: "a" });
     const layer2 = makeLayer({ id: "b" });
     const doc = makeDoc([layer1, layer2]);
-    const preview: Record<string, LayerTransform> = {
+    const preview = {
       a: makeAffineTransform({ x: 10, y: 10 })
-    };
+    } satisfies Record<string, LayerTransform>;
 
     const result = applyTransformPreviews(doc, preview);
     expect(result!.layers[1]).toBe(layer2);

@@ -26,15 +26,15 @@ export interface SurfaceProps extends Omit<PaperProps, "elevation"> {
   background?: "default" | "paper" | "transparent";
 }
 
-const RADIUS_MAP: Record<
-  NonNullable<SurfaceProps["rounded"]>,
-  keyof Theme["rounded"] | "none"
-> = {
+const RADIUS_MAP = {
   none: "none",
   small: "sm",
   medium: "lg",
   large: "xxl",
-};
+} satisfies Record<
+  NonNullable<SurfaceProps["rounded"]>,
+  keyof Theme["rounded"] | "none"
+>;
 
 /**
  * Surface - A themed container surface

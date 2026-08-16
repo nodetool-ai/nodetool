@@ -107,10 +107,7 @@ function dateName(name: string): string {
     .replaceAll("%S", pad(now.getSeconds()));
 }
 
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function getModelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   if (typeof model === "string") {
     return { providerId: "", modelId: model };
@@ -152,11 +149,11 @@ export class LoadAudioAssetsNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "iteration", source: "__execution__", group: "items" },
     name: { kind: "iteration", source: "__execution__", group: "items" },
     audios: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "folder",
@@ -256,11 +253,11 @@ export class LoadAudioFolderNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "iteration", source: "__execution__", group: "items" },
     path: { kind: "iteration", source: "__execution__", group: "items" },
     audios: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",
@@ -1452,14 +1449,14 @@ export class TextToSpeechNode extends BaseNode {
   static readonly autoSaveAsset = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "single", source: "__execution__" },
     // `chunk` is declared on the output schema but the current process()
     // accumulates and returns only `audio`. PR 1 classifies it as single
     // (aspirational) per the design's stale-chunk-port guidance; a follow-up
     // either makes the node stream real chunks or removes the handle.
     chunk: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "tts_model",
@@ -1592,9 +1589,9 @@ export class TextToMusicNode extends BaseNode {
   static readonly autoSaveAsset = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "music_model",

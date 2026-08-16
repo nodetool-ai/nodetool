@@ -51,7 +51,7 @@ function synthesizeTickPayload(
   dueTickIndex: number,
   intervalSeconds: number,
   nowMs: number
-): Record<string, unknown> {
+) {
   return {
     tick: dueTickIndex,
     interval_seconds: intervalSeconds,

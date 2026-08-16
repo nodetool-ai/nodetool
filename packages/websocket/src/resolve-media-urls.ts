@@ -144,7 +144,7 @@ function resolveRefForProvider(
   ref: Record<string, unknown>,
   fallbackMime?: string,
   userId?: string
-): Record<string, unknown> {
+) {
   const resolved = { ...ref };
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 

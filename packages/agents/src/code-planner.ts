@@ -86,7 +86,7 @@ export interface CodePlannerOptions {
  */
 export const codeGenSpanAttributes = (
   options: CodePlannerOptions
-): Record<string, unknown> => ({
+) => ({
   "agent.plan.kind": "code",
   "code_gen.instruction_chars": options.instruction.length,
   "code_gen.input_count": options.inputs?.length ?? 0,

@@ -99,7 +99,7 @@ const uniqueId = (base: string, taken: ReadonlySet<string>): string => {
 export const addOperation = (
   meta: AppDocMeta,
   input: OperationInput
-): { meta: AppDocMeta; operation: OperationBinding } => {
+) => {
   const taken = new Set(meta.operations.map((op) => op.id));
   if (input.id && taken.has(input.id)) {
     throw new Error(`An operation with id "${input.id}" already exists`);
@@ -133,7 +133,7 @@ export const updateOperation = (
   meta: AppDocMeta,
   id: string,
   patch: OperationPatch
-): { meta: AppDocMeta; operation: OperationBinding | null } => {
+) => {
   const index = meta.operations.findIndex((op) => op.id === id);
   if (index < 0) return { meta, operation: null };
   const current = meta.operations[index];
@@ -165,7 +165,7 @@ export const updateOperation = (
 export const removeOperation = (
   meta: AppDocMeta,
   id: string
-): { meta: AppDocMeta; removed: boolean } => {
+) => {
   const operations = meta.operations.filter((op) => op.id !== id);
   if (operations.length === meta.operations.length) {
     return { meta, removed: false };
@@ -184,7 +184,7 @@ const withPersistRule = (
 export const declareVariable = (
   meta: AppDocMeta,
   input: VariableInput
-): { meta: AppDocMeta; variable: VariableDeclaration } => {
+) => {
   const taken = new Set(meta.variables.map((v) => v.id));
   if (input.id && taken.has(input.id)) {
     throw new Error(`A variable with id "${input.id}" already exists`);
@@ -209,7 +209,7 @@ export const updateVariable = (
   meta: AppDocMeta,
   id: string,
   patch: VariablePatch
-): { meta: AppDocMeta; variable: VariableDeclaration | null } => {
+) => {
   const index = meta.variables.findIndex((v) => v.id === id);
   if (index < 0) return { meta, variable: null };
   const current = meta.variables[index];
@@ -232,7 +232,7 @@ export const updateVariable = (
 export const removeVariable = (
   meta: AppDocMeta,
   id: string
-): { meta: AppDocMeta; removed: boolean } => {
+) => {
   const variables = meta.variables.filter((v) => v.id !== id);
   if (variables.length === meta.variables.length) {
     return { meta, removed: false };
@@ -245,7 +245,7 @@ export const removeVariable = (
 export const addResource = (
   meta: AppDocMeta,
   input: ResourceInput
-): { meta: AppDocMeta; resource: ResourceBinding } => {
+) => {
   if (!input.scope.projectId && !input.scope.fixedId) {
     throw new Error(
       "A resource binding needs a scope: projectId for a collection, or fixedId for one pinned document"
@@ -275,7 +275,7 @@ export const addResource = (
 export const removeResource = (
   meta: AppDocMeta,
   id: string
-): { meta: AppDocMeta; removed: boolean } => {
+) => {
   const resources = meta.resources.filter((r) => r.id !== id);
   if (resources.length === meta.resources.length) {
     return { meta, removed: false };

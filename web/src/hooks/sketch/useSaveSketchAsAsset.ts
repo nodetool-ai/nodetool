@@ -17,10 +17,7 @@ import { trpcClient } from "../../trpc/client";
  * Distinct from {@link useSaveSketchToAsset}, which overwrites the bytes of an
  * existing asset rather than creating a new one.
  */
-export function useSaveSketchAsAsset(): Readonly<{
-  saveAsAsset: (folderId: string | null) => Promise<void>;
-  saving: boolean;
-}> {
+export function useSaveSketchAsAsset() {
   const instance = useSketchInstance();
   const createAsset = useAssetStore((state) => state.createAsset);
   const updateAsset = useAssetStore((state) => state.update);

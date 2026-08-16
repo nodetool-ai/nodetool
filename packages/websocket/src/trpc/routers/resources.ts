@@ -224,7 +224,7 @@ const assetProvider: ResourceProvider = {
   }
 };
 
-const providers: Record<ResourceKind, ResourceProvider> = {
+const providers = {
   asset: assetProvider,
   timeline: documentProvider("timeline", TimelineSequence, (data) =>
     TimelineSequence.create<TimelineSequence>(data)
@@ -235,7 +235,7 @@ const providers: Record<ResourceKind, ResourceProvider> = {
   sketch: documentProvider("sketch", ImageDocument, (data) =>
     ImageDocument.create<ImageDocument>(data)
   )
-};
+} satisfies Record<ResourceKind, ResourceProvider>;
 
 const notFound = (kind: ResourceKind): never =>
   throwApiError(ApiErrorCode.NOT_FOUND, `${kind} resource not found`);

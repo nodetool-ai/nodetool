@@ -215,9 +215,9 @@ describe("getNodesBounds", () => {
     const nodes: Node<NodeData>[] = [
       createMockNode("node1", 100, 200, 150, 60)
     ];
-    const nodesById: Record<string, XYPosition> = {
+    const nodesById = {
       node1: { x: 100, y: 200 }
-    };
+    } satisfies Record<string, XYPosition>;
 
     const result = getNodesBounds(nodes, nodesById);
 
@@ -234,10 +234,10 @@ describe("getNodesBounds", () => {
       createMockNode("node1", 100, 100, 100, 50),
       createMockNode("node2", 300, 200, 100, 50)
     ];
-    const nodesById: Record<string, XYPosition> = {
+    const nodesById = {
       node1: { x: 100, y: 100 },
       node2: { x: 300, y: 200 }
-    };
+    } satisfies Record<string, XYPosition>;
 
     const result = getNodesBounds(nodes, nodesById);
 
@@ -253,9 +253,9 @@ describe("getNodesBounds", () => {
     const nodes: Node<NodeData>[] = [
       createMockNode("node1", 100, 100, undefined, undefined)
     ];
-    const nodesById: Record<string, XYPosition> = {
+    const nodesById = {
       node1: { x: 100, y: 100 }
-    };
+    } satisfies Record<string, XYPosition>;
 
     const result = getNodesBounds(nodes, nodesById);
 
@@ -271,10 +271,10 @@ describe("getNodesBounds", () => {
     const nodes: Node<NodeData>[] = [
       createMockNode("child1", 50, 50, 100, 50, "parent")
     ];
-    const nodesById: Record<string, XYPosition> = {
+    const nodesById = {
       child1: { x: 50, y: 50 },
       parent: { x: 200, y: 300 }
-    };
+    } satisfies Record<string, XYPosition>;
 
     const result = getNodesBounds(nodes, nodesById);
 

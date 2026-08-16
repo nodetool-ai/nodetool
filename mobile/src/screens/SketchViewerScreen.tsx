@@ -38,11 +38,11 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SketchViewer'>;
 
-const LAYER_ICONS: Record<'raster' | 'mask' | 'group', keyof typeof Ionicons.glyphMap> = {
+const LAYER_ICONS = {
   raster: 'image-outline',
   mask: 'contrast-outline',
   group: 'folder-outline',
-};
+} satisfies Record<'raster' | 'mask' | 'group', keyof typeof Ionicons.glyphMap>;
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 

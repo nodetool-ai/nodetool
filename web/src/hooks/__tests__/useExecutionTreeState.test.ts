@@ -4,7 +4,7 @@ import { buildExecutionTreeState } from "../useExecutionTreeState";
 function msg(
   eventType: string,
   content: unknown
-): { role: string; content: unknown; execution_event_type: string } {
+) {
   return { role: "agent_execution", execution_event_type: eventType, content };
 }
 

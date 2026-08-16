@@ -251,7 +251,7 @@ function chatModel(model: string): KieChatModel | undefined {
   return KIE_CHAT_MODELS.find((m) => m.id === model);
 }
 
-function headers(apiKey: string): Record<string, string> {
+function headers(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -328,7 +328,7 @@ async function parseKieJson(
 }
 
 /** Detect an image container from its magic bytes; defaults to PNG. */
-function sniffImageType(bytes: Uint8Array): { mime: string; ext: string } {
+function sniffImageType(bytes: Uint8Array) {
   if (
     bytes.length >= 8 &&
     bytes[0] === 0x89 &&
@@ -685,7 +685,7 @@ export class KieProvider extends BaseProvider {
     this.apiKey = (secrets["KIE_API_KEY"] as string) ?? "";
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { KIE_API_KEY: this.apiKey };
   }
 
@@ -890,7 +890,7 @@ export class KieProvider extends BaseProvider {
   private pollConfig(
     modelId: string,
     timeoutSeconds?: number | null
-  ): { pollInterval: number; maxAttempts: number } {
+  ) {
     const meta = getManifestNodeMeta(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const pollInterval = meta?.pollInterval ?? 4000;
     // A caller-supplied timeout wins: translate it into a bounded poll window.
@@ -988,7 +988,7 @@ export class KieProvider extends BaseProvider {
     metaPollInterval: number | undefined,
     metaMaxAttempts: number | undefined,
     timeoutSeconds?: number | null
-  ): { pollInterval: number; maxAttempts: number } {
+  ) {
     const pollInterval = metaPollInterval ?? 4000;
     if (timeoutSeconds != null && timeoutSeconds > 0) {
       return {
@@ -1008,7 +1008,7 @@ export class KieProvider extends BaseProvider {
   private buildSunoInput(
     modelId: string,
     params: TextToMusicParams
-  ): Record<string, unknown> {
+  ) {
     const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const has = (name: string) => this.declaresField(fields, name);
     const input: Record<string, unknown> = {};
@@ -1397,7 +1397,7 @@ export class KieProvider extends BaseProvider {
   private imageInput(
     modelId: string,
     urls: string[]
-  ): Record<string, unknown> {
+  ) {
     const field = selectPrimaryImageInput(
       getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId),
       urls.length

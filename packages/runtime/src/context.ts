@@ -1791,7 +1791,7 @@ export class ProcessingContext {
    * the Prompt node merges these into its `{{ name }}` template variables so a
    * Set Variable node upstream can supply values without an explicit wire.
    */
-  getVariables(): Record<string, unknown> {
+  getVariables() {
     return { ...this._variables };
   }
 
@@ -2066,7 +2066,7 @@ export class ProcessingContext {
     }
   }
 
-  getMemoryStats(): { total: number; byPrefix: Record<string, number> } {
+  getMemoryStats() {
     const byPrefix: Record<string, number> = {};
     for (const key of this._memory.keys()) {
       const withoutScheme = key.replace(/^memory:\/\//, "");

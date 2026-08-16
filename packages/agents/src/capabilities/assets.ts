@@ -79,7 +79,7 @@ export {
  * only: the signed download URLs on the HTTP response come from the server's
  * storage adapter, and an agent that wants the bytes calls `read_asset`.
  */
-function assetRecord(asset: AssetRow): Record<string, unknown> {
+function assetRecord(asset: AssetRow) {
   const ext = asset.fileExtension;
   return {
     id: asset.id,
@@ -105,7 +105,7 @@ function assetUri(asset: AssetRow): string {
 }
 
 /** The lightweight handle the library capabilities return — no bytes. */
-function toHandle(asset: AssetRow): Record<string, unknown> {
+function toHandle(asset: AssetRow) {
   const metadata = (asset.metadata ?? {}) as Record<string, unknown>;
   return {
     asset_id: asset.id,

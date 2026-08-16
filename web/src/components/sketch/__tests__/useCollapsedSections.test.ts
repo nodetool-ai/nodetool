@@ -32,10 +32,10 @@ beforeEach(() => {
 describe("useCollapsedSections", () => {
   type TestKeys = "section1" | "section2";
   const storageKey = "test-collapsed-sections";
-  const defaults: Record<TestKeys, boolean> = {
+  const defaults = {
     section1: false,
     section2: true
-  };
+  } satisfies Record<TestKeys, boolean>;
 
   it("returns defaults when no stored state", () => {
     const { result } = renderHook(() =>

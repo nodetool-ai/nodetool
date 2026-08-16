@@ -48,7 +48,7 @@ export class LMStudioProvider extends OpenAICompatProvider {
     this._lmstudioBaseURL = baseURL;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     const env: Record<string, string> = {
       LMSTUDIO_API_URL: this._lmstudioBaseURL
     };

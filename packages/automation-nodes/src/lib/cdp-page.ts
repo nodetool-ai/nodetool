@@ -459,7 +459,7 @@ async function waitForNetworkIdle(client: CDPClient, timeout: number): Promise<v
   });
 }
 
-function mapKey(key: string): { key: string; code: string; vk: number; text?: string } {
+function mapKey(key: string) {
   const map: Record<string, { key: string; code: string; vk: number; text?: string }> = {
     Enter: { key: "Enter", code: "Enter", vk: 13, text: "\r" },
     Tab: { key: "Tab", code: "Tab", vk: 9 },

@@ -87,7 +87,7 @@ export class ElevenLabsProvider extends BaseProvider {
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return { ELEVENLABS_API_KEY: this.apiKey };
   }
 
