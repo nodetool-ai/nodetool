@@ -15,7 +15,7 @@ import type { Theme } from "@mui/material/styles";
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import TrashIconSvg from "../../icons/trash.svg?react";
-const TrashIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
+const TrashIcon = TrashIconSvg;
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";

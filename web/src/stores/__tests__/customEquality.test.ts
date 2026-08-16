@@ -49,7 +49,7 @@ describe("customEquality", () => {
       description: ""
     },
     ...overrides
-  }) as PartializedNodeStore;
+  });
 
   describe("with undefined or null inputs", () => {
     test("returns false when both previous and current are undefined", () => {

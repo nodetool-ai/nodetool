@@ -19,10 +19,8 @@ import type {
   ProviderStreamItem,
   StreamingAudioChunk,
   TextToImageParams,
-  ImageToImageParams,
-  ToolCall
+  ImageToImageParams
 } from "./types.js";
-import type { Chunk } from "@nodetool-ai/protocol";
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
@@ -179,13 +177,13 @@ export class PythonProvider extends BaseProvider {
           id: chunk.id as string,
           name: chunk.name as string,
           args: (chunk.args as Record<string, unknown>) ?? {}
-        } as ToolCall;
+        };
       } else {
         yield {
           type: "chunk",
           content: (chunk.content as string) ?? "",
           done: (chunk.done as boolean) ?? false
-        } as Chunk;
+        };
       }
     }
   }

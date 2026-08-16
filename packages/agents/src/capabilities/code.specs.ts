@@ -174,7 +174,7 @@ export const testCodeSpec: CapabilitySpec = {
               }
             }
           },
-          required: [] as string[]
+          required: []
         }
       },
       packages: PACKAGES_FIELD,

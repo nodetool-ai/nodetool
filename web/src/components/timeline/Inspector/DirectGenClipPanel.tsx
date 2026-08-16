@@ -404,7 +404,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                         name: clip.model,
                         voices: clip.voice ? [clip.voice] : [],
                         selected_voice: clip.voice ?? ""
-                      } as TTSModelValue)
+                      })
                     : ""
                 }
                 onChange={handleTTSModelChange}

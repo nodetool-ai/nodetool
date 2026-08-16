@@ -242,7 +242,7 @@ function composeValidators(
 }
 
 function generateJobId(): string {
-  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  const g = globalThis;
   if (g.crypto?.randomUUID) return g.crypto.randomUUID();
   return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }

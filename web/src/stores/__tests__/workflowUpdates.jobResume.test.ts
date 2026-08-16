@@ -239,7 +239,7 @@ describe("job_resumed", () => {
 describe("reconnect on socket open", () => {
   /** Invoke the "open" listener subscribeToWorkflowUpdates registered. */
   const fireOpen = () => {
-    const call = (globalWebSocketManager.subscribeEvent as jest.Mock).mock.calls
+    const call = jest.mocked(globalWebSocketManager.subscribeEvent).mock.calls
       .filter(([event]) => event === "open")
       .pop();
     expect(call).toBeDefined();

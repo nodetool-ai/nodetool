@@ -24,7 +24,7 @@ export const LIST_JOBS_SCHEMA: JsonSchema = {
       default: 100
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const GET_JOB_LOGS_SCHEMA: JsonSchema = {

@@ -53,7 +53,7 @@ beforeEach(() => {
   useResultsStore.setState({ liveGenerations: {} } as never);
   mockRunnerStore.setState.mockClear();
   mockAddNotification.mockClear();
-  (clearRunSignatures as jest.Mock).mockClear();
+  jest.mocked(clearRunSignatures).mockClear();
 });
 
 const dispatch = (data: MsgpackData) =>

@@ -155,7 +155,7 @@ describe("reactFlowNodeToGraphNode", () => {
     it("maps undefined properties to empty object", () => {
       const node = createMockReactFlowNode({
         data: {
-          properties: {} as Record<string, unknown>,
+          properties: {},
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},

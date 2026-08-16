@@ -3,6 +3,7 @@ import type { Chunk } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 import { resolveMediaUri } from "./resolveMediaUri";
+import { isFunction, isNumber, isRecord, isString } from "./typePredicates";
 
 interface AssetFileResult {
   file: File;
@@ -89,7 +90,7 @@ const convertDataFrameToCSV = (dataframe: DataFrame): string => {
 
 const decodeBase64 = (value: string): Uint8Array => {
   const cleaned = value.includes(",") ? value.split(",").pop() ?? "" : value;
-  if (typeof globalThis.atob === "function") {
+  if (isFunction(globalThis.atob)) {
     try {
       const binary = globalThis.atob(cleaned);
       const bytes = new Uint8Array(binary.length);
@@ -138,8 +139,8 @@ const isUsableBinary = (val: unknown): boolean => {
   if (val instanceof ArrayBuffer) return val.byteLength > 0;
   if (ArrayBuffer.isView(val)) return val.byteLength > 0;
   if (Array.isArray(val))
-    return val.length > 0 && val.every((v) => typeof v === "number");
-  if (typeof val === "string") return val.trim() !== "";
+    return val.length > 0 && val.every(isNumber);
+  if (isString(val)) return val.trim() !== "";
   return false;
 };
 
@@ -156,7 +157,7 @@ const toUint8Array = (input: unknown): Uint8Array => {
       input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength)
     );
   }
-  if (typeof input === "string") {
+  if (isString(input)) {
     const base64Like =
       input.startsWith("data:") ||
       /^[A-Za-z0-9+/=]+$/.test(input.replace(/[\r\n]+/g, ""));
@@ -172,7 +173,7 @@ const toUint8Array = (input: unknown): Uint8Array => {
   if (Array.isArray(input)) {
     return new Uint8Array(input);
   }
-  if (typeof input === "object") {
+  if (isRecord(input)) {
     if ("data" in input) {
       if (input.data instanceof Uint8Array) return input.data;
       if (input.data instanceof ArrayBuffer) return new Uint8Array(input.data);
@@ -188,8 +189,8 @@ const toUint8Array = (input: unknown): Uint8Array => {
     // Fallback: treat as a sparse byte map. Only safe when all values are
     // numbers; otherwise we'd silently produce garbage (e.g. for `ExtData`
     // wrappers that hold a non-binary `.data`).
-    const values = Object.values(input as Record<string, unknown>);
-    if (values.length > 0 && values.every((v): v is number => typeof v === "number")) {
+    const values = Object.values(input);
+    if (values.length > 0 && values.every(isNumber)) {
       return new Uint8Array(values);
     }
     return new Uint8Array();
@@ -203,7 +204,7 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   const candidate = buffer as ArrayBuffer & {
     slice?: (_start: number, _end: number) => ArrayBuffer;
   };
-  if (typeof candidate.slice === "function") {
+  if (isFunction(candidate.slice)) {
     return candidate.slice(byteOffset, byteOffset + byteLength);
   }
 
@@ -249,13 +250,12 @@ const resolveDownloadUri = (uri: string): string => {
 const chunkToOutput = (chunk: Chunk) => {
   console.debug("[createAssetFile] chunkToOutput", {
     type: chunk.content_type,
-    hasContent: typeof chunk.content !== "undefined",
-    contentLength:
-      typeof chunk.content === "string" ? chunk.content.length : undefined
+    hasContent: chunk.content !== undefined,
+    contentLength: isString(chunk.content) ? chunk.content.length : undefined
   });
   // Native Float32Array audio payloads aren't a saveable string; the asset
   // path only handles encoded (string) content.
-  const content = typeof chunk.content === "string" ? chunk.content : "";
+  const content = isString(chunk.content) ? chunk.content : "";
   switch (chunk.content_type) {
     case "text":
       return { type: "text", data: content };
@@ -276,7 +276,7 @@ const concatTextChunksSafely = (
   let currentLen = 0;
 
   for (const chunk of chunks) {
-    const piece = typeof chunk.content === "string" ? chunk.content : "";
+    const piece = isString(chunk.content) ? chunk.content : "";
     if (!piece) {
       continue;
     }
@@ -310,7 +310,7 @@ const normalizeOutput = (
   );
   if (Array.isArray(output)) {
     if (output.length > 0 && output.every((item) => isChunk(item))) {
-      const chunks = output as Chunk[];
+      const chunks = output;
       const textChunks = chunks.filter(
         (chunk) => chunk.content_type === "text"
       );
@@ -374,7 +374,7 @@ const getMimeType = (
   }
 
   const asString = (value: unknown): value is string =>
-    typeof value === "string" && value.includes("/");
+    isString(value) && value.includes("/");
 
   const nestedData = isTypedOutput(output.data) ? output.data : undefined;
   return (
@@ -403,7 +403,7 @@ const buildFilename = (
     return `preview_${id}${suffix}${extension ? `.${extension}` : ""}`;
   }
 
-  if (!suffix || (typeof index === "number" && index === 0)) {
+  if (!suffix || (isNumber(index) && index === 0)) {
     return desired;
   }
 
@@ -463,12 +463,12 @@ const createSingleAssetFile = async (
   const isDataEmpty = !isUsableBinary(data);
 
   const stringLooksLikeUrl =
-    typeof data === "string" &&
+    isString(data) &&
     (data.startsWith("http://") || data.startsWith("https://"));
 
   const typedOutput = isTypedOutput(output) ? output : null;
-  const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
-  const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
+  const outputUri = isString(typedOutput?.uri) ? typedOutput.uri : undefined;
+  const isAssetUri = isString(outputUri) && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
   // Content type reported by the server when the bytes are fetched via
   // `asset_id`. Used as the MIME/extension fallback so a JPEG/WEBP asset with
@@ -479,10 +479,10 @@ const createSingleAssetFile = async (
   // This covers asset://, /api/storage/, http(s)://, and also the ExtData
   // case where the wrapper exists but doesn't contain real bytes.
   const shouldFetchFromUri =
-    typeof outputUri === "string" &&
+    isString(outputUri) &&
     (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
-    typeof typedOutput?.asset_id === "string" &&
+    isString(typedOutput?.asset_id) &&
     (isDataEmpty || data === output || isAssetUri);
 
   if (shouldDownloadAsset) {
@@ -492,7 +492,7 @@ const createSingleAssetFile = async (
       });
       const downloadUrl = assetResponse.get_url;
       desiredFilename = assetResponse.name || desiredFilename;
-      if (typeof assetResponse.content_type === "string" && assetResponse.content_type.includes("/")) {
+      if (isString(assetResponse.content_type) && assetResponse.content_type.includes("/")) {
         serverContentType = assetResponse.content_type;
       }
       if (downloadUrl) {
@@ -571,7 +571,7 @@ const createSingleAssetFile = async (
       filename = buildFilename(desiredFilename, id, suffix, "json", index);
       break;
     case "text":
-      content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      content = isString(data) ? data : JSON.stringify(data, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
         desiredFilename,
@@ -583,9 +583,9 @@ const createSingleAssetFile = async (
       break;
     default:
       content =
-        typeof output === "string"
+        isString(output)
           ? output
-          : typeof data === "string" || data instanceof Blob
+          : isString(data) || data instanceof Blob
           ? data
           : JSON.stringify(output, null, 2);
       mimeType = getMimeType(output, "text/plain");
@@ -610,7 +610,7 @@ const createSingleAssetFile = async (
  * we expand it into an array so each output gets its own asset file.
  */
 const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] => {
-  if (!output || typeof output !== "object" || Array.isArray(output)) {
+  if (!isRecord(output) || Array.isArray(output)) {
     return output;
   }
   if ("type" in output) {

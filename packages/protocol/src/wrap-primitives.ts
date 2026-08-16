@@ -3,6 +3,7 @@
  *
  * Converts JS primitives to typed wrappers and back.
  */
+import { isBoolean, isString } from "./predicates.js";
 
 export interface WrappedPrimitive {
   type: "int" | "float" | "str" | "bool";
@@ -12,10 +13,10 @@ export interface WrappedPrimitive {
 export function wrapPrimitive(
   value: number | string | boolean
 ): WrappedPrimitive {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return { type: "str", value };
   }
-  if (typeof value === "boolean") {
+  if (isBoolean(value)) {
     return { type: "bool", value };
   }
   if (Number.isInteger(value)) {

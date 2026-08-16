@@ -316,21 +316,16 @@ export const timelineRouter = router({
         const current = seq.toDocument();
         const merged: TimelineDocument = {
           tracks:
-            (input.document.tracks as TimelineDocument["tracks"]) ??
-            current.tracks,
+            input.document.tracks ?? current.tracks,
           clips:
             (input.document.clips as TimelineDocument["clips"]) ??
             current.clips,
           markers:
-            (input.document.markers as TimelineDocument["markers"]) ??
-            current.markers,
+            input.document.markers ?? current.markers,
           transcript:
-            (input.document.transcript as TimelineDocument["transcript"]) ??
-            current.transcript,
+            input.document.transcript ?? current.transcript,
           scriptEnabled:
-            (input.document.scriptEnabled as
-              | TimelineDocument["scriptEnabled"]
-              | undefined) ?? current.scriptEnabled
+            input.document.scriptEnabled ?? current.scriptEnabled
         };
         fields.document = JSON.stringify(merged);
       }
@@ -507,7 +502,7 @@ export const timelineRouter = router({
           );
         }
 
-        const nodes = (source.graph?.nodes ?? []) as Record<string, unknown>[];
+        const nodes = source.graph?.nodes ?? [];
 
         const outputNodes = nodes.filter((n) => isOutputNode(n.type as string));
 
@@ -567,8 +562,7 @@ export const timelineRouter = router({
           4000;
 
         const workflowUpdatedAt =
-          (source.updated_at as string | undefined | null) ??
-          new Date().toISOString();
+          source.updated_at ?? new Date().toISOString();
         const dependencyHash = computeDependencyHash({
           workflowId: source.id,
           workflowUpdatedAt,

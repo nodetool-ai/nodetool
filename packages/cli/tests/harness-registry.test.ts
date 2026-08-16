@@ -117,6 +117,35 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("maps a script↔storyboard link change onto both surfaces and their selfcheck", () => {
+    const plan = planGate([
+      "packages/protocol/src/script-link.ts",
+      "packages/timeline/src/linked.ts",
+      "packages/agents/src/capabilities/storyboards.ts",
+      "web/src/lib/tools/builtin/script.ts"
+    ]);
+    const surfaces = plan.surfaces.map((s) => s.id);
+    expect(surfaces).toContain("storyboard");
+    expect(surfaces).toContain("script");
+    const check = plan.checks.find(
+      (c) => c.harnessId === "script-storyboard-link"
+    );
+    expect(check).toBeDefined();
+    expect(check!.surfaces.sort()).toEqual(["script", "storyboard"]);
+    // timeline-validate and eval need a target or a model, so they are manual.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("timeline-validate");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it("claims every packages/timeline file for the timeline surface", () => {
+    const plan = planGate([
+      "packages/timeline/src/script-link.ts",
+      "packages/timeline/src/render/sceneModel.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("timeline");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("reports files no surface claims", () => {
     const plan = planGate(["README.md"]);
     expect(plan.unmappedFiles).toEqual(["README.md"]);

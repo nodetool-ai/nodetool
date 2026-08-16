@@ -43,9 +43,9 @@ describe("installer promptForInstallLocation", () => {
   });
 
   it("sends prompt to renderer and resolves with location and modelBackend", async () => {
-    (getDefaultInstallLocation as jest.Mock).mockReturnValue("/default/path");
+    jest.mocked(getDefaultInstallLocation).mockReturnValue("/default/path");
     let handler: any;
-    (createIpcMainHandler as jest.Mock).mockImplementation((_channel, fn) => {
+    jest.mocked(createIpcMainHandler).mockImplementation((_channel, fn) => {
       handler = fn;
     });
 
@@ -78,9 +78,9 @@ describe("installer promptForInstallLocation", () => {
   });
 
   it("registers install handler", async () => {
-    (getDefaultInstallLocation as jest.Mock).mockReturnValue("/d");
+    jest.mocked(getDefaultInstallLocation).mockReturnValue("/d");
     let handler: any;
-    (createIpcMainHandler as jest.Mock).mockImplementation((_c, fn) => {
+    jest.mocked(createIpcMainHandler).mockImplementation((_c, fn) => {
       handler = fn;
     });
 
@@ -95,7 +95,7 @@ describe("installer promptForInstallLocation", () => {
   });
 
   it("rejects if no active window", async () => {
-    (BrowserWindow.getFocusedWindow as jest.Mock).mockReturnValueOnce(null);
+    jest.mocked(BrowserWindow.getFocusedWindow).mockReturnValueOnce(null);
 
     await expect(promptForInstallLocation()).rejects.toThrow(
       "No active window found"

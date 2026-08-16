@@ -1,11 +1,10 @@
 import type { CSSObject } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { settingsStyles } from "../settingsMenuStyles";
 
 describe("settingsStyles", () => {
   it("emits valid sidebar padding values", () => {
-    const styles = settingsStyles(mockTheme as Theme) as Record<
+    const styles = settingsStyles(mockTheme) as Record<
       string,
       CSSObject
     >;
@@ -22,7 +21,7 @@ describe("settingsStyles", () => {
   });
 
   it("keeps the sidebar readable and content close to the tree", () => {
-    const styles = settingsStyles(mockTheme as Theme) as Record<
+    const styles = settingsStyles(mockTheme) as Record<
       string,
       CSSObject
     >;

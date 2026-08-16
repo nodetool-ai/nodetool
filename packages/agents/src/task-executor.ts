@@ -418,7 +418,7 @@ export class TaskExecutor {
         dependsOn: [],
         logs: [],
         outputSchema: perItemSchema ?? step.outputSchema
-      } as Step;
+      };
     });
 
     const generators = ephemeralSteps.map((ephStep) => {

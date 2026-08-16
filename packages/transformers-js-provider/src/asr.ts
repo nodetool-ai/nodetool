@@ -39,7 +39,7 @@ export async function automaticSpeechRecognition(
 
   const opts: Record<string, unknown> = {};
   if (args.language) opts.language = args.language;
-  if (typeof args.temperature === "number") opts.temperature = args.temperature;
+  if (args.temperature != null) opts.temperature = args.temperature;
   if (args.word_timestamps) opts.return_timestamps = "word";
 
   const result = await pipeline(samples, opts);

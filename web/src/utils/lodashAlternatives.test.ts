@@ -144,7 +144,7 @@ describe("lodashAlternatives", () => {
 
     it("handles empty keys array", () => {
       const obj = { a: 1, b: 2 };
-      const result = omit(obj, [] as never[]);
+      const result = omit(obj, []);
       expect(result).toEqual({ a: 1, b: 2 });
     });
   });

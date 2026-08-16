@@ -281,11 +281,11 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
     activeClassName: "drag-over",
     onDrop: async (dragData) => {
       if (dragData.type === "asset") {
-        handleAsset(dragData.payload as Asset);
+        handleAsset(dragData.payload);
         return;
       }
       if (dragData.type === "assets-multiple") {
-        const ids = dragData.payload as string[];
+        const ids = dragData.payload;
         const get = useAssetStore.getState().get;
         const assets = await Promise.all(
           ids.map((assetId) => get(assetId).catch(() => undefined))
@@ -299,7 +299,7 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
       }
       if (dragData.type === "file") {
         uploadAsset({
-          file: dragData.payload as File,
+          file: dragData.payload,
           workflow_id: workflowId,
           source: "file",
           onCompleted: handleAsset

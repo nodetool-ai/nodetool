@@ -34,7 +34,7 @@ async function resolveElementSource(
     (idx: number, _kind: string | null) => {
       const el = document.querySelector(
         `[data-nt-idx="${idx}"]`
-      ) as HTMLElement | null;
+      );
       if (!el) return null;
       const media = el as HTMLMediaElement & HTMLImageElement;
       const src = media.currentSrc || media.src || el.getAttribute("src");
@@ -42,7 +42,7 @@ async function resolveElementSource(
       // Fall back to a nested media/source element (e.g. <video><source>).
       const nested = el.querySelector(
         "video, audio, img, source"
-      ) as HTMLMediaElement | HTMLImageElement | HTMLSourceElement | null;
+      );
       if (!nested) return null;
       return (
         (nested as HTMLMediaElement).currentSrc ||

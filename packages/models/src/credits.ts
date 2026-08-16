@@ -107,7 +107,7 @@ export async function getSubscription(
     .from(userSubscriptions)
     .where(eq(userSubscriptions.user_id, userId))
     .limit(1);
-  if (rows[0]) return toSubscription(rows[0] as Record<string, unknown>);
+  if (rows[0]) return toSubscription(rows[0]);
 
   const now = new Date().toISOString();
   try {
@@ -126,7 +126,7 @@ export async function getSubscription(
     .from(userSubscriptions)
     .where(eq(userSubscriptions.user_id, userId))
     .limit(1);
-  return toSubscription(created[0] as Record<string, unknown>);
+  return toSubscription(created[0]);
 }
 
 export async function setSubscriptionPlan(

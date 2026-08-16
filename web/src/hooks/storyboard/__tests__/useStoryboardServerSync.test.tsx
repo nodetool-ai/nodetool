@@ -79,7 +79,7 @@ const mountLoaded = async (): Promise<
       "rev-1"
     )
   );
-  return rendered as ReturnType<typeof renderHook<void, unknown>>;
+  return rendered;
 };
 
 describe("useStoryboardServerSync — a rejected save must not fail silently", () => {

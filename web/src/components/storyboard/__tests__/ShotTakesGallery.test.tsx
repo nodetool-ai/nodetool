@@ -15,7 +15,7 @@ jest.mock("../../../hooks/useResolvedMediaUri");
 jest.mock("../../node/OutputRenderer", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown[] }) => (
-    <div data-testid="output-renderer">{`items:${(value as unknown[]).length}`}</div>
+    <div data-testid="output-renderer">{`items:${value.length}`}</div>
   )
 }));
 

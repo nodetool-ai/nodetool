@@ -226,7 +226,7 @@ export class Script extends DBModel {
       .where(and(eq(scripts.id, id), eq(scripts.updated_at, expectedUpdatedAt)))
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new Script(row);

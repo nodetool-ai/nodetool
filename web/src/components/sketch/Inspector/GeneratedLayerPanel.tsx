@@ -7,7 +7,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import type { Layer } from "../types";
-import type { Node } from "../../../stores/ApiTypes";
 import { useLayerBinding, useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { NodeContext } from "../../../contexts/NodeContext";
@@ -130,7 +129,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
       jobState?.status === "failed" ? jobState.errorMessage : undefined;
 
     const inputDefinitions = useMemo<WorkflowInputDefinition[]>(() => {
-      const nodes = (workflow?.graph?.nodes ?? []) as Node[];
+      const nodes = workflow?.graph?.nodes ?? [];
       return nodes
         .map((node) => {
           const kind = getWorkflowInputKind(node.type);

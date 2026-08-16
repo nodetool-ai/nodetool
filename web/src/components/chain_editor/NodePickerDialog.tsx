@@ -259,7 +259,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSelect(node); }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = theme.vars
-                            .palette.action.hover as string;
+                            .palette.action.hover;
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = "transparent";

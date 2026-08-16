@@ -35,7 +35,7 @@ describe("useResizable", () => {
     const ref2 = createMockRef(null);
     const { result, rerender } = renderHook(
       ({ r }) => useResizable(r, {}),
-      { initialProps: { r: ref1 as RefObject<HTMLElement | null> } }
+      { initialProps: { r: ref1 } }
     );
     const first = result.current;
     rerender({ r: ref2 });

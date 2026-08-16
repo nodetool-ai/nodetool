@@ -1450,7 +1450,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
           isAssetUri(result["asset_uri"]) &&
           result["verdict"] === "pass" &&
           typeof result["score"] === "number" &&
-          (result["score"] as number) >= 0.75
+          result["score"] >= 0.75
         );
       },
       resultCheckLabel: "verdict=pass, score>=0.75, asset:// uri"
@@ -1593,7 +1593,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
         return (
           result["content"] === "fox: ok" &&
           typeof result["asset_id"] === "string" &&
-          (result["asset_id"] as string).startsWith("asset_")
+          result["asset_id"].startsWith("asset_")
         );
       },
       resultCheckLabel: 'content="fox: ok", asset_id=asset_*'

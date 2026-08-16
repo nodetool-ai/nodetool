@@ -97,10 +97,10 @@ const InferenceProviderModelSelect = ({
     });
 
     const handleChangeProvider = useCallback((selectedValue: string) => {
-        setProvider(selectedValue as InferenceProvider);
+        setProvider(selectedValue);
         onChange({
             type: property.type.type as InferenceProviderModelValue["type"],
-            provider: selectedValue as InferenceProvider,
+            provider: selectedValue,
             model_id: ""
         });
     }, [onChange, property.type]);

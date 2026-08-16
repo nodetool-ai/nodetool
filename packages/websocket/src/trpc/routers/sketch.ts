@@ -478,7 +478,7 @@ export const sketchRouter = router({
           paramOverridesSnapshot: input.paramOverridesSnapshot ?? {},
           costCredits: input.costCredits,
           durationMs: input.durationMs,
-          status: input.status as "success" | "failed" | "cancelled"
+          status: input.status
         };
 
         return mutateOwnedDocumentData(ctx.userId, input.id, (data) => {
@@ -677,10 +677,7 @@ export const sketchRouter = router({
           );
         }
 
-        const sourceNodes = (source.graph?.nodes ?? []) as Record<
-          string,
-          unknown
-        >[];
+        const sourceNodes = source.graph?.nodes ?? [];
 
         const outputNodes = sourceNodes.filter((n) =>
           isImageOutputNode(n.type as string)
@@ -724,8 +721,7 @@ export const sketchRouter = router({
         }
 
         const workflowUpdatedAt =
-          (source.updated_at as string | undefined | null) ??
-          new Date().toISOString();
+          source.updated_at ?? new Date().toISOString();
         const dependencyHash = computeDependencyHash({
           workflowId: source.id,
           workflowUpdatedAt,

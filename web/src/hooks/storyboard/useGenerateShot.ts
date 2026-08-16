@@ -32,6 +32,7 @@ import {
   useStoryboardGenerationStore,
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
+import { fetchShotDurationSeconds } from "./useShotDuration";
 
 const GEN_NODE_ID = "gen";
 const OUT_NODE_ID = "out";
@@ -301,6 +302,12 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       }
       const board = useStoryboardStore.getState().getBoard(boardId);
       const aspectRatio = board?.aspectRatio ?? "16:9";
+      // A board linked to a script renders each shot as long as the takes it
+      // covers, so the clip holds its voiceover (design §2.3).
+      const durationSeconds = await fetchShotDurationSeconds(
+        board?.screenplay?.script_id,
+        shot
+      );
       const workflowId = runnerIdForShot(shot.id);
       const nodes: Node<NodeData>[] = [
         makeNode(
@@ -315,7 +322,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
               boardEntities(board?.entityIds)
             ).map(wireEntity),
             aspect_ratio: aspectRatio,
-            duration: shot.duration_seconds,
+            duration: durationSeconds,
             // Board-level clip model; omitted = the node's default model.
             ...modelProp(board?.videoModel)
           },

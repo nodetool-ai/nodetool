@@ -93,7 +93,7 @@ function coerceShot(raw: unknown, index: number): Shot {
     status: "planned"
   };
   if (obj.camera && typeof obj.camera === "object") {
-    shot.camera = obj.camera as Shot["camera"];
+    shot.camera = obj.camera;
   }
   const motion = optionalStr(obj.motion);
   if (motion) shot.motion = motion;

@@ -74,7 +74,6 @@ import { WorkflowManagerProvider } from "../contexts/WorkflowManagerContext";
 import { MenuProvider } from "../providers/MenuProvider";
 import { ContextMenuProvider } from "../providers/ContextMenuProvider";
 
-import type { NodeStore } from "../stores/NodeStore";
 import type { DemoCast } from "./castTypes";
 import { DemoEngine } from "./demoEngine";
 
@@ -228,7 +227,7 @@ export function DemoPlayer({
           <MenuProvider>
             <WorkflowManagerProvider queryClient={queryClient}>
               <ContextMenuProvider active={false}>
-                <NodeContext.Provider value={engine.nodeStore as NodeStore}>
+                <NodeContext.Provider value={engine.nodeStore}>
                   <ReactFlowProvider>
                     {/* `node-editor` class + generateCSS mirror NodeEditor's
                         wrapper so per-data-type handle/edge colors resolve

@@ -549,7 +549,7 @@ export class ScreenplayShotsNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<ScreenplayShotsNodeOutputs> {
     const prompts: string[] = [];
     for await (const chunk of this.genProcess(context)) {
-      const prompt = (chunk as { shot_prompt?: unknown }).shot_prompt;
+      const prompt = chunk.shot_prompt;
       if (typeof prompt === "string") prompts.push(prompt);
     }
     return { output: prompts };

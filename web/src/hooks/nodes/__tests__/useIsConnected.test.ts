@@ -11,7 +11,7 @@ describe("useIsConnectedSelector", () => {
   });
 
   const makeState = (edges: Edge[]) =>
-    ({ edges }) as { edges: Edge[] };
+    ({ edges });
 
   it("returns true when a matching edge exists", () => {
     const { result } = renderHook(() =>

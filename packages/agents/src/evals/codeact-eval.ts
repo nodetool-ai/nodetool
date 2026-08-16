@@ -10,7 +10,6 @@
 import { randomUUID } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import type { StepResult, ToolCallUpdate } from "@nodetool-ai/protocol";
 import type { EvalCheck } from "./graph-planner-eval.js";
 import {
   CodeActExecutor,
@@ -206,13 +205,13 @@ async function runCase(
     for await (const item of executor.execute()) {
       if (opts.signal?.aborted) break;
       if (item.type === "tool_call_update") {
-        const tc = item as ToolCallUpdate;
+        const tc = item;
         if (tc.name) sessionToolsInvoked.add(tc.name);
         // A "round" is one execute_code turn.
         if (tc.name === EXECUTE_CODE_TOOL_NAME) actions++;
       }
       if (item.type === "step_result") {
-        const sr = item as StepResult;
+        const sr = item;
         if (sr.error) error = sr.error;
         else result = sr.result;
       }

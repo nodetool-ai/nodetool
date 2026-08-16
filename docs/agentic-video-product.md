@@ -36,10 +36,11 @@ reused NodeTool.
 | Timeline editing | `web/src/components/timeline/TimelineEditor`, `ui_timeline_*` tools |
 | Storyboard → timeline | `useAssembleTimeline` → `buildStoryboardTimeline` (`@nodetool-ai/timeline`) |
 | Script → timeline | `useAssembleScriptTimeline` → `buildScriptTimeline` (`@nodetool-ai/timeline`) |
+| Linked board + script → timeline | `buildLinkedTimeline` (`@nodetool-ai/timeline`) — shot-aligned picture, one voiceover clip per line, no narration draft clip |
 | Agent chat in every editor | `ChatView` + per-document agent panels and bridges |
 | Persistence | tRPC `storyboards` / `scripts` / `timeline` routers, autosave hooks |
 | Cost data | prediction ledger (`nodetool_predictions`) via `costs.dashboard` |
-| Headless QA | `nodetool timeline validate`, `storyboard`/`script` render tools, the tool-loop evals |
+| Headless QA | `nodetool timeline validate`, `storyboard`/`script` render tools, the tool-loop evals, and the `script-storyboard-link` harness selfcheck (`packages/cli/src/harness/registry.ts`) the gate runs on diffs touching either surface |
 
 The Studio module itself is five small files in `web/src/studio/` plus four
 routes in `web/src/index.tsx`. Nothing under `web/src/components/` changed.

@@ -17,6 +17,7 @@
 import type {
   CameraDirection,
   Screenplay,
+  ShotDurationSource,
   ShotStatus
 } from "@nodetool-ai/protocol";
 
@@ -29,6 +30,8 @@ export interface StoryboardShotNode {
   camera?: CameraDirection;
   motion?: string;
   durationSeconds?: number;
+  /** Where `durationSeconds` comes from; absent on an unlinked board. */
+  durationSource?: ShotDurationSource;
   status: ShotStatus;
   /** Whether the shot has a rendered keyframe still. */
   hasKeyframe: boolean;
@@ -88,6 +91,11 @@ export interface StoryboardUpdateShotPatch {
   camera?: CameraDirection;
   motion?: string;
   status?: ShotStatus;
+  /**
+   * Where the shot's length comes from: `"audio"` derives it from the takes of
+   * the script lines the shot covers, `"manual"` pins `durationSeconds`.
+   */
+  durationSource?: ShotDurationSource;
 }
 
 /**

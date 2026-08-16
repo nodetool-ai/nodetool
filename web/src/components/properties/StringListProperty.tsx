@@ -95,7 +95,7 @@ const StringListProperty = (props: PropertyProps<string[]>) => {
         options={[]}
         value={strings}
         sx={autocompleteSx}
-        onChange={(_, newValue) => onChange(newValue as string[])}
+        onChange={(_, newValue) => onChange(newValue)}
         renderTags={(value: readonly string[], getTagProps) =>
           value.map((option: string, index: number) => (
             <Chip

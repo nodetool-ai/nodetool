@@ -83,9 +83,7 @@ async function persistMediaAsAsset(
   if (typeof context.createAsset !== "function") return value;
   if (
     (
-      context as ProcessingContext & {
-        readonly persistOutputAssets?: boolean;
-      }
+      context
     ).persistOutputAssets === false
   ) {
     return value;
@@ -111,7 +109,7 @@ async function persistMediaAsAsset(
     nodeId
   })) as Record<string, unknown> | null;
   const assetId =
-    asset && typeof asset.id === "string" ? (asset.id as string) : null;
+    asset && typeof asset.id === "string" ? asset.id : null;
   if (!assetId) return value;
 
   return {

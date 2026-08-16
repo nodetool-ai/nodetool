@@ -187,7 +187,7 @@ export function checkTaskPlanExpectations(
   if (expect.maxStepsPerTask !== undefined) {
     const worst = plan.tasks.reduce(
       (acc, t) => (t.steps.length > acc.steps.length ? t : acc),
-      plan.tasks[0] ?? { id: "-", steps: [] as Task["steps"] }
+      plan.tasks[0] ?? { id: "-", steps: [] }
     );
     checks.push({
       name: `stepsPerTask<=${expect.maxStepsPerTask}`,
@@ -303,7 +303,7 @@ async function runCase(
     const gen = planner.planMultiTask(evalCase.objective, context);
     let res = await gen.next();
     while (!res.done) {
-      const m = res.value as { type?: string } & Record<string, unknown>;
+      const m = res.value;
       if (m.type === "tool_call_update") {
         const name = String(m.name ?? "unknown");
         toolCalls[name] = (toolCalls[name] ?? 0) + 1;

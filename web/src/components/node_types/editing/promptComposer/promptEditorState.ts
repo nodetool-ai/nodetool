@@ -9,7 +9,6 @@ import {
   $insertNodes,
   $isElementNode,
   $isTextNode,
-  type ElementNode,
   type LexicalNode
 } from "lexical";
 
@@ -69,7 +68,7 @@ export const $serializePrompt = (): string =>
     .getChildren()
     .map((block) =>
       $isElementNode(block)
-        ? (block as ElementNode)
+        ? block
             .getChildren()
             .map((child) => child.getTextContent())
             .join("")

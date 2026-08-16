@@ -83,7 +83,7 @@ export async function falUpload(
   contentType: string
 ): Promise<string> {
   const client = getClient(apiKey);
-  const blob = new Blob([data.slice().buffer as ArrayBuffer], {
+  const blob = new Blob([data.slice().buffer], {
     type: contentType
   });
   return client.storage.upload(blob);

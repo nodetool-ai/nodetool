@@ -229,7 +229,7 @@ function jsonSchemaPropToZod(prop: Record<string, unknown>): z.ZodTypeAny {
 
 function jsonSchemaToZodShape(schema: JsonSchema | undefined): z.ZodRawShape {
   const shape: Record<string, z.ZodTypeAny> = {};
-  const s = schema as Record<string, unknown> | undefined;
+  const s = schema;
   if (!s || s["type"] !== "object") return shape;
   const properties = s["properties"] as
     | Record<string, Record<string, unknown>>
@@ -241,7 +241,7 @@ function jsonSchemaToZodShape(schema: JsonSchema | undefined): z.ZodRawShape {
   for (const [key, prop] of Object.entries(properties)) {
     let zt = jsonSchemaPropToZod(prop);
     if (typeof prop["description"] === "string") {
-      zt = zt.describe(prop["description"] as string);
+      zt = zt.describe(prop["description"]);
     }
     if ("default" in prop) {
       zt = zt.default(prop["default"]);
@@ -708,7 +708,7 @@ export function registerAgentMcpTools(
       async (args) => {
         try {
           return toToolResponse(
-            await runBridgedTool(tool, (args ?? {}) as Record<string, unknown>)
+            await runBridgedTool(tool, (args ?? {}))
           );
         } catch (err) {
           return errorResponse(err);
@@ -798,10 +798,7 @@ export function registerAgentMcpTools(
   // model skipped a field this server does not use had its whole action
   // rejected on validation. It stays in the schema — described, and the
   // contract in the description still asks for one — but is optional here.
-  const actionSchema = session.providerTool.inputSchema as Record<
-    string,
-    unknown
-  >;
+  const actionSchema = session.providerTool.inputSchema;
   const actionShape = jsonSchemaToZodShape({
     ...actionSchema,
     required: (Array.isArray(actionSchema["required"])
@@ -820,7 +817,7 @@ export function registerAgentMcpTools(
         // Passing it through `toToolResponse` would encode it a second time
         // and hand the caller a quoted string instead of an object.
         const observation = await session.executeAction(
-          (args ?? {}) as Record<string, unknown>
+          (args ?? {})
         );
         return {
           content: [{ type: "text" as const, text: observation }]

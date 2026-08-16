@@ -182,10 +182,7 @@ export function createToolLoopBridge(
       description: contract.description,
       parameters,
       execute: async (args: Record<string, unknown>): Promise<unknown> => {
-        const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
-          string,
-          unknown
-        >;
+        const parsed = parseWithTypeCoercion(parameters, args ?? {});
         if (name === "ui_search_nodes") return searchNodes(state, parsed);
         const applied = applyWorkflowDocumentTool(
           toGraph(state),

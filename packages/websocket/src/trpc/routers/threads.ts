@@ -64,11 +64,10 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
           part !== null &&
           typeof part === "object" &&
           "type" in part &&
-          (part as Record<string, unknown>).type === "text" &&
-          "text" in part &&
-          typeof (part as Record<string, unknown>).text === "string"
+          part.type === "text" && "text" in part &&
+          typeof part.text === "string"
         ) {
-          const text = ((part as Record<string, unknown>).text as string)
+          const text = (part.text as string)
             .trim()
             .replace(/\s+/g, " ");
           if (text.length > 0) {

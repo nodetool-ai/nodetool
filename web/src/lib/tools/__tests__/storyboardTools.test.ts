@@ -81,6 +81,7 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_extract_script",
         "ui_storyboard_relink_script",
         "ui_storyboard_reproject_shots",
+        "ui_storyboard_set_duration_source",
         "ui_storyboard_select_shot"
       ])
     );
@@ -494,6 +495,46 @@ describe("ui_storyboard_* tools", () => {
 
       expect(handler.extractScript).toHaveBeenCalledWith({ relink: true });
       expect(result.created).toBe(false);
+    });
+
+    it("sets the duration source on every named shot", async () => {
+      const handler = createMockHandler();
+      handler.updateShot.mockImplementation((target) =>
+        shotNode({ id: target, durationSource: "audio" })
+      );
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_set_duration_source",
+        { storyboard_id: BOARD_ID, targets: ["shot-1", "1"], source: "audio" },
+        "tc-dur",
+        ctx
+      )) as { ok: boolean; shots: StoryboardShotNode[] };
+
+      expect(handler.updateShot.mock.calls).toEqual([
+        ["shot-1", { durationSource: "audio" }],
+        ["1", { durationSource: "audio" }]
+      ]);
+      expect(result.shots).toHaveLength(2);
+    });
+
+    it("takes a single shot without a list, and pins it to manual", async () => {
+      const handler = createMockHandler();
+      handler.updateShot.mockReturnValue(
+        shotNode({ durationSource: "manual" })
+      );
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_set_duration_source",
+        { storyboard_id: BOARD_ID, targets: "selected", source: "manual" },
+        "tc-dur-2",
+        ctx
+      );
+
+      expect(handler.updateShot).toHaveBeenCalledWith("selected", {
+        durationSource: "manual"
+      });
     });
 
     it("refuses to relink a board that links no script", async () => {

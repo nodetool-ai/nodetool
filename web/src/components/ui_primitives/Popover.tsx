@@ -119,7 +119,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   const paperSlotObject = typeof paperSlot === "object" ? paperSlot : undefined;
   const callerPaperSx =
     paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
-      ? (paperSlot as { sx?: SxProps<Theme> }).sx
+      ? paperSlot.sx
       : undefined;
   const asArray = (s: SxProps<Theme> | undefined) =>
     s === undefined ? [] : Array.isArray(s) ? s : [s];

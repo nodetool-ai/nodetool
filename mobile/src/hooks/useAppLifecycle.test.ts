@@ -38,7 +38,7 @@ beforeEach(() => {
           removeCount++;
           handlers = handlers.filter((h) => h !== handler);
         },
-      } as ReturnType<typeof AppState.addEventListener>;
+      };
     });
 });
 

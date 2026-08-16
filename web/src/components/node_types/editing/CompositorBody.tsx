@@ -178,7 +178,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   // Dynamic properties and per-layer state. We rely on positional
   // alignment between the sorted `image_N` inputs and `layers[i]`.
   const dynamicProperties = useMemo(
-    () => (data.dynamic_properties || {}) as Record<string, unknown>,
+    () => data.dynamic_properties || {},
     [data.dynamic_properties]
   );
 

@@ -7,6 +7,8 @@
  * sentinel, so a placeholder never reaches provider resolution.
  */
 
+import { isNonEmptyString } from "./predicates.js";
+
 export const UNSET_PROVIDER = "empty";
 
 export interface ModelSelection {
@@ -16,11 +18,9 @@ export interface ModelSelection {
 
 export function isModelSelection(provider: unknown, id: unknown): boolean {
   return (
-    typeof provider === "string" &&
-    provider.length > 0 &&
+    isNonEmptyString(provider) &&
     provider !== UNSET_PROVIDER &&
-    typeof id === "string" &&
-    id.length > 0 &&
+    isNonEmptyString(id) &&
     // A client that stringified an absent id sends the literal "undefined".
     id !== "undefined"
   );

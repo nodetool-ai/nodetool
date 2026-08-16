@@ -8,7 +8,6 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
-import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
@@ -229,7 +228,7 @@ const fetchWorkspaceFiles = async (
     id: workspaceId,
     path
   });
-  return (data as FileInfo[]).map((file) => fileToTreeItem(file));
+  return data.map((file) => fileToTreeItem(file));
 };
 
 const findItemInTree = (
@@ -523,7 +522,7 @@ const WorkspaceTree: React.FC = () => {
                   loadItemChildren(itemId);
                 }
               }}
-              items={files as TreeViewBaseItem[]}
+              items={files}
               aria-label="workspace file browser"
               selectedItems={selectedFilePath}
               sx={treeViewStyles(theme)}

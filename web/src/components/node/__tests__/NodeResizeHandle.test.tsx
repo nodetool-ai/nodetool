@@ -6,7 +6,7 @@ import NodeResizeHandle from "../NodeResizeHandle";
 const resizeControlProps: Array<Record<string, unknown>> = [];
 jest.mock("@xyflow/react", () => ({
   NodeResizeControl: (props: { children?: React.ReactNode }) => {
-    resizeControlProps.push(props as Record<string, unknown>);
+    resizeControlProps.push(props);
     return <div data-testid="resize-control">{props.children}</div>;
   }
 }));

@@ -322,7 +322,7 @@ function createFilterNode(desc: Desc): NodeClass {
     registerDeclaredProperty(C, property.name, property.options);
   }
 
-  return C as NodeClass;
+  return C;
 }
 
 const DESCRIPTORS: readonly Desc[] = [

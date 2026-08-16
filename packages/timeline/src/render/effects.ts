@@ -1,9 +1,6 @@
 import type {
   ClipEffect,
-  ClipColorEffect,
   TrackEffect,
-  TrackColorCorrectionEffect,
-  TrackVideoBlurEffect,
   TrackSharpenEffect,
   TrackVignetteEffect,
   TrackChromaKeyEffect
@@ -292,7 +289,7 @@ function aggregateColor(
   const out: AggregatedColor = { ...NEUTRAL_COLOR };
   for (const e of clipEffects) {
     if (e.type !== "color") continue;
-    const c = e as ClipColorEffect;
+    const c = e;
     out.brightness += c.brightness ?? 0;
     out.contrast *= c.contrast ?? 1;
     out.saturation *= c.saturation ?? 1;
@@ -304,7 +301,7 @@ function aggregateColor(
   }
   for (const e of trackEffects) {
     if (e.type !== "colorCorrection") continue;
-    const c = e as TrackColorCorrectionEffect;
+    const c = e;
     out.brightness += c.brightness;
     out.contrast *= c.contrast;
     out.saturation *= c.saturation;
@@ -334,7 +331,7 @@ function aggregateBlurRadius(
     if (e.type === "blur") radius += e.radius;
   }
   for (const e of trackEffects) {
-    if (e.type === "videoBlur") radius += (e as TrackVideoBlurEffect).radius;
+    if (e.type === "videoBlur") radius += e.radius;
   }
   return Math.min(40, radius);
 }

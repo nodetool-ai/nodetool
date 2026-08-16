@@ -1,5 +1,10 @@
 import { z } from "zod";
 import type { Screenplay, Shot } from "../creative.js";
+import {
+  isNonEmptyString,
+  isNumber,
+  isString
+} from "../predicates.js";
 
 // ── Shot / screenplay ───────────────────────────────────────────────────────
 // Mirrors the interfaces in `creative.ts`. Loose objects: the shapes evolve
@@ -131,9 +136,9 @@ export function normalizeStoryboardShot(
     throw new Error(`Shot at position ${index} must be an object.`);
   }
   const shot = applyAliases(input, SHOT_KEY_ALIASES);
-  const slug = typeof shot.slug === "string" ? shot.slug : undefined;
+  const slug = isString(shot.slug) ? shot.slug : undefined;
   const label = slug ? `${index} ("${slug}")` : `${index}`;
-  if (typeof shot.action !== "string" || shot.action.trim() === "") {
+  if (!isString(shot.action) || shot.action.trim() === "") {
     throw new Error(
       `Shot at position ${label} needs a non-empty \`action\` — the concrete visual to render.`
     );
@@ -145,9 +150,9 @@ export function normalizeStoryboardShot(
   return {
     ...shot,
     type: "shot",
-    id: typeof shot.id === "string" && shot.id ? shot.id : newId(),
-    index: typeof shot.index === "number" ? shot.index : index,
-    status: typeof shot.status === "string" ? shot.status : DEFAULT_SHOT_STATUS
+    id: isNonEmptyString(shot.id) ? shot.id : newId(),
+    index: isNumber(shot.index) ? shot.index : index,
+    status: isString(shot.status) ? shot.status : DEFAULT_SHOT_STATUS
   } as unknown as Shot;
 }
 
@@ -177,8 +182,8 @@ export function normalizeStoryboardScreenplay(
   const candidate = {
     ...play,
     type: "screenplay",
-    id: typeof play.id === "string" && play.id ? play.id : newId(),
-    title: typeof play.title === "string" ? play.title : "",
+    id: isNonEmptyString(play.id) ? play.id : newId(),
+    title: isString(play.title) ? play.title : "",
     shots: (play.shots as unknown[]).map((shot, index) =>
       normalizeStoryboardShot(shot, index, options)
     )

@@ -104,7 +104,7 @@ async function ownerOfApplication(
     .from(applications)
     .where(eq(applications.id, applicationId))
     .limit(1);
-  return (rows[0]?.user_id as string | undefined) ?? null;
+  return rows[0]?.user_id ?? null;
 }
 
 /** Start of the window a period covers, or null for "total". */
@@ -125,7 +125,7 @@ export async function getApplicationBudget(
     .from(applicationBudgets)
     .where(eq(applicationBudgets.application_id, applicationId))
     .limit(1);
-  const row = rows[0] as Record<string, unknown> | undefined;
+  const row = rows[0];
   return row ? toBudget(row) : null;
 }
 
@@ -157,13 +157,13 @@ export async function setApplicationBudget(
       .set(next)
       .where(eq(applicationBudgets.application_id, applicationId))
       .returning();
-    return toBudget(rows[0] as Record<string, unknown>);
+    return toBudget(rows[0]);
   }
   const rows = await db
     .insert(applicationBudgets)
     .values({ application_id: applicationId, created_at: now, ...next })
     .returning();
-  return toBudget(rows[0] as Record<string, unknown>);
+  return toBudget(rows[0]);
 }
 
 /**
@@ -188,7 +188,7 @@ export async function applicationUsage(
     })
     .from(applicationInvocations)
     .where(and(...conditions));
-  const row = rows[0] as { spent: number | null; count: number } | undefined;
+  const row = rows[0];
   return {
     period,
     since,
@@ -253,7 +253,7 @@ export async function recordInvocation(
     .insert(applicationInvocations)
     .values(invocationRow(input, userId))
     .returning();
-  return toRecord(rows[0] as Record<string, unknown>);
+  return toRecord(rows[0]);
 }
 
 /**
@@ -304,7 +304,7 @@ export async function settleInvocation(
       )
     )
     .returning();
-  const row = rows[0] as Record<string, unknown> | undefined;
+  const row = rows[0];
   return row ? toRecord(row) : null;
 }
 
@@ -455,7 +455,7 @@ export async function reserveInvocation(
         record: toRecord(row as Record<string, unknown>),
         usage
       };
-    }) as Reservation;
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

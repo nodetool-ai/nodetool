@@ -62,7 +62,7 @@ async function dataForSEORequest(
 function extractItems(
   result: DataForSEOResponse | { error: string }
 ): Array<Record<string, unknown>> | { error: string; details?: unknown } {
-  if ("error" in result) return result as { error: string; details?: unknown };
+  if ("error" in result) return result;
 
   if (result.status_code !== 20000 || result.status_message !== "Ok.") {
     return {
@@ -109,7 +109,7 @@ export class DataForSeoProvider implements SerpProvider {
     );
     const items = extractItems(result);
     if (!Array.isArray(items)) {
-      throw new Error((items as { error: string }).error);
+      throw new Error(items.error);
     }
 
     return items

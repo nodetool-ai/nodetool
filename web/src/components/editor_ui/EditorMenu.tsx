@@ -52,7 +52,7 @@ export const EditorMenu = memo(function EditorMenu({
           ...paperSlot,
           className: cn(
             editorUiClasses.menuPaper,
-            (paperSlot as { className?: string }).className
+            paperSlot.className
           ),
           sx: {
             ...paperSx,
@@ -63,7 +63,7 @@ export const EditorMenu = memo(function EditorMenu({
           ...listSlot,
           className: cn(
             editorUiClasses.menuList,
-            (listSlot as { className?: string }).className
+            listSlot.className
           ),
           sx: {
             ...(listSx as object | undefined),

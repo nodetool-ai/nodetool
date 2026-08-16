@@ -28,6 +28,13 @@ import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import {
+  isCallable,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
+import {
   expandAssetReferences,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
@@ -584,7 +591,7 @@ function isWithinRoot(root: string, target: string): boolean {
  * values are equal-keyed iff they are deeply equal.
  */
 function stableStringifyDeep(value: unknown): string {
-  if (value === null || typeof value !== "object") {
+  if (!isObjectLike(value)) {
     return JSON.stringify(value ?? null);
   }
   if (Array.isArray(value)) {
@@ -634,12 +641,13 @@ async function coerceEntityList(
 
   const out: EntityReference[] = [];
   for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
+    if (!isObjectLike(item)) continue;
     const entity = item as Record<string, unknown>;
-    const name = typeof entity.name === "string" ? entity.name.trim() : "";
+    const name = isString(entity.name) ? entity.name.trim() : "";
     if (!name) continue;
-    const descriptor =
-      typeof entity.descriptor === "string" ? entity.descriptor : undefined;
+    const descriptor = isString(entity.descriptor)
+      ? entity.descriptor
+      : undefined;
 
     const imageSource =
       entity.image ??
@@ -649,13 +657,13 @@ async function coerceEntityList(
     let image: Uint8Array | undefined;
     if (imageSource instanceof Uint8Array) {
       image = imageSource;
-    } else if (typeof imageSource === "string" && imageSource.length > 0) {
+    } else if (isNonEmptyString(imageSource)) {
       image =
         (await loadMediaRefBytes(
           { type: "image", uri: imageSource },
           context
         )) ?? undefined;
-    } else if (imageSource && typeof imageSource === "object") {
+    } else if (isObjectLike(imageSource)) {
       image =
         (await loadMediaRefBytes(imageSource as MediaRefValue, context)) ??
         undefined;
@@ -1423,7 +1431,7 @@ export class ProcessingContext {
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(safeProcessEnv())) {
-      if (typeof v === "string") env[k] = v;
+      if (v != null) env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this.authToken = opts.authToken ?? null;
@@ -1540,7 +1548,7 @@ export class ProcessingContext {
    * that would throw when unwired.
    */
   hasModelInterface(name: keyof ProcessingContextModelInterfaces): boolean {
-    return typeof this.modelInterfaces()?.[name] === "function";
+    return isCallable(this.modelInterfaces()?.[name]);
   }
 
   // -----------------------------------------------------------------------
@@ -1730,10 +1738,7 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);
-    if (
-      typeof value === "string" &&
-      value.length >= MIN_MASKABLE_SECRET_LENGTH
-    ) {
+    if (value != null && value.length >= MIN_MASKABLE_SECRET_LENGTH) {
       this._resolvedSecrets.add(value);
     }
     return value ?? null;
@@ -2721,7 +2726,7 @@ export class ProcessingContext {
         );
         const metadata = (await metaResponse.json()) as Record<string, unknown>;
         const getUrl = metadata.get_url;
-        if (typeof getUrl === "string" && getUrl) {
+        if (isNonEmptyString(getUrl)) {
           const downloadUrl = getUrl.startsWith("/")
             ? `${baseUrl}${getUrl}`
             : getUrl;
@@ -2732,7 +2737,7 @@ export class ProcessingContext {
           return { bytes, attempts };
         }
         const uri = metadata.uri;
-        if (typeof uri === "string") {
+        if (isString(uri)) {
           const bytes = await tryStorageUri(uri);
           if (bytes) {
             return { bytes, attempts };
@@ -2782,11 +2787,11 @@ export class ProcessingContext {
     })) as Record<string, unknown>;
 
     const type = ProcessingContext.assetTypeForMime(contentType);
-    const assetId = typeof created.id === "string" ? created.id : null;
+    const assetId = isString(created.id) ? created.id : null;
     const uri =
       assetId !== null
         ? `asset://${assetId}`
-        : typeof created.uri === "string"
+        : isString(created.uri)
           ? created.uri
           : pathToFileURL(filePath).toString();
 
@@ -3362,11 +3367,11 @@ export class ProcessingContext {
     if (Array.isArray(value)) {
       return value.map((v) => ProcessingContext.sanitizeForClient(v));
     }
-    if (typeof value !== "object") return value;
+    if (!isRecord(value)) return value;
 
-    const obj = value as Record<string, unknown>;
+    const obj = value;
     const uri = obj.uri;
-    const isAssetLike = "type" in obj && typeof uri === "string";
+    const isAssetLike = "type" in obj && isString(uri);
 
     if (isAssetLike && uri.startsWith("memory://")) {
       const sanitized: Record<string, unknown> = { ...obj };
@@ -3422,7 +3427,7 @@ export class ProcessingContext {
 
   private static guessAssetMime(asset: Record<string, unknown>): string {
     const explicit = asset.mime_type ?? asset.content_type;
-    if (typeof explicit === "string" && explicit) return explicit;
+    if (isNonEmptyString(explicit)) return explicit;
 
     const type = String(asset.type ?? "").toLowerCase();
     if (type.includes("image")) return "image/png";
@@ -3454,7 +3459,7 @@ export class ProcessingContext {
     if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
       return new Uint8Array(data as number[]);
     }
-    if (typeof data === "string") {
+    if (isString(data)) {
       return Uint8Array.from(Buffer.from(data, "base64"));
     }
     return null;
@@ -3480,12 +3485,12 @@ export class ProcessingContext {
     if (decoded) return decoded;
 
     const uri = asset.uri;
-    if (typeof uri === "string" && this.storage) {
+    if (isString(uri) && this.storage) {
       const stored = await this.storage.retrieve(uri);
       if (stored) return stored;
     }
     if (
-      typeof uri === "string" &&
+      isString(uri) &&
       (uri.startsWith("asset://") ||
         uri.startsWith("/api/storage/") ||
         uri.startsWith("api/storage/"))
@@ -3497,7 +3502,7 @@ export class ProcessingContext {
     // resolveAssetBytes has its own HTTP fallback, so this works even without a
     // storage adapter (which the early `!this.storage` return used to preclude).
     const assetId = asset.asset_id;
-    if (typeof assetId === "string" && assetId) {
+    if (isNonEmptyString(assetId)) {
       const { bytes } = await this.resolveAssetBytes(`asset://${assetId}`);
       if (bytes) return bytes;
     }
@@ -3519,7 +3524,7 @@ export class ProcessingContext {
     // important for SDK pass-through workflows: their large input was already
     // uploaded once and should not be copied again on output.
     if (mode === "temp_url") {
-      const uri = typeof rawAsset.uri === "string" ? rawAsset.uri : "";
+      const uri = isString(rawAsset.uri) ? rawAsset.uri : "";
       const hasInlineBytes =
         ProcessingContext.decodeAssetData(rawAsset.data) !== null;
       const isStorageRoute =
@@ -3643,8 +3648,8 @@ export class ProcessingContext {
       }
     }
 
-    if (typeof value === "object") {
-      const entries = Object.entries(value as Record<string, unknown>);
+    if (isRecord(value)) {
+      const entries = Object.entries(value);
       const normalized = await Promise.all(
         entries.map(
           async ([k, v]) =>

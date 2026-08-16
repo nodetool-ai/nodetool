@@ -45,7 +45,7 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       return "Kie AI";
     }
     const base = metadata.title || "Kie AI";
-    const modelId = data.model_id as string | undefined;
+    const modelId = data.model_id;
     return modelId ? `${base} · ${modelId}` : base;
   }, [metadata, data.model_id]);
 

@@ -38,6 +38,12 @@ import {
   matrixToAffine,
   type AffineMatrix
 } from "../transform/geometry/affineMatrix";
+import {
+  isFiniteNumber,
+  isNumber,
+  isRecord,
+  isString
+} from "../../../utils/typePredicates";
 import { normalizeLayerTransform } from "../transform/normalize";
 import {
   cloneDefaultToolSettings,
@@ -513,19 +519,21 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
   }
   const result: LayerEffect[] = [];
   for (const item of raw) {
-    if (!item || typeof item !== "object" || typeof item.type !== "string") {
+    if (!isRecord(item) || !isString(item.type)) {
       continue;
     }
     const enabled = item.enabled === true;
-    const params = item.params && typeof item.params === "object" ? item.params : {};
+    const params: Record<string, unknown> = isRecord(item.params)
+      ? item.params
+      : {};
     switch (item.type) {
       case "brightness_contrast":
         result.push({
           type: "brightness_contrast",
           enabled,
           params: {
-            brightness: typeof params.brightness === "number" ? params.brightness : 0,
-            contrast: typeof params.contrast === "number" ? params.contrast : 0
+            brightness: isNumber(params.brightness) ? params.brightness : 0,
+            contrast: isNumber(params.contrast) ? params.contrast : 0
           }
         });
         break;
@@ -535,11 +543,11 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
           enabled,
           params: {
             // Migrate legacy "hue" → "hueDegrees"
-            hueDegrees: typeof params.hueDegrees === "number"
+            hueDegrees: isNumber(params.hueDegrees)
               ? params.hueDegrees
-              : typeof params.hue === "number" ? params.hue : 0,
-            saturation: typeof params.saturation === "number" ? params.saturation : 0,
-            lightness: typeof params.lightness === "number" ? params.lightness : 0
+              : isNumber(params.hue) ? params.hue : 0,
+            saturation: isNumber(params.saturation) ? params.saturation : 0,
+            lightness: isNumber(params.lightness) ? params.lightness : 0
           }
         });
         break;
@@ -549,9 +557,9 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
           enabled,
           params: {
             // Migrate legacy "exposure" → "exposureStops"
-            exposureStops: typeof params.exposureStops === "number"
+            exposureStops: isNumber(params.exposureStops)
               ? params.exposureStops
-              : typeof params.exposure === "number" ? params.exposure : 0
+              : isNumber(params.exposure) ? params.exposure : 0
           }
         });
         break;
@@ -574,8 +582,8 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
           params: {
             operator: params.operator === "aces" || params.operator === "reinhard" || params.operator === "filmic"
               ? params.operator : "aces",
-            exposureStops: typeof params.exposureStops === "number" ? params.exposureStops : 0,
-            whitePoint: typeof params.whitePoint === "number" ? params.whitePoint : undefined
+            exposureStops: isNumber(params.exposureStops) ? params.exposureStops : 0,
+            whitePoint: isNumber(params.whitePoint) ? params.whitePoint : undefined
           }
         });
         break;
@@ -584,9 +592,9 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
           type: "bloom",
           enabled,
           params: {
-            threshold: typeof params.threshold === "number" ? params.threshold : 0.8,
-            radius: typeof params.radius === "number" ? params.radius : 10,
-            intensity: typeof params.intensity === "number" ? params.intensity : 0.5
+            threshold: isNumber(params.threshold) ? params.threshold : 0.8,
+            radius: isNumber(params.radius) ? params.radius : 10,
+            intensity: isNumber(params.intensity) ? params.intensity : 0.5
           }
         });
         break;
@@ -603,7 +611,7 @@ const SKETCH_LARGE_TOOL_SIZE_MAX = 200;
 const SKETCH_PENCIL_SIZE_MAX = 10;
 
 function normalizedLargeToolSize(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   const rounded = Math.round(value);
@@ -614,7 +622,7 @@ function normalizedLargeToolSize(value: unknown, fallback: number): number {
 }
 
 function normalizedPencilSize(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   const rounded = Math.round(value);
@@ -625,28 +633,28 @@ function normalizedPencilSize(value: unknown, fallback: number): number {
 }
 
 function normalizedUnitScalar(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   return Math.min(1, Math.max(0, value));
 }
 
 function normalizedBrushRoundness(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   return Math.min(1, Math.max(0.1, value));
 }
 
 function normalizedBrushAngle(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   return ((Math.round(value) % 360) + 360) % 360;
 }
 
 function normalizedBlurStrength(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isFiniteNumber(value)) {
     return fallback;
   }
   const rounded = Math.round(value);

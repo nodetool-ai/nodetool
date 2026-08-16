@@ -63,7 +63,7 @@ const mountLoaded = async (): Promise<
 > => {
   const rendered = renderHook(() => useJsScriptServerSync("js-1"));
   await loaded();
-  return rendered as ReturnType<typeof renderHook<void, unknown>>;
+  return rendered;
 };
 
 describe("useJsScriptServerSync", () => {

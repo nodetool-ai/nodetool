@@ -368,6 +368,28 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_storyboard_set_duration_source",
+  description:
+    'Choose where the named shots get their length. "audio" times each shot from the takes of the script lines it covers, so the clip is long enough to hold its voiceover (a shot with an unvoiced line keeps its own duration until the line is voiced). "manual" pins the shot to its own durationSeconds and audio never touches it. Only meaningful on a board linked to a script.',
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    targets: z
+      .union([targetParam, z.array(targetParam).min(1)])
+      .describe("One shot, or a list of them."),
+    source: z.enum(["audio", "manual"])
+  }),
+  async execute({ storyboard_id, targets, source }) {
+    const handler = getStoryboardAgentHandler(storyboard_id);
+    const list = Array.isArray(targets) ? targets : [targets];
+    const shots = list.map((target) =>
+      handler.updateShot(target, { durationSource: source })
+    );
+    const persisted = await persistBoard(storyboard_id, "The duration source");
+    return { ok: true, source, shots, ...persisted };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_storyboard_select_shot",
   description:
     "Select a shot on the specified storyboard (driving the surface's focus). Pass null to clear the selection.",

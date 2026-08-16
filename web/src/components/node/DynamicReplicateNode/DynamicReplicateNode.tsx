@@ -45,7 +45,7 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       return "Replicate";
     }
     const base = metadata.title || "Replicate";
-    const modelId = data.model_id as string | undefined;
+    const modelId = data.model_id;
     return modelId ? `${base} · ${modelId}` : base;
   }, [metadata, data.model_id]);
 

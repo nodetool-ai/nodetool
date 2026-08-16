@@ -13,7 +13,9 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   Asset,
   ModelObserver,
+  Script,
   Storyboard,
+  TimelineSequence,
   initTestDb
 } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
@@ -96,6 +98,67 @@ async function makeBoard(
     })
   });
 }
+
+/** A shot that assembles: rendered, with a persisted clip asset. */
+const renderedShot = (
+  id: string,
+  index: number,
+  scriptLineIds?: string[]
+): Shot =>
+  shot({
+    id,
+    index,
+    status: "rendered",
+    clip: { type: "video", asset_id: `clip-${id}` },
+    ...(scriptLineIds ? { script_line_ids: scriptLineIds } : {})
+  });
+
+/** Two voiced lines, 1200ms and 800ms of audio. */
+async function makeVoicedScript(): Promise<Script> {
+  const take = (lineId: string, durationMs: number) => ({
+    id: `take-${lineId}`,
+    assetId: `asset-${lineId}`,
+    durationMs,
+    words: [{ word: lineId, startMs: 0, endMs: durationMs }],
+    textSnapshot: `text of ${lineId}`,
+    voiceSnapshot: null,
+    createdAt: "2026-01-01T00:00:00.000Z"
+  });
+  const line = (lineId: string, durationMs: number) => ({
+    id: lineId,
+    speakerId: "sp1",
+    text: `text of ${lineId}`,
+    currentTakeId: `take-${lineId}`,
+    takes: [take(lineId, durationMs)]
+  });
+  return Script.create<Script>({
+    user_id: "u1",
+    project_id: "default",
+    name: "Script",
+    document: JSON.stringify({
+      cast: [
+        {
+          id: "sp1",
+          name: "Narrator",
+          voice: { provider: "openai", model: "tts-1", voice: "alloy" }
+        }
+      ],
+      sections: [
+        {
+          id: "sec1",
+          title: "Main",
+          lines: [line("l1", 1200), line("l2", 800)]
+        }
+      ]
+    })
+  });
+}
+
+const sequenceOf = async (id: string): Promise<TimelineSequence> => {
+  const row = await TimelineSequence.findById(id);
+  if (!row) throw new Error(`No sequence ${id}`);
+  return row;
+};
 
 /** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
@@ -257,6 +320,106 @@ describe("storyboards capability behaviour", () => {
     expect(result.error).toContain("Run render_storyboard_clips first");
   });
 
+  describe("clip length on a script-linked board", () => {
+    /** A script whose one line has a 3.4 s take, plus 250 ms of silence. */
+    const makeScript = async (voiced: boolean): Promise<Script> =>
+      Script.create<Script>({
+        user_id: "u1",
+        project_id: "default",
+        name: "Script",
+        document: JSON.stringify({
+          cast: [{ id: "sp1", name: "Keeper", voice: null }],
+          sections: [
+            {
+              id: "sec1",
+              lines: [
+                {
+                  id: "line-1",
+                  speakerId: "sp1",
+                  text: "We are closed.",
+                  pauseAfterMs: 250,
+                  currentTakeId: voiced ? "take-1" : null,
+                  takes: voiced
+                    ? [
+                        {
+                          id: "take-1",
+                          assetId: "audio-1",
+                          durationMs: 3400,
+                          words: [],
+                          textSnapshot: "We are closed.",
+                          voiceSnapshot: null,
+                          createdAt: "2026-01-01T00:00:00.000Z"
+                        }
+                      ]
+                    : []
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+    const linkedBoard = async (
+      scriptId: string,
+      shotOverrides: Partial<Shot> = {}
+    ): Promise<Storyboard> =>
+      makeBoard(
+        [
+          shot({
+            id: "s1",
+            index: 0,
+            duration_seconds: 8,
+            script_line_ids: ["line-1"],
+            ...shotOverrides
+          })
+        ],
+        { screenplay: { type: "screenplay", id: "sp", script_id: scriptId } }
+      );
+
+    /** The `duration_seconds` the image_to_video prediction asked for. */
+    const renderedDuration = async (
+      board: Storyboard,
+      context: ReturnType<typeof ctx>
+    ): Promise<unknown> => {
+      await run(context).invoke("render_storyboard_stills", {
+        storyboard_id: board.id
+      });
+      await run(context).invoke("render_storyboard_clips", {
+        storyboard_id: board.id
+      });
+      const call = context.runProviderPrediction.mock.calls
+        .map((c) => c[0] as { capability: string; params: Record<string, unknown> })
+        .find((c) => c.capability === "image_to_video");
+      return call?.params["duration_seconds"];
+    };
+
+    it("renders a linked shot as long as the takes it covers", async () => {
+      const script = await makeScript(true);
+      const board = await linkedBoard(script.id);
+      // 3400 ms + 250 ms of silence, rounded up to whole seconds.
+      expect(await renderedDuration(board, ctx())).toBe(4);
+    });
+
+    it("keeps the shot's own length when it is pinned to manual", async () => {
+      const script = await makeScript(true);
+      const board = await linkedBoard(script.id, { duration_source: "manual" });
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+
+    it("keeps the shot's own length when the linked line is unvoiced", async () => {
+      const script = await makeScript(false);
+      const board = await linkedBoard(script.id);
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+
+    it("leaves an unlinked board's shots alone", async () => {
+      const board = await makeBoard([
+        shot({ id: "s1", index: 0, duration_seconds: 8 })
+      ]);
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+  });
+
   it("assembles the rendered clips into a timeline", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const context = ctx();
@@ -282,6 +445,142 @@ describe("storyboards capability behaviour", () => {
       width: 1920,
       height: 1080
     });
+  });
+
+  it("cuts a linked board against the script's takes", async () => {
+    const script = await makeVoicedScript();
+    const board = await makeBoard(
+      [renderedShot("s1", 0, ["l1"]), renderedShot("s2", 1, ["l2"])],
+      { screenplay: { script_id: script.id } }
+    );
+    const context = ctx();
+
+    const assembled = (await run(context).invoke(
+      "assemble_storyboard_timeline",
+      { storyboard_id: board.id }
+    )) as {
+      ok: boolean;
+      timeline_id: string;
+      script_id: string | null;
+      duration_ms: number;
+      skipped_line_ids: string[];
+    };
+    expect(assembled).toMatchObject({
+      ok: true,
+      script_id: script.id,
+      skipped_line_ids: []
+    });
+    // Shot lengths come from the takes (1200 + 800), not DEFAULT_SHOT_MS.
+    expect(assembled.duration_ms).toBe(2000);
+
+    const document = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Voiceover"]);
+    const voiceover = document.clips.filter((c) => c.mediaType === "audio");
+    expect(voiceover.map((c) => [c.scriptLineId, c.storyboardShotId])).toEqual([
+      ["l1", "s1"],
+      ["l2", "s2"]
+    ]);
+    expect(voiceover.every((c) => c.scriptId === script.id)).toBe(true);
+  });
+
+  it("leaves an unlinked board on the storyboard-only cut", async () => {
+    const board = await makeBoard([renderedShot("s1", 0)], {
+      screenplay: { narration: "A quiet town at dusk." }
+    });
+    const context = ctx();
+
+    const assembled = (await run(context).invoke(
+      "assemble_storyboard_timeline",
+      { storyboard_id: board.id }
+    )) as { timeline_id: string; script_id: string | null };
+    expect(assembled.script_id).toBeNull();
+
+    const document = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Narration"]);
+    expect(
+      document.clips.some((c) => c.prompt === "A quiet town at dusk.")
+    ).toBe(true);
+  });
+
+  it("falls back to the unlinked cut when the linked script is gone", async () => {
+    const board = await makeBoard([renderedShot("s1", 0, ["l1"])], {
+      screenplay: { script_id: "sc-deleted" }
+    });
+
+    const assembled = (await run(ctx()).invoke("assemble_storyboard_timeline", {
+      storyboard_id: board.id
+    })) as {
+      ok: boolean;
+      script_id: string | null;
+      warnings?: string[];
+      timeline_id: string;
+    };
+    expect(assembled.ok).toBe(true);
+    expect(assembled.script_id).toBeNull();
+    expect(assembled.warnings?.[0]).toContain("sc-deleted");
+
+    const document = (await sequenceOf(assembled.timeline_id)).toDocument();
+    expect(document.tracks.map((t) => t.name)).toEqual(["Shots"]);
+  });
+
+  it("keeps tracks the board does not own when re-assembling", async () => {
+    const script = await makeVoicedScript();
+    const board = await makeBoard([renderedShot("s1", 0, ["l1"])], {
+      screenplay: { script_id: script.id }
+    });
+    const context = ctx();
+
+    const first = (await run(context).invoke("assemble_storyboard_timeline", {
+      storyboard_id: board.id
+    })) as { timeline_id: string };
+
+    // Something else — the editor, another document — adds a track.
+    const sequence = await sequenceOf(first.timeline_id);
+    const previous = sequence.toDocument();
+    const foreignTrack = {
+      id: "t-foreign",
+      name: "Sound design",
+      type: "audio" as const,
+      index: 9,
+      visible: true,
+      locked: false
+    };
+    sequence.fromDocument({
+      ...previous,
+      tracks: [...previous.tracks, foreignTrack],
+      clips: [
+        ...previous.clips,
+        {
+          ...previous.clips[0],
+          id: "c-foreign",
+          trackId: "t-foreign",
+          name: "Wind",
+          scriptId: undefined,
+          storyboardBoardId: undefined,
+          storyboardShotId: undefined
+        }
+      ]
+    });
+    await sequence.save();
+
+    const second = (await run(context).invoke("assemble_storyboard_timeline", {
+      storyboard_id: board.id
+    })) as { timeline_id: string };
+    expect(second.timeline_id).toBe(first.timeline_id);
+
+    const document = (await sequenceOf(first.timeline_id)).toDocument();
+    expect(document.tracks.map((t) => t.name)).toContain("Sound design");
+    expect(document.clips.filter((c) => c.name === "Wind")).toHaveLength(1);
+    // The board's own clips were rewritten, not doubled: one shot clip and
+    // one voiceover clip for the single linked line.
+    expect(
+      document.clips.filter((c) => c.storyboardShotId === "s1").length
+    ).toBe(2);
+    expect(document.tracks.map((t) => t.name)).toEqual([
+      "Shots",
+      "Voiceover",
+      "Sound design"
+    ]);
   });
 
   it("adds and reorders shots, and records an op naming a shot the board lacks", async () => {

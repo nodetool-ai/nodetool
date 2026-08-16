@@ -29,7 +29,7 @@ const makeMockClip = (overrides: Partial<TimelineClip> = {}): TimelineClip =>
     locked: false,
     versions: [],
     ...overrides
-  }) as TimelineClip;
+  });
 
 jest.mock("../../ResultsStore", () => ({
   __esModule: true,

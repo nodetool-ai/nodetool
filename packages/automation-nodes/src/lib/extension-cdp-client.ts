@@ -130,7 +130,7 @@ export class ExtensionCdpClient {
       this.channel = transport;
     } else {
       const url =
-        (typeof transport === "string" ? transport : undefined) ??
+        transport ??
         process.env.NODETOOL_EXTENSION_WS_URL ??
         DEFAULT_WS_URL;
       this.channel = createWebSocketChannel(url);
@@ -236,7 +236,7 @@ export class ExtensionCdpClient {
         };
         return fn as DomainMember;
       }
-    }) as DomainNamespace;
+    });
   }
 
   private sendCommand(

@@ -178,7 +178,7 @@ describe("CopyAssetButton", () => {
     });
 
     it("should show compatibility info when enabled", () => {
-      (getClipboardSupportMessage as jest.Mock).mockReturnValue("Image can be pasted into any image editor");
+      jest.mocked(getClipboardSupportMessage).mockReturnValue("Image can be pasted into any image editor");
 
       renderWithTheme(
         <CopyAssetButton

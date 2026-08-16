@@ -69,6 +69,9 @@ const boundWorkflowIds = (rawDocument: unknown): string[] => {
     }
   }
   if (typeof value !== "object" || value === null) return [];
+  // SAFETY: `value` is a non-null object (guarded on the line above). The
+  // assertion only declares `operations` optional and `unknown`, which holds of
+  // any object, and the value read is re-checked with `Array.isArray` below.
   const operations = (value as { operations?: unknown }).operations;
   if (!Array.isArray(operations)) return [];
   return operations

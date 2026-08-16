@@ -31,6 +31,12 @@ export async function syncShotClipToTimeline(
       if (clip.storyboardShotId !== shotId || clip.storyboardBoardId !== boardId) {
         return clip;
       }
+      // A jointly assembled cut stamps the shot keys onto the voiceover clips
+      // too, so the shot's own clip is the video one. Without this, re-rendering
+      // a shot would hand its video asset to the line's audio clip.
+      if (clip.mediaType !== "video") {
+        return clip;
+      }
       if (clip.currentAssetId === assetId) {
         return clip;
       }

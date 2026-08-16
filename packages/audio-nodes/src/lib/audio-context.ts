@@ -39,7 +39,7 @@ export async function loadOfflineAudioContext(): Promise<OfflineAudioContextCtor
         }
       }
       return (
-        (globalThis as { OfflineAudioContext?: OfflineAudioContextCtor })
+        globalThis
           .OfflineAudioContext ?? null
       );
     })();

@@ -73,7 +73,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       return {
         ...model,
         downloaded: isDownloaded
-      } as UnifiedModel & { downloaded: boolean };
+      };
     });
   }, [cacheStatuses, filteredModels]);
 

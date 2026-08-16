@@ -127,7 +127,7 @@ function extractText(content: Message["content"]): string {
   return content
     .map((part) =>
       part && typeof part === "object" && "text" in part
-        ? String((part as { text: unknown }).text ?? "")
+        ? String(part.text ?? "")
         : ""
     )
     .join("");

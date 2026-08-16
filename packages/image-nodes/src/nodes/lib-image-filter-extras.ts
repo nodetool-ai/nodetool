@@ -35,7 +35,7 @@ class ThresholdNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       filtersThresholdV1,
       {
@@ -62,7 +62,7 @@ class PixelateNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       filtersPixelateV1,
       { cellSize: num(props.cell_size, 8) },
@@ -86,7 +86,7 @@ class GaussianBlurNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runRecipeNode(
       filtersBlurSeparableV1,
       {
@@ -121,7 +121,7 @@ class UnsharpMaskNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       sharpenUnsharpMaskV1,
       {
@@ -157,7 +157,7 @@ class VignetteNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       vignetteV1,
       {

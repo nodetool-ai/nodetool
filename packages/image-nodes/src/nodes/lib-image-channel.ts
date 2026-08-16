@@ -32,7 +32,7 @@ class ChannelShuffleNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorChannelShuffleV1,
       {
@@ -63,7 +63,7 @@ class ChannelMergeNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorChannelMergeV1,
       { alphaChannel: num(props.alpha_channel, 3) },

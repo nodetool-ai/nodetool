@@ -25,7 +25,7 @@ export const LIST_NODES_INPUT_SCHEMA: JsonSchema = {
       default: 50
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const SEARCH_NODES_INPUT_SCHEMA: JsonSchema = {
@@ -62,7 +62,7 @@ export const SEARCH_NODES_INPUT_SCHEMA: JsonSchema = {
       default: false
     }
   },
-  required: ["query"] as string[]
+  required: ["query"]
 };
 
 export const GET_NODE_INFO_INPUT_SCHEMA: JsonSchema = {
@@ -73,7 +73,7 @@ export const GET_NODE_INFO_INPUT_SCHEMA: JsonSchema = {
       description: "Fully-qualified node type (e.g. 'nodetool.text.Concat')"
     }
   },
-  required: ["node_type"] as string[]
+  required: ["node_type"]
 };
 
 export const listNodesSpec: CapabilitySpec = {

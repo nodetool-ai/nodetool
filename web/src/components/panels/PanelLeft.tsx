@@ -856,7 +856,7 @@ const PanelLeft: React.FC = () => {
   const displayActiveView: LeftPanelView =
     isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
       ? "workflows"
-      : (activeView as LeftPanelView);
+      : activeView;
 
   const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(
     () => (isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS),

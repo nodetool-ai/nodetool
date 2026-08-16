@@ -51,7 +51,7 @@ export const isAssemblableShot = (shot: Shot): boolean =>
 
 /** The persisted asset id on a media ref, or undefined when it has none. */
 const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
-  typeof ref?.asset_id === "string" && ref.asset_id.length > 0
+  ref?.asset_id != null && ref.asset_id.length > 0
     ? ref.asset_id
     : undefined;
 

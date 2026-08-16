@@ -299,7 +299,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
 
   // ChatThreadView's status union excludes "stopping" — map it like GlobalChat.
   const status: ThreadStatus =
-    rawStatus === "stopping" ? "connected" : (rawStatus as ThreadStatus);
+    rawStatus === "stopping" ? "connected" : rawStatus;
 
   const addNotification = useNotificationStore(
     (state) => state.addNotification

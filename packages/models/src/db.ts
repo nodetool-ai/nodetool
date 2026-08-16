@@ -74,7 +74,7 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
   addMissingColumns(sqlite);
   sqlite.exec(getCreateIndexStatementsSql());
 
-  return _db as BetterSQLite3Database<typeof schema>;
+  return _db;
 }
 
 /**
@@ -129,7 +129,7 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
   sqlite.exec(getCreateTableStatementsSql());
   sqlite.exec(getCreateIndexStatementsSql());
 
-  return _db as BetterSQLite3Database<typeof schema>;
+  return _db;
 }
 
 /**

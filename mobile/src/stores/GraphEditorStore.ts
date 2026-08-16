@@ -443,7 +443,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           nodeType: node.type,
           metadata: meta,
           properties: (node.data ?? {}) as Record<string, unknown>,
-          dynamicProperties: (node.dynamic_properties ?? {}) as Record<string, unknown>,
+          dynamicProperties: node.dynamic_properties ?? {},
           selectedOutput,
           inputMappings,
           expanded: false as boolean,

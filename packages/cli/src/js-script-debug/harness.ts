@@ -229,7 +229,7 @@ async function loadGrader(): Promise<
           Parameters<typeof gradeCodeCases>[1]
         >
     );
-    return report as JsScriptTestReport;
+    return report;
   };
 }
 
@@ -366,7 +366,7 @@ export async function runJsScriptDebug(
   if (steps.length > 0) {
     const createBridge = deps.createBridge ?? (await loadBridgeFactory());
     const bridgeInit: Parameters<typeof createBridge>[0] = {
-      document: (await asDocument(resolved.raw)) as Partial<JsScriptDocument>
+      document: (await asDocument(resolved.raw))
     };
     if (resolved.target.name) {
       bridgeInit.name = resolved.target.name;

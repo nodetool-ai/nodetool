@@ -89,7 +89,7 @@ const MIN_NODE_HEIGHT = 150;
 const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.output"];
 
 const isEmptyResult = (obj: unknown) =>
-  obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+  obj && typeof obj === "object" && Object.keys(obj).length === 0;
 
 const isCreatingControlEdgeSelector = (
   state: ReturnType<typeof useConnectionStore.getState>
@@ -341,7 +341,7 @@ const getNodeColors = (metadata: NodeMetadata | undefined): string[] => {
   while (allColors.length < 5) {
     allColors.push(allColors[allColors.length - 1]);
   }
-  return allColors.slice(0, 5) as string[];
+  return allColors.slice(0, 5);
 };
 
 const getHeaderColors = (

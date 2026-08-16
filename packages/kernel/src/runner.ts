@@ -15,6 +15,13 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
+import {
+  isBoolean,
+  isCallable,
+  isNumber,
+  isObjectValue,
+  isString
+} from "./predicates.js";
 import type {
   NodeDescriptor,
   HydratedGraphData,
@@ -57,11 +64,21 @@ const MAX_RETAINED_MESSAGES = 10_000;
  */
 const MAX_RECORDED_LINEAGES_PER_NODE = 64;
 
+/** A value that already carries its own control-event envelope. */
+function isControlEventValue(value: unknown): value is ControlEvent {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "event_type" in value &&
+    typeof (value as Record<string, unknown>).event_type === "string"
+  );
+}
+
 /** An output_update whose value is a streamed audio chunk (sample payload). */
 function isAudioChunkOutputUpdate(msg: ProcessingMessage): boolean {
   if (msg.type !== "output_update") return false;
   const value = (msg as { value?: unknown }).value;
-  if (!value || typeof value !== "object") return false;
+  if (!isObjectValue(value)) return false;
   const v = value as { type?: unknown; content_type?: unknown };
   return v.type === "chunk" && v.content_type === "audio";
 }
@@ -273,7 +290,7 @@ function clientFacingOutputName(node: NodeDescriptor, handle: string): string {
   const t = node.type ?? "";
   const props = node.properties as Record<string, unknown> | undefined;
   const workflowKey =
-    props && typeof props.name === "string" && props.name.trim().length > 0
+    props && isString(props.name) && props.name.trim().length > 0
       ? props.name.trim()
       : undefined;
 
@@ -699,7 +716,7 @@ export class WorkflowRunner {
       // control events to controlled nodes and await their results.
       if (
         this._options.executionContext &&
-        typeof this._options.executionContext.setSendControlEvent === "function"
+        isCallable(this._options.executionContext.setSendControlEvent)
       ) {
         this._options.executionContext.setSendControlEvent(
           (targetNodeId: string, properties: Record<string, unknown>) =>
@@ -1233,12 +1250,9 @@ export class WorkflowRunner {
    */
   /** Variable-channel name a Set Variable node publishes to (its `name` prop). */
   private _variableChannelName(node: NodeDescriptor): string {
-    const props =
-      node.properties && typeof node.properties === "object"
-        ? (node.properties as Record<string, unknown>)
-        : {};
+    const props = isObjectValue(node.properties) ? node.properties : {};
     const raw = props.name;
-    return typeof raw === "string" ? raw.trim() : "";
+    return isString(raw) ? raw.trim() : "";
   }
 
   /**
@@ -1248,7 +1262,7 @@ export class WorkflowRunner {
    */
   private _registerVariableChannels(): void {
     const ctx = this._options.executionContext;
-    if (!ctx || typeof ctx.registerChannelWriters !== "function") {
+    if (!ctx || !isCallable(ctx.registerChannelWriters)) {
       return;
     }
     for (const node of this._graph.nodes) {
@@ -1280,10 +1294,9 @@ export class WorkflowRunner {
       if (!this._isExternalInputNode(node)) continue;
 
       const inputName = this._getExternalInputName(node);
-      const properties =
-        node.properties && typeof node.properties === "object"
-          ? (node.properties as Record<string, unknown>)
-          : {};
+      const properties = isObjectValue(node.properties)
+        ? node.properties
+        : {};
       const hasRuntimeParam = Object.prototype.hasOwnProperty.call(
         params,
         inputName
@@ -1682,22 +1695,15 @@ export class WorkflowRunner {
         // recognises them. (Python parity: send_messages wraps
         // __control_output__ in RunEvent.)
         let controlEvent: ControlEvent;
-        if (
-          typeof value === "object" &&
-          value !== null &&
-          "event_type" in value &&
-          typeof (value as Record<string, unknown>).event_type === "string"
-        ) {
-          controlEvent = value as ControlEvent;
-        } else if (typeof value === "object" && value !== null) {
+        if (isControlEventValue(value)) {
+          controlEvent = value;
+        } else if (isObjectValue(value)) {
           // Raw property dict — wrap as RunEvent
           const raw = value as Record<string, unknown>;
           // Support nested {properties: {...}} shape from LLM output
           const properties =
-            "properties" in raw &&
-            typeof raw.properties === "object" &&
-            raw.properties !== null
-              ? (raw.properties as Record<string, unknown>)
+            "properties" in raw && isObjectValue(raw.properties)
+              ? raw.properties
               : raw;
           controlEvent = { event_type: "run", properties };
         } else {
@@ -2046,7 +2052,7 @@ export class WorkflowRunner {
     sourceNodeId: string,
     controlOutput: unknown
   ): Promise<void> {
-    if (!controlOutput || typeof controlOutput !== "object") return;
+    if (!isObjectValue(controlOutput)) return;
 
     const controlEdges = this._graph
       .findOutgoingEdges(sourceNodeId)
@@ -2058,8 +2064,7 @@ export class WorkflowRunner {
     // Extract properties if nested inside a metadata wrapper
     if (
       "properties" in properties &&
-      properties.properties &&
-      typeof properties.properties === "object" &&
+      isObjectValue(properties.properties) &&
       !Array.isArray(properties.properties)
     ) {
       properties = properties.properties as Record<string, unknown>;
@@ -2359,12 +2364,10 @@ export class WorkflowRunner {
   }
 
   private _getExternalInputName(node: NodeDescriptor): string {
-    const properties =
-      node.properties && typeof node.properties === "object"
-        ? (node.properties as Record<string, unknown>)
-        : {};
-    const propertyName =
-      typeof properties.name === "string" ? properties.name.trim() : "";
+    const properties = isObjectValue(node.properties) ? node.properties : {};
+    const propertyName = isString(properties.name)
+      ? properties.name.trim()
+      : "";
     if (propertyName) {
       return propertyName;
     }
@@ -2449,8 +2452,8 @@ export class WorkflowRunner {
       const properties: Record<string, unknown> = {};
 
       // Extract property info from the node descriptor
-      if (targetNode.properties && typeof targetNode.properties === "object") {
-        const props = targetNode.properties as Record<string, unknown>;
+      if (isObjectValue(targetNode.properties)) {
+        const props = targetNode.properties;
         const propTypes = targetNode.propertyTypes ?? {};
 
         for (const [propName, propValue] of Object.entries(props)) {
@@ -2542,9 +2545,9 @@ export class WorkflowRunner {
           jsonType = "array";
         else if (lower.startsWith("dict") || lower === "object")
           jsonType = "object";
-      } else if (typeof value === "number") {
+      } else if (isNumber(value)) {
         jsonType = Number.isInteger(value) ? "integer" : "number";
-      } else if (typeof value === "boolean") {
+      } else if (isBoolean(value)) {
         jsonType = "boolean";
       }
 

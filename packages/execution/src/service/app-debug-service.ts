@@ -125,7 +125,7 @@ async function loadUserWorkflow(
   id: string
 ): Promise<AppWorkflowRecord | null> {
   const workflow = await Workflow.find(userId, id);
-  const graph = workflow?.getGraph() as AppWorkflowRecord["graph"] | undefined;
+  const graph = workflow?.getGraph();
   return graph ? { graph } : null;
 }
 

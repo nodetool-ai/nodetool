@@ -91,11 +91,11 @@ describe("applyVaultSwitch", () => {
 
   it("calls all steps in the correct order", async () => {
     const order: string[] = [];
-    (setActiveVaultId as jest.Mock).mockImplementation(() => order.push("setVault"));
-    (stopServer as jest.Mock).mockImplementation(async () => order.push("stop"));
-    (initializeBackendServer as jest.Mock).mockImplementation(async () => order.push("start"));
-    (setupWorkflowShortcuts as jest.Mock).mockImplementation(async () => order.push("shortcuts"));
-    (reloadMainWindow as jest.Mock).mockImplementation(() => order.push("reload"));
+    jest.mocked(setActiveVaultId).mockImplementation(() => order.push("setVault"));
+    jest.mocked(stopServer).mockImplementation(async () => order.push("stop"));
+    jest.mocked(initializeBackendServer).mockImplementation(async () => order.push("start"));
+    jest.mocked(setupWorkflowShortcuts).mockImplementation(async () => order.push("shortcuts"));
+    jest.mocked(reloadMainWindow).mockImplementation(() => order.push("reload"));
 
     const promise = applyVaultSwitch("v1");
     await jest.advanceTimersByTimeAsync(300);

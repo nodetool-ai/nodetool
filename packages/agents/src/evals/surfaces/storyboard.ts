@@ -116,6 +116,7 @@ interface ShotNode {
   camera?: CameraDirection;
   motion?: string;
   durationSeconds?: number;
+  durationSource?: "audio" | "manual";
   status: ShotStatus;
   hasKeyframe: boolean;
   hasClip: boolean;
@@ -130,6 +131,7 @@ const toShotNode = (shot: Shot): ShotNode => ({
   camera: shot.camera,
   motion: shot.motion,
   durationSeconds: shot.duration_seconds,
+  durationSource: shot.duration_source,
   status: shot.status,
   hasKeyframe: !!shot.keyframe,
   hasClip: !!shot.clip,
@@ -520,6 +522,26 @@ export function createStoryboardToolBridge(
     ),
 
     tool(
+      "ui_storyboard_set_duration_source",
+      'Choose where the named shots get their length. "audio" times each shot from the takes of the script lines it covers, so the clip is long enough to hold its voiceover (a shot with an unvoiced line keeps its own duration until the line is voiced). "manual" pins the shot to its own durationSeconds and audio never touches it. Only meaningful on a board linked to a script.',
+      z.object({
+        targets: z.union([targetParam, z.array(targetParam).min(1)]),
+        source: z.enum(["audio", "manual"])
+      }),
+      async ({ targets, source }) => {
+        const list = (
+          Array.isArray(targets) ? targets : [targets]
+        ) as string[];
+        const touched = list.map((target) => {
+          const shot = resolveTarget(target);
+          shot.duration_source = source as "audio" | "manual";
+          return serialize(shot);
+        });
+        return { ok: true, source, shots: touched };
+      }
+    ),
+
+    tool(
       "ui_storyboard_select_shot",
       "Select a shot on the specified storyboard (driving the surface's focus). Pass null to clear the selection.",
       z.object({ target: targetParam.nullable() }),
@@ -572,6 +594,7 @@ Use the ui_storyboard_* tools to inspect and drive the board:
 - Generate a keyframe still before generating a clip; a clip must exist before revising it.
 - ui_storyboard_assemble_timeline cuts every shot with a rendered clip into a sequence.
 - ui_storyboard_extract_script moves the board's dialogue and narration into a linked script, one line per shot's words.
+- ui_storyboard_set_duration_source picks whether a shot's length comes from its script takes ("audio") or from its own durationSeconds ("manual").
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
@@ -746,7 +769,7 @@ export const STORYBOARD_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<StoryboardBri
             detail: "a shot reached the board without its duration",
             test: (s) =>
               s.shots.length > 0 &&
-              s.shots.every((sh) => typeof sh.durationSeconds === "number")
+              s.shots.every((sh) => sh.durationSeconds != null)
           },
           {
             // The check the old bridge could not make: it minted the fields a

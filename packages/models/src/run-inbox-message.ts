@@ -81,6 +81,6 @@ export class RunInboxMessage extends DBModel {
         )
       )
       .orderBy(asc(runInboxMessages.msg_seq));
-    return rows.map((r) => new RunInboxMessage(r as Record<string, unknown>));
+    return rows.map((r) => new RunInboxMessage(r));
   }
 }

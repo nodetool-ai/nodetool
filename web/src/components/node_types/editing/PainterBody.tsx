@@ -730,7 +730,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       const pt = eventToCanvasXY(e);
       lastPointRef.current = pt;
       drawStrokeTo(pt); // dot at click
-      const target = e.currentTarget as HTMLCanvasElement;
+      const target = e.currentTarget;
       if (typeof target.setPointerCapture === "function") {
         target.setPointerCapture(e.pointerId);
       }

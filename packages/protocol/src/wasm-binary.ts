@@ -111,7 +111,7 @@ class BinaryCursor {
     }
     const byte = this.bytes[this.offset];
     this.offset += 1;
-    return byte as number;
+    return byte;
   }
   readBytes(count: number): number[] {
     return Array.from({ length: count }, () => this.readByte());

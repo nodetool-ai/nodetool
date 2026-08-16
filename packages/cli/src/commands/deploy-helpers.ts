@@ -22,7 +22,6 @@ import {
   type DeployerFactory,
   type DeploymentConfig,
   type DeploymentType,
-  type DockerDeployment,
   type SyncerAssetStorage,
   type WorkflowSyncerDeps,
   type AssetInfo
@@ -75,7 +74,7 @@ export function getDeploymentOrExit(
 export function defaultDeployerFactories() {
   return {
     docker: (name, deployment, state) =>
-      adaptDocker(new DockerDeployer(name, deployment as DockerDeployment, state))
+      adaptDocker(new DockerDeployer(name, deployment, state))
   } satisfies Record<string, DeployerFactory>;
 }
 
@@ -223,7 +222,7 @@ export function makeSyncerDeps(): WorkflowSyncerDeps {
         settings: wf.settings,
         updated_at: wf.updated_at,
         created_at: wf.created_at
-      } as Record<string, unknown>;
+      };
     },
     async getAsset(id: string): Promise<AssetInfo | null> {
       const asset = await Asset.find(LOCAL_USER_ID, id);

@@ -60,14 +60,14 @@ function makeProc(): FakeProc {
 
 describe("packageManager spawn contract", () => {
   beforeEach(() => {
-    (spawn as jest.Mock).mockReset();
+    jest.mocked(spawn).mockReset();
   });
 
   test("uninstallPackage spawns uv with the expected argv (pip uninstall <name>)", async () => {
     let capturedCmd = "";
     let capturedArgs: string[] = [];
 
-    (spawn as jest.Mock).mockImplementation((cmd: string, args: string[]) => {
+    jest.mocked(spawn).mockImplementation((cmd: string, args: string[]) => {
       capturedCmd = cmd;
       capturedArgs = args;
       const proc = makeProc();
@@ -86,7 +86,7 @@ describe("packageManager spawn contract", () => {
   test("uninstallPackage feeds 'y\\n' to uv via stdin (auto-confirm)", async () => {
     const stdinWrites: unknown[] = [];
 
-    (spawn as jest.Mock).mockImplementation(() => {
+    jest.mocked(spawn).mockImplementation(() => {
       const proc = makeProc();
       proc.stdin.write.mockImplementation((data: unknown) => {
         stdinWrites.push(data);
@@ -105,7 +105,7 @@ describe("packageManager spawn contract", () => {
   test("runUvCommand scrubs PYTHONHOME / PYTHONPATH from inherited env", async () => {
     let capturedEnv: Record<string, string> = {};
 
-    (spawn as jest.Mock).mockImplementation((_cmd: string, _args: string[], opts: { env: Record<string, string> }) => {
+    jest.mocked(spawn).mockImplementation((_cmd: string, _args: string[], opts: { env: Record<string, string> }) => {
       capturedEnv = opts.env;
       const proc = makeProc();
       process.nextTick(() => proc.emit("exit", 0));
@@ -128,7 +128,7 @@ describe("packageManager spawn contract", () => {
   test("runUvCommand uses stdio:'pipe' and windowsHide:true", async () => {
     let capturedOpts: { stdio?: string; windowsHide?: boolean } = {};
 
-    (spawn as jest.Mock).mockImplementation((_cmd: string, _args: string[], opts: typeof capturedOpts) => {
+    jest.mocked(spawn).mockImplementation((_cmd: string, _args: string[], opts: typeof capturedOpts) => {
       capturedOpts = opts;
       const proc = makeProc();
       process.nextTick(() => proc.emit("exit", 0));
@@ -143,7 +143,7 @@ describe("packageManager spawn contract", () => {
   });
 
   test("ENOENT on spawn maps to a 'reinstall environment' user-facing error", async () => {
-    (spawn as jest.Mock).mockImplementation(() => {
+    jest.mocked(spawn).mockImplementation(() => {
       const proc = makeProc();
       process.nextTick(() =>
         proc.emit("error", Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" })),
@@ -160,7 +160,7 @@ describe("packageManager spawn contract", () => {
   });
 
   test("non-zero exit code rejects with stderr in message", async () => {
-    (spawn as jest.Mock).mockImplementation(() => {
+    jest.mocked(spawn).mockImplementation(() => {
       const proc = makeProc();
       process.nextTick(() => {
         proc.stderr.emit("data", Buffer.from("uv: bad index"));

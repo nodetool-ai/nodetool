@@ -89,7 +89,7 @@ function isJsonDataEnvelope(value: unknown): value is JsonDataEnvelope {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    (value as { type: unknown }).type === "json" &&
+    value.type === "json" &&
     "data" in value
   );
 }

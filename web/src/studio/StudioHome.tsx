@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Studio home: two creation paths and the recent projects that came out of
- * them. A storyboard project starts visual (shots → stills → clips); a script
- * project starts spoken (lines → voices → takes). Both end in the timeline
- * editor, which is the one finishing surface the product has.
+ * Studio home: one prompt that lands on a linked script + storyboard, the two
+ * blank starting points for people who would rather write first, and the
+ * projects that came out of them. Linked documents share a card — the script,
+ * the board it links, and the timeline either produced are one project, not
+ * three rows (see {@link groupLinkedProjects}).
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import TheatersRoundedIcon from "@mui/icons-material/TheatersRounded";
@@ -15,120 +16,143 @@ import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import {
   BORDER_RADIUS,
   Card,
-  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
   SPACING,
-  Text
+  Text,
+  TextInput
 } from "../components/ui_primitives";
-import { useCreateStoryboard, useStoryboards } from "../hooks/storyboard/useStoryboards";
-import { useCreateScript, useScripts } from "../hooks/script/useScripts";
-import { useTimelines } from "../hooks/useTimelineSequence";
+import { useCreateStoryboard } from "../hooks/storyboard/useStoryboards";
+import { useCreateScript } from "../hooks/script/useScripts";
 import StudioShell from "./StudioShell";
-
-type ProjectKind = "storyboard" | "script" | "timeline";
-
-interface RecentProject {
-  kind: ProjectKind;
-  id: string;
-  name: string;
-  updatedAt: string;
-}
+import { useStudioProjects } from "./useStudioProjects";
+import { useStudioPromptStart } from "./useStudioPromptStart";
+import type {
+  StudioDocument,
+  StudioDocumentKind,
+  StudioProject
+} from "./groupLinkedProjects";
 
 const KIND_LABEL = {
   storyboard: "Storyboard",
   script: "Script",
   timeline: "Video"
-} satisfies Record<ProjectKind, string>;
+} satisfies Record<StudioDocumentKind, string>;
 
 const KIND_ICON = {
   storyboard: <TheatersRoundedIcon fontSize="small" />,
   script: <RecordVoiceOverRoundedIcon fontSize="small" />,
   timeline: <MovieRoundedIcon fontSize="small" />
-} satisfies Record<ProjectKind, React.ReactNode>;
+} satisfies Record<StudioDocumentKind, React.ReactNode>;
 
-const projectRoute = (p: RecentProject) => `/studio/${p.kind}/${p.id}`;
+const documentRoute = (document: StudioDocument) =>
+  `/studio/${document.kind}/${document.id}`;
 
-const PathCard = ({
+const PROMPT_STAGE_LABEL = {
+  idle: "Make it",
+  directing: "Directing…",
+  writing: "Writing the script…"
+} as const;
+
+const ProjectCard = ({
+  project,
+  onOpen
+}: {
+  project: StudioProject;
+  onOpen: (document: StudioDocument) => void;
+}) => {
+  const theme = useTheme();
+  return (
+    <FlexColumn
+      gap={SPACING.sm}
+      data-testid="studio-project-card"
+      sx={{
+        width: "100%",
+        border: `1px solid ${theme.vars.palette.divider}`,
+        borderRadius: BORDER_RADIUS.md,
+        px: SPACING.md,
+        py: SPACING.sm
+      }}
+    >
+      <FlexRow align="center" gap={SPACING.md}>
+        <Text size="normal" truncate sx={{ flex: 1 }}>
+          {project.name}
+        </Text>
+        <Text size="smaller" color="secondary">
+          {new Date(project.updatedAt).toLocaleDateString()}
+        </Text>
+      </FlexRow>
+      <FlexRow align="center" gap={SPACING.sm} wrap>
+        {project.documents.map((document) => (
+          <FlexRow
+            key={`${document.kind}:${document.id}`}
+            component="button"
+            align="center"
+            gap={SPACING.xs}
+            onClick={() => onOpen(document)}
+            sx={{
+              cursor: "pointer",
+              background: "none",
+              border: `1px solid ${theme.vars.palette.divider}`,
+              borderRadius: BORDER_RADIUS.pill,
+              px: SPACING.sm,
+              py: SPACING.xs,
+              color: "inherit",
+              "&:hover": {
+                backgroundColor: theme.vars.palette.action.hover
+              }
+            }}
+          >
+            {KIND_ICON[document.kind]}
+            <Text size="smaller">{KIND_LABEL[document.kind]}</Text>
+          </FlexRow>
+        ))}
+      </FlexRow>
+    </FlexColumn>
+  );
+};
+
+const BlankStart = ({
   icon,
-  title,
-  description,
-  cta,
+  label,
   busy,
   disabled,
   onStart
 }: {
   icon: React.ReactNode;
-  title: string;
-  description: string;
-  cta: string;
+  label: string;
   busy: boolean;
   disabled: boolean;
   onStart: () => void;
 }) => (
-  <Card
-    variant="outlined"
-    padding="comfortable"
-    sx={{ flex: 1, minWidth: 260, maxWidth: 420 }}
-  >
-    <FlexColumn gap={SPACING.md} align="flex-start">
-      {icon}
-      <Text size="big" weight={600}>
-        {title}
-      </Text>
-      <Text size="small" color="secondary">
-        {description}
-      </Text>
-      <EditorButton variant="contained" onClick={onStart} disabled={disabled}>
-        {busy ? "Creating…" : cta}
-      </EditorButton>
-    </FlexColumn>
-  </Card>
+  <EditorButton variant="text" startIcon={icon} onClick={onStart} disabled={disabled}>
+    {busy ? "Creating…" : label}
+  </EditorButton>
 );
 
 const StudioHome = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
-  const [creating, setCreating] = useState<ProjectKind | null>(null);
+  const [creating, setCreating] = useState<StudioDocumentKind | null>(null);
+  const [prompt, setPrompt] = useState("");
 
-  const storyboards = useStoryboards();
-  const scripts = useScripts();
-  // No project filter: storyboards and scripts list all the user's documents,
-  // so the merged recent list scopes timelines the same way.
-  const timelines = useTimelines();
+  const { projects } = useStudioProjects();
+  const { start, stage, busy, error: promptError } = useStudioPromptStart();
 
-  const recent = useMemo<RecentProject[]>(() => {
-    const rows: RecentProject[] = [
-      ...(storyboards.data ?? []).map((s) => ({
-        kind: "storyboard" as const,
-        id: s.id,
-        name: s.name,
-        updatedAt: s.updatedAt
-      })),
-      ...(scripts.data ?? []).map((s) => ({
-        kind: "script" as const,
-        id: s.id,
-        name: s.name,
-        updatedAt: s.updatedAt
-      })),
-      ...(timelines.data ?? []).map((t) => ({
-        kind: "timeline" as const,
-        id: t.id,
-        name: t.name,
-        updatedAt: t.updatedAt
-      }))
-    ];
-    return rows
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, 12);
-  }, [storyboards.data, scripts.data, timelines.data]);
+  const makeIt = useCallback(() => {
+    if (busy) return;
+    void start(prompt)
+      .then(({ boardId }) => navigate(`/studio/storyboard/${boardId}`))
+      .catch(() => {
+        // Surfaced through promptError; the prompt stays for a second try.
+      });
+  }, [busy, navigate, prompt, start]);
 
-  // One creation at a time: both cards disable while either runs, and the
-  // handlers guard on a ref as well so a double-activation can't create two
-  // projects or race the navigation.
+  // One creation at a time: the blank starts disable while either runs, and
+  // the handlers guard on a ref as well so a double-activation can't create
+  // two projects or race the navigation.
   const creatingRef = useRef(false);
   const startStoryboard = useCallback(() => {
     if (creatingRef.current) return;
@@ -156,6 +180,11 @@ const StudioHome = () => {
       });
   }, [createScript, navigate]);
 
+  const openDocument = useCallback(
+    (document: StudioDocument) => navigate(documentRoute(document)),
+    [navigate]
+  );
+
   return (
     <StudioShell showBack={false}>
       <FlexColumn
@@ -168,67 +197,71 @@ const StudioHome = () => {
             Make a video
           </Text>
           <Text size="normal" color="secondary">
-            Pick a starting point — the agent handles the models, you direct.
+            Describe it once — the agent directs the shots and writes the
+            script, linked to each other.
           </Text>
         </FlexColumn>
 
-        <FlexRow gap={SPACING.lg} wrap justify="center" fullWidth>
-          <PathCard
-            icon={<TheatersRoundedIcon />}
-            title="Start with a storyboard"
-            description="Describe your idea. The director agent breaks it into shots, renders stills, animates them into clips, and cuts them together."
-            cta="New storyboard"
-            busy={creating === "storyboard"}
-            disabled={creating !== null}
-            onStart={startStoryboard}
-          />
-          <PathCard
-            icon={<RecordVoiceOverRoundedIcon />}
-            title="Start with a script"
-            description="Write or generate a script, cast a voice for every speaker, and turn the voiced lines into a video with captions."
-            cta="New script"
-            busy={creating === "script"}
-            disabled={creating !== null}
-            onStart={startScript}
-          />
-        </FlexRow>
+        <Card
+          variant="outlined"
+          padding="comfortable"
+          sx={{ width: "100%", maxWidth: 720 }}
+        >
+          <FlexColumn gap={SPACING.md} align="stretch">
+            <TextInput
+              label="What is the video about?"
+              placeholder="A 30-second explainer about how tides work, calm narration over close-up ocean shots."
+              multiline
+              rows={3}
+              value={prompt}
+              disabled={busy}
+              onChange={(event) => setPrompt(event.target.value)}
+            />
+            {promptError && (
+              <Text size="small" color="error">
+                {promptError}
+              </Text>
+            )}
+            <FlexRow align="center" gap={SPACING.sm} wrap>
+              <EditorButton
+                variant="contained"
+                onClick={makeIt}
+                disabled={busy || prompt.trim().length === 0}
+              >
+                {PROMPT_STAGE_LABEL[stage]}
+              </EditorButton>
+              <Text size="smaller" color="secondary" sx={{ flex: 1 }}>
+                or start blank:
+              </Text>
+              <BlankStart
+                icon={<TheatersRoundedIcon />}
+                label="New storyboard"
+                busy={creating === "storyboard"}
+                disabled={busy || creating !== null}
+                onStart={startStoryboard}
+              />
+              <BlankStart
+                icon={<RecordVoiceOverRoundedIcon />}
+                label="New script"
+                busy={creating === "script"}
+                disabled={busy || creating !== null}
+                onStart={startScript}
+              />
+            </FlexRow>
+          </FlexColumn>
+        </Card>
 
-        {recent.length > 0 && (
+        {projects.length > 0 && (
           <FlexColumn gap={SPACING.sm} sx={{ width: "100%", maxWidth: 880 }}>
             <Text size="small" weight={600} color="secondary">
               Recent projects
             </Text>
-            {recent.map((p) => (
-              <FlexRow
-                key={`${p.kind}:${p.id}`}
-                component="button"
-                align="center"
-                gap={SPACING.md}
-                onClick={() => navigate(projectRoute(p))}
-                sx={{
-                  width: "100%",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  background: "none",
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  borderRadius: BORDER_RADIUS.md,
-                  px: SPACING.md,
-                  py: SPACING.sm,
-                  color: "inherit",
-                  "&:hover": {
-                    backgroundColor: theme.vars.palette.action.hover
-                  }
-                }}
-              >
-                {KIND_ICON[p.kind]}
-                <Text size="normal" truncate sx={{ flex: 1 }}>
-                  {p.name}
-                </Text>
-                <Chip compact label={KIND_LABEL[p.kind]} />
-                <Text size="smaller" color="secondary">
-                  {new Date(p.updatedAt).toLocaleDateString()}
-                </Text>
-              </FlexRow>
+            {projects.slice(0, 12).map((project) => (
+              <ProjectCard
+                key={project.key}
+                project={project}
+                onOpen={openDocument}
+              />
             ))}
           </FlexColumn>
         )}

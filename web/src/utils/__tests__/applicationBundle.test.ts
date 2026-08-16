@@ -13,7 +13,7 @@ jest.mock("../../stores/BASE_URL", () => ({
   withApiBase: (u: string) => u
 }));
 
-const mockRestFetch = restFetch as jest.Mock;
+const mockRestFetch = jest.mocked(restFetch);
 
 function fakeResponse(opts: {
   ok: boolean;

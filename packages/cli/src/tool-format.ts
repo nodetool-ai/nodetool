@@ -48,13 +48,25 @@ export function friendlyToolName(name: string): string {
 }
 
 function str(v: unknown): string {
-  if (typeof v === "string") return v;
+  if (isStr(v)) return v;
   if (v == null) return "";
   return String(v);
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+function isStr(v: unknown): v is string {
+  return typeof v === "string";
+}
+
+function isNum(v: unknown): v is number {
+  return typeof v === "number";
+}
+
+function isBool(v: unknown): v is boolean {
+  return typeof v === "boolean";
 }
 
 function firstLine(s: string): string {
@@ -88,7 +100,7 @@ export function toolStatusLabel(
 
 /** One-line fallback preview for an arbitrary result value. */
 function genericPreview(result: unknown): string {
-  const s = typeof result === "string" ? result : safeJson(result);
+  const s = isStr(result) ? result : safeJson(result);
   return truncate(firstLine(s), 200);
 }
 
@@ -106,10 +118,11 @@ export function formatToolParams(
       const path = str(args.file_path);
       const offset = args.offset;
       const limit = args.limit;
-      if (typeof offset === "number" || typeof limit === "number") {
-        const start = typeof offset === "number" ? offset : 1;
-        const range =
-          typeof limit === "number" ? `${start}-${start + limit - 1}` : `${start}+`;
+      if (isNum(offset) || isNum(limit)) {
+        const start = isNum(offset) ? offset : 1;
+        const range = isNum(limit)
+          ? `${start}-${start + limit - 1}`
+          : `${start}+`;
         return `${path}, lines ${range}`;
       }
       return path;
@@ -167,7 +180,7 @@ export function formatToolResult(
 ): string {
   switch (name) {
     case "read_file":
-      if (typeof result === "string") {
+      if (isStr(result)) {
         if (result.startsWith("Error:")) return firstLine(result);
         const body = result.split("\n\n[")[0];
         const n = body === "" ? 0 : body.split("\n").length;
@@ -176,10 +189,10 @@ export function formatToolResult(
       break;
     case "write_file":
       // Already a clean summary: "Created X" / "Updated X" / "Error: …".
-      if (typeof result === "string") return firstLine(result);
+      if (isStr(result)) return firstLine(result);
       break;
     case "list_directory":
-      if (typeof result === "string") {
+      if (isStr(result)) {
         if (result.startsWith("Error:")) return firstLine(result);
         if (result.startsWith("(empty)")) return "Empty directory";
         const n = result.split("\n").filter(Boolean).length;
@@ -191,7 +204,7 @@ export function formatToolResult(
         if (result.success === false) return errorLine(result);
         if (result.created) return `Created ${str(result.path)}`;
         const n =
-          typeof result.replacements === "number" ? result.replacements : 1;
+          isNum(result.replacements) ? result.replacements : 1;
         return `Updated ${str(result.path)} (${plural(n, "edit", "edits")})`;
       }
       break;
@@ -199,7 +212,7 @@ export function formatToolResult(
       if (isObj(result)) {
         if (result.success === false) return errorLine(result);
         const n =
-          typeof result.match_count === "number" ? result.match_count : 0;
+          isNum(result.match_count) ? result.match_count : 0;
         return `Found ${plural(n, "file", "files")}${
           result.truncated ? " (truncated)" : ""
         }`;
@@ -209,7 +222,7 @@ export function formatToolResult(
       if (isObj(result)) {
         if (result.success === false) return errorLine(result);
         const n =
-          typeof result.match_count === "number" ? result.match_count : 0;
+          isNum(result.match_count) ? result.match_count : 0;
         return `Found ${plural(n, "match", "matches")}${
           result.truncated ? " (truncated)" : ""
         }`;
@@ -223,7 +236,7 @@ export function formatToolResult(
 
 function parseObservation(result: unknown): Record<string, unknown> | null {
   let value: unknown = result;
-  if (typeof result === "string") {
+  if (isStr(result)) {
     const trimmed = result.trim();
     if (!trimmed.startsWith("{")) return null;
     try {
@@ -234,7 +247,7 @@ function parseObservation(result: unknown): Record<string, unknown> | null {
   }
   if (!isObj(value)) return null;
   if (
-    typeof value.ok === "boolean" ||
+    isBool(value.ok) ||
     "error" in value ||
     "result" in value ||
     "toolCalls" in value ||
@@ -246,8 +259,8 @@ function parseObservation(result: unknown): Record<string, unknown> | null {
 }
 
 function compactValue(value: unknown): string {
-  if (typeof value === "string") return firstLine(value);
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (isStr(value)) return firstLine(value);
+  if (isNum(value) || isBool(value)) {
     return String(value);
   }
   if (value == null) return String(value);
@@ -259,7 +272,7 @@ function formatExecuteCodeResult(result: unknown): string {
   const obs = parseObservation(result);
   if (!obs) return genericPreview(result);
 
-  if (obs.ok === false || typeof obs.error === "string") {
+  if (obs.ok === false || isStr(obs.error)) {
     const err = str(obs.error) || "failed";
     return truncate(`Error: ${firstLine(err)}`, 200);
   }
@@ -268,11 +281,11 @@ function formatExecuteCodeResult(result: unknown): string {
   if (obs.result !== undefined) {
     parts.push(truncate(compactValue(obs.result), 160));
   }
-  if (typeof obs.toolCalls === "number" && obs.toolCalls > 0) {
+  if (isNum(obs.toolCalls) && obs.toolCalls > 0) {
     parts.push(plural(obs.toolCalls, "tool call", "tool calls"));
   }
   const logs = Array.isArray(obs.logs)
-    ? obs.logs.filter((line): line is string => typeof line === "string")
+    ? obs.logs.filter(isStr)
     : [];
   if (logs.length > 0) {
     parts.push(plural(logs.length, "log", "logs"));

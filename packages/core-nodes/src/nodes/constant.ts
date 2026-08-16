@@ -696,10 +696,7 @@ export class ConstantImageSizeNode extends BaseNode {
   declare value: ImageSizeValue | null;
 
   async process(): Promise<ConstantImageSizeNodeOutputs> {
-    const value = (this.value ?? { width: 1024, height: 1024 }) as {
-      width?: number;
-      height?: number;
-    };
+    const value = this.value ?? { width: 1024, height: 1024 };
     const width = Number(value.width ?? 1024);
     const height = Number(value.height ?? 1024);
     return { image_size: value, width, height };

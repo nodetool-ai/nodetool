@@ -158,7 +158,7 @@ export class ChartRendererLibNode extends BaseNode {
     // chart.js then constructs that empty stub and crashes with
     // "ctx.moveTo is not a function". Restore @napi-rs/canvas's real Path2D
     // for the duration of rendering.
-    const previousPath2D = (globalThis as { Path2D?: unknown }).Path2D;
+    const previousPath2D = globalThis.Path2D;
     (globalThis as { Path2D?: unknown }).Path2D = napiPath2D;
 
     const { Chart, registerables } = ChartJS;
@@ -260,7 +260,7 @@ export class ChartRendererLibNode extends BaseNode {
       if (previousPath2D === undefined) {
         delete (globalThis as { Path2D?: unknown }).Path2D;
       } else {
-        (globalThis as { Path2D?: unknown }).Path2D = previousPath2D;
+        globalThis.Path2D = previousPath2D;
       }
     }
 

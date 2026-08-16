@@ -22,7 +22,6 @@ import type {
 } from "../app-debug/index.js";
 import { getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 
 export interface AppServerRunnerOptions {
@@ -61,7 +60,7 @@ export function createAppServerRunner(
     // `session.result` never rejects: a kernel failure resolves as
     // `status: "failed"`, which the simulator turns into a complaint.
     const result = await session.result;
-    const messages = (result.messages ?? []) as ProcessingMessage[];
+    const messages = result.messages ?? [];
     const summary = collectExecutionSummary(messages);
     summary.status = result.status ?? summary.status;
     const timedOut = session.cancelReason === "timeout";

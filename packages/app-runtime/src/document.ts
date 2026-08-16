@@ -1,4 +1,11 @@
 import type { Mutable } from "./mutable.js";
+import {
+  isInteger,
+  isNonEmptyString,
+  isNumber,
+  isRecord,
+  isString
+} from "./predicates.js";
 /**
  * The application document: a UI layout plus typed bindings to workflow
  * operations, resources, and app state. Nothing here computes — every
@@ -172,9 +179,6 @@ export const createEmptyDocument = (title?: string): ApplicationDocument => ({
   variables: []
 });
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 const isPuckData = (value: unknown): value is PuckData =>
   isRecord(value) && isRecord(value.root) && Array.isArray(value.content);
 
@@ -191,14 +195,13 @@ const parseInputMapping = (value: unknown): InputMapping | null => {
     case "widget":
       return { from: "widget" };
     case "variable":
-      return typeof value.variableId === "string" && value.variableId.length > 0
+      return isNonEmptyString(value.variableId)
         ? { from: "variable", variableId: value.variableId }
         : null;
     case "constant":
       return { from: "constant", value: value.value };
     case "resource":
-      return typeof value.resourceBindingId === "string" &&
-        value.resourceBindingId.length > 0
+      return isNonEmptyString(value.resourceBindingId)
         ? { from: "resource", resourceBindingId: value.resourceBindingId }
         : null;
     default:
@@ -217,7 +220,7 @@ const parseOutputMapping = (value: unknown): OutputMapping | null => {
     case "display":
       return { to: "display" };
     case "variable":
-      return typeof value.variableId === "string" && value.variableId.length > 0
+      return isNonEmptyString(value.variableId)
         ? { to: "variable", variableId: value.variableId }
         : null;
     default:
@@ -267,8 +270,8 @@ const parseScriptTarget = (
 ): Extract<OperationTarget, { kind: "script" }> | null => {
   if (!isRecord(value) || value.kind !== "script") return null;
   const { scriptId, scriptVersion } = value;
-  if (typeof scriptId !== "string" || scriptId.length === 0) return null;
-  if (typeof scriptVersion !== "number" || !Number.isInteger(scriptVersion)) {
+  if (!isNonEmptyString(scriptId)) return null;
+  if (!isInteger(scriptVersion)) {
     return null;
   }
   return { kind: "script", scriptId, scriptVersion };
@@ -277,7 +280,7 @@ const parseScriptTarget = (
 /** The workflow id a stored `target` names, when it names one. */
 const targetWorkflowId = (value: unknown): string | null => {
   if (!isRecord(value) || value.kind !== "workflow") return null;
-  return typeof value.workflowId === "string" ? value.workflowId : null;
+  return isString(value.workflowId) ? value.workflowId : null;
 };
 
 const parseOperation = (
@@ -286,31 +289,29 @@ const parseOperation = (
 ): OperationBinding | null => {
   if (!isRecord(value)) return null;
   const { id, name, policy } = value;
-  if (typeof id !== "string") return null;
+  if (!isString(id)) return null;
   const script = parseScriptTarget(value.target);
   // v3 stored only `workflowId`; v4 may carry an explicit workflow target
   // instead. Either way the workflow id ends up in one place.
-  const workflowId =
-    typeof value.workflowId === "string"
-      ? value.workflowId
-      : targetWorkflowId(value.target);
+  const workflowId = isString(value.workflowId)
+    ? value.workflowId
+    : targetWorkflowId(value.target);
   if (!script && workflowId === null) return null;
   type BindingFields = Mutable<OperationBinding>;
   const binding: BindingFields = {
     id,
-    name: typeof name === "string" ? name : id,
+    name: isString(name) ? name : id,
     // A document that ships without a workflow — a template, which has no id
     // until it is installed — binds to whatever workflow hosts it. A script
     // operation binds no workflow at all.
     workflowId: script ? "" : workflowId || hostWorkflowId || "",
-    workflowVersion:
-      typeof value.workflowVersion === "number"
-        ? value.workflowVersion
-        : undefined,
+    workflowVersion: isNumber(value.workflowVersion)
+      ? value.workflowVersion
+      : undefined,
     inputs: parseMappings(value.inputs, parseInputMapping),
     outputs: parseMappings(value.outputs, parseOutputMapping),
     policy: policy === "parallel" || policy === "queue" ? policy : "replace",
-    timeoutMs: typeof value.timeoutMs === "number" ? value.timeoutMs : undefined
+    timeoutMs: isNumber(value.timeoutMs) ? value.timeoutMs : undefined
   };
   if (script) {
     binding.target = script;
@@ -321,13 +322,13 @@ const parseOperation = (
 const parseVariable = (value: unknown): VariableDeclaration | null => {
   if (!isRecord(value)) return null;
   const { id } = value;
-  if (typeof id !== "string" || id.length === 0) return null;
+  if (!isNonEmptyString(id)) return null;
   const scope = value.scope === "user" ? "user" : "instance";
   return {
     id,
-    name: typeof value.name === "string" ? value.name : id,
+    name: isString(value.name) ? value.name : id,
     type:
-      isRecord(value.type) && typeof value.type.type === "string"
+      isRecord(value.type) && isString(value.type.type)
         ? { type: value.type.type, optional: value.type.optional === true }
         : null,
     default: value.default,
@@ -340,7 +341,7 @@ const parseVariable = (value: unknown): VariableDeclaration | null => {
 const parseResource = (value: unknown): ResourceBinding | null => {
   if (!isRecord(value)) return null;
   const { id, kind } = value;
-  if (typeof id !== "string") return null;
+  if (!isString(id)) return null;
   if (
     kind !== "asset" &&
     kind !== "timeline" &&
@@ -357,18 +358,16 @@ const parseResource = (value: unknown): ResourceBinding | null => {
     : ["read" as const];
   return {
     id,
-    name: typeof value.name === "string" ? value.name : id,
+    name: isString(value.name) ? value.name : id,
     kind,
     scope: isRecord(value.scope)
       ? {
-          projectId:
-            typeof value.scope.projectId === "string"
-              ? value.scope.projectId
-              : undefined,
-          fixedId:
-            typeof value.scope.fixedId === "string"
-              ? value.scope.fixedId
-              : undefined
+          projectId: isString(value.scope.projectId)
+            ? value.scope.projectId
+            : undefined,
+          fixedId: isString(value.scope.fixedId)
+            ? value.scope.fixedId
+            : undefined
         }
       : {},
     operations
@@ -403,10 +402,9 @@ export const parseApplicationDocument = (
 
   // v3+: the native shape.
   if (isPuckData(value.ui)) {
-    const schemaVersion =
-      typeof value.schemaVersion === "number"
-        ? value.schemaVersion
-        : APP_SCHEMA_VERSION;
+    const schemaVersion = isNumber(value.schemaVersion)
+      ? value.schemaVersion
+      : APP_SCHEMA_VERSION;
     if (schemaVersion > APP_SCHEMA_VERSION) return null;
     return {
       schemaVersion: APP_SCHEMA_VERSION,
@@ -427,7 +425,7 @@ export const parseApplicationDocument = (
             .filter((v): v is VariableDeclaration => v !== null)
         : [],
       theme:
-        isRecord(value.theme) && typeof value.theme.id === "string"
+        isRecord(value.theme) && isString(value.theme.id)
           ? { id: value.theme.id }
           : undefined
     };
@@ -485,7 +483,7 @@ export const liftLegacyAppDoc = (
   const hostWorkflowId = workflow?.id ?? "";
 
   let value: unknown = raw;
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     try {
       value = JSON.parse(raw);
     } catch {

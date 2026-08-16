@@ -97,9 +97,9 @@ export function tagAsUniversal<T extends readonly NodeClass[]>(classes: T): T {
 export function tagAsBrowserGpu<T extends readonly NodeClass[]>(classes: T): T {
   const tagged = tagWith(classes, NODE_AND_BROWSER_PLATFORMS);
   for (const cls of tagged) {
-    const platforms = (cls as { platforms?: readonly Platform[] }).platforms;
+    const platforms = cls.platforms;
     if (!platforms?.includes("browser")) continue;
-    if ((cls as { requiresGpu?: unknown }).requiresGpu !== undefined) continue;
+    if (cls.requiresGpu !== undefined) continue;
     Object.defineProperty(cls, "requiresGpu", {
       value: true,
       writable: false,
@@ -121,7 +121,7 @@ export function tagAsBrowserGpu<T extends readonly NodeClass[]>(classes: T): T {
  */
 export function tagAsContentCard<T extends readonly NodeClass[]>(classes: T): T {
   for (const cls of classes) {
-    if ((cls as { body?: unknown }).body !== undefined) continue;
+    if (cls.body !== undefined) continue;
     Object.defineProperty(cls, "body", {
       value: "content_card",
       writable: false,

@@ -60,9 +60,7 @@ async function compileAndDiscover(
   try {
     ({ compileSandboxCatalog } = (await import(
       "@nodetool-ai/sandbox-compiler"
-    )) as {
-      compileSandboxCatalog: typeof compileSandboxCatalog;
-    });
+    )));
   } catch (error) {
     compileFailure = {
       packName: "@nodetool-ai/sandbox-compiler",

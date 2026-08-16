@@ -52,7 +52,7 @@ export class WorkflowCollaborator extends DBModel {
         )
       )
       .limit(1);
-    return row ? new WorkflowCollaborator(row as Record<string, unknown>) : null;
+    return row ? new WorkflowCollaborator(row) : null;
   }
 
   /** All collaborators on a workflow. */
@@ -107,7 +107,7 @@ export class WorkflowCollaborator extends DBModel {
       user_id: opts.userId,
       role: opts.role,
       invited_by: opts.invitedBy
-    })) as WorkflowCollaborator;
+    }));
   }
 
   /** Remove a user's grant. Returns true if a row was deleted. */

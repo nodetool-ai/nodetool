@@ -49,7 +49,7 @@ describe("DemoEngine", () => {
     );
     const gens = useResultsStore.getState().getLiveGenerations(WF, "gen");
     expect(gens.length).toBeGreaterThan(0);
-    expect((gens[0].outputs as { text?: string }).text).toContain(
+    expect(gens[0].outputs.text).toContain(
       "mountain lake"
     );
   });

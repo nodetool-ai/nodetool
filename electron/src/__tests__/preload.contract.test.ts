@@ -91,14 +91,14 @@ describe("preload contract", () => {
   let exposedNames: string[];
 
   beforeAll(() => {
-    (electronMock.contextBridge.exposeInMainWorld as jest.Mock).mockClear();
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
-    (electronMock.ipcRenderer.send as jest.Mock).mockClear();
-    (electronMock.ipcRenderer.on as jest.Mock).mockClear();
+    jest.mocked(electronMock.contextBridge.exposeInMainWorld).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
+    jest.mocked(electronMock.ipcRenderer.send).mockClear();
+    jest.mocked(electronMock.ipcRenderer.on).mockClear();
 
     require("../preload");
 
-    const calls = (electronMock.contextBridge.exposeInMainWorld as jest.Mock)
+    const calls = jest.mocked(electronMock.contextBridge.exposeInMainWorld)
       .mock.calls;
     exposedNames = calls.map((c: unknown[]) => c[0] as string);
     // Both window.api and window.electronAPI receive the same object.
@@ -133,13 +133,13 @@ describe("preload contract", () => {
   });
 
   test("server namespace methods route to expected IPC channels", () => {
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
     api.server.getState();
     api.server.start();
     api.server.restart();
 
-    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+    const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
       .map((c: unknown[]) => c[0]);
 
     expect(channels).toEqual([
@@ -150,14 +150,14 @@ describe("preload contract", () => {
   });
 
   test("packages namespace methods route to expected IPC channels", () => {
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
     api.packages.listAvailable();
     api.packages.listInstalled();
     api.packages.install("nodetool-ai/nodetool-base");
     api.packages.uninstall("nodetool-ai/nodetool-base");
 
-    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+    const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
       .map((c: unknown[]) => c[0]);
 
     expect(channels).toEqual([
@@ -169,7 +169,7 @@ describe("preload contract", () => {
   });
 
   test("nodePacks namespace methods route to expected IPC channels", () => {
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
     api.nodePacks.listInstalled();
     api.nodePacks.install("@acme/cool-nodes");
@@ -178,7 +178,7 @@ describe("preload contract", () => {
     api.nodePacks.listBuiltin();
     api.nodePacks.setBuiltinEnabled("fal", false);
 
-    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+    const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
       .map((c: unknown[]) => c[0]);
 
     expect(channels).toEqual([
@@ -192,12 +192,12 @@ describe("preload contract", () => {
   });
 
   test("settings update-channel methods route to expected IPC channels", () => {
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
     api.settings.getUpdateChannel();
     api.settings.setUpdateChannel("nightly");
 
-    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+    const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
       .map((c: unknown[]) => c[0]);
 
     expect(channels).toEqual([
@@ -207,8 +207,8 @@ describe("preload contract", () => {
   });
 
   test("windowControls uses ipcRenderer.send (fire-and-forget), not invoke", () => {
-    (electronMock.ipcRenderer.send as jest.Mock).mockClear();
-    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.send).mockClear();
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
     api.windowControls.close();
     api.windowControls.minimize();
@@ -219,8 +219,8 @@ describe("preload contract", () => {
   });
 
   test("event subscriptions return an unsubscribe function that calls removeListener", () => {
-    (electronMock.ipcRenderer.on as jest.Mock).mockClear();
-    (electronMock.ipcRenderer.removeListener as jest.Mock).mockClear();
+    jest.mocked(electronMock.ipcRenderer.on).mockClear();
+    jest.mocked(electronMock.ipcRenderer.removeListener).mockClear();
 
     const unsub = api.server.onLog(() => {});
     expect(electronMock.ipcRenderer.on).toHaveBeenCalledTimes(1);

@@ -55,7 +55,7 @@ const lastOutputs = (wf: string, nodeId: string): Record<string, unknown> => {
   const gens = useResultsStore.getState().getLiveGenerations(wf, nodeId);
   const last = gens.at(-1);
   expect(last).toBeDefined();
-  return (last?.outputs ?? {}) as Record<string, unknown>;
+  return last?.outputs ?? {};
 };
 
 const uri = (value: unknown): string | undefined =>

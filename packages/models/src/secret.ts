@@ -50,7 +50,7 @@ export class Secret extends DBModel {
       .from(secrets)
       .where(and(eq(secrets.user_id, userId), eq(secrets.key, key)))
       .limit(1);
-    return row ? new Secret(row as Record<string, unknown>) : null;
+    return row ? new Secret(row) : null;
   }
 
   /** Create or update a secret. Encrypts the plaintext value before storing. */
@@ -145,7 +145,7 @@ export class Secret extends DBModel {
       .where(eq(secrets.user_id, userId))
       .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Secret(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Secret(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -156,7 +156,7 @@ export class Secret extends DBModel {
   static async listAll(limit = 1000): Promise<Secret[]> {
     const db = getDb();
     const rows = await db.select().from(secrets).limit(limit);
-    return rows.map((r: Record<string, unknown>) => new Secret(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new Secret(r));
   }
 
   /** Get the decrypted plaintext value. */

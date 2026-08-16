@@ -31,7 +31,7 @@
  */
 
 import { createLogger, importOptionalModule } from "@nodetool-ai/config";
-import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type {
   McpSdkServerConfigWithInstance,
   Options,
@@ -58,6 +58,12 @@ import {
   type ToolCall
 } from "./types.js";
 import { hashSystemPrompt } from "./provider-session.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 import type { TurnBudget } from "../turn-budget.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
@@ -253,7 +259,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   private async loadQuery(): Promise<ClaudeQueryFn> {
     if (this.injectedQueryFn) return this.injectedQueryFn;
     const mod = await loadSdk();
-    return mod.query as ClaudeQueryFn;
+    return mod.query;
   }
 
   /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
@@ -648,8 +654,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         if (msg.type === "system" && msg.subtype === "init") {
           // Capture the session and surface it immediately so a streaming
           // consumer can persist it onto the assistant message it creates.
-          if (typeof msg.model === "string" && msg.model)
-            resolvedModel = msg.model;
+          if (isNonEmptyString(msg.model)) resolvedModel = msg.model;
           if (plan.threadId) {
             const session: ProviderSession = {
               providerId: this.provider,
@@ -671,7 +676,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (delta?.text != null) {
             streamedFromPartials = true;
             plan.emitted.content = true;
-            yield { type: "chunk", content: delta.text, done: false } as Chunk;
+            yield { type: "chunk", content: delta.text, done: false };
           } else if (delta?.thinking != null) {
             streamedFromPartials = true;
             plan.emitted.content = true;
@@ -680,15 +685,14 @@ export class ClaudeAgentProvider extends BaseProvider {
               content: delta.thinking,
               done: false,
               thinking: true
-            } as Chunk;
+            };
           }
           continue;
         }
 
         if (msg.type === "assistant") {
-          const m = (msg as SDKAssistantMessage).message;
-          if (m && typeof m.model === "string" && m.model)
-            resolvedModel = m.model;
+          const m = msg.message;
+          if (m && isNonEmptyString(m.model)) resolvedModel = m.model;
           // Fallback only: no partials arrived, so render text/thinking from the
           // final content blocks — kept strictly separate, never merged.
           if (!streamedFromPartials) {
@@ -708,7 +712,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           // persistable message, and a ToolCall item per call for live display.
           if (plan.config.emitMessages) {
             const { text, toolCalls } = assistantParts(
-              msg as SDKAssistantMessage
+              msg
             );
             for (const tc of toolCalls) yield tc;
             yield {
@@ -727,7 +731,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         // messages so the harness can persist them.
         if (msg.type === "user") {
           if (plan.config.emitMessages) {
-            for (const tr of toolResultsFromUser(msg as SDKUserMessage)) {
+            for (const tr of toolResultsFromUser(msg)) {
               yield {
                 type: "message",
                 message: {
@@ -746,7 +750,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
           if (msg.subtype === "success") {
-            yield { type: "chunk", content: "", done: true } as Chunk;
+            yield { type: "chunk", content: "", done: true };
           } else {
             throw resultError(msg);
           }
@@ -810,7 +814,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         continue;
       if ("args" in item) {
         toolCalls.push(item);
-      } else if (!item.thinking && typeof item.content === "string") {
+      } else if (!item.thinking && isString(item.content)) {
         content += item.content;
       }
     }
@@ -823,7 +827,7 @@ export class ClaudeAgentProvider extends BaseProvider {
 }
 
 function num(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return isFiniteNumber(value) ? value : 0;
 }
 
 /**
@@ -871,9 +875,7 @@ function capturedModelFromPartial(
   const event = msg.event;
   if (event.type !== "message_start") return null;
   const model = event.message?.model;
-  return typeof model === "string" && model && model !== "<synthetic>"
-    ? model
-    : null;
+  return isNonEmptyString(model) && model !== "<synthetic>" ? model : null;
 }
 
 /** Text/thinking blocks of a final assistant message, kept separate. */
@@ -884,12 +886,9 @@ function finalBlocks(
   if (!Array.isArray(content)) return [];
   const out: Array<{ content: string; thinking: boolean }> = [];
   for (const block of content) {
-    if (block.type === "text" && typeof block.text === "string") {
+    if (block.type === "text" && isString(block.text)) {
       out.push({ content: block.text, thinking: false });
-    } else if (
-      block.type === "thinking" &&
-      typeof block.thinking === "string"
-    ) {
+    } else if (block.type === "thinking" && isString(block.thinking)) {
       out.push({ content: block.thinking, thinking: true });
     }
   }
@@ -906,7 +905,7 @@ function finalBlocks(
  *    top-level tool name. Without this the call reaches no tool at all.
  */
 function stripToolPrefix(name: string | undefined): string {
-  let n = typeof name === "string" ? name : "";
+  let n = isString(name) ? name : "";
   if (n.startsWith(TOOL_PREFIX)) n = n.slice(TOOL_PREFIX.length);
   if (n.startsWith(GUEST_TOOL_PREFIX)) n = n.slice(GUEST_TOOL_PREFIX.length);
   return n;
@@ -919,23 +918,16 @@ function assistantParts(msg: SDKAssistantMessage) {
   const toolCalls: ToolCall[] = [];
   if (Array.isArray(content)) {
     for (const raw of content) {
-      const b = raw as {
-        type?: string;
-        text?: string;
-        id?: string;
-        name?: string;
-        input?: unknown;
-      };
-      if (b.type === "text" && typeof b.text === "string") {
+      const b = raw;
+      if (b.type === "text" && isString(b.text)) {
         text += b.text;
       } else if (b.type === "tool_use") {
         toolCalls.push({
-          id: typeof b.id === "string" ? b.id : `call_${toolCalls.length}`,
+          id: isString(b.id) ? b.id : `call_${toolCalls.length}`,
           name: stripToolPrefix(b.name),
-          args:
-            b.input && typeof b.input === "object"
-              ? (b.input as Record<string, unknown>)
-              : {}
+          args: isObjectLike(b.input)
+            ? (b.input as Record<string, unknown>)
+            : {}
         });
       }
     }
@@ -947,7 +939,7 @@ function assistantParts(msg: SDKAssistantMessage) {
 function toolResultsFromUser(
   msg: SDKUserMessage
 ): Array<{ toolCallId: string; content: string }> {
-  const content = (msg.message as { content?: unknown } | undefined)?.content;
+  const content = msg.message?.content;
   const out: Array<{ toolCallId: string; content: string }> = [];
   if (Array.isArray(content)) {
     for (const raw of content) {
@@ -956,7 +948,7 @@ function toolResultsFromUser(
         tool_use_id?: string;
         content?: unknown;
       };
-      if (b.type === "tool_result" && typeof b.tool_use_id === "string") {
+      if (b.type === "tool_result" && isString(b.tool_use_id)) {
         out.push({
           toolCallId: b.tool_use_id,
           content: toolResultText(b.content)
@@ -969,12 +961,12 @@ function toolResultsFromUser(
 
 /** Flatten an MCP tool-result content payload to text. */
 function toolResultText(content: unknown): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (Array.isArray(content)) {
     return content
       .map((c) => {
         const cc = c as { type?: string; text?: string };
-        return cc.type === "text" && typeof cc.text === "string" ? cc.text : "";
+        return cc.type === "text" && isString(cc.text) ? cc.text : "";
       })
       .join("");
   }
@@ -1030,17 +1022,13 @@ function toMcpImageBlock(image: {
       : Buffer.from(decodeURIComponent(match[3] ?? "")).toString("base64");
   };
 
-  if (typeof image.data === "string") {
+  if (isString(image.data)) {
     if (image.data.startsWith("data:")) fromDataUri(image.data);
     else base64 = image.data;
   } else if (image.data instanceof Uint8Array) {
     base64 = Buffer.from(image.data).toString("base64");
   }
-  if (
-    !base64 &&
-    typeof image.uri === "string" &&
-    image.uri.startsWith("data:")
-  ) {
+  if (!base64 && isString(image.uri) && image.uri.startsWith("data:")) {
     fromDataUri(image.uri);
   }
   if (!base64) return null;
@@ -1055,7 +1043,7 @@ function toMcpImageBlock(image: {
 export function toolResultToMcpContent(
   result: string | MessageContent[]
 ): McpContentBlock[] {
-  if (typeof result === "string") {
+  if (isString(result)) {
     return [{ type: "text", text: result }];
   }
   const blocks: McpContentBlock[] = [];
@@ -1065,7 +1053,7 @@ export function toolResultToMcpContent(
     } else if (part.type === "image_url") {
       const img = toMcpImageBlock(part.image);
       if (img) blocks.push(img);
-      else if (typeof part.image.uri === "string") {
+      else if (isString(part.image.uri)) {
         blocks.push({ type: "text", text: `[image at ${part.image.uri}]` });
       }
     }
@@ -1093,8 +1081,7 @@ function jsonSchemaToZodShape(
 
 /** Convert one JSON-Schema property to a Zod type (the subset NodeTool uses). */
 function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
-  const desc =
-    typeof prop?.description === "string" ? prop.description : undefined;
+  const desc = isString(prop?.description) ? prop.description : undefined;
   let zt: ZodTypeAny;
   switch (prop?.type) {
     case "string":
@@ -1139,11 +1126,11 @@ function resultError(
   const parts: string[] = [`Claude Agent SDK query failed (${msg.subtype})`];
   if ("errors" in msg && Array.isArray(msg.errors) && msg.errors.length) {
     parts.push(msg.errors.join("; "));
-  } else if ("result" in msg && typeof msg.result === "string" && msg.result) {
+  } else if ("result" in msg && isNonEmptyString(msg.result)) {
     parts.push(msg.result);
   }
   const denials = (
-    msg as { permission_denials?: Array<{ tool_name?: string }> }
+    msg
   ).permission_denials;
   if (Array.isArray(denials) && denials.length) {
     parts.push(
@@ -1156,7 +1143,7 @@ function resultError(
 /** Flatten a message's content to plain text (text blocks only). */
 function textOf(content: Message["content"]): string {
   if (content == null) return "";
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   return content
     .filter((c): c is MessageTextContent => c.type === "text")
     .map((c) => c.text)

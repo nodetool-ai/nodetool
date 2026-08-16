@@ -11,8 +11,7 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  Message,
-  ToolCall
+  Message
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
@@ -499,7 +498,7 @@ export class TaskPlanner {
       )) as Record<string, unknown>;
       const status = result["status"];
       const removedId =
-        typeof args["id"] === "string" ? (args["id"] as string) : "";
+        typeof args["id"] === "string" ? args["id"] : "";
       if (status === "task_removed") {
         uiEvents.push({
           type: "task_update",
@@ -584,10 +583,10 @@ export class TaskPlanner {
       for await (const item of stream) {
         // A tool call is announced before it runs — surface it for live display.
         if ("id" in item && "name" in item && "args" in item) {
-          const tc = item as ToolCall;
+          const tc = item;
           const tool = toolsByName.get(tc.name);
           if (tool) {
-            const args = (tc.args ?? {}) as Record<string, unknown>;
+            const args = tc.args ?? {};
             yield {
               type: "tool_call_update",
               node_id: "",
@@ -599,7 +598,7 @@ export class TaskPlanner {
           yield* drainUi();
           continue;
         }
-        if ("type" in item && (item as { type?: string }).type === "chunk") {
+        if ("type" in item && item.type === "chunk") {
           const chunk = item as { content?: string; done?: boolean };
           if (
             typeof chunk.content === "string" &&
@@ -708,7 +707,7 @@ export class TaskPlanner {
         }
       }
       if ("name" in item && item.name === planningTool.name) {
-        toolCallArgs = item.args as Record<string, unknown>;
+        toolCallArgs = item.args;
       }
     }
 

@@ -14,7 +14,7 @@ import { trpcClient } from "../../trpc/client";
 import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { newDocumentId } from "../../lib/newDocumentId";
 
 export interface AssembleScriptResult {
@@ -75,7 +75,7 @@ export const useAssembleScriptTimeline =
                 .map((c) => c.trackId)
             );
             const foreignTrackIds = new Set(foreignClips.map((c) => c.trackId));
-            const foreignTracks = (sequence.tracks as TimelineTrack[]).filter(
+            const foreignTracks = sequence.tracks.filter(
               (t) => foreignTrackIds.has(t.id) || !thisScriptTrackIds.has(t.id)
             );
             await trpcClient.timeline.update.mutate({
