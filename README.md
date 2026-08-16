@@ -436,4 +436,4 @@ Please open an issue before starting major work so we can coordinate.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=nodetool-ai/nodetool&type=date&legend=top-left)](https://www.star-history.com/#nodetool-ai/nodetool&type=date&legend=top-left)
+[![Star History Chart](https://star-history.dera.page/svg?repos=nodetool-ai/nodetool&type=date&legend=top-left)](https://star-history.dera.page/#nodetool-ai/nodetool&type=date&legend=top-left)
