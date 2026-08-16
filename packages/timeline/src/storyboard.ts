@@ -56,7 +56,7 @@ const assetIdOf = (ref: { asset_id?: string | null } | null | undefined) =>
     : undefined;
 
 /** Clip length for a shot: its target duration, or the default. */
-const shotDurationMs = (shot: Shot): number =>
+export const shotDurationMs = (shot: Shot): number =>
   typeof shot.duration_seconds === "number" && shot.duration_seconds > 0
     ? Math.round(shot.duration_seconds * 1000)
     : DEFAULT_SHOT_MS;
