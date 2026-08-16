@@ -48,6 +48,7 @@ import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
+import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
 
@@ -370,6 +371,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 >
                   {`Generate all clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
                 </EditorButton>
+                <ScriptLinkControl boardId={boardId} disabled={directing} />
                 <EditorButton
                   variant="outlined"
                   onClick={togglePreview}

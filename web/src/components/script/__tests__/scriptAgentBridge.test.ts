@@ -16,6 +16,7 @@ const makeMockHandler = (): ScriptAgentHandler => ({
   voiceLine: jest.fn(),
   voiceAll: jest.fn(),
   sendToTimeline: jest.fn(),
+  deriveStoryboard: jest.fn(),
   exportSubtitles: jest.fn()
 });
 

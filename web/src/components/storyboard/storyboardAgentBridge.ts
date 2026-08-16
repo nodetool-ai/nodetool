@@ -46,8 +46,21 @@ export interface StoryboardSnapshot {
   aspectRatio: string;
   /** True once a screenplay has been loaded onto the board. */
   hasScreenplay: boolean;
+  /** Script this board's words come from, or null when it is unlinked. */
+  scriptId: string | null;
   selectedShotId: string | null;
   shots: StoryboardShotNode[];
+}
+
+/** What an extraction (or a re-projection) left behind. */
+export interface StoryboardScriptLink {
+  scriptId: string;
+  /** Lines the script now holds. */
+  lineCount: number;
+  /** Shots that reference at least one line. */
+  linkedShotCount: number;
+  /** False when an already-linked script was re-projected. */
+  created: boolean;
 }
 
 /** Fields the agent can supply when adding a shot. */
@@ -92,6 +105,14 @@ export interface StoryboardAgentHandler {
     instruction: string
   ) => Promise<StoryboardShotNode>;
   selectShot: (target: string | null) => StoryboardShotNode | null;
+  /**
+   * Project the board's dialogue and narration into a script resource and link
+   * the two. `relink` re-projects onto the script the board already links;
+   * without it, an already-linked board throws.
+   */
+  extractScript: (options?: {
+    relink?: boolean;
+  }) => Promise<StoryboardScriptLink>;
   /**
    * Assemble the board's rendered shots into a persisted timeline sequence
    * (plus draft narration/music clips) and open its tab. Throws when no shot

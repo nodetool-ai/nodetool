@@ -190,6 +190,21 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_script_derive_storyboard",
+  description:
+    "Create a storyboard from the specified script and link the two: one shot per line, in reading order, each shot recording the line it covers and carrying its words as dialogue or narration. The shots have no camera or motion direction yet — direct the board afterwards to fill those in. Fails when this script already has a storyboard. Opens the storyboard's tab.",
+  parameters: z.object({ script_id: scriptIdParam }),
+  async execute({ script_id }) {
+    const result = await getScriptAgentHandler(script_id).deriveStoryboard();
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("storyboard", result.boardId)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_script_send_to_timeline",
   description:
     "Assemble the specified script's current takes into a persisted timeline sequence and open it in the timeline editor — one voiceover clip per voiced line, laid end to end with the authored pauses. Lines without a current take are skipped (returned in skippedLineIds). If the script is already linked to a timeline, its voiceover track is rewritten in place (reassembled). Voice at least one line first.",

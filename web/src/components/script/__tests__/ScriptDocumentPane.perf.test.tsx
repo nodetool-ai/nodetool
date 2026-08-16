@@ -15,6 +15,13 @@ import {
  */
 const rowRenders: string[] = [];
 
+// The link control owns its own suite and its own trpc query; this one counts
+// row renders.
+jest.mock("../StoryboardLinkControl", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 jest.mock("../ScriptLineRow", () => {
   const actual = jest.requireActual("../ScriptLineRow");
   const react: typeof React = jest.requireActual("react");
