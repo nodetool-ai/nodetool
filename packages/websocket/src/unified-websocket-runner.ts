@@ -21,6 +21,16 @@ import {
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
+  isBoolean,
+  isFiniteNumber,
+  isFunctionValue,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./lib/wire-values.js";
+import {
   FileStorageAdapter,
   type StorageAdapter
 } from "@nodetool-ai/storage";
@@ -259,7 +269,7 @@ function shouldValidateOutboundWs(): boolean {
  */
 function assertValidOutboundMessage(message: Record<string, unknown>): void {
   if (!shouldValidateOutboundWs()) return;
-  const type = typeof message["type"] === "string" ? message["type"] : null;
+  const type = isString(message["type"]) ? message["type"] : null;
   if (!type) return;
   const schema =
     processingMessageSchemas[type as keyof typeof processingMessageSchemas] ??
@@ -399,8 +409,7 @@ function sanitizeLargeText(
   maxLength = MAX_ERROR_TEXT_LENGTH
 ): string {
   const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
-    const mime =
-      typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    const mime = isString(mimeType) && mimeType !== "" ? mimeType : "data";
     return `[${mime} base64 omitted, ${match.length} chars]`;
   });
 
@@ -426,7 +435,7 @@ function sanitizeErrorValue(
   value: unknown,
   seen = new WeakSet<object>()
 ): JsonSafeValue {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return sanitizeLargeText(value);
   }
 
@@ -438,7 +447,7 @@ function sanitizeErrorValue(
     return value.map((item) => sanitizeErrorValue(item, seen));
   }
 
-  if (value && typeof value === "object") {
+  if (isObjectLike(value)) {
     if (seen.has(value)) {
       return "[circular]";
     }
@@ -466,7 +475,7 @@ function formatSanitizedError(error: unknown): string {
     return "";
   }
 
-  if (typeof error === "string") {
+  if (isString(error)) {
     return sanitizeLargeText(error);
   }
 
@@ -475,7 +484,7 @@ function formatSanitizedError(error: unknown): string {
   }
 
   const sanitized = sanitizeErrorValue(error);
-  if (typeof sanitized === "string") {
+  if (isString(sanitized)) {
     return sanitized;
   }
 
@@ -502,7 +511,7 @@ function getAdapterPublicUrl(
 ): string | null {
   const fn = (adapter as { getPublicUrl?: (uri: string) => string | null })
     .getPublicUrl;
-  if (typeof fn !== "function") return null;
+  if (!isFunctionValue(fn)) return null;
   try {
     return fn.call(adapter, uri) ?? null;
   } catch {
@@ -544,7 +553,7 @@ function promptMetadata(
   properties: Record<string, unknown> | undefined
 ) {
   const prompt = properties?.prompt;
-  if (typeof prompt !== "string") return {};
+  if (!isString(prompt)) return {};
   const trimmed = prompt.trim();
   if (trimmed.length === 0) return {};
   return {
@@ -585,10 +594,10 @@ const ASSET_TYPE_MIME: Record<string, string> = {
 };
 
 function isAssetLikeValue(value: unknown): value is Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if (!isRecord(value)) return false;
   const v = value as Record<string, unknown>;
   return (
-    typeof v.type === "string" &&
+    isString(v.type) &&
     ASSET_MEDIA_TYPES.has(v.type as string) &&
     ("data" in v || "uri" in v)
   );
@@ -602,7 +611,7 @@ function isAssetLikeValue(value: unknown): value is Record<string, unknown> {
 function isNativeAudioChunk(
   value: unknown
 ): value is Record<string, unknown> & { content: Float32Array } {
-  if (!value || typeof value !== "object") return false;
+  if (!isObjectLike(value)) return false;
   const v = value as Record<string, unknown>;
   return v.type === "chunk" && v.content instanceof Float32Array;
 }
@@ -662,7 +671,7 @@ function decodeAssetBytes(data: unknown): Uint8Array | null {
   if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
     return new Uint8Array(data as number[]);
   }
-  if (typeof data === "string") {
+  if (isString(data)) {
     return Uint8Array.from(Buffer.from(data, "base64"));
   }
   return null;
@@ -701,10 +710,9 @@ function extractEmbeddedImage(source: {
   uri?: unknown;
   mimeType?: unknown;
 }): { bytes: Uint8Array; mimeType: string } | { uri: string } | null {
-  const declaredMime =
-    typeof source.mimeType === "string" ? source.mimeType : undefined;
-  const data = typeof source.data === "string" ? source.data : undefined;
-  const uri = typeof source.uri === "string" ? source.uri : undefined;
+  const declaredMime = isString(source.mimeType) ? source.mimeType : undefined;
+  const data = isString(source.data) ? source.data : undefined;
+  const uri = isString(source.uri) ? source.uri : undefined;
 
   if (data) {
     if (data.startsWith("data:")) {
@@ -824,7 +832,7 @@ async function autoSaveAssets(
       queue.push(value);
       return;
     }
-    if (typeof value === "object") {
+    if (isRecord(value)) {
       for (const v of Object.values(value as Record<string, unknown>)) {
         collect(v);
       }
@@ -856,7 +864,7 @@ async function autoSaveAssets(
       );
     } else {
       bytes = decodeAssetBytes(assetValue.data);
-      if (!bytes && typeof assetValue.uri === "string") {
+      if (!bytes && isString(assetValue.uri)) {
         bytes = await readBytesFromUri(assetValue.uri as string);
       }
     }
@@ -867,7 +875,7 @@ async function autoSaveAssets(
       ? "image/png"
       : (assetValue.mime_type ?? assetValue.content_type);
     const contentType =
-      typeof explicitMime === "string" && explicitMime
+      isString(explicitMime) && explicitMime
         ? explicitMime
         : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
 
@@ -927,7 +935,7 @@ async function autoSaveAssets(
   const textKey = opts.textOutputName;
   if (textKey) {
     const textVal = result[textKey];
-    if (typeof textVal === "string" && textVal.length > 0) {
+    if (isNonEmptyString(textVal)) {
       savedText = true;
       const bytes = new TextEncoder().encode(textVal);
       const previewText = new TextDecoder().decode(
@@ -1561,7 +1569,7 @@ export function buildChatAgentSystemPrompt(
   workflowId?: string | null
 ): string {
   const extra =
-    typeof extraSystemPrompt === "string" && extraSystemPrompt.trim()
+    isString(extraSystemPrompt) && extraSystemPrompt.trim()
       ? `\n\n${extraSystemPrompt.trim()}\n`
       : "";
   const uiBlock = formatUiContext(uiContext);
@@ -1885,7 +1893,7 @@ interface ActiveJob {
 /** Highest `job_seq` a resubscribing client claims to already hold. */
 function resumeLastSeq(data: Record<string, unknown>): number {
   const raw = data["last_seq"];
-  return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
+  return isFiniteNumber(raw) && raw > 0 ? raw : 0;
 }
 
 function createRelayActivityWaiter(
@@ -2296,10 +2304,10 @@ export class UnifiedWebSocketRunner {
    * Mirrors Python's _extract_query_text / _extract_objective / _extract_text_content.
    */
   private extractTextContent(content: unknown, fallback = ""): string {
-    if (typeof content === "string") return content;
+    if (isString(content)) return content;
     if (Array.isArray(content)) {
       const texts = (content as Array<Record<string, unknown>>)
-        .filter((c) => c.type === "text" && typeof c.text === "string")
+        .filter((c) => c.type === "text" && isString(c.text))
         .map((c) => c.text as string);
       return texts.length > 0 ? texts.join(" ") : fallback;
     }
@@ -2308,12 +2316,11 @@ export class UnifiedWebSocketRunner {
 
   private inferOutputType(value: unknown): string {
     if (value === null || value === undefined) return "any";
-    if (typeof value === "string") return "str";
-    if (typeof value === "number")
-      return Number.isInteger(value) ? "int" : "float";
-    if (typeof value === "boolean") return "bool";
+    if (isString(value)) return "str";
+    if (isNumber(value)) return Number.isInteger(value) ? "int" : "float";
+    if (isBoolean(value)) return "bool";
     if (Array.isArray(value)) return "list";
-    if (value && typeof value === "object") return "dict";
+    if (isObjectLike(value)) return "dict";
     return "any";
   }
 
@@ -2324,10 +2331,10 @@ export class UnifiedWebSocketRunner {
     let fallback: { id: string; name: string } | null = null;
     for (const raw of active.graph.nodes) {
       const node = raw as { id?: unknown; name?: unknown; type?: unknown };
-      const id = typeof node.id === "string" ? node.id : null;
+      const id = isString(node.id) ? node.id : null;
       if (!id) continue;
-      const name = typeof node.name === "string" ? node.name : id;
-      const type = typeof node.type === "string" ? node.type : "";
+      const name = isString(node.name) ? node.name : id;
+      const type = isString(node.type) ? node.type : "";
       if (name === outputKey || id === outputKey) return { id, name };
       if (type === "nodetool.output.Output" && !fallback)
         fallback = { id, name };
@@ -2460,7 +2467,7 @@ export class UnifiedWebSocketRunner {
     const result = await resultPromise;
     if (result.ok !== true) {
       throw new Error(
-        typeof result.error === "string" ? result.error : "Renderer tool failed"
+        isString(result.error) ? result.error : "Renderer tool failed"
       );
     }
     return {
@@ -2606,7 +2613,7 @@ export class UnifiedWebSocketRunner {
     if (value instanceof Uint8Array) return Array.from(value);
     if (value instanceof Date) return value.toISOString();
     if (Array.isArray(value)) return value.map((v) => this.serializeForJson(v));
-    if (value && typeof value === "object") {
+    if (isObjectLike(value)) {
       const out: { [key: string]: JsonSafeValue } = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         out[k] = this.serializeForJson(v);
@@ -2626,7 +2633,7 @@ export class UnifiedWebSocketRunner {
     if (
       session &&
       session.status === "running" &&
-      typeof message.thread_id === "string" &&
+      isString(message.thread_id) &&
       message.thread_id === session.threadId
     ) {
       session.emit(message);
@@ -2650,7 +2657,7 @@ export class UnifiedWebSocketRunner {
    * started, or one it adopted via `reconnect_job`.
    */
   private resolveJobSession(jobId: unknown): JobRunSession | null {
-    if (typeof jobId !== "string" || jobId.length === 0) return null;
+    if (!isNonEmptyString(jobId)) return null;
     const active = this.activeJobs.get(jobId);
     if (active?.runSession) return active.runSession;
     if (!this.adoptedJobIds.has(jobId)) return null;
@@ -2802,14 +2809,12 @@ export class UnifiedWebSocketRunner {
     if (event["type"] !== "tool_call_update") return;
     const toolCallId = event["tool_call_id"];
     const name = event["name"];
-    if (typeof toolCallId !== "string" || typeof name !== "string") return;
+    if (!isString(toolCallId) || !isString(name)) return;
     if (!toolCallId || !name) return;
-    const args =
-      event["args"] && typeof event["args"] === "object"
-        ? (event["args"] as Record<string, unknown>)
-        : {};
-    const message =
-      typeof event["message"] === "string" ? event["message"] : null;
+    const args = isObjectLike(event["args"])
+      ? (event["args"] as Record<string, unknown>)
+      : {};
+    const message = isString(event["message"]) ? event["message"] : null;
     await this.sendMessage({
       type: "message",
       role: "assistant",
@@ -3588,7 +3593,7 @@ export class UnifiedWebSocketRunner {
         if (!node.type.startsWith("nodetool.output.")) continue;
         const properties = node.properties as Record<string, unknown> | null;
         const publicName = properties?.name;
-        if (typeof publicName === "string" && publicName.trim().length > 0) {
+        if (isString(publicName) && publicName.trim().length > 0) {
           node.name = publicName;
         }
       }
@@ -3631,10 +3636,9 @@ export class UnifiedWebSocketRunner {
     // sub-workflow nodes (WorkflowNode) can create child runners.
     context.setResolveExecutor((node) => this.resolveExecutor(node));
     if (this.resolveNodeType) {
-      const resolverObj =
-        typeof this.resolveNodeType === "function"
-          ? { resolveNodeType: this.resolveNodeType }
-          : this.resolveNodeType;
+      const resolverObj = isFunctionValue(this.resolveNodeType)
+        ? { resolveNodeType: this.resolveNodeType }
+        : this.resolveNodeType;
       context.setResolveNodeType(
         (nodeType) =>
           resolverObj.resolveNodeType(nodeType) as Promise<{
@@ -4081,7 +4085,7 @@ export class UnifiedWebSocketRunner {
       ).nodes ?? [];
     const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
     for (const n of graphNodes) {
-      if (typeof n.id === "string") {
+      if (isString(n.id)) {
         graphNodeMap.set(n.id, n);
       }
     }
@@ -4099,10 +4103,7 @@ export class UnifiedWebSocketRunner {
         if (outbound.error != null) {
           outbound.error = formatSanitizedError(outbound.error);
         }
-        if (
-          outbound.type === "notification" &&
-          typeof outbound.content === "string"
-        ) {
+        if (outbound.type === "notification" && isString(outbound.content)) {
           outbound.content = sanitizeLargeText(outbound.content);
         }
         if (outbound.type === "node_update" && outbound.status === "error") {
@@ -4130,7 +4131,7 @@ export class UnifiedWebSocketRunner {
         ) {
           const nodeId = String(outbound.node_id ?? "");
           const node = graphNodeMap.get(nodeId);
-          const nodeType = typeof node?.type === "string" ? node.type : "";
+          const nodeType = isString(node?.type) ? node.type : "";
 
           // Skip constant and input nodes entirely
           if (
@@ -4196,7 +4197,7 @@ export class UnifiedWebSocketRunner {
                     const gi = (
                       a.metadata as { generation_index?: unknown } | null
                     )?.generation_index;
-                    if (typeof gi === "number") persistedIndices.add(gi);
+                    if (isNumber(gi)) persistedIndices.add(gi);
                   }
                 } catch (err) {
                   log.warn("generation replay-dedupe read failed", {
@@ -4724,7 +4725,7 @@ export class UnifiedWebSocketRunner {
     return {
       role,
       content: rawContent ?? "",
-      toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
+      toolCallId: isString(m.tool_call_id) ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
         ? (m.tool_calls as Array<{
             id: string;
@@ -4746,7 +4747,7 @@ export class UnifiedWebSocketRunner {
     const data = { ...messageData };
     delete data.id;
     delete data.type;
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
+    const threadId = isString(data.thread_id) ? data.thread_id : "";
     delete data.thread_id;
     const userId = this.userId ?? "1";
     delete data.user_id;
@@ -4782,7 +4783,7 @@ export class UnifiedWebSocketRunner {
       let bytes: Uint8Array | null = null;
       if (rawData instanceof Uint8Array) {
         bytes = rawData;
-      } else if (typeof rawData === "string" && rawData) {
+      } else if (isString(rawData) && rawData) {
         bytes = new Uint8Array(Buffer.from(rawData, "base64"));
       }
       if (!bytes) {
@@ -4790,8 +4791,7 @@ export class UnifiedWebSocketRunner {
         out.push({ ...block });
         continue;
       }
-      const mimeType =
-        typeof image.mimeType === "string" ? image.mimeType : "image/png";
+      const mimeType = isString(image.mimeType) ? image.mimeType : "image/png";
       const ext = IMAGE_MIME_TO_EXT[mimeType] ?? "png";
       // Per-block isolation: a storage failure must not abort the whole turn —
       // the image is already generated (and billed), and the assistant text
@@ -4855,7 +4855,7 @@ export class UnifiedWebSocketRunner {
     if (obj === null || obj === undefined) return obj;
 
     // Asset-like objects: { type: "image"|"audio"|"video"|..., uri?: string, data?: ... }
-    if (typeof obj === "object" && !Array.isArray(obj)) {
+    if (isRecord(obj)) {
       const record = obj as Record<string, unknown>;
 
       // Check if it's an asset-like object (has type + uri or data)
@@ -4936,11 +4936,7 @@ export class UnifiedWebSocketRunner {
     toolResult: unknown,
     ctx: ProcessingContext
   ): Promise<unknown> {
-    if (
-      !toolResult ||
-      typeof toolResult !== "object" ||
-      Array.isArray(toolResult)
-    ) {
+    if (!isRecord(toolResult)) {
       return toolResult;
     }
     const record = toolResult as Record<string, unknown>;
@@ -4958,7 +4954,7 @@ export class UnifiedWebSocketRunner {
       const handles: unknown[] = [];
       let stored = 0;
       for (const frame of record.frames) {
-        if (!frame || typeof frame !== "object") {
+        if (!isObjectLike(frame)) {
           handles.push(frame);
           continue;
         }
@@ -4983,7 +4979,7 @@ export class UnifiedWebSocketRunner {
     }
 
     // Single image_content blob → one image handle.
-    if (record.image_content && typeof record.image_content === "object") {
+    if (isObjectLike(record.image_content)) {
       const payload = extractEmbeddedImage(
         record.image_content as Record<string, unknown>
       );
@@ -4992,8 +4988,7 @@ export class UnifiedWebSocketRunner {
       delete out.image_content;
       if (id) {
         out.image_id = id;
-        const base =
-          typeof record.note === "string" ? record.note : "Captured an image.";
+        const base = isString(record.note) ? record.note : "Captured an image.";
         out.note = `${base} Saved as image asset "${id}". Call view_image({ image_id: "${id}" }) to inspect it.`;
       }
       return out;
@@ -5163,7 +5158,7 @@ export class UnifiedWebSocketRunner {
         return { decision: "approve" };
       }
       const feedback =
-        typeof response.feedback === "string" && response.feedback.trim()
+        isString(response.feedback) && response.feedback.trim()
           ? response.feedback.trim()
           : undefined;
       return { decision: "reject", feedback };
@@ -5251,10 +5246,9 @@ export class UnifiedWebSocketRunner {
     this.attachPlanApproval(context, threadId);
     context.setResolveExecutor((node) => this.resolveExecutor(node));
     if (this.resolveNodeType) {
-      const resolverObj =
-        typeof this.resolveNodeType === "function"
-          ? { resolveNodeType: this.resolveNodeType }
-          : this.resolveNodeType;
+      const resolverObj = isFunctionValue(this.resolveNodeType)
+        ? { resolveNodeType: this.resolveNodeType }
+        : this.resolveNodeType;
       context.setResolveNodeType(
         (type) =>
           resolverObj.resolveNodeType(type) as Promise<{
@@ -5332,10 +5326,11 @@ export class UnifiedWebSocketRunner {
     requestSeq?: number,
     signal?: AbortSignal
   ): Promise<void> {
-    const messageWorkflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const messageWorkflowId = isString(data.workflow_id)
+      ? data.workflow_id
+      : null;
     const threadId = await this.ensureThreadExists(
-      typeof data.thread_id === "string" ? data.thread_id : undefined,
+      isString(data.thread_id) ? data.thread_id : undefined,
       messageWorkflowId
     );
     data.thread_id = threadId;
@@ -5343,15 +5338,15 @@ export class UnifiedWebSocketRunner {
     // Route this turn takes: a workflow chatbot and a media generation carry
     // their own model selection (checked in their handlers), a plain chat turn
     // is served by the language model the composer picked.
-    const workflowTargetHint =
-      typeof data.workflow_target === "string" ? data.workflow_target : null;
-    const mediaModeHint =
-      data.media_generation && typeof data.media_generation === "object"
-        ? (data.media_generation as Record<string, unknown>).mode
-        : null;
+    const workflowTargetHint = isString(data.workflow_target)
+      ? data.workflow_target
+      : null;
+    const mediaModeHint = isObjectLike(data.media_generation)
+      ? (data.media_generation as Record<string, unknown>).mode
+      : null;
     const isPlainChatTurn =
       workflowTargetHint !== "workflow" &&
-      (typeof mediaModeHint !== "string" || mediaModeHint === "chat");
+      (!isString(mediaModeHint) || mediaModeHint === "chat");
 
     // A plain chat turn without a chosen model used to fall through to the
     // built-in default and die deep in provider resolution ("No provider
@@ -5396,8 +5391,9 @@ export class UnifiedWebSocketRunner {
     // it, and that ambient id must not hijack the turn into running the
     // workflow as a chatbot. Genuine workflow-chatbot runs set `workflow_target`
     // (and carry `workflow_id`/`graph` for the processor to load/execute).
-    const workflowTarget =
-      typeof data.workflow_target === "string" ? data.workflow_target : null;
+    const workflowTarget = isString(data.workflow_target)
+      ? data.workflow_target
+      : null;
     if (workflowTarget === "workflow") {
       await this.handleWorkflowMessage(data, requestSeq, signal);
       return;
@@ -5408,13 +5404,12 @@ export class UnifiedWebSocketRunner {
     // with mode + params; when mode is a media mode we invoke the provider's
     // textToImage / textToVideo instead of a regular LLM round and return an
     // assistant message containing MessageImageContent / MessageVideoContent.
-    const mediaGeneration =
-      data.media_generation && typeof data.media_generation === "object"
-        ? (data.media_generation as Record<string, unknown>)
-        : null;
+    const mediaGeneration = isObjectLike(data.media_generation)
+      ? (data.media_generation as Record<string, unknown>)
+      : null;
     if (
       mediaGeneration &&
-      typeof mediaGeneration.mode === "string" &&
+      isString(mediaGeneration.mode) &&
       mediaGeneration.mode !== "chat"
     ) {
       await this.handleMediaGenerationMessage(
@@ -5439,16 +5434,16 @@ export class UnifiedWebSocketRunner {
 
     // A surface can send a context-specific system-prompt addendum (e.g. the
     // App Builder's build-an-app-UI guidance), layered after the base prompt.
-    const extraSystemPrompt =
-      typeof data.system_prompt === "string" ? data.system_prompt : null;
+    const extraSystemPrompt = isString(data.system_prompt)
+      ? data.system_prompt
+      : null;
 
     // Which documents the user has open, and which one has focus. The `ui_*`
     // tools all require an explicit document id, so this is what makes them
     // usable — see `formatUiContext`.
-    const uiContext =
-      data.ui_context && typeof data.ui_context === "object"
-        ? (data.ui_context as UiContext)
-        : null;
+    const uiContext = isObjectLike(data.ui_context)
+      ? (data.ui_context as UiContext)
+      : null;
 
     // Long-term memory mines the whole conversation, so it needs the full
     // history; the resume fast path below is skipped when it is enabled.
@@ -5717,10 +5712,9 @@ export class UnifiedWebSocketRunner {
             : undefined;
       clientSchemas.push({
         name,
-        description:
-          typeof manifest.description === "string"
-            ? manifest.description
-            : undefined,
+        description: isString(manifest.description)
+          ? manifest.description
+          : undefined,
         inputSchema: schema
       });
     }
@@ -6049,9 +6043,7 @@ export class UnifiedWebSocketRunner {
       toolResult = await this.materializeToolResultImages(toolResult, ctx);
 
       const processed = await this.processToolResult(toolResult, ctx);
-      return typeof processed === "string"
-        ? processed
-        : JSON.stringify(processed);
+      return isString(processed) ? processed : JSON.stringify(processed);
     };
 
     // Late-bind the codeact bridge to the router above, and route
@@ -6108,7 +6100,7 @@ export class UnifiedWebSocketRunner {
         // native-image blocks. Raw image bytes are turned into real assets
         // here so base64 never lands in the DB or on the wire.
         let persistedContent: unknown = m.content ?? null;
-        if (typeof m.content === "string") {
+        if (isString(m.content)) {
           if (echo) content = m.content;
         } else if (Array.isArray(m.content)) {
           const materialized = await this.materializeAssistantImageContent(
@@ -6119,7 +6111,7 @@ export class UnifiedWebSocketRunner {
           persistedContent = materialized;
           if (echo) {
             content = materialized
-              .filter((c) => c.type === "text" && typeof c.text === "string")
+              .filter((c) => c.type === "text" && isString(c.text))
               .map((c) => c.text as string)
               .join("");
           }
@@ -6133,7 +6125,7 @@ export class UnifiedWebSocketRunner {
             }))
           : null;
         for (const tc of toolCalls ?? []) {
-          if (typeof tc.id !== "string") continue;
+          if (!isString(tc.id)) continue;
           openToolCalls.add(tc.id);
           toolNames.set(tc.id, tc.name);
         }
@@ -6160,10 +6152,10 @@ export class UnifiedWebSocketRunner {
       // in-flight provider message, never the DB).
       const toolContent = Array.isArray(m.content)
         ? this.toolResultDisplayText(m.content)
-        : typeof m.content === "string"
+        : isString(m.content)
           ? m.content
           : "";
-      if (typeof m.toolCallId === "string") openToolCalls.delete(m.toolCallId);
+      if (isString(m.toolCallId)) openToolCalls.delete(m.toolCallId);
       const toolMsgData = {
         type: "message",
         role: "tool",
@@ -6324,7 +6316,7 @@ export class UnifiedWebSocketRunner {
         }
       }
       // HTTP status errors — check for status code in error
-      else if (err && typeof err === "object" && "status" in err) {
+      else if (isObjectLike(err) && "status" in err) {
         const status = (err as { status: number }).status;
         errorType = "http_status_error";
         statusCode = status;
@@ -6335,13 +6327,9 @@ export class UnifiedWebSocketRunner {
           if ("body" in err || "response" in err) {
             const errObj = err as Record<string, unknown>;
             const body = errObj.body ?? errObj.response;
-            if (body && typeof body === "object" && "error" in body) {
+            if (isObjectLike(body) && "error" in body) {
               const errorDetail = body.error;
-              if (
-                typeof errorDetail === "object" &&
-                errorDetail &&
-                "message" in errorDetail
-              ) {
+              if (isObjectLike(errorDetail) && "message" in errorDetail) {
                 bodyMsg = String(errorDetail.message);
               }
             }
@@ -6461,7 +6449,7 @@ export class UnifiedWebSocketRunner {
       active.workflowId
     );
     const amount = (providerCost as { amount?: unknown }).amount;
-    if (typeof amount === "number" && Number.isFinite(amount)) {
+    if (isFiniteNumber(amount)) {
       active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
     } else {
       // A non-finite amount (NaN/Infinity from a buggy provider call) can't
@@ -6484,7 +6472,7 @@ export class UnifiedWebSocketRunner {
     nodeType: string,
     workflowId: string | null
   ): Promise<void> {
-    if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
+    if (!isFiniteNumber(cost.amount)) {
       return;
     }
     try {
@@ -6623,12 +6611,11 @@ export class UnifiedWebSocketRunner {
     let messagesName: string | null = null;
 
     for (const node of graph.nodes) {
-      const nodeType = typeof node.type === "string" ? node.type : "";
-      const data =
-        typeof node.data === "object" && node.data !== null
-          ? (node.data as Record<string, unknown>)
-          : {};
-      const nodeName = typeof data.name === "string" ? data.name.trim() : "";
+      const nodeType = isString(node.type) ? node.type : "";
+      const data = isObjectLike(node.data)
+        ? (node.data as Record<string, unknown>)
+        : {};
+      const nodeName = isString(data.name) ? data.name.trim() : "";
       if (!nodeName) continue;
 
       if (
@@ -6668,13 +6655,13 @@ export class UnifiedWebSocketRunner {
     for (const [, value] of Object.entries(result)) {
       if (value === null || value === undefined) continue;
 
-      if (typeof value === "string") {
+      if (isString(value)) {
         content.push({ type: "text", text: value });
       } else if (Array.isArray(value)) {
         content.push({ type: "text", text: value.map(String).join(" ") });
-      } else if (typeof value === "object") {
+      } else if (isRecord(value)) {
         const obj = value as Record<string, unknown>;
-        const assetType = typeof obj.type === "string" ? obj.type : "";
+        const assetType = isString(obj.type) ? obj.type : "";
         if (assetType === "image") {
           content.push({
             type: "image",
@@ -6737,9 +6724,8 @@ export class UnifiedWebSocketRunner {
     requestSeq?: number,
     signal?: AbortSignal
   ): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const threadId = isString(data.thread_id) ? data.thread_id : "";
+    const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
     const userId = this.userId ?? "1";
     const mode = String(mediaGeneration.mode ?? "");
     // The media composer's own selection first; a client without a separate
@@ -6839,14 +6825,12 @@ export class UnifiedWebSocketRunner {
           1,
           Math.min(Number(mediaGeneration.variations ?? 1), 8)
         );
-        const width =
-          typeof mediaGeneration.width === "number"
-            ? mediaGeneration.width
-            : undefined;
-        const height =
-          typeof mediaGeneration.height === "number"
-            ? mediaGeneration.height
-            : undefined;
+        const width = isNumber(mediaGeneration.width)
+          ? mediaGeneration.width
+          : undefined;
+        const height = isNumber(mediaGeneration.height)
+          ? mediaGeneration.height
+          : undefined;
         const imageModel: ProviderImageModel = {
           id: modelId,
           name: modelId,
@@ -6910,18 +6894,15 @@ export class UnifiedWebSocketRunner {
       }
 
       if (mode === "video") {
-        const aspectRatio =
-          typeof mediaGeneration.aspect_ratio === "string"
-            ? (mediaGeneration.aspect_ratio as string)
-            : null;
-        const resolution =
-          typeof mediaGeneration.resolution === "string"
-            ? (mediaGeneration.resolution as string)
-            : null;
-        const duration =
-          typeof mediaGeneration.duration === "number"
-            ? (mediaGeneration.duration as number)
-            : null;
+        const aspectRatio = isString(mediaGeneration.aspect_ratio)
+          ? (mediaGeneration.aspect_ratio as string)
+          : null;
+        const resolution = isString(mediaGeneration.resolution)
+          ? (mediaGeneration.resolution as string)
+          : null;
+        const duration = isNumber(mediaGeneration.duration)
+          ? (mediaGeneration.duration as number)
+          : null;
         const videoModel: ProviderVideoModel = {
           id: modelId,
           name: modelId,
@@ -7007,18 +6988,15 @@ export class UnifiedWebSocketRunner {
       }
 
       if (mode === "audio") {
-        const voice =
-          typeof mediaGeneration.voice === "string"
-            ? (mediaGeneration.voice as string)
-            : undefined;
-        const speed =
-          typeof mediaGeneration.speed === "number"
-            ? (mediaGeneration.speed as number)
-            : 1.0;
-        const requestedFormatRaw =
-          typeof mediaGeneration.audio_format === "string"
-            ? (mediaGeneration.audio_format as string).toLowerCase()
-            : null;
+        const voice = isString(mediaGeneration.voice)
+          ? (mediaGeneration.voice as string)
+          : undefined;
+        const speed = isNumber(mediaGeneration.speed)
+          ? (mediaGeneration.speed as number)
+          : 1.0;
+        const requestedFormatRaw = isString(mediaGeneration.audio_format)
+          ? (mediaGeneration.audio_format as string).toLowerCase()
+          : null;
         const supportedFormats = new Set([
           "mp3",
           "wav",
@@ -7236,22 +7214,20 @@ export class UnifiedWebSocketRunner {
             1,
             Math.min(Number(mediaGeneration.variations ?? 1), 8)
           );
-          const targetWidth =
-            typeof mediaGeneration.width === "number"
-              ? (mediaGeneration.width as number)
-              : undefined;
-          const targetHeight =
-            typeof mediaGeneration.height === "number"
-              ? (mediaGeneration.height as number)
-              : undefined;
-          const strength =
-            typeof mediaGeneration.strength === "number"
-              ? (mediaGeneration.strength as number)
-              : undefined;
-          const numInferenceSteps =
-            typeof mediaGeneration.num_inference_steps === "number"
-              ? (mediaGeneration.num_inference_steps as number)
-              : undefined;
+          const targetWidth = isNumber(mediaGeneration.width)
+            ? (mediaGeneration.width as number)
+            : undefined;
+          const targetHeight = isNumber(mediaGeneration.height)
+            ? (mediaGeneration.height as number)
+            : undefined;
+          const strength = isNumber(mediaGeneration.strength)
+            ? (mediaGeneration.strength as number)
+            : undefined;
+          const numInferenceSteps = isNumber(
+            mediaGeneration.num_inference_steps
+          )
+            ? (mediaGeneration.num_inference_steps as number)
+            : undefined;
           const editModel: ProviderImageModel = {
             id: modelId,
             name: modelId,
@@ -7312,22 +7288,18 @@ export class UnifiedWebSocketRunner {
         }
 
         // image_to_video
-        const aspectRatio =
-          typeof mediaGeneration.aspect_ratio === "string"
-            ? (mediaGeneration.aspect_ratio as string)
-            : null;
-        const resolution =
-          typeof mediaGeneration.resolution === "string"
-            ? (mediaGeneration.resolution as string)
-            : null;
-        const duration =
-          typeof mediaGeneration.duration === "number"
-            ? (mediaGeneration.duration as number)
-            : null;
-        const numInferenceSteps =
-          typeof mediaGeneration.num_inference_steps === "number"
-            ? (mediaGeneration.num_inference_steps as number)
-            : null;
+        const aspectRatio = isString(mediaGeneration.aspect_ratio)
+          ? (mediaGeneration.aspect_ratio as string)
+          : null;
+        const resolution = isString(mediaGeneration.resolution)
+          ? (mediaGeneration.resolution as string)
+          : null;
+        const duration = isNumber(mediaGeneration.duration)
+          ? (mediaGeneration.duration as number)
+          : null;
+        const numInferenceSteps = isNumber(mediaGeneration.num_inference_steps)
+          ? (mediaGeneration.num_inference_steps as number)
+          : null;
         const i2vModel: ProviderVideoModel = {
           id: modelId,
           name: modelId,
@@ -7431,10 +7403,9 @@ export class UnifiedWebSocketRunner {
       }
     };
 
-    const explicitId =
-      typeof mediaGeneration.source_asset_id === "string"
-        ? (mediaGeneration.source_asset_id as string)
-        : null;
+    const explicitId = isString(mediaGeneration.source_asset_id)
+      ? (mediaGeneration.source_asset_id as string)
+      : null;
     if (explicitId) {
       const fromAsset = await tryLoadAsset(explicitId);
       if (fromAsset && fromAsset.length > 0) return fromAsset;
@@ -7443,20 +7414,18 @@ export class UnifiedWebSocketRunner {
     const content = data.content;
     if (Array.isArray(content)) {
       for (const c of content) {
-        if (!c || typeof c !== "object") continue;
+        if (!isObjectLike(c)) continue;
         const block = c as Record<string, unknown>;
         if (block.type !== "image_url") continue;
         const image = (block.image ?? {}) as Record<string, unknown>;
-        const assetId =
-          typeof image.asset_id === "string"
-            ? (image.asset_id as string)
-            : null;
+        const assetId = isString(image.asset_id)
+          ? (image.asset_id as string)
+          : null;
         if (assetId) {
           const bytes = await tryLoadAsset(assetId);
           if (bytes && bytes.length > 0) return bytes;
         }
-        const uri =
-          typeof image.uri === "string" ? (image.uri as string) : null;
+        const uri = isString(image.uri) ? (image.uri as string) : null;
         if (uri) {
           if (uri.startsWith("asset://")) {
             // `@`-mentioned or library-dragged asset: `asset://<id>.<ext>`.
@@ -7497,8 +7466,7 @@ export class UnifiedWebSocketRunner {
             }
           }
         }
-        const data64 =
-          typeof image.data === "string" ? (image.data as string) : null;
+        const data64 = isString(image.data) ? (image.data as string) : null;
         if (data64) {
           try {
             return new Uint8Array(Buffer.from(data64, "base64"));
@@ -7516,13 +7484,12 @@ export class UnifiedWebSocketRunner {
     requestSeq?: number,
     signal?: AbortSignal
   ): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
-    const providerId =
-      typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model =
-      typeof data.model === "string" ? data.model : this.defaultModel;
+    const threadId = isString(data.thread_id) ? data.thread_id : "";
+    const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
+    const providerId = isString(data.provider)
+      ? data.provider
+      : this.defaultProvider;
+    const model = isString(data.model) ? data.model : this.defaultModel;
     const userId = this.userId ?? "1";
     const jobId = randomUUID();
 
@@ -7558,13 +7525,13 @@ export class UnifiedWebSocketRunner {
         await this.beforeRunJob(graph);
       }
       const messageInputName =
-        (typeof data.workflow_message_input_name === "string"
+        (isString(data.workflow_message_input_name)
           ? data.workflow_message_input_name
           : null) ??
         messageName ??
         "message";
       const messagesInputName =
-        (typeof data.workflow_messages_input_name === "string"
+        (isString(data.workflow_messages_input_name)
           ? data.workflow_messages_input_name
           : null) ??
         messagesName ??
@@ -7581,7 +7548,7 @@ export class UnifiedWebSocketRunner {
 
       // Serialize current message
       const currentMessage = {
-        role: typeof data.role === "string" ? data.role : "user",
+        role: isString(data.role) ? data.role : "user",
         content: data.content,
         thread_id: threadId,
         workflow_id: workflowId,
@@ -7594,7 +7561,7 @@ export class UnifiedWebSocketRunner {
         [messageInputName]: currentMessage,
         [messagesInputName]: [...chatHistorySerialized, currentMessage]
       };
-      if (typeof data.params === "object" && data.params !== null) {
+      if (isObjectLike(data.params)) {
         Object.assign(params, data.params as Record<string, unknown>);
       }
 
@@ -7626,10 +7593,9 @@ export class UnifiedWebSocketRunner {
       // Expose executor/node-type resolution for sub-workflow nodes
       context.setResolveExecutor((node) => this.resolveExecutor(node));
       if (this.resolveNodeType) {
-        const resolverObj =
-          typeof this.resolveNodeType === "function"
-            ? { resolveNodeType: this.resolveNodeType }
-            : this.resolveNodeType;
+        const resolverObj = isFunctionValue(this.resolveNodeType)
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
         context.setResolveNodeType(
           (nodeType) =>
             resolverObj.resolveNodeType(nodeType) as Promise<{
@@ -7732,7 +7698,7 @@ export class UnifiedWebSocketRunner {
       const graphNodes = graph.nodes ?? [];
       for (const n of graphNodes) {
         if (n.id) {
-          nodeTypes.set(String(n.id), typeof n.type === "string" ? n.type : "");
+          nodeTypes.set(String(n.id), isString(n.type) ? n.type : "");
         }
       }
 
@@ -7799,10 +7765,9 @@ export class UnifiedWebSocketRunner {
             // Capture output_update values for the response message
             if (outbound.type === "output_update") {
               if (nodeType.includes("Output")) {
-                const nodeName =
-                  typeof outbound.node_name === "string"
-                    ? outbound.node_name
-                    : nodeType;
+                const nodeName = isString(outbound.node_name)
+                  ? outbound.node_name
+                  : nodeType;
                 result[nodeName] = outbound.value;
               } else {
                 continue; // Skip non-output node output_updates
@@ -7970,10 +7935,10 @@ export class UnifiedWebSocketRunner {
     requestSeq: number,
     signal?: AbortSignal
   ): Promise<void> {
-    const providerId =
-      typeof data.provider === "string" ? data.provider : this.defaultProvider;
-    const model =
-      typeof data.model === "string" ? data.model : this.defaultModel;
+    const providerId = isString(data.provider)
+      ? data.provider
+      : this.defaultProvider;
+    const model = isString(data.model) ? data.model : this.defaultModel;
     const rawMessages = Array.isArray(data.messages) ? data.messages : [];
     log.debug("Inference request", {
       model,
@@ -7984,16 +7949,15 @@ export class UnifiedWebSocketRunner {
     const messages: ProviderMessage[] = rawMessages.map((m) => {
       const msg = m as Record<string, unknown>;
       return {
-        role: (typeof msg.role === "string"
+        role: (isString(msg.role)
           ? msg.role
           : "user") as ProviderMessage["role"],
-        content:
-          typeof msg.content === "string"
-            ? msg.content
-            : Array.isArray(msg.content)
-              ? (msg.content as MessageContent[])
-              : "",
-        toolCallId: typeof msg.toolCallId === "string" ? msg.toolCallId : null,
+        content: isString(msg.content)
+          ? msg.content
+          : Array.isArray(msg.content)
+            ? (msg.content as MessageContent[])
+            : "",
+        toolCallId: isString(msg.toolCallId) ? msg.toolCallId : null,
         toolCalls: Array.isArray(msg.toolCalls)
           ? (msg.toolCalls as Array<{
               id: string;
@@ -8018,9 +7982,10 @@ export class UnifiedWebSocketRunner {
       .map((t) => {
         const tool = t as Record<string, unknown>;
         return {
-          name: typeof tool.name === "string" ? tool.name : "",
-          description:
-            typeof tool.description === "string" ? tool.description : undefined,
+          name: isString(tool.name) ? tool.name : "",
+          description: isString(tool.description)
+            ? tool.description
+            : undefined,
           inputSchema:
             typeof tool.inputSchema === "object"
               ? (tool.inputSchema as Record<string, unknown>)
@@ -8510,7 +8475,7 @@ export class UnifiedWebSocketRunner {
     fn: () => Promise<TResult>
   ): Promise<Record<string, unknown> | null> {
     const requestId = command.request_id;
-    if (typeof requestId !== "string" || requestId.length === 0) {
+    if (!isNonEmptyString(requestId)) {
       return { error: "request_id is required for RPC commands" };
     }
     try {
@@ -8584,9 +8549,10 @@ export class UnifiedWebSocketRunner {
     command: WebSocketCommandEnvelope
   ): Promise<Record<string, unknown> | null> {
     const data = command.data ?? {};
-    const jobId = typeof data.job_id === "string" ? data.job_id : undefined;
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : undefined;
+    const jobId = isString(data.job_id) ? data.job_id : undefined;
+    const workflowId = isString(data.workflow_id)
+      ? data.workflow_id
+      : undefined;
     log.debug("Command", { command: command.command });
 
     switch (command.command as UnifiedCommandType) {
@@ -8638,11 +8604,10 @@ export class UnifiedWebSocketRunner {
             activeJobIds: [...this.activeJobs.keys()]
           });
           if (!target) return { error: "No active job/context" };
-          const inputName = typeof data.input === "string" ? data.input : "";
+          const inputName = isString(data.input) ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
           const value = data.value;
-          const handle =
-            typeof data.handle === "string" ? data.handle : undefined;
+          const handle = isString(data.handle) ? data.handle : undefined;
           try {
             await target.hooks.pushInput(inputName, value, handle);
             return {
@@ -8666,10 +8631,9 @@ export class UnifiedWebSocketRunner {
         {
           const target = this.resolveJobControl(jobId);
           if (!target) return { error: "No active job/context" };
-          const inputName = typeof data.input === "string" ? data.input : "";
+          const inputName = isString(data.input) ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
-          const handle =
-            typeof data.handle === "string" ? data.handle : undefined;
+          const handle = isString(data.handle) ? data.handle : undefined;
           try {
             target.hooks.finishInputStream(inputName, handle);
             return {
@@ -8695,10 +8659,10 @@ export class UnifiedWebSocketRunner {
         if (!jobId) return { error: "job_id is required" };
         const nodeId = data.node_id;
         const properties = data.properties;
-        if (typeof nodeId !== "string" || nodeId.length === 0) {
+        if (!isNonEmptyString(nodeId)) {
           return { error: "node_id is required" };
         }
-        if (properties === null || typeof properties !== "object") {
+        if (!isObjectLike(properties)) {
           return { error: "properties must be an object" };
         }
         const target = this.resolveJobControl(jobId);
@@ -8721,7 +8685,7 @@ export class UnifiedWebSocketRunner {
       }
       case "chat_message": {
         const threadId = data.thread_id;
-        if (typeof threadId !== "string" || threadId.length === 0) {
+        if (!isNonEmptyString(threadId)) {
           return { error: "thread_id is required for chat_message command" };
         }
         const { seq, signal, controller } = this.beginChatTurn();
@@ -8778,15 +8742,11 @@ export class UnifiedWebSocketRunner {
         return { message: "Chat turns listed", count: sessions.length };
       }
       case "resume_chat": {
-        const threadId =
-          typeof data.thread_id === "string" ? data.thread_id : "";
+        const threadId = isString(data.thread_id) ? data.thread_id : "";
         if (!threadId) {
           return { error: "thread_id is required for resume_chat command" };
         }
-        const lastSeq =
-          typeof data.last_seq === "number" && Number.isFinite(data.last_seq)
-            ? data.last_seq
-            : 0;
+        const lastSeq = isFiniteNumber(data.last_seq) ? data.last_seq : 0;
         const session = chatTurnRegistry.get(this.userId ?? "1", threadId);
         if (!session) {
           // Nothing to replay: no turn ran here, or retention elapsed. The
@@ -8848,8 +8808,7 @@ export class UnifiedWebSocketRunner {
         return { message: "Inference started" };
       }
       case "stop": {
-        const threadId =
-          typeof data.thread_id === "string" ? data.thread_id : undefined;
+        const threadId = isString(data.thread_id) ? data.thread_id : undefined;
         // Always increment seq to cancel any in-progress chat or inference
         this.chatRequestSeq += 1;
         // …and abort it for real. The seq bump alone only discards output at
@@ -8987,46 +8946,36 @@ export class UnifiedWebSocketRunner {
         const provider = String(data.provider ?? this.defaultProvider);
         const model = String(data.model ?? this.defaultModel);
         const prompt = String(data.prompt ?? "");
-        const sourceAssetId =
-          typeof data.source_asset_id === "string"
-            ? (data.source_asset_id as string)
-            : undefined;
-        const maskAssetId =
-          typeof data.mask_asset_id === "string"
-            ? (data.mask_asset_id as string)
-            : undefined;
-        const width =
-          typeof data.width === "number" ? (data.width as number) : undefined;
-        const height =
-          typeof data.height === "number" ? (data.height as number) : undefined;
-        const aspectRatio =
-          typeof data.aspect_ratio === "string"
-            ? (data.aspect_ratio as string)
-            : undefined;
-        const resolution =
-          typeof data.resolution === "string"
-            ? (data.resolution as string)
-            : undefined;
-        const strength =
-          typeof data.strength === "number"
-            ? (data.strength as number)
-            : undefined;
-        const numInferenceSteps =
-          typeof data.num_inference_steps === "number"
-            ? (data.num_inference_steps as number)
-            : undefined;
-        const variations =
-          typeof data.variations === "number"
-            ? (data.variations as number)
-            : undefined;
-        const voice =
-          typeof data.voice === "string" ? (data.voice as string) : undefined;
-        const speed =
-          typeof data.speed === "number" ? (data.speed as number) : undefined;
-        const audioFormat =
-          typeof data.audio_format === "string"
-            ? (data.audio_format as string)
-            : undefined;
+        const sourceAssetId = isString(data.source_asset_id)
+          ? (data.source_asset_id as string)
+          : undefined;
+        const maskAssetId = isString(data.mask_asset_id)
+          ? (data.mask_asset_id as string)
+          : undefined;
+        const width = isNumber(data.width) ? (data.width as number) : undefined;
+        const height = isNumber(data.height)
+          ? (data.height as number)
+          : undefined;
+        const aspectRatio = isString(data.aspect_ratio)
+          ? (data.aspect_ratio as string)
+          : undefined;
+        const resolution = isString(data.resolution)
+          ? (data.resolution as string)
+          : undefined;
+        const strength = isNumber(data.strength)
+          ? (data.strength as number)
+          : undefined;
+        const numInferenceSteps = isNumber(data.num_inference_steps)
+          ? (data.num_inference_steps as number)
+          : undefined;
+        const variations = isNumber(data.variations)
+          ? (data.variations as number)
+          : undefined;
+        const voice = isString(data.voice) ? (data.voice as string) : undefined;
+        const speed = isNumber(data.speed) ? (data.speed as number) : undefined;
+        const audioFormat = isString(data.audio_format)
+          ? (data.audio_format as string)
+          : undefined;
         return this.runRpc(command, () =>
           this.runDirectMediaGeneration({
             mode,
@@ -9051,12 +9000,12 @@ export class UnifiedWebSocketRunner {
       case "transcribe_audio": {
         const provider = String(data.provider ?? this.defaultProvider);
         const model = String(data.model ?? this.defaultModel);
-        const assetId =
-          typeof data.asset_id === "string" ? (data.asset_id as string) : "";
-        const language =
-          typeof data.language === "string"
-            ? (data.language as string)
-            : undefined;
+        const assetId = isString(data.asset_id)
+          ? (data.asset_id as string)
+          : "";
+        const language = isString(data.language)
+          ? (data.language as string)
+          : undefined;
         return this.runRpc(command, () =>
           this.runDirectTranscription({ provider, model, assetId, language })
         );
@@ -9147,7 +9096,7 @@ export class UnifiedWebSocketRunner {
       "updated_at"
     ] as const) {
       const value = data[field];
-      if (typeof value === "string" && value.length > 0) {
+      if (isNonEmptyString(value)) {
         resource[field] = value;
       }
     }
@@ -9212,7 +9161,7 @@ export class UnifiedWebSocketRunner {
       }
       if (data === null) break;
 
-      const msgType = typeof data.type === "string" ? data.type : null;
+      const msgType = isString(data.type) ? data.type : null;
       if (msgType !== null && msgType in controlMessageInSchemas) {
         const schema = controlMessageInSchemas[msgType as ControlMessageInType];
         const parsed = schema.safeParse(data);
@@ -9243,9 +9192,8 @@ export class UnifiedWebSocketRunner {
         this.clientToolsManifest = {};
         for (const tool of tools) {
           if (
-            tool &&
-            typeof tool === "object" &&
-            typeof (tool as Record<string, unknown>).name === "string"
+            isObjectLike(tool) &&
+            isString((tool as Record<string, unknown>).name)
           ) {
             const name = (tool as Record<string, unknown>).name as string;
             this.clientToolsManifest[name] = tool as Record<string, unknown>;
@@ -9259,10 +9207,10 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "renderer_tool_result") {
-        const rendererId =
-          typeof data.renderer_id === "string" ? data.renderer_id : null;
-        const toolCallId =
-          typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+        const rendererId = isString(data.renderer_id) ? data.renderer_id : null;
+        const toolCallId = isString(data.tool_call_id)
+          ? data.tool_call_id
+          : null;
         if (
           rendererId &&
           toolCallId &&
@@ -9275,8 +9223,9 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "tool_result") {
-        const toolCallId =
-          typeof data.tool_call_id === "string" ? data.tool_call_id : null;
+        const toolCallId = isString(data.tool_call_id)
+          ? data.tool_call_id
+          : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
           // The waiter may live on the runner executing an adopted turn.
@@ -9289,8 +9238,7 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "tool_approval_response") {
-        const approvalId =
-          typeof data.approval_id === "string" ? data.approval_id : null;
+        const approvalId = isString(data.approval_id) ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);
           for (const session of this.adoptedSessions.values()) {
@@ -9301,8 +9249,7 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "plan_approval_response") {
-        const approvalId =
-          typeof data.approval_id === "string" ? data.approval_id : null;
+        const approvalId = isString(data.approval_id) ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);
           for (const session of this.adoptedSessions.values()) {
@@ -9321,7 +9268,7 @@ export class UnifiedWebSocketRunner {
         continue;
       }
 
-      if (typeof data.command === "string") {
+      if (isString(data.command)) {
         const envelopeParsed = webSocketCommandEnvelopeSchema.safeParse(data);
         if (!envelopeParsed.success) {
           await this.sendMessage({
