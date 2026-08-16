@@ -62,6 +62,7 @@ import {
   threadRuntimeUpdate,
   type ThreadRuntime
 } from "../core/chat/threadRuntime";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -1155,7 +1156,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         workflowId?: string | null,
         options?: { makeCurrent?: boolean }
       ) => {
-        const safeTitle = typeof title === "string" ? title : undefined;
+        const safeTitle = isString(title) ? title : undefined;
         const makeCurrent = options?.makeCurrent !== false;
 
         // Bind to the passed workflow, or the currently open one. `undefined`
@@ -1437,7 +1438,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     ...messages,
                     ...existingMessages.filter(
                       (m) =>
-                        typeof m.id === "string" &&
+                        isString(m.id) &&
                         m.id.startsWith("local-stream-")
                     )
                   ];
@@ -1697,19 +1698,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedModel: null as LanguageModel | null,
           permissionMode: {} as Record<string, PermissionMode>
         };
-        if (!persistedState || typeof persistedState !== "object") {
+        if (!persistedState || !isObjectLike(persistedState)) {
           return fallback;
         }
         const state = persistedState as Record<string, unknown>;
         return {
           threads:
             state.threads &&
-            typeof state.threads === "object" &&
+            isObjectLike(state.threads) &&
             !Array.isArray(state.threads)
               ? (state.threads as Record<string, Thread>)
               : fallback.threads,
           lastUsedThreadId:
-            typeof state.lastUsedThreadId === "string"
+            isString(state.lastUsedThreadId)
               ? state.lastUsedThreadId
               : fallback.lastUsedThreadId,
           selectedModel:
@@ -1718,7 +1719,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               : fallback.selectedModel,
           permissionMode:
             state.permissionMode &&
-            typeof state.permissionMode === "object" &&
+            isObjectLike(state.permissionMode) &&
             !Array.isArray(state.permissionMode)
               ? (state.permissionMode as Record<string, PermissionMode>)
               : fallback.permissionMode

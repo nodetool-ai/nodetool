@@ -18,6 +18,13 @@ import {
   workflowInterfaceV1,
   type WorkflowInterfaceV1Response
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  isBoolean,
+  isFiniteNumber,
+  isNumber,
+  isRecord,
+  isString
+} from "../lib/wire-values.js";
 
 type PreflightRegistry = GraphValidationRegistry & {
   getMetadata: CostEstimateInput["getMetadata"];
@@ -81,10 +88,6 @@ type InterfaceType = {
   type_args?: InterfaceType[];
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function valueMatchesType(value: unknown, type: InterfaceType): boolean {
   if (value === null) {
     return type.optional === true;
@@ -98,18 +101,18 @@ function valueMatchesType(value: unknown, type: InterfaceType): boolean {
     case "str":
     case "string":
       return (
-        typeof value === "string" &&
+        isString(value) &&
         (!type.values || type.values.includes(value))
       );
     case "int":
     case "integer":
-      return typeof value === "number" && Number.isInteger(value);
+      return isNumber(value) && Number.isInteger(value);
     case "float":
     case "number":
-      return typeof value === "number" && Number.isFinite(value);
+      return isFiniteNumber(value);
     case "bool":
     case "boolean":
-      return typeof value === "boolean";
+      return isBoolean(value);
     case "list":
     case "array": {
       if (!Array.isArray(value)) return false;
@@ -127,7 +130,7 @@ function valueMatchesType(value: unknown, type: InterfaceType): boolean {
     case "svg":
     case "text":
     case "asset":
-      return typeof value === "string" || isRecord(value);
+      return isString(value) || isRecord(value);
     default:
       // Named/custom structured types are intentionally validated by their
       // owning node at execution-level preflight. Static preflight only
@@ -183,7 +186,7 @@ function validateInputs(
       continue;
     }
 
-    if (typeof value === "number") {
+    if (isNumber(value)) {
       if (pin.min !== undefined && value < pin.min) {
         issues.push({
           severity: "error",
@@ -254,7 +257,7 @@ function deriveStaticRequirements(
     const collectIds = (target: Set<string>, value: unknown): void => {
       if (Array.isArray(value)) {
         for (const item of value) {
-          if (typeof item === "string") target.add(item);
+          if (isString(item)) target.add(item);
         }
       }
     };
@@ -325,10 +328,10 @@ function deriveStaticRequirements(
       if (!PROVIDER_MODEL_TYPES.has(property.type?.type ?? "")) continue;
       const value = data[property.name];
       if (!isRecord(value)) continue;
-      if (typeof value.provider === "string") {
+      if (isString(value.provider)) {
         add("provider", value.provider, { node_ids: [nodeId] });
       }
-      if (typeof value.id === "string") {
+      if (isString(value.id)) {
         type DetailsFields = {
           node_ids: string[];
           model_types: (string | undefined)[];
@@ -338,7 +341,7 @@ function deriveStaticRequirements(
           node_ids: [nodeId],
           model_types: [property.type?.type]
         };
-        if (typeof value.provider === "string") {
+        if (isString(value.provider)) {
           details.provider_ids = [value.provider];
         }
         add("model", value.id, details);
@@ -347,7 +350,7 @@ function deriveStaticRequirements(
   }
 
   const visitInput = (value: unknown): void => {
-    if (typeof value === "string") {
+    if (isString(value)) {
       for (const reference of value.match(ASSET_REFERENCE_PATTERN) ?? []) {
         const id = assetRequirementId(reference);
         if (id) add("asset", id);
@@ -359,7 +362,7 @@ function deriveStaticRequirements(
       return;
     }
     if (!isRecord(value)) return;
-    if (typeof value.asset_id === "string") {
+    if (isString(value.asset_id)) {
       add("asset", value.asset_id);
     }
     for (const nested of Object.values(value)) visitInput(nested);

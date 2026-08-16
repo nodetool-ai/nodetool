@@ -19,6 +19,7 @@ import {
   ListItemRow,
   Text
 } from "../ui_primitives";
+import { isObjectLike } from "../../utils/typePredicates";
 
 const styles = css({
   ".asset-delete-confirmation-content": {
@@ -112,7 +113,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       const response = await mutation.mutateAsync(assets);
       if (response === undefined) {
         console.error("Received undefined response from server");
-      } else if (typeof response === "object" && response !== null) {
+      } else if (isObjectLike(response)) {
         console.info("Deleted asset IDs:", (response as { deleted_asset_ids?: string[] }).deleted_asset_ids);
       }
       // Blur focused element to prevent aria-hidden focus warning

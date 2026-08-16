@@ -10,6 +10,12 @@ import {
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
 import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
+import {
+  isFunction,
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -45,11 +51,11 @@ function formatFilename(name: string): string {
 }
 
 function folderPath(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (!value || typeof value !== "object") return "";
+  if (isString(value)) return value;
+  if (!isObjectLike(value)) return "";
   const record = value as Record<string, unknown>;
-  if (typeof record.path === "string") return record.path;
-  if (typeof record.uri === "string") {
+  if (isString(record.path)) return record.path;
+  if (isString(record.uri)) {
     return record.uri.startsWith("file://")
       ? record.uri.slice("file://".length)
       : record.uri;
@@ -60,8 +66,8 @@ function folderPath(value: unknown): string {
 function modelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
+    providerId: isString(model.provider) ? model.provider : "",
+    modelId: isString(model.id) ? model.id : ""
   };
 }
 
@@ -195,11 +201,11 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const { providerId, modelId } = modelConfig(this.serialize());
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     let bytes: Uint8Array = new Uint8Array();
-    if (typeof audio.data === "string") {
+    if (isString(audio.data)) {
       bytes = base64ToBytes(audio.data);
     } else if (audio.data instanceof Uint8Array) {
       bytes = new Uint8Array(audio.data);
-    } else if (typeof audio.uri === "string" && audio.uri) {
+    } else if (isNonEmptyString(audio.uri)) {
       if (context?.storage) {
         const stored = await context.storage.retrieve(audio.uri as string);
         if (stored !== null) bytes = new Uint8Array(stored);
@@ -214,7 +220,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
     if (
       context &&
-      typeof context.runProviderPrediction === "function" &&
+      isFunction(context.runProviderPrediction) &&
       providerId &&
       modelId &&
       bytes.length > 0
@@ -294,7 +300,7 @@ export class EmbeddingTextNode extends BaseNode {
       throw new Error("input text must not be empty");
     }
     const { providerId, modelId } = modelConfig(this.serialize());
-    if (!context || typeof context.runProviderPrediction !== "function") {
+    if (!context || !isFunction(context.runProviderPrediction)) {
       throw new Error(
         "Embedding requires a processing context with provider access"
       );
@@ -696,7 +702,7 @@ export class FilterStringNode extends BaseNode {
     this._criteria = String(this.criteria ?? "");
 
     const value = this.value;
-    if (typeof value !== "string") {
+    if (!isString(value)) {
       return {};
     }
 
@@ -790,7 +796,7 @@ export class FilterRegexStringNode extends BaseNode {
     this._fullMatch = Boolean(this.full_match ?? false);
 
     const value = this.value;
-    if (typeof value !== "string") {
+    if (!isString(value)) {
       return {};
     }
 

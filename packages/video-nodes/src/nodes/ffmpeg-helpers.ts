@@ -18,6 +18,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 
 export const execFile = promisify(execFileCb);
 
@@ -43,11 +48,7 @@ export class MissingBinaryError extends Error {
  * unrelated filesystem ENOENT is never mislabeled as a missing binary.
  */
 function isSpawnEnoent(err: unknown): boolean {
-  return (
-    !!err &&
-    typeof err === "object" &&
-    (err as { code?: unknown }).code === "ENOENT"
-  );
+  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
 }
 
 /** Run ffmpeg, mapping a missing binary to {@link MissingBinaryError}. */
@@ -119,12 +120,12 @@ export function filePath(uriOrPath: string): string {
  * or a folder ref object (`{ uri }`); returns "" when no usable path is present.
  */
 export function folderPath(raw: unknown): string {
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     return raw.startsWith("file:") ? filePath(raw) : raw;
   }
-  if (raw && typeof raw === "object") {
+  if (isObjectLike(raw)) {
     const uri = (raw as Record<string, unknown>).uri;
-    if (typeof uri === "string" && uri.length > 0) return filePath(uri);
+    if (isNonEmptyString(uri)) return filePath(uri);
   }
   return "";
 }
@@ -236,7 +237,7 @@ export function coerceProviderBytes(
       ? "null"
       : Array.isArray(value)
         ? "array"
-        : typeof value === "object"
+        : isObjectLike(value)
           ? ((value as { constructor?: { name?: string } }).constructor?.name ??
             "object")
           : typeof value;

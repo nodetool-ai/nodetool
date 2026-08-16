@@ -1,4 +1,5 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { isString } from "./typePredicates";
 
 /**
  * BM25F-style multi-field index.
@@ -33,7 +34,7 @@ interface FieldStats {
 const TOKEN_SPLIT = /[\s.,;:!?\-_/(){}[\]"'`<>@#$%^&*+=|\\~]+/;
 
 export function tokenize(text: string | null | undefined): string[] {
-  if (!text || typeof text !== "string") return [];
+  if (!text || !isString(text)) return [];
   const out: string[] = [];
   for (const part of text.toLowerCase().split(TOKEN_SPLIT)) {
     if (part.length >= 2) out.push(part);

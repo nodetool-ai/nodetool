@@ -11,6 +11,7 @@ import MuiPopover, {
 } from "@mui/material/Popover";
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
+import { isNumber, isObjectLike } from "../../utils/typePredicates";
 
 export type PopoverPlacement =
   | "bottom-left"
@@ -106,7 +107,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
 
   // Compute border radius with type guard since borderRadius can be string | number
   const borderRadiusValue =
-    typeof theme.shape.borderRadius === "number"
+    isNumber(theme.shape.borderRadius)
       ? theme.shape.borderRadius / 4
       : undefined;
 
@@ -118,7 +119,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   // has nothing to spread.
   const paperSlotObject = typeof paperSlot === "object" ? paperSlot : undefined;
   const callerPaperSx =
-    paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
+    paperSlot && isObjectLike(paperSlot) && "sx" in paperSlot
       ? (paperSlot as { sx?: SxProps<Theme> }).sx
       : undefined;
   const asArray = (s: SxProps<Theme> | undefined) =>

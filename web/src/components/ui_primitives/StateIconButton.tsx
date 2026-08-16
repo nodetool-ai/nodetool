@@ -43,6 +43,7 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { MOTION } from "./tokens";
+import { isString } from "../../utils/typePredicates";
 
 export interface StateIconButtonProps {
   /**
@@ -184,7 +185,7 @@ export const StateIconButton = memo(
         icon
       );
 
-      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : undefined);
+      const label = ariaLabel || (isString(tooltip) ? tooltip : undefined);
 
       const button = (
         <IconButton

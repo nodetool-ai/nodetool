@@ -12,6 +12,7 @@ import {
   PaperProps,
 } from "@mui/material";
 import { useTheme, type Theme } from "@mui/material/styles";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface SurfaceProps extends Omit<PaperProps, "elevation"> {
   /** Elevation level (0-4). 0 = flat with border, 1-4 = shadow depth */
@@ -94,7 +95,7 @@ export const Surface = memo(
                 ? 0
                 : theme.rounded[RADIUS_MAP[rounded] as keyof Theme["rounded"]],
             padding:
-              typeof padding === "number"
+              isNumber(padding)
                 ? theme.spacing(padding)
                 : padding,
             backgroundColor: bgMap[background],

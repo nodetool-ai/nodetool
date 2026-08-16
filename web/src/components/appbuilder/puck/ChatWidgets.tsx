@@ -39,12 +39,13 @@ import {
 } from "../runtime/AppRuntimeContext";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { MarkdownBlock, renderOutputItem, resolveImageSrc } from "./widgets";
+import { isString } from "../../../utils/typePredicates";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const str = (value: unknown): string =>
-  typeof value === "string" ? value : value == null ? "" : String(value);
+  isString(value) ? value : value == null ? "" : String(value);
 
 const ROLE_LABELS: Record<string, string> = {
   user: "You",
@@ -54,7 +55,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const MessageParts: React.FC<{ content: unknown }> = ({ content }) => {
-  if (typeof content === "string") return <MarkdownBlock text={content} />;
+  if (isString(content)) return <MarkdownBlock text={content} />;
   const parts = Array.isArray(content) ? content : [content];
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isBoolean, isNumber, isString } from "../utils/typePredicates";
 
 /**
  * Top-level left-panel view. "nodes" hosts the node-browser sub-tabs (Inputs/
@@ -269,7 +270,7 @@ export const usePanelStore = create<ResizePanelState>()(
           return currentState;
         }
         const persistedPanel = persistedState.panel;
-        const raw = typeof persistedPanel.activeView === "string" ? persistedPanel.activeView : undefined;
+        const raw = isString(persistedPanel.activeView) ? persistedPanel.activeView : undefined;
 
         // Migrate legacy flat-list views: any node-category id now lives
         // under the "nodes" top-level view with that id selected as sub-tab.
@@ -292,7 +293,7 @@ export const usePanelStore = create<ResizePanelState>()(
 
         const persistedSubcategory = persistedPanel.activeNodeCategory;
         const normalizedSubcategory =
-          typeof persistedSubcategory === "string"
+          isString(persistedSubcategory)
             ? normalizeNodeCategoryId(persistedSubcategory)
             : undefined;
         if (normalizedSubcategory) {
@@ -304,14 +305,14 @@ export const usePanelStore = create<ResizePanelState>()(
           panel: {
             ...currentState.panel,
             panelSize:
-              typeof persistedPanel.panelSize === "number"
+              isNumber(persistedPanel.panelSize)
                 ? Math.max(
                     MIN_DRAG_SIZE,
                     Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
                   )
                 : currentState.panel.panelSize,
             isVisible:
-              typeof persistedPanel.isVisible === "boolean"
+              isBoolean(persistedPanel.isVisible)
                 ? persistedPanel.isVisible
                 : currentState.panel.isVisible,
             activeView: migratedView,

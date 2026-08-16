@@ -24,6 +24,7 @@ import { BrowserWindow } from "electron";
 // Lock file no longer used — packages are specified directly via runtime configuration
 import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
+import { isString } from "./typePredicates";
 
 const CONDA_CHANNELS = ["conda-forge"];
 const MICROMAMBA_ENV_VAR = "MICROMAMBA_EXE";
@@ -54,7 +55,7 @@ function normalizeModelBackend(backend: unknown): ModelBackend {
 }
 
 function normalizeInstallLocation(location: unknown): string {
-  if (location == null || typeof location !== "string" || location.trim().length === 0) {
+  if (!isString(location) || location.trim().length === 0) {
     return getDefaultInstallLocation();
   }
   return location.trim();
@@ -242,7 +243,7 @@ async function cleanupMicromambaLocks(force = false): Promise<void> {
 function sanitizeProcessEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
+    if (isString(value)) {
       env[key] = value;
     }
   }

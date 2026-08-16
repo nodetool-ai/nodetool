@@ -16,6 +16,7 @@ import {
   WorkflowInputFormValues
 } from "./workflowInputForm";
 import { WorkflowInputKind } from "./inputKinds";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 interface WorkflowInputsFormProps {
   workflow: Workflow;
@@ -178,7 +179,7 @@ const getStringInputConfig = (definition: WorkflowInputDefinition) => {
   };
 
   const maxLength =
-    typeof data.max_length === "number" && Number.isFinite(data.max_length)
+    isNumber(data.max_length) && Number.isFinite(data.max_length)
       ? Math.max(0, Math.floor(data.max_length))
       : 0;
 
@@ -224,7 +225,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
         return;
       }
       const stored = inputValues[key];
-      next[key] = typeof stored === "string" ? stored : "";
+      next[key] = isString(stored) ? stored : "";
       changed = true;
     });
 
@@ -285,7 +286,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
             if (definition.kind === "string") {
               const { maxLength, lineMode } = getStringInputConfig(definition);
               const multiline = lineMode === "multi_line";
-              const draft = stringDrafts[definition.data.name] ?? (typeof value === "string" ? value : "");
+              const draft = stringDrafts[definition.data.name] ?? (isString(value) ? value : "");
               const exceedsMaxLength = maxLength > 0 && draft.length > maxLength;
 
               return (

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { playPcm16Base64, type PcmEncoding } from "./audio";
+import { isString } from "../../../utils/typePredicates";
 
 const StreamPcm16Player: React.FC<{
   base64: string;
@@ -10,7 +11,7 @@ const StreamPcm16Player: React.FC<{
   const lastPlayedRef = useRef<string | null>(null);
   useEffect(() => {
     if (
-      typeof base64 === "string" &&
+      isString(base64) &&
       base64 &&
       base64 !== lastPlayedRef.current
     ) {

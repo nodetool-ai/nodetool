@@ -7,6 +7,7 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../lib/dragdrop";
+import { isString } from "../../utils/typePredicates";
 
 type FileDropProps = {
   /** The type of files to accept: image, audio, video, document, or all */
@@ -127,7 +128,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
               reader.onload = function (event) {
                 if (
                   event.target?.result &&
-                  typeof event.target.result === "string" &&
+                  isString(event.target.result) &&
                   props.onChange
                 ) {
                   props.onChange(event.target.result);

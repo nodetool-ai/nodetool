@@ -25,6 +25,7 @@ import {
   type VoiceBinding
 } from "./ScriptStore";
 import { syncLineClipToTimeline } from "./timelineSync";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 /** Speech-to-text default for word-level take timing (best-effort). */
 export interface AsrConfig {
@@ -112,12 +113,12 @@ function parseCaptionWords(
   const raw = Array.isArray(result.words) ? result.words : [];
   const words: ScriptCaptionWord[] = [];
   for (const entry of raw) {
-    if (typeof entry !== "object" || entry === null) continue;
+    if (!isObjectLike(entry)) continue;
     const w = entry as Record<string, unknown>;
     if (
-      typeof w.word === "string" &&
-      typeof w.startMs === "number" &&
-      typeof w.endMs === "number"
+      isString(w.word) &&
+      isNumber(w.startMs) &&
+      isNumber(w.endMs)
     ) {
       words.push({ word: w.word, startMs: w.startMs, endMs: w.endMs });
     }
@@ -198,7 +199,7 @@ export async function voiceLine(
       voiceSnapshot: voice,
       createdAt: new Date().toISOString(),
       costCredits:
-        typeof ttsResult.cost_credits === "number"
+        isNumber(ttsResult.cost_credits)
           ? ttsResult.cost_credits
           : undefined
     };

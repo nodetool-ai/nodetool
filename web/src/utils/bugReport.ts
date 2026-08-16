@@ -1,3 +1,4 @@
+import { isBoolean, isNumber, isString } from "./typePredicates";
 /**
  * Helpers for the node "Report this issue" button (see NodeErrors.tsx).
  *
@@ -73,27 +74,27 @@ export function summarizePropertyValue(value: unknown): string {
 
   if (isModelValue(value)) {
     const provider =
-      typeof value.provider === "string" ? value.provider : "unknown";
+      isString(value.provider) ? value.provider : "unknown";
     const id =
-      typeof value.id === "string" && value.id
+      isString(value.id) && value.id
         ? value.id
-        : typeof value.name === "string"
+        : isString(value.name)
           ? value.name
           : "";
     return id ? `${value.type}: ${provider}/${id}` : `${value.type}: ${provider}`;
   }
 
   if (isAssetRef(value)) {
-    const uri = typeof value.uri === "string" ? value.uri : "";
+    const uri = isString(value.uri) ? value.uri : "";
     const assetId =
-      typeof value.asset_id === "string" ? value.asset_id : undefined;
+      isString(value.asset_id) ? value.asset_id : undefined;
     if (assetId) return `<${value.type} asset ${assetId}>`;
     if (uri && !DATA_URI_RE.test(uri)) return `<${value.type} ${truncate(uri, 80)}>`;
     if (uri) return `<${value.type} (inline data)>`;
     return `<${value.type}>`;
   }
 
-  if (typeof value === "string") {
+  if (isString(value)) {
     if (DATA_URI_RE.test(value)) {
       const mime = value.match(DATA_URI_RE)?.[1] ?? "data";
       return `<inline ${mime} data, ${value.length} chars>`;
@@ -101,7 +102,7 @@ export function summarizePropertyValue(value: unknown): string {
     return truncate(value);
   }
 
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (isNumber(value) || isBoolean(value)) {
     return String(value);
   }
 

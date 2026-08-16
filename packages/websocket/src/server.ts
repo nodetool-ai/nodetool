@@ -130,6 +130,11 @@ import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "./lib/wire-values.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -365,7 +370,7 @@ print(json.dumps(sorted(roots)))
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (Array.isArray(roots)) {
         return roots.filter(
-          (p) => typeof p === "string" && p.length > 0 && existsSync(p)
+          (p) => isNonEmptyString(p) && existsSync(p)
         );
       }
     } catch {
@@ -1175,7 +1180,7 @@ await app.register(fastifyTRPCPlugin, {
       // can diagnose the offending fields instead of seeing only "Output
       // validation failed".
       const cause = (error as { cause?: unknown }).cause;
-      if (cause && typeof cause === "object" && "issues" in cause) {
+      if (isObjectLike(cause) && "issues" in cause) {
         log.error(
           `tRPC error cause on ${path}: ${JSON.stringify((cause as { issues: unknown }).issues)}`
         );
@@ -1317,7 +1322,7 @@ if (!isProduction) {
         ? undefined
         : Buffer.isBuffer(req.body)
           ? req.body
-          : typeof req.body === "string"
+          : isString(req.body)
             ? req.body
             : req.body == null
               ? Buffer.alloc(0)

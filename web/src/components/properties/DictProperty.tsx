@@ -5,18 +5,19 @@ import DictTable, { DictCellValue, DictDataType } from "../node/DataTable/DictTa
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 const detectTypeFromDict = (dict: unknown): DictDataType => {
   if (!Array.isArray(dict) || dict.length === 0) {
     return "string";
   }
   const first: unknown = dict[0];
-  if (typeof first === "number") {
+  if (isNumber(first)) {
     if (Number.isInteger(first)) {
       return "int";
     }
     return "float";
-  } else if (typeof first === "string") {
+  } else if (isString(first)) {
     return "string";
   } else if (typeof first === "object") {
     return "string";

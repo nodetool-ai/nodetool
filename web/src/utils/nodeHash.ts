@@ -1,6 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
+import { isString } from "./typePredicates";
 
 /**
  * Content-addressed node hashing for run-subgraph caching.
@@ -77,7 +78,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
  */
 const assetId = (v: Record<string, unknown>): string | undefined => {
   const id = v.asset_id ?? v.assetId ?? v.uri;
-  return typeof id === "string" && id !== "" ? id : undefined;
+  return isString(id) && id !== "" ? id : undefined;
 };
 
 /** Canonical, stable serialization (sorted keys; assets reduced to id/uri). */

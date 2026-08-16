@@ -4,6 +4,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 const TYPED_MODEL_FIELDS = new Set([
   "language_model",
@@ -37,13 +38,13 @@ FrontendToolRegistry.register({
     const metadata = state.nodeMetadata[node.type ?? ""];
     const incomingProperties = (data as { properties?: Record<string, unknown> })
       ?.properties;
-    if (metadata && incomingProperties && typeof incomingProperties === "object") {
+    if (metadata && incomingProperties && isObjectLike(incomingProperties)) {
       for (const property of metadata.properties) {
         const fieldType = property.type?.type;
         if (!fieldType || !TYPED_MODEL_FIELDS.has(fieldType)) continue;
         if (!(property.name in incomingProperties)) continue;
         const value = incomingProperties[property.name];
-        if (typeof value !== "string") continue;
+        if (!isString(value)) continue;
         throw new Error(
           `Property '${property.name}' is a ${fieldType} object, not a string. ` +
             `Pass the full object from ui_search_models, e.g. ` +
@@ -62,13 +63,13 @@ FrontendToolRegistry.register({
     if (Object.keys(restData).length > 0) {
       nodeStore.updateNodeData(node_id, restData);
     }
-    if (propsUpdate && typeof propsUpdate === "object") {
+    if (propsUpdate && isObjectLike(propsUpdate)) {
       nodeStore.updateNodeProperties(node_id, propsUpdate);
     }
     if (
       isCodeNodeType(node.type) &&
       propsUpdate &&
-      typeof propsUpdate.code === "string"
+      isString(propsUpdate.code)
     ) {
       const latest = nodeStore.findNode(node_id);
       nodeStore.updateNodeData(

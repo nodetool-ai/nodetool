@@ -17,6 +17,7 @@ import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { isString } from "../../utils/typePredicates";
 
 interface Option {
   value: string;
@@ -182,7 +183,7 @@ const Select: React.FC<SelectProps> = ({
         option,
         score: fuzzyScore(
           query,
-          typeof option.label === "string" ? option.label : option.value
+          isString(option.label) ? option.label : option.value
         )
       }))
       .filter(({ score }) => score > 0)

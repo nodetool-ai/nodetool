@@ -18,6 +18,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { buildPackageAssetUri } from "@nodetool-ai/protocol";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./wire-values.js";
 
 export interface WorkflowGraphLike {
   nodes: Array<Record<string, unknown>>;
@@ -65,7 +71,7 @@ export function mediaExtension(source: string, refType: unknown): string {
   if (ext) {
     return ext;
   }
-  if (typeof refType === "string") {
+  if (isString(refType)) {
     return MEDIA_TYPE_EXTENSIONS[refType] ?? ".bin";
   }
   return ".bin";
@@ -97,19 +103,12 @@ function deriveFileName(source: string, refType: unknown): string {
  * (`uri`/`asset_id`/`temp_id`). We rewrite these in place.
  */
 function asMediaRef(value: unknown): Record<string, unknown> | null {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    Array.isArray(value) ||
-    value instanceof Uint8Array
-  ) {
+  if (!isRecord(value) || value instanceof Uint8Array) {
     return null;
   }
   const obj = value as Record<string, unknown>;
   const hasLocator =
-    typeof obj.uri === "string" ||
-    typeof obj.asset_id === "string" ||
-    typeof obj.temp_id === "string";
+    isString(obj.uri) || isString(obj.asset_id) || isString(obj.temp_id);
   return hasLocator ? obj : null;
 }
 
@@ -135,7 +134,7 @@ export async function transformMediaRefs(
     if (ref) {
       await visit(ref);
     }
-    if (typeof value === "object" && value !== null) {
+    if (isObjectLike(value)) {
       for (const child of Object.values(value as Record<string, unknown>)) {
         await walk(child);
       }
@@ -159,7 +158,7 @@ function materializableSource(
   ref: Record<string, unknown>,
   includeRemote: boolean
 ): string | null {
-  const uri = typeof ref.uri === "string" ? ref.uri : "";
+  const uri = isString(ref.uri) ? ref.uri : "";
   if (uri && isLocalAssetUri(uri)) {
     return uri;
   }
@@ -168,7 +167,7 @@ function materializableSource(
   }
   // No usable uri — fall back to an asset id (resolved by the fetcher).
   if (!uri || uri.length === 0) {
-    if (typeof ref.asset_id === "string" && ref.asset_id) {
+    if (isNonEmptyString(ref.asset_id)) {
       return `asset://${ref.asset_id}`;
     }
   }

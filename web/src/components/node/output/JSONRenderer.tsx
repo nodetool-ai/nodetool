@@ -10,6 +10,7 @@ import isEqual from "../../../utils/isEqual";
 import Actions from "./Actions";
 
 import { BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
+import { isNumber, isString } from "../../../utils/typePredicates";
 const jsonStyles = (theme: Theme) =>
   css({
     "&": {
@@ -126,7 +127,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
         return (
           !isNaN(numKey) &&
           numKey >= 0 &&
-          typeof val === "number" &&
+          isNumber(val) &&
           val >= 0 &&
           val <= 255
         );
@@ -148,7 +149,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
         const { data } = value;
 
         // If data is already a string, try to parse and re-format
-        if (typeof data === "string") {
+        if (isString(data)) {
           try {
             const parsed: unknown = JSON.parse(data);
             jsonString = JSON.stringify(parsed, null, 2);
@@ -168,7 +169,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
           }
         } else if (Array.isArray(data)) {
           // Data might be a byte array as a regular array
-          if (data.every((v) => typeof v === "number" && v >= 0 && v <= 255)) {
+          if (data.every((v) => isNumber(v) && v >= 0 && v <= 255)) {
             const bytes = new Uint8Array(data);
             const decodedString = new TextDecoder().decode(bytes);
             try {
@@ -197,7 +198,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
       jsonString = String(value);
     }
 
-    if (typeof jsonString !== "string") {
+    if (!isString(jsonString)) {
       jsonString = "";
     }
 

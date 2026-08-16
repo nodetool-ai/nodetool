@@ -4,6 +4,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
 import type { ModelScope } from "./ModelManagerStore";
+import { isNumber, isObjectLike, isString } from "../utils/typePredicates";
 
 const DOWNLOAD_STATUSES = [
   "pending",
@@ -33,17 +34,17 @@ interface DownloadProgressMessage {
 }
 
 const optionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+  isString(value) ? value : undefined;
 
 const optionalNumber = (value: unknown): number | undefined =>
-  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  isNumber(value) && Number.isFinite(value) ? value : undefined;
 
 // `JSON.parse` hands back `any`, so a byte count arriving as a string would
 // otherwise reach the progress bar and render as NaN.
 const parseDownloadProgress = (
   value: unknown
 ): DownloadProgressMessage | null => {
-  if (typeof value !== "object" || value === null) {
+  if (!isObjectLike(value)) {
     return null;
   }
   const frame = value as Record<string, unknown>;
@@ -250,7 +251,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     if (ws) {
       ws.onmessage = (event: MessageEvent<unknown>) => {
         const data =
-          typeof event.data === "string"
+          isString(event.data)
             ? parseDownloadProgress(JSON.parse(event.data))
             : null;
         if (data?.repo_id) {

@@ -8,6 +8,7 @@ import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import type { Chunk } from "../../../stores/ApiTypes";
 import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 type Props = {
   chunk: Chunk;
@@ -94,7 +95,7 @@ const stringifyArgs = (args: unknown): string => {
 };
 
 const summarizeArgs = (args: unknown): string => {
-  if (!args || typeof args !== "object") return "";
+  if (!args || !isObjectLike(args)) return "";
   const keys = Object.keys(args as Record<string, unknown>);
   if (keys.length === 0) return "()";
   if (keys.length <= 3) return `(${keys.join(", ")})`;
@@ -108,13 +109,13 @@ export const ToolCallRenderer: React.FC<Props> = memo(({ chunk }) => {
 
   const meta = chunk.content_metadata ?? {};
   const toolName =
-    typeof meta.tool_name === "string"
+    isString(meta.tool_name)
       ? meta.tool_name
-      : typeof chunk.content === "string"
+      : isString(chunk.content)
         ? chunk.content.split("(")[0] || "tool"
         : "tool";
   const toolCallId =
-    typeof meta.tool_call_id === "string" ? meta.tool_call_id : "";
+    isString(meta.tool_call_id) ? meta.tool_call_id : "";
   const args = "args" in meta ? meta.args : undefined;
 
   const argsJson = useMemo(() => stringifyArgs(args), [args]);

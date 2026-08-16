@@ -20,7 +20,12 @@ export const isBoolean = (value: unknown): value is boolean =>
 export const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
+/** A keyed object — never `null`, never an array. */
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Anything `typeof` calls an object, `null` aside — an array passes. */
+export const isObjectLike = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 export const isFunction = (

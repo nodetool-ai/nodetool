@@ -23,6 +23,7 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { ShortcutHint } from "./ShortcutHint";
+import { isString } from "../../utils/typePredicates";
 
 export interface ToolbarIconButtonProps
   extends Omit<IconButtonProps, "children" | "title"> {
@@ -177,7 +178,7 @@ export const ToolbarIconButton = memo(
         </Box>
       ) : resolvedTooltip;
 
-      const label = ariaLabel || (typeof resolvedTooltip === "string" ? resolvedTooltip : undefined);
+      const label = ariaLabel || (isString(resolvedTooltip) ? resolvedTooltip : undefined);
 
       return (
         <Tooltip

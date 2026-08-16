@@ -16,6 +16,7 @@ import {
   selectedOutputValues,
   type Generation
 } from "./nodeGenerations";
+import { isString } from "./typePredicates";
 
 type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
 type GetGenerations = (_workflowId: string, _nodeId: string) => Generation[];
@@ -205,7 +206,7 @@ export const createRunResolver = ({
     const node = findNode(id);
     if (!node) return id;
     const dataTitle = (node.data as { title?: unknown } | undefined)?.title;
-    if (typeof dataTitle === "string" && dataTitle.trim()) {
+    if (isString(dataTitle) && dataTitle.trim()) {
       return dataTitle;
     }
     const meta = node.type ? getMetadata(node.type) : undefined;

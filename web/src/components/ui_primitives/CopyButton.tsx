@@ -24,6 +24,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { isString } from "../../utils/typePredicates";
 
 const FEEDBACK_TIMEOUT = 2000;
 
@@ -132,7 +133,7 @@ export const CopyButton = memo(
         }
 
         const textToCopy =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+          isString(value) ? value : JSON.stringify(value, null, 2);
 
         if (!textToCopy || textToCopy.trim().length === 0) {
           setState("error");

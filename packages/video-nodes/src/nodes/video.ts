@@ -37,6 +37,7 @@ import {
   coerceProviderBytes,
   FFMPEG_MAX_BUFFER
 } from "./ffmpeg-helpers.js";
+import { isObjectLike, isString } from "../type-predicates.js";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
@@ -76,7 +77,7 @@ interface SubtitleChunk {
 }
 
 async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
-  if (!video || typeof video !== "object") return new Uint8Array();
+  if (!isObjectLike(video)) return new Uint8Array();
   const bytes = await loadMediaRefBytes(video as VideoRefLike, context);
   return bytes ?? new Uint8Array();
 }
@@ -85,7 +86,7 @@ async function imageBytesAsync(
   image: unknown,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
-  if (!image || typeof image !== "object") return new Uint8Array();
+  if (!isObjectLike(image)) return new Uint8Array();
   const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
   return bytes ?? new Uint8Array();
 }
@@ -96,9 +97,9 @@ async function imageBytesAsync(
  * inline `asset://` mention in the prompt should supply the input.
  */
 function imageRefHasSource(image: unknown): boolean {
-  if (!image || typeof image !== "object") return false;
+  if (!isObjectLike(image)) return false;
   const ref = image as ImageRefLike & { asset_id?: unknown };
-  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return true;
+  if (isString(ref.uri) && ref.uri.trim() !== "") return true;
   if (ref.data != null && ref.data !== "") return true;
   return ref.asset_id != null && ref.asset_id !== "";
 }
@@ -158,7 +159,7 @@ async function combineFramesToVideo(
   fps: number
 ): Promise<Uint8Array> {
   const isUsable = (f: unknown): boolean => {
-    if (!f || typeof f !== "object") return false;
+    if (!isObjectLike(f)) return false;
     if (isRawRgbaImage(f)) return f.data.length > 0;
     return toBytes((f as { data?: Uint8Array | string }).data).length > 0;
   };
@@ -213,7 +214,7 @@ async function combineFramesToVideo(
       // sequence (ffmpeg's image2 demuxer stops at the first missing number).
       let written = 0;
       for (const f of frames) {
-        if (!f || typeof f !== "object" || isRawRgbaImage(f)) continue;
+        if (!isObjectLike(f) || isRawRgbaImage(f)) continue;
         const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
         if (frameBytes.length === 0) continue;
         written += 1;
@@ -248,8 +249,8 @@ async function combineFramesToVideo(
 function modelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
+    providerId: isString(model.provider) ? model.provider : "",
+    modelId: isString(model.id) ? model.id : ""
   };
 }
 
@@ -332,7 +333,7 @@ async function ffmpegTransform(
     if (error instanceof MissingBinaryError) throw error;
     if (options.allowFallback) return null;
     const stderr = (error as { stderr?: string }).stderr;
-    const detail = (typeof stderr === "string" && stderr.trim()) || (error as Error).message;
+    const detail = (isString(stderr) && stderr.trim()) || (error as Error).message;
     throw new Error(`ffmpeg failed: ${detail}`);
   } finally {
     await mainInput.cleanup();
@@ -590,7 +591,7 @@ export class ImageToVideoNode extends BaseNode {
       ],
       context
     );
-    if (typeof overrides.prompt === "string") prompt = overrides.prompt;
+    if (isString(overrides.prompt)) prompt = overrides.prompt;
     if (overrides.image && images.length === 0) {
       images = [overrides.image as ImageRefLike];
     }

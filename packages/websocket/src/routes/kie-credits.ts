@@ -1,5 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { Secret } from "@nodetool-ai/models";
+import {
+  isFiniteNumber,
+  isObjectLike,
+  isString
+} from "../lib/wire-values.js";
 
 const KIE_CREDITS_URL = "https://api.kie.ai/api/v1/chat/credit";
 
@@ -11,10 +16,10 @@ interface KieCreditsJson {
 
 /** UI expects `credit_balance: { amount, currency }` (see web `formatKieCredits`). */
 function normalizeKieCreditsBody(data: KieCreditsJson | null) {
-  if (data == null || typeof data !== "object") {
+  if (!isObjectLike(data)) {
     return { credit_balance: null };
   }
-  if (typeof data.data === "number" && Number.isFinite(data.data)) {
+  if (isFiniteNumber(data.data)) {
     return {
       credit_balance: {
         amount: data.data,
@@ -26,7 +31,7 @@ function normalizeKieCreditsBody(data: KieCreditsJson | null) {
 }
 
 function kieErrorDetail(data: KieCreditsJson, httpStatus: number): string {
-  const msg = typeof data.msg === "string" ? data.msg.trim() : "";
+  const msg = isString(data.msg) ? data.msg.trim() : "";
   if (msg !== "") {
     return msg;
   }

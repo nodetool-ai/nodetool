@@ -83,6 +83,7 @@ import {
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 import NodeHistoryViewer from "../node/NodeHistoryViewer";
 import { extractTextValue } from "../../utils/extractTextValue";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -363,10 +364,10 @@ const resolvePreviewValue = (
 type ImagePreviewSource = string | Uint8Array;
 
 const isNumberArray = (value: unknown[]): value is number[] =>
-  value.length > 0 && value.every((item) => typeof item === "number");
+  value.length > 0 && value.every((item) => isNumber(item));
 
 const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined => {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value;
   }
   if (value instanceof Uint8Array) {
@@ -384,15 +385,15 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
     return undefined;
   }
 
-  if (typeof value.uri === "string" && value.uri) {
+  if (isString(value.uri) && value.uri) {
     return value.uri;
   }
-  if (typeof value.url === "string" && value.url) {
+  if (isString(value.url) && value.url) {
     return value.url;
   }
 
   const data = value.data;
-  if (typeof data === "string") {
+  if (isString(data)) {
     return data;
   }
   if (data instanceof Uint8Array) {
@@ -531,12 +532,12 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
 
 const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
   const v =
-    value && typeof value === "object"
+    value && isObjectLike(value)
       ? (value as Record<string, unknown>)
       : null;
   const inlineFormat = (v?.metadata as { format?: string } | undefined)?.format;
   const mimeType =
-    getMimeTypeFromUri(typeof v?.uri === "string" ? v.uri : "") ||
+    getMimeTypeFromUri(isString(v?.uri) ? v.uri : "") ||
     (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
   // Pass mimeType so the in-memory blob is tagged for WaveSurfer to decode.
   const src = useMediaSrc(value, "audio", mimeType);
@@ -576,12 +577,12 @@ const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
 const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
   // Static thumbnail only — no interactive viewer.
   const v =
-    value && typeof value === "object"
+    value && isObjectLike(value)
       ? (value as Record<string, unknown>)
       : null;
   const name =
-    (typeof v?.name === "string" && v.name) ||
-    (typeof v?.uri === "string" && v.uri.split("/").pop()) ||
+    (isString(v?.name) && v.name) ||
+    (isString(v?.uri) && v.uri.split("/").pop()) ||
     "3D model";
   return (
     <div className="model-3d-thumb">

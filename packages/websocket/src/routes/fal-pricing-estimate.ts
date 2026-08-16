@@ -1,5 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
 import { Secret } from "@nodetool-ai/models";
+import {
+  isNumber,
+  isString
+} from "../lib/wire-values.js";
 
 const FAL_PRICING_ESTIMATE_URL = "https://api.fal.ai/v1/models/pricing/estimate";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -80,7 +84,7 @@ async function fetchEstimateFromFal(
     estimate_type?: string;
   };
 
-  if (typeof json.total_cost !== "number" || typeof json.currency !== "string") {
+  if (!isNumber(json.total_cost) || !isString(json.currency)) {
     return null;
   }
 
@@ -96,7 +100,7 @@ const falPricingEstimateRoute: FastifyPluginAsync = async (app) => {
   app.post("/api/fal/pricing/estimate", async (req, reply) => {
     const body = (req.body ?? {}) as EstimateRequestBody;
     const endpointId =
-      typeof body.endpoint_id === "string" ? body.endpoint_id.trim() : "";
+      isString(body.endpoint_id) ? body.endpoint_id.trim() : "";
     const estimateType =
       body.estimate_type === "unit_price" ? "unit_price" : "historical_api_price";
 
@@ -113,10 +117,10 @@ const falPricingEstimateRoute: FastifyPluginAsync = async (app) => {
 
     const quantity =
       estimateType === "historical_api_price"
-        ? typeof body.call_quantity === "number" && body.call_quantity >= 1
+        ? isNumber(body.call_quantity) && body.call_quantity >= 1
           ? body.call_quantity
           : 1
-        : typeof body.unit_quantity === "number" && body.unit_quantity >= 0.000001
+        : isNumber(body.unit_quantity) && body.unit_quantity >= 0.000001
           ? body.unit_quantity
           : 1;
 

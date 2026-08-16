@@ -9,6 +9,7 @@
  */
 import type { Asset, TypeMetadata } from "../stores/ApiTypes";
 import { assetToOutputValue } from "./nodeGenerations";
+import { isString } from "./typePredicates";
 
 export interface CollectionItem {
   /** "image" | "video" | "audio" | "text" | "json" | "model_3d" | "asset" */
@@ -35,7 +36,7 @@ const itemKey = (item: CollectionItem): string =>
 /** Build a collection item from a persisted asset (asset panel / external upload). */
 export const assetToItem = (asset: Asset): CollectionItem | null => {
   const value = assetToOutputValue(asset);
-  const type = typeof value.type === "string" ? value.type : undefined;
+  const type = isString(value.type) ? value.type : undefined;
   if (!type) return null;
   return {
     ...value,

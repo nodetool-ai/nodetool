@@ -22,6 +22,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
+import { isRecord } from "./lib/wire-values.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -135,7 +136,7 @@ export function convertMessages(
 function safeParseJson(s: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(s);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    if (isRecord(parsed)) {
       return parsed as Record<string, unknown>;
     }
     return {};

@@ -23,6 +23,7 @@ import {
 import { normalizeOutputUpdateValue, isOutputUpdate } from "../outputUpdateValue";
 import { useStoryboardStore } from "./StoryboardStore";
 import { syncShotClipToTimeline } from "./timelineSync";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -274,7 +275,7 @@ const toImageRef = (value: unknown): ImageRef | null => {
   if (isMediaRefLike(value)) {
     return { ...value, type: "image" } as ImageRef;
   }
-  if (typeof value === "string" && value) {
+  if (isString(value) && value) {
     return { type: "image", uri: value };
   }
   return null;
@@ -285,7 +286,7 @@ const toVideoRef = (value: unknown): VideoRef | null => {
   if (isMediaRefLike(value)) {
     return { ...value, type: "video" } as VideoRef;
   }
-  if (typeof value === "string" && value) {
+  if (isString(value) && value) {
     return { type: "video", uri: value };
   }
   return null;
@@ -295,8 +296,8 @@ const extractAssetId = (value: unknown): string | undefined => {
   if (!isMediaRefLike(value)) {
     return undefined;
   }
-  if (typeof value.asset_id === "string") return value.asset_id;
-  if (typeof value.uri === "string") return value.uri;
+  if (isString(value.asset_id)) return value.asset_id;
+  if (isString(value.uri)) return value.uri;
   return undefined;
 };
 
@@ -368,8 +369,8 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
 
   if (
     message.type === "node_progress" &&
-    typeof message.progress === "number" &&
-    typeof message.total === "number"
+    isNumber(message.progress) &&
+    isNumber(message.total)
   ) {
     const percent =
       message.total > 0 ? (message.progress / message.total) * 100 : 0;
@@ -445,7 +446,7 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
 
   if (status === "failed" || status === "timed_out") {
     const errorMessage =
-      typeof message.error === "string" && message.error.trim().length > 0
+      isString(message.error) && message.error.trim().length > 0
         ? message.error
         : `Job ${status}`;
     generationStore.updateJobStatus(jobId, "failed", { errorMessage });

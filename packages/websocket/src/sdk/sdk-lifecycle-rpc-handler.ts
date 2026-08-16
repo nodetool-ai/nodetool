@@ -11,6 +11,11 @@ import {
   SdkV1PreflightServiceError,
   type SdkV1PreflightPrincipal
 } from "./sdk-preflight-orchestrator.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../lib/wire-values.js";
 
 const SUPPORTED_COMMANDS = new Set([
   "get_capabilities",
@@ -80,18 +85,18 @@ export async function handleSdkV1LifecycleRpc(
   input: unknown,
   options: HandleSdkV1LifecycleRpcOptions
 ): Promise<SdkV1LifecycleRpcResponse | null> {
-  if (!input || typeof input !== "object") {
+  if (!isObjectLike(input)) {
     return null;
   }
 
   const candidate = input as Record<string, unknown>;
   const command = candidate.command;
-  if (typeof command !== "string" || !SUPPORTED_COMMANDS.has(command)) {
+  if (!isString(command) || !SUPPORTED_COMMANDS.has(command)) {
     return null;
   }
 
   const requestId = candidate.request_id;
-  if (typeof requestId !== "string" || requestId.length < 1) {
+  if (!isNonEmptyString(requestId)) {
     return null;
   }
 

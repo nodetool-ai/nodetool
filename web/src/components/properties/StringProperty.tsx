@@ -15,6 +15,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 import { getCodeNodeLanguage } from "../node/codeNodeUi";
+import { isString } from "../../utils/typePredicates";
 
 const propertyStyles = (theme: Theme) =>
   css({
@@ -75,7 +76,7 @@ const StringProperty = ({
   );
 
   const codeLanguage = getCodeNodeLanguage(nodeType);
-  const stringValue = typeof value === "string" ? value : "";
+  const stringValue = isString(value) ? value : "";
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {

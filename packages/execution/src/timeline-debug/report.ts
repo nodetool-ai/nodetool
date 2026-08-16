@@ -18,6 +18,7 @@ import {
   validateTimelineSequence,
   type TimelineValidationMeta
 } from "./validate.js";
+import { isNumber } from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -50,8 +51,8 @@ const countAndDuration = (
   let durationMs = 0;
   for (const clip of clips) {
     if (!isRecord(clip)) continue;
-    const start = typeof clip.startMs === "number" ? clip.startMs : 0;
-    const length = typeof clip.durationMs === "number" ? clip.durationMs : 0;
+    const start = isNumber(clip.startMs) ? clip.startMs : 0;
+    const length = isNumber(clip.durationMs) ? clip.durationMs : 0;
     durationMs = Math.max(durationMs, start + Math.max(0, length));
   }
   return { trackCount: tracks.length, clipCount: clips.length, durationMs };

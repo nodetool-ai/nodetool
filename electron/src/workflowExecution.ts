@@ -3,6 +3,7 @@ import { Workflow, Node } from "./types";
 import { logMessage } from "./logger";
 import { createWorkflowRunner } from "./WorkflowRunner";
 import { createWorkflowWindow } from "./workflowWindow";
+import { isObjectLike, isString } from "./typePredicates";
 
 function getInputNodes(workflow: Workflow, type: string): Node[] {
   return workflow.graph.nodes.filter(
@@ -26,7 +27,7 @@ function tryReadClipboardImage(workflow: Workflow) {
     logMessage(`Found ${imageInputNodes.length} image input nodes`);
     if (imageInputNodes.length > 0) {
       const inputNode = imageInputNodes[0];
-      const nodeName = typeof inputNode.data.name === "string" ? inputNode.data.name : String(inputNode.data.name);
+      const nodeName = isString(inputNode.data.name) ? inputNode.data.name : String(inputNode.data.name);
       logMessage(`Using image input node: ${nodeName}`);
       const dataUri = `data:image/png;base64,${image
         .toPNG()
@@ -50,7 +51,7 @@ function tryReadClipboardText(workflow: Workflow) {
     logMessage(`Found ${stringInputNodes.length} string input nodes`);
     if (stringInputNodes.length > 0) {
       const inputNode = stringInputNodes[0];
-      const nodeName = typeof inputNode.data.name === "string" ? inputNode.data.name : String(inputNode.data.name);
+      const nodeName = isString(inputNode.data.name) ? inputNode.data.name : String(inputNode.data.name);
       logMessage(`Using string input node: ${nodeName}`);
       params[nodeName] = clipboardText;
     }
@@ -63,8 +64,8 @@ function writeResultToClipboard(workflow: Workflow, results: unknown[]) {
     const outputNode = getOutputNodes(workflow)[0];
     if (outputNode) {
       const outputValue = results[results.length - 1];
-      if (outputNode.data?.type === "image" || typeof outputValue === "object" && outputValue !== null && "type" in outputValue && outputValue.type === "image") {
-        const uri = typeof outputValue === "object" && outputValue !== null && "uri" in outputValue && typeof outputValue.uri === "string" ? outputValue.uri : "";
+      if (outputNode.data?.type === "image" || isObjectLike(outputValue) && "type" in outputValue && outputValue.type === "image") {
+        const uri = isObjectLike(outputValue) && "uri" in outputValue && isString(outputValue.uri) ? outputValue.uri : "";
         const image = nativeImage.createFromBuffer(
           Buffer.from(uri, "base64")
         );

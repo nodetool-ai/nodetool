@@ -5,6 +5,7 @@ import type {
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { isCallable, isString } from "./type-predicates.js";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
@@ -573,7 +574,7 @@ function audioRefFromB64(b64: string, contentType: string) {
 
 /** Convert an image/audio ref object to a Blob for multipart upload. */
 async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
-  if (ref.data && typeof ref.data === "string") {
+  if (ref.data && isString(ref.data)) {
     const dataStr = ref.data as string;
     // Handle data: URI
     if (dataStr.startsWith("data:")) {
@@ -586,7 +587,7 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
     const buf = Buffer.from(dataStr, "base64");
     return new Blob([buf]);
   }
-  if (ref.uri && typeof ref.uri === "string") {
+  if (ref.uri && isString(ref.uri)) {
     const r = await fetch(ref.uri as string);
     return await r.blob();
   }
@@ -1112,7 +1113,7 @@ export class RealtimeAgentNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<void> {
     let apiKey = "";
-    if (context && typeof context.getSecret === "function") {
+    if (context && isCallable(context.getSecret)) {
       apiKey = (await context.getSecret("OPENAI_API_KEY")) ?? "";
     }
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
@@ -1241,7 +1242,7 @@ export class RealtimeAgentNode extends BaseNode {
         const chunk = item as Record<string, unknown> | string;
         let done = false;
 
-        if (typeof chunk === "string") {
+        if (isString(chunk)) {
           // Raw base64 audio
           if (chunk && ws.readyState === WebSocket.OPEN) {
             ws.send(
@@ -1394,7 +1395,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
     context?: ProcessingContext
   ): Promise<void> {
     let apiKey = "";
-    if (context && typeof context.getSecret === "function") {
+    if (context && isCallable(context.getSecret)) {
       apiKey = (await context.getSecret("OPENAI_API_KEY")) ?? "";
     }
     if (!apiKey) apiKey = process.env.OPENAI_API_KEY ?? "";
@@ -1501,7 +1502,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
         let audioB64: string;
         let done = false;
 
-        if (typeof chunk === "string") {
+        if (isString(chunk)) {
           audioB64 = chunk;
         } else {
           if (chunk.content_type && chunk.content_type !== "audio") continue;

@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "./typePredicates";
 export class AppError extends Error {
   constructor(message: string, public detail?: string) {
     super(message);
@@ -20,14 +21,13 @@ export const createErrorMessage = (
   defaultMessage: string
 ): Error => {
   if (
-    typeof error === "object" &&
-    error !== null &&
+    isObjectLike(error) &&
     "detail" in error &&
     error.detail
   ) {
     return new AppError(defaultMessage, String(error.detail));
   }
-  if (typeof error === "string") {
+  if (isString(error)) {
     return new AppError(defaultMessage, error);
   }
   if (error instanceof Error) {

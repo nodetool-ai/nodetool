@@ -21,6 +21,7 @@ import { useAsset } from "../../../serverState/useAsset";
 import { trpc, type RouterOutputs } from "../../../trpc/client";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import ConfirmDialog from "../../dialogs/ConfirmDialog";
+import { isString } from "../../../utils/typePredicates";
 
 const THREAD_MEMORY_SIDEBAR_WIDTH = 300;
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
@@ -120,7 +121,7 @@ MemoryAssetThumb.displayName = "MemoryAssetThumb";
 function isImageAsset(resource: Resource): boolean {
   if (resource.type !== "asset") return false;
   const ct = resource.metadata?.["content_type"];
-  return typeof ct === "string" && ct.startsWith("image/");
+  return isString(ct) && ct.startsWith("image/");
 }
 
 function resourceLabel(resource: Resource): string {

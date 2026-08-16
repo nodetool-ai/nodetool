@@ -1,6 +1,7 @@
 import { zipSync } from "fflate";
 import { createAssetFile } from "./createAssetFile";
 import { resolveMediaUri } from "./resolveMediaUri";
+import { isObjectLike } from "./typePredicates";
 
 interface DownloadOptions {
   nodeId: string;
@@ -15,7 +16,7 @@ const getDownloadPayload = ({
   if (previewValue != null) {
     return previewValue;
   }
-  if (rawResult && typeof rawResult === "object" && "output" in rawResult && rawResult.output !== undefined) {
+  if (rawResult && isObjectLike(rawResult) && "output" in rawResult && rawResult.output !== undefined) {
     return rawResult.output;
   }
   if (rawResult !== undefined) {

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { isString } from "./type-predicates.js";
 
 const XAI_API_BASE = "https://api.x.ai/v1";
 
@@ -12,7 +13,7 @@ function getApiKey(secrets: Record<string, string>): string {
 }
 
 function imageToDataUri(image: ImageRefLike): string {
-  if (typeof image.data === "string") {
+  if (isString(image.data)) {
     if (image.data.startsWith("data:")) return image.data;
     return `data:image/png;base64,${image.data}`;
   }

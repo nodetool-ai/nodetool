@@ -49,6 +49,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { isString } from "../../lib/wire-values.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -92,7 +93,7 @@ function toListItem(seq: TimelineSequence) {
  * Postgres, so parse only when it is a string.
  */
 function parseVersionDocument(raw: unknown): TimelineDocument {
-  const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+  const value = isString(raw) ? JSON.parse(raw) : raw;
   return (value ?? { tracks: [], clips: [], markers: [] }) as TimelineDocument;
 }
 

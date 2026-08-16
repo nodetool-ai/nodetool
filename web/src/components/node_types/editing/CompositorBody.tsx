@@ -60,6 +60,7 @@ import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropert
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 import { COMPOSITOR_NODE_TYPE } from "../../../constants/nodeTypes";
+import { isNumber, isObjectLike } from "../../../utils/typePredicates";
 
 /** Canonical blend modes are owned by `@nodetool-ai/gpu`. */
 export type CompositorBlendMode = BlendMode;
@@ -79,11 +80,11 @@ const DEFAULT_LAYER_STATE: CompositorLayerState = {
 
 /** Parse a persisted layer transform; undefined unless a position is pinned. */
 const parseTransform = (raw: unknown): LayerTransform2D | undefined => {
-  if (!raw || typeof raw !== "object") return undefined;
+  if (!raw || !isObjectLike(raw)) return undefined;
   const r = raw as Record<string, unknown>;
-  if (typeof r.x !== "number" || typeof r.y !== "number") return undefined;
+  if (!isNumber(r.x) || !isNumber(r.y)) return undefined;
   const num = (v: unknown, fallback: number): number =>
-    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+    isNumber(v) && Number.isFinite(v) ? v : fallback;
   return {
     x: r.x,
     y: r.y,
@@ -193,7 +194,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     return imageKeys.map((_, i) => {
       const raw = (arr[i] ?? {}) as Record<string, unknown>;
       const opacity =
-        typeof raw.opacity === "number"
+        isNumber(raw.opacity)
           ? Math.max(0, Math.min(1, raw.opacity))
           : DEFAULT_LAYER_STATE.opacity;
       const blend_mode = coerceBlendMode(raw.blend_mode);

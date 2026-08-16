@@ -14,6 +14,10 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import type { JsScriptDebugTarget } from "@nodetool-ai/execution/js-script-debug";
+import {
+  isRecord,
+  isString
+} from "../predicates.js";
 
 /** A decoded JSON document, before anything validates its shape. */
 type JsonValue =
@@ -43,9 +47,6 @@ export interface ResolvedJsScriptTarget {
   raw: unknown;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /**
  * The document a target carries, unwrapping a `document` field (string or
  * object) when there is one. Never throws — an unreadable document is a
@@ -56,7 +57,7 @@ function documentOf(raw: unknown): JsonValue {
   // branch below carries decoded JSON.
   if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
-  if (typeof inner === "string") {
+  if (isString(inner)) {
     try {
       return JSON.parse(inner);
     } catch {
@@ -71,7 +72,7 @@ function documentOf(raw: unknown): JsonValue {
 /** A document is anything carrying a `code` string and a `schemaVersion`. */
 const looksLikeDocument = (value: unknown): boolean =>
   isRecord(value) &&
-  typeof value.code === "string" &&
+  isString(value.code) &&
   value.schemaVersion !== undefined;
 
 /** Resolve a JS-script target: a JSON file path or a `js_scripts` row id. */
@@ -93,7 +94,7 @@ export async function resolveJsScriptTarget(
       );
     }
     const name =
-      isRecord(parsed) && typeof parsed.name === "string"
+      isRecord(parsed) && isString(parsed.name)
         ? parsed.name
         : undefined;
     const target: JsScriptDebugTarget = { kind: "file", ref };

@@ -6,6 +6,7 @@ import EventIcon from "@mui/icons-material/Event";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import NotesIcon from "@mui/icons-material/Notes";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import { isString } from "../../utils/typePredicates";
 
 interface CalendarEventViewProps {
   event: CalendarEvent;
@@ -13,7 +14,7 @@ interface CalendarEventViewProps {
 
 const formatDatetime = (dt: Datetime | string | null | undefined): string => {
   if (!dt) return "";
-  if (typeof dt === "string") return dt;
+  if (isString(dt)) return dt;
   // Month is 1-indexed in the API but 0-indexed in JS Date
   const date = new Date(
     dt.year,

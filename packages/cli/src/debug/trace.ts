@@ -8,6 +8,7 @@
  */
 import { readFile } from "node:fs/promises";
 import type { TraceSummary } from "./types.js";
+import { isNumber } from "../predicates.js";
 
 /** One span as serialized by the JSONL trace exporter. */
 export interface TraceSpan {
@@ -44,7 +45,7 @@ export function parseTraceJsonl(text: string): TraceSpan[] {
 
 function numAttr(attrs: Record<string, unknown>, key: string): number {
   const v = attrs[key];
-  return typeof v === "number" ? v : 0;
+  return isNumber(v) ? v : 0;
 }
 
 /** Roll spans up into a `TraceSummary`. */

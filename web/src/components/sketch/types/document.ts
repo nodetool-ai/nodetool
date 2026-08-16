@@ -41,7 +41,7 @@ import {
 import {
   isFiniteNumber,
   isNumber,
-  isRecord,
+  isObjectLike,
   isString
 } from "../../../utils/typePredicates";
 import { normalizeLayerTransform } from "../transform/normalize";
@@ -519,11 +519,11 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
   }
   const result: LayerEffect[] = [];
   for (const item of raw) {
-    if (!isRecord(item) || !isString(item.type)) {
+    if (!isObjectLike(item) || !isString(item.type)) {
       continue;
     }
     const enabled = item.enabled === true;
-    const params: Record<string, unknown> = isRecord(item.params)
+    const params: Record<string, unknown> = isObjectLike(item.params)
       ? item.params
       : {};
     switch (item.type) {

@@ -10,6 +10,7 @@ import type { Theme } from "@mui/material/styles";
 import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 import DataTable from "../DataTable/DataTable";
 import DataframeEditorModal from "../../properties/DataframeEditorModal";
+import { isNumber } from "../../../utils/typePredicates";
 
 interface DataframeRendererProps {
   dataframe: DataframeRef;
@@ -24,7 +25,7 @@ const inferColumnType = (
   for (const row of rows) {
     const value = row?.[name];
     if (value == null || value === "") continue;
-    if (typeof value === "number") {
+    if (isNumber(value)) {
       sawNumber = true;
       if (!Number.isInteger(value)) sawFloat = true;
       continue;

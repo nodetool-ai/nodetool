@@ -6,6 +6,7 @@
 import { Property } from "../../stores/ApiTypes";
 import { clampNumber, WorkflowInputKind } from "./inputKinds";
 import { WorkflowInputIO } from "./workflowIO";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 /** Kinds rendered by a dedicated model-select component, not the resolver. */
 export const MODEL_INPUT_KINDS: ReadonlySet<WorkflowInputKind> = new Set([
@@ -179,7 +180,7 @@ export const normalizeInputValue = (
   input: WorkflowInputIO,
   value: unknown
 ): unknown => {
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (isNumber(value) && Number.isFinite(value)) {
     if (input.kind === "integer") {
       return clampNumber(Math.round(value), input.min, input.max);
     }
@@ -189,7 +190,7 @@ export const normalizeInputValue = (
   }
   if (
     input.kind === "string" &&
-    typeof value === "string" &&
+    isString(value) &&
     input.maxLength != null &&
     input.maxLength > 0
   ) {

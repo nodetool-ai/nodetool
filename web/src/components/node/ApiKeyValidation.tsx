@@ -3,6 +3,7 @@ import { Text, EditorButton } from "../ui_primitives";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
 import { getRequiredSecretKeyForNamespace } from "../../utils/nodeProvider";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import { isString } from "../../utils/typePredicates";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;
@@ -21,7 +22,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
     }, [nodeNamespace]);
 
     const content = useMemo(() => {
-      if (!missingAPIKey || typeof missingAPIKey !== "string") {return null;}
+      if (!missingAPIKey || !isString(missingAPIKey)) {return null;}
 
       return (
         <>

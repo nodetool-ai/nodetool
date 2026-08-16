@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { isNumber } from "../../utils/typePredicates";
 
 /**
  * Geometry types whose construction parameters the Properties panel can edit
@@ -84,7 +85,7 @@ export const readGeometryParams = (
 
 const num = (params: GeometryParams, key: string, fallback: number): number => {
   const value = params[key];
-  return typeof value === "number" ? value : fallback;
+  return isNumber(value) ? value : fallback;
 };
 
 /**

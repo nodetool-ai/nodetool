@@ -47,6 +47,11 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { CROP_NODE_TYPE } from "../../../constants/nodeTypes";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 /** Aspect-ratio dropdown options. `free` means no constraint. */
 const ASPECT_OPTIONS = [
@@ -224,12 +229,12 @@ interface ImageRefLike {
 }
 
 const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
+  if (!value || !isObjectLike(value)) return undefined;
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
+    uri: isString(v.uri) ? v.uri : undefined,
+    width: isNumber(v.width) ? v.width : undefined,
+    height: isNumber(v.height) ? v.height : undefined,
     data: v.data
   };
 };

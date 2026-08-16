@@ -8,6 +8,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
+import { isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // State types
@@ -268,7 +269,7 @@ export function useExecutionState() {
               const steps = [...task.steps];
               const argsStr = Object.entries(tc.args ?? {})
                 .map(([k, v]) => {
-                  const val = typeof v === "string" ? v : JSON.stringify(v);
+                  const val = isString(v) ? v : JSON.stringify(v);
                   return `${k}: ${val.slice(0, 40)}`;
                 })
                 .join(", ");
@@ -323,7 +324,7 @@ export function useExecutionState() {
               if (stepIdx === -1) return task;
               const steps = [...task.steps];
               const result =
-                typeof sr.result === "string"
+                isString(sr.result)
                   ? sr.result
                   : JSON.stringify(sr.result ?? "");
               steps[stepIdx] = {

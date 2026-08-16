@@ -66,6 +66,7 @@ import { PromptComposerContext } from "./promptComposer/promptComposerContext";
 import { useVariablePassthroughOutputs } from "./promptComposer/useVariablePassthroughOutputs";
 import { useGraphVariableNames } from "./useGraphVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
+import { isString } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -305,7 +306,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
 
   // Capture the initial prompt once — the editor owns the value after mount.
   const initialPromptRef = useRef<string>(
-    typeof data.properties?.prompt === "string"
+    isString(data.properties?.prompt)
       ? (data.properties.prompt as string)
       : ""
   );

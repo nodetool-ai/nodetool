@@ -47,6 +47,7 @@ import {
   isKieVagueBillingSummary,
   kiePricingExternalUrl,
 } from "../../utils/formatKieUnitPricing";
+import { isNumber } from "../../utils/typePredicates";
 
 /**
  * Format a kie node's actual last-run charge. Since #3426, `provider_cost.amount`
@@ -64,12 +65,12 @@ function formatKieLastRun(cost: ProviderCost): string {
   }
   if (
     cost.currency === "USD" &&
-    typeof cost.amount === "number" &&
+    isNumber(cost.amount) &&
     Number.isFinite(cost.amount)
   ) {
     parts.push(`$${cost.amount.toFixed(4)}`);
   }
-  if (parts.length === 0 && typeof cost.amount === "number") {
+  if (parts.length === 0 && isNumber(cost.amount)) {
     return `${cost.amount}${cost.unit ? ` ${cost.unit}` : ""}`;
   }
   return parts.join(" · ");

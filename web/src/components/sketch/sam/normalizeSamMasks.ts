@@ -1,6 +1,7 @@
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 import type { SegmentBackend, SegmentationMask, SegmentationSourceMetadata } from "../types";
 import type { SegmentationResponse } from "./SamService";
+import { isNumber, isObjectLike } from "../../../utils/typePredicates";
 
 interface SamMaskImageRef {
   uri?: string;
@@ -35,7 +36,7 @@ function getNormalizedMaskEntries(rawOutput: unknown): Array<{
 }> {
   const candidates = Array.isArray(rawOutput)
     ? rawOutput
-    : rawOutput && typeof rawOutput === "object" && Array.isArray((rawOutput as { output?: unknown }).output)
+    : rawOutput && isObjectLike(rawOutput) && Array.isArray((rawOutput as { output?: unknown }).output)
       ? (rawOutput as { output: unknown[] }).output
       : isSamMaskImageRef(rawOutput)
         ? [rawOutput]
@@ -61,7 +62,7 @@ function getNormalizedDimension(
   scale: number
 ): number {
   const effectiveScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+  if (isNumber(value) && Number.isFinite(value) && value > 0) {
     const invScale = 1 / effectiveScale;
     return Math.max(0, Math.round(value * invScale));
   }

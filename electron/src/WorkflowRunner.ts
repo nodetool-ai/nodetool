@@ -4,6 +4,7 @@ import WebSocket from "ws";
 import { Notification } from "electron";
 import { getServerWebSocketUrl } from "./utils";
 import { Workflow } from "./types";
+import { isString } from "./typePredicates";
 
 const getWorkerUrl = () => getServerWebSocketUrl("/ws");
 
@@ -117,7 +118,7 @@ export const createWorkflowRunner = () =>
             buffer = new Uint8Array(event);
           } else if (event instanceof ArrayBuffer) {
             buffer = new Uint8Array(event);
-          } else if (typeof event === "string") {
+          } else if (isString(event)) {
             const encoder = new TextEncoder();
             buffer = encoder.encode(event);
           } else {

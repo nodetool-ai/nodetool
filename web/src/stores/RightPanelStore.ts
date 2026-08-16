@@ -5,6 +5,7 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isNumber, isObjectLike } from "../utils/typePredicates";
 
 export type RightPanelView = "inspector";
 
@@ -142,12 +143,12 @@ export const useRightPanelStore = create<ResizePanelState>()(
         }
       }),
       merge: (persistedState, currentState) => {
-        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+        if (!persistedState || !isObjectLike(persistedState) || Array.isArray(persistedState)) {
           return currentState;
         }
         const persisted = persistedState as Record<string, unknown>;
         const rawPanel = persisted.panel;
-        if (!rawPanel || typeof rawPanel !== "object" || Array.isArray(rawPanel)) {
+        if (!rawPanel || !isObjectLike(rawPanel) || Array.isArray(rawPanel)) {
           return currentState;
         }
         const persistedPanel = rawPanel as Record<string, unknown>;
@@ -157,7 +158,7 @@ export const useRightPanelStore = create<ResizePanelState>()(
           panel: {
             ...currentState.panel,
             panelSize:
-              typeof persistedPanel.panelSize === "number"
+              isNumber(persistedPanel.panelSize)
                 ? Math.max(
                     MIN_DRAG_SIZE,
                     Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)

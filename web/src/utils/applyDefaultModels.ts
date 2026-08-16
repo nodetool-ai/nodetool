@@ -1,4 +1,5 @@
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
+import { isString } from "./typePredicates";
 
 // Property types stamped with the user's default model on node creation.
 // `code_model` is deliberately absent: it selects the model that authors Code
@@ -18,7 +19,7 @@ interface PropertyMeta {
 }
 
 function getTypeString(type: { type: string } | string): string {
-  return typeof type === "string" ? type : type.type;
+  return isString(type) ? type : type.type;
 }
 
 export function applyDefaultModels(

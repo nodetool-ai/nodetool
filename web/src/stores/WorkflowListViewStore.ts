@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isBoolean, isObjectLike } from "../utils/typePredicates";
 
 export type SortBy = "name" | "date";
 
@@ -56,14 +57,14 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         selectedTags: state.selectedTags
       }),
       merge: (persistedState, currentState) => {
-        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+        if (!persistedState || !isObjectLike(persistedState) || Array.isArray(persistedState)) {
           return currentState;
         }
         const p = persistedState as Record<string, unknown>;
         return {
           ...currentState,
           showGraphPreview:
-            typeof p.showGraphPreview === "boolean"
+            isBoolean(p.showGraphPreview)
               ? p.showGraphPreview
               : currentState.showGraphPreview,
           sortBy:

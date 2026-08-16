@@ -1,6 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { safeFetch } from "@nodetool-ai/runtime";
+import { isNonEmptyString, isObjectLike, isString } from "./type-predicates.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -11,7 +12,7 @@ function getGeminiApiKey(secrets: Record<string, string>): string {
 }
 
 function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
-  if (typeof audio.data === "string") {
+  if (isString(audio.data)) {
     return Uint8Array.from(Buffer.from(audio.data, "base64"));
   }
   if (audio.data instanceof Uint8Array) {
@@ -21,7 +22,7 @@ function getAudioBytes(audio: Record<string, unknown>): Uint8Array {
 }
 
 function getImageBytes(image: Record<string, unknown>): Uint8Array | null {
-  if (typeof image.data === "string" && image.data.length > 0) {
+  if (isNonEmptyString(image.data)) {
     return Uint8Array.from(Buffer.from(image.data, "base64"));
   }
   if (image.data instanceof Uint8Array) {
@@ -31,7 +32,7 @@ function getImageBytes(image: Record<string, unknown>): Uint8Array | null {
 }
 
 function isRefSet(ref: unknown): boolean {
-  if (!ref || typeof ref !== "object") return false;
+  if (!isObjectLike(ref)) return false;
   const r = ref as Record<string, unknown>;
   return Boolean(r.data || r.uri || r.asset_id);
 }
@@ -127,7 +128,7 @@ export class GroundedSearchNode extends BaseNode {
     const results: string[] = [];
     if (parts) {
       for (const part of parts) {
-        if (typeof part.text === "string") {
+        if (isString(part.text)) {
           results.push(part.text);
         }
       }
@@ -388,7 +389,7 @@ export class ImageGenerationNode extends BaseNode {
           | Record<string, unknown>
           | undefined;
         const d = inlineData ?? inlineData2;
-        if (d && typeof d.data === "string") {
+        if (d && isString(d.data)) {
           return { output: { type: "image", data: d.data } };
         }
       }
@@ -924,7 +925,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
       const inlineData =
         (part.inlineData as Record<string, unknown> | undefined) ??
         (part.inline_data as Record<string, unknown> | undefined);
-      if (inlineData && typeof inlineData.data === "string") {
+      if (inlineData && isString(inlineData.data)) {
         // The API returns raw PCM audio at 24kHz, 16-bit mono
         // Encode as WAV for the audio ref
         const pcmBase64 = inlineData.data;
@@ -1058,7 +1059,7 @@ export class TranscribeGeminiNode extends BaseNode {
 
     const transcriptionParts: string[] = [];
     for (const part of parts) {
-      if (typeof part.text === "string") {
+      if (isString(part.text)) {
         transcriptionParts.push(part.text);
       }
     }

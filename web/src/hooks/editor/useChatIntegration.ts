@@ -9,6 +9,7 @@ import type {
   Message
 } from "../../stores/ApiTypes";
 import { setEditorAdapter } from "../../lib/tools/builtin/editorTools";
+import { isString } from "../../utils/typePredicates";
 
 export function useChatIntegration(params: {
   isCodeEditor: boolean;
@@ -221,7 +222,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
   const sendMessage = useCallback(
     async (message: Message) => {
       const ctx = buildContext();
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         message.content = ctx + "\n\n" + message.content;
       } else if (Array.isArray(message.content)) {
         message.content = message.content.map((content) => {
@@ -357,7 +358,7 @@ BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import,
 
       let responseText = "";
       const content = last.content;
-      if (typeof content === "string") {
+      if (isString(content)) {
         responseText = content;
       } else if (Array.isArray(content)) {
         const textItem = content.find(

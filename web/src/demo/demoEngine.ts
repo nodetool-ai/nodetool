@@ -42,6 +42,7 @@ import type {
 
 import type { CastEvent, DemoCast } from "./castTypes";
 import { resolveAssetUrls } from "./assetSubstitution";
+import { isString } from "../utils/typePredicates";
 
 /**
  * Minimal stand-in for the WorkflowRunner store. The reducer only reads/writes
@@ -238,7 +239,7 @@ function remapJobIds(events: CastEvent[]): CastEvent[] {
   const map = new Map<string, string>();
   return events.map((e) => {
     const job = e.message.job_id;
-    if (typeof job !== "string") return e;
+    if (!isString(job)) return e;
     let fresh = map.get(job);
     if (!fresh) {
       fresh = crypto.randomUUID();

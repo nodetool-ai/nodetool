@@ -96,6 +96,10 @@ import {
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  isNumber,
+  isString
+} from "../../lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -361,7 +365,7 @@ function buildExamplesFromDir(
       const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       const name =
-        typeof parsed.name === "string"
+        isString(parsed.name)
           ? parsed.name
           : file.replace(/\.json$/i, "");
       // Append ?v=<md5-8> via withCacheBuster so the browser invalidates
@@ -382,9 +386,9 @@ function buildExamplesFromDir(
         name,
         tool_name: null,
         description:
-          typeof parsed.description === "string" ? parsed.description : "",
+          isString(parsed.description) ? parsed.description : "",
         tags: Array.isArray(parsed.tags)
-          ? parsed.tags.filter((t: unknown) => typeof t === "string")
+          ? parsed.tags.filter((t: unknown) => isString(t))
           : [],
         thumbnail: thumbnailUrl ? jpgFile : null,
         thumbnail_url: thumbnailUrl,
@@ -393,7 +397,7 @@ function buildExamplesFromDir(
         output_schema: null,
         settings: null,
         package_name:
-          typeof parsed.package_name === "string" ? parsed.package_name : null,
+          isString(parsed.package_name) ? parsed.package_name : null,
         path: null,
         run_mode: null,
         workspace_id: null,
@@ -758,7 +762,7 @@ export const workflowsRouter = router({
 
       const force = input.force === true;
       const maxVersions =
-        typeof input.max_versions === "number" ? input.max_versions : 10;
+        isNumber(input.max_versions) ? input.max_versions : 10;
 
       // Rate-limit
       if (!force) {

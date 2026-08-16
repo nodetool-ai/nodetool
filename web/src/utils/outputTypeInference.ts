@@ -23,6 +23,7 @@ import {
   COLLECTION_NODE_TYPE,
   GET_VARIABLE_NODE_TYPE
 } from "../constants/nodeTypes";
+import { isString } from "./typePredicates";
 
 /** The resolved output, ready to merge over the static `OutputSlot`. */
 interface InferredOutput {
@@ -51,7 +52,7 @@ const SELECT_NODE_TYPES = [
 function selectNodeEnumType(node: Node<NodeData>): TypeMetadata {
   const props = node.data.properties || {};
   const enumTypeName =
-    typeof props.enum_type_name === "string" ? props.enum_type_name : null;
+    isString(props.enum_type_name) ? props.enum_type_name : null;
   const options = Array.isArray(props.options)
     ? props.options.filter((x: unknown): x is string => typeof x === "string")
     : [];

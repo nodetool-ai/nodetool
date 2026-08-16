@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "./typePredicates";
 /**
  * Resolve the plain-text content from a node output value.
  *
@@ -14,14 +15,14 @@ export const extractTextValue = (value: unknown): string => {
       .filter((item) => item.length > 0)
       .join("\n");
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value;
   }
-  if (value && typeof value === "object") {
-    if ("value" in value && typeof value.value === "string") return value.value;
-    if ("text" in value && typeof value.text === "string") return value.text;
-    if ("data" in value && typeof value.data === "string") return value.data;
-    if ("content" in value && typeof value.content === "string")
+  if (value && isObjectLike(value)) {
+    if ("value" in value && isString(value.value)) return value.value;
+    if ("text" in value && isString(value.text)) return value.text;
+    if ("data" in value && isString(value.data)) return value.data;
+    if ("content" in value && isString(value.content))
       return value.content;
     if ("output" in value) return extractTextValue(value.output);
   }

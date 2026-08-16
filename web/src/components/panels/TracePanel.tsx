@@ -18,6 +18,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import useTraceStore from "../../stores/TraceStore";
 import type { TraceEvent, TraceEventType } from "../../stores/TraceStore";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 
 const EVENT_ICONS = {
@@ -105,9 +106,9 @@ function formatRelativeTime(ms: number): string {
 }
 
 function getOutputText(detail: unknown): string | null {
-  if (!detail || typeof detail !== "object") return null;
+  if (!detail || !isObjectLike(detail)) return null;
   const value = (detail as Record<string, unknown>).value;
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   return null;
 }
 
@@ -134,7 +135,7 @@ function LLMDetail({ detail }: { detail: LLMCallDetail }) {
       {detail.response ? (
         <div className="llm-section">
           <div className="llm-label">Response</div>
-          <pre>{typeof detail.response === "string" ? detail.response : JSON.stringify(detail.response, null, 2)}</pre>
+          <pre>{isString(detail.response) ? detail.response : JSON.stringify(detail.response, null, 2)}</pre>
         </div>
       ) : null}
       {detail.tool_calls && detail.tool_calls.length > 0 ? (

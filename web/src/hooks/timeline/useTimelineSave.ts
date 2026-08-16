@@ -15,6 +15,7 @@ import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
+import { isString } from "../../utils/typePredicates";
 
 export interface UseTimelineSaveResult {
   /** PATCH the current document immediately. Resolves when the save settles. */
@@ -41,7 +42,7 @@ export function useTimelineSave(): UseTimelineSaveResult {
       // Only roll the token forward while the store still holds the saved
       // sequence — otherwise we'd poison a newly loaded sequence's token.
       if (
-        typeof updatedAt === "string" &&
+        isString(updatedAt) &&
         store.getState().sequenceId === state.sequenceId
       ) {
         store.getState().setBaseUpdatedAt(updatedAt);

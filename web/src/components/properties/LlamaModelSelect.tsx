@@ -17,6 +17,7 @@ import { isElectron } from "../../lib/env";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
+import { isString } from "../../utils/typePredicates";
 
 interface LlamaModelSelectProps {
   onChange: (value: LlamaModelValue) => void;
@@ -116,7 +117,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               color="secondary"
               sx={{ display: "block", mb: 1 }}
             >
-              {typeof (ollamaError as { detail?: unknown })?.detail === "string"
+              {isString((ollamaError as { detail?: unknown })?.detail)
                 ? (ollamaError as { detail?: string }).detail
                 : "Please check that Ollama is running"}
             </Caption>

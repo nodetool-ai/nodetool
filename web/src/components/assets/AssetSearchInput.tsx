@@ -12,6 +12,7 @@ import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { isNumber } from "../../utils/typePredicates";
 
 
 const styles = (theme: Theme) =>
@@ -399,7 +400,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       style={{
         width: "100%",
         maxWidth:
-          typeof width === "number"
+          isNumber(width)
             ? `${width}px`
             : (width as string | undefined)
       }}

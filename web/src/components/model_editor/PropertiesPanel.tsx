@@ -27,6 +27,7 @@ import {
   isEditableGeometryType,
   readGeometryParams
 } from "./geometryParams";
+import { isBoolean, isNumber } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -278,7 +279,7 @@ const Vector3Row = ({
 // material the selected mesh carries without `any`.
 const getNumberProp = (obj: Record<string, unknown>, key: string): number | undefined => {
   const v = obj[key];
-  return typeof v === "number" ? v : undefined;
+  return isNumber(v) ? v : undefined;
 };
 
 const setNumberProp = (obj: Record<string, unknown>, key: string, value: number): void => {
@@ -292,7 +293,7 @@ const getColorProp = (obj: Record<string, unknown>, key: string): THREE.Color | 
 
 const getBoolProp = (obj: Record<string, unknown>, key: string): boolean | undefined => {
   const v = obj[key];
-  return typeof v === "boolean" ? v : undefined;
+  return isBoolean(v) ? v : undefined;
 };
 
 const setBoolProp = (obj: Record<string, unknown>, key: string, value: boolean): void => {
@@ -567,7 +568,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
               {GEOMETRY_PARAM_SPECS[geometryType].map((spec) => {
                 const isAngle = spec.kind === "angle";
                 const stored = geometryParams[spec.key];
-                const value = typeof stored === "number" ? stored : 0;
+                const value = isNumber(stored) ? stored : 0;
                 const display = isAngle ? THREE.MathUtils.radToDeg(value) : value;
                 return (
                   <NumberRow

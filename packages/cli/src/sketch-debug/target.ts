@@ -15,6 +15,11 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import type { SketchDebugTarget } from "@nodetool-ai/execution/sketch-debug";
+import {
+  isFiniteNumber,
+  isRecord,
+  isString
+} from "../predicates.js";
 
 /** A decoded JSON document, before anything validates its shape. */
 type JsonValue =
@@ -75,11 +80,8 @@ export interface ResolvedSketchTarget {
   meta: SketchCanvasSettings;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 const numberOr = (value: unknown): number | undefined =>
-  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  isFiniteNumber(value) ? value : undefined;
 
 /** Read width/height/background off whatever wrapper carried the document. */
 function settingsOf(raw: unknown): SketchCanvasSettings {
@@ -88,9 +90,9 @@ function settingsOf(raw: unknown): SketchCanvasSettings {
   const width = numberOr(raw.width);
   const height = numberOr(raw.height);
   const background =
-    typeof raw.backgroundColor === "string"
+    isString(raw.backgroundColor)
       ? raw.backgroundColor
-      : typeof raw.background_color === "string"
+      : isString(raw.background_color)
         ? raw.background_color
         : undefined;
   if (width !== undefined) settings.width = width;
@@ -115,7 +117,7 @@ function documentOf(raw: unknown): JsonValue {
   // branch below carries decoded JSON.
   if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
-  if (typeof inner === "string") {
+  if (isString(inner)) {
     try {
       return JSON.parse(inner);
     } catch {
@@ -136,10 +138,10 @@ function asDocument(raw: JsonValue): SketchDocumentView {
   const sketch = isRecord(record.sketch) ? record.sketch : {};
   const layers: SketchLayerView[] = [];
   for (const entry of Array.isArray(sketch.layers) ? sketch.layers : []) {
-    if (!isRecord(entry) || typeof entry.id !== "string") continue;
+    if (!isRecord(entry) || !isString(entry.id)) continue;
     layers.push({
       id: entry.id,
-      name: typeof entry.name === "string" ? entry.name : entry.id,
+      name: isString(entry.name) ? entry.name : entry.id,
       type: layerType(entry.type)
     });
   }
@@ -148,9 +150,9 @@ function asDocument(raw: JsonValue): SketchDocumentView {
     canvas: settingsOf(sketch.canvas),
     layers,
     activeLayerId:
-      typeof sketch.activeLayerId === "string" ? sketch.activeLayerId : "",
+      isString(sketch.activeLayerId) ? sketch.activeLayerId : "",
     maskLayerId:
-      typeof sketch.maskLayerId === "string" ? sketch.maskLayerId : null
+      isString(sketch.maskLayerId) ? sketch.maskLayerId : null
   };
 }
 
@@ -173,7 +175,7 @@ export async function resolveSketchTarget(
       );
     }
     const name =
-      isRecord(parsed) && typeof parsed.name === "string"
+      isRecord(parsed) && isString(parsed.name)
         ? parsed.name
         : undefined;
     const document = asDocument(raw);

@@ -18,6 +18,7 @@ import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';
+import { isString } from '../utils/typePredicates';
 
 /** React Query bindings (`trpc.workflows.list.useQuery(...)`, etc.). */
 export const trpc = createTRPCReact<AppRouter>();
@@ -43,7 +44,7 @@ async function hostRewriteFetch(
   options?: RequestInit
 ): Promise<Response> {
   const raw =
-    typeof input === 'string'
+    isString(input)
       ? input
       : input instanceof URL
         ? input.toString()

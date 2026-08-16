@@ -67,6 +67,7 @@ import { RESOURCE_RENDERERS } from "./resourceWidgets";
 import { ModelSelectWidget } from "./ModelSelectWidget";
 import { pickMediaValue, type MediaKind } from "./mediaPicker";
 import { clampNumber } from "./inputKinds";
+import { isFiniteNumber, isNumber, isRecord, isString } from "../../utils/typePredicates";
 
 /** A placed widget in the Puck document. Slots are arrays nested in props. */
 export interface ComponentNode {
@@ -85,10 +86,10 @@ interface WidgetProps {
 }
 
 const str = (value: unknown): string =>
-  typeof value === "string" ? value : value == null ? "" : String(value);
+  isString(value) ? value : value == null ? "" : String(value);
 
 const numOr = (value: unknown, fallback: number): number =>
-  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  isFiniteNumber(value) ? value : fallback;
 
 /** A bound output holds one value or an accumulated list of streamed items. */
 const asItems = (value: unknown): unknown[] =>
@@ -101,9 +102,9 @@ const asItems = (value: unknown): unknown[] =>
  */
 const mediaLocator = (value: unknown): string | null => {
   const raw =
-    typeof value === "string"
+    isString(value)
       ? value
-      : value && typeof value === "object"
+      : isRecord(value)
         ? str(
             (value as Record<string, unknown>).uri ??
               (value as Record<string, unknown>).url
@@ -326,7 +327,7 @@ const TimelineWidget: React.FC<WidgetProps> = (widget) => {
 /** A cell's text: primitives print, anything structured falls back to JSON. */
 const cellText = (value: unknown): string => {
   if (value == null) {return "";}
-  if (typeof value === "object") {
+  if (isRecord(value)) {
     try {
       return JSON.stringify(value);
     } catch {
@@ -466,7 +467,7 @@ const ProgressWidget: React.FC<WidgetProps> = (widget) => {
     ...widget,
     bindingMode: "read",
   });
-  const bound = typeof value === "number" ? value : undefined;
+  const bound = isNumber(value) ? value : undefined;
   const ratio = bound ?? progress;
   // What the run says it is doing outranks the author's static label: an app
   // over an agent workflow otherwise shows a bare spinner for minutes.
@@ -902,8 +903,8 @@ const NumberInputWidget: React.FC<WidgetProps> = (widget) => {
     ...widget,
     bindingMode: "write",
   });
-  const min = typeof widget.props.min === "number" ? widget.props.min : undefined;
-  const max = typeof widget.props.max === "number" ? widget.props.max : undefined;
+  const min = isNumber(widget.props.min) ? widget.props.min : undefined;
+  const max = isNumber(widget.props.max) ? widget.props.max : undefined;
   const [text, setText] = useState(() => (value == null ? "" : String(value)));
 
   const onChangeText = useCallback(
@@ -954,7 +955,7 @@ const SliderWidget: React.FC<WidgetProps> = (widget) => {
   const min = numOr(widget.props.min, 0);
   const max = numOr(widget.props.max, 100);
   const step = numOr(widget.props.step, 1);
-  const current = typeof value === "number" ? value : min;
+  const current = isNumber(value) ? value : min;
 
   return (
     <View style={styles.field}>
@@ -1026,7 +1027,7 @@ const SelectWidget: React.FC<WidgetProps> = (widget) => {
     if (!Array.isArray(raw)) {return [] as string[];}
     return raw
       .map((option) =>
-        typeof option === "string"
+        isString(option)
           ? option
           : str((option as Record<string, unknown>)?.value)
       )
@@ -1080,7 +1081,7 @@ const useOptionValues = (raw: unknown): string[] =>
     if (!Array.isArray(raw)) {return [] as string[];}
     return raw
       .map((option) =>
-        typeof option === "string"
+        isString(option)
           ? option
           : str((option as Record<string, unknown>)?.value)
       )
@@ -1409,7 +1410,7 @@ const ImageSizeInputWidget: React.FC<WidgetProps> = (widget) => {
   const size = isRow(value) ? value : {};
   const dimension = (key: "width" | "height"): string => {
     const current = size[key];
-    return typeof current === "number" ? String(current) : "";
+    return isNumber(current) ? String(current) : "";
   };
   const write = (key: "width" | "height", text: string) => {
     const parsed = Number(text);
@@ -1666,7 +1667,7 @@ const writeGrid = (value: unknown, grid: Grid): DataframeValue => {
 
 /** A cell keeps its type: a numeric column stays numeric while it parses. */
 const coerceCell = (previous: unknown, text: string): string | number => {
-  if (typeof previous !== "number") {return text;}
+  if (!isNumber(previous)) {return text;}
   const parsed = Number(text);
   return text !== "" && !Number.isNaN(parsed) ? parsed : text;
 };
@@ -2346,7 +2347,7 @@ const WidgetNode: React.FC<{ node: ComponentNode }> = ({ node }) => {
   const visible = useCondition(props.visibleWhen as ConditionProps, true);
   const disabled = useCondition(props.disabledWhen as ConditionProps, false);
   const formatted = useFormatted(
-    typeof props.format === "string" ? props.format : undefined
+    isString(props.format) ? props.format : undefined
   );
 
   const Renderer = RENDERERS[node.type];
@@ -2370,7 +2371,7 @@ const WidgetNode: React.FC<{ node: ComponentNode }> = ({ node }) => {
   return (
     <Renderer
       id={str(props.id)}
-      binding={typeof props.binding === "string" ? props.binding : undefined}
+      binding={isString(props.binding) ? props.binding : undefined}
       events={Array.isArray(props.events) ? (props.events as AppEvent[]) : undefined}
       {...(formatted !== null ? { formattedValue: formatted } : {})}
       disabled={disabled}

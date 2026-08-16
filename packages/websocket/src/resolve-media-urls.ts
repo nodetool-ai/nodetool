@@ -27,6 +27,10 @@ import {
 import { assetObjectKey, createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import {
+  isObjectLike,
+  isString
+} from "./lib/wire-values.js";
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
@@ -124,7 +128,7 @@ async function resolveRef(
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 
   if (
-    typeof resolved.asset_id === "string" &&
+    isString(resolved.asset_id) &&
     isSafeAssetId(resolved.asset_id)
   ) {
     resolved.uri = await assetUrlForKey(
@@ -149,7 +153,7 @@ function resolveRefForProvider(
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 
   if (
-    typeof resolved.asset_id === "string" &&
+    isString(resolved.asset_id) &&
     isSafeAssetId(resolved.asset_id) &&
     !resolved.uri
   ) {
@@ -178,22 +182,21 @@ export function resolveContentForProvider(
   if (!Array.isArray(content)) return content;
 
   return content.map((block) => {
-    if (!block || typeof block !== "object") return block;
+    if (!isObjectLike(block)) return block;
     const b = block as Record<string, unknown>;
 
     if (
       (b.type === "image_url" || b.type === "image") &&
-      b.image &&
-      typeof b.image === "object"
+      isObjectLike(b.image)
     ) {
       return { ...b, image: resolveRefForProvider(b.image as Record<string, unknown>, "image/png", userId) };
     }
 
-    if (b.type === "video" && b.video && typeof b.video === "object") {
+    if (b.type === "video" && isObjectLike(b.video)) {
       return { ...b, video: resolveRefForProvider(b.video as Record<string, unknown>, "video/mp4", userId) };
     }
 
-    if (b.type === "audio" && b.audio && typeof b.audio === "object") {
+    if (b.type === "audio" && isObjectLike(b.audio)) {
       return { ...b, audio: resolveRefForProvider(b.audio as Record<string, unknown>, "audio/wav", userId) };
     }
 
@@ -215,13 +218,12 @@ export async function resolveContentUrls(
 
   return Promise.all(
     content.map(async (block) => {
-      if (!block || typeof block !== "object") return block;
+      if (!isObjectLike(block)) return block;
       const b = block as Record<string, unknown>;
 
       if (
         (b.type === "image_url" || b.type === "image") &&
-        b.image &&
-        typeof b.image === "object"
+        isObjectLike(b.image)
       ) {
         return {
           ...b,
@@ -233,7 +235,7 @@ export async function resolveContentUrls(
         };
       }
 
-      if (b.type === "video" && b.video && typeof b.video === "object") {
+      if (b.type === "video" && isObjectLike(b.video)) {
         return {
           ...b,
           video: await resolveRef(
@@ -244,7 +246,7 @@ export async function resolveContentUrls(
         };
       }
 
-      if (b.type === "audio" && b.audio && typeof b.audio === "object") {
+      if (b.type === "audio" && isObjectLike(b.audio)) {
         return {
           ...b,
           audio: await resolveRef(

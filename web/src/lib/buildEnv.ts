@@ -1,3 +1,4 @@
+import { isString } from "../utils/typePredicates";
 /**
  * Read a build-time `VITE_*` variable.
  *
@@ -18,7 +19,7 @@ export const getBuildEnv = (name: string): string | undefined => {
     );
     const env = getEnv() as Record<string, string | undefined> | undefined;
     const value = env?.[name];
-    return typeof value === "string" && value.length > 0 ? value : undefined;
+    return isString(value) && value.length > 0 ? value : undefined;
   } catch {
     // import.meta is unavailable in this environment (Jest CJS, SSR).
     return undefined;

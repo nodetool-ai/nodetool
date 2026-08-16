@@ -29,6 +29,7 @@ import {
   parseExtensionFrame,
   type ExtensionFrame
 } from "@nodetool-ai/automation-nodes/lib/extension-protocol";
+import { isString } from "./lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.extension-bridge");
 
@@ -205,7 +206,7 @@ export class ExtensionBridge {
 }
 
 function bufferToString(raw: Buffer | ArrayBuffer | Buffer[]): string {
-  if (typeof raw === "string") return raw;
+  if (isString(raw)) return raw;
   if (Array.isArray(raw)) return Buffer.concat(raw).toString("utf8");
   if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString("utf8");
   return (raw as Buffer).toString("utf8");

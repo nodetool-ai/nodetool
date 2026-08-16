@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { isString } from "./lib/wire-values.js";
 
 export interface ExampleWorkflowLoadOptions {
   examplesDir?: string;
@@ -90,10 +91,10 @@ export function resolveExampleJsonPath(
     try {
       const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
-      if (typeof parsed.name === "string" && parsed.name === ref) {
+      if (isString(parsed.name) && parsed.name === ref) {
         return nodePath.join(examplesDir, file);
       }
-      if (typeof parsed.id === "string" && parsed.id === ref) {
+      if (isString(parsed.id) && parsed.id === ref) {
         return nodePath.join(examplesDir, file);
       }
     } catch {

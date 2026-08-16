@@ -3,7 +3,7 @@ import type { Chunk } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 import { resolveMediaUri } from "./resolveMediaUri";
-import { isFunction, isNumber, isRecord, isString } from "./typePredicates";
+import { isFunction, isNumber, isObjectLike, isString } from "./typePredicates";
 
 interface AssetFileResult {
   file: File;
@@ -173,7 +173,7 @@ const toUint8Array = (input: unknown): Uint8Array => {
   if (Array.isArray(input)) {
     return new Uint8Array(input);
   }
-  if (isRecord(input)) {
+  if (isObjectLike(input)) {
     if ("data" in input) {
       if (input.data instanceof Uint8Array) return input.data;
       if (input.data instanceof ArrayBuffer) return new Uint8Array(input.data);
@@ -610,7 +610,7 @@ const createSingleAssetFile = async (
  * we expand it into an array so each output gets its own asset file.
  */
 const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] => {
-  if (!isRecord(output) || Array.isArray(output)) {
+  if (!isObjectLike(output) || Array.isArray(output)) {
     return output;
   }
   if ("type" in output) {

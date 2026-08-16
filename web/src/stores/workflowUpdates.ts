@@ -57,6 +57,12 @@ import { computeStampSignature } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 import useMetadataStore from "./MetadataStore";
 import { getPendingResumeJobId } from "./resumeJobHint";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/typePredicates";
 
 /**
  * Pending audio-chunk store appends, coalesced per node and flushed on a
@@ -578,7 +584,7 @@ export type MsgpackData =
 function extractJobId(data: MsgpackData): string | undefined {
   if ("job_id" in data) {
     const id = data.job_id;
-    return typeof id === "string" ? id : undefined;
+    return isString(id) ? id : undefined;
   }
   return undefined;
 }
@@ -739,7 +745,7 @@ export const handleUpdate = (
   // inline job's frames must not move this store's cursor.
   const jobSeq = (data as { job_seq?: unknown }).job_seq;
   if (
-    typeof jobSeq === "number" &&
+    isNumber(jobSeq) &&
     messageJobId &&
     messageJobId === runnerStore.getState().job_id &&
     jobSeq > runnerStore.getState().jobReplayCursor
@@ -897,14 +903,13 @@ export const handleUpdate = (
       // payloads into the log line before the log store's truncation runs.
       // Summarize only that ref shape — other typed objects keep full logging.
       const isMediaRef =
-        normalizedValue !== null &&
-        typeof normalizedValue === "object" &&
+        isObjectLike(normalizedValue) &&
         "type" in normalizedValue &&
         ("data" in normalizedValue ||
           "uri" in normalizedValue ||
           "asset_id" in normalizedValue);
       const logValue =
-        typeof normalizedValue === "string"
+        isString(normalizedValue)
           ? normalizedValue
           : isMediaRef
             ? `<${String((normalizedValue as { type: unknown }).type)}>`
@@ -961,7 +966,7 @@ export const handleUpdate = (
     // Binary (audio) chunk payloads don't belong in the text-chunk channel.
     if (
       data.node_id &&
-      typeof data.content === "string" &&
+      isString(data.content) &&
       data.content &&
       messageJobId
     ) {
@@ -1333,7 +1338,7 @@ export const handleUpdate = (
         upsertLiveGeneration(workflow.id, update.node_id, jobId, {
           status: "error",
           error:
-            typeof update.error === "string" ? update.error : nodeErrorDisplay
+            isString(update.error) ? update.error : nodeErrorDisplay
         });
       }
       appendLog({
@@ -1437,7 +1442,7 @@ export const handleUpdate = (
           if (!sawGenerationCompleteKeys.has(genKey(jobId, update.node_id))) {
             const raw = update.result;
             const outputs: Record<string, unknown> =
-              typeof raw === "object" && raw !== null && !Array.isArray(raw)
+              isRecord(raw)
                 ? (raw as Record<string, unknown>)
                 : raw !== undefined && raw !== null
                   ? { output: raw }

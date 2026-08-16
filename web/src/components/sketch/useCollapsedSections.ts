@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { isBoolean, isObjectLike } from "../../utils/typePredicates";
 
 export function useCollapsedSections<K extends string>(
   storageKey: string,
@@ -9,11 +10,11 @@ export function useCollapsedSections<K extends string>(
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        if (parsed && isObjectLike(parsed) && !Array.isArray(parsed)) {
           const record = parsed as Record<string, unknown>;
           const result = { ...defaults };
           for (const key of Object.keys(defaults)) {
-            if (typeof record[key] === "boolean") {
+            if (isBoolean(record[key])) {
               (result as Record<string, boolean>)[key] = record[key] as boolean;
             }
           }

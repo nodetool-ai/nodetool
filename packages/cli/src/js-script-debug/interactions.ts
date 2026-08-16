@@ -12,6 +12,11 @@
  * Both spellings resolve to the same tool: the `ui_jsscript_` prefix is what
  * the bridge and the browser call it, and typing it for every step is noise.
  */
+import {
+  isNonBlankString,
+  isRecord
+} from "../predicates.js";
+
 
 /** One parsed step, with the tool name in its canonical `ui_jsscript_*` form. */
 export interface JsScriptInteractionStep {
@@ -20,9 +25,6 @@ export interface JsScriptInteractionStep {
 }
 
 const PREFIX = "ui_jsscript_";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** `set_code`, `ui_jsscript_set_code` and `ui_set_code` all normalize alike. */
 export function normalizeToolName(name: string): string {
@@ -48,8 +50,7 @@ export function parseInteractionScript(json: string): JsScriptInteractionStep[] 
   return parsed.map((step, index) => {
     if (
       !isRecord(step) ||
-      typeof step.tool !== "string" ||
-      step.tool.trim() === ""
+      !isNonBlankString(step.tool)
     ) {
       throw new Error(`--interact step ${index + 1} has no \`tool\` name.`);
     }

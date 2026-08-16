@@ -2,12 +2,13 @@ import { z } from "zod";
 import { uiSearchNodesParams } from "@nodetool-ai/protocol";
 import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
+import { isBoolean, isString } from "../../../utils/typePredicates";
 
 const booleanLikeOptional = z.preprocess((value) => {
-  if (typeof value === "boolean") {
+  if (isBoolean(value)) {
     return value;
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     const normalized = value.trim().toLowerCase();
     if (normalized === "true") {
       return true;

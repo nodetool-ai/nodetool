@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "./typePredicates";
 /**
  * Replicate dynamic schema resolution via backend.
  * POSTs model_info (model identifier or URL) to the app backend;
@@ -59,10 +60,9 @@ export async function resolveReplicateSchemaClient(
     try {
       const json: unknown = JSON.parse(text);
       if (
-        typeof json === "object" &&
-        json !== null &&
+        isObjectLike(json) &&
         "detail" in json &&
-        typeof json.detail === "string"
+        isString(json.detail)
       ) {
         message = json.detail;
       }

@@ -53,6 +53,7 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useMediaSrc } from "../../../hooks/nodes/useMediaSrc";
+import { isFunction } from "../../../utils/typePredicates";
 
 export { EXTRACT_VIDEO_FRAME_NODE_TYPE } from "./bespokeNodeTypes";
 
@@ -286,7 +287,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
   });
   useEffect(() => {
     const video = videoRef.current as (HTMLVideoElement & RVFCVideo) | null;
-    if (!video || typeof video.requestVideoFrameCallback !== "function") {
+    if (!video || !isFunction(video.requestVideoFrameCallback)) {
       return;
     }
     fpsSamplesRef.current = { last: -1, deltas: [] };

@@ -22,6 +22,7 @@ import {
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
 import { normalizeDebugGraph } from "./graph-shape.js";
 import type { ResolvedAppTarget } from "./types.js";
+import { isString } from "../predicates.js";
 
 const EMPTY_GRAPH: DebugGraph = { nodes: [], edges: [] };
 
@@ -68,7 +69,7 @@ function targetInfo(
  * here would claim a shape this function never checks.
  */
 function rawDocumentOf(stored: unknown) {
-  if (typeof stored !== "string") return stored;
+  if (!isString(stored)) return stored;
   try {
     return JSON.parse(stored);
   } catch {

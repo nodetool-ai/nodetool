@@ -46,6 +46,7 @@ import {
   useResolvedMediaUris,
   type MediaLocator
 } from "../../../hooks/useResolvedMediaUri";
+import { isString } from "../../../utils/typePredicates";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -288,7 +289,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
 
   const prompt = useMemo(() => {
     const content = message.content;
-    if (typeof content === "string") return content;
+    if (isString(content)) return content;
     if (Array.isArray(content)) {
       const text = content.find((c) => c && (c as MessageContent).type === "text");
       if (text && (text as { text?: string }).text) {

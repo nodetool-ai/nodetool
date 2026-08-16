@@ -44,6 +44,12 @@ import {
   CompositorUnavailableError,
   renderTimelineComposited
 } from "./timeline/compositeRender.js";
+import {
+  isNonEmptyString,
+  isNumber,
+  isPositiveNumber,
+  isString
+} from "../type-predicates.js";
 
 interface TimelineRefLike {
   type?: string;
@@ -153,8 +159,7 @@ export function extractedAudioLinkIds(seq: TimelineSequence): Set<string> {
     if (
       track?.type === "audio" &&
       clip.mediaType === "audio" &&
-      typeof clip.linkId === "string" &&
-      clip.linkId.length > 0
+      isNonEmptyString(clip.linkId)
     ) {
       ids.add(clip.linkId);
     }
@@ -237,10 +242,10 @@ async function encodeSegment(opts: {
     ? false
     : await ffprobeHasAudio(srcPath);
   const seek: string[] = [];
-  if (typeof clip.inPointMs === "number" && clip.inPointMs > 0) {
+  if (isPositiveNumber(clip.inPointMs)) {
     seek.push("-ss", String(clip.inPointMs / 1000));
   }
-  if (typeof clip.outPointMs === "number" && clip.outPointMs > 0) {
+  if (isPositiveNumber(clip.outPointMs)) {
     seek.push("-to", String(clip.outPointMs / 1000));
   }
   await execFfmpeg(
@@ -294,7 +299,7 @@ function embeddedAudioClips(seq: TimelineSequence): TimelineClip[] {
         clip.mediaType === "video" &&
         !!clip.currentAssetId &&
         clip.durationMs > 0 &&
-        !(typeof clip.linkId === "string" && suppressed.has(clip.linkId))
+        !(isString(clip.linkId) && suppressed.has(clip.linkId))
       );
     })
     .sort((a, b) => a.startMs - b.startMs);
@@ -307,13 +312,13 @@ function audioClipFilter(
   label: string
 ): string {
   const steps: string[] = [];
-  const inS = typeof clip.inPointMs === "number" ? clip.inPointMs / 1000 : 0;
+  const inS = isNumber(clip.inPointMs) ? clip.inPointMs / 1000 : 0;
   const outS =
-    typeof clip.outPointMs === "number" && clip.outPointMs > 0
+    isPositiveNumber(clip.outPointMs)
       ? clip.outPointMs / 1000
       : inS + clip.durationMs / 1000;
   steps.push(`atrim=start=${inS}:end=${outS}`, "asetpts=PTS-STARTPTS");
-  if (typeof clip.volumeDb === "number" && clip.volumeDb !== 0) {
+  if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
   const delay = Math.max(0, Math.round(clip.startMs));
@@ -413,7 +418,7 @@ async function renderRoughCut(opts: {
       height,
       fps,
       suppressEmbeddedAudio:
-        typeof clip.linkId === "string" && suppressedLinkIds.has(clip.linkId)
+        isString(clip.linkId) && suppressedLinkIds.has(clip.linkId)
     });
     segments.push(segPath);
   }
@@ -819,7 +824,7 @@ export class AddClipsToTimelineNode extends BaseNode {
         );
 
         let assetId =
-          typeof item.asset_id === "string" && item.asset_id
+          isNonEmptyString(item.asset_id)
             ? item.asset_id
             : null;
         if (!assetId) {

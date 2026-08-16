@@ -6,6 +6,7 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { CopyButton } from "../../ui_primitives";
 import { CopyAssetButton } from "../../common/CopyAssetButton";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 type PreviewActionsProps = {
   onDownload: () => void;
@@ -20,12 +21,12 @@ type PreviewActionsProps = {
 const getAssetInfo = (
   value: unknown
 ): { contentType: string; url: string } | null => {
-  if (!value || typeof value !== "object") {
+  if (!value || !isObjectLike(value)) {
     return null;
   }
 
   const obj = value as Record<string, unknown>;
-  if (obj.type && obj.uri && typeof obj.uri === "string") {
+  if (obj.type && obj.uri && isString(obj.uri)) {
     const type = obj.type as string;
     if (type === "image") {
       return { contentType: "image/png", url: obj.uri };

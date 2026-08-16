@@ -51,6 +51,7 @@ import { formatJavaScriptForDisplay } from "../../../utils/formatJavaScript";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -59,14 +60,14 @@ import { CodeBlock } from "./markdown_elements/CodeBlock";
 const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   const text = useMemo(() => {
     try {
-      if (typeof value === "string") {
+      if (isString(value)) {
         const parsed: unknown = JSON.parse(value);
         return JSON.stringify(parsed, null, 2);
       }
       return JSON.stringify(value, null, 2);
     } catch {
       // JSON.stringify failed, return value as-is or convert to string
-      return typeof value === "string" ? value : String(value);
+      return isString(value) ? value : String(value);
     }
   }, [value]);
   return <pre className="pretty-json">{text}</pre>;
@@ -132,7 +133,7 @@ const ToolCallCard: React.FC<{
   const rawArgs =
     (tc.args as Record<string, unknown> | null | undefined) ?? null;
   const pickString = (key: string) =>
-    typeof rawArgs?.[key] === "string"
+    isString(rawArgs?.[key])
       ? rawArgs[key].trim() || null
       : null;
   const subtaskTitle = isSubtask
@@ -169,7 +170,7 @@ const ToolCallCard: React.FC<{
   // Expandable details only show when the result actually has content.
   const hasResult =
     resultContent != null &&
-    !(typeof resultContent === "string" && resultContent.trim().length === 0);
+    !(isString(resultContent) && resultContent.trim().length === 0);
   const hasDetails =
     !!hasArgs || (isSubtask && !!subtaskInstructions) || !!actionCode || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
@@ -500,7 +501,7 @@ export const MessageView: React.FC<
     const insertIntoEditor = useEditorInsertion();
 
     const copyText = useMemo(() => {
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         return message.content;
       }
       if (Array.isArray(message.content)) {
@@ -639,17 +640,17 @@ export const MessageView: React.FC<
       Array.isArray(message.tool_calls) &&
       message.tool_calls.length > 0;
     const hasNonEmptyContent =
-      (typeof message.content === "string" &&
+      (isString(message.content) &&
         message.content.trim().length > 0) ||
       (Array.isArray(message.content) &&
         message.content.some((block) => {
-          if (!block || typeof block !== "object") {
+          if (!block || !isObjectLike(block)) {
             return false;
           }
           const contentBlock = block as MessageContent;
           if (contentBlock.type === "text") {
             return (
-              typeof contentBlock.text === "string" &&
+              isString(contentBlock.text) &&
               contentBlock.text.trim().length > 0
             );
           }
@@ -705,7 +706,7 @@ export const MessageView: React.FC<
               )}
             {(message.role === "assistant" || message.role === "user") && (
               <>
-                {typeof message.content === "string" &&
+                {isString(message.content) &&
                   renderTextContent(message.content, message.id || 0)}
                 {Array.isArray(content) &&
                   (isMediaOnlyContent(content) &&
@@ -720,7 +721,7 @@ export const MessageView: React.FC<
                     content.map((c: MessageContent, i: number) => {
                       // Guard against null / non-object blocks so the renderer's
                       // switch on `c.type` can't crash on a malformed block.
-                      if (!c || typeof c !== "object") {
+                      if (!c || !isObjectLike(c)) {
                         return null;
                       }
                       return (

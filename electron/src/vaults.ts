@@ -5,6 +5,7 @@ import { logMessage } from "./logger";
 import { readSettings, updateSettings } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
 import type { Vault, VaultListResult } from "./types.d";
+import { isObjectLike, isString } from "./typePredicates";
 
 export type { Vault, VaultListResult };
 
@@ -54,19 +55,19 @@ function createDefaultVault(): Vault {
 }
 
 function coerceVault(raw: unknown): Vault | null {
-  if (!raw || typeof raw !== "object") {
+  if (!isObjectLike(raw)) {
     return null;
   }
   const record = raw as Record<string, unknown>;
-  if (typeof record.id !== "string" || typeof record.name !== "string") {
+  if (!isString(record.id) || !isString(record.name)) {
     return null;
   }
   return {
     id: record.id,
     name: record.name,
-    dbPath: typeof record.dbPath === "string" ? record.dbPath : null,
-    assetPath: typeof record.assetPath === "string" ? record.assetPath : null,
-    vectorPath: typeof record.vectorPath === "string" ? record.vectorPath : null,
+    dbPath: isString(record.dbPath) ? record.dbPath : null,
+    assetPath: isString(record.assetPath) ? record.assetPath : null,
+    vectorPath: isString(record.vectorPath) ? record.vectorPath : null,
   };
 }
 
@@ -111,7 +112,7 @@ function persistVaults(vaults: Vault[]): void {
 }
 
 function sanitizeName(name: string): string {
-  const trimmed = typeof name === "string" ? name.trim() : "";
+  const trimmed = isString(name) ? name.trim() : "";
   if (!trimmed) {
     throw new Error("Vault name cannot be empty");
   }
@@ -131,7 +132,7 @@ export function getActiveVaultId(): string {
   const settings = readSettings();
   const id = settings[ACTIVE_VAULT_KEY];
   const vaults = readVaults();
-  if (typeof id === "string" && vaults.some((vault) => vault.id === id)) {
+  if (isString(id) && vaults.some((vault) => vault.id === id)) {
     return id;
   }
   return DEFAULT_VAULT_ID;

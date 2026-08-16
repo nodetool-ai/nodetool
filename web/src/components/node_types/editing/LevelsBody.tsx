@@ -47,6 +47,11 @@ import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { computeHistogramAsync } from "../../../utils/histogram/histogramAsync";
 import type { ImageHistogram } from "../../../utils/histogram/computeHistogram";
 import { LEVELS_NODE_TYPE } from "../../../constants/nodeTypes";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 type ChannelKey = "r" | "g" | "b";
 type HistogramView = "r" | "g" | "b" | "luminance";
@@ -167,12 +172,12 @@ interface ImageRefLike {
 }
 
 const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
+  if (!value || !isObjectLike(value)) return undefined;
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
+    uri: isString(v.uri) ? v.uri : undefined,
+    width: isNumber(v.width) ? v.width : undefined,
+    height: isNumber(v.height) ? v.height : undefined,
     data: v.data
   };
 };
@@ -299,7 +304,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
 
   const previewSource = useMemo<string | undefined>(() => {
-    if (typeof previewValue === "string" && previewValue) return previewValue;
+    if (isString(previewValue) && previewValue) return previewValue;
     const ref = asImageRef(previewValue);
     if (ref?.uri) return ref.uri;
     if (ref?.data instanceof Uint8Array) {

@@ -18,6 +18,7 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface AudioEditorToolbarProps {
   isPlaying: boolean;
@@ -132,7 +133,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   const zoomSliderValue = zoomToSliderValue(zoom, minZoom, maxZoom);
   const handleZoomSliderChange = useCallback(
     (_event: Event, value: number | number[]) => {
-      if (typeof value === "number") {
+      if (isNumber(value)) {
         onZoomChange(sliderValueToZoom(value, minZoom, maxZoom));
       }
     },

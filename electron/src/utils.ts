@@ -2,6 +2,7 @@ import { constants, promises as fs, realpathSync } from "fs";
 import os from "os";
 import path from "path";
 import { serverState } from "./state";
+import { isString } from "./typePredicates";
 
 /**
  * Result of file/directory permission check
@@ -114,7 +115,7 @@ const SENSITIVE_ABSOLUTE_PREFIXES =
  *      credential directory.
  */
 function assertSafeReadablePath(filePath: unknown): string {
-  if (typeof filePath !== "string") {
+  if (!isString(filePath)) {
     throw new Error("Path must be a string");
   }
   if (filePath.length === 0) {

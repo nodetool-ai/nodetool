@@ -1,3 +1,4 @@
+import { isNumber, isObjectLike, isString } from "./typePredicates";
 /**
  * saveErrors
  *
@@ -11,17 +12,17 @@
 const errorStatus = (
   error: unknown
 ) => {
-  if (typeof error !== "object" || error === null || !("data" in error)) {
+  if (!isObjectLike(error) || !("data" in error)) {
     return { code: null, httpStatus: null };
   }
   const data = (error as { data?: unknown }).data;
-  if (typeof data !== "object" || data === null) {
+  if (!isObjectLike(data)) {
     return { code: null, httpStatus: null };
   }
   const { code, httpStatus } = data as { code?: unknown; httpStatus?: unknown };
   return {
-    code: typeof code === "string" ? code : null,
-    httpStatus: typeof httpStatus === "number" ? httpStatus : null
+    code: isString(code) ? code : null,
+    httpStatus: isNumber(httpStatus) ? httpStatus : null
   };
 };
 

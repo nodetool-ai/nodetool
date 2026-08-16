@@ -30,6 +30,7 @@ import { nodeKey } from "../../stores/nodeKey";
 import { useNodeGenerations } from "./useNodeGenerations";
 import { outputOf } from "../../utils/nodeGenerations";
 import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../stores/ApiTypes";
+import { isString } from "../../utils/typePredicates";
 
 // ── Type re-exports (keep consumers from reaching into individual stores) ────
 
@@ -191,7 +192,7 @@ export function useNodeActiveRunCount(
     let count = 0;
     for (const jobId of nonFocusedActiveJobIds) {
       const status = s.getStatus(workflowId, jobId, nodeId);
-      if (typeof status === "string" && ACTIVE_NODE_STATUSES.has(status)) {
+      if (isString(status) && ACTIVE_NODE_STATUSES.has(status)) {
         count++;
       }
     }

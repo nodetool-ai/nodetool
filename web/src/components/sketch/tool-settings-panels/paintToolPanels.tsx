@@ -22,6 +22,7 @@ import {
 import { sketchSliderSx, SKETCH_SPACING } from "../sketchStyles";
 import { effectiveEraserMode } from "./shared";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
+import { isNumber } from "../../../utils/typePredicates";
 
 /**
  * Wraps a conceptual subgroup of tool-settings (e.g. paint params,
@@ -303,7 +304,7 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         onChange={(_, v) => {
           if (v === "off") {
             updateAssist({ snapMode: "off" });
-          } else if (typeof v === "number") {
+          } else if (isNumber(v)) {
             updateAssist({ snapMode: "angle", angleIncrement: v });
           }
         }}

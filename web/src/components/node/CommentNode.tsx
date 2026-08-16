@@ -24,6 +24,7 @@ import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { shallow } from "zustand/shallow";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 function getContrastTextColor(hexColor: string): string {
   if (!hexColor) {
@@ -214,7 +215,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     let editorState: InitialConfigType["editorState"];
 
     // Handle string comments as markdown
-    if (typeof comment === "string" && comment.length > 0) {
+    if (isString(comment) && comment.length > 0) {
       editorState = (_editor: LexicalEditor) => {
         $convertFromMarkdownString(comment, TRANSFORMERS);
       };
@@ -222,7 +223,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // Handle existing Lexical editor state
     else if (
       comment &&
-      typeof comment === "object" &&
+      isObjectLike(comment) &&
       "root" in comment &&
       Object.keys(comment).length > 0
     ) {

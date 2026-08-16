@@ -36,13 +36,14 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { serializeValue } from "../../utils/serializeValue";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useExposedInputToggle } from "../../hooks/nodes/useExposedInputToggle";
+import { isObjectLike } from "../../utils/typePredicates";
 
 /** Payload from inspector multi-edit: reset/copy/remove apply to every id. */
 function resolvePropertyMenuTargetNodeIds(
   nodeId: string | null,
   payload: unknown
 ): string[] {
-  if (payload !== null && typeof payload === "object") {
+  if (isObjectLike(payload)) {
     const raw = (payload as { inspectorBatchNodeIds?: unknown })
       .inspectorBatchNodeIds;
     if (

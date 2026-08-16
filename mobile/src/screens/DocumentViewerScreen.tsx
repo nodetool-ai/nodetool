@@ -26,6 +26,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { documentStore } from '../documents/documentStore';
 import { documentKindInfo } from '../documents/kinds';
+import { isRecord, isString } from '../utils/typePredicates';
 
 type DocumentViewerScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DocumentViewer'>;
@@ -39,7 +40,7 @@ interface FieldSummary {
 
 /** One line per top-level field: length for collections, the value for scalars. */
 function summarizeFields(doc: unknown): FieldSummary[] {
-  if (doc === null || typeof doc !== 'object' || Array.isArray(doc)) {
+  if (!isRecord(doc) || Array.isArray(doc)) {
     return [];
   }
   return Object.entries(doc as Record<string, unknown>).map(([key, value]) => ({
@@ -55,10 +56,10 @@ function describeValue(value: unknown): string {
   if (Array.isArray(value)) {
     return `${value.length} item${value.length === 1 ? '' : 's'}`;
   }
-  if (typeof value === 'object') {
+  if (isRecord(value)) {
     return `${Object.keys(value as Record<string, unknown>).length} field(s)`;
   }
-  if (typeof value === 'string') {
+  if (isString(value)) {
     return value.length > 60 ? `${value.slice(0, 60)}…` : value;
   }
   return String(value);

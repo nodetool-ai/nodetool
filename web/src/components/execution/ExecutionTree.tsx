@@ -34,6 +34,7 @@ import type {
   PlanningEntry
 } from "../../hooks/useExecutionTreeState";
 import { formatJavaScriptForDisplay } from "../../utils/formatJavaScript";
+import { isString } from "../../utils/typePredicates";
 
 type NodeStatus = "waiting" | "running" | "completed" | "failed";
 
@@ -445,7 +446,7 @@ function truncateOutput(output: string, maxLines: number = 2): string {
 
 function stringifyResult(v: unknown): string {
   if (v === undefined || v === null) return "";
-  if (typeof v === "string") return v;
+  if (isString(v)) return v;
   try {
     return JSON.stringify(v, null, 2);
   } catch {
@@ -472,7 +473,7 @@ StatusBadge.displayName = "StatusBadge";
 const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
   const args = call.args;
   const codeArg =
-    call.name === "execute_code" && typeof args?.["code"] === "string"
+    call.name === "execute_code" && isString(args?.["code"])
       ? formatJavaScriptForDisplay(args["code"] as string)
       : null;
   const argsText = useMemo(

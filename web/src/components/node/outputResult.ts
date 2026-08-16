@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "../../utils/typePredicates";
 /**
  * Shared helpers for extracting a displayable / copyable value out of a node's
  * raw result. PreviewNode, OutputNode and the chain editor's node card all read
@@ -22,7 +23,7 @@ export const getOutputFromResult = (result: unknown) => {
     const outputs = result.map((item: unknown) => {
       if (
         item &&
-        typeof item === "object" &&
+        isObjectLike(item) &&
         "output" in item &&
         item.output !== undefined
       ) {
@@ -75,7 +76,7 @@ export const getCopySource = (value: unknown): unknown => {
     "type" in value &&
     value.type === "text" &&
     "data" in value &&
-    typeof value.data === "string"
+    isString(value.data)
   ) {
     return value.data;
   }

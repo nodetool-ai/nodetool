@@ -13,8 +13,10 @@ import { expandAssetReferences } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 import {
+  isBoolean,
   isCallable,
   isNonEmptyString,
+  isNumber,
   isObjectLike,
   isRecord,
   isString
@@ -57,8 +59,7 @@ export type ToolLike = {
 
 export function asText(value: unknown): string {
   if (isString(value)) return value;
-  if (typeof value === "number" || typeof value === "boolean")
-    return String(value);
+  if (isNumber(value) || isBoolean(value)) return String(value);
   if (!value) return "";
   if (Array.isArray(value)) return value.map(asText).join(" ");
   if (isObjectLike(value)) {

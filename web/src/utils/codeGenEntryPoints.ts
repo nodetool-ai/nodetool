@@ -12,6 +12,7 @@ import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
 import type { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import type { NodeData } from "../stores/NodeData";
+import { isString } from "./typePredicates";
 
 /** Matches the `portName` schema the generation request validates against. */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -108,7 +109,7 @@ export function seedOutputPortName(
  */
 export function isCodeGenApplied(node: Node<NodeData> | undefined): boolean {
   const code = node?.data.properties?.code;
-  return typeof code === "string" && code.trim().length > 0;
+  return isString(code) && code.trim().length > 0;
 }
 
 /**

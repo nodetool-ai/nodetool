@@ -4,6 +4,7 @@
 
 import readXlsxFile, { Row } from "read-excel-file";
 import { DataframeRef, ColumnDef } from "../stores/ApiTypes";
+import { isNumber, isString } from "./typePredicates";
 
 /**
  * One raw cell, as the CSV reader and read-excel-file produce them. The xlsx
@@ -20,7 +21,7 @@ function inferDataType(
     return "string";
   }
 
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     return Number.isInteger(value) ? "int" : "float";
   }
 
@@ -28,7 +29,7 @@ function inferDataType(
     return "datetime";
   }
 
-  if (typeof value === "string") {
+  if (isString(value)) {
     const trimmed = value.trim();
 
     if (/^-?\d+$/.test(trimmed)) {
@@ -121,20 +122,20 @@ function convertValue(
 
   switch (type) {
     case "int":
-      if (typeof value === "number") {
+      if (isNumber(value)) {
         return Math.round(value);
       }
-      if (typeof value === "string") {
+      if (isString(value)) {
         const parsed = parseInt(value.trim(), 10);
         return isNaN(parsed) ? null : parsed;
       }
       return null;
 
     case "float":
-      if (typeof value === "number") {
+      if (isNumber(value)) {
         return value;
       }
-      if (typeof value === "string") {
+      if (isString(value)) {
         const parsed = parseFloat(value.trim());
         return isNaN(parsed) ? null : parsed;
       }
@@ -144,7 +145,7 @@ function convertValue(
       if (value instanceof Date) {
         return value.toISOString();
       }
-      if (typeof value === "string") {
+      if (isString(value)) {
         const date = new Date(value.trim());
         return isNaN(date.getTime()) ? value : date.toISOString();
       }

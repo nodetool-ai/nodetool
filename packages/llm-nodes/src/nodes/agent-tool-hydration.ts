@@ -16,6 +16,7 @@
  */
 
 import { getAgentToolbelt, getMediaTools, Tool } from "@nodetool-ai/agents";
+import { isCallable } from "./type-predicates.js";
 
 type ToolCtor = new () => Tool;
 
@@ -99,7 +100,7 @@ export function resolveBuiltinAgentTool(name: string): Tool | null {
  * so the caller can detect the still-unrunnable stub).
  */
 export function hydrateBuiltinAgentTool<T extends MaybeTool>(tool: T): T | Tool {
-  if (typeof tool.process === "function") return tool;
+  if (isCallable(tool.process)) return tool;
   return resolveBuiltinAgentTool(tool.name) ?? tool;
 }
 

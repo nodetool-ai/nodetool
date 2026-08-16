@@ -46,6 +46,7 @@ import {
 } from "../inputProperty";
 import { WorkflowInputIO } from "../workflowIO";
 import { useWidgetRuntime } from "./useWidgetRuntime";
+import { isString } from "../../../utils/typePredicates";
 
 export interface WorkflowInputWidgetProps {
   id: string;
@@ -150,7 +151,7 @@ export const WorkflowInputControl: React.FC<{
   if (input.kind === "string") {
     const maxLength = input.maxLength ?? 0;
     const multiline = Boolean(input.multiline);
-    const draft = stringDraft ?? (typeof resolved === "string" ? resolved : "");
+    const draft = stringDraft ?? (isString(resolved) ? resolved : "");
     const exceeds = maxLength > 0 && draft.length > maxLength;
     return (
       <FlexColumn gap={SPACING.micro} fullWidth>

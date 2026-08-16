@@ -18,6 +18,7 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "../node-registry.js";
+import { isString } from "../predicates.js";
 
 /**
  * Build the runner the eval harness calls once per planned graph. The registry
@@ -111,8 +112,8 @@ function collectOutputs(
     const previous = byName.get(name);
     const value =
       previous &&
-      typeof previous.value === "string" &&
-      typeof msg.value === "string" &&
+      isString(previous.value) &&
+      isString(msg.value) &&
       msg.disposition !== "replace"
         ? previous.value + msg.value
         : msg.value;

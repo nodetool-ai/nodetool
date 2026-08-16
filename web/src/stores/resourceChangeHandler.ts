@@ -14,6 +14,7 @@ import {
   handleDocumentResourceChange,
   type SyncedDocumentType
 } from "./documentSync";
+import { isString } from "../utils/typePredicates";
 
 type WorkflowResourceReloader = (workflowId: string, etag?: string) => void;
 
@@ -138,7 +139,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   // workflow_id; otherwise refetch every cached versions list.
   if (resource_type === "workflowversion") {
     const workflowId =
-      typeof resource.workflow_id === "string" ? resource.workflow_id : null;
+      isString(resource.workflow_id) ? resource.workflow_id : null;
     if (workflowId) {
       console.info(
         `[ResourceChange] Invalidating workflow versions for ${workflowId}`
@@ -164,7 +165,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       event,
       id: resource.id,
       updatedAt:
-        typeof resource.updated_at === "string" ? resource.updated_at : null
+        isString(resource.updated_at) ? resource.updated_at : null
     });
     return;
   }
@@ -225,7 +226,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       // the runner provides it, but we can also fall back to invalidating any
       // thread-scoped messages query.
       const threadId =
-        typeof resource.thread_id === "string" ? resource.thread_id : null;
+        isString(resource.thread_id) ? resource.thread_id : null;
       if (threadId) {
         queryClient.invalidateQueries({
           queryKey: ["messages", threadId]

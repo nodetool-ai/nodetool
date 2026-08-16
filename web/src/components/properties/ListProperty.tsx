@@ -5,18 +5,19 @@ import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 const detectTypeFromList = (list: unknown[]) => {
   if (list.length === 0) {
     return "string";
   }
   const first = list[0];
-  if (typeof first === "number") {
+  if (isNumber(first)) {
     if (Number.isInteger(first)) {
       return "int";
     }
     return "float";
-  } else if (typeof first === "string") {
+  } else if (isString(first)) {
     return "string";
   } else if (typeof first === "object") {
     return "string";

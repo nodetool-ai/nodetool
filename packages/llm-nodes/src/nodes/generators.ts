@@ -12,8 +12,10 @@ import {
 } from "./agents.js";
 import { hasProviderAccess } from "./agent-utils.js";
 import {
+  isBoolean,
   isCallable,
   isNonEmptyString,
+  isNumber,
   isObjectLike,
   isRecord,
   isString
@@ -37,8 +39,7 @@ type MessageContent =
 
 function asText(value: unknown): string {
   if (isString(value)) return value;
-  if (typeof value === "number" || typeof value === "boolean")
-    return String(value);
+  if (isNumber(value) || isBoolean(value)) return String(value);
   if (!value) return "";
   return JSON.stringify(value);
 }

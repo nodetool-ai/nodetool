@@ -25,6 +25,11 @@ import {
   makeAffineTransform,
   makeSingleQuadTransform
 } from "./types";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 const SINGLE_QUAD_MODES: ReadonlySet<SingleQuadMode> = new Set<SingleQuadMode>([
   "distort",
@@ -56,8 +61,7 @@ function isQuadShape(value: unknown): value is Quad {
     value.length === 4 &&
     value.every(
       (p) =>
-        p !== null &&
-        typeof p === "object" &&
+        isObjectLike(p) &&
         Number.isFinite((p as { x?: unknown }).x) &&
         Number.isFinite((p as { y?: unknown }).y)
     )
@@ -65,7 +69,7 @@ function isQuadShape(value: unknown): value is Quad {
 }
 
 function num(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return isNumber(value) && Number.isFinite(value) ? value : fallback;
 }
 
 /**
@@ -85,7 +89,7 @@ function num(value: unknown, fallback: number): number {
  *     identity and (b) round-tripping always wrote the decomposed fields.
  */
 export function normalizeLayerTransform(raw: unknown): LayerTransform {
-  if (!raw || typeof raw !== "object") {
+  if (!raw || !isObjectLike(raw)) {
     return { ...IDENTITY_AFFINE };
   }
   const t = raw as Record<string, unknown>;
@@ -112,7 +116,7 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
 
   if (
     t.kind === "quad" &&
-    typeof t.mode === "string" &&
+    isString(t.mode) &&
     isQuadShape(t.quad)
   ) {
     const migrated = migrateLegacyQuadMode(t.mode);
@@ -121,7 +125,7 @@ export function normalizeLayerTransform(raw: unknown): LayerTransform {
     }
   }
 
-  if (typeof t.mode === "string" && isQuadShape(t.quad)) {
+  if (isString(t.mode) && isQuadShape(t.quad)) {
     const migrated = migrateLegacyQuadMode(t.mode);
     if (migrated) {
       return makeSingleQuadTransform(migrated, t.quad);

@@ -29,6 +29,7 @@ import {
 } from "./useGraphVariables";
 import { ANY_TYPE } from "./variableGraph";
 import { GET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
+import { isString } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -95,7 +96,7 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
   );
 
   const currentName =
-    typeof data.properties?.name === "string"
+    isString(data.properties?.name)
       ? (data.properties.name as string)
       : "";
 

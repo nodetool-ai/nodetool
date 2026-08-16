@@ -15,15 +15,15 @@ import {
   WebSocketMessageData
 } from '../types/chat';
 import { isAppForeground, subscribeAppLifecycle } from '../hooks/useAppLifecycle';
+import { isRecord, isString } from '../utils/typePredicates';
 
 type WebSocketMessage = { type: string };
 
 /** The message an unknown thrown value or error event carries, or `fallback`. */
 function messageOf(value: unknown, fallback: string): string {
-  return typeof value === 'object' &&
-    value !== null &&
+  return isRecord(value) &&
     'message' in value &&
-    typeof value.message === 'string' &&
+    isString(value.message) &&
     value.message
     ? value.message
     : fallback;
@@ -316,7 +316,7 @@ export class WebSocketManager {
 
       if (event.data instanceof ArrayBuffer) {
         data = unpack(new Uint8Array(event.data));
-      } else if (typeof event.data === 'string') {
+      } else if (isString(event.data)) {
         // Try to parse as JSON string
         try {
           data = JSON.parse(event.data);
@@ -347,9 +347,7 @@ export class WebSocketManager {
    */
   private handleLivenessFrame(data: unknown): boolean {
     const type =
-      data && typeof data === 'object'
-        ? (data as { type?: unknown }).type
-        : undefined;
+      isRecord(data) ? (data as { type?: unknown }).type : undefined;
 
     if (type === 'ping') {
       try {

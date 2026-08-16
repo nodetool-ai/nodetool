@@ -85,6 +85,7 @@ import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
 import { CreateGeneratedLayerDialog } from "./Inspector/CreateGeneratedLayerDialog";
+import { isFunction } from "../../utils/typePredicates";
 
 /**
  * Layer row modifiers: `getModifierState` helps when `draggable` rows omit flags on
@@ -95,7 +96,7 @@ function layerRowShiftHeld(e: React.MouseEvent | React.PointerEvent): boolean {
   if (n.shiftKey) {
     return true;
   }
-  if ("getModifierState" in n && typeof n.getModifierState === "function") {
+  if ("getModifierState" in n && isFunction(n.getModifierState)) {
     return n.getModifierState("Shift");
   }
   return false;
@@ -108,7 +109,7 @@ function layerRowCtrlOrMetaHeld(
   if (n.metaKey || n.ctrlKey) {
     return true;
   }
-  if ("getModifierState" in n && typeof n.getModifierState === "function") {
+  if ("getModifierState" in n && isFunction(n.getModifierState)) {
     return n.getModifierState("Control") || n.getModifierState("Meta");
   }
   return false;

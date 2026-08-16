@@ -12,6 +12,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
 import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { isFunction } from "../../utils/typePredicates";
 
 type ResizeEdge =
   | "n"
@@ -55,11 +56,11 @@ function altResizeFromCenterModifier(e: React.PointerEvent): boolean {
   if (e.altKey) {
     return true;
   }
-  if (typeof e.getModifierState === "function" && e.getModifierState("Alt")) {
+  if (isFunction(e.getModifierState) && e.getModifierState("Alt")) {
     return true;
   }
   const ne = e.nativeEvent as PointerEvent;
-  if (typeof ne.getModifierState === "function" && ne.getModifierState("Alt")) {
+  if (isFunction(ne.getModifierState) && ne.getModifierState("Alt")) {
     return true;
   }
   return ne.altKey;
@@ -185,7 +186,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     const onWinPointer = (ev: PointerEvent): void => {
       globalPointerAltRef.current =
         ev.altKey ||
-        (typeof ev.getModifierState === "function" &&
+        (isFunction(ev.getModifierState) &&
           ev.getModifierState("Alt"));
     };
     window.addEventListener("pointermove", onWinPointer, { capture: true });

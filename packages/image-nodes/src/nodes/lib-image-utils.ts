@@ -1,4 +1,5 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isObjectLike, isString } from "../type-predicates.js";
 
 export type ImageRefLike = {
   data?: string | Uint8Array;
@@ -18,13 +19,13 @@ export async function decodeImage(
   ref: unknown,
   context?: ProcessingContext
 ): Promise<Buffer | null> {
-  if (!ref || typeof ref !== "object") return null;
+  if (!isObjectLike(ref)) return null;
   const r = ref as ImageRefLike;
 
   // Inline data (base64 or Uint8Array)
   if (r.data) {
     if (r.data instanceof Uint8Array) return Buffer.from(r.data);
-    if (typeof r.data === "string") return Buffer.from(r.data, "base64");
+    if (isString(r.data)) return Buffer.from(r.data, "base64");
   }
 
   // Resolve from storage via asset_id or uri

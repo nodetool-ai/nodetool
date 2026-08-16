@@ -18,6 +18,7 @@ import {
   normalizeAssetUrls,
   normalizeAssetList
 } from "../utils/normalizeAsset";
+import { isFunction, isNumber, isObjectLike } from "../utils/typePredicates";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -33,7 +34,7 @@ type UploadProgressEvent = {
 };
 
 const normalizeAssetError = (error: unknown, message: string) => {
-  if (typeof AppError === "function" && error instanceof AppError) {
+  if (isFunction(AppError) && error instanceof AppError) {
     throw error;
   }
   if (error instanceof UploadValidationError) {
@@ -150,10 +151,9 @@ const uploadAsset = async (
     return normalizeAssetUrls(data as Asset);
   } catch (error) {
     const statusCode =
-      typeof error === "object" &&
-      error !== null &&
+      isObjectLike(error) &&
       "status" in error &&
-      typeof error.status === "number"
+      isNumber(error.status)
         ? error.status
         : undefined;
     const normalizedError =

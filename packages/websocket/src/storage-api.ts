@@ -12,6 +12,7 @@ import {
   callerOwnsStorageKey,
   canReadStorageKey
 } from "./lib/storage-access.js";
+import { isString } from "./lib/wire-values.js";
 
 // ── MIME types ────────────────────────────────────────────────────
 
@@ -216,7 +217,7 @@ export function nodeStreamToWebStream(
   return new ReadableStream<Uint8Array>({
     start(controller) {
       nodeStream.on("data", (chunk) => {
-        if (typeof chunk === "string") {
+        if (isString(chunk)) {
           controller.enqueue(Buffer.from(chunk));
         } else {
           controller.enqueue(chunk);

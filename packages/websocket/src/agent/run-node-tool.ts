@@ -9,6 +9,7 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "@nodetool-ai/agents";
+import { isObjectLike } from "../lib/wire-values.js";
 
 /**
  * HOLDOUT (anti-slop/no-unknown-returns): a node's output is an arbitrary
@@ -63,7 +64,7 @@ export class RunNodeTool extends Tool {
     const nodeType = String(params["node_type"] ?? "");
     if (!nodeType) return { error: "node_type is required" };
     const inputs =
-      params["inputs"] && typeof params["inputs"] === "object"
+      isObjectLike(params["inputs"])
         ? (params["inputs"] as Record<string, unknown>)
         : {};
     return this.runNode(nodeType, inputs);

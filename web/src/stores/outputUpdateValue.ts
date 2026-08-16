@@ -1,4 +1,5 @@
 import type { OutputUpdate } from "./ApiTypes";
+import { isString } from "../utils/typePredicates";
 
 /**
  * Narrows a loose WebSocket message to {@link OutputUpdate} after verifying
@@ -30,7 +31,7 @@ export const normalizeOutputUpdateValue = (update: OutputUpdate) => {
     return update.value;
   }
 
-  if (isPlainObject(update.value) && typeof update.value.type === "string") {
+  if (isPlainObject(update.value) && isString(update.value.type)) {
     return update.value;
   }
 

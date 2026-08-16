@@ -2,12 +2,14 @@
  * Renders a `TimelineDebugReport` as human-readable Markdown for the bundle.
  */
 import type { TimelineDebugIssue, TimelineDebugReport } from "./types.js";
+import { isString } from "../predicates.js";
+import { isObjectLike } from "../predicates.js";
 
 const short = (value: unknown, max = 120): string => {
   if (value === undefined) return "—";
   let s: string;
   try {
-    s = typeof value === "string" ? value : JSON.stringify(value);
+    s = isString(value) ? value : JSON.stringify(value);
   } catch {
     s = String(value);
   }
@@ -57,7 +59,7 @@ interface SnapshotClip {
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  isObjectLike(value) ? value : null;
 
 /**
  * The bridge snapshot carries full `documentTracks`/`documentClips` for the

@@ -43,6 +43,7 @@ import { apiService } from '../../services/api';
 import { trpc } from '../../trpc/client';
 import { assetIdFromLocator } from '../../hooks/useResolvedMediaUri';
 import type { ThemeColors } from '../../utils/theme';
+import { isNumber, isString } from '../../utils/typePredicates';
 
 // ── Document shape ─────────────────────────────────────────────────────────
 //
@@ -140,8 +141,8 @@ export function asSketchDocument(value: unknown): SketchDocumentData | null {
   const canvas = value.canvas;
   if (
     !isRecord(canvas) ||
-    typeof canvas.width !== 'number' ||
-    typeof canvas.height !== 'number' ||
+    !isNumber(canvas.width) ||
+    !isNumber(canvas.height) ||
     !Array.isArray(value.layers)
   ) {
     return null;
@@ -189,7 +190,7 @@ export function layerDataImageUri(data: string | null | undefined): string | nul
       return null;
     }
     const image = (decoded as { image?: unknown }).image;
-    return typeof image === 'string' ? image : null;
+    return isString(image) ? image : null;
   } catch {
     // A payload we cannot decode is not a URL either; the layer falls through
     // to its placeholder, which is the honest outcome.

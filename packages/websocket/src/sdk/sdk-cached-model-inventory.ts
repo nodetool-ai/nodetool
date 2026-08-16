@@ -1,4 +1,5 @@
 import type { PythonBridge, UnifiedModelLike } from "@nodetool-ai/runtime";
+import { isNonBlankString } from "../lib/wire-values.js";
 
 export interface SdkV1CachedModelInventorySource {
   providerIds: readonly string[];
@@ -18,10 +19,10 @@ function modelIds(models: readonly UnifiedModelLike[]): string[] {
   const ids = new Set<string>();
   for (const model of models) {
     if (model.downloaded === false) continue;
-    if (typeof model.id === "string" && model.id.trim()) {
+    if (isNonBlankString(model.id)) {
       ids.add(model.id.trim());
     }
-    if (typeof model.repo_id === "string" && model.repo_id.trim()) {
+    if (isNonBlankString(model.repo_id)) {
       ids.add(model.repo_id.trim());
     }
   }

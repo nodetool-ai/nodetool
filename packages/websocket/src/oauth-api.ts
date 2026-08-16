@@ -25,6 +25,11 @@ import {
   DEFAULT_CODEX_OAUTH_CONFIG,
   type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
+import {
+  isFiniteNumber,
+  isNonEmptyString,
+  isString
+} from "./lib/wire-values.js";
 
 const logger = createLogger("nodetool.websocket.oauth");
 
@@ -964,7 +969,7 @@ async function completeCodexLogin(args: {
         const info = (await infoRes.json()) as Record<string, unknown>;
         username =
           (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
-        if (!chatgptAccountId && typeof info.sub === "string" && info.sub.length > 0) {
+        if (!chatgptAccountId && isNonEmptyString(info.sub)) {
           accountId = info.sub;
         }
       }
@@ -1116,7 +1121,7 @@ async function handleClaudeComplete(request: Request): Promise<Response> {
   } catch {
     return errorResponse(400, "Invalid JSON body");
   }
-  const code = typeof body.code === "string" ? body.code : "";
+  const code = isString(body.code) ? body.code : "";
   if (!code) return errorResponse(400, "code is required");
 
   try {
@@ -1185,10 +1190,10 @@ interface GoogleSessionBody {
 
 /** Coerce Supabase's `expires_at` (unix seconds or ISO string) to ISO. */
 function toIsoExpiry(value: unknown): string | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (isFiniteNumber(value)) {
     return new Date(value * 1000).toISOString();
   }
-  if (typeof value === "string" && value) {
+  if (isNonEmptyString(value)) {
     const parsed = Date.parse(value);
     if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
   }
@@ -1213,26 +1218,26 @@ async function handleGoogleSession(
   }
 
   const accessToken =
-    typeof body.access_token === "string" ? body.access_token : "";
+    isString(body.access_token) ? body.access_token : "";
   if (!accessToken) {
     return errorResponse(400, "access_token is required");
   }
 
   const userId = getUserId();
-  const email = typeof body.email === "string" ? body.email : null;
+  const email = isString(body.email) ? body.email : null;
   const credential = await storeGoogleCredential({
     userId,
     // One credential row per Google account. The email is the stable identity
     // the user recognises; fall back to the NodeTool user id.
     accountId:
-      (typeof body.account_id === "string" && body.account_id) ||
+      (isNonEmptyString(body.account_id) && body.account_id) ||
       email ||
       userId,
     accessToken,
     refreshToken:
-      typeof body.refresh_token === "string" ? body.refresh_token : null,
+      isString(body.refresh_token) ? body.refresh_token : null,
     email,
-    scope: typeof body.scope === "string" ? body.scope : null,
+    scope: isString(body.scope) ? body.scope : null,
     expiresAt: toIsoExpiry(body.expires_at)
   });
 

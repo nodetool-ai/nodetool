@@ -8,6 +8,7 @@
 
 import { forwardRef } from "react";
 import { Typography, TypographyProps, Tooltip } from "@mui/material";
+import { isString } from "../../utils/typePredicates";
 
 export interface TruncatedTextProps extends TypographyProps {
   /** Maximum number of lines before clamping (default: 1 for single-line ellipsis) */
@@ -72,7 +73,7 @@ export const TruncatedText = forwardRef<HTMLSpanElement, TruncatedTextProps>(({
     </Typography>
   );
 
-  if (showTooltip && typeof children === "string") {
+  if (showTooltip && isString(children)) {
     return (
       <Tooltip title={children} placement={tooltipPlacement}>
         {typography}

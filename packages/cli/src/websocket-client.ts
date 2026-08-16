@@ -5,6 +5,11 @@
  */
 
 import WebSocket from "ws";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "./predicates.js";
 
 export type ChatEvent =
   | { type: "chunk"; content: string }
@@ -162,20 +167,20 @@ type ServerFrame =
 /** Read `key` as a string, or report it absent when the wire says otherwise. */
 function wireString(frame: WireFrame, key: string): string | undefined {
   const value = frame[key];
-  return typeof value === "string" ? value : undefined;
+  return isString(value) ? value : undefined;
 }
 
 /** Read `key` as a number, or report it absent when the wire says otherwise. */
 function wireNumber(frame: WireFrame, key: string): number | undefined {
   const value = frame[key];
-  return typeof value === "number" ? value : undefined;
+  return isNumber(value) ? value : undefined;
 }
 
 function toolCallArgs(frame: WireFrame): ToolCallArgs {
   const args = frame["args"];
   // SAFETY: tool arguments are a JSON object the model produced; the client
   // only forwards them for display, and a non-object reads as no arguments.
-  return args && typeof args === "object" ? (args as ToolCallArgs) : {};
+  return isObjectLike(args) ? (args as ToolCallArgs) : {};
 }
 
 /** Read a `message` frame's `tool_calls`; anything else reads as none. */
@@ -184,7 +189,7 @@ function parseToolCalls(frame: WireFrame): ToolCallFrame[] {
   if (!Array.isArray(raw)) return [];
   const calls: ToolCallFrame[] = [];
   for (const entry of raw) {
-    if (!entry || typeof entry !== "object") continue;
+    if (!isObjectLike(entry)) continue;
     // SAFETY: an object read as a bag of wire fields; every field is
     // re-checked by `wireString`/`toolCallArgs` below.
     const call = entry as WireFrame;
@@ -333,7 +338,7 @@ export class WebSocketChatClient {
           // SAFETY: the server speaks JSON objects in text mode; every field
           // of the decoded frame is re-checked by `parseServerFrame`.
           const msg = JSON.parse(
-            typeof data === "string" ? data : data.toString("utf8")
+            isString(data) ? data : data.toString("utf8")
           ) as WireFrame;
           this.handleMessage(msg);
         } catch {

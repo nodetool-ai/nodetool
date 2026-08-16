@@ -41,6 +41,7 @@ import {
   useNodeResultHistory
 } from "../../../hooks/nodes/useNodeResultHistory";
 import { useNodes } from "../../../contexts/NodeContext";
+import { isObjectLike } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css([
@@ -406,7 +407,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       return false;
     }
     const checkType = (item: unknown): boolean => {
-      if (item && typeof item === "object" && "type" in item) {
+      if (item && isObjectLike(item) && "type" in item) {
         const t = (item as Record<string, unknown>).type;
         return t === "image" || t === "video";
       }

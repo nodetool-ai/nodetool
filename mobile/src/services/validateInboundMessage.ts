@@ -24,6 +24,7 @@
  * observability; revisit if release bundle size becomes a concern.
  */
 import { processingMessageSchemas } from '@nodetool-ai/protocol';
+import { isRecord, isString } from '../utils/typePredicates';
 
 /** Jest's RN preset sets `__DEV__ = true`, so this is on under the test suite. */
 export const VALIDATE_INBOUND_MESSAGES: boolean = __DEV__;
@@ -43,12 +44,12 @@ export function validateInboundMessage(message: unknown): void {
   if (!VALIDATE_INBOUND_MESSAGES) {
     return;
   }
-  if (!message || typeof message !== 'object') {
+  if (!isRecord(message)) {
     return;
   }
 
   const type = (message as { type?: unknown }).type;
-  if (typeof type !== 'string') {
+  if (!isString(type)) {
     return;
   }
 

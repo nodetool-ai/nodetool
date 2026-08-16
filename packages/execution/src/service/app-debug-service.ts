@@ -46,6 +46,10 @@ import {
   InteractiveEscalationHandle,
   type DebugSession
 } from "./debug-sessions.js";
+import {
+  isNonEmptyString,
+  isPositiveFiniteNumber
+} from "../predicates.js";
 
 const log = createLogger("nodetool.execution.app-debug");
 
@@ -145,9 +149,7 @@ async function loadUserApplication(
 
 /** A body number that is a finite positive value, or undefined. */
 function positive(value: number | undefined): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : undefined;
+  return isPositiveFiniteNumber(value) ? value : undefined;
 }
 
 /** The simulation's payload while it is still running. */
@@ -189,7 +191,7 @@ async function resolveTarget(
   body: AppDebugRequest,
   deps: AppDebugDeps
 ): Promise<ResolvedAppTarget> {
-  const hasId = typeof body.application_id === "string" && body.application_id;
+  const hasId = isNonEmptyString(body.application_id);
   const hasDocument = body.document !== undefined && body.document !== null;
   if (hasId && hasDocument) {
     throw new AppServiceError(

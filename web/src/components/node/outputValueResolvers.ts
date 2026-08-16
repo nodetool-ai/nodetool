@@ -10,7 +10,11 @@ import { fromPersistedSketchEditorState } from "../../stores/sketch/persistence"
 import type { SketchDocument } from "../sketch/types";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 
-import { isRecord } from "../../utils/typePredicates";
+import {
+  isNumber,
+  isObjectLike as isRecord,
+  isString
+} from "../../utils/typePredicates";
 
 export { isRecord };
 
@@ -27,7 +31,7 @@ export const getSketchId = (value: unknown): string | null => {
   if (!isRecord(value)) {
     return null;
   }
-  return typeof value.id === "string" && value.id.length > 0 ? value.id : null;
+  return isString(value.id) && value.id.length > 0 ? value.id : null;
 };
 
 export const isSketchDocumentLike = (value: unknown): boolean => {
@@ -37,10 +41,10 @@ export const isSketchDocumentLike = (value: unknown): boolean => {
   const canvas = value.canvas;
   return (
     isRecord(canvas) &&
-    typeof canvas.width === "number" &&
-    typeof canvas.height === "number" &&
+    isNumber(canvas.width) &&
+    isNumber(canvas.height) &&
     Array.isArray(value.layers) &&
-    typeof value.activeLayerId === "string"
+    isString(value.activeLayerId)
   );
 };
 
@@ -80,7 +84,7 @@ export const getTimelineId = (value: unknown): string | null => {
   if (!isRecord(value)) {
     return null;
   }
-  return typeof value.id === "string" && value.id.length > 0 ? value.id : null;
+  return isString(value.id) && value.id.length > 0 ? value.id : null;
 };
 
 export const isTimelineSequenceLike = (

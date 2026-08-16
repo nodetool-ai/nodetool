@@ -1,3 +1,4 @@
+import { isBoolean, isNumber, isString } from "./typePredicates";
 /**
  * Serializes a value to a string representation.
  *
@@ -20,11 +21,11 @@ export const serializeValue = (value: unknown): string | null => {
     return null;
   }
 
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value;
   }
 
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (isNumber(value) || isBoolean(value)) {
     return value.toString();
   }
 

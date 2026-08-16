@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isBoolean, isNumber } from "../utils/typePredicates";
 
 /**
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
@@ -178,14 +179,14 @@ export const useBottomPanelStore = create<ResizePanelState>()(
           panel: {
             ...currentState.panel,
             panelSize:
-              typeof persistedPanel.panelSize === "number"
+              isNumber(persistedPanel.panelSize)
                 ? Math.max(
                     MIN_DRAG_SIZE,
                     Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
                   )
                 : currentState.panel.panelSize,
             isVisible:
-              typeof persistedPanel.isVisible === "boolean"
+              isBoolean(persistedPanel.isVisible)
                 ? persistedPanel.isVisible
                 : currentState.panel.isVisible,
             activeView

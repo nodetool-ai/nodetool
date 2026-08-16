@@ -22,6 +22,7 @@ import { WebSocketManager } from './WebSocketManager';
 import { subscribeAppLifecycle } from '../hooks/useAppLifecycle';
 import { validateInboundMessage } from './validateInboundMessage';
 import type { WebSocketMessageData } from '../types/chat';
+import { isString } from '../utils/typePredicates';
 
 type MessageHandler = (message: Record<string, unknown>) => void;
 
@@ -199,18 +200,18 @@ class WebSocketService {
    */
   private trackJob(message: Record<string, unknown>): void {
     const jobId = message.job_id;
-    if (typeof jobId !== 'string') {
+    if (!isString(jobId)) {
       return;
     }
 
     const status = message.status;
-    if (typeof status === 'string' && TERMINAL_JOB_STATUSES.has(status)) {
+    if (isString(status) && TERMINAL_JOB_STATUSES.has(status)) {
       this.activeJobs.delete(jobId);
       return;
     }
 
     const workflowId = message.workflow_id;
-    this.activeJobs.set(jobId, typeof workflowId === 'string' ? workflowId : null);
+    this.activeJobs.set(jobId, isString(workflowId) ? workflowId : null);
   }
 
   /**
@@ -227,7 +228,7 @@ class WebSocketService {
     const routingKeys = new Set<string>();
     for (const field of ['workflow_id', 'job_id', 'thread_id'] as const) {
       const value = message[field];
-      if (typeof value === 'string') {
+      if (isString(value)) {
         routingKeys.add(value);
       }
     }

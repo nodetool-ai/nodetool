@@ -21,6 +21,7 @@ import {
   type WorkspaceTab,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
+import { isFunction } from "../../utils/typePredicates";
 
 /**
  * Workspace tab types that have agent tools behind them. Tab types absent
@@ -107,7 +108,7 @@ export const resolveUiContext = (
   input: UiContextInput | undefined,
   source?: ChatSource | null
 ): UiContext | null => {
-  const options = typeof input === "function" ? input() : (input ?? {});
+  const options = isFunction(input) ? input() : (input ?? {});
   return buildUiContext({
     ...options,
     source: source ?? options.source

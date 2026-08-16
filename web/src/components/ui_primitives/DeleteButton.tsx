@@ -19,6 +19,7 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { MOTION } from "./tokens";
+import { isString } from "../../utils/typePredicates";
 
 export interface DeleteButtonProps {
   /**
@@ -137,7 +138,7 @@ export const DeleteButton = memo(
         return <TrashIcon width={iconSize} height={iconSize} />;
       };
 
-      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : "Delete");
+      const label = ariaLabel || (isString(tooltip) ? tooltip : "Delete");
 
       return (
         <Tooltip

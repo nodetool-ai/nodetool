@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
+import { isObjectLike } from "../utils/typePredicates";
 
 interface FavoriteWorkflowsState {
   favoriteWorkflowIds: string[];
@@ -55,7 +56,7 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ favoriteWorkflowIds: state.favoriteWorkflowIds }),
       migrate: (persistedState, _version) => {
-        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+        if (!persistedState || !isObjectLike(persistedState) || Array.isArray(persistedState)) {
           return { favoriteWorkflowIds: [] };
         }
         const state = persistedState as Record<string, unknown>;

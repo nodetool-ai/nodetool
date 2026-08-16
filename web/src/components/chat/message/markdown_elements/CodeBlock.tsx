@@ -21,6 +21,7 @@ import {
   oneLightColors
 } from "./codeBlockColors";
 import isEqual from "../../../../utils/isEqual";
+import { isString } from "../../../../utils/typePredicates";
 
 export interface CodeBlockProps
   extends React.ComponentPropsWithoutRef<"code"> {
@@ -227,7 +228,7 @@ function sanitizeSvgDocument(source: string): string | null {
     FORBID_TAGS: ["script", "foreignObject"],
     KEEP_CONTENT: false
   });
-  if (typeof clean !== "string" || !/<svg(\s|>|\/)/i.test(clean)) {
+  if (!isString(clean) || !/<svg(\s|>|\/)/i.test(clean)) {
     return null;
   }
   return sizeSvgToFrame(clean);

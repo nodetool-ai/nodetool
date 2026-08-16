@@ -19,6 +19,7 @@ import { Message, MessageContent } from '../../types';
 import { ChatMarkdown } from './ChatMarkdown';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { useTheme } from '../../hooks/useTheme';
+import { isRecord, isString } from '../../utils/typePredicates';
 
 interface MessageViewProps {
   message: Message;
@@ -30,7 +31,7 @@ interface MessageViewProps {
 function getTextContent(content: Message['content']): string {
   if (!content) { return ''; }
 
-  if (typeof content === 'string') {
+  if (isString(content)) {
     return content;
   }
 
@@ -41,7 +42,7 @@ function getTextContent(content: Message['content']): string {
       .join('\n');
   }
 
-  if (typeof content === 'object' && 'type' in content) {
+  if (isRecord(content) && 'type' in content) {
     if (content.type === 'text' && 'text' in content) {
       return String(content.text ?? '');
     }
@@ -63,7 +64,7 @@ function isMessageContent(obj: unknown): obj is MessageContent {
 function getContentItems(content: Message['content']): MessageContent[] {
   if (!content) { return []; }
 
-  if (typeof content === 'string') {
+  if (isString(content)) {
     return [{ type: 'text', text: content }];
   }
 

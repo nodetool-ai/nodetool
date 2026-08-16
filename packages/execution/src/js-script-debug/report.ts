@@ -19,6 +19,10 @@ import {
   validateJsScriptDoc,
   type JsScriptValidationOptions
 } from "./validate.js";
+import {
+  isFiniteNumber,
+  isString
+} from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -50,10 +54,10 @@ function describeDocument(document: unknown): JsScriptDocumentMeta {
     secretCount: count(record.secrets),
     testCount: count(record.tests),
     timeoutSeconds:
-      typeof timeout === "number" && Number.isFinite(timeout)
+      isFiniteNumber(timeout)
         ? timeout
         : JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
-    codeLength: typeof record.code === "string" ? record.code.length : 0
+    codeLength: isString(record.code) ? record.code.length : 0
   };
 }
 

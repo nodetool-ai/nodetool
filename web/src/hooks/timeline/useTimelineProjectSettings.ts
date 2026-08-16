@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
+import { isString } from "../../utils/typePredicates";
 
 export interface ProjectSettingsPatch {
   fps?: number;
@@ -49,7 +50,7 @@ export function useTimelineProjectSettings(): UseTimelineProjectSettingsResult {
         // Only roll the token forward while the store still holds the saved
         // sequence — otherwise we'd poison a newly loaded sequence's token.
         if (
-          typeof updatedAt === "string" &&
+          isString(updatedAt) &&
           store.getState().sequenceId === state.sequenceId
         ) {
           store.getState().setBaseUpdatedAt(updatedAt);

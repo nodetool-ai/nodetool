@@ -37,6 +37,7 @@ import type { PropertyProps } from "./PropertyInput.types";
 import DynamicSlotTypePicker from "./DynamicSlotTypePicker";
 import { normalizeDynamicSlot, slotType } from "../../utils/dynamicSlots";
 import { isSchemaDrivenDynamicNode } from "../../utils/dynamicSlotTypes";
+import { isString } from "../../utils/typePredicates";
 
 export type { PropertyProps } from "./PropertyInput.types";
 
@@ -267,7 +268,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       if (
         property.name === "code" &&
         nodeType === "nodetool.code.Code" &&
-        typeof value === "string"
+        isString(value)
       ) {
         const node = findNode(id);
         updateNodeData(

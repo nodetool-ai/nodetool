@@ -1,5 +1,6 @@
 import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { ThreadInfo } from "../types/thread.types";
+import { isString } from "../../../utils/typePredicates";
 
 /** Server-assigned title, else the opening user message, else a placeholder. */
 export const threadPreview = (
@@ -15,7 +16,7 @@ export const threadPreview = (
   }
   const { content } = firstUserMessage;
   let text: string;
-  if (typeof content === "string") {
+  if (isString(content)) {
     text = content;
   } else if (Array.isArray(content) && content[0]?.type === "text") {
     // `text` can be null even on a text block — never stringify "undefined".

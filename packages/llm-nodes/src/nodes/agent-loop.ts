@@ -15,6 +15,7 @@ import {
   toProviderTools,
   toolCallChunk
 } from "./agent-utils.js";
+import { isCallable } from "./type-predicates.js";
 
 const log = createLogger("nodetool.base-nodes.agents");
 
@@ -133,7 +134,7 @@ export async function runAgentLoop(
     maxIterations = 10
   } = options;
 
-  if (!context || typeof context.getProvider !== "function") {
+  if (!context || !isCallable(context.getProvider)) {
     throw new Error("Processing context with provider access is required");
   }
 
@@ -155,7 +156,7 @@ export async function runAgentLoop(
   // silently.
   const resolvedTools = hydrateBuiltinAgentTools(tools) as ToolLike[];
   for (const t of resolvedTools) {
-    if (typeof t.process !== "function") {
+    if (!isCallable(t.process)) {
       log.warn(
         `runAgentLoop received tool '${t.name}' with no process() and could ` +
           "not hydrate it — the model cannot call it. Pass a real Tool or a " +
@@ -183,7 +184,7 @@ export async function runAgentLoop(
             execute: async (
               args: Record<string, unknown>
             ): Promise<string | MessageContent[]> => {
-              if (typeof tool.process !== "function") {
+              if (!isCallable(tool.process)) {
                 return JSON.stringify({ error: `Unknown tool: ${tool.name}` });
               }
               const result = await tool.process(context, args);

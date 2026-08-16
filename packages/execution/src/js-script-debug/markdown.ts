@@ -2,12 +2,13 @@
  * Renders a `JsScriptDebugReport` as human-readable Markdown for the bundle.
  */
 import type { JsScriptDebugIssue, JsScriptDebugReport } from "./types.js";
+import { isString } from "../predicates.js";
 
 const short = (value: unknown, max = 120): string => {
   if (value === undefined) return "—";
   let s: string;
   try {
-    s = typeof value === "string" ? value : JSON.stringify(value);
+    s = isString(value) ? value : JSON.stringify(value);
   } catch {
     s = String(value);
   }

@@ -18,6 +18,7 @@ import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import { runTransformersJsModelDownload } from "../model-download-runtime.js";
 import type { FrontendRendererRegistry } from "../frontend-renderer-registry.js";
+import { isString } from "../lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -116,7 +117,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       beforeRunJob: async (graph) => {
         if (getPythonBridgeReady()) return;
         const hasPythonNode = graph.nodes.some((n) => {
-          const type = typeof n.type === "string" ? n.type : "";
+          const type = isString(n.type) ? n.type : "";
           return registry.getMetadata(type) && !registry.has(type);
         });
         if (hasPythonNode) {

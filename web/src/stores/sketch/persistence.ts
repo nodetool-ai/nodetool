@@ -7,6 +7,7 @@ import {
   type SketchDocument,
   type SketchTool
 } from "../../components/sketch/types";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 export const DEFAULT_SKETCH_ACTIVE_TOOL: SketchTool = "brush";
 export const DEFAULT_SKETCH_ZOOM = 1;
@@ -76,7 +77,7 @@ export function fromPersistedSketchEditorState(
   value: unknown
 ): SketchPersistenceSnapshot {
   const persisted =
-    value && typeof value === "object"
+    value && isObjectLike(value)
       ? (value as Partial<PersistedSketchEditorState>)
       : {};
   const document = normalizeSketchDocument(
@@ -87,7 +88,7 @@ export function fromPersistedSketchEditorState(
     ? cloneValue(persisted.history)
     : [];
   const rawIndex =
-    typeof persisted.historyIndex === "number" &&
+    isNumber(persisted.historyIndex) &&
     Number.isFinite(persisted.historyIndex)
       ? Math.trunc(persisted.historyIndex)
       : -1;
@@ -98,17 +99,17 @@ export function fromPersistedSketchEditorState(
   return {
     document,
     activeTool:
-      typeof persisted.activeTool === "string"
+      isString(persisted.activeTool)
         ? (persisted.activeTool as SketchTool)
         : DEFAULT_SKETCH_ACTIVE_TOOL,
     zoom:
-      typeof viewport?.zoom === "number"
+      isNumber(viewport?.zoom)
         ? viewport.zoom
         : DEFAULT_SKETCH_ZOOM,
     pan:
       viewport &&
-      typeof viewport.pan?.x === "number" &&
-      typeof viewport.pan?.y === "number"
+      isNumber(viewport.pan?.x) &&
+      isNumber(viewport.pan?.y)
         ? cloneValue(viewport.pan)
         : cloneValue(DEFAULT_SKETCH_PAN),
     history,

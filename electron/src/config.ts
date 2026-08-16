@@ -6,6 +6,7 @@ import { logMessage } from "./logger";
 import * as fs from "fs";
 import { readSettings, updateSetting } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
+import { isString } from "./typePredicates";
 
 // Base paths
 const srcPath: string = __dirname;
@@ -86,7 +87,7 @@ const getCondaEnvPath = (): string => {
   const condaPathFromSettings: unknown = settings["CONDA_ENV"];
 
   if (
-    typeof condaPathFromSettings === "string" &&
+    isString(condaPathFromSettings) &&
     condaPathFromSettings.trim().length > 0
   ) {
     logMessage(`Conda env path: ${condaPathFromSettings}`);
@@ -203,7 +204,7 @@ const getProcessEnv = (): ProcessEnv => {
   // Sanitize base env to include only string values
   const baseEnv: { [key: string]: string } = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
+    if (isString(value)) {
       baseEnv[key] = value;
     }
   }
@@ -224,7 +225,7 @@ const getProcessEnv = (): ProcessEnv => {
     "UV_PROJECT_ENVIRONMENT",
   ] as const;
 
-  const clearedKeys = envKeysToClear.filter((key) => typeof baseEnv[key] === "string");
+  const clearedKeys = envKeysToClear.filter((key) => isString(baseEnv[key]));
   for (const key of envKeysToClear) {
     delete baseEnv[key];
   }

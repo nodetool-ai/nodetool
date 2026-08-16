@@ -15,6 +15,7 @@ import {
   getMimeTypeFromUri,
   toUint8Array
 } from "../../components/node/output";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 export type MediaKind = "audio" | "video";
 
@@ -38,7 +39,7 @@ const mediaDataSignature = (data: unknown): string | undefined => {
     const n = data.length;
     if (n === 0) return undefined;
     return `arr:${n}:${data[0]}:${data[n >> 1]}:${data[n - 1]}`;
-  } else if (typeof data === "string") {
+  } else if (isString(data)) {
     if (data.length === 0) return undefined;
     return `str:${data.length}:${data.slice(0, 16)}:${data.slice(-16)}`;
   }
@@ -54,14 +55,14 @@ export const useMediaSrc = (
   fallbackMime?: string
 ): string => {
   const v =
-    value && typeof value === "object"
+    value && isObjectLike(value)
       ? (value as Record<string, unknown>)
       : null;
   // Accept either a direct URI string or an object with a `uri` field.
   const rawUri =
-    typeof value === "string" && value && !value.startsWith("memory://")
+    isString(value) && value && !value.startsWith("memory://")
       ? value
-      : v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
+      : v && isString(v.uri) && !v.uri.startsWith("memory://")
         ? v.uri
         : undefined;
   const signedUrl = useSignedUrl(rawUri);

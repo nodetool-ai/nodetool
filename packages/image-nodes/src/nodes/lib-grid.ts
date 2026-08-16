@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadSharp, SHARP_UNAVAILABLE_MESSAGE } from "./image-io.js";
 import { decodeImage } from "./lib-image-utils.js";
+import { isFiniteNumber, isObjectLike } from "../type-predicates.js";
 
 async function requireSharp() {
   const sharp = await loadSharp();
@@ -54,11 +55,11 @@ function toImageRef(
  * Refs are plain objects, so the placement payload survives transport.
  */
 function readPlacement(ref: unknown): TilePlacement | null {
-  if (!ref || typeof ref !== "object") return null;
+  if (!isObjectLike(ref)) return null;
   const md = (ref as Record<string, unknown>).metadata;
-  if (!md || typeof md !== "object") return null;
+  if (!isObjectLike(md)) return null;
   const grid = (md as Record<string, unknown>).grid;
-  if (!grid || typeof grid !== "object") return null;
+  if (!isObjectLike(grid)) return null;
   const g = grid as Record<string, unknown>;
   const keys: (keyof TilePlacement)[] = [
     "x",
@@ -73,7 +74,7 @@ function readPlacement(ref: unknown): TilePlacement | null {
     "rows"
   ];
   for (const k of keys) {
-    if (typeof g[k] !== "number" || !Number.isFinite(g[k])) return null;
+    if (!isFiniteNumber(g[k])) return null;
   }
   return {
     x: g.x as number,

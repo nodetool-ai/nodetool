@@ -13,6 +13,11 @@ import {
 } from "../http-api.js";
 import { resolveKieDynamicSchema } from "@nodetool-ai/base-nodes";
 import { ApiErrorCode, apiError } from "../error-codes.js";
+import {
+  isNonBlankString,
+  isObjectLike,
+  isString
+} from "../lib/wire-values.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -80,7 +85,7 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const body = req.body as Record<string, unknown> | undefined;
     const modelInfo = extractKieModelInfo(body);
 
-    if (typeof modelInfo !== "string" || !modelInfo.trim()) {
+    if (!isNonBlankString(modelInfo)) {
       reply
         .status(400)
         .send(
@@ -129,7 +134,7 @@ function extractKieModelInfo(body: unknown): JsonValue | undefined {
     }
   }
 
-  if (typeof body === "string") {
+  if (isString(body)) {
     try {
       const parsed = JSON.parse(body) as unknown;
       return extractKieModelInfo(parsed);
@@ -138,7 +143,7 @@ function extractKieModelInfo(body: unknown): JsonValue | undefined {
     }
   }
 
-  if (!body || typeof body !== "object") {
+  if (!isObjectLike(body)) {
     return undefined;
   }
 

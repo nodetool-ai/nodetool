@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { DroppedFile, DOC_TYPES_REGEX } from "../types/chat.types";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { isString } from "../../../utils/typePredicates";
 
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -83,7 +84,7 @@ export const useFileHandling = () => {
         return new Promise<DroppedFile>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
-            if (typeof reader.result !== "string") {
+            if (!isString(reader.result)) {
               reject(new Error(`Unexpected result type for: ${file.name}`));
               return;
             }

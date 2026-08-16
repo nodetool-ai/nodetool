@@ -2,6 +2,7 @@ import { LinkingOptions } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { RootStackParamList } from './types';
+import { isNonEmptyString, isRecord } from '../utils/typePredicates';
 
 /**
  * Reads the `url` a notification payload carries. Notification data is
@@ -9,11 +10,11 @@ import { RootStackParamList } from './types';
  * treated as "no link".
  */
 const urlFromNotificationData = (data: unknown): string | null => {
-  if (typeof data !== 'object' || data === null) {
+  if (!isRecord(data)) {
     return null;
   }
   const url = (data as Record<string, unknown>).url;
-  return typeof url === 'string' && url.length > 0 ? url : null;
+  return isNonEmptyString(url) ? url : null;
 };
 
 const urlFromNotificationResponse = (

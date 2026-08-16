@@ -4,6 +4,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '../services/authConfig';
 import { queryClient } from '../queryClient';
+import { isNonEmptyString, isRecord } from '../utils/typePredicates';
 
 type AuthState = 'init' | 'loading' | 'logged_in' | 'logged_out' | 'error';
 
@@ -50,9 +51,9 @@ async function resetClientState(): Promise<void> {
 }
 
 function formatAuthError(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object' && 'message' in error) {
+  if (isRecord(error) && 'message' in error) {
     const message = (error as AuthError).message;
-    if (typeof message === 'string' && message.length > 0) {
+    if (isNonEmptyString(message)) {
       return message;
     }
   }

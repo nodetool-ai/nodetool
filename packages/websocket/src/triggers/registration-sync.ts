@@ -17,6 +17,10 @@ import { RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { TRIGGER_KIND_BY_NODE_TYPE } from "@nodetool-ai/protocol";
 import type { TriggerKind } from "@nodetool-ai/protocol";
+import {
+  isObjectLike,
+  isString
+} from "../lib/wire-values.js";
 
 export { TRIGGER_KIND_BY_NODE_TYPE };
 export type { TriggerKind };
@@ -48,11 +52,11 @@ function extractNodeProps(
   node: Record<string, unknown>
 ) {
   const properties = node.properties;
-  if (properties && typeof properties === "object") {
+  if (isObjectLike(properties)) {
     return { ...(properties as Record<string, unknown>) };
   }
   const data = node.data;
-  if (data && typeof data === "object") {
+  if (isObjectLike(data)) {
     return { ...(data as Record<string, unknown>) };
   }
   return {};
@@ -109,8 +113,8 @@ function collectTriggerNodes(workflow: WorkflowModel): TriggerNodeEntry[] {
   const entries: TriggerNodeEntry[] = [];
   for (const rawNode of nodes) {
     const node = rawNode as Record<string, unknown>;
-    const nodeId = typeof node.id === "string" ? node.id : undefined;
-    const nodeType = typeof node.type === "string" ? node.type : undefined;
+    const nodeId = isString(node.id) ? node.id : undefined;
+    const nodeType = isString(node.type) ? node.type : undefined;
     if (!nodeId || !nodeType) continue;
     const kind = TRIGGER_KIND_BY_NODE_TYPE[nodeType];
     if (!kind) continue;

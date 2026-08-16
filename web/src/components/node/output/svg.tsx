@@ -1,6 +1,7 @@
 import React, { createElement } from "react";
 import DOMPurify from "dompurify";
 import { SVGElement } from "../../../stores/ApiTypes";
+import { isString } from "../../../utils/typePredicates";
 
 const sanitizeSvgContent = (html: string): string => {
   return DOMPurify.sanitize(html, {
@@ -41,7 +42,7 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
 
   const children = [
     value.content &&
-      (typeof value.content === "string" &&
+      (isString(value.content) &&
       value.content.trim().startsWith("<") ? (
         <div key="content" dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(value.content) }} />
       ) : (
@@ -64,7 +65,7 @@ export const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
   };
   const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] =>
     elements.map((element, idx) => {
-      if (element.content && typeof element.content === "string") {
+      if (element.content && isString(element.content)) {
         const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
         if (match && match[1]) {
           return (

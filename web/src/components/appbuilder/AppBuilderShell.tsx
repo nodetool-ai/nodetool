@@ -25,6 +25,7 @@ import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 import AppDataPanel from "./AppDataPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import { isString } from "../../utils/typePredicates";
 
 export interface AppBuilderShellProps {
   /**
@@ -174,7 +175,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         theme:
           themeId === null
             ? document.theme
-            : typeof themeId === "string" && themeId
+            : isString(themeId) && themeId
               ? { id: themeId }
               : undefined
       });

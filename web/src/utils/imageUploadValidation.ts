@@ -1,3 +1,4 @@
+import { isFunction } from "./typePredicates";
 export type UploadSource = "clipboard" | "drop" | "file";
 
 type SniffedImageMime =
@@ -166,7 +167,7 @@ export const prepareUploadFile = async (
     const sliced = file.slice(0, HEADER_BYTES) as Blob & {
       arrayBuffer?: () => Promise<ArrayBuffer>;
     };
-    if (typeof sliced.arrayBuffer === "function") {
+    if (isFunction(sliced.arrayBuffer)) {
       const headerBuffer = await sliced.arrayBuffer();
       return new Uint8Array(headerBuffer);
     }

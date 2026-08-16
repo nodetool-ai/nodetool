@@ -30,6 +30,7 @@ import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
+import { isObjectLike } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css([
@@ -354,7 +355,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
       return false;
     }
     const checkType = (item: unknown): boolean => {
-      if (item && typeof item === "object" && "type" in item) {
+      if (item && isObjectLike(item) && "type" in item) {
         const t = (item as Record<string, unknown>).type;
         return t === "image" || t === "video";
       }

@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 import { formatFloat } from "./NumberInput.utils";
+import { isNumber } from "../../utils/typePredicates";
 
 interface DisplayValueProps {
   value: number;
@@ -13,7 +14,7 @@ const DisplayValue: React.FC<DisplayValueProps> = memo(({
   decimalPlaces: _decimalPlaces
 }) => (
   <div className="value">
-    {typeof value === "number"
+    {isNumber(value)
       ? isFloat
         ? formatFloat(value)
         : value

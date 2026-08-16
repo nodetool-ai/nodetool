@@ -94,6 +94,7 @@ import {
   settleTriggerOutcome,
   triggerRunParams
 } from "./settle.js";
+import { isFunctionValue } from "../lib/wire-values.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.dispatcher");
@@ -700,7 +701,7 @@ export function startDispatcher(
   const timer = setInterval(() => {
     dispatcher.notify();
   }, intervalMs);
-  if (typeof timer.unref === "function") {
+  if (isFunctionValue(timer.unref)) {
     timer.unref();
   }
 

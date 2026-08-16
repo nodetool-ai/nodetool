@@ -33,6 +33,10 @@ import {
   isWatchedFileEvent,
   type FileWatchFilter
 } from "@nodetool-ai/automation-nodes";
+import {
+  isFunctionValue,
+  isString
+} from "../lib/wire-values.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.file-watch");
@@ -116,7 +120,7 @@ function readString(
   fallback: string
 ): string {
   const raw = config?.[key];
-  return typeof raw === "string" ? raw : fallback;
+  return isString(raw) ? raw : fallback;
 }
 
 function readBool(
@@ -585,7 +589,7 @@ export function startFileWatch(opts: StartFileWatchOptions): FileWatchHandle {
 
   sweep();
   const timer = setInterval(sweep, intervalMs);
-  if (typeof timer.unref === "function") {
+  if (isFunctionValue(timer.unref)) {
     timer.unref();
   }
 

@@ -8,6 +8,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageRefPreview from "./ImageRefPreview";
 import isEqual from "../../utils/isEqual";
 import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { isString } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -172,7 +173,7 @@ const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
       {msg.role === "assistant" && msg.tool_calls && (
         <ToolCallsView toolCalls={msg.tool_calls} />
       )}
-      {typeof msg.content === "string" && (
+      {isString(msg.content) && (
         <MarkdownRenderer content={msg.content} />
       )}
       {Array.isArray(msg.content) &&

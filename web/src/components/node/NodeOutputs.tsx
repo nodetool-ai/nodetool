@@ -12,6 +12,7 @@ import { shallow } from "zustand/shallow";
 import { Z_INDEX } from "../ui_primitives";
 import { inferredCodeOutputNames } from "../../utils/codeNodeHandles";
 import { ANY_TYPE } from "../../utils/dynamicSlots";
+import { isString } from "../../utils/typePredicates";
 
 const HANDLE_ROW_HEIGHT = 18;
 
@@ -79,7 +80,7 @@ const NodeOutputsImpl: React.FC<NodeOutputsProps> = ({
     // isn't rendered twice.
     const dynNames = new Set(dyn.map((d) => d.name));
     const inferred = inferredCodeOutputNames(
-      typeof nodeSlice.code === "string" ? nodeSlice.code : "",
+      isString(nodeSlice.code) ? nodeSlice.code : "",
       nodeSlice.nodeType
     )
       .filter((name) => !dynNames.has(name))

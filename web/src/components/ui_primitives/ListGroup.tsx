@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
+import { isNumber } from "../../utils/typePredicates";
 
 // --- ListGroup ---
 
@@ -118,7 +119,7 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
   const theme = useTheme();
 
   // Compute border radius with type guard since borderRadius can be string | number
-  const borderRadiusValue = typeof theme.shape.borderRadius === "number"
+  const borderRadiusValue = isNumber(theme.shape.borderRadius)
     ? theme.shape.borderRadius / 8
     : undefined;
 

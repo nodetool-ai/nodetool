@@ -1,8 +1,9 @@
+import { isString } from "../../utils/typePredicates";
 /**
  * Detects if a string contains markdown-like syntax
  */
 export const isMarkdownText = (text: string | null | undefined): boolean => {
-  if (!text || typeof text !== "string") {return false;}
+  if (!text || !isString(text)) {return false;}
 
   return (
     /#{1,6}\s/.test(text) || // Headers

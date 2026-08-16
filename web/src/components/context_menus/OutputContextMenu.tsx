@@ -38,6 +38,7 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -175,8 +176,8 @@ const OutputContextMenu: React.FC = () => {
         value: number | string | undefined,
         fallback: number
       ): number => {
-        if (typeof value === "number") return value;
-        if (typeof value === "string") return parseInt(value, 10) || fallback;
+        if (isNumber(value)) return value;
+        if (isString(value)) return parseInt(value, 10) || fallback;
         return fallback;
       };
       const nodeHeight = parseDim(extMeta.style?.height, 200);
@@ -200,11 +201,11 @@ const OutputContextMenu: React.FC = () => {
 
       newNode.data.size = {
         width:
-          typeof newNode.style?.width === "number"
+          isNumber(newNode.style?.width)
             ? newNode.style.width
             : parseInt(newNode.style?.width as string, 10) || 200,
         height:
-          typeof newNode.style?.height === "number"
+          isNumber(newNode.style?.height)
             ? newNode.style.height
             : parseInt(newNode.style?.height as string, 10) || 200
       };

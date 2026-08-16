@@ -99,6 +99,7 @@ import {
   listProviderModels,
   type ProviderModelKind
 } from "./providers.js";
+import { isString } from "./predicates.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -342,7 +343,7 @@ program
 function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
   if (v === false) return false;
   if (v === true) return "pretty";
-  if (typeof v === "string") {
+  if (isString(v)) {
     const lower = v.toLowerCase();
     if (lower === "false" || lower === "0" || lower === "no") return false;
     if (lower === "json") return "json";
@@ -909,7 +910,7 @@ workflows
             edges: Record<string, unknown>[];
           };
           source = workflowToDsl(graph, {
-            workflowName: typeof raw.name === "string" ? raw.name : null
+            workflowName: isString(raw.name) ? raw.name : null
           });
         } else if (opts.apiUrl) {
           source = await apiGetText(
@@ -922,7 +923,7 @@ workflows
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
           const graph = wf.getGraph();
           source = workflowToDsl(graph, {
-            workflowName: typeof wf.name === "string" ? wf.name : null
+            workflowName: isString(wf.name) ? wf.name : null
           });
         }
 
@@ -1003,9 +1004,9 @@ workflows
             string,
             unknown
           >;
-          name = typeof raw.name === "string" ? raw.name : "workflow";
+          name = isString(raw.name) ? raw.name : "workflow";
           description =
-            typeof raw.description === "string" ? raw.description : "";
+            isString(raw.description) ? raw.description : "";
           tags = Array.isArray(raw.tags)
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -1015,9 +1016,9 @@ workflows
           const wf = (await client.workflows.get.query({
             id: idOrFile
           })) as Record<string, unknown>;
-          name = typeof wf.name === "string" ? wf.name : "workflow";
+          name = isString(wf.name) ? wf.name : "workflow";
           description =
-            typeof wf.description === "string" ? wf.description : "";
+            isString(wf.description) ? wf.description : "";
           tags = Array.isArray(wf.tags)
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -1026,9 +1027,9 @@ workflows
           ensureDb();
           const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
-          name = typeof wf.name === "string" ? wf.name : "workflow";
+          name = isString(wf.name) ? wf.name : "workflow";
           description =
-            typeof wf.description === "string" ? wf.description : "";
+            isString(wf.description) ? wf.description : "";
           tags = Array.isArray(wf.tags)
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -1152,9 +1153,9 @@ workflows
         };
 
         const toBundleWf = (raw: Record<string, unknown>): BundleWf => ({
-          name: typeof raw.name === "string" ? raw.name : "workflow",
+          name: isString(raw.name) ? raw.name : "workflow",
           description:
-            typeof raw.description === "string" ? raw.description : "",
+            isString(raw.description) ? raw.description : "",
           tags: Array.isArray(raw.tags)
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [],

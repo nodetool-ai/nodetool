@@ -1,6 +1,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agent-utils.js";
+import { isObjectLike } from "./type-predicates.js";
 
 // ---------------------------------------------------------------------------
 // Control tool support for Agent nodes with outgoing control edges
@@ -51,7 +52,7 @@ function sanitizeControlToolName(name: string): string {
  * tool (including plan mode's ToolLikeAdapter).
  */
 export function buildControlTools(controlContext: unknown): ControlTool[] {
-  if (!controlContext || typeof controlContext !== "object") return [];
+  if (!isObjectLike(controlContext)) return [];
 
   const tools: ControlTool[] = [];
   const usedNames = new Set<string>();
@@ -59,7 +60,7 @@ export function buildControlTools(controlContext: unknown): ControlTool[] {
   for (const [targetId, info] of Object.entries(
     controlContext as Record<string, unknown>
   )) {
-    if (!info || typeof info !== "object") continue;
+    if (!isObjectLike(info)) continue;
     const nodeInfo = info as Record<string, unknown>;
 
     const nodeTitle = String(
@@ -84,7 +85,7 @@ export function buildControlTools(controlContext: unknown): ControlTool[] {
     >;
     const properties: Record<string, Record<string, unknown>> = {};
     for (const [key, schema] of Object.entries(rawProperties)) {
-      if (typeof schema === "object" && schema !== null) {
+      if (isObjectLike(schema)) {
         properties[key] = { ...schema };
       } else {
         properties[key] = { type: "string", description: String(schema) };

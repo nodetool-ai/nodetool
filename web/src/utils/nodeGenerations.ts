@@ -1,4 +1,5 @@
 import type { Asset, ProviderCost } from "../stores/ApiTypes";
+import { isObjectLike, isString } from "./typePredicates";
 
 /**
  * The `{ type, uri, … }` record the preview components render — the same shape
@@ -29,7 +30,7 @@ export const assetToOutputValue = (asset: Asset): OutputPreviewValue => {
     const text = asset.metadata?.text;
     return {
       type: "text",
-      text: typeof text === "string" ? text : "",
+      text: isString(text) ? text : "",
       uri
     };
   }
@@ -61,7 +62,7 @@ const jsonGenerationOutputs = (
   const ct = asset.content_type ?? "";
   if (!ct.includes("json")) return undefined;
   const json = asset.metadata?.json;
-  if (json && typeof json === "object" && !Array.isArray(json)) {
+  if (json && isObjectLike(json) && !Array.isArray(json)) {
     return json as Record<string, unknown>;
   }
   return undefined;
@@ -85,7 +86,7 @@ const textGenerationOutputs = (
   const ct = asset.content_type ?? "";
   if (!ct.startsWith("text/")) return undefined;
   const text = asset.metadata?.text;
-  return { output: typeof text === "string" ? text : "" };
+  return { output: isString(text) ? text : "" };
 };
 
 export interface Generation {

@@ -8,6 +8,7 @@
 import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface ContainerProps extends BoxProps {
   /** Padding size variant */
@@ -66,7 +67,7 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(({
 }, ref) => {
   const theme = useTheme();
 
-  const paddingValue = typeof padding === "number"
+  const paddingValue = isNumber(padding)
     ? padding
     : PADDING_VARIANTS[padding];
 

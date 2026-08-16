@@ -53,6 +53,7 @@ import {
   useSettingsPageStore,
   type SettingsSection
 } from "../../stores/SettingsPageStore";
+import { isFunction } from "../../utils/typePredicates";
 
 // Tab indices. Models, Collections, Workspaces, and the Package Manager now
 // live as standalone full-screen pages reachable from the logo menu.
@@ -251,10 +252,10 @@ function SettingsPage() {
     const api = window.api?.settings;
     if (
       !api ||
-      typeof api.getAutoUpdates !== "function" ||
-      typeof api.setAutoUpdates !== "function" ||
-      typeof api.getUpdateChannel !== "function" ||
-      typeof api.setUpdateChannel !== "function"
+      !isFunction(api.getAutoUpdates) ||
+      !isFunction(api.setAutoUpdates) ||
+      !isFunction(api.getUpdateChannel) ||
+      !isFunction(api.setUpdateChannel)
     ) {
       return null;
     }

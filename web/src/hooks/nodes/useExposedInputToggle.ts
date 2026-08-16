@@ -8,6 +8,7 @@ import {
   nextExposedInputPlacement,
   type ExposedInputPlacement
 } from "../../utils/exposedInputs";
+import { isString } from "../../utils/typePredicates";
 
 interface UseExposedInputToggleResult {
   canToggleExposed: (nodeId: string, propertyName: string) => boolean;
@@ -136,7 +137,7 @@ export function useExposedInputToggle(): UseExposedInputToggleResult {
   /** Cycle placement: off → top handle → bottom labeled → off (inspector arrow). */
   const cycleExposedInputPlacement = useCallback(
     (nodeIds: string | readonly string[], propertyName: string): void => {
-      const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
+      const ids = isString(nodeIds) ? [nodeIds] : nodeIds;
       if (ids.length === 0) {
         return;
       }
@@ -157,7 +158,7 @@ export function useExposedInputToggle(): UseExposedInputToggleResult {
 
   const toggleExposedInputLabeled = useCallback(
     (nodeIds: string | readonly string[], propertyName: string): void => {
-      const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
+      const ids = isString(nodeIds) ? [nodeIds] : nodeIds;
       if (ids.length === 0) {
         return;
       }
@@ -181,7 +182,7 @@ export function useExposedInputToggle(): UseExposedInputToggleResult {
       propertyName: string,
       placement: ExposedInputPlacement | null
     ): void => {
-      const ids = typeof nodeIds === "string" ? [nodeIds] : nodeIds;
+      const ids = isString(nodeIds) ? [nodeIds] : nodeIds;
       if (ids.length === 0) {
         return;
       }

@@ -12,6 +12,10 @@ export const isNonEmptyString = (value: unknown): value is string =>
 export const isNumber = (value: unknown): value is number =>
   typeof value === "number";
 
+/** A number that is neither NaN nor infinite. */
+export const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
 export const isBoolean = (value: unknown): value is boolean =>
   typeof value === "boolean";
 

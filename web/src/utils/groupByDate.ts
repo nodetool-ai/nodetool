@@ -1,10 +1,11 @@
 import { relativeTime } from "./formatDateAndTime";
+import { isString } from "./typePredicates";
 
 export function groupByDate(
   date: Date | string,
   now: Date = new Date()
 ): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  const dateObj = isString(date) ? new Date(date) : date;
 
   // Normalize to start-of-day in UTC to get full-day difference
   const MS_PER_DAY = 24 * 60 * 60 * 1000;

@@ -51,6 +51,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import { MenuProvider } from "./providers/MenuProvider";
 import { usePlaceholderNodeTypes } from "./components/node_types/usePlaceholderNodeTypes";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "./utils/typePredicates";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, enabled: false } }
@@ -93,9 +99,9 @@ function inferMetadata(
   const props: Property[] = Object.entries(properties).map(([name, val]) =>
     makeProp(
       name,
-      typeof val === "number"
+      isNumber(val)
         ? "float"
-        : typeof val === "boolean"
+        : isBoolean(val)
           ? "bool"
           : Array.isArray(val)
             ? "list"
@@ -129,12 +135,12 @@ function inferMetadata(
 // ─── Workflow parser ─────────────────────────────────────────────
 
 function parseWorkflow(raw: unknown): Workflow {
-  const obj = (typeof raw === "object" && raw !== null ? raw : {}) as Record<
+  const obj = (isObjectLike(raw) ? raw : {}) as Record<
     string,
     unknown
   >;
   const str = (v: unknown, fallback: string): string =>
-    typeof v === "string" && v.length > 0 ? v : fallback;
+    isString(v) && v.length > 0 ? v : fallback;
 
   const graph = obj.graph as
     | { nodes?: Record<string, unknown>[]; edges?: Record<string, unknown>[] }

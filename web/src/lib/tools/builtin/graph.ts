@@ -7,6 +7,7 @@ import {
   resolveWorkflowId
 } from "./workflow";
 import { TypeMetadata } from "../../../stores/ApiTypes";
+import { isString } from "../../../utils/typePredicates";
 
 type GraphNodeInput = {
   id: string;
@@ -131,9 +132,9 @@ FrontendToolRegistry.register({
       if (typeof value === "object") {
         const asRecord = value as Record<string, unknown>;
         if (
-          typeof asRecord.id === "string" &&
-          (typeof asRecord.type === "string" ||
-            typeof asRecord.node_type === "string")
+          isString(asRecord.id) &&
+          (isString(asRecord.type) ||
+            isString(asRecord.node_type))
         ) {
           return [asRecord as GraphNodeInput];
         }
@@ -157,8 +158,8 @@ FrontendToolRegistry.register({
       if (typeof value === "object") {
         const asRecord = value as Record<string, unknown>;
         if (
-          typeof asRecord.source === "string" &&
-          typeof asRecord.target === "string"
+          isString(asRecord.source) &&
+          isString(asRecord.target)
         ) {
           return [asRecord as GraphEdgeInput];
         }
@@ -179,7 +180,7 @@ FrontendToolRegistry.register({
     for (const node of normalizedNodes) {
       assertObject(node, "Invalid node");
       assertString(node.id, "Node missing id");
-      const nodeType = typeof node.type === "string" ? node.type : node.node_type;
+      const nodeType = isString(node.type) ? node.type : node.node_type;
       assertString(nodeType, "Node missing type");
 
       const metadata = state.nodeMetadata[nodeType];

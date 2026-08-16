@@ -28,6 +28,7 @@ import {
 import { trpc } from "../../../trpc/client";
 import { isConcurrencyConflict } from "../../../hooks/useApplications";
 import { useBoundResource } from "./useBoundResource";
+import { isString } from "../../../utils/typePredicates";
 
 export interface StoryboardSceneListProps {
   /** Puck injects the placed widget's id. */
@@ -56,7 +57,7 @@ const readShots = (document: unknown): ShotRecord[] | null => {
 const sceneLabel = (shot: ShotRecord, index: number): string => {
   for (const key of ["slug", "action", "name"]) {
     const value = shot[key];
-    if (typeof value === "string" && value.trim().length > 0) return value;
+    if (isString(value) && value.trim().length > 0) return value;
   }
   return `Scene ${index + 1}`;
 };
@@ -200,7 +201,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
             return (
               <Box
                 component="li"
-                key={typeof shot.id === "string" ? shot.id : index}
+                key={isString(shot.id) ? shot.id : index}
                 sx={{
                   display: "flex",
                   alignItems: "center",

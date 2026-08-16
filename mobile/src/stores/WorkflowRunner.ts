@@ -23,6 +23,7 @@ import {
   Workflow,
   RunJobRequest
 } from "../types/workflow";
+import { isRecord, isString } from "../utils/typePredicates";
 
 const MAX_LOGS = 500;
 
@@ -211,8 +212,7 @@ export const createWorkflowRunnerStore = (
       for (const node of nodes) {
         const data = node.data;
         if (
-          data &&
-          typeof data === "object" &&
+          isRecord(data) &&
           "bypassed" in data &&
           data.bypassed
         ) {
@@ -556,7 +556,7 @@ function handleMessage(
     // ── Generic message with text ──────────────────────────────────
     default: {
       const generic = msg as { type: string; message?: string };
-      if (generic.message && typeof generic.message === "string") {
+      if (generic.message && isString(generic.message)) {
         set({
           logs: appendLog(state.logs, `[${generic.type}] ${generic.message}`)
         });

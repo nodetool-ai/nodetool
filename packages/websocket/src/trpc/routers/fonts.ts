@@ -11,6 +11,7 @@ import { homedir, platform } from "node:os";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { listOutput as fontsListOutput } from "@nodetool-ai/protocol/api-schemas/fonts.js";
+import { isString } from "../../lib/wire-values.js";
 
 // ── Font listing helpers ──────────────────────────────────────────
 
@@ -63,7 +64,7 @@ function collectFonts(): string[] {
         const entries = readdirSync(dir, { recursive: true });
         for (const entry of entries) {
           const entryStr =
-            typeof entry === "string" ? entry : entry.toString();
+            isString(entry) ? entry : entry.toString();
           const ext = extname(entryStr).toLowerCase();
           if ([".ttf", ".otf"].includes(ext)) {
             fonts.push(basename(entryStr, ext));

@@ -1,6 +1,7 @@
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "./NodeData";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+import { isNumber, isString } from "../utils/typePredicates";
 
 /** Keep in sync with `--node-collapsed-height` in `styles/vars.css` */
 export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 40;
@@ -8,10 +9,10 @@ export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 40;
 const MIN_EXPANDED_BODY_PX = 100;
 
 function parseCssPixelHeight(value: string | number | undefined): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
+  if (isNumber(value) && Number.isFinite(value)) {
     return value;
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     const m = value.trim().match(/^(\d+(?:\.\d+)?)px$/i);
     if (m) {
       const n = Number(m[1]);
@@ -67,10 +68,10 @@ function readNodeWidthPx(node: Node<NodeData>): number | undefined {
     return node.width;
   }
   const sw = node.style?.width;
-  if (typeof sw === "number" && sw > 0) {
+  if (isNumber(sw) && sw > 0) {
     return sw;
   }
-  if (typeof sw === "string") {
+  if (isString(sw)) {
     const parsed = parseCssPixelHeight(sw);
     if (parsed != null && parsed > 0) {
       return parsed;

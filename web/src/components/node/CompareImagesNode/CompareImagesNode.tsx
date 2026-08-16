@@ -18,6 +18,7 @@ import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection"
 import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
 import { createImageUrl, ImageData } from "../../../utils/imageUtils";
+import { isObjectLike } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -131,7 +132,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
 
   const comparisonData = useMemo(() => {
     const pickComparison = (value: unknown): ImageComparison | null => {
-      if (!value || typeof value !== "object") return null;
+      if (!value || !isObjectLike(value)) return null;
       if (Array.isArray(value)) {
         for (const item of value) {
           const found = pickComparison(item);

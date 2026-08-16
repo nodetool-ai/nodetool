@@ -32,6 +32,7 @@ import {
   loadSharp,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
+import { isObjectLike } from "../type-predicates.js";
 
 // Clamp a requested output dimension to [1, max]. Guards the low end, the NaN
 // case (via num) and the high end so a programmatic graph can't request an
@@ -203,16 +204,12 @@ function createDrawNode(desc: Desc): NodeClass {
         const size = Math.min(512, Math.max(1, num((this as any).size, 12)));
         const colorVal = (this as any).color ?? "#000000";
         const color =
-          colorVal &&
-          typeof colorVal === "object" &&
-          "value" in (colorVal as object)
+          isObjectLike(colorVal) && "value" in (colorVal as object)
             ? String((colorVal as Record<string, unknown>).value)
             : String(colorVal as string);
         const fontVal = (this as any).font;
         const fontFamily =
-          fontVal &&
-          typeof fontVal === "object" &&
-          "name" in (fontVal as object)
+          isObjectLike(fontVal) && "name" in (fontVal as object)
             ? String((fontVal as Record<string, unknown>).name)
             : "sans-serif";
         const align = String((this as any).align ?? "left");

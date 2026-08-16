@@ -23,6 +23,11 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { FAL_SAM_NODE_TYPE } from "../../../constants/nodeTypes";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -154,7 +159,7 @@ function parseJsonValue<T>(value: unknown): T | null {
   if (value == null) {
     return null;
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     try {
       return JSON.parse(value) as T;
     } catch {
@@ -177,7 +182,7 @@ function normalizeFalScores(value: unknown): number[] {
     return [];
   }
   return parsed
-    .map((entry) => (typeof entry === "number" && Number.isFinite(entry) ? entry : null))
+    .map((entry) => (isNumber(entry) && Number.isFinite(entry) ? entry : null))
     .filter((entry): entry is number => entry !== null);
 }
 
@@ -220,13 +225,13 @@ function normalizeFalBoxes(
     if (Array.isArray(entry) && entry.length >= 4) {
       const [cx, cy, width, height] = entry;
       if (
-        typeof cx === "number" &&
+        isNumber(cx) &&
         Number.isFinite(cx) &&
-        typeof cy === "number" &&
+        isNumber(cy) &&
         Number.isFinite(cy) &&
-        typeof width === "number" &&
+        isNumber(width) &&
         Number.isFinite(width) &&
-        typeof height === "number" &&
+        isNumber(height) &&
         Number.isFinite(height)
       ) {
         const maskWidth = fallbackMask?.width ?? 0;
@@ -244,7 +249,7 @@ function normalizeFalBoxes(
       }
     }
 
-    if (entry && typeof entry === "object") {
+    if (entry && isObjectLike(entry)) {
       const candidate = entry as Record<string, unknown>;
       if (
         isFiniteNumber(candidate.x) &&
@@ -266,10 +271,10 @@ function normalizeFalBoxes(
 }
 
 function normalizeFalRle(value: unknown): string | string[] | null {
-  if (typeof value === "string" && value.trim().length > 0) {
+  if (isString(value) && value.trim().length > 0) {
     try {
       const parsed = JSON.parse(value) as unknown;
-      if (typeof parsed === "string" && parsed.length > 0) {
+      if (isString(parsed) && parsed.length > 0) {
         return parsed;
       }
       if (Array.isArray(parsed)) {
@@ -285,7 +290,7 @@ function normalizeFalRle(value: unknown): string | string[] | null {
     }
   }
   const parsed = parseJsonValue<unknown>(value);
-  if (typeof parsed === "string" && parsed.length > 0) {
+  if (isString(parsed) && parsed.length > 0) {
     return parsed;
   }
   if (Array.isArray(parsed)) {
@@ -327,7 +332,7 @@ function normalizeFalMetadataBox(
       };
     }
   }
-  if (value && typeof value === "object") {
+  if (value && isObjectLike(value)) {
     const candidate = value as Record<string, unknown>;
     const x = candidate.x;
     const y = candidate.y;
@@ -381,7 +386,7 @@ async function isFalApiKeyConfigured(): Promise<boolean> {
     // If the secrets list cannot be loaded, fall back to the specific provider secret
     // so transient list/auth/server failures are not mislabeled as "not configured".
     const falApiKey = await resolveFalApiKey();
-    return typeof falApiKey === "string" && falApiKey.trim().length > 0;
+    return isString(falApiKey) && falApiKey.trim().length > 0;
   }
 }
 

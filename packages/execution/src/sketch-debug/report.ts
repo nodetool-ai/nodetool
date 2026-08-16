@@ -18,6 +18,10 @@ import {
   validateSketchDocument,
   type SketchValidationMeta
 } from "./validate.js";
+import {
+  isPositiveFiniteNumber,
+  isString
+} from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -55,11 +59,9 @@ function describeDocument(
   const sketch = isRecord(record.sketch) ? record.sketch : {};
   const canvas = isRecord(sketch.canvas) ? sketch.canvas : {};
   const pick = (value: unknown, fallback: number): number =>
-    typeof value === "number" && Number.isFinite(value) && value > 0
-      ? value
-      : fallback;
+    isPositiveFiniteNumber(value) ? value : fallback;
   const background =
-    typeof canvas.backgroundColor === "string"
+    isString(canvas.backgroundColor)
       ? canvas.backgroundColor
       : (meta?.backgroundColor ?? DEFAULTS.backgroundColor);
 

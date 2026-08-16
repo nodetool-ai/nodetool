@@ -31,6 +31,12 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../utils/typePredicates";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();
@@ -124,19 +130,19 @@ const styles = (theme: Theme) =>
   });
 
 const typeForValue = (value: unknown) => {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return { type: "string", optional: true, type_args: [] };
   }
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     return { type: "number", optional: true, type_args: [] };
   }
-  if (typeof value === "boolean") {
+  if (isBoolean(value)) {
     return { type: "boolean", optional: true, type_args: [] };
   }
-  if (typeof value === "object" && value !== null) {
+  if (isObjectLike(value)) {
     if (!Array.isArray(value)) {
       const typedValue = value as { type?: unknown };
-      if (typeof typedValue.type === "string") {
+      if (isString(typedValue.type)) {
         return { type: typedValue.type, optional: true, type_args: [] };
       }
     }

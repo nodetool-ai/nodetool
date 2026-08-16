@@ -18,6 +18,8 @@
  * deployments out of their own data, so they are treated as shared. Only
  * collections created through the API from here on are isolated.
  */
+import { isNonEmptyString } from "./wire-values.js";
+
 
 /** Metadata key holding the id of the user who created the collection. */
 export const OWNER_METADATA_KEY = "owner_user_id";
@@ -44,7 +46,7 @@ export function collectionOwner(
   metadata: Metadata | undefined
 ): string | null {
   const owner = metadata?.[OWNER_METADATA_KEY];
-  return typeof owner === "string" && owner ? owner : null;
+  return isNonEmptyString(owner) ? owner : null;
 }
 
 /**

@@ -13,6 +13,7 @@ import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { useMediaOverlay } from "./MediaOverlayContext";
+import { isString } from "../../utils/typePredicates";
 
 const hoverStyles = css({
   ".image-dimensions": {
@@ -67,7 +68,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   // null for any other source, in which case the original `source` is used
   // unchanged.
   const fileHttpUrl = fileUriToHttpUrl(
-    typeof source === "string" ? source : null
+    isString(source) ? source : null
   );
   const effectiveSource = fileHttpUrl !== null ? fileHttpUrl : source;
 

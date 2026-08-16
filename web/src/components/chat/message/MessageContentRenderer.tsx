@@ -24,6 +24,7 @@ import {
   hasHarmonyTokens,
   getDisplayContent
 } from "../utils/harmonyUtils";
+import { isString } from "../../../utils/typePredicates";
 
 interface MessageContentRendererProps {
   content: MessageContent;
@@ -107,7 +108,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     if (!videoSource) {
       return undefined;
     }
-    if (typeof videoSource === "string") {
+    if (isString(videoSource)) {
       return videoSource;
     }
     const url = URL.createObjectURL(

@@ -42,6 +42,12 @@ import {
   trackRunTexture,
   type LabeledTexture
 } from "./gpu-device.js";
+import {
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 
 // Cache the executor / recipe runner / registry at module scope so the
 // sampler WeakMap inside the executor (and the recipe runner's internal
@@ -251,8 +257,7 @@ export async function runShaderNode(
     // run): the next node samples it directly and the run frees it later. On
     // Node/Dawn (server) or outside a run, read it back to a CPU RGBA buffer.
     const runId = context?.jobId;
-    const keepOnGpu =
-      GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+    const keepOnGpu = GPU_TEXTURES_ENABLED && isNonEmptyString(runId);
 
     const dims = resolveOutputDims(module, source, opts);
     output = createLabeledTexture(device, {
@@ -371,8 +376,7 @@ export async function runRecipeNode(
     }
 
     const runId = context?.jobId;
-    const keepOnGpu =
-      GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+    const keepOnGpu = GPU_TEXTURES_ENABLED && isNonEmptyString(runId);
 
     const dims = resolveOutputDims(recipe, source, opts);
     output = createLabeledTexture(device, {
@@ -557,19 +561,19 @@ export function colorValueToVec4(
   if (Array.isArray(color)) {
     const [r, g, b, a] = color as unknown[];
     const out: [number, number, number, number] = [
-      typeof r === "number" ? r : fallback[0],
-      typeof g === "number" ? g : fallback[1],
-      typeof b === "number" ? b : fallback[2],
-      typeof a === "number" ? a : fallback[3]
+      isNumber(r) ? r : fallback[0],
+      isNumber(g) ? g : fallback[1],
+      isNumber(b) ? b : fallback[2],
+      isNumber(a) ? a : fallback[3]
     ];
     return out.some((v) => !Number.isFinite(v)) ? fallback : out;
   }
   let value: string | undefined;
-  if (typeof color === "string") {
+  if (isString(color)) {
     value = color;
-  } else if (color && typeof color === "object") {
+  } else if (isObjectLike(color)) {
     const maybe = (color as { value?: unknown }).value;
-    if (typeof maybe === "string") value = maybe;
+    if (isString(maybe)) value = maybe;
   }
   if (value == null) return fallback;
   let hex = value.startsWith("#") ? value.slice(1) : value;

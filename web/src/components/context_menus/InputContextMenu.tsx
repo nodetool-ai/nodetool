@@ -42,6 +42,7 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
+import { isNumber } from "../../utils/typePredicates";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -291,7 +292,7 @@ const InputContextMenu: React.FC = () => {
         value: number | string | undefined,
         fallback: number
       ): number => {
-        if (typeof value === "number") return value;
+        if (isNumber(value)) return value;
         if (value != null) return parseInt(value, 10) || fallback;
         return fallback;
       };
@@ -436,7 +437,7 @@ const InputContextMenu: React.FC = () => {
         if (connectMax != null) {
           newNode.data.properties.max = connectMax;
         }
-        if (typeof connectDefault === "number") {
+        if (isNumber(connectDefault)) {
           newNode.data.properties.value = connectDefault;
         }
       }

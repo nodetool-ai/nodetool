@@ -15,6 +15,7 @@ import {
   outboundControlMessageSchemas,
   processingMessageSchemas
 } from "@nodetool-ai/protocol";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 /**
  * On (dev and test) unless explicitly built for production — Jest sets
@@ -44,12 +45,12 @@ export function validateInboundMessage(message: unknown): void {
   if (!VALIDATE_INBOUND_MESSAGES) {
     return;
   }
-  if (!message || typeof message !== "object") {
+  if (!message || !isObjectLike(message)) {
     return;
   }
 
   const type = (message as { type?: unknown }).type;
-  if (typeof type !== "string") {
+  if (!isString(type)) {
     return;
   }
 

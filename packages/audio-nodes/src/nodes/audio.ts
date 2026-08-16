@@ -29,6 +29,12 @@ import {
   uriToPath,
   type WavData
 } from "../lib/audio-wav.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isPositiveNumber,
+  isString
+} from "../type-predicates.js";
 
 const DEFAULT_AUDIO_EXTENSIONS = [
   ".mp3",
@@ -82,15 +88,10 @@ async function* walkAudioFiles(
  * folder asset ref (`{ type: "folder", uri }`) into a filesystem path.
  */
 function resolveFolderPath(raw: unknown): string {
-  if (typeof raw === "string" && raw.length > 0) {
+  if (isNonEmptyString(raw)) {
     return raw.startsWith("file:") ? uriToPath(raw) : raw;
   }
-  if (
-    raw &&
-    typeof raw === "object" &&
-    typeof (raw as { uri?: unknown }).uri === "string" &&
-    (raw as { uri: string }).uri.length > 0
-  ) {
+  if (isObjectLike(raw) && isNonEmptyString((raw as { uri?: unknown }).uri)) {
     return uriToPath((raw as { uri: string }).uri);
   }
   return "";
@@ -110,12 +111,12 @@ function dateName(name: string): string {
 
 function getModelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
-  if (typeof model === "string") {
+  if (isString(model)) {
     return { providerId: "", modelId: model };
   }
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
+    providerId: isString(model.provider) ? model.provider : "",
+    modelId: isString(model.id) ? model.id : ""
   };
 }
 
@@ -1260,7 +1261,7 @@ export class AudioMixerNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<AudioMixerNodeOutputs> {
     const inputs = Array.from(this.dynamicProps.values()).filter(
-      (t) => t && typeof t === "object"
+      (t) => isObjectLike(t)
     );
 
     const tracks = (
@@ -1592,10 +1593,9 @@ export class TextToSpeechNode extends BaseNode {
     const text = String(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
     const modelObj = (this.model ?? {}) as Record<string, unknown>;
-    const explicitVoice =
-      typeof modelObj.selected_voice === "string"
-        ? modelObj.selected_voice
-        : "";
+    const explicitVoice = isString(modelObj.selected_voice)
+      ? modelObj.selected_voice
+      : "";
     const voiceList = Array.isArray(modelObj.voices)
       ? (modelObj.voices as string[])
       : [];
@@ -1615,7 +1615,7 @@ export class TextToSpeechNode extends BaseNode {
           params
         })) {
           const piece = item as { samples?: Int16Array; sampleRate?: number };
-          if (typeof piece.sampleRate === "number" && piece.sampleRate > 0) {
+          if (isPositiveNumber(piece.sampleRate)) {
             sampleRate = piece.sampleRate;
           }
           if (piece.samples instanceof Int16Array) {
@@ -1801,7 +1801,7 @@ export class ChunkToAudioNode extends BaseNode {
 
   async process(): Promise<ChunkToAudioNodeOutputs> {
     const chunk = this.chunk;
-    if (chunk && typeof chunk === "object") {
+    if (isObjectLike(chunk)) {
       const c = chunk as {
         data?: Uint8Array | string;
         uri?: string;
@@ -1813,14 +1813,10 @@ export class ChunkToAudioNode extends BaseNode {
       if (c.data) {
         return { audio: audioRefFromBytes(toBytes(c.data)) };
       }
-      if (
-        c.content_type === "audio" &&
-        typeof c.content === "string" &&
-        c.content.length > 0
-      ) {
+      if (c.content_type === "audio" && isNonEmptyString(c.content)) {
         return { audio: audioRefFromBytes(toBytes(c.content)) };
       }
-      if (typeof c.uri === "string" && c.uri.length > 0) {
+      if (isNonEmptyString(c.uri)) {
         return { audio: { type: "audio", uri: c.uri, data: "" } };
       }
     }

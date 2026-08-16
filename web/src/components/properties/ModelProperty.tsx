@@ -22,6 +22,7 @@ import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { SPACING, getSpacingPx } from "../ui_primitives";
+import { isObjectLike } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -79,7 +80,7 @@ const ModelProperty = (props: PropertyProps) => {
   const lockedProviders = useMemo(() => {
     const def = props.property.default;
     const provider =
-      def && typeof def === "object"
+      def && isObjectLike(def)
         ? (def as { provider?: string }).provider
         : undefined;
     if (!provider || provider === "empty") {

@@ -20,6 +20,7 @@ import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
+import { isFunction, isObjectLike, isString } from "../../utils/typePredicates";
 
 // CSS Custom Highlight API (experimental)
 /** One entry of the CSS Custom Highlight API registry: a live set of Ranges. */
@@ -213,7 +214,7 @@ const EditorController = ({
       const hs = (CSS as CSSWithHighlights)?.highlights;
 
       // Native CSS Highlight API is preferred
-      if (hs && typeof hs.set === "function") {
+      if (hs && isFunction(hs.set)) {
         const ranges: Range[] = [];
         for (const start of matchIndexes) {
           const r = createRangeForMatch(start, matchLength);
@@ -396,9 +397,9 @@ const EditorController = ({
     (searchParam: SearchParam) => {
       let searchTerm = "";
 
-      if (typeof searchParam === "string") {
+      if (isString(searchParam)) {
         searchTerm = searchParam;
-      } else if (searchParam && typeof searchParam === "object") {
+      } else if (searchParam && isObjectLike(searchParam)) {
         // event object
         if (
           "target" in searchParam &&

@@ -15,6 +15,11 @@ import type {
   NodeDebug,
   NodeOutput
 } from "./types.js";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -57,7 +62,7 @@ export function previewValue(
   value: unknown,
   maxLen: number = MAX_STRING_PREVIEW
 ): PreviewValue {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value.length > maxLen
       ? `${value.slice(0, maxLen)}…[${value.length} chars]`
       : value;
@@ -73,10 +78,10 @@ export function previewValue(
       ? [...head, `…[${value.length - MAX_ARRAY_PREVIEW} more]`]
       : head;
   }
-  if (value && typeof value === "object") {
+  if (isObjectLike(value)) {
     const out: { [key: string]: PreviewValue } = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (BLOB_KEYS.has(k) && typeof v === "string" && v.length > 256) {
+      if (BLOB_KEYS.has(k) && isString(v) && v.length > 256) {
         out[k] = `${v.slice(0, BLOB_KEEP)}…[${v.length} chars]`;
       } else {
         out[k] = previewValue(v, maxLen);
@@ -128,8 +133,8 @@ export function collectExecutionSummary(
     return n;
   };
 
-  const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
-  const num = (v: unknown): number | null => (typeof v === "number" ? v : null);
+  const str = (v: unknown): string | null => (isString(v) ? v : null);
+  const num = (v: unknown): number | null => (isNumber(v) ? v : null);
 
   for (const raw of messages) {
     const msg = raw as Record<string, unknown>;
@@ -157,7 +162,7 @@ export function collectExecutionSummary(
           | Record<string, unknown>
           | null
           | undefined;
-        if (cost && typeof cost === "object") {
+        if (isObjectLike(cost)) {
           n.cost = {
             provider: str(cost.provider) ?? "",
             amount: num(cost.amount) ?? 0,
@@ -306,15 +311,15 @@ export function collectExecutionSummary(
 function readIntervention(msg: Record<string, unknown>): Intervention | null {
   const escalation = msg.escalation;
   const verdict = msg.verdict;
-  if (!escalation || typeof escalation !== "object") return null;
-  if (!verdict || typeof verdict !== "object") return null;
-  if (typeof (verdict as { action?: unknown }).action !== "string") return null;
+  if (!isObjectLike(escalation)) return null;
+  if (!isObjectLike(verdict)) return null;
+  if (!isString((verdict as { action?: unknown }).action)) return null;
   const decidedBy = msg.decided_by;
   // `decided_by` is required by the message schema, and only `"agent"` means a
   // model was involved. Guessing it would misreport who decided — and inflate
   // the agent-decision count the cost rollup reads — so an unrecognized value
   // drops the record rather than defaulting.
-  if (typeof decidedBy !== "string") return null;
+  if (!isString(decidedBy)) return null;
   if (!Object.prototype.hasOwnProperty.call(DECIDED_BY, decidedBy)) return null;
   const cost = msg.cost;
   type InterventionFields = Mutable<Intervention>;
@@ -323,7 +328,7 @@ function readIntervention(msg: Record<string, unknown>): Intervention | null {
     verdict: verdict as Intervention["verdict"],
     decidedBy: decidedBy as Intervention["decidedBy"]
   };
-  if (typeof cost === "number") {
+  if (isNumber(cost)) {
     intervention.costUsd = cost;
   }
   return intervention;

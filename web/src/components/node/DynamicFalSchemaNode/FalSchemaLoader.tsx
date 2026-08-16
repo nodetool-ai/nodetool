@@ -8,6 +8,7 @@ import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { isNumber } from "../../../utils/typePredicates";
 
 export { DYNAMIC_FAL_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -85,7 +86,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
         };
         const effectiveMin =
           k === "seed" && meta.default === -1
-            ? (typeof meta.min === "number" ? Math.min(meta.min, -1) : -1)
+            ? (isNumber(meta.min) ? Math.min(meta.min, -1) : -1)
             : meta.min;
         dynamic_inputs[k] = {
           ...meta,

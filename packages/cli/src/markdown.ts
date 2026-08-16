@@ -5,6 +5,7 @@
  */
 
 import { marked } from "marked";
+import { isString } from "./predicates.js";
 
 // Cache so we only set the extension once
 let _initialized = false;
@@ -30,7 +31,7 @@ export async function renderMarkdown(text: string): Promise<string> {
   }
   try {
     const result = marked(text);
-    if (typeof result === "string") return result;
+    if (isString(result)) return result;
     return await result;
   } catch {
     return text; // fallback to raw text on render error

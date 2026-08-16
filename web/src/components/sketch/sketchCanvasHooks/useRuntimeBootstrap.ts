@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SketchRuntime } from "../rendering";
 import { Canvas2DRuntime, createRuntime, isWebGPUAvailable } from "../rendering";
+import { isNumber } from "../../../utils/typePredicates";
 
 export interface UseRuntimeBootstrapParams {
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
@@ -47,7 +48,7 @@ export function useRuntimeBootstrap({
   // Keep zoom in sync on the runtime so the checkerboard pattern
   // can maintain a constant visual size regardless of the zoom level.
   const rt = runtimeRef.current as { zoom?: number };
-  if (typeof rt.zoom === "number") {
+  if (isNumber(rt.zoom)) {
     rt.zoom = externalZoom;
   }
 

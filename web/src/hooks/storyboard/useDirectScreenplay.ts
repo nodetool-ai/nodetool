@@ -22,6 +22,7 @@ import {
 import { normalizeOutputUpdateValue, isOutputUpdate } from "../../stores/outputUpdateValue";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
+import { isString } from "../../utils/typePredicates";
 
 const DIRECTOR_NODE_ID = "director";
 const OUT_NODE_ID = "out";
@@ -42,7 +43,7 @@ const makeWorkflow = (id: string): WorkflowAttributes => ({
 /** Coerce a Director `screenplay` output value into a Screenplay, or null. */
 export const coerceScreenplay = (value: unknown): Screenplay | null => {
   let candidate: unknown = value;
-  if (typeof candidate === "string") {
+  if (isString(candidate)) {
     try {
       candidate = JSON.parse(candidate);
     } catch {
@@ -179,7 +180,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
                 unsubscribe();
                 reject(
                   new Error(
-                    typeof message.error === "string" && message.error.length > 0
+                    isString(message.error) && message.error.length > 0
                       ? message.error
                       : `Director run ${message.status}`
                   )

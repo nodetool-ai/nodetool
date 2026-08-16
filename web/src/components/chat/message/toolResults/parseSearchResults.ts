@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "../../../../utils/typePredicates";
 /**
  * Normalizes the many shapes a search-style tool can return into a single
  * `SearchResultItem[]` the UI can render. Tools in this repo return results in
@@ -30,7 +31,7 @@ function domainFromUrl(url: string): string | undefined {
 function pickString(obj: Record<string, unknown>, ...keys: string[]): string | undefined {
   for (const key of keys) {
     const value = obj[key];
-    if (typeof value === "string" && value.trim().length > 0) {
+    if (isString(value) && value.trim().length > 0) {
       return value.trim();
     }
   }
@@ -42,10 +43,10 @@ function normalizeSource(
   url: string | undefined
 ): string | undefined {
   const raw = obj.source;
-  if (typeof raw === "string" && raw.trim().length > 0) return raw.trim();
-  if (raw && typeof raw === "object" && "name" in raw) {
+  if (isString(raw) && raw.trim().length > 0) return raw.trim();
+  if (raw && isObjectLike(raw) && "name" in raw) {
     const name = raw.name;
-    if (typeof name === "string" && name.trim().length > 0) return name.trim();
+    if (isString(name) && name.trim().length > 0) return name.trim();
   }
   return url ? domainFromUrl(url) : undefined;
 }
@@ -123,7 +124,7 @@ function parseNumberedText(text: string): SearchResultItem[] {
 export function normalizeSearchResults(content: unknown): SearchResultItem[] | null {
   if (content == null) return null;
 
-  if (typeof content === "string") {
+  if (isString(content)) {
     const trimmed = content.trim();
     if (!trimmed) return null;
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {

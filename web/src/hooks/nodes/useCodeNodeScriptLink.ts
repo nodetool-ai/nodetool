@@ -23,6 +23,7 @@ import type {
   DynamicSlotDeclaration,
   NodeData
 } from "../../stores/NodeData";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 type JsScriptPort = jsScripts.JsScriptPort;
 
@@ -52,13 +53,13 @@ export interface CodeNodeScriptLinkState {
 }
 
 const readLink = (value: unknown): JsScriptLink | null => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isObjectLike(value) || Array.isArray(value)) {
     return null;
   }
   const record = value as Record<string, unknown>;
-  return typeof record.id === "string" &&
+  return isString(record.id) &&
     record.id !== "" &&
-    typeof record.version === "number"
+    isNumber(record.version)
     ? { id: record.id, version: record.version }
     : null;
 };
@@ -214,7 +215,7 @@ export function useCodeNodeScriptLink(
       const document = {
         schemaVersion: 1 as const,
         description: "",
-        code: typeof properties.code === "string" ? properties.code : "",
+        code: isString(properties.code) ? properties.code : "",
         inputs: slotsToPorts(node?.data?.dynamic_inputs),
         outputs: outputsToPorts(node?.data?.dynamic_outputs),
         packages: Array.isArray(properties.packages)
@@ -222,7 +223,7 @@ export function useCodeNodeScriptLink(
           : [],
         secrets: stringList(properties.secrets),
         timeoutSeconds:
-          typeof properties.timeout === "number" ? properties.timeout : 30,
+          isNumber(properties.timeout) ? properties.timeout : 30,
         tests: []
       };
       const created = await createScript.mutateAsync({ name, document });

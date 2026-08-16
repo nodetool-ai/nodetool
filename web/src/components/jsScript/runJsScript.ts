@@ -12,6 +12,7 @@
 
 import { restFetch } from "../../lib/rest-fetch";
 import type { JsScriptRunOutcome } from "../../stores/jsScript/JsScriptStore";
+import { isString } from "../../utils/typePredicates";
 
 interface ErrorBody {
   detail?: unknown;
@@ -39,7 +40,7 @@ export async function runJsScript(
   if (!response.ok) {
     const detail = (body as ErrorBody | null)?.detail;
     throw new Error(
-      typeof detail === "string"
+      isString(detail)
         ? detail
         : `The script run failed (HTTP ${response.status}).`
     );

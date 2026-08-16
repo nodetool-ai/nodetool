@@ -42,6 +42,7 @@ import {
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
+import { isFunction } from "../../utils/typePredicates";
 
 /** Base left padding for the layer row (px). 0 so the thumbnail sits flush
  *  with the row's left edge — the row background should not stick out past it. */
@@ -502,7 +503,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }
             onPointerUp={(e) => {
               if (
-                typeof e.currentTarget.hasPointerCapture === "function" &&
+                isFunction(e.currentTarget.hasPointerCapture) &&
                 e.currentTarget.hasPointerCapture(e.pointerId)
               ) {
                 e.currentTarget.releasePointerCapture(e.pointerId);
@@ -510,7 +511,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
             onPointerCancel={(e) => {
               if (
-                typeof e.currentTarget.hasPointerCapture === "function" &&
+                isFunction(e.currentTarget.hasPointerCapture) &&
                 e.currentTarget.hasPointerCapture(e.pointerId)
               ) {
                 e.currentTarget.releasePointerCapture(e.pointerId);

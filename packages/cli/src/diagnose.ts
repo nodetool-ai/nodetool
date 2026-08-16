@@ -16,6 +16,11 @@
  */
 
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  isFiniteNumber,
+  isObjectLike,
+  isString
+} from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Inputs
@@ -159,11 +164,11 @@ const FAILED_JOB_STATUSES = new Set(["failed", "error", "cancelled"]);
 const LLM_SPAN_NAMES = new Set(["llm.chat", "llm.stream"]);
 
 function str(v: unknown): string | null {
-  return typeof v === "string" ? v : null;
+  return isString(v) ? v : null;
 }
 
 function num(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
+  return isFiniteNumber(v) ? v : null;
 }
 
 function truncate(s: string, max: number): string {
@@ -397,9 +402,9 @@ function summarizeMemory(memory: Record<string, unknown>): MemorySnapshot {
   for (const k of shown) {
     const v = memory[k];
     let s: string;
-    if (typeof v === "string") s = v;
+    if (isString(v)) s = v;
     else if (v === null || v === undefined) s = String(v);
-    else if (typeof v === "object") s = Array.isArray(v) ? `array(${v.length})` : "{…}";
+    else if (isObjectLike(v)) s = Array.isArray(v) ? `array(${v.length})` : "{…}";
     else s = String(v);
     preview[k] = truncate(s, VALUE_PREVIEW_MAX);
   }

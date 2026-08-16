@@ -1,3 +1,4 @@
+import { isString } from "./typePredicates";
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 
 const DEFAULT_MAX_DISPLAY_TEXT_LENGTH = 2000;
@@ -7,7 +8,7 @@ export function sanitizeDisplayText(
   maxLength = DEFAULT_MAX_DISPLAY_TEXT_LENGTH,
 ): string {
   const sanitized = text.replace(DATA_URI_PATTERN, (match, mimeType) => {
-    const mime = typeof mimeType === "string" && mimeType !== "" ? mimeType : "data";
+    const mime = isString(mimeType) && mimeType !== "" ? mimeType : "data";
     return `[${mime} base64 omitted, ${match.length} chars]`;
   });
 

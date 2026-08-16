@@ -54,6 +54,7 @@ import { InputProperty } from "./InputProperty";
 import type { PropertyProps } from "./PropertyInput.types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { hasCodeProperty } from "./codeNodeUi";
+import { isString } from "../../utils/typePredicates";
 
 export function getComponentForProperty(
   property: Property,
@@ -76,7 +77,7 @@ export function getComponentForProperty(
   // Explicit `json_schema_extra.type` opts into a custom renderer regardless
   // of base type or attached enum values (e.g. media_aspect_ratio_image
   // wants the chip-style picker even though `values` is set).
-  if (typeof property.json_schema_extra?.type === "string") {
+  if (isString(property.json_schema_extra?.type)) {
     const overrideComponent = customComponentForType(
       property.json_schema_extra.type
     );
@@ -96,7 +97,7 @@ export function getComponentForProperty(
     return EnumProperty;
   }
 
-  if (typeof property.json_schema_extra?.type === "string") {
+  if (isString(property.json_schema_extra?.type)) {
     return componentForType(property.json_schema_extra.type);
   }
 

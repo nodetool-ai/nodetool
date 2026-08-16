@@ -16,6 +16,7 @@
 
 import { createMobileTRPCClient } from '../trpc/client';
 import type { DocumentKind, ResourceDocumentKind } from './kinds';
+import { isNumber, isString } from '../utils/typePredicates';
 
 /** What a read or a write resolves to. `token` is only meaningful to the backend. */
 export interface LoadedDocument<Doc = unknown> {
@@ -108,7 +109,7 @@ function resourcesBackend(kind: ResourceDocumentKind): DocumentBackend {
         ref: {
           kind,
           id,
-          revision: typeof token === 'number' ? token : undefined,
+          revision: isNumber(token) ? token : undefined,
         },
         name,
         document: doc,
@@ -169,7 +170,7 @@ function scriptsBackend(): DocumentBackend {
         document: doc as Parameters<
           ReturnType<typeof createMobileTRPCClient>['scripts']['update']['mutate']
         >[0]['document'],
-        baseUpdatedAt: typeof token === 'string' ? token : undefined,
+        baseUpdatedAt: isString(token) ? token : undefined,
       });
       return {
         doc: script.document,
@@ -235,7 +236,7 @@ function jsScriptsBackend(): DocumentBackend {
             typeof createMobileTRPCClient
           >['jsScripts']['update']['mutate']
         >[0]['document'],
-        baseUpdatedAt: typeof token === 'string' ? token : undefined,
+        baseUpdatedAt: isString(token) ? token : undefined,
       });
       return {
         doc: script.document,

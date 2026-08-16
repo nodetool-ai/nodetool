@@ -47,6 +47,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
+import { isString } from "./wire-values.js";
 
 export const listApplicationsInput = z.object({
   projectId: z.string().optional()
@@ -105,7 +106,7 @@ async function documentFromWorkflow(
   const raw: unknown = (workflow as AppDocColumn).app_doc;
   const parsed = raw
     ? parseApplicationDocument(
-        typeof raw === "string" ? JSON.parse(raw) : raw,
+        isString(raw) ? JSON.parse(raw) : raw,
         { hostWorkflowId: workflowId }
       )
     : null;
@@ -168,7 +169,7 @@ async function insertApplication(
       // answer a missing id gets. Reporting "already exists" here would make
       // the losing side of the race the one place that reveals an id is held.
       const existing =
-        typeof data.id === "string" ? await Application.findById(data.id) : null;
+        isString(data.id) ? await Application.findById(data.id) : null;
       if (existing && existing.user_id === userId) return existing;
       throwApiError(ApiErrorCode.NOT_FOUND, "Application not found");
     }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isBoolean, isObjectLike } from "../utils/typePredicates";
 
 type FavoriteKey = string; // `${provider}:${id}`
 
@@ -122,7 +123,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           enabledProviders: {},
           defaults: {}
         };
-        if (!persistedState || typeof persistedState !== "object") {
+        if (!persistedState || !isObjectLike(persistedState)) {
           return fallback;
         }
         const state = persistedState as Record<string, unknown>;
@@ -134,16 +135,16 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
             ? state.recents
             : fallback.recents,
           onlyAvailable:
-            typeof state.onlyAvailable === "boolean"
+            isBoolean(state.onlyAvailable)
               ? state.onlyAvailable
               : fallback.onlyAvailable,
           enabledProviders:
             state.enabledProviders &&
-            typeof state.enabledProviders === "object"
+            isObjectLike(state.enabledProviders)
               ? (state.enabledProviders as PersistedModelPreferences["enabledProviders"])
               : fallback.enabledProviders,
           defaults:
-            state.defaults && typeof state.defaults === "object"
+            state.defaults && isObjectLike(state.defaults)
               ? (state.defaults as PersistedModelPreferences["defaults"])
               : fallback.defaults
         };

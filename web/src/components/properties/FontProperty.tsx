@@ -5,6 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";
 import { trpcClient } from "../../trpc/client";
+import { isObjectLike } from "../../utils/typePredicates";
 
 const fetchFonts = async (): Promise<string[]> => {
   const { fonts } = await trpcClient.fonts.list.query();
@@ -42,7 +43,7 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
   );
 
   const currentValue =
-    value && typeof value === "object" && value.type === "font"
+    value && isObjectLike(value) && value.type === "font"
       ? value.name
       : "";
 

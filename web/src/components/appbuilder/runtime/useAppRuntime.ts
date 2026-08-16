@@ -77,6 +77,7 @@ import {
   savePersistedVariables
 } from "./variablePersistence";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";
+import { isString } from "../../../utils/typePredicates";
 
 const now = (): number => Date.now();
 
@@ -592,7 +593,7 @@ export const useAppRuntime = (
       const jobId = (message as Record<string, unknown>).job_id;
       // A message carrying no job id cannot be attributed to an invocation, so
       // folding it produces nothing either now or after a replay.
-      if (typeof jobId !== "string") return;
+      if (!isString(jobId)) return;
       if (ownedRef.current.has(jobId)) {
         foldRef.current(message);
         return;

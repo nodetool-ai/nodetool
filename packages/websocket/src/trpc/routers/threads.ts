@@ -24,6 +24,11 @@ import {
   summarizeOutput,
   type ThreadResponse
 } from "@nodetool-ai/protocol/api-schemas/threads.js";
+import {
+  isNonBlankString,
+  isObjectLike,
+  isString
+} from "../../lib/wire-values.js";
 
 /** Maximum length of a derived thread title before truncation. */
 const THREAD_TITLE_MAX_LEN = 60;
@@ -52,7 +57,7 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
   const [messages] = await Message.paginate(threadId, { limit: 10 });
   for (const msg of messages) {
     const content = msg.content;
-    if (typeof content === "string" && content.trim().length > 0) {
+    if (isNonBlankString(content)) {
       const text = content.trim().replace(/\s+/g, " ");
       return text.length > THREAD_TITLE_MAX_LEN
         ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
@@ -61,12 +66,11 @@ async function deriveThreadTitle(threadId: string): Promise<string> {
     if (Array.isArray(content)) {
       for (const part of content) {
         if (
-          part !== null &&
-          typeof part === "object" &&
+          isObjectLike(part) &&
           "type" in part &&
           (part as Record<string, unknown>).type === "text" &&
           "text" in part &&
-          typeof (part as Record<string, unknown>).text === "string"
+          isString((part as Record<string, unknown>).text)
         ) {
           const text = ((part as Record<string, unknown>).text as string)
             .trim()

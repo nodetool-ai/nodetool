@@ -56,6 +56,13 @@ import {
   loadSharp,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 
 /** Filesystem / sharp-bound nodes that only run on a full Node runtime. */
 const NODE_ONLY: readonly Platform[] = ["node"];
@@ -78,7 +85,7 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 }
 
 async function imageBytesAsync(image: unknown, context?: ProcessingContext): Promise<Uint8Array> {
-  if (!image || typeof image !== "object") return new Uint8Array();
+  if (!isObjectLike(image)) return new Uint8Array();
   const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
   return bytes ?? new Uint8Array();
 }
@@ -89,9 +96,9 @@ async function imageBytesAsync(image: unknown, context?: ProcessingContext): Pro
  * decide if an inline `asset://` mention in the prompt should supply the input.
  */
 function imageRefHasSource(image: unknown): boolean {
-  if (!image || typeof image !== "object") return false;
+  if (!isObjectLike(image)) return false;
   const ref = image as ImageRefLike & { asset_id?: unknown };
-  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return true;
+  if (isString(ref.uri) && ref.uri.trim() !== "") return true;
   if (ref.data != null && ref.data !== "") return true;
   return ref.asset_id != null && ref.asset_id !== "";
 }
@@ -181,8 +188,8 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
 function getModelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
+    providerId: isString(model.provider) ? model.provider : "",
+    modelId: isString(model.id) ? model.id : ""
   };
 }
 
@@ -369,11 +376,11 @@ export class LoadImageFolderNode extends BaseNode {
     const path = await loadNodePath();
     const raw = this.folder;
     const folder =
-      typeof raw === "string" && raw.length > 0
+      isNonEmptyString(raw)
         ? raw.startsWith("file:")
           ? await filePath(raw)
           : raw
-        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
+        : isObjectLike(raw) && isNonEmptyString((raw as Record<string, unknown>).uri)
           ? await filePath((raw as Record<string, unknown>).uri as string)
           : "";
     if (!folder) return;
@@ -680,7 +687,7 @@ export class SaveImageNode extends BaseNode {
     // Fallback: write to filesystem
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
-    const folder = typeof this.folder === "string" ? this.folder : ".";
+    const folder = isString(this.folder) ? this.folder : ".";
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, bytes);
@@ -817,7 +824,7 @@ export class BatchToListNode extends BaseNode {
     }
     // Unwrap batch data into individual ImageRefs
     const output = (batchObj.data as unknown[]).map((item) => {
-      if (item instanceof Uint8Array || typeof item === "string") {
+      if (item instanceof Uint8Array || isString(item)) {
         return imageRef(toBytes(item));
       }
       return item;
@@ -1933,7 +1940,7 @@ export class ImageToImageNode extends BaseNode {
       ],
       context
     );
-    if (typeof overrides.prompt === "string") prompt = overrides.prompt;
+    if (isString(overrides.prompt)) prompt = overrides.prompt;
     if (overrides.image && images.length === 0) {
       images = [overrides.image as ImageRefLike];
     }
@@ -2458,12 +2465,12 @@ type CompositorLayerState = {
 };
 
 function compositorLayerTransform(raw: unknown): LayerTransform2D | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
+  if (!isObjectLike(raw)) return undefined;
   const r = raw as Record<string, unknown>;
   const num = (v: unknown, fallback: number): number =>
-    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+    isFiniteNumber(v) ? v : fallback;
   // A persisted transform must at least pin a position; scale defaults to 1.
-  if (typeof r.x !== "number" || typeof r.y !== "number") return undefined;
+  if (!isNumber(r.x) || !isNumber(r.y)) return undefined;
   return {
     x: r.x,
     y: r.y,
@@ -2476,9 +2483,7 @@ function compositorLayerTransform(raw: unknown): LayerTransform2D | undefined {
 function compositorLayerState(raw: unknown): CompositorLayerState {
   const r = (raw ?? {}) as Record<string, unknown>;
   const opacity =
-    typeof r.opacity === "number"
-      ? Math.max(0, Math.min(1, r.opacity))
-      : 1;
+    isNumber(r.opacity) ? Math.max(0, Math.min(1, r.opacity)) : 1;
   const visible = r.visible === undefined ? true : !!r.visible;
   // Stored values are canonical blend modes; the legacy "over" name still
   // resolves to "normal" via coerceBlendMode.
@@ -2564,7 +2569,7 @@ export class CompositorNode extends BaseNode {
     const collected: { index: number; image: ImageRefLike }[] = [];
     for (const [key, value] of this.dynamicProps) {
       const m = /^image_(\d+)$/.exec(key);
-      if (!m || !value || typeof value !== "object") continue;
+      if (!m || !isObjectLike(value)) continue;
       collected.push({ index: Number(m[1]), image: value as ImageRefLike });
     }
     collected.sort((a, b) => a.index - b.index);
@@ -2759,7 +2764,7 @@ export class PainterNode extends BaseNode {
 
     // Decode the painted mask. Empty mask_data → blank mask matching
     // image dimensions (alpha = 0 everywhere).
-    const maskStr = typeof this.mask_data === "string" ? this.mask_data : "";
+    const maskStr = isString(this.mask_data) ? this.mask_data : "";
     const maskBytes = toBytes(maskStr);
 
     if (maskBytes.length === 0) {

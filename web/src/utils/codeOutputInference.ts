@@ -7,6 +7,7 @@
  */
 import * as acorn from "acorn";
 import type { TypeMetadata } from "../stores/ApiTypes";
+import { isString } from "./typePredicates";
 
 // ---------------------------------------------------------------------------
 // Minimal AST walker (replaces acorn-walk for the node types used below)
@@ -72,7 +73,7 @@ export function inferOutputKeysFromCode(
     if (node.callee.type !== "Identifier") return;
     if (node.callee.name !== "emit" && node.callee.name !== "output") return;
     const first = node.arguments[0];
-    if (first?.type === "Literal" && typeof first.value === "string") {
+    if (first?.type === "Literal" && isString(first.value)) {
       emitKeys.add(first.value);
     }
   });
@@ -102,7 +103,7 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
     if (prop.type === "SpreadElement") continue;
     if (prop.key.type === "Identifier") {
       keys.push(prop.key.name);
-    } else if (prop.key.type === "Literal" && typeof prop.key.value === "string") {
+    } else if (prop.key.type === "Literal" && isString(prop.key.value)) {
       keys.push(prop.key.value);
     }
   }
@@ -171,7 +172,7 @@ export function inferInputKeysFromCode(code: string): string[] | null {
       if (
         parent.computed &&
         parent.property.type === "Literal" &&
-        typeof parent.property.value === "string"
+        isString(parent.property.value)
       ) {
         names.add(parent.property.value);
       }
@@ -209,7 +210,7 @@ export function inferInputKeysFromCode(code: string): string[] | null {
 }
 
 function addLiteralArg(arg: acorn.AnyNode | undefined, names: Set<string>): void {
-  if (arg?.type === "Literal" && typeof arg.value === "string" && arg.value !== "") {
+  if (arg?.type === "Literal" && isString(arg.value) && arg.value !== "") {
     names.add(arg.value);
   }
 }
@@ -315,7 +316,7 @@ export function parsesAsCodeBody(code: string): boolean {
 }
 
 function tryParse(code: string): acorn.Node | null {
-  if (!code || typeof code !== "string") return null;
+  if (!code || !isString(code)) return null;
 
   const opts: acorn.Options = {
     ecmaVersion: "latest",

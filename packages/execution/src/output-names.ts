@@ -9,13 +9,14 @@
  * before this package existed.
  */
 import type { HydratedGraphData } from "@nodetool-ai/protocol";
+import { isNonBlankString } from "./predicates.js";
 
 export function rewriteOutputNames(graph: HydratedGraphData): void {
   for (const node of graph.nodes) {
     if (!node.type.startsWith("nodetool.output.")) continue;
     const properties = node.properties as Record<string, unknown> | null;
     const publicName = properties?.["name"];
-    if (typeof publicName === "string" && publicName.trim().length > 0) {
+    if (isNonBlankString(publicName)) {
       node.name = publicName;
     }
   }

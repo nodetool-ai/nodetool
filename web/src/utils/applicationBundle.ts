@@ -7,6 +7,7 @@
  * is plain JSON rather than a zip, because it carries graphs, not asset bytes.
  */
 import { restFetch } from "../lib/rest-fetch";
+import { isObjectLike } from "./typePredicates";
 
 interface ImportedApplication {
   id: string;
@@ -89,7 +90,7 @@ export async function importApplicationBundle(
   const data: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const detail =
-      data && typeof data === "object" && "detail" in data
+      data && isObjectLike(data) && "detail" in data
         ? String(data.detail)
         : `Import failed (${res.status})`;
     throw new Error(detail);

@@ -3,9 +3,10 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
+import { isString } from "../../utils/typePredicates";
 
 const formatEnumLabel = (value: string | number): string => {
-  if (typeof value !== "string") {
+  if (!isString(value)) {
     return value.toString();
   }
 

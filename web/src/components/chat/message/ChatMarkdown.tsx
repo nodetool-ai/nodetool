@@ -17,6 +17,7 @@ import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
 import ResourceChip from "./ResourceChip";
+import { isNumber, isString } from "../../../utils/typePredicates";
 import "../../../styles/markdown/github-markdown.css";
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
@@ -65,7 +66,7 @@ const urlTransform: NonNullable<Options["urlTransform"]> = (url) =>
 
 /** Link text as a plain string — `[**Bold**](…)` hands the `a` override nodes. */
 const linkText = (node: React.ReactNode): string => {
-  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (isString(node) || isNumber(node)) return String(node);
   if (Array.isArray(node)) return node.map(linkText).join("");
   if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
     return linkText(node.props.children);
@@ -133,7 +134,7 @@ const containsBlockEmbed = (node: unknown): boolean => {
       (child) =>
         child.type === "element" &&
         child.tagName === "img" &&
-        typeof child.properties?.src === "string" &&
+        isString(child.properties?.src) &&
         isBlockEmbedSrc(child.properties.src)
     )
   );

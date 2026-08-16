@@ -7,6 +7,7 @@
  * dependency-free (no MsgPack, no auth/Supabase) and easy to reason about in CI.
  */
 import type { WsEvent } from "./types";
+import { isString } from "../utils/typePredicates";
 
 export type WsMessageHandler = (msg: WsEvent) => void;
 
@@ -45,7 +46,7 @@ export class HarnessWsClient {
         let msg: WsEvent | null = null;
         try {
           msg = JSON.parse(
-            typeof event.data === "string" ? event.data : String(event.data)
+            isString(event.data) ? event.data : String(event.data)
           ) as WsEvent;
         } catch {
           return;

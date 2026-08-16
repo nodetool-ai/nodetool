@@ -17,6 +17,7 @@
  */
 
 import type { Message as ProviderMessage } from "@nodetool-ai/runtime";
+import { isString } from "./lib/wire-values.js";
 
 /**
  * What an abandoned tool call reports to the model.
@@ -41,7 +42,7 @@ export function orphanedToolCallIds(
 ): string[] {
   const answered = new Set<string>();
   for (const m of messages) {
-    if (m.role === "tool" && typeof m.toolCallId === "string") {
+    if (m.role === "tool" && isString(m.toolCallId)) {
       answered.add(m.toolCallId);
     }
   }
@@ -49,7 +50,7 @@ export function orphanedToolCallIds(
   for (const m of messages) {
     if (m.role !== "assistant" || !Array.isArray(m.toolCalls)) continue;
     for (const call of m.toolCalls) {
-      if (typeof call.id === "string" && !answered.has(call.id)) {
+      if (isString(call.id) && !answered.has(call.id)) {
         orphans.push(call.id);
       }
     }
@@ -95,7 +96,7 @@ export function repairOrphanedToolCalls(
     out.push(m);
     if (m.role !== "assistant" || !Array.isArray(m.toolCalls)) continue;
     const missing = m.toolCalls.filter(
-      (call) => typeof call.id === "string" && orphans.has(call.id)
+      (call) => isString(call.id) && orphans.has(call.id)
     );
     if (missing.length === 0) continue;
     // Step over the real results this assistant did get, so the synthetic ones
