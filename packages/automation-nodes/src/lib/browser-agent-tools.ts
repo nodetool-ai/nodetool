@@ -319,7 +319,7 @@ async function persistViewScreenshot(
   namePrefix: string
 ): Promise<BrowserViewResult> {
   const b64 = result.screenshot_png_b64;
-  if (typeof b64 !== "string" || b64.length === 0) {
+  if (b64 == null || b64.length === 0) {
     const { screenshot_png_b64: _drop, ...rest } = result;
     return { ...rest, screenshot: null };
   }

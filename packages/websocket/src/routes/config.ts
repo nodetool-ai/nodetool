@@ -55,8 +55,9 @@ const configRoute: FastifyPluginAsync = async (app) => {
     const authMode: "supabase" | "local" =
       supabaseUrl && supabaseServiceKey ? "supabase" : "local";
 
-    // When enabled, the web app asks Google for the Workspace scopes at login
-    // and posts the resulting provider token to /api/oauth/google/session.
+    // When enabled, the web app offers a Workspace connect step — separate from
+    // login, which asks for identity only — and posts the resulting provider
+    // token to /api/oauth/google/session.
     const googleWorkspace = isGoogleWorkspaceEnabled();
 
     return reply.status(200).send({

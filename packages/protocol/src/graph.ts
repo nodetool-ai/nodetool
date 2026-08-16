@@ -9,6 +9,7 @@
 
 import type { EdgeType } from "./messages.js";
 import type { TypeMetadata } from "./type-metadata.js";
+import { isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Edge
@@ -806,7 +807,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
   let changed = false;
 
   const nodes = graph.nodes.map((node) => {
-    if (!isPlainObject(node) || typeof node.type !== "string") return node;
+    if (!isPlainObject(node) || !isString(node.type)) return node;
     const migration = MIGRATION_BY_FROM.get(node.type);
     if (!migration) return node;
     changed = true;
@@ -819,7 +820,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
         migration.renameProperties
       );
       if (renamedProps) next.properties = renamedProps;
-      if (typeof next.id === "string") {
+      if (isString(next.id)) {
         handleRenamesByNodeId.set(next.id, migration.renameProperties);
       }
     }
@@ -864,11 +865,11 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
   let edges = graph.edges;
   if (handleRenamesByNodeId.size > 0 && Array.isArray(edges)) {
     edges = edges.map((edge) => {
-      if (!isPlainObject(edge) || typeof edge.target !== "string") return edge;
+      if (!isPlainObject(edge) || !isString(edge.target)) return edge;
       const renames = handleRenamesByNodeId.get(edge.target);
       if (
         renames &&
-        typeof edge.targetHandle === "string" &&
+        isString(edge.targetHandle) &&
         edge.targetHandle in renames
       ) {
         return { ...edge, targetHandle: renames[edge.targetHandle] };

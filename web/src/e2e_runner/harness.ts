@@ -9,6 +9,12 @@
  * driver controls execution and harvests results through `window.__E2E__`.
  */
 import { HarnessWsClient } from "./wsClient";
+import {
+  isNonEmptyString,
+  isNumber,
+  isRecord,
+  isString
+} from "../utils/typePredicates";
 import type {
   AdHocRunOptions,
   CapturedArtifact,
@@ -75,7 +81,7 @@ function emptyRecord(ref: WorkflowRef): RunRecord {
 }
 
 function asString(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   try {
     return JSON.stringify(value);
   } catch {
@@ -90,13 +96,12 @@ function extractArtifact(output: {
   value: unknown;
 }): CapturedArtifact | null {
   const v = output.value;
-  if (v && typeof v === "object") {
-    const obj = v as Record<string, unknown>;
-    const uri = typeof obj.uri === "string" ? obj.uri : undefined;
-    const data = typeof obj.data === "string" ? obj.data : undefined;
-    const type = typeof obj.type === "string" ? obj.type : output.output_type;
-    const mimeType =
-      typeof obj.mimeType === "string" ? obj.mimeType : undefined;
+  if (isRecord(v)) {
+    const obj = v;
+    const uri = isString(obj.uri) ? obj.uri : undefined;
+    const data = isString(obj.data) ? obj.data : undefined;
+    const type = isString(obj.type) ? obj.type : output.output_type;
+    const mimeType = isString(obj.mimeType) ? obj.mimeType : undefined;
     if (uri || data) {
       // The value's own mimeType is authoritative; the type-based guess is a fallback.
       const contentType =
@@ -146,30 +151,29 @@ function reduceRecordEvent(
   // The backend's invalid_command / invalid_message envelope carries no `type`
   // field, only { error, details?/message? }. Catch it before the type switch;
   // it's terminal and would otherwise fall through and hang to timeout.
-  if (typeof msg.type !== "string") {
+  if (!isString(msg.type)) {
     const errCode = (msg as { error?: unknown }).error;
-    if (typeof errCode === "string" && errCode) {
+    if (isNonEmptyString(errCode)) {
       const details = (msg as { details?: unknown; message?: unknown }).details;
       const message = (msg as { message?: unknown }).message;
-      const text =
-        typeof details === "string" && details
-          ? `${errCode}: ${details}`
-          : typeof message === "string" && message
-            ? `${errCode}: ${message}`
-            : errCode;
+      const text = isNonEmptyString(details)
+        ? `${errCode}: ${details}`
+        : isNonEmptyString(message)
+          ? `${errCode}: ${message}`
+          : errCode;
       if (!rec.error) rec.error = text;
       return { status: "error", error: text };
     }
   }
   switch (msg.type) {
     case "job_update": {
-      if (typeof msg.job_id === "string" && msg.job_id) rec.jobId = msg.job_id;
+      if (isNonEmptyString(msg.job_id)) rec.jobId = msg.job_id;
       const status = String(msg.status ?? "");
-      if (typeof msg.error === "string" && msg.error) rec.error = msg.error;
+      if (isNonEmptyString(msg.error)) rec.error = msg.error;
       if (TERMINAL_STATUSES.has(status)) {
         return {
           status: status as RunStatus,
-          error: typeof msg.error === "string" ? msg.error : undefined
+          error: isString(msg.error) ? msg.error : undefined
         };
       }
       break;
@@ -180,15 +184,11 @@ function reduceRecordEvent(
         const status = String(msg.status ?? "");
         nodeStatus[nodeId] = status;
         const isError = status === "error" || status === "failed";
-        const message =
-          typeof msg.error === "string" && msg.error.length > 0
-            ? msg.error
-            : null;
+        const message = isNonEmptyString(msg.error) ? msg.error : null;
         rec.nodeIO[nodeId] = {
-          node_type:
-            typeof msg.node_type === "string"
-              ? msg.node_type
-              : rec.nodeIO[nodeId]?.node_type,
+          node_type: isString(msg.node_type)
+            ? msg.node_type
+            : rec.nodeIO[nodeId]?.node_type,
           status,
           result:
             (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
@@ -201,13 +201,10 @@ function reduceRecordEvent(
     }
     case "output_update": {
       const output = {
-        node_id: typeof msg.node_id === "string" ? msg.node_id : undefined,
-        node_name:
-          typeof msg.node_name === "string" ? msg.node_name : undefined,
-        output_name:
-          typeof msg.output_name === "string" ? msg.output_name : undefined,
-        output_type:
-          typeof msg.output_type === "string" ? msg.output_type : undefined,
+        node_id: isString(msg.node_id) ? msg.node_id : undefined,
+        node_name: isString(msg.node_name) ? msg.node_name : undefined,
+        output_name: isString(msg.output_name) ? msg.output_name : undefined,
+        output_type: isString(msg.output_type) ? msg.output_type : undefined,
         value: (msg as { value?: unknown }).value
       };
       rec.outputs.push(output);
@@ -218,16 +215,15 @@ function reduceRecordEvent(
     case "log_update": {
       rec.logs.push({
         ts: Date.now(),
-        level: typeof msg.severity === "string" ? msg.severity : undefined,
+        level: isString(msg.severity) ? msg.severity : undefined,
         content: asString((msg as { content?: unknown }).content ?? msg),
-        node_id: typeof msg.node_id === "string" ? msg.node_id : undefined
+        node_id: isString(msg.node_id) ? msg.node_id : undefined
       });
       break;
     }
     case "error": {
       // A backend { type:"error", message } frame is terminal.
-      const text =
-        typeof msg.message === "string" && msg.message ? msg.message : "error";
+      const text = isNonEmptyString(msg.message) ? msg.message : "error";
       if (!rec.error) rec.error = text;
       return { status: "error", error: text };
     }
@@ -525,10 +521,7 @@ export class Harness {
     if (expect.status && rec.status !== expect.status) {
       failures.push(`expected status ${expect.status}, got ${rec.status}`);
     }
-    if (
-      typeof expect.minOutputs === "number" &&
-      rec.outputs.length < expect.minOutputs
-    ) {
+    if (isNumber(expect.minOutputs) && rec.outputs.length < expect.minOutputs) {
       failures.push(
         `expected at least ${expect.minOutputs} outputs, got ${rec.outputs.length}`
       );
@@ -537,7 +530,7 @@ export class Harness {
       // Concatenate raw values (strings verbatim) so an expected substring with
       // quotes/backslashes/newlines isn't defeated by JSON escaping.
       const haystack = rec.outputs
-        .map((o) => (typeof o.value === "string" ? o.value : asString(o.value)))
+        .map((o) => (isString(o.value) ? o.value : asString(o.value)))
         .join("\n");
       if (!haystack.includes(expect.outputContains)) {
         failures.push(`outputs did not contain "${expect.outputContains}"`);

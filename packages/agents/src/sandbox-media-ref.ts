@@ -18,6 +18,12 @@ import { loadMediaRefBytes, type MediaRefValue } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { toGuestBytes, type GuestBytes } from "./sandbox-bytes.js";
+import {
+  isNonBlankString,
+  isNonEmptyString,
+  isRecord,
+  isString
+} from "./utils/type-guards.js";
 
 /**
  * Largest payload `media.*` moves in either direction.
@@ -123,9 +129,7 @@ function mimeFromDataUri(uri: string): string | undefined {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isRecord(value) ? value : {};
 }
 
 function optionalString(
@@ -135,7 +139,7 @@ function optionalString(
 ): string | undefined {
   const value = options[key];
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") {
+  if (!isString(value)) {
     throw new Error(`${where}: ${key} must be a string`);
   }
   return value;
@@ -161,15 +165,15 @@ export const MEDIA_LOCATOR_KEYS = [
  * Prefer a non-filesystem URI so a bare id does not win over `asset://…`.
  */
 export function mediaLocatorFrom(value: unknown): string {
-  if (typeof value === "string" && value.trim() !== "") {
+  if (isNonBlankString(value)) {
     return value.trim();
   }
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
+  if (isRecord(value)) {
+    const record = value;
     const values: string[] = [];
     for (const key of MEDIA_LOCATOR_KEYS) {
       const locator = record[key];
-      if (typeof locator === "string" && locator.trim() !== "") {
+      if (isNonBlankString(locator)) {
         values.push(locator.trim());
       }
     }
@@ -179,7 +183,7 @@ export function mediaLocatorFrom(value: unknown): string {
         filesystemPathForUri(candidate) === null
     );
     if (safeUri) return safeUri;
-    if (typeof record.asset_id === "string" && record.asset_id.trim() !== "") {
+    if (isNonBlankString(record.asset_id)) {
       return record.asset_id.trim();
     }
     if (values[0]) return values[0];
@@ -198,17 +202,17 @@ export function isMediaLocatorString(value: string): boolean {
 
 /** Whether `image.*` should treat the value as a media ref, not as nested data. */
 export function looksLikeMediaRef(value: unknown): boolean {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return isMediaLocatorString(value);
   }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return false;
   }
-  const record = value as Record<string, unknown>;
+  const record = value;
   return (
-    typeof record.uri === "string" ||
-    typeof record.asset_id === "string" ||
-    typeof record.asset_uri === "string" ||
+    isString(record.uri) ||
+    isString(record.asset_id) ||
+    isString(record.asset_uri) ||
     record.data !== undefined
   );
 }
@@ -219,16 +223,13 @@ export function looksLikeMediaRef(value: unknown): boolean {
  * never the path that is read.
  */
 export function remapMediaRef(value: unknown): MediaRefValue {
-  if (typeof value === "string") {
+  if (isString(value)) {
     const locator = value.trim();
     return locator.includes("://") || locator.startsWith("/api/")
       ? { uri: locator }
       : { uri: locator, asset_id: locator };
   }
-  const record =
-    value !== null && typeof value === "object" && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
+  const record: Record<string, unknown> = isRecord(value) ? value : {};
   let locator: string | undefined;
   try {
     locator = mediaLocatorFrom(value);
@@ -236,16 +237,16 @@ export function remapMediaRef(value: unknown): MediaRefValue {
     locator = undefined;
   }
   return {
-    type: typeof record.type === "string" ? record.type : undefined,
+    type: isString(record.type) ? record.type : undefined,
     uri: locator,
-    asset_id: typeof record.asset_id === "string" ? record.asset_id : undefined,
+    asset_id: isString(record.asset_id) ? record.asset_id : undefined,
     data: record.data
   };
 }
 
 /** The ref argument, checked. A guest can pass anything, including `undefined`. */
 function requireRef(where: string, ref: unknown): MediaRefValue {
-  if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
+  if (!isRecord(ref)) {
     throw new Error(
       `${where}: expected a media ref object ({type, uri, asset_id, data})`
     );
@@ -255,10 +256,10 @@ function requireRef(where: string, ref: unknown): MediaRefValue {
 
 /** How the ref reads in an error message, so the failure names what failed. */
 function describeRef(ref: MediaRefValue): string {
-  if (typeof ref.uri === "string" && ref.uri.length > 0) {
+  if (isNonEmptyString(ref.uri)) {
     return ref.uri.length > 200 ? `${ref.uri.slice(0, 200)}…` : ref.uri;
   }
-  if (typeof ref.asset_id === "string" && ref.asset_id.length > 0) {
+  if (isNonEmptyString(ref.asset_id)) {
     return `asset ${ref.asset_id}`;
   }
   return `a ${ref.type ?? "media"} ref with no uri, asset_id, or data`;
@@ -277,7 +278,7 @@ const NON_FILESYSTEM_PREFIXES = ["data:", "asset://", "package://", "/api/"];
  * with no check at all, which is why a filesystem-shaped uri never reaches it.
  */
 export function filesystemPathForUri(uri: unknown): string | null {
-  if (typeof uri !== "string" || uri === "") return null;
+  if (!isNonEmptyString(uri)) return null;
   const lower = uri.toLowerCase();
   if (NON_FILESYSTEM_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
     return null;
@@ -365,8 +366,8 @@ export async function resolveRefBytes(
 /** The ref's mime type, from the ref itself, its data URI header, or its path. */
 export function mimeForRef(ref: MediaRefValue, fallback: string): string {
   const declared = (ref as { mimeType?: unknown }).mimeType;
-  if (typeof declared === "string" && declared.length > 0) return declared;
-  const uri = typeof ref.uri === "string" ? ref.uri : "";
+  if (isNonEmptyString(declared)) return declared;
+  const uri = isString(ref.uri) ? ref.uri : "";
   if (uri.startsWith("data:")) {
     return mimeFromDataUri(uri) ?? fallback;
   }
@@ -427,7 +428,7 @@ async function storeOrInline(
       contentType: mimeType,
       content: bytes
     })) as { id?: unknown };
-    if (typeof created?.id === "string" && created.id.length > 0) {
+    if (isNonEmptyString(created?.id)) {
       return { uri: `asset://${created.id}`, asset_id: created.id };
     }
   }
@@ -552,13 +553,13 @@ export function createMediaRefBridge(
         context,
         options.resolvePath
       );
-      const kind = typeof value.type === "string" ? value.type : "document";
+      const kind = isString(value.type) ? value.type : "document";
       const fallback =
         DEFAULT_MIME[kind as MediaRefKind] ?? DEFAULT_MIME.document;
       return {
         type: kind,
         mimeType: mimeForRef(value, fallback),
-        uri: typeof value.uri === "string" ? value.uri : "",
+        uri: isString(value.uri) ? value.uri : "",
         size: bytes.length
       };
     },

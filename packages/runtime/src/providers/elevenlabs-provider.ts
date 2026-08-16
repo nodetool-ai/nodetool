@@ -134,7 +134,7 @@ export class ElevenLabsProvider extends BaseProvider {
     // ElevenLabs applies playback speed via voice_settings.speed (0.7–1.2).
     // Forward it when the caller asked for a non-default tempo — omitting it
     // silently discarded the request.
-    if (typeof args.speed === "number" && args.speed !== 1.0) {
+    if (args.speed != null && args.speed !== 1.0) {
       body.voice_settings = { speed: Math.max(0.7, Math.min(1.2, args.speed)) };
     }
     const response = await this._fetch(url, {

@@ -23,6 +23,8 @@
  * from it — three places that must not disagree.
  */
 
+import { isNonEmptyString } from "./predicates.js";
+
 /** One host module NodeTool implements, and the pack allowed to declare it. */
 export interface SandboxHostModuleSpec {
   /** Registry id, as written in a manifest's `host` field. */
@@ -260,7 +262,7 @@ export function sandboxHostModuleViolation(
   packName: string,
   hostId: unknown
 ): string | undefined {
-  if (typeof hostId !== "string" || hostId.length === 0) {
+  if (!isNonEmptyString(hostId)) {
     return "a host module must name a host id";
   }
   const spec = sandboxHostModule(hostId);

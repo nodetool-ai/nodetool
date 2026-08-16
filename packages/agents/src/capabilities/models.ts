@@ -350,7 +350,7 @@ const findModel: CapabilityExport = {
         `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
       );
     }
-    let words = queryWords(typeof query === "string" ? query : "");
+    let words = queryWords(query ?? "");
 
     // The `task` filter reads `supportedTasks`. A caller who typed a model name
     // into it used to get an empty list — or, when no model declares tasks at

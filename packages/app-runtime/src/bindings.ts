@@ -156,7 +156,7 @@ const isExecutionField = (value: string): value is ExecutionField =>
 
 /** Parse an explicit (already ID-based) binding token. Legacy names return null. */
 export const parseBinding = (binding?: string | null): BindingRef | null => {
-  if (typeof binding !== "string" || binding.length === 0) return null;
+  if (binding == null || binding.length === 0) return null;
 
   if (binding.startsWith(VARIABLE_PREFIX)) {
     const id = binding.slice(VARIABLE_PREFIX.length);
@@ -273,7 +273,7 @@ export const resolveBinding = (
     }
     return onKnownOperation(explicit, scope);
   }
-  if (typeof binding !== "string" || binding.length === 0) return null;
+  if (binding == null || binding.length === 0) return null;
 
   const op =
     scope.operations.find((o) => o.operationId === operationId) ??

@@ -81,7 +81,7 @@ export async function refToBytes(
     return new Uint8Array(Buffer.from(base64, "base64"));
   }
   const uri = ref.uri;
-  if (typeof uri === "string" && uri.length > 0) {
+  if (uri != null && uri.length > 0) {
     if (uri.startsWith("data:")) {
       const base64 = uri.slice(uri.indexOf(",") + 1);
       return new Uint8Array(Buffer.from(base64, "base64"));

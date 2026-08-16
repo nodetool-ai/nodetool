@@ -51,6 +51,15 @@ import {
   validateAgainstSchema
 } from "./utils/json-schema-validate.js";
 import { removeThinkTags } from "./utils/think-tags.js";
+import {
+  isBoolean,
+  isFunction,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -181,7 +190,7 @@ function validateAndSanitizeSchema(
   }
 
   let parsed: unknown = schema;
-  if (typeof parsed === "string") {
+  if (isString(parsed)) {
     parsed = JSON.parse(parsed);
   }
 
@@ -234,11 +243,9 @@ function validateAndSanitizeSchema(
     if (Array.isArray(obj)) {
       return obj.map(cleanSchemaRecursive);
     }
-    if (obj !== null && typeof obj === "object") {
+    if (isObjectLike(obj)) {
       const cleaned: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(
-        obj as Record<string, unknown>
-      )) {
+      for (const [key, value] of Object.entries(obj)) {
         cleaned[key] = cleanSchemaRecursive(value);
       }
       if (shouldDefaultAdditionalProperties(cleaned)) {
@@ -259,7 +266,7 @@ function validateAndSanitizeSchema(
 function normalizeDeclaredSchema(
   raw: unknown
 ): Record<string, unknown> | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  if (!isRecord(raw)) return null;
   const copy = JSON.parse(JSON.stringify(raw)) as Record<string, unknown>;
   if (!("type" in copy) && "properties" in copy) copy["type"] = "object";
   return copy;
@@ -271,16 +278,11 @@ function normalizeDeclaredSchema(
 
 function normalizeToolResult(value: unknown): unknown {
   if (value === null || value === undefined) return value;
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  )
-    return value;
+  if (isString(value) || isNumber(value) || isBoolean(value)) return value;
   if (Array.isArray(value)) return value.map(normalizeToolResult);
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    if (typeof obj["toJSON"] === "function") {
+  if (isObjectLike(value)) {
+    const obj = value;
+    if (isFunction(obj["toJSON"])) {
       return normalizeToolResult((obj as { toJSON(): unknown }).toJSON());
     }
     const result: Record<string, unknown> = {};
@@ -448,10 +450,9 @@ export class StepExecutor {
       ? "The task result"
       : "The step result";
     try {
-      const raw =
-        typeof this.step.outputSchema === "string"
-          ? JSON.parse(this.step.outputSchema)
-          : this.step.outputSchema;
+      const raw = isString(this.step.outputSchema)
+        ? JSON.parse(this.step.outputSchema)
+        : this.step.outputSchema;
       // Two schemas, on purpose. The sanitized one is what the provider is
       // shown — it injects `additionalProperties: false` because strict
       // structured-output modes demand it. The authored one is the contract,
@@ -630,21 +631,17 @@ export class StepExecutor {
    * Mirrors Python's StepExecutor._handle_binary_artifact().
    */
   private async handleBinaryArtifact(toolResult: unknown): Promise<unknown> {
-    if (
-      typeof toolResult !== "object" ||
-      toolResult === null ||
-      Array.isArray(toolResult)
-    ) {
+    if (!isRecord(toolResult)) {
       return toolResult;
     }
 
-    const result = { ...(toolResult as Record<string, unknown>) };
+    const result = { ...toolResult };
     const workspaceDir = this.context.workspaceDir;
     if (!workspaceDir) return result;
 
     for (const field of ["image", "audio"]) {
       const value = result[field];
-      if (typeof value !== "string") continue;
+      if (!isString(value)) continue;
 
       const dataUriMatch = value.match(/^data:([^;]+);base64,(.+)$/s);
       if (!dataUriMatch) continue;
@@ -681,15 +678,11 @@ export class StepExecutor {
     toolArgs: Record<string, unknown> | undefined,
     toolResult: unknown
   ): Promise<unknown> {
-    if (
-      typeof toolResult !== "object" ||
-      toolResult === null ||
-      Array.isArray(toolResult)
-    ) {
+    if (!isRecord(toolResult)) {
       return toolResult;
     }
 
-    const result = { ...(toolResult as Record<string, unknown>) };
+    const result = { ...toolResult };
     if (result.success === false) {
       return result;
     }
@@ -709,7 +702,7 @@ export class StepExecutor {
     };
     const maybeAdd = (label: string, value: unknown): void => {
       if (
-        typeof value === "string" &&
+        isString(value) &&
         value.trim().length > 0 &&
         !value.startsWith("data:") &&
         !isExternalUri(value)
@@ -739,7 +732,7 @@ export class StepExecutor {
         const ref = await this.context.sandboxToAsset(candidate.path);
         refs[candidate.label] = ref;
         const uri = ref.uri;
-        if (typeof uri === "string" && uri && !this.sourcesSet.has(uri)) {
+        if (isNonEmptyString(uri) && !this.sourcesSet.has(uri)) {
           this.sources.push(uri);
           this.sourcesSet.add(uri);
         }
@@ -755,11 +748,7 @@ export class StepExecutor {
 
     if (Object.keys(refs).length > 0) {
       const existing = result.asset_refs;
-      if (
-        typeof existing === "object" &&
-        existing !== null &&
-        !Array.isArray(existing)
-      ) {
+      if (isRecord(existing)) {
         result.asset_refs = { ...existing, ...refs };
       } else {
         result.asset_refs = refs;
@@ -774,13 +763,9 @@ export class StepExecutor {
    * Mirrors Python's _process_special_tool_side_effects().
    */
   private trackToolSideEffects(toolName: string, result: unknown): void {
-    if (
-      toolName === "browser" &&
-      typeof result === "object" &&
-      result !== null
-    ) {
-      const url = (result as Record<string, unknown>).url;
-      if (typeof url === "string" && url && !this.sourcesSet.has(url)) {
+    if (toolName === "browser" && isObjectLike(result)) {
+      const url = result.url;
+      if (isNonEmptyString(url) && !this.sourcesSet.has(url)) {
         this.sources.push(url);
         this.sourcesSet.add(url);
       }
@@ -953,12 +938,10 @@ export class StepExecutor {
       // object result with an `items` key is not misinterpreted.
       if (
         this.resultSchema?.["type"] === "array" &&
-        resultPayload !== null &&
-        typeof resultPayload === "object" &&
-        !Array.isArray(resultPayload) &&
-        Array.isArray((resultPayload as Record<string, unknown>)["items"])
+        isRecord(resultPayload) &&
+        Array.isArray(resultPayload["items"])
       ) {
-        resultPayload = (resultPayload as Record<string, unknown>)["items"];
+        resultPayload = resultPayload["items"];
       }
       if (resultPayload === undefined || resultPayload === null) {
         return '{"error": "Missing result in finish_step call"}';
@@ -1098,7 +1081,7 @@ export class StepExecutor {
           continue;
         }
         if (isChunk(item)) {
-          if (typeof item.content === "string" && item.content.length > 0) {
+          if (isNonEmptyString(item.content)) {
             yield {
               type: "chunk",
               node_id: this.step.id,
@@ -1112,10 +1095,9 @@ export class StepExecutor {
         if ("type" in item && item.type === "message") {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
-            lastAssistant =
-              typeof m.content === "string"
-                ? { ...m, content: removeThinkTags(m.content) }
-                : m;
+            lastAssistant = isString(m.content)
+              ? { ...m, content: removeThinkTags(m.content) }
+              : m;
           }
         }
         yield* drainUi();
