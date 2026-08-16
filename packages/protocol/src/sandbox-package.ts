@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { SANDBOX_WASM_BUDGETS } from "./sandbox-wasm.js";
+import { isString } from "./predicates.js";
 
 const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const MODULE_NAME = /^(?:\.|[A-Za-z0-9._-]+)$/;
@@ -247,8 +248,8 @@ const wasmModuleSchema = z
     const aliases = new Set<string>();
     const wasmNames = new Set<string>();
     for (const exported of value.exports) {
-      const wasmName = typeof exported === "string" ? exported : exported.wasm;
-      const alias = typeof exported === "string" ? exported : exported.as;
+      const wasmName = isString(exported) ? exported : exported.wasm;
+      const alias = isString(exported) ? exported : exported.as;
       if (wasmNames.has(wasmName)) {
         ctx.addIssue({
           code: "custom",
