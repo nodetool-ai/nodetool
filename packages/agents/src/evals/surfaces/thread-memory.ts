@@ -64,10 +64,13 @@ export function createThreadMemoryToolBridge(
   seed?: (ctx: ProcessingContext) => Promise<void>
 ): HeadlessSurfaceBridge<ThreadMemoryBridgeFinalState> {
   initTestDb();
-  const ctx = {
+  const partialCtx: Pick<ProcessingContext, "userId" | "threadId"> = {
     userId: EVAL_USER,
     threadId: EVAL_THREAD
-  } as unknown as ProcessingContext;
+  };
+  // SAFETY: the thread-memory tools read only the user and thread ids off the
+  // context; nothing in this bridge reaches for another member.
+  const ctx = partialCtx as ProcessingContext;
 
   const saveTool = toolForCapabilityName("thread_memory_save");
   const listTool = toolForCapabilityName("thread_memory_list");

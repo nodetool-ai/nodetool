@@ -14,5 +14,6 @@ export const STORYBOARD_RENDER_TOOL_NAMES = [
   "render_storyboard_clips",
   "revise_storyboard_clip",
   "assemble_storyboard_timeline",
-  "edit_storyboard"
+  "edit_storyboard",
+  "extract_script_from_storyboard"
 ] as const;

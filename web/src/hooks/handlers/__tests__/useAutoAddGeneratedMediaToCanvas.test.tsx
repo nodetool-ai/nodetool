@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import type { Message } from "../../../stores/ApiTypes";
 
 interface MockChatState {
@@ -18,7 +19,7 @@ let isCanvasAvailable = true;
 
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: (selector: (s: MockChatState) => unknown) => selector(mockState)
+  default: <T,>(selector: (s: MockChatState) => T) => selector(mockState)
 }));
 
 jest.mock("../useGenerationToCanvas", () => ({
@@ -29,7 +30,7 @@ jest.mock("../useGenerationToCanvas", () => ({
 import { useAutoAddGeneratedMediaToCanvas } from "../useAutoAddGeneratedMediaToCanvas";
 
 const mediaMessage = (assetId: string): Message =>
-  ({
+  stub<Message>({
     role: "assistant",
     content: [
       {
@@ -37,7 +38,7 @@ const mediaMessage = (assetId: string): Message =>
         image: { type: "image", asset_id: assetId, uri: `http://x/${assetId}.png` }
       }
     ]
-  }) as unknown as Message;
+  });
 
 beforeEach(() => {
   addBlocksToCanvas.mockClear();

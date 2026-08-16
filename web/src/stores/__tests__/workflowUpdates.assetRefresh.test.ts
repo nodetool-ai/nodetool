@@ -1,4 +1,5 @@
 import type { JobUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import { useWorkflowAssetStore } from "../WorkflowAssetStore";
 import { handleUpdate } from "../workflowUpdates";
 
@@ -28,11 +29,11 @@ describe("handleUpdate workflow asset refresh", () => {
   });
 
   it("reloads the workflow's assets when a job completes", () => {
-    const update = {
+    const update = stub<JobUpdate>({
       type: "job_update",
       status: "completed",
       job_id: "job-1"
-    } as unknown as JobUpdate;
+    });
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
@@ -40,11 +41,11 @@ describe("handleUpdate workflow asset refresh", () => {
   });
 
   it("does not reload assets while the job is still running", () => {
-    const update = {
+    const update = stub<JobUpdate>({
       type: "job_update",
       status: "running",
       job_id: "job-1"
-    } as unknown as JobUpdate;
+    });
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 

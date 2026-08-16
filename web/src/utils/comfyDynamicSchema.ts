@@ -76,10 +76,7 @@ const LOAD_CLASS_INPUTS: Record<string, { field: string; type: string }> = {
  * item per file, so each slot is a singular media type (not a list), keyed
  * `"<nodeId>:<kind>"` to match the backend's emitted handles.
  */
-const SAVE_CLASS_OUTPUTS: Record<
-  string,
-  { kind: "image" | "audio" | "video" }
-> = {
+const SAVE_CLASS_OUTPUTS: Record<string, { kind: "image" | "audio" | "video" } > = {
   SaveImage: { kind: "image" },
   PreviewImage: { kind: "image" },
   SaveAnimatedWEBP: { kind: "image" },

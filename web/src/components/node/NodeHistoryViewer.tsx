@@ -475,7 +475,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       | { width?: number; height?: number }
       | null
       | undefined;
-    if (md && typeof md.width === "number" && typeof md.height === "number") {
+    if (md && md.width != null && md.height != null) {
       setImageDims({ width: md.width, height: md.height });
       return;
     }

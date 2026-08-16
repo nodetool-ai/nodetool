@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useRunSingleNode } from "../useRunSingleNode";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -38,13 +39,9 @@ import type { Generation } from "../../../utils/nodeGenerations";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
-const mockResultsGetState = (
-  useResultsStore as unknown as { getState: jest.Mock }
-).getState;
-const mockAssetsGetState = (
-  useWorkflowAssetStore as unknown as { getState: jest.Mock }
-).getState;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockResultsGetState = asMockStore(useResultsStore).getState;
+const mockAssetsGetState = asMockStore(useWorkflowAssetStore).getState;
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 describe("useRunSingleNode", () => {
   const mockRun = jest.fn();
@@ -91,7 +88,7 @@ describe("useRunSingleNode", () => {
     useGraph([defaultNode], []);
 
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ run: mockRun, state: "idle" })
     );
 
@@ -101,7 +98,7 @@ describe("useRunSingleNode", () => {
     mockAssetsGetState.mockReturnValue({ getWorkflowAssets: () => [] });
 
     mockUseNotificationStore.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ addNotification: mockAddNotification })
     );
 
@@ -115,7 +112,7 @@ describe("useRunSingleNode", () => {
 
   it("returns early when workflow is already running", () => {
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ run: mockRun, state: "running" })
     );
 

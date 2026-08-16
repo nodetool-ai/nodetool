@@ -49,7 +49,7 @@ export class GMIProvider extends OpenAICompatProvider {
     this._gmiFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { GMI_API_KEY: this.apiKey };
   }
 

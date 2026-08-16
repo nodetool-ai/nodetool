@@ -147,10 +147,7 @@ function addTypeUsage(
 function collectNodeTypes(
   metadata: readonly NodeMetadata[],
   registry: NodeRegistry
-): {
-  usageByIdentity: Map<string, MutableUsage>;
-  provenanceCounts: Partial<Record<NodeMetadataSource, number>>;
-} {
+) {
   const usageByIdentity = new Map<string, MutableUsage>();
   const provenanceCounts: Partial<Record<NodeMetadataSource, number>> = {};
 

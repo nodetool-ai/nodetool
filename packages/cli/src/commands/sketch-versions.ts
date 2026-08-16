@@ -26,9 +26,19 @@ import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
 import { renderSketchValidation } from "./sketch-validation-output.js";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** An `image_documents` row as these commands need it. */
 export interface ImageDocumentRow {
   id: string;
+  user_id: string;
   name?: string | null;
   width: number;
   height: number;
@@ -132,20 +142,19 @@ export function versionTableRows(
 }
 
 /** Parse a stored document without throwing — an unreadable one is a finding. */
-export function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+export function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded; either way the
+  // stored document is JSON.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     return raw;
   }
 }
 
 /** Layer and binding counts of whatever a version stored. */
-export function documentCounts(document: unknown): {
-  layers: number;
-  bindings: number;
-} {
+export function documentCounts(document: JsonValue | undefined) {
   const doc = (document ?? {}) as Record<string, unknown>;
   const sketch = (doc.sketch ?? {}) as Record<string, unknown>;
   const count = (value: unknown): number =>
@@ -160,9 +169,8 @@ async function defaultValidate(
   document: unknown,
   meta: { width?: number; height?: number; backgroundColor?: string }
 ): Promise<SketchValidation> {
-  const { validateSketchDocument } = await import(
-    "@nodetool-ai/execution/sketch-debug"
-  );
+  const { validateSketchDocument } =
+    await import("@nodetool-ai/execution/sketch-debug");
   return validateSketchDocument(document, meta);
 }
 
@@ -172,8 +180,6 @@ async function defaultStore(): Promise<SketchVersionStore> {
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
-  type SnapshotArg = Parameters<typeof ImageDocumentVersion.snapshot>[0];
-
   return {
     loadDocument: async (id) =>
       (await ImageDocument.findById(id)) as ImageDocumentRow | null,
@@ -181,17 +187,14 @@ async function defaultStore(): Promise<SketchVersionStore> {
       (await ImageDocumentVersion.listForDocument(
         imageDocumentId,
         opts
-      )) as unknown as SketchVersionRow[],
+      )),
     findVersion: async (imageDocumentId, version) =>
       (await ImageDocumentVersion.findByVersion(
         imageDocumentId,
         version
-      )) as unknown as SketchVersionRow | null,
+      )),
     snapshot: async (doc, opts) =>
-      (await ImageDocumentVersion.snapshot(
-        doc as unknown as SnapshotArg,
-        opts
-      )) as unknown as SketchVersionRow,
+      await ImageDocumentVersion.snapshot(doc, opts),
     restore: async (doc, version) =>
       (await ImageDocument.updateFieldsIfUnchanged(doc.id, doc.updated_at, {
         document: version.document,
@@ -270,10 +273,14 @@ export function registerSketchVersionsCommands(
       try {
         const store = await openStore();
         await requireDocument(store, documentId);
-        const rows = await store.listVersions(documentId, {
-          ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-          ...(opts.saveType ? { saveType: opts.saveType } : {})
-        });
+        const query: Parameters<typeof store.listVersions>[1] = {};
+        if (opts.limit !== undefined) {
+          query.limit = opts.limit;
+        }
+        if (opts.saveType) {
+          query.saveType = opts.saveType;
+        }
+        const rows = await store.listVersions(documentId, query);
         const items = rows.map(toVersionListItem);
 
         if (opts.json) {

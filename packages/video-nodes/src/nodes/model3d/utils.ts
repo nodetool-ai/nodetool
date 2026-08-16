@@ -122,7 +122,7 @@ export async function imageRefToBytes(
 export function modelRef(
   data: Uint8Array,
   extras: Record<string, unknown> = {}
-): Record<string, unknown> {
+) {
   return {
     ...extras,
     type: "model_3d",
@@ -211,7 +211,7 @@ export function embedJsonResourceUris(
   }
 }
 
-export function passthroughModel(model: Model3DRefLike): Record<string, unknown> {
+export function passthroughModel(model: Model3DRefLike) {
   const bytes = modelBytes(model);
   return {
     output: modelRef(bytes, {

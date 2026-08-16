@@ -1,4 +1,5 @@
 import type { Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 
 import {
   isCodeGenApplied,
@@ -12,7 +13,7 @@ import type { NodeData } from "../../stores/NodeData";
 
 const anyType = { type: "any", type_args: [], optional: false };
 
-const codeMetadata = {
+const codeMetadata = stub<NodeMetadata>({
   title: "Code",
   description: "",
   namespace: "nodetool.code",
@@ -28,7 +29,7 @@ const codeMetadata = {
   supports_dynamic_outputs: true,
   is_streaming_output: false,
   required_settings: []
-} as unknown as NodeMetadata;
+});
 
 const makeNode = (data: Partial<NodeData> = {}): Node<NodeData> =>
   ({

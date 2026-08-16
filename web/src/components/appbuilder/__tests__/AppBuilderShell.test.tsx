@@ -1,8 +1,9 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import type { Data } from "@puckeditor/core";
+import type { Data, DefaultComponents } from "@puckeditor/core";
 import type { AppDocMeta } from "@nodetool-ai/app-runtime";
 
 import mockTheme from "../../../__mocks__/themeMock";
@@ -12,8 +13,8 @@ import type { AppDocument } from "../appData";
 const setCurrentWorkflowId = jest.fn();
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (
-    selector: (state: { setCurrentWorkflowId: unknown }) => unknown
+  useWorkflowManager: <T,>(
+    selector: (state: { setCurrentWorkflowId: unknown }) => T
   ) => selector({ setCurrentWorkflowId })
 }));
 
@@ -30,15 +31,22 @@ jest.mock("../AppBuilderAgentPanel", () => ({
 }));
 
 /**
+ * The layout Puck emits once the author has picked a theme: the shell seeds
+ * the theme id onto the root as a field, so it rides back in the root props
+ * that Puck's own `Data` does not declare.
+ */
+type ThemedData = Data<DefaultComponents, { title?: string; theme: string }>;
+
+/**
  * Stands in for Puck: a Save button that emits a layout the editor produced,
  * and a Meta button that mutates operations/resources/variables the way the
  * agent's `ui_app_*` tools do.
  */
-const EDITED_UI: Data = {
+const EDITED_UI: Data = stub<Data>({
   root: { props: { title: "Edited" } },
   content: [{ type: "Text", props: { id: "t1" } }],
   zones: {}
-} as unknown as Data;
+});
 
 const EDITED_META: AppDocMeta = {
   operations: [
@@ -94,10 +102,12 @@ jest.mock("../puck/PuckAppEditor", () => ({
       <button
         type="button"
         onClick={() =>
-          onPublish({
-            ...EDITED_UI,
-            root: { props: { ...EDITED_UI.root.props, theme: "card" } }
-          } as unknown as Data)
+          onPublish(
+            stub<ThemedData>({
+              ...EDITED_UI,
+              root: { props: { ...EDITED_UI.root.props, theme: "card" } }
+            })
+          )
         }
       >
         Save with theme
@@ -160,7 +170,7 @@ const originalMatchMedia = window.matchMedia;
 
 /** Reports every query as matching (or not), standing in for the viewport width. */
 const setNarrowViewport = (narrow: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: narrow,
     media: query,
     onchange: null,
@@ -169,7 +179,7 @@ const setNarrowViewport = (narrow: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 beforeEach(() => {

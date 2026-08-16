@@ -21,7 +21,7 @@ import {
   NodeProgress,
   NodeUpdate,
   Workflow,
-  RunJobRequest,
+  RunJobRequest
 } from "../types/workflow";
 
 const MAX_LOGS = 500;
@@ -78,7 +78,7 @@ export type WorkflowRunner = {
   run: (
     params: Record<string, unknown>,
     workflow: Workflow,
-    options?: RunOptions,
+    options?: RunOptions
   ) => Promise<void>;
 
   ensureConnection: () => Promise<void>;
@@ -138,7 +138,9 @@ export const createWorkflowRunnerStore = (
 
         const handler = (message: Record<string, unknown>) => {
           const workflow = get().workflow;
-          if (!workflow) {return;}
+          if (!workflow) {
+            return;
+          }
 
           // Track job_id from first message and subscribe to it too
           if (message.job_id && !get().job_id) {
@@ -195,7 +197,7 @@ export const createWorkflowRunnerStore = (
         nodeStatus: {},
         nodeResults: {},
         nodeErrors: {},
-        statusMessage: "Starting workflow...",
+        statusMessage: "Starting workflow..."
       });
 
       const session = useAuthStore.getState().session;
@@ -208,16 +210,25 @@ export const createWorkflowRunnerStore = (
       const bypassedIds = new Set<string>();
       for (const node of nodes) {
         const data = node.data;
-        if (data && typeof data === "object" && "bypassed" in data && data.bypassed) {
+        if (
+          data &&
+          typeof data === "object" &&
+          "bypassed" in data &&
+          data.bypassed
+        ) {
           bypassedIds.add(node.id);
         }
       }
-      const activeNodes = bypassedIds.size > 0
-        ? nodes.filter((n) => !bypassedIds.has(n.id))
-        : nodes;
-      const activeEdges = bypassedIds.size > 0
-        ? edges.filter((e) => !bypassedIds.has(e.source) && !bypassedIds.has(e.target))
-        : edges;
+      const activeNodes =
+        bypassedIds.size > 0
+          ? nodes.filter((n) => !bypassedIds.has(n.id))
+          : nodes;
+      const activeEdges =
+        bypassedIds.size > 0
+          ? edges.filter(
+              (e) => !bypassedIds.has(e.source) && !bypassedIds.has(e.target)
+            )
+          : edges;
 
       const req: RunJobRequest = {
         type: "run_job_request",
@@ -231,22 +242,24 @@ export const createWorkflowRunnerStore = (
         explicit_types: false,
         graph: {
           nodes: activeNodes,
-          edges: activeEdges,
+          edges: activeEdges
         },
         resource_limits: {},
-        ...(options?.jobId ? { job_id: options.jobId } : {}),
         // Present only for app runs: the server gates them on the app's budget
         // and files them in the release ledger.
         application_id: options?.application?.id ?? null,
         application_version: options?.application?.version ?? null,
-        operation_id: options?.operationId ?? null,
+        operation_id: options?.operationId ?? null
       };
+      if (options?.jobId) {
+        req.job_id = options.jobId;
+      }
 
       await webSocketService.send(
         {
           type: "run_job",
           command: "run_job",
-          data: req,
+          data: req
         },
         "/ws"
       );
@@ -261,8 +274,8 @@ export const createWorkflowRunnerStore = (
             command: "cancel_job",
             data: {
               job_id: target,
-              workflow_id: workflowId,
-            },
+              workflow_id: workflowId
+            }
           },
           "/ws"
         );
@@ -283,14 +296,14 @@ export const createWorkflowRunnerStore = (
             command: "resume_job",
             data: {
               job_id,
-              workflow_id: workflowId,
-            },
+              workflow_id: workflowId
+            }
           },
           "/ws"
         );
         set({ state: "running", statusMessage: "Resuming..." });
       }
-    },
+    }
   }));
 
   return store;
@@ -305,12 +318,34 @@ type WorkflowMessage =
   | (JobUpdate & Record<string, unknown>)
   | (NodeUpdate & Record<string, unknown>)
   | (NodeProgress & Record<string, unknown>)
-  | { type: "output_update"; node_id: string; value?: unknown; [key: string]: unknown }
-  | { type: "log_update"; message?: string; content?: string; [key: string]: unknown }
-  | { type: "notification"; message?: string; content?: string; [key: string]: unknown }
-  | { type: "prediction"; node_id: string; node_name?: string; [key: string]: unknown };
+  | {
+      type: "output_update";
+      node_id: string;
+      value?: unknown;
+      [key: string]: unknown;
+    }
+  | {
+      type: "log_update";
+      message?: string;
+      content?: string;
+      [key: string]: unknown;
+    }
+  | {
+      type: "notification";
+      message?: string;
+      content?: string;
+      [key: string]: unknown;
+    }
+  | {
+      type: "prediction";
+      node_id: string;
+      node_name?: string;
+      [key: string]: unknown;
+    };
 
-function isWorkflowMessage(msg: Record<string, unknown>): msg is WorkflowMessage {
+function isWorkflowMessage(
+  msg: Record<string, unknown>
+): msg is WorkflowMessage {
   return typeof msg.type === "string";
 }
 
@@ -327,12 +362,14 @@ function notifyTerminal(
 ) {
   const state = get();
   const jobId = state.job_id || (msg.job_id as string | undefined);
-  if (!jobId) {return;}
+  if (!jobId) {
+    return;
+  }
   void notifyRunFinished({
     jobId,
     workflowName: state.workflow?.name,
     outcome,
-    error,
+    error
   });
 }
 
@@ -344,7 +381,9 @@ function handleMessage(
   get: () => WorkflowRunner,
   message: Record<string, unknown>
 ) {
-  if (!isWorkflowMessage(message)) {return;}
+  if (!isWorkflowMessage(message)) {
+    return;
+  }
 
   const state = get();
   const msg = message;
@@ -352,7 +391,9 @@ function handleMessage(
   switch (msg.type) {
     // ── Job-level updates ──────────────────────────────────────────
     case "job_update": {
-      if (state.state === "error" && msg.status === "running") {return;}
+      if (state.state === "error" && msg.status === "running") {
+        return;
+      }
 
       const errorText =
         msg.error ||
@@ -364,7 +405,7 @@ function handleMessage(
           set({
             state: "completed",
             results: msg.result,
-            statusMessage: "Completed",
+            statusMessage: "Completed"
           });
           notifyTerminal(get, msg, "completed");
           break;
@@ -372,7 +413,7 @@ function handleMessage(
         case "timed_out":
           set({
             state: "error",
-            statusMessage: `Failed: ${errorText}`,
+            statusMessage: `Failed: ${errorText}`
           });
           notifyTerminal(get, msg, "failed", errorText);
           break;
@@ -383,13 +424,13 @@ function handleMessage(
         case "running":
           set({
             state: "running",
-            statusMessage: msg.message || "Running...",
+            statusMessage: msg.message || "Running..."
           });
           break;
         case "queued":
           set({
             state: "running",
-            statusMessage: "Queued — worker is booting...",
+            statusMessage: "Queued — worker is booting..."
           });
           break;
         case "suspended": {
@@ -398,7 +439,7 @@ function handleMessage(
             "Waiting for input";
           set({
             state: "suspended",
-            statusMessage: `Suspended: ${reason}`,
+            statusMessage: `Suspended: ${reason}`
           });
           break;
         }
@@ -416,36 +457,38 @@ function handleMessage(
           ...state.nodeProgress,
           [msg.node_id]: {
             progress: msg.progress,
-            total: msg.total,
-          },
-        },
+            total: msg.total
+          }
+        }
       });
       break;
     }
 
     // ── Node status, results, errors ───────────────────────────────
     case "node_update": {
-      if (state.state === "cancelled") {return;}
+      if (state.state === "cancelled") {
+        return;
+      }
 
       const updates: Partial<WorkflowRunner> = {
         nodeStatus: {
           ...state.nodeStatus,
-          [msg.node_id]: msg.status,
+          [msg.node_id]: msg.status
         },
-        statusMessage: `${msg.node_name || msg.node_id} ${msg.status}`,
+        statusMessage: `${msg.node_name || msg.node_id} ${msg.status}`
       };
 
       if (msg.result !== undefined) {
         updates.nodeResults = {
           ...state.nodeResults,
-          [msg.node_id]: msg.result,
+          [msg.node_id]: msg.result
         };
       }
 
       if (msg.error) {
         updates.nodeErrors = {
           ...state.nodeErrors,
-          [msg.node_id]: msg.error,
+          [msg.node_id]: msg.error
         };
         updates.state = "error";
         updates.logs = appendLog(
@@ -469,8 +512,8 @@ function handleMessage(
         set({
           nodeResults: {
             ...state.nodeResults,
-            [msg.node_id]: msg.value,
-          },
+            [msg.node_id]: msg.value
+          }
         });
       }
       break;
@@ -490,7 +533,7 @@ function handleMessage(
       const content = msg.content || msg.message;
       if (content) {
         set({
-          logs: appendLog(state.logs, `[notification] ${content}`),
+          logs: appendLog(state.logs, `[notification] ${content}`)
         });
       }
       break;
@@ -502,9 +545,9 @@ function handleMessage(
         set({
           nodeStatus: {
             ...state.nodeStatus,
-            [msg.node_id]: "booting",
+            [msg.node_id]: "booting"
           },
-          statusMessage: `${msg.node_name || msg.node_id} booting...`,
+          statusMessage: `${msg.node_name || msg.node_id} booting...`
         });
       }
       break;
@@ -514,7 +557,9 @@ function handleMessage(
     default: {
       const generic = msg as { type: string; message?: string };
       if (generic.message && typeof generic.message === "string") {
-        set({ logs: appendLog(state.logs, `[${generic.type}] ${generic.message}`) });
+        set({
+          logs: appendLog(state.logs, `[${generic.type}] ${generic.message}`)
+        });
       }
       break;
     }

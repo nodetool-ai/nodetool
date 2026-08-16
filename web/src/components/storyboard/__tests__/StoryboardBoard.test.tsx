@@ -18,7 +18,19 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     videoModel: null,
     shots: mockShots
   }),
-  useStoryboardStore: (selector: (s: unknown) => unknown) =>
+  useStoryboardStore: <T,>(
+    selector: (s: {
+      setTitle: jest.Mock;
+      setBrief: jest.Mock;
+      setStyle: jest.Mock;
+      setAspectRatio: jest.Mock;
+      setDirectorModel: jest.Mock;
+      setImageModel: jest.Mock;
+      setVideoModel: jest.Mock;
+      undo: jest.Mock;
+      redo: jest.Mock;
+    }) => T
+  ) =>
     selector({
       setTitle: jest.fn(),
       setBrief: jest.fn(),
@@ -32,6 +44,13 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
+}));
+
+// The script-link control reads the real store and a trpc query; it has its
+// own suite (ScriptLinkControl.test.tsx).
+jest.mock("../ScriptLinkControl", () => ({
+  __esModule: true,
+  default: () => null
 }));
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
@@ -53,6 +72,8 @@ jest.mock("../../properties/LanguageModelSelect", () => stub("lang-model"));
 jest.mock("../../properties/ImageModelSelect", () => stub("image-model"));
 jest.mock("../../properties/VideoModelSelect", () => stub("video-model"));
 jest.mock("../ShotCard", () => stub("shot-card"));
+// The real preview mounts the timeline compositor — not viable under jsdom.
+jest.mock("../StoryboardPreview", () => stub("storyboard-preview"));
 jest.mock("../StoryboardEntitiesField", () => stub("entities"));
 
 import StoryboardBoard from "../StoryboardBoard";
@@ -114,6 +135,34 @@ describe("StoryboardBoard direct guard", () => {
     await user.click(within(dialog).getByRole("button", { name: "Re-direct" }));
 
     expect(onDirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("StoryboardBoard preview", () => {
+  it("stays disabled until a shot has a still or a clip", () => {
+    mockShots = [makeShot("s1")];
+    renderBoard(jest.fn());
+
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
+  });
+
+  it("toggles the preview panel", async () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        keyframe: { type: "image", asset_id: "still-1", uri: "asset://s1" }
+      }
+    ];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    expect(screen.queryByTestId("storyboard-preview")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    expect(await screen.findByTestId("storyboard-preview")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Hide preview" }));
+    expect(screen.queryByTestId("storyboard-preview")).not.toBeInTheDocument();
   });
 });
 

@@ -1,4 +1,5 @@
 import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
+import { stub } from "../../test-utils/doubles";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import type { WorkflowAttributes } from "../ApiTypes";
@@ -85,15 +86,17 @@ const randomUUIDMock = jest.fn(() => "test-job-id-123");
 if (typeof globalThis.crypto === "undefined") {
   (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
 }
+// SAFETY: the double returns a plain string where the DOM type promises a
+// UUID-shaped template literal; the runner only ever forwards the value.
 (globalThis.crypto as { randomUUID: () => string }).randomUUID =
-  randomUUIDMock as unknown as Crypto["randomUUID"];
+  randomUUIDMock as Crypto["randomUUID"];
 
 describe("WorkflowRunner", () => {
   let store: ReturnType<typeof createWorkflowRunnerStore>;
-  const testWorkflow = {
+  const testWorkflow = stub<WorkflowAttributes>({
     id: "test-workflow-id",
     settings: {},
-  } as unknown as WorkflowAttributes;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -338,7 +341,7 @@ describe("WorkflowRunner", () => {
   });
 
   describe("deriveJobTitle", () => {
-    const wf = { id: "wf", name: "My Flow" } as unknown as WorkflowAttributes;
+    const wf = stub<WorkflowAttributes>({ id: "wf", name: "My Flow" });
     const node = (id: string, type: string, title?: string) =>
       ({ id, type, data: title ? { title } : {} }) as never;
 

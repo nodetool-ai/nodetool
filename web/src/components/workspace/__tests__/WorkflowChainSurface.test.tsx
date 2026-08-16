@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 
 import WorkflowChainSurface from "../WorkflowChainSurface";
 import { useChainEditorStore } from "../../chain_editor/useChainEditorStore";
@@ -16,8 +17,9 @@ const updateWorkflow = jest.fn();
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: (selector: (state: unknown) => unknown) =>
-    selector({ saveWorkflow, updateWorkflow })
+  useWorkflowManager: <T,>(
+    selector: (state: { saveWorkflow: jest.Mock; updateWorkflow: jest.Mock }) => T
+  ) => selector({ saveWorkflow, updateWorkflow })
 }));
 
 jest.mock("../../chain_editor/ChainEditor", () => ({
@@ -51,7 +53,7 @@ const makeMetadata = (nodeType: string): NodeMetadata =>
     required_settings: []
   }) as NodeMetadata;
 
-const workflow: Workflow = {
+const workflow: Workflow = stub<Workflow>({
   id: "wf-1",
   name: "Chain workflow",
   access: "private",
@@ -84,7 +86,7 @@ const workflow: Workflow = {
       }
     ]
   }
-} as unknown as Workflow;
+});
 
 describe("WorkflowChainSurface", () => {
   beforeEach(() => {
@@ -137,7 +139,7 @@ describe("WorkflowChainSurface", () => {
   });
 
   it("keeps nodes the chain view cannot represent", async () => {
-    const withComment = {
+    const withComment = stub<Workflow>({
       ...workflow,
       graph: {
         ...workflow.graph,
@@ -151,7 +153,7 @@ describe("WorkflowChainSurface", () => {
           }
         ]
       }
-    } as unknown as Workflow;
+    });
     const nodeStore = createNodeStore(withComment);
 
     render(<WorkflowChainSurface workflowId="wf-1" nodeStore={nodeStore} />);

@@ -39,11 +39,14 @@ export async function getHuggingfaceFileInfos(
 ): Promise<HFFileInfo[]> {
   return Promise.all(
     requests.map(async (req) => {
-      const info = await fileDownloadInfo({
+      const args: Parameters<typeof fileDownloadInfo>[0] = {
         repo: { name: req.repo_id, type: "model" },
-        path: req.path.replace(/^\/+/, ""),
-        ...(token ? { accessToken: token } : {})
-      });
+        path: req.path.replace(/^\/+/, "")
+      };
+      if (token) {
+        args.accessToken = token;
+      }
+      const info = await fileDownloadInfo(args);
 
       if (!info) {
         throw new Error(

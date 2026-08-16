@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { asMock } from "../../test-utils/doubles";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 jest.mock("../../trpc/client", () => ({
@@ -32,12 +33,13 @@ import { trpcClient } from "../../trpc/client";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useDashboardData } from "../useDashboardData";
+import type { Workflow } from "../../stores/ApiTypes";
 
 const mockListQuery = trpcClient.workflows.list.query as jest.Mock;
-const mockUseSettings = useSettingsStore as unknown as jest.Mock;
-const mockUseWorkflowManager = useWorkflowManager as unknown as jest.Mock;
+const mockUseSettings = asMock(useSettingsStore);
+const mockUseWorkflowManager = asMock(useWorkflowManager);
 
-const makeWorkflow = (overrides: Record<string, unknown>) => ({
+const makeWorkflow = (overrides: Partial<Workflow>) => ({
   id: "wf-1",
   name: "Test",
   description: "",

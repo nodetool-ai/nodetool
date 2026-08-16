@@ -29,6 +29,7 @@ jest.mock("../../node_types/code_assistant/CodeAssistantDialog", () => ({
 }));
 
 import { render, screen } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import userEvent from "@testing-library/user-event";
 import { Position, type Edge, type Node } from "@xyflow/react";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
@@ -58,7 +59,7 @@ const metadata = (
   properties: { name: string; type: string }[],
   outputs: { name: string; type: string }[]
 ): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     node_type: nodeType,
     title: nodeType,
     description: "",
@@ -78,7 +79,7 @@ const metadata = (
     supports_dynamic_outputs: true,
     is_streaming_output: false,
     required_settings: []
-  }) as unknown as NodeMetadata;
+  });
 
 const makeNode = (id: string, nodeType: string): Node<NodeData> => ({
   id,

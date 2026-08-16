@@ -1,4 +1,5 @@
 import { normalizeWorkerStreamMessage } from "../browserRunnerRelay";
+import { stub } from "../../../test-utils/doubles";
 import type { WebSocketMessage } from "../../websocket/GlobalWebSocketManager";
 
 /**
@@ -15,13 +16,13 @@ const gc = (
   nodeId: string,
   outputs: Record<string, unknown>
 ): WebSocketMessage =>
-  ({
+  stub<WebSocketMessage>({
     type: "generation_complete",
     node_id: nodeId,
     node_name: nodeId,
     node_type: "browser.Gen",
     outputs
-  }) as unknown as WebSocketMessage;
+  });
 
 describe("normalizeWorkerStreamMessage (worker-path relay)", () => {
   it("stamps arrival-order index 0..N-1 per (job, node) on generation_complete", () => {
@@ -68,12 +69,12 @@ describe("normalizeWorkerStreamMessage (worker-path relay)", () => {
 
   it("leaves node_update/output_update without an index and does not bump the counter", () => {
     const counter = new Map<string, number>();
-    const nodeUpdate = {
+    const nodeUpdate = stub<WebSocketMessage>({
       type: "node_update",
       node_id: "gen",
       status: "completed",
       result: { text: "x" }
-    } as unknown as WebSocketMessage;
+    });
 
     normalizeWorkerStreamMessage(nodeUpdate, counter);
 

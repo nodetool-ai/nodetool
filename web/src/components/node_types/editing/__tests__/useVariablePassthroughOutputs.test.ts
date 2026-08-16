@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../../../test-utils/doubles";
 import type { Edge, Node } from "@xyflow/react";
 
 import { useVariablePassthroughOutputs } from "../promptComposer/useVariablePassthroughOutputs";
@@ -52,16 +53,22 @@ const imageSourceMetadata = {
 };
 
 const setupStore = (edges: Edge[]) => {
-  (useNodes as unknown as jest.Mock).mockImplementation(
-    (selector: (s: unknown) => unknown) =>
+  asMock(useNodes).mockImplementation(
+    <T,>(
+      selector: (s: {
+        edges: Edge[];
+        findNode: (id: string) => Node | undefined;
+        updateNodeData: jest.Mock;
+      }) => T
+    ) =>
       selector({
         edges,
         findNode: (id: string) => (id === "img-1" ? imageSourceNode : undefined),
         updateNodeData: mockUpdateNodeData
       })
   );
-  (useMetadataStore as unknown as jest.Mock).mockImplementation(
-    (selector: (s: unknown) => unknown) =>
+  asMock(useMetadataStore).mockImplementation(
+    <T,>(selector: (s: { getMetadata: () => typeof imageSourceMetadata }) => T) =>
       selector({ getMetadata: () => imageSourceMetadata })
   );
 };

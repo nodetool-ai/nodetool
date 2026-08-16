@@ -224,7 +224,7 @@ const filterRecord = <K extends string, T>(
   record: Record<K, T>,
   workflowId: string,
   specificIds?: Set<string>
-): Record<K, T> => {
+) => {
   const prefix = `${workflowId}:`;
   if (specificIds) {
     const newRecord = { ...record };
@@ -281,7 +281,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const prefix = `${workflowId}:${jobId}:`;
     const dropJobKeys = <K extends string, T>(
       record: Record<K, T>
-    ): Record<K, T> => {
+    ) => {
       const next = { ...record };
       for (const key in next) {
         if (key.startsWith(prefix)) {
@@ -451,7 +451,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       // `index` on the live Generation even though the type permits it.
       const { index, ...rest } = patch;
 
-      if (typeof index === "number") {
+      if (index != null) {
         const id = index === 0 ? jobId : `${jobId}#${index}`;
         const at = list.findIndex((g) => g.jobId === jobId && g.id === id);
         if (at >= 0) {

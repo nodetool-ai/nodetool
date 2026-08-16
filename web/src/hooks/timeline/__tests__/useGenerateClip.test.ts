@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
@@ -32,7 +33,7 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 describe("useGenerateClip", () => {
   const jobHandlers = new Map<string, (message: Record<string, unknown>) => void>();
   const cancelMutate =
-    trpcClient.jobs.cancel.mutate as unknown as jest.Mock;
+    asMock(trpcClient.jobs.cancel.mutate);
 
   beforeEach(() => {
     __resetGenerateClipSubscriptionsForTests();

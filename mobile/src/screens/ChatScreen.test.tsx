@@ -51,11 +51,8 @@ jest.mock('../stores/ChatStore', () => ({
 type ChatState = ReturnType<typeof useChatStore.getState>;
 type ChatScreenProps = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
-/** The slice of the store these tests stand up, with the actions as spies. */
-type MockChatStore = Pick<
-  ChatState,
-  'status' | 'error' | 'statusMessage' | 'currentThreadId' | 'messageCache'
-> & {
+/** The whole store these tests stand up, with the actions as spies. */
+type MockChatStore = ChatState & {
   connect: jest.Mock;
   disconnect: jest.Mock;
   sendMessage: jest.Mock;
@@ -64,13 +61,12 @@ type MockChatStore = Pick<
   getCurrentMessages: jest.Mock;
 };
 
-const useChatStoreMock = useChatStore as unknown as jest.Mock;
+const useChatStoreMock = jest.mocked(useChatStore);
 
 /** Point the mocked store hook at a state object, selector-aware. */
 const mockStoreState = (state: MockChatStore): void => {
-  useChatStoreMock.mockImplementation(
-    (selector?: (chatState: MockChatStore) => unknown) =>
-      selector ? selector(state) : state
+  useChatStoreMock.mockImplementation((selector) =>
+    selector ? selector(state) : state
   );
 };
 
@@ -87,20 +83,41 @@ describe('ChatScreen', () => {
     stopGeneration: jest.fn(),
     createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
     getCurrentMessages: jest.fn().mockReturnValue([]),
+    wsManager: null,
+    threads: {},
+    isLoadingMessages: false,
+    selectedModel: null,
+    agentMode: false,
+    helpMode: false,
+    selectedCollections: [],
+    selectedTools: [],
+    loadThreadFromServer: jest.fn().mockResolvedValue(undefined),
+    setSelectedModel: jest.fn(),
+    setAgentMode: jest.fn(),
+    setHelpMode: jest.fn(),
+    setSelectedCollections: jest.fn(),
+    setSelectedTools: jest.fn(),
+    addMessageToCache: jest.fn(),
   };
 
-  const mockNavigation = {
+  const setOptionsMock = jest.fn();
+  const partialNavigation: Pick<
+    ChatScreenProps['navigation'],
+    'navigate' | 'setOptions' | 'goBack'
+  > = {
     navigate: jest.fn(),
-    setOptions: jest.fn(),
+    setOptions: setOptionsMock,
     goBack: jest.fn(),
   };
+  // SAFETY: ChatScreen calls only these three navigator methods.
+  const mockNavigation = partialNavigation as ChatScreenProps['navigation'];
 
   // ChatScreen takes the full navigator prop pair; these tests drive only the
   // three navigation methods above and never read the route.
   const renderChatScreen = () =>
     render(
       <ChatScreen
-        navigation={mockNavigation as unknown as ChatScreenProps['navigation']}
+        navigation={mockNavigation}
         route={{} as ChatScreenProps['route']}
       />
     );
@@ -175,14 +192,19 @@ describe('ChatScreen', () => {
     it('displays selected model name in header', () => {
       const storeWithModel = {
         ...mockStore,
-        selectedModel: { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
+        selectedModel: {
+          type: 'language_model' as const,
+          id: 'gpt-4',
+          name: 'GPT-4',
+          provider: 'openai' as const,
+        },
       };
       
       mockStoreState(storeWithModel);
 
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByText } = render(<HeaderRight />);
@@ -199,7 +221,7 @@ describe('ChatScreen', () => {
 
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByText } = render(<HeaderRight />);
@@ -210,7 +232,7 @@ describe('ChatScreen', () => {
       renderChatScreen();
       
       // Get the headerRight component
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByTestId } = render(<HeaderRight />);
@@ -228,7 +250,7 @@ describe('ChatScreen', () => {
       
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByTestId } = render(<HeaderRight />);

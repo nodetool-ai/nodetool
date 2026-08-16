@@ -42,7 +42,10 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
-import { resolveUri } from "../../../utils/imageUtils";
+import {
+  useResolvedMediaUris,
+  type MediaLocator
+} from "../../../hooks/useResolvedMediaUri";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -78,11 +81,7 @@ function cssAspectRatio(aspectRatio: string | null | undefined): string | undefi
 /** How many shimmering placeholder tiles to show, and their shape, for a
  * pending `media_generation` request — mirrors what the finished grid will
  * actually contain (one tile per variation for images, one for video/audio). */
-function pendingTiles(gen: MediaGenerationRequest | null): {
-  count: number;
-  aspectRatio: string | undefined;
-  kind: "image" | "video" | "audio";
-} {
+function pendingTiles(gen: MediaGenerationRequest | null) {
   if (gen?.mode === "image" || gen?.mode === "image_edit") {
     return {
       count: Math.max(1, gen.variations ?? 1),
@@ -272,6 +271,21 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
+  // Generated media persists as `asset://<asset_id>`, which no renderer can
+  // fetch — resolve every tile's ref to the asset's `get_url` up front, since
+  // the grid below maps over the list and cannot call a hook per item.
+  const mediaLocators = useMemo(
+    (): MediaLocator[] =>
+      mediaContents.map((c) => {
+        if (isImageContent(c)) return c.image;
+        if (isVideoContent(c)) return c.video;
+        if (isAudioContent(c)) return c.audio;
+        return undefined;
+      }),
+    [mediaContents]
+  );
+  const resolvedMediaSrcs = useResolvedMediaUris(mediaLocators);
+
   const prompt = useMemo(() => {
     const content = message.content;
     if (typeof content === "string") return content;
@@ -321,21 +335,21 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             </span>
           )}
           {(gen?.mode === "image" || gen?.mode === "image_edit") &&
-            typeof gen.variations === "number" && (
+            gen.variations != null && (
               <span className="media-meta-chip">
                 <AppsIcon fontSize="small" />
                 {gen.variations}
               </span>
             )}
           {(gen?.mode === "video" || gen?.mode === "image_to_video") &&
-            typeof gen.duration === "number" && (
+            gen.duration != null && (
               <span className="media-meta-chip">
                 <AccessTimeIcon fontSize="small" />
                 {gen.duration}s
               </span>
             )}
           {gen?.mode === "image_edit" &&
-            typeof gen.strength === "number" && (
+            gen.strength != null && (
               <span className="media-meta-chip">
                 <TuneIcon fontSize="small" />
                 {gen.strength.toFixed(2)}
@@ -343,7 +357,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             )}
           {(gen?.mode === "image_edit" ||
             gen?.mode === "image_to_video") &&
-            typeof gen.num_inference_steps === "number" && (
+            gen.num_inference_steps != null && (
               <span className="media-meta-chip">
                 <LayersIcon fontSize="small" />
                 {gen.num_inference_steps} steps
@@ -355,7 +369,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               {gen.voice}
             </span>
           )}
-          {gen?.mode === "audio" && typeof gen.speed === "number" && (
+          {gen?.mode === "audio" && gen.speed != null && (
             <span className="media-meta-chip">
               <SpeedIcon fontSize="small" />
               {gen.speed}x
@@ -395,7 +409,9 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
             const src =
-              c.image?.uri || (c.image?.data as string | undefined) || "";
+              resolvedMediaSrcs[i] ||
+              (c.image?.data as string | undefined) ||
+              "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
               <div
@@ -418,10 +434,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isVideoContent(c)) {
-            // Through `resolveUri` like the image tile above: a relative
-            // `/api/storage/…` needs the BASE_URL prefix when the API lives on
-            // another origin, and a signed cloud URL passes through unchanged.
-            const src = c.video?.uri ? resolveUri(c.video.uri) : "";
+            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
               <div
@@ -451,7 +464,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isAudioContent(c)) {
-            const src = c.audio?.uri ? resolveUri(c.audio.uri) : "";
+            const src = resolvedMediaSrcs[i] ?? "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
               <div

@@ -13,7 +13,7 @@ import { createHash } from "node:crypto";
 
 export function flattenMetadata(
   obj: Record<string, unknown>
-): Record<string, string | number | boolean> {
+) {
   const out: Record<string, string | number | boolean> = {};
   for (const [k, v] of Object.entries(obj ?? {})) {
     if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {

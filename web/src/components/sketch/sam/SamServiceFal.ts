@@ -64,6 +64,21 @@ interface FalBoxPrompt {
   height: number;
 }
 
+/** Request body posted to the FAL SAM 3.1 endpoint. */
+interface FalSamRequestBody {
+  image_url: string;
+  sync_mode: boolean;
+  output_format: string;
+  return_multiple_masks: boolean;
+  max_masks: number;
+  include_scores: boolean;
+  include_boxes: boolean;
+  apply_mask: boolean;
+  prompt?: string;
+  point_prompts?: FalPointPrompt[];
+  box_prompts?: FalBoxPrompt[];
+}
+
 interface FalQueueResponse {
   request_id: string;
   status: string;
@@ -82,13 +97,22 @@ interface FalResultImage {
   content_type?: string;
 }
 
+/**
+ * A bounding box as FAL reports it: `[cx, cy, w, h]` in normalized units, or an
+ * `{x, y, width, height}` object in mask pixels. The members stay unparsed
+ * until `normalizeFalMetadataBox` checks each one is finite.
+ */
+type FalBoxCandidate =
+  | unknown[]
+  | { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+
 interface FalMaskMetadata {
   label?: string;
   name?: string;
   score?: number;
-  box?: unknown;
-  bbox?: unknown;
-  bounds?: unknown;
+  box?: FalBoxCandidate;
+  bbox?: FalBoxCandidate;
+  bounds?: FalBoxCandidate;
 }
 
 interface FalSam3Result {
@@ -273,7 +297,9 @@ function normalizeFalRle(value: unknown): string | string[] | null {
   return null;
 }
 
-function getFalMetadataBoxCandidate(metadata: FalMaskMetadata | undefined): unknown {
+function getFalMetadataBoxCandidate(
+  metadata: FalMaskMetadata | undefined
+): FalBoxCandidate | undefined {
   return metadata?.box ?? metadata?.bbox ?? metadata?.bounds;
 }
 
@@ -557,7 +583,7 @@ export class SamServiceFal implements SamService {
       ? [this.buildFalBoxPrompt(request.boxPrompt, promptMapper, scale)]
       : [];
 
-    const falInput: Record<string, unknown> = {
+    const falInput: FalSamRequestBody = {
       image_url: imageUrl,
       sync_mode: true,
       output_format: "png",

@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { buildRunSubgraph } from "../runSubgraph";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -54,7 +55,7 @@ const gen = (o: Partial<Generation> & { id: string }): Generation => ({
  */
 const PURE_TYPES = new Set(["nodetool.text.Prompt"]);
 const baseMeta = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     cache_ttl: type.startsWith("pure.") || PURE_TYPES.has(type)
       ? "forever"
@@ -65,7 +66,7 @@ const baseMeta = (type: string): NodeMetadata =>
           : undefined,
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 /** Decorate a getMetadata so the named types expose list[image] input handles. */
 const withListHandles = (
@@ -76,13 +77,13 @@ const withListHandles = (
     const meta = base(type);
     const handles = handlesByType[type];
     if (!handles) return meta;
-    return {
+    return stub<NodeMetadata>({
       ...meta,
       properties: handles.map((name) => ({
         name,
         type: { type: "list", type_args: [{ type: "image", type_args: [] }] }
       }))
-    } as unknown as NodeMetadata;
+    });
   };
 
 /**

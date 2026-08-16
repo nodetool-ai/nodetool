@@ -1,10 +1,11 @@
 /**
  * Per-kind transport for reading and writing a document.
  *
- * Three of the four kinds ride the `resources.*` envelope, which carries a
- * numeric `revision` as its concurrency token. Scripts do not: the `scripts`
- * table has no `revision` column, so the `resources` provider cannot represent
- * one, and its own router does the same job with `baseUpdatedAt`. Rather than
+ * Three of the five kinds ride the `resources.*` envelope, which carries a
+ * numeric `revision` as its concurrency token. Scripts and JS scripts do not:
+ * neither table has a `revision` column, so the `resources` provider cannot
+ * represent one, and their own routers do the same job with
+ * `baseUpdatedAt`. Rather than
  * migrate two schemas to unify the token, the store treats it as **opaque** —
  * a backend hands one out on read and echoes it back on write, and only the
  * backend knows whether it is a number or a timestamp.
@@ -180,12 +181,79 @@ function scriptsBackend(): DocumentBackend {
   };
 }
 
-const backends: Record<DocumentKind, DocumentBackend> = {
+/**
+ * The `jsScripts.*` router: same `baseUpdatedAt` scheme as `scripts.*`, and a
+ * different table again — a JS script is a body with declared ports, not lines.
+ */
+function jsScriptsBackend(): DocumentBackend {
+  const portSummary = (inputs: number, outputs: number): string =>
+    `${inputs} in · ${outputs} out`;
+
+  return {
+    writable: true,
+    list: async () => {
+      const scripts = await createMobileTRPCClient().jsScripts.list.query({});
+      return scripts.map((script) => ({
+        id: script.id,
+        name: script.name,
+        updatedAt: script.updatedAt,
+        detail: portSummary(script.inputs.length, script.outputs.length),
+      }));
+    },
+    create: async (name) => {
+      const script = await createMobileTRPCClient().jsScripts.create.mutate({
+        name,
+        projectId: 'default',
+      });
+      return {
+        id: script.id,
+        name: script.name,
+        updatedAt: script.updatedAt,
+      };
+    },
+    rename: async (id, name) => {
+      await createMobileTRPCClient().jsScripts.update.mutate({ id, name });
+    },
+    remove: async (id) => {
+      await createMobileTRPCClient().jsScripts.delete.mutate({ id });
+    },
+    read: async (id) => {
+      const script = await createMobileTRPCClient().jsScripts.get.query({ id });
+      return {
+        doc: script.document,
+        name: script.name,
+        token: script.updatedAt,
+        updatedAt: script.updatedAt,
+      };
+    },
+    save: async (id, { doc, name, token }) => {
+      const script = await createMobileTRPCClient().jsScripts.update.mutate({
+        id,
+        name,
+        document: doc as Parameters<
+          ReturnType<
+            typeof createMobileTRPCClient
+          >['jsScripts']['update']['mutate']
+        >[0]['document'],
+        baseUpdatedAt: typeof token === 'string' ? token : undefined,
+      });
+      return {
+        doc: script.document,
+        name: script.name,
+        token: script.updatedAt,
+        updatedAt: script.updatedAt,
+      };
+    },
+  };
+}
+
+const backends = {
   timeline: resourcesBackend('timeline'),
   storyboard: resourcesBackend('storyboard'),
   sketch: resourcesBackend('sketch'),
   script: scriptsBackend(),
-};
+  jsscript: jsScriptsBackend(),
+} satisfies Record<DocumentKind, DocumentBackend>;
 
 export function documentBackend<Doc>(kind: DocumentKind): DocumentBackend<Doc> {
   return backends[kind] as DocumentBackend<Doc>;

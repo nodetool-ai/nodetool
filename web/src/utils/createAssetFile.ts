@@ -2,7 +2,7 @@ import { authHeader } from "../lib/auth";
 import type { Chunk } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
-import { resolveAssetUri } from "../components/node/output/hooks";
+import { resolveMediaUri } from "./resolveMediaUri";
 
 interface AssetFileResult {
   file: File;
@@ -271,7 +271,7 @@ const chunkToOutput = (chunk: Chunk) => {
 const concatTextChunksSafely = (
   chunks: Chunk[],
   maxChars: number
-): { text: string; truncated: boolean } => {
+) => {
   const parts: string[] = [];
   let currentLen = 0;
 
@@ -425,7 +425,13 @@ const isExternalUrl = (url: string): boolean => {
 };
 
 const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
-  const resolvedUri = resolveDownloadUri(resolveAssetUri(uri));
+  // An `asset://` locator resolves through the asset's own `get_url`; every
+  // other scheme needs no lookup.
+  const resolved = await resolveMediaUri(uri);
+  if (!resolved) {
+    throw new Error(`Could not resolve ${uri}`);
+  }
+  const resolvedUri = resolveDownloadUri(resolved);
   const external = isExternalUrl(resolvedUri);
 
   const fetchOptions: RequestInit = external

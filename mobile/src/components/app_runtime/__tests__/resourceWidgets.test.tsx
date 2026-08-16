@@ -32,16 +32,17 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
   }),
 }));
 
-jest.mock("../../../services/WebSocketService", () => ({
-  webSocketService: { subscribe: () => () => {} },
-}));
+import { webSocketService } from "../../../services/WebSocketService";
 
-jest.mock("../../../services/api", () => ({
-  apiService: {
-    resolveUrl: (uri: string) => uri,
-    getApiHost: () => "http://localhost:7777",
-  },
-}));
+// The real socket singleton; only `subscribe` is stubbed so nothing dials out.
+jest.spyOn(webSocketService, "subscribe").mockReturnValue(() => {});
+
+import { apiService } from "../../../services/api";
+
+// The real `apiService` singleton, with only the two host-dependent lookups
+// pinned so URLs are stable regardless of the configured API host.
+jest.spyOn(apiService, "resolveUrl").mockImplementation((uri) => uri ?? null);
+jest.spyOn(apiService, "getApiHost").mockReturnValue("http://localhost:7777");
 
 const mockRead = jest.fn();
 const mockList = jest.fn();
@@ -63,7 +64,7 @@ interface WidgetNode {
 const appDoc = (
   content: WidgetNode[],
   resources: unknown[]
-): Record<string, unknown> => ({
+) => ({
   schemaVersion: 3,
   ui: { root: { props: { title: "Board" } }, content, zones: {} },
   operations: [
@@ -94,7 +95,10 @@ const makeWorkflow = (id: string): Workflow =>
     name: "Board app",
     description: "",
     graph: { nodes: [], edges: [] },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 const renderApp = (doc: unknown) => {
   const queryClient = new QueryClient({

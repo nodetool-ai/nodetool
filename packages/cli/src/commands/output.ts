@@ -10,22 +10,34 @@
 import { createInterface } from "node:readline";
 
 /** Print a table to stdout. Missing values render as empty. */
-export function printTable(
-  rows: Record<string, unknown>[],
+export function printTable<Row extends object>(
+  rows: readonly Row[],
   columns?: string[]
 ): void {
   if (rows.length === 0) {
     console.log("(no results)");
     return;
   }
+  // Render every cell up front, keyed by column name. A table prints whatever
+  // column names the caller asked for off rows of any object shape, so the
+  // lookup is by name — not by a property the row type declares.
+  const cells = rows.map(
+    (row) =>
+      new Map(
+        Object.entries(row).map(([column, value]): [string, string] => [
+          column,
+          String(value ?? "")
+        ])
+      )
+  );
   const cols = columns ?? Object.keys(rows[0]!);
   // Compute widths in a loop rather than Math.max(...spread): a large table
   // would spread thousands of args into one call, risking a max-arguments
   // RangeError and extra allocations.
   const widths = cols.map((c) => {
     let width = c.length;
-    for (const r of rows) {
-      const len = String(r[c] ?? "").length;
+    for (const rendered of cells) {
+      const len = (rendered.get(c) ?? "").length;
       if (len > width) {
         width = len;
       }
@@ -36,10 +48,10 @@ export function printTable(
   const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
   console.log(header);
   console.log(sep);
-  for (const row of rows) {
+  for (const rendered of cells) {
     console.log(
       cols
-        .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
+        .map((c, i) => ` ${(rendered.get(c) ?? "").padEnd(widths[i]!)} `)
         .join("│")
     );
   }

@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -21,8 +22,8 @@ jest.mock("../../../stores/NotificationStore");
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 const updateSecret = jest.fn().mockResolvedValue(undefined);
 const validateSecret = jest.fn();
@@ -63,11 +64,13 @@ beforeEach(() => {
     valid: true,
     message: "Anthropic accepted the key."
   });
-  mockUseSecretsStore.mockImplementation((selector: (s: unknown) => unknown) =>
-    selector({ updateSecret, validateSecret })
+  mockUseSecretsStore.mockImplementation(
+    <T,>(selector: (s: { updateSecret: jest.Mock; validateSecret: jest.Mock }) => T) =>
+      selector({ updateSecret, validateSecret })
   );
   mockUseNotificationStore.mockImplementation(
-    (selector: (s: unknown) => unknown) => selector({ addNotification })
+    <T,>(selector: (s: { addNotification: jest.Mock }) => T) =>
+      selector({ addNotification })
   );
 });
 

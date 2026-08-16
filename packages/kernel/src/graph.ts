@@ -322,7 +322,9 @@ export class Graph {
       nodeObj.properties = rawProperties;
       delete nodeObj.data;
 
-      validNodes.push(nodeObj as unknown as NodeDescriptor);
+      // SAFETY: `properties` was just set, and `id`/`type` were proved to be
+      // strings by the guard above; they are re-stated so the compiler sees it.
+      validNodes.push({ ...nodeObj, id, type } as NodeDescriptor);
       validNodeIds.add(id);
     }
 
@@ -356,7 +358,9 @@ export class Graph {
         continue;
       }
 
-      validEdges.push(edgeObj as unknown as Edge);
+      // SAFETY: `hasRequiredFields` above proved source/sourceHandle/target/
+      // targetHandle are all strings.
+      validEdges.push(edgeObj as Edge);
     }
 
     return new Graph({ nodes: validNodes, edges: validEdges });
@@ -835,10 +839,7 @@ export class Graph {
     return this._buildSchema((n) => n.type.startsWith("nodetool.output."));
   }
 
-  private _buildSchema(filter: (n: NodeDescriptor) => boolean): {
-    properties: Record<string, unknown>;
-    required: string[];
-  } {
+  private _buildSchema(filter: (n: NodeDescriptor) => boolean) {
     const properties: Record<string, unknown> = {};
     const required: string[] = [];
 

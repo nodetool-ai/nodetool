@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -14,10 +15,10 @@ import SandboxPackagesProperty, {
   type Declaration
 } from "../SandboxPackagesProperty";
 
-const modulesQuery = trpcClient.packs.sandboxModules
-  .query as unknown as jest.Mock;
-const docsQuery = trpcClient.packs.sandboxPackageDocs
-  .query as unknown as jest.Mock;
+const modulesQuery = asMock(trpcClient.packs.sandboxModules
+  .query);
+const docsQuery = asMock(trpcClient.packs.sandboxPackageDocs
+  .query);
 
 const MODULE = {
   specifier: "@acme/geo",

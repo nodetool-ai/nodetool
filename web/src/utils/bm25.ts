@@ -32,7 +32,7 @@ interface FieldStats {
 
 const TOKEN_SPLIT = /[\s.,;:!?\-_/(){}[\]"'`<>@#$%^&*+=|\\~]+/;
 
-export function tokenize(text: string): string[] {
+export function tokenize(text: string | null | undefined): string[] {
   if (!text || typeof text !== "string") return [];
   const out: string[] = [];
   for (const part of text.toLowerCase().split(TOKEN_SPLIT)) {

@@ -3,42 +3,41 @@ import { checkExpectedPackageVersions } from '../packageManager';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { app, BrowserWindow } from 'electron';
+import * as config from '../config';
+import * as events from '../events';
+import * as utils from '../utils';
+import * as torchPlatformCache from '../torchPlatformCache';
 
 // Mock child_process
 jest.mock('child_process', () => ({
   spawn: jest.fn(),
 }));
 
-// Mock config
-jest.mock('../config', () => ({
-  getProcessEnv: () => ({}),
-  getUVPath: () => '/usr/bin/uv',
-  getPythonPath: () => '/usr/bin/python',
-  getCondaEnvPath: () => '/test/conda',
-}));
+// Real collaborator modules; only the calls that would read the filesystem or
+// a Python/conda install are stubbed on them.
+jest.spyOn(config, 'getProcessEnv').mockReturnValue({});
+jest.spyOn(config, 'getUVPath').mockReturnValue('/usr/bin/uv');
+jest.spyOn(config, 'getPythonPath').mockReturnValue('/usr/bin/python');
+jest.spyOn(config, 'getCondaEnvPath').mockReturnValue('/test/conda');
 
-// Mock events
-jest.mock('../events', () => ({
-  emitServerLog: jest.fn(),
-  emitBootMessage: jest.fn(),
-}));
+jest.spyOn(events, 'emitServerLog').mockImplementation(() => {});
+jest.spyOn(events, 'emitBootMessage').mockImplementation(() => {});
 
-// Mock utils
-jest.mock('../utils', () => ({
-  fileExists: jest.fn().mockResolvedValue(true),
-  checkPermissions: jest.fn().mockResolvedValue({ accessible: true, error: null }),
-}));
+jest.spyOn(utils, 'fileExists').mockResolvedValue(true);
+jest
+  .spyOn(utils, 'checkPermissions')
+  .mockResolvedValue({ accessible: true, error: null });
 
-// Mock torchPlatformCache
-jest.mock('../torchPlatformCache', () => ({
-  getTorchIndexUrl: jest.fn().mockReturnValue('https://download.pytorch.org/whl/cpu'),
-}));
+jest
+  .spyOn(torchPlatformCache, 'getTorchIndexUrl')
+  .mockReturnValue('https://download.pytorch.org/whl/cpu');
 
 describe('Performance Optimization', () => {
   let spawnMock: jest.Mock;
 
   beforeEach(() => {
-    spawnMock = spawn as unknown as jest.Mock;
+    // SAFETY: `child_process` is jest-mocked in this file, so `spawn` is a `jest.fn()`.
+    spawnMock = spawn as jest.Mock;
     spawnMock.mockReset();
     (app as any).getVersion = jest.fn().mockReturnValue('1.0.0');
     (BrowserWindow as any).getAllWindows = jest.fn().mockReturnValue([]);

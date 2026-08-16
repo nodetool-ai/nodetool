@@ -18,7 +18,7 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
-import { resolveUri } from "../../../utils/imageUtils";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import {
   parseHarmonyContent,
   hasHarmonyTokens,
@@ -71,16 +71,27 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
   const objectUrlRef = useRef<string | null>(null);
   const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
 
+  // Persisted chat media is sanitized to `asset://<asset_id>`, which no
+  // renderer can fetch — resolve each branch's ref to the asset's own
+  // `get_url`. Hooks run unconditionally, so all three resolve here and the
+  // branch below picks the one it needs.
+  const resolvedVideoUri = useResolvedMediaUri(
+    content.type === "video" ? content.video : undefined
+  );
+  const resolvedImageUri = useResolvedMediaUri(
+    content.type === "image_url" ? content.image : undefined
+  );
+  const resolvedAudioUri = useResolvedMediaUri(
+    content.type === "audio" ? content.audio : undefined
+  );
+
   // Resolve the video source once, at the top level, so the blob URL below can
   // be memoized on the actual source (Uint8Array/string) identity. A byte
-  // payload uses the inline `data`; otherwise the `uri` is used directly.
-  // A stored ref carries a `/api/storage/…` (or signed) URL: `resolveUri`
-  // prefixes BASE_URL for the relative form and passes an absolute one
-  // through, the same way the image branch resolves via `createImageUrl`.
+  // payload uses the inline `data`; otherwise the resolved URL is used.
   const videoSource: string | Uint8Array | undefined =
     content.type === "video"
-      ? content.video?.uri
-        ? resolveUri(content.video.uri)
+      ? content.video?.uri || content.video?.asset_id
+        ? resolvedVideoUri
         : (content.video?.data as Uint8Array)
       : undefined;
 
@@ -184,8 +195,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
 
       if (content.image?.data) {
         imageSource = content.image.data as Uint8Array;
-      } else if (content.image?.uri) {
-        imageSource = content.image.uri;
+      } else if (content.image?.uri || content.image?.asset_id) {
+        imageSource = resolvedImageUri;
       } else {
         return <div>Error: No image source available</div>;
       }
@@ -202,8 +213,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         <div css={wrapperStyles} {...dragProps}>
           <AudioPlayer
             source={
-              content.audio?.uri
-                ? resolveUri(content.audio.uri)
+              content.audio?.uri || content.audio?.asset_id
+                ? resolvedAudioUri
                 : (content.audio?.data as Uint8Array)
             }
           />

@@ -16,14 +16,16 @@ type ListenerConstraint = (...args: never[]) => void;
 type UntypedListener = (...args: unknown[]) => void;
 type DefaultEventMap = Record<string, UntypedListener>;
 
-// The Map's value type can't say "listeners under key K take K's arguments",
-// so calling one is the single unchecked step in this file.
+// SAFETY: the Map's value type can't say "listeners under key K take K's
+// arguments", so a stored listener is only ever called from `emit`, which
+// passes exactly the arguments `Events[K]` declares. Widening the parameter
+// list to `unknown[]` is what makes that call expressible.
 const asCallable = (listener: ListenerConstraint): UntypedListener =>
-  listener as unknown as UntypedListener;
+  listener as UntypedListener;
 
 type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ...args: infer A
-) => unknown
+) => void
   ? A
   : unknown[];
 

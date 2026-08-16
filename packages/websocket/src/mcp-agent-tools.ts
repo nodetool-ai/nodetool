@@ -266,13 +266,13 @@ function toToolResponse(result: unknown) {
   const isObject =
     result !== null && typeof result === "object" && !Array.isArray(result);
   const isError = isErrorResult(result);
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }],
-    ...(isError ? { isError: true as const } : {}),
-    ...(isObject && !isError
-      ? { structuredContent: result as Record<string, unknown> }
-      : {})
+  const base = {
+    content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }]
   };
+  const withError = isError ? { ...base, isError: true as const } : base;
+  return isObject && !isError
+    ? { ...withError, structuredContent: result as Record<string, unknown> }
+    : withError;
 }
 
 function errorResponse(err: unknown) {
@@ -426,6 +426,9 @@ class FrontendUiTool extends Tool {
     this.jsonSchema = jsonSchema;
   }
 
+  // HOLDOUT (anti-slop/no-unknown-returns): a bridged tool's result is
+  // whatever the editor or capability answered — the open tool-result domain
+  // the base `Tool.process` contract in `@nodetool-ai/agents` declares.
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
@@ -469,6 +472,8 @@ class RendererAwareDocumentTool extends Tool {
     };
   }
 
+  // HOLDOUT (anti-slop/no-unknown-returns): the result is the delegate's, and
+  // `Tool.process` in `@nodetool-ai/agents` declares `Promise<unknown>`.
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
@@ -497,7 +502,9 @@ class ListRenderersTool extends Tool {
     super();
   }
 
-  async process(): Promise<unknown> {
+  async process(): Promise<{
+    renderers: Array<{ renderer_id: string; active: boolean }>;
+  }> {
     const renderers = this.options.frontendRendererRegistry
       ? this.options.frontendRendererRegistry
           .list(this.userId)
@@ -558,7 +565,7 @@ function oneLine(description: string): string {
 function buildCapabilityCatalog(
   belt: Tool[],
   directToolNames: string[]
-): Record<string, unknown> {
+) {
   const available = new Set(belt.map((tool) => tool.name));
   const modules = Object.entries(NODETOOL_API_NAMESPACE_TOOLS)
     .map(([namespace, names]) => ({
@@ -651,6 +658,8 @@ export function registerAgentMcpTools(
    * direct MCP call and a `tools.<name>()` call inside an action — so a
    * capability cannot behave differently depending on how it was reached.
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): one path for every bridged tool,
+  // so the result is the open tool-result domain `Tool.process` declares.
   const runBridgedTool = async (
     tool: Tool,
     args: Record<string, unknown>
@@ -799,7 +808,7 @@ export function registerAgentMcpTools(
       ? (actionSchema["required"] as string[])
       : []
     ).filter((name) => name !== "title")
-  } as unknown as JsonSchema);
+  });
 
   server.tool(
     session.providerTool.name,
@@ -898,7 +907,10 @@ export function registerAgentMcpTools(
   log.info("Registered agent MCP tools", {
     userId: scope.userId,
     source: scope.source,
-    registered: [session.providerTool.name, ...(viewImage ? ["view_image"] : [])],
+    registered: [
+      session.providerTool.name,
+      ...(viewImage ? ["view_image"] : [])
+    ],
     beltSize: belt.length
   });
 

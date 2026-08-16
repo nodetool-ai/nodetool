@@ -108,7 +108,7 @@ function GrowingTextInput({ style, ...rest }: TextInputProps) {
   );
 }
 
-const STATUS_LABELS: Record<ShotStatus, string> = {
+const STATUS_LABELS = {
   planned: 'Planned',
   keyframe_generating: 'Still…',
   keyframe_ready: 'Still ready',
@@ -116,7 +116,7 @@ const STATUS_LABELS: Record<ShotStatus, string> = {
   clip_generating: 'Rendering…',
   rendered: 'Rendered',
   failed: 'Failed',
-};
+} satisfies Record<ShotStatus, string>;
 
 interface ShotCardProps {
   shot: Shot;

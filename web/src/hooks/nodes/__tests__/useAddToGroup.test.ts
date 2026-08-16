@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import { useAddToGroup } from "../useAddToGroup";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
@@ -36,7 +37,7 @@ jest.mock("../getGroupBounds", () => ({
 import { useNodes } from "../../../contexts/NodeContext";
 import { getGroupBounds } from "../getGroupBounds";
 
-const mockUseNodes = useNodes as unknown as jest.Mock;
+const mockUseNodes = asMock(useNodes);
 const mockGetGroupBounds = getGroupBounds as jest.MockedFunction<typeof getGroupBounds>;
 
 describe("useAddToGroup", () => {
@@ -62,8 +63,9 @@ describe("useAddToGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNodes.mockImplementation((selector: (s: unknown) => unknown) =>
-      selector({ updateNode: mockUpdateNode })
+    mockUseNodes.mockImplementation(
+      <T,>(selector: (s: { updateNode: typeof mockUpdateNode }) => T) =>
+        selector({ updateNode: mockUpdateNode })
     );
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
     mockGetState.mockReturnValue({ nodes: [] });

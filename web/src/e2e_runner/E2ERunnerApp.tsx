@@ -25,7 +25,6 @@ import ThemeNodetool from "../components/themes/ThemeNodetool";
 import useMetadataStore from "../stores/MetadataStore";
 import type { NodeData } from "../stores/NodeData";
 import { NodeContext } from "../contexts/NodeContext";
-import type { NodeStore } from "../stores/NodeStore";
 import { ContextMenuProvider } from "../providers/ContextMenuProvider";
 import { WorkflowManagerProvider } from "../contexts/WorkflowManagerContext";
 import { MenuProvider } from "../providers/MenuProvider";
@@ -267,7 +266,7 @@ function Canvas({
   }
 
   return (
-    <NodeContext.Provider value={graph.store as unknown as NodeStore}>
+    <NodeContext.Provider value={graph.store}>
       <ReactFlowProvider>
         <div style={{ width: "100%", height: "100vh" }}>
           <CanvasInner graph={graph} nodeStatus={state.nodeStatus} />

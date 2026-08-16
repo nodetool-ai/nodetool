@@ -25,9 +25,19 @@ import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
 import { renderJsScriptValidation } from "./js-script-validation-output.js";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** A `js_scripts` row as these commands need it. */
 export interface JsScriptRow {
   id: string;
+  user_id: string;
   name?: string | null;
   updated_at: string;
   document: string;
@@ -114,21 +124,19 @@ export function versionTableRows(
 }
 
 /** Parse a stored document without throwing — an unreadable one is a finding. */
-export function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+export function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded; either way the
+  // stored document is JSON.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     return raw;
   }
 }
 
 /** Port and test counts of whatever a version stored. */
-export function documentCounts(document: unknown): {
-  inputs: number;
-  outputs: number;
-  tests: number;
-} {
+export function documentCounts(document: JsonValue | undefined) {
   const doc = (document ?? {}) as Record<string, unknown>;
   const count = (value: unknown): number =>
     Array.isArray(value) ? value.length : 0;
@@ -140,43 +148,36 @@ export function documentCounts(document: unknown): {
 }
 
 async function defaultValidate(document: unknown): Promise<JsScriptValidation> {
-  const { validateJsScriptDoc } = await import(
-    "@nodetool-ai/execution/js-script-debug"
-  );
+  const { validateJsScriptDoc } =
+    await import("@nodetool-ai/execution/js-script-debug");
   return validateJsScriptDoc(document);
 }
 
 async function defaultStore(): Promise<JsScriptVersionStore> {
-  const { initDb, JsScript, JsScriptVersion } = await import(
-    "@nodetool-ai/models"
-  );
+  const { initDb, JsScript, JsScriptVersion } =
+    await import("@nodetool-ai/models");
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
-  type SnapshotArg = Parameters<typeof JsScriptVersion.snapshot>[0];
-
   return {
     loadScript: async (id) =>
-      (await JsScript.findById(id)) as unknown as JsScriptRow | null,
+      await JsScript.findById(id),
     listVersions: async (jsScriptId, opts) =>
       (await JsScriptVersion.listForScript(
         jsScriptId,
         opts
-      )) as unknown as JsScriptVersionRow[],
+      )),
     findVersion: async (jsScriptId, version) =>
       (await JsScriptVersion.findByVersion(
         jsScriptId,
         version
-      )) as unknown as JsScriptVersionRow | null,
+      )),
     snapshot: async (script, opts) =>
-      (await JsScriptVersion.snapshot(
-        script as unknown as SnapshotArg,
-        opts
-      )) as unknown as JsScriptVersionRow,
+      await JsScriptVersion.snapshot(script, opts),
     restore: async (script, version) =>
       (await JsScript.updateFieldsIfUnchanged(script.id, script.updated_at, {
         document: version.document
-      })) as unknown as JsScriptRow | null,
+      })),
     deleteVersion: async (jsScriptId, version) => {
       const row = await JsScriptVersion.findByVersion(jsScriptId, version);
       if (row) await row.delete();
@@ -245,10 +246,14 @@ export function registerJsScriptVersionsCommands(
       try {
         const store = await openStore();
         await requireScript(store, scriptId);
-        const rows = await store.listVersions(scriptId, {
-          ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-          ...(opts.saveType ? { saveType: opts.saveType } : {})
-        });
+        const query: Parameters<typeof store.listVersions>[1] = {};
+        if (opts.limit !== undefined) {
+          query.limit = opts.limit;
+        }
+        if (opts.saveType) {
+          query.saveType = opts.saveType;
+        }
+        const rows = await store.listVersions(scriptId, query);
         const items = rows.map(toVersionListItem);
 
         if (opts.json) {

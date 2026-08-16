@@ -73,20 +73,34 @@ function truncateString(s: string, max: number): string {
  * arrays are truncated, binary buffers become size markers, secret-bearing
  * keys are redacted, and circular references are broken. Never throws.
  */
+/**
+ * A JSON-safe value: what {@link sanitizeForLog} produces. `undefined` is kept
+ * rather than rewritten, so a log line still shows a field that was unset.
+ */
+export type LogSafeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | LogSafeValue[]
+  | { [key: string]: LogSafeValue };
+
 export function sanitizeForLog(
   value: unknown,
   opts: SanitizeOptions = {}
-): unknown {
+): LogSafeValue {
   const o = { ...SANITIZE_DEFAULTS, ...opts };
   // Tracks the current DFS path (not all visited nodes) so shared-but-acyclic
   // references aren't falsely flagged as circular.
   const ancestors = new WeakSet<object>();
 
-  function walk(v: unknown, depth: number): unknown {
+  function walk(v: unknown, depth: number): LogSafeValue {
     if (v === null || v === undefined) return v;
     const t = typeof v;
     if (t === "string") return truncateString(v as string, o.maxStringLength);
-    if (t === "number" || t === "boolean") return v;
+    // SAFETY: `t` is `typeof v`, so this arm has proved v is a number/boolean.
+    if (t === "number" || t === "boolean") return v as number | boolean;
     if (t === "bigint") return `${(v as bigint).toString()}n`;
     if (t === "function") {
       return `[function ${(v as { name?: string }).name || "anonymous"}]`;
@@ -111,7 +125,7 @@ export function sanitizeForLog(
           }
           return out;
         }
-        const out: Record<string, unknown> = {};
+        const out: { [key: string]: LogSafeValue } = {};
         for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
           out[k] = isSecretKey(k) ? "[redacted]" : walk(val, depth + 1);
         }

@@ -29,7 +29,7 @@ export const MIME_TO_EXT: Record<string, string> = {
 };
 
 export function workspaceDir(context: ProcessingContext): string | null {
-  const ws = (context as unknown as Record<string, unknown>)["workspaceDir"];
+  const ws = context.workspaceDir;
   return typeof ws === "string" && ws ? ws : null;
 }
 

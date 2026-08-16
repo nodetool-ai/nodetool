@@ -117,15 +117,22 @@ const sandboxPackDocsOutput = z
 // ── DTO mapping ──────────────────────────────────────────────────────────
 
 function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
-  return {
+  const dto: z.infer<typeof packResultSchema> = {
     name: r.pack.name,
-    ...(r.pack.version !== undefined ? { version: r.pack.version } : {}),
     status: r.status,
-    ...(r.reason !== undefined ? { reason: r.reason } : {}),
     registered: r.registered,
-    skippedNodes: r.skippedNodes,
-    ...(r.error ? { error: r.error.message } : {})
+    skippedNodes: r.skippedNodes
   };
+  if (r.pack.version !== undefined) {
+    dto.version = r.pack.version;
+  }
+  if (r.reason !== undefined) {
+    dto.reason = r.reason;
+  }
+  if (r.error) {
+    dto.error = r.error.message;
+  }
+  return dto;
 }
 
 function builtinPackDtos(): z.infer<typeof builtinPackSchema>[] {
@@ -154,9 +161,7 @@ export const packsRouter = router({
    * would actually spawn the binary.
    */
   runtimeStatuses: protectedProcedure
-    .input(
-      z.object({ ids: z.array(z.string()).max(64).optional() }).optional()
-    )
+    .input(z.object({ ids: z.array(z.string()).max(64).optional() }).optional())
     .output(
       z.object({
         statuses: z.array(z.object({ id: z.string(), installed: z.boolean() }))
@@ -167,9 +172,9 @@ export const packsRouter = router({
     })),
 
   /** Effective trust config (env + config file + defaults merged). */
-  getTrust: protectedProcedure.output(trustSchema).query(() =>
-    resolvePackTrust()
-  ),
+  getTrust: protectedProcedure
+    .output(trustSchema)
+    .query(() => resolvePackTrust()),
 
   /**
    * Persist a partial trust update to `~/.config/nodetool/packs.json` and
@@ -187,8 +192,7 @@ export const packsRouter = router({
       const isProd = process.env["NODETOOL_ENV"] === "production";
       const next = {
         allowlist: input.allowlist ?? fromFile.allow ?? [],
-        allowUnlisted:
-          input.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd
+        allowUnlisted: input.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd
       };
       writePackTrustConfig(next);
       // Return the effective trust (env + file + defaults) so the client sees
@@ -201,28 +205,29 @@ export const packsRouter = router({
    * produced. Separate from `list`: a pack's sandbox modules and its nodes are
    * discovered by different code and fail independently.
    */
-  sandboxModules: protectedProcedure
-    .output(sandboxModulesOutput)
-    .query(() => {
-      const catalog = getSandboxCatalog();
-      return {
-        modules: (catalog?.summaries() ?? []).map((summary) => ({
+  sandboxModules: protectedProcedure.output(sandboxModulesOutput).query(() => {
+    const catalog = getSandboxCatalog();
+    return {
+      modules: (catalog?.summaries() ?? []).map((summary) => {
+        const dto: z.infer<typeof sandboxModulesOutput>["modules"][number] = {
           specifier: summary.specifier,
           packName: summary.packName,
-          ...(summary.packVersion === undefined
-            ? {}
-            : { packVersion: summary.packVersion }),
-          kind: summary.kind,
-          ...(summary.description === undefined
-            ? {}
-            : { description: summary.description }),
-          ...(summary.contentDigest === undefined
-            ? {}
-            : { contentDigest: summary.contentDigest })
-        })),
-        diagnostics: [...getSandboxCatalogDiagnostics()]
-      };
-    }),
+          kind: summary.kind
+        };
+        if (summary.packVersion !== undefined) {
+          dto.packVersion = summary.packVersion;
+        }
+        if (summary.description !== undefined) {
+          dto.description = summary.description;
+        }
+        if (summary.contentDigest !== undefined) {
+          dto.contentDigest = summary.contentDigest;
+        }
+        return dto;
+      }),
+      diagnostics: [...getSandboxCatalogDiagnostics()]
+    };
+  }),
 
   /**
    * One pack's SKILL.md, by name.
@@ -239,16 +244,17 @@ export const packsRouter = router({
     .query(({ input }) => {
       const skill = getSandboxCatalog()?.packSkill?.(input.packName);
       if (skill === undefined) return null;
-      return {
+      const docs: NonNullable<z.infer<typeof sandboxPackDocsOutput>> = {
         packName: skill.packName,
-        ...(skill.packVersion === undefined
-          ? {}
-          : { packVersion: skill.packVersion }),
         trusted: skill.trusted,
         name: skill.name,
         description: skill.description,
         body: skill.body
       };
+      if (skill.packVersion !== undefined) {
+        docs.packVersion = skill.packVersion;
+      }
+      return docs;
     }),
 
   /** Built-in packs that ship with NodeTool and whether each is enabled. */
@@ -278,9 +284,8 @@ export const packsRouter = router({
       });
       // Lazy import: node-registry-setup pulls in every built-in pack, which
       // must not load just because the router module is imported.
-      const { applyBuiltinPackEnabled } = await import(
-        "../../node-registry-setup.js"
-      );
+      const { applyBuiltinPackEnabled } =
+        await import("../../node-registry-setup.js");
       applyBuiltinPackEnabled(ctx.registry, input.id, input.enabled);
       return { packs: builtinPackDtos() };
     }),
@@ -289,8 +294,10 @@ export const packsRouter = router({
    * Re-scan installed packs and register any new ones into the live registry.
    * Returns the refreshed snapshot.
    */
-  reload: protectedProcedure.output(packsListOutput).mutation(async ({ ctx }) => {
-    await reloadPacks(ctx.registry);
-    return { packs: getPackSnapshot().map(toDto) };
-  })
+  reload: protectedProcedure
+    .output(packsListOutput)
+    .mutation(async ({ ctx }) => {
+      await reloadPacks(ctx.registry);
+      return { packs: getPackSnapshot().map(toDto) };
+    })
 });

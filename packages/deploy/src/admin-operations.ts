@@ -609,10 +609,7 @@ export async function* deleteHFModel(
 /**
  * Recursively calculate total size of files in a directory.
  */
-function calculateCacheSizeSync(cacheDir: string): {
-  totalSize: number;
-  error: string | null;
-} {
+function calculateCacheSizeSync(cacheDir: string) {
   let totalSize = 0;
   let error: string | null = null;
 

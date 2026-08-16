@@ -4,6 +4,7 @@
  * what a declared timeout means.
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
@@ -13,7 +14,7 @@ import type { Workflow } from "../../../../stores/ApiTypes";
 const fetchWorkflow = jest.fn();
 
 jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: { fetchWorkflow: unknown }) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: { fetchWorkflow: unknown }) => T) =>
     selector({ fetchWorkflow })
 }));
 
@@ -126,19 +127,19 @@ const graph = (nodeId: string, outputId: string) => ({
   edges: []
 });
 
-const workflowA = {
+const workflowA = stub<Workflow>({
   id: "wf-a",
   name: "A",
   access: "private",
   graph: graph("in1", "out1")
-} as unknown as Workflow;
+});
 
-const workflowB = {
+const workflowB = stub<Workflow>({
   id: "wf-b",
   name: "B",
   access: "private",
   graph: graph("in2", "out2")
-} as unknown as Workflow;
+});
 
 const emptyUi = { root: { props: {} }, content: [], zones: {} };
 

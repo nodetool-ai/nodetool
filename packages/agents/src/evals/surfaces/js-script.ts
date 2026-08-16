@@ -36,6 +36,7 @@ import { runCodeBody } from "../../capabilities/code.js";
 import {
   gradeCodeCases,
   type CodeTestReport,
+  type GradedCase,
   type HarnessRunResult
 } from "../../capabilities/code-grading.js";
 import {
@@ -69,22 +70,25 @@ export interface JsScriptBridgeFinalState {
   /** Whether the document passes the static check as it stands. */
   valid: boolean;
   validationErrorCodes: string[];
-  lastRun: { ok: boolean; outputs?: Record<string, unknown>; error?: string } | null;
+  lastRun: {
+    ok: boolean;
+    outputs?: Record<string, unknown>;
+    error?: string;
+  } | null;
   lastTest: { ok: boolean; passed: number; failed: number } | null;
 }
 
 /** The bridge, plus the document a host (the CLI harness) validates afterwards. */
-export interface JsScriptToolBridge
-  extends HeadlessSurfaceBridge<JsScriptBridgeFinalState> {
+export interface JsScriptToolBridge extends HeadlessSurfaceBridge<JsScriptBridgeFinalState> {
   document: () => JsScriptDocument;
   name: () => string;
 }
 
-function tool(
+function tool<TResult>(
   name: string,
   description: string,
   parameters: z.ZodTypeAny,
-  impl: (args: Record<string, unknown>) => Promise<unknown>
+  impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
   return {
     name,
@@ -101,7 +105,9 @@ const portParam = z.object({
   name: z.string().describe("Port name, readable as `inputs.<name>`."),
   type: z
     .string()
-    .describe('NodeTool type name: "str", "int", "float", "bool", "list[str]", …')
+    .describe(
+      'NodeTool type name: "str", "int", "float", "bool", "list[str]", …'
+    )
 });
 
 const testParam = z.object({
@@ -113,7 +119,9 @@ const testParam = z.object({
   expect: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Expected final value per declared output, compared structurally."),
+    .describe(
+      "Expected final value per declared output, compared structurally."
+    ),
   expectedStreamed: z
     .array(z.object({ name: z.string(), value: z.unknown() }))
     .optional()
@@ -145,9 +153,8 @@ export function createJsScriptToolBridge(
   let lastValidation: JsScriptValidation | null = null;
 
   const validate = async (): Promise<JsScriptValidation> => {
-    const { validateJsScriptDoc } = await import(
-      "@nodetool-ai/execution/js-script-debug"
-    );
+    const { validateJsScriptDoc } =
+      await import("@nodetool-ai/execution/js-script-debug");
     lastValidation = await validateJsScriptDoc(document);
     return lastValidation;
   };
@@ -186,14 +193,18 @@ export function createJsScriptToolBridge(
 
   const runTests = async (): Promise<CodeTestReport> =>
     gradeCodeCases(
-      document.tests.map((testCase, index) => ({
-        name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
-        inputs: testCase.inputs ?? {},
-        ...(testCase.expect ? { expect: testCase.expect } : {}),
-        ...(testCase.expectedStreamed
-          ? { expectedStreamed: testCase.expectedStreamed }
-          : {})
-      })),
+      document.tests.map((testCase, index) => {
+        const graded: GradedCase = {
+          name:
+            testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
+          inputs: testCase.inputs ?? {}
+        };
+        if (testCase.expect) graded.expect = testCase.expect;
+        if (testCase.expectedStreamed) {
+          graded.expectedStreamed = testCase.expectedStreamed;
+        }
+        return graded;
+      }),
       (testCase) => execute(testCase.inputs)
     );
 
@@ -318,11 +329,12 @@ export function createJsScriptToolBridge(
         const result = await execute(
           (inputs as Record<string, unknown> | undefined) ?? {}
         );
-        lastRun = {
-          ok: result.ok,
-          ...(result.outputs !== undefined ? { outputs: result.outputs } : {}),
-          ...(result.error !== undefined ? { error: result.error } : {})
+        const run: NonNullable<JsScriptBridgeFinalState["lastRun"]> = {
+          ok: result.ok
         };
+        if (result.outputs !== undefined) run.outputs = result.outputs;
+        if (result.error !== undefined) run.error = result.error;
+        lastRun = run;
         return { ok: result.ok, run: result };
       }
     ),
@@ -420,7 +432,8 @@ export const JS_SCRIPT_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<JsScriptBridge
           {
             name: "runProducedTotal",
             detail: "the last run did not produce total = 6",
-            test: (s) => s.lastRun?.ok === true && s.lastRun.outputs?.total === 6
+            test: (s) =>
+              s.lastRun?.ok === true && s.lastRun.outputs?.total === 6
           }
         ]
       }
@@ -478,7 +491,11 @@ export const JS_SCRIPT_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<JsScriptBridge
             inputs: [{ name: "n", type: "int" }],
             outputs: [{ name: "doubled", type: "int" }],
             tests: [
-              { name: "doubles five", inputs: { n: 5 }, expect: { doubled: 10 } }
+              {
+                name: "doubles five",
+                inputs: { n: 5 },
+                expect: { doubled: 10 }
+              }
             ]
           }
         }),

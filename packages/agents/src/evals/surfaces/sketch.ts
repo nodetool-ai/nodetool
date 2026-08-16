@@ -58,6 +58,7 @@ import {
   readFullImage,
   requireRasterContext,
   transformRaster,
+  type RasterAdjustments,
   type RasterSelection
 } from "@nodetool-ai/image-editor/raster.js";
 import { z } from "zod";
@@ -73,8 +74,10 @@ import type {
  * uses it to allocate its brush-stamp scratch bitmaps, so every bridge in this
  * process shares one factory.
  */
-setPaintSurfaceFactory(
-  createCanvas as unknown as (w: number, h: number) => PaintSurface
+setPaintSurfaceFactory((w: number, h: number) =>
+  // SAFETY: the engine only draws brush stamps on the surface, and a skia
+  // canvas provides every member `PaintSurface` names for that.
+  createCanvas(w, h) as PaintSurface
 );
 
 export type SketchBlendMode =
@@ -116,7 +119,7 @@ const BLEND_MODES = SKETCH_BLEND_MODES;
  * two are spelled the same; `"normal"` is Canvas's default `"source-over"` and
  * `"add"` is its additive `"lighter"`.
  */
-const CANVAS_COMPOSITE_OP: Record<SketchBlendMode, string> = {
+const CANVAS_COMPOSITE_OP = {
   normal: "source-over",
   multiply: "multiply",
   screen: "screen",
@@ -130,7 +133,7 @@ const CANVAS_COMPOSITE_OP: Record<SketchBlendMode, string> = {
   difference: "difference",
   exclusion: "exclusion",
   add: "lighter"
-};
+} satisfies Record<SketchBlendMode, string>;
 
 const TOOLS = [
   "move",
@@ -285,11 +288,11 @@ interface Layer {
 /** Serializable view handed back to the model — the bitmap never crosses. */
 type LayerView = Omit<Layer, "raster">;
 
-function tool(
+function tool<TResult>(
   name: string,
   description: string,
   parameters: z.ZodTypeAny,
-  impl: (args: Record<string, unknown>) => Promise<unknown>
+  impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
   return {
     name,
@@ -351,7 +354,7 @@ function renderStroke(options: {
   size: number;
   hardness: number;
   closed: boolean;
-}): { buffer: Canvas; dirty: DirtyRectTracker } {
+}) {
   const { width, height, tool, color, size, hardness, closed } = options;
   const buffer = createCanvas(width, height);
   const ctx = paintContext(buffer);
@@ -979,7 +982,9 @@ export function createSketchToolBridge(
       async ({ target, x, y, color, tolerance, contiguous }) => {
         const layer = resolveTarget((target as string | undefined) ?? "active");
         if (layer.locked) {
-          throw new Error(`Layer "${layer.name}" is locked and cannot take pixels.`);
+          throw new Error(
+            `Layer "${layer.name}" is locked and cannot take pixels.`
+          );
         }
         if (layer.type !== "raster") {
           throw new Error(
@@ -987,11 +992,16 @@ export function createSketchToolBridge(
           );
         }
         const fillColor = (color as string | undefined) ?? foregroundColor;
-        fillOnContext(requireRasterContext(paintContext(ensureRaster(layer))), x as number, y as number, {
-          color: fillColor,
-          tolerance: (tolerance as number | undefined) ?? 16,
-          contiguous: (contiguous as boolean | undefined) ?? true
-        });
+        fillOnContext(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          x as number,
+          y as number,
+          {
+            color: fillColor,
+            tolerance: (tolerance as number | undefined) ?? 16,
+            contiguous: (contiguous as boolean | undefined) ?? true
+          }
+        );
         return {
           ok: true,
           layerId: layer.id,
@@ -1012,15 +1022,15 @@ export function createSketchToolBridge(
         start: z.object({ x: z.number(), y: z.number() }),
         end: z.object({ x: z.number(), y: z.number() }),
         stops: z
-          .array(z.object({ offset: z.number().min(0).max(1), color: z.string() }))
+          .array(
+            z.object({ offset: z.number().min(0).max(1), color: z.string() })
+          )
           .optional()
       }),
       async ({ target, type, start, end, stops }) => {
         const layer = resolveTarget((target as string | undefined) ?? "active");
         if (layer.locked || layer.type !== "raster") {
-          throw new Error(
-            `Layer "${layer.name}" cannot take a gradient.`
-          );
+          throw new Error(`Layer "${layer.name}" cannot take a gradient.`);
         }
         const ramp = (stops as
           | { offset: number; color: string }[]
@@ -1060,7 +1070,9 @@ export function createSketchToolBridge(
         innerRadius: z.number().optional()
       }),
       async (args) => {
-        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        const layer = resolveTarget(
+          (args.target as string | undefined) ?? "active"
+        );
         if (layer.locked || layer.type !== "raster") {
           throw new Error(`Layer "${layer.name}" cannot take a shape.`);
         }
@@ -1114,7 +1126,8 @@ export function createSketchToolBridge(
         feather: z.number().min(0).optional()
       }),
       async ({ mode, shape, bounds, points, feather }) => {
-        const op = (mode as "replace" | "add" | "subtract" | "intersect") ?? "replace";
+        const op =
+          (mode as "replace" | "add" | "subtract" | "intersect") ?? "replace";
         let overlay: RasterSelection;
         if (shape === "rect" || shape === "ellipse") {
           const box = bounds as
@@ -1125,7 +1138,14 @@ export function createSketchToolBridge(
           }
           overlay =
             shape === "rect"
-              ? rectSelection(width, height, box.x, box.y, box.width, box.height)
+              ? rectSelection(
+                  width,
+                  height,
+                  box.x,
+                  box.y,
+                  box.width,
+                  box.height
+                )
               : ellipseSelection(
                   width,
                   height,
@@ -1168,7 +1188,9 @@ export function createSketchToolBridge(
         flipV: z.boolean().optional()
       }),
       async (args) => {
-        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        const layer = resolveTarget(
+          (args.target as string | undefined) ?? "active"
+        );
         if (layer.locked || layer.type !== "raster") {
           throw new Error(`Layer "${layer.name}" cannot be transformed.`);
         }
@@ -1179,15 +1201,18 @@ export function createSketchToolBridge(
         const rotation = (args.rotation as number | undefined) ?? 0;
         const flipH = (args.flipH as boolean | undefined) ?? false;
         const flipV = (args.flipV as boolean | undefined) ?? false;
-        transformRaster(requireRasterContext(paintContext(ensureRaster(layer))), {
-          dx,
-          dy,
-          scaleX,
-          scaleY,
-          rotation,
-          flipH,
-          flipV
-        });
+        transformRaster(
+          requireRasterContext(paintContext(ensureRaster(layer))),
+          {
+            dx,
+            dy,
+            scaleX,
+            scaleY,
+            rotation,
+            flipH,
+            flipV
+          }
+        );
         return {
           ok: true,
           layerId: layer.id,
@@ -1216,26 +1241,27 @@ export function createSketchToolBridge(
         blur: z.number().min(0).max(100).optional()
       }),
       async (args) => {
-        const layer = resolveTarget((args.target as string | undefined) ?? "active");
+        const layer = resolveTarget(
+          (args.target as string | undefined) ?? "active"
+        );
         if (layer.locked || layer.type !== "raster") {
           throw new Error(`Layer "${layer.name}" cannot be adjusted.`);
         }
-        const adjustments = {
-          ...(args.brightness !== undefined
-            ? { brightness: args.brightness as number }
-            : {}),
-          ...(args.contrast !== undefined
-            ? { contrast: args.contrast as number }
-            : {}),
-          ...(args.exposure !== undefined
-            ? { exposure: args.exposure as number }
-            : {}),
-          ...(args.saturation !== undefined
-            ? { saturation: args.saturation as number }
-            : {}),
-          ...(args.hue !== undefined ? { hue: args.hue as number } : {}),
-          ...(args.blur !== undefined ? { blur: args.blur as number } : {})
-        };
+        const adjustments: RasterAdjustments = {};
+        if (args.brightness !== undefined) {
+          adjustments.brightness = args.brightness as number;
+        }
+        if (args.contrast !== undefined) {
+          adjustments.contrast = args.contrast as number;
+        }
+        if (args.exposure !== undefined) {
+          adjustments.exposure = args.exposure as number;
+        }
+        if (args.saturation !== undefined) {
+          adjustments.saturation = args.saturation as number;
+        }
+        if (args.hue !== undefined) adjustments.hue = args.hue as number;
+        if (args.blur !== undefined) adjustments.blur = args.blur as number;
         if (Object.keys(adjustments).length === 0) {
           throw new Error("Provide at least one adjustment.");
         }
@@ -1315,7 +1341,11 @@ export function createSketchToolBridge(
           target == null
             ? composite()
             : ensureRaster(resolveTarget(target as string));
-        const sample = pickPixel(readFullImage(requireRasterContext(paintContext(canvas))), x as number, y as number);
+        const sample = pickPixel(
+          readFullImage(requireRasterContext(paintContext(canvas))),
+          x as number,
+          y as number
+        );
         return { ok: true, ...sample };
       }
     ),
@@ -1377,22 +1407,25 @@ export function createSketchToolBridge(
         paintedPixels,
         paintedFraction: paintedPixels / area,
         strokedFraction: strokedPixels / area,
-        layers: layers.map((l, i) => ({
-          id: l.id,
-          name: l.name,
-          type: l.type,
-          visible: l.visible,
-          opacity: l.opacity,
-          blendMode: l.blendMode,
-          index: i,
-          hasBinding: l.hasBinding,
-          paintedPixels: countPaintedPixels(l.raster),
-          strokeCount: l.strokeCount,
-          ...(l.prompt !== undefined ? { prompt: l.prompt } : {}),
-          ...(l.provider !== undefined ? { provider: l.provider } : {}),
-          ...(l.model !== undefined ? { model: l.model } : {}),
-          ...(l.fillColor !== undefined ? { fillColor: l.fillColor } : {})
-        }))
+        layers: layers.map((l, i) => {
+          const entry: SketchBridgeFinalState["layers"][number] = {
+            id: l.id,
+            name: l.name,
+            type: l.type,
+            visible: l.visible,
+            opacity: l.opacity,
+            blendMode: l.blendMode,
+            index: i,
+            hasBinding: l.hasBinding,
+            paintedPixels: countPaintedPixels(l.raster),
+            strokeCount: l.strokeCount
+          };
+          if (l.prompt !== undefined) entry.prompt = l.prompt;
+          if (l.provider !== undefined) entry.provider = l.provider;
+          if (l.model !== undefined) entry.model = l.model;
+          if (l.fillColor !== undefined) entry.fillColor = l.fillColor;
+          return entry;
+        })
       };
     }
   };

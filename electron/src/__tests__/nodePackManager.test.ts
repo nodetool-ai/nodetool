@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import * as config from "../config";
 
 jest.mock("child_process", () => ({
   spawn: jest.fn(),
@@ -9,13 +10,11 @@ jest.mock("electron", () => ({
     getPath: jest.fn().mockReturnValue("/mock/userData")
   }
 }));
-jest.mock("../config", () => ({
-  getProcessEnv: jest.fn().mockReturnValue({ PATH: "/mock/path" }),
-  resolveNpmInvocation: jest
-    .fn()
-    .mockReturnValue({ command: "npm", baseArgs: [] })
-}));
-jest.mock("../logger", () => ({ logMessage: jest.fn() }));
+// The real config module; only the two environment lookups are stubbed.
+jest.spyOn(config, "getProcessEnv").mockReturnValue({ PATH: "/mock/path" });
+jest
+  .spyOn(config, "resolveNpmInvocation")
+  .mockReturnValue({ command: "npm", baseArgs: [] });
 jest.mock("@nodetool-ai/node-sdk/sandbox-pack-discovery", () => ({
   discoverSandboxPack: jest.fn()
 }));
@@ -286,7 +285,9 @@ describe("nodePackManager", () => {
         name: "@scope/pkg",
         version: "2.0.0",
         nodetool: { register: "register" },
-        ...(lockfile === undefined ? {} : { lockfile })
+        // The stub reads `options.lockfile ?? <default>`, so an absent key and
+        // an undefined one take the same branch.
+        lockfile
       });
       await installNodePack("@scope/pkg");
       jest.clearAllMocks();

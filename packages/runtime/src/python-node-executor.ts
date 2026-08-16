@@ -1,5 +1,6 @@
 import type { ProcessingContext } from "./context.js";
 import type {
+  ExecuteIdentity,
   ExecuteInputBlobs,
   ExecuteResult,
   ProgressEvent
@@ -16,14 +17,16 @@ interface PythonBridgeLike {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): Promise<ExecuteResult>;
   executeStream?(
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): AsyncGenerator<ExecuteResult>;
 }
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -94,8 +97,43 @@ export class PythonNodeExecutor {
     private outputTypes: Record<string, string>,
     private requiredSettings: string[],
     /** Graph node id, used to surface Python worker progress as node_progress. */
-    private nodeId?: string
+    private nodeId?: string,
+    /**
+     * VRAM hint from this node type's `discover` metadata, forwarded on every
+     * execute so the worker can size its reclaim pass. Absent for a worker
+     * that does not report one.
+     */
+    private requiresVramGb?: number
   ) {}
+
+  /**
+   * Run identity for the `execute` payload (bridge protocol v4).
+   *
+   * Before v4 the worker saw an unlabeled stream of single-node executions: it
+   * constructed every node with no id, so `self._id` was `""` for all of them
+   * and its node → model map collapsed into one bucket. `node_id` is what makes
+   * that map real; `job_id` is what pairs the execution with the `job.end`
+   * boundary that releases it.
+   */
+  private identity(context?: ProcessingContext): ExecuteIdentity {
+    const identity: ExecuteIdentity = {};
+    if (this.nodeId) {
+      identity.nodeId = this.nodeId;
+    }
+    if (context?.jobId) {
+      identity.jobId = context.jobId;
+    }
+    if (context?.workflowId) {
+      identity.workflowId = context.workflowId;
+    }
+    if (context?.userId) {
+      identity.userId = context.userId;
+    }
+    if (typeof this.requiresVramGb === "number") {
+      identity.requiresVramGb = this.requiresVramGb;
+    }
+    return identity;
+  }
 
   /**
    * Build an onProgress sink that forwards the Python worker's progress events
@@ -243,7 +281,8 @@ export class PythonNodeExecutor {
       fields,
       secrets,
       blobs,
-      this.progressHandler(context)
+      this.progressHandler(context),
+      this.identity(context)
     );
     return this.materializeOutputs(result, context);
   }
@@ -263,7 +302,8 @@ export class PythonNodeExecutor {
       fields,
       secrets,
       blobs,
-      this.progressHandler(context)
+      this.progressHandler(context),
+      this.identity(context)
     )) {
       yield await this.materializeOutputs(partial, context);
     }

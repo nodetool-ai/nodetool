@@ -1,5 +1,6 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ImageListProperty from "../ImageListProperty";
@@ -7,15 +8,9 @@ import ImageListProperty from "../ImageListProperty";
 // Mock NodeContext — useUpstreamValue (added to ImageListProperty) calls useNodes
 // which requires a NodeProvider. Provide a minimal stub so tests that render
 // the component without a full store context still work.
-jest.mock("../../../contexts/NodeContext", () => {
-  const actual = jest.requireActual("../../../contexts/NodeContext");
-  return {
-    ...actual,
-    useNodes: (selector: (state: Record<string, unknown>) => unknown) =>
-      selector({ nodes: [], edges: [], findNode: () => undefined })
-  };
-});
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ nodes: [], edges: [], findNode: () => undefined })
+);
 // Simulate production, where the web app and the API live on different origins.
 // The connected preview must resolve relative `/api/storage/...` URIs against
 // BASE_URL, otherwise the <img> loads from the web origin and 404s.

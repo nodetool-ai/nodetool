@@ -8,13 +8,13 @@ import { render, screen } from "@testing-library/react-native";
 
 import {
   parseApplicationDocument,
-  type ApplicationDocument,
+  type ApplicationDocument
 } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../../types/workflow";
 
 jest.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn() })
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -22,24 +22,37 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     getState: () => ({
       job_id: null,
       run: jest.fn().mockResolvedValue(undefined),
-      cancel: jest.fn().mockResolvedValue(undefined),
+      cancel: jest.fn().mockResolvedValue(undefined)
     }),
-    subscribe: () => () => {},
-  }),
+    subscribe: () => () => {}
+  })
 }));
 
-jest.mock("../../../services/WebSocketService", () => ({
-  webSocketService: { subscribe: () => () => {} },
-}));
+import { webSocketService } from "../../../services/WebSocketService";
 
-jest.mock("../../../services/api", () => ({
-  apiService: {
-    resolveUrl: (uri: string) => uri,
-    getApiHost: () => "http://localhost:7777",
-  },
-}));
+// The real socket singleton; only `subscribe` is stubbed so nothing dials out.
+jest.spyOn(webSocketService, "subscribe").mockReturnValue(() => {});
+
+import { apiService } from "../../../services/api";
+
+// The real `apiService` singleton, with only the two host-dependent lookups
+// pinned so URLs are stable regardless of the configured API host.
+jest.spyOn(apiService, "resolveUrl").mockImplementation((uri) => uri ?? null);
+jest.spyOn(apiService, "getApiHost").mockReturnValue("http://localhost:7777");
 
 import ApplicationAppView from "../ApplicationAppView";
+
+const tableProps = (placeholder?: string) => {
+  type PropsFields = { id: string; binding: string; placeholder?: string };
+  const props: PropsFields = {
+    id: "table-1",
+    binding: "var:rows"
+  };
+  if (placeholder) {
+    props.placeholder = placeholder;
+  }
+  return props;
+};
 
 const appDoc = (rows: unknown, placeholder?: string) => ({
   schemaVersion: 3,
@@ -48,14 +61,10 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
     content: [
       {
         type: "Table",
-        props: {
-          id: "table-1",
-          binding: "var:rows",
-          ...(placeholder ? { placeholder } : {}),
-        },
-      },
+        props: tableProps(placeholder)
+      }
     ],
-    zones: {},
+    zones: {}
   },
   operations: [
     {
@@ -64,8 +73,8 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
       workflowId: "wf-table",
       inputs: {},
       outputs: {},
-      policy: "replace",
-    },
+      policy: "replace"
+    }
   ],
   resources: [],
   variables: [
@@ -74,9 +83,9 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
       name: "rows",
       scope: "instance",
       persist: false,
-      default: rows,
-    },
-  ],
+      default: rows
+    }
+  ]
 });
 
 const makeWorkflow = (id: string): Workflow =>
@@ -85,7 +94,10 @@ const makeWorkflow = (id: string): Workflow =>
     name: "Report",
     description: "",
     graph: { nodes: [], edges: [] },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 const renderApp = (id: string, doc: unknown) =>
   render(
@@ -101,7 +113,7 @@ describe("Table widget", () => {
       "wf-table-objects",
       appDoc([
         { city: "Berlin", score: 7 },
-        { city: "Lisbon", extra: true },
+        { city: "Lisbon", extra: true }
       ])
     );
 

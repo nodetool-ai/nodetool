@@ -39,6 +39,10 @@ class FallbackEmitter {
     notOnNode("node:events.EventEmitter");
   }
 }
+// SAFETY: off-Node the fallback stands in for `EventEmitter` and throws from
+// every member. It cannot implement the full class (`once`, `off`,
+// `listenerCount`, the static helpers), which `PythonBridge extends
+// EventEmitter` puts in the package's public contract.
 const EventEmitter = (nodeEvents?.EventEmitter ??
   FallbackEmitter) as unknown as typeof import("node:events").EventEmitter;
 
@@ -80,6 +84,10 @@ import type {
   PythonNodeMetadata,
   ExecuteResult,
   ExecuteInputBlobs,
+  ExecuteIdentity,
+  JobBoundary,
+  ModelEvictRequest,
+  ModelEvictResult,
   ProgressEvent,
   StreamCallback,
   PythonProviderInfo,
@@ -97,6 +105,10 @@ import type {
   ComfyModelDownloadUpdate,
   ComfyModelInfo,
   PythonBridge
+} from "./python-bridge-types.js";
+import {
+  comfyStatusInfoSchema,
+  workerStatusSchema
 } from "./python-bridge-types.js";
 
 interface PendingRequest {
@@ -295,7 +307,7 @@ export abstract class PythonBridgeBase
         this._pendingStream.delete(requestId);
         const data = msg.data as { error: string; traceback?: string };
         const err = new Error(data.error);
-        (err as unknown as Record<string, unknown>).traceback = data.traceback;
+        Reflect.set(err, "traceback", data.traceback);
         streamReq.reject(err);
         return;
       }
@@ -304,7 +316,7 @@ export abstract class PythonBridgeBase
         this._pending.delete(requestId);
         const data = msg.data as { error: string; traceback?: string };
         const err = new Error(data.error);
-        (err as unknown as Record<string, unknown>).traceback = data.traceback;
+        Reflect.set(err, "traceback", data.traceback);
         pending.reject(err);
       }
     } else if (type === "chunk" && requestId) {
@@ -434,12 +446,39 @@ export abstract class PythonBridgeBase
 
   // ── Node execution ─────────────────────────────────────────────────
 
+  /**
+   * Snake-case the run identity onto the `execute` / `execute.stream` payload,
+   * dropping fields the caller could not name so the worker sees an absent key
+   * rather than a null it has to special-case.
+   *
+   * Sent unconditionally, not gated on {@link supportsJobLifecycle}: these are
+   * extra dict entries, and a pre-v4 worker that reads `data["node_type"]`,
+   * `["fields"]`, `["secrets"]` and `["blobs"]` never looks at them. Gating
+   * them would only mean a worker that DOES understand them gets nothing
+   * whenever its `worker.status` hasn't landed yet.
+   */
+  protected _identityPayload(
+    identity: ExecuteIdentity | undefined
+  ) {
+    if (!identity) return {};
+    const payload: Record<string, unknown> = {};
+    if (identity.nodeId) payload.node_id = identity.nodeId;
+    if (identity.jobId) payload.job_id = identity.jobId;
+    if (identity.workflowId) payload.workflow_id = identity.workflowId;
+    if (identity.userId) payload.user_id = identity.userId;
+    if (typeof identity.requiresVramGb === "number") {
+      payload.requires_vram_gb = identity.requiresVramGb;
+    }
+    return payload;
+  }
+
   async execute(
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();
     const timeoutMs =
@@ -453,7 +492,13 @@ export abstract class PythonBridgeBase
         this._send({
           type: "execute",
           request_id: requestId,
-          data: { node_type: nodeType, fields, secrets, blobs }
+          data: {
+            node_type: nodeType,
+            fields,
+            secrets,
+            blobs,
+            ...this._identityPayload(identity)
+          }
         });
       } catch (err) {
         this._pending.delete(requestId);
@@ -501,7 +546,8 @@ export abstract class PythonBridgeBase
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): AsyncGenerator<ExecuteResult> {
     const requestId = randomUUID();
     const chunks: ExecuteResult[] = [];
@@ -563,7 +609,13 @@ export abstract class PythonBridgeBase
       this._send({
         type: "execute.stream",
         request_id: requestId,
-        data: { node_type: nodeType, fields, secrets, blobs }
+        data: {
+          node_type: nodeType,
+          fields,
+          secrets,
+          blobs,
+          ...this._identityPayload(identity)
+        }
       });
 
       while (true) {
@@ -631,8 +683,13 @@ export abstract class PythonBridgeBase
         }
       }
     );
-    this._workerStatus = result as unknown as PythonWorkerStatus;
-    this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
+    this._workerStatus = workerStatusSchema.parse(result);
+    // A status reply that carries no `load_errors` leaves the ones `discover`
+    // reported in place; only a reply that names the field replaces them.
+    this._loadErrors =
+      result["load_errors"] == null
+        ? this._loadErrors
+        : this._workerStatus.load_errors;
     return this._workerStatus;
   }
 
@@ -688,8 +745,12 @@ export abstract class PythonBridgeBase
 
     try {
       const result = await Promise.race([statusPromise, timeoutPromise]);
-      this._workerStatus = result as unknown as PythonWorkerStatus;
-      this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
+      this._workerStatus = workerStatusSchema.parse(result);
+      // See getWorkerStatus: absence keeps the discover-reported errors.
+      this._loadErrors =
+        result["load_errors"] == null
+          ? this._loadErrors
+          : this._workerStatus.load_errors;
       return this._workerStatus;
     } finally {
       if (timer) {
@@ -1008,7 +1069,10 @@ export abstract class PythonBridgeBase
   ): Promise<void> {
     return this._streamingDownload(
       "models.download",
-      req as unknown as Record<string, unknown>,
+      { ...req },
+      // SAFETY: the worker's `models.download` progress frame carries exactly
+      // these fields; unlike the comfy update shapes, `ModelDownloadUpdate`
+      // declares no index signature, so the frame record does not overlap it.
       (u) => onProgress(u as unknown as ModelDownloadUpdate),
       requestId
     );
@@ -1069,7 +1133,7 @@ export abstract class PythonBridgeBase
         reject: () => undefined,
         onProgress: (event) => {
           armIdleTimer();
-          onProgress(event as unknown as Record<string, unknown>);
+          onProgress({ ...event });
         }
       });
       this._pendingStream.set(requestId, {
@@ -1130,6 +1194,94 @@ export abstract class PythonBridgeBase
    */
   supportsModelManagement(): boolean {
     return (this._workerStatus?.protocol_version ?? 0) >= 2;
+  }
+
+  /**
+   * Drop loaded model weights on the worker. The worker reclaims reactively on
+   * its own thresholds; this is the path for what only the JS side knows — the
+   * user switched workflows, another process wants the GPU, the worker is
+   * idle. Introduced in protocol v4, so the floor here is a fixed 4.
+   *
+   * A pre-v4 worker would answer `Unknown message type`, so this resolves to an
+   * empty eviction instead of sending: eviction is an optimization, and a host
+   * asking to free memory on a worker that cannot should not have to branch.
+   */
+  async evictModels(req: ModelEvictRequest = {}): Promise<ModelEvictResult> {
+    if (!this.supportsJobLifecycle()) {
+      return { evicted: [] };
+    }
+    const result = await this._providerCall("models.evict", { ...req });
+    const evictResult: ModelEvictResult = {
+      // SAFETY: the worker answers `models.evict` with a list of model ids; a
+      // reply that is not an array is treated as evicting nothing.
+      evicted: Array.isArray(result.evicted) ? (result.evicted as string[]) : []
+    };
+    if (typeof result.freed_vram_gb === "number") {
+      evictResult.freed_vram_gb = result.freed_vram_gb;
+    }
+    return evictResult;
+  }
+
+  // ── Run boundary (bridge protocol v4+) ─────────────────────────────────
+
+  /**
+   * Whether the attached worker speaks bridge protocol v4+ and therefore
+   * understands `job.start` / `job.end` / `models.evict`. Per-capability soft
+   * gate, like {@link supportsModelManagement}.
+   *
+   * This gates only the new message *types*. The identity fields v4 adds to
+   * `execute` ride along regardless — see {@link _identityPayload}.
+   */
+  supportsJobLifecycle(): boolean {
+    return (this._workerStatus?.protocol_version ?? 0) >= 4;
+  }
+
+  /**
+   * Open a run boundary. Optional: the worker needs no `job.start` to
+   * attribute an execution (every `execute` carries its own `job_id`), so this
+   * exists as the one place to do a single reclaim pass per run instead of one
+   * per node.
+   */
+  async jobStart(job: JobBoundary): Promise<void> {
+    await this._jobBoundary("job.start", job);
+  }
+
+  /**
+   * Close a run boundary: the worker's nodes for this job are retired and
+   * their models become eligible for release. This is the caller
+   * `release_nodes()` never had — without it the worker's model cache grows
+   * across runs and is only ever trimmed reactively under memory pressure.
+   *
+   * Must fire on abnormal termination too (cancelled, client disconnected, run
+   * abandoned), which is why `ExecutionSession` calls it from the same
+   * `finally` that closes the bridge rather than off the success path.
+   */
+  async jobEnd(job: JobBoundary): Promise<void> {
+    await this._jobBoundary("job.end", job);
+  }
+
+  /**
+   * Send one boundary frame. Never rejects: a boundary is bookkeeping, and a
+   * `job.end` that fails on a worker already tearing down must not turn a
+   * finished run into a failed one. Failures are logged and swallowed.
+   */
+  private async _jobBoundary(
+    type: "job.start" | "job.end",
+    job: JobBoundary
+  ): Promise<void> {
+    if (!this.supportsJobLifecycle()) return;
+    const data: Record<string, unknown> = { job_id: job.jobId };
+    if (job.workflowId) data.workflow_id = job.workflowId;
+    if (job.userId) data.user_id = job.userId;
+    if (job.reason) data.reason = job.reason;
+    try {
+      await this._providerCall(type, data);
+    } catch (err) {
+      log.warn(`Python bridge ${type} failed`, {
+        jobId: job.jobId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
   }
 
   // ── ComfyUI proxy (bridge protocol v3+) ────────────────────────────────
@@ -1280,8 +1432,9 @@ export abstract class PythonBridgeBase
   }
 
   async comfyStatus(): Promise<ComfyStatusInfo> {
-    const result = await this._providerCall("comfy.status", {});
-    return result as unknown as ComfyStatusInfo;
+    return comfyStatusInfoSchema.parse(
+      await this._providerCall("comfy.status", {})
+    );
   }
 
   async comfyFree(options: Record<string, unknown> = {}): Promise<void> {
@@ -1303,7 +1456,7 @@ export abstract class PythonBridgeBase
   ): Promise<void> {
     return this._streamingDownload(
       "comfy.models.download",
-      req as unknown as Record<string, unknown>,
+      { ...req },
       (u) => onProgress(u as ComfyModelDownloadUpdate),
       requestId
     );

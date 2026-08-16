@@ -1,4 +1,5 @@
 import { globalWebSocketManager } from "../../websocket/GlobalWebSocketManager";
+import { stub } from "../../../test-utils/doubles";
 import {
   __setBrowserRunnerLoader,
   canRunGraphInBrowserSync,
@@ -10,10 +11,10 @@ import { clearSandboxModuleCache } from "../sandboxModuleCatalog";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
 
 const browserGraph = (type: string): WorkflowGraph =>
-  ({
+  stub<WorkflowGraph>({
     nodes: [{ id: "n1", type, data: { value: "x" } }],
     edges: []
-  }) as unknown as WorkflowGraph;
+  });
 
 /** A registry that recognizes any "browser.*" node type. */
 const fakeRegistry = { has: (type: string) => type.startsWith("browser.") };
@@ -164,7 +165,7 @@ describe("sandbox package prefetch", () => {
   }
 
   const codeGraph = (packages: unknown): WorkflowGraph =>
-    ({
+    stub<WorkflowGraph>({
       nodes: [
         {
           id: "code_1",
@@ -173,7 +174,7 @@ describe("sandbox package prefetch", () => {
         }
       ],
       edges: []
-    }) as unknown as WorkflowGraph;
+    });
 
   const DIGEST = "a".repeat(64);
 
@@ -197,12 +198,12 @@ describe("sandbox package prefetch", () => {
     const lookup = new Map(
       Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
     );
-    return {
+    return stub<Response>({
       ok: status >= 200 && status < 300,
       status,
       headers: { get: (name: string) => lookup.get(name.toLowerCase()) ?? null },
       arrayBuffer: async () => new TextEncoder().encode(body).buffer
-    } as unknown as Response;
+    });
   }
 
   async function moduleResponse(

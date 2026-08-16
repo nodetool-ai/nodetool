@@ -68,7 +68,7 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
     throw new Error(`--inputs is not valid JSON: ${(e as Error).message}`);
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error('--inputs must be a JSON object, e.g. \'{"a":1}\'');
+    throw new Error("--inputs must be a JSON object, e.g. '{\"a\":1}'");
   }
   return parsed as Record<string, unknown>;
 }
@@ -79,16 +79,18 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
  */
 export function parseInputStreamsOption(
   raw: string
-): Record<string, unknown[]> {
+) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch (e) {
-    throw new Error(`--input-streams is not valid JSON: ${(e as Error).message}`);
+    throw new Error(
+      `--input-streams is not valid JSON: ${(e as Error).message}`
+    );
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(
-      '--input-streams must be a JSON object of arrays, e.g. \'{"nums":[1,2,3]}\''
+      "--input-streams must be a JSON object of arrays, e.g. '{\"nums\":[1,2,3]}'"
     );
   }
   const staged: Record<string, unknown[]> = {};
@@ -120,9 +122,8 @@ export function registerJsScriptCommands(program: Command): void {
     )
     .action(async (ref: string, opts: JsScriptValidateCliOptions) => {
       try {
-        const { runJsScriptValidate } = await import(
-          "../js-script-debug/index.js"
-        );
+        const { runJsScriptValidate } =
+          await import("../js-script-debug/index.js");
         const { target, validation } = await runJsScriptValidate(ref, {
           loadScript: await scriptLoader()
         });
@@ -148,10 +149,10 @@ export function registerJsScriptCommands(program: Command): void {
     .description(
       "Run a JS script once in the QuickJS sandbox and print its outputs, streamed emits, logs and error"
     )
-    .option("--inputs <json>", 'Input values, e.g. \'{"a":1}\'')
+    .option("--inputs <json>", "Input values, e.g. '{\"a\":1}'")
     .option(
       "--input-streams <json>",
-      'Items staged per handle for a body that reads `stream`, e.g. \'{"nums":[1,2,3]}\''
+      "Items staged per handle for a body that reads `stream`, e.g. '{\"nums\":[1,2,3]}'"
     )
     .option("--json", "Print the run result as JSON")
     .action(async (ref: string, opts: JsScriptRunCliOptions) => {
@@ -191,9 +192,8 @@ export function registerJsScriptCommands(program: Command): void {
     .action(async (ref: string, opts: { json?: boolean }) => {
       let ok = false;
       try {
-        const { runJsScriptTests } = await import(
-          "../js-script-debug/index.js"
-        );
+        const { runJsScriptTests } =
+          await import("../js-script-debug/index.js");
         const { report } = await runJsScriptTests(ref, {
           loadScript: await scriptLoader()
         });
@@ -227,19 +227,22 @@ export function registerJsScriptCommands(program: Command): void {
     .option("--json", "Print the full JsScriptDebugReport as JSON to stdout")
     .action(async (ref: string, opts: JsScriptDebugCliOptions) => {
       try {
-        const { parseInteractionScript, runJsScriptDebug } = await import(
-          "../js-script-debug/index.js"
-        );
+        const { parseInteractionScript, runJsScriptDebug } =
+          await import("../js-script-debug/index.js");
         const interact = opts.interact
           ? parseInteractionScript(opts.interact)
           : undefined;
 
+        const debugOptions: Parameters<typeof runJsScriptDebug>[1] = {};
+        if (interact) {
+          debugOptions.interact = interact;
+        }
+        if (opts.out) {
+          debugOptions.outDir = opts.out;
+        }
         const { report, bundleDir } = await runJsScriptDebug(
           ref,
-          {
-            ...(interact ? { interact } : {}),
-            ...(opts.out ? { outDir: opts.out } : {})
-          },
+          debugOptions,
           {
             loadScript: await scriptLoader(),
             onLog: (line) => console.error(line)
@@ -318,7 +321,8 @@ function printJsScriptSummary(
   }
   if (report.verdict.warnings && report.verdict.warnings.length > 0) {
     console.log("\nWarnings:");
-    for (const warning of report.verdict.warnings) console.log(`  - ${warning}`);
+    for (const warning of report.verdict.warnings)
+      console.log(`  - ${warning}`);
   }
   console.log(`\nDebug bundle: ${bundleDir}`);
   console.log("  report.md / report.json · jsscript.json");

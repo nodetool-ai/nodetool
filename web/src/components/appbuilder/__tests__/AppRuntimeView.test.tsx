@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -17,7 +18,7 @@ import {
   workflowInstanceId
 } from "../runtime/appRuntimeStore";
 
-const workflow = {
+const workflow = stub<Workflow>({
   id: "wf-puck-runtime",
   name: "Runtime Test",
   access: "private",
@@ -31,7 +32,7 @@ const workflow = {
     ],
     edges: []
   }
-} as unknown as Workflow;
+});
 
 const data: Data = {
   root: { props: { title: "Reactive App" } },
@@ -101,7 +102,7 @@ describe("AppRuntimeView (Puck Render)", () => {
     renderView();
 
     act(() => {
-      globalWebSocketManager.deliverLocal({
+      globalWebSocketManager.deliverLocal(stub<Parameters<typeof globalWebSocketManager.deliverLocal>[0]>({
         type: "output_update",
         workflow_id: workflow.id,
         job_id: "someone-elses-job",
@@ -110,7 +111,7 @@ describe("AppRuntimeView (Puck Render)", () => {
         output_name: "result",
         output_type: "string",
         value: "Contamination from another tab"
-      } as unknown as Parameters<typeof globalWebSocketManager.deliverLocal>[0]);
+      }));
     });
 
     await waitFor(() =>
@@ -123,7 +124,7 @@ describe("AppRuntimeView (Puck Render)", () => {
   it("applies the theme the document selects", () => {
     renderView({
       schemaVersion: 3,
-      ui: data as unknown as ApplicationDocument["ui"],
+      ui: data,
       operations: [],
       resources: [],
       variables: [],

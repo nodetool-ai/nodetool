@@ -1,8 +1,9 @@
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { ConnectionState, WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
-  pack: jest.fn((msg: unknown) => new Uint8Array([1])),
+  pack: jest.fn(<T,>(msg: T) => new Uint8Array([1])),
   unpack: jest.fn((buf: Uint8Array) => ({ type: "test" }))
 }));
 
@@ -94,8 +95,8 @@ describe("WebSocketManager", () => {
       binaryType = "arraybuffer";
       onopen: (() => void) | null = null;
       onmessage: ((event: { data: unknown }) => void) | null = null;
-      onerror: ((event: unknown) => void) | null = null;
-      onclose: ((event: unknown) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      onclose: ((event: CloseEvent) => void) | null = null;
       constructor(public url: string) {
         RecordingSocket.instances.push(this);
       }
@@ -109,8 +110,7 @@ describe("WebSocketManager", () => {
 
     beforeEach(() => {
       RecordingSocket.instances = [];
-      (globalThis as unknown as { WebSocket: unknown }).WebSocket =
-        RecordingSocket;
+      installGlobal("WebSocket", RecordingSocket);
     });
 
     it("opens no socket when destroyed while the URL is being resolved", async () => {

@@ -33,14 +33,22 @@ import { sandboxPackageSkills } from "./codeact/sandbox-package-docs.js";
 import {
   resolveAgentGraph,
   runWorkflowAsAgent,
-  type AgentGraphSource
+  type AgentGraphSource,
+  type WorkflowAgentRunOptions
 } from "./workflow-agent.js";
-import { SupervisorAgent } from "./supervisor/supervisor-agent.js";
+import {
+  SupervisorAgent,
+  type SupervisorAgentOptions
+} from "./supervisor/supervisor-agent.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { authorGraph } from "./author-graph.js";
-import { executeAgentGraph, applyRunPolicy } from "./execute-agent-graph.js";
+import {
+  executeAgentGraph,
+  applyRunPolicy,
+  type RunPolicy
+} from "./execute-agent-graph.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./capabilities/gate-tools.js";
 import {
@@ -378,7 +386,7 @@ export class Agent {
     this.policy = resolveAgentPolicy({
       maxSteps: opts.maxSteps,
       maxStepIterations: opts.maxStepIterations,
-      maxTokens: opts.maxTokens,
+      maxTokens: opts.maxTokens
     });
     this.outputFormat = opts.outputFormat ?? "structured";
     // Non-structured formats imply a string result; outputSchema is ignored.
@@ -634,7 +642,8 @@ export class Agent {
       this.sandboxPackages,
       context.sandboxModuleCatalog
     )) {
-      if (!availableSkills.has(skill.name)) availableSkills.set(skill.name, skill);
+      if (!availableSkills.has(skill.name))
+        availableSkills.set(skill.name, skill);
     }
     const activeSkills = this.resolveActiveSkills(
       availableSkills,
@@ -1173,17 +1182,18 @@ export class Agent {
       );
     }
 
+    const runPolicy: RunPolicy = {
+      providerId: this.provider.provider,
+      modelId: this.model,
+      maxStepIterations: this.policy.maxStepIterations
+    };
+    if (systemPrompt) runPolicy.systemPrompt = systemPrompt;
+    if (this.policy.maxTokens !== undefined) {
+      runPolicy.maxTokens = this.policy.maxTokens;
+    }
     const graph = applyRunPolicy(
       await resolveAgentGraph(this.graphSource!, context),
-      {
-        providerId: this.provider.provider,
-        modelId: this.model,
-        ...(systemPrompt ? { systemPrompt } : {}),
-        maxStepIterations: this.policy.maxStepIterations,
-        ...(this.policy.maxTokens !== undefined
-          ? { maxTokens: this.policy.maxTokens }
-          : {})
-      }
+      runPolicy
     );
 
     yield {
@@ -1196,34 +1206,36 @@ export class Agent {
       severity: "info"
     } satisfies LogUpdate;
 
+    const buildSupervisor = (): SupervisorAgent => {
+      // The supervisor reads and writes the run's memory (`supervisor:` keys)
+      // but must not push its own provider chatter into the run's message
+      // stream, so it gets a listener-free copy.
+      const options: SupervisorAgentOptions = {
+        provider: this.provider,
+        model: this.reasoningModel,
+        context: context.copy({
+          shareMemory: true,
+          inheritMessageListeners: false
+        })
+      };
+      if (this.maxSupervisorCostUsd !== undefined) {
+        options.maxCostUsd = this.maxSupervisorCostUsd;
+      }
+      return new SupervisorAgent(options);
+    };
     const supervisor = this.supervise
-      ? new BoundedHandle(
-          new SupervisorAgent({
-            provider: this.provider,
-            model: this.reasoningModel,
-            // The supervisor reads and writes the run's memory (`supervisor:`
-            // keys) but must not push its own provider chatter into the run's
-            // message stream, so it gets a listener-free copy.
-            context: context.copy({
-              shareMemory: true,
-              inheritMessageListeners: false
-            }),
-            ...(this.maxSupervisorCostUsd !== undefined
-              ? { maxCostUsd: this.maxSupervisorCostUsd }
-              : {})
-          }),
-          this.supervisorBounds ?? {}
-        )
+      ? new BoundedHandle(buildSupervisor(), this.supervisorBounds ?? {})
       : undefined;
 
-    const run = runWorkflowAsAgent({
+    const runOptions: WorkflowAgentRunOptions = {
       graph,
       registry: this.registry,
       context,
-      params: this.inputs,
-      ...(supervisor ? { supervisor } : {}),
-      ...(this.signal ? { signal: this.signal } : {})
-    });
+      params: this.inputs
+    };
+    if (supervisor) runOptions.supervisor = supervisor;
+    if (this.signal) runOptions.signal = this.signal;
+    const run = runWorkflowAsAgent(runOptions);
 
     let next = await run.next();
     while (!next.done) {
@@ -1301,7 +1313,9 @@ export class Agent {
           yield {
             type: "task_update",
             event: TaskUpdateEvent.TaskCompleted,
-            task: task as unknown as TaskUpdate["task"]
+            // `TaskRef`/`StepRef` are the open wire shapes of `Task`/`Step`;
+            // a shallow copy of each is one, without asserting it is.
+            task: { ...task, steps: task.steps.map((step) => ({ ...step })) }
           } satisfies TaskUpdate;
         }
       }

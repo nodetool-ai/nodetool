@@ -1,5 +1,6 @@
 
 import { renderHook, act } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { useDropHandler } from "../useDropHandler";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -10,6 +11,16 @@ import { useAddNodeFromAsset } from "../addNodeFromAsset";
 import { useRecentNodesStore } from "../../../stores/RecentNodesStore";
 import { useFileHandlers } from "../dropHandlerUtils";
 import useMetadataStore from "../../../stores/MetadataStore";
+
+/** A drag/click target that answers `classList.contains("react-flow__pane")`. */
+const paneTarget = (isPane: boolean): HTMLDivElement => {
+  const el = document.createElement("div");
+  if (isPane) {
+    el.classList.add("react-flow__pane");
+  }
+  return el;
+};
+
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -47,7 +58,7 @@ describe("useDropHandler", () => {
       screenToFlowPosition: mockScreenToFlowPosition.mockReturnValue({ x: 0, y: 0 })
     });
 
-    (useNodes as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useNodes).mockImplementation((selector) => {
         const state = {
             addNode: mockAddNode,
             createNode: mockCreateNode,
@@ -56,35 +67,35 @@ describe("useDropHandler", () => {
         return selector ? selector(state) : state;
     });
 
-    (useAssetStore as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useAssetStore).mockImplementation((selector) => {
       const state = { get: mockGetAsset };
       return selector ? selector(state) : state.get;
     });
 
-    (useAuth as unknown as jest.Mock).mockReturnValue({
+    asMock(useAuth).mockReturnValue({
       user: { id: "user-123" }
     });
 
-    (useNotificationStore as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useNotificationStore).mockImplementation((selector) => {
         const state = { addNotification: mockAddNotification };
         return selector ? selector(state) : state.addNotification;
     });
 
-    (useAddNodeFromAsset as unknown as jest.Mock).mockReturnValue(mockAddNodeFromAsset);
+    asMock(useAddNodeFromAsset).mockReturnValue(mockAddNodeFromAsset);
 
-    (useRecentNodesStore as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useRecentNodesStore).mockImplementation((selector) => {
         const state = { addRecentNode: mockAddRecentNode };
         return selector ? selector(state) : state.addRecentNode;
     });
 
-    (useFileHandlers as unknown as jest.Mock).mockReturnValue({
+    asMock(useFileHandlers).mockReturnValue({
         handlePngFile: mockHandlePngFile,
         handleJsonFile: mockHandleJsonFile,
         handleCsvFile: mockHandleCsvFile,
         handleGenericFile: mockHandleGenericFile
     });
 
-    (useMetadataStore as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useMetadataStore).mockImplementation((selector) => {
       const state = { getMetadata: mockGetMetadata };
       return selector ? selector(state) : state;
     });
@@ -115,9 +126,9 @@ describe("useDropHandler", () => {
     mockGetMetadata.mockReturnValue(sketchMetadata);
     mockCreateNode.mockReturnValue(node);
 
-    const dropEvent = {
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
       preventDefault: jest.fn(),
-      target: { classList: { contains: () => true } },
+      target: paneTarget(true),
       clientX: 100,
       clientY: 100,
       dataTransfer: {
@@ -134,7 +145,7 @@ describe("useDropHandler", () => {
         items: [],
         files: []
       }
-    } as unknown as React.DragEvent<HTMLDivElement>;
+    });
 
     await act(async () => {
       await result.current.onDrop(dropEvent);
@@ -176,9 +187,9 @@ describe("useDropHandler", () => {
     mockGetMetadata.mockReturnValue(timelineMetadata);
     mockCreateNode.mockReturnValue(node);
 
-    const dropEvent = {
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
       preventDefault: jest.fn(),
-      target: { classList: { contains: () => true } },
+      target: paneTarget(true),
       clientX: 100,
       clientY: 100,
       dataTransfer: {
@@ -195,7 +206,7 @@ describe("useDropHandler", () => {
         items: [],
         files: []
       }
-    } as unknown as React.DragEvent<HTMLDivElement>;
+    });
 
     await act(async () => {
       await result.current.onDrop(dropEvent);
@@ -232,9 +243,9 @@ describe("useDropHandler", () => {
         });
     });
 
-    const dropEvent = {
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
-        target: { classList: { contains: () => true } }, // Is Pane
+        target: paneTarget(true), // Is Pane
         clientX: 100,
         clientY: 100,
         dataTransfer: {
@@ -251,7 +262,7 @@ describe("useDropHandler", () => {
             items: [],
             files: []
         }
-    } as unknown as React.DragEvent<HTMLDivElement>;
+    });
 
     await act(async () => {
         await onDrop(dropEvent);
@@ -290,9 +301,9 @@ describe("useDropHandler", () => {
         });
     });
 
-    const dropEvent = {
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
-        target: { classList: { contains: () => true } }, // Is Pane
+        target: paneTarget(true), // Is Pane
         clientX: 100,
         clientY: 100,
         dataTransfer: {
@@ -309,7 +320,7 @@ describe("useDropHandler", () => {
             items: [],
             files: []
         }
-    } as unknown as React.DragEvent<HTMLDivElement>;
+    });
 
     await act(async () => {
         await onDrop(dropEvent);

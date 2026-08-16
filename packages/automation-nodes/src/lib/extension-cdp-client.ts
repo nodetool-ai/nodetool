@@ -213,14 +213,16 @@ export class ExtensionCdpClient {
    * `CdpPage` always passes a callback); otherwise it is a command and the
    * member name maps to `Domain.command`.
    */
-  private buildDomain(domain: string): DomainNamespace {
+  private buildDomain(domain: string) {
     const target: DomainNamespace = {};
     return new Proxy(target, {
       get: (_t, prop): DomainMember | undefined => {
         if (typeof prop !== "string") return undefined;
         const member = prop;
         // One synthetic member services both shapes; the runtime arg decides.
-        const fn = (arg?: unknown): unknown => {
+        const fn = (
+          arg?: unknown
+        ): Promise<Record<string, unknown>> | (() => void) => {
           if (typeof arg === "function") {
             return this.subscribe(
               `${domain}.${member}`,

@@ -1,9 +1,10 @@
 import type { Node, Edge } from "@xyflow/react";
+import { stub } from "../../../test-utils/doubles";
 import type { NodeData } from "../../../stores/NodeData";
 import { browserRunnablePrefix } from "../buildDownstreamRunGraph";
 
 const node = (id: string, type: string): Node<NodeData> =>
-  ({ id, type, data: {} }) as unknown as Node<NodeData>;
+  stub<Node<NodeData>>({ id, type, data: {} });
 const edge = (source: string, target: string): Edge =>
   ({ id: `${source}-${target}`, source, target }) as Edge;
 

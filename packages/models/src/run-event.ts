@@ -84,7 +84,7 @@ export class RunEvent extends DBModel {
     nodeId?: string
   ): Promise<RunEvent> {
     const db = getDb();
-    const buildRow = (seq: number): Record<string, unknown> => ({
+    const buildRow = (seq: number) => ({
       id: createTimeOrderedUuid(),
       run_id: runId,
       seq,

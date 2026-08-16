@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { useLayerHydration } from "../sketchCanvasHooks/useLayerHydration";
 import type { DisplayFrameCoordinator } from "../sketchCanvasHooks/DisplayFrameCoordinator";
@@ -21,10 +22,10 @@ describe("useLayerHydration", () => {
       objectFit: "fill"
     };
 
-    const runtime = {
+    const runtime = stub<SketchRuntime>({
       deleteLayerCanvas: jest.fn(),
       setLayerData: jest.fn(),
-    } as unknown as SketchRuntime;
+    });
 
     const layerCanvasesRef = {
       current: new Map<string, HTMLCanvasElement>()
@@ -58,7 +59,10 @@ describe("useLayerHydration", () => {
     );
   });
 
-  it("resolves asset-backed imageReference uris before hydrating locked input layers", () => {
+  // The locator is handed on verbatim: an `asset://` reference resolves to the
+  // asset's own `get_url`, an async lookup the runtime does right before it
+  // loads the image. Rewriting it to `/api/storage/<id>` here would 404.
+  it("passes an asset-backed imageReference uri through to the runtime", () => {
     const doc = createDefaultDocument(64, 64);
     const layer = doc.layers[0];
     layer.locked = true;
@@ -70,10 +74,10 @@ describe("useLayerHydration", () => {
       objectFit: "fill"
     };
 
-    const runtime = {
+    const runtime = stub<SketchRuntime>({
       deleteLayerCanvas: jest.fn(),
       setLayerData: jest.fn(),
-    } as unknown as SketchRuntime;
+    });
 
     const layerCanvasesRef = {
       current: new Map<string, HTMLCanvasElement>()
@@ -101,7 +105,7 @@ describe("useLayerHydration", () => {
 
     expect((runtime.setLayerData as jest.Mock)).toHaveBeenCalledWith(
       layer.id,
-      expect.stringContaining("/api/storage/input-layer.png"),
+      "asset://input-layer.png",
       expect.any(Object),
       expect.any(Function)
     );
@@ -119,7 +123,7 @@ describe("useLayerHydration", () => {
     doc.layers = [doc.layers[0], extraLayer];
 
     const setLayerDataCallbacks: Array<() => void> = [];
-    const runtime = {
+    const runtime = stub<SketchRuntime>({
       deleteLayerCanvas: jest.fn(),
       setLayerData: jest.fn(
         (
@@ -133,7 +137,7 @@ describe("useLayerHydration", () => {
           }
         }
       )
-    } as unknown as SketchRuntime;
+    });
 
     const layerCanvasesRef = {
       current: new Map<string, HTMLCanvasElement>()
@@ -150,10 +154,10 @@ describe("useLayerHydration", () => {
     const markHydrationScheduled = jest.fn();
     const markHydrationComplete = jest.fn();
     const coordinatorRef = {
-      current: {
+      current: stub<DisplayFrameCoordinator>({
         markHydrationScheduled,
         markHydrationComplete
-      } as unknown as DisplayFrameCoordinator
+      })
     } as React.MutableRefObject<DisplayFrameCoordinator | null>;
 
     renderHook(() =>
@@ -194,7 +198,7 @@ describe("useLayerHydration", () => {
     nextDoc.layers[0].data = "data:image/png;base64,next";
 
     const callbacksBySource = new Map<string, () => void>();
-    const runtime = {
+    const runtime = stub<SketchRuntime>({
       deleteLayerCanvas: jest.fn(),
       setLayerData: jest.fn(
         (
@@ -208,7 +212,7 @@ describe("useLayerHydration", () => {
           }
         }
       )
-    } as unknown as SketchRuntime;
+    });
 
     const layerCanvasesRef = {
       current: new Map<string, HTMLCanvasElement>()
@@ -225,10 +229,10 @@ describe("useLayerHydration", () => {
     const markHydrationScheduled = jest.fn();
     const markHydrationComplete = jest.fn();
     const coordinatorRef = {
-      current: {
+      current: stub<DisplayFrameCoordinator>({
         markHydrationScheduled,
         markHydrationComplete
-      } as unknown as DisplayFrameCoordinator
+      })
     } as React.MutableRefObject<DisplayFrameCoordinator | null>;
 
     const { rerender } = renderHook(

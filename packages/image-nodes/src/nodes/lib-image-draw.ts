@@ -10,6 +10,14 @@ import { IS_NODE } from "@nodetool-ai/config";
 import * as d from "typegpu/data";
 import { sourcesSolidV1, sourcesGaussianNoiseV1 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
+
+/** The dynamic image properties `lib.image.Mask` reads off itself. */
+interface MaskInputs {
+  foreground?: unknown;
+  image1?: unknown;
+  image2?: unknown;
+  mask?: unknown;
+}
 import {
   colorValueToVec4,
   num,
@@ -129,12 +137,7 @@ function createDrawNode(desc: Desc): NodeClass {
         };
       }
 
-      const baseObj = pickImage(
-        this.serialize(),
-        (
-          this as unknown as { serialize(): Record<string, unknown> }
-        ).serialize()
-      );
+      const baseObj = pickImage(this.serialize(), this.serialize());
       const baseBytes = await loadImageBytes(baseObj, context);
       if (baseBytes.length === 0) {
         return { output: baseObj ?? {} };
@@ -143,7 +146,9 @@ function createDrawNode(desc: Desc): NodeClass {
       if (t === "lib.image.Mask") {
         const sharp = await loadSharp();
         if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
-        const self = this as unknown as Record<string, unknown>;
+        // SAFETY: the generated class carries these as dynamic properties, so
+        // the class type declares none of them.
+        const self = this as MaskInputs;
         const fg = await loadImageBytes(
           self.foreground ?? self.image2 ?? self.image1,
           context
@@ -179,7 +184,7 @@ function createDrawNode(desc: Desc): NodeClass {
               .png()
               .toBuffer();
           }
-          const mixed = await sharp(baseBytes)
+          const mixed = await sharp(baseBytes, { failOn: "none" })
             .resize(width, height, { fit: "fill" })
             .composite([{ input: fgInput, blend: "over" }])
             .png()
@@ -240,13 +245,13 @@ function createDrawNode(desc: Desc): NodeClass {
         const textAnchor =
           align === "center" ? "middle" : align === "right" ? "end" : "start";
         const escapedText = escapeXmlAttr(text);
-        const md = await sharp(baseBytes).metadata();
+        const md = await sharp(baseBytes, { failOn: "none" }).metadata();
         const svgWidth = md.width ?? 512;
         const svgHeight = md.height ?? 512;
         // Every interpolated attribute is escaped — a quote in color/font would
         // otherwise break out of the attribute and inject SVG markup into sharp.
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${escapeXmlAttr(color)}" font-family="${escapeXmlAttr(fontFamily)}" text-anchor="${escapeXmlAttr(textAnchor)}">${escapedText}</text></svg>`;
-        const out = await sharp(baseBytes)
+        const out = await sharp(baseBytes, { failOn: "none" })
           .composite([{ input: Buffer.from(svg) }])
           .png()
           .toBuffer();

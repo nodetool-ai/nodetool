@@ -561,10 +561,7 @@ export class VecCollection {
   }
 
   /** Build SQL conditions from ChromaDB-style whereDocument filter. */
-  private buildWhereDocumentConditions(where: Record<string, unknown>): {
-    sql: string;
-    params: unknown[];
-  } {
+  private buildWhereDocumentConditions(where: Record<string, unknown>) {
     const parts: string[] = [];
     const params: unknown[] = [];
 

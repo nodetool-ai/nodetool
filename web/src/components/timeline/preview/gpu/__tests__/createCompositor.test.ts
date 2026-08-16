@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import { stub } from "../../../../../test-utils/doubles";
 import { createCompositor } from "../createCompositor";
 
 /**
@@ -8,7 +9,7 @@ import { createCompositor } from "../createCompositor";
  * — but a stub lets us assert the Canvas2D path actually initialises.
  */
 function fakeCanvas(): HTMLCanvasElement {
-  const ctx2d = {
+  const ctx2d = stub<CanvasRenderingContext2D>({
     setTransform() {},
     fillRect() {},
     drawImage() {},
@@ -23,12 +24,12 @@ function fakeCanvas(): HTMLCanvasElement {
     filter: "none",
     globalAlpha: 1,
     globalCompositeOperation: "source-over"
-  };
-  return {
-    width: 320,
-    height: 180,
-    getContext: (type: string) => (type === "2d" ? ctx2d : null)
-  } as unknown as HTMLCanvasElement;
+  });
+  // SAFETY: `getContext` is overloaded over every context id; this canvas
+  // answers "2d" and refuses the rest, which is what the compositor asks.
+  const getContext = ((type: string) =>
+    type === "2d" ? ctx2d : null) as HTMLCanvasElement["getContext"];
+  return stub<HTMLCanvasElement>({ width: 320, height: 180, getContext });
 }
 
 describe("createCompositor", () => {
@@ -59,11 +60,11 @@ describe("createCompositor", () => {
   });
 
   it("reports failure when neither backend can initialise", async () => {
-    const blankCanvas = {
+    const blankCanvas = stub<HTMLCanvasElement>({
       width: 10,
       height: 10,
       getContext: () => null
-    } as unknown as HTMLCanvasElement;
+    });
     const { backend, init } = await createCompositor(blankCanvas);
     expect(backend).toBe("canvas2d");
     expect(init.ok).toBe(false);

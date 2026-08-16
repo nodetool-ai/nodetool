@@ -48,7 +48,7 @@ function collectInputConnections(
       return {
         sourceType: source?.type ?? source?.data?.originalType ?? "unknown",
         sourceTitle:
-          typeof source?.data?.title === "string" ? source.data.title : undefined,
+          source?.data?.title,
         sourceHandle: edge.sourceHandle,
         targetHandle: edge.targetHandle
       };
@@ -143,7 +143,7 @@ const NodeErrorsImpl: React.FC<{
     const url = buildReportUrl(GITHUB_ISSUE_URL, {
       nodeType,
       nodeTitle:
-        typeof node?.data?.title === "string" ? node.data.title : undefined,
+        node?.data?.title,
       errorText: errorDisplay,
       logLines,
       systemInfo: getSystemInfo(),

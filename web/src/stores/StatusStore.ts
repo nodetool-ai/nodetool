@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { nodeKey, type NodeKey } from "./nodeKey";
 
-type StatusValue = string | Record<string, unknown> | null | undefined;
+export type StatusValue = string | Record<string, unknown> | null | undefined;
 
 type StatusStore = {
   statuses: Record<NodeKey, StatusValue>;

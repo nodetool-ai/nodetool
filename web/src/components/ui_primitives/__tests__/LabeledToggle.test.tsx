@@ -8,51 +8,14 @@ import mockTheme from "../../../__mocks__/themeMock";
 const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 const MockExpandIcon = () => <span data-testid="mock-expand-icon">Expand</span>;
 
-// Mock ExpandMoreIcon
-jest.mock("@mui/icons-material/ExpandMore", () => ({
-  __esModule: true,
-  default: () => <span data-testid="expand-more-icon">ExpandMore</span>
-}));
-
-// Mock MUI components
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-jest.mock("@mui/material/Box", () => ({
-  __esModule: true,
-  default: ({ children, onClick, className, component = "div", ...rest }: any) => {
-    const Component = component;
-    return (
-      <Component
-        onClick={onClick}
-        className={className}
-        data-testid="box-component"
-        {...rest}
-      >
-        {children}
-      </Component>
-    );
+/** The Box the toggle renders around its icon button. */
+const toggleRoot = (): HTMLElement => {
+  const root = screen.getByRole("button").parentElement;
+  if (!root) {
+    throw new Error("LabeledToggle rendered no container around its button");
   }
-}));
-
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: string }) => (
-    <div data-tooltip={title}>{children}</div>
-  )
-}));
+  return root;
+};
 
 describe("LabeledToggle", () => {
   const mockOnToggle = jest.fn();
@@ -68,7 +31,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("expand-more-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("ExpandMoreIcon")).toBeInTheDocument();
   });
 
   it("renders custom expand icon when provided", () => {
@@ -83,7 +46,7 @@ describe("LabeledToggle", () => {
     );
 
     expect(screen.getByTestId("mock-expand-icon")).toBeInTheDocument();
-    expect(screen.queryByTestId("expand-more-icon")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ExpandMoreIcon")).not.toBeInTheDocument();
   });
 
   it("does not render expand icon when showExpandIcon is false", () => {
@@ -97,7 +60,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    expect(screen.queryByTestId("expand-more-icon")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ExpandMoreIcon")).not.toBeInTheDocument();
   });
 
   it("renders custom icon when provided", () => {
@@ -131,7 +94,7 @@ describe("LabeledToggle", () => {
     expect(label).toHaveClass("labeled-toggle-label");
   });
 
-  it("uses showLabel when isOpen is false", () => {
+  it("uses showLabel when isOpen is false", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <LabeledToggle
@@ -143,11 +106,11 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const tooltip = screen.getByTestId("box-component").parentElement;
-    expect(tooltip).toHaveAttribute("data-tooltip", "Show details");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Show details");
   });
 
-  it("uses hideLabel when isOpen is true", () => {
+  it("uses hideLabel when isOpen is true", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <LabeledToggle
@@ -159,11 +122,11 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const tooltip = screen.getByTestId("box-component").parentElement;
-    expect(tooltip).toHaveAttribute("data-tooltip", "Hide details");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Hide details");
   });
 
-  it("falls back to label when showLabel/hideLabel not provided", () => {
+  it("falls back to label when showLabel/hideLabel not provided", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <LabeledToggle
@@ -174,19 +137,19 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const tooltip = screen.getByTestId("box-component").parentElement;
-    expect(tooltip).toHaveAttribute("data-tooltip", "Toggle details");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Toggle details");
   });
 
-  it("uses default labels when no label props provided", () => {
+  it("uses default labels when no label props provided", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <LabeledToggle isOpen={false} onToggle={mockOnToggle} />
       </ThemeProvider>
     );
 
-    const tooltip = screen.getByTestId("box-component").parentElement;
-    expect(tooltip).toHaveAttribute("data-tooltip", "Show");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Show");
   });
 
   it("calls onToggle when clicked", () => {
@@ -197,7 +160,7 @@ describe("LabeledToggle", () => {
     );
 
     // Click the Box container
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     fireEvent.click(container);
     expect(mockOnToggle).toHaveBeenCalledTimes(1);
   });
@@ -209,7 +172,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnToggle).toHaveBeenCalledTimes(1);
   });
 
@@ -224,7 +187,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     fireEvent.click(container);
     // Disabled containers don't have onClick handler
     expect(mockOnToggle).not.toHaveBeenCalled();
@@ -237,7 +200,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     expect(container).toHaveClass("open");
   });
 
@@ -252,7 +215,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     expect(container).toHaveClass("disabled");
   });
 
@@ -263,7 +226,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     expect(container).toHaveClass("nodrag");
   });
 
@@ -278,7 +241,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     expect(container).not.toHaveClass("nodrag");
   });
 
@@ -293,7 +256,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    const container = screen.getByTestId("box-component");
+    const container = toggleRoot();
     expect(container).toHaveClass("custom-class");
   });
 
@@ -322,7 +285,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnToggle).toHaveBeenCalledTimes(1);
     // Event should be stopped, so parent should not receive it
     // Note: In real implementation, stopPropagation is called, 

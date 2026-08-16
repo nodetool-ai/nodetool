@@ -9,7 +9,7 @@
 
 /** "45s", "5m", "1h 30m", "2d" — null for a non-positive or invalid input. */
 export const formatDuration = (seconds: number | null | undefined): string | null => {
-  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) {
     return null;
   }
   const total = Math.round(seconds);

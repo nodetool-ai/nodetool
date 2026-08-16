@@ -88,10 +88,7 @@ export function deserializeLayerData(
   data: string | null | undefined,
   fallbackWidth: number,
   fallbackHeight: number
-): {
-  image: string | null;
-  bounds: LayerRasterBounds;
-} {
+) {
   const fallbackBounds = getDefaultBounds(fallbackWidth, fallbackHeight);
   if (!data) {
     return { image: null, bounds: fallbackBounds };

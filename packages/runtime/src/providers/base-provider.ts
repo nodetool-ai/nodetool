@@ -92,10 +92,14 @@ export function toolResultToText(result: string | MessageContent[]): string {
  * assistant) message, so image-bearing tool results must ride a user message.
  * Returns `imageMessage: null` for plain (text/no-image) results.
  */
-export function splitToolResultImages(result: string | MessageContent[]): {
+export type ToolResultSplit = {
   toolContent: string | MessageContent[];
   imageMessage: Message | null;
-} {
+};
+
+export function splitToolResultImages(
+  result: string | MessageContent[]
+): ToolResultSplit {
   if (typeof result === "string") {
     return { toolContent: result, imageMessage: null };
   }
@@ -294,6 +298,8 @@ export abstract class BaseProvider {
    * sent (secrets redacted, large fields truncated). Safe to call even outside
    * a traced call — it is a no-op when no capture slot is active.
    */
+  // HOLDOUT (anti-slop/no-unknown-parameters): see `setLastRequest` — the
+  // honest type is `object | null`, which `no-object-parameters` forbids.
   protected recordRequestPayload(payload: unknown): void {
     setLastRequest(payload);
   }
@@ -318,14 +324,15 @@ export abstract class BaseProvider {
    * markers, secrets redacted).
    */
   private installModalityFailureLogging(): void {
-    const proto = BaseProvider.prototype as unknown as Record<string, unknown>;
-    const self = this as unknown as Record<string, unknown>;
-
     for (const name of MODALITY_PROMISE_METHODS) {
-      const fn = self[name];
-      if (typeof fn !== "function" || fn === proto[name]) continue;
-      const original = fn as (...args: unknown[]) => Promise<unknown>;
-      self[name] = (...rawArgs: unknown[]): Promise<unknown> =>
+      const fn = this[name];
+      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
+        continue;
+      }
+      // SAFETY: `name` comes from MODALITY_PROMISE_METHODS and the check above
+      // proved this instance overrides it, so `fn` is that modality method.
+      const original = fn as (...args: unknown[]) => Promise<ModalityResult>;
+      Reflect.set(this, name, (...rawArgs: unknown[]): Promise<ModalityResult> =>
         withModalityCapture(async (alreadyActive) => {
           // Central entity expansion: descriptors into the prompt, reference
           // images onto the source list, before the concrete provider runs.
@@ -348,15 +355,19 @@ export abstract class BaseProvider {
             }
             throw err;
           }
-        });
+        })
+      );
     }
 
     for (const name of MODALITY_GENERATOR_METHODS) {
-      const fn = self[name];
-      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const fn = this[name];
+      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
+        continue;
+      }
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
-      self[name] = (...args: unknown[]): AsyncGenerator<unknown> =>
-        wrapModalityGenerator(this, original, args);
+      Reflect.set(this, name, (...args: unknown[]): AsyncGenerator<unknown> =>
+        wrapModalityGenerator(this, original, args)
+      );
     }
   }
 
@@ -1136,9 +1147,11 @@ export abstract class BaseProvider {
         const toolMsg: Message = {
           role: "tool",
           toolCallId: tc.id,
-          content: toolContent,
-          ...(isError ? { isError: true } : {})
+          content: toolContent
         };
+        if (isError) {
+          toolMsg.isError = true;
+        }
         messages.push(toolMsg);
         yield { type: "message", message: toolMsg };
         if (imageMessage) {
@@ -1590,6 +1603,15 @@ export abstract class BaseProvider {
  * logging. Batch helpers are included; nested delegation to their singular
  * method is logged once (see {@link withModalityCapture}).
  */
+/**
+ * What any of the wrapped modality methods resolves to — bytes for the image
+ * and video tasks, an encoded audio result for speech and music, a transcript
+ * for ASR, vectors for embeddings.
+ */
+type ModalityResult = Awaited<
+  ReturnType<BaseProvider[(typeof MODALITY_PROMISE_METHODS)[number]]>
+>;
+
 const MODALITY_PROMISE_METHODS = [
   "textToImage",
   "textToImages",

@@ -683,19 +683,7 @@ function mergeClipsAtTime(
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
 
-const emptyState: {
-  sequenceId: string | null;
-  baseUpdatedAt: string | null;
-  fps: number;
-  width: number;
-  height: number;
-  durationMs: number;
-  tracks: TimelineTrack[];
-  clips: TimelineClip[];
-  markers: TimelineMarker[];
-  transcript: TranscriptLine[];
-  scriptEnabled: boolean;
-} = {
+const emptyState = {
   sequenceId: null,
   baseUpdatedAt: null,
   fps: 30,
@@ -707,6 +695,18 @@ const emptyState: {
   markers: [],
   transcript: [],
   scriptEnabled: false
+} satisfies {
+  sequenceId: string | null;
+  baseUpdatedAt: string | null;
+  fps: number;
+  width: number;
+  height: number;
+  durationMs: number;
+  tracks: TimelineTrack[];
+  clips: TimelineClip[];
+  markers: TimelineMarker[];
+  transcript: TranscriptLine[];
+  scriptEnabled: boolean;
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────
@@ -788,14 +788,14 @@ export const createTimelineStore = (
         setProjectSettings: (patch) =>
           set((state) => {
             const next: Partial<TimelineStoreState> = {};
-            if (typeof patch.fps === "number" && patch.fps !== state.fps) {
+            if (patch.fps != null && patch.fps !== state.fps) {
               next.fps = patch.fps;
             }
-            if (typeof patch.width === "number" && patch.width !== state.width) {
+            if (patch.width != null && patch.width !== state.width) {
               next.width = patch.width;
             }
             if (
-              typeof patch.height === "number" &&
+              patch.height != null &&
               patch.height !== state.height
             ) {
               next.height = patch.height;
@@ -930,10 +930,9 @@ export const createTimelineStore = (
             if (!effect) {
               return state;
             }
-            const effectRecord = effect as unknown as Record<string, unknown>;
-            const patchRecord = patch as Record<string, unknown>;
-            const unchanged = Object.keys(patch).every((k) =>
-              Object.is(effectRecord[k], patchRecord[k])
+            const current = new Map<string, unknown>(Object.entries(effect));
+            const unchanged = Object.entries(patch).every(([key, value]) =>
+              Object.is(current.get(key), value)
             );
             if (unchanged) {
               return state;
@@ -1763,12 +1762,7 @@ export type TimelineStoreApi = ReturnType<typeof createTimelineStore>;
 /** Read the temporal (undo/redo) state of a given store instance. */
 export const timelineTemporalOf = (
   store: TimelineStoreApi
-): TemporalState<PartializedState> =>
-  (
-    store as unknown as {
-      temporal: { getState: () => TemporalState<PartializedState> };
-    }
-  ).temporal.getState();
+): TemporalState<PartializedState> => store.temporal.getState();
 
 export type { PartializedState as TimelinePartializedState };
 

@@ -14,6 +14,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import "@testing-library/jest-dom/jest-globals";
 import {
   describe,
@@ -257,7 +258,7 @@ describe("PanelHeadline", () => {
 
     it("handles null actions prop", () => {
       const { container } = renderWithTheme(
-        <PanelHeadline title="Test" actions={null as unknown as React.ReactNode} />
+        <PanelHeadline title="Test" actions={null} />
       );
 
       const actionsContainer = container.querySelector(".headline-actions");
@@ -266,7 +267,7 @@ describe("PanelHeadline", () => {
 
     it("handles empty array as actions", () => {
       const { container } = renderWithTheme(
-        <PanelHeadline title="Test" actions={[] as unknown as React.ReactNode} />
+        <PanelHeadline title="Test" actions={stub<React.ReactNode>([])} />
       );
 
       // Empty array is truthy, so actions should render

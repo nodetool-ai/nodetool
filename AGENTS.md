@@ -226,10 +226,51 @@ npm run build            # Build all packages
 npm run typecheck        # Type check web, electron, and mobile
 npm run lint             # Lint packages/*/src, web/src, electron, mobile/src
 npm run lint:fix         # Auto-fix linting issues
+npm run lint:anti-slop   # anti-slop backlog rules — report-only, not part of `lint`
 npm run test             # Run web, electron, and mobile tests
 npm run check            # Workspace/lockfile/boundary checks, build:packages,
                          # typecheck, lint, test:packages, test
 ```
+
+The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
+(`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
+exactly one of them:
+
+- `.oxlintrc.anti-slop.json` — the **backlog**, 20,930 findings. Run it with
+  `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
+- `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
+  inside `npm run lint`, so they cannot come back.
+
+Getting a rule to zero and moving its entry from the first config to the second
+is one change. A rule that does not fit NodeTool is deleted from the plugin
+instead — upstream ships it to be vendored and edited. That is why
+`no-shape-in-symbol-names` is gone: it banned the substring "shape" in every
+identifier, and here that is the sketch editor's drawing tools, tensor shapes,
+and third-party contracts. Promotion goes through the enforced config, not `.oxlintrc.json`,
+because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
+oxlint resolves the nearest config per file — a rule added at the root silently
+skips those trees. Remaining backlog, largest first:
+
+| rule | findings |
+|---|---:|
+| `require-safety-comment-for-type-assertion` | 8107 |
+| `no-unsafe-dictionary-type` | 4498 |
+| `no-runtime-typeof` | 4277 |
+| `no-unknown-parameters` | 1763 |
+| `no-module-mocking` | 1410 |
+| `no-known-value-widening` | 670 |
+| `no-unknown-returns` | 163 |
+| `no-chained-type-assertions` | 42 |
+
+A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what
+is left is one thing said many ways — a node output, an app-state slot, a
+stream item — for which NodeTool has no named type, plus the `Tool.process`
+contract that erases every tool's result to share one registry. Those sites
+carry a `HOLDOUT (anti-slop/no-unknown-returns)` comment saying so. Naming that
+value domain is a modelling change, not an annotation, and until someone makes
+it the rule stays in the backlog.
+
+See [tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
 
 ### Backend Packages
 

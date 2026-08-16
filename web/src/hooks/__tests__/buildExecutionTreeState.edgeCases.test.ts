@@ -7,6 +7,7 @@
  * - Error type variants in step_result (Error object, non-string error)
  */
 import { buildExecutionTreeState } from "../useExecutionTreeState";
+import { stub } from "../../test-utils/doubles";
 import type { Message } from "../../stores/ApiTypes";
 import type { StepToolCall } from "../../stores/GlobalChatStore";
 
@@ -14,11 +15,11 @@ function makeMessage(
   eventType: string,
   content: Record<string, unknown>
 ): Message {
-  return {
+  return stub<Message>({
     role: "agent_execution",
     execution_event_type: eventType,
     content: content
-  } as unknown as Message;
+  });
 }
 
 describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
@@ -37,7 +38,7 @@ describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
       })
     ];
 
-    const toolCallsByStep: Record<string, StepToolCall[]> = {
+    const toolCallsByStep = {
       "step-1": [
         { id: "tc-a", name: "web_search", args: null, startedAt: 1000 },
         { id: "tc-b", name: "read_file", args: null, startedAt: 2000 }
@@ -45,7 +46,7 @@ describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
       "step-2": [
         { id: "tc-c", name: "write_file", args: null, startedAt: 3000 }
       ]
-    };
+    } satisfies Record<string, StepToolCall[]>;
 
     const state = buildExecutionTreeState(messages, toolCallsByStep);
     expect(state.tasks[0].steps[0].toolName).toBe("read_file");
@@ -62,11 +63,11 @@ describe("buildExecutionTreeState — content normalization edge cases", () => {
       content: "Double encoded"
     };
     const messages: Message[] = [
-      {
+      stub<Message>({
         role: "agent_execution",
         execution_event_type: undefined,
         content: JSON.stringify(JSON.stringify(inner))
-      } as unknown as Message
+      })
     ];
     const state = buildExecutionTreeState(messages);
     expect(state.phase).toBe("planning");

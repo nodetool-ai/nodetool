@@ -5,6 +5,8 @@
  * consumers need to define, query and persist data models.
  */
 
+import type { AdapterResolver } from "./legacy-compat.js";
+
 // ── Database Connection ─────────────────────────────────────────────
 export {
   initDb,
@@ -323,15 +325,11 @@ export type { ConditionValue } from "./condition-builder.js";
 
 // Legacy adapter resolver — now a no-op since models use getDb() directly.
 // Kept for API compatibility during transition.
-let _legacyResolver: ((schema: unknown) => unknown) | null = null;
-export function setGlobalAdapterResolver(
-  resolver: (schema: unknown) => unknown
-): void {
+let _legacyResolver: AdapterResolver | null = null;
+export function setGlobalAdapterResolver(resolver: AdapterResolver): void {
   _legacyResolver = resolver;
 }
-export function getGlobalAdapterResolver():
-  | ((schema: unknown) => unknown)
-  | null {
+export function getGlobalAdapterResolver(): AdapterResolver | null {
   return _legacyResolver;
 }
 

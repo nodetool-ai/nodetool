@@ -8,7 +8,7 @@
  * and this module turns that into real docx bytes.
  */
 
-import { toGuestBytes } from "../sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
 
 type Alignment = "LEFT" | "CENTER" | "RIGHT" | "JUSTIFY";
@@ -46,6 +46,15 @@ type DocxElement =
   | ImageElement
   | PageBreakElement;
 
+/** The `docx.Document` option bag; each property only when the spec set it. */
+interface DocxDocumentOptions {
+  sections: { children: DocxComponent[] }[];
+  title?: string;
+  creator?: string;
+  subject?: string;
+  keywords?: string;
+}
+
 interface DocxSpec {
   properties?: {
     title?: string;
@@ -56,16 +65,28 @@ interface DocxSpec {
   elements?: unknown[];
 }
 
+declare const docxComponentBrand: unique symbol;
+
+/**
+ * A node in `docx`'s document tree. The library builds these from option bags
+ * and reads them back itself when it packs the file; this module only holds
+ * them and passes them along, so they are opaque by contract rather than by
+ * omission — a value that did not come from `docx` cannot be substituted.
+ */
+interface DocxComponent {
+  readonly [docxComponentBrand]?: never;
+}
+
 interface DocxLike {
-  Document: new (options: unknown) => unknown;
-  Packer: { toBuffer: (doc: unknown) => Promise<Buffer | Uint8Array> };
-  Paragraph: new (options: unknown) => unknown;
-  TextRun: new (options: unknown) => unknown;
-  ImageRun: new (options: unknown) => unknown;
-  Table: new (options: unknown) => unknown;
-  TableRow: new (options: unknown) => unknown;
-  TableCell: new (options: unknown) => unknown;
-  PageBreak: new () => unknown;
+  Document: new (options: unknown) => DocxComponent;
+  Packer: { toBuffer: (doc: DocxComponent) => Promise<Buffer | Uint8Array> };
+  Paragraph: new (options: unknown) => DocxComponent;
+  TextRun: new (options: unknown) => DocxComponent;
+  ImageRun: new (options: unknown) => DocxComponent;
+  Table: new (options: unknown) => DocxComponent;
+  TableRow: new (options: unknown) => DocxComponent;
+  TableCell: new (options: unknown) => DocxComponent;
+  PageBreak: new () => DocxComponent;
   AlignmentType: Record<Alignment, unknown>;
   HeadingLevel: Record<string, unknown>;
   WidthType: Record<string, unknown>;
@@ -105,7 +126,7 @@ function isElement(value: unknown): value is DocxElement {
  * entries — the same shape a Code node accumulates while composing a document
  * before writing it out.
  */
-export async function build(spec: unknown): Promise<unknown> {
+export async function build(spec: unknown): Promise<GuestBytes> {
   const where = "docx.build";
   const input = optionsOf(spec) as DocxSpec;
   const elements = Array.isArray(input.elements) ? input.elements : [];
@@ -159,7 +180,11 @@ export async function build(spec: unknown): Promise<unknown> {
         });
       }
       case "image": {
-        const data = requireBytes(`${where}: elements[${index}]`, raw.data, "data");
+        const data = requireBytes(
+          `${where}: elements[${index}]`,
+          raw.data,
+          "data"
+        );
         const width = Number(raw.width ?? 0);
         const height = Number(raw.height ?? 0);
         return new docx.Paragraph({
@@ -185,14 +210,15 @@ export async function build(spec: unknown): Promise<unknown> {
   });
 
   const properties = input.properties ?? {};
-  const document = new docx.Document({
-    ...(properties.title ? { title: properties.title } : {}),
-    ...(properties.author ? { creator: properties.author } : {}),
-    ...(properties.subject ? { subject: properties.subject } : {}),
-    ...(properties.keywords ? { keywords: properties.keywords } : {}),
-    sections: [{ children }]
-  });
+  const documentOptions: DocxDocumentOptions = { sections: [{ children }] };
+  if (properties.title) documentOptions.title = properties.title;
+  if (properties.author) documentOptions.creator = properties.author;
+  if (properties.subject) documentOptions.subject = properties.subject;
+  if (properties.keywords) documentOptions.keywords = properties.keywords;
+  const document = new docx.Document(documentOptions);
 
   const buffer = await docx.Packer.toBuffer(document);
-  return toGuestBytes(buffer instanceof Uint8Array ? buffer : Buffer.from(buffer));
+  return toGuestBytes(
+    buffer instanceof Uint8Array ? buffer : Buffer.from(buffer)
+  );
 }

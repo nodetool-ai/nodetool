@@ -21,11 +21,7 @@ import {
 import type { MediaOption } from "./MediaOptionMenu";
 
 /** Extract per-model option constraints (manifest enums) from a raw model. */
-export function videoModelConstraints(model: VideoModel): {
-  durations?: number[];
-  resolutions?: string[];
-  aspectRatios?: string[];
-} {
+export function videoModelConstraints(model: VideoModel) {
   const durations = model.durations?.filter((d) => Number.isFinite(d));
   const resolutions = model.resolutions ?? undefined;
   const aspectRatios = model.aspect_ratios ?? undefined;
@@ -80,11 +76,7 @@ export function normalizeVideoModel(model: VideoModel): VideoModelSelection {
  */
 export function buildVideoModelOptions(
   model: VideoModelSelection | null | undefined
-): {
-  durationOptions: MediaOption<number>[];
-  resolutionOptions: MediaOption<VideoResolution>[];
-  aspectOptions: AspectRatioOption[];
-} {
+) {
   const durations =
     model?.durations && model.durations.length > 0
       ? model.durations

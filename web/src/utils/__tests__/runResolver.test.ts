@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { createRunResolver } from "../runResolver";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -44,13 +45,13 @@ const gen = (o: Partial<Generation> & { id: string }): Generation => ({
 
 const PURE_TYPES = new Set(["nodetool.text.Prompt"]);
 const baseMeta = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     cache_ttl:
       type.startsWith("pure.") || PURE_TYPES.has(type) ? "forever" : undefined,
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 const sigOf = (
   nodes: Node<NodeData>[],

@@ -18,12 +18,13 @@ describe("scheduleNodeInternalsRefresh", () => {
       return rafCallbacks.length;
     };
 
+    // SAFETY: the double-rAF scheduler never reads a timer handle, so the
+    // recorder returns none; only the parameter list has to match.
     jest.spyOn(globalThis, "setTimeout").mockImplementation(((
       fn: () => void,
       delay: number
     ) => {
       timeoutCallbacks.push({ fn, delay });
-      return timeoutCallbacks.length as unknown as ReturnType<typeof setTimeout>;
     }) as typeof setTimeout);
   });
 

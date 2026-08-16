@@ -67,7 +67,7 @@ function stripDataUrlPrefix(data: string): string {
 
 type SharpModuleNs = typeof import("sharp");
 type SharpFn = SharpModuleNs["default"];
-type SharpModule = SharpModuleNs | { default: SharpFn };
+type SharpModule = SharpModuleNs | { default: SharpFn } | SharpFn;
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 
 /**
@@ -99,7 +99,10 @@ export async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
+      if ("default" in mod && mod.default) return mod.default;
+      // SAFETY: with no `default` export this is sharp's CJS build, where the
+      // module object is the factory itself.
+      return mod as SharpFn;
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {
@@ -439,7 +442,7 @@ export async function resolveImageRefForTransport(
 export function toBase64Ref(
   png: Uint8Array,
   base?: unknown
-): Record<string, unknown> {
+) {
   const seed =
     base && typeof base === "object" ? { ...(base as Record<string, unknown>) } : {};
   delete seed.mimeType;

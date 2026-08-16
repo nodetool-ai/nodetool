@@ -19,6 +19,11 @@ const TJS_TYPE = "tjs.image_to_text";
 
 type CaptionResult = { generated_text: string };
 
+/** Output handles ImageToTextNode.process() emits. */
+type ImageToTextNodeOutputs = {
+  text: string;
+};
+
 export class ImageToTextNode extends BaseNode {
   static readonly nodeType = "transformers.ImageToText";
   static readonly inlineFields: string[] = [];
@@ -79,18 +84,20 @@ export class ImageToTextNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageToTextNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: unknown,
+        opts?: Record<string, unknown>
+      ) => Promise<CaptionResult | CaptionResult[]>
+    >({
       task: "image-to-text",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: unknown,
-      opts?: Record<string, unknown>
-    ) => Promise<CaptionResult | CaptionResult[]>;
+    });
 
     const raw = await pipeline(rawImage, {
       max_new_tokens: asNumber(this.max_new_tokens, 50)

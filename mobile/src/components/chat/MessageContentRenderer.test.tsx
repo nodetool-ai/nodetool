@@ -8,6 +8,15 @@ import { render, screen, act } from '@testing-library/react-native';
 import { MessageContentRenderer } from './MessageContentRenderer';
 import { MessageContent } from '../../types/ApiTypes';
 
+jest.mock("../../trpc/client", () => ({
+  // Media widgets resolve an `asset://` locator through `assets.get`; these
+  // cases render non-asset sources, so the lookup never settles.
+  trpc: {
+    assets: { get: { useQuery: () => ({ data: undefined, isLoading: false }) } },
+    useQueries: () => [],
+  },
+}));
+
 /** The content box MessageView's bubble gives a message at a given window width. */
 const bubbleContentWidth = (windowWidth: number) => (windowWidth - 28) * 0.85 - 28;
 
@@ -64,10 +73,9 @@ describe('MessageContentRenderer', () => {
     });
 
     it('handles undefined text content', () => {
-      const undefinedContent = {
-        type: 'text',
-        text: undefined,
-      } as unknown as MessageContent;
+      // Decoded from the wire, where a text part can arrive without `text`.
+      // The union declares it required, so build it the way it really lands.
+      const undefinedContent: MessageContent = JSON.parse('{"type":"text"}');
 
       render(
         <MessageContentRenderer
@@ -285,9 +293,11 @@ describe('MessageContentRenderer', () => {
 
   describe('Unknown content type', () => {
     it('returns null for unknown content type', () => {
-      const unknownContent = {
-        type: 'unknown_type',
-      } as unknown as MessageContent;
+      // A newer server may send a content type this client has never heard
+      // of; the union is closed, so build it the way it really lands.
+      const unknownContent: MessageContent = JSON.parse(
+        '{"type":"unknown_type"}'
+      );
 
       const { toJSON } = render(
         <MessageContentRenderer

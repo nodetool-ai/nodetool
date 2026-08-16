@@ -85,7 +85,9 @@ function truncate(text: string, maxChars: number): [string, boolean] {
 }
 
 /** Tool calls without their arguments — `get_message` carries the full ones. */
-function toolCallNames(toolCalls: unknown): { id: string; name: string }[] {
+function toolCallNames(
+  toolCalls: unknown[] | null
+): { id: string; name: string }[] {
   if (!Array.isArray(toolCalls)) return [];
   return toolCalls.map((call) => {
     const typed = (call ?? {}) as { id?: unknown; name?: unknown };

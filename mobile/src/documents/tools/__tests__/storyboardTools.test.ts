@@ -8,6 +8,7 @@
  */
 
 import { MobileToolRegistry } from '../registry';
+import type { MobileToolResult } from '../registry';
 import '../storyboardTools';
 import {
   registerDocumentHandler,
@@ -39,8 +40,9 @@ const snapshot = (): StoryboardSnapshot => ({
   shots: [shotNode('shot-a', 0)],
 });
 
+/** Every member keeps its real signature, so the double *is* a handler. */
 type MockHandler = {
-  [K in keyof StoryboardAgentHandler]: jest.Mock;
+  [K in keyof StoryboardAgentHandler]: StoryboardAgentHandler[K] & jest.Mock;
 };
 
 const makeHandler = (): MockHandler => ({
@@ -53,10 +55,18 @@ const makeHandler = (): MockHandler => ({
   setStyle: jest.fn(() => snapshot()),
   setAspectRatio: jest.fn(() => snapshot()),
   selectShot: jest.fn(() => shotNode('shot-a', 0)),
-  save: jest.fn(async () => ({ ok: true, updatedAt: '2026-07-26T00:00:00Z' })),
+  save: jest.fn(
+    async (): Promise<{ ok: true; updatedAt: string | null }> => ({
+      ok: true,
+      updatedAt: '2026-07-26T00:00:00Z',
+    })
+  ),
 });
 
-const call = (name: string, args: Record<string, unknown>): Promise<unknown> =>
+const call = (
+  name: string,
+  args: Record<string, unknown>
+): Promise<MobileToolResult> =>
   MobileToolRegistry.call(name, args, `${name}-call`);
 
 describe('storyboard tools', () => {
@@ -70,7 +80,7 @@ describe('storyboard tools', () => {
       'storyboard',
       'sb-1',
       'Test board',
-      handler as unknown as StoryboardAgentHandler
+      handler
     );
   });
 

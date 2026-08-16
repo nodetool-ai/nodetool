@@ -17,6 +17,7 @@
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { stub } from "../../../test-utils/doubles";
 import { BrushEngine } from "../painting/BrushEngine";
 import { PencilEngine } from "../painting/PencilEngine";
 import { EraserEngine } from "../painting/EraserEngine";
@@ -104,13 +105,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }
@@ -677,7 +678,7 @@ describe("PaintSession", () => {
       })
     });
 
-    const fakeCtx = {
+    const fakeCtx = stub<CanvasRenderingContext2D>({
       drawImage: jest.fn(),
       clearRect: jest.fn(),
       save: jest.fn(),
@@ -686,11 +687,13 @@ describe("PaintSession", () => {
       clip: jest.fn(),
       getImageData: jest.fn(),
       putImageData: jest.fn()
-    } as unknown as CanvasRenderingContext2D;
+    });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       expect(session.begin(ctx, makePointerEvent())).toBe(true);
@@ -826,7 +829,7 @@ describe("ShapeTool (transform-aware commit)", () => {
   });
 
   it("calls onStrokeEnd on pointer up", () => {
-    const fakeCtx = {
+    const fakeCtx = stub<CanvasRenderingContext2D>({
       drawImage: jest.fn(),
       clearRect: jest.fn(),
       save: jest.fn(),
@@ -848,11 +851,13 @@ describe("ShapeTool (transform-aware commit)", () => {
       globalAlpha: 1,
       lineCap: "butt",
       lineJoin: "miter"
-    } as unknown as CanvasRenderingContext2D;
+    });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       const tool = new ShapeTool();

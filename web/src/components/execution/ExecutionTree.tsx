@@ -570,7 +570,7 @@ const StepNode: React.FC<{
     : step.name.slice(0, 80);
 
   const outputPreview = truncateOutput(step.output);
-  const errorText = typeof step.error === "string" ? step.error : "";
+  const errorText = step.error != null ? step.error : "";
   const errorPreview = errorText.slice(0, 120);
 
   const hasInspector =

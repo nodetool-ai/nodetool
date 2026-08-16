@@ -1,4 +1,5 @@
 import { getGroupBounds } from "../getGroupBounds";
+import { stub } from "../../../test-utils/doubles";
 import { getChildNodes } from "../getChildNodes";
 import { Node, getNodesBounds } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
@@ -69,7 +70,7 @@ describe("getGroupBounds", () => {
   });
 
   it("returns null when parentNode has no id", () => {
-    const parentNode = { id: undefined, position: { x: 0, y: 0 }, data: { properties: {}, selectable: true, dynamic_properties: {}, workflow_id: "test" } } as unknown as Node<NodeData>;
+    const parentNode = stub<Node<NodeData>>({ id: undefined, position: { x: 0, y: 0 }, data: { properties: {}, selectable: true, dynamic_properties: {}, workflow_id: "test" } });
     const result = getGroupBounds([], parentNode);
     expect(result).toBeNull();
   });

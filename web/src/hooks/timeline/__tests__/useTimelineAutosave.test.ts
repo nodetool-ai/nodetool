@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
-import { makeTrack } from "@nodetool-ai/timeline";
+import { makeTrack, type TimelineSequence } from "@nodetool-ai/timeline";
 
 import {
   useTimelineStore,
@@ -14,7 +15,7 @@ import {
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
-const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock;
+const updateMutate = asMock(trpcClient.timeline.update.mutate);
 
 const seedSequence = (id = "seq-1") => {
   useTimelineStore.getState().loadSequence({
@@ -131,10 +132,10 @@ describe("useTimelineAutosave", () => {
 
   it("does not start a second save while one is in flight", async () => {
     seedSequence();
-    let resolveFirst: (v: unknown) => void = () => {};
+    let resolveFirst: (v: Partial<TimelineSequence>) => void = () => {};
     (updateMutate as any).mockImplementationOnce(
       () =>
-        new Promise((resolve: (v: unknown) => void) => {
+        new Promise((resolve: (v: Partial<TimelineSequence>) => void) => {
           resolveFirst = resolve;
         })
     );
@@ -227,10 +228,10 @@ describe("useTimelineAutosave", () => {
 
   it("flushes immediately (no debounce) when unmounted with a save in flight", async () => {
     seedSequence();
-    let resolveFirst: (v: unknown) => void = () => {};
+    let resolveFirst: (v: Partial<TimelineSequence>) => void = () => {};
     (updateMutate as any).mockImplementationOnce(
       () =>
-        new Promise((resolve: (v: unknown) => void) => {
+        new Promise((resolve: (v: Partial<TimelineSequence>) => void) => {
           resolveFirst = resolve;
         })
     );
@@ -277,10 +278,10 @@ describe("useTimelineAutosave", () => {
 
   it("sends the freshest baseUpdatedAt for a save queued behind an in-flight one", async () => {
     seedSequence();
-    let resolveFirst: (v: unknown) => void = () => {};
+    let resolveFirst: (v: Partial<TimelineSequence>) => void = () => {};
     (updateMutate as any).mockImplementationOnce(
       () =>
-        new Promise((resolve: (v: unknown) => void) => {
+        new Promise((resolve: (v: Partial<TimelineSequence>) => void) => {
           resolveFirst = resolve;
         })
     );

@@ -9,7 +9,12 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  DriveFile,
+  GmailMessage,
+  CalendarEvent
+} from "@nodetool-ai/runtime";
 import {
   requireGoogleAccessToken,
   driveSearchFiles,
@@ -30,10 +35,10 @@ import {
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 /** Correlation shared by every node that emits one item plus the whole list. */
-const ITEM_AND_LIST: Record<string, OutputCorrelation> = {
+const ITEM_AND_LIST = {
   output: { kind: "iteration", source: "__execution__", group: "items" },
   outputs: { kind: "single", source: "__execution__" }
-};
+} satisfies Record<string, OutputCorrelation>;
 
 const str = (value: unknown, fallback = ""): string => {
   const trimmed = typeof value === "string" ? value.trim() : "";
@@ -69,6 +74,12 @@ function splitList(value: unknown): string[] {
 
 // ── Drive ────────────────────────────────────────────────────────────
 
+/** Output handles GoogleDriveSearchLibNode.process() emits. */
+type GoogleDriveSearchLibNodeOutputs = {
+  output: DriveFile;
+  outputs: DriveFile[];
+};
+
 export class GoogleDriveSearchLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DriveSearch";
   static readonly title = "Google Drive Search";
@@ -100,7 +111,9 @@ export class GoogleDriveSearchLibNode extends BaseNode {
   })
   declare max_results: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDriveSearchLibNodeOutputs> {
     const token = await requireGoogleAccessToken(context);
     const files = await driveSearchFiles(token, {
       q: str(this.query),
@@ -109,6 +122,13 @@ export class GoogleDriveSearchLibNode extends BaseNode {
     return { output: files[0] ?? null, outputs: files };
   }
 }
+
+/** Output handles GoogleDriveReadFileLibNode.process() emits. */
+type GoogleDriveReadFileLibNodeOutputs = {
+  output: string;
+  name: string;
+  mime_type: string;
+};
 
 export class GoogleDriveReadFileLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DriveReadFile";
@@ -131,7 +151,9 @@ export class GoogleDriveReadFileLibNode extends BaseNode {
   })
   declare file_id: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDriveReadFileLibNodeOutputs> {
     const fileId = str(this.file_id);
     if (!fileId) throw new Error("file_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -143,6 +165,11 @@ export class GoogleDriveReadFileLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GoogleDriveCreateFileLibNode.process() emits. */
+type GoogleDriveCreateFileLibNodeOutputs = {
+  output: DriveFile;
+};
 
 export class GoogleDriveCreateFileLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DriveCreateFile";
@@ -187,7 +214,9 @@ export class GoogleDriveCreateFileLibNode extends BaseNode {
   })
   declare folder_id: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDriveCreateFileLibNodeOutputs> {
     const name = str(this.name);
     if (!name) throw new Error("name is required");
     const token = await requireGoogleAccessToken(context);
@@ -203,6 +232,12 @@ export class GoogleDriveCreateFileLibNode extends BaseNode {
 }
 
 // ── Gmail ────────────────────────────────────────────────────────────
+
+/** Output handles GoogleGmailSearchLibNode.process() emits. */
+type GoogleGmailSearchLibNodeOutputs = {
+  output: GmailMessage;
+  outputs: GmailMessage[];
+};
 
 export class GoogleGmailSearchLibNode extends BaseNode {
   static readonly nodeType = "lib.google.GmailSearch";
@@ -234,7 +269,9 @@ export class GoogleGmailSearchLibNode extends BaseNode {
   })
   declare max_results: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleGmailSearchLibNodeOutputs> {
     const token = await requireGoogleAccessToken(context);
     const messages = await gmailSearchMessages(token, {
       q: str(this.query),
@@ -243,6 +280,11 @@ export class GoogleGmailSearchLibNode extends BaseNode {
     return { output: messages[0] ?? null, outputs: messages };
   }
 }
+
+/** Output handles GoogleGmailSendLibNode.process() emits. */
+type GoogleGmailSendLibNodeOutputs = {
+  output: { id: string; threadId: string };
+};
 
 export class GoogleGmailSendLibNode extends BaseNode {
   static readonly nodeType = "lib.google.GmailSend";
@@ -287,7 +329,9 @@ export class GoogleGmailSendLibNode extends BaseNode {
   })
   declare cc: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleGmailSendLibNodeOutputs> {
     const to = str(this.to);
     if (!to) throw new Error("to is required");
     const token = await requireGoogleAccessToken(context);
@@ -301,6 +345,11 @@ export class GoogleGmailSendLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GoogleGmailModifyLabelsLibNode.process() emits. */
+type GoogleGmailModifyLabelsLibNodeOutputs = {
+  output: { id: string; labelIds: string[] };
+};
 
 export class GoogleGmailModifyLabelsLibNode extends BaseNode {
   static readonly nodeType = "lib.google.GmailModifyLabels";
@@ -337,7 +386,9 @@ export class GoogleGmailModifyLabelsLibNode extends BaseNode {
   })
   declare remove_labels: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleGmailModifyLabelsLibNodeOutputs> {
     const messageId = str(this.message_id);
     if (!messageId) throw new Error("message_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -352,6 +403,12 @@ export class GoogleGmailModifyLabelsLibNode extends BaseNode {
 }
 
 // ── Docs ─────────────────────────────────────────────────────────────
+
+/** Output handles GoogleDocsReadLibNode.process() emits. */
+type GoogleDocsReadLibNodeOutputs = {
+  output: string;
+  title: string;
+};
 
 export class GoogleDocsReadLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DocsRead";
@@ -373,7 +430,9 @@ export class GoogleDocsReadLibNode extends BaseNode {
   })
   declare document_id: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDocsReadLibNodeOutputs> {
     const documentId = str(this.document_id);
     if (!documentId) throw new Error("document_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -381,6 +440,11 @@ export class GoogleDocsReadLibNode extends BaseNode {
     return { output: doc.text, title: doc.title };
   }
 }
+
+/** Output handles GoogleDocsCreateLibNode.process() emits. */
+type GoogleDocsCreateLibNodeOutputs = {
+  output: { documentId: string; title: string; url: string };
+};
 
 export class GoogleDocsCreateLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DocsCreate";
@@ -409,7 +473,9 @@ export class GoogleDocsCreateLibNode extends BaseNode {
   })
   declare text: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDocsCreateLibNodeOutputs> {
     const title = str(this.title);
     if (!title) throw new Error("title is required");
     const token = await requireGoogleAccessToken(context);
@@ -421,6 +487,11 @@ export class GoogleDocsCreateLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GoogleDocsAppendLibNode.process() emits. */
+type GoogleDocsAppendLibNodeOutputs = {
+  output: string;
+};
 
 export class GoogleDocsAppendLibNode extends BaseNode {
   static readonly nodeType = "lib.google.DocsAppend";
@@ -449,7 +520,9 @@ export class GoogleDocsAppendLibNode extends BaseNode {
   })
   declare text: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleDocsAppendLibNodeOutputs> {
     const documentId = str(this.document_id);
     if (!documentId) throw new Error("document_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -459,6 +532,11 @@ export class GoogleDocsAppendLibNode extends BaseNode {
 }
 
 // ── Sheets ───────────────────────────────────────────────────────────
+
+/** Output handles GoogleSheetsReadLibNode.process() emits. */
+type GoogleSheetsReadLibNodeOutputs = {
+  output: string[][];
+};
 
 export class GoogleSheetsReadLibNode extends BaseNode {
   static readonly nodeType = "lib.google.SheetsRead";
@@ -487,7 +565,9 @@ export class GoogleSheetsReadLibNode extends BaseNode {
   })
   declare range: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleSheetsReadLibNodeOutputs> {
     const spreadsheetId = str(this.spreadsheet_id);
     if (!spreadsheetId) throw new Error("spreadsheet_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -499,6 +579,11 @@ export class GoogleSheetsReadLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GoogleSheetsAppendLibNode.process() emits. */
+type GoogleSheetsAppendLibNodeOutputs = {
+  output: { updatedRange: string; updatedRows: number };
+};
 
 export class GoogleSheetsAppendLibNode extends BaseNode {
   static readonly nodeType = "lib.google.SheetsAppend";
@@ -535,7 +620,9 @@ export class GoogleSheetsAppendLibNode extends BaseNode {
   })
   declare values: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleSheetsAppendLibNodeOutputs> {
     const spreadsheetId = str(this.spreadsheet_id);
     if (!spreadsheetId) throw new Error("spreadsheet_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -548,6 +635,11 @@ export class GoogleSheetsAppendLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GoogleSheetsUpdateLibNode.process() emits. */
+type GoogleSheetsUpdateLibNodeOutputs = {
+  output: { updatedRange: string; updatedCells: number };
+};
 
 export class GoogleSheetsUpdateLibNode extends BaseNode {
   static readonly nodeType = "lib.google.SheetsUpdate";
@@ -584,7 +676,9 @@ export class GoogleSheetsUpdateLibNode extends BaseNode {
   })
   declare values: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleSheetsUpdateLibNodeOutputs> {
     const spreadsheetId = str(this.spreadsheet_id);
     if (!spreadsheetId) throw new Error("spreadsheet_id is required");
     const token = await requireGoogleAccessToken(context);
@@ -599,6 +693,12 @@ export class GoogleSheetsUpdateLibNode extends BaseNode {
 }
 
 // ── Calendar ─────────────────────────────────────────────────────────
+
+/** Output handles GoogleCalendarListEventsLibNode.process() emits. */
+type GoogleCalendarListEventsLibNodeOutputs = {
+  output: CalendarEvent;
+  outputs: CalendarEvent[];
+};
 
 export class GoogleCalendarListEventsLibNode extends BaseNode {
   static readonly nodeType = "lib.google.CalendarListEvents";
@@ -646,7 +746,9 @@ export class GoogleCalendarListEventsLibNode extends BaseNode {
   })
   declare max_results: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleCalendarListEventsLibNodeOutputs> {
     const token = await requireGoogleAccessToken(context);
     const events = await calendarListEvents(token, {
       calendarId: str(this.calendar_id, "primary"),
@@ -657,6 +759,11 @@ export class GoogleCalendarListEventsLibNode extends BaseNode {
     return { output: events[0] ?? null, outputs: events };
   }
 }
+
+/** Output handles GoogleCalendarCreateEventLibNode.process() emits. */
+type GoogleCalendarCreateEventLibNodeOutputs = {
+  output: CalendarEvent;
+};
 
 export class GoogleCalendarCreateEventLibNode extends BaseNode {
   static readonly nodeType = "lib.google.CalendarCreateEvent";
@@ -717,7 +824,9 @@ export class GoogleCalendarCreateEventLibNode extends BaseNode {
   })
   declare attendees: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<GoogleCalendarCreateEventLibNodeOutputs> {
     const summary = str(this.summary);
     const start = str(this.start);
     const end = str(this.end);

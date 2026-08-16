@@ -90,21 +90,23 @@ function cloudPackOverrides(): Record<string, boolean> {
  * Registrar for each catalog entry in {@link BUILTIN_NODE_PACKS}. Keyed by the
  * stable pack id; a missing key would mean the catalog and this map drifted.
  */
-const BUILTIN_PACK_REGISTRARS: Record<string, (registry: NodeRegistry) => void> =
-  {
-    base: registerBaseNodes,
-    elevenlabs: registerElevenLabsNodes,
-    minimax: registerMinimaxNodes,
-    "transformers-js": registerTransformersJsNodes,
-    fal: registerFalNodes,
-    kie: registerKieNodes,
-    topaz: registerTopazNodes,
-    reve: registerReveNodes,
-    atlascloud: registerAtlasCloudNodes,
-    together: registerTogetherNodes,
-    replicate: registerReplicateNodes,
-    huggingface: registerHuggingFaceNodes
-  };
+const BUILTIN_PACK_REGISTRARS: Record<
+  string,
+  (registry: NodeRegistry) => void
+> = {
+  base: registerBaseNodes,
+  elevenlabs: registerElevenLabsNodes,
+  minimax: registerMinimaxNodes,
+  "transformers-js": registerTransformersJsNodes,
+  fal: registerFalNodes,
+  kie: registerKieNodes,
+  topaz: registerTopazNodes,
+  reve: registerReveNodes,
+  atlascloud: registerAtlasCloudNodes,
+  together: registerTogetherNodes,
+  replicate: registerReplicateNodes,
+  huggingface: registerHuggingFaceNodes
+};
 
 export interface RegisterBuiltInNodesOptions {
   /**
@@ -177,6 +179,9 @@ export function mergePythonBridgeMetadata(
     registry.loadMetadata(
       nodeMeta.node_type,
       {
+        // SAFETY: the Python wire's property/output type metadata omits
+        // `type_args`, which the registry's `TypeMetadata` declares required;
+        // filling it in here would change what the registry stores.
         ...(nodeMeta as unknown as NodeMetadata),
         namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
         layout: "default",
@@ -296,9 +301,7 @@ function logPackResult(result: LoadedPackResult, log?: BootstrapLogger): void {
   const { pack } = result;
   const id = `${pack.name}@${pack.version ?? "?"}`;
   if (result.status === "loaded") {
-    log?.info(
-      `Loaded node pack ${id} (${result.registered.length} node(s))`
-    );
+    log?.info(`Loaded node pack ${id} (${result.registered.length} node(s))`);
     for (const skipped of result.skippedNodes) {
       log?.warn(
         `Pack ${pack.name}: skipped node ${skipped.nodeType} (${skipped.reason})`
@@ -325,12 +328,13 @@ export async function bootstrapNodeRegistry(
   });
   registerBuiltInNodes(registry, options.log ? { log: options.log } : {});
   if (options.loadPacks !== false) {
-    const results = await loadInstalledPacks(registry, {
-      ...(options.packSearchPaths
-        ? { searchPaths: options.packSearchPaths }
-        : {}),
+    const loadOptions: Parameters<typeof loadInstalledPacks>[1] = {
       onResult: (result) => logPackResult(result, options.log)
-    });
+    };
+    if (options.packSearchPaths) {
+      loadOptions.searchPaths = options.packSearchPaths;
+    }
+    const results = await loadInstalledPacks(registry, loadOptions);
     setPackSnapshot(results);
     await refreshSandboxCatalog(options.packSearchPaths);
   }

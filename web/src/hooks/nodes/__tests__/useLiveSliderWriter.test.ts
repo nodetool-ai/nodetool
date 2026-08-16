@@ -17,7 +17,12 @@ const storeState = {
 };
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (s: unknown) => unknown) =>
+  useNodes: <T,>(
+    selector: (s: {
+      updateNodeProperties: typeof mockUpdateNodeProperties;
+      edges: typeof storeState.edges;
+    }) => T
+  ) =>
     selector({
       updateNodeProperties: mockUpdateNodeProperties,
       edges: storeState.edges
@@ -26,8 +31,9 @@ jest.mock("../../../contexts/NodeContext", () => ({
 }));
 
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) =>
-    selector({ settings: { instantUpdate } })
+  useSettingsStore: <T,>(
+    selector: (s: { settings: { instantUpdate: boolean } }) => T
+  ) => selector({ settings: { instantUpdate } })
 }));
 
 jest.mock("../useInputNodeAutoRun", () => ({
@@ -50,10 +56,10 @@ jest.mock("../buildDownstreamRunGraph", () => ({
 }));
 
 jest.mock("../../../stores/reactFlowNodeToGraphNode", () => ({
-  reactFlowNodeToGraphNode: (n: unknown) => n
+  reactFlowNodeToGraphNode: <T,>(n: T) => n
 }));
 jest.mock("../../../stores/reactFlowEdgeToGraphEdge", () => ({
-  reactFlowEdgeToGraphEdge: (e: unknown) => e
+  reactFlowEdgeToGraphEdge: <T,>(e: T) => e
 }));
 
 jest.mock("../../../lib/workflow/browserWorkflowRunner", () => ({
@@ -71,7 +77,12 @@ if (typeof globalThis.crypto === "undefined") {
   "preview-job-1";
 
 jest.mock("../../../stores/LiveRunStore", () => ({
-  useLiveRunStore: (selector: (s: unknown) => unknown) =>
+  useLiveRunStore: <T,>(
+    selector: (s: {
+      isScrubbing: boolean;
+      notifyScrubActivity: typeof mockNotifyScrubActivity;
+    }) => T
+  ) =>
     selector({ isScrubbing: false, notifyScrubActivity: mockNotifyScrubActivity })
 }));
 

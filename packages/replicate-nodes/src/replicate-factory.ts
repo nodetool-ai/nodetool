@@ -30,6 +30,7 @@ import {
   outputToAudioRef,
   outputToString
 } from "./replicate-base.js";
+import type { ReplicateOutput } from "./replicate-base.js";
 
 // ---------------------------------------------------------------------------
 // Manifest types — mirrors replicate-codegen types.ts NodeSpec
@@ -93,7 +94,38 @@ function isListAsset(propType: string): boolean {
   return propType.startsWith("list[") && isAssetPropType(propType);
 }
 
-function defaultForPropType(propType: string): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | null | never[] | EmptyMediaRef;
+
+function defaultForPropType(propType: string): FieldDefault {
   switch (propType) {
     case "bool":
       return false;
@@ -128,10 +160,10 @@ function isNumericEnum(enumValues?: string[]): boolean {
 }
 
 function castValue(
-  value: unknown,
+  value: NodeValue,
   propType: string,
   enumValues?: string[]
-): unknown {
+): NodeValue {
   if (value === null || value === undefined) return value;
   if (propType.startsWith("list[") || propType.startsWith("dict[")) {
     return value;
@@ -169,6 +201,25 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
 }
 
 /**
+ * A manifest-built node seen through its declared properties. Each manifest
+ * field is registered as a plain instance property, so the manifest's field
+ * name indexes the instance directly.
+ */
+type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
+
+/**
+ * Read one declared property off a node instance, by the name the manifest
+ * gave it.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  // SAFETY: every declared property is registered from a manifest field, whose
+  // declared types are exactly the scalars, media refs, and lists or dicts of
+  // those that `NodeValue` names.
+  const properties = instance as ManifestNodeProperties;
+  return properties[name];
+}
+
+/**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
  * empty image/audio/video inputs (and strip the mentions from the text).
  * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
@@ -178,7 +229,6 @@ async function promptAssetOverrides(
   spec: ReplicateManifestEntry,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
-  const values = instance as unknown as Record<string, unknown>;
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.inputFields) {
@@ -187,7 +237,7 @@ async function promptAssetOverrides(
     const kind = assetKind(field.propType);
     if (kind === "image" || kind === "audio" || kind === "video") {
       const list = isListAsset(field.propType);
-      const value = values[field.name];
+      const value = propertyOf(instance, field.name);
       const hasSource = list
         ? Array.isArray(value) && value.some(isRefSet)
         : isRefSet(value);
@@ -201,7 +251,7 @@ async function promptAssetOverrides(
     } else if (field.propType.toLowerCase() === "str") {
       textFields.push({
         name: field.name,
-        value: String(values[field.name] ?? "")
+        value: String(propertyOf(instance, field.name) ?? "")
       });
     }
   }
@@ -229,10 +279,13 @@ async function buildArgs(
       continue;
     }
 
-    const value =
+    // SAFETY: both sources hold node property values, and NodeTool restricts
+    // those to its own property types — the shapes `NodeValue` names.
+    const value = (
       field.name in overrides
         ? overrides[field.name]
-        : (instance as unknown as Record<string, unknown>)[field.name];
+        : propertyOf(instance, field.name)
+    ) as NodeValue;
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -270,7 +323,7 @@ async function buildArgs(
 function mapOutput(
   spec: ReplicateManifestEntry,
   output: unknown
-): Record<string, unknown> {
+) {
   switch (spec.outputType) {
     case "image":
       return { output: outputToImageRef(output) };
@@ -308,7 +361,7 @@ export function createReplicateNodeClass(
   const executePrediction = async (
     instance: BaseNode,
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<unknown> => {
+  ): Promise<ReplicateOutput> => {
     const apiKey = getReplicateApiKey(instance._secrets);
     const args = await buildArgs(instance, specRef, apiKey, context);
     const res = await replicateSubmit(apiKey, specRef.endpointId, args);
@@ -405,7 +458,7 @@ export function createReplicateNodeClass(
     registerDeclaredProperty(ReplicateNodeClass, field.name, propOptions);
   }
 
-  return ReplicateNodeClass as unknown as NodeClass;
+  return ReplicateNodeClass;
 }
 
 export function loadReplicateNodesFromManifest(

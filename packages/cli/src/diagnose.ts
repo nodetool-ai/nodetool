@@ -34,13 +34,21 @@ export interface DiagnoseJob {
  * harness `TraceSpan`, but only the fields the diagnoser reads are required so
  * callers can pass either parsed JSONL lines or richer span objects.
  */
+/** An OpenTelemetry attribute value, as the trace JSONL carries it. */
+export type SpanAttributeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Array<string | number | boolean | null>;
+
 export interface TraceSpanLite {
   name: string;
   span_id?: string;
   parent_span_id?: string | null;
   start_time_ms?: number;
   end_time_ms?: number;
-  attributes?: Record<string, unknown>;
+  attributes?: Record<string, SpanAttributeValue>;
   status?: { code?: string; message?: string };
 }
 
@@ -315,7 +323,10 @@ function scanMessages(
 // Last LLM span at/before the failure
 // ---------------------------------------------------------------------------
 
-function spanAttr(span: TraceSpanLite, key: string): unknown {
+function spanAttr(
+  span: TraceSpanLite,
+  key: string
+): SpanAttributeValue | undefined {
   return span.attributes ? span.attributes[key] : undefined;
 }
 

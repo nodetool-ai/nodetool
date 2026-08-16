@@ -22,6 +22,12 @@ type AsrResult = {
 
 const WHISPER_SAMPLING_RATE = 16000;
 
+/** Output handles AutomaticSpeechRecognitionNode.process() emits. */
+type AutomaticSpeechRecognitionNodeOutputs = {
+  text: string;
+  chunks: { text?: string; timestamp?: [number, number] }[];
+};
+
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "transformers.AutomaticSpeechRecognition";
   static readonly inlineFields: string[] = [];
@@ -101,7 +107,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const samples = await loadAudioSamples(
       this.audio,
       WHISPER_SAMPLING_RATE,
@@ -109,15 +115,17 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     );
 
     const repoId = extractRepoId(this.model);
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: Float32Array,
+        opts?: Record<string, unknown>
+      ) => Promise<AsrResult>
+    >({
       task: "automatic-speech-recognition",
       model: repoId || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: Float32Array,
-      opts?: Record<string, unknown>
-    ) => Promise<AsrResult>;
+    });
 
     const opts: Record<string, unknown> = {
       return_timestamps: Boolean(this.return_timestamps)

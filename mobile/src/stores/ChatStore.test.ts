@@ -20,12 +20,14 @@ jest.mock('../services/WebSocketManager', () => ({
   })),
 }));
 
-// Mock apiService
-jest.mock('../services/api', () => ({
-  apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws'),
-  },
-}));
+// `apiService` is a real singleton; only the URL lookup is stubbed on it.
+const mockGetWebSocketUrl = jest
+  .spyOn(apiService, 'getWebSocketUrl')
+  .mockReturnValue('ws://localhost:7777/ws');
+
+afterAll(() => {
+  mockGetWebSocketUrl.mockRestore();
+});
 
 /** Jest mocks that keep each method's real signature. */
 type MockedMethods<T, K extends keyof T> = {
@@ -132,14 +134,14 @@ describe('ChatStore', () => {
     });
 
     it('destroys existing connection before creating new one', async () => {
-      const oldManager = { destroy: jest.fn() };
-      useChatStore.setState({
-        wsManager: oldManager as unknown as WebSocketManager,
-      });
+      const destroy = jest.fn();
+      const oldManager: Pick<WebSocketManager, 'destroy'> = { destroy };
+      // SAFETY: `connect()` only calls `destroy()` on the previous manager.
+      useChatStore.setState({ wsManager: oldManager as WebSocketManager });
       
       await useChatStore.getState().connect();
       
-      expect(oldManager.destroy).toHaveBeenCalled();
+      expect(destroy).toHaveBeenCalled();
     });
 
     it('throws error on connection failure', async () => {
@@ -611,10 +613,12 @@ describe('ChatStore', () => {
         const initialStatus = useChatStore.getState().status;
 
         // Deliberately outside the union: a newer server may send a type this
-        // client has never heard of, and the store must not react to it.
-        callbacks.onMessage({
-          type: 'unknown_type',
-        } as unknown as WebSocketMessageData);
+        // client has never heard of, and the store must not react to it. Built
+        // the way it really lands — decoded from the wire.
+        const unknownMessage: WebSocketMessageData = JSON.parse(
+          '{"type":"unknown_type"}'
+        );
+        callbacks.onMessage(unknownMessage);
 
         expect(useChatStore.getState().status).toBe(initialStatus);
       });

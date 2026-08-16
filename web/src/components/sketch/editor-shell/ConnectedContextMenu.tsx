@@ -7,7 +7,7 @@
  * Uses the shared `useTransformAdapter` hook instead of independently
  * calling `useDisplayedActiveLayerTransform()`.
  */
-import React, { memo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import SketchCanvasContextMenu from "../SketchCanvasContextMenu";
 import { useSketchStore } from "../state";
 import { useResolvedToolSettings, useToolChromeActions } from "../hooks";

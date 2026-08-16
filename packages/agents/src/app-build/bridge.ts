@@ -227,11 +227,11 @@ function mapTree(
   return result;
 }
 
-function tool(
+function tool<TResult>(
   name: string,
   description: string,
   parameters: z.ZodTypeAny,
-  impl: (args: Record<string, unknown>) => Promise<unknown>
+  impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
   return {
     name,
@@ -317,7 +317,13 @@ export function createAppToolBridge(
 
   /** Binding targets across every loaded workflow. */
   const allBindingTargets = (): BindingTargets =>
-    bindingTargets(meta, hostWorkflowId, hostWorkflow, undefined, loadedWorkflows);
+    bindingTargets(
+      meta,
+      hostWorkflowId,
+      hostWorkflow,
+      undefined,
+      loadedWorkflows
+    );
   let idSeq = 0;
   // Track every id in use so generated ids never collide with an explicitly
   // seeded one (e.g. seeding "Heading-1" then adding a Heading).
@@ -678,27 +684,26 @@ export function createAppToolBridge(
         timeout_ms: z.number().int().optional()
       }),
       async (args) => {
-        const patch: OperationPatch = {
-          ...(args.name !== undefined ? { name: args.name as string } : {}),
-          ...(args.target_workflow_id !== undefined
-            ? { workflowId: args.target_workflow_id as string }
-            : {}),
-          ...(args.workflow_version !== undefined
-            ? { workflowVersion: args.workflow_version as number }
-            : {}),
-          ...(args.policy !== undefined
-            ? { policy: args.policy as OperationPolicy }
-            : {}),
-          ...(args.inputs !== undefined
-            ? { inputs: args.inputs as Record<string, InputMapping> }
-            : {}),
-          ...(args.outputs !== undefined
-            ? { outputs: args.outputs as Record<string, OutputMapping> }
-            : {}),
-          ...(args.timeout_ms !== undefined
-            ? { timeoutMs: args.timeout_ms as number }
-            : {})
-        };
+        const patch: OperationPatch = {};
+        if (args.name !== undefined) patch.name = args.name as string;
+        if (args.target_workflow_id !== undefined) {
+          patch.workflowId = args.target_workflow_id as string;
+        }
+        if (args.workflow_version !== undefined) {
+          patch.workflowVersion = args.workflow_version as number;
+        }
+        if (args.policy !== undefined) {
+          patch.policy = args.policy as OperationPolicy;
+        }
+        if (args.inputs !== undefined) {
+          patch.inputs = args.inputs as Record<string, InputMapping>;
+        }
+        if (args.outputs !== undefined) {
+          patch.outputs = args.outputs as Record<string, OutputMapping>;
+        }
+        if (args.timeout_ms !== undefined) {
+          patch.timeoutMs = args.timeout_ms as number;
+        }
         const result = updateOperation(meta, args.id as string, patch);
         meta = result.meta;
         if (!result.operation) {
@@ -786,19 +791,18 @@ export function createAppToolBridge(
         persist: z.boolean().optional()
       }),
       async (args) => {
-        const patch: VariablePatch = {
-          ...(args.name !== undefined ? { name: args.name as string } : {}),
-          ...(args.type !== undefined
-            ? { type: args.type as VariableDeclaration["type"] }
-            : {}),
-          ...(args.default !== undefined ? { default: args.default } : {}),
-          ...(args.scope !== undefined
-            ? { scope: args.scope as "instance" | "user" }
-            : {}),
-          ...(args.persist !== undefined
-            ? { persist: args.persist as boolean }
-            : {})
-        };
+        const patch: VariablePatch = {};
+        if (args.name !== undefined) patch.name = args.name as string;
+        if (args.type !== undefined) {
+          patch.type = args.type as VariableDeclaration["type"];
+        }
+        if (args.default !== undefined) patch.default = args.default;
+        if (args.scope !== undefined) {
+          patch.scope = args.scope as "instance" | "user";
+        }
+        if (args.persist !== undefined) {
+          patch.persist = args.persist as boolean;
+        }
         const result = updateVariable(meta, args.id as string, patch);
         meta = result.meta;
         if (!result.variable) {

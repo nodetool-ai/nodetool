@@ -91,7 +91,8 @@ interface ChatSessionOptions {
 interface ChatSessionModelFunction {
   description?: string;
   params?: Record<string, unknown>;
-  handler: (params: Record<string, unknown>) => Promise<unknown> | unknown;
+  /** Always answers with text: either the harness's tool result or `""`. */
+  handler: (params: Record<string, unknown>) => Promise<string> | string;
 }
 
 type ChatSessionModelFunctions = Record<string, ChatSessionModelFunction>;
@@ -310,7 +311,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
         : undefined;
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return {};
   }
 
@@ -366,11 +367,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
    * rejoined with its `tool` result messages into one model turn carrying
    * native `functionCall` items, so a resumed conversation replays prior calls
    * in the model's own syntax. */
-  private buildChat(messages: Message[]): {
-    systemPrompt: string;
-    history: ChatHistoryItem[];
-    lastUserText: string;
-  } {
+  private buildChat(messages: Message[]) {
     const systemParts: string[] = [];
     const results = new Map<string, string>();
     for (const msg of messages) {

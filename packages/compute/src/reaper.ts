@@ -29,9 +29,9 @@ import type { WorkerInstance, WorkerProfile } from "@nodetool-ai/models";
 export interface ReaperManager {
   list(): Promise<WorkerInstance[]>;
   /** Pause (idle path) — frees the GPU, keeps the volume. */
-  stop(instanceId: string): Promise<unknown>;
+  stop(instanceId: string): Promise<WorkerInstance>;
   /** Destroy (hard-TTL path) — deletes the pod and its volume. */
-  terminate(instanceId: string): Promise<unknown>;
+  terminate(instanceId: string): Promise<WorkerInstance>;
 }
 
 /**

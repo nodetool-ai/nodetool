@@ -76,7 +76,7 @@ async function getChatPipeline(model: string): Promise<ChatPipelineFn> {
   })) as ChatPipelineFn;
 }
 
-function buildPipelineOpts(args: ChatArgs): Record<string, unknown> {
+function buildPipelineOpts(args: ChatArgs) {
   const opts: Record<string, unknown> = {
     max_new_tokens: args.maxTokens ?? 512,
     do_sample: (args.temperature ?? 0) > 0
@@ -93,6 +93,11 @@ function extractAssistantText(out: PipelineOutput[]): string {
     return last?.content ?? "";
   }
   return typeof generated === "string" ? generated : "";
+}
+
+/** The tokenizer a transformers.js pipeline instance carries. */
+interface TokenizerHolder {
+  tokenizer?: unknown;
 }
 
 export async function generateMessage(args: ChatArgs): Promise<Message> {
@@ -155,7 +160,9 @@ export async function* generateMessages(
   };
 
   // Tokenizer is exposed on the pipeline instance as `.tokenizer`.
-  const tokenizer = (pipeline as unknown as { tokenizer?: unknown }).tokenizer;
+  // SAFETY: the pipeline instance carries `.tokenizer`, which the SDK's
+  // pipeline type does not declare.
+  const tokenizer: unknown = (pipeline as TokenizerHolder).tokenizer;
   if (!tokenizer) {
     // Pipeline missing tokenizer — fall back to non-streaming.
     const message = await generateMessage(args);

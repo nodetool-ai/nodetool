@@ -116,9 +116,7 @@ async function loadUserJsScript(
     { id: scriptId, version: scriptVersion },
     userId
   );
-  return resolved
-    ? { name: resolved.name, document: resolved.document }
-    : null;
+  return resolved ? { name: resolved.name, document: resolved.document } : null;
 }
 
 /** A workflow the user can read, in the shape the simulator wants. */
@@ -146,7 +144,7 @@ async function loadUserApplication(
 }
 
 /** A body number that is a finite positive value, or undefined. */
-function positive(value: unknown): number | undefined {
+function positive(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? value
     : undefined;
@@ -156,7 +154,7 @@ function positive(value: unknown): number | undefined {
 function runningPayload(
   session: DebugSession,
   debugId: string
-): Record<string, unknown> {
+) {
   return {
     status: "running",
     session_id: session.id,
@@ -166,15 +164,19 @@ function runningPayload(
   };
 }
 
-/** The compacted report as the HTTP surface and the tool see it. */
+/**
+ * The compacted report as the HTTP surface and the tool see it. The session
+ * fronts an untyped JSON payload, so the summary's own fields are spread
+ * through `Object.entries` rather than asserted into a dictionary.
+ */
 function debugPayload(
   report: AppDebugReport,
   debugId: string
-): Record<string, unknown> {
+) {
   return {
     debug_id: debugId,
     status: report.verdict.ok ? "completed" : "failed",
-    ...(summarizeAppReport(report) as unknown as Record<string, unknown>)
+    ...Object.fromEntries(Object.entries(summarizeAppReport(report)))
   };
 }
 
@@ -247,25 +249,32 @@ export async function runApplicationDebug(
   // the session parked forever with no report to hand back.
   const simulation: Promise<Record<string, unknown>> = (async () => {
     try {
-      const report = await simulateApp(
-        resolved,
-        {
-          ...(body.params ? { params: body.params } : {}),
-          ...(body.interact ? { interact: body.interact } : {}),
-          ...(body.run !== undefined ? { run: body.run } : {}),
-          ...(timeoutMs !== undefined ? { timeoutMs } : {})
-        },
-        {
-          loadFromDb: (id: string) =>
-            (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
-          runOnServer: createAppServerRunner(userId, registry, {
-            jobPrefix: "app-debug-run"
-          }),
-          loadScript: (scriptId: string, scriptVersion: number) =>
-            loadUserJsScript(userId, scriptId, scriptVersion),
-          ...(deps.runScript ? { runScript: deps.runScript } : {})
-        }
-      );
+      const simulateOptions: Parameters<typeof simulateApp>[1] = {};
+      if (body.params) {
+        simulateOptions.params = body.params;
+      }
+      if (body.interact) {
+        simulateOptions.interact = body.interact;
+      }
+      if (body.run !== undefined) {
+        simulateOptions.run = body.run;
+      }
+      if (timeoutMs !== undefined) {
+        simulateOptions.timeoutMs = timeoutMs;
+      }
+      const simulateDeps: Parameters<typeof simulateApp>[2] = {
+        loadFromDb: (id: string) =>
+          (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
+        runOnServer: createAppServerRunner(userId, registry, {
+          jobPrefix: "app-debug-run"
+        }),
+        loadScript: (scriptId: string, scriptVersion: number) =>
+          loadUserJsScript(userId, scriptId, scriptVersion)
+      };
+      if (deps.runScript) {
+        simulateDeps.runScript = deps.runScript;
+      }
+      const report = await simulateApp(resolved, simulateOptions, simulateDeps);
       return debugPayload(report, debugId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -274,7 +283,12 @@ export async function runApplicationDebug(
         debug_id: debugId,
         status: "failed",
         error: message,
-        verdict: { ok: false, headline: message, issues: [message], warnings: [] }
+        verdict: {
+          ok: false,
+          headline: message,
+          issues: [message],
+          warnings: []
+        }
       };
     }
   })();

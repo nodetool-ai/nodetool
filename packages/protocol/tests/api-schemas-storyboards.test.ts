@@ -110,6 +110,67 @@ describe("normalizeStoryboardScreenplay", () => {
   });
 });
 
+describe("script link fields", () => {
+  it("normalizes the camelCase link aliases onto the wire keys", () => {
+    const play = normalizeStoryboardScreenplay({
+      type: "screenplay",
+      title: "Linked",
+      scriptId: "script_1",
+      shots: [
+        {
+          action: "Maren climbs the stair",
+          scriptLineIds: ["l1", "l2"],
+          scriptTextSnapshot: "One more night.\nIt will hold.",
+          durationSource: "audio"
+        }
+      ]
+    });
+    expect(play.script_id).toBe("script_1");
+    expect(play.shots[0].script_line_ids).toEqual(["l1", "l2"]);
+    expect(play.shots[0].script_text_snapshot).toBe(
+      "One more night.\nIt will hold."
+    );
+    expect(play.shots[0].duration_source).toBe("audio");
+  });
+
+  it("prefers the wire key over its alias", () => {
+    const play = normalizeStoryboardScreenplay({
+      type: "screenplay",
+      title: "Both",
+      script_id: "wire",
+      scriptId: "alias",
+      shots: [
+        {
+          action: "A shot",
+          duration_source: "manual",
+          durationSource: "audio"
+        }
+      ]
+    });
+    expect(play.script_id).toBe("wire");
+    expect(play.shots[0].duration_source).toBe("manual");
+  });
+
+  it("leaves a document without link fields unchanged", () => {
+    const play = normalizeStoryboardScreenplay(agentScreenplay);
+    expect(play.script_id).toBeUndefined();
+    expect(play.shots[0].script_line_ids).toBeUndefined();
+    expect(play.shots[0].script_text_snapshot).toBeUndefined();
+    expect(play.shots[0].duration_source).toBeUndefined();
+    expect(() => storyboardScreenplay.parse(play)).not.toThrow();
+  });
+
+  it("refuses a duration_source outside the two known values", () => {
+    expect(() =>
+      normalizeStoryboardScreenplay({
+        type: "screenplay",
+        title: "Bad",
+        shots: [{ action: "A shot", durationSource: "vibes" }]
+      })
+    ).toThrow(/duration_source/);
+  });
+});
+
 describe("normalizeStoryboardShot", () => {
   it("fills in what the save requires", () => {
     const shot = normalizeStoryboardShot(

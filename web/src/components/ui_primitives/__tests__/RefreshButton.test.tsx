@@ -4,37 +4,10 @@ import { ThemeProvider } from "@mui/material/styles";
 import { RefreshButton } from "../RefreshButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/Refresh", () => ({
-  __esModule: true,
-  default: () => <span data-testid="refresh-icon" />
-}));
-
-jest.mock("@mui/icons-material/RestartAlt", () => ({
-  __esModule: true,
-  default: () => <span data-testid="restart-icon" />
-}));
-
 // Mock LoadingSpinner
 jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
   LoadingSpinner: () => <span data-testid="loading-spinner" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button disabled={disabled} onClick={onClick} className={className} {...rest}>
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
 describe("RefreshButton", () => {
@@ -51,7 +24,7 @@ describe("RefreshButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("refresh-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("RefreshIcon")).toBeInTheDocument();
   });
 
   it("renders with restart icon when iconVariant is reset", () => {
@@ -61,7 +34,7 @@ describe("RefreshButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("restart-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("RestartAltIcon")).toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {
@@ -83,7 +56,7 @@ describe("RefreshButton", () => {
     );
 
     expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-    expect(screen.queryByTestId("refresh-icon")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("RefreshIcon")).not.toBeInTheDocument();
   });
 
   it("is disabled when isLoading is true", () => {

@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -14,18 +15,18 @@ const nodeId = "node-1";
 
 // The body reads the live stream buffer for the focused job. Drive `items`
 // straight through the buffer so we don't need a running graph.
-let mockStreamBuffer: unknown;
+let mockStreamBuffer: string[] | undefined;
 
 jest.mock("../../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (selector: (s: { focusedJob: Record<string, string> }) => unknown) =>
+  default: <T,>(selector: (s: { focusedJob: Record<string, string> }) => T) =>
     selector({ focusedJob: { "wf-1": "job-1" } })
 }));
 
 jest.mock("../../../../stores/ResultsStore", () => ({
   __esModule: true,
-  default: (
-    selector: (s: { getOutputResult: () => unknown }) => unknown
+  default: <T,>(
+    selector: (s: { getOutputResult: () => string[] | undefined }) => T
   ) => selector({ getOutputResult: () => mockStreamBuffer })
 }));
 
@@ -44,7 +45,7 @@ jest.mock("../../../../utils/MarkdownRenderer", () => ({
   )
 }));
 
-const nodeMetadata = {
+const nodeMetadata = stub<NodeMetadata>({
   node_type: "nodetool.generators.ListGenerator",
   title: "List Generator",
   namespace: "nodetool.generators",
@@ -53,13 +54,13 @@ const nodeMetadata = {
   properties: [],
   outputs: [{ name: "output", type: { type: "str" } }],
   supports_dynamic_inputs: false
-} as unknown as NodeMetadata;
+});
 
-const nodeData = {
+const nodeData = stub<NodeData>({
   workflow_id: workflowId,
   properties: {},
   dynamic_properties: {}
-} as unknown as NodeData;
+});
 
 const renderBody = (status?: string) =>
   render(

@@ -20,6 +20,9 @@ import {
   type JsScriptValidationOptions
 } from "./validate.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 /**
  * What a headless JS-script run cannot answer. Fixed, because the boundary is
  * a property of the harness, not of the document it was pointed at.
@@ -124,14 +127,20 @@ export async function buildJsScriptDebugReport(
 
   // The final document is what the session left behind, so it — not the input
   // — describes the script the report is about.
-  return {
+  type ReportFields = Mutable<JsScriptDebugReport>;
+  const report: ReportFields = {
     target: input.target,
     meta: describeDocument(input.finalDocument ?? input.document),
     validation,
     interactions,
-    ...(input.finalState !== undefined ? { finalState: input.finalState } : {}),
-    ...(finalValidation ? { finalValidation } : {}),
     notSimulated: [...NOT_SIMULATED],
     verdict: buildVerdict(validation, interactions, finalValidation)
   };
+  if (input.finalState !== undefined) {
+    report.finalState = input.finalState;
+  }
+  if (finalValidation) {
+    report.finalValidation = finalValidation;
+  }
+  return report;
 }

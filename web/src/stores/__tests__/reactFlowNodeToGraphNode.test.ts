@@ -199,7 +199,7 @@ describe("reactFlowNodeToGraphNode", () => {
     it("handles missing dynamic_properties", () => {
       const reactFlowNode = createMockReactFlowNode({
         data: createMockNodeData({
-          dynamic_properties: undefined as unknown as Record<string, unknown>,
+          dynamic_properties: undefined,
         }),
       });
 

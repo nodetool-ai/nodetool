@@ -1,6 +1,6 @@
 import useRuntimePackagesStore from "../RuntimePackagesStore";
+import { installGlobal, removeGlobal } from "../../test-utils/doubles";
 
-type WindowWithApi = { api?: unknown };
 
 const STATUSES = [
   {
@@ -38,15 +38,15 @@ describe("RuntimePackagesStore", () => {
 
   beforeEach(() => {
     api = makeApi();
-    (window as unknown as WindowWithApi).api = {
+    installGlobal("api", {
       packages: api,
       server: { onLog: jest.fn(() => jest.fn()), restart: jest.fn() }
-    };
+    });
     reset();
   });
 
   afterEach(() => {
-    (window as unknown as WindowWithApi).api = undefined;
+    installGlobal("api", undefined);
   });
 
   it("refresh loads statuses and install location", async () => {
@@ -80,7 +80,7 @@ describe("RuntimePackagesStore", () => {
   });
 
   it("is unavailable and no-ops without the Electron IPC", async () => {
-    (window as unknown as WindowWithApi).api = undefined;
+    installGlobal("api", undefined);
     await useRuntimePackagesStore.getState().refresh();
     expect(useRuntimePackagesStore.getState().available).toBe(false);
     expect(await useRuntimePackagesStore.getState().install("python")).toBe(

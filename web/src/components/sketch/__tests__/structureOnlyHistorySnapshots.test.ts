@@ -1,9 +1,16 @@
 import { act, renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useHistoryActions } from "../hooks/useHistoryActions";
 import { useStrokeLifecycleActions } from "../hooks/useStrokeLifecycleActions";
 import { useTransformActions } from "../hooks/useTransformActions";
 import { useSketchStore } from "../state/useSketchStore";
 import type { HistoryEntry } from "../types";
+
+/**
+ * A canvas double tagged with the snapshot it stands for, so an assertion can
+ * tell one captured tip snapshot from another.
+ */
+type TaggedCanvas = HTMLCanvasElement & { snapshotData: string };
 
 function makeHistoryEntry(
   restoreMode: HistoryEntry["restoreMode"],
@@ -118,12 +125,12 @@ describe("structure-only history runtime snapshots", () => {
   });
 
   it("uses captured tip snapshots so structure-only redo updates runtime immediately", () => {
-    const beforeSnapshot = {
+    const beforeSnapshot = stub<TaggedCanvas>({
       snapshotData: "before-runtime"
-    } as unknown as HTMLCanvasElement;
-    const afterSnapshot = {
+    });
+    const afterSnapshot = stub<TaggedCanvas>({
       snapshotData: "after-runtime"
-    } as unknown as HTMLCanvasElement;
+    });
     let runtimeData = "after-runtime";
     let tipSnapshots: Record<string, HTMLCanvasElement | null> | undefined;
 

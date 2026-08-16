@@ -69,7 +69,9 @@ function expandTilde(p: string): string {
  * (example catalog, DSL exporter, package assets, and the lazy Python-aware
  * run environment — the bridge starts only when a run needs it).
  */
-function buildToolMap(providers: Record<string, BaseProvider>): Map<string, Tool> {
+function buildToolMap(
+  providers: Record<string, BaseProvider>
+): Map<string, Tool> {
   const map = new Map<string, Tool>();
   for (const tool of getAgentToolbelt()) map.set(tool.name, tool);
   for (const tool of getAllMcpTools({
@@ -135,19 +137,20 @@ function traceEvent(msg: any, opts: TraceOptions): void {
     }
     case "tool_result_update": {
       const preview = shorten(JSON.stringify(msg.result ?? {}), 160);
-      process.stderr.write(
-        `${t} ${chalk.yellow("tool←")}    ${preview}\n`
-      );
+      process.stderr.write(`${t} ${chalk.yellow("tool←")}    ${preview}\n`);
       break;
     }
     case "step_result": {
-      const tag = msg.is_task_result ? chalk.green("result★") : chalk.green("step✓ ");
+      const tag = msg.is_task_result
+        ? chalk.green("result★")
+        : chalk.green("step✓ ");
       const preview =
         typeof msg.result === "string"
           ? shorten(msg.result, 200)
           : shorten(JSON.stringify(msg.result ?? null), 200);
       process.stderr.write(`${t} ${tag}  ${preview}\n`);
-      if (msg.error) process.stderr.write(`${t} ${chalk.red("error")}    ${msg.error}\n`);
+      if (msg.error)
+        process.stderr.write(`${t} ${chalk.red("error")}    ${msg.error}\n`);
       break;
     }
     case "chunk":
@@ -250,19 +253,20 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
     );
   }
 
-  const agent = new Agent({
+  const agentOptions: ConstructorParameters<typeof Agent>[0] = {
     name: "cli-agent",
     objective,
     provider,
     model: modelId,
-    tools,
-    ...(opts.maxIterations === undefined
-      ? {}
-      : { maxStepIterations: Number(opts.maxIterations) }),
-    ...(opts.maxSteps === undefined
-      ? {}
-      : { maxSteps: Number(opts.maxSteps) })
-  });
+    tools
+  };
+  if (opts.maxIterations !== undefined) {
+    agentOptions.maxStepIterations = Number(opts.maxIterations);
+  }
+  if (opts.maxSteps !== undefined) {
+    agentOptions.maxSteps = Number(opts.maxSteps);
+  }
+  const agent = new Agent(agentOptions);
 
   const ctx = new ProcessingContext({
     jobId: `agent-${Date.now()}`,
@@ -327,14 +331,18 @@ interface DiagnoseOptions {
 }
 
 /** Parse a JSONL file into one parsed object per non-blank line. */
-async function readJsonl(file: string): Promise<Record<string, unknown>[]> {
+async function readJsonl<Line extends object = Record<string, unknown>>(
+  file: string
+): Promise<Line[]> {
   const text = await fsp.readFile(file, "utf-8");
-  const out: Record<string, unknown>[] = [];
+  const out: Line[] = [];
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      out.push(JSON.parse(trimmed) as Record<string, unknown>);
+      // SAFETY: each caller names the record shape its own bundle file was
+      // written with — this reader only splits lines and parses JSON.
+      out.push(JSON.parse(trimmed) as Line);
     } catch {
       // Skip partial/corrupt lines (e.g. a crash mid-write).
     }
@@ -393,7 +401,10 @@ async function fetchJob(
     >;
     return {
       id: typeof data["id"] === "string" ? (data["id"] as string) : jobId,
-      status: typeof data["status"] === "string" ? (data["status"] as string) : undefined,
+      status:
+        typeof data["status"] === "string"
+          ? (data["status"] as string)
+          : undefined,
       error:
         typeof data["error"] === "string" ? (data["error"] as string) : null,
       workflowId:
@@ -446,7 +457,7 @@ async function diagnoseCommand(
   );
   if (tracePath) {
     try {
-      inputs.spans = (await readJsonl(tracePath)) as unknown as TraceSpanLite[];
+      inputs.spans = await readJsonl<TraceSpanLite>(tracePath);
     } catch {
       // Unreadable — report flags trace as missing.
     }

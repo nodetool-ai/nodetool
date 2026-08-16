@@ -57,6 +57,7 @@ import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespok
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
+import { edgesFrom, edgesTargeting } from "../hooks/nodes/edgeIndex";
 
 // Preserve node object identity when the class doesn't actually change.
 // React Flow skips re-adopting a node whose object identity is unchanged
@@ -155,7 +156,9 @@ export interface NodeStoreState {
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
   generateEdgeId: () => string;
+  /** Read-only: the array is shared with every caller for this `edges` identity. */
   getInputEdges: (nodeId: string) => Edge[];
+  /** Read-only: the array is shared with every caller for this `edges` identity. */
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
   getSelectedNodes: () => Node<NodeData>[];
@@ -383,9 +386,9 @@ export const createNodeStore = (
             return generateUUID();
           },
           getInputEdges: (nodeId: string): Edge[] =>
-            get().edges.filter((e) => e.target === nodeId),
+            edgesTargeting(get().edges, nodeId),
           getOutputEdges: (nodeId: string): Edge[] =>
-            get().edges.filter((e) => e.source === nodeId),
+            edgesFrom(get().edges, nodeId),
           getSelection: (): NodeSelection => {
             const state = get();
             if (
@@ -722,11 +725,12 @@ export const createNodeStore = (
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: sourceHandle || null,
-              targetHandle,
-              ...(isControlEdge
-                ? { type: "control", data: { edge_type: "control" } }
-                : {})
+              targetHandle
             };
+            if (isControlEdge) {
+              newEdge.type = "control";
+              newEdge.data = { edge_type: "control" };
+            }
 
             // Edge comparison and serialization expect null, not undefined.
             const normalizedEdges = filteredEdges.map((edge) => ({
@@ -1560,4 +1564,4 @@ export const createNodeStore = (
         }
       }
     )
-  ) as unknown as NodeStore;
+  );

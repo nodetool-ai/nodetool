@@ -14,7 +14,9 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function stringifyContent(value: unknown): string {
+export function stringifyContent(
+  value: string | MessageContent[] | null | undefined
+): string {
   if (typeof value === "string") return value;
   if (value == null) return "";
   return JSON.stringify(value);
@@ -158,9 +160,14 @@ export function responseTools(
   }));
 }
 
+/** The Responses API's `tool_choice`: forced, or a named function. */
+export type ResponseToolChoice =
+  | "required"
+  | { type: "function"; name: string };
+
 export function responseToolChoice(
   toolChoice: string | "any" | undefined
-): unknown {
+): ResponseToolChoice | undefined {
   if (!toolChoice) return undefined;
   // "any" is the cross-provider sentinel for "the model MUST call a tool". The
   // Responses API forcing value is "required"; "auto" (the previous mapping) is

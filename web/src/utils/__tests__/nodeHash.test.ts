@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import {
   createNodeHasher,
   computeInputSignatures,
@@ -9,11 +10,11 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 
 // Generative nodes use the `gen.` prefix convention (mirrors runSubgraph.test.ts).
 const getMetadata = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 const node = (
   id: string,

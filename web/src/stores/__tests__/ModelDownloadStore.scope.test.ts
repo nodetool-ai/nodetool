@@ -12,6 +12,7 @@ jest.mock("../../lib/trpc", () => ({
 }));
 
 import { useModelDownloadStore } from "../ModelDownloadStore";
+import { stub } from "../../test-utils/doubles";
 
 const originalState = useModelDownloadStore.getState();
 
@@ -25,10 +26,10 @@ beforeEach(() => {
 describe("startDownload scope", () => {
   it("defaults to scope=local in the start_download command", async () => {
     const sent: Record<string, unknown>[] = [];
-    const mockWs = {
+    const mockWs = stub<WebSocket>({
       send: (s: string) => sent.push(JSON.parse(s)),
       readyState: WebSocket.OPEN
-    } as unknown as WebSocket;
+    });
     useModelDownloadStore.setState(
       { connectWebSocket: jest.fn().mockResolvedValue(mockWs) },
       false
@@ -44,10 +45,10 @@ describe("startDownload scope", () => {
 
   it("includes scope=worker in the start_download WS command", async () => {
     const sent: Record<string, unknown>[] = [];
-    const mockWs = {
+    const mockWs = stub<WebSocket>({
       send: (s: string) => sent.push(JSON.parse(s)),
       readyState: WebSocket.OPEN
-    } as unknown as WebSocket;
+    });
     useModelDownloadStore.setState(
       { connectWebSocket: jest.fn().mockResolvedValue(mockWs) },
       false

@@ -22,17 +22,17 @@ export class UploadValidationError extends Error {
   }
 }
 
-const IMAGE_EXTENSION_MAP: Record<SniffedImageMime, string> = {
+const IMAGE_EXTENSION_MAP = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/gif": "gif",
   "image/webp": "webp",
   "image/svg+xml": "svg"
-};
+} satisfies Record<SniffedImageMime, string>;
 
 const HEADER_BYTES = 512;
 
-const splitFileName = (fileName: string): { base: string; extension: string } => {
+const splitFileName = (fileName: string) => {
   const lastDot = fileName.lastIndexOf(".");
   if (lastDot <= 0) {
     return { base: fileName, extension: "" };

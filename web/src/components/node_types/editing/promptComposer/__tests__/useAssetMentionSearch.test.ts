@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { asMock, stub } from "../../../../../test-utils/doubles";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
   filterEntitiesForMention,
@@ -19,14 +20,14 @@ describe("useAssetMentionSearch", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAssetStore as unknown as jest.Mock).mockImplementation((selector) =>
+    asMock(useAssetStore).mockImplementation((selector) =>
       selector({ search: mockSearch, update: jest.fn() })
     );
-    (useRecentAssetsStore as unknown as jest.Mock).mockImplementation(
+    asMock(useRecentAssetsStore).mockImplementation(
       (selector) =>
         selector({ recentAssets: [], renameRecentAsset: jest.fn() })
     );
-    (useEntities as unknown as jest.Mock).mockReturnValue({ data: [] });
+    asMock(useEntities).mockReturnValue({ data: [] });
   });
 
   it("filters folders out of empty-query browse results", async () => {
@@ -50,7 +51,7 @@ describe("useAssetMentionSearch", () => {
 
   it("surfaces library entities filtered by the query", async () => {
     mockSearch.mockResolvedValue({ assets: [], next_cursor: null });
-    (useEntities as unknown as jest.Mock).mockReturnValue({
+    asMock(useEntities).mockReturnValue({
       data: [
         { type: "entity", id: "e1", kind: "character", name: "Marta", descriptor: "" },
         { type: "entity", id: "e2", kind: "style", name: "Noir", descriptor: "" }
@@ -70,11 +71,11 @@ describe("useAssetMentionSearch", () => {
 });
 
 describe("filterEntitiesForMention", () => {
-  const entities = [
+  const entities = stub<Entity[]>([
     { type: "entity", id: "a", kind: "character", name: "Amara", descriptor: "" },
     { type: "entity", id: "b", kind: "character", name: "Marta", descriptor: "" },
     { type: "entity", id: "c", kind: "style", name: "Noir", descriptor: "", tags: ["moody"] }
-  ] as unknown as Entity[];
+  ]);
 
   it("keeps library order for an empty query", () => {
     expect(filterEntitiesForMention(entities, "").map((e) => e.id)).toEqual([

@@ -1,3 +1,4 @@
+import { installGlobal, removeGlobal } from "../../test-utils/doubles";
 describe("ipcLogBridge", () => {
   let originalConsoleLog: typeof console.log;
   let originalConsoleInfo: typeof console.info;
@@ -6,9 +7,9 @@ describe("ipcLogBridge", () => {
 
   const installApi = () => {
     const mockLog = jest.fn();
-    (window as unknown as Record<string, unknown>).api = {
+    installGlobal("api", {
       logging: { log: mockLog }
-    };
+    });
     return mockLog;
   };
 
@@ -25,7 +26,7 @@ describe("ipcLogBridge", () => {
     console.info = originalConsoleInfo;
     console.warn = originalConsoleWarn;
     console.error = originalConsoleError;
-    delete (window as unknown as Record<string, unknown>).api;
+    removeGlobal("api");
   });
 
   it("replaces console methods after install (with the main-process channel)", async () => {
@@ -129,7 +130,7 @@ describe("ipcLogBridge", () => {
   });
 
   it("leaves the native console intact when window.api is missing", async () => {
-    delete (window as unknown as Record<string, unknown>).api;
+    removeGlobal("api");
     const original = jest.fn();
     console.log = original;
     const { installIpcLogBridge } = await import("../ipcLogBridge");

@@ -33,12 +33,15 @@ const gcState = {
   setMemoryEnabled: jest.fn(),
   connect
 };
-const useGlobalChatStore = ((selector: (s: typeof gcState) => unknown) =>
-  selector(gcState)) as unknown as {
-  (selector: (s: typeof gcState) => unknown): unknown;
+/** The store hook shape the component uses: callable, plus `getState`. */
+interface MockChatStoreHook {
+  <T>(selector: (s: typeof gcState) => T): T;
   getState: () => typeof gcState;
-};
-useGlobalChatStore.getState = () => gcState;
+}
+const useGlobalChatStore: MockChatStoreHook = Object.assign(
+  <T,>(selector: (s: typeof gcState) => T) => selector(gcState),
+  { getState: () => gcState }
+);
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
   default: useGlobalChatStore
@@ -50,7 +53,7 @@ jest.mock("../../../contexts/NodeContext", () => {
     // A real context (defaulting to null) so useAddMediaToCanvas, pulled in via
     // the auto-add-to-canvas hook, resolves to "no canvas" instead of crashing.
     NodeContext: actualReact.createContext(null),
-    useNodes: (selector: (s: { workflow: { id: string } }) => unknown) =>
+    useNodes: <T,>(selector: (s: { workflow: { id: string } }) => T) =>
       selector({ workflow: { id: "canvas-doc-id" } }),
     useNodeStoreRef: () => ({
       getState: () => ({

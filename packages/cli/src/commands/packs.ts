@@ -18,31 +18,50 @@ interface CompileOptions {
 }
 
 export function registerPackCommands(program: Command): void {
-  const packs = program
-    .command("packs")
-    .description("Sandbox pack tooling");
+  const packs = program.command("packs").description("Sandbox pack tooling");
 
   packs
     .command("compile")
-    .description("Compile every npm-backed sandbox module of every installed pack")
+    .description(
+      "Compile every npm-backed sandbox module of every installed pack"
+    )
     .option("--json", "Print the compile report as JSON")
-    .option("--force", "Recompile and re-probe even when the cache has an answer")
+    .option(
+      "--force",
+      "Recompile and re-probe even when the cache has an answer"
+    )
     .option(
       "--pack-search-path <dir>",
       "Search this node_modules root (repeatable)",
       (value: string, previous: string[] = []) => [...previous, value]
     )
     .action(async (opts: CompileOptions) => {
-      const { compileSandboxCatalog } = await import("@nodetool-ai/sandbox-compiler");
+      const { compileSandboxCatalog } =
+        await import("@nodetool-ai/sandbox-compiler");
       const searchPaths = opts.packSearchPath;
-      const host = await compileSandboxCatalog({
-        ...(searchPaths === undefined || searchPaths.length === 0
-          ? {}
-          : { searchPaths }),
-        ...(opts.force === true ? { noCache: true } : {})
-      });
+      type CompileOptionsFields = {
+        searchPaths?: string[];
+        noCache?: boolean;
+      };
+      const compileOptions: CompileOptionsFields = {};
+      if (searchPaths !== undefined && searchPaths.length > 0) {
+        compileOptions.searchPaths = searchPaths;
+      }
+      if (opts.force === true) {
+        compileOptions.noCache = true;
+      }
+      const host = await compileSandboxCatalog(compileOptions);
       if (opts.json) {
-        console.log(JSON.stringify({ compiled: host.compiled, diagnostics: host.catalog.diagnostics() }, null, 2));
+        console.log(
+          JSON.stringify(
+            {
+              compiled: host.compiled,
+              diagnostics: host.catalog.diagnostics()
+            },
+            null,
+            2
+          )
+        );
         return;
       }
       if (host.compiled.length === 0) {
@@ -52,16 +71,23 @@ export function registerPackCommands(program: Command): void {
       let skipped = 0;
       for (const report of host.compiled) {
         if (report.outcome.status === "compiled") {
-          const bytes = Buffer.byteLength(report.outcome.artifact.source, "utf8");
+          const bytes = Buffer.byteLength(
+            report.outcome.artifact.source,
+            "utf8"
+          );
           const from = report.cached ? " (cached)" : "";
-          console.log(`  ok   ${report.specifier} ← ${report.npmName} — ${bytes} bytes${from}`);
+          console.log(
+            `  ok   ${report.specifier} ← ${report.npmName} — ${bytes} bytes${from}`
+          );
           for (const warning of report.outcome.warnings ?? []) {
             console.log(`  warn ${report.specifier} — ${warning}`);
           }
           continue;
         }
         skipped += 1;
-        console.log(`  skip ${report.specifier} ← ${report.npmName} — ${report.outcome.code}: ${report.outcome.message}`);
+        console.log(
+          `  skip ${report.specifier} ← ${report.npmName} — ${report.outcome.code}: ${report.outcome.message}`
+        );
       }
       console.log(
         `\n${host.compiled.length - skipped} compiled, ${skipped} skipped.`

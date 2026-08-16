@@ -13,7 +13,6 @@ import {
   RECOMMENDED_MODELS,
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
-import type { UnifiedModel } from "@nodetool-ai/protocol";
 
 import { asJson, printTable } from "./output.js";
 
@@ -76,13 +75,21 @@ function filterBySystem(
 // Row rendering
 // ---------------------------------------------------------------------------
 
-function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+type ModelRowInput = {
+  id?: unknown;
+  name?: unknown;
+  provider?: unknown;
+  type?: unknown;
+  repo_id?: unknown;
+};
+
+function modelRow(m: ModelRowInput) {
   return {
-    id: m["id"],
-    name: m["name"],
-    provider: m["provider"] ?? "",
-    type: m["type"] ?? "",
-    repo_id: m["repo_id"] ?? ""
+    id: m.id,
+    name: m.name,
+    provider: m.provider ?? "",
+    type: m.type ?? "",
+    repo_id: m.repo_id ?? ""
   };
 }
 
@@ -90,11 +97,11 @@ function modelRow(m: Record<string, unknown>): Record<string, unknown> {
 // Registration
 // ---------------------------------------------------------------------------
 
-function parseLimit(raw: unknown): number | undefined {
-  if (raw === undefined || raw === null || raw === "") return undefined;
-  const parsed = Number.parseInt(String(raw), 10);
+function parseLimit(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    console.error(`Invalid --limit value: ${String(raw)}`);
+    console.error(`Invalid --limit value: ${raw}`);
     process.exit(1);
   }
   return parsed;
@@ -166,9 +173,12 @@ export function registerRecommendedCommand(models: Command): void {
                 })
               ]
             });
-            const remote = (await client.models.recommended.query({
+            const remote = await client.models.recommended.query({
               check_servers: true
-            })) as unknown as UnifiedModel[];
+            });
+            // SAFETY: the route serves the same RECOMMENDED_MODELS table this
+            // command falls back to, so every row carries the modality and task
+            // that RecommendedUnifiedModel narrows UnifiedModel by.
             rows = remote as RecommendedUnifiedModel[];
           } else {
             rows = [...RECOMMENDED_MODELS];
@@ -184,9 +194,7 @@ export function registerRecommendedCommand(models: Command): void {
             asJson(rows);
             return;
           }
-          printTable(
-            (rows as unknown as Record<string, unknown>[]).map(modelRow)
-          );
+          printTable(rows.map(modelRow));
         } catch (e) {
           console.error(String(e instanceof Error ? e.message : e));
           process.exit(1);

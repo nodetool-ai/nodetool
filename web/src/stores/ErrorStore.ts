@@ -2,11 +2,14 @@ import { create } from "zustand";
 import { nodeKey, type NodeKey } from "./nodeKey";
 
 interface ErrorObject {
-  message?: string;
+  /** Nullable: a payload off the wire can carry `message: null`, which
+   * `nodeErrorToDisplayString` treats as "nothing to display". */
+  message?: string | null;
   [key: string]: unknown;
 }
 
-type NodeError = Error | string | null | ErrorObject;
+/** Error value as stored by ErrorStore. */
+export type NodeError = Error | string | null | ErrorObject;
 
 type ErrorStore = {
   errors: Record<NodeKey, NodeError>;

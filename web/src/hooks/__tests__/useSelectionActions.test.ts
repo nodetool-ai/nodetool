@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 import { useSelectionActions } from "../useSelectionActions";
 
 const mockSetNodes = jest.fn();
@@ -44,7 +45,7 @@ describe("useSelectionActions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+    asMock(useNodes).mockImplementation((sel: any) =>
       sel({
         nodes: defaultNodes,
         edges: [],
@@ -59,7 +60,7 @@ describe("useSelectionActions", () => {
     );
     
     // Mock useNodeStoreRef to return a store with getState
-    (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+    asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
         nodes: defaultNodes,
         edges: []
@@ -75,7 +76,7 @@ describe("useSelectionActions", () => {
     });
 
     it("does nothing with fewer than 2 nodes", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           getSelectedNodes: () => [
             { id: "1", position: { x: 0, y: 0 }, selected: true }
@@ -105,7 +106,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -149,7 +150,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -206,7 +207,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -217,7 +218,7 @@ describe("useSelectionActions", () => {
       );
       
       // Update the store mock for this test
-      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
           nodes: testNodes,
           edges: []
@@ -255,7 +256,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -271,7 +272,7 @@ describe("useSelectionActions", () => {
     });
 
     it("does nothing with fewer than 2 nodes", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           getSelectedNodes: () => [
             { id: "1", position: { x: 0, y: 0 }, selected: true }
@@ -308,7 +309,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -319,7 +320,7 @@ describe("useSelectionActions", () => {
       );
       
       // Update the store mock for this test
-      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
           nodes: testNodes,
           edges: []
@@ -357,7 +358,7 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -378,7 +379,7 @@ describe("useSelectionActions", () => {
       const testNodes = [
         { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -389,7 +390,7 @@ describe("useSelectionActions", () => {
       );
       
       // Update the store mock for this test
-      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
           nodes: testNodes,
           edges: []
@@ -422,7 +423,7 @@ describe("useSelectionActions", () => {
         { id: "1", position: { x: 0, y: 0 }, selected: true },
         { id: "2", position: { x: 200, y: 0 }, selected: true }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],
@@ -433,7 +434,7 @@ describe("useSelectionActions", () => {
           deleteEdges: mockDeleteEdges
         })
       );
-      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
           nodes: testNodes,
           edges: []
@@ -455,7 +456,7 @@ describe("useSelectionActions", () => {
         { id: "e-2", selected: false },
         { id: "e-3", selected: true }
       ];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: [],
           edges,
@@ -467,7 +468,7 @@ describe("useSelectionActions", () => {
           toggleBypassSelected: jest.fn()
         })
       );
-      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
           nodes: [],
           edges
@@ -487,7 +488,7 @@ describe("useSelectionActions", () => {
     it("toggles bypass on selected nodes", () => {
       const mockToggleBypass = jest.fn();
       const testNodes = [{ id: "1", position: { x: 0, y: 0 }, selected: true }];
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+      asMock(useNodes).mockImplementation((sel: any) =>
         sel({
           nodes: testNodes,
           edges: [],

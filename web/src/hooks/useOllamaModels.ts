@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 
+/** `details` block of an Ollama `/api/tags` entry. */
+interface OllamaModelDetails {
+  parent_model?: string;
+  format?: string;
+  family?: string;
+  families?: string[] | null;
+  parameter_size?: string;
+  quantization_level?: string;
+}
+
 interface OllamaModel {
   type: string;
   name: string;
@@ -8,7 +18,7 @@ interface OllamaModel {
   modified_at: string;
   size: number;
   digest: string;
-  details: Record<string, unknown>;
+  details: OllamaModelDetails;
 }
 
 interface UseOllamaModelsResult {

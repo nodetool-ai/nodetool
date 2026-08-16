@@ -26,7 +26,9 @@ export interface TimelineValidationMeta {
 
 const DEFAULT_FPS = 30;
 
-const PRESET_IDS = new Set<string>(ANIMATION_PRESETS.map((preset) => preset.id));
+const PRESET_IDS = new Set<string>(
+  ANIMATION_PRESETS.map((preset) => preset.id)
+);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -66,7 +68,10 @@ function collectStrippedPaths(
  * disappears on the next autosave round-trip, so it never fails loudly — the
  * only way to see it is to diff the input against what Zod handed back.
  */
-function checkFieldStripping(raw: unknown, parsed: TimelineDocument): TimelineDebugIssue[] {
+function checkFieldStripping(
+  raw: unknown,
+  parsed: TimelineDocument
+): TimelineDebugIssue[] {
   const paths = new Set<string>();
   collectStrippedPaths(raw, parsed, "", paths);
   return [...paths].sort().map((path) => ({
@@ -85,20 +90,34 @@ function checkDuplicateIds(doc: TimelineDocument): TimelineDebugIssue[] {
     for (const id of ids) {
       if (seen.has(id) && !reported.has(id)) {
         reported.add(id);
-        issues.push({
+        const issue: TimelineDebugIssue = {
           severity: "error",
           code: "duplicate_id",
-          message: `Duplicate ${kind} id "${id}".`,
-          ...(kind === "track" ? { trackId: id } : {}),
-          ...(kind === "clip" ? { clipId: id } : {})
-        });
+          message: `Duplicate ${kind} id "${id}".`
+        };
+        if (kind === "track") {
+          issue.trackId = id;
+        }
+        if (kind === "clip") {
+          issue.clipId = id;
+        }
+        issues.push(issue);
       }
       seen.add(id);
     }
   };
-  check("track", doc.tracks.map((track) => track.id));
-  check("clip", doc.clips.map((clip) => clip.id));
-  check("marker", doc.markers.map((marker) => marker.id));
+  check(
+    "track",
+    doc.tracks.map((track) => track.id)
+  );
+  check(
+    "clip",
+    doc.clips.map((clip) => clip.id)
+  );
+  check(
+    "marker",
+    doc.markers.map((marker) => marker.id)
+  );
   return issues;
 }
 
@@ -232,11 +251,7 @@ function checkClip(
     }
   }
 
-  if (
-    clip.sourceType === "generated" &&
-    !clip.workflowId &&
-    !clip.prompt
-  ) {
+  if (clip.sourceType === "generated" && !clip.workflowId && !clip.prompt) {
     issues.push({
       severity: "warning",
       code: "binding_incomplete",
@@ -246,7 +261,11 @@ function checkClip(
   }
 
   for (const word of clip.caption?.words ?? []) {
-    if (word.endMs <= word.startMs || word.startMs < 0 || word.endMs > clip.durationMs) {
+    if (
+      word.endMs <= word.startMs ||
+      word.startMs < 0 ||
+      word.endMs > clip.durationMs
+    ) {
       issues.push({
         severity: "warning",
         code: "caption_out_of_range",
@@ -383,12 +402,15 @@ export function validateTimelineSequence(
       .slice(0, 25)
       .map((issue) => {
         const path = issue.path.map((p) => String(p)).join(".");
-        return {
-          severity: "error" as const,
+        const schemaIssue: TimelineDebugIssue = {
+          severity: "error",
           code: "schema_invalid",
-          message: `${path || "(root)"}: ${issue.message}`,
-          ...(path ? { path } : {})
+          message: `${path || "(root)"}: ${issue.message}`
         };
+        if (path) {
+          schemaIssue.path = path;
+        }
+        return schemaIssue;
       });
     if (errors.length === 0) {
       errors.push({

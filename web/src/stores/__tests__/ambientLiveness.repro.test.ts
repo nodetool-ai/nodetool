@@ -9,6 +9,7 @@
  * gap is in message delivery; if it fails, the store layer is the bug.
  */
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import type { JobUpdate, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { handleUpdate } from "../workflowUpdates";
@@ -46,13 +47,13 @@ const nodeUpdate = (
   node_id: string,
   status: string
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     job_id,
     node_id,
     status,
     workflow_id: "wf"
-  }) as unknown as NodeUpdate;
+  });
 
 beforeEach(() => {
   useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });

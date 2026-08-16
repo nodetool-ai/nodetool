@@ -20,6 +20,10 @@ const pending = new Map<string, PendingTask>();
 /**
  * Register a task and return a promise that resolves when the webhook fires.
  * Rejects on timeout or abort.
+ *
+ * HOLDOUT (anti-slop/no-unknown-returns): the resolved value is the body KIE
+ * posted to the callback URL, which has no schema in this repo and which the
+ * registry never reads.
  */
 export function registerWebhookWait(
   taskId: string,

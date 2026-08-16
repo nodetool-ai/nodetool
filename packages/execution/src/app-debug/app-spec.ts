@@ -38,6 +38,9 @@ import type {
   AppWidgetSpec
 } from "./types.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -75,11 +78,14 @@ const parseConditionProps = (raw: unknown): ConditionProps | undefined => {
   if (!binding) return undefined;
   const op = str(raw.op);
   const value = str(raw.value);
-  return {
-    binding,
-    ...(op ? { op } : {}),
-    ...(value !== null ? { value } : {})
-  };
+  const props: ConditionProps = { binding };
+  if (op) {
+    props.op = op;
+  }
+  if (value !== null) {
+    props.value = value;
+  }
+  return props;
 };
 
 const parseEvents = (raw: unknown): AppEventSpec[] => {
@@ -161,9 +167,7 @@ export function documentOperations(
 }
 
 /** Parse an app document (object or JSON string), or explain why it will not. */
-export function parseAppDocument(
-  appDoc: unknown
-): { document: ApplicationDocument | null; issue: string | null } {
+export function parseAppDocument(appDoc: unknown) {
   if (appDoc == null) {
     return {
       document: null,
@@ -175,7 +179,10 @@ export function parseAppDocument(
     try {
       raw = JSON.parse(raw);
     } catch {
-      return { document: null, issue: "app_doc is a string but not valid JSON." };
+      return {
+        document: null,
+        issue: "app_doc is a string but not valid JSON."
+      };
     }
   }
   const document = parseApplicationDocument(raw, { hostWorkflowId: "self" });
@@ -203,7 +210,16 @@ function persistDowngrades(appDoc: unknown): string[] {
   return names;
 }
 
-const safeParse = (value: string): unknown => {
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+const safeParse = (value: string): JsonValue => {
   try {
     return JSON.parse(value);
   } catch {
@@ -229,7 +245,7 @@ export function parseAppSpec(
    * check needs to see.
    */
   preparsed?: { document: ApplicationDocument | null; issue: string | null }
-): { spec: AppSpec | null; issues: string[]; warnings: string[] } {
+) {
   const { document, issue } = preparsed ?? parseAppDocument(appDoc);
   if (!document) return { spec: null, issues: [issue ?? ""], warnings: [] };
 
@@ -241,11 +257,17 @@ export function parseAppSpec(
     );
   }
   const scope = bindingScopeFor(io, context);
-  const rootProps = isRecord(document.ui.root.props) ? document.ui.root.props : {};
+  const rootProps = isRecord(document.ui.root.props)
+    ? document.ui.root.props
+    : {};
   const title = str(rootProps.title);
 
   const widgets: AppWidgetSpec[] = [];
-  const walk = (items: unknown[], parentId: string | null, slot: string | null) => {
+  const walk = (
+    items: unknown[],
+    parentId: string | null,
+    slot: string | null
+  ) => {
     for (const item of items) {
       if (!isPuckNode(item)) continue;
       const id = str(item.props.id) ?? `${item.type}-${widgets.length}`;
@@ -266,7 +288,8 @@ export function parseAppSpec(
             // view state, which cannot collide with a workflow input.
             { kind: "view", componentId: id, prop: "value" }
           : null;
-      widgets.push({
+      type WidgetFields = Mutable<AppWidgetSpec>;
+      const widget: WidgetFields = {
         id,
         type: item.type,
         bindingMode,
@@ -275,19 +298,30 @@ export function parseAppSpec(
         stateKey: ref ? stateKey(ref) : null,
         canonicalBinding: ref ? encodeBinding(ref) : null,
         resourceBindingId,
-        extraBindings: widgetBindingProps(item.type).flatMap(({ prop, mode }) => {
-          const value = str(item.props[prop]);
-          if (!value) return [];
-          return [{ prop, binding: value, ref: resolveBinding(value, scope, mode) }];
-        }),
+        extraBindings: widgetBindingProps(item.type).flatMap(
+          ({ prop, mode }) => {
+            const value = str(item.props[prop]);
+            if (!value) return [];
+            return [
+              { prop, binding: value, ref: resolveBinding(value, scope, mode) }
+            ];
+          }
+        ),
         label: str(item.props.label) ?? str(item.props.text) ?? null,
         events: parseEvents(item.props.events),
         parentId,
-        slot,
-        ...(visibleWhen ? { visibleWhen } : {}),
-        ...(disabledWhen ? { disabledWhen } : {}),
-        ...(format ? { format } : {})
-      });
+        slot
+      };
+      if (visibleWhen) {
+        widget.visibleWhen = visibleWhen;
+      }
+      if (disabledWhen) {
+        widget.disabledWhen = disabledWhen;
+      }
+      if (format) {
+        widget.format = format;
+      }
+      widgets.push(widget);
       const slots = WIDGET_CATALOG[item.type]?.slots;
       for (const [prop, value] of Object.entries(item.props)) {
         if (slots && !slots.includes(prop)) continue;
@@ -305,7 +339,9 @@ export function parseAppSpec(
 
   const operations =
     context?.operations ??
-    documentOperations(document).map((binding) => operationSpec(binding, null, null));
+    documentOperations(document).map((binding) =>
+      operationSpec(binding, null, null)
+    );
 
   return {
     spec: {
@@ -314,7 +350,11 @@ export function parseAppSpec(
       widgets,
       operations,
       variables: context?.variables ?? document.variables,
-      resources: document.resources.map(({ id, name, kind }) => ({ id, name, kind }))
+      resources: document.resources.map(({ id, name, kind }) => ({
+        id,
+        name,
+        kind
+      }))
     },
     issues,
     warnings
@@ -414,7 +454,8 @@ export function validateApp(
   const errors: string[] = [];
   const warnings: string[] = [];
   const scope = bindingScopeFor(io, context);
-  const defaultOperationId = context?.defaultOperationId ?? DEFAULT_OPERATION_ID;
+  const defaultOperationId =
+    context?.defaultOperationId ?? DEFAULT_OPERATION_ID;
   // Without a context there is one operation over the host workflow, so the
   // host surface is its surface.
   const operations = spec.operations.map((op) =>
@@ -458,7 +499,9 @@ export function validateApp(
   for (const w of spec.widgets) {
     const where = `${w.type} "${w.id}"`;
     if (w.bindingMode === "unknown") {
-      errors.push(`${where}: unknown widget type — not in the app-builder catalog.`);
+      errors.push(
+        `${where}: unknown widget type — not in the app-builder catalog.`
+      );
       continue;
     }
     if (w.binding && !w.ref) {
@@ -467,8 +510,14 @@ export function validateApp(
           ? `${where}: bound to "${w.binding}" but the workflow has no input node or node property that resolves it.`
           : `${where}: bound to "${w.binding}" but the workflow has no output or variable with that name.`
       );
-    } else if (!w.binding && w.bindingMode === "write" && !usesResourceBinding(w.type)) {
-      warnings.push(`${where}: not bound to an input — its value stays local UI state.`);
+    } else if (
+      !w.binding &&
+      w.bindingMode === "write" &&
+      !usesResourceBinding(w.type)
+    ) {
+      warnings.push(
+        `${where}: not bound to an input — its value stays local UI state.`
+      );
     }
     // A resource widget with no collection behind it renders an empty picker
     // the user can never choose from, which a run-only check never surfaces.
@@ -540,7 +589,10 @@ export function validateApp(
         hasRunTrigger = true;
         runnableOperations.add(target);
       }
-      if ((event.kind === "run" || event.kind === "cancel") && !operationIds.has(target)) {
+      if (
+        (event.kind === "run" || event.kind === "cancel") &&
+        !operationIds.has(target)
+      ) {
         errors.push(
           `${where}: ${event.kind} targets operation "${target}" but the app declares no such operation.`
         );
@@ -554,7 +606,10 @@ export function validateApp(
         );
       }
       if (event.kind === "resourceCommand" || event.kind === "openResource") {
-        if (!event.resourceBindingId || !resourceIds.has(event.resourceBindingId)) {
+        if (
+          !event.resourceBindingId ||
+          !resourceIds.has(event.resourceBindingId)
+        ) {
           errors.push(
             `${where}: ${event.kind} targets resource "${event.resourceBindingId ?? ""}" but the app declares no such resource binding.`
           );
@@ -584,7 +639,9 @@ export function validateApp(
     for (const output of operation.io?.outputs ?? []) {
       if (displayedOutputs.has(`${operation.id}:${output.nodeId}`)) continue;
       if (mappedToVariable.has(output.nodeId)) continue;
-      warnings.push(`Workflow output "${output.name}" is not displayed by any widget.`);
+      warnings.push(
+        `Workflow output "${output.name}" is not displayed by any widget.`
+      );
     }
 
     if (spec.widgets.length > 0 && !runnableOperations.has(operation.id)) {
@@ -612,12 +669,18 @@ function validateMappings(
   warnings: string[]
 ): void {
   const label = `Operation "${operation.id}"`;
-  const inputNodeIds = new Set((operation.io?.inputs ?? []).map((i) => i.nodeId));
-  const outputNodeIds = new Set((operation.io?.outputs ?? []).map((o) => o.nodeId));
+  const inputNodeIds = new Set(
+    (operation.io?.inputs ?? []).map((i) => i.nodeId)
+  );
+  const outputNodeIds = new Set(
+    (operation.io?.outputs ?? []).map((o) => o.nodeId)
+  );
 
   for (const [nodeId, mapping] of Object.entries(operation.inputs)) {
     if (operation.io && !inputNodeIds.has(nodeId)) {
-      errors.push(`${label}: input mapping for node "${nodeId}", which the workflow has no input node for.`);
+      errors.push(
+        `${label}: input mapping for node "${nodeId}", which the workflow has no input node for.`
+      );
     }
     switch (mapping.from) {
       case "variable":

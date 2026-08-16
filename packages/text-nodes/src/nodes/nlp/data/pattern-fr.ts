@@ -1,7 +1,7 @@
 // French "pattern" sentiment lexicon (word -> polarity as the original string).
 // Vendored from `natural` (sentiment/French/pattern-sentiment-fr.json, MIT).
 // Polarities are kept as strings to reproduce natural's exact numeric coercion.
-export const PATTERN_FR: Record<string, string> = {
+export const PATTERN_FR = {
   "abandonné": "-0.30",
   "abandonnée": "-0.30",
   "abandonnées": "-0.30",
@@ -5115,4 +5115,4 @@ export const PATTERN_FR: Record<string, string> = {
   "évidente": "0.10",
   "évidentes": "0.10",
   "évidents": "0.10",
-};
+} satisfies Record<string, string>;

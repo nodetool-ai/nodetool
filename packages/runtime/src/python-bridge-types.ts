@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { z } from "zod";
 
 import type { ASRResult } from "./providers/types.js";
 
@@ -25,6 +26,87 @@ export interface PythonNodeMetadata {
   is_streaming_output?: boolean;
   is_streaming_input?: boolean;
   is_dynamic?: boolean;
+  /**
+   * Approximate VRAM this node's weights need, in GiB, as declared by the
+   * worker at `discover` (protocol v4+). Forwarded back on `execute` as
+   * `requires_vram_gb` so the worker's pre-execution reclaim pass can free a
+   * real number instead of guessing at a percentage threshold.
+   */
+  requires_vram_gb?: number;
+}
+
+/**
+ * Run identity carried on `execute` / `execute.stream` (bridge protocol v4).
+ *
+ * Every field is optional on the wire: a worker that predates v4 ignores the
+ * extra keys, and a JS host that cannot name a field simply omits it. What the
+ * worker does with them:
+ *
+ *  - `node_id` becomes the constructed node's `_id`, so a node calling
+ *    `set_model(self._id, …)` registers under its real graph id instead of the
+ *    empty string every execution shared before v4. Without it the worker's
+ *    node → model map is a single bucket and `release_nodes()` has nothing to
+ *    release.
+ *  - `job_id` pairs the execution with the `job.start` / `job.end` boundary
+ *    (see {@link PythonJobLifecycle}).
+ *  - `workflow_id` / `user_id` populate the worker's `WorkerContext`, which
+ *    never had them.
+ *  - `requires_vram_gb` is the hint from {@link PythonNodeMetadata}.
+ */
+export interface ExecuteIdentity {
+  nodeId?: string;
+  jobId?: string;
+  workflowId?: string | null;
+  userId?: string;
+  requiresVramGb?: number;
+}
+
+/** Identity of a run, as carried by `job.start` / `job.end`. */
+export interface JobBoundary {
+  jobId: string;
+  workflowId?: string | null;
+  userId?: string;
+  /**
+   * Why the run ended. Only meaningful on `job.end`; the worker retires the
+   * job's nodes either way, so an abnormal end is not a different code path —
+   * it is the same release with a different label.
+   */
+  reason?: "completed" | "failed" | "cancelled" | "abandoned";
+}
+
+/**
+ * The run-boundary half of the bridge, split out so a host that only needs to
+ * bracket a run (see `ExecutionSession`) can depend on these three methods
+ * instead of the whole {@link PythonBridge} surface.
+ */
+export interface PythonJobLifecycle {
+  supportsJobLifecycle(): boolean;
+  jobStart(job: JobBoundary): Promise<void>;
+  jobEnd(job: JobBoundary): Promise<void>;
+}
+
+/** Scope of a `models.evict` request. */
+export interface ModelEvictRequest {
+  /**
+   * Evict only the models registered to these graph node ids. Omit to let the
+   * worker choose (it evicts everything eligible).
+   */
+  node_ids?: string[];
+  /** Evict only models registered under this job id. */
+  job_id?: string;
+  /**
+   * Free at least this many GiB. The worker stops evicting once it has
+   * reclaimed the target rather than dropping every loaded weight.
+   */
+  target_vram_gb?: number;
+}
+
+/** What the worker actually dropped in response to `models.evict`. */
+export interface ModelEvictResult {
+  /** Model keys the worker unloaded. */
+  evicted: string[];
+  /** GiB the worker believes it reclaimed, when it can measure that. */
+  freed_vram_gb?: number;
 }
 
 export interface ExecuteResult {
@@ -320,14 +402,16 @@ export interface PythonBridge extends EventEmitter {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): Promise<ExecuteResult>;
   executeStream(
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): AsyncGenerator<ExecuteResult>;
   cancel(requestId: string): void;
   getNodeMetadata(): PythonNodeMetadata[];
@@ -392,6 +476,12 @@ export interface PythonBridge extends EventEmitter {
   cancelModelDownload(requestId: string): void;
   deleteCachedModel(repoId: string): Promise<boolean>;
   supportsModelManagement(): boolean;
+  evictModels(req?: ModelEvictRequest): Promise<ModelEvictResult>;
+
+  // ── Run boundary (protocol v4+, gated by supportsJobLifecycle) ───────────
+  supportsJobLifecycle(): boolean;
+  jobStart(job: JobBoundary): Promise<void>;
+  jobEnd(job: JobBoundary): Promise<void>;
 
   // ── ComfyUI proxy (protocol v3+, gated by supportsComfy) ─────────────────
   /**
@@ -458,3 +548,45 @@ export interface PythonBridge extends EventEmitter {
   getRecentStderrSummary(limit?: number): string | null;
   close(): void;
 }
+
+// ---------------------------------------------------------------------------
+// Wire readers
+// ---------------------------------------------------------------------------
+//
+// The bridge decodes msgpack, so a worker reply arrives as an untyped record.
+// These readers turn one into the declared shape. Every field carries its own
+// `.catch`, so a reply is never rejected: a field the worker omits or sends in
+// the wrong type falls back to the value below instead of riding on mistyped.
+// That is the one behavior change from the assertions these replaced — before,
+// a malformed field reached callers as if it were valid.
+
+export const comfyStatusInfoSchema = z
+  .object({
+    enabled: z.boolean().catch(false),
+    url: z.string().optional().catch(undefined),
+    reachable: z.boolean().optional().catch(undefined),
+    system_stats: z.record(z.string(), z.unknown()).optional().catch(undefined),
+    queue_remaining: z.number().optional().catch(undefined),
+    error: z.string().optional().catch(undefined)
+  })
+  .loose();
+
+/**
+ * Load errors are forwarded verbatim: the entry shape varies by worker version
+ * (older workers key them by `node_type`), and every consumer only displays
+ * them, so narrowing here would drop fields rather than protect anyone.
+ */
+const workerLoadErrorSchema = z.custom<PythonWorkerLoadError>();
+
+export const workerStatusSchema = z
+  .object({
+    protocol_version: z.number().catch(0),
+    node_count: z.number().catch(0),
+    provider_count: z.number().catch(0),
+    namespaces: z.array(z.string()).catch([]),
+    load_errors: z.array(workerLoadErrorSchema).catch([]),
+    transport: z.string().catch(""),
+    max_frame_size: z.number().catch(0),
+    comfy: comfyStatusInfoSchema.optional().catch(undefined)
+  })
+  .loose();

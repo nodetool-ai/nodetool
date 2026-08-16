@@ -1,18 +1,19 @@
 import React from "react";
+import { installGlobal } from "../../test-utils/doubles";
 import { render, fireEvent } from "@testing-library/react";
 import { useDraggable } from "../useDraggable";
 
 // Polyfill PointerEvent for jsdom (which doesn't support it natively).
 // PointerEvent extends MouseEvent so clientX/clientY work correctly.
 if (typeof window !== "undefined" && !window.PointerEvent) {
-  (window as unknown as Record<string, unknown>).PointerEvent = class PointerEvent extends MouseEvent {
+  installGlobal("PointerEvent", class PointerEvent extends MouseEvent {
     readonly pointerId: number;
 
     constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
       super(type, params);
       this.pointerId = params.pointerId ?? 0;
     }
-  };
+  });
 }
 
 if (typeof Element !== "undefined" && !Element.prototype.setPointerCapture) {

@@ -36,7 +36,7 @@ export function formatKieCredits(data: KieCredits): string {
   let amount: number | undefined;
   if (typeof bal === "number") {
     amount = bal;
-  } else if (typeof bal === "object" && typeof bal.amount === "number") {
+  } else if (typeof bal === "object" && bal.amount != null) {
     amount = bal.amount;
   }
   if (amount === undefined || !Number.isFinite(amount)) {

@@ -162,7 +162,7 @@ async function requireWorkflowRole(
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
   const role = await resolveWorkflowRole(workflow, userId);
-  const rank: Record<WorkflowRole, number> = { viewer: 1, editor: 2, owner: 3 };
+  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<WorkflowRole, number>;
   if (!role || rank[role] < rank[minimum]) {
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
@@ -470,11 +470,19 @@ export const workflowsRouter = router({
     .output(sdkWorkflowSummariesOutput)
     .query(async ({ ctx, input }) => {
       try {
-        const result = await listWorkflowSummariesV1({
+        type ListInputFields = {
+          userId: string;
+          limit: number;
+          cursor?: string;
+        };
+        const listInput: ListInputFields = {
           userId: ctx.userId,
-          limit: input.limit,
-          ...(input.cursor ? { cursor: input.cursor } : {})
-        });
+          limit: input.limit
+        };
+        if (input.cursor) {
+          listInput.cursor = input.cursor;
+        }
+        const result = await listWorkflowSummariesV1(listInput);
         return {
           workflows: result.workflows.map((workflow) => ({
             id: workflow.id,

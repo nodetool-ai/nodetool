@@ -1,11 +1,12 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/searchNodes";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 describe("ui_search_nodes tool", () => {
   it("accepts boolean-like string flags", async () => {
-    const node = {
+    const node = stub<NodeMetadata>({
       node_type: "nodetool.constant.String",
       title: "String",
       namespace: "nodetool.constant",
@@ -21,7 +22,7 @@ describe("ui_search_nodes tool", () => {
         },
       ],
       outputs: [{ name: "output", type: { type: "str" }, stream: false }],
-    } as unknown as NodeMetadata;
+    });
 
     const result = await FrontendToolRegistry.call(
       "ui_search_nodes",
@@ -34,11 +35,11 @@ describe("ui_search_nodes tool", () => {
       "toolcall-1",
       {
         getState: () =>
-          ({
+          stub<FrontendToolState>({
             nodeMetadata: {
               "nodetool.constant.String": node,
             },
-          }) as unknown as FrontendToolState,
+          }),
       },
     );
 

@@ -8,6 +8,7 @@
  * "running", then A completes — B's slice (and A's own) must survive.
  */
 import type { JobUpdate, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { handleUpdate } from "../workflowUpdates";
 import useWorkflowRunsStore from "../WorkflowRunsStore";
@@ -56,19 +57,19 @@ describe("concurrent same-workflow runs — sibling isolation", () => {
   it("does not wipe a sibling run's node state when another run completes", () => {
     const runnerStore = createWorkflowRunnerStore("wf");
 
-    const nodeRunningA: NodeUpdate = {
+    const nodeRunningA: NodeUpdate = stub<NodeUpdate>({
       type: "node_update",
       job_id: "A",
       node_id: "n",
       status: "running"
-    } as unknown as NodeUpdate;
+    });
 
-    const nodeRunningB: NodeUpdate = {
+    const nodeRunningB: NodeUpdate = stub<NodeUpdate>({
       type: "node_update",
       job_id: "B",
       node_id: "n",
       status: "running"
-    } as unknown as NodeUpdate;
+    });
 
     handleUpdate(workflow, nodeRunningA, runnerStore as never, getNodeStore);
     handleUpdate(workflow, nodeRunningB, runnerStore as never, getNodeStore);

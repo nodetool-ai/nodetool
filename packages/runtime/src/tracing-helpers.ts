@@ -58,9 +58,15 @@ export interface LlmUsage {
  * We use AsyncLocalStorage rather than an instance field so concurrent calls
  * on the same provider instance don't clobber each other.
  */
+/**
+ * The exact body a provider sent, held only so a failure log can sanitize and
+ * print it. Every provider records an object (its SDK's request params).
+ */
+export type RecordedRequestPayload = object | null;
+
 interface CallSlot {
   usage: LlmUsage | null;
-  request: unknown;
+  request: RecordedRequestPayload;
   /**
    * Set while a non-chat modality call (image/video/audio/3D/embedding) is
    * being failure-logged. Lets nested calls — e.g. a batch helper delegating
@@ -123,11 +129,16 @@ export function peekLastUsage(): LlmUsage | null {
  */
 export function setLastRequest(request: unknown): void {
   const slot = usageStore.getStore();
-  if (slot) slot.request = request;
+  // SAFETY: every provider records its SDK's request-params object here.
+  // HOLDOUT (anti-slop/no-unknown-parameters): the honest type is
+  // `RecordedRequestPayload` (`object | null`), which the enforced
+  // `no-object-parameters` rule refuses; no named union covers every
+  // provider SDK's request-params type.
+  if (slot) slot.request = request as RecordedRequestPayload;
 }
 
 /** Read (without clearing) the request payload recorded in this async context. */
-export function peekLastRequest(): unknown {
+export function peekLastRequest(): RecordedRequestPayload {
   return usageStore.getStore()?.request ?? null;
 }
 
@@ -157,11 +168,7 @@ export function withModalityCapture<T>(
  * After the generator finishes, `getUsage()` returns whatever the deepest
  * `setLastUsage()` call wrote.
  */
-export function createUsageSlot(): {
-  runInSlot: <T>(fn: () => Promise<T>) => Promise<T>;
-  getUsage: () => LlmUsage | null;
-  getRequest: () => unknown;
-} {
+export function createUsageSlot() {
   const slot: CallSlot = { usage: null, request: null };
   return {
     runInSlot: <T>(fn: () => Promise<T>) => usageStore.run(slot, fn),

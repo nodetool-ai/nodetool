@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useRunFromHere } from "../useRunFromHere";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -34,17 +35,13 @@ import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import type { Generation } from "../../../utils/nodeGenerations";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
-const mockResultsGetState = (useResultsStore as unknown as { getState: jest.Mock })
+const mockResultsGetState = asMockStore(useResultsStore)
   .getState;
-const mockAssetsGetState = (
-  useWorkflowAssetStore as unknown as { getState: jest.Mock }
-).getState;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
-const mockUseMetadataStore = useMetadataStore as unknown as jest.Mock;
-const mockMetadataGetState = (
-  useMetadataStore as unknown as { getState: jest.Mock }
-).getState;
-const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
+const mockAssetsGetState = asMockStore(useWorkflowAssetStore).getState;
+const mockUseNotificationStore = asMock(useNotificationStore);
+const mockUseMetadataStore = asMock(useMetadataStore);
+const mockMetadataGetState = asMockStore(useMetadataStore).getState;
+const mockRunInline = asMock(runInlineGraphJob);
 
 const graphArg = (call = 0) => mockRunInline.mock.calls[call][0].graph;
 

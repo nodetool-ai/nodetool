@@ -37,8 +37,27 @@ export function encodeBase64(bytes: Uint8Array): string {
   return out;
 }
 
+/** Base64 bytes tagged for the guest prelude to revive as a `Uint8Array`. */
+export type GuestBytes = { readonly [SANDBOX_BYTES_MARKER]: string };
+
+/**
+ * What a host bridge hands the guest: JSON-shaped data, with byte payloads
+ * carried as {@link GuestBytes} markers. Every host module export and every
+ * bridge return value satisfies this contract — a function, a class instance,
+ * or a live handle cannot cross the boundary.
+ */
+export type GuestValue =
+  | null
+  | undefined
+  | boolean
+  | number
+  | string
+  | GuestBytes
+  | readonly GuestValue[]
+  | { readonly [key: string]: GuestValue };
+
 /** Tag bytes for the guest prelude to turn back into a real `Uint8Array`. */
-export function toGuestBytes(bytes: Uint8Array): Record<string, string> {
+export function toGuestBytes(bytes: Uint8Array): GuestBytes {
   return { [SANDBOX_BYTES_MARKER]: encodeBase64(bytes) };
 }
 

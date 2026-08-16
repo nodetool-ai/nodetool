@@ -24,7 +24,7 @@ export interface ActiveMediaPrediction {
 export function isMediaPredictionCapability(
   capability: string | null | undefined
 ): boolean {
-  return typeof capability === "string" && MEDIA_PREDICTION_CAPABILITIES.has(capability);
+  return capability != null && MEDIA_PREDICTION_CAPABILITIES.has(capability);
 }
 
 export function mediaPredictionLabel(capability: string): string {

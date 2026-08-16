@@ -76,7 +76,7 @@ async function runpodRest(
   apiKey: string,
   endpoint: string,
   method: HttpMethod = "GET",
-  data?: Record<string, unknown>
+  data?: RunpodPodSpec
 ): Promise<Record<string, unknown>> {
   if (!apiKey) throw new Error("RunPod API key is required");
   const init: RequestInit = {
@@ -115,7 +115,7 @@ export async function createPod(
     apiKey,
     "pods",
     "POST",
-    spec as unknown as Record<string, unknown>
+    spec
   )) as RunpodPod;
   if (!pod?.id) throw new Error("RunPod createPod returned no pod id");
   return pod;
@@ -260,20 +260,20 @@ export async function deployWorkerPod(
       opts.vcpuCount ??
       (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
     gpuTypeIds: opts.gpuTypeIds,
-    // GPU pods must request an explicit gpuCount; without it RunPod may allocate
-    // zero GPUs while still reporting the pod as running.
-    ...(isGpu ? { gpuCount: opts.gpuCount ?? DEFAULT_GPU_COUNT } : {}),
     ports: [`${internalPort}/${exposure}`],
     env,
-    containerDiskInGb: opts.containerDiskInGb ?? 20,
-    // Persistent volume — survives stop/resume, holds the HF model cache.
-    ...(opts.volumeInGb
-      ? {
-          volumeInGb: opts.volumeInGb,
-          volumeMountPath: opts.volumeMountPath ?? "/workspace"
-        }
-      : {})
+    containerDiskInGb: opts.containerDiskInGb ?? 20
   };
+  // GPU pods must request an explicit gpuCount; without it RunPod may allocate
+  // zero GPUs while still reporting the pod as running.
+  if (isGpu) {
+    spec.gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
+  }
+  // Persistent volume — survives stop/resume, holds the HF model cache.
+  if (opts.volumeInGb) {
+    spec.volumeInGb = opts.volumeInGb;
+    spec.volumeMountPath = opts.volumeMountPath ?? "/workspace";
+  }
 
   const created = await createPod(apiKey, spec);
   try {

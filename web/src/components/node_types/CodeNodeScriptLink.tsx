@@ -33,7 +33,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
   const [busy, setBusy] = useState(false);
 
   const guard = useCallback(
-    async (label: string, action: () => Promise<unknown>) => {
+    async <T,>(label: string, action: () => Promise<T>) => {
       setBusy(true);
       try {
         await action();

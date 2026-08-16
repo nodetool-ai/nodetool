@@ -1,4 +1,5 @@
 import type { OutputUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
 
@@ -27,7 +28,7 @@ beforeEach(() => {
 });
 
 const outputUpdate = (value: unknown): OutputUpdate =>
-  ({
+  stub<OutputUpdate>({
     type: "output_update",
     node_id: "out-1",
     node_name: "Output Node",
@@ -38,7 +39,7 @@ const outputUpdate = (value: unknown): OutputUpdate =>
     // job_id is stamped by the backend on every message but is not part of the
     // protocol type; cast below carries it through to messageJobId.
     job_id: "job-1"
-  } as unknown as OutputUpdate);
+  });
 
 describe("handleUpdate output_update → output-node stream buffer", () => {
   it("appends each output_update value into the output-stream channel", () => {

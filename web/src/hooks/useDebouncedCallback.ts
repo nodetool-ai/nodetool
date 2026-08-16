@@ -6,7 +6,7 @@ type DebouncedCallback<TArgs extends unknown[]> = {
 };
 
 export function useDebouncedCallback<TArgs extends unknown[]>(
-  fn: (...args: TArgs) => unknown,
+  fn: (...args: TArgs) => void,
   delay: number
 ): DebouncedCallback<TArgs> {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,6 +36,6 @@ export function useDebouncedCallback<TArgs extends unknown[]>(
       }, delay);
     };
     debounced.cancel = cancel;
-    return debounced as DebouncedCallback<TArgs>;
+    return debounced;
   }, [delay]);
 }

@@ -32,7 +32,10 @@ import {
   getLayerDataFromCanvas,
   getCanvasSerializedData
 } from "./canvas2d/layerIO";
-import { resolveAssetUri } from "../../node/output/hooks";
+import {
+  resolveMediaUri,
+  resolveStaticMediaUri
+} from "../../../utils/resolveMediaUri";
 import {
   combineMasks,
   trimSelectionMask,
@@ -371,10 +374,37 @@ export class Canvas2DRuntime implements SketchRuntime {
       onComplete?.();
     };
 
-    // For HTTP(S) URLs, use fetch + createImageBitmap for off-main-thread
-    // decoding. This reduces main-thread blocking during editor startup when
-    // multiple imageReference layers load simultaneously.
-    const imageSrc = resolveAssetUri(decoded.image);
+    // A data URL or an already-resolved http(s) source loads straight away.
+    const staticSrc = resolveStaticMediaUri(decoded.image);
+    if (staticSrc !== null) {
+      this.loadLayerImage(staticSrc, gen, layerId, finalize);
+      return;
+    }
+
+    // A layer image stored as `asset://<id>.<ext>` resolves to the asset's own
+    // `get_url` (signed on the cloud backends), which needs a lookup — the raw
+    // locator fetches nowhere. The generation guard inside `finalize` already
+    // covers the extra async hop.
+    void resolveMediaUri(decoded.image).then((imageSrc) => {
+      if (!imageSrc || this.layerLoadGenerations.get(layerId) !== gen) {
+        return;
+      }
+      this.loadLayerImage(imageSrc, gen, layerId, finalize);
+    });
+  }
+
+  /**
+   * Load a resolved image URL onto the layer canvas. HTTP(S) and root-relative
+   * URLs go through fetch + createImageBitmap for off-main-thread decoding,
+   * which keeps the main thread free during editor startup when several
+   * imageReference layers load at once.
+   */
+  private loadLayerImage(
+    imageSrc: string,
+    gen: number,
+    layerId: string,
+    finalize: (source: ImageBitmap | HTMLImageElement) => void
+  ): void {
     if (
       typeof createImageBitmap === "function" &&
       (imageSrc.startsWith("http://") ||
@@ -617,7 +647,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   evaluateLayerEffects(
     layerId: string,
     source: HTMLCanvasElement,
-    effects: LayerEffect[]
+    effects: LayerEffect[] | null
   ): ResolvedLayerBitmap {
     const { result, fxTempCanvas } = evaluateLayerEffectsCPU(
       layerId,

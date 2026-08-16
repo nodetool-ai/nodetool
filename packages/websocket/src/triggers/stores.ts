@@ -179,7 +179,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
 
   async findByMessageId(messageId: string): Promise<DurableMessage | null> {
     const row = await this.row(messageId);
-    return row ? toDurableMessage(row as unknown as RunInboxMessageRow) : null;
+    return row ? toDurableMessage(row) : null;
   }
 
   async save(message: DurableMessage): Promise<void> {

@@ -27,13 +27,16 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import {
+  useMonacoEditor,
+  type MonacoEditorOptions
+} from "../../hooks/editor/useMonacoEditor";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useNodes } from "../../contexts/NodeContext";
 import { getCodeNodeLanguage, isCodeNode } from "../node/codeNodeUi";
 
-const EDITOR_OPTIONS: Record<string, unknown> = {
+const EDITOR_OPTIONS = {
   minimap: { enabled: false },
   automaticLayout: true,
   scrollBeyondLastLine: false,
@@ -50,7 +53,7 @@ const EDITOR_OPTIONS: Record<string, unknown> = {
     verticalScrollbarSize: 8,
     horizontalScrollbarSize: 8
   }
-};
+} satisfies MonacoEditorOptions;
 
 const CodeProperty = ({
   property,

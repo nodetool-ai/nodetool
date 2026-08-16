@@ -4,11 +4,12 @@
  * how it responds when the environment says the wait is over.
  */
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
-  pack: jest.fn((msg: unknown) => msg),
-  unpack: jest.fn((buf: unknown) => buf)
+  pack: jest.fn(<T,>(msg: T) => msg),
+  unpack: jest.fn(<T,>(buf: T) => buf)
 }));
 
 interface FakeCloseEvent {
@@ -27,7 +28,7 @@ class FakeWebSocket {
   sent: unknown[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose: ((event: FakeCloseEvent) => void) | null = null;
 
   constructor(public url: string) {
@@ -80,7 +81,7 @@ const connect = async (mgr: WebSocketManager): Promise<void> => {
 describe("WebSocketManager outage resilience", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValue(1);
   });

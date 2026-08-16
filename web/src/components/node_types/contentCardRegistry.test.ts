@@ -1,26 +1,28 @@
-import {
-  getDynamicInputLabel,
-  isContentCardNode
-} from "./contentCardRegistry";
+import { getDynamicInputLabel, isContentCardNode } from "./contentCardRegistry";
+import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 
 const mediaOutput = (kind: string): OutputSlot =>
-  ({
+  stub<OutputSlot>({
     name: "output",
     type: { type: kind }
-  }) as unknown as OutputSlot;
+  });
 
 const meta = (
   node_type: string,
   outputKind: string = "any",
   body?: string
-): NodeMetadata =>
-  ({
+): NodeMetadata => {
+  const built = stub<NodeMetadata>({
     node_type,
     namespace: node_type.split(".").slice(0, -1).join("."),
-    outputs: [mediaOutput(outputKind)],
-    ...(body ? { body } : {})
-  }) as unknown as NodeMetadata;
+    outputs: [mediaOutput(outputKind)]
+  });
+  if (body) {
+    built.body = body;
+  }
+  return built;
+};
 
 describe("isContentCardNode", () => {
   it("returns false for undefined metadata", () => {
@@ -50,7 +52,9 @@ describe("isContentCardNode", () => {
     expect(isContentCardNode(meta("some.pkg.TextToImage", "image"))).toBe(true);
     expect(isContentCardNode(meta("fal.image_to_image.X", "image"))).toBe(true);
     // Masks count as images (rendered on a checker).
-    expect(isContentCardNode(meta("some.pkg.MaskNode", "image_mask"))).toBe(true);
+    expect(isContentCardNode(meta("some.pkg.MaskNode", "image_mask"))).toBe(
+      true
+    );
   });
 
   it("excludes constant nodes — they render their value via the overlay", () => {
@@ -75,13 +79,13 @@ describe("isContentCardNode", () => {
   });
 
   it("ignores body values other than content_card", () => {
-    expect(
-      isContentCardNode(meta("some.util.Node", "dict", "default"))
-    ).toBe(false);
+    expect(isContentCardNode(meta("some.util.Node", "dict", "default"))).toBe(
+      false
+    );
   });
 
   it("returns false for metadata missing node_type", () => {
-    expect(isContentCardNode({} as unknown as NodeMetadata)).toBe(false);
+    expect(isContentCardNode(stub<NodeMetadata>({}))).toBe(false);
   });
 });
 
@@ -90,15 +94,19 @@ describe("getDynamicInputLabel", () => {
     expect(getDynamicInputLabel(meta("nodetool.agents.Agent"))).toBe(
       "variable"
     );
-    expect(getDynamicInputLabel(meta("nodetool.text.Concat"))).toBe(
-      "variable"
-    );
+    expect(getDynamicInputLabel(meta("nodetool.text.Concat"))).toBe("variable");
   });
 
   it("derives label from primary-output variant", () => {
-    expect(getDynamicInputLabel(meta("foo.bar.X", "image"))).toBe("image input");
-    expect(getDynamicInputLabel(meta("foo.bar.X", "video"))).toBe("video input");
-    expect(getDynamicInputLabel(meta("foo.bar.X", "audio"))).toBe("audio input");
+    expect(getDynamicInputLabel(meta("foo.bar.X", "image"))).toBe(
+      "image input"
+    );
+    expect(getDynamicInputLabel(meta("foo.bar.X", "video"))).toBe(
+      "video input"
+    );
+    expect(getDynamicInputLabel(meta("foo.bar.X", "audio"))).toBe(
+      "audio input"
+    );
     expect(getDynamicInputLabel(meta("foo.bar.X", "str"))).toBe("text input");
   });
 

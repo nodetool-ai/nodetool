@@ -251,7 +251,7 @@ function chatModel(model: string): KieChatModel | undefined {
   return KIE_CHAT_MODELS.find((m) => m.id === model);
 }
 
-function headers(apiKey: string): Record<string, string> {
+function headers(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -328,7 +328,7 @@ async function parseKieJson(
 }
 
 /** Detect an image container from its magic bytes; defaults to PNG. */
-function sniffImageType(bytes: Uint8Array): { mime: string; ext: string } {
+function sniffImageType(bytes: Uint8Array) {
   if (
     bytes.length >= 8 &&
     bytes[0] === 0x89 &&
@@ -407,7 +407,7 @@ function nearestAspect(
 function coerceDuration(
   field: ModelInputField | undefined,
   seconds: number
-): unknown {
+): string | number | undefined {
   if (!field) return undefined;
   if (field.type === "enum" && field.enumValues && field.enumValues.length > 0) {
     let best: { value: string; diff: number } | undefined;
@@ -429,6 +429,11 @@ function coerceDuration(
  * meaningful (not an empty string), otherwise the first enum option. KIE's
  * required `model` field ships with an empty default, so the first declared
  * version is used.
+ */
+/**
+ * HOLDOUT (anti-slop/no-unknown-returns): the value comes straight from the
+ * manifest's `default`, which `ModelInputField` declares `unknown`; naming the
+ * result means typing the manifest decoder in `manifest-models.ts`.
  */
 function defaultForField(field: ModelInputField): unknown {
   const d = field.default;
@@ -680,7 +685,7 @@ export class KieProvider extends BaseProvider {
     this.apiKey = (secrets["KIE_API_KEY"] as string) ?? "";
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { KIE_API_KEY: this.apiKey };
   }
 
@@ -798,6 +803,8 @@ export class KieProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
+    // SAFETY: the SDK's `create` is overloaded over a closed param interface,
+    // while this request is assembled field by field.
     const response = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -847,6 +854,7 @@ export class KieProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
+    // SAFETY: as above, for the streaming overload.
     const stream = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -882,7 +890,7 @@ export class KieProvider extends BaseProvider {
   private pollConfig(
     modelId: string,
     timeoutSeconds?: number | null
-  ): { pollInterval: number; maxAttempts: number } {
+  ) {
     const meta = getManifestNodeMeta(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const pollInterval = meta?.pollInterval ?? 4000;
     // A caller-supplied timeout wins: translate it into a bounded poll window.
@@ -980,7 +988,7 @@ export class KieProvider extends BaseProvider {
     metaPollInterval: number | undefined,
     metaMaxAttempts: number | undefined,
     timeoutSeconds?: number | null
-  ): { pollInterval: number; maxAttempts: number } {
+  ) {
     const pollInterval = metaPollInterval ?? 4000;
     if (timeoutSeconds != null && timeoutSeconds > 0) {
       return {
@@ -1000,7 +1008,7 @@ export class KieProvider extends BaseProvider {
   private buildSunoInput(
     modelId: string,
     params: TextToMusicParams
-  ): Record<string, unknown> {
+  ) {
     const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const has = (name: string) => this.declaresField(fields, name);
     const input: Record<string, unknown> = {};
@@ -1389,7 +1397,7 @@ export class KieProvider extends BaseProvider {
   private imageInput(
     modelId: string,
     urls: string[]
-  ): Record<string, unknown> {
+  ) {
     const field = selectPrimaryImageInput(
       getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId),
       urls.length

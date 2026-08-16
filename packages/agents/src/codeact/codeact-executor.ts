@@ -73,10 +73,7 @@ import {
   sandboxPackageDocsTool,
   sandboxPackageListTool
 } from "../capabilities/packs.js";
-import {
-  GRAPH_DSL_PACKAGE,
-  withGraphDslPackage
-} from "./graph-dsl-package.js";
+import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
 import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
@@ -160,7 +157,11 @@ function stringifiedEnvelope(value: string, path: string): boolean {
     return false;
   }
   const keys = Object.keys(parsed);
-  const field = path.split(".").pop()?.replace(/\[\d+\]$/, "") ?? "";
+  const field =
+    path
+      .split(".")
+      .pop()
+      ?.replace(/\[\d+\]$/, "") ?? "";
   return keys.some(
     (key) =>
       key === "status" ||
@@ -591,7 +592,10 @@ export class CodeActExecutor {
         try {
           payload = JSON.parse(resultJson);
         } catch {
-          return { ok: false, error: "finish: result must be JSON-serializable" };
+          return {
+            ok: false,
+            error: "finish: result must be JSON-serializable"
+          };
         }
       }
       if (payload === null || payload === undefined) {
@@ -770,18 +774,19 @@ export class CodeActExecutor {
     };
 
     try {
-      const stream = this.provider.generateLoop({
+      const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
         messages: history,
         model: this.model,
         tools: providerTools,
         threadId: this.threadId,
         maxIterations: this.maxIterations,
         maxTokens: this.maxTokens,
-        ...(this.turnBudget ? { turnBudget: this.turnBudget } : {}),
         sequentialTools: true,
         workspaceDir: this.context.workspaceDir ?? undefined,
         signal: abort.signal
-      });
+      };
+      if (this.turnBudget) loopArgs.turnBudget = this.turnBudget;
+      const stream = this.provider.generateLoop(loopArgs);
 
       for await (const item of stream) {
         if (isToolCall(item)) {
@@ -883,7 +888,11 @@ export class CodeActExecutor {
     if (!this.step.outputSchema) return null;
     try {
       const parsed = JSON.parse(this.step.outputSchema) as unknown;
-      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
         return parsed as Record<string, unknown>;
       }
       return null;
@@ -954,15 +963,16 @@ export class CodeActExecutor {
 function isChunk(item: ProviderStreamItem): item is Chunk {
   return (
     "type" in item &&
-    (item as unknown as Record<string, unknown>)["type"] === "chunk" &&
-    typeof (item as unknown as Record<string, unknown>)["content"] === "string"
+    item.type === "chunk" &&
+    "content" in item &&
+    typeof item.content === "string"
   );
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
   return (
     "name" in item &&
-    typeof (item as unknown as Record<string, unknown>)["name"] === "string" &&
+    typeof item.name === "string" &&
     "id" in item
   );
 }

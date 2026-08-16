@@ -23,7 +23,7 @@ export class DiscordBotTrigger extends BaseNode {
   static readonly requiredSettings = ["DISCORD_BOT_TOKEN"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     message_id: { kind: "iteration", source: "__execution__", group: "messages" },
     content: { kind: "iteration", source: "__execution__", group: "messages" },
     author: { kind: "iteration", source: "__execution__", group: "messages" },
@@ -33,7 +33,7 @@ export class DiscordBotTrigger extends BaseNode {
     timestamp: { kind: "iteration", source: "__execution__", group: "messages" },
     source: { kind: "iteration", source: "__execution__", group: "messages" },
     event_type: { kind: "iteration", source: "__execution__", group: "messages" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "int",
@@ -137,7 +137,7 @@ export class TelegramBotTrigger extends BaseNode {
   static readonly requiredSettings = ["TELEGRAM_BOT_TOKEN"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     update_id: { kind: "iteration", source: "__execution__", group: "messages" },
     update_type: { kind: "iteration", source: "__execution__", group: "messages" },
     message_id: { kind: "iteration", source: "__execution__", group: "messages" },
@@ -150,7 +150,7 @@ export class TelegramBotTrigger extends BaseNode {
     timestamp: { kind: "iteration", source: "__execution__", group: "messages" },
     source: { kind: "iteration", source: "__execution__", group: "messages" },
     event_type: { kind: "iteration", source: "__execution__", group: "messages" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "int",

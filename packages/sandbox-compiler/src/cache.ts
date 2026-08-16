@@ -25,9 +25,16 @@ import {
 import { join, resolve } from "node:path";
 
 import { getNodetoolCacheDir } from "@nodetool-ai/config";
+import type { SandboxNpmCompileOutcome } from "@nodetool-ai/node-sdk/sandbox-pack-discovery";
 
 import { ABSENT, type InputDigest, type ResolutionDigest } from "./bundle.js";
-import { normalizedCompileOptions, SANDBOX_COMPILER_VERSION } from "./options.js";
+import {
+  normalizedCompileOptions,
+  SANDBOX_COMPILER_VERSION
+} from "./options.js";
+
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 /** One free reference the scan flagged. Mirrored here so the cache stays engine-free. */
 export interface CachedScanFinding {
@@ -166,7 +173,8 @@ export class CompiledModuleCache {
     if (pointerPath === undefined) return undefined;
     let key: unknown;
     try {
-      key = (JSON.parse(readFileSync(pointerPath, "utf8")) as { key?: unknown }).key;
+      key = (JSON.parse(readFileSync(pointerPath, "utf8")) as { key?: unknown })
+        .key;
     } catch {
       // No pointer, or an unreadable one: compile again.
       return undefined;
@@ -175,7 +183,9 @@ export class CompiledModuleCache {
     const entry = this.read(key);
     if (entry === undefined) return undefined;
     if (!inputsUnchanged(packDir, entry.inputDigests)) return undefined;
-    return resolutionUnchanged(packDir, entry.resolutionDigests) ? entry : undefined;
+    return resolutionUnchanged(packDir, entry.resolutionDigests)
+      ? entry
+      : undefined;
   }
 
   /** Record where a pack's dependency compiled to, for {@link readForPack}. */
@@ -205,7 +215,13 @@ export class CompiledModuleCache {
       return undefined;
     }
     const digest = createHash("sha256")
-      .update(JSON.stringify({ compilerVersion: SANDBOX_COMPILER_VERSION, realDir, npmName }))
+      .update(
+        JSON.stringify({
+          compilerVersion: SANDBOX_COMPILER_VERSION,
+          realDir,
+          npmName
+        })
+      )
       .digest("hex");
     return join(this.root, "index", `${digest}.json`);
   }
@@ -253,7 +269,10 @@ export class CompiledModuleCache {
 }
 
 /** Re-hash every recorded input and report whether all of them still match. */
-function inputsUnchanged(packDir: string, inputDigests: readonly InputDigest[]): boolean {
+function inputsUnchanged(
+  packDir: string,
+  inputDigests: readonly InputDigest[]
+): boolean {
   if (inputDigests.length === 0) return false;
   for (const record of inputDigests) {
     let bytes: Buffer;
@@ -263,7 +282,8 @@ function inputsUnchanged(packDir: string, inputDigests: readonly InputDigest[]):
       // An input that disappeared changes the bundle; treat it as a miss.
       return false;
     }
-    if (createHash("sha256").update(bytes).digest("hex") !== record.sha256) return false;
+    if (createHash("sha256").update(bytes).digest("hex") !== record.sha256)
+      return false;
   }
   return true;
 }
@@ -327,15 +347,19 @@ export function createCachedNpmLookup(
       (finding) =>
         `${request.npmName} feature-detects ${finding.name} at ${finding.line}:${finding.column}; the guest has no such global, so that branch never runs`
     );
-    return {
+    type OutcomeFields = Mutable<SandboxNpmCompileOutcome>;
+    const outcome: OutcomeFields = {
       status: "compiled",
       artifact: {
         source: entry.source,
         compilerVersion: entry.compilerVersion,
         optionsDigest: entry.optionsDigest,
         inputsDigest: entry.inputsDigest
-      },
-      ...(warnings.length === 0 ? {} : { warnings })
+      }
     };
+    if (warnings.length > 0) {
+      outcome.warnings = warnings;
+    }
+    return outcome;
   };
 }

@@ -27,10 +27,9 @@ type WorkflowRunnerModule =
   typeof import("@nodetool-ai/workflow-runner/browser");
 
 /** Graph in the kernel's `NodeDescriptor` shape (properties, not `data`). */
-type KernelGraph = {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-};
+type KernelGraph = Parameters<
+  WorkflowRunnerModule["runBrowserWorkflow"]
+>[0]["graph"];
 
 /** Read GPU-texture ImageRefs back to CPU buffers at a serialize boundary. */
 export type ResolveImageRefForTransport = (value: unknown) => Promise<unknown>;
@@ -121,7 +120,7 @@ export function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
  * tag (e.g. image.ts's Load/Save/AI nodes are tagged server and dropped).
  */
 const NODE_MODULE_GROUPS: ReadonlyArray<
-  readonly [name: string, load: () => Promise<unknown>]
+  readonly [name: string, load: () => Promise<object>]
 > = [
   ["constant", () => import("@nodetool-ai/core-nodes/nodes/constant")],
   ["control", () => import("@nodetool-ai/core-nodes/nodes/control")],
@@ -232,9 +231,9 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
  * import resolves `undefined` instead — treat both as "not available",
  * keeping the failure for the caller's diagnostics.
  */
-async function importOptional(
-  load: () => Promise<unknown>
-): Promise<{ mod: unknown; error: unknown }> {
+async function importOptional<TModule extends object>(
+  load: () => Promise<TModule>
+): Promise<{ mod: TModule | null; error: unknown }> {
   try {
     const mod = (await load()) ?? null;
     return {
@@ -397,7 +396,7 @@ export function probeBrowserGpu(): Promise<boolean> {
     gpuProbe = (async () => {
       const nav = (
         globalThis as {
-          navigator?: { gpu?: { requestAdapter(): Promise<unknown> } };
+          navigator?: { gpu?: { requestAdapter(): Promise<object | null> } };
         }
       ).navigator;
       const gpu = nav?.gpu;
@@ -433,6 +432,12 @@ export async function capabilityFilteredBrowserNodeTypes(
  * Map the web/Python graph serialization (node props under `data`, edge kind
  * under `type`) to the kernel's `NodeDescriptor` contract (`properties` /
  * `edge_type`). Mirrors the server's `normalizeGraph`.
+ *
+ * The two ends describe one payload in incompatible ways: the web `Node` is an
+ * index-signature bag (`[key: string]: unknown`), the kernel's `NodeDescriptor`
+ * a closed interface, and neither is assignable to the other. This function is
+ * where that gap is crossed, so the assertion lives here rather than at each
+ * caller.
  */
 export function normalizeGraphForKernel(graph: WorkflowGraph): KernelGraph {
   const nodes = (graph.nodes ?? []).map((raw) => {
@@ -450,5 +455,9 @@ export function normalizeGraphForKernel(graph: WorkflowGraph): KernelGraph {
     const { type: _type, ...rest } = edge;
     return { ...rest, edge_type };
   });
-  return { nodes, edges };
+  // SAFETY: the loops above produced exactly the kernel's shape — `properties`
+  // per node, `edge_type` per edge. What the compiler cannot follow is that
+  // the index-signature bag the web types describe and the closed
+  // `NodeDescriptor` interface are the same payload.
+  return { nodes, edges } as unknown as KernelGraph;
 }

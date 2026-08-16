@@ -54,7 +54,7 @@ interface CollectionSummary {
  * The six schemas carry no collection name — the collection was chosen by
  * whoever constructed the tool — so there is nothing to resolve from the args.
  */
-function noCollectionError(what: string): Record<string, string> {
+function noCollectionError(what: string) {
   return {
     error:
       `Cannot ${what}: no vector collection is bound to this run. Bind one ` +
@@ -371,18 +371,26 @@ const vectorMarkdownSplitAndIndex: CapabilityExport = {
 // vector_batch_index
 // ---------------------------------------------------------------------------
 
+/** One chunk as `vector_batch_index` takes it off the tool call. */
+interface BatchChunk {
+  text?: string;
+  source_id?: string;
+  metadata?: Record<string, unknown>;
+}
+
 const vectorBatchIndex: CapabilityExport = {
   spec: vectorBatchIndexSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("index a batch of chunks");
-    let chunks = params["chunks"] as Array<{
-      text?: string;
-      source_id?: string;
-      metadata?: Record<string, unknown>;
-    }>;
-    if (typeof chunks === "string")
-      chunks = [chunks as unknown as (typeof chunks)[0]];
+    const rawChunks = params["chunks"];
+    // A caller that passes one string where a list is expected gets it read
+    // as a single chunk with no `source_id`, which the filter below drops —
+    // the same outcome as before, without pretending a string is a chunk.
+    const chunks: BatchChunk[] =
+      typeof rawChunks === "string"
+        ? [{ text: rawChunks }]
+        : (rawChunks as BatchChunk[]);
     const baseMetadata =
       (params["base_metadata"] as Record<string, unknown>) ?? {};
 

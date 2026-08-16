@@ -7,6 +7,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { renderHook, act } from "@testing-library/react";
 import {
   computePinchStep,
@@ -14,7 +15,17 @@ import {
 } from "../useCanvasTouchGestures";
 import { SKETCH_ZOOM_MAX, SKETCH_ZOOM_MIN } from "../../state/useSketchStore";
 
-const RECT = { left: 0, top: 0, width: 400, height: 300 };
+const RECT: DOMRect = {
+  left: 0,
+  top: 0,
+  width: 400,
+  height: 300,
+  x: 0,
+  y: 0,
+  right: 400,
+  bottom: 300,
+  toJSON: () => ({})
+};
 
 describe("computePinchStep", () => {
   it("pans by the midpoint delta when the distance is unchanged", () => {
@@ -65,27 +76,27 @@ describe("computePinchStep", () => {
 });
 
 function touchEvent(pointerId: number, clientX: number, clientY: number) {
-  return {
+  return stub<React.PointerEvent>({
     pointerType: "touch",
     pointerId,
     clientX,
     clientY
-  } as unknown as React.PointerEvent;
+  });
 }
 
 function mouseEvent() {
-  return { pointerType: "mouse", pointerId: 1 } as unknown as React.PointerEvent;
+  return stub<React.PointerEvent>({ pointerType: "mouse", pointerId: 1 });
 }
 
 function setup() {
   const cancelDrawing = jest.fn();
   const onZoomChange = jest.fn();
   const onPanChange = jest.fn();
-  const container = {
+  const container = stub<React.RefObject<HTMLDivElement | null>>({
     current: {
       getBoundingClientRect: () => RECT
     }
-  } as unknown as React.RefObject<HTMLDivElement | null>;
+  });
 
   const { result } = renderHook(() =>
     useCanvasTouchGestures({

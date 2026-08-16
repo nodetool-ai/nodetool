@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { usePaneEvents } from "../usePaneEvents";
@@ -7,6 +8,16 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSelect from "../../nodes/useSelect";
+
+/** A drag/click target that answers `classList.contains("react-flow__pane")`. */
+const paneTarget = (isPane: boolean): HTMLDivElement => {
+  const el = document.createElement("div");
+  if (isPane) {
+    el.classList.add("react-flow__pane");
+  }
+  return el;
+};
+
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/NodePlacementStore");
@@ -49,12 +60,12 @@ describe("usePaneEvents", () => {
     screenToFlowPosition: mockScreenToFlowPosition
   };
 
-  const mockedUseNodePlacementStore = useNodePlacementStore as unknown as jest.Mock;
-  const mockedUseContextMenu = useContextMenu as unknown as jest.Mock;
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
-  const mockedUseSelect = useSelect as unknown as jest.Mock;
-  const mockedUseReactFlow = useReactFlow as unknown as jest.Mock;
+  const mockedUseNodePlacementStore = asMock(useNodePlacementStore);
+  const mockedUseContextMenu = asMock(useContextMenu);
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseMetadataStore = asMock(useMetadataStore);
+  const mockedUseSelect = asMock(useSelect);
+  const mockedUseReactFlow = asMock(useReactFlow);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -112,11 +123,11 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
-        target: { classList: { contains: () => true } },
+      const mockEvent = stub<ReactMouseEvent>({
+        target: paneTarget(true),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleDoubleClick(mockEvent);
 
@@ -133,11 +144,11 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
-        target: { classList: { contains: () => true } },
+      const mockEvent = stub<ReactMouseEvent>({
+        target: paneTarget(true),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleDoubleClick(mockEvent);
 
@@ -154,11 +165,11 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
-        target: { classList: { contains: () => false } },
+      const mockEvent = stub<ReactMouseEvent>({
+        target: paneTarget(false),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleDoubleClick(mockEvent);
 
@@ -177,12 +188,12 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handlePaneClick(mockEvent);
 
@@ -204,12 +215,12 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handlePaneClick(mockEvent);
 
@@ -230,12 +241,12 @@ describe("usePaneEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handlePaneClick(mockEvent);
 

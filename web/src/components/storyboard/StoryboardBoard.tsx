@@ -21,6 +21,7 @@ import {
   FormField,
   FormGrid,
   FormSection,
+  LoadingSpinner,
   Panel,
   ScrollArea,
   SelectField,
@@ -47,8 +48,12 @@ import LanguageModelSelect from "../properties/LanguageModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
+import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
+
+// The preview mounts the timeline compositor; keep it out of the board bundle.
+const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
 
 interface StoryboardBoardProps {
   boardId: string;
@@ -150,6 +155,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   const [shotCount, setShotCount] = useState<number>(6);
   const [confirmRedirect, setConfirmRedirect] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
 
   const hasShots = shots.length > 0;
 
@@ -184,6 +191,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   const hasRenderedShot = useMemo(
     () => shots.some((s) => s.status === "rendered" && !!s.clip?.asset_id),
+    [shots]
+  );
+
+  // The preview plays clips and falls back to held keyframe stills, so any
+  // shot carrying either asset is enough to have something to watch.
+  const hasPlayableShot = useMemo(
+    () => shots.some((s) => !!s.clip?.asset_id || !!s.keyframe?.asset_id),
     [shots]
   );
 
@@ -357,6 +371,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 >
                   {`Generate all clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
                 </EditorButton>
+                <ScriptLinkControl boardId={boardId} disabled={directing} />
+                <EditorButton
+                  variant="outlined"
+                  onClick={togglePreview}
+                  disabled={!hasPlayableShot}
+                >
+                  {previewOpen ? "Hide preview" : "Preview"}
+                </EditorButton>
                 <EditorButton
                   variant="outlined"
                   onClick={onAssemble}
@@ -396,6 +418,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           </Caption>
         </FlexColumn>
       </Dialog>
+
+      {previewOpen && (
+        <React.Suspense
+          fallback={<LoadingSpinner size="small" text="Loading preview" />}
+        >
+          <LazyStoryboardPreview boardId={boardId} />
+        </React.Suspense>
+      )}
 
       {directing ? (
         <FlexColumn gap={SPACING.md}>

@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
@@ -12,7 +13,7 @@ const MOBILE_WIDTH_QUERY = /max-width/;
 
 /** Drive MUI's useMediaQuery: only max-width queries match on "mobile". */
 const setViewport = (mobile: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: mobile && MOBILE_WIDTH_QUERY.test(query),
     media: query,
     onchange: null,
@@ -21,7 +22,7 @@ const setViewport = (mobile: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 const models: LanguageModel[] = [

@@ -4,6 +4,7 @@ import {
   threadRuntimeUpdate,
   mirrorsForThread
 } from "../threadRuntime";
+import { stub } from "../../../test-utils/doubles";
 import type { GlobalChatState } from "../../../stores/GlobalChatStore";
 import type {
   TaskUpdate,
@@ -15,7 +16,7 @@ import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 const makeState = (
   overrides: Partial<GlobalChatState> = {}
 ): GlobalChatState =>
-  ({
+  stub<GlobalChatState>({
     currentThreadId: null,
     threadRuntime: {},
     status: "connected",
@@ -29,7 +30,7 @@ const makeState = (
     currentRunningToolCallId: null,
     currentToolMessage: null,
     ...overrides
-  }) as unknown as GlobalChatState;
+  });
 
 describe("threadRuntime", () => {
   describe("getThreadRuntime", () => {

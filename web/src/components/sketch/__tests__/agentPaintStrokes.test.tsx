@@ -30,6 +30,11 @@ import { getSketchAgentHandler } from "../sketchAgentBridge";
 import { paintAgentStroke } from "../painting/agentStrokes";
 import { createDefaultDocument, type Layer } from "../types";
 
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../hooks/useResolvedMediaUri");
+
 jest.mock("../SketchAgentPanel", () => ({
   __esModule: true,
   default: () => null

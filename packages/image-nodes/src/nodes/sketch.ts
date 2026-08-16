@@ -60,10 +60,7 @@ function decodeLayerPayload(
   data: string,
   fallbackWidth: number,
   fallbackHeight: number
-): {
-  image: string | null;
-  bounds: { x: number; y: number; width: number; height: number };
-} {
+) {
   const fallbackBounds = {
     x: 0,
     y: 0,
@@ -337,6 +334,11 @@ export class SketchLayersNode extends BaseNode {
   }
 }
 
+/** Output handles CreateSketchNode.process() emits. */
+type CreateSketchNodeOutputs = {
+  output: { type: string; id: string };
+};
+
 export class CreateSketchNode extends BaseNode {
   static readonly nodeType = "nodetool.sketch.CreateSketch";
   static readonly title = "Create Sketch";
@@ -366,7 +368,7 @@ export class CreateSketchNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CreateSketchNodeOutputs> {
     if (!context) {
       throw new Error("CreateSketch requires a processing context");
     }

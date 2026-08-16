@@ -1,4 +1,5 @@
 import { isAudioChunkLike, isTextLikeChunk } from "../outputChunkUtils";
+import { stub } from "../../../test-utils/doubles";
 import { rawRgbaToPngDataUrl } from "../OutputRenderer";
 
 describe("rawRgbaToPngDataUrl", () => {
@@ -6,15 +7,21 @@ describe("rawRgbaToPngDataUrl", () => {
     // jsdom has no real canvas backend, so mock one to assert the encode path.
     const putImageData = jest.fn();
     const toDataURL = jest.fn(() => "data:image/png;base64,AAAA");
-    const canvas = {
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the renderer asks for.
+    const getContext = ((contextId: string) =>
+      contextId === "2d"
+        ? stub<CanvasRenderingContext2D>({ putImageData })
+        : null) as HTMLCanvasElement["getContext"];
+    const canvas = stub<HTMLCanvasElement>({
       width: 0,
       height: 0,
-      getContext: () => ({ putImageData }),
+      getContext,
       toDataURL
-    };
+    });
     const spy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+      .mockReturnValue(canvas);
     (globalThis as { ImageData?: unknown }).ImageData ??= class {
       constructor(
         public data: Uint8ClampedArray,
@@ -33,10 +40,13 @@ describe("rawRgbaToPngDataUrl", () => {
   });
 
   it("returns an empty string when the 2D context is unavailable", () => {
-    const canvas = { width: 0, height: 0, getContext: () => null };
+    // SAFETY: `getContext` is overloaded over every context id; this canvas
+    // has no context at all, which is what the test exercises.
+    const getContext = (() => null) as HTMLCanvasElement["getContext"];
+    const canvas = stub<HTMLCanvasElement>({ width: 0, height: 0, getContext });
     const spy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+      .mockReturnValue(canvas);
     expect(rawRgbaToPngDataUrl(new Uint8Array(4), 1, 1)).toBe("");
     spy.mockRestore();
   });

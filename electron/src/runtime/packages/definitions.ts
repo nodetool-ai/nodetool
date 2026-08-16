@@ -6,7 +6,7 @@ import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import type { RuntimePackage } from "./types";
 
 /** Concrete runtime package definitions. */
-export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
+export const RUNTIME_PACKAGES = {
   python: new CondaRuntimePackage({
     id: "python",
     name: "Python",
@@ -209,4 +209,4 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     // matching the platform (CPU, Vulkan, CUDA, CUDA-ext).
     approxSizeMB: process.platform === "darwin" ? 50 : 640,
   }),
-};
+} satisfies Record<RuntimePackageId, RuntimePackage>;

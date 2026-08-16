@@ -21,7 +21,10 @@ import {
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { resolveAppTarget, type AppTargetDeps } from "./app-target.js";
 import type { DebugGraph } from "../debug/types.js";
-import type { ServerRunInput, ServerRunOutcome } from "../debug/server-runner.js";
+import type {
+  ServerRunInput,
+  ServerRunOutcome
+} from "../debug/server-runner.js";
 
 export { defaultInteractions } from "@nodetool-ai/execution/app-debug";
 
@@ -50,8 +53,10 @@ export interface AppDebugDeps {
 
 function defaultOutDir(ref: string): string {
   const slug =
-    ref.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) ||
-    "workflow";
+    ref
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "workflow";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   return resolve(`nodetool-debug/app-${slug}-${stamp}`);
 }
@@ -61,10 +66,13 @@ export async function runAppDebug(
   options: AppDebugOptions,
   deps: AppDebugDeps
 ): Promise<AppDebugReport> {
-  const resolved = await resolveAppTarget(ref, {
-    loadFromDb: deps.loadFromDb,
-    ...(deps.loadApplication ? { loadApplication: deps.loadApplication } : {})
-  });
+  const targetDeps: Parameters<typeof resolveAppTarget>[1] = {
+    loadFromDb: deps.loadFromDb
+  };
+  if (deps.loadApplication) {
+    targetDeps.loadApplication = deps.loadApplication;
+  }
+  const resolved = await resolveAppTarget(ref, targetDeps);
   const outDir = options.outDir ? resolve(options.outDir) : defaultOutDir(ref);
   await mkdir(join(outDir, "server"), { recursive: true });
   await writeFile(
@@ -111,12 +119,11 @@ export async function runAppDebug(
         : null;
     });
 
-  const report = await simulateApp(resolved, options, {
+  const simulateDeps: Parameters<typeof simulateApp>[2] = {
     loadFromDb: deps.loadFromDb,
     runOnServer,
     runScript,
     loadScript,
-    ...(deps.onLog ? { onLog: deps.onLog } : {}),
     onRunMessages: async (runIndex: number, messages: ProcessingMessage[]) => {
       const messagesFile = `server/run-${runIndex + 1}.messages.jsonl`;
       await writeFile(
@@ -126,11 +133,23 @@ export async function runAppDebug(
       );
       return messagesFile;
     }
-  });
+  };
+  if (deps.onLog) {
+    simulateDeps.onLog = deps.onLog;
+  }
+  const report = await simulateApp(resolved, options, simulateDeps);
   report.bundleDir = outDir;
 
-  await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2), "utf8");
-  await writeFile(join(outDir, "report.md"), renderAppReportMarkdown(report), "utf8");
+  await writeFile(
+    join(outDir, "report.json"),
+    JSON.stringify(report, null, 2),
+    "utf8"
+  );
+  await writeFile(
+    join(outDir, "report.md"),
+    renderAppReportMarkdown(report),
+    "utf8"
+  );
 
   return report;
 }

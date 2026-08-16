@@ -1,18 +1,11 @@
 import { usePanelStore } from "../PanelStore";
 
-type PersistApi = {
-  persist: {
-    getOptions: () => {
-      merge: (
-        persisted: unknown,
-        current: ReturnType<typeof usePanelStore.getState>
-      ) => ReturnType<typeof usePanelStore.getState>;
-    };
-  };
-};
-
 function getMerge() {
-  return (usePanelStore as unknown as PersistApi).persist.getOptions().merge;
+  const { merge } = usePanelStore.persist.getOptions();
+  if (!merge) {
+    throw new Error("PanelStore's persist options declare no merge function");
+  }
+  return merge;
 }
 
 function currentState() {

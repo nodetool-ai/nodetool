@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -46,14 +47,14 @@ const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
 });
 
 const secret = (isConfigured: boolean): SecretResponse =>
-  ({
+  stub<SecretResponse>({
     key: "OPENAI_API_KEY",
     is_configured: isConfigured,
     description: "",
     user_id: null,
     created_at: null,
     updated_at: null
-  }) as unknown as SecretResponse;
+  });
 
 const oauthMeta = {
   key: "OPENAI_API_KEY",

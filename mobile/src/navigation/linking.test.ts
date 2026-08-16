@@ -1,3 +1,4 @@
+import type { EmitterSubscription } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { getStateFromPath } from '@react-navigation/native';
@@ -7,17 +8,42 @@ import { RootStackParamList } from './types';
 type Screens = NonNullable<NonNullable<typeof linking.config>['screens']>;
 
 const mockedLinking = Linking as jest.Mocked<typeof Linking>;
+
+/** `linking.subscribe` only calls `.remove()`; `EmitterSubscription` is wider. */
+const urlSubscription = (remove: () => void): EmitterSubscription => {
+  const partial: Pick<EmitterSubscription, 'remove'> = { remove };
+  // SAFETY: nothing under test reads any other member of the subscription.
+  return partial as EmitterSubscription;
+};
 const mockedNotifications = Notifications as jest.Mocked<typeof Notifications>;
 
 const notificationResponse = (
   data: Record<string, unknown>
-): Notifications.NotificationResponse =>
-  ({
-    notification: { request: { content: { data } } },
-  }) as unknown as Notifications.NotificationResponse;
+): Notifications.NotificationResponse => ({
+  actionIdentifier: Notifications.DEFAULT_ACTION_IDENTIFIER,
+  notification: {
+    date: 0,
+    request: {
+      identifier: 'req-1',
+      content: {
+        title: null,
+        subtitle: null,
+        body: null,
+        data,
+        categoryIdentifier: null,
+        sound: null,
+        launchImageName: null,
+        badge: null,
+        attachments: [],
+        threadIdentifier: null,
+      },
+      trigger: null,
+    },
+  },
+});
 
 /** Resolve a path the way NavigationContainer does, then read the leaf route. */
-const routeForPath = (path: string): { name: string; params?: object } => {
+const routeForPath = (path: string) => {
   const state = getStateFromPath(path, linking.config);
   if (!state) {
     throw new Error(`no state for path: ${path}`);
@@ -34,12 +60,10 @@ describe('linking', () => {
     jest.clearAllMocks();
     mockedLinking.getInitialURL.mockResolvedValue(null);
     mockedNotifications.getLastNotificationResponseAsync.mockResolvedValue(null);
-    mockedLinking.addEventListener.mockReturnValue({
-      remove: jest.fn(),
-    } as unknown as ReturnType<typeof Linking.addEventListener>);
-    mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue({
-      remove: jest.fn(),
-    } as unknown as Notifications.EventSubscription);
+    mockedLinking.addEventListener.mockReturnValue(urlSubscription(jest.fn()));
+    mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue(
+      { remove: jest.fn() }
+    );
   });
 
   it('includes the app scheme and the Expo-generated prefix', () => {
@@ -60,6 +84,7 @@ describe('linking', () => {
       'App',
       'StoryboardEditor',
       'ScriptEditor',
+      'JsScriptEditor',
       'TimelineViewer',
       'SketchViewer',
       'DocumentViewer',
@@ -101,6 +126,7 @@ describe('linking', () => {
 
     it('prefers the dedicated document screens over the fallback viewer', () => {
       expect(routeForPath('/document/script/d1').name).toBe('ScriptEditor');
+      expect(routeForPath('/document/jsscript/d1').name).toBe('JsScriptEditor');
       expect(routeForPath('/document/storyboard/d1').name).toBe('StoryboardEditor');
       expect(routeForPath('/document/timeline/d1').name).toBe('TimelineViewer');
       expect(routeForPath('/document/mindmap/d1')).toEqual({
@@ -179,12 +205,10 @@ describe('linking', () => {
     it('removes both subscriptions on cleanup', () => {
       const removeUrl = jest.fn();
       const removeNotification = jest.fn();
-      mockedLinking.addEventListener.mockReturnValue({
-        remove: removeUrl,
-      } as unknown as ReturnType<typeof Linking.addEventListener>);
-      mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue({
-        remove: removeNotification,
-      } as unknown as Notifications.EventSubscription);
+      mockedLinking.addEventListener.mockReturnValue(urlSubscription(removeUrl));
+      mockedNotifications.addNotificationResponseReceivedListener.mockReturnValue(
+        { remove: removeNotification }
+      );
 
       linking.subscribe?.(jest.fn())?.();
 

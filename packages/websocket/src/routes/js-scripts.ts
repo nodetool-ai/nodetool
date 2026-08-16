@@ -45,7 +45,16 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-async function readJsonBody(request: Request): Promise<unknown> {
+/** A decoded JSON request body, before a schema validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+async function readJsonBody(request: Request): Promise<JsonValue> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) return {};
   try {
@@ -61,10 +70,7 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.post("/api/js-scripts/:id/run", async (req, reply) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, async (request) => {
-      const userId = getUserId(
-        request,
-        apiOptions.userIdHeader ?? "x-user-id"
-      );
+      const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
       const script = await JsScript.findById(id);
       // Scripts are per-user, like sketches and timelines: another owner's
       // script is an absence, not a refusal.
@@ -108,10 +114,9 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         storage: opts.storage ?? getAssetAdapter()
       });
 
-      const result = await runCodeBody(context, {
+      const runOptions: Parameters<typeof runCodeBody>[1] = {
         code: document.code,
         inputs: parsedBody.data.inputs,
-        ...(staged ? { inputStreams: staged } : {}),
         packages: document.packages.map((pack) => pack.specifier),
         secrets: document.secrets,
         timeoutSeconds: Math.min(
@@ -119,7 +124,11 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           JS_SCRIPT_MAX_TIMEOUT_SECONDS
         ),
         withToolbelt: true
-      });
+      };
+      if (staged) {
+        runOptions.inputStreams = staged;
+      }
+      const result = await runCodeBody(context, runOptions);
 
       // A declared-output script that finishes with `outputs: {}` is a
       // failed contract, not a 500 — same shape as a body that throws.
@@ -129,16 +138,20 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const failedEmptyBag = missing.length > 0;
       const body: RunJsScriptResponse = {
         ok: failedEmptyBag ? false : result.ok,
-        ...(result.outputs !== undefined ? { outputs: result.outputs } : {}),
-        ...(result.streamed !== undefined ? { streamed: result.streamed } : {}),
         logs: result.logs,
-        ...(failedEmptyBag
-          ? { error: emptyDeclaredJsScriptOutputsError(missing) }
-          : result.error !== undefined
-            ? { error: result.error }
-            : {}),
         duration_ms: result.duration_ms
       };
+      if (result.outputs !== undefined) {
+        body.outputs = result.outputs;
+      }
+      if (result.streamed !== undefined) {
+        body.streamed = result.streamed;
+      }
+      if (failedEmptyBag) {
+        body.error = emptyDeclaredJsScriptOutputsError(missing);
+      } else if (result.error !== undefined) {
+        body.error = result.error;
+      }
       return jsonResponse(body);
     });
   });

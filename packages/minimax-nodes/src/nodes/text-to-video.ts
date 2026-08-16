@@ -10,6 +10,11 @@ import {
   videoRenderSettings
 } from "../minimax-base.js";
 
+/** Output handles MinimaxTextToVideoNode.process() emits. */
+type MinimaxTextToVideoNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class MinimaxTextToVideoNode extends BaseNode {
   static readonly nodeType = "minimax.TextToVideo";
   static readonly body = "content_card";
@@ -65,14 +70,14 @@ export class MinimaxTextToVideoNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxTextToVideoNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
     const model = String(this.model ?? "MiniMax-Hailuo-02");
-    const body: Record<string, unknown> = {
+    const body = {
       model,
       prompt,
       ...videoRenderSettings(
@@ -80,7 +85,7 @@ export class MinimaxTextToVideoNode extends BaseNode {
         Number(this.duration ?? 6),
         String(this.resolution ?? "768P")
       )
-    };
+    } satisfies Record<string, unknown>;
 
     const bytes = await generateVideo(apiKey, body);
     return { output: videoRefFromBytes(bytes) };

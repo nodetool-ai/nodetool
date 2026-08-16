@@ -8,6 +8,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Keep the card's generation hook and image ladder out of the render — this test
 // only asserts the card's presentation and button gating, not generation.
 const generateRevisedClipMock = jest.fn();
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../hooks/useResolvedMediaUri");
+
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(),
@@ -26,7 +31,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
     ...actual,
     // Serve the actions the card reads via selectors; keep sameMediaRef and the
     // other real exports (the nested takes gallery uses them).
-    useStoryboardStore: (selector: (s: unknown) => unknown) =>
+    useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
       selector({
         toggleShotEntity: jest.fn(),
         moveShot: moveShotMock,

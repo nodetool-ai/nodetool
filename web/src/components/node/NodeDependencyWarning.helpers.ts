@@ -38,7 +38,7 @@ let fetchPromise: Promise<void> | null = null;
 
 function toStatusMap(
   statuses: Array<{ id: string; installed: boolean }>
-): Record<string, boolean> {
+) {
   const map: Record<string, boolean> = {};
   for (const s of statuses) {
     map[s.id] = s.installed;

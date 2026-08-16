@@ -65,7 +65,7 @@ const OPENABLE_TYPES = [
 
 type OpenableType = (typeof OPENABLE_TYPES)[number];
 
-const TAB_TYPE: Record<OpenableType, WorkspaceTabType> = {
+const TAB_TYPE = {
   workflow: "workflow",
   timeline: "timeline",
   storyboard: "storyboard",
@@ -73,9 +73,9 @@ const TAB_TYPE: Record<OpenableType, WorkspaceTabType> = {
   jsscript: "jsscript",
   sketch: "sketch",
   app: "application"
-};
+} satisfies Record<OpenableType, WorkspaceTabType>;
 
-const LABEL: Record<OpenableType, string> = {
+const LABEL = {
   workflow: "workflow",
   timeline: "timeline sequence",
   storyboard: "storyboard",
@@ -83,7 +83,7 @@ const LABEL: Record<OpenableType, string> = {
   jsscript: "JS script",
   sketch: "image document",
   app: "app"
-};
+} satisfies Record<OpenableType, string>;
 
 /**
  * True once the document's editor has mounted *and* loaded — the point at
@@ -92,10 +92,7 @@ const LABEL: Record<OpenableType, string> = {
  * flight, and an agent that read the snapshot then would see an empty
  * document. Each probe therefore checks the loaded document's own id.
  */
-const isReady: Record<
-  OpenableType,
-  (id: string, ctx: FrontendToolContext) => boolean
-> = {
+const isReady = {
   workflow: (id, ctx) => ctx.getState().getNodeStore(id) !== undefined,
   timeline: (id) =>
     hasTimelineAgentHandler(id) &&
@@ -113,7 +110,7 @@ const isReady: Record<
     hasSketchAgentHandler(id) &&
     getSketchAgentHandler(id).getSnapshot().documentId === id,
   app: (id) => hasPuckAgentHandler(id)
-};
+} satisfies Record<OpenableType, (id: string, ctx: FrontendToolContext) => boolean>;
 
 
 /**

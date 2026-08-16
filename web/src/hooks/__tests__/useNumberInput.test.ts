@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useValueCalculation, useDragHandling } from "../useNumberInput";
 import { InputProps, NumberInputState } from "../../components/inputs/NumberInput";
 
@@ -40,7 +41,7 @@ describe("useNumberInput", () => {
     } as InputProps);
 
     const createContainerRef = () => ({
-      current: {
+      current: stub<HTMLDivElement>({
         getBoundingClientRect: () => ({
           top: 100,
           bottom: 140,
@@ -48,8 +49,11 @@ describe("useNumberInput", () => {
           right: 250,
           width: 200,
           height: 40,
+          x: 50,
+          y: 100,
+          toJSON: () => ({}),
         }),
-      } as unknown as HTMLDivElement,
+      }),
     });
 
     const createDragStateRef = () => ({

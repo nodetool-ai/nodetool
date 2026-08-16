@@ -289,10 +289,7 @@ export function resolvePackTrust(
  * ephemeral `NODETOOL_PACKS_ALLOWLIST` env override is never baked into the
  * config file for a field the caller didn't set.
  */
-export function readPackTrustFromFile(): {
-  allow?: string[];
-  allowUnlisted?: boolean;
-} {
+export function readPackTrustFromFile() {
   const f = readPacksConfigFile();
   return { allow: f.allow, allowUnlisted: f.allowUnlisted };
 }
@@ -345,7 +342,7 @@ function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile 
  * from the map keep their install default (`defaultEnabled` in the catalog).
  * The server applies this at bootstrap; changes take effect on restart.
  */
-export function readBuiltinPackOverrides(): Record<string, boolean> {
+export function readBuiltinPackOverrides() {
   const config = readPacksConfigFile();
   const overrides: Record<string, boolean> = {};
   for (const id of config.disabledBuiltins ?? []) overrides[id] = false;
@@ -692,7 +689,7 @@ function resolveEntry(pkg: PackageJsonShape): string | undefined {
  * Conditions may nest (e.g. `{ import: { types: "...", default: "x.js" } }`),
  * so recurse until a string target is found. Depth-capped against cycles.
  */
-function pickExportCondition(dot: unknown, depth = 0): unknown {
+function pickExportCondition(dot: unknown, depth = 0): string | undefined {
   // Stryker disable next-line ConditionalExpression: a nullish or non-object dot has no conditions to pick — every guard variant resolves to undefined and falls through to `main` (covered by the exports/main entry tests).
   if (!dot || typeof dot !== "object" || depth > 4) return undefined;
   const conds = dot as Record<string, unknown>;

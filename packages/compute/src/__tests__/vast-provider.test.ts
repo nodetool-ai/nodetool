@@ -11,13 +11,16 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 function jsonResponse(body: unknown, status = 200, ok = true): Response {
-  return {
-    ok,
-    status,
-    json: () => Promise.resolve(body),
-    text: () => Promise.resolve(JSON.stringify(body)),
-    headers: new Headers(),
-  } as unknown as Response;
+  const partial: Pick<Response, "ok" | "status" | "json" | "text" | "headers"> =
+    {
+      ok,
+      status,
+      json: () => Promise.resolve(body),
+      text: () => Promise.resolve(JSON.stringify(body)),
+      headers: new Headers(),
+    };
+  // SAFETY: the code under test reads only ok/status/json/text/headers.
+  return partial as Response;
 }
 
 beforeEach(() => {
@@ -44,7 +47,7 @@ function baseSpec(overrides: Partial<WorkerSpec> = {}): WorkerSpec {
 /** A ready instance object as returned by GET /instances/{id}/. */
 function readyInstance(
   overrides: Record<string, unknown> = {}
-): Record<string, unknown> {
+) {
   return {
     id: 9001,
     actual_status: "running",

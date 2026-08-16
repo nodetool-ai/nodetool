@@ -1,11 +1,9 @@
 import React, { memo } from "react";
-import { CodeBlock } from "./CodeBlock";
+import { CodeBlock, type CodeBlockProps } from "./CodeBlock";
 
-interface PreRendererProps {
+interface PreRendererProps extends React.ComponentPropsWithoutRef<"pre"> {
   node?: unknown;
-  children?: React.ReactNode;
   onInsert?: (text: string, language?: string) => void;
-  [key: string]: unknown;
 }
 
 export const PreRenderer: React.FC<PreRendererProps> = memo(({
@@ -30,7 +28,7 @@ export const PreRenderer: React.FC<PreRendererProps> = memo(({
     // Forward the original <code> props and flag this as coming from a <pre>.
     return (
       <CodeBlock
-        {...(codeBlockChild.props as Record<string, unknown>)}
+        {...(codeBlockChild.props as CodeBlockProps)}
         _isFromPre={true}
         onInsert={props.onInsert}
       />

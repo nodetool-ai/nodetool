@@ -35,13 +35,7 @@ export interface PopoverProps extends MuiPopoverProps {
   paperSx?: SxProps<Theme>;
 }
 
-const PLACEMENT_MAP: Record<
-  PopoverPlacement,
-  {
-    anchorOrigin: MuiPopoverProps["anchorOrigin"];
-    transformOrigin: MuiPopoverProps["transformOrigin"];
-  }
-> = {
+const PLACEMENT_MAP = {
   "bottom-left": {
     anchorOrigin: { vertical: "bottom", horizontal: "left" },
     transformOrigin: { vertical: "top", horizontal: "left" }
@@ -66,7 +60,13 @@ const PLACEMENT_MAP: Record<
     anchorOrigin: { vertical: "top", horizontal: "center" },
     transformOrigin: { vertical: "bottom", horizontal: "center" }
   }
-};
+} satisfies Record<
+  PopoverPlacement,
+  {
+    anchorOrigin: MuiPopoverProps["anchorOrigin"];
+    transformOrigin: MuiPopoverProps["transformOrigin"];
+  }
+>;
 
 /**
  * Popover - Simplified popover with semantic positioning
@@ -105,14 +105,18 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   const placed = PLACEMENT_MAP[placement];
 
   // Compute border radius with type guard since borderRadius can be string | number
-  const borderRadiusValue = typeof theme.shape.borderRadius === "number"
-    ? theme.shape.borderRadius / 4
-    : undefined;
+  const borderRadiusValue =
+    typeof theme.shape.borderRadius === "number"
+      ? theme.shape.borderRadius / 4
+      : undefined;
 
   // Preserve any sx the caller passed on the paper slot instead of clobbering
   // it. Compose as an array (MUI flattens these) so the primitive's defaults
   // sit underneath both the caller's slot sx and the `paperSx` convenience prop.
   const paperSlot = slotProps?.paper;
+  // Only an object slot has props worth carrying; a function or callback slot
+  // has nothing to spread.
+  const paperSlotObject = typeof paperSlot === "object" ? paperSlot : undefined;
   const callerPaperSx =
     paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
       ? (paperSlot as { sx?: SxProps<Theme> }).sx
@@ -129,7 +133,7 @@ const PopoverInternal: React.FC<PopoverProps> = ({
       slotProps={{
         ...slotProps,
         paper: {
-          ...(typeof paperSlot === "object" ? paperSlot : {}),
+          ...paperSlotObject,
           sx: [
             {
               borderRadius: borderRadiusValue,

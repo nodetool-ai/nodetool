@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
@@ -31,7 +32,7 @@ describe("useNamespaceTree", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    (useMetadataStore as unknown as jest.Mock).mockImplementation((selector?: any) => {
+    asMock(useMetadataStore).mockImplementation((selector?: any) => {
       const state = { metadata: mockMetadata };
       return selector ? selector(state) : state;
     });
@@ -80,7 +81,7 @@ describe("useNamespaceTree", () => {
         "node7": { namespace: "openai.chat", type: "nodetool.openai.Chat2" }
       };
       
-      (useMetadataStore as unknown as jest.Mock).mockImplementation((selector?: any) => {
+      asMock(useMetadataStore).mockImplementation((selector?: any) => {
         const state = { metadata: duplicateMetadata };
         return selector ? selector(state) : state;
       });
@@ -173,7 +174,7 @@ describe("useNamespaceTree", () => {
         "node1": { namespace: "provider.category.subcategory", type: "nodetool.test.Node" }
       };
       
-      (useMetadataStore as unknown as jest.Mock).mockImplementation((selector?: any) => {
+      asMock(useMetadataStore).mockImplementation((selector?: any) => {
         const state = { metadata: nestedMetadata };
         return selector ? selector(state) : state;
       });
@@ -194,7 +195,7 @@ describe("useNamespaceTree", () => {
     };
 
     beforeEach(() => {
-      (useMetadataStore as unknown as jest.Mock).mockImplementation(
+      asMock(useMetadataStore).mockImplementation(
         (selector?: any) => {
           const state = { metadata: metadataWithOptional };
           return selector ? selector(state) : state;

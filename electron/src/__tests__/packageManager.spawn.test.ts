@@ -11,6 +11,10 @@
  */
 
 import { EventEmitter } from "events";
+import * as config from "../config";
+import * as events from "../events";
+import * as utils from "../utils";
+import * as torchPlatformCache from "../torchPlatformCache";
 
 jest.mock("child_process", () => ({ spawn: jest.fn() }));
 jest.mock("electron", () => ({
@@ -19,27 +23,23 @@ jest.mock("electron", () => ({
     getPath: jest.fn().mockReturnValue("/mock/userData"),
   },
 }));
-jest.mock("../config", () => ({
-  getProcessEnv: jest.fn().mockReturnValue({
-    PATH: "/mock/path",
-    PYTHONHOME: "/should/be/scrubbed",
-    PYTHONPATH: "/should/be/scrubbed",
-    NODE_ENV: "production",
-  }),
-  getPythonPath: jest.fn().mockReturnValue("/mock/conda/bin/python"),
-  getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
-}));
-jest.mock("../logger", () => ({ logMessage: jest.fn() }));
-jest.mock("../events", () => ({
-  emitServerLog: jest.fn(),
-  emitBootMessage: jest.fn(),
-}));
-jest.mock("../utils", () => ({
-  fileExists: jest.fn().mockResolvedValue(true),
-}));
-jest.mock("../torchPlatformCache", () => ({
-  getTorchIndexUrl: jest.fn().mockReturnValue(""),
-}));
+// Real collaborator modules; only the calls that would read the filesystem or
+// a Python/conda install are stubbed on them.
+jest.spyOn(config, "getProcessEnv").mockReturnValue({
+  PATH: "/mock/path",
+  PYTHONHOME: "/should/be/scrubbed",
+  PYTHONPATH: "/should/be/scrubbed",
+  NODE_ENV: "production",
+});
+jest.spyOn(config, "getPythonPath").mockReturnValue("/mock/conda/bin/python");
+jest.spyOn(config, "getCondaEnvPath").mockReturnValue("/mock/conda");
+
+jest.spyOn(events, "emitServerLog").mockImplementation(() => {});
+jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
+
+jest.spyOn(utils, "fileExists").mockResolvedValue(true);
+
+jest.spyOn(torchPlatformCache, "getTorchIndexUrl").mockReturnValue("");
 
 const { spawn } = require("child_process");
 

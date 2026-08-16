@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useAssetGridShortcuts } from "../useAssetGridShortcuts";
 import { Asset } from "../../../stores/ApiTypes";
 
@@ -23,7 +24,7 @@ jest.mock("../../../stores/KeyPressedStore", () => ({
 }));
 
 jest.mock("zustand/react/shallow", () => ({
-  useShallow: (selector: unknown) => selector
+  useShallow: <T,>(selector: T) => selector
 }));
 
 const storeState = {
@@ -39,12 +40,12 @@ const storeState = {
 };
 
 jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: (state: typeof storeState) => unknown) =>
+  useAssetGridStore: <T,>(selector: (state: typeof storeState) => T) =>
     selector(storeState)
 }));
 
 const createAsset = (id: string, content_type = "image/png"): Asset =>
-  ({
+  stub<Asset>({
     id,
     user_id: "u",
     workflow_id: null,
@@ -56,7 +57,7 @@ const createAsset = (id: string, content_type = "image/png"): Asset =>
     get_url: "url",
     thumb_url: null,
     duration: null
-  } as unknown as Asset);
+  });
 
 const comboKey = (combo: string[]) => [...combo].sort().join("+");
 const find = (combo: string[]) =>

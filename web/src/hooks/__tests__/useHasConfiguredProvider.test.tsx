@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 
 import { useHasConfiguredProvider } from "../useHasConfiguredProvider";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -11,7 +12,7 @@ import type { SecretResponse } from "../../stores/ApiTypes";
 jest.mock("../../stores/SecretsStore");
 jest.mock("../useOAuthConnection");
 
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
@@ -28,8 +29,9 @@ const oauthState = (isConnected: boolean): OAuthConnection => ({
 });
 
 const withSecrets = (secrets: SecretResponse[]): void => {
-  mockUseSecretsStore.mockImplementation((selector: (s: unknown) => unknown) =>
-    selector({ secrets, fetchSecrets })
+  mockUseSecretsStore.mockImplementation(
+    <T,>(selector: (s: { secrets: typeof secrets; fetchSecrets: jest.Mock }) => T) =>
+      selector({ secrets, fetchSecrets })
   );
 };
 

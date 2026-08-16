@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import {
@@ -34,7 +35,7 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 
 describe("useGenerateLayer", () => {
   const jobHandlers = new Map<string, (msg: Record<string, unknown>) => void>();
-  const cancelMutate = trpcClient.jobs.cancel.mutate as unknown as jest.Mock;
+  const cancelMutate = asMock(trpcClient.jobs.cancel.mutate);
 
   const baseBinding = {
     documentId: "doc-1",

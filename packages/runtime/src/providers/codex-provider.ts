@@ -37,10 +37,7 @@ import type {
   TextToImageParams,
   ToolCall
 } from "./types.js";
-import {
-  isProviderSessionUpdate,
-  isProviderMessageEvent
-} from "./types.js";
+import { isProviderSessionUpdate, isProviderMessageEvent } from "./types.js";
 
 const log = createLogger("nodetool.runtime.codex");
 
@@ -66,6 +63,18 @@ interface PendingCall {
   callId: string;
   name: string;
   args: string;
+}
+
+/** The default headers a Codex client sends, with the account id when there is one. */
+function codexDefaultHeaders(
+  originator: string,
+  accountId: string | null | undefined
+) {
+  const headers: Record<string, string> = { originator };
+  if (accountId) {
+    headers["chatgpt-account-id"] = accountId;
+  }
+  return headers;
 }
 
 export class CodexProvider extends OpenAIProvider {
@@ -96,10 +105,7 @@ export class CodexProvider extends OpenAIProvider {
           new OpenAI({
             apiKey: key,
             baseURL: CODEX_BACKEND_BASE_URL,
-            defaultHeaders: {
-              originator,
-              ...(accountId ? { "chatgpt-account-id": accountId } : {})
-            }
+            defaultHeaders: codexDefaultHeaders(originator, accountId)
           })
       }
     );
@@ -110,7 +116,7 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /** The OAuth bearer is short-lived — never leak it into a container env. */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 
@@ -121,18 +127,25 @@ export class CodexProvider extends OpenAIProvider {
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const fallback: LanguageModel[] = [
-      { id: CODEX_FALLBACK_MODEL, name: CODEX_FALLBACK_MODEL, provider: PROVIDER_IDS.CODEX }
+      {
+        id: CODEX_FALLBACK_MODEL,
+        name: CODEX_FALLBACK_MODEL,
+        provider: PROVIDER_IDS.CODEX
+      }
     ];
     try {
       const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
-      const res = await fetch(url, { headers: this.buildHeaders("application/json") });
+      const res = await fetch(url, {
+        headers: this.buildHeaders("application/json")
+      });
       if (!res.ok) return fallback;
       const payload = (await res.json()) as {
         models?: Array<{ slug?: string; display_name?: string }>;
       };
       const models = (payload.models ?? [])
-        .filter((m): m is { slug: string; display_name?: string } =>
-          typeof m.slug === "string" && m.slug.length > 0
+        .filter(
+          (m): m is { slug: string; display_name?: string } =>
+            typeof m.slug === "string" && m.slug.length > 0
         )
         .map((m) => ({
           id: m.slug,
@@ -275,9 +288,9 @@ export class CodexProvider extends OpenAIProvider {
 
   // --- Responses API transport -------------------------------------------
 
-  private buildHeaders(accept = "text/event-stream"): Record<string, string> {
+  private buildHeaders(accept = "text/event-stream") {
     const version = codexClientVersion();
-    return {
+    const headers: Record<string, string> = {
       authorization: `Bearer ${this.accessToken}`,
       "content-type": "application/json",
       accept,
@@ -285,9 +298,12 @@ export class CodexProvider extends OpenAIProvider {
       "openai-beta": "responses=experimental",
       version,
       "user-agent": `${this.originator}/${version} (NodeTool)`,
-      session_id: globalThis.crypto.randomUUID(),
-      ...(this.accountId ? { "chatgpt-account-id": this.accountId } : {})
+      session_id: globalThis.crypto.randomUUID()
     };
+    if (this.accountId) {
+      headers["chatgpt-account-id"] = this.accountId;
+    }
+    return headers;
   }
 
   /** Translate the cross-provider message list into Responses API input. */
@@ -296,7 +312,7 @@ export class CodexProvider extends OpenAIProvider {
     model: string;
     tools?: ProviderTool[];
     toolChoice?: string | "any";
-  }): Record<string, unknown> {
+  }) {
     const instructions = args.messages
       .filter((m) => m.role === "system")
       .map((m) => textOf(m.content))
@@ -535,8 +551,9 @@ export class CodexProvider extends OpenAIProvider {
       case "error": {
         const err =
           (event.error as Record<string, unknown> | undefined) ??
-          ((event.response as Record<string, unknown> | undefined)
-            ?.error as Record<string, unknown> | undefined);
+          ((event.response as Record<string, unknown> | undefined)?.error as
+            | Record<string, unknown>
+            | undefined);
         const message =
           (err && typeof err.message === "string" && err.message) ||
           "Codex response failed";
@@ -567,7 +584,8 @@ export class CodexProvider extends OpenAIProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) continue;
+      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item))
+        continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {
@@ -587,7 +605,9 @@ function textOf(content: Message["content"]): string {
   if (content == null) return "";
   if (typeof content === "string") return content;
   return content
-    .filter((c): c is Extract<MessageContent, { type: "text" }> => c.type === "text")
+    .filter(
+      (c): c is Extract<MessageContent, { type: "text" }> => c.type === "text"
+    )
     .map((c) => c.text)
     .join("");
 }

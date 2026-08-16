@@ -1,4 +1,5 @@
 import React from 'react';
+import { asMock } from "../../../test-utils/doubles";
 import { render } from '@testing-library/react';
 import ConnectionLine from '../ConnectionLine';
 import useConnectionStore from '../../../stores/ConnectionStore';
@@ -18,7 +19,7 @@ jest.mock('@xyflow/react', () => ({
   getSimpleBezierPath: jest.fn(() => ['M-simple'])
 }));
 
-(useConnectionStore as unknown as jest.Mock).mockImplementation((sel: any) =>
+asMock(useConnectionStore).mockImplementation((sel: any) =>
   sel({ connectType: { type: 'my-type' } })
 );
 

@@ -116,11 +116,10 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
 
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
-      console.info("Copying node data to clipboard", nodeData);
       addNotification({
         type: "info",
         alert: true,
-        content: "Copied Node Data to Clipboard!"
+        content: "Copied node data to the clipboard"
       });
       writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
       closeContextMenu();

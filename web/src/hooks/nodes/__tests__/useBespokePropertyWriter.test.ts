@@ -1,34 +1,33 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useBespokePropertyWriter } from "../useBespokePropertyWriter";
-
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
 
 jest.mock("../useInputNodeAutoRun", () => ({
   useNodeAutoRun: jest.fn()
 }));
 
-import { useNodes } from "../../../contexts/NodeContext";
 import { useNodeAutoRun } from "../useInputNodeAutoRun";
 
-const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
 const mockUseNodeAutoRun = useNodeAutoRun as jest.MockedFunction<
   typeof useNodeAutoRun
 >;
+
+const mockUpdateNodePropertiesFn = jest.fn();
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeProperties: mockUpdateNodePropertiesFn })
+);
 
 describe("useBespokePropertyWriter", () => {
   const nodeId = "node-1";
   const nodeType = "nodetool.image.Resize";
 
-  const mockUpdateNodeProperties = jest.fn();
+  const mockUpdateNodeProperties = mockUpdateNodePropertiesFn;
   const mockOnPropertyChange = jest.fn();
   const mockOnPropertyChangeComplete = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseNodes.mockReturnValue(mockUpdateNodeProperties);
     mockUseNodeAutoRun.mockReturnValue({
       onPropertyChange: mockOnPropertyChange,
       onPropertyChangeComplete: mockOnPropertyChangeComplete

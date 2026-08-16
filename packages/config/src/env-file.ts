@@ -17,7 +17,7 @@
  */
 
 /** Parse the text of a `.env` file into key/value pairs. */
-export function parseEnvFile(content: string): Record<string, string> {
+export function parseEnvFile(content: string) {
   const result: Record<string, string> = {};
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();

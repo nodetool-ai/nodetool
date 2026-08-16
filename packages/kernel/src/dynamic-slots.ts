@@ -72,7 +72,7 @@ export function getDynamicSlotTypeString(
  */
 export function dynamicSlotPropertyTypes(
   slots: Record<string, DynamicSlotMeta> | undefined
-): Record<string, string> {
+) {
   const result: Record<string, string> = {};
   if (!slots) return result;
   for (const [name, meta] of Object.entries(slots)) {
@@ -130,7 +130,10 @@ function inferValueType(value: unknown): TypeMetadata | undefined {
  *
  * Anything else is returned untouched.
  */
-function coerceToSlotType(value: unknown, declared: TypeMetadata): unknown {
+function coerceToSlotType<TValue>(
+  value: TValue,
+  declared: TypeMetadata
+): TValue | TValue[] {
   if (
     declared.isListType() &&
     value !== null &&

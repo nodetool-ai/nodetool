@@ -21,6 +21,7 @@ import type {
   JsScriptInteractionRecord,
   JsScriptValidation
 } from "@nodetool-ai/execution/js-script-debug";
+import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptInteractionStep } from "./interactions.js";
 import {
@@ -83,13 +84,18 @@ export type JsScriptExecutor = (
 /** The bridge surface this host drives — one tool per `ui_jsscript_*` name. */
 export interface JsScriptBridgeTool {
   name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_jsscript_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
 export interface JsScriptBridge {
   tools: JsScriptBridgeTool[];
   document: () => JsScriptDocument;
-  finalState: () => unknown;
+  finalState: () => JsScriptBridgeFinalState;
 }
 
 export type CreateJsScriptBridge = (initial: {
@@ -143,13 +149,11 @@ async function loadCore(): Promise<JsScriptDebugCore> {
  */
 async function loadExecutor(): Promise<JsScriptExecutor> {
   const { runCodeBody } = await import("@nodetool-ai/agents");
-  const { FileStorageAdapter, ProcessingContext } = await import(
-    "@nodetool-ai/runtime"
-  );
+  const { FileStorageAdapter, ProcessingContext } =
+    await import("@nodetool-ai/runtime");
   const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
-  const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } = await import(
-    "@nodetool-ai/protocol/api-schemas/js-scripts.js"
-  );
+  const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } =
+    await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
 
   let seq = 0;
   return async (document, inputs, inputStreams) => {
@@ -160,16 +164,18 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
       initDb(getDefaultDbPath());
       secretResolver = getSecret;
     }
-    const context = new ProcessingContext({
+    const contextInit: ConstructorParameters<typeof ProcessingContext>[0] = {
       jobId: `jsscript-cli-${++seq}`,
       userId: "1",
-      storage: new FileStorageAdapter(getDefaultAssetsPath()),
-      ...(secretResolver ? { secretResolver } : {})
-    });
-    return runCodeBody(context, {
+      storage: new FileStorageAdapter(getDefaultAssetsPath())
+    };
+    if (secretResolver) {
+      contextInit.secretResolver = secretResolver;
+    }
+    const context = new ProcessingContext(contextInit);
+    const runOptions: Parameters<typeof runCodeBody>[1] = {
       code: document.code,
       inputs,
-      ...(inputStreams ? { inputStreams } : {}),
       packages: document.packages.map((pack) => pack.specifier),
       secrets: document.secrets,
       timeoutSeconds: Math.min(
@@ -177,33 +183,49 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
         JS_SCRIPT_MAX_TIMEOUT_SECONDS
       ),
       withToolbelt: true
-    });
+    };
+    if (inputStreams) {
+      runOptions.inputStreams = inputStreams;
+    }
+    return runCodeBody(context, runOptions);
   };
 }
 
 async function loadGrader(): Promise<
-  (document: JsScriptDocument, execute: JsScriptExecutor) => Promise<JsScriptTestReport>
+  (
+    document: JsScriptDocument,
+    execute: JsScriptExecutor
+  ) => Promise<JsScriptTestReport>
 > {
   const { gradeCodeCases } = await import("@nodetool-ai/agents");
   return async (document, execute) => {
     const report = await gradeCodeCases(
-      document.tests.map((testCase, index) => ({
-        name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
-        inputs: testCase.inputs ?? {},
-        ...(testCase.inputStreams
-          ? { inputStreams: testCase.inputStreams }
-          : {}),
-        ...(testCase.expect ? { expect: testCase.expect } : {}),
-        ...(testCase.expectedStreamed
-          ? { expectedStreamed: testCase.expectedStreamed }
-          : {})
-      })),
+      document.tests.map((testCase, index) => {
+        type GradedFields = {
+          name: string;
+          inputs: NonNullable<typeof testCase.inputs>;
+          inputStreams?: typeof testCase.inputStreams;
+          expect?: typeof testCase.expect;
+          expectedStreamed?: typeof testCase.expectedStreamed;
+        };
+        const graded: GradedFields = {
+          name:
+            testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
+          inputs: testCase.inputs ?? {}
+        };
+        if (testCase.inputStreams) {
+          graded.inputStreams = testCase.inputStreams;
+        }
+        if (testCase.expect) {
+          graded.expect = testCase.expect;
+        }
+        if (testCase.expectedStreamed) {
+          graded.expectedStreamed = testCase.expectedStreamed;
+        }
+        return graded;
+      }),
       (testCase) =>
-        execute(
-          document,
-          testCase.inputs,
-          testCase.inputStreams
-        ) as ReturnType<
+        execute(document, testCase.inputs, testCase.inputStreams) as ReturnType<
           Parameters<typeof gradeCodeCases>[1]
         >
     );
@@ -214,9 +236,13 @@ async function loadGrader(): Promise<
 async function loadBridgeFactory(): Promise<CreateJsScriptBridge> {
   const { createJsScriptToolBridge } = await import("@nodetool-ai/agents");
   return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the script document types independently, and that
+    // duplication is the only reason the structures do not line up.
     createJsScriptToolBridge(
       initial as Parameters<typeof createJsScriptToolBridge>[0]
-    ) as unknown as JsScriptBridge;
+    ) as JsScriptBridge;
 }
 
 function defaultOutDir(ref: string): string {
@@ -236,14 +262,15 @@ function defaultOutDir(ref: string): string {
  * one.
  */
 async function asDocument(raw: unknown): Promise<JsScriptDocument> {
-  const { jsScriptDocument } = await import(
-    "@nodetool-ai/protocol/api-schemas/js-scripts.js"
-  );
+  const { jsScriptDocument } =
+    await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
   const parsed = jsScriptDocument.safeParse(raw);
   if (!parsed.success) {
     throw new Error(
       `The document does not parse: ${parsed.error.issues
-        .map((issue) => `${issue.path.join(".") || "document"}: ${issue.message}`)
+        .map(
+          (issue) => `${issue.path.join(".") || "document"}: ${issue.message}`
+        )
         .join("; ")}`
     );
   }
@@ -338,10 +365,13 @@ export async function runJsScriptDebug(
 
   if (steps.length > 0) {
     const createBridge = deps.createBridge ?? (await loadBridgeFactory());
-    const bridge = createBridge({
-      ...(resolved.target.name ? { name: resolved.target.name } : {}),
+    const bridgeInit: Parameters<typeof createBridge>[0] = {
       document: (await asDocument(resolved.raw)) as Partial<JsScriptDocument>
-    });
+    };
+    if (resolved.target.name) {
+      bridgeInit.name = resolved.target.name;
+    }
+    const bridge = createBridge(bridgeInit);
     const byName = new Map(bridge.tools.map((t) => [t.name, t]));
 
     for (const step of steps) {
@@ -381,13 +411,18 @@ export async function runJsScriptDebug(
     finalDocument = bridge.document();
   }
 
-  const report = await core.buildJsScriptDebugReport({
+  const reportInput: Parameters<typeof core.buildJsScriptDebugReport>[0] = {
     target: resolved.target,
     document: resolved.raw,
-    interactions,
-    ...(snapshot !== undefined ? { finalState: snapshot } : {}),
-    ...(finalDocument !== undefined ? { finalDocument } : {})
-  });
+    interactions
+  };
+  if (snapshot !== undefined) {
+    reportInput.finalState = snapshot;
+  }
+  if (finalDocument !== undefined) {
+    reportInput.finalDocument = finalDocument;
+  }
+  const report = await core.buildJsScriptDebugReport(reportInput);
 
   const bundleDir = options.outDir
     ? resolve(options.outDir)

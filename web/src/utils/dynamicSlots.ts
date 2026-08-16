@@ -91,7 +91,7 @@ export const normalizeDynamicSlot = (raw: unknown): DynamicSlotDeclaration => {
 /** Normalize a whole `dynamic_inputs` map. */
 export const normalizeDynamicSlots = (
   raw: Record<string, unknown> | undefined | null
-): Record<string, DynamicSlotDeclaration> => {
+) => {
   const out: Record<string, DynamicSlotDeclaration> = {};
   for (const [name, slot] of Object.entries(raw ?? {})) {
     out[name] = normalizeDynamicSlot(slot);
@@ -114,7 +114,9 @@ export const isTypedSlot = (slot: unknown): boolean =>
   normalizeDynamicSlot(slot).type.type !== "any";
 
 /** Inline value a freshly created slot of `type` starts with. */
-export const defaultValueForType = (type: TypeMetadata): unknown => {
+export const defaultValueForType = (
+  type: TypeMetadata
+): string | number | boolean | unknown[] | object | null => {
   switch (type.type) {
     case "str":
     case "text":

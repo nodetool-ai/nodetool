@@ -75,15 +75,16 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     this.apiKey = apiKey;
-    this._client =
-      options.client ??
-      new Replicate({
-        auth: apiKey,
-        ...(options.fetchFn ? { fetch: options.fetchFn } : {})
-      });
+    const replicateOptions: ConstructorParameters<typeof Replicate>[0] = {
+      auth: apiKey
+    };
+    if (options.fetchFn) {
+      replicateOptions.fetch = options.fetchFn;
+    }
+    this._client = options.client ?? new Replicate(replicateOptions);
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return { REPLICATE_API_TOKEN: this.apiKey };
   }
 
@@ -103,7 +104,7 @@ export class ReplicateProvider extends BaseProvider {
   private _formatChatInput(
     messages: Message[],
     maxTokens?: number
-  ): Record<string, unknown> {
+  ) {
     let systemPrompt = "";
     const parts: string[] = [];
 
@@ -932,7 +933,7 @@ export class ReplicateProvider extends BaseProvider {
   private imageInput(
     modelId: string,
     images: Uint8Array[]
-  ): Record<string, unknown> {
+  ) {
     const dataUris = images
       .filter((b) => b && b.length > 0)
       .map((b) => this.dataUri(b, "image/png"));
@@ -1025,7 +1026,7 @@ export class ReplicateProvider extends BaseProvider {
   private pruneToDeclaredInputs(
     modelId: string,
     input: Record<string, unknown>
-  ): Record<string, unknown> {
+  ) {
     const declared = getModelInputNames(
       "@nodetool-ai/replicate-nodes",
       "replicate-manifest.json",

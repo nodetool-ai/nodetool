@@ -8,6 +8,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
@@ -22,14 +23,14 @@ jest.mock("../hooks/useSketchIsMobile", () => ({
   useSketchIsMobile: () => mockIsMobile()
 }));
 
-const segmentation = {
+const segmentation = stub<ReturnType<typeof useSegmentation>>({
   status: "idle",
   modelInfo: null,
   applyResult: jest.fn(),
   discardResult: jest.fn(),
   cancelSegmentation: jest.fn(),
   checkModel: jest.fn()
-} as unknown as ReturnType<typeof useSegmentation>;
+});
 
 const props: ConnectedToolTopBarProps = {
   adjBrightness: 0,

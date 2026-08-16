@@ -168,9 +168,9 @@ export function useDeleteEntity(): UseMutationResult<void, Error, string> {
   return useMutation({
     mutationFn: async (assetId: string): Promise<void> => {
       const asset = await trpcClient.assets.get.query({ id: assetId });
-      const nextMetadata: Record<string, unknown> = {
+      const nextMetadata = {
         ...(asset.metadata ?? {})
-      };
+      } satisfies Record<string, unknown>;
       delete nextMetadata[ENTITY_METADATA_KEY];
       await trpcClient.assets.update.mutate({
         id: assetId,

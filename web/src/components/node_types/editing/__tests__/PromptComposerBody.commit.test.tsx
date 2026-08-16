@@ -15,6 +15,7 @@
  * irrelevant to the commit behaviour and only add weight to the render.
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, act } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -108,7 +109,7 @@ const renderWithTheme = (ui: React.ReactElement) => {
 };
 
 const makeProps = (initialPrompt: string) =>
-  ({
+  stub<Parameters<typeof PromptComposerBody>[0]>({
     id: "node-1",
     nodeType: "nodetool.text.Prompt",
     nodeMetadata: {
@@ -123,7 +124,7 @@ const makeProps = (initialPrompt: string) =>
     },
     workflowId: "wf-1",
     isOutputNode: false
-  }) as unknown as Parameters<typeof PromptComposerBody>[0];
+  });
 
 // A stand-in for Lexical's EditorState whose `read` simply runs the callback;
 // $serializePrompt is mocked, so no Lexical context is required.

@@ -42,7 +42,7 @@ type SharpModule = SharpModuleNs | { default: SharpFn };
 async function loadSharp(): Promise<SharpFn> {
   const mod = await importHidden<SharpModule>("sharp");
   if (!mod) throw new Error("sharp requires Node");
-  return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
+  return "default" in mod ? mod.default : mod;
 }
 
 const log = createLogger("nodetool.runtime.providers.openai");
@@ -112,7 +112,7 @@ function toInt16Samples(bytes: Uint8Array): Int16Array {
   return new Int16Array(copy.buffer);
 }
 
-function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
+function parseDataUri(uri: string) {
   const idx = uri.indexOf(",");
   if (idx < 0) {
     throw new Error("Invalid data URI");
@@ -157,7 +157,16 @@ function openAiAudioFormat(
  * Custom JSON replacer that handles objects with toJSON() methods
  * and other non-serializable types. Mirrors Python's _default_serializer.
  */
-function defaultSerializer(_key: string, value: unknown): unknown {
+/** A value `JSON.stringify` can emit directly. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   if (value === null || value === undefined) return value;
   if (typeof value === "bigint") return Number(value);
   if (value instanceof Date) return value.toISOString();
@@ -168,18 +177,20 @@ function defaultSerializer(_key: string, value: unknown): unknown {
     "toJSON" in value &&
     typeof (value as { toJSON: unknown }).toJSON === "function"
   ) {
-    return (value as { toJSON: () => unknown }).toJSON();
+    // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
+    // value and, by that contract, produces a JSON-representable result.
+    return (value as { toJSON: () => JsonValue }).toJSON();
   }
   return value;
 }
 
-const RESPONSE_WEB_SEARCH_TOOL: Record<string, unknown> = {
+const RESPONSE_WEB_SEARCH_TOOL = {
   type: "web_search"
-};
+} satisfies Record<string, unknown>;
 
-const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
+const RESPONSE_IMAGE_GENERATION_TOOL = {
   type: "image_generation"
-};
+} satisfies Record<string, unknown>;
 
 const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
   [WEB_SEARCH_TOOL_NAME]: "web_search",
@@ -249,7 +260,9 @@ function responsesSystemPrompt(messages: Message[]): string {
  * null for any other stream item. The multi-megabyte base64 blob must be
  * absorbed here, never yielded onward as a chunk.
  */
-function imageContentFromChunk(item: unknown): MessageImageContent | null {
+function imageContentFromChunk(
+  item: ProviderStreamItem
+): MessageImageContent | null {
   if (
     !isRecord(item) ||
     item.type !== "chunk" ||
@@ -931,11 +944,19 @@ export class OpenAIProvider extends BaseProvider {
       }));
 
       if (typeof message.content === "string" || message.content == null) {
-        return {
-          role: "assistant",
-          content: message.content,
-          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
+        type AssistantFields = {
+          role: "assistant";
+          content: string | null | undefined;
+          tool_calls?: typeof toolCalls;
         };
+        const assistant: AssistantFields = {
+          role: "assistant",
+          content: message.content
+        };
+        if (toolCalls.length > 0) {
+          assistant.tool_calls = toolCalls;
+        }
+        return assistant;
       }
 
       const parts = await Promise.all(
@@ -944,11 +965,19 @@ export class OpenAIProvider extends BaseProvider {
         )
       );
 
-      return {
-        role: "assistant",
-        content: parts,
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
+      type AssistantFields2 = {
+        role: "assistant";
+        content: typeof parts;
+        tool_calls?: typeof toolCalls;
       };
+      const assistant: AssistantFields2 = {
+        role: "assistant",
+        content: parts
+      };
+      if (toolCalls.length > 0) {
+        assistant.tool_calls = toolCalls;
+      }
+      return assistant;
     }
 
     if (message.role !== "user") {
@@ -1078,6 +1107,9 @@ export class OpenAIProvider extends BaseProvider {
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
+    // SAFETY: the request is assembled field by field as a dictionary, which
+    // the SDK's closed param interface does not overlap; `stream: true` on it
+    // selects the streaming overload.
     const stream = (await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
       { signal: args.signal }
@@ -1214,6 +1246,8 @@ export class OpenAIProvider extends BaseProvider {
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
+    // SAFETY: as above — a dictionary request against the SDK's closed
+    // non-streaming param interface.
     const completion = await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
       { signal: args.signal }
@@ -1292,6 +1326,9 @@ export class OpenAIProvider extends BaseProvider {
     const client = this.getClient();
 
     this.recordRequestPayload(request);
+    // SAFETY: the SDK's `create` is overloaded over a closed param interface,
+    // while this request is assembled field by field; `stream: false` is set
+    // on it, so the SDK resolves a response object, not an async iterable.
     const response = (await (
       client.responses.create as unknown as ResponsesCreate
     ).call(client.responses, request, {
@@ -1481,6 +1518,9 @@ export class OpenAIProvider extends BaseProvider {
   ): AsyncGenerator<ProviderStreamItem> {
     const client = this.getClient();
     this.recordRequestPayload(request);
+    // SAFETY: as in `generateMessageResponses` — an overloaded SDK method over
+    // a closed param interface, given a request assembled field by field. The
+    // caller set `stream: true`, so the SDK resolves an async iterable.
     const stream = (await (
       client.responses.create as unknown as ResponsesCreate
     ).call(client.responses, request, {
@@ -1748,6 +1788,7 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
+    // SAFETY: a dictionary request against the SDK's closed image params.
     const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams,
       { signal: params.signal }
@@ -1868,6 +1909,7 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
+    // SAFETY: a dictionary request against the SDK's closed edit params.
     const response = (await this.getClient().images.edit(
       request as unknown as OpenAI.Images.ImageEditParams,
       { signal: params.signal }
@@ -2139,6 +2181,7 @@ export class OpenAIProvider extends BaseProvider {
       seconds: String(seconds)
     };
 
+    // SAFETY: a dictionary request against the SDK's closed video params.
     const video = await this.getClient().videos.create(
       request as unknown as OpenAI.Videos.VideoCreateParams,
       { signal: params.signal }
@@ -2300,11 +2343,16 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("text must not be empty");
     }
 
-    const response = await this.getClient().embeddings.create({
-      model: args.model,
-      input,
-      ...(args.dimensions ? { dimensions: args.dimensions } : {})
-    });
+    type RequestFields = {
+      model: string;
+      input: string[];
+      dimensions?: number;
+    };
+    const request: RequestFields = { model: args.model, input };
+    if (args.dimensions) {
+      request.dimensions = args.dimensions;
+    }
+    const response = await this.getClient().embeddings.create(request);
 
     return response.data.map((row) => row.embedding as number[]);
   }

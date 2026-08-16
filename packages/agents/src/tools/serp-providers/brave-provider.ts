@@ -21,11 +21,17 @@ interface BraveResponse {
   };
 }
 
+/** A failed Brave call, with whatever the API said about it. */
+interface BraveError {
+  error: string;
+  details?: unknown;
+}
+
 async function braveRequest(
   apiKey: string,
   query: string,
   numResults: number
-): Promise<BraveResponse | { error: string }> {
+): Promise<BraveResponse | BraveError> {
   const url = new URL(`${API_BASE}/web/search`);
   url.searchParams.set("q", query);
   url.searchParams.set("count", String(numResults));
@@ -48,7 +54,7 @@ async function braveRequest(
       return {
         error: `Brave Search request failed (${res.status}): ${res.statusText}`,
         details
-      } as unknown as { error: string };
+      };
     }
 
     return (await res.json()) as BraveResponse;
@@ -89,7 +95,7 @@ export class BraveProvider implements SerpProvider {
   async searchRaw(
     query: string,
     options?: SearchOptions
-  ): Promise<unknown> {
+  ): Promise<BraveResponse | { error: string }> {
     const numResults = options?.numResults ?? 10;
     return braveRequest(this.apiKey, query, numResults);
   }

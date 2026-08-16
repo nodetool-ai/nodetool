@@ -10,7 +10,7 @@ const mockNodeState = {
 };
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: typeof mockNodeState) => unknown) =>
+  useNodes: <T,>(selector: (state: typeof mockNodeState) => T) =>
     selector(mockNodeState)
 }));
 

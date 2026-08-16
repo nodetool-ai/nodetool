@@ -1,4 +1,5 @@
 import { act } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { restFetch } from "../../lib/rest-fetch";
 import { trpcClient } from "../../trpc/client";
 import { useCollectionStore } from "../CollectionStore";
@@ -225,7 +226,7 @@ describe("CollectionStore", () => {
 
   describe("drag and drop", () => {
     it("sets dragOverCollection on drag over", () => {
-      const event = { preventDefault: jest.fn() } as unknown as React.DragEvent;
+      const event = stub<React.DragEvent>({ preventDefault: jest.fn() });
       act(() => {
         useCollectionStore.getState().handleDragOver(event, "collection1");
       });
@@ -235,7 +236,7 @@ describe("CollectionStore", () => {
 
     it("clears dragOverCollection on drag leave", () => {
       useCollectionStore.setState({ dragOverCollection: "collection1" });
-      const event = { preventDefault: jest.fn() } as unknown as React.DragEvent;
+      const event = stub<React.DragEvent>({ preventDefault: jest.fn() });
       act(() => {
         useCollectionStore.getState().handleDragLeave(event);
       });
@@ -248,10 +249,10 @@ describe("CollectionStore", () => {
         new File(["a"], "a.txt", { type: "text/plain" }),
         new File(["b"], "b.txt", { type: "text/plain" })
       ];
-      const event = {
+      const event = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: { files }
-      } as unknown as React.DragEvent<HTMLDivElement>;
+      });
 
       mockRestFetch.mockResolvedValue({
         ok: true,
@@ -271,10 +272,10 @@ describe("CollectionStore", () => {
 
     it("collects per-file API errors", async () => {
       const file = new File(["a"], "bad.txt", { type: "text/plain" });
-      const event = {
+      const event = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: { files: [file] }
-      } as unknown as React.DragEvent<HTMLDivElement>;
+      });
 
       mockRestFetch.mockResolvedValue({
         ok: false,
@@ -297,10 +298,10 @@ describe("CollectionStore", () => {
     it("logs thrown upload exceptions", async () => {
       const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       const file = new File(["a"], "bad.txt", { type: "text/plain" });
-      const event = {
+      const event = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: { files: [file] }
-      } as unknown as React.DragEvent<HTMLDivElement>;
+      });
 
       mockRestFetch.mockRejectedValueOnce(new Error("network"));
       listQuery.mockResolvedValueOnce({ collections: [], count: 0 });
@@ -317,18 +318,18 @@ describe("CollectionStore", () => {
     });
 
     it("stale overlapping drop does not clobber the newer drop's progress", async () => {
-      const eventA = {
+      const eventA = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: {
           files: [new File(["a"], "a.txt", { type: "text/plain" })]
         }
-      } as unknown as React.DragEvent<HTMLDivElement>;
-      const eventB = {
+      });
+      const eventB = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: {
           files: [new File(["b"], "b.txt", { type: "text/plain" })]
         }
-      } as unknown as React.DragEvent<HTMLDivElement>;
+      });
 
       const okResponse = {
         ok: true,
@@ -365,10 +366,10 @@ describe("CollectionStore", () => {
     });
 
     it("returns early when no files dropped", async () => {
-      const event = {
+      const event = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
         dataTransfer: { files: [] }
-      } as unknown as React.DragEvent<HTMLDivElement>;
+      });
 
       await act(async () => {
         await useCollectionStore.getState().handleDrop("collection1")(event);

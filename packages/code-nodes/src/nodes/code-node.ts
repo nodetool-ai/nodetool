@@ -158,13 +158,13 @@ type AgentTool = InstanceType<AgentsModule["Tool"]>;
  * the prelude builds zero wrappers, `nodetool.capabilities()` returns `{}`,
  * and every `nodetool.*` method throws naming its missing tool.
  */
-const NO_TOOLS_GLOBALS: Record<string, unknown> = {
+const NO_TOOLS_GLOBALS = {
   __toolNames: [] as string[],
   __callTool: async () => ({
     ok: false as const,
     error: "no tools in this environment"
   })
-};
+} satisfies Record<string, unknown>;
 
 let agentsModulePromise: Promise<AgentsModule | null> | null = null;
 
@@ -980,7 +980,7 @@ export class CodeNode extends BaseNode {
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
 function extractDynamicInputs(
   inputs: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const reserved = new Set([
     "code",
     "script",
@@ -1001,13 +1001,23 @@ function extractDynamicInputs(
   return result;
 }
 
+/** A value that survived the JSON round trip: plain data, nested as it was. */
+type JsonSafeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonSafeValue[]
+  | { [key: string]: JsonSafeValue };
+
 /**
  * One value, deep-copied into JSON-safe form for the guest. The marshal rule
  * for a streamed item is the buffered one: plain data crosses, anything that
  * cannot be serialized becomes `null`. Media inputs are refs — plain objects —
  * so they survive and stay readable through `media.*`.
  */
-function jsonSafe(value: unknown): unknown {
+function jsonSafe(value: unknown): JsonSafeValue {
   if (value === null || value === undefined) return value;
   try {
     return JSON.parse(JSON.stringify(value));
@@ -1022,7 +1032,7 @@ function jsonSafe(value: unknown): unknown {
  */
 function deepCopyInputs(
   inputs: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     result[key] = jsonSafe(value);

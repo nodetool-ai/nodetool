@@ -50,10 +50,14 @@ export async function decodeImage(
   return null;
 }
 
+/**
+ * Find the node's source image: the first of the image-typed handles present
+ * on the incoming values, then on the node's own properties.
+ */
 export function pickImage(
   inputs: Record<string, unknown>,
   props: Record<string, unknown>
-): unknown {
+): ImageRefLike | null | undefined {
   const keys = [
     "image",
     "input",
@@ -65,11 +69,13 @@ export function pickImage(
     "base_image",
     "mask"
   ];
+  // SAFETY: every key listed is an image-typed handle on these nodes, so the
+  // value under one is that node's image input.
   for (const key of keys) {
-    if (key in inputs) return inputs[key];
+    if (key in inputs) return inputs[key] as ImageRefLike | undefined;
   }
   for (const key of keys) {
-    if (key in props) return props[key];
+    if (key in props) return props[key] as ImageRefLike | undefined;
   }
   return null;
 }

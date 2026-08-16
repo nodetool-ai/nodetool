@@ -1,4 +1,5 @@
 import { restFetch } from "../../lib/rest-fetch";
+import { stub } from "../../test-utils/doubles";
 import {
   exportApplicationBundle,
   importApplicationBundle
@@ -21,7 +22,7 @@ function fakeResponse(opts: {
   text?: string;
   disposition?: string;
 }): Response {
-  return {
+  return stub<Response>({
     ok: opts.ok,
     status: opts.status ?? (opts.ok ? 200 : 400),
     blob: async () => new Blob(["{}"]),
@@ -33,7 +34,7 @@ function fakeResponse(opts: {
           ? opts.disposition ?? null
           : null
     }
-  } as unknown as Response;
+  });
 }
 
 let lastAnchor: HTMLAnchorElement | null = null;
@@ -106,9 +107,9 @@ describe("exportApplicationBundle", () => {
 
 describe("importApplicationBundle", () => {
   const bundleFile = (): File =>
-    ({
+    stub<File>({
       text: async () => JSON.stringify({ schemaVersion: 1, name: "Copywriter" })
-    }) as unknown as File;
+    });
 
   it("posts the parsed bundle and returns the created app", async () => {
     mockRestFetch.mockResolvedValue(

@@ -4,7 +4,7 @@
 
 import { makeDemoAudio } from "../demoMedia";
 
-const decodeWav = (dataUri: string): { bytes: Uint8Array; dv: DataView } => {
+const decodeWav = (dataUri: string) => {
   const base64 = dataUri.replace("data:audio/wav;base64,", "");
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);

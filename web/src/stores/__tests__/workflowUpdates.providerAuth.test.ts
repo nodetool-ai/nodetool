@@ -1,6 +1,7 @@
 import type { NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import useProviderOnboardingStore from "../ProviderOnboardingStore";
 import { handleUpdate } from "../workflowUpdates";
+import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({
@@ -23,25 +24,24 @@ let nodeCounter = 0;
 const nodeError = (
   jobId: string,
   detail?: NodeUpdate["error_detail"]
-): NodeUpdate =>
-  ({
+): NodeUpdate => {
+  const update = stub<NodeUpdate>({
     type: "node_update",
     node_id: `node-${++nodeCounter}`,
     node_name: "Chat",
     node_type: "nodetool.llm.Chat",
     status: "error",
     error: "401 Incorrect API key",
-    ...(detail ? { error_detail: detail } : {}),
     job_id: jobId
-  }) as unknown as NodeUpdate;
+  });
+  if (detail) {
+    update.error_detail = detail;
+  }
+  return update;
+};
 
 const dispatch = (update: NodeUpdate) =>
-  handleUpdate(
-    mockWorkflow,
-    update,
-    mockRunnerStore as never,
-    () => undefined
-  );
+  handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
 const authDetail = {
   code: "provider_auth",

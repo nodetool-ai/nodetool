@@ -57,11 +57,7 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
   return t * t * (3 - 2 * t);
 }
 
-function getBlurBrushMask(radius: number): {
-  diameter: number;
-  radius: number;
-  data: Float32Array;
-} {
+function getBlurBrushMask(radius: number) {
   const safeRadius = Math.max(1, radius);
   const diameter = Math.max(1, Math.ceil(safeRadius * 2));
   const cacheKey = `${diameter}`;
@@ -193,11 +189,7 @@ function getBlurOutputImageData(width: number, height: number): ImageData {
   return created;
 }
 
-function getEffectiveBlurSettings(strength: number): {
-  radius: number;
-  blend: number;
-  passes: number;
-} {
+function getEffectiveBlurSettings(strength: number) {
   const normalized = Math.max(0, Math.min(1, (strength - 1) / 19));
   const radius = Math.max(1, 1 + Math.round(Math.pow(normalized, 1.5) * 7));
   const blend = 0.18 + normalized * 0.58;

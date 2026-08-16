@@ -16,6 +16,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { SketchDebugTarget } from "@nodetool-ai/execution/sketch-debug";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** An `image_documents` row as the harness needs it. */
 export interface ImageDocumentRecord {
   id: string;
@@ -91,16 +100,20 @@ function settingsOf(raw: unknown): SketchCanvasSettings {
 }
 
 /** A document is anything with a `sketch` object and a `layerBindings` array. */
-const looksLikeDocument = (value: unknown): boolean =>
-  isRecord(value) && isRecord(value.sketch) && Array.isArray(value.layerBindings);
+const looksLikeDocument = (value: JsonValue): boolean =>
+  isRecord(value) &&
+  isRecord(value.sketch) &&
+  Array.isArray(value.layerBindings);
 
 /**
  * The document a target carries, unwrapping a `document` field (string or
  * object) when there is one. Never throws — an unreadable document is a
  * validation finding, not a crash.
  */
-function documentOf(raw: unknown): unknown {
-  if (!isRecord(raw)) return raw;
+function documentOf(raw: unknown): JsonValue {
+  // SAFETY: a target is read from a JSON file or a json column, so every
+  // branch below carries decoded JSON.
+  if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
   if (typeof inner === "string") {
     try {
@@ -109,15 +122,16 @@ function documentOf(raw: unknown): unknown {
       return inner;
     }
   }
-  if (inner !== undefined) return inner;
-  return raw;
+  // SAFETY: same JSON provenance as the branch above.
+  if (inner !== undefined) return inner as JsonValue;
+  return raw as JsonValue;
 }
 
 const layerType = (value: unknown): SketchLayerView["type"] =>
   value === "mask" || value === "group" ? value : "raster";
 
 /** Read a document as a canvas + layer stack, defaulting what is missing. */
-function asDocument(raw: unknown): SketchDocumentView {
+function asDocument(raw: JsonValue): SketchDocumentView {
   const record = isRecord(raw) ? raw : {};
   const sketch = isRecord(record.sketch) ? record.sketch : {};
   const layers: SketchLayerView[] = [];
@@ -135,7 +149,8 @@ function asDocument(raw: unknown): SketchDocumentView {
     layers,
     activeLayerId:
       typeof sketch.activeLayerId === "string" ? sketch.activeLayerId : "",
-    maskLayerId: typeof sketch.maskLayerId === "string" ? sketch.maskLayerId : null
+    maskLayerId:
+      typeof sketch.maskLayerId === "string" ? sketch.maskLayerId : null
   };
 }
 
@@ -158,10 +173,16 @@ export async function resolveSketchTarget(
       );
     }
     const name =
-      isRecord(parsed) && typeof parsed.name === "string" ? parsed.name : undefined;
+      isRecord(parsed) && typeof parsed.name === "string"
+        ? parsed.name
+        : undefined;
     const document = asDocument(raw);
+    const target: SketchDebugTarget = { kind: "file", ref };
+    if (name) {
+      target.name = name;
+    }
     return {
-      target: { kind: "file", ref, ...(name ? { name } : {}) },
+      target,
       raw,
       document,
       // The wrapper's own width/height, never the canvas's: the validator
@@ -176,12 +197,12 @@ export async function resolveSketchTarget(
   }
   const raw = documentOf(record);
   const document = asDocument(raw);
+  const target: SketchDebugTarget = { kind: "id", ref };
+  if (record.name) {
+    target.name = record.name;
+  }
   return {
-    target: {
-      kind: "id",
-      ref,
-      ...(record.name ? { name: record.name } : {})
-    },
+    target,
     raw,
     document,
     meta: settingsOf(record)

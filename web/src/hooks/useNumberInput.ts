@@ -115,7 +115,7 @@ export const useDragHandling = (
 
         // Step 2: Convert to raw value change
         let rawValueChange: number;
-        if (typeof props.min === "number" && typeof props.max === "number") {
+        if (props.min != null && props.max != null) {
           const range = props.max - props.min;
           rawValueChange = visualPercentage * range;
         } else {

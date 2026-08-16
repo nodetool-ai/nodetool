@@ -140,7 +140,7 @@ export function kieModelKeyForRecord(record: KiePricingPageRecord): string | nul
  */
 export function aggregateKiePricingByModelId(
   records: readonly KiePricingPageRecord[],
-): Record<string, KieModelPricingSummary> {
+) {
   const grouped = new Map<string, KiePricingPageRecord[]>();
 
   for (const record of records) {

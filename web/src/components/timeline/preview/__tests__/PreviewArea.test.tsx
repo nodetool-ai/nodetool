@@ -59,7 +59,9 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
     getTimeMs: () => mockCurrentTimeMs,
     subscribeTime: mockSubscribeTime
   });
-  const useTimelinePlaybackStore = (selector: (s: unknown) => unknown) => {
+  const useTimelinePlaybackStore = <T,>(
+    selector: (s: ReturnType<typeof getState>) => T
+  ) => {
     const state = getState();
     return selector ? selector(state) : state;
   };
@@ -68,7 +70,9 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
 });
 
 jest.mock("../../../../stores/timeline/TimelineStore", () => ({
-  useTimelineStore: (selector: (s: unknown) => unknown) => {
+  useTimelineStore: <T,>(
+    selector: (s: { clips: unknown[]; tracks: unknown[]; durationMs: number }) => T
+  ) => {
     const state = {
       clips: [],
       tracks: [],
@@ -79,7 +83,7 @@ jest.mock("../../../../stores/timeline/TimelineStore", () => ({
 }));
 
 jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (s: unknown) => unknown) => {
+  useAssetStore: <T,>(selector: (s: { get: jest.Mock }) => T) => {
     const state = {
       get: jest.fn().mockResolvedValue(null)
     };

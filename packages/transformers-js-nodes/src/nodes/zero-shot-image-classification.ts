@@ -27,6 +27,13 @@ function parseLabels(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/** Output handles ZeroShotImageClassificationNode.process() emits. */
+type ZeroShotImageClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  results: ClassificationResult[];
+};
+
 export class ZeroShotImageClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ZeroShotImageClassification";
   static readonly inlineFields = ["candidate_labels"];
@@ -89,23 +96,25 @@ export class ZeroShotImageClassificationNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ZeroShotImageClassificationNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
     const labels = parseLabels(this.candidate_labels);
     if (labels.length === 0) {
       throw new Error("At least one candidate label is required");
     }
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: unknown,
+        labels: string[],
+        opts?: Record<string, unknown>
+      ) => Promise<ClassificationResult | ClassificationResult[]>
+    >({
       task: "zero-shot-image-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: unknown,
-      labels: string[],
-      opts?: Record<string, unknown>
-    ) => Promise<ClassificationResult | ClassificationResult[]>;
+    });
 
     const raw = await pipeline(rawImage, labels);
     const results = ensureArray<ClassificationResult>(raw);

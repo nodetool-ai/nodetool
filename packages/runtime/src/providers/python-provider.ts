@@ -195,7 +195,7 @@ export class PythonProvider extends BaseProvider {
   async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     return this._bridge.providerTextToImage(
       this._pythonProviderId,
-      params as unknown as Record<string, unknown>,
+      { ...params },
       this._secrets
     );
   }
@@ -207,7 +207,7 @@ export class PythonProvider extends BaseProvider {
     return this._bridge.providerImageToImage(
       this._pythonProviderId,
       images[0] ?? new Uint8Array(),
-      params as unknown as Record<string, unknown>,
+      { ...params },
       this._secrets
     );
   }
@@ -274,7 +274,7 @@ export class PythonProvider extends BaseProvider {
 
 // ── Wire format helpers ───────────────────────────────────────────────
 
-function serializeMessage(msg: Message): Record<string, unknown> {
+function serializeMessage(msg: Message) {
   const result: Record<string, unknown> = { role: msg.role };
 
   if (typeof msg.content === "string") {

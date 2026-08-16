@@ -8,6 +8,7 @@
  */
 
 import { MobileToolRegistry } from '../registry';
+import type { MobileToolResult } from '../registry';
 import '../scriptTools';
 import {
   registerDocumentHandler,
@@ -53,8 +54,9 @@ const snapshot = (): ScriptSnapshot => ({
   selectedLineId: null,
 });
 
+/** Every member keeps its real signature, so the double *is* a handler. */
 type MockHandler = {
-  [K in keyof ScriptAgentHandler]: jest.Mock;
+  [K in keyof ScriptAgentHandler]: ScriptAgentHandler[K] & jest.Mock;
 };
 
 const makeHandler = (): MockHandler => ({
@@ -72,10 +74,18 @@ const makeHandler = (): MockHandler => ({
   removeLine: jest.fn(() => lineNode('line-a', 0)),
   moveLine: jest.fn(() => lineNode('line-a', 2)),
   selectLine: jest.fn(() => lineNode('line-a', 0)),
-  save: jest.fn(async () => ({ ok: true, updatedAt: '2026-07-26T00:00:00Z' })),
+  save: jest.fn(
+    async (): Promise<{ ok: true; updatedAt: string | null }> => ({
+      ok: true,
+      updatedAt: '2026-07-26T00:00:00Z',
+    })
+  ),
 });
 
-const call = (name: string, args: Record<string, unknown>): Promise<unknown> =>
+const call = (
+  name: string,
+  args: Record<string, unknown>
+): Promise<MobileToolResult> =>
   MobileToolRegistry.call(name, args, `${name}-call`);
 
 describe('script tools', () => {
@@ -89,7 +99,7 @@ describe('script tools', () => {
       'script',
       'sc-1',
       'Test script',
-      handler as unknown as ScriptAgentHandler
+      handler
     );
   });
 

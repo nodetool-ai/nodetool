@@ -30,19 +30,26 @@ const RuntimeError: React.FC = () => {
     let latest: { startedAt: number; error: string } | undefined;
     for (const invocationId of Object.values(s.activeInvocation)) {
       const invocation = s.invocations[invocationId];
-      if (!invocation?.error) {continue;}
+      if (!invocation?.error) {
+        continue;
+      }
       if (!latest || invocation.startedAt > latest.startedAt) {
         latest = { startedAt: invocation.startedAt, error: invocation.error };
       }
     }
     return latest?.error;
   });
-  if (!error) {return null;}
+  if (!error) {
+    return null;
+  }
   return (
     <View
       style={[
         styles.errorBanner,
-        { backgroundColor: `${colors.error}12`, borderColor: `${colors.error}30` },
+        {
+          backgroundColor: `${colors.error}12`,
+          borderColor: `${colors.error}30`
+        }
       ]}
     >
       <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
@@ -70,14 +77,17 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
   applicationId,
   workflow,
   application,
-  title,
+  title
 }) => {
   const { colors } = useTheme();
-  const runtime = useAppRuntime(workflow, {
-    document,
-    ...(applicationId ? { instanceKey: applicationId } : {}),
-    ...(application ? { application } : {}),
-  });
+  const runtimeOptions: Parameters<typeof useAppRuntime>[1] = { document };
+  if (applicationId) {
+    runtimeOptions.instanceKey = applicationId;
+  }
+  if (application) {
+    runtimeOptions.application = application;
+  }
+  const runtime = useAppRuntime(workflow, runtimeOptions);
 
   const heading = String(document.ui.root.props?.title ?? title ?? "");
   const content = document.ui.content as ComponentNode[];
@@ -101,27 +111,27 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1
   },
   content: {
     padding: 16,
     paddingBottom: 32,
-    gap: 16,
+    gap: 16
   },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    letterSpacing: -0.4,
+    letterSpacing: -0.4
   },
   errorBanner: {
     padding: 14,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1
   },
   errorText: {
     fontSize: 14,
-    fontWeight: "600",
-  },
+    fontWeight: "600"
+  }
 });
 
 export default ApplicationAppView;

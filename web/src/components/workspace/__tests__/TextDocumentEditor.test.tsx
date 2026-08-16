@@ -1,4 +1,5 @@
 import React from "react";
+import { installGlobal, stub } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,11 +18,11 @@ jest.mock("../../textEditor/EditorToolbar", () => ({
 }));
 
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (s: { update: unknown }) => unknown) =>
+  useAssetStore: <T,>(selector: (s: { update: unknown }) => T) =>
     selector({ update: jest.fn() })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (selector: (s: { addNotification: unknown }) => unknown) =>
+  useNotificationStore: <T,>(selector: (s: { addNotification: unknown }) => T) =>
     selector({ addNotification: jest.fn() })
 }));
 
@@ -68,12 +69,12 @@ const renderEditor = (asset: Asset) => {
 };
 
 const csvAsset = (name: string): Asset =>
-  ({
+  stub<Asset>({
     id: "asset-1",
     name,
     content_type: "text/csv",
     get_url: `http://localhost/${name}`
-  }) as unknown as Asset;
+  });
 
 describe("TextDocumentEditor — CSV add row", () => {
   beforeEach(() => {
@@ -81,10 +82,10 @@ describe("TextDocumentEditor — CSV add row", () => {
   });
 
   const mockCsvText = (text: string) => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: async () => text
-    }) as unknown as typeof fetch;
+    installGlobal(
+      "fetch",
+      jest.fn().mockResolvedValue({ ok: true, text: async () => text })
+    );
   };
 
   it("keeps the appended row for a single-column CSV", async () => {

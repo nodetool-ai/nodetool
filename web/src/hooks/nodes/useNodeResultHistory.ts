@@ -20,6 +20,7 @@ import { trpcClient } from "../../trpc/client";
 import type { Asset } from "../../stores/ApiTypes";
 import { normalizeAssetList } from "../../utils/normalizeAsset";
 import { assetToOutputValue } from "../../utils/nodeGenerations";
+import type { OutputPreviewValue } from "../../utils/nodeGenerations";
 
 export interface UseNodeResultHistoryResult {
   assetHistory: Asset[];
@@ -27,7 +28,8 @@ export interface UseNodeResultHistoryResult {
   lastJobAssets: Asset[];
   lastJobId: string | null;
   isLoading: boolean;
-  refresh: () => Promise<unknown>;
+  /** Re-runs the asset query; no caller reads the result. */
+  refresh: () => void;
   workflowId: string | null;
 }
 
@@ -48,7 +50,9 @@ export const nodeAssetsQueryKey = (nodeId: string | null) =>
  * or an array (multi-asset job). Returns `undefined` for an empty list so
  * callers can use it as a `??` fallback against live results.
  */
-export const assetsToPreviewValue = (assets: Asset[]): unknown => {
+export const assetsToPreviewValue = (
+  assets: Asset[]
+): OutputPreviewValue | OutputPreviewValue[] | undefined => {
   if (assets.length === 0) return undefined;
   const values = assets.map(assetToOutputValue);
   return values.length === 1 ? values[0] : values;

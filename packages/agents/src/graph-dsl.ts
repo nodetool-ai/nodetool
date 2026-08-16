@@ -65,7 +65,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
  * `return graph()`; anything else (returning a node ref, a string, nothing)
  * gets an actionable message instead of a crash downstream.
  */
-function toGraphData(result: unknown): { graph?: GraphData; error?: string } {
+function toGraphData(result: unknown) {
   const record = asRecord(result);
   if (
     !record ||

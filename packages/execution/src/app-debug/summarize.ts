@@ -59,7 +59,10 @@ export function summarizeAppReport(report: AppDebugReport): AppDebugSummary {
   // unbound output or a local-only input would otherwise be dropped here, and
   // they are exactly what a static check is for.
   const warnings = [
-    ...new Set([...(report.verdict.warnings ?? []), ...report.validation.warnings])
+    ...new Set([
+      ...(report.verdict.warnings ?? []),
+      ...report.validation.warnings
+    ])
   ];
   return {
     target: {
@@ -76,25 +79,52 @@ export function summarizeAppReport(report: AppDebugReport): AppDebugSummary {
       issues: report.verdict.issues,
       warnings
     },
-    widgets: report.widgets.map((widget) => ({
-      id: widget.id,
-      type: widget.type,
-      binding: widget.binding,
-      hasValue: widget.hasValue,
-      visible: widget.visible,
-      disabled: widget.disabled,
-      ...(widget.display != null ? { display: widget.display } : {})
-    })),
-    invocations: report.invocations.map((invocation) => ({
-      id: invocation.id,
-      operationId: invocation.operationId,
-      status: invocation.status,
-      decision: invocation.decision,
-      ...(invocation.error ? { error: invocation.error } : {}),
-      ...(invocation.timedOutMs != null
-        ? { timedOutMs: invocation.timedOutMs }
-        : {})
-    })),
+    widgets: report.widgets.map((widget) => {
+      type SummaryFields = {
+        id: string;
+        type: string;
+        binding: string | null;
+        hasValue: boolean;
+        visible: boolean;
+        disabled: boolean;
+        display?: string;
+      };
+      const summary: SummaryFields = {
+        id: widget.id,
+        type: widget.type,
+        binding: widget.binding,
+        hasValue: widget.hasValue,
+        visible: widget.visible,
+        disabled: widget.disabled
+      };
+      if (widget.display != null) {
+        summary.display = widget.display;
+      }
+      return summary;
+    }),
+    invocations: report.invocations.map((invocation) => {
+      type SummaryFields2 = {
+        id: string;
+        operationId: string;
+        status: typeof invocation.status;
+        decision: typeof invocation.decision;
+        error?: string;
+        timedOutMs?: number;
+      };
+      const summary: SummaryFields2 = {
+        id: invocation.id,
+        operationId: invocation.operationId,
+        status: invocation.status,
+        decision: invocation.decision
+      };
+      if (invocation.error) {
+        summary.error = invocation.error;
+      }
+      if (invocation.timedOutMs != null) {
+        summary.timedOutMs = invocation.timedOutMs;
+      }
+      return summary;
+    }),
     values: report.values,
     interactionErrors: report.interactions
       .filter((interaction) => interaction.error !== null)

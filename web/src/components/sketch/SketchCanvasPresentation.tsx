@@ -13,7 +13,12 @@ import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  FlexRow,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { useSketchStore } from "./state";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
@@ -192,6 +197,29 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
     const canvasStyle = canvasTransformStyle(pan, zoom);
     const selectionAntMarginPx = selectionAntCanvasMarginCssPx(zoom);
 
+    // The bootstrap canvas shows only during the bootstrap phase; the display
+    // canvas is faded out for exactly that phase, and they swap over.
+    const bootstrapCanvasStyle: React.CSSProperties = {
+      ...canvasStyle,
+      pointerEvents: "none"
+    };
+    if (!bootstrapPhaseActive) bootstrapCanvasStyle.visibility = "hidden";
+    const displayCanvasStyle: React.CSSProperties = {
+      ...canvasStyle,
+      pointerEvents: "none"
+    };
+    if (bootstrapPhaseActive) displayCanvasStyle.opacity = 0;
+
+    const selectionGpuStyle: React.CSSProperties = {
+      top: -selectionAntMarginPx,
+      left: -selectionAntMarginPx,
+      width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
+      height: `calc(100% + ${2 * selectionAntMarginPx}px)`
+    };
+    if (backend !== "webgpu" || bootstrapPhaseActive) {
+      selectionGpuStyle.visibility = "hidden";
+    }
+
     return (
       <div
         ref={containerRef}
@@ -217,22 +245,14 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             className="sketch-canvas__bootstrap"
             width={canvasWidth}
             height={canvasHeight}
-            style={{
-              ...canvasStyle,
-              pointerEvents: "none",
-              ...(bootstrapPhaseActive ? {} : { visibility: "hidden" })
-            }}
+            style={bootstrapCanvasStyle}
           />
           <canvas
             ref={displayCanvasRef}
             className="sketch-canvas__display"
             width={canvasWidth}
             height={canvasHeight}
-            style={{
-              ...canvasStyle,
-              pointerEvents: "none",
-              ...(bootstrapPhaseActive ? { opacity: 0 } : {})
-            }}
+            style={displayCanvasStyle}
           />
           {/* Overlay canvas for shape/gradient/crop preview (document space). */}
           <canvas
@@ -270,15 +290,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
         <canvas
           ref={selectionGpuCanvasRef}
           className="sketch-canvas__selection-gpu cursor-overlay"
-          style={{
-            top: -selectionAntMarginPx,
-            left: -selectionAntMarginPx,
-            width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
-            height: `calc(100% + ${2 * selectionAntMarginPx}px)`,
-            ...(backend === "webgpu" && !bootstrapPhaseActive
-              ? {}
-              : { visibility: "hidden" })
-          }}
+          style={selectionGpuStyle}
         />
         <canvas
           ref={selectionCanvasRef}

@@ -12,6 +12,10 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import type {
+  PermissionResponse,
+  PermissionStatus,
+} from 'expo-modules-core';
 import { reportError } from '../services/errorReporting';
 import { useVoiceInput } from './useVoiceInput';
 
@@ -19,15 +23,8 @@ jest.mock('../services/errorReporting', () => ({
   reportError: jest.fn(),
 }));
 
-const speech = ExpoSpeechRecognitionModule as unknown as {
-  isRecognitionAvailable: jest.Mock;
-  getPermissionsAsync: jest.Mock;
-  requestPermissionsAsync: jest.Mock;
-  start: jest.Mock;
-  stop: jest.Mock;
-  abort: jest.Mock;
-};
-const eventHook = useSpeechRecognitionEvent as unknown as jest.Mock;
+const speech = jest.mocked(ExpoSpeechRecognitionModule);
+const eventHook = jest.mocked(useSpeechRecognitionEvent);
 const reportErrorMock = reportError as jest.Mock;
 
 type Listener = (event: unknown) => void;
@@ -40,8 +37,26 @@ function fireEvent(name: string, payload?: unknown): void {
   });
 }
 
-const GRANTED = { status: 'granted', granted: true, canAskAgain: true, expires: 'never' };
-const DENIED = { status: 'denied', granted: false, canAskAgain: false, expires: 'never' };
+/**
+ * `PermissionStatus` is a string enum in `expo-modules-core`, but importing it
+ * as a value loads Expo's native EventEmitter, which has no host under Jest.
+ */
+// SAFETY: these are the enum's own member values.
+const GRANTED_STATUS = 'granted' as PermissionStatus;
+const DENIED_STATUS = 'denied' as PermissionStatus;
+
+const GRANTED: PermissionResponse = {
+  status: GRANTED_STATUS,
+  granted: true,
+  canAskAgain: true,
+  expires: 'never',
+};
+const DENIED: PermissionResponse = {
+  status: DENIED_STATUS,
+  granted: false,
+  canAskAgain: false,
+  expires: 'never',
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -50,8 +65,12 @@ beforeEach(() => {
   // useAppLifecycle only emits 'background' when it believes the app was active.
   (AppState as { currentState: AppStateStatus }).currentState = 'active';
 
-  eventHook.mockImplementation((name: string, listener: Listener) => {
-    listeners[name] = listener;
+  eventHook.mockImplementation((name, listener) => {
+    // SAFETY: `listener` is the hook's handler for the single event `name`, and
+    // each test fires that event's own payload shape. The union of per-event
+    // listener types cannot express that pairing, so the payload is handed over
+    // as `never`.
+    listeners[name] = (event) => listener(event as never);
   });
   speech.isRecognitionAvailable.mockReturnValue(true);
   speech.getPermissionsAsync.mockResolvedValue(GRANTED);

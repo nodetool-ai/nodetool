@@ -7,6 +7,7 @@ import {
   startRunReconciliation,
   stopRunReconciliation
 } from "../runReconciliation";
+import { asMock } from "../../test-utils/doubles";
 import { getPendingResumeJobId } from "../resumeJobHint";
 import { trpcClient } from "../../trpc/client";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
@@ -43,7 +44,7 @@ const mockListQuery = trpcClient.jobs.list.query as jest.Mock;
 const mockSend = globalWebSocketManager.send as jest.Mock;
 const mockIsAuthRequired = isAuthRequired as jest.Mock;
 const mockAuthGetState = useAuth.getState as jest.Mock;
-const mockAuthSubscribe = useAuth.subscribe as unknown as jest.Mock;
+const mockAuthSubscribe = asMock(useAuth.subscribe);
 
 const workflow: WorkflowAttributes = {
   id: "wf",

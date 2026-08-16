@@ -147,14 +147,14 @@ async function validateDocument(
   run: CapabilityRun,
   document: unknown
 ): Promise<JsScriptValidation> {
-  const { validateJsScriptDoc } = await import(
-    "@nodetool-ai/execution/js-script-debug"
-  );
+  const { validateJsScriptDoc } =
+    await import("@nodetool-ai/execution/js-script-debug");
   const userId = run.context.userId;
-  return validateJsScriptDoc(document, {
-    ...(userId ? { knownSecrets: await knownSecretNames(userId) } : {}),
+  const options: NonNullable<Parameters<typeof validateJsScriptDoc>[1]> = {
     sandboxModuleCatalog: run.context.sandboxModuleCatalog ?? null
-  });
+  };
+  if (userId) options.knownSecrets = await knownSecretNames(userId);
+  return validateJsScriptDoc(document, options);
 }
 
 // ---------------------------------------------------------------------------
@@ -232,9 +232,7 @@ export function resolveSecretScope(
  * `{handle: [items]}` staged for a body that reads `stream`, or undefined when
  * the caller passed nothing usable. Entries that are not arrays are dropped.
  */
-function inputStreamBag(
-  value: unknown
-): Record<string, unknown[]> | undefined {
+function inputStreamBag(value: unknown): Record<string, unknown[]> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
@@ -266,10 +264,9 @@ async function runDocument(
   inputs: Record<string, unknown>,
   inputStreams?: Record<string, unknown[]>
 ) {
-  return runCodeBody(context, {
+  const params: Parameters<typeof runCodeBody>[1] = {
     code: document.code,
     inputs,
-    ...(inputStreams ? { inputStreams } : {}),
     packages: document.packages.map((pack) => pack.specifier),
     secrets: resolveSecretScope(context, document.secrets),
     timeoutSeconds: Math.min(
@@ -277,20 +274,23 @@ async function runDocument(
       MAX_JS_SCRIPT_TIMEOUT_SECONDS
     ),
     withToolbelt: true
-  });
+  };
+  if (inputStreams) params.inputStreams = inputStreams;
+  return runCodeBody(context, params);
 }
 
 /** A saved case in the shape the shared grader reads. */
 function toGradedCase(testCase: JsScriptTestCase, index: number): GradedCase {
-  return {
+  const graded: GradedCase = {
     name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
-    inputs: testCase.inputs ?? {},
-    ...(testCase.inputStreams ? { inputStreams: testCase.inputStreams } : {}),
-    ...(testCase.expect ? { expect: testCase.expect } : {}),
-    ...(testCase.expectedStreamed
-      ? { expectedStreamed: testCase.expectedStreamed }
-      : {})
+    inputs: testCase.inputs ?? {}
   };
+  if (testCase.inputStreams) graded.inputStreams = testCase.inputStreams;
+  if (testCase.expect) graded.expect = testCase.expect;
+  if (testCase.expectedStreamed) {
+    graded.expectedStreamed = testCase.expectedStreamed;
+  }
+  return graded;
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +348,20 @@ const getJsScript: CapabilityExport = {
   }
 };
 
+/** The row a create writes; `id` only when the caller pinned one. */
+type NewJsScriptFields = {
+  id?: string;
+  user_id: string;
+  name: string;
+  document: string;
+};
+
+/** The columns an update writes; `name` only when the caller sent one. */
+type JsScriptChanges = {
+  document: string;
+  name?: string;
+};
+
 const saveJsScript: CapabilityExport = {
   spec: saveJsScriptSpec,
   impl: async (run, params) => {
@@ -385,12 +399,13 @@ const saveJsScript: CapabilityExport = {
       if (!name) {
         return { error: "name is required when creating a JS script." };
       }
-      const created = new JsScript({
-        ...(id ? { id } : {}),
+      const fields: NewJsScriptFields = {
         user_id: userId,
         name,
         document: serialized
-      });
+      };
+      if (id) fields.id = id;
+      const created = new JsScript(fields);
       await created.save();
       return {
         ok: true,
@@ -412,10 +427,12 @@ const saveJsScript: CapabilityExport = {
           "with get_js_script and retry."
       };
     }
+    const changes: JsScriptChanges = { document: serialized };
+    if (name) changes.name = name;
     const updated = await JsScript.updateFieldsIfUnchanged(
       existing.id,
       expected ?? existing.updated_at,
-      { document: serialized, ...(name ? { name } : {}) }
+      changes
     );
     if (!updated) {
       return {
@@ -462,15 +479,20 @@ const validateJsScript: CapabilityExport = {
     }
 
     const validation = await validateDocument(run, document);
-    return {
+    const report: JsScriptValidation & {
+      js_script_id?: string;
+      name?: string;
+      summary: string;
+    } = {
       ...validation,
-      ...(scriptId ? { js_script_id: scriptId } : {}),
-      ...(name ? { name } : {}),
       summary:
         validation.errors.length === 0 && validation.warnings.length === 0
           ? "No issues found."
           : `${validation.errors.length} error(s), ${validation.warnings.length} warning(s)`
     };
+    if (scriptId) report.js_script_id = scriptId;
+    if (name) report.name = name;
+    return report;
   }
 };
 
@@ -530,12 +552,7 @@ const testJsScript: CapabilityExport = {
     const report = await gradeCodeCases(
       document.tests.map(toGradedCase),
       (testCase) =>
-        runDocument(
-          context,
-          document,
-          testCase.inputs,
-          testCase.inputStreams
-        )
+        runDocument(context, document, testCase.inputs, testCase.inputStreams)
     );
     return { js_script_id: script.id, name: script.name, ...report };
   }

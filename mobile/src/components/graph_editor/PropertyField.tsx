@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
+  Image
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -24,6 +24,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useModelsForType } from "../../hooks/useModelsByProvider";
 import { ModelSelectModal } from "./ModelSelectModal";
 import { apiService } from "../../services/api";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import type { Property } from "../../types/ApiTypes";
 
 // ── Shared types ────────────────────────────────────────────────────
@@ -37,6 +38,42 @@ interface PropertyFieldProps {
 }
 
 type ThemeColors = ReturnType<typeof useTheme>["colors"];
+
+/** A media/document property's value: NodeTool's `{type, uri, …}` ref object. */
+interface AssetRefValue {
+  type: string;
+  uri: string;
+  asset_id?: string;
+  name?: string;
+}
+
+/** A color property's value. */
+interface ColorValue {
+  type: "color";
+  value: string;
+}
+
+/** An image_size property's value. */
+interface ImageSizeValue {
+  width: number;
+  height: number;
+  preset?: string;
+}
+
+/** A json property's value: the raw text the editor holds. */
+interface JsonPropertyValue {
+  type: "json";
+  data: string;
+}
+
+/** A model property's value, as the model picker writes it. */
+interface ModelRefValue {
+  type: string;
+  id: string;
+  provider: string;
+  name: string;
+  path?: string;
+}
 
 // ── Type resolution ─────────────────────────────────────────────────
 
@@ -64,30 +101,41 @@ type WidgetType =
 
 function resolveWidgetType(prop: Property): WidgetType {
   // Enum values on the property or nested in type metadata
-  if (prop.values && prop.values.length > 0) {return "enum";}
-  if (prop.type.values && prop.type.values.length > 0) {return "enum";}
+  if (prop.values && prop.values.length > 0) {
+    return "enum";
+  }
+  if (prop.type.values && prop.type.values.length > 0) {
+    return "enum";
+  }
   if (
     prop.type.type_args?.[0]?.values &&
     prop.type.type_args[0].values.length > 0
-  )
-    {return "enum";}
+  ) {
+    return "enum";
+  }
 
   // json_schema_extra override
   const extra = prop.json_schema_extra?.type as string | undefined;
-  if (extra) {return mapTypeString(extra);}
+  if (extra) {
+    return mapTypeString(extra);
+  }
 
   const t = prop.type.type;
 
   // Union: resolve first type arg
   if (t === "union") {
     const first = prop.type.type_args?.[0]?.type;
-    if (first) {return mapTypeString(first);}
+    if (first) {
+      return mapTypeString(first);
+    }
   }
 
   // List: check inner type
   if (t === "list") {
     const inner = prop.type.type_args?.[0]?.type;
-    if (inner === "str") {return "string_list";}
+    if (inner === "str") {
+      return "string_list";
+    }
     return "list";
   }
 
@@ -145,8 +193,13 @@ function mapTypeString(t: string): WidgetType {
       return "asset_ref";
     default:
       // Model types: *_model, comfy.*, hf.*
-      if (t.endsWith("_model") || t.startsWith("comfy.") || t.startsWith("hf."))
-        {return "model";}
+      if (
+        t.endsWith("_model") ||
+        t.startsWith("comfy.") ||
+        t.startsWith("hf.")
+      ) {
+        return "model";
+      }
       // List subtypes
       if (
         [
@@ -154,10 +207,11 @@ function mapTypeString(t: string): WidgetType {
           "audio_list",
           "video_list",
           "text_list",
-          "string_list",
+          "string_list"
         ].includes(t)
-      )
-        {return "string_list";}
+      ) {
+        return "string_list";
+      }
       return "unsupported";
   }
 }
@@ -168,7 +222,7 @@ function mapTypeString(t: string): WidgetType {
 const StringWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string) => void;
   colors: ThemeColors;
   multiline?: boolean;
 }> = ({ prop, value, onChange, colors, multiline }) => {
@@ -183,8 +237,8 @@ const StringWidget: React.FC<{
         {
           backgroundColor: colors.inputBg,
           color: colors.text,
-          borderColor: colors.border,
-        },
+          borderColor: colors.border
+        }
       ]}
       value={String(value ?? "")}
       onChangeText={onChange}
@@ -199,7 +253,7 @@ const StringWidget: React.FC<{
 const IntegerWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: number | string) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => (
   <View style={styles.numberRow}>
@@ -209,14 +263,17 @@ const IntegerWidget: React.FC<{
         {
           backgroundColor: colors.inputBg,
           color: colors.text,
-          borderColor: colors.border,
-        },
+          borderColor: colors.border
+        }
       ]}
       value={String(value ?? "")}
       onChangeText={(text) => {
         const parsed = parseInt(text, 10);
-        if (!isNaN(parsed)) {onChange(parsed);}
-        else if (text === "" || text === "-") {onChange(text);}
+        if (!isNaN(parsed)) {
+          onChange(parsed);
+        } else if (text === "" || text === "-") {
+          onChange(text);
+        }
       }}
       keyboardType="number-pad"
       placeholder="0"
@@ -234,7 +291,7 @@ const IntegerWidget: React.FC<{
 const FloatWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: number | string) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const [localValue, setLocalValue] = useState(
@@ -258,7 +315,9 @@ const FloatWidget: React.FC<{
         return;
       }
       const parsed = parseFloat(text);
-      if (!isNaN(parsed)) {onChange(parsed);}
+      if (!isNaN(parsed)) {
+        onChange(parsed);
+      }
     },
     [onChange]
   );
@@ -271,8 +330,8 @@ const FloatWidget: React.FC<{
           {
             backgroundColor: colors.inputBg,
             color: colors.text,
-            borderColor: colors.border,
-          },
+            borderColor: colors.border
+          }
         ]}
         value={localValue}
         onChangeText={onTextChange}
@@ -292,7 +351,7 @@ const FloatWidget: React.FC<{
 // Boolean toggle
 const BoolWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: boolean) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => (
   <Switch
@@ -307,14 +366,11 @@ const BoolWidget: React.FC<{
 const EnumWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string | number) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const options =
-    prop.values ??
-    prop.type.values ??
-    prop.type.type_args?.[0]?.values ??
-    [];
+    prop.values ?? prop.type.values ?? prop.type.type_args?.[0]?.values ?? [];
 
   // For many options use a scrollable list instead of wrapping chips
   if (options.length > 8) {
@@ -338,8 +394,8 @@ const EnumWidget: React.FC<{
                       : colors.inputBg,
                     borderColor: isSelected
                       ? colors.primary + "60"
-                      : colors.border,
-                  },
+                      : colors.border
+                  }
                 ]}
                 onPress={() => onChange(opt)}
                 activeOpacity={0.7}
@@ -347,7 +403,7 @@ const EnumWidget: React.FC<{
                 <Text
                   style={[
                     styles.enumText,
-                    { color: isSelected ? colors.primary : colors.text },
+                    { color: isSelected ? colors.primary : colors.text }
                   ]}
                 >
                   {formatEnumLabel(String(opt))}
@@ -373,10 +429,8 @@ const EnumWidget: React.FC<{
                 backgroundColor: isSelected
                   ? colors.primaryMuted
                   : colors.inputBg,
-                borderColor: isSelected
-                  ? colors.primary + "60"
-                  : colors.border,
-              },
+                borderColor: isSelected ? colors.primary + "60" : colors.border
+              }
             ]}
             onPress={() => onChange(opt)}
             activeOpacity={0.7}
@@ -384,7 +438,7 @@ const EnumWidget: React.FC<{
             <Text
               style={[
                 styles.enumText,
-                { color: isSelected ? colors.primary : colors.text },
+                { color: isSelected ? colors.primary : colors.text }
               ]}
             >
               {formatEnumLabel(String(opt))}
@@ -398,9 +452,7 @@ const EnumWidget: React.FC<{
 
 /** Convert snake_case enum values to Title Case for display */
 function formatEnumLabel(s: string): string {
-  return s
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ── Media widgets (image, audio, video) ─────────────────────────────
@@ -408,15 +460,15 @@ function formatEnumLabel(s: string): string {
 const ImageWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
+      quality: 0.8
     });
     if (!result.canceled && result.assets[0]) {
       const picked = result.assets[0];
@@ -427,7 +479,7 @@ const ImageWidget: React.FC<{
           uri: picked.uri,
           name: fileName,
           contentType: mimeType,
-          parentId: "",
+          parentId: ""
         });
         const ext = fileName.includes(".")
           ? fileName.slice(fileName.lastIndexOf("."))
@@ -453,20 +505,30 @@ const ImageWidget: React.FC<{
           />
           <View style={styles.mediaActions}>
             <TouchableOpacity
-              style={[styles.mediaButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              style={[
+                styles.mediaButton,
+                { backgroundColor: colors.inputBg, borderColor: colors.border }
+              ]}
               onPress={pickImage}
               activeOpacity={0.7}
             >
               <Ionicons name="swap-horizontal" size={16} color={colors.text} />
-              <Text style={[styles.mediaButtonText, { color: colors.text }]}>Replace</Text>
+              <Text style={[styles.mediaButtonText, { color: colors.text }]}>
+                Replace
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.mediaButton, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              style={[
+                styles.mediaButton,
+                { backgroundColor: colors.inputBg, borderColor: colors.border }
+              ]}
               onPress={() => onChange(null)}
               activeOpacity={0.7}
             >
               <Ionicons name="close" size={16} color={colors.error} />
-              <Text style={[styles.mediaButtonText, { color: colors.error }]}>Clear</Text>
+              <Text style={[styles.mediaButtonText, { color: colors.error }]}>
+                Clear
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -474,13 +536,19 @@ const ImageWidget: React.FC<{
         <TouchableOpacity
           style={[
             styles.mediaDropzone,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            { backgroundColor: colors.inputBg, borderColor: colors.border }
           ]}
           onPress={pickImage}
           activeOpacity={0.7}
         >
-          <Ionicons name="image-outline" size={28} color={colors.textTertiary} />
-          <Text style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}>
+          <Ionicons
+            name="image-outline"
+            size={28}
+            color={colors.textTertiary}
+          />
+          <Text
+            style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}
+          >
             Tap to select image
           </Text>
         </TouchableOpacity>
@@ -492,15 +560,15 @@ const ImageWidget: React.FC<{
 const AudioWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickAudio = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: "audio/*",
-      copyToCacheDirectory: true,
+      copyToCacheDirectory: true
     });
     if (!result.canceled && result.assets?.[0]) {
       const picked = result.assets[0];
@@ -511,7 +579,7 @@ const AudioWidget: React.FC<{
           uri: picked.uri,
           name: fileName,
           contentType: mimeType,
-          parentId: "",
+          parentId: ""
         });
         const ext = fileName.includes(".")
           ? fileName.slice(fileName.lastIndexOf("."))
@@ -537,20 +605,30 @@ const AudioWidget: React.FC<{
             {extractFileName(uri)}
           </Text>
           <TouchableOpacity onPress={() => onChange(null)} hitSlop={8}>
-            <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+            <Ionicons
+              name="close-circle"
+              size={20}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
           style={[
             styles.mediaDropzone,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            { backgroundColor: colors.inputBg, borderColor: colors.border }
           ]}
           onPress={pickAudio}
           activeOpacity={0.7}
         >
-          <Ionicons name="musical-note-outline" size={28} color={colors.textTertiary} />
-          <Text style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}>
+          <Ionicons
+            name="musical-note-outline"
+            size={28}
+            color={colors.textTertiary}
+          />
+          <Text
+            style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}
+          >
             Tap to select audio
           </Text>
         </TouchableOpacity>
@@ -562,15 +640,15 @@ const AudioWidget: React.FC<{
 const VideoWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const uri = extractUri(value);
+  const uri = useExtractedUri(value);
 
   const pickVideo = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      quality: 0.8,
+      quality: 0.8
     });
     if (!result.canceled && result.assets[0]) {
       const picked = result.assets[0];
@@ -581,7 +659,7 @@ const VideoWidget: React.FC<{
           uri: picked.uri,
           name: fileName,
           contentType: mimeType,
-          parentId: "",
+          parentId: ""
         });
         const ext = fileName.includes(".")
           ? fileName.slice(fileName.lastIndexOf("."))
@@ -607,20 +685,30 @@ const VideoWidget: React.FC<{
             {extractFileName(uri)}
           </Text>
           <TouchableOpacity onPress={() => onChange(null)} hitSlop={8}>
-            <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+            <Ionicons
+              name="close-circle"
+              size={20}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
           style={[
             styles.mediaDropzone,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            { backgroundColor: colors.inputBg, borderColor: colors.border }
           ]}
           onPress={pickVideo}
           activeOpacity={0.7}
         >
-          <Ionicons name="videocam-outline" size={28} color={colors.textTertiary} />
-          <Text style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}>
+          <Ionicons
+            name="videocam-outline"
+            size={28}
+            color={colors.textTertiary}
+          />
+          <Text
+            style={[styles.mediaDropzoneText, { color: colors.textTertiary }]}
+          >
             Tap to select video
           </Text>
         </TouchableOpacity>
@@ -629,18 +717,30 @@ const VideoWidget: React.FC<{
   );
 };
 
-/** Extract URI from value — handles {uri: ...}, {id: ...}, or raw string */
 /**
- * The URI a media widget can actually load. Property values carry `asset://`
- * URNs, which no native loader understands, so resolve before rendering.
+ * The URI a media widget can actually load, from a `{uri}`, `{id}`, or raw
+ * string value. Property values carry `asset://` URNs, which no native loader
+ * understands and which resolve only through the asset's own `get_url`.
  */
-function extractUri(value: unknown): string | null {
-  if (!value) {return null;}
-  if (typeof value === "string") {return apiService.resolveUrl(value);}
+function useExtractedUri(value: unknown): string | null {
+  return useResolvedMediaUri(mediaLocatorOf(value));
+}
+
+function mediaLocatorOf(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
   if (typeof value === "object") {
     const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") {return apiService.resolveUrl(v.uri);}
-    if (typeof v.id === "string") {return apiService.resolveUrl(v.id);}
+    if (typeof v.uri === "string") {
+      return v.uri;
+    }
+    if (typeof v.id === "string") {
+      return v.id;
+    }
   }
   return null;
 }
@@ -653,20 +753,32 @@ function extractFileName(uri: string): string {
 // ── Color widget ────────────────────────────────────────────────────
 
 const PRESET_COLORS = [
-  "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
-  "#FFFF00", "#FF00FF", "#00FFFF", "#FF8800", "#8800FF",
-  "#0088FF", "#FF0088", "#88FF00", "#00FF88", "#808080",
-  "#C0C0C0",
+  "#000000",
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FF00FF",
+  "#00FFFF",
+  "#FF8800",
+  "#8800FF",
+  "#0088FF",
+  "#FF0088",
+  "#88FF00",
+  "#00FF88",
+  "#808080",
+  "#C0C0C0"
 ];
 
 const ColorWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ColorValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const colorValue =
     typeof value === "object" && value !== null
-      ? (value as Record<string, unknown>).value as string | undefined
+      ? ((value as Record<string, unknown>).value as string | undefined)
       : typeof value === "string"
         ? value
         : undefined;
@@ -684,8 +796,8 @@ const ColorWidget: React.FC<{
               { backgroundColor: c },
               colorValue === c && {
                 borderWidth: 2,
-                borderColor: colors.primary,
-              },
+                borderColor: colors.primary
+              }
             ]}
             onPress={() => {
               onChange({ type: "color", value: c });
@@ -700,7 +812,7 @@ const ColorWidget: React.FC<{
           <View
             style={[
               colorStyles.previewSwatch,
-              { backgroundColor: colorValue, borderColor: colors.border },
+              { backgroundColor: colorValue, borderColor: colors.border }
             ]}
           />
         ) : null}
@@ -710,8 +822,8 @@ const ColorWidget: React.FC<{
             {
               backgroundColor: colors.inputBg,
               color: colors.text,
-              borderColor: colors.border,
-            },
+              borderColor: colors.border
+            }
           ]}
           value={customInput}
           onChangeText={(text) => {
@@ -735,25 +847,25 @@ const colorStyles = StyleSheet.create({
   swatchGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 6
   },
   swatch: {
     width: 28,
     height: 28,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderColor: "rgba(0,0,0,0.1)"
   },
   customRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 8
   },
   previewSwatch: {
     width: 32,
     height: 32,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 1
   },
   hexInput: {
     flex: 1,
@@ -762,8 +874,8 @@ const colorStyles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 14,
     fontFamily: "monospace",
-    minHeight: 40,
-  },
+    minHeight: 40
+  }
 });
 
 // ── Image size widget ───────────────────────────────────────────────
@@ -776,12 +888,12 @@ const IMAGE_SIZE_PRESETS = [
   { label: "1080p", width: 1920, height: 1080 },
   { label: "9:16", width: 1080, height: 1920 },
   { label: "4:3", width: 1024, height: 768 },
-  { label: "3:4", width: 768, height: 1024 },
+  { label: "3:4", width: 768, height: 1024 }
 ];
 
 const ImageSizeWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ImageSizeValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const safeValue = useMemo(() => {
@@ -789,7 +901,7 @@ const ImageSizeWidget: React.FC<{
       const v = value as Record<string, unknown>;
       return {
         width: typeof v.width === "number" ? v.width : 1024,
-        height: typeof v.height === "number" ? v.height : 1024,
+        height: typeof v.height === "number" ? v.height : 1024
       };
     }
     return { width: 1024, height: 1024 };
@@ -807,22 +919,31 @@ const ImageSizeWidget: React.FC<{
       {/* Width / Height inputs */}
       <View style={imageSizeStyles.inputRow}>
         <View style={imageSizeStyles.dimInput}>
-          <Text style={[imageSizeStyles.dimLabel, { color: colors.textTertiary }]}>W</Text>
+          <Text
+            style={[imageSizeStyles.dimLabel, { color: colors.textTertiary }]}
+          >
+            W
+          </Text>
           <TextInput
             style={[
               imageSizeStyles.dimField,
               {
                 backgroundColor: colors.inputBg,
                 color: colors.text,
-                borderColor: colors.border,
-              },
+                borderColor: colors.border
+              }
             ]}
             value={String(safeValue.width)}
             onChangeText={(text) => {
               const w = parseInt(text, 10);
               if (!isNaN(w) && w > 0) {
                 const h = locked ? Math.round(w / ratio) : safeValue.height;
-                onChange({ ...safeValue, width: w, height: h, preset: undefined });
+                onChange({
+                  ...safeValue,
+                  width: w,
+                  height: h,
+                  preset: undefined
+                });
               }
             }}
             keyboardType="number-pad"
@@ -835,41 +956,51 @@ const ImageSizeWidget: React.FC<{
               ...safeValue,
               width: safeValue.height,
               height: safeValue.width,
-              preset: undefined,
+              preset: undefined
             });
           }}
           hitSlop={8}
         >
-          <Ionicons name="swap-horizontal" size={18} color={colors.textSecondary} />
+          <Ionicons
+            name="swap-horizontal"
+            size={18}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
 
         <View style={imageSizeStyles.dimInput}>
-          <Text style={[imageSizeStyles.dimLabel, { color: colors.textTertiary }]}>H</Text>
+          <Text
+            style={[imageSizeStyles.dimLabel, { color: colors.textTertiary }]}
+          >
+            H
+          </Text>
           <TextInput
             style={[
               imageSizeStyles.dimField,
               {
                 backgroundColor: colors.inputBg,
                 color: colors.text,
-                borderColor: colors.border,
-              },
+                borderColor: colors.border
+              }
             ]}
             value={String(safeValue.height)}
             onChangeText={(text) => {
               const h = parseInt(text, 10);
               if (!isNaN(h) && h > 0) {
                 const w = locked ? Math.round(h * ratio) : safeValue.width;
-                onChange({ ...safeValue, width: w, height: h, preset: undefined });
+                onChange({
+                  ...safeValue,
+                  width: w,
+                  height: h,
+                  preset: undefined
+                });
               }
             }}
             keyboardType="number-pad"
           />
         </View>
 
-        <TouchableOpacity
-          onPress={() => setLocked(!locked)}
-          hitSlop={8}
-        >
+        <TouchableOpacity onPress={() => setLocked(!locked)} hitSlop={8}>
           <Ionicons
             name={locked ? "lock-closed" : "lock-open"}
             size={16}
@@ -882,26 +1013,35 @@ const ImageSizeWidget: React.FC<{
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={imageSizeStyles.presetsRow}>
           {IMAGE_SIZE_PRESETS.map((p) => {
-            const isSelected = p.width === safeValue.width && p.height === safeValue.height;
+            const isSelected =
+              p.width === safeValue.width && p.height === safeValue.height;
             return (
               <TouchableOpacity
                 key={p.label}
                 style={[
                   imageSizeStyles.preset,
                   {
-                    backgroundColor: isSelected ? colors.primaryMuted : colors.inputBg,
-                    borderColor: isSelected ? colors.primary + "60" : colors.border,
-                  },
+                    backgroundColor: isSelected
+                      ? colors.primaryMuted
+                      : colors.inputBg,
+                    borderColor: isSelected
+                      ? colors.primary + "60"
+                      : colors.border
+                  }
                 ]}
                 onPress={() =>
-                  onChange({ width: p.width, height: p.height, preset: p.label })
+                  onChange({
+                    width: p.width,
+                    height: p.height,
+                    preset: p.label
+                  })
                 }
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
                     imageSizeStyles.presetText,
-                    { color: isSelected ? colors.primary : colors.text },
+                    { color: isSelected ? colors.primary : colors.text }
                   ]}
                 >
                   {p.label}
@@ -913,7 +1053,9 @@ const ImageSizeWidget: React.FC<{
       </ScrollView>
 
       {matchedPreset && (
-        <Text style={[imageSizeStyles.matchedLabel, { color: colors.textTertiary }]}>
+        <Text
+          style={[imageSizeStyles.matchedLabel, { color: colors.textTertiary }]}
+        >
           {matchedPreset.label}
         </Text>
       )}
@@ -926,13 +1068,13 @@ const imageSizeStyles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 8
   },
   dimInput: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 4
   },
   dimLabel: { fontSize: 12, fontWeight: "600" },
   dimField: {
@@ -942,28 +1084,28 @@ const imageSizeStyles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 14,
     minHeight: 40,
-    textAlign: "center",
+    textAlign: "center"
   },
   presetsRow: {
     flexDirection: "row",
     gap: 6,
-    paddingVertical: 2,
+    paddingVertical: 2
   },
   preset: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 1
   },
   presetText: { fontSize: 12, fontWeight: "500" },
-  matchedLabel: { fontSize: 11 },
+  matchedLabel: { fontSize: 11 }
 });
 
 // ── JSON widget ─────────────────────────────────────────────────────
 
 const JSONWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: JsonPropertyValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const dataStr =
@@ -997,8 +1139,8 @@ const JSONWidget: React.FC<{
           {
             backgroundColor: colors.inputBg,
             color: colors.text,
-            borderColor: error ? colors.error : colors.border,
-          },
+            borderColor: error ? colors.error : colors.border
+          }
         ]}
         value={localValue}
         onChangeText={setLocalValue}
@@ -1010,7 +1152,10 @@ const JSONWidget: React.FC<{
         autoCorrect={false}
       />
       {error && (
-        <Text style={[jsonStyles.error, { color: colors.error }]} numberOfLines={2}>
+        <Text
+          style={[jsonStyles.error, { color: colors.error }]}
+          numberOfLines={2}
+        >
           {error}
         </Text>
       )}
@@ -1027,9 +1172,9 @@ const jsonStyles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "monospace",
     minHeight: 88,
-    textAlignVertical: "top",
+    textAlignVertical: "top"
   },
-  error: { fontSize: 11 },
+  error: { fontSize: 11 }
 });
 
 // ── Dict widget (key-value pairs) ───────────────────────────────────
@@ -1094,8 +1239,8 @@ const DictWidget: React.FC<{
               {
                 backgroundColor: colors.inputBg,
                 color: colors.text,
-                borderColor: colors.border,
-              },
+                borderColor: colors.border
+              }
             ]}
             value={key}
             onChangeText={(text) => updateKey(key, text)}
@@ -1108,27 +1253,25 @@ const DictWidget: React.FC<{
               {
                 backgroundColor: colors.inputBg,
                 color: colors.text,
-                borderColor: colors.border,
-              },
+                borderColor: colors.border
+              }
             ]}
             value={String(val ?? "")}
             onChangeText={(text) => updateValue(key, text)}
             placeholder="value"
             placeholderTextColor={colors.textTertiary}
           />
-          <TouchableOpacity
-            onPress={() => removeEntry(key)}
-            hitSlop={8}
-          >
-            <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+          <TouchableOpacity onPress={() => removeEntry(key)} hitSlop={8}>
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
       ))}
       <TouchableOpacity
-        style={[
-          dictStyles.addButton,
-          { borderColor: colors.border },
-        ]}
+        style={[dictStyles.addButton, { borderColor: colors.border }]}
         onPress={addEntry}
         activeOpacity={0.7}
       >
@@ -1146,7 +1289,7 @@ const dictStyles = StyleSheet.create({
   entryRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 6
   },
   keyInput: {
     flex: 1,
@@ -1154,7 +1297,7 @@ const dictStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 13,
-    minHeight: 38,
+    minHeight: 38
   },
   valueInput: {
     flex: 2,
@@ -1162,7 +1305,7 @@ const dictStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 13,
-    minHeight: 38,
+    minHeight: 38
   },
   addButton: {
     flexDirection: "row",
@@ -1172,20 +1315,22 @@ const dictStyles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderStyle: "dashed",
+    borderStyle: "dashed"
   },
-  addText: { fontSize: 13 },
+  addText: { fontSize: 13 }
 });
 
 // ── String list widget (tag input) ──────────────────────────────────
 
 const StringListWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string[]) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const items = useMemo(() => {
-    if (Array.isArray(value)) {return value.map(String);}
+    if (Array.isArray(value)) {
+      return value.map(String);
+    }
     return [];
   }, [value]);
 
@@ -1215,7 +1360,10 @@ const StringListWidget: React.FC<{
               key={`${item}-${i}`}
               style={[
                 stringListStyles.tag,
-                { backgroundColor: colors.primaryMuted, borderColor: colors.primary + "40" },
+                {
+                  backgroundColor: colors.primaryMuted,
+                  borderColor: colors.primary + "40"
+                }
               ]}
             >
               <Text style={[stringListStyles.tagText, { color: colors.text }]}>
@@ -1235,8 +1383,8 @@ const StringListWidget: React.FC<{
             {
               backgroundColor: colors.inputBg,
               color: colors.text,
-              borderColor: colors.border,
-            },
+              borderColor: colors.border
+            }
           ]}
           value={inputValue}
           onChangeText={setInputValue}
@@ -1262,7 +1410,7 @@ const stringListStyles = StyleSheet.create({
   tagRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 6
   },
   tag: {
     flexDirection: "row",
@@ -1271,12 +1419,12 @@ const stringListStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 1
   },
   tagText: { fontSize: 13 },
   inputRow: {
     flexDirection: "row",
-    gap: 6,
+    gap: 6
   },
   input: {
     flex: 1,
@@ -1284,15 +1432,15 @@ const stringListStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
-    minHeight: 40,
+    minHeight: 40
   },
   addBtn: {
     width: 40,
     height: 40,
     borderRadius: 8,
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"
+  }
 });
 
 // ── List widget (generic) ───────────────────────────────────────────
@@ -1300,11 +1448,13 @@ const stringListStyles = StyleSheet.create({
 const ListWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: unknown[]) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const items = useMemo(() => {
-    if (Array.isArray(value)) {return value;}
+    if (Array.isArray(value)) {
+      return value;
+    }
     return [];
   }, [value]);
 
@@ -1313,14 +1463,20 @@ const ListWidget: React.FC<{
 
   const addItem = useCallback(() => {
     const trimmed = inputValue.trim();
-    if (!trimmed) {return;}
+    if (!trimmed) {
+      return;
+    }
     let parsed: unknown = trimmed;
     if (innerType === "int" || innerType === "integer") {
       parsed = parseInt(trimmed, 10);
-      if (isNaN(parsed as number)) {return;}
+      if (isNaN(parsed as number)) {
+        return;
+      }
     } else if (innerType === "float" || innerType === "number") {
       parsed = parseFloat(trimmed);
-      if (isNaN(parsed as number)) {return;}
+      if (isNaN(parsed as number)) {
+        return;
+      }
     }
     onChange([...items, parsed]);
     setInputValue("");
@@ -1342,7 +1498,10 @@ const ListWidget: React.FC<{
               key={`${i}`}
               style={[
                 stringListStyles.tag,
-                { backgroundColor: colors.primaryMuted, borderColor: colors.primary + "40" },
+                {
+                  backgroundColor: colors.primaryMuted,
+                  borderColor: colors.primary + "40"
+                }
               ]}
             >
               <Text style={[stringListStyles.tagText, { color: colors.text }]}>
@@ -1362,8 +1521,8 @@ const ListWidget: React.FC<{
             {
               backgroundColor: colors.inputBg,
               color: colors.text,
-              borderColor: colors.border,
-            },
+              borderColor: colors.border
+            }
           ]}
           value={inputValue}
           onChangeText={setInputValue}
@@ -1395,7 +1554,7 @@ const ListWidget: React.FC<{
 
 const FilePathWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string) => void;
   colors: ThemeColors;
   isFolder?: boolean;
 }> = ({ value, onChange, colors, isFolder }) => {
@@ -1404,7 +1563,7 @@ const FilePathWidget: React.FC<{
   const pickFile = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: "*/*",
-      copyToCacheDirectory: true,
+      copyToCacheDirectory: true
     });
     if (!result.canceled && result.assets?.[0]) {
       onChange(result.assets[0].uri);
@@ -1420,8 +1579,8 @@ const FilePathWidget: React.FC<{
             {
               backgroundColor: colors.inputBg,
               color: colors.text,
-              borderColor: colors.border,
-            },
+              borderColor: colors.border
+            }
           ]}
           value={pathStr}
           onChangeText={onChange}
@@ -1433,7 +1592,7 @@ const FilePathWidget: React.FC<{
         <TouchableOpacity
           style={[
             filePathStyles.browseBtn,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            { backgroundColor: colors.inputBg, borderColor: colors.border }
           ]}
           onPress={pickFile}
           activeOpacity={0.7}
@@ -1447,7 +1606,9 @@ const FilePathWidget: React.FC<{
       </View>
       {pathStr ? (
         <TouchableOpacity onPress={() => onChange("")} hitSlop={8}>
-          <Text style={[filePathStyles.clearText, { color: colors.textTertiary }]}>
+          <Text
+            style={[filePathStyles.clearText, { color: colors.textTertiary }]}
+          >
             Clear
           </Text>
         </TouchableOpacity>
@@ -1460,7 +1621,7 @@ const filePathStyles = StyleSheet.create({
   container: { gap: 4 },
   row: {
     flexDirection: "row",
-    gap: 6,
+    gap: 6
   },
   input: {
     flex: 1,
@@ -1468,7 +1629,7 @@ const filePathStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
-    minHeight: 40,
+    minHeight: 40
   },
   browseBtn: {
     width: 40,
@@ -1476,9 +1637,9 @@ const filePathStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "center"
   },
-  clearText: { fontSize: 12 },
+  clearText: { fontSize: 12 }
 });
 
 // ── Model selector widget ───────────────────────────────────────────
@@ -1491,13 +1652,13 @@ const MODEL_TYPE_LABELS: Record<string, string> = {
   asr_model: "Speech Recognition Model",
   video_model: "Video Model",
   model_3d_model: "3D Model",
-  llama_model: "Llama Model",
+  llama_model: "Llama Model"
 };
 
 const ModelWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ModelRefValue) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const modelType = prop.type.type;
@@ -1509,8 +1670,12 @@ const ModelWidget: React.FC<{
 
   // Extract display info from current value
   const { modelId, modelName } = useMemo(() => {
-    if (!value) {return { modelId: "", modelName: "" };}
-    if (typeof value === "string") {return { modelId: value, modelName: value };}
+    if (!value) {
+      return { modelId: "", modelName: "" };
+    }
+    if (typeof value === "string") {
+      return { modelId: value, modelName: value };
+    }
     if (typeof value === "object") {
       const v = value as Record<string, unknown>;
       const id = String(v.id ?? v.name ?? v.repo_id ?? "");
@@ -1521,14 +1686,30 @@ const ModelWidget: React.FC<{
   }, [value]);
 
   const handleSelect = useCallback(
-    (model: { type: string; id: string; name: string; provider: string; path?: string | null }) => {
-      onChange({
+    (model: {
+      type: string;
+      id: string;
+      name: string;
+      provider: string;
+      path?: string | null;
+    }) => {
+      type SelectedFields = {
+        type: string;
+        id: string;
+        provider: string;
+        name: string;
+        path?: string;
+      };
+      const selected: SelectedFields = {
         type: modelType,
         id: model.id,
         provider: model.provider,
-        name: model.name || "",
-        ...(model.path ? { path: model.path } : {}),
-      });
+        name: model.name || ""
+      };
+      if (model.path) {
+        selected.path = model.path;
+      }
+      onChange(selected);
     },
     [modelType, onChange]
   );
@@ -1541,8 +1722,8 @@ const ModelWidget: React.FC<{
           modelStyles.selectButton,
           {
             backgroundColor: colors.inputBg,
-            borderColor: modelId ? colors.primary + "40" : colors.border,
-          },
+            borderColor: modelId ? colors.primary + "40" : colors.border
+          }
         ]}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
@@ -1558,7 +1739,10 @@ const ModelWidget: React.FC<{
               </Text>
               {modelName !== modelId && (
                 <Text
-                  style={[modelStyles.selectedId, { color: colors.textTertiary }]}
+                  style={[
+                    modelStyles.selectedId,
+                    { color: colors.textTertiary }
+                  ]}
                   numberOfLines={1}
                 >
                   {modelId}
@@ -1566,21 +1750,24 @@ const ModelWidget: React.FC<{
               )}
             </>
           ) : (
-            <Text style={[modelStyles.placeholder, { color: colors.textTertiary }]}>
+            <Text
+              style={[modelStyles.placeholder, { color: colors.textTertiary }]}
+            >
               Select {label.toLowerCase()}...
             </Text>
           )}
         </View>
-        <Ionicons
-          name="chevron-down"
-          size={16}
-          color={colors.textTertiary}
-        />
+        <Ionicons name="chevron-down" size={16} color={colors.textTertiary} />
       </TouchableOpacity>
 
       {/* Provider badge */}
-      {modelId && typeof value === "object" && value !== null && (value as Record<string, unknown>).provider ? (
-        <Text style={[modelStyles.providerBadge, { color: colors.textTertiary }]}>
+      {modelId &&
+      typeof value === "object" &&
+      value !== null &&
+      (value as Record<string, unknown>).provider ? (
+        <Text
+          style={[modelStyles.providerBadge, { color: colors.textTertiary }]}
+        >
           {String((value as Record<string, unknown>).provider)}
         </Text>
       ) : null}
@@ -1609,26 +1796,26 @@ const modelStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     minHeight: 44,
-    gap: 8,
+    gap: 8
   },
   selectContent: {
     flex: 1,
-    gap: 2,
+    gap: 2
   },
   selectedName: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500"
   },
   selectedId: {
-    fontSize: 11,
+    fontSize: 11
   },
   placeholder: {
-    fontSize: 14,
+    fontSize: 14
   },
   providerBadge: {
     fontSize: 11,
-    fontWeight: "500",
-  },
+    fontWeight: "500"
+  }
 });
 
 // ── Asset reference widget (document, file, folder, workflow, etc.) ──
@@ -1636,14 +1823,18 @@ const modelStyles = StyleSheet.create({
 const AssetRefWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const typeLabel = prop.type.type;
 
   const refId = useMemo(() => {
-    if (!value) {return "";}
-    if (typeof value === "string") {return value;}
+    if (!value) {
+      return "";
+    }
+    if (typeof value === "string") {
+      return value;
+    }
     if (typeof value === "object") {
       const v = value as Record<string, unknown>;
       return String(v.id ?? v.asset_id ?? v.name ?? v.uri ?? "");
@@ -1654,7 +1845,7 @@ const AssetRefWidget: React.FC<{
   const pickDocument = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: "*/*",
-      copyToCacheDirectory: true,
+      copyToCacheDirectory: true
     });
     if (!result.canceled && result.assets?.[0]) {
       const picked = result.assets[0];
@@ -1665,13 +1856,18 @@ const AssetRefWidget: React.FC<{
           uri: picked.uri,
           name: fileName,
           contentType: mimeType,
-          parentId: "",
+          parentId: ""
         });
         const ext = fileName.includes(".")
           ? fileName.slice(fileName.lastIndexOf("."))
           : "";
         const storageUri = `${apiService.getApiHost()}/api/storage/${uploaded.id}${ext}`;
-        onChange({ type: typeLabel, uri: storageUri, asset_id: uploaded.id, name: fileName });
+        onChange({
+          type: typeLabel,
+          uri: storageUri,
+          asset_id: uploaded.id,
+          name: fileName
+        });
       } catch (err) {
         console.error("Failed to upload document:", err);
         onChange({ type: typeLabel, uri: picked.uri, name: fileName });
@@ -1695,14 +1891,18 @@ const AssetRefWidget: React.FC<{
             {extractFileName(refId)}
           </Text>
           <TouchableOpacity onPress={() => onChange(null)} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
           style={[
             assetStyles.pickButton,
-            { backgroundColor: colors.inputBg, borderColor: colors.border },
+            { backgroundColor: colors.inputBg, borderColor: colors.border }
           ]}
           onPress={pickDocument}
           activeOpacity={0.7}
@@ -1750,11 +1950,11 @@ const assetStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    padding: 10,
+    padding: 10
   },
   refText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14
   },
   pickButton: {
     flexDirection: "row",
@@ -1764,9 +1964,9 @@ const assetStyles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderStyle: "dashed",
+    borderStyle: "dashed"
   },
-  pickText: { fontSize: 14 },
+  pickText: { fontSize: 14 }
 });
 
 // ── Main PropertyField ──────────────────────────────────────────────
@@ -1775,7 +1975,7 @@ export const PropertyField: React.FC<PropertyFieldProps> = ({
   property,
   value,
   onChange,
-  isConnected = false,
+  isConnected = false
 }) => {
   const { colors } = useTheme();
   const widget = resolveWidgetType(property);
@@ -1794,7 +1994,7 @@ export const PropertyField: React.FC<PropertyFieldProps> = ({
           <View
             style={[
               styles.connectedBadge,
-              { backgroundColor: colors.accentMuted },
+              { backgroundColor: colors.accentMuted }
             ]}
           >
             <Text style={[styles.connectedBadgeText, { color: colors.accent }]}>
@@ -1821,15 +2021,12 @@ export const PropertyField: React.FC<PropertyFieldProps> = ({
             styles.connectedPlaceholder,
             {
               backgroundColor: colors.accentMuted,
-              borderColor: colors.accent + "30",
-            },
+              borderColor: colors.accent + "30"
+            }
           ]}
         >
           <Text
-            style={[
-              styles.connectedPlaceholderText,
-              { color: colors.accent },
-            ]}
+            style={[styles.connectedPlaceholderText, { color: colors.accent }]}
           >
             Value provided by previous node
           </Text>
@@ -1857,43 +2054,134 @@ const WidgetRenderer: React.FC<{
 }> = ({ widget, property, value, onChange, colors }) => {
   switch (widget) {
     case "string":
-      return <StringWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <StringWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "text":
-      return <StringWidget prop={property} value={value} onChange={onChange} colors={colors} multiline />;
+      return (
+        <StringWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+          multiline
+        />
+      );
     case "integer":
-      return <IntegerWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <IntegerWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "float":
-      return <FloatWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <FloatWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "boolean":
       return <BoolWidget value={value} onChange={onChange} colors={colors} />;
     case "enum":
-      return <EnumWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <EnumWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "image":
-      return <ImageWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <ImageWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "audio":
-      return <AudioWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <AudioWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "video":
-      return <VideoWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <VideoWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "color":
       return <ColorWidget value={value} onChange={onChange} colors={colors} />;
     case "image_size":
-      return <ImageSizeWidget value={value} onChange={onChange} colors={colors} />;
+      return (
+        <ImageSizeWidget value={value} onChange={onChange} colors={colors} />
+      );
     case "json":
       return <JSONWidget value={value} onChange={onChange} colors={colors} />;
     case "dict":
       return <DictWidget value={value} onChange={onChange} colors={colors} />;
     case "string_list":
-      return <StringListWidget value={value} onChange={onChange} colors={colors} />;
+      return (
+        <StringListWidget value={value} onChange={onChange} colors={colors} />
+      );
     case "list":
-      return <ListWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <ListWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "file_path":
-      return <FilePathWidget value={value} onChange={onChange} colors={colors} />;
+      return (
+        <FilePathWidget value={value} onChange={onChange} colors={colors} />
+      );
     case "folder_path":
-      return <FilePathWidget value={value} onChange={onChange} colors={colors} isFolder />;
+      return (
+        <FilePathWidget
+          value={value}
+          onChange={onChange}
+          colors={colors}
+          isFolder
+        />
+      );
     case "model":
-      return <ModelWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <ModelWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "asset_ref":
-      return <AssetRefWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return (
+        <AssetRefWidget
+          prop={property}
+          value={value}
+          onChange={onChange}
+          colors={colors}
+        />
+      );
     case "unsupported":
       return (
         <Text style={[styles.unsupported, { color: colors.textTertiary }]}>
@@ -1907,62 +2195,62 @@ const WidgetRenderer: React.FC<{
 
 const styles = StyleSheet.create({
   fieldContainer: {
-    gap: 4,
+    gap: 4
   },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 6
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600"
   },
   required: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "700"
   },
   description: {
     fontSize: 12,
     lineHeight: 16,
-    marginBottom: 4,
+    marginBottom: 4
   },
   connectedBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: 4
   },
   connectedBadgeText: {
     fontSize: 10,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.3,
+    letterSpacing: 0.3
   },
   connectedPlaceholder: {
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderStyle: "dashed",
+    borderStyle: "dashed"
   },
   connectedPlaceholderText: {
     fontSize: 13,
-    fontStyle: "italic",
+    fontStyle: "italic"
   },
   textInput: {
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 15,
-    minHeight: 44,
+    minHeight: 44
   },
   textInputMultiline: {
     minHeight: 88,
-    textAlignVertical: "top",
+    textAlignVertical: "top"
   },
   numberRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 8
   },
   numberInput: {
     flex: 1,
@@ -1970,28 +2258,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 15,
-    minHeight: 44,
+    minHeight: 44
   },
   rangeHint: {
-    fontSize: 12,
+    fontSize: 12
   },
   enumScroll: {
-    marginHorizontal: -2,
+    marginHorizontal: -2
   },
   enumContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
+    gap: 6
   },
   enumOption: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1
   },
   enumText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "500"
   },
   mediaContainer: {},
   mediaDropzone: {
@@ -2001,25 +2289,25 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderStyle: "dashed",
+    borderStyle: "dashed"
   },
   mediaDropzoneText: {
-    fontSize: 14,
+    fontSize: 14
   },
   mediaPreviewRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 10
   },
   mediaPreview: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1
   },
   mediaActions: {
     flex: 1,
     justifyContent: "center",
-    gap: 6,
+    gap: 6
   },
   mediaButton: {
     flexDirection: "row",
@@ -2028,24 +2316,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1
   },
   mediaButtonText: {
-    fontSize: 13,
+    fontSize: 13
   },
   mediaFileRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingVertical: 8,
+    paddingVertical: 8
   },
   mediaFileName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14
   },
   unsupported: {
     fontSize: 13,
     fontStyle: "italic",
-    paddingVertical: 8,
-  },
+    paddingVertical: 8
+  }
 });

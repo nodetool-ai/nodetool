@@ -42,6 +42,7 @@ import {
 } from "../codeact/sandbox-package-listing.js";
 import type {
   SandboxModuleExports,
+  SandboxPackageEntry,
   SandboxPackageListing,
   SandboxPackageListingResult
 } from "../codeact/sandbox-package-listing.js";
@@ -117,15 +118,13 @@ export function sandboxPackageDocsImpl(
     const docs: SandboxPackageDocs = {
       specifier,
       packName,
-      ...(skill.packVersion === undefined
-        ? {}
-        : { packVersion: skill.packVersion }),
       trusted: skill.trusted,
       description: skill.description,
       documentation: skill.trusted
         ? body
         : wrapUntrustedPackageDocs(specifier, body)
     };
+    if (skill.packVersion !== undefined) docs.packVersion = skill.packVersion;
     return docs;
   };
 }
@@ -159,18 +158,21 @@ function listing(
 ): SandboxPackageListing {
   const summaries = catalog?.summaries() ?? [];
   return {
-    packages: summaries.map((summary) => ({
-      specifier: summary.specifier,
-      packName: summary.packName,
-      ...(summary.packVersion === undefined
-        ? {}
-        : { packVersion: summary.packVersion }),
-      kind: summary.kind,
-      ...(summary.description === undefined
-        ? {}
-        : { description: summary.description }),
-      allowed: allowlistCovers(allowed, summary.specifier)
-    })),
+    packages: summaries.map((summary) => {
+      const entry: SandboxPackageEntry = {
+        specifier: summary.specifier,
+        packName: summary.packName,
+        kind: summary.kind,
+        allowed: allowlistCovers(allowed, summary.specifier)
+      };
+      if (summary.packVersion !== undefined) {
+        entry.packVersion = summary.packVersion;
+      }
+      if (summary.description !== undefined) {
+        entry.description = summary.description;
+      }
+      return entry;
+    }),
     // Names only: loading a capability module pulls its whole dependency cone,
     // which is what the registry's lazy table exists to avoid. The exports of
     // one module are one `specifier` call away.

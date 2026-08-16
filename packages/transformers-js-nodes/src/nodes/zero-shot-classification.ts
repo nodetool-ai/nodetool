@@ -29,6 +29,14 @@ function parseLabels(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/** Output handles ZeroShotClassificationNode.process() emits. */
+type ZeroShotClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  labels: string[];
+  scores: number[];
+};
+
 export class ZeroShotClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ZeroShotClassification";
   static readonly inlineFields = ["text", "candidate_labels"];
@@ -106,7 +114,7 @@ export class ZeroShotClassificationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ZeroShotClassificationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
     const labels = parseLabels(this.candidate_labels);
@@ -114,16 +122,18 @@ export class ZeroShotClassificationNode extends BaseNode {
       throw new Error("At least one candidate label is required");
     }
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        labels: string[],
+        opts?: Record<string, unknown>
+      ) => Promise<ZeroShotResult | ZeroShotResult[]>
+    >({
       task: "zero-shot-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      labels: string[],
-      opts?: Record<string, unknown>
-    ) => Promise<ZeroShotResult | ZeroShotResult[]>;
+    });
 
     const opts: Record<string, unknown> = {
       multi_label: Boolean(this.multi_label)

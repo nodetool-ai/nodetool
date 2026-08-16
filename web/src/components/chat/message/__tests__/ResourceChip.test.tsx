@@ -8,6 +8,12 @@ import mockTheme from "../../../../__mocks__/themeMock";
 
 const openResource = jest.fn();
 
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
+import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
+
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: (ref: unknown) => openResource(ref),
@@ -55,9 +61,10 @@ describe("ResourceChip", () => {
   it("renders a thumbnail for image assets", () => {
     const { container } = renderChip("asset://as_1.png", "render.png");
 
+    // Resolved through the asset record, not by rewriting the locator.
     expect(container.querySelector("img")).toHaveAttribute(
       "src",
-      expect.stringContaining("/api/storage/as_1.png")
+      mockAssetUrl("as_1.png")
     );
   });
 

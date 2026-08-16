@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -74,16 +75,16 @@ const renderWithTheme = (ui: React.ReactElement) => {
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.text.Prompt",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof PromptComposerBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.text.Prompt",
     properties: [],
     outputs: [{ name: "output", type: { type: "str" } }],
     supports_dynamic_inputs: true
-  } as unknown as Parameters<typeof PromptComposerBody>[0]["nodeMetadata"],
-  data: {
+  }),
+  data: stub<Parameters<typeof PromptComposerBody>[0]["data"]>({
     properties: { prompt: "Describe {{ subject }} in detail" },
     dynamic_properties: { subject: "" }
-  } as unknown as Parameters<typeof PromptComposerBody>[0]["data"],
+  }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

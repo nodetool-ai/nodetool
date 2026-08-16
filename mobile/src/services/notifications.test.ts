@@ -1,3 +1,4 @@
+import type { PermissionStatus } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
 
@@ -19,19 +20,36 @@ function setAppState(state: 'active' | 'background'): void {
   });
 }
 
+/**
+ * `PermissionStatus` is a string enum in `expo-modules-core`, but importing it
+ * as a value loads Expo's native EventEmitter, which has no host under Jest.
+ */
+// SAFETY: these are the enum's own member values.
+const GRANTED_STATUS = 'granted' as PermissionStatus;
+const DENIED_STATUS = 'denied' as PermissionStatus;
+
+/** A full `NotificationPermissionsStatus`, so the doubles need no assertion. */
+const permissionStatus = (
+  granted: boolean,
+  canAskAgain: boolean
+): Notifications.NotificationPermissionsStatus => ({
+  granted,
+  canAskAgain,
+  status: granted ? GRANTED_STATUS : DENIED_STATUS,
+  expires: 'never',
+});
+
 describe('notifications', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     __resetNotificationsForTests();
     setAppState('background');
-    mockNotifications.getPermissionsAsync.mockResolvedValue({
-      granted: true,
-      canAskAgain: true,
-    } as unknown as Notifications.NotificationPermissionsStatus);
-    mockNotifications.requestPermissionsAsync.mockResolvedValue({
-      granted: true,
-      canAskAgain: true,
-    } as unknown as Notifications.NotificationPermissionsStatus);
+    mockNotifications.getPermissionsAsync.mockResolvedValue(
+      permissionStatus(true, true)
+    );
+    mockNotifications.requestPermissionsAsync.mockResolvedValue(
+      permissionStatus(true, true)
+    );
   });
 
   afterEach(() => {
@@ -51,10 +69,9 @@ describe('notifications', () => {
   });
 
   it('requests permission only when not already granted', async () => {
-    mockNotifications.getPermissionsAsync.mockResolvedValue({
-      granted: false,
-      canAskAgain: true,
-    } as unknown as Notifications.NotificationPermissionsStatus);
+    mockNotifications.getPermissionsAsync.mockResolvedValue(
+      permissionStatus(false, true)
+    );
 
     await initNotifications();
 
@@ -138,10 +155,9 @@ describe('notifications', () => {
   });
 
   it('does nothing when permission was denied', async () => {
-    mockNotifications.getPermissionsAsync.mockResolvedValue({
-      granted: false,
-      canAskAgain: false,
-    } as unknown as Notifications.NotificationPermissionsStatus);
+    mockNotifications.getPermissionsAsync.mockResolvedValue(
+      permissionStatus(false, false)
+    );
 
     await initNotifications();
     await notifyRunFinished({ jobId: 'job-9', outcome: 'completed' });

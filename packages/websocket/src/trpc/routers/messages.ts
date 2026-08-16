@@ -44,8 +44,10 @@ async function toMessageResponse(
     workflow_target: msg.workflow_target ?? null,
     media_generation: msg.media_generation ?? null,
     created_at: msg.created_at,
-    updated_at: (msg as unknown as { updated_at?: string }).updated_at ??
-      msg.created_at
+    // A message is never edited, and `nodetool_messages` has carried no
+    // `updated_at` column since it was created, so the response reports the
+    // creation time as the last-modified time.
+    updated_at: msg.created_at
   };
 }
 

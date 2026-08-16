@@ -68,9 +68,9 @@ const looksLikeBundle = (raw: unknown): boolean =>
 
 const graphOf = (value: unknown): DebugGraph | null => {
   if (!isRecord(value)) return null;
-  const graph = value as unknown as DebugGraph;
-  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
-  return normalizeGraph(graph);
+  const { nodes, edges } = value;
+  if (!Array.isArray(nodes) || !Array.isArray(edges)) return null;
+  return normalizeGraph({ nodes, edges });
 };
 
 /** Resolve an ApplicationBundle JSON file. */

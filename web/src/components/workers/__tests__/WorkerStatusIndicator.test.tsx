@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -33,7 +34,7 @@ const makeInstance = (
 const baseValue = (
   activeWorker: WorkerInstance | null
 ): ReturnType<typeof useWorkers> =>
-  ({
+  stub<ReturnType<typeof useWorkers>>({
     profiles: [],
     instances: activeWorker ? [activeWorker] : [],
     activeWorker,
@@ -51,7 +52,7 @@ const baseValue = (
     attach: jest.fn(),
     detach: jest.fn(),
     reconcile: jest.fn()
-  }) as unknown as ReturnType<typeof useWorkers>;
+  });
 
 const renderIndicator = () =>
   render(

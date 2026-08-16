@@ -30,9 +30,8 @@ function walkAst(
 
   const walkNode = (node: acorn.AnyNode): void => {
     ancestors.push(node);
-    for (const key of Object.keys(node)) {
+    for (const [key, value] of Object.entries(node)) {
       if (key === "type" || key === "start" || key === "end") continue;
-      const value = (node as unknown as Record<string, unknown>)[key];
       if (Array.isArray(value)) {
         for (const item of value) {
           if (isAstNode(item)) walkNode(item);
@@ -58,7 +57,12 @@ function walkAst(
  *
  * Returns an array of output key names, or null if none found.
  */
-export function inferOutputKeysFromCode(code: string): string[] | null {
+export function inferOutputKeysFromCode(
+  code: string | null | undefined
+): string[] | null {
+  if (code == null) {
+    return null;
+  }
   const ast = tryParse(code);
   if (!ast) return null;
 
@@ -253,7 +257,7 @@ export function deriveCodeIOUpdates(
     Object.assign(dynamic_outputs, existingDynOutputs);
   }
 
-  const dynamic_properties: Record<string, unknown> = { ...existingDynProps };
+  const dynamic_properties = { ...existingDynProps } satisfies Record<string, unknown>;
   if (inputKeys) {
     for (const key of inputKeys) {
       if (!(key in dynamic_properties)) {

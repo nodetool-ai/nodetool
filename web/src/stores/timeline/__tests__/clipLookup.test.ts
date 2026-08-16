@@ -2,10 +2,11 @@
  * @jest-environment node
  */
 import { clipsById, findClipById } from "../clipLookup";
+import { stub } from "../../../test-utils/doubles";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
 const makeClip = (id: string): TimelineClip =>
-  ({
+  stub<TimelineClip>({
     id,
     trackId: "t1",
     name: "",
@@ -16,7 +17,7 @@ const makeClip = (id: string): TimelineClip =>
     locked: false,
     versions: [],
     status: "generated",
-  }) as unknown as TimelineClip;
+  });
 
 describe("clipLookup", () => {
   describe("clipsById", () => {

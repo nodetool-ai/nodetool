@@ -9,10 +9,7 @@ import {
   referencedVariables,
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
-import {
-  loadNodeFsPromises,
-  loadNodePath
-} from "@nodetool-ai/nodes-utils";
+import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -25,7 +22,7 @@ const NODE_ONLY: readonly Platform[] = ["node"];
  */
 function tokenizeAssetVars(
   vars: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(vars)) {
     out[key] = assetRefToPromptToken(value) ?? value;
@@ -60,16 +57,29 @@ function folderPath(value: unknown): string {
   return "";
 }
 
-function modelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function modelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : ""
   };
 }
+
+type EmbeddingParams = { text: string; dimensions?: number };
+
+/** Embedding params; `dimensions` travels only when the model declares one. */
+function embeddingParams(text: string, dimensions: number): EmbeddingParams {
+  const params: EmbeddingParams = { text };
+  if (dimensions > 0) {
+    params.dimensions = dimensions;
+  }
+  return params;
+}
+
+/** Output handles CountTokensNode.process() emits. */
+type CountTokensNodeOutputs = {
+  output: number;
+};
 
 export class CountTokensNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CountTokens";
@@ -95,7 +105,7 @@ export class CountTokensNode extends BaseNode {
   })
   declare encoding: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CountTokensNodeOutputs> {
     const text = String(this.text ?? "");
     if (!text) {
       return { output: 0 };
@@ -109,6 +119,12 @@ export class CountTokensNode extends BaseNode {
     return { output: encoder.encode(text).length };
   }
 }
+
+/** Output handles AutomaticSpeechRecognitionNode.process() emits. */
+type AutomaticSpeechRecognitionNodeOutputs = {
+  text: string;
+  output: string;
+};
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "nodetool.text.AutomaticSpeechRecognition";
@@ -175,7 +191,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   })
   declare temperature: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const { providerId, modelId } = modelConfig(this.serialize());
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     let bytes: Uint8Array = new Uint8Array();
@@ -223,6 +239,11 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   }
 }
 
+/** Output handles EmbeddingTextNode.process() emits. */
+type EmbeddingTextNodeOutputs = {
+  output: number[];
+};
+
 export class EmbeddingTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Embedding";
   static readonly title = "Embedding";
@@ -232,7 +253,7 @@ export class EmbeddingTextNode extends BaseNode {
     output: "list"
   };
   static readonly inlineFields = [];
-  static readonly inputFields  = ["input"];
+  static readonly inputFields = ["input"];
 
   @prop({
     type: "embedding_model",
@@ -267,17 +288,21 @@ export class EmbeddingTextNode extends BaseNode {
   })
   declare chunk_size: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<EmbeddingTextNodeOutputs> {
     const text = String(this.input ?? "");
     if (!text) {
       throw new Error("input text must not be empty");
     }
     const { providerId, modelId } = modelConfig(this.serialize());
     if (!context || typeof context.runProviderPrediction !== "function") {
-      throw new Error("Embedding requires a processing context with provider access");
+      throw new Error(
+        "Embedding requires a processing context with provider access"
+      );
     }
     if (!providerId || !modelId) {
-      throw new Error("Embedding requires an embedding model with provider and id");
+      throw new Error(
+        "Embedding requires an embedding model with provider and id"
+      );
     }
     const model = (this.model ?? {}) as Record<string, unknown>;
     const dimensions = Number(model.dimensions ?? 0);
@@ -285,14 +310,16 @@ export class EmbeddingTextNode extends BaseNode {
       provider: providerId,
       capability: "generate_embedding",
       model: modelId,
-      params: {
-        text,
-        ...(dimensions > 0 ? { dimensions } : {})
-      }
+      params: embeddingParams(text, dimensions)
     })) as number[][];
     return { output: vectors[0] ?? [] };
   }
 }
+
+/** Output handles SaveTextFileNode.process() emits. */
+type SaveTextFileNodeOutputs = {
+  output: { uri: string; data: string };
+};
 
 export class SaveTextFileNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SaveTextFile";
@@ -325,7 +352,7 @@ export class SaveTextFileNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveTextFileNodeOutputs> {
     const text = String(this.text ?? "");
     const folder = String(this.folder ?? "");
     const name = formatFilename(String(this.name ?? "output.txt"));
@@ -343,6 +370,11 @@ export class SaveTextFileNode extends BaseNode {
     return { output: { uri, data: text } };
   }
 }
+
+/** Output handles SaveTextNode.process() emits. */
+type SaveTextNodeOutputs = {
+  output: { uri: string; data: string };
+};
 
 export class SaveTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SaveText";
@@ -381,7 +413,7 @@ export class SaveTextNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveTextNodeOutputs> {
     const text = String(this.text ?? "");
     const name = formatFilename(String(this.name ?? "output.txt"));
     const folder = folderPath(this.folder ?? "");
@@ -396,6 +428,22 @@ export class SaveTextNode extends BaseNode {
     return { output: { uri, data: text } };
   }
 }
+
+/** Output handles LoadTextFolderNode.genProcess() emits. */
+type LoadTextFolderNodeStreamOutputs = {
+  path?: string;
+  text?: string;
+  texts?: string[];
+  paths?: string[];
+};
+
+/** Output handles LoadTextFolderNode.process() emits. */
+type LoadTextFolderNodeOutputs = {
+  text: string;
+  path: string;
+  texts: string[];
+  paths: string[];
+};
 
 export class LoadTextFolderNode extends BaseNode {
   static readonly nodeType = "nodetool.text.LoadTextFolder";
@@ -442,7 +490,7 @@ export class LoadTextFolderNode extends BaseNode {
   })
   declare pattern: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LoadTextFolderNodeOutputs> {
     const allTexts: string[] = [];
     const allPaths: string[] = [];
     for await (const item of this._walkFiles()) {
@@ -462,13 +510,9 @@ export class LoadTextFolderNode extends BaseNode {
     path: string;
   }> {
     const folder = String(this.folder ?? "");
-    const includeSubdirs = Boolean(
-      this.include_subdirectories ?? false
-    );
+    const includeSubdirs = Boolean(this.include_subdirectories ?? false);
     const extensions = Array.isArray(this.extensions)
-      ? ((this.extensions) as unknown[]).map((v) =>
-          String(v).toLowerCase()
-        )
+      ? (this.extensions as unknown[]).map((v) => String(v).toLowerCase())
       : [".txt"];
 
     if (!folder) {
@@ -500,7 +544,7 @@ export class LoadTextFolderNode extends BaseNode {
     }
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<LoadTextFolderNodeStreamOutputs> {
     const allTexts: string[] = [];
     const allPaths: string[] = [];
     for await (const item of this._walkFiles()) {
@@ -586,6 +630,11 @@ type FilterStringType =
   | "length_less"
   | "exact_length";
 
+/** Output handles FilterStringNode.process() emits. */
+type FilterStringNodeOutputs = {
+  output?: string;
+};
+
 export class FilterStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FilterString";
   static readonly retrySafe = true;
@@ -595,9 +644,9 @@ export class FilterStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   private _filterType: FilterStringType = "contains";
   private _criteria = "";
@@ -640,7 +689,7 @@ export class FilterStringNode extends BaseNode {
     this._criteria = String(this.criteria ?? "");
   }
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FilterStringNodeOutputs> {
     this._filterType = String(
       this.filter_type ?? "contains"
     ) as FilterStringType;
@@ -686,6 +735,11 @@ export class FilterStringNode extends BaseNode {
   }
 }
 
+/** Output handles FilterRegexStringNode.process() emits. */
+type FilterRegexStringNodeOutputs = {
+  output?: string;
+};
+
 export class FilterRegexStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FilterRegexString";
   static readonly retrySafe = true;
@@ -695,9 +749,9 @@ export class FilterRegexStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   private _pattern = "";
   private _fullMatch = false;
@@ -731,7 +785,7 @@ export class FilterRegexStringNode extends BaseNode {
     this._fullMatch = Boolean(this.full_match ?? false);
   }
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FilterRegexStringNodeOutputs> {
     this._pattern = String(this.pattern ?? "");
     this._fullMatch = Boolean(this.full_match ?? false);
 
@@ -758,6 +812,11 @@ export class FilterRegexStringNode extends BaseNode {
   }
 }
 
+/** Output handles ConcatTextNode.process() emits. */
+type ConcatTextNodeOutputs = {
+  output: string;
+};
+
 export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly retrySafe = true;
@@ -773,7 +832,7 @@ export class ConcatTextNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly supportsDynamicInputs = true;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConcatTextNodeOutputs> {
     // A dynamic input may carry a single value or a list<str> from an upstream
     // loop/list node — flatten so list elements concatenate in order instead of
     // stringifying the whole array as "a,b,c".
@@ -785,6 +844,11 @@ export class ConcatTextNode extends BaseNode {
     };
   }
 }
+
+/** Output handles JoinTextNode.process() emits. */
+type JoinTextNodeOutputs = {
+  output: string;
+};
 
 export class JoinTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Join";
@@ -805,15 +869,25 @@ export class JoinTextNode extends BaseNode {
   })
   declare strings: any;
 
-  @prop({ type: "str", default: "", title: "Separator", description: "Separator between items." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Separator",
+    description: "Separator between items."
+  })
   declare separator: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<JoinTextNodeOutputs> {
     const list = Array.isArray(this.strings) ? this.strings : [];
     const sep = String(this.separator ?? "");
     return { output: list.map((s: unknown) => String(s ?? "")).join(sep) };
   }
 }
+
+/** Output handles CollectTextNode.process() emits. */
+type CollectTextNodeOutputs = {
+  output: string;
+};
 
 export class CollectTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Collect";
@@ -826,17 +900,27 @@ export class CollectTextNode extends BaseNode {
 
   private _items: string[] = [];
 
-  @prop({ type: "str", default: "", title: "Input Item", description: "Text to collect." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Input Item",
+    description: "Text to collect."
+  })
   declare input_item: any;
 
-  @prop({ type: "str", default: "", title: "Separator", description: "Separator between collected items." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Separator",
+    description: "Separator between collected items."
+  })
   declare separator: any;
 
   async initialize(): Promise<void> {
     this._items = [];
   }
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CollectTextNodeOutputs> {
     this._items.push(String(this.input_item ?? ""));
     const sep = String(this.separator ?? "");
     return { output: this._items.join(sep) };
@@ -869,14 +953,11 @@ export class PromptNode extends BaseNode {
     type: "str",
     default: "",
     title: "Prompt",
-    description:
-      "Prompt text. Reference variables with {{ name }} or {name}."
+    description: "Prompt text. Reference variables with {{ name }} or {name}."
   })
   declare prompt: any;
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const template = String(this.prompt ?? "");
     const props: Record<string, unknown> = Object.fromEntries(
       this.dynamicProps
@@ -910,6 +991,11 @@ export class PromptNode extends BaseNode {
   }
 }
 
+/** Output handles TemplateTextNode.process() emits. */
+type TemplateTextNodeOutputs = {
+  output: string;
+};
+
 export class TemplateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Template";
   static readonly retrySafe = true;
@@ -927,15 +1013,14 @@ export class TemplateTextNode extends BaseNode {
     type: "str",
     default: "",
     title: "String",
-    description: "Template string with {{ variable }} or {variable} placeholders."
+    description:
+      "Template string with {{ variable }} or {variable} placeholders."
   })
   declare string: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TemplateTextNodeOutputs> {
     let result = String(this.string ?? "");
-    const props = tokenizeAssetVars(
-      Object.fromEntries(this.dynamicProps)
-    );
+    const props = tokenizeAssetVars(Object.fromEntries(this.dynamicProps));
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");

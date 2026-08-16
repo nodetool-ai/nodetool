@@ -1,4 +1,5 @@
 import { Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { EdgeOverrideCollector, applyNodeOverrides } from "../edgeOverrides";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -22,7 +23,7 @@ const node = (
 
 // `target.list` is a collect (list[image]) handle; everything else is scalar.
 const getMetadata = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     title: type,
     properties: [
       {
@@ -31,7 +32,7 @@ const getMetadata = (type: string): NodeMetadata =>
       },
       { name: "scalar", type: { type: "image", type_args: [] } }
     ]
-  }) as unknown as NodeMetadata;
+  });
 
 describe("EdgeOverrideCollector", () => {
   const findNode = (nodes: Node<NodeData>[]) => (id: string) =>

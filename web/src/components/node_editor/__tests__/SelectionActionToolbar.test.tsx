@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -56,7 +57,7 @@ describe("SelectionActionToolbar", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+    asMock(useNodes).mockImplementation((sel: any) =>
       sel({
         nodes: [
           { id: "1", position: { x: 0, y: 0 }, selected: true },

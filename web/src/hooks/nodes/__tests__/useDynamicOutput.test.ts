@@ -1,20 +1,17 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useDynamicOutput } from "../useDynamicOutput";
-import { useNodes } from "../../../contexts/NodeContext";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
-
 const mockUpdateNodeData = jest.fn();
+
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeData: mockUpdateNodeData })
+);
 
 describe("useDynamicOutput", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as jest.Mock).mockReturnValue({
-      updateNodeData: mockUpdateNodeData
-    });
   });
 
   it("returns handleDeleteOutput, handleAddOutput, and handleRenameOutput functions", () => {
@@ -27,10 +24,10 @@ describe("useDynamicOutput", () => {
 
   describe("handleDeleteOutput", () => {
     it("deletes an output from dynamicOutputs", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         output1: { type: "text", optional: false, type_args: [] },
         output2: { type: "image", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -45,9 +42,9 @@ describe("useDynamicOutput", () => {
     });
 
     it("handles deleting the only output", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         output1: { type: "text", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -62,9 +59,9 @@ describe("useDynamicOutput", () => {
     });
 
     it("handles deleting non-existent output gracefully", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         output1: { type: "text", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -81,9 +78,9 @@ describe("useDynamicOutput", () => {
 
   describe("handleAddOutput", () => {
     it("adds a new output with type metadata", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         existing: { type: "text", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const newOutput: TypeMetadata = { type: "image", optional: false, type_args: [] };
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
@@ -146,10 +143,10 @@ describe("useDynamicOutput", () => {
 
   describe("handleRenameOutput", () => {
     it("renames an output from old to new name", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         oldName: { type: "text", optional: false, type_args: [] },
         other: { type: "image", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -167,9 +164,9 @@ describe("useDynamicOutput", () => {
     });
 
     it("handles renaming to the same name", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         output1: { type: "text", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -184,9 +181,9 @@ describe("useDynamicOutput", () => {
     });
 
     it("handles renaming non-existent output", () => {
-      const dynamicOutputs: Record<string, TypeMetadata> = {
+      const dynamicOutputs = {
         output1: { type: "text", optional: false, type_args: [] }
-      };
+      } satisfies Record<string, TypeMetadata>;
       const { result } = renderHook(() =>
         useDynamicOutput("node-1", dynamicOutputs)
       );
@@ -232,7 +229,7 @@ describe("useDynamicOutput", () => {
 
   it("works with undefined dynamicOutputs", () => {
     const { result } = renderHook(() =>
-      useDynamicOutput("node-1", undefined as unknown as Record<string, TypeMetadata>)
+      useDynamicOutput("node-1", undefined)
     );
 
     act(() => {

@@ -23,6 +23,11 @@ type TokenEntity = {
   end?: number;
 };
 
+/** Output handles TokenClassificationNode.process() emits. */
+type TokenClassificationNodeOutputs = {
+  entities: TokenEntity[];
+};
+
 export class TokenClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.TokenClassification";
   static readonly inlineFields = ["text"];
@@ -82,19 +87,21 @@ export class TokenClassificationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TokenClassificationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<TokenEntity | TokenEntity[]>
+    >({
       task: "token-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<TokenEntity | TokenEntity[]>;
+    });
 
     const opts: Record<string, unknown> = {};
     const aggregation = asString(this.aggregation_strategy, "simple");

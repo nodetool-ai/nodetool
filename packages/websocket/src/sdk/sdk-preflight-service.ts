@@ -129,41 +129,38 @@ export function createNodeToolSdkV1PreflightService(
         configuredProbes?.model ??
         createNodeToolSdkV1ModelProbe({
           userId: principal.userId,
-          listProviderIds:
-            options.requirementResolverOptions?.listProviderIds,
-          isProviderReady:
-            options.requirementResolverOptions?.isProviderReady,
+          listProviderIds: options.requirementResolverOptions?.listProviderIds,
+          isProviderReady: options.requirementResolverOptions?.isProviderReady,
           listModelIds: options.listCachedModelIds,
           getModelDownloadStatus:
-            options.getModelDownloadStatus ??
-            readHuggingFaceDownloadState
+            options.getModelDownloadStatus ?? readHuggingFaceDownloadState
         });
       const nodePackageProbe =
         configuredProbes?.node_pack ??
         createNodeToolSdkV1NodePackageProbe({
           userId: principal.userId,
           listInstalledPackageIds:
-            options.listInstalledNodePackageIds ??
-            listRegistryPackageIds
+            options.listInstalledNodePackageIds ?? listRegistryPackageIds
         });
+      const probes: NonNullable<
+        Parameters<typeof createNodeToolSdkV1RequirementResolver>[0]["probes"]
+      > = { ...configuredProbes };
+      if (modelProbe) {
+        probes.model = modelProbe;
+      }
+      if (nodePackageProbe) {
+        probes.node_pack = nodePackageProbe;
+      }
+      if (options.getPythonBridgeReady) {
+        probes.runtime =
+          configuredProbes?.runtime ??
+          createNodeToolSdkV1RuntimeProbe({
+            getPythonBridgeReady: options.getPythonBridgeReady
+          });
+      }
       return createNodeToolSdkV1RequirementResolver({
         ...options.requirementResolverOptions,
-        probes: options.getPythonBridgeReady
-          ? {
-              ...configuredProbes,
-              ...(modelProbe ? { model: modelProbe } : {}),
-              ...(nodePackageProbe ? { node_pack: nodePackageProbe } : {}),
-              runtime:
-                configuredProbes?.runtime ??
-                createNodeToolSdkV1RuntimeProbe({
-                  getPythonBridgeReady: options.getPythonBridgeReady
-                })
-            }
-          : {
-              ...configuredProbes,
-              ...(modelProbe ? { model: modelProbe } : {}),
-              ...(nodePackageProbe ? { node_pack: nodePackageProbe } : {})
-            },
+        probes,
         userId: principal.userId
       });
     });

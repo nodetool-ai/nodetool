@@ -50,6 +50,11 @@ interface ImageSizeValue {
   height?: number;
 }
 
+/** Output handles FloatInputNode.process() emits. */
+type FloatInputNodeOutputs = {
+  output: number;
+};
+
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
   static readonly retrySafe = true;
@@ -77,13 +82,18 @@ export class FloatInputNode extends BaseNode {
   @prop({ type: "float", default: 99999, title: "Max" })
   declare max: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FloatInputNodeOutputs> {
     const value = this.value ?? 0.0;
     const min = this.min ?? 0;
     const max = this.max ?? 99999;
     return { output: Math.min(Math.max(value, min), max) };
   }
 }
+
+/** Output handles BooleanInputNode.process() emits. */
+type BooleanInputNodeOutputs = {
+  output: boolean;
+};
 
 export class BooleanInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.BooleanInput";
@@ -106,10 +116,15 @@ export class BooleanInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<BooleanInputNodeOutputs> {
     return { output: this.value ?? false };
   }
 }
+
+/** Output handles IntegerInputNode.process() emits. */
+type IntegerInputNodeOutputs = {
+  output: number;
+};
 
 export class IntegerInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.IntegerInput";
@@ -138,13 +153,18 @@ export class IntegerInputNode extends BaseNode {
   @prop({ type: "int", default: 99999, title: "Max" })
   declare max: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IntegerInputNodeOutputs> {
     const value = this.value ?? 0;
     const min = this.min ?? 0;
     const max = this.max ?? 99999;
     return { output: Math.trunc(Math.min(Math.max(value, min), max)) };
   }
 }
+
+/** Output handles SelectInputNode.process() emits. */
+type SelectInputNodeOutputs = {
+  output: string;
+};
 
 export class SelectInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.SelectInput";
@@ -192,7 +212,7 @@ export class SelectInputNode extends BaseNode {
   })
   declare enum_type_name: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SelectInputNodeOutputs> {
     const value = this.value ?? "";
     const options = Array.isArray(this.options) ? this.options : [];
     if (value !== "" && options.length > 0 && !options.includes(value)) {
@@ -203,6 +223,11 @@ export class SelectInputNode extends BaseNode {
     return { output: value };
   }
 }
+
+/** Output handles StringListInputNode.process() emits. */
+type StringListInputNodeOutputs = {
+  output: string[];
+};
 
 export class StringListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.StringListInput";
@@ -230,10 +255,15 @@ export class StringListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<StringListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles FolderPathInputNode.process() emits. */
+type FolderPathInputNodeOutputs = {
+  output: string;
+};
 
 export class FolderPathInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FolderPathInput";
@@ -264,7 +294,7 @@ export class FolderPathInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FolderPathInputNodeOutputs> {
     return { output: this.value ?? "" };
   }
 }
@@ -331,6 +361,11 @@ export class ColorInputNode extends BaseNode {
   }
 }
 
+/** Output handles ImageSizeInputNode.process() emits. */
+type ImageSizeInputNodeOutputs = {
+  output: ImageSizeValue;
+};
+
 export class ImageSizeInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageSizeInput";
   static readonly retrySafe = true;
@@ -358,7 +393,7 @@ export class ImageSizeInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageSizeInputNodeOutputs> {
     return { output: this.value ?? {} };
   }
 }
@@ -642,6 +677,11 @@ export class ImageInputNode extends BaseNode {
   }
 }
 
+/** Output handles ImageListInputNode.process() emits. */
+type ImageListInputNodeOutputs = {
+  output: ImageRef[];
+};
+
 export class ImageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageListInput";
   static readonly retrySafe = true;
@@ -668,10 +708,15 @@ export class ImageListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles VideoListInputNode.process() emits. */
+type VideoListInputNodeOutputs = {
+  output: VideoRef[];
+};
 
 export class VideoListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.VideoListInput";
@@ -699,10 +744,15 @@ export class VideoListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<VideoListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles AudioListInputNode.process() emits. */
+type AudioListInputNodeOutputs = {
+  output: AudioRef[];
+};
 
 export class AudioListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.AudioListInput";
@@ -730,10 +780,15 @@ export class AudioListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<AudioListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles TextListInputNode.process() emits. */
+type TextListInputNodeOutputs = {
+  output: string[];
+};
 
 export class TextListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.TextListInput";
@@ -761,7 +816,7 @@ export class TextListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
@@ -921,6 +976,11 @@ export class MessageInputNode extends BaseNode {
   }
 }
 
+/** Output handles MessageListInputNode.process() emits. */
+type MessageListInputNodeOutputs = {
+  output: Message[];
+};
+
 export class MessageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.MessageListInput";
   static readonly retrySafe = true;
@@ -947,10 +1007,15 @@ export class MessageListInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MessageListInputNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles StringInputNode.process() emits. */
+type StringInputNodeOutputs = {
+  output: string;
+};
 
 export class StringInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.StringInput";
@@ -996,7 +1061,7 @@ export class StringInputNode extends BaseNode {
   })
   declare line_mode: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<StringInputNodeOutputs> {
     const raw = String(this.value ?? "");
     const max = Number(this.max_length ?? 0);
     if (max > 0 && raw.length > max) {
@@ -1005,6 +1070,11 @@ export class StringInputNode extends BaseNode {
     return { output: raw };
   }
 }
+
+/** Output handles RealtimeAudioInputNode.process() emits. */
+type RealtimeAudioInputNodeOutputs = {
+  chunk: AudioRef | null;
+};
 
 export class RealtimeAudioInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.RealtimeAudioInput";
@@ -1022,9 +1092,9 @@ export class RealtimeAudioInputNode extends BaseNode {
   // stream via runner.pushInputValue. Each chunk is a chunk of one logical
   // realtime stream, so kind: "chunk" preserves the repeats-per-key
   // semantics downstream rather than collapsing to one.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     chunk: { kind: "chunk", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",
@@ -1045,10 +1115,16 @@ export class RealtimeAudioInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<RealtimeAudioInputNodeOutputs> {
     return { chunk: this.value ?? null };
   }
 }
+
+/** Output handles DocumentFileInputNode.process() emits. */
+type DocumentFileInputNodeOutputs = {
+  document: { type: string; uri: string };
+  path: string;
+};
 
 export class DocumentFileInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.DocumentFileInput";
@@ -1080,7 +1156,7 @@ export class DocumentFileInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<DocumentFileInputNodeOutputs> {
     const p = String(this.value ?? "");
     return {
       document: { type: "document", uri: p ? `file://${p}` : "" },
@@ -1088,6 +1164,11 @@ export class DocumentFileInputNode extends BaseNode {
     };
   }
 }
+
+/** Output handles FilePathInputNode.process() emits. */
+type FilePathInputNodeOutputs = {
+  output: string;
+};
 
 export class FilePathInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FilePathInput";
@@ -1118,7 +1199,7 @@ export class FilePathInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FilePathInputNodeOutputs> {
     return { output: this.value ?? "" };
   }
 }

@@ -185,13 +185,23 @@ function checkSeededPorts(
   return errors;
 }
 
+/** What {@link SubmitCodeTool} answers: the accepted submission, or why not. */
+export type SubmitCodeResult =
+  | { status: "code_rejected"; errors: string[] }
+  | {
+      status: "code_accepted";
+      title: string;
+      inputs: string[];
+      outputs: string[];
+    };
+
 export class SubmitCodeTool extends Tool {
   readonly name = "submit_code";
   readonly description =
     "Submit the finished Code node: title, summary, code, and typed input and " +
     "output slots. Returns the validation errors to fix (resubmit the full " +
     "corrected node), or accepts the submission.";
-  readonly jsonSchema: Record<string, unknown> = SUBMIT_CODE_INPUT_SCHEMA;
+  readonly jsonSchema = SUBMIT_CODE_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   private _submission: CodeGenSubmission | null = null;
   /** Code of the last submission, accepted or not — used in the retry prompt. */
@@ -212,7 +222,7 @@ export class SubmitCodeTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<SubmitCodeResult> {
     this.rounds++;
     this.lastCode =
       typeof params["code"] === "string" ? (params["code"] as string) : null;

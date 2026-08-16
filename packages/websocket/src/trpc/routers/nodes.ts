@@ -97,7 +97,7 @@ export const nodesRouter = router({
 
       const payload: NodeMetaOut[] =
         input.fields === "full"
-          ? nodes.map((n) => n as unknown as NodeMetaOut)
+          ? nodes.map((n) => ({ ...n }))
           : nodes.map(toSummary);
       return { nodes: payload };
     }),
@@ -120,7 +120,7 @@ export const nodesRouter = router({
           `Node type not found: ${input.node_type}`
         );
       }
-      return match as unknown as NodeMetaOut;
+      return { ...match };
     }),
 
   sdkTypeInventory: protectedProcedure

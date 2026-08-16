@@ -1,5 +1,7 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { stub } from "../../../../test-utils/doubles";
+import { screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { GetVariableBody } from "../GetVariableBody";
 import {
@@ -22,11 +24,9 @@ const mockUseGraphVariableNames =
 const mockUseGraphVariableTypes =
   useGraphVariableTypes as jest.MockedFunction<typeof useGraphVariableTypes>;
 
-jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { updateNodeData: jest.Mock }) => unknown) =>
-    selector({ updateNodeData: mockUpdateNodeData })
-}));
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeData: mockUpdateNodeData })
+);
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
     setProperty: mockSetProperty,
@@ -56,17 +56,17 @@ const renderWithTheme = (ui: React.ReactElement) =>
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "get-1",
   nodeType: "nodetool.variable.GetVariable",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof GetVariableBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.variable.GetVariable",
     properties: [
       { name: "name", type: { type: "str" } },
       { name: "trigger", type: { type: "any" } }
     ],
     outputs: [{ name: "output", type: { type: "any" } }]
-  } as unknown as Parameters<typeof GetVariableBody>[0]["nodeMetadata"],
-  data: {
+  }),
+  data: stub<Parameters<typeof GetVariableBody>[0]["data"]>({
     properties: { name: "" }
-  } as unknown as Parameters<typeof GetVariableBody>[0]["data"],
+  }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

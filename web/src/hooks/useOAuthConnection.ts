@@ -13,11 +13,11 @@ interface OAuthProviderConfig {
   canDisconnect: boolean;
 }
 
-const PROVIDER_CONFIG: Record<OAuthProvider, OAuthProviderConfig> = {
+const PROVIDER_CONFIG = {
   openai: { label: "OpenAI", canDisconnect: true },
   hf: { label: "HuggingFace", canDisconnect: false },
   claude: { label: "Claude", canDisconnect: true }
-};
+} satisfies Record<OAuthProvider, OAuthProviderConfig>;
 
 interface TokensResponse {
   tokens: unknown[];

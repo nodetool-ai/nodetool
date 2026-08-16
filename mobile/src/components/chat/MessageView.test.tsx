@@ -8,6 +8,15 @@ import { MessageView } from './MessageView';
 import { Message } from '../../types';
 
 // Mock ChatMarkdown component to simplify testing
+jest.mock("../../trpc/client", () => ({
+  // Media widgets resolve an `asset://` locator through `assets.get`; these
+  // cases render non-asset sources, so the lookup never settles.
+  trpc: {
+    assets: { get: { useQuery: () => ({ data: undefined, isLoading: false }) } },
+    useQueries: () => [],
+  },
+}));
+
 jest.mock('./ChatMarkdown', () => ({
   ChatMarkdown: ({ content }: { content: string }) => {
     const { Text } = require('react-native');

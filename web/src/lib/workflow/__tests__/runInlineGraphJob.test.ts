@@ -1,5 +1,12 @@
 import { runInlineGraphJob } from "../runInlineGraphJob";
+import { asMock } from "../../../test-utils/doubles";
 import { globalWebSocketManager } from "../../websocket/GlobalWebSocketManager";
+
+/** Replays a frame into the handler the newest run registered with `subscribe`. */
+const emit = (message: Record<string, unknown>): void => {
+  const { calls } = asMock(globalWebSocketManager.subscribe).mock;
+  calls[calls.length - 1][1](message);
+};
 import { getRunSignature } from "../../../stores/runSignatures";
 
 jest.mock("../../websocket/GlobalWebSocketManager", () => {
@@ -54,11 +61,7 @@ describe("runInlineGraphJob", () => {
     );
 
     // Resolve the pending run so the promise settles.
-    (
-      globalWebSocketManager as unknown as {
-        __emit: (m: Record<string, unknown>) => void;
-      }
-    ).__emit({
+    emit({
       type: "job_update",
       status: "completed",
       job_id: "job-x",
@@ -87,11 +90,7 @@ describe("runInlineGraphJob", () => {
     // Stamped under the dispatched jobId (crypto.randomUUID stubbed → "job-x").
     expect(getRunSignature("job-x", "n1")).toBe("sig-n1");
 
-    (
-      globalWebSocketManager as unknown as {
-        __emit: (m: Record<string, unknown>) => void;
-      }
-    ).__emit({
+    emit({
       type: "job_update",
       status: "completed",
       job_id: "job-x",

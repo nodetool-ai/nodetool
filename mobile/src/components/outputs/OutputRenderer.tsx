@@ -18,6 +18,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "../../hooks/useTheme";
 import type { ThemeColors } from "../../utils/theme";
 import { apiService } from "../../services/api";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface TypedValue {
   type: string;
@@ -53,15 +54,13 @@ const typeFor = (value: unknown): string => {
 };
 
 /**
- * Resolve a media URI — handles relative paths, data URIs, and absolute URLs.
+ * The locator a media branch should resolve: nothing for an in-memory value,
+ * and a data URI is already its own source.
  */
-const resolveMediaUri = (
-  uri: string | undefined | null
-): string | null => {
-  if (!uri || uri.startsWith("memory://")) {return null;}
-  if (uri.startsWith("data:")) {return uri;}
-  return apiService.resolveUrl(uri);
-};
+const mediaLocator = (uri: unknown): string | undefined =>
+  typeof uri === "string" && uri && !uri.startsWith("memory://")
+    ? uri
+    : undefined;
 
 /**
  * One explicit width per column so the header row and the body rows share a
@@ -113,6 +112,19 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
   const { colors, mode } = useTheme();
   const codeTheme = mode === "dark" ? atomDark : tomorrow;
   const monoFont = Platform.OS === "ios" ? "Menlo" : "monospace";
+
+  // A stored output references its asset as `asset://<id>`, which no native
+  // loader can fetch — it resolves through the asset's own `get_url`. Hooks
+  // run unconditionally, so the value's own uri and the two comparison images
+  // resolve here and the branches below read what they need.
+  const record = (value ?? {}) as Record<string, unknown>;
+  const resolvedUri = useResolvedMediaUri(mediaLocator(record.uri));
+  const resolvedComparisonA = useResolvedMediaUri(
+    mediaLocator((record.image_a as Record<string, unknown> | undefined)?.uri)
+  );
+  const resolvedComparisonB = useResolvedMediaUri(
+    mediaLocator((record.image_b as Record<string, unknown> | undefined)?.uri)
+  );
 
   if (
     value === undefined ||
@@ -181,12 +193,14 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       }
 
       if (typeof imgSource === "string") {
-        const resolvedUri = imgSource.startsWith("data:")
+        const imageUri = imgSource.startsWith("data:")
           ? imgSource
-          : resolveMediaUri(imgSource) ?? `data:image/png;base64,${imgSource}`;
+          : (resolvedUri ??
+            apiService.resolveUrl(imgSource) ??
+            `data:image/png;base64,${imgSource}`);
         return (
           <Image
-            source={{ uri: resolvedUri }}
+            source={{ uri: imageUri }}
             style={[styles.image, { backgroundColor: colors.inputBg }]}
             resizeMode="contain"
           />
@@ -201,7 +215,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     }
 
     case "audio": {
-      const audioUri = resolveMediaUri(v.uri as string | undefined);
+      const audioUri = resolvedUri;
       if (!audioUri) {
         return (
           <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
@@ -213,7 +227,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     }
 
     case "video": {
-      const videoUri = resolveMediaUri(v.uri as string | undefined);
+      const videoUri = resolvedUri;
       if (!videoUri) {
         return (
           <Text style={[styles.placeholder, { color: colors.textSecondary }]}>
@@ -225,7 +239,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     }
 
     case "html": {
-      const htmlUri = resolveMediaUri(v.uri as string | undefined);
+      const htmlUri = resolvedUri;
       if (htmlUri) {
         return (
           <TouchableOpacity
@@ -246,7 +260,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     }
 
     case "document": {
-      const docUri = resolveMediaUri(v.uri as string | undefined);
+      const docUri = resolvedUri;
       if (docUri) {
         return (
           <TouchableOpacity
@@ -532,10 +546,8 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
 
     // ── Image Comparison ─────────────────────────────────────────
     case "image_comparison": {
-      const imageA = v.image_a as Record<string, unknown> | undefined;
-      const imageB = v.image_b as Record<string, unknown> | undefined;
-      const imgA = resolveMediaUri(imageA?.uri as string | undefined);
-      const imgB = resolveMediaUri(imageB?.uri as string | undefined);
+      const imgA = resolvedComparisonA;
+      const imgB = resolvedComparisonB;
       return (
         <View style={styles.comparisonContainer}>
           {imgA && (

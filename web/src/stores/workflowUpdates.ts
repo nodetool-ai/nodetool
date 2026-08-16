@@ -36,7 +36,10 @@ import { useNotificationStore } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
 import { openProviderOnboarding } from "./ProviderOnboardingStore";
 import type { NodeErrorDetail } from "@nodetool-ai/protocol";
-import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
+import {
+  NOTIFICATION_TIMEOUT_JOB_COMPLETED,
+  NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
+} from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
@@ -77,7 +80,12 @@ const flushAudioAppends = (): void => {
   }
   if (pendingAudioAppends.size === 0) return;
   const appendOutputResults = useResultsStore.getState().appendOutputResults;
-  for (const { workflowId, jobId, nodeId, chunks } of pendingAudioAppends.values()) {
+  for (const {
+    workflowId,
+    jobId,
+    nodeId,
+    chunks
+  } of pendingAudioAppends.values()) {
     appendOutputResults(workflowId, jobId, nodeId, chunks);
   }
   pendingAudioAppends.clear();
@@ -94,10 +102,18 @@ const queueAudioAppend = (
   if (pending) {
     pending.chunks.push(chunk);
   } else {
-    pendingAudioAppends.set(key, { workflowId, jobId, nodeId, chunks: [chunk] });
+    pendingAudioAppends.set(key, {
+      workflowId,
+      jobId,
+      nodeId,
+      chunks: [chunk]
+    });
   }
   if (audioAppendFlushTimer === null) {
-    audioAppendFlushTimer = setTimeout(flushAudioAppends, AUDIO_APPEND_FLUSH_MS);
+    audioAppendFlushTimer = setTimeout(
+      flushAudioAppends,
+      AUDIO_APPEND_FLUSH_MS
+    );
   }
 };
 
@@ -121,7 +137,12 @@ const flushTextChunks = (): void => {
   }
   if (pendingTextChunks.size === 0) return;
   const addChunk = useResultsStore.getState().addChunk;
-  for (const { workflowId, jobId, nodeId, text } of pendingTextChunks.values()) {
+  for (const {
+    workflowId,
+    jobId,
+    nodeId,
+    text
+  } of pendingTextChunks.values()) {
     addChunk(workflowId, jobId, nodeId, text);
   }
   pendingTextChunks.clear();
@@ -248,10 +269,13 @@ const promptForProviderAuth = (
   }
   authPromptedRuns.add(runKey);
   const provider = detail.provider ?? "the provider";
-  openProviderOnboarding({
-    reason: `The run stopped because ${provider} rejected the credentials. Reconnect it to continue.`,
-    ...(detail.secret_key ? { highlightSecretKey: detail.secret_key } : {})
-  });
+  const onboarding: Parameters<typeof openProviderOnboarding>[0] = {
+    reason: `The run stopped because ${provider} rejected the credentials. Reconnect it to continue.`
+  };
+  if (detail.secret_key) {
+    onboarding.highlightSecretKey = detail.secret_key;
+  }
+  openProviderOnboarding(onboarding);
 };
 
 // Per-(jobId, node_id) "a generation_complete landed this run" set. Gates the
@@ -314,10 +338,7 @@ export const mergeNodeUpdateProperties = ({
   existingStatic: Record<string, unknown>;
   existingDynamic: Record<string, unknown>;
   isDynamicSchemaNode: boolean;
-}): {
-  staticProperties: Record<string, unknown>;
-  dynamicProperties: Record<string, unknown>;
-} => {
+}) => {
   const nextDynamic = { ...existingDynamic };
   const nextStatic = { ...existingStatic };
 
@@ -431,19 +452,16 @@ export const subscribeToWorkflowUpdates = (
       return;
     }
 
-    unsubscribeJob = globalWebSocketManager.subscribe(
-      jobId,
-      (message) => {
-        // Avoid double-processing when the backend already provides workflow_id.
-        // The job_id routing exists as a fallback for updates where workflow_id is
-        // missing/null (e.g. terminal job completion updates).
-        if ("workflow_id" in message && message.workflow_id) {
-          return;
-        }
-
-        handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
+    unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message) => {
+      // Avoid double-processing when the backend already provides workflow_id.
+      // The job_id routing exists as a fallback for updates where workflow_id is
+      // missing/null (e.g. terminal job completion updates).
+      if ("workflow_id" in message && message.workflow_id) {
+        return;
       }
-    );
+
+      handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
+    });
   };
 
   // Track runnerStore job_id changes so we can subscribe by job_id as a fallback.
@@ -475,9 +493,7 @@ export const subscribeToWorkflowUpdates = (
           last_seq: jobReplayCursor
         }
       })
-      .catch((e) =>
-        console.error("Failed to send reconnect_job:", job_id, e)
-      );
+      .catch((e) => console.error("Failed to send reconnect_job:", job_id, e));
   };
   const unsubscribeOpen = globalWebSocketManager.subscribeEvent(
     "open",
@@ -653,7 +669,8 @@ const handleJobResumed = (
     runner.addNotification({
       type: "warning",
       alert: true,
-      content: "Lost track of this run after reconnecting. Check the job queue for its result.",
+      content:
+        "Lost track of this run after reconnecting. Check the job queue for its result.",
       timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
     });
   } else if (data.replay_count === 0) {
@@ -690,7 +707,6 @@ export const handleUpdate = (
   const addNotification = useNotificationStore.getState().addNotification;
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
-
 
   if (data.type === "log_update") {
     appendLog({
@@ -821,8 +837,7 @@ export const handleUpdate = (
   if (data.type === "llm_call") {
     const tokensIn = data.tokens_input ?? 0;
     const tokensOut = data.tokens_output ?? 0;
-    const duration =
-      data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
+    const duration = data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
     appendTrace(
       "llm_call",
       `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
@@ -847,7 +862,12 @@ export const handleUpdate = (
     // coalesced and flushed on a timer; everything else lands immediately.
     if (messageJobId) {
       if (isAudioChunk) {
-        queueAudioAppend(workflow.id, messageJobId, data.node_id, normalizedValue);
+        queueAudioAppend(
+          workflow.id,
+          messageJobId,
+          data.node_id,
+          normalizedValue
+        );
       } else {
         setOutputResult(
           workflow.id,
@@ -858,7 +878,8 @@ export const handleUpdate = (
           // stored value — appending replace snapshots made hydration
           // concatenate "H","He","Hel" into "HHeHel" (app opened after a
           // graph-editor run). Absent disposition appends (protocol default).
-          (data as { disposition?: "append" | "replace" }).disposition !== "replace"
+          (data as { disposition?: "append" | "replace" }).disposition !==
+            "replace"
         );
       }
     }
@@ -916,7 +937,7 @@ export const handleUpdate = (
       // (replace) so a scrub stays ONE preview (D2/§9). Otherwise use the
       // relay-stamped index. outputs are already normalized at the relay — pass
       // through, do NOT re-coerce.
-      const slot = isSilentJob(jobId) ? 0 : data.index ?? 0;
+      const slot = isSilentJob(jobId) ? 0 : (data.index ?? 0);
       upsertLiveGeneration(workflow.id, data.node_id, jobId, {
         index: slot,
         status: "completed",
@@ -1082,7 +1103,7 @@ export const handleUpdate = (
       // non-queued update (running, completed, …) clears it.
       runnerStore.setState({
         queuePosition:
-          job.status === "queued" ? job.queue_position ?? null : null
+          job.status === "queued" ? (job.queue_position ?? null) : null
       });
     }
 
@@ -1169,9 +1190,7 @@ export const handleUpdate = (
             .setIssues(workflow.id, validationIssues);
           const firstIssue = validationIssues[0];
           const nodeStore = getNodeStore(workflow.id);
-          const firstNode = nodeStore
-            ?.getState()
-            .findNode(firstIssue.node_id);
+          const firstNode = nodeStore?.getState().findNode(firstIssue.node_id);
           const nodeLabel =
             firstNode?.data?.title?.trim() ||
             firstNode?.type?.split(".").pop() ||
@@ -1470,14 +1489,13 @@ export const handleUpdate = (
           update.node_type === DYNAMIC_KIE_NODE_TYPE ||
           update.node_type === "kie.DynamicKie";
 
-        const { staticProperties, dynamicProperties } = mergeNodeUpdateProperties(
-          {
+        const { staticProperties, dynamicProperties } =
+          mergeNodeUpdateProperties({
             updateProperties: update.properties,
             existingStatic,
             existingDynamic,
             isDynamicSchemaNode
-          }
-        );
+          });
 
         // This runs while undo tracking is active, so writing here would push
         // an undo entry and mark the workflow dirty for a runtime echo the

@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useBottomPanelStore } from "../../../stores/BottomPanelStore";
 import { useResizeBottomPanel } from "../useResizeBottomPanel";
 
@@ -27,10 +28,10 @@ describe("useResizeBottomPanel", () => {
   it("handleMouseDown sets isDragging to true", () => {
     const { result } = renderHook(() => useResizeBottomPanel());
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);
@@ -47,10 +48,10 @@ describe("useResizeBottomPanel", () => {
   it("mouse move updates panel size with inverted Y-axis", () => {
     const { result } = renderHook(() => useResizeBottomPanel());
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);
@@ -74,10 +75,10 @@ describe("useResizeBottomPanel", () => {
 
     expect(result.current.isVisible).toBe(true);
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);
@@ -96,10 +97,10 @@ describe("useResizeBottomPanel", () => {
     useBottomPanelStore.getState().setVisibility(true);
     const { result } = renderHook(() => useResizeBottomPanel());
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);
@@ -122,10 +123,10 @@ describe("useResizeBottomPanel", () => {
     useBottomPanelStore.getState().setSize(400);
     const { result } = renderHook(() => useResizeBottomPanel());
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);
@@ -147,10 +148,10 @@ describe("useResizeBottomPanel", () => {
     const removeSpy = jest.spyOn(document, "removeEventListener");
     const { result, unmount } = renderHook(() => useResizeBottomPanel());
 
-    const mockEvent = {
+    const mockEvent = stub<React.MouseEvent<HTMLElement>>({
       clientY: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockEvent);

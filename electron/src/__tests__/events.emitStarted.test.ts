@@ -11,7 +11,7 @@ const mockWebContents = { send: jest.fn() };
 const mockWindow = {
   webContents: mockWebContents,
   isDestroyed: jest.fn().mockReturnValue(false)
-} as unknown as Electron.BrowserWindow;
+};
 
 (BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([mockWindow]);
 
@@ -76,7 +76,7 @@ describe("emitBootMessage", () => {
     const destroyed = {
       webContents: { send: jest.fn() },
       isDestroyed: jest.fn().mockReturnValue(true)
-    } as unknown as Electron.BrowserWindow;
+    };
     (BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([
       destroyed,
       mockWindow
@@ -92,7 +92,7 @@ describe("emitBootMessage", () => {
     const secondWindow = {
       webContents: secondContents,
       isDestroyed: jest.fn().mockReturnValue(false)
-    } as unknown as Electron.BrowserWindow;
+    };
     (BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([
       mockWindow,
       secondWindow

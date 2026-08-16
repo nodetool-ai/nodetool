@@ -2,7 +2,8 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
   InputMode,
   OutputCorrelation,
-  Platform
+  Platform,
+  AudioRef
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -107,10 +108,7 @@ function dateName(name: string): string {
     .replaceAll("%S", pad(now.getSeconds()));
 }
 
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function getModelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   if (typeof model === "string") {
     return { providerId: "", modelId: model };
@@ -125,16 +123,7 @@ function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
   modelId: string
-): context is ProcessingContext & {
-  runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  streamProviderPrediction: (
-    req: Record<string, unknown>
-  ) => AsyncGenerator<unknown>;
-  providerSupportsStreamingTTS: (providerId: string) => Promise<boolean>;
-  textToSpeechEncoded: (
-    req: Record<string, unknown>
-  ) => Promise<{ data: Uint8Array; mimeType: string } | null>;
-} {
+): context is ProcessingContext {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&
@@ -161,11 +150,11 @@ export class LoadAudioAssetsNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "iteration", source: "__execution__", group: "items" },
     name: { kind: "iteration", source: "__execution__", group: "items" },
     audios: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "folder",
@@ -222,6 +211,11 @@ export class LoadAudioAssetsNode extends BaseNode {
   }
 }
 
+/** Output handles LoadAudioFileNode.process() emits. */
+type LoadAudioFileNodeOutputs = {
+  output: AudioRef;
+};
+
 export class LoadAudioFileNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.LoadAudioFile";
   static readonly platforms = NODE_ONLY;
@@ -242,7 +236,7 @@ export class LoadAudioFileNode extends BaseNode {
   })
   declare path: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LoadAudioFileNodeOutputs> {
     const p = uriToPath(String(this.path ?? ""));
     const fs = await loadNodeFsPromises();
     const data = new Uint8Array(await fs.readFile(p));
@@ -265,11 +259,11 @@ export class LoadAudioFolderNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "iteration", source: "__execution__", group: "items" },
     path: { kind: "iteration", source: "__execution__", group: "items" },
     audios: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",
@@ -341,6 +335,11 @@ export class LoadAudioFolderNode extends BaseNode {
   }
 }
 
+/** Output handles SaveAudioNode.process() emits. */
+type SaveAudioNodeOutputs = {
+  output: AudioRef;
+};
+
 export class SaveAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SaveAudio";
   static readonly platforms = NODE_ONLY;
@@ -389,7 +388,7 @@ export class SaveAudioNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveAudioNodeOutputs> {
     const audio = this.audio;
     const folder = resolveFolderPath(this.folder) || ".";
     const name = dateName(String(this.name || "audio.wav"));
@@ -401,6 +400,11 @@ export class SaveAudioNode extends BaseNode {
     return { output: audioRefFromBytes(audioBytes(audio), `file://${full}`) };
   }
 }
+
+/** Output handles SaveAudioFileNode.process() emits. */
+type SaveAudioFileNodeOutputs = {
+  output: string;
+};
 
 export class SaveAudioFileNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SaveAudioFile";
@@ -459,7 +463,7 @@ export class SaveAudioFileNode extends BaseNode {
   })
   declare FORMAT_MAP: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveAudioFileNodeOutputs> {
     const audio = this.audio;
     const folder = String(this.folder || ".");
     const fname = dateName(String(this.filename || "audio.wav"));
@@ -471,6 +475,11 @@ export class SaveAudioFileNode extends BaseNode {
     return { output: p };
   }
 }
+
+/** Output handles NormalizeAudioNode.process() emits. */
+type NormalizeAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class NormalizeAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Normalize";
@@ -497,7 +506,7 @@ export class NormalizeAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<NormalizeAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
     const wav = await decodeAudioToWav(bytes);
     if (wav.samples.length === 0) {
@@ -530,6 +539,11 @@ export class NormalizeAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles OverlayAudioNode.process() emits. */
+type OverlayAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class OverlayAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.OverlayAudio";
@@ -570,7 +584,7 @@ export class OverlayAudioNode extends BaseNode {
   })
   declare b: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<OverlayAudioNodeOutputs> {
     const aBytes = await audioBytesAsync(this.a, context);
     const bBytes = await audioBytesAsync(this.b, context);
     const aw = parseWavBytes(aBytes);
@@ -605,6 +619,11 @@ export class OverlayAudioNode extends BaseNode {
     return { output: audioRefFromBytes(out) };
   }
 }
+
+/** Output handles RemoveSilenceNode.process() emits. */
+type RemoveSilenceNodeOutputs = {
+  output: AudioRef;
+};
 
 export class RemoveSilenceNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.RemoveSilence";
@@ -685,7 +704,7 @@ export class RemoveSilenceNode extends BaseNode {
   })
   declare min_silence_between_parts: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<RemoveSilenceNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     const wav = parseWavBytes(bytes);
     if (!wav || wav.samples.length === 0) {
@@ -782,6 +801,11 @@ export class RemoveSilenceNode extends BaseNode {
   }
 }
 
+/** Output handles SliceAudioNode.process() emits. */
+type SliceAudioNodeOutputs = {
+  output: AudioRef;
+};
+
 export class SliceAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SliceAudio";
   static readonly title = "Slice Audio";
@@ -825,7 +849,7 @@ export class SliceAudioNode extends BaseNode {
   })
   declare end: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SliceAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
     const end = Number(this.end ?? 0);
@@ -844,6 +868,11 @@ export class SliceAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles MonoToStereoNode.process() emits. */
+type MonoToStereoNodeOutputs = {
+  output: AudioRef;
+};
 
 export class MonoToStereoNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.MonoToStereo";
@@ -870,7 +899,7 @@ export class MonoToStereoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<MonoToStereoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     const wav = parseWavBytes(bytes);
     if (!wav) {
@@ -899,6 +928,11 @@ export class MonoToStereoNode extends BaseNode {
     return { output: audioRefFromWav(encodeWav(out, wav.sampleRate, 2)) };
   }
 }
+
+/** Output handles StereoToMonoNode.process() emits. */
+type StereoToMonoNodeOutputs = {
+  output: AudioRef;
+};
 
 export class StereoToMonoNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.StereoToMono";
@@ -933,7 +967,7 @@ export class StereoToMonoNode extends BaseNode {
   })
   declare method: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<StereoToMonoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     const method = String(this.method ?? "average");
     const wav = parseWavBytes(bytes);
@@ -970,6 +1004,11 @@ export class StereoToMonoNode extends BaseNode {
   }
 }
 
+/** Output handles ReverseAudioNode.process() emits. */
+type ReverseAudioNodeOutputs = {
+  output: AudioRef;
+};
+
 export class ReverseAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Reverse";
   static readonly title = "Reverse";
@@ -995,7 +1034,7 @@ export class ReverseAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ReverseAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     const wav = parseWavBytes(bytes);
     if (!wav) {
@@ -1016,6 +1055,11 @@ export class ReverseAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles FadeInAudioNode.process() emits. */
+type FadeInAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class FadeInAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.FadeIn";
@@ -1051,7 +1095,7 @@ export class FadeInAudioNode extends BaseNode {
   })
   declare duration: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<FadeInAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
     const duration = Math.max(0, Number(this.duration ?? 1));
     const wav = await decodeAudioToWav(bytes);
@@ -1070,6 +1114,11 @@ export class FadeInAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles FadeOutAudioNode.process() emits. */
+type FadeOutAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class FadeOutAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.FadeOut";
@@ -1105,7 +1154,7 @@ export class FadeOutAudioNode extends BaseNode {
   })
   declare duration: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<FadeOutAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
     const duration = Math.max(0, Number(this.duration ?? 1));
     const wav = await decodeAudioToWav(bytes);
@@ -1125,6 +1174,11 @@ export class FadeOutAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles RepeatAudioNode.process() emits. */
+type RepeatAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class RepeatAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Repeat";
@@ -1162,7 +1216,7 @@ export class RepeatAudioNode extends BaseNode {
   })
   declare loops: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<RepeatAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     const count = Math.max(1, Math.floor(Number(this.loops ?? 2)));
     const wav = parseWavBytes(bytes);
@@ -1186,6 +1240,11 @@ export class RepeatAudioNode extends BaseNode {
   }
 }
 
+/** Output handles AudioMixerNode.process() emits. */
+type AudioMixerNodeOutputs = {
+  output: AudioRef;
+};
+
 export class AudioMixerNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.AudioMixer";
   static readonly body = "content_card";
@@ -1199,7 +1258,7 @@ export class AudioMixerNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly supportsDynamicInputs = true;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<AudioMixerNodeOutputs> {
     const inputs = Array.from(this.dynamicProps.values()).filter(
       (t) => t && typeof t === "object"
     );
@@ -1249,6 +1308,11 @@ export class AudioMixerNode extends BaseNode {
   }
 }
 
+/** Output handles TrimAudioNode.process() emits. */
+type TrimAudioNodeOutputs = {
+  output: AudioRef;
+};
+
 export class TrimAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Trim";
   static readonly title = "Trim";
@@ -1292,7 +1356,7 @@ export class TrimAudioNode extends BaseNode {
   })
   declare end: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<TrimAudioNodeOutputs> {
     const bytes = await requireAudioBytes(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
     const end = Math.max(0, Number(this.end ?? 0));
@@ -1312,6 +1376,11 @@ export class TrimAudioNode extends BaseNode {
     };
   }
 }
+
+/** Output handles CreateSilenceNode.process() emits. */
+type CreateSilenceNodeOutputs = {
+  output: AudioRef;
+};
 
 export class CreateSilenceNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.CreateSilence";
@@ -1342,7 +1411,7 @@ export class CreateSilenceNode extends BaseNode {
   })
   declare sample_rate: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateSilenceNodeOutputs> {
     const duration = Math.max(0, Number(this.duration ?? 1));
     const sampleRate = Math.max(1, Math.floor(Number(this.sample_rate ?? 44100)));
     const frames = Math.round(duration * sampleRate);
@@ -1353,6 +1422,11 @@ export class CreateSilenceNode extends BaseNode {
     };
   }
 }
+
+/** Output handles ConcatAudioNode.process() emits. */
+type ConcatAudioNodeOutputs = {
+  output: AudioRef;
+};
 
 export class ConcatAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Concat";
@@ -1367,7 +1441,7 @@ export class ConcatAudioNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly supportsDynamicInputs = true;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ConcatAudioNodeOutputs> {
     // Each dynamic input may be a single audio ref or a list<audio> from an
     // upstream loop/list node — flatten so list elements concatenate in order.
     const values = Array.from(this.dynamicProps.values()).flatMap((v) =>
@@ -1416,6 +1490,11 @@ async function concatAudio(parts: Uint8Array[]): Promise<AudioRefResult> {
   );
 }
 
+/** Output handles ConcatAudioListNode.process() emits. */
+type ConcatAudioListNodeOutputs = {
+  output: AudioRef;
+};
+
 export class ConcatAudioListNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.ConcatList";
   static readonly title = "Concatenate Audio List";
@@ -1435,7 +1514,7 @@ export class ConcatAudioListNode extends BaseNode {
   })
   declare audio_files: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ConcatAudioListNodeOutputs> {
     const audios = Array.isArray(this.audio_files)
       ? (this.audio_files as unknown[])
       : [];
@@ -1445,6 +1524,11 @@ export class ConcatAudioListNode extends BaseNode {
     return { output: await concatAudio(parts) };
   }
 }
+
+/** Output handles TextToSpeechNode.process() emits. */
+type TextToSpeechNodeOutputs = {
+  audio: AudioRef;
+};
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.TextToSpeech";
@@ -1461,14 +1545,14 @@ export class TextToSpeechNode extends BaseNode {
   static readonly autoSaveAsset = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "single", source: "__execution__" },
     // `chunk` is declared on the output schema but the current process()
     // accumulates and returns only `audio`. PR 1 classifies it as single
     // (aspirational) per the design's stale-chunk-port guidance; a follow-up
     // either makes the node stream real chunks or removes the handle.
     chunk: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "tts_model",
@@ -1504,7 +1588,7 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare speed: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<TextToSpeechNodeOutputs> {
     const text = String(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
     const modelObj = (this.model ?? {}) as Record<string, unknown>;
@@ -1587,6 +1671,11 @@ function hasMusicProviderSupport(
   );
 }
 
+/** Output handles TextToMusicNode.process() emits. */
+type TextToMusicNodeOutputs = {
+  audio: AudioRef;
+};
+
 export class TextToMusicNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.TextToMusic";
   static readonly body = "content_card";
@@ -1601,9 +1690,9 @@ export class TextToMusicNode extends BaseNode {
   static readonly autoSaveAsset = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     audio: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "music_model",
@@ -1646,7 +1735,7 @@ export class TextToMusicNode extends BaseNode {
   })
   declare duration: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<TextToMusicNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     const lyrics = String(this.lyrics ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -1675,6 +1764,11 @@ export class TextToMusicNode extends BaseNode {
     );
   }
 }
+
+/** Output handles ChunkToAudioNode.process() emits. */
+type ChunkToAudioNodeOutputs = {
+  audio: AudioRef | { type: string; uri: string; data: string };
+};
 
 export class ChunkToAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.ChunkToAudio";
@@ -1705,7 +1799,7 @@ export class ChunkToAudioNode extends BaseNode {
   })
   declare chunk: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ChunkToAudioNodeOutputs> {
     const chunk = this.chunk;
     if (chunk && typeof chunk === "object") {
       const c = chunk as {
@@ -1733,6 +1827,15 @@ export class ChunkToAudioNode extends BaseNode {
     return { audio: audioRefFromBytes(new Uint8Array()) };
   }
 }
+
+/** Output handles GetAudioInfoNode.process() emits. */
+type GetAudioInfoNodeOutputs = {
+  duration: number;
+  sample_rate: number;
+  channels: number;
+  format: string;
+  size_bytes: number;
+};
 
 export class GetAudioInfoNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.GetAudioInfo";
@@ -1763,7 +1866,7 @@ export class GetAudioInfoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GetAudioInfoNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
     if (bytes.length === 0) {
       return { duration: 0, sample_rate: 0, channels: 0, format: "unknown", size_bytes: 0 };

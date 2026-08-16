@@ -16,18 +16,36 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import type {
+  PermissionResponse,
+  PermissionStatus,
+} from 'expo-modules-core';
 import { ChatComposer } from './ChatComposer';
 import { ChatStatus } from '../../types';
 
-const speech = ExpoSpeechRecognitionModule as unknown as {
-  isRecognitionAvailable: jest.Mock;
-  getPermissionsAsync: jest.Mock;
-  requestPermissionsAsync: jest.Mock;
-  start: jest.Mock;
-  stop: jest.Mock;
-  abort: jest.Mock;
+const speech = jest.mocked(ExpoSpeechRecognitionModule);
+
+/**
+ * `PermissionStatus` is a string enum in `expo-modules-core`, but importing it
+ * as a value loads Expo's native EventEmitter, which has no host under Jest.
+ */
+// SAFETY: these are the enum's own member values.
+const GRANTED_STATUS = 'granted' as PermissionStatus;
+const DENIED_STATUS = 'denied' as PermissionStatus;
+
+const GRANTED: PermissionResponse = {
+  status: GRANTED_STATUS,
+  granted: true,
+  canAskAgain: true,
+  expires: 'never',
 };
-const eventHook = useSpeechRecognitionEvent as unknown as jest.Mock;
+const DENIED: PermissionResponse = {
+  status: DENIED_STATUS,
+  granted: false,
+  canAskAgain: false,
+  expires: 'never',
+};
+const eventHook = jest.mocked(useSpeechRecognitionEvent);
 
 /**
  * The composer reads the real bottom inset, so every render needs a provider
@@ -63,12 +81,16 @@ describe('ChatComposer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     speechListeners = {};
-    eventHook.mockImplementation((name: string, listener: Listener) => {
-      speechListeners[name] = listener;
+    eventHook.mockImplementation((name, listener) => {
+      // SAFETY: `listener` is the hook's handler for the single event `name`,
+      // and each test fires that event's own payload shape. The union of
+      // per-event listener types cannot express that pairing, so the payload is
+      // handed over as `never`.
+      speechListeners[name] = (event) => listener(event as never);
     });
     speech.isRecognitionAvailable.mockReturnValue(true);
-    speech.getPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
-    speech.requestPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+    speech.getPermissionsAsync.mockResolvedValue(GRANTED);
+    speech.requestPermissionsAsync.mockResolvedValue(GRANTED);
   });
 
   describe('Rendering', () => {
@@ -405,8 +427,8 @@ describe('ChatComposer', () => {
     });
 
     it('surfaces a denied permission instead of recording', async () => {
-      speech.getPermissionsAsync.mockResolvedValue({ status: 'denied', granted: false });
-      speech.requestPermissionsAsync.mockResolvedValue({ status: 'denied', granted: false });
+      speech.getPermissionsAsync.mockResolvedValue(DENIED);
+      speech.requestPermissionsAsync.mockResolvedValue(DENIED);
       renderComposer();
 
       fireEvent.press(screen.getByTestId('mic-button'));

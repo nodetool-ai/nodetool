@@ -96,6 +96,15 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 import type { EdgeKey, NodeKey } from "../../stores/nodeKey";
 
+/**
+ * The dynamic slot tables the layout fingerprint reads a key set from. Only the
+ * key names matter — a value change never moves a handle.
+ */
+type DynamicSlotTable =
+  | NodeData["dynamic_properties"]
+  | NodeData["dynamic_inputs"]
+  | NodeData["dynamic_outputs"];
+
 type ResultsState = ReturnType<typeof useResultsStore.getState>;
 type StatusState = ReturnType<typeof useStatusStore.getState>;
 
@@ -317,7 +326,7 @@ const ReactFlowWrapper = ({
   const nodeLayoutFingerprint = useMemo(() => {
     const keysCache = sortedKeysCache.current;
     const sigCache = perNodeSigCache.current;
-    const getSortedKeys = (obj: object | null | undefined): string => {
+    const getSortedKeys = (obj: DynamicSlotTable): string => {
       if (!obj) return "";
       const cached = keysCache.get(obj);
       if (cached !== undefined) return cached;
@@ -344,7 +353,7 @@ const ReactFlowWrapper = ({
           ...(n.data.exposedInputsLabeled ?? []),
           ...(n.data.exposedInputsHidden ?? [])
         ].join(",");
-        sig = `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
+        sig = `${n.id}:${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
         sigCache.set(n.data, sig);
       }
       parts.push(sig);
@@ -357,7 +366,7 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     const cache = sortedKeysCache.current;
-    const getSortedKeys = (obj: object | null | undefined): string => {
+    const getSortedKeys = (obj: DynamicSlotTable): string => {
       if (!obj) return "";
       const cached = cache.get(obj);
       if (cached !== undefined) return cached;
@@ -386,7 +395,7 @@ const ReactFlowWrapper = ({
       const dynOutputsPart = getSortedKeys(n.data.dynamic_outputs);
       next.set(
         n.id,
-        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
+        `${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
       );
     }
     const changedIds: string[] = [];

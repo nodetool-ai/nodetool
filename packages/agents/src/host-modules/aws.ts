@@ -45,7 +45,14 @@ function subtleCrypto(where: string): SubtleCrypto {
 
 const encoder = new TextEncoder();
 
-function toBytes(value: string | Uint8Array): Uint8Array {
+/**
+ * WebCrypto's `BufferSource` wants a view over a plain `ArrayBuffer`, not the
+ * `SharedArrayBuffer` a bare `Uint8Array` also admits, so every byte string
+ * that reaches `subtle` is carried as `Bytes`.
+ */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+function toBytes(value: string | Bytes): Bytes {
   return typeof value === "string" ? encoder.encode(value) : value;
 }
 
@@ -57,24 +64,24 @@ function toHex(bytes: Uint8Array): string {
 
 async function sha256Hex(
   where: string,
-  data: string | Uint8Array
+  data: string | Bytes
 ): Promise<string> {
   const digest = await subtleCrypto(where).digest(
     "SHA-256",
-    toBytes(data) as unknown as BufferSource
+    toBytes(data)
   );
   return toHex(new Uint8Array(digest));
 }
 
 async function hmac(
   where: string,
-  key: Uint8Array,
+  key: Bytes,
   data: string
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const subtle = subtleCrypto(where);
   const cryptoKey = await subtle.importKey(
     "raw",
-    key as unknown as BufferSource,
+    key,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -82,7 +89,7 @@ async function hmac(
   const signature = await subtle.sign(
     "HMAC",
     cryptoKey,
-    encoder.encode(data) as unknown as BufferSource
+    encoder.encode(data)
   );
   return new Uint8Array(signature);
 }
@@ -131,13 +138,18 @@ function canonicalQuery(params: URLSearchParams): string {
   for (const [key, value] of params) {
     pairs.push([encodeRfc3986(key), encodeRfc3986(value)]);
   }
-  pairs.sort((a, b) => (a[0] === b[0] ? (a[1] < b[1] ? -1 : 1) : a[0] < b[0] ? -1 : 1));
+  pairs.sort((a, b) =>
+    a[0] === b[0] ? (a[1] < b[1] ? -1 : 1) : a[0] < b[0] ? -1 : 1
+  );
   return pairs.map(([key, value]) => `${key}=${value}`).join("&");
 }
 
 /** `20240115T093000Z` and its `20240115` date part. */
-function amzDate(now: Date): { stamp: string; date: string } {
-  const stamp = `${now.toISOString().replace(/[:-]|\.\d{3}/g, "").slice(0, 15)}Z`;
+function amzDate(now: Date) {
+  const stamp = `${now
+    .toISOString()
+    .replace(/[:-]|\.\d{3}/g, "")
+    .slice(0, 15)}Z`;
   return { stamp, date: stamp.slice(0, 8) };
 }
 
@@ -147,7 +159,10 @@ interface Credentials {
   readonly sessionToken?: string;
 }
 
-function readCredentials(where: string, opts: Record<string, unknown>): Credentials {
+function readCredentials(
+  where: string,
+  opts: Record<string, unknown>
+): Credentials {
   const accessKeyId = String(opts.accessKeyId ?? "");
   const secretAccessKey = String(opts.secretAccessKey ?? "");
   if (accessKeyId === "" || secretAccessKey === "") {
@@ -156,13 +171,10 @@ function readCredentials(where: string, opts: Record<string, unknown>): Credenti
     );
   }
   const sessionToken = opts.sessionToken;
-  return {
-    accessKeyId,
-    secretAccessKey,
-    ...(typeof sessionToken === "string" && sessionToken !== ""
-      ? { sessionToken }
-      : {})
-  };
+  if (typeof sessionToken === "string" && sessionToken !== "") {
+    return { accessKeyId, secretAccessKey, sessionToken };
+  }
+  return { accessKeyId, secretAccessKey };
 }
 
 function readUrl(where: string, opts: Record<string, unknown>): URL {
@@ -175,10 +187,7 @@ function readUrl(where: string, opts: Record<string, unknown>): URL {
   }
 }
 
-function readHeaders(
-  where: string,
-  value: unknown
-): Record<string, string> {
+function readHeaders(where: string, value: unknown) {
   const out: Record<string, string> = {};
   const source = optionsOf(value);
   for (const [name, headerValue] of Object.entries(source)) {
@@ -191,7 +200,10 @@ function readHeaders(
   return out;
 }
 
-function readBody(where: string, value: unknown): string | Uint8Array | undefined {
+function readBody(
+  where: string,
+  value: unknown
+): string | Bytes | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === "string") {
     if (encoder.encode(value).length > MAX_SIGNED_BODY_BYTES) {
@@ -207,7 +219,9 @@ function readBody(where: string, value: unknown): string | Uint8Array | undefine
         `${where}: body exceeds the ${MAX_SIGNED_BODY_BYTES} byte signing limit`
       );
     }
-    return value;
+    // Copied onto a plain ArrayBuffer: a guest array may sit on a
+    // SharedArrayBuffer, which WebCrypto's `BufferSource` does not accept.
+    return new Uint8Array(value);
   }
   throw new Error(`${where}: body must be a string or Uint8Array`);
 }
@@ -227,7 +241,7 @@ async function signingKey(
   date: string,
   region: string,
   service: string
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const kDate = await hmac(where, encoder.encode(`AWS4${secret}`), date);
   const kRegion = await hmac(where, kDate, region);
   const kService = await hmac(where, kRegion, service);
@@ -280,7 +294,10 @@ export async function sigv4(request?: unknown): Promise<SignedRequest> {
   }
 
   const normalized = Object.entries(headers)
-    .map(([name, value]) => [name.toLowerCase(), value.trim().replace(/\s+/g, " ")])
+    .map(([name, value]) => [
+      name.toLowerCase(),
+      value.trim().replace(/\s+/g, " ")
+    ])
     .sort((a, b) => (a[0] < b[0] ? -1 : 1));
   const signedHeaders = normalized.map(([name]) => name).join(";");
   const canonicalHeaders = normalized

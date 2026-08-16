@@ -30,11 +30,12 @@
  * Run from the web dir: `cd web && npx jest src/stores/__tests__/computedCaching.activation.e2e.test.ts`
  */
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { NodeData } from "../NodeData";
 import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import {
   recordRunSignatures,
   getRunSignature,
@@ -81,12 +82,12 @@ const edge = (
 ): Edge => ({ id, source, target, sourceHandle, targetHandle, type: "default" });
 
 const getMetadata = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     cache_ttl: type.startsWith("pure.") ? "forever" : undefined,
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 // -------------------------------------------------------------------------
 // handleUpdate plumbing (mirrors workflowUpdates.signatures.test.ts).
@@ -105,10 +106,10 @@ const mockRunnerStore = {
 };
 const mockWorkflow = { id: WF, name: "E2E" } as WorkflowAttributes;
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );
@@ -119,7 +120,7 @@ const nodeUpdate = (
   nodeId: string,
   extra: Record<string, unknown> = {}
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     node_id: nodeId,
     node_name: nodeId,
@@ -127,7 +128,7 @@ const nodeUpdate = (
     status,
     job_id: jobId,
     ...extra
-  }) as unknown as NodeUpdate;
+  });
 
 // The real merged-timeline accessor the run path uses (WorkflowAssetStore is
 // empty in this test → it returns exactly the live generations handleUpdate
@@ -386,10 +387,10 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
         }
       })
     };
-    const dispatchWithStore = (data: unknown) =>
+    const dispatchWithStore = (data: MsgpackData) =>
       handleUpdate(
         mockWorkflow,
-        data as never,
+        data,
         mockRunnerStore as never,
         () => nodeStore as never
       );
@@ -408,6 +409,8 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
     dispatchWithStore({
       type: "generation_complete",
       node_id: "g",
+      node_name: "g",
+      node_type: "gen.Image",
       job_id: jobId,
       index: 0,
       outputs: { output: "NEW" }
@@ -472,10 +475,10 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
         })
       }
     };
-    const dispatchWithStore = (data: unknown) =>
+    const dispatchWithStore = (data: MsgpackData) =>
       handleUpdate(
         mockWorkflow,
-        data as never,
+        data,
         mockRunnerStore as never,
         () => nodeStore as never
       );

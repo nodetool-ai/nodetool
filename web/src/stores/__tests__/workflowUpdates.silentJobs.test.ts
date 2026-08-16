@@ -1,4 +1,5 @@
 import type { NodeUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import useStatusStore from "../StatusStore";
 import { handleUpdate } from "../workflowUpdates";
@@ -21,7 +22,7 @@ const mockWorkflow = {
 } as WorkflowAttributes;
 
 const nodeUpdate = (status: string, jobId: string): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     node_id: "n1",
     node_name: "Node 1",
@@ -29,7 +30,7 @@ const nodeUpdate = (status: string, jobId: string): NodeUpdate =>
     status,
     result: status === "completed" ? { output: 1 } : undefined,
     job_id: jobId
-  }) as unknown as NodeUpdate;
+  });
 
 beforeEach(() => {
   useResultsStore.setState({ liveGenerations: {} } as never);

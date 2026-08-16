@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import {
   useInputNodeAutoRun
 } from "../useInputNodeAutoRun";
@@ -45,7 +46,7 @@ const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 
 const mockGetNodeGenerations = getNodeGenerations as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
-const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
+const mockUseSettingsStore = asMock(useSettingsStore);
 
 /** Build a completed generation whose outputs feed downstream edges. */
 const completedGeneration = (outputs: Record<string, unknown>): Generation => ({

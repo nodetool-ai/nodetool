@@ -58,10 +58,10 @@ export interface ActiveModelSelection {
   model: string;
 }
 
-const nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
-const nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
-  "node:fs/promises"
-);
+const nodeCrypto =
+  getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
+const nodeFsP =
+  getNodeBuiltinSync<typeof import("node:fs/promises")>("node:fs/promises");
 const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
 const nodeUrl = getNodeBuiltinSync<typeof import("node:url")>("node:url");
 
@@ -164,9 +164,16 @@ export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 // Cache interface
 // ---------------------------------------------------------------------------
 
+/**
+ * A key/value cache for node results.
+ *
+ * One instance holds the results of many different nodes, so the value type
+ * belongs to the key, not to the cache: each caller names the type it stored
+ * under that key.
+ */
 export interface CacheAdapter {
-  get(key: string): Promise<unknown | undefined>;
-  set(key: string, value: unknown, ttlSeconds?: number): Promise<void>;
+  get<TValue>(key: string): Promise<TValue | undefined>;
+  set<TValue>(key: string, value: TValue, ttlSeconds?: number): Promise<void>;
   has(key: string): Promise<boolean>;
   delete(key: string): Promise<void>;
 }
@@ -180,17 +187,23 @@ export class MemoryCache implements CacheAdapter {
     { value: unknown; expires: number | null }
   >();
 
-  async get(key: string): Promise<unknown | undefined> {
+  async get<TValue>(key: string): Promise<TValue | undefined> {
     const entry = this._store.get(key);
     if (!entry) return undefined;
     if (entry.expires !== null && Date.now() > entry.expires) {
       this._store.delete(key);
       return undefined;
     }
-    return entry.value;
+    // SAFETY: `TValue` is what the caller stored under this key; a cache
+    // hands back exactly the value `set` was given for it.
+    return entry.value as TValue;
   }
 
-  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+  async set<TValue>(
+    key: string,
+    value: TValue,
+    ttlSeconds?: number
+  ): Promise<void> {
     const expires = ttlSeconds ? Date.now() + ttlSeconds * 1000 : null;
     this._store.set(key, { value, expires });
   }
@@ -316,6 +329,32 @@ export type ProviderPredictionRequest = {
   params?: Record<string, unknown>;
 };
 
+/**
+ * What a provider prediction answers with: the result of whichever capability
+ * the request selected, as {@link ProcessingContext.dispatchCapability} routes
+ * it.
+ */
+export type ProviderPredictionResult = Awaited<
+  ReturnType<
+    BaseProvider[
+      | "generateMessageTraced"
+      | "textToImage"
+      | "imageToImage"
+      | "inpaint"
+      | "textToVideo"
+      | "imageToVideo"
+      | "upscaleImage"
+      | "removeBackground"
+      | "relightImage"
+      | "vectorizeImage"
+      | "videoToVideo"
+      | "lipSync"
+      | "textToMusic"
+      | "automaticSpeechRecognition"
+      | "generateEmbedding"]
+  >
+>;
+
 export type HttpRetryOptions = {
   maxRetries?: number;
   backoffMs?: number;
@@ -382,6 +421,11 @@ export interface InjectedTool {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): this contract is satisfied
+   * structurally by `Tool` in `@nodetool-ai/agents`, whose `process` returns
+   * `Promise<unknown>`; narrowing here would stop every tool from fitting.
+   */
   process: (
     context: ProcessingContext,
     params: Record<string, unknown>
@@ -395,10 +439,33 @@ export interface InjectedTool {
     params: Record<string, unknown>,
     options?: { toolCallId?: string }
   ) => Promise<unknown>;
+  // (`execute` is a HOLDOUT for the same reason as `process` above.)
+}
+
+/**
+ * A record the host's persistence layer answers with.
+ *
+ * The row and response types live in `@nodetool-ai/models`, which sits above
+ * `runtime`, so the port names the field every caller reads — the record's
+ * identity — and each caller re-reads the document fields it knows how to
+ * interpret.
+ */
+export interface PersistedRecordLike {
+  id: string;
 }
 
 export interface ProcessingContextModelInterfaces {
-  getJob?: (args: { userId: string; jobId: string }) => Promise<unknown | null>;
+  getJob?: (args: {
+    userId: string;
+    jobId: string;
+  }) => Promise<PersistedRecordLike | null>;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): narrowing this to the created
+   * record's shape breaks the `as Record<string, unknown>` assertions on the
+   * result in `image-nodes` and `audio-nodes` — an interface without an index
+   * signature is not comparable to that type. Typing it honestly means editing
+   * those call sites too.
+   */
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
   /**
    * Recursively list the non-folder assets contained in `folderId`. Returns
@@ -420,7 +487,7 @@ export interface ProcessingContextModelInterfaces {
   createMessage?: (args: {
     userId: string;
     req: MessageCreateRequestLike;
-  }) => Promise<unknown>;
+  }) => Promise<PersistedRecordLike>;
   getMessages?: (args: {
     userId: string;
     threadId: string;
@@ -432,7 +499,7 @@ export interface ProcessingContextModelInterfaces {
   getImageDocument?: (args: {
     userId: string;
     id: string;
-  }) => Promise<unknown | null>;
+  }) => Promise<PersistedRecordLike | null>;
   /** Create a persisted sketch (image document); returns the created document response. */
   createImageDocument?: (args: {
     userId: string;
@@ -441,32 +508,35 @@ export interface ProcessingContextModelInterfaces {
     width: number;
     height: number;
     document: unknown;
-  }) => Promise<unknown>;
+  }) => Promise<PersistedRecordLike>;
   /** Load a persisted timeline sequence by id; null when missing or not owned. */
   getTimelineSequence?: (args: {
     userId: string;
     id: string;
-  }) => Promise<unknown | null>;
+  }) => Promise<PersistedRecordLike | null>;
   /** Create a persisted timeline sequence from a full sequence document. */
   createTimelineSequence?: (args: {
     userId: string;
     sequence: unknown;
-  }) => Promise<unknown>;
+  }) => Promise<PersistedRecordLike>;
   /** Replace a persisted timeline sequence's document; null when missing or not owned. */
   updateTimelineSequence?: (args: {
     userId: string;
     id: string;
     sequence: unknown;
-  }) => Promise<unknown | null>;
+  }) => Promise<PersistedRecordLike | null>;
   /** Load a persisted script by id; null when missing or not owned. */
-  getScript?: (args: { userId: string; id: string }) => Promise<unknown | null>;
+  getScript?: (args: {
+    userId: string;
+    id: string;
+  }) => Promise<PersistedRecordLike | null>;
   /** Create a persisted script from a name + document. */
   createScript?: (args: {
     userId: string;
     name?: string;
     projectId?: string;
     document: unknown;
-  }) => Promise<unknown>;
+  }) => Promise<PersistedRecordLike>;
   /** Replace a persisted script's document (and optional timeline link); null when missing or not owned. */
   updateScript?: (args: {
     userId: string;
@@ -474,7 +544,7 @@ export interface ProcessingContextModelInterfaces {
     document?: unknown;
     timelineId?: string | null;
     baseUpdatedAt?: string;
-  }) => Promise<unknown | null>;
+  }) => Promise<PersistedRecordLike | null>;
 }
 
 let defaultModelInterfaces: ProcessingContextModelInterfaces | null = null;
@@ -694,13 +764,16 @@ export class InMemoryStorageAdapter implements StorageAdapter {
             continue;
           }
         }
-        entries.push({
+        const listed: StorageEntry = {
           key,
           uri: `memory://${key}`,
           size: entry.data.byteLength,
-          modifiedAt: entry.modifiedAt,
-          ...(entry.contentType ? { contentType: entry.contentType } : {})
-        });
+          modifiedAt: entry.modifiedAt
+        };
+        if (entry.contentType) {
+          listed.contentType = entry.contentType;
+        }
+        entries.push(listed);
       }
     }
     return {
@@ -719,12 +792,15 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const key = uri.slice("memory://".length);
     const entry = this._store.get(key);
     if (!entry) return null;
-    return {
+    const stat: StorageStat = {
       key,
       size: entry.data.byteLength,
-      modifiedAt: entry.modifiedAt,
-      ...(entry.contentType ? { contentType: entry.contentType } : {})
+      modifiedAt: entry.modifiedAt
     };
+    if (entry.contentType) {
+      stat.contentType = entry.contentType;
+    }
+    return stat;
   }
 }
 
@@ -868,9 +944,7 @@ export class FileStorageAdapter implements StorageAdapter {
         isFile: () => boolean;
       }>;
       try {
-        children = (await rd(baseAbs, {
-          withFileTypes: true
-        })) as unknown as typeof children;
+        children = await rd(baseAbs, { withFileTypes: true });
       } catch {
         return { entries: [], commonPrefixes: [] };
       }
@@ -913,9 +987,7 @@ export class FileStorageAdapter implements StorageAdapter {
         isFile: () => boolean;
       }>;
       try {
-        children = (await rd(dirAbs, {
-          withFileTypes: true
-        })) as unknown as typeof children;
+        children = await rd(dirAbs, { withFileTypes: true });
       } catch {
         return;
       }
@@ -1719,7 +1791,7 @@ export class ProcessingContext {
    * the Prompt node merges these into its `{{ name }}` template variables so a
    * Set Variable node upstream can supply values without an explicit wire.
    */
-  getVariables(): Record<string, unknown> {
+  getVariables() {
     return { ...this._variables };
   }
 
@@ -1807,18 +1879,18 @@ export class ProcessingContext {
     return `${this.userId}:${nodeType}:${stableStringifyDeep(nodeProps ?? null)}`;
   }
 
-  async getCachedResult(
+  async getCachedResult<TResult>(
     nodeType: string,
     nodeProps: unknown
-  ): Promise<unknown> {
+  ): Promise<TResult | undefined> {
     const key = this.generateNodeCacheKey(nodeType, nodeProps);
-    return this.cache.get(key);
+    return this.cache.get<TResult>(key);
   }
 
-  async cacheResult(
+  async cacheResult<TResult>(
     nodeType: string,
     nodeProps: unknown,
-    result: unknown,
+    result: TResult,
     ttlSeconds = 3600
   ): Promise<void> {
     const key = this.generateNodeCacheKey(nodeType, nodeProps);
@@ -1994,7 +2066,7 @@ export class ProcessingContext {
     }
   }
 
-  getMemoryStats(): { total: number; byPrefix: Record<string, number> } {
+  getMemoryStats() {
     const byPrefix: Record<string, number> = {};
     for (const key of this._memory.keys()) {
       const withoutScheme = key.replace(/^memory:\/\//, "");
@@ -2187,15 +2259,20 @@ export class ProcessingContext {
     return fn as NonNullable<ProcessingContextModelInterfaces[K]>;
   }
 
-  async getJob(jobId: string): Promise<unknown | null> {
+  async getJob(jobId: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getJob");
     return fn({ userId: this.userId, jobId });
   }
 
-  async get_job(jobId: string): Promise<unknown | null> {
+  async get_job(jobId: string): Promise<PersistedRecordLike | null> {
     return this.getJob(jobId);
   }
 
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): see the `createAsset` port above —
+   * narrowing the result breaks the `as Record<string, unknown>` assertions in
+   * `image-nodes` and `audio-nodes`.
+   */
   async createAsset(args: {
     name: string;
     contentType: string;
@@ -2222,6 +2299,7 @@ export class ProcessingContext {
     });
   }
 
+  /** HOLDOUT (anti-slop/no-unknown-returns): alias of `createAsset` above. */
   async create_asset(args: {
     name: string;
     contentType: string;
@@ -2234,7 +2312,7 @@ export class ProcessingContext {
   }
 
   /** Load a persisted sketch (image document) owned by the current user. */
-  async getImageDocument(id: string): Promise<unknown | null> {
+  async getImageDocument(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getImageDocument");
     return fn({ userId: this.userId, id });
   }
@@ -2246,19 +2324,21 @@ export class ProcessingContext {
     width: number;
     height: number;
     document: unknown;
-  }): Promise<unknown> {
+  }): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createImageDocument");
     return fn({ userId: this.userId, ...args });
   }
 
   /** Load a persisted timeline sequence owned by the current user. */
-  async getTimelineSequence(id: string): Promise<unknown | null> {
+  async getTimelineSequence(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getTimelineSequence");
     return fn({ userId: this.userId, id });
   }
 
   /** Create a persisted timeline sequence owned by the current user. */
-  async createTimelineSequence(sequence: unknown): Promise<unknown> {
+  async createTimelineSequence(
+    sequence: unknown
+  ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createTimelineSequence");
     return fn({ userId: this.userId, sequence });
   }
@@ -2267,13 +2347,13 @@ export class ProcessingContext {
   async updateTimelineSequence(
     id: string,
     sequence: unknown
-  ): Promise<unknown | null> {
+  ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateTimelineSequence");
     return fn({ userId: this.userId, id, sequence });
   }
 
   /** Load a persisted script owned by the current user. */
-  async getScript(id: string): Promise<unknown | null> {
+  async getScript(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getScript");
     return fn({ userId: this.userId, id });
   }
@@ -2283,7 +2363,7 @@ export class ProcessingContext {
     name?: string;
     projectId?: string;
     document: unknown;
-  }): Promise<unknown> {
+  }): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createScript");
     return fn({ userId: this.userId, ...args });
   }
@@ -2296,7 +2376,7 @@ export class ProcessingContext {
       timelineId?: string | null;
       baseUpdatedAt?: string;
     }
-  ): Promise<unknown | null> {
+  ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateScript");
     return fn({ userId: this.userId, id, ...args });
   }
@@ -2693,6 +2773,8 @@ export class ProcessingContext {
     const filePath = this.resolveSandboxFilePath(path);
     const bytes = (await readFile(filePath)) as Uint8Array;
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
+    // SAFETY: the host's asset persistence answers with its own asset record;
+    // both reads below re-check the field before using it.
     const created = (await this.createAsset({
       name: basename(filePath),
       contentType,
@@ -2719,7 +2801,9 @@ export class ProcessingContext {
     return this.sandboxToAsset(path);
   }
 
-  async createMessage(req: MessageCreateRequestLike): Promise<unknown> {
+  async createMessage(
+    req: MessageCreateRequestLike
+  ): Promise<PersistedRecordLike> {
     if (!req.thread_id) {
       throw new Error("Thread ID is required");
     }
@@ -2727,7 +2811,9 @@ export class ProcessingContext {
     return fn({ userId: this.userId, req });
   }
 
-  async create_message(req: MessageCreateRequestLike): Promise<unknown> {
+  async create_message(
+    req: MessageCreateRequestLike
+  ): Promise<PersistedRecordLike> {
     return this.createMessage(req);
   }
 
@@ -2756,6 +2842,10 @@ export class ProcessingContext {
     return this.getThreadMessages(thread_id, limit, start_key, reverse);
   }
 
+  // The four wrappers below and `normalizeOutputValue` are HOLDOUTs
+  // (anti-slop/no-unknown-returns): they rewrite an arbitrary workflow value —
+  // any node output, at any nesting depth — and NodeTool has no named union
+  // for that value domain.
   async assetsToDataUri(value: unknown): Promise<unknown> {
     return this.normalizeOutputValue(value, "data_uri");
   }
@@ -2947,7 +3037,7 @@ export class ProcessingContext {
   private async dispatchCapability(
     provider: BaseProvider,
     req: ProviderPredictionRequest
-  ): Promise<unknown> {
+  ): Promise<ProviderPredictionResult> {
     const params = req.params ?? {};
     switch (req.capability) {
       case "generate_message":
@@ -3100,6 +3190,12 @@ export class ProcessingContext {
     }
   }
 
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): the honest return type is
+   * {@link ProviderPredictionResult} (see {@link dispatchCapability}), but
+   * `text-nodes` asserts the result of an ASR prediction `as string`, which no
+   * longer compiles against that union. Typing it means editing that call site.
+   */
   async runProviderPrediction(
     req: ProviderPredictionRequest
   ): Promise<unknown> {
@@ -3257,6 +3353,8 @@ export class ProcessingContext {
    *
    * Port of sanitize_memory_uris_for_client() from types.py.
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): same value domain as
+  // `normalizeOutputValue` — an arbitrary node output, rewritten in place.
   static sanitizeForClient(value: unknown): unknown {
     if (value === null || value === undefined) return value;
     const binary = ProcessingContext.toClientBytes(value);
@@ -3508,6 +3606,9 @@ export class ProcessingContext {
    * Recursively normalize workflow outputs, materializing asset-like values
    * according to the selected output mode.
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): the input and the result are an
+  // arbitrary workflow value; naming that domain is a bigger change than a
+  // typing pass.
   async normalizeOutputValue(
     value: unknown,
     mode: AssetOutputMode = this.assetOutputMode

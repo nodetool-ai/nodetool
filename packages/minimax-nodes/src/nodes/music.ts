@@ -12,6 +12,11 @@ import {
 
 const MUSIC_FORMATS = ["mp3", "wav"];
 
+/** Output handles MinimaxMusicNode.process() emits. */
+type MinimaxMusicNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class MinimaxMusicNode extends BaseNode {
   static readonly nodeType = "minimax.MusicGeneration";
   static readonly body = "content_card";
@@ -69,7 +74,7 @@ export class MinimaxMusicNode extends BaseNode {
   })
   declare format: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxMusicNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");
@@ -81,7 +86,7 @@ export class MinimaxMusicNode extends BaseNode {
     const model = String(this.model ?? "music-2.6");
     const format = String(this.format ?? "mp3");
 
-    const body: Record<string, unknown> = {
+    const body = {
       model,
       prompt,
       lyrics,
@@ -91,7 +96,7 @@ export class MinimaxMusicNode extends BaseNode {
         format
       },
       output_format: "hex"
-    };
+    } satisfies Record<string, unknown>;
 
     const res = await fetch(`${MINIMAX_BASE_URL}/v1/music_generation`, {
       method: "POST",

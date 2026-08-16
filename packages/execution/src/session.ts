@@ -14,8 +14,15 @@ import {
   withExplicitNodeFlags,
   type RunResult
 } from "@nodetool-ai/kernel";
-import { ProcessingContext, connectPythonBridgeForGraph } from "@nodetool-ai/runtime";
-import type { HydratedGraphData, ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  ProcessingContext,
+  connectPythonBridgeForGraph
+} from "@nodetool-ai/runtime";
+import type { PythonJobLifecycle } from "@nodetool-ai/runtime";
+import type {
+  HydratedGraphData,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { createExecutorResolver } from "./executor-resolver.js";
 import { buildWorkspaceExecutionContext } from "./service/workflow-workspace.js";
 import { normalizeGraph } from "./normalize-graph.js";
@@ -49,6 +56,8 @@ export class ExecutionSession {
     params: Record<string, unknown>;
     triggerEvent: ExecutionSessionOptions["triggerEvent"];
     bridge: { pendingRequestCount?: number } | null;
+    lifecycle: PythonJobLifecycle | null;
+    userId: string;
     closeBridge: () => void;
     runTimeoutMs: number | undefined;
     captureMessages: boolean;
@@ -70,15 +79,50 @@ export class ExecutionSession {
       }, init.runTimeoutMs);
     }
 
+    // Open the run boundary on the Python worker before the kernel starts, so
+    // an execute frame can never arrive ahead of the job it belongs to. Fire
+    // and forget: `jobStart` is a no-op on a pre-v4 worker and swallows its own
+    // failures, and blocking the kernel on worker bookkeeping would make an
+    // unreachable worker a run failure.
+    const boundary = {
+      jobId: init.jobId,
+      workflowId: init.workflowId,
+      userId: init.userId
+    };
+    void init.lifecycle?.jobStart(boundary);
+
+    type RunRequestFields = {
+      job_id: string;
+      workflow_id: string | undefined;
+      params: typeof init.params;
+      trigger_event?: NonNullable<typeof init.triggerEvent>;
+    };
+    const runRequest: RunRequestFields = {
+      job_id: init.jobId,
+      workflow_id: init.workflowId ?? undefined,
+      params: init.params
+    };
+    if (init.triggerEvent) {
+      runRequest.trigger_event = init.triggerEvent;
+    }
+
     this.resultPromise = init.runner
-      .run(
-        {
-          job_id: init.jobId,
-          workflow_id: init.workflowId ?? undefined,
-          params: init.params,
-          ...(init.triggerEvent ? { trigger_event: init.triggerEvent } : {})
+      .run(runRequest, init.graph)
+      .then(
+        (result) => {
+          void init.lifecycle?.jobEnd({
+            ...boundary,
+            reason: this.endReason(result.status)
+          });
+          return result;
         },
-        init.graph
+        (err: unknown) => {
+          // `run()` documents that it never rejects, but the boundary must
+          // close even if that ever stops being true — an abandoned run is
+          // exactly the leak `job.end` exists to prevent.
+          void init.lifecycle?.jobEnd({ ...boundary, reason: "abandoned" });
+          throw err;
+        }
       )
       .finally(() => {
         if (this.runTimeoutHandle) {
@@ -100,6 +144,19 @@ export class ExecutionSession {
           error: err instanceof Error ? err.message : String(err)
         });
       });
+  }
+
+  /**
+   * Map a kernel run status onto the `job.end` reason. A suspended run is
+   * still `completed` as far as the worker is concerned: its nodes are done
+   * and their weights are eligible — resuming builds new ones.
+   */
+  private endReason(
+    status: RunResult["status"]
+  ): "completed" | "failed" | "cancelled" {
+    if (status === "failed") return "failed";
+    if (status === "cancelled") return "cancelled";
+    return "completed";
   }
 
   static async create(
@@ -134,7 +191,9 @@ export class ExecutionSession {
     // bridge instance to close on its behalf).
     const bridgeFactory =
       options.bridgeFactory ??
-      (options.resolveExecutor ? async () => null : connectPythonBridgeForGraph);
+      (options.resolveExecutor
+        ? async () => null
+        : connectPythonBridgeForGraph);
     const bridge = await bridgeFactory(normalized.nodes, (t) =>
       registry ? registry.has(t) : false
     );
@@ -195,14 +254,17 @@ export class ExecutionSession {
     const resolveExecutor =
       options.resolveExecutor ?? createExecutorResolver(registry!, bridge);
 
-    const runner = new WorkflowRunner(jobId, {
+    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
       resolveExecutor,
       executionContext: context,
       validateNode: options.validateNode,
       bufferLimit: options.limits?.bufferLimit ?? null,
-      strict: options.strict,
-      ...(options.supervisor ? { supervisor: options.supervisor } : {})
-    });
+      strict: options.strict
+    };
+    if (options.supervisor) {
+      runnerOptions.supervisor = options.supervisor;
+    }
+    const runner = new WorkflowRunner(jobId, runnerOptions);
 
     try {
       await options.persistence?.onAccepted?.(jobId);
@@ -223,6 +285,8 @@ export class ExecutionSession {
       params: options.params ?? {},
       triggerEvent: options.triggerEvent ?? null,
       bridge,
+      lifecycle: options.jobLifecycleBridge ?? bridge,
+      userId: context.userId,
       closeBridge,
       runTimeoutMs: options.limits?.runTimeoutMs,
       captureMessages: options.captureMessages === true,
@@ -258,12 +322,7 @@ export class ExecutionSession {
    * reliability harness's `cleanup-leaks` invariant asserts against these
    * numbers and reports a violation when a driver can't produce them.
    */
-  resourceCounters(): {
-    liveActors: number;
-    pendingControlResponses: number;
-    pendingTimers: number;
-    pythonBridgePendingRequests: number;
-  } {
+  resourceCounters() {
     return {
       liveActors: this.runner.liveActorCount,
       pendingControlResponses: this.runner.pendingControlResponseCount,

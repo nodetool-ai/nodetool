@@ -38,7 +38,7 @@ export const buildReplayForEach = (args: {
   targetHandle: string;
   values: unknown[];
   workflowId: string;
-}): { node: Node<NodeData>; edge: Edge } => {
+}) => {
   const { sourceId, sourceHandle, targetId, targetHandle, values, workflowId } =
     args;
   const replayId = replayNodeId(sourceId, sourceHandle, targetId, targetHandle);

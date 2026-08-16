@@ -60,6 +60,15 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
+/** A decoded JSON value: what a stored document or graph carries. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const listInput = z.object({
   projectId: z.string().optional()
 });
@@ -116,10 +125,12 @@ function toListItem(doc: ImageDocument) {
  * corrupt, and reporting that beats handing the client a string it will treat
  * as a document.
  */
-function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded, and the row's
+  // document is JSON either way.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     throwApiError(
       ApiErrorCode.INTERNAL_ERROR,
@@ -220,11 +231,11 @@ async function mutateOwnedDocumentData<T>(
   }
 }
 
-const IMAGE_OUTPUT_TYPES: Record<string, true> = {
+const IMAGE_OUTPUT_TYPES = {
   "nodetool.output.ImageOutput": true,
   "nodetool.output.MaskOutput": true,
   "nodetool.output.Output": true
-};
+} satisfies Record<string, true>;
 
 function isImageOutputNode(nodeType: string): boolean {
   return nodeType in IMAGE_OUTPUT_TYPES;
@@ -245,8 +256,9 @@ function inputNodeName(node: Record<string, unknown>): string | null {
   );
 }
 
-function inputNodeDefault(node: Record<string, unknown>): unknown {
-  const data = node.data as Record<string, unknown> | undefined;
+function inputNodeDefault(node: Record<string, unknown>): JsonValue {
+  // SAFETY: the graph is stored as JSON, so a node's `data` holds JSON members.
+  const data = node.data as { [key: string]: JsonValue } | undefined;
   return data?.value ?? null;
 }
 
@@ -332,11 +344,7 @@ export const sketchRouter = router({
         }
       }
 
-      const doc = new ImageDocument({
-        // Spread rather than `id: input.id` so no `id` key exists when the
-        // client didn't supply one — the model only defaults an id it doesn't
-        // already own as a property.
-        ...(input.id ? { id: input.id } : {}),
+      const fields: ConstructorParameters<typeof ImageDocument>[0] = {
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,
@@ -346,7 +354,13 @@ export const sketchRouter = router({
         document: JSON.stringify(docData),
         created_at: now,
         updated_at: now
-      });
+      };
+      // Set only when the client supplied one — the model defaults an id it
+      // does not already own as a property.
+      if (input.id) {
+        fields.id = input.id;
+      }
+      const doc = new ImageDocument(fields);
       await doc.save();
       return doc.toResponse();
     }),
@@ -402,7 +416,10 @@ export const sketchRouter = router({
         try {
           const now = Date.now();
           const last = lastAutosaveVersionTime.get(input.id);
-          if (last === undefined || now - last >= AUTOSAVE_VERSION_INTERVAL_MS) {
+          if (
+            last === undefined ||
+            now - last >= AUTOSAVE_VERSION_INTERVAL_MS
+          ) {
             recordAutosaveVersion(input.id, now);
             await ImageDocumentVersion.snapshot(updated, {
               saveType: "autosave"
@@ -499,7 +516,9 @@ export const sketchRouter = router({
             throwApiError(ApiErrorCode.NOT_FOUND, "Layer binding not found");
           }
 
-          const version = binding.versions.find((v) => v.id === input.versionId);
+          const version = binding.versions.find(
+            (v) => v.id === input.versionId
+          );
           if (!version) {
             throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
           }
@@ -650,10 +669,7 @@ export const sketchRouter = router({
         // Validate access to the source workflow: caller must own it or it
         // must be public. Workflow.find filters out private workflows owned
         // by other users.
-        const source = await Workflow.find(
-          ctx.userId!,
-          input.sourceWorkflowId
-        );
+        const source = await Workflow.find(ctx.userId!, input.sourceWorkflowId);
         if (!source) {
           throwApiError(
             ApiErrorCode.NOT_FOUND,

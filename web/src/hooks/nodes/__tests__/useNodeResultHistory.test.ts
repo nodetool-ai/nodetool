@@ -6,8 +6,9 @@ import {
   assetsToPreviewValue,
   nodeAssetsQueryKey
 } from "../useNodeResultHistory";
+import type { Asset } from "../../../stores/ApiTypes";
 
-const makeAsset = (overrides: Record<string, unknown> = {}) =>
+const makeAsset = (overrides: Partial<Asset> = {}) =>
   ({
     id: "asset-1",
     name: "test-asset.png",

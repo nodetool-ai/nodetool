@@ -120,7 +120,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
     );
 
     const handleSelect = useCallback(
-      async (_event: unknown, option: WorkflowOption | null) => {
+      async (_event: React.SyntheticEvent, option: WorkflowOption | null) => {
         if (!option) {
           updateNodeData(nodeId, {
             properties: {

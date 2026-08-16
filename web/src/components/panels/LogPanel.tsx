@@ -36,11 +36,11 @@ const containerStyles = (theme: Theme) =>
 
 const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
-const SEVERITY_LABELS: Record<Severity, string> = {
+const SEVERITY_LABELS = {
   info: "Info",
   warning: "Warn",
   error: "Error"
-};
+} satisfies Record<Severity, string>;
 
 const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();

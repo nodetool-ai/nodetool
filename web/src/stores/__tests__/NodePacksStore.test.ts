@@ -1,6 +1,6 @@
 import useNodePacksStore from "../NodePacksStore";
+import { installGlobal, removeGlobal } from "../../test-utils/doubles";
 
-type WindowWithApi = { api?: unknown };
 
 const AVAILABLE = [
   {
@@ -52,15 +52,15 @@ describe("NodePacksStore", () => {
   beforeEach(() => {
     api = makeApi();
     restart = jest.fn();
-    (window as unknown as WindowWithApi).api = {
+    installGlobal("api", {
       packages: api,
       server: { onLog: jest.fn(() => jest.fn()), restart }
-    };
+    });
     reset();
   });
 
   afterEach(() => {
-    (window as unknown as WindowWithApi).api = undefined;
+    installGlobal("api", undefined);
   });
 
   it("refresh loads available and installed packs", async () => {
@@ -185,7 +185,7 @@ describe("NodePacksStore", () => {
   });
 
   it("is unavailable and no-ops without the Electron IPC", async () => {
-    (window as unknown as WindowWithApi).api = undefined;
+    installGlobal("api", undefined);
     await useNodePacksStore.getState().refresh();
     expect(useNodePacksStore.getState().available).toBe(false);
     expect(

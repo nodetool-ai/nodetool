@@ -481,7 +481,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
     set((state) => {
       let mutated = false;
       const nextBindings: Record<string, LayerWorkflowBinding> = {};
-      const nextExtras: Record<string, LayerHashExtras> = { ...state.extras };
+      const nextExtras = { ...state.extras } satisfies Record<string, LayerHashExtras>;
       for (const [layerId, binding] of Object.entries(state.bindings)) {
         if (binding.workflowId !== workflowId) {
           nextBindings[layerId] = binding;
@@ -713,7 +713,7 @@ async function externalizeOversizedBitmaps(
     }
 
     const sourceData = candidate.getValue();
-    if (typeof sourceData !== "string" || !sourceData.startsWith("data:")) {
+    if (sourceData == null || !sourceData.startsWith("data:")) {
       continue;
     }
 
@@ -813,6 +813,10 @@ async function saveSnapshot(
       backgroundColor: prepared.sketch.canvas.backgroundColor,
       baseUpdatedAt: store.baseUpdatedAt ?? undefined,
       document: {
+        // The editor's `SketchDocument` and the wire schema describe one
+        // payload with incompatible types: closed interfaces here
+        // (`ToolSettings`, `LayerStructureSnapshot`), open `z.record` shapes
+        // there. Neither is assignable to the other in either direction.
         sketch: prepared.sketch as unknown as ImageDocumentData["sketch"],
         layerBindings
       }

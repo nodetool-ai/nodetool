@@ -94,7 +94,7 @@ export class OpenAICompatClient {
     this._timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  private headers(streaming: boolean): Record<string, string> {
+  private headers(streaming: boolean) {
     return {
       Authorization: `Bearer ${this._apiKey}`,
       "Content-Type": "application/json",

@@ -1,4 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
+import { installGlobal } from "../../../test-utils/doubles";
+import { asMock } from "../../../test-utils/doubles";
 import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -31,13 +33,13 @@ describe("useClipboardContentPaste", () => {
   const mockGetMetadata = jest.fn();
 
   const mockedUseReactFlow = useReactFlow as jest.Mock;
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseAssetUpload = useAssetUpload as unknown as jest.Mock;
-  const mockedUseAssetGridStore = useAssetGridStore as unknown as jest.Mock;
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseAssetUpload = asMock(useAssetUpload);
+  const mockedUseAssetGridStore = asMock(useAssetGridStore);
   const mockedUseNotificationStore =
-    useNotificationStore as unknown as jest.Mock;
-  const mockedUseAuth = useAuth as unknown as jest.Mock;
-  const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+    asMock(useNotificationStore);
+  const mockedUseAuth = asMock(useAuth);
+  const mockedUseMetadataStore = asMock(useMetadataStore);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -120,7 +122,7 @@ describe("useClipboardContentPaste", () => {
       return { addNotification: jest.fn() };
     });
 
-    (window as unknown as { api?: unknown }).api = undefined;
+    installGlobal("api", undefined);
   });
 
   it("returns handleContentPaste and hasClipboardContent functions", () => {
@@ -181,17 +183,11 @@ describe("useClipboardContentPaste", () => {
           new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" })
       } as Response);
 
-      (window as unknown as {
-        api?: {
-          clipboard?: {
-            readImage?: jest.Mock;
-          };
-        };
-      }).api = {
+      installGlobal("api", {
         clipboard: {
           readImage: jest.fn().mockResolvedValue(pngDataUrl)
         }
-      };
+      });
 
       const { result } = renderHook(() => useClipboardContentPaste());
 

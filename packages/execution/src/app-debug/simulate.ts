@@ -68,6 +68,9 @@ import type {
   SeedResourceItem
 } from "./types.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 /** What the simulator hands a host's workflow runner. */
 export interface AppServerRunInput {
   graph: DebugGraph;
@@ -138,7 +141,11 @@ function widgetRoster(spec: AppSpec): string {
   if (spec.widgets.length === 0) return "none — the app has no widgets.";
   const listed = spec.widgets
     .slice(0, 12)
-    .map((w) => (w.label ? `${w.id} (${w.type}, label "${w.label}")` : `${w.id} (${w.type})`))
+    .map((w) =>
+      w.label
+        ? `${w.id} (${w.type}, label "${w.label}")`
+        : `${w.id} (${w.type})`
+    )
     .join(", ");
   return spec.widgets.length > 12 ? `${listed}, …` : listed;
 }
@@ -240,7 +247,8 @@ export function withNodePropertyOverlays(
   if (byNode.size === 0) return graph;
   return {
     nodes: graph.nodes.map((node) => {
-      const overlay = typeof node.id === "string" ? byNode.get(node.id) : undefined;
+      const overlay =
+        typeof node.id === "string" ? byNode.get(node.id) : undefined;
       if (!overlay) return node;
       const properties =
         typeof node.properties === "object" && node.properties !== null
@@ -332,11 +340,15 @@ function buildAppVerdict(
   }
   for (const run of report.runs) {
     if (!run.ok) {
-      issues.push(`Run ended ${run.status}${run.error ? `: ${run.error}` : ""}`);
+      issues.push(
+        `Run ended ${run.status}${run.error ? `: ${run.error}` : ""}`
+      );
     }
     for (const e of run.summary.errors.slice(0, 5)) {
       const where = e.nodeType ?? e.nodeId ?? "workflow";
-      issues.push(`Node ${where}: ${e.message.replace(/\s+/g, " ").slice(0, 200)}`);
+      issues.push(
+        `Node ${where}: ${e.message.replace(/\s+/g, " ").slice(0, 200)}`
+      );
     }
   }
   for (const invocation of report.invocations) {
@@ -363,7 +375,9 @@ function buildAppVerdict(
     const conditional = conditionalNodeIds(graph);
     const byName = nodeIdsByName(graph);
     const nodeIds = new Set(
-      graph.nodes.map((n) => (typeof n.id === "string" ? n.id : "")).filter(Boolean)
+      graph.nodes
+        .map((n) => (typeof n.id === "string" ? n.id : ""))
+        .filter(Boolean)
     );
     // Variables a widget writes rather than the graph — a chat composer's
     // conversation. Nothing the run emits fills them, so an empty one after a
@@ -409,7 +423,9 @@ function buildAppVerdict(
       // A legacy document binds by node name, and `parseBinding` hands the name
       // back in the `nodeId` slot, so an unrecognised id is retried as a name.
       const parsed = (ref && "nodeId" in ref ? ref.nodeId : null) ?? w.binding;
-      const nodeId = nodeIds.has(parsed) ? parsed : byName.get(parsed) ?? null;
+      const nodeId = nodeIds.has(parsed)
+        ? parsed
+        : (byName.get(parsed) ?? null);
       if (nodeId && conditional.has(nodeId)) {
         // One run takes one branch, so an empty widget here is expected. It is
         // still worth surfacing: a branch that no input can reach looks exactly
@@ -445,7 +461,9 @@ function buildAppVerdict(
     report.spec &&
     report.spec.widgets.length > 0
   ) {
-    issues.push("No interaction triggered a workflow run — the app was never executed.");
+    issues.push(
+      "No interaction triggered a workflow run — the app was never executed."
+    );
   }
 
   const ok = issues.length === 0;
@@ -465,7 +483,8 @@ function scriptRunReport(
   messagesFile: string | null | undefined
 ): ServerRunReport {
   const status = result.ok ? "completed" : "failed";
-  return {
+  type ReportFields = Mutable<ServerRunReport>;
+  const report: ReportFields = {
     surface: "server",
     ok: result.ok,
     status,
@@ -497,9 +516,12 @@ function scriptRunReport(
         ? [{ nodeId: scriptName, message: result.error }]
         : []
     },
-    trace: null,
-    ...(messagesFile ? { messagesFile } : {})
+    trace: null
   };
+  if (messagesFile) {
+    report.messagesFile = messagesFile;
+  }
+  return report;
 }
 
 /**
@@ -545,7 +567,11 @@ async function resolveOperationScript(
  */
 async function resolveOperationGraph(
   operation: OperationBinding,
-  host: { workflowId: string | null; graph: DebugGraph; graphs: Map<string, DebugGraph> },
+  host: {
+    workflowId: string | null;
+    graph: DebugGraph;
+    graphs: Map<string, DebugGraph>;
+  },
   loadFromDb: AppSimulationDeps["loadFromDb"]
 ): Promise<{ graph: DebugGraph | null; unavailable: string | null }> {
   const target = operation.workflowId;
@@ -592,7 +618,9 @@ export async function simulateApp(
     defaultOperationId: DEFAULT_OPERATION_ID,
     operations: [],
     variables: document?.variables ?? [],
-    resources: document?.resources.map(({ id, name, kind }) => ({ id, name, kind })) ?? []
+    resources:
+      document?.resources.map(({ id, name, kind }) => ({ id, name, kind })) ??
+      []
   };
   const bindingByOperation = new Map<string, OperationBinding>();
   const scriptByOperation = new Map<
@@ -644,12 +672,14 @@ export async function simulateApp(
       context.operations[0]?.id ?? DEFAULT_OPERATION_ID;
   }
 
-  const { spec, issues: parseIssues, warnings: parseWarnings } = parseAppSpec(
-    resolved.appDoc,
-    io,
-    document ? context : undefined,
-    { document, issue: resolved.issue }
-  );
+  const {
+    spec,
+    issues: parseIssues,
+    warnings: parseWarnings
+  } = parseAppSpec(resolved.appDoc, io, document ? context : undefined, {
+    document,
+    issue: resolved.issue
+  });
   const validation = spec
     ? validateApp(spec, io, context)
     : { errors: [], warnings: [] };
@@ -701,23 +731,32 @@ export async function simulateApp(
       params: Record<string, unknown>
     ) => {
       log(`Running operation "${operationId}"…`);
-      const outcome = await deps.runOnServer({
+      const runInput: Parameters<typeof deps.runOnServer>[0] = {
         graph: withNodePropertyOverlays(graph, runtime.state.inputs),
         workflowId,
-        params,
-        ...(timeoutMs != null ? { timeoutMs } : {})
-      });
+        params
+      };
+      if (timeoutMs != null) {
+        runInput.timeoutMs = timeoutMs;
+      }
+      const outcome = await deps.runOnServer(runInput);
       // The slot is claimed only once the run settles, so a run the harness
       // timed out on never takes an index from the one that follows it.
       const runIndex = runs.length;
-      const messagesFile = await deps.onRunMessages?.(runIndex, outcome.rawMessages);
+      const messagesFile = await deps.onRunMessages?.(
+        runIndex,
+        outcome.rawMessages
+      );
       if (messagesFile) outcome.report.messagesFile = messagesFile;
       runs.push(outcome.report);
       log(
         `Run ${runIndex + 1}: ${outcome.report.status} · ${outcome.report.summary.counts.errored} node error(s)`
       );
+      // SAFETY: the fold reads a message by field name off the wire shape,
+      // and a ProcessingMessage is that shape — it is what the runner
+      // serializes and what the web runtime folds.
       return {
-        messages: outcome.rawMessages as unknown as ReadonlyArray<
+        messages: outcome.rawMessages as ReadonlyArray<
           Record<string, unknown>
         >,
         runIndex
@@ -741,22 +780,28 @@ export async function simulateApp(
       // A streaming body reads its inputs off the inbox, so the operation's
       // one value per input is staged as a one-item stream instead.
       const invocation = scriptOperationInvocation(script.document, inputs);
-      const result = await deps.runScript!({
+      const scriptInput: Parameters<NonNullable<typeof deps.runScript>>[0] = {
         scriptId: target.scriptId,
         scriptVersion: target.scriptVersion,
         name: script.name,
         document: script.document,
-        inputs: invocation.inputs,
-        ...(invocation.inputStreams
-          ? { inputStreams: invocation.inputStreams }
-          : {}),
-        ...(timeoutMs != null ? { timeoutMs } : {})
-      });
+        inputs: invocation.inputs
+      };
+      if (invocation.inputStreams) {
+        scriptInput.inputStreams = invocation.inputStreams;
+      }
+      if (timeoutMs != null) {
+        scriptInput.timeoutMs = timeoutMs;
+      }
+      const result = await deps.runScript!(scriptInput);
       const messages = jsScriptRunMessages(result);
       const runIndex = runs.length;
+      // SAFETY: `jsScriptRunMessages` builds the same per-emit and final
+      // message shapes the runner streams, and this hook only serializes them
+      // to JSONL.
       const messagesFile = await deps.onRunMessages?.(
         runIndex,
-        messages as unknown as ProcessingMessage[]
+        messages as ProcessingMessage[]
       );
       runs.push(
         scriptRunReport(result, Date.now() - started, script.name, messagesFile)
@@ -770,15 +815,22 @@ export async function simulateApp(
       const binding = bindingByOperation.get(op.id) as OperationBinding;
       const script = scriptByOperation.get(op.id) ?? null;
       const graph = graphByOperation.get(op.id) ?? null;
-      const operationIO = op.io ?? { inputs: [], outputs: [], variables: [], nodeIds: [] };
+      const operationIO = op.io ?? {
+        inputs: [],
+        outputs: [],
+        variables: [],
+        nodeIds: []
+      };
       const defaults: Record<string, unknown> = {};
       for (const input of operationIO.inputs) {
         if (input.defaultValue === undefined) continue;
-        defaults[stateKey({ kind: "input", operationId: op.id, nodeId: input.nodeId })] =
-          input.defaultValue;
+        defaults[
+          stateKey({ kind: "input", operationId: op.id, nodeId: input.nodeId })
+        ] = input.defaultValue;
       }
       const timeoutMs = effectiveTimeoutMs(op.timeoutMs, options.timeoutMs);
-      return {
+      type InitFields = Mutable<HeadlessOperationInit>;
+      const init: InitFields = {
         binding,
         outputKeyByNodeId: new Map(
           operationIO.outputs.map((o) => [
@@ -787,55 +839,72 @@ export async function simulateApp(
           ])
         ),
         inputNodeIds: operationIO.inputs.map((i) => i.nodeId),
-        inputNameByNodeId: new Map(operationIO.inputs.map((i) => [i.nodeId, i.name])),
-        defaults,
-        ...(script && deps.runScript
-          ? {
-              runWorkflow: (params: Record<string, unknown>) =>
-                runScriptOperation(
-                  op.id,
-                  op.target as Extract<OperationTarget, { kind: "script" }>,
-                  script,
-                  timeoutMs,
-                  params
-                )
-            }
-          : {}),
-        ...(graph
-          ? {
-              runWorkflow: (params: Record<string, unknown>) =>
-                runWorkflow(
-                  op.id,
-                  graph,
-                  // A bundle's operations name bundle-local keys, so there is
-                  // no workflow id to attribute the run to.
-                  resolved.operationsReferenceKeys
-                    ? null
-                    : graph === resolved.graph
-                      ? resolved.info.workflowId
-                      : op.workflowId,
-                  timeoutMs,
-                  params
-                )
-            }
-          : {})
+        inputNameByNodeId: new Map(
+          operationIO.inputs.map((i) => [i.nodeId, i.name])
+        ),
+        defaults
       };
+      if (script && deps.runScript) {
+        init.runWorkflow = (params: Record<string, unknown>) =>
+          runScriptOperation(
+            op.id,
+            op.target as Extract<OperationTarget, { kind: "script" }>,
+            script,
+            timeoutMs,
+            params
+          );
+      }
+      // A workflow graph wins over the script binding, exactly as the later
+      // spread did before.
+      if (graph) {
+        init.runWorkflow = (params: Record<string, unknown>) =>
+          runWorkflow(
+            op.id,
+            graph,
+            // A bundle's operations name bundle-local keys, so there is
+            // no workflow id to attribute the run to.
+            resolved.operationsReferenceKeys
+              ? null
+              : graph === resolved.graph
+                ? resolved.info.workflowId
+                : op.workflowId,
+            timeoutMs,
+            params
+          );
+      }
+      return init;
     });
 
-    const runtime = new HeadlessAppRuntime({
+    const runtimeInit: ConstructorParameters<typeof HeadlessAppRuntime>[0] = {
       operations,
       defaultOperationId: context.defaultOperationId,
       variables: context.variables,
       resources: document?.resources ?? [],
       scope,
-      widgets: spec.widgets.map((w) => ({
-        id: w.id,
-        ...(w.visibleWhen ? { visibleWhen: w.visibleWhen } : {}),
-        ...(w.disabledWhen ? { disabledWhen: w.disabledWhen } : {}),
-        ...(w.format ? { format: w.format } : {})
-      })),
-      ...(options.timeoutMs != null ? { timeoutMs: options.timeoutMs } : {})
-    });
+      widgets: spec.widgets.map((w) => {
+        type WidgetFields = {
+          id: string;
+          visibleWhen?: typeof w.visibleWhen;
+          disabledWhen?: typeof w.disabledWhen;
+          format?: typeof w.format;
+        };
+        const widget: WidgetFields = { id: w.id };
+        if (w.visibleWhen) {
+          widget.visibleWhen = w.visibleWhen;
+        }
+        if (w.disabledWhen) {
+          widget.disabledWhen = w.disabledWhen;
+        }
+        if (w.format) {
+          widget.format = w.format;
+        }
+        return widget;
+      })
+    };
+    if (options.timeoutMs != null) {
+      runtimeInit.timeoutMs = options.timeoutMs;
+    }
+    const runtime = new HeadlessAppRuntime(runtimeInit);
 
     /**
      * Write a value addressed by name (a param, or an `--interact` set step),
@@ -928,7 +997,11 @@ export async function simulateApp(
       report.interactions.push(record);
 
       if ("set" in step) {
-        const failure = writeByName(step.set.key, step.set.value, step.set.operationId);
+        const failure = writeByName(
+          step.set.key,
+          step.set.value,
+          step.set.operationId
+        );
         if (failure) record.error = failure;
         else record.actions.push(`set ${step.set.key}`);
         continue;
@@ -938,7 +1011,8 @@ export async function simulateApp(
         const { id, items } = step.seedResource;
         const failure = seedResource(id, items);
         if (failure) record.error = failure;
-        else record.actions.push(`seedResource ${id} (${items.length} item(s))`);
+        else
+          record.actions.push(`seedResource ${id} (${items.length} item(s))`);
         continue;
       }
 
@@ -963,7 +1037,10 @@ export async function simulateApp(
       }
 
       const trigger = "click" in step ? "click" : "change";
-      const found = findWidget(spec, "click" in step ? step.click : step.change);
+      const found = findWidget(
+        spec,
+        "click" in step ? step.click : step.change
+      );
       if (typeof found === "string") {
         record.error = found;
         continue;
@@ -1003,7 +1080,9 @@ export async function simulateApp(
       // would run just that input's downstream subgraph — headless, both paths
       // are a full authoritative run.
       const from =
-        found.bindingMode === "write" ? found.canonicalBinding ?? undefined : undefined;
+        found.bindingMode === "write"
+          ? (found.canonicalBinding ?? undefined)
+          : undefined;
       const eventCtx = {
         defaultOperationId: context.defaultOperationId,
         resolveVariableId: (key: string | undefined) => {
@@ -1017,7 +1096,8 @@ export async function simulateApp(
         const action = eventToAction(event, eventCtx);
         if (!action) {
           record.error =
-            record.error ?? `event "${event.kind}" is incomplete — nothing to dispatch.`;
+            record.error ??
+            `event "${event.kind}" is incomplete — nothing to dispatch.`;
           continue;
         }
         if (action.kind === "run" && !allowRuns) {
@@ -1091,11 +1171,18 @@ export async function simulateApp(
         id: binding.id,
         kind: binding.kind,
         seeded: provider !== null,
-        items: items.map((item) => ({
-          id: item.ref.id,
-          name: item.name,
-          ...(item.ref.revision !== undefined ? { revision: item.ref.revision } : {})
-        })),
+        items: items.map((item) => {
+          type ListedFields = {
+            id: string;
+            name: string;
+            revision?: number;
+          };
+          const listed: ListedFields = { id: item.ref.id, name: item.name };
+          if (item.ref.revision !== undefined) {
+            listed.revision = item.ref.revision;
+          }
+          return listed;
+        }),
         selected: provider?.selected()?.id ?? null,
         commands: runtime.resourceCommands
           .filter((c) => c.resourceBindingId === binding.id)
@@ -1109,7 +1196,8 @@ export async function simulateApp(
         // A resource widget shows a collection, not a state value — report what
         // its picker or gallery would list.
         if (w.resourceBindingId) {
-          const items = runtime.resourceProvider(w.resourceBindingId)?.list() ?? [];
+          const items =
+            runtime.resourceProvider(w.resourceBindingId)?.list() ?? [];
           const state = runtime.widgetState(w.id);
           return {
             id: w.id,
@@ -1140,7 +1228,8 @@ export async function simulateApp(
           stateKey: w.stateKey,
           value: previewValue(value),
           display,
-          hasValue: display !== null ? display.length > 0 : !isEmptyValue(value),
+          hasValue:
+            display !== null ? display.length > 0 : !isEmptyValue(value),
           visible: state?.visible ?? true,
           disabled: state?.disabled ?? false
         };
@@ -1159,7 +1248,12 @@ export async function simulateApp(
     }
   }
 
-  report.verdict = buildAppVerdict(report, allowRuns, resolved.graph, conditionIssues);
+  report.verdict = buildAppVerdict(
+    report,
+    allowRuns,
+    resolved.graph,
+    conditionIssues
+  );
 
   return report;
 }

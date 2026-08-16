@@ -1,6 +1,7 @@
 import Anthropic, { type ClientOptions } from "@anthropic-ai/sdk";
 import type {
   Message as AnthropicMessage,
+  ContentBlock,
   MessageCreateParamsNonStreaming,
   MessageCreateParamsStreaming,
   TextCitation
@@ -47,7 +48,29 @@ interface AnthropicProviderOptions {
   providerId?: ProviderId;
 }
 
+/** One node of a JSON Schema document, as a tool's `input_schema` carries it. */
+type JsonSchemaNode =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonSchemaNode[]
+  | { [key: string]: JsonSchemaNode };
+
 type AnthropicRawBlock = Record<string, unknown>;
+/** The `thinking` parameter as Anthropic's API takes it. */
+type AnthropicThinkingParam = {
+  type: string;
+  budget_tokens?: number;
+  display?: string;
+};
+
+/** Per-call transport options: an abort signal and the beta header, each optional. */
+type AnthropicRequestOptions = {
+  signal?: AbortSignal;
+  headers?: { "anthropic-beta": string };
+};
 type AnthropicToolCall = ToolCall & {
   _anthropicContentBlocks?: AnthropicRawBlock[];
 };
@@ -55,7 +78,7 @@ type AnthropicToolCall = ToolCall & {
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_PAUSE_TURN_CONTINUATIONS = 5;
 
-function toRawBlock(block: object): AnthropicRawBlock {
+function toRawBlock(block: ContentBlock): AnthropicRawBlock {
   return Object.fromEntries(Object.entries(block));
 }
 
@@ -155,17 +178,18 @@ function textContentFromRawBlocks(
     const citations = Array.isArray(block.citations)
       ? (block.citations as TextCitation[]).map(mapCitation)
       : undefined;
-    return [
-      {
-        type: "text" as const,
-        text: block.text,
-        ...(citations && citations.length > 0 ? { citations } : {})
-      }
-    ];
+    const content: MessageTextContent = {
+      type: "text" as const,
+      text: block.text
+    };
+    if (citations && citations.length > 0) {
+      content.citations = citations;
+    }
+    return [content];
   });
 }
 
-function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
+function toAnthropicCitation(citation: MessageCitation) {
   switch (citation.type) {
     case "char_location":
       return {
@@ -218,14 +242,44 @@ function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
   }
 }
 
-function toAnthropicTextBlock(part: MessageTextContent): AnthropicRawBlock {
-  return {
+/** The tool fields Anthropic accepts on every tool form, each one optional. */
+type AnthropicSharedToolFields = {
+  cache_control?: ProviderTool["cacheControl"];
+  strict?: boolean;
+  defer_loading?: boolean;
+  allowed_callers?: ProviderTool["allowedCallers"];
+};
+
+/**
+ * The tool fields Anthropic accepts on every tool form, with each one the
+ * caller left unset omitted.
+ */
+function sharedToolFields(tool: ProviderTool): AnthropicSharedToolFields {
+  const fields: AnthropicSharedToolFields = {};
+  if (tool.cacheControl) {
+    fields.cache_control = tool.cacheControl;
+  }
+  if (tool.strict !== undefined) {
+    fields.strict = tool.strict;
+  }
+  if (tool.deferLoading !== undefined) {
+    fields.defer_loading = tool.deferLoading;
+  }
+  if (tool.allowedCallers) {
+    fields.allowed_callers = tool.allowedCallers;
+  }
+  return fields;
+}
+
+function toAnthropicTextBlock(part: MessageTextContent) {
+  const block: AnthropicRawBlock = {
     type: "text",
-    text: part.text,
-    ...(part.citations
-      ? { citations: part.citations.map(toAnthropicCitation) }
-      : {})
+    text: part.text
   };
+  if (part.citations) {
+    block.citations = part.citations.map(toAnthropicCitation);
+  }
+  return block;
 }
 
 /**
@@ -339,7 +393,7 @@ function normalizeAnthropicImageMime(mime: string): string {
   return base;
 }
 
-function parseDataUri(uri: string): { mime: string; base64: string } {
+function parseDataUri(uri: string) {
   const idx = uri.indexOf(",");
   if (idx < 0) {
     throw new Error("Invalid data URI");
@@ -416,11 +470,13 @@ export class AnthropicProvider extends BaseProvider {
     this._clientFactory =
       options.clientFactory ??
       ((key) => {
-        const clientOptions: ClientOptions = {
-          ...this._clientOptions,
-          ...(key ? { apiKey: key } : {}),
-          ...(this.authToken ? { authToken: this.authToken } : {})
-        };
+        const clientOptions: ClientOptions = { ...this._clientOptions };
+        if (key) {
+          clientOptions.apiKey = key;
+        }
+        if (this.authToken) {
+          clientOptions.authToken = this.authToken;
+        }
         return new Anthropic(clientOptions);
       });
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
@@ -439,16 +495,15 @@ export class AnthropicProvider extends BaseProvider {
     return this._client;
   }
 
-  private requestOptions(signal?: AbortSignal): {
-    signal?: AbortSignal;
-    headers?: Record<string, string>;
-  } {
-    return {
-      ...(signal ? { signal } : {}),
-      ...(this._betas.length > 0
-        ? { headers: { "anthropic-beta": this._betas.join(",") } }
-        : {})
-    };
+  private requestOptions(signal?: AbortSignal): AnthropicRequestOptions {
+    const options: AnthropicRequestOptions = {};
+    if (signal) {
+      options.signal = signal;
+    }
+    if (this._betas.length > 0) {
+      options.headers = { "anthropic-beta": this._betas.join(",") };
+    }
+    return options;
   }
 
   async hasToolSupport(_model: string): Promise<boolean> {
@@ -462,14 +517,18 @@ export class AnthropicProvider extends BaseProvider {
         const models: LanguageModel[] = [];
         let afterId: string | undefined;
         do {
-          const page = await this.getClient().models.list(
-            { limit: 1000, ...(afterId ? { after_id: afterId } : {}) },
-            {
-              ...this.requestOptions(),
-              timeout: 10_000,
-              maxRetries: 0
-            }
-          );
+          type ListParamsFields = { limit: number; after_id?: string };
+          const listParams: ListParamsFields = {
+            limit: 1000
+          };
+          if (afterId) {
+            listParams.after_id = afterId;
+          }
+          const page = await this.getClient().models.list(listParams, {
+            ...this.requestOptions(),
+            timeout: 10_000,
+            maxRetries: 0
+          });
           models.push(
             ...page.data.map((model) => ({
               id: model.id,
@@ -507,12 +566,18 @@ export class AnthropicProvider extends BaseProvider {
     return [];
   }
 
-  private prepareJsonSchema(schema: unknown): unknown {
+  private prepareJsonSchema(schema: unknown): JsonSchemaNode {
     if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
-      return schema;
+      // SAFETY: a schema node that is not an object is carried through as it
+      // stands — a scalar, a list, or an absent schema.
+      return schema as JsonSchemaNode;
     }
 
-    const obj = { ...(schema as Record<string, unknown>) };
+    const obj = {
+      // SAFETY: the checks above proved `schema` is a plain object of schema
+      // members.
+      ...(schema as { [key: string]: JsonSchemaNode })
+    } satisfies { [key: string]: JsonSchemaNode };
 
     if (obj.type === "object" && obj.additionalProperties === undefined) {
       obj.additionalProperties = false;
@@ -524,9 +589,10 @@ export class AnthropicProvider extends BaseProvider {
       !Array.isArray(obj.properties)
     ) {
       obj.properties = Object.fromEntries(
-        Object.entries(obj.properties as Record<string, unknown>).map(
-          ([k, v]) => [k, this.prepareJsonSchema(v)]
-        )
+        Object.entries(obj.properties).map(([k, v]) => [
+          k,
+          this.prepareJsonSchema(v)
+        ])
       );
     }
 
@@ -538,10 +604,7 @@ export class AnthropicProvider extends BaseProvider {
       const defs = obj[defsKey];
       if (defs && typeof defs === "object" && !Array.isArray(defs)) {
         obj[defsKey] = Object.fromEntries(
-          Object.entries(defs as Record<string, unknown>).map(([k, v]) => [
-            k,
-            this.prepareJsonSchema(v)
-          ])
+          Object.entries(defs).map(([k, v]) => [k, this.prepareJsonSchema(v)])
         );
       }
     }
@@ -705,15 +768,20 @@ export class AnthropicProvider extends BaseProvider {
       );
     }
 
-    return {
+    const block: AnthropicRawBlock = {
       type: "document",
-      source,
-      ...(title ? { title } : {}),
-      ...(part.context ? { context: part.context } : {}),
-      ...(part.citations !== undefined
-        ? { citations: { enabled: part.citations } }
-        : {})
+      source
     };
+    if (title) {
+      block.title = title;
+    }
+    if (part.context) {
+      block.context = part.context;
+    }
+    if (part.citations !== undefined) {
+      block.citations = { enabled: part.citations };
+    }
+    return block;
   }
 
   async convertMessage(
@@ -747,16 +815,17 @@ export class AnthropicProvider extends BaseProvider {
         resultContent = JSON.stringify(message.content ?? null);
       }
 
+      const toolResult: AnthropicRawBlock = {
+        type: "tool_result",
+        tool_use_id: message.toolCallId,
+        content: resultContent
+      };
+      if (message.isError) {
+        toolResult.is_error = true;
+      }
       return {
         role: "user",
-        content: [
-          {
-            type: "tool_result",
-            tool_use_id: message.toolCallId,
-            content: resultContent,
-            ...(message.isError ? { is_error: true } : {})
-          }
-        ]
+        content: [toolResult]
       };
     }
 
@@ -887,30 +956,20 @@ export class AnthropicProvider extends BaseProvider {
           type: "web_search_20250305",
           name: WEB_SEARCH_TOOL_NAME,
           max_uses: 5,
-          ...(tool.cacheControl ? { cache_control: tool.cacheControl } : {}),
-          ...(tool.strict !== undefined ? { strict: tool.strict } : {}),
-          ...(tool.deferLoading !== undefined
-            ? { defer_loading: tool.deferLoading }
-            : {}),
-          ...(tool.allowedCallers
-            ? { allowed_callers: tool.allowedCallers }
-            : {})
+          ...sharedToolFields(tool)
         };
       }
-      return {
+      const base = {
         name: tool.name,
         description: tool.description ?? "",
         input_schema: this.prepareJsonSchema(
           tool.inputSchema ?? { type: "object", properties: {} }
-        ),
-        ...(tool.inputExamples ? { input_examples: tool.inputExamples } : {}),
-        ...(tool.cacheControl ? { cache_control: tool.cacheControl } : {}),
-        ...(tool.strict !== undefined ? { strict: tool.strict } : {}),
-        ...(tool.deferLoading !== undefined
-          ? { defer_loading: tool.deferLoading }
-          : {}),
-        ...(tool.allowedCallers ? { allowed_callers: tool.allowedCallers } : {})
+        )
       };
+      const withExamples = tool.inputExamples
+        ? { ...base, input_examples: tool.inputExamples }
+        : base;
+      return { ...withExamples, ...sharedToolFields(tool) };
     });
   }
 
@@ -946,7 +1005,7 @@ export class AnthropicProvider extends BaseProvider {
     thinking?: ProviderThinkingConfig;
     effort?: ProviderEffort;
     thinkingBudget?: number;
-  }): Record<string, unknown> {
+  }) {
     const formattedTools =
       args.tools && args.tools.length > 0
         ? this.formatTools(args.tools)
@@ -1019,34 +1078,63 @@ export class AnthropicProvider extends BaseProvider {
           ? { top_p: args.topP }
           : {};
 
-    const anthropicThinking =
-      thinking?.type === "adaptive"
-        ? {
-            type: "adaptive",
-            ...(thinking.display ? { display: thinking.display } : {})
-          }
-        : thinking?.type === "manual"
-          ? {
-              type: "enabled",
-              budget_tokens: thinking.budgetTokens,
-              ...(thinking.display ? { display: thinking.display } : {})
-            }
-          : thinking?.type === "disabled" || thinkingSuppressedByToolChoice
-            ? { type: "disabled" }
-            : undefined;
+    let anthropicThinking: AnthropicThinkingParam | undefined;
+    if (thinking?.type === "adaptive") {
+      anthropicThinking = { type: "adaptive" };
+      if (thinking.display) {
+        anthropicThinking.display = thinking.display;
+      }
+    } else if (thinking?.type === "manual") {
+      anthropicThinking = {
+        type: "enabled",
+        budget_tokens: thinking.budgetTokens
+      };
+      if (thinking.display) {
+        anthropicThinking.display = thinking.display;
+      }
+    } else if (
+      thinking?.type === "disabled" ||
+      thinkingSuppressedByToolChoice
+    ) {
+      anthropicThinking = { type: "disabled" };
+    }
 
-    return {
+    // The message-create body this provider assembles, before sampling is
+    // folded in.
+    type AnthropicRequestBody = {
+      model: string;
+      messages: typeof args.messages;
+      system: string;
+      max_tokens: number;
+      tools?: typeof formattedTools;
+      tool_choice?: typeof toolChoice;
+      thinking?: AnthropicThinkingParam;
+      output_config?: { effort: ProviderEffort };
+      cache_control?: { type: "ephemeral"; ttl?: "5m" | "1h" };
+    };
+    const request: AnthropicRequestBody = {
       model: args.model,
       messages: args.messages,
       system: args.system,
-      max_tokens: maxTokens,
-      ...(formattedTools ? { tools: formattedTools } : {}),
-      ...(toolChoice ? { tool_choice: toolChoice } : {}),
-      ...sampling,
-      ...(anthropicThinking ? { thinking: anthropicThinking } : {}),
-      ...(args.effort ? { output_config: { effort: args.effort } } : {}),
-      ...(this._cacheControl ? { cache_control: this._cacheControl } : {})
+      max_tokens: maxTokens
     };
+    if (formattedTools) {
+      request.tools = formattedTools;
+    }
+    if (toolChoice) {
+      request.tool_choice = toolChoice;
+    }
+    Object.assign(request, sampling);
+    if (anthropicThinking) {
+      request.thinking = anthropicThinking;
+    }
+    if (args.effort) {
+      request.output_config = { effort: args.effort };
+    }
+    if (this._cacheControl) {
+      request.cache_control = this._cacheControl;
+    }
+    return request;
   }
 
   async *generateMessages(args: {
@@ -1097,6 +1185,9 @@ export class AnthropicProvider extends BaseProvider {
       continuation <= MAX_PAUSE_TURN_CONTINUATIONS;
       continuation++
     ) {
+      // SAFETY: the request is assembled field by field as a dictionary, and
+      // the SDK's param interface is closed — it declares no index signature,
+      // so the two do not overlap.
       const streamRequest = {
         ...(currentRequest as unknown as MessageCreateParamsStreaming),
         stream: true as const
@@ -1335,6 +1426,8 @@ export class AnthropicProvider extends BaseProvider {
       continuation++
     ) {
       this.recordRequestPayload(currentRequest);
+      // SAFETY: as above — a dictionary request handed to the SDK's closed
+      // non-streaming param interface.
       response = await this.getClient().messages.create(
         currentRequest as unknown as MessageCreateParamsNonStreaming,
         this.requestOptions(args.signal)
@@ -1414,11 +1507,14 @@ export class AnthropicProvider extends BaseProvider {
       }
       if (block.type === "text") {
         const citations = block.citations?.map(mapCitation);
-        textParts.push({
+        const textPart: MessageTextContent = {
           type: "text",
-          text: block.text,
-          ...(citations && citations.length > 0 ? { citations } : {})
-        });
+          text: block.text
+        };
+        if (citations && citations.length > 0) {
+          textPart.citations = citations;
+        }
+        textParts.push(textPart);
       }
     }
 

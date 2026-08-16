@@ -56,10 +56,10 @@ const LOCAL_USER_ID = "1";
 const ACTIVE_WORKER_KEY = "active_worker_instance_id";
 
 /** Secret-store key holding each target's API key. */
-const API_KEY_SECRET: Record<WorkerTarget, string> = {
+const API_KEY_SECRET = {
   runpod: "RUNPOD_API_KEY",
   vast: "VAST_API_KEY",
-};
+} satisfies Record<WorkerTarget, string>;
 
 /**
  * The connection info a caller applies to the Python bridge when attaching to

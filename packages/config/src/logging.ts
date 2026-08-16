@@ -34,12 +34,12 @@ export interface LoggingOptions {
 }
 
 const VALID_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
-const LEVEL_NUM: Record<LogLevel, number> = {
+const LEVEL_NUM = {
   debug: 0,
   info: 1,
   warn: 2,
   error: 3
-};
+} satisfies Record<LogLevel, number>;
 
 /** Maps Python-style log level names to their JS equivalents. */
 const LEVEL_ALIASES: Record<string, LogLevel> = {
@@ -75,8 +75,7 @@ export function configureLogging(opts: LoggingOptions = {}): void {
   if (opts.level) {
     currentLevel = opts.level;
   } else {
-    const envRaw =
-      ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "info";
+    const envRaw = ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "info";
     currentLevel = normalizeLevel(envRaw) ?? "info";
   }
 
@@ -97,8 +96,7 @@ export function getLogLevel(): LogLevel {
 }
 
 // Colour support — only on Node where process.stderr.isTTY exists.
-const USE_COLOR =
-  IS_NODE && Boolean(process.stderr?.isTTY) && !ENV["NO_COLOR"];
+const USE_COLOR = IS_NODE && Boolean(process.stderr?.isTTY) && !ENV["NO_COLOR"];
 
 const C = {
   reset: USE_COLOR ? "\x1b[0m" : "",
@@ -110,12 +108,12 @@ const C = {
   cyan: USE_COLOR ? "\x1b[36m" : ""
 };
 
-const LEVEL_COLOR: Record<LogLevel, string> = {
+const LEVEL_COLOR = {
   debug: C.gray,
   info: C.green,
   warn: C.yellow,
   error: C.red
-};
+} satisfies Record<LogLevel, string>;
 
 function timestamp(): string {
   const d = new Date();
@@ -129,14 +127,27 @@ function timestamp(): string {
 // (`message`, `stack`, `name`) are non-enumerable, so the default serializer
 // produces "{}". Without this, nested errors like `{ provider, error }` lose
 // all diagnostic information in the log output.
-function jsonReplacer(_key: string, value: unknown): unknown {
+/** An `Error` flattened into its own enumerable fields for JSON output. */
+interface SerializedError {
+  name: string;
+  message: string;
+  stack?: string;
+  cause?: unknown;
+}
+
+function jsonReplacer<T>(_key: string, value: T): T | SerializedError {
   if (value instanceof Error) {
-    return {
+    const serialized: SerializedError = {
       name: value.name,
-      message: value.message,
-      ...(value.stack ? { stack: value.stack } : {}),
-      ...(value.cause !== undefined ? { cause: value.cause } : {})
+      message: value.message
     };
+    if (value.stack) {
+      serialized.stack = value.stack;
+    }
+    if (value.cause !== undefined) {
+      serialized.cause = value.cause;
+    }
+    return serialized;
   }
   return value;
 }

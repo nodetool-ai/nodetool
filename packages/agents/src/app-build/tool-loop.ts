@@ -122,16 +122,17 @@ export async function runToolLoop(
 
   let error: string | undefined;
   try {
-    const stream = opts.provider.generateLoop({
+    const loopArgs: Parameters<BaseProvider["generateLoop"]>[0] = {
       messages,
       model: opts.model,
       tools: providerTools,
       // Tools mutate shared state and read it back, so calls must be serialized.
       sequentialTools: true,
       maxIterations: opts.maxIterations ?? DEFAULT_MAX_ITERATIONS,
-      ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
       signal
-    });
+    };
+    if (opts.turnBudget) loopArgs.turnBudget = opts.turnBudget;
+    const stream = opts.provider.generateLoop(loopArgs);
     // Drain the stream; side effects (tool execution, result feedback) happen
     // inside `generateLoop`.
     for await (const _item of stream) {

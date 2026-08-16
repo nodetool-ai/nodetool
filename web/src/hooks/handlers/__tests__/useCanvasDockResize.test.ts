@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { act } from "react";
 
 import { useCanvasDockResize } from "../useCanvasDockResize";
@@ -17,12 +18,12 @@ const makeOverlay = (width: number, height: number) => {
 };
 
 const mouseEvent = (clientX: number, clientY: number) =>
-  ({
+  stub<React.MouseEvent>({
     clientX,
     clientY,
     preventDefault: jest.fn(),
     stopPropagation: jest.fn()
-  }) as unknown as React.MouseEvent;
+  });
 
 describe("useCanvasDockResize", () => {
   beforeEach(() => {

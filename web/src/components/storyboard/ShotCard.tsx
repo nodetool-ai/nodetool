@@ -41,6 +41,7 @@ import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useEntities } from "../../serverState/useEntities";
 import { ENTITY_KIND_COLOR } from "../entities/entityKind";
+import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
 interface ShotCardProps {
   boardId: string;
@@ -52,7 +53,10 @@ interface ShotCardProps {
   isLast?: boolean;
 }
 
-const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse?: boolean }> = {
+const STATUS_META: Record<
+  ShotStatus,
+  { status: StatusType; label: string; pulse?: boolean }
+> = {
   planned: { status: "default", label: "Planned" },
   keyframe_generating: { status: "pending", label: "Generating still…", pulse: true },
   keyframe_ready: { status: "info", label: "Still ready" },
@@ -136,7 +140,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const isGenerating =
     shot.status === "keyframe_generating" || shot.status === "clip_generating";
   const camera = cameraLine(shot);
-  const clipUri = shot.clip?.uri;
+  // The clip's `uri` is an `asset://` locator — the player needs the asset's
+  // own `get_url`.
+  const clipUri = useResolvedMediaUri(shot.clip);
   const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
 
   const handleGenerateStill = useCallback(() => {
@@ -223,7 +229,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             {shotName}
           </Text>
           <FlexRow align="center" gap={SPACING.xs}>
-            {typeof shot.cost_estimate === "number" && (
+            {shot.cost_estimate != null && (
               <Chip
                 compact
                 color="info"

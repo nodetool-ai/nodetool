@@ -160,7 +160,7 @@ export const isJsonScriptPortType = (portType: string): boolean => {
   return kind === "string" && portType !== "str" && portType !== "string";
 };
 
-const KIND_NODE_TYPE: Record<WorkflowInputKind, string> = {
+const KIND_NODE_TYPE = {
   string: "nodetool.input.StringInput",
   integer: "nodetool.input.IntegerInput",
   float: "nodetool.input.FloatInput",
@@ -188,7 +188,7 @@ const KIND_NODE_TYPE: Record<WorkflowInputKind, string> = {
   model3d: "nodetool.input.Model3DInput",
   image_size: "nodetool.input.ImageSizeInput",
   huggingface_model: "nodetool.input.HuggingFaceModelInput"
-};
+} satisfies Record<WorkflowInputKind, string>;
 
 /** The InputNode type the mini-app property widgets expect for this kind. */
 export const nodeTypeForInputKind = (kind: WorkflowInputKind): string =>
@@ -200,7 +200,7 @@ export const clampNumber = (
   max?: number
 ): number => {
   let result = value;
-  if (typeof min === "number") result = Math.max(result, min);
-  if (typeof max === "number") result = Math.min(result, max);
+  if (min != null) result = Math.max(result, min);
+  if (max != null) result = Math.min(result, max);
   return result;
 };

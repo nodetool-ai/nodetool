@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../../test-utils/doubles";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,7 +13,7 @@ import useGlobalChatStore from "../../../../stores/GlobalChatStore";
 // tool is "running". Tests can swap the implementation to inject runtime.
 jest.mock("../../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: jest.fn((selector: (s: unknown) => unknown) => selector({}))
+  default: jest.fn(<T,>(selector: (s: unknown) => T) => selector({}))
 }));
 
 jest.mock("../../../../contexts/EditorInsertionContext", () => ({
@@ -217,7 +218,7 @@ describe("MessageView CodeAct actions", () => {
   });
 
   it("shows the in-flight media prediction on a running execute_code card", () => {
-    const store = useGlobalChatStore as unknown as jest.Mock;
+    const store = asMock(useGlobalChatStore);
     const state = {
       currentThreadId: "t1",
       currentRunningToolCallId: "a",
@@ -236,7 +237,7 @@ describe("MessageView CodeAct actions", () => {
         }
       }
     };
-    store.mockImplementation((selector: (s: unknown) => unknown) =>
+    store.mockImplementation(<T,>(selector: (s: typeof state) => T) =>
       selector(state)
     );
 
@@ -260,7 +261,7 @@ describe("MessageView CodeAct actions", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("0s")).toBeInTheDocument();
 
-    store.mockImplementation((selector: (s: unknown) => unknown) =>
+    store.mockImplementation(<T,>(selector: (s: unknown) => T) =>
       selector({})
     );
   });

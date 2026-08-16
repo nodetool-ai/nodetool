@@ -8,7 +8,7 @@
 
 import { importOptionalModule } from "@nodetool-ai/config";
 
-import { toGuestBytes } from "../sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import {
   importOptionalLibrary,
   optionsOf,
@@ -31,7 +31,7 @@ interface FabricStaticCanvas {
   width?: number;
   height?: number;
   backgroundColor?: unknown;
-  loadFromJSON: (json: unknown) => Promise<unknown>;
+  loadFromJSON: (json: unknown) => Promise<FabricStaticCanvas>;
   renderAll: () => void;
   toDataURL: (options?: {
     format?: string;
@@ -55,6 +55,23 @@ interface FabricLike {
       svg: string
     ) => Promise<{ objects: unknown[]; options: unknown }>;
   };
+}
+
+/** Canvas options, with a background only when the scene names one. */
+type CanvasOptions = {
+  width: number;
+  height: number;
+  backgroundColor?: string;
+};
+
+function canvasOptions(
+  width: number,
+  height: number,
+  scene: { backgroundColor?: string }
+): CanvasOptions {
+  const options: CanvasOptions = { width, height };
+  if (scene.backgroundColor) options.backgroundColor = scene.backgroundColor;
+  return options;
 }
 
 async function loadFabric(where: string): Promise<FabricLike> {
@@ -125,7 +142,7 @@ function normalizeDimension(
 export async function render(
   spec: unknown,
   options?: unknown
-): Promise<unknown> {
+): Promise<GuestBytes> {
   const where = "fabric.render";
   const scene = parseSceneSpec(where, spec);
   const opts = optionsOf(options);
@@ -144,11 +161,10 @@ export async function render(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
@@ -208,11 +224,10 @@ export async function renderSVG(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
@@ -252,11 +267,10 @@ export async function toDataURL(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
@@ -286,10 +300,16 @@ export async function toDataURL(
   }
 }
 
+/** Fabric's own parse of an SVG document: its objects and canvas options. */
+export interface FabricSvgScene {
+  objects: unknown[];
+  options: unknown;
+}
+
 /**
  * Parse an SVG string into Fabric objects and canvas options.
  */
-export async function loadSVG(svg: unknown): Promise<unknown> {
+export async function loadSVG(svg: unknown): Promise<FabricSvgScene> {
   const where = "fabric.loadSVG";
   const svgText = requireText(where, svg, "svg");
   const fabricLib = await loadFabric(where);

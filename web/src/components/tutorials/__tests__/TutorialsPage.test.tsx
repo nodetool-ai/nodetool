@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -11,7 +12,7 @@ const MAX_WIDTH_QUERY = /max-width/;
 
 /** Drive MUI's useMediaQuery: only max-width queries match on "narrow". */
 const setViewport = (narrow: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: narrow && MAX_WIDTH_QUERY.test(query),
     media: query,
     onchange: null,
@@ -20,7 +21,7 @@ const setViewport = (narrow: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 const renderPage = () =>
@@ -44,7 +45,7 @@ describe("TutorialsPage responsive layout", () => {
   it("stacks the list under the player and scrolls back up on select", async () => {
     setViewport(true);
     const scrollTo = jest.fn();
-    Element.prototype.scrollTo = scrollTo as unknown as Element["scrollTo"];
+    Element.prototype.scrollTo = scrollTo;
 
     const { container } = renderPage();
 
@@ -67,7 +68,7 @@ describe("TutorialsPage responsive layout", () => {
   it("keeps the two-column layout put on a wide viewport", async () => {
     setViewport(false);
     const scrollTo = jest.fn();
-    Element.prototype.scrollTo = scrollTo as unknown as Element["scrollTo"];
+    Element.prototype.scrollTo = scrollTo;
 
     renderPage();
 

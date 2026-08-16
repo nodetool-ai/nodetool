@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useDropZone } from "../useDropZone";
 import { useDragDropStore } from "../store";
 import type { DropZoneConfig } from "../types";
@@ -33,19 +34,19 @@ beforeEach(() => {
 function createMockDragEvent(
   overrides?: Partial<React.DragEvent>
 ): React.DragEvent {
-  return {
+  return stub<React.DragEvent>({
     preventDefault: jest.fn(),
     stopPropagation: jest.fn(),
     clientX: 100,
     clientY: 200,
-    dataTransfer: {
-      dropEffect: "",
+    dataTransfer: stub<DataTransfer>({
+      dropEffect: "none",
       getData: jest.fn(() => ""),
       items: [],
       files: { length: 0 }
-    } as unknown as DataTransfer,
+    }),
     ...overrides
-  } as unknown as React.DragEvent;
+  });
 }
 
 describe("useDropZone", () => {

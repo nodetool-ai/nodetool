@@ -7,6 +7,35 @@ import {
   hfPipelineJson
 } from "../huggingface-base.js";
 
+type EmbedBody = { inputs: string; normalize?: boolean };
+type NerBody = {
+  inputs: string;
+  parameters?: { aggregation_strategy: string };
+};
+
+/** The embedding request body, with `normalize` sent only when it is on. */
+function embedBody(inputs: string, normalize: boolean): EmbedBody {
+  const body: EmbedBody = { inputs };
+  if (normalize) {
+    body.normalize = true;
+  }
+  return body;
+}
+
+/** The NER request body; `"none"` means send no aggregation strategy at all. */
+function nerBody(inputs: string, strategy: string): NerBody {
+  const body: NerBody = { inputs };
+  if (strategy !== "none") {
+    body.parameters = { aggregation_strategy: strategy };
+  }
+  return body;
+}
+
+/** Output handles ChatCompletionNode.process() emits. */
+type ChatCompletionNodeOutputs = {
+  output: string;
+};
+
 export class ChatCompletionNode extends BaseNode {
   static readonly nodeType = "huggingface.ChatCompletion";
   static readonly title = "Chat Completion";
@@ -76,7 +105,7 @@ export class ChatCompletionNode extends BaseNode {
   })
   declare top_p: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ChatCompletionNodeOutputs> {
     const token = getHfToken(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -97,6 +126,11 @@ export class ChatCompletionNode extends BaseNode {
     return { output: result.content };
   }
 }
+
+/** Output handles TextGenerationNode.process() emits. */
+type TextGenerationNodeOutputs = {
+  output: string;
+};
 
 export class TextGenerationNode extends BaseNode {
   static readonly nodeType = "huggingface.TextGeneration";
@@ -156,7 +190,7 @@ export class TextGenerationNode extends BaseNode {
   })
   declare return_full_text: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextGenerationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -176,6 +210,11 @@ export class TextGenerationNode extends BaseNode {
     return { output: String(first?.generated_text ?? "") };
   }
 }
+
+/** Output handles SummarizationNode.process() emits. */
+type SummarizationNodeOutputs = {
+  output: string;
+};
 
 export class SummarizationNode extends BaseNode {
   static readonly nodeType = "huggingface.Summarization";
@@ -227,7 +266,7 @@ export class SummarizationNode extends BaseNode {
   })
   declare min_length: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SummarizationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
@@ -249,6 +288,11 @@ export class SummarizationNode extends BaseNode {
     return { output: String(first?.summary_text ?? "") };
   }
 }
+
+/** Output handles TranslationNode.process() emits. */
+type TranslationNodeOutputs = {
+  output: string;
+};
 
 export class TranslationNode extends BaseNode {
   static readonly nodeType = "huggingface.Translation";
@@ -299,7 +343,7 @@ export class TranslationNode extends BaseNode {
   })
   declare tgt_lang: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TranslationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
@@ -318,6 +362,12 @@ export class TranslationNode extends BaseNode {
     return { output: String(first?.translation_text ?? "") };
   }
 }
+
+/** Output handles FillMaskNode.process() emits. */
+type FillMaskNodeOutputs = {
+  output: string;
+  predictions: { sequence?: string; score?: number; token_str?: string }[];
+};
 
 export class FillMaskNode extends BaseNode {
   static readonly nodeType = "huggingface.FillMask";
@@ -350,7 +400,7 @@ export class FillMaskNode extends BaseNode {
   })
   declare inputs: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FillMaskNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
@@ -366,6 +416,12 @@ export class FillMaskNode extends BaseNode {
     };
   }
 }
+
+/** Output handles QuestionAnsweringNode.process() emits. */
+type QuestionAnsweringNodeOutputs = {
+  output: string;
+  score: number;
+};
 
 export class QuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "huggingface.QuestionAnswering";
@@ -406,7 +462,7 @@ export class QuestionAnsweringNode extends BaseNode {
   })
   declare context: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<QuestionAnsweringNodeOutputs> {
     const token = getHfToken(this._secrets);
     const question = String(this.question ?? "");
     const context = String(this.context ?? "");
@@ -428,6 +484,13 @@ export class QuestionAnsweringNode extends BaseNode {
     };
   }
 }
+
+/** Output handles TableQuestionAnsweringNode.process() emits. */
+type TableQuestionAnsweringNodeOutputs = {
+  output: string;
+  cells: string[];
+  aggregator: string;
+};
 
 export class TableQuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "huggingface.TableQuestionAnswering";
@@ -473,7 +536,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
   })
   declare table: Record<string, unknown>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TableQuestionAnsweringNodeOutputs> {
     const token = getHfToken(this._secrets);
     const question = String(this.question ?? "");
     if (!question) throw new Error("Question cannot be empty");
@@ -506,6 +569,11 @@ export class TableQuestionAnsweringNode extends BaseNode {
     };
   }
 }
+
+/** Output handles FeatureExtractionNode.process() emits. */
+type FeatureExtractionNodeOutputs = {
+  output: number[] | number[][];
+};
 
 export class FeatureExtractionNode extends BaseNode {
   static readonly nodeType = "huggingface.FeatureExtraction";
@@ -545,7 +613,7 @@ export class FeatureExtractionNode extends BaseNode {
   })
   declare normalize: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FeatureExtractionNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
@@ -553,15 +621,18 @@ export class FeatureExtractionNode extends BaseNode {
     const result = await hfPipelineJson<number[] | number[][]>(
       token,
       String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
-      {
-        inputs: text,
-        ...(this.normalize ? { normalize: true } : {})
-      }
+      embedBody(text, Boolean(this.normalize))
     );
 
     return { output: result };
   }
 }
+
+/** Output handles TextClassificationNode.process() emits. */
+type TextClassificationNodeOutputs = {
+  output: string;
+  scores: { label?: string; score?: number }[];
+};
 
 export class TextClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.TextClassification";
@@ -593,13 +664,14 @@ export class TextClassificationNode extends BaseNode {
   })
   declare inputs: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
     const result = await hfPipelineJson<
-      Array<{ label?: string; score?: number }> | Array<Array<{ label?: string; score?: number }>>
+      | Array<{ label?: string; score?: number }>
+      | Array<Array<{ label?: string; score?: number }>>
     >(
       token,
       String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
@@ -607,7 +679,9 @@ export class TextClassificationNode extends BaseNode {
     );
 
     // The API may return a flat list or a list-of-lists (one per input).
-    const scores = Array.isArray(result[0]) ? (result[0] as Array<{ label?: string; score?: number }>) : (result as Array<{ label?: string; score?: number }>);
+    const scores = Array.isArray(result[0])
+      ? (result[0] as Array<{ label?: string; score?: number }>)
+      : (result as Array<{ label?: string; score?: number }>);
     return {
       output: String(scores[0]?.label ?? ""),
       scores
@@ -660,18 +734,21 @@ export class TokenClassificationNode extends BaseNode {
     if (!text) throw new Error("Text cannot be empty");
 
     const strategy = String(this.aggregation_strategy ?? "simple");
-    const result = await hfPipelineJson<
-      Array<Record<string, unknown>>
-    >(token, String(this.model ?? "dslim/bert-base-NER"), {
-      inputs: text,
-      ...(strategy !== "none"
-        ? { parameters: { aggregation_strategy: strategy } }
-        : {})
-    });
+    const result = await hfPipelineJson<Array<Record<string, unknown>>>(
+      token,
+      String(this.model ?? "dslim/bert-base-NER"),
+      nerBody(text, strategy)
+    );
 
     return { output: Array.isArray(result) ? result : [] };
   }
 }
+
+/** Output handles ZeroShotClassificationNode.process() emits. */
+type ZeroShotClassificationNodeOutputs = {
+  output: string;
+  scores: { label: string; score: number }[];
+};
 
 export class ZeroShotClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.ZeroShotClassification";
@@ -719,7 +796,7 @@ export class ZeroShotClassificationNode extends BaseNode {
   })
   declare multi_label: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ZeroShotClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");

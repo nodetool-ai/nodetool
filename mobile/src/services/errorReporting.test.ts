@@ -5,17 +5,16 @@ import {
   __resetErrorReportingForTests,
 } from './errorReporting';
 
-type GlobalWithErrorUtils = {
-  ErrorUtils?: {
-    getGlobalHandler?: () => (e: unknown, fatal?: boolean) => void;
-    setGlobalHandler?: (h: (e: unknown, fatal?: boolean) => void) => void;
-  };
+/** The RN global this module installs onto, named so the doubles stay typed. */
+type ErrorUtilsGlobal = {
+  getGlobalHandler?: () => (e: unknown, fatal?: boolean) => void;
+  setGlobalHandler?: (h: (e: unknown, fatal?: boolean) => void) => void;
 };
 
 describe('errorReporting', () => {
   afterEach(() => {
     __resetErrorReportingForTests();
-    delete (global as unknown as GlobalWithErrorUtils).ErrorUtils;
+    Reflect.deleteProperty(global, 'ErrorUtils');
   });
 
   it('routes captured errors to the active reporter', () => {
@@ -52,12 +51,13 @@ describe('errorReporting', () => {
   it('installs a global handler that reports and chains the previous one', () => {
     const previous = jest.fn();
     let installed: ((e: unknown, fatal?: boolean) => void) | undefined;
-    (global as unknown as GlobalWithErrorUtils).ErrorUtils = {
+    const errorUtils: ErrorUtilsGlobal = {
       getGlobalHandler: () => previous,
       setGlobalHandler: (h) => {
         installed = h;
       },
     };
+    Reflect.set(global, 'ErrorUtils', errorUtils);
     const capture = jest.fn();
     setErrorReporter({ captureException: capture });
 
@@ -73,10 +73,11 @@ describe('errorReporting', () => {
 
   it('installs the global handler at most once', () => {
     const setGlobalHandler = jest.fn();
-    (global as unknown as GlobalWithErrorUtils).ErrorUtils = {
+    const errorUtils: ErrorUtilsGlobal = {
       getGlobalHandler: () => undefined as never,
       setGlobalHandler,
     };
+    Reflect.set(global, 'ErrorUtils', errorUtils);
 
     initErrorReporting();
     initErrorReporting();

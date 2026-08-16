@@ -85,8 +85,9 @@ jest.mock("../../../trpc/client", () => ({
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   tabId: (type: string, ref: string) => `${type}:${ref}`,
-  useWorkspaceTabsStore: (selector: (s: unknown) => unknown) =>
-    selector({ openTab, activeTabId: "application:app-1" })
+  useWorkspaceTabsStore: <T,>(
+    selector: (s: { openTab: jest.Mock; activeTabId: string }) => T
+  ) => selector({ openTab, activeTabId: "application:app-1" })
 }));
 
 import ApplicationListPanel, {

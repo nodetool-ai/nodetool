@@ -11,6 +11,7 @@
  * 4. Editor-shell module: connected components re-export
  */
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useSketchStore } from "../state/useSketchStore";
 import {
   useEditorSession,
@@ -391,7 +392,7 @@ describe("useEditorCommands", () => {
       document,
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
-      canvasActions: {
+      canvasActions: stub<Parameters<typeof useEditorCommands>[0]["canvasActions"]>({
         handleZoomIn: jest.fn(),
         handleZoomOut: jest.fn(),
         handleZoomFit: jest.fn(),
@@ -405,19 +406,19 @@ describe("useEditorCommands", () => {
         syncSketchOutputsNow: jest.fn(),
         handleInvertLayerColors: jest.fn(),
         prepareSelectionFreeTransform: jest.fn()
-      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasActions"],
-      layerActions: {
+      }),
+      layerActions: stub<Parameters<typeof useEditorCommands>[0]["layerActions"]>({
         handleAddLayer: jest.fn(() => "layer-new")
-      } as unknown as Parameters<typeof useEditorCommands>[0]["layerActions"],
-      colorActions: {} as unknown as Parameters<typeof useEditorCommands>[0]["colorActions"],
-      segmentation: {
+      }),
+      colorActions: stub<Parameters<typeof useEditorCommands>[0]["colorActions"]>({}),
+      segmentation: stub<Parameters<typeof useEditorCommands>[0]["segmentation"]>({
         runSegmentation: jest.fn(),
         splitSelectedLayer: jest.fn()
-      } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
-      canvasStore: {
+      }),
+      canvasStore: stub<Parameters<typeof useEditorCommands>[0]["canvasStore"]>({
         setZoom: jest.fn()
-      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasStore"],
-      colorStore: {
+      }),
+      colorStore: stub<Parameters<typeof useEditorCommands>[0]["colorStore"]>({
         setBrushSettings: jest.fn(),
         setPencilSettings: jest.fn(),
         setEraserSettings: jest.fn(),
@@ -426,12 +427,12 @@ describe("useEditorCommands", () => {
         setCloneStampSettings: jest.fn(),
         swapColors: jest.fn(),
         resetColors: jest.fn()
-      } as unknown as Parameters<typeof useEditorCommands>[0]["colorStore"],
-      sessionStore: {
+      }),
+      sessionStore: stub<Parameters<typeof useEditorCommands>[0]["sessionStore"]>({
         setActiveTool: jest.fn(),
         togglePanelsHidden: jest.fn(),
         setDocument: jest.fn()
-      } as unknown as Parameters<typeof useEditorCommands>[0]["sessionStore"]
+      })
     };
   };
 

@@ -34,6 +34,7 @@
     "**/node_modules/**",
     "**/.turbo/**",
     "**/generated/**",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "tools/oxlint/anti-slop/**"
   ]
 }

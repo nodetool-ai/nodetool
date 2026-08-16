@@ -81,6 +81,14 @@ export interface WebsocketPythonBridgeOptions extends PythonBridgeOptions {
  * escalates an unhandled 'error' on the EventEmitter into a process crash.
  * Sinks on both the WebSocket and (if reachable) its TCP socket swallow them.
  */
+/**
+ * A `ws` socket seen with the undocumented TCP socket it wraps. Optional
+ * because a build that does not expose it must fall back to no sink.
+ */
+type WebSocketWithRawSocket = WebSocket & {
+  readonly _socket?: { on?: (event: string, listener: () => void) => void };
+};
+
 function attachErrorSinks(ws: WebSocket): void {
   try {
     ws.on("error", () => {});
@@ -88,9 +96,10 @@ function attachErrorSinks(ws: WebSocket): void {
     /* best-effort */
   }
   // The raw TCP socket can emit its own error during a CONNECTING teardown.
-  const rawSocket = (
-    ws as unknown as { _socket?: { on?: (e: string, l: () => void) => void } }
-  )._socket;
+  // SAFETY: `ws` is a Node `ws` socket, which keeps the underlying TCP
+  // socket on `_socket`; the optional declaration and the guard below cover a
+  // build that does not.
+  const rawSocket = (ws as WebSocketWithRawSocket)._socket;
   if (rawSocket && typeof rawSocket.on === "function") {
     try {
       rawSocket.on("error", () => {});

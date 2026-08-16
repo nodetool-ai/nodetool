@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -24,7 +25,7 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: { jobs: { cancel: { mutate: jest.fn().mockResolvedValue({}) } } }
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 const mockCancel = trpcClient.jobs.cancel.mutate as jest.Mock;
 
 const job = (id: string, status: string): Job =>

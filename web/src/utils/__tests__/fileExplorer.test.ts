@@ -14,7 +14,7 @@ const createMockApi = () => ({
 });
 
 describe("fileExplorer", () => {
-  const originalWindow = (globalThis as unknown as { window?: Window }).window;
+  const originalWindow: Window | undefined = globalThis.window;
   const addNotification = jest.fn();
   const mockApi = createMockApi();
 

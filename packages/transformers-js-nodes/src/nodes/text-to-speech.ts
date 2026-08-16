@@ -25,6 +25,11 @@ type TtsResult = {
   sampling_rate?: number;
 };
 
+/** Output handles TextToSpeechNode.process() emits. */
+type TextToSpeechNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "transformers.TextToSpeech";
   static readonly inlineFields = ["text"];
@@ -95,7 +100,7 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToSpeechNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
@@ -113,15 +118,14 @@ export class TextToSpeechNode extends BaseNode {
       samples = result.audio as Float32Array;
       samplingRate = result.sampling_rate ?? samplingRate;
     } else {
-      const pipeline = (await getPipeline({
+      const pipeline = await getPipeline<
+        (input: string, opts?: Record<string, unknown>) => Promise<TtsResult>
+      >({
         task: "text-to-speech",
         model: repoId,
         dtype,
         device
-      })) as (
-        input: string,
-        opts?: Record<string, unknown>
-      ) => Promise<TtsResult>;
+      });
 
       const opts: Record<string, unknown> = {};
       if (isSpeechT5Repo(repoId)) {

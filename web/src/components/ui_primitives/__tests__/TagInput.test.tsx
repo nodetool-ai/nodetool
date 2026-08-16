@@ -1,66 +1,9 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { TagInput } from "../TagInput";
 import mockTheme from "../../../__mocks__/themeMock";
-
-// Mock MUI components to avoid theme issues
-jest.mock("@mui/material/Chip", () => {
-  return {
-    __esModule: true,
-    default: function MockChip({ label, onDelete, disabled, "aria-label": ariaLabel, size }: any) {
-      return (
-        <span
-          data-testid={`chip-${label}`}
-          className={`MuiChip-root MuiChip-size${size === "medium" ? "Medium" : "Small"}`}
-        >
-          {label}
-          {!disabled && onDelete && (
-            <button
-              type="button"
-              aria-label={ariaLabel}
-              onClick={onDelete}
-              data-testid="delete-button"
-            >
-              ×
-            </button>
-          )}
-        </span>
-      );
-    },
-  };
-});
-
-jest.mock("@mui/material/IconButton", () => {
-  return {
-    __esModule: true,
-    default: function MockIconButton({ children, onClick, "aria-label": ariaLabel, disabled, title }: any) {
-      return (
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={onClick}
-          disabled={disabled}
-          title={title}
-          data-testid="icon-button"
-        >
-          {children}
-        </button>
-      );
-    },
-  };
-});
-
-jest.mock("@mui/icons-material/Close", () => ({
-  __esModule: true,
-  default: () => <span data-testid="close-icon">×</span>,
-}));
-
-jest.mock("@mui/icons-material/Add", () => ({
-  __esModule: true,
-  default: () => <span data-testid="add-icon">+</span>,
-}));
 
 // Helper function to render with theme
 const renderWithTheme = (component: React.ReactNode) => {
@@ -186,8 +129,8 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1", "tag2"]} onTagsChange={mockOnChange} />);
       
-      const deleteButton = screen.getByRole("button", { name: /remove tag: tag1/i });
-      await user.click(deleteButton);
+      const chip = screen.getByRole("button", { name: /remove tag: tag1/i });
+      await user.click(within(chip).getByTestId("CloseIcon"));
       
       expect(mockOnChange).toHaveBeenCalledWith(["tag2"]);
     });
@@ -345,11 +288,13 @@ describe("TagInput", () => {
       const mockOnChange = jest.fn();
       renderWithTheme(<TagInput tags={["tag1"]} onTagsChange={mockOnChange} disabled={true} />);
 
-      // When disabled, the Chip should not render delete buttons
-      const deleteButtons = screen.queryAllByRole("button", { name: /remove tag/i });
-      expect(deleteButtons.length).toBe(0);
+      // The delete affordance is inert while the chip is disabled: the icon
+      // is rendered but takes no pointer events, so a click never reaches it.
+      const chip = screen.getByRole("button", { name: /remove tag: tag1/i });
+      const deleteIcon = within(chip).getByTestId("CloseIcon");
+      fireEvent.click(deleteIcon);
 
-      // onTagsChange should not be called
+      expect(deleteIcon).toHaveStyle({ pointerEvents: "none" });
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 

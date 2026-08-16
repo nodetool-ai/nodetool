@@ -8,6 +8,7 @@
  * is why this is a provider rather than a value fixed at construction.
  */
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
@@ -45,7 +46,7 @@ class FakeWebSocket {
   binaryType = "arraybuffer";
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose:
     | ((event: { code: number; reason: string; wasClean: boolean }) => void)
     | null = null;
@@ -80,7 +81,7 @@ const latestSocket = (): FakeWebSocket =>
 describe("GlobalWebSocketManager resume_job hint", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 

@@ -10,8 +10,15 @@ import {
   type CodeSnippet,
   type SnippetCategory
 } from "./codeSnippets";
-import type { NodeMetadata, PropertyTypeMetadata } from "../stores/ApiTypes";
-import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
+import type {
+  NodeMetadata,
+  Property,
+  PropertyTypeMetadata
+} from "../stores/ApiTypes";
+import {
+  inferOutputKeysFromCode,
+  inferInputKeysFromCode
+} from "../utils/codeOutputInference";
 
 export const SNIPPET_NODE_PREFIX = "nodetool.";
 
@@ -27,26 +34,26 @@ function categoryToSlug(category: string): string {
 /** Map snippet categories to their default type */
 const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   "Boolean & Logic": "bool",
-  "Math": "float",
-  "Text": "str",
-  "Regex": "str",
-  "List": "list",
-  "Dictionary": "dict",
+  Math: "float",
+  Text: "str",
+  Regex: "str",
+  List: "list",
+  Dictionary: "dict",
   "Date & Time": "str",
-  "UUID": "str",
-  "JSON": "str",
-  "Streaming": "str",
-  "Path": "str",
-  "Files": "str",
+  UUID: "str",
+  JSON: "str",
+  Streaming: "str",
+  Path: "str",
+  Files: "str",
   // Every lib.svg element node outputs `svg_element`, so this is exact as an
   // *output* default — these connect straight into the Document / SVGToImage
   // nodes, which take `list[svg_element]`. It is wrong for inputs, which is
   // what CATEGORY_INPUT_TYPE below corrects.
-  "SVG": "svg_element",
-  "HTTP": "str",
-  "Markdown": "list",
-  "HTML": "list",
-  "Validation": "bool",
+  SVG: "svg_element",
+  HTTP: "str",
+  Markdown: "list",
+  HTML: "list",
+  Validation: "bool"
 };
 
 /**
@@ -60,11 +67,13 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
  * `svg_element`.
  */
 const CATEGORY_INPUT_TYPE: Partial<Record<SnippetCategory, string>> = {
-  "SVG": "any",
+  SVG: "any"
 };
 
 /** Value a slot of `type` starts with when the snippet declares no default. */
-function defaultValueForType(type: string): unknown {
+function defaultValueForType(
+  type: string
+): string | number | boolean | unknown[] | object {
   switch (type) {
     case "bool":
       return false;
@@ -86,12 +95,14 @@ export function snippetNodeType(snippet: CodeSnippet): string {
 }
 
 /** Look up a snippet by its virtual node_type */
-export function findSnippetByNodeType(nodeType: string): CodeSnippet | undefined {
+export function findSnippetByNodeType(
+  nodeType: string
+): CodeSnippet | undefined {
   return CODE_SNIPPETS.find((s) => snippetNodeType(s) === nodeType);
 }
 
 /** Generate metadata records for all snippets */
-export function generateSnippetMetadata(): Record<string, NodeMetadata> {
+export function generateSnippetMetadata() {
   const result: Record<string, NodeMetadata> = {};
 
   for (const snippet of CODE_SNIPPETS) {
@@ -106,20 +117,25 @@ export function generateSnippetMetadata(): Record<string, NodeMetadata> {
     const properties = inputKeys.map((name) => {
       const declared = snippet.inputs?.[name];
       const type = declared?.type ?? inputType;
-      return {
+      const property: Property = {
         name,
-        type: { type, type_args: [] as PropertyTypeMetadata[], optional: false },
+        type: {
+          type,
+          type_args: [] as PropertyTypeMetadata[],
+          optional: false
+        },
         default:
           declared && "default" in declared
             ? declared.default
             : defaultValueForType(type),
-        ...(declared?.description !== undefined
-          ? { description: declared.description }
-          : {}),
-        ...(declared?.min !== undefined ? { min: declared.min } : {}),
-        ...(declared?.max !== undefined ? { max: declared.max } : {}),
         required: false
       };
+      if (declared?.description !== undefined) {
+        property.description = declared.description;
+      }
+      if (declared?.min !== undefined) property.min = declared.min;
+      if (declared?.max !== undefined) property.max = declared.max;
+      return property;
     });
 
     const outputs = outputKeys.map((name) => ({

@@ -16,6 +16,13 @@ import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 type MessagePart = { type?: string; text?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
 
+/**
+ * What a tool hands back: a primitive, or any object — a record, an array, a
+ * byte buffer. `serializeToolResult` renders it to JSON before it reaches the
+ * model.
+ */
+export type ToolResult = string | number | boolean | null | undefined | object;
+
 export type ToolLike = {
   name: string;
   description?: string;
@@ -23,7 +30,7 @@ export type ToolLike = {
   process?: (
     context: ProcessingContext,
     params: Record<string, unknown>
-  ) => Promise<unknown>;
+  ) => Promise<ToolResult>;
   /**
    * Preferred entry point when present (agent-system tools have one): strips
    * reserved fields like `_message` and coerces params against the tool's
@@ -33,7 +40,7 @@ export type ToolLike = {
     context: ProcessingContext,
     params: Record<string, unknown>,
     options?: { toolCallId?: string }
-  ) => Promise<unknown>;
+  ) => Promise<ToolResult>;
   toProviderTool?: () => {
     name: string;
     description?: string;
@@ -93,10 +100,7 @@ export function getCategories(value: unknown): string[] {
   return value.map((v) => String(v)).filter((v) => v.trim().length > 0);
 }
 
-export function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+export function getModelConfig(props: Record<string, unknown>) {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -572,10 +576,24 @@ export function toProviderTools(tools: ToolLike[]): Array<{
   );
 }
 
-export function serializeToolResult(value: unknown): unknown {
+/**
+ * A tool result rendered as JSON: every byte buffer has become a base64 string.
+ */
+export type SerializedToolResult =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | SerializedToolResult[]
+  | { [key: string]: SerializedToolResult };
+
+export function serializeToolResult(value: unknown): SerializedToolResult {
   if (value == null) return value;
   if (Array.isArray(value)) return value.map(serializeToolResult);
-  if (typeof value !== "object") return value;
+  // SAFETY: what is left here is neither null/undefined, an array, nor an
+  // object — a primitive, which is already its own JSON rendering.
+  if (typeof value !== "object") return value as SerializedToolResult;
   if (value instanceof Uint8Array) {
     return Buffer.from(value).toString("base64");
   }

@@ -1,20 +1,19 @@
-import { components } from '../api';
+import { components } from "../api";
 import type {
   ApplicationListItem,
   ApplicationReleaseResponse,
-  ApplicationResponse,
-} from '@nodetool-ai/protocol/api-schemas/applications.js';
-import type {
-  Workflow as AppWorkflow,
-} from '../types/ApiTypes';
-import { useAuthStore } from '../stores/AuthStore';
-import { createMobileTRPCClient } from '../trpc/client';
+  ApplicationResponse
+} from "@nodetool-ai/protocol/api-schemas/applications.js";
+import type { Workflow as AppWorkflow } from "../types/ApiTypes";
+import type { JsScriptRunOutcome } from "../documents/jsScriptTypes";
+import { useAuthStore } from "../stores/AuthStore";
+import { createMobileTRPCClient } from "../trpc/client";
 import {
   getApiHost as getSharedApiHost,
   loadApiHost as loadSharedApiHost,
   saveApiHost as saveSharedApiHost,
-  setCachedApiHost,
-} from './apiHost';
+  setCachedApiHost
+} from "./apiHost";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -25,8 +24,8 @@ export class ApiError extends Error {
   readonly status: number;
   readonly body: string;
   constructor(status: number, body: string) {
-    super(`Request failed (${status})${body ? `: ${body}` : ''}`);
-    this.name = 'ApiError';
+    super(`Request failed (${status})${body ? `: ${body}` : ""}`);
+    this.name = "ApiError";
     this.status = status;
     this.body = body;
   }
@@ -48,8 +47,8 @@ async function fetchWithTimeout(
 }
 
 function isRetriableMethod(method: string | undefined): boolean {
-  const m = (method ?? 'GET').toUpperCase();
-  return m === 'GET' || m === 'HEAD';
+  const m = (method ?? "GET").toUpperCase();
+  return m === "GET" || m === "HEAD";
 }
 
 function delay(ms: number): Promise<void> {
@@ -66,7 +65,7 @@ export type JobListResponse = components["schemas"]["JobListResponse"];
 export type {
   ApplicationListItem,
   ApplicationReleaseResponse,
-  ApplicationResponse,
+  ApplicationResponse
 };
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
@@ -131,7 +130,7 @@ interface TRPCWorkflowResponse {
 export function normalizeWorkflow(workflow: TRPCWorkflowResponse): AppWorkflow {
   return {
     ...workflow,
-    description: workflow.description ?? '',
+    description: workflow.description ?? ""
   } as AppWorkflow;
 }
 
@@ -146,11 +145,26 @@ export function normalizeModels<T extends { id: string; name: string }>(
   models: ReadonlyArray<TRPCModelResponse>,
   provider: string
 ): T[] {
+  // SAFETY: the wire row carries no `type` guarantee and `provider` is a bare
+  // string, while callers pick `T`s that require a non-null `type` and a
+  // `ProviderId`. Narrowing this honestly means widening those two types.
   return models.map((model) => ({
     ...model,
     provider,
-    type: model.type ?? null,
+    type: model.type ?? null
   })) as unknown as T[];
+}
+
+/** The file descriptor React Native's `FormData` accepts in place of a Blob. */
+interface ReactNativeFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+/** React Native's `FormData.append`, which also takes {@link ReactNativeFile}. */
+interface ReactNativeFormData {
+  append(name: string, value: string | Blob | ReactNativeFile): void;
 }
 
 class ApiService {
@@ -179,9 +193,13 @@ class ApiService {
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { ...init, headers }, timeoutMs);
+        const response = await fetchWithTimeout(
+          url,
+          { ...init, headers },
+          timeoutMs
+        );
         if (!response.ok) {
-          const text = await response.text().catch(() => '');
+          const text = await response.text().catch(() => "");
           throw new ApiError(response.status, text);
         }
         return (await response.json()) as T;
@@ -202,7 +220,7 @@ class ApiService {
         await delay(Math.min(1000 * 2 ** (attempt - 1), 8000));
       }
     }
-    throw lastError instanceof Error ? lastError : new Error('Request failed');
+    throw lastError instanceof Error ? lastError : new Error("Request failed");
   }
 
   async loadApiHost(): Promise<string> {
@@ -210,7 +228,7 @@ class ApiService {
       const host = await loadSharedApiHost();
       this.updateBaseURL(host);
     } catch (error) {
-      console.error('Failed to load API host:', error);
+      console.error("Failed to load API host:", error);
     }
     return getSharedApiHost();
   }
@@ -220,7 +238,7 @@ class ApiService {
       await saveSharedApiHost(host);
       this.updateBaseURL(host);
     } catch (error) {
-      console.error('Failed to save API host:', error);
+      console.error("Failed to save API host:", error);
       throw error;
     }
   }
@@ -238,9 +256,7 @@ class ApiService {
     const result = await trpc.workflows.list.query({ limit });
     return {
       ...result,
-      workflows: result.workflows.map((workflow) =>
-        normalizeWorkflow(workflow)
-      ),
+      workflows: result.workflows.map((workflow) => normalizeWorkflow(workflow))
     };
   }
 
@@ -248,7 +264,7 @@ class ApiService {
     // `fields` defaults to "summary" server-side, which omits properties and
     // outputs. The chain editor needs both, so ask for the full records.
     return this.request<components["schemas"]["NodeMetadata"][]>(
-      '/api/nodes/metadata?fields=full'
+      "/api/nodes/metadata?fields=full"
     );
   }
 
@@ -262,7 +278,7 @@ class ApiService {
   async listApplications(projectId?: string): Promise<ApplicationListItem[]> {
     const query = projectId
       ? `?project_id=${encodeURIComponent(projectId)}`
-      : '';
+      : "";
     return this.request<ApplicationListItem[]>(`/api/applications${query}`);
   }
 
@@ -285,6 +301,54 @@ class ApiService {
     );
   }
 
+  /**
+   * Execute a saved JS script in the server's QuickJS sandbox —
+   * `POST /api/js-scripts/:id/run`, the one non-tRPC door onto a script, shared
+   * with the web run console and the CLI harness. Nothing runs on the phone,
+   * and the endpoint runs the *saved* document, so callers save first.
+   *
+   * The timeout leaves room for the document's own ceiling
+   * (`JS_SCRIPT_MAX_TIMEOUT_SECONDS`, 120s) plus the round trip; the 30s
+   * default would abort a long run the server was still honoring.
+   */
+  async runJsScript(
+    scriptId: string,
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ): Promise<JsScriptRunOutcome> {
+    try {
+      return await this.request<JsScriptRunOutcome>(
+        `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(
+            inputStreams ? { inputs, input_streams: inputStreams } : { inputs }
+          )
+        },
+        130_000
+      );
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        throw error;
+      }
+      // The endpoint answers failures as `{detail}`; `ApiError.message` is the
+      // raw body. Unwrap it so the user (and the agent) reads the reason
+      // instead of a JSON blob.
+      let detail: unknown;
+      try {
+        detail = (JSON.parse(error.message) as { detail?: unknown }).detail;
+      } catch {
+        // Not JSON — fall through to the status message below.
+      }
+      throw new Error(
+        typeof detail === "string" && detail.length > 0
+          ? detail
+          : `The script run failed (HTTP ${error.status}).`
+      );
+    }
+  }
+
   async saveWorkflow(workflow: {
     id: string;
     name: string;
@@ -293,13 +357,16 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.update.mutate({
+    const update: Parameters<typeof trpc.workflows.update.mutate>[0] = {
       id: workflow.id,
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {}),
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      update.access = workflow.access;
+    }
+    return trpc.workflows.update.mutate(update);
   }
 
   async createWorkflow(workflow: {
@@ -309,12 +376,15 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.create.mutate({
+    const create: Parameters<typeof trpc.workflows.create.mutate>[0] = {
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {}),
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      create.access = workflow.access;
+    }
+    return trpc.workflows.create.mutate(create);
   }
 
   async uploadAsset(params: {
@@ -324,16 +394,22 @@ class ApiService {
     parentId: string;
   }): Promise<Asset> {
     const formData = new FormData();
-    formData.append('file', {
+    // React Native's FormData accepts a file descriptor object that the DOM
+    // `Blob` parameter type cannot express.
+    const form: ReactNativeFormData = formData;
+    form.append("file", {
       uri: params.uri,
       name: params.name,
-      type: params.contentType,
-    } as unknown as Blob);
-    formData.append('json', JSON.stringify({
-      name: params.name,
-      content_type: params.contentType,
-      parent_id: params.parentId,
-    }));
+      type: params.contentType
+    });
+    formData.append(
+      "json",
+      JSON.stringify({
+        name: params.name,
+        content_type: params.contentType,
+        parent_id: params.parentId
+      })
+    );
 
     // Do NOT set Content-Type here: React Native derives the multipart boundary
     // from the FormData body, and setting the header manually drops it so the
@@ -342,35 +418,37 @@ class ApiService {
 
     const response = await fetchWithTimeout(
       `${getSharedApiHost()}/api/assets`,
-      { method: 'POST', headers, body: formData },
+      { method: "POST", headers, body: formData },
       UPLOAD_TIMEOUT_MS
     );
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
+      const text = await response.text().catch(() => "");
       throw new ApiError(response.status, text);
     }
     return (await response.json()) as Asset;
   }
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
-    if (!urlOrPath) {return null;}
-    // Workflow outputs and node properties reference stored assets by URN.
-    // React Native's image loader has no handler for the scheme, so map it to
-    // the HTTP endpoint (same mapping as web's resolveUri).
-    if (urlOrPath.startsWith('asset://')) {
-      const assetId = urlOrPath.slice('asset://'.length);
-      return `${getSharedApiHost()}/api/storage/${assetId}`;
+    if (!urlOrPath) {
+      return null;
+    }
+    // An `asset://` URN is an identifier, not a path: the bytes live under
+    // `<user_id>/<asset_id>.<ext>` behind a signed URL, so `/api/storage/<id>`
+    // 404s on any cloud deploy. Resolving it needs an `assets.get` lookup —
+    // callers use `useResolvedMediaUri`, and get null here.
+    if (urlOrPath.startsWith("asset://")) {
+      return null;
     }
     // Anything else already carrying a scheme (http, https, file, data,
     // content, blob) is fetchable as-is; only bare paths get the API host.
     if (/^[a-z][a-z0-9+.-]*:/i.test(urlOrPath)) {
       return urlOrPath;
     }
-    return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+    return `${getSharedApiHost()}${urlOrPath.startsWith("/") ? "" : "/"}${urlOrPath}`;
   }
 
   getWebSocketUrl(path: string): string {
-    const wsProtocol = getSharedApiHost().startsWith('https') ? 'wss:' : 'ws:';
+    const wsProtocol = getSharedApiHost().startsWith("https") ? "wss:" : "ws:";
     const url = getSharedApiHost().replace(/^https?:/, wsProtocol);
     return `${url}${path}`;
   }

@@ -75,8 +75,10 @@ interface WatchdogInternals {
   isPidAlive(): Promise<boolean>;
 }
 
+// SAFETY: every member above is one of `Watchdog`'s own `private` fields and
+// methods, named here so the tests that drive them stay type-checked.
 const internals = (wd: Watchdog): WatchdogInternals =>
-  wd as unknown as WatchdogInternals;
+  wd as Watchdog & WatchdogInternals;
 
 describe("Watchdog constructor: healthUrl parsing", () => {
   test("extracts port + host from a standard http URL", () => {

@@ -238,11 +238,14 @@ export class NodeRegistry {
       const source =
         this._registeredMetadataSourceByType.get(nodeType) ?? "typescript";
       const packageId = this._registeredPackageIdByType.get(nodeType);
-      filtered.register(nodeClass, {
-        ...(metadata ? { metadata } : {}),
-        source,
-        ...(packageId ? { packageId } : {})
-      });
+      const registration: RegisterNodeOptions = { source };
+      if (metadata) {
+        registration.metadata = metadata;
+      }
+      if (packageId) {
+        registration.packageId = packageId;
+      }
+      filtered.register(nodeClass, registration);
       const loaded = this._loadedMetadataByType.get(nodeType);
       // Stryker disable next-line ConditionalExpression: every kept node is re-registered with derived metadata above (which getMetadata returns first), so copying the loaded entry is unobservable (equivalent).
       if (loaded) {
@@ -309,12 +312,10 @@ export class NodeRegistry {
     instance.__node_name = descriptor.name ?? descriptor.type;
     // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
-      (instance as unknown as Record<string, unknown>)._dynamic_outputs =
-        descriptor.dynamic_outputs;
+      Reflect.set(instance, "_dynamic_outputs", descriptor.dynamic_outputs);
     }
     if (descriptor.dynamic_inputs) {
-      (instance as unknown as Record<string, unknown>)._dynamic_inputs =
-        descriptor.dynamic_inputs;
+      Reflect.set(instance, "_dynamic_inputs", descriptor.dynamic_inputs);
     }
     return instance.toExecutor();
   }
@@ -545,7 +546,7 @@ export function hydrateGraphNodeFlags(
       // hydration, so it cannot go stale.
       is_streaming_input:
         (cls
-          ? cls.resolveStreamingInput?.(node) ?? cls.isStreamingInput
+          ? (cls.resolveStreamingInput?.(node) ?? cls.isStreamingInput)
           : meta?.is_streaming_input) ??
         node.is_streaming_input ??
         false,
@@ -594,7 +595,7 @@ function deriveNamespace(nodeType: string): string {
 export function createGraphNodeTypeResolver(
   registry: NodeRegistry,
   options: RegistryGraphResolverOptions = {}
-): { resolveNodeType: (nodeType: string) => Promise<ResolvedNodeType | null> } {
+) {
   return {
     resolveNodeType: async (
       nodeType: string
@@ -629,14 +630,24 @@ export function createGraphNodeTypeResolver(
         // Stryker disable next-line ArrayDeclaration: a bogus seed element lacks description/min/max, so the .filter below drops it — the result is unchanged (equivalent).
         (metadata.properties ?? [])
           .filter((p) => p.description || p.min != null || p.max != null)
-          .map((p) => [
-            p.name,
-            {
-              ...(p.description ? { description: p.description } : {}),
-              ...(p.min != null ? { min: p.min } : {}),
-              ...(p.max != null ? { max: p.max } : {})
+          .map((p) => {
+            type MetaFields = {
+              description?: string;
+              min?: number;
+              max?: number;
+            };
+            const meta: MetaFields = {};
+            if (p.description) {
+              meta.description = p.description;
             }
-          ])
+            if (p.min != null) {
+              meta.min = p.min;
+            }
+            if (p.max != null) {
+              meta.max = p.max;
+            }
+            return [p.name, meta];
+          })
       );
       const outputs = Object.fromEntries(
         (metadata.outputs ?? []).map((output) => [

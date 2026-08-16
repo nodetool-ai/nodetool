@@ -80,9 +80,7 @@ export interface BespokeBodyProps {
 
 export type BespokeBodyComponent = React.ComponentType<BespokeBodyProps>;
 
-export const BESPOKE_BODY_REGISTRY: Readonly<
-  Record<string, BespokeBodyComponent>
-> = {
+export const BESPOKE_BODY_REGISTRY: Readonly<Record<string, BespokeBodyComponent> > = {
   [BLUR_NODE_TYPE]: BlurBody,
   [CANVAS_RESIZE_NODE_TYPE]: CanvasResizeBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,

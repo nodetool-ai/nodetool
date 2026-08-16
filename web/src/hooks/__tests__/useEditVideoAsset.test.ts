@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 
 import { trpcClient } from "../../__mocks__/trpcClientMock";
@@ -12,8 +13,8 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => navigateMock
 }));
 
-const createMutate = trpcClient.timeline.create.mutate as unknown as jest.Mock;
-const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock;
+const createMutate = asMock(trpcClient.timeline.create.mutate);
+const updateMutate = asMock(trpcClient.timeline.update.mutate);
 
 const videoAsset = (overrides: Partial<Asset> = {}): Asset =>
   ({

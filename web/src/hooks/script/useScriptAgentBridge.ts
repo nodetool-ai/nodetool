@@ -22,6 +22,7 @@ import {
 import { voiceLine, voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useAssembleScriptTimeline } from "./useAssembleScriptTimeline";
+import { useDeriveStoryboard } from "./useDeriveStoryboard";
 import {
   getScriptAgentHandler,
   hasScriptAgentHandler,
@@ -56,6 +57,7 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
 
 export const useScriptAgentBridge = (scriptId: string): void => {
   const { assemble } = useAssembleScriptTimeline();
+  const { derive } = useDeriveStoryboard();
 
   const handler = useMemo<ScriptAgentHandler>(() => {
     const store = () => useScriptStore.getState();
@@ -136,7 +138,8 @@ export const useScriptAgentBridge = (scriptId: string): void => {
           toLineNode(f.line, f.sectionId, f.index, script.cast)
         ),
         hasTimeline: script.timelineId !== null,
-        timelineId: script.timelineId
+        timelineId: script.timelineId,
+        storyboardId: script.storyboardId
       };
     };
 
@@ -223,6 +226,11 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         };
       },
 
+      async deriveStoryboard() {
+        requireScript();
+        return derive(scriptId);
+      },
+
       exportSubtitles(options) {
         const script = requireScript();
         const result = exportScriptSubtitles(script, options);
@@ -238,7 +246,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         };
       }
     };
-  }, [scriptId, assemble]);
+  }, [scriptId, assemble, derive]);
 
   useEffect(() => {
     if (!scriptId) return;

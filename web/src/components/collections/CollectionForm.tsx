@@ -95,13 +95,12 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
 
   const createMutation = useMutation({
     mutationFn: async (body: CollectionCreate) => {
-      return trpcClient.collections.create.mutate({
-        name: body.name,
-        embedding_model: body.embedding_model,
-        ...(body.embedding_provider
-          ? { embedding_provider: body.embedding_provider }
-          : {})
-      });
+      const input: Parameters<typeof trpcClient.collections.create.mutate>[0] =
+        { name: body.name, embedding_model: body.embedding_model };
+      if (body.embedding_provider) {
+        input.embedding_provider = body.embedding_provider;
+      }
+      return trpcClient.collections.create.mutate(input);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
@@ -149,7 +148,12 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             className="text-input"
             value={formData.name}
             onChange={(e) =>
-              setFormData((prev: { name: string; embedding_model: string }) => ({ ...prev, name: e.target.value }))
+              setFormData(
+                (prev: { name: string; embedding_model: string }) => ({
+                  ...prev,
+                  name: e.target.value
+                })
+              )
             }
             placeholder="my-collection"
             required

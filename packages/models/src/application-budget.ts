@@ -142,7 +142,8 @@ export async function setApplicationBudget(
   const existing = await getApplicationBudget(applicationId);
   const next = {
     period: fields.period ?? existing?.period ?? "month",
-    max_usd: fields.maxUsd !== undefined ? fields.maxUsd : (existing?.maxUsd ?? null),
+    max_usd:
+      fields.maxUsd !== undefined ? fields.maxUsd : (existing?.maxUsd ?? null),
     max_invocations:
       fields.maxInvocations !== undefined
         ? fields.maxInvocations
@@ -279,13 +280,23 @@ export async function settleInvocation(
   status: "completed" | "failed" | "cancelled" = "completed"
 ): Promise<InvocationRecord | null> {
   const db = getDb();
+  type PatchFields = {
+    actual_usd?: number;
+    status: typeof status;
+    settled_at: string;
+  };
+  const patch: PatchFields = {
+    status,
+    settled_at: new Date().toISOString()
+  };
+  // Left out, never set to `undefined`: Drizzle writes an explicit `undefined`
+  // as a column update, so an unpriced settle must omit the column entirely.
+  if (actualUsd != null) {
+    patch.actual_usd = actualUsd;
+  }
   const rows = await db
     .update(applicationInvocations)
-    .set({
-      ...(actualUsd == null ? {} : { actual_usd: actualUsd }),
-      status,
-      settled_at: new Date().toISOString()
-    })
+    .set(patch)
     .where(
       and(
         eq(applicationInvocations.application_id, applicationId),

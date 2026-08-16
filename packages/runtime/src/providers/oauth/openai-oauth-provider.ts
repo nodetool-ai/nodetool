@@ -16,7 +16,12 @@
 import OpenAI from "openai";
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import { OpenAIProvider } from "../openai-provider.js";
-import type { LanguageModel, Message, ProviderId, ProviderStreamItem } from "../types.js";
+import type {
+  LanguageModel,
+  Message,
+  ProviderId,
+  ProviderStreamItem
+} from "../types.js";
 import { OAuthClient } from "./oauth-client.js";
 import { LocalCallbackServer } from "./local-callback-server.js";
 import { PKCEHelper } from "./pkce-helper.js";
@@ -114,15 +119,24 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
     this.openAIClientFactory =
       options.openAIClientFactory ??
       ((accessToken) => {
-        const headers = { ...(apiHeaders ?? {}), ...(dynamicApiHeaders?.(accessToken) ?? {}) };
-        return new OpenAI({
-          apiKey: accessToken,
-          ...(apiBaseUrl ? { baseURL: apiBaseUrl } : {}),
-          ...(Object.keys(headers).length > 0 ? { defaultHeaders: headers } : {})
-        });
+        const headers = {
+          ...(apiHeaders ?? {}),
+          ...(dynamicApiHeaders?.(accessToken) ?? {})
+        };
+        const clientOptions: ConstructorParameters<typeof OpenAI>[0] = {
+          apiKey: accessToken
+        };
+        if (apiBaseUrl) {
+          clientOptions.baseURL = apiBaseUrl;
+        }
+        if (Object.keys(headers).length > 0) {
+          clientOptions.defaultHeaders = headers;
+        }
+        return new OpenAI(clientOptions);
       });
     this.clock = options.clock ?? systemClock;
-    this.oauthLogger = options.logger ?? createLogger("nodetool.runtime.oauth.provider");
+    this.oauthLogger =
+      options.logger ?? createLogger("nodetool.runtime.oauth.provider");
     this.expirySkewMs = (options.expirySkewSeconds ?? 60) * 1000;
     this.loginTimeoutMs = options.loginTimeoutMs ?? 300_000;
   }
@@ -134,7 +148,9 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
    * the browser, wait for the redirect, exchange the code, and persist tokens.
    * Resolves with the (non-secret) token metadata on success.
    */
-  async login(options: LoginOptions = {}): Promise<{ scope: string | null; expiresAt: number | null }> {
+  async login(
+    options: LoginOptions = {}
+  ): Promise<{ scope: string | null; expiresAt: number | null }> {
     const server = this.callbackServerFactory();
     try {
       const { redirectUri } = await server.listen();
@@ -191,7 +207,10 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
     const tokens = await this.currentTokens();
     try {
       if (tokens?.refreshToken) {
-        await this.oauthClient.revokeToken(tokens.refreshToken, "refresh_token");
+        await this.oauthClient.revokeToken(
+          tokens.refreshToken,
+          "refresh_token"
+        );
       }
     } finally {
       await this.tokenStore.clear();
@@ -250,7 +269,9 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
     if (!refreshToken) {
       // Nothing to refresh with — the session is effectively over.
       await this.invalidate();
-      throw new SessionExpiredError("No refresh token available; re-authentication required");
+      throw new SessionExpiredError(
+        "No refresh token available; re-authentication required"
+      );
     }
 
     let next: OAuthTokens;
@@ -258,14 +279,19 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
       next = await this.oauthClient.refreshAccessToken(refreshToken);
     } catch (err) {
       // A rejected or revoked refresh token means the local session is dead.
-      if (err instanceof InvalidRefreshTokenError || err instanceof CredentialsRevokedError) {
+      if (
+        err instanceof InvalidRefreshTokenError ||
+        err instanceof CredentialsRevokedError
+      ) {
         await this.invalidate();
       }
       throw err;
     }
 
     // Providers may omit a rotated refresh token; keep the previous one.
-    const merged: OAuthTokens = next.refreshToken ? next : { ...next, refreshToken };
+    const merged: OAuthTokens = next.refreshToken
+      ? next
+      : { ...next, refreshToken };
     await this.applyTokens(merged);
     return merged;
   }
@@ -293,7 +319,9 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
   override getClient(): OpenAI {
     const token = this.session?.accessToken;
     if (!token) {
-      throw new NotAuthenticatedError("No active OAuth session; call login() first");
+      throw new NotAuthenticatedError(
+        "No active OAuth session; call login() first"
+      );
     }
     if (!this.oauthOpenAIClient || this.cachedForToken !== token) {
       this.oauthOpenAIClient = this.openAIClientFactory(token);
@@ -307,7 +335,7 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
    * environment as if it were a durable API key. Code runners that need OpenAI
    * access should refresh through the provider instead.
    */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 
@@ -317,9 +345,14 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) return [];
-    const payload = (await response.json()) as { data?: Array<{ id?: string }> };
+    const payload = (await response.json()) as {
+      data?: Array<{ id?: string }>;
+    };
     return (payload.data ?? [])
-      .filter((row): row is { id: string } => typeof row.id === "string" && row.id.length > 0)
+      .filter(
+        (row): row is { id: string } =>
+          typeof row.id === "string" && row.id.length > 0
+      )
       .map((row) => ({ id: row.id, name: row.id, provider: "openai" }));
   }
 

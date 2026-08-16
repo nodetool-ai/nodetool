@@ -34,7 +34,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   // Persist explicit user resize dimensions
   // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
   // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
-  if (typeof node.width === "number") {
+  if (node.width != null) {
     ui_properties.width = node.width;
   } else if (
     node.style &&
@@ -47,11 +47,11 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
   if (
     node.data.collapsed &&
-    typeof node.data.expandedHeightPx === "number" &&
+    node.data.expandedHeightPx != null &&
     node.data.expandedHeightPx > strip
   ) {
     ui_properties.height = node.data.expandedHeightPx;
-  } else if (typeof node.height === "number") {
+  } else if (node.height != null) {
     ui_properties.height = node.height;
   } else if (
     node.style &&
@@ -80,14 +80,17 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   const dynamic_inputs = normalizeDynamicSlots(node.data?.dynamic_inputs);
 
-  return {
+  const graphNode: GraphNode = {
     id: node.id,
     type: node.type || "",
     data: node.data?.properties,
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},
-    ...(Object.keys(dynamic_inputs).length > 0 ? { dynamic_inputs } : {}),
     dynamic_outputs: node.data?.dynamic_outputs || {}
   };
+  if (Object.keys(dynamic_inputs).length > 0) {
+    graphNode.dynamic_inputs = dynamic_inputs;
+  }
+  return graphNode;
 }

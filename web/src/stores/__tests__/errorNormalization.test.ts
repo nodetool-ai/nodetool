@@ -1,4 +1,5 @@
 import { normalizeNodeError, hasNodeError, nodeErrorToDisplayString } from "../ErrorStore";
+import { stub } from "../../test-utils/doubles";
 
 describe("normalizeNodeError", () => {
   it("returns undefined for null", () => {
@@ -129,7 +130,7 @@ describe("nodeErrorToDisplayString", () => {
   });
 
   it("returns empty string for object with null message", () => {
-    expect(nodeErrorToDisplayString({ message: null } as unknown as null)).toBe(
+    expect(nodeErrorToDisplayString({ message: null })).toBe(
       ""
     );
   });

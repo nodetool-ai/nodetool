@@ -40,7 +40,7 @@ type TilePlacement = {
 function toImageRef(
   buf: Buffer,
   placement?: TilePlacement
-): Record<string, unknown> {
+) {
   return {
     type: "image",
     data: new Uint8Array(buf),
@@ -201,6 +201,11 @@ export class SliceImageGridLibNode extends BaseNode {
   }
 }
 
+/** Output handles CombineImageGridLibNode.process() emits. */
+type CombineImageGridLibNodeOutputs = {
+  output: { type: string; data: Uint8Array<ArrayBuffer>; mimeType: string; metadata: { grid: TilePlacement } | null };
+};
+
 export class CombineImageGridLibNode extends BaseNode {
   static readonly nodeType = "lib.grid.CombineImageGrid";
   static readonly title = "Combine Image Grid";
@@ -230,7 +235,7 @@ export class CombineImageGridLibNode extends BaseNode {
   })
   declare columns: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CombineImageGridLibNodeOutputs> {
     const sharp = await requireSharp();
     const tileInputs = (this.tiles ?? []) as unknown[];
     if (!Array.isArray(tileInputs) || tileInputs.length === 0) {

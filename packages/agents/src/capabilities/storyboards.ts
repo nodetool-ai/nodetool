@@ -20,6 +20,7 @@
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   Asset,
+  Script,
   Storyboard,
   StoryboardDocument
 } from "@nodetool-ai/models";
@@ -27,6 +28,8 @@ import type {
   Entity,
   EntityKind,
   ImageRef,
+  Screenplay,
+  ScriptLinkDocument,
   Shot,
   VideoRef
 } from "@nodetool-ai/protocol";
@@ -35,6 +38,7 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import { stampScriptStoryboardId } from "./script-link.js";
 import {
   listStoryboardsSpec,
   getStoryboardSpec,
@@ -43,6 +47,7 @@ import {
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
   editStoryboardSpec,
+  extractScriptFromStoryboardSpec,
   DEFAULT_CONCURRENCY,
   MAX_CONCURRENCY,
   SHOT_TARGETS_SCHEMA,
@@ -52,7 +57,8 @@ import {
   RENDER_CLIPS_SCHEMA,
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
-  EDIT_STORYBOARD_SCHEMA
+  EDIT_STORYBOARD_SCHEMA,
+  EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
 
 export {
@@ -65,7 +71,8 @@ export {
   RENDER_CLIPS_SCHEMA,
   REVISE_CLIP_SCHEMA,
   ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
-  EDIT_STORYBOARD_SCHEMA
+  EDIT_STORYBOARD_SCHEMA,
+  EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
@@ -109,6 +116,75 @@ async function loadBoard(
     return { error: `Storyboard ${storyboardId} was not found.` };
   }
   return { row, doc: row.toDocument() };
+}
+
+/**
+ * The board as a {@link Screenplay}, which is the shape every script-link
+ * function reads. `doc.shots` is the authoritative shot list — `doc.screenplay`
+ * carries the piece's framing (title, narration, music, and the `script_id`
+ * link) and a board directed shot-by-shot may not have one at all.
+ */
+function boardScreenplay(row: Storyboard, doc: StoryboardDocument): Screenplay {
+  return {
+    type: "screenplay",
+    id: `sp_${row.id}`,
+    title: row.name,
+    ...(doc.screenplay ?? {}),
+    shots: doc.shots
+  };
+}
+
+/** The linked script's document, or null when nothing links or it is gone. */
+async function loadLinkedScript(
+  screenplay: Screenplay,
+  userId: string | undefined
+): Promise<ScriptLinkDocument | null> {
+  const scriptId = screenplay.script_id;
+  if (!scriptId) return null;
+  const { Script } = await import("@nodetool-ai/models");
+  const row = await Script.findById(scriptId);
+  if (!row || row.user_id !== userId) return null;
+  return row.toDocument();
+}
+
+/**
+ * Link state for a board: what it links, which shots' text has drifted from
+ * the lines they project, which lines no shot covers, and what
+ * `validateScriptLink` says. Reported by `get_storyboard` so an agent can see
+ * what needs fixing without a second round trip.
+ */
+async function scriptLinkSummary(
+  screenplay: Screenplay,
+  scriptDoc: ScriptLinkDocument | null
+): Promise<{
+  linked: boolean;
+  script_id: string | null;
+  script_found: boolean;
+  drifted_shot_ids: string[];
+  orphan_line_ids: string[];
+  issues: string[];
+}> {
+  const { orphanedLineIds, shotDialogueDrifted, validateScriptLink } =
+    await import("@nodetool-ai/protocol");
+  const linked = !!screenplay.script_id;
+  const validation = validateScriptLink(screenplay, scriptDoc);
+  const linesById = new Map(
+    (scriptDoc?.sections ?? [])
+      .flatMap((section) => section.lines)
+      .map((line) => [line.id, line] as const)
+  );
+  return {
+    linked,
+    script_id: screenplay.script_id ?? null,
+    script_found: !!scriptDoc,
+    drifted_shot_ids: scriptDoc
+      ? screenplay.shots
+          .filter((shot) => shotDialogueDrifted(shot, linesById))
+          .map((shot) => shot.id)
+      : [],
+    orphan_line_ids: scriptDoc ? orphanedLineIds(screenplay, scriptDoc) : [],
+    issues: [...validation.errors, ...validation.warnings].map((i) => i.message)
+  };
 }
 
 /** Resolve a shot reference: shot id, 0-based index, or a slug. */
@@ -382,6 +458,10 @@ const getStoryboard: CapabilityExport = {
     const board = await loadBoard(run, params["storyboard_id"]);
     if (isError(board)) return board;
     const { row, doc } = board;
+    const screenplay = boardScreenplay(row, doc);
+    const scriptDoc = await loadLinkedScript(screenplay, run.context.userId);
+    const link = await scriptLinkSummary(screenplay, scriptDoc);
+    const drifted = new Set(link.drifted_shot_ids);
     return {
       id: row.id,
       name: row.name,
@@ -394,6 +474,8 @@ const getStoryboard: CapabilityExport = {
       timeline_id: row.timeline_id ?? undefined,
       narration: doc.screenplay?.narration ?? undefined,
       music_prompt: doc.screenplay?.music_prompt ?? undefined,
+      script_id: link.script_id,
+      script_link: link,
       shots: [...doc.shots]
         .sort((a, b) => a.index - b.index)
         .map((shot) => ({
@@ -406,7 +488,10 @@ const getStoryboard: CapabilityExport = {
           duration_seconds: shot.duration_seconds,
           status: shot.status,
           has_keyframe: !!shot.keyframe,
-          has_clip: !!shot.clip
+          has_clip: !!shot.clip,
+          script_line_ids: shot.script_line_ids ?? [],
+          duration_source: shot.duration_source,
+          script_drifted: drifted.has(shot.id)
         }))
     };
   }
@@ -740,7 +825,7 @@ const reviseStoryboardClip: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /** Render size for an aspect ratio, at a 1080px short edge. */
-function frameSize(aspectRatio: string): { width: number; height: number } {
+function frameSize(aspectRatio: string) {
   const [w, h] = aspectRatio.split(":").map((part) => Number(part));
   if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
     return { width: 1920, height: 1080 };
@@ -939,7 +1024,7 @@ interface BoardOpRecord {
 function applyBoardOp(
   doc: StoryboardDocument,
   { op, args }: ParsedBoardOp
-): unknown {
+) {
   switch (op) {
     case "add_shot": {
       if (typeof args["action"] !== "string" || args["action"].trim() === "") {
@@ -1087,6 +1172,173 @@ const editStoryboard: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// extract_script_from_storyboard
+// ---------------------------------------------------------------------------
+//
+// The board is the consumer of the words: it projects line text into shots and
+// reads take durations for timing. Extraction moves ownership of the words to a
+// script resource and leaves the keys behind — `script_id` on the screenplay,
+// `script_line_ids` and a text snapshot on each shot.
+
+const extractScriptFromStoryboard: CapabilityExport = {
+  spec: extractScriptFromStoryboardSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const board = await loadBoard(run, params["storyboard_id"]);
+    if (isError(board)) return board;
+    const { row, doc } = board;
+
+    const relink = params["relink"] === true;
+    const screenplay = boardScreenplay(row, doc);
+    const linkedScriptId = screenplay.script_id ?? null;
+    if (linkedScriptId && !relink) {
+      return {
+        error: `Storyboard ${row.id} already links script ${linkedScriptId}. Pass relink: true to re-project the board's words onto that script.`
+      };
+    }
+
+    const { extractScriptFromScreenplay, joinLineTexts, validateScriptLink } =
+      await import("@nodetool-ai/protocol");
+    const entities = await loadBoardEntities(context, doc);
+    const extracted = extractScriptFromScreenplay(screenplay, entities);
+    const lines = extracted.document.sections.flatMap((s) => s.lines);
+    if (lines.length === 0) {
+      return {
+        error:
+          "No shot on this board carries dialogue or narration, so there is nothing to extract. Write the words with edit_storyboard first."
+      };
+    }
+    const textByLineId = new Map(lines.map((line) => [line.id, line.text]));
+
+    /** Stamp the projection onto whatever shots the board holds right now. */
+    const project = (shots: Shot[]): Shot[] =>
+      shots.map((shot) => {
+        const lineIds = extracted.lineIdsByShotId[shot.id];
+        const next: Shot = { ...shot };
+        if (!lineIds || lineIds.length === 0) {
+          delete next.script_line_ids;
+          delete next.script_text_snapshot;
+          return next;
+        }
+        next.script_line_ids = lineIds;
+        next.script_text_snapshot = joinLineTexts(
+          lineIds.map((id) => textByLineId.get(id) ?? "")
+        );
+        return next;
+      });
+
+    // Bound as a namespace so the `Script` / `Storyboard` row types imported at
+    // the top of this file stay visible here.
+    const models = await import("@nodetool-ai/models");
+    const document = JSON.stringify(extracted.document);
+
+    // The link is stamped only after the row it names exists (design §7), so a
+    // failed second write leaves an unlinked-but-valid pair rather than a
+    // half-link no validation would accept.
+    let scriptId: string;
+    let reused = false;
+    const existing =
+      relink && linkedScriptId
+        ? await models.Script.findById(linkedScriptId)
+        : null;
+    if (existing && existing.user_id === context.userId) {
+      const saved = await models.Script.updateFieldsIfUnchanged(
+        existing.id,
+        existing.updated_at,
+        { document }
+      );
+      if (!saved) {
+        return {
+          error: `Script ${existing.id} is being modified concurrently; nothing was written. Retry the call.`
+        };
+      }
+      scriptId = saved.id;
+      reused = true;
+    } else {
+      const name =
+        typeof params["name"] === "string" && params["name"]
+          ? (params["name"] as string)
+          : `${row.name} script`;
+      const created = await models.Script.create<Script>({
+        user_id: context.userId,
+        project_id: row.project_id,
+        name,
+        document
+      });
+      scriptId = created.id;
+    }
+
+    const validation = validateScriptLink(
+      { ...screenplay, script_id: scriptId, shots: project(doc.shots) },
+      extracted.document
+    );
+    if (validation.errors.length > 0) {
+      return {
+        error: `The projected link is invalid, so the board was left unlinked: ${validation.errors
+          .map((issue) => issue.message)
+          .join(" ")}`,
+        script_id: scriptId
+      };
+    }
+
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const current = await models.Storyboard.findById(row.id);
+      if (!current) return { error: `Storyboard ${row.id} was not found.` };
+      const currentDoc = current.toDocument();
+      const shots = project(currentDoc.shots);
+      const saved = await models.Storyboard.updateFieldsIfUnchanged(
+        current.id,
+        current.updated_at,
+        {
+          document: JSON.stringify({
+            ...currentDoc,
+            shots,
+            screenplay: {
+              ...boardScreenplay(current, currentDoc),
+              script_id: scriptId
+            }
+          })
+        }
+      );
+      if (!saved) continue;
+
+      // Last write, and only now that the board carries the forward link: the
+      // back-pointer never names a board that failed to link (design §7).
+      const stamped = await stampScriptStoryboardId(
+        scriptId,
+        current.id,
+        context.userId
+      );
+      if (isError(stamped)) {
+        return {
+          error: `Storyboard ${current.id} links script ${scriptId}, but the script's back-pointer could not be written: ${stamped.error} The board is valid; the script reads as unlinked until this is retried with relink: true.`,
+          storyboard_id: current.id,
+          script_id: scriptId
+        };
+      }
+
+      return {
+        ok: true,
+        storyboard_id: current.id,
+        script_id: scriptId,
+        relinked: reused,
+        line_count: lines.length,
+        cast_count: extracted.document.cast.length,
+        linked_shot_ids: shots
+          .filter((shot) => (shot.script_line_ids ?? []).length > 0)
+          .map((shot) => shot.id),
+        warnings: validation.warnings.map((issue) => issue.message)
+      };
+    }
+
+    return {
+      error: `Storyboard ${row.id} is being modified concurrently, so script ${scriptId} was written but the board could not be linked to it. Retry with relink: true.`,
+      script_id: scriptId
+    };
+  }
+};
+
 /** Every storyboard capability, in the order the tool file declared them. */
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   listStoryboards,
@@ -1095,7 +1347,8 @@ export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   renderStoryboardClips,
   reviseStoryboardClip,
   assembleStoryboardTimeline,
-  editStoryboard
+  editStoryboard,
+  extractScriptFromStoryboard
 ];
 
 export const module: CapabilityModule = {
@@ -1110,5 +1363,6 @@ export {
   renderStoryboardClips,
   reviseStoryboardClip,
   assembleStoryboardTimeline,
-  editStoryboard
+  editStoryboard,
+  extractScriptFromStoryboard
 };

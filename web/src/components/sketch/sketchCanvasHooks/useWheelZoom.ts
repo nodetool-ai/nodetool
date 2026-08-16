@@ -54,11 +54,7 @@ const IS_MAC =
 export function partitionWheelViewportMotion(
   event: WheelSrc,
   isMac: boolean = IS_MAC
-): {
-  zoomDelta: number;
-  panX: number;
-  panY: number;
-} {
+) {
   // Pinch / Ctrl+wheel / Cmd+wheel → zoom.
   if (event.ctrlKey || event.metaKey) {
     return { zoomDelta: event.deltaY, panX: 0, panY: 0 };

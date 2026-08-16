@@ -1,4 +1,5 @@
 import type { RuntimePackage, RuntimeProgress } from "../types";
+import * as config from "../../../config";
 
 jest.mock("electron", () => ({
   app: {
@@ -11,10 +12,11 @@ jest.mock("../../../logger", () => ({
   logMessage: jest.fn()
 }));
 
-jest.mock("../../../config", () => ({
-  getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
-  getOptionalNodeModulesPath: jest.fn().mockReturnValue("/mock/optional/node_modules")
-}));
+// The real config module; only the two path lookups are stubbed.
+jest.spyOn(config, "getCondaEnvPath").mockReturnValue("/mock/conda");
+jest
+  .spyOn(config, "getOptionalNodeModulesPath")
+  .mockReturnValue("/mock/optional/node_modules");
 
 const mockPkg: RuntimePackage = {
   id: "test-runtime",

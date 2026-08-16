@@ -87,7 +87,7 @@ export class CohereProvider extends BaseProvider {
     }
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { COHERE_API_KEY: this.apiKey };
   }
 

@@ -17,6 +17,11 @@ const TJS_TYPE = "tjs.summarization";
 
 type SummaryResult = { summary_text: string };
 
+/** Output handles SummarizationNode.process() emits. */
+type SummarizationNodeOutputs = {
+  summary: string;
+};
+
 export class SummarizationNode extends BaseNode {
   static readonly nodeType = "transformers.Summarization";
   static readonly inlineFields = ["text"];
@@ -93,19 +98,21 @@ export class SummarizationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SummarizationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<SummaryResult | SummaryResult[]>
+    >({
       task: "summarization",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<SummaryResult | SummaryResult[]>;
+    });
 
     const raw = await pipeline(text, {
       max_length: asNumber(this.max_length, 130),

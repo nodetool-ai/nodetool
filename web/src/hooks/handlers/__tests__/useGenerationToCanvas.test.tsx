@@ -24,7 +24,7 @@ jest.mock("react", () => {
 
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,
-  default: (selector: (s: { getMetadata: typeof getMetadata }) => unknown) =>
+  default: <T,>(selector: (s: { getMetadata: typeof getMetadata }) => T) =>
     selector({ getMetadata })
 }));
 

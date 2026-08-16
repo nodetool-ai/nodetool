@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
 
 const extractDims = (
   value: unknown
-): { width?: number; height?: number; uri?: string; data?: unknown } => {
+) => {
   if (!value || typeof value !== "object") {
     return {};
   }

@@ -16,8 +16,9 @@
 
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import useStatusStore from "../../stores/StatusStore";
+import useStatusStore, { type StatusValue } from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
+import type { NodeError } from "../../stores/ErrorStore";
 import useResultsStore, {
   type TerminalBuffer
 } from "../../stores/ResultsStore";
@@ -32,15 +33,7 @@ import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../s
 
 // ── Type re-exports (keep consumers from reaching into individual stores) ────
 
-/** Status value as stored by StatusStore. */
-type StatusValue = string | Record<string, unknown> | null | undefined;
 
-interface ErrorObject {
-  message?: string;
-  [key: string]: unknown;
-}
-/** Error value as stored by ErrorStore. */
-type NodeError = Error | string | null | ErrorObject;
 
 /**
  * Reactive hook that returns the current status for the given workflow+node,

@@ -22,7 +22,11 @@ import {
   type ProcessingContext,
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
-import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import {
+  runInSandbox,
+  type RunSandboxOptions,
+  type SandboxClock
+} from "../js-sandbox.js";
 import { resolveRefBytes } from "../sandbox-media-ref.js";
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import type { CapabilityRun } from "../capabilities/types.js";
@@ -507,11 +511,12 @@ export function createChatCodeActSession(
               : typeof opts?.name === "string"
                 ? opts.name
                 : undefined;
-          const saved = await persistOutput(context, bytes, {
+          const persistOptions: Parameters<typeof persistOutput>[2] = {
             namePrefix: type,
-            mime,
-            ...(filename === undefined ? {} : { outputFile: filename })
-          });
+            mime
+          };
+          if (filename !== undefined) persistOptions.outputFile = filename;
+          const saved = await persistOutput(context, bytes, persistOptions);
           if (!saved.asset_uri && !saved.path) {
             throw new Error(
               `nodetool.media.to${
@@ -523,7 +528,7 @@ export function createChatCodeActSession(
         }
       : undefined;
 
-    const outcome = await runInSandbox({
+    const sandboxOptions: RunSandboxOptions = {
       code: `${prelude}\n${code}`,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
       signal: options.signal,
@@ -531,8 +536,6 @@ export function createChatCodeActSession(
       limits: { maxFetchCalls: 0 },
       modules: mount.modules,
       capabilities: platform.mount,
-      ...(resolveMediaRef === undefined ? {} : { resolveMediaRef }),
-      ...(promoteMedia === undefined ? {} : { promoteMedia }),
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,
@@ -540,7 +543,13 @@ export function createChatCodeActSession(
         __searchTools: searchToolsBridge,
         state
       }
-    });
+    };
+    if (resolveMediaRef !== undefined) {
+      sandboxOptions.resolveMediaRef = resolveMediaRef;
+    }
+    if (promoteMedia !== undefined) sandboxOptions.promoteMedia = promoteMedia;
+
+    const outcome = await runInSandbox(sandboxOptions);
 
     const observation: ActionObservation = {
       ok: outcome.success,
@@ -564,10 +573,7 @@ export function createChatCodeActSession(
       description:
         "Execute a JavaScript action in the sandbox. The observation " +
         "(return value, logs, error) is the tool result.",
-      inputSchema: EXECUTE_CODE_INPUT_SCHEMA as unknown as Record<
-        string,
-        unknown
-      >
+      inputSchema: EXECUTE_CODE_INPUT_SCHEMA
     },
     systemPromptSection,
     executeAction,

@@ -125,11 +125,14 @@ function buildModelMap(): Map<string, ModelInfo> {
       ATLASCLOUD_MANIFEST_PATH,
       id
     )) {
-      fields.set(f.name, {
-        type: f.type,
-        ...(f.enumValues ? { values: f.enumValues } : {}),
-        ...(f.default !== undefined ? { default: f.default } : {})
-      });
+      const field: FieldInfo = { type: f.type };
+      if (f.enumValues) {
+        field.values = f.enumValues;
+      }
+      if (f.default !== undefined) {
+        field.default = f.default;
+      }
+      fields.set(f.name, field);
     }
     const meta = getManifestNodeMeta(
       ATLASCLOUD_MANIFEST_PKG,
@@ -151,7 +154,7 @@ function buildModelMap(): Map<string, ModelInfo> {
 // runtime free of node-pack code dependencies — mirrors topaz-provider).
 // ---------------------------------------------------------------------------
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -177,6 +180,26 @@ async function fetchWithRetry(
   return last as Response;
 }
 
+type RunJobOptions = { timeoutSeconds?: number | null; signal?: AbortSignal };
+
+/**
+ * The `runJob` options a generation call carries, with each one the caller left
+ * unset omitted.
+ */
+function runJobOptions(params: {
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
+}): RunJobOptions {
+  const opts: RunJobOptions = {};
+  if (params.timeoutSeconds) {
+    opts.timeoutSeconds = params.timeoutSeconds;
+  }
+  if (params.signal) {
+    opts.signal = params.signal;
+  }
+  return opts;
+}
+
 async function atlasSubmit(
   apiKey: string,
   modality: "image" | "video",
@@ -186,12 +209,15 @@ async function atlasSubmit(
 ): Promise<string> {
   const path = modality === "image" ? SUBMIT_IMAGE : SUBMIT_VIDEO;
   // Submit POST is not idempotent — never retry.
-  const res = await fetch(`${ATLAS_BASE}${path}`, {
+  const init: RequestInit = {
     method: "POST",
     headers: authHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, ...input }),
-    ...(signal ? { signal } : {})
-  });
+    body: JSON.stringify({ model: modelId, ...input })
+  };
+  if (signal) {
+    init.signal = signal;
+  }
+  const res = await fetch(`${ATLAS_BASE}${path}`, init);
   const text = await res.text();
   let data: { data?: { id?: string }; message?: string } | null;
   try {
@@ -240,10 +266,11 @@ async function atlasPoll(
 ): Promise<AtlasPollResult> {
   const url = `${ATLAS_BASE}/api/v1/model/prediction/${predictionId}`;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetchWithRetry(url, {
-      headers: authHeaders(apiKey),
-      ...(signal ? { signal } : {})
-    });
+    const init: RequestInit = { headers: authHeaders(apiKey) };
+    if (signal) {
+      init.signal = signal;
+    }
+    const res = await fetchWithRetry(url, init);
     const text = await res.text();
     let data: { data?: AtlasPollResult; message?: string } | null;
     try {
@@ -325,7 +352,7 @@ function imageDataUri(bytes: Uint8Array): string {
 // ---------------------------------------------------------------------------
 
 /** Coerce a value to the manifest-declared scalar type, or null when it can't. */
-function coerceToType(value: unknown, type: string): unknown {
+function coerceToType<T>(value: T, type: string): T | number | boolean | null {
   switch (type) {
     case "int": {
       const n = typeof value === "number" ? value : Number(value);
@@ -349,15 +376,17 @@ function coerceToType(value: unknown, type: string): unknown {
  * 422); string enums must match exactly. Returns null when the field can't
  * take the value at all.
  */
-function resolveForField(field: FieldInfo, value: unknown): unknown {
+function resolveForField<T>(
+  field: FieldInfo,
+  value: T
+): T | string | number | boolean | null {
   const coerced = coerceToType(value, field.type);
   if (coerced === null || coerced === undefined || coerced === "") return null;
   const allowed = field.values;
   if (!allowed || allowed.length === 0) return coerced;
-  if (allowed.some((v) => String(v) === String(coerced))) {
-    // Return the declared member so numeric enums keep their JSON type.
-    return allowed.find((v) => String(v) === String(coerced));
-  }
+  // Return the declared member so numeric enums keep their JSON type.
+  const member = allowed.find((v) => String(v) === String(coerced));
+  if (member !== undefined) return member;
   if (typeof coerced === "number") {
     // Negative members are sentinels ("-1" = let the model decide), never a
     // sensible approximation of a number the caller actually asked for.
@@ -383,7 +412,7 @@ function resolveForField(field: FieldInfo, value: unknown): unknown {
 function setIfDeclared(
   input: Record<string, unknown>,
   info: ModelInfo,
-  value: unknown,
+  value: string | number | null | undefined,
   ...candidates: string[]
 ): void {
   if (value === undefined || value === null || value === "") return;
@@ -454,7 +483,7 @@ function renderSize(field: FieldInfo, w: number, h: number): string | null {
 function mapImageParams(
   info: ModelInfo,
   params: TextToImageParams | ImageToImageParams
-): Record<string, unknown> {
+) {
   const input: Record<string, unknown> = { prompt: params.prompt };
   setIfDeclared(input, info, params.aspectRatio, "aspect_ratio", "ratio");
   // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`); the membership
@@ -484,7 +513,7 @@ function mapImageParams(
 function mapVideoParams(
   info: ModelInfo,
   params: TextToVideoParams | ImageToVideoParams
-): Record<string, unknown> {
+) {
   const input: Record<string, unknown> = {};
   if (params.prompt) input.prompt = params.prompt;
   setIfDeclared(input, info, params.aspectRatio, "ratio", "aspect_ratio");
@@ -539,7 +568,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     this.atlasFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { ATLASCLOUD_API_KEY: this.apiKey };
   }
 
@@ -640,7 +669,10 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return this.modelMap;
   }
 
-  private resolveModel(modelId: string, expected: "image" | "video"): ModelInfo {
+  private resolveModel(
+    modelId: string,
+    expected: "image" | "video"
+  ): ModelInfo {
     const info = this.getModelMap().get(modelId);
     if (!info) {
       throw new Error(`Unknown AtlasCloud model: ${modelId}`);
@@ -696,9 +728,13 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "image");
     const input = mapImageParams(info, params);
-    return this.runJob("image", params.model.id, info, input, {
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "image",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async imageToImage(
@@ -727,19 +763,26 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${params.model.id} does not declare an input image field`
       );
     }
-    return this.runJob("image", params.model.id, info, input, {
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "image",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    return this.runJob("video", params.model.id, info, input, {
-      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "video",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async imageToVideo(
@@ -769,9 +812,12 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${params.model.id} does not accept an input image (try the Seedance image-to-video variant)`
       );
     }
-    return this.runJob("video", params.model.id, info, input, {
-      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "video",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 }

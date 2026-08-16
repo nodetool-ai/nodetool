@@ -8,6 +8,7 @@
  * accessor, not the legacy across-runs result resolver).
  */
 import React from "react";
+import { asMock, stub } from "../../../../test-utils/doubles";
 import { render, waitFor } from "@testing-library/react";
 
 // ─── Heavy children / chrome → inert stubs ──────────────────────────────────
@@ -97,12 +98,13 @@ jest.mock("../../../../hooks/useDelayedVisibility", () => ({
   useDelayedVisibility: () => false
 }));
 jest.mock("../../../../stores/NodeFocusStore", () => ({
-  useNodeFocusStore: (selector: (s: unknown) => unknown) =>
+  useNodeFocusStore: <T,>(selector: (s: { focusedNodeId: string | null }) => T) =>
     selector({ focusedNodeId: null })
 }));
 jest.mock("../../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) =>
-    selector({ settings: { imageEditorOpenMode: "modal" } })
+  useSettingsStore: <T,>(
+    selector: (s: { settings: { imageEditorOpenMode: string } }) => T
+  ) => selector({ settings: { imageEditorOpenMode: "modal" } })
 }));
 
 // ─── Sketch module: real-enough doc helpers, spy loader, inert render utils ──
@@ -150,7 +152,7 @@ import { useNodes } from "../../../../contexts/NodeContext";
 import useResultsStore from "../../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../../stores/WorkflowAssetStore";
 
-const mockUseNodes = useNodes as unknown as jest.Mock;
+const mockUseNodes = asMock(useNodes);
 
 const WORKFLOW_ID = "wf-1";
 const SOURCE_ID = "src-node";
@@ -183,7 +185,19 @@ describe("SketchNode layer inputs via generations", () => {
       Promise.resolve({ data: "layer-data", naturalWidth: 10, naturalHeight: 10 })
     );
 
-    mockUseNodes.mockImplementation((selector: (s: unknown) => unknown) =>
+    mockUseNodes.mockImplementation(
+      <T,>(
+        selector: (s: {
+          edges: (typeof edge)[];
+          updateNodeProperties: jest.Mock;
+          updateNodeData: jest.Mock;
+          updateEdgeHandle: jest.Mock;
+          updateEdge: jest.Mock;
+          deleteEdges: jest.Mock;
+          findNode: (id: string) => typeof sourceNode | undefined;
+          getSelectedNodeCount: () => number;
+        }) => T
+      ) =>
       selector({
         edges: [edge],
         updateNodeProperties: jest.fn(),
@@ -197,7 +211,7 @@ describe("SketchNode layer inputs via generations", () => {
     );
   });
 
-  const props = {
+  const props = stub<React.ComponentProps<typeof SketchNode>>({
     id: "sketch-1",
     type: "nodetool.constant.Sketch",
     selected: false,
@@ -209,7 +223,7 @@ describe("SketchNode layer inputs via generations", () => {
       dynamic_outputs: {},
       workflow_id: WORKFLOW_ID
     }
-  } as unknown as React.ComponentProps<typeof SketchNode>;
+  });
 
   it("loads the source's current-generation image into the exposed input layer", async () => {
     seedSourceGeneration("http://x/from-generation.png");

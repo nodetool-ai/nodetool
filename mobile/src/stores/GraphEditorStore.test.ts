@@ -7,13 +7,15 @@ import { useGraphEditorStore } from './GraphEditorStore';
 import { apiService } from '../services/api';
 import type { NodeMetadata } from '../types/ApiTypes';
 
-jest.mock('../services/api', () => ({
-  apiService: {
-    getNodeMetadata: jest.fn(),
-  },
-}));
+// `apiService` is a real singleton instance, so the one network method the
+// store calls is stubbed on it directly — the rest of the module is real.
+const mockApi = {
+  getNodeMetadata: jest.spyOn(apiService, 'getNodeMetadata'),
+};
 
-const mockApi = apiService as jest.Mocked<typeof apiService>;
+afterAll(() => {
+  mockApi.getNodeMetadata.mockRestore();
+});
 
 /** Minimal NodeMetadata fixture; only fields the store reads are populated. */
 function meta(
@@ -26,12 +28,28 @@ function meta(
     description: '',
     namespace: 'test',
     layout: 'default',
-    properties: [{ name: 'text', type: { type: 'str' }, default: 'hi' }],
-    outputs: [{ name: 'output', type: { type: 'str' } }],
-    is_dynamic: false,
+    properties: [
+      {
+        name: 'text',
+        type: { type: 'str', optional: false, type_args: [] },
+        default: 'hi',
+        required: false,
+      },
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: { type: 'str', optional: false, type_args: [] },
+        stream: false,
+      },
+    ],
+    recommended_models: [],
+    required_settings: [],
     supports_dynamic_inputs: false,
+    supports_dynamic_outputs: false,
+    is_streaming_output: false,
     ...overrides,
-  } as unknown as NodeMetadata;
+  };
 }
 
 function resetStore() {

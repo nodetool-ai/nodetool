@@ -241,7 +241,7 @@ export function composeShotPrompt(shot: Shot, screenplay: Screenplay): string {
 export function injectEntities(
   text: string,
   entities: unknown[]
-): { prompt: string; reference_images: ImageRef[] } {
+) {
   const base = str(text);
   const lower = base.toLowerCase();
   const empty = base.trim().length === 0;
@@ -305,7 +305,7 @@ function clampShotCount(value: unknown): number {
   return Math.max(1, Math.min(20, n));
 }
 
-function buildScreenplaySchema(shotCount: number): Record<string, unknown> {
+function buildScreenplaySchema(shotCount: number) {
   return {
     type: "object",
     additionalProperties: false,
@@ -368,6 +368,14 @@ function buildDirectorPrompt(
 // ---------------------------------------------------------------------------
 // Nodes
 // ---------------------------------------------------------------------------
+
+/** Output handles DirectorNode.process() emits. */
+type DirectorNodeOutputs = {
+  screenplay: Screenplay;
+  narration: string;
+  music_prompt: string;
+  title: string;
+};
 
 export class DirectorNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.Director";
@@ -439,7 +447,7 @@ export class DirectorNode extends BaseNode {
   })
   declare max_tokens: number;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<DirectorNodeOutputs> {
     const brief = asText(this.brief ?? "");
     const style = asText(this.style ?? "");
     const shotCount = clampShotCount(this.shot_count);
@@ -491,6 +499,19 @@ export class DirectorNode extends BaseNode {
   }
 }
 
+/** Output handles ScreenplayShotsNode.genProcess() emits. */
+type ScreenplayShotsNodeStreamOutputs = {
+  shot: Shot | null;
+  shot_prompt: string | null;
+  index: number | null;
+  output?: string[];
+};
+
+/** Output handles ScreenplayShotsNode.process() emits. */
+type ScreenplayShotsNodeOutputs = {
+  output: string[];
+};
+
 export class ScreenplayShotsNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.ScreenplayShots";
   static readonly title = "Screenplay Shots";
@@ -510,12 +531,12 @@ export class ScreenplayShotsNode extends BaseNode {
   static readonly alwaysEmitOutputUpdates = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     shot: { kind: "iteration", source: "__execution__", group: "items" },
     shot_prompt: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     output: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "dict",
@@ -525,7 +546,7 @@ export class ScreenplayShotsNode extends BaseNode {
   })
   declare screenplay: Record<string, unknown>;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ScreenplayShotsNodeOutputs> {
     const prompts: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const prompt = (chunk as { shot_prompt?: unknown }).shot_prompt;
@@ -536,7 +557,7 @@ export class ScreenplayShotsNode extends BaseNode {
 
   async *genProcess(
     _context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ScreenplayShotsNodeStreamOutputs> {
     const screenplay = toScreenplay(this.screenplay);
     const prompts: string[] = [];
     for (const shot of screenplay.shots) {

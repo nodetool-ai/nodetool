@@ -53,7 +53,12 @@ const isAudioChunkValue = (value: unknown): boolean => {
 /** Live WorkflowRunner per job, for in-flight property updates. */
 const runners = new Map<
   string,
-  { updateNodeProperties: (nodeId: string, props: Record<string, unknown>) => boolean }
+  {
+    updateNodeProperties: (
+      nodeId: string,
+      props: Record<string, unknown>
+    ) => boolean;
+  }
 >();
 
 // Build the registry once for the worker's lifetime; announce readiness (and
@@ -155,25 +160,24 @@ async function runJob(msg: RunMessage): Promise<void> {
   };
 
   try {
-    const gen = runner.runBrowserWorkflow({
-      graph: normalizeGraphForKernel(graph) as unknown as Parameters<
-        LoadedBrowserRunner["runBrowserWorkflow"]
-      >[0]["graph"],
-      registry: runner.registry,
-      params,
-      jobId,
-      workflowId,
-      signal: controller.signal,
-      ...(sandboxModules == null
-        ? {}
-        : {
-            sandboxModuleCatalog:
-              createSeededSandboxModuleCatalog(sandboxModules)
-          }),
-      onRunner: (workflowRunner) => {
-        runners.set(jobId, workflowRunner);
-      }
-    });
+    const runOptions: Parameters<LoadedBrowserRunner["runBrowserWorkflow"]>[0] =
+      {
+        graph: normalizeGraphForKernel(graph),
+        registry: runner.registry,
+        params,
+        jobId,
+        workflowId,
+        signal: controller.signal,
+        onRunner: (workflowRunner) => {
+          runners.set(jobId, workflowRunner);
+        }
+      };
+    if (sandboxModules != null) {
+      runOptions.sandboxModuleCatalog =
+        createSeededSandboxModuleCatalog(sandboxModules);
+    }
+
+    const gen = runner.runBrowserWorkflow(runOptions);
 
     while (true) {
       const next = await gen.next();

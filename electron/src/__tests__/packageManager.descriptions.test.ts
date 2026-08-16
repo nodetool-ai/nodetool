@@ -1,4 +1,9 @@
 import { getPackageDescription, needsTorchPlatformDetection } from '../packageManager';
+import * as config from '../config';
+import * as events from '../events';
+import * as utils from '../utils';
+import * as torchPlatformCache from '../torchPlatformCache';
+import * as torchruntime from '../torchruntime';
 
 jest.mock('electron', () => ({
   app: {
@@ -7,37 +12,25 @@ jest.mock('electron', () => ({
   },
 }));
 
-jest.mock('../config', () => ({
-  getProcessEnv: () => ({}),
-  getPythonPath: () => '/usr/bin/python',
-  getCondaEnvPath: () => '/test/conda',
-}));
+// Every collaborator below is the real module; only the methods that would
+// reach the filesystem, a Python install, or the GPU probe are stubbed on it.
+jest.spyOn(config, 'getProcessEnv').mockReturnValue({});
+jest.spyOn(config, 'getPythonPath').mockReturnValue('/usr/bin/python');
+jest.spyOn(config, 'getCondaEnvPath').mockReturnValue('/test/conda');
 
-jest.mock('../logger', () => ({
-  logMessage: jest.fn(),
-}));
+jest.spyOn(events, 'emitServerLog').mockImplementation(() => {});
+jest.spyOn(events, 'emitBootMessage').mockImplementation(() => {});
 
-jest.mock('../events', () => ({
-  emitServerLog: jest.fn(),
-  emitBootMessage: jest.fn(),
-}));
+jest.spyOn(utils, 'fileExists').mockResolvedValue(true);
 
-jest.mock('../utils', () => ({
-  fileExists: jest.fn().mockResolvedValue(true),
-}));
+jest.spyOn(torchPlatformCache, 'getSavedTorchPlatform').mockReturnValue(null);
+jest.spyOn(torchPlatformCache, 'getTorchIndexUrl').mockReturnValue(null);
+jest.spyOn(torchPlatformCache, 'saveTorchPlatform').mockImplementation(() => {});
 
-jest.mock('../torchPlatformCache', () => ({
-  getSavedTorchPlatform: jest.fn().mockReturnValue(null),
-  getTorchIndexUrl: jest.fn().mockReturnValue(null),
-  saveTorchPlatform: jest.fn(),
-}));
-
-jest.mock('../torchruntime', () => ({
-  detectTorchPlatform: jest.fn().mockResolvedValue({
-    platform: 'cpu',
-    indexUrl: 'https://download.pytorch.org/whl/cpu',
-  }),
-}));
+jest.spyOn(torchruntime, 'detectTorchPlatform').mockResolvedValue({
+  platform: 'cpu',
+  indexUrl: 'https://download.pytorch.org/whl/cpu',
+});
 
 describe('package descriptions', () => {
   test('overrides nunchaku description with user-focused guidance', () => {

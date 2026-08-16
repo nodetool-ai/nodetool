@@ -1,12 +1,8 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useDynamicProperty } from "../useDynamicProperty";
-import { useNodes } from "../../../contexts/NodeContext";
 import type { TypeMetadata } from "../../../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
-
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
 
 const mockUpdateNodeData = jest.fn();
 const mockUpdateEdgeHandle = jest.fn();
@@ -27,18 +23,18 @@ const mockFindNode = jest.fn(() => ({
   data: { dynamic_inputs: nodeSlots }
 }));
 
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
+    updateNodeData: mockUpdateNodeData,
+    updateEdgeHandle: mockUpdateEdgeHandle,
+    findNode: mockFindNode
+  })
+);
+
 describe("useDynamicProperty", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     nodeSlots = undefined;
-    (useNodes as jest.Mock).mockImplementation(
-      (selector: (s: unknown) => unknown) =>
-        selector({
-          updateNodeData: mockUpdateNodeData,
-          updateEdgeHandle: mockUpdateEdgeHandle,
-          findNode: mockFindNode
-        })
-    );
   });
 
   it("exposes the slot mutation callbacks", () => {

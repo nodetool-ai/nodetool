@@ -264,24 +264,33 @@ function deriveStaticRequirements(
     collectIds(providerIds, details?.provider_ids);
     collectIds(modelTypes, existing?.details?.model_types);
     collectIds(modelTypes, details?.model_types);
-    const mergedDetails = {
-      ...(nodeIds.size > 0 ? { node_ids: [...nodeIds].sort() } : {}),
-      ...(providerIds.size > 0
-        ? { provider_ids: [...providerIds].sort() }
-        : {}),
-      ...(modelTypes.size > 0 ? { model_types: [...modelTypes].sort() } : {})
+    type MergedDetailsFields = {
+      node_ids?: string[];
+      provider_ids?: string[];
+      model_types?: string[];
     };
-    requirements.set(key, {
+    const mergedDetails: MergedDetailsFields = {};
+    if (nodeIds.size > 0) {
+      mergedDetails.node_ids = [...nodeIds].sort();
+    }
+    if (providerIds.size > 0) {
+      mergedDetails.provider_ids = [...providerIds].sort();
+    }
+    if (modelTypes.size > 0) {
+      mergedDetails.model_types = [...modelTypes].sort();
+    }
+    const requirement: SdkV1Requirement = {
       kind,
       id: normalizedId,
       name: normalizedId,
       status: "unknown",
       blocking: true,
-      message: null,
-      ...(Object.keys(mergedDetails).length > 0
-        ? { details: mergedDetails }
-        : {})
-    });
+      message: null
+    };
+    if (Object.keys(mergedDetails).length > 0) {
+      requirement.details = mergedDetails;
+    }
+    requirements.set(key, requirement);
   };
 
   for (const node of options.graph.nodes ?? []) {
@@ -320,13 +329,19 @@ function deriveStaticRequirements(
         add("provider", value.provider, { node_ids: [nodeId] });
       }
       if (typeof value.id === "string") {
-        add("model", value.id, {
+        type DetailsFields = {
+          node_ids: string[];
+          model_types: (string | undefined)[];
+          provider_ids?: string[];
+        };
+        const details: DetailsFields = {
           node_ids: [nodeId],
-          model_types: [property.type?.type],
-          ...(typeof value.provider === "string"
-            ? { provider_ids: [value.provider] }
-            : {})
-        });
+          model_types: [property.type?.type]
+        };
+        if (typeof value.provider === "string") {
+          details.provider_ids = [value.provider];
+        }
+        add("model", value.id, details);
       }
     }
   }
@@ -522,19 +537,18 @@ export async function buildSdkV1AvailabilityPreflight(
     staticSummary.requirements.map(async (requirement) => {
       try {
         const availability = await options.resolveRequirement(requirement);
-        return {
+        const resolved: SdkV1Requirement = {
           ...requirement,
           status: availability.status,
-          message: availability.message ?? null,
-          ...(availability.details === undefined
-            ? {}
-            : {
-                details: {
-                  ...requirement.details,
-                  ...availability.details
-                }
-              })
+          message: availability.message ?? null
         };
+        if (availability.details !== undefined) {
+          resolved.details = {
+            ...requirement.details,
+            ...availability.details
+          };
+        }
+        return resolved;
       } catch {
         return {
           ...requirement,

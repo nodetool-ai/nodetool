@@ -1,13 +1,14 @@
 import { extractWorkflowIO, workflowInputForScriptPort } from "../workflowIO";
-import { Workflow } from "../../../stores/ApiTypes";
+import { PartialMembers, stub } from "../../../test-utils/doubles";
+import { Node, Workflow } from "../../../stores/ApiTypes";
 
-const makeWorkflow = (nodes: unknown[]): Workflow =>
-  ({
+const makeWorkflow = (nodes: PartialMembers<Node>[]): Workflow =>
+  stub<Workflow>({
     id: "wf1",
     name: "Test",
     access: "private",
     graph: { nodes, edges: [] }
-  }) as unknown as Workflow;
+  });
 
 describe("extractWorkflowIO", () => {
   it("returns empty IO for a workflow with no graph", () => {

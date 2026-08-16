@@ -1,4 +1,5 @@
 import { findMissingModelNodes } from "../findMissingModelNodes";
+import { stub } from "../../test-utils/doubles";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -26,14 +27,14 @@ const metadataFor =
   (nodeType: string): NodeMetadata | undefined => {
     const entry = map[nodeType];
     if (!entry) return undefined;
-    return {
+    return stub<NodeMetadata>({
       title: entry.title ?? nodeType,
       properties: entry.properties.map((p) => ({
         name: p.name,
         type: { type: p.type } as never,
         required: true
       }))
-    } as unknown as NodeMetadata;
+    });
   };
 
 const llmMeta = metadataFor({

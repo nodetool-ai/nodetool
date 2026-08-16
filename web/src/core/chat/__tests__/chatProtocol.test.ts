@@ -1,6 +1,8 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
+import { stub } from "../../../test-utils/doubles";
 import type { WebSocketMessage } from "../../../lib/websocket/GlobalWebSocketManager";
 import type { GlobalChatState } from "../../../stores/GlobalChatStore";
+import type { Message } from "../../../stores/ApiTypes";
 
 /**
  * Each case stands up only the slice of GlobalChatState its reducer reads; the
@@ -71,13 +73,13 @@ describe("chatProtocol", () => {
       });
 
       await handleChatWebSocketMessage(
-        {
+        stub<WebSocketMessage>({
           type: "message",
           role: "assistant",
           thread_id: "thread-1",
           content: null,
           tool_calls: [{ id: "c1", name: "ui_sketch_get_state", args: {} }]
-        } as unknown as WebSocketMessage,
+        }),
         set,
         () => capturedState
       );
@@ -95,12 +97,12 @@ describe("chatProtocol", () => {
       });
 
       await handleChatWebSocketMessage(
-        {
+        stub<WebSocketMessage>({
           type: "message",
           role: "assistant",
           thread_id: "thread-1",
           content: "All done."
-        } as unknown as WebSocketMessage,
+        }),
         set,
         () => capturedState
       );
@@ -227,7 +229,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi there!", done: true }),
         set,
         get
       );
@@ -259,7 +261,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi there!", done: true }),
         set,
         get
       );
@@ -293,7 +295,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Second answer", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Second answer", done: true }),
         set,
         get
       );
@@ -325,7 +327,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -357,7 +359,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -389,7 +391,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -404,11 +406,11 @@ describe("chatProtocol", () => {
   it("ignores non-critical messages while stopping", async () => {
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "stopping"
-      }) as unknown as GlobalChatState;
+      });
 
-    await handleChatWebSocketMessage({ type: "chunk", content: "hi" } as unknown as WebSocketMessage, set, get);
+    await handleChatWebSocketMessage(stub<WebSocketMessage>({ type: "chunk", content: "hi" }), set, get);
 
     expect(set).not.toHaveBeenCalled();
   });
@@ -452,12 +454,12 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "chunk",
         thread_id: "thread-stream",
         content: "Hi from stream",
         done: true
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -532,12 +534,12 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         role: "assistant",
         thread_id: "thread-1",
         content: "Hi there!"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -601,7 +603,7 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         id: "server-msg-1",
         role: "assistant",
@@ -609,7 +611,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Let me search for that.",
         tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -684,7 +686,7 @@ describe("chatProtocol", () => {
 
     // Server finalizes tool round 2 with "Searching" — must replace local-stream-200-bbb
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         id: "server-msg-2",
         role: "assistant",
@@ -692,7 +694,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Searching",
         tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -713,29 +715,236 @@ describe("chatProtocol", () => {
     expect(messages[3].id).not.toMatch(/^local-stream-/);
   });
 
+  // The two cases above pin the happy path of the streaming-placeholder
+  // reconciliation. These pin the rest of it: which candidates count as a
+  // placeholder, and when a placeholder is left alone.
+  describe("streaming placeholder reconciliation", () => {
+    const stateWith = (messages: unknown[]): GlobalChatState =>
+      partialChatState({
+        status: "streaming",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": {
+            id: "thread-1",
+            title: "T",
+            updated_at: new Date().toISOString()
+          }
+        },
+        messageCache: { "thread-1": messages },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+
+    /** Feed one finalized assistant tool_call message and return the cache. */
+    const finalize = async (
+      messages: unknown[],
+      content: string | null
+    ): Promise<Message[]> => {
+      let capturedState = stateWith(messages);
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(typeof updater === "function" ? updater(capturedState) : updater)
+        };
+      });
+      await handleChatWebSocketMessage(
+        {
+          type: "message",
+          id: "server-msg",
+          role: "assistant",
+          thread_id: "thread-1",
+          created_at: new Date().toISOString(),
+          content,
+          tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
+        } as unknown as WebSocketMessage,
+        set,
+        () => capturedState
+      );
+      return capturedState.messageCache["thread-1"];
+    };
+
+    it("appends when the thread holds no assistant message", async () => {
+      const messages = await finalize(
+        [{ role: "user", type: "message", content: "Search" }],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("scans past a server-authored assistant message to the placeholder behind it", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Searching"
+          },
+          {
+            id: "server-earlier",
+            role: "assistant",
+            type: "message",
+            created_at: new Date().toISOString(),
+            content: "Earlier finalized reply."
+          }
+        ],
+        "Searching"
+      );
+      // Three, not four: the placeholder at index 1 was replaced in place.
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+      expect(messages[2]).toMatchObject({ id: "server-earlier" });
+    });
+
+    it("treats an assistant message with no id and no created_at as a placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          { role: "assistant", type: "message", content: "Searching" }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("replaces the placeholder when the finalized text extends the streamed prefix", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Search"
+          }
+        ],
+        "Searching the web."
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({
+        id: "server-msg",
+        content: "Searching the web."
+      });
+    });
+
+    it("appends when the finalized text does not extend the placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Let me think about it."
+          }
+        ],
+        "Searching the web."
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+      expect(messages[2]).toMatchObject({ id: "server-msg" });
+    });
+
+    // A tool-call-only message carries no text, so there is nothing to match a
+    // placeholder against — the streamed text has to survive beside it.
+    it("appends a tool-call-only message rather than replacing the placeholder", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Let me search."
+          }
+        ],
+        null
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+    });
+
+    it("appends when the placeholder holds no text", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: ""
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({ id: "local-stream-100-aaa" });
+    });
+
+    it("matches placeholder text held as content blocks", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "message",
+            content: [
+              { type: "text", text: "Search" },
+              { type: "text", text: "ing" }
+            ]
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(2);
+      expect(messages[1]).toMatchObject({ id: "server-msg" });
+    });
+
+    it("ignores an assistant entry that is not a plain message", async () => {
+      const messages = await finalize(
+        [
+          { role: "user", type: "message", content: "Search" },
+          {
+            id: "local-stream-100-aaa",
+            role: "assistant",
+            type: "tool_call",
+            content: "Searching"
+          }
+        ],
+        "Searching"
+      );
+      expect(messages).toHaveLength(3);
+      expect(messages[2]).toMatchObject({ id: "server-msg" });
+    });
+  });
+
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
 
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "connected",
-        wsManager: { send: jest.fn() },
         currentThreadId: null,
         threads: {},
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as unknown as GlobalChatState;
+      });
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "tool_call",
         tool_call_id: "tc1",
         name: "unknown_tool",
         args: {},
         thread_id: "thread-1"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -754,9 +963,8 @@ describe("chatProtocol", () => {
 
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "connected",
-        wsManager: { send: jest.fn() },
         workflowId: null,
         threadWorkflowId: {},
         currentThreadId: null,
@@ -764,16 +972,16 @@ describe("chatProtocol", () => {
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as unknown as GlobalChatState;
+      });
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "tool_call",
         tool_call_id: "tc_fail",
         name: "ui_fail",
         args: {},
         thread_id: "thread-1"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -829,7 +1037,7 @@ describe("chatProtocol media predictions", () => {
       updateThreadTitle: jest.fn()
     });
 
-  const run = async (state: GlobalChatState, msg: Record<string, unknown>) => {
+  const run = async (state: GlobalChatState, msg: WebSocketMessage) => {
     let captured = state;
     const set = jest.fn((updater) => {
       captured = {
@@ -838,7 +1046,7 @@ describe("chatProtocol media predictions", () => {
       };
     });
     await handleChatWebSocketMessage(
-      msg as unknown as WebSocketMessage,
+      msg,
       set,
       () => captured
     );

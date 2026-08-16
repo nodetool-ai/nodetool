@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -23,14 +24,14 @@ jest.mock("../../../stores/SecretsStore");
 jest.mock("../../../stores/NotificationStore");
 
 const mockUseProviderOnboardingStore =
-  useProviderOnboardingStore as unknown as jest.Mock;
+  asMock(useProviderOnboardingStore);
 const mockUseSecrets = useSecrets as jest.MockedFunction<typeof useSecrets>;
 const mockNavigateTo = navigateTo as jest.MockedFunction<typeof navigateTo>;
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 const dismiss = jest.fn();
 
@@ -45,14 +46,14 @@ const storeState = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseProviderOnboardingStore.mockImplementation(
-    (selector: (s: unknown) => unknown) => selector(storeState)
+    <T,>(selector: (s: typeof storeState) => T) => selector(storeState)
   );
-  mockUseSecrets.mockReturnValue({
+  mockUseSecrets.mockReturnValue(stub<ReturnType<typeof useSecrets>>({
     secrets: [],
     isLoading: false,
     isSuccess: true,
     isApiKeySet: () => false
-  } as unknown as ReturnType<typeof useSecrets>);
+  }));
   mockUseOAuthConnection.mockReturnValue({
     label: "",
     isConnected: false,
@@ -61,11 +62,13 @@ beforeEach(() => {
     connect: jest.fn(),
     disconnect: jest.fn()
   });
-  mockUseSecretsStore.mockImplementation((selector: (s: unknown) => unknown) =>
-    selector({ updateSecret: jest.fn() })
+  mockUseSecretsStore.mockImplementation(
+    <T,>(selector: (s: { updateSecret: jest.Mock }) => T) =>
+      selector({ updateSecret: jest.fn() })
   );
   mockUseNotificationStore.mockImplementation(
-    (selector: (s: unknown) => unknown) => selector({ addNotification: jest.fn() })
+    <T,>(selector: (s: { addNotification: jest.Mock }) => T) =>
+      selector({ addNotification: jest.fn() })
   );
 });
 

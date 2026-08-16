@@ -43,7 +43,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useTheme } from "../../hooks/useTheme";
 import type { ThemeColors } from "../../utils/theme";
-import { apiService } from "../../services/api";
+import {
+  useResolvedMediaUri,
+  useResolvedMediaUris,
+} from "../../hooks/useResolvedMediaUri";
 import { documentBackend } from "../../documents/backends";
 import {
   SketchRenderer,
@@ -91,7 +94,12 @@ const numOr = (value: unknown, fallback: number): number =>
 const asItems = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : value == null ? [] : [value];
 
-const mediaUri = (value: unknown): string | null => {
+/**
+ * The locator behind a bound media value. An `asset://` reference resolves only
+ * through the asset's own `get_url`, so the hooks below do the resolving; this
+ * just digs the locator out of whatever shape the binding produced.
+ */
+const mediaLocator = (value: unknown): string | null => {
   const raw =
     typeof value === "string"
       ? value
@@ -101,10 +109,16 @@ const mediaUri = (value: unknown): string | null => {
               (value as Record<string, unknown>).url
           )
         : "";
-  if (!raw || raw.startsWith("memory://")) {return null;}
-  if (raw.startsWith("data:")) {return raw;}
-  return apiService.resolveUrl(raw);
+  return raw && !raw.startsWith("memory://") ? raw : null;
 };
+
+const useMediaUri = (value: unknown): string | null =>
+  useResolvedMediaUri(mediaLocator(value));
+
+const useMediaUris = (values: unknown[]): string[] =>
+  useResolvedMediaUris(values.map(mediaLocator)).filter(
+    (uri): uri is string => uri !== null
+  );
 
 // ── Display ─────────────────────────────────────────────────────────────────
 
@@ -152,9 +166,7 @@ const ImageWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const height = numOr(widget.props.height, 240);
-  const uris = asItems(value)
-    .map(mediaUri)
-    .filter((uri): uri is string => uri !== null);
+  const uris = useMediaUris(asItems(value));
   if (uris.length === 0) {
     return (
       <Placeholder
@@ -586,11 +598,11 @@ const ListWidget: React.FC<WidgetProps> = (widget) => {
 const KeyValueWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
-  const entries = isRow(value)
+  const entries: Array<[string, unknown]> = isRow(value)
     ? Object.entries(value)
     : value == null || value === ""
       ? []
-      : ([["value", value]] as [string, unknown][]);
+      : [["value", value]];
   if (entries.length === 0) {
     const placeholder = str(widget.props.placeholder);
     return placeholder ? (
@@ -640,7 +652,7 @@ const StatWidget: React.FC<WidgetProps> = (widget) => {
 const DownloadWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
-  const uri = mediaUri(asItems(value)[0]);
+  const uri = useMediaUri(asItems(value)[0]);
   if (!uri) {
     const placeholder = str(widget.props.placeholder);
     return placeholder ? (
@@ -723,7 +735,7 @@ const Model3DWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const item = asItems(value)[0];
-  const uri = mediaUri(item);
+  const uri = useMediaUri(item);
   if (item == null) {
     return (
       <Placeholder
@@ -787,7 +799,7 @@ const PDFWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const item = asItems(value)[0];
-  const uri = mediaUri(item);
+  const uri = useMediaUri(item);
   if (item == null) {
     return (
       <Placeholder
@@ -815,9 +827,7 @@ const GalleryWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
   const tileSize = numOr(widget.props.tileSize, 120);
-  const uris = asItems(value)
-    .map(mediaUri)
-    .filter((uri): uri is string => uri !== null);
+  const uris = useMediaUris(asItems(value));
 
   if (uris.length === 0) {
     return (
@@ -1261,13 +1271,13 @@ const ColorInputWidget: React.FC<WidgetProps> = (widget) => {
 };
 
 /** Wording for the picker button — `model_3d` reads badly as a noun. */
-const MEDIA_LABEL: Record<MediaKind, string> = {
+const MEDIA_LABEL = {
   image: "image",
   audio: "audio",
   video: "video",
   document: "document",
   model_3d: "3D model",
-};
+} satisfies Record<MediaKind, string>;
 
 const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
   kind,
@@ -1279,7 +1289,7 @@ const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
     bindingMode: "write",
   });
   const [picking, setPicking] = useState(false);
-  const uri = mediaUri(value);
+  const uri = useMediaUri(value);
 
   const pick = useCallback(async () => {
     setPicking(true);
@@ -1449,6 +1459,46 @@ const listKindOf = (value: unknown): ListKind =>
     ? value
     : "image";
 
+/** One row of a `MediaListInput` — its own component so the media locator it
+ * shows can be resolved with a hook rather than inside the list's map. */
+const MediaListRow: React.FC<{
+  item: unknown;
+  index: number;
+  kind: ListKind;
+  colors: ThemeColors;
+  disabled: boolean;
+  onRemove: () => void;
+}> = ({ item, index, kind, colors, disabled, onRemove }) => {
+  const uri = useMediaUri(item);
+  return (
+    <View style={styles.row}>
+      {kind === "image" && uri ? (
+        <Image
+          accessibilityRole="image"
+          source={{ uri }}
+          style={[styles.tile, { borderColor: colors.border }]}
+          resizeMode="cover"
+        />
+      ) : (
+        <Text
+          numberOfLines={1}
+          style={[styles.hint, styles.flex, { color: colors.textTertiary }]}
+        >
+          {uri ?? `${kind} ${index + 1}`}
+        </Text>
+      )}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${kind} ${index + 1}`}
+        disabled={disabled}
+        onPress={onRemove}
+      >
+        <Text style={{ color: colors.error }}>Remove</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 /**
  * Picks several values and writes them as an array — the one control behind the
  * four list input nodes. A text list is edited as lines rather than as rows: a
@@ -1511,39 +1561,20 @@ const MediaListInputWidget: React.FC<WidgetProps> = (widget) => {
   return (
     <View style={styles.field}>
       <FieldLabel text={label} colors={colors} />
-      {items.map((item, index) => {
-        const uri = mediaUri(item);
-        return (
-          <View key={index} style={styles.row}>
-            {kind === "image" && uri ? (
-              <Image
-                accessibilityRole="image"
-                source={{ uri }}
-                style={[styles.tile, { borderColor: colors.border }]}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text
-                numberOfLines={1}
-                style={[styles.hint, styles.flex, { color: colors.textTertiary }]}
-              >
-                {uri ?? `${kind} ${index + 1}`}
-              </Text>
-            )}
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${kind} ${index + 1}`}
-              disabled={widget.disabled}
-              onPress={() => {
-                setValue(items.filter((_, at) => at !== index));
-                emit("change");
-              }}
-            >
-              <Text style={{ color: colors.error }}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
+      {items.map((item, index) => (
+        <MediaListRow
+          key={index}
+          item={item}
+          index={index}
+          kind={kind}
+          colors={colors}
+          disabled={Boolean(widget.disabled)}
+          onRemove={() => {
+            setValue(items.filter((_, at) => at !== index));
+            emit("change");
+          }}
+        />
+      ))}
       <TouchableOpacity
         accessibilityRole="button"
         disabled={widget.disabled || picking}
@@ -1617,7 +1648,13 @@ const readGrid = (value: unknown): Grid => {
   return { frame: false, columns: [], rows: [] };
 };
 
-const writeGrid = (value: unknown, grid: Grid): unknown => {
+/**
+ * What the DataFrame widget writes back: the `DataframeRef` it read with its
+ * rows replaced, or a plain array of rows.
+ */
+type DataframeValue = { columns?: unknown; data: unknown[][] } | unknown[];
+
+const writeGrid = (value: unknown, grid: Grid): DataframeValue => {
   if (grid.frame && isRow(value)) {return { ...value, data: grid.rows };}
   if (grid.columns.length === 1 && grid.columns[0] === "value") {
     return grid.rows.map((row) => row[0]);
@@ -1628,7 +1665,7 @@ const writeGrid = (value: unknown, grid: Grid): unknown => {
 };
 
 /** A cell keeps its type: a numeric column stays numeric while it parses. */
-const coerceCell = (previous: unknown, text: string): unknown => {
+const coerceCell = (previous: unknown, text: string): string | number => {
   if (typeof previous !== "number") {return text;}
   const parsed = Number(text);
   return text !== "" && !Number.isNaN(parsed) ? parsed : text;

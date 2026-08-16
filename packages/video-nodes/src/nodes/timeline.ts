@@ -17,7 +17,7 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { TimelineRef } from "@nodetool-ai/protocol";
+import type { TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
@@ -546,6 +546,11 @@ async function mixAudioInto(opts: {
   return outPath;
 }
 
+/** Output handles RenderTimelineNode.process() emits. */
+type RenderTimelineNodeOutputs = {
+  output: VideoRef;
+};
+
 export class RenderTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.RenderTimeline";
   static readonly title = "Render Timeline";
@@ -576,7 +581,7 @@ export class RenderTimelineNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<RenderTimelineNodeOutputs> {
     const seq = await loadTimelineSequence(this.timeline, context);
     const ctx = context as ProcessingContext;
     const width = seq.width > 0 ? seq.width : 1920;
@@ -672,6 +677,12 @@ export class RenderTimelineNode extends BaseNode {
   }
 }
 
+/** Output handles TimelineTranscriptNode.process() emits. */
+type TimelineTranscriptNodeOutputs = {
+  text: string;
+  lines: string[];
+};
+
 export class TimelineTranscriptNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.Transcript";
   static readonly title = "Timeline Transcript";
@@ -694,12 +705,17 @@ export class TimelineTranscriptNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<TimelineTranscriptNodeOutputs> {
     const seq = await loadTimelineSequence(this.timeline, context);
     const lines = (seq.transcript ?? []).map((line) => line.text);
     return { text: lines.join("\n"), lines };
   }
 }
+
+/** Output handles AddClipsToTimelineNode.process() emits. */
+type AddClipsToTimelineNodeOutputs = {
+  output: { type: string; id: string };
+};
 
 export class AddClipsToTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.AddClips";
@@ -750,7 +766,7 @@ export class AddClipsToTimelineNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AddClipsToTimelineNodeOutputs> {
     if (!context) {
       throw new Error("AddClipsToTimeline requires a processing context");
     }

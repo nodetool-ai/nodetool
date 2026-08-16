@@ -95,7 +95,9 @@ function uniqueWorkflowFile(
   index: number,
   used: Set<string>
 ): string {
-  const base = sanitizeFileBase(workflow.id || workflow.name || `workflow-${index + 1}`);
+  const base = sanitizeFileBase(
+    workflow.id || workflow.name || `workflow-${index + 1}`
+  );
   let candidate = `${base}.json`;
   let n = 2;
   while (used.has(candidate)) {
@@ -127,18 +129,23 @@ export async function packWorkflowsBundle(
   const usedWorkflowFiles = new Set<string>();
   const skipped = new Set<string>();
 
+  const collectOptions: Parameters<typeof collectWorkflowAssets>[1] = {
+    fetchAssetBytes,
+    fileNameFor: ({ source, bytes, refType }) =>
+      `${sha256Hex(bytes)}${mediaExtension(source, refType)}`,
+    uriFor: (fileName) => `${WORKFLOW_BUNDLE_SCHEME}${fileName}`
+  };
+  if (options.includeRemote) {
+    collectOptions.includeRemote = true;
+  }
+
   let index = 0;
   for (const workflow of options.workflows) {
-    const { graph, assets, skipped: workflowSkipped } = await collectWorkflowAssets(
-      workflow.graph,
-      {
-        fetchAssetBytes,
-        ...(options.includeRemote ? { includeRemote: true } : {}),
-        fileNameFor: ({ source, bytes, refType }) =>
-          `${sha256Hex(bytes)}${mediaExtension(source, refType)}`,
-        uriFor: (fileName) => `${WORKFLOW_BUNDLE_SCHEME}${fileName}`
-      }
-    );
+    const {
+      graph,
+      assets,
+      skipped: workflowSkipped
+    } = await collectWorkflowAssets(workflow.graph, collectOptions);
 
     for (const s of workflowSkipped) {
       skipped.add(s);
@@ -161,21 +168,24 @@ export async function packWorkflowsBundle(
     usedWorkflowFiles.add(wfFile);
     const bundled: BundledWorkflow = { ...workflow, graph };
     files[`workflows/${wfFile}`] = strToU8(JSON.stringify(bundled, null, 2));
-    manifestWorkflows.push({ file: `workflows/${wfFile}`, name: workflow.name });
+    manifestWorkflows.push({
+      file: `workflows/${wfFile}`,
+      name: workflow.name
+    });
     index += 1;
   }
 
   const manifest: WorkflowBundleManifest = {
     format: WORKFLOW_BUNDLE_FORMAT,
     version: WORKFLOW_BUNDLE_VERSION,
-    ...(options.nodetoolVersion
-      ? { nodetool_version: options.nodetoolVersion }
-      : {}),
     created_at: new Date().toISOString(),
     workflows: manifestWorkflows,
     assets: manifestAssets,
     thumbnail: options.thumbnail ? "thumbnail.jpg" : null
   };
+  if (options.nodetoolVersion) {
+    manifest.nodetool_version = options.nodetoolVersion;
+  }
 
   files["manifest.json"] = strToU8(JSON.stringify(manifest, null, 2));
   if (options.thumbnail) {
@@ -236,7 +246,9 @@ export function unpackWorkflowBundle(zipBytes: Uint8Array): UnpackedBundle {
   if (!manifestEntry) {
     throw new Error("Invalid bundle: missing manifest.json");
   }
-  const manifest = JSON.parse(strFromU8(manifestEntry)) as WorkflowBundleManifest;
+  const manifest = JSON.parse(
+    strFromU8(manifestEntry)
+  ) as WorkflowBundleManifest;
   if (manifest.format !== WORKFLOW_BUNDLE_FORMAT) {
     throw new Error(`Unrecognized bundle format: ${String(manifest.format)}`);
   }
@@ -324,7 +336,9 @@ export interface ImportBundleOptions {
    * (e.g. `asset://<id>`). `assetId`, when provided, is written back onto the
    * ref so it round-trips through the asset system.
    */
-  storeAsset: (input: StoreAssetInput) => Promise<{ uri: string; assetId?: string }>;
+  storeAsset: (
+    input: StoreAssetInput
+  ) => Promise<{ uri: string; assetId?: string }>;
   /** Throw if any asset fails its manifest checksum. Default: false (warn). */
   verifyChecksums?: boolean;
 }
@@ -402,10 +416,10 @@ export async function importWorkflowBundle(
         contentType: mimeForFile(fileName),
         refType: ref.type
       });
-      stored = {
-        uri: result.uri,
-        ...(result.assetId ? { assetId: result.assetId } : {})
-      };
+      stored = { uri: result.uri };
+      if (result.assetId) {
+        stored.assetId = result.assetId;
+      }
       resolvedByFile.set(fileName, stored);
       imported.push({ file: fileName, uri: stored.uri });
     }

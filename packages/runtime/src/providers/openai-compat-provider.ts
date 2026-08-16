@@ -69,14 +69,16 @@ export class OpenAICompatProvider extends OpenAIProvider {
         client: options.client,
         clientFactory:
           options.clientFactory ??
-          ((key) =>
-            new OpenAI({
+          ((key) => {
+            const clientOptions: ConstructorParameters<typeof OpenAI>[0] = {
               apiKey: key,
-              baseURL: config.baseURL,
-              ...(config.defaultHeaders
-                ? { defaultHeaders: config.defaultHeaders }
-                : {})
-            })),
+              baseURL: config.baseURL
+            };
+            if (config.defaultHeaders) {
+              clientOptions.defaultHeaders = config.defaultHeaders;
+            }
+            return new OpenAI(clientOptions);
+          }),
         fetchFn: options.fetchFn
       }
     );

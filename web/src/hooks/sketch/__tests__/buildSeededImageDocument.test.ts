@@ -1,10 +1,11 @@
 import { buildSeededImageDocument } from "../buildSeededImageDocument";
+import { stub } from "../../../test-utils/doubles";
 import type { sketch } from "@nodetool-ai/protocol/api-schemas";
 
 const SERIALIZED_PREFIX = "ntlayer:";
 
 function makeBaseDoc(): sketch.ImageDocumentData {
-  return {
+  return stub<sketch.ImageDocumentData>({
     sketch: {
       version: 3,
       canvas: { width: 10, height: 20, backgroundColor: "#ffffff" },
@@ -28,7 +29,7 @@ function makeBaseDoc(): sketch.ImageDocumentData {
       maskLayerId: null
     },
     layerBindings: []
-  } as unknown as sketch.ImageDocumentData;
+  });
 }
 
 describe("buildSeededImageDocument", () => {

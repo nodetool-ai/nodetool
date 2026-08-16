@@ -32,14 +32,14 @@ export function readExpandedBodyHeightPx(node: Node<NodeData>): number {
   const styleH = parseCssPixelHeight(node.style?.height);
   const styleOk = styleH != null && styleH > strip;
   const heightNum =
-    typeof node.height === "number" && node.height > strip ? node.height : undefined;
+    node.height != null && node.height > strip ? node.height : undefined;
   const fromData =
-    typeof node.data.expandedHeightPx === "number" && node.data.expandedHeightPx > strip
+    node.data.expandedHeightPx != null && node.data.expandedHeightPx > strip
       ? node.data.expandedHeightPx
       : undefined;
   const measuredRaw = node.measured?.height;
   const measuredOk =
-    typeof measuredRaw === "number" && measuredRaw > strip
+    measuredRaw != null && measuredRaw > strip
       ? Math.round(measuredRaw)
       : undefined;
 
@@ -60,10 +60,10 @@ export function readExpandedBodyHeightPx(node: Node<NodeData>): number {
 
 function readNodeWidthPx(node: Node<NodeData>): number | undefined {
   const mw = node.measured?.width;
-  if (typeof mw === "number" && mw > 0) {
+  if (mw != null && mw > 0) {
     return mw;
   }
-  if (typeof node.width === "number" && node.width > 0) {
+  if (node.width != null && node.width > 0) {
     return node.width;
   }
   const sw = node.style?.width;
@@ -99,8 +99,8 @@ export function getCollapseTogglePatches(
     const expandedH = readExpandedBodyHeightPx(node);
     const expandedWidthPx =
       w ??
-      (typeof node.measured?.width === "number" ? node.measured.width : undefined) ??
-      (typeof node.width === "number" ? node.width : undefined) ??
+      node.measured?.width ??
+      node.width ??
       DEFAULT_NODE_WIDTH;
     // A5: when collapsing, drop the width constraint so the strip shrinks
     // to match its header content. React Flow needs *some* width to position
@@ -129,13 +129,13 @@ export function getCollapseTogglePatches(
   // A5: when expanding, restore the width the node had before collapse if we
   // saved it. Otherwise fall back to the current (possibly auto-measured) w.
   const savedWidth =
-    typeof node.data.expandedWidthPx === "number" && node.data.expandedWidthPx > 0
+    node.data.expandedWidthPx != null && node.data.expandedWidthPx > 0
       ? node.data.expandedWidthPx
       : w;
   const widthPatch = savedWidth != null ? { width: savedWidth } : {};
 
   const saved = node.data.expandedHeightPx;
-  if (typeof saved === "number" && saved > strip) {
+  if (saved != null && saved > strip) {
     return {
       data: {
         collapsed: false,

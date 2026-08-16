@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { keyframes } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
+import type { SystemStyleObject } from "@mui/system";
 import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -37,6 +39,7 @@ import {
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
+import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 
@@ -97,10 +100,7 @@ interface WidgetCommon {
   disabled?: boolean;
 }
 
-const useBinding = (
-  props: WidgetCommon,
-  mode: WidgetBindingMode
-) =>
+const useBinding = (props: WidgetCommon, mode: WidgetBindingMode) =>
   useWidgetRuntime({
     id: props.id,
     bindingMode: mode,
@@ -135,44 +135,58 @@ const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
   </FlexColumn>
 );
 
+/**
+ * A bound media value carries an `asset://` locator, which fetches nowhere —
+ * every media leaf resolves its source to the asset's own `get_url` first.
+ * Anything else (data:, blob:, http:, package://) passes through unchanged.
+ */
 const ImageItem: React.FC<{ src: string; fit?: string; height: number }> = ({
   src,
   fit,
   height
-}) => (
-  <Box
-    component="img"
-    src={src}
-    alt=""
-    sx={{
-      width: "100%",
-      height,
-      objectFit: fit === "cover" ? "cover" : "contain",
-      borderRadius: BORDER_RADIUS.md
-    }}
-  />
-);
+}) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box
+      component="img"
+      src={resolved}
+      alt=""
+      sx={{
+        width: "100%",
+        height,
+        objectFit: fit === "cover" ? "cover" : "contain",
+        borderRadius: BORDER_RADIUS.md
+      }}
+    />
+  );
+};
 
-const AudioItem: React.FC<{ src: string }> = ({ src }) => (
-  <Box component="audio" controls src={src} sx={{ width: "100%" }} />
-);
+const AudioItem: React.FC<{ src: string }> = ({ src }) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box component="audio" controls src={resolved} sx={{ width: "100%" }} />
+  );
+};
 
 const VideoItem: React.FC<{ src: string; height: number }> = ({
   src,
   height
-}) => (
-  <Box
-    component="video"
-    controls
-    src={src}
-    sx={{
-      width: "100%",
-      maxHeight: height,
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: "common.black"
-    }}
-  />
-);
+}) => {
+  const resolved = useResolvedMediaUri(src);
+  return (
+    <Box
+      component="video"
+      controls
+      src={resolved}
+      sx={{
+        width: "100%",
+        maxHeight: height,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: "common.black"
+      }}
+    />
+  );
+};
 
 export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
   ({ text }) => (
@@ -209,13 +223,15 @@ const JsonBlock: React.FC<{ value: unknown }> = ({ value }) => {
   );
 };
 
-export const HeadingWidget: React.FC<WidgetCommon & {
-  text?: string;
-  level?: string;
-}> = (props) => {
+export const HeadingWidget: React.FC<
+  WidgetCommon & {
+    text?: string;
+    level?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const text =
-    props.formattedValue ?? (value != null ? str(value) : props.text ?? "");
+    props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
   const level = props.level ?? "1";
   const size = level === "1" ? "giant" : "big";
   return (
@@ -230,7 +246,7 @@ export const TextWidget: React.FC<WidgetCommon & { text?: string }> = (
 ) => {
   const { value } = useBinding(props, "read");
   const text =
-    props.formattedValue ?? (value != null ? str(value) : props.text ?? "");
+    props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
   return (
     <Text size="normal" sx={{ whiteSpace: "pre-wrap" }}>
       {text}
@@ -259,11 +275,13 @@ export const MarkdownWidget: React.FC<WidgetCommon & { text?: string }> = (
   );
 };
 
-export const ImageWidget: React.FC<WidgetCommon & {
-  fit?: string;
-  height?: number;
-  placeholder?: string;
-}> = (props) => {
+export const ImageWidget: React.FC<
+  WidgetCommon & {
+    fit?: string;
+    height?: number;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
@@ -275,7 +293,10 @@ export const ImageWidget: React.FC<WidgetCommon & {
   const height = numOr(props.height, 240);
   if (sources.length === 0) {
     return (
-      <MediaPlaceholder height={height} text={props.placeholder ?? "No image"} />
+      <MediaPlaceholder
+        height={height}
+        text={props.placeholder ?? "No image"}
+      />
     );
   }
   if (sources.length === 1) {
@@ -310,7 +331,10 @@ export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   );
   if (sources.length === 0) {
     return (
-      <MediaPlaceholder height={56} text={props.placeholder ?? "No audio yet"} />
+      <MediaPlaceholder
+        height={56}
+        text={props.placeholder ?? "No audio yet"}
+      />
     );
   }
   return (
@@ -322,10 +346,12 @@ export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   );
 };
 
-export const VideoWidget: React.FC<WidgetCommon & {
-  height?: number;
-  placeholder?: string;
-}> = (props) => {
+export const VideoWidget: React.FC<
+  WidgetCommon & {
+    height?: number;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
@@ -337,7 +363,10 @@ export const VideoWidget: React.FC<WidgetCommon & {
   const height = numOr(props.height, 320);
   if (sources.length === 0) {
     return (
-      <MediaPlaceholder height={height} text={props.placeholder ?? "No video yet"} />
+      <MediaPlaceholder
+        height={height}
+        text={props.placeholder ?? "No video yet"}
+      />
     );
   }
   return (
@@ -358,7 +387,10 @@ const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
 };
 
 /** Render one untyped output item by its runtime shape. */
-export const renderOutputItem = (item: unknown, key: number): React.ReactNode => {
+export const renderOutputItem = (
+  item: unknown,
+  key: number
+): React.ReactNode => {
   switch (mediaRefKind(item)) {
     case "image": {
       const src = resolveImageSrc(item);
@@ -398,7 +430,9 @@ export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
     : asItems(value).filter((item) => item != null && item !== "");
   if (items.length === 0) {
     return (
-      <Caption color="secondary">{props.placeholder ?? "No result yet"}</Caption>
+      <Caption color="secondary">
+        {props.placeholder ?? "No result yet"}
+      </Caption>
     );
   }
   if (items.length === 1) {
@@ -422,11 +456,13 @@ export const JsonWidget: React.FC<WidgetCommon> = (props) => {
  * single "Value" column. Arrays are what an operation that emits N results —
  * or a streamed output the runtime accumulated — actually holds.
  */
-export const TableWidget: React.FC<WidgetCommon & {
-  label?: string;
-  placeholder?: string;
-  maxHeight?: number;
-}> = (props) => {
+export const TableWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    placeholder?: string;
+    maxHeight?: number;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   // Memoized because the column/row derivation below depends on it, and that
   // stringifies every cell.
@@ -464,8 +500,7 @@ export const TableWidget: React.FC<WidgetCommon & {
     return {
       columns: [{ key: "value", label: props.label || "Value" }],
       rows: items.map((item) => ({
-        value:
-          typeof item === "object" ? JSON.stringify(item) : str(item)
+        value: typeof item === "object" ? JSON.stringify(item) : str(item)
       }))
     };
   }, [items, props.label]);
@@ -517,7 +552,9 @@ export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
       {caption ? <Caption color="secondary">{caption}</Caption> : null}
       <ProgressBar
         value={hasValue ? bound : 0}
-        progressVariant={!hasValue && isRunning ? "indeterminate" : "determinate"}
+        progressVariant={
+          !hasValue && isRunning ? "indeterminate" : "determinate"
+        }
         showValue={hasValue}
         barHeight={6}
       />
@@ -530,14 +567,16 @@ export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
  * status line. Renders nothing when the binding is empty, so pairing it with an
  * error output gives an alert that appears only when the run fails.
  */
-export const AlertWidget: React.FC<WidgetCommon & {
-  text?: string;
-  severity?: string;
-  title?: string;
-}> = (props) => {
+export const AlertWidget: React.FC<
+  WidgetCommon & {
+    text?: string;
+    severity?: string;
+    title?: string;
+  }
+> = (props) => {
   const { value, designMode } = useBinding(props, "read");
   const text =
-    props.formattedValue ?? (value != null ? str(value) : props.text ?? "");
+    props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
   if (!text && !designMode) return null;
   const severity = (props.severity ?? "info") as
     | "info"
@@ -556,11 +595,13 @@ export const AlertWidget: React.FC<WidgetCommon & {
   );
 };
 
-export const CodeBlockWidget: React.FC<WidgetCommon & {
-  text?: string;
-  language?: string;
-  maxHeight?: number;
-}> = (props) => {
+export const CodeBlockWidget: React.FC<
+  WidgetCommon & {
+    text?: string;
+    language?: string;
+    maxHeight?: number;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const parts = props.formattedValue
     ? [props.formattedValue]
@@ -604,11 +645,13 @@ export const CodeBlockWidget: React.FC<WidgetCommon & {
  * this wants a value whose parts have no shared shape — a list of strings, a
  * stream of results.
  */
-export const ListWidget: React.FC<WidgetCommon & {
-  label?: string;
-  ordered?: boolean;
-  placeholder?: string;
-}> = (props) => {
+export const ListWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    ordered?: boolean;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const items = (
     props.formattedValue ? [props.formattedValue] : asItems(value)
@@ -643,14 +686,26 @@ export const ListWidget: React.FC<WidgetCommon & {
   );
 };
 
+/** Row padding, plus a top rule on every row after the first. */
+const rowDividerSx = (index: number): SystemStyleObject<Theme> => {
+  const sx: SystemStyleObject<Theme> = {
+    py: SPACING.sm,
+    borderColor: "divider"
+  };
+  if (index > 0) sx.borderTop = "1px solid";
+  return sx;
+};
+
 /**
  * An object binding as label/value rows — the shape a single-result operation
  * that emits a record has. A non-object value renders as one row.
  */
-export const KeyValueWidget: React.FC<WidgetCommon & {
-  label?: string;
-  placeholder?: string;
-}> = (props) => {
+export const KeyValueWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const entries =
     value && typeof value === "object" && !Array.isArray(value)
@@ -676,14 +731,13 @@ export const KeyValueWidget: React.FC<WidgetCommon & {
             justify="space-between"
             align="flex-start"
             fullWidth
-            sx={{
-              py: SPACING.sm,
-              ...(index > 0 ? { borderTop: "1px solid" } : {}),
-              borderColor: "divider"
-            }}
+            sx={rowDividerSx(index)}
           >
             <Caption color="secondary">{key}</Caption>
-            <Text size="normal" sx={{ textAlign: "right", wordBreak: "break-word" }}>
+            <Text
+              size="normal"
+              sx={{ textAlign: "right", wordBreak: "break-word" }}
+            >
               {typeof entry === "object" && entry !== null
                 ? JSON.stringify(entry)
                 : str(entry)}
@@ -696,11 +750,13 @@ export const KeyValueWidget: React.FC<WidgetCommon & {
 };
 
 /** One number the app wants read at a glance, with its label and a caption. */
-export const StatWidget: React.FC<WidgetCommon & {
-  label?: string;
-  caption?: string;
-  placeholder?: string;
-}> = (props) => {
+export const StatWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    caption?: string;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value } = useBinding(props, "read");
   const shown =
     props.formattedValue ?? (value != null && value !== "" ? str(value) : "");
@@ -721,13 +777,15 @@ export const StatWidget: React.FC<WidgetCommon & {
  * Offers the bound value as a file instead of rendering it — the way to get a
  * generated document, audio track, or dataset out of an app.
  */
-export const DownloadWidget: React.FC<WidgetCommon & {
-  label?: string;
-  filename?: string;
-  placeholder?: string;
-}> = (props) => {
+export const DownloadWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    filename?: string;
+    placeholder?: string;
+  }
+> = (props) => {
   const { value, designMode } = useBinding(props, "read");
-  const href = resolveImageSrc(asItems(value)[0]);
+  const href = useResolvedMediaUri(resolveImageSrc(asItems(value)[0])) ?? null;
   if (!href && !designMode) {
     return (
       <Caption color="secondary">
@@ -755,11 +813,13 @@ export const DownloadWidget: React.FC<WidgetCommon & {
 
 // ── Input widgets ───────────────────────────────────────────────────────────
 
-export const TextInputWidget: React.FC<WidgetCommon & {
-  label?: string;
-  placeholder?: string;
-  multiline?: boolean;
-}> = (props) => {
+export const TextInputWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    placeholder?: string;
+    multiline?: boolean;
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   return (
     <TextInput
@@ -779,12 +839,14 @@ export const TextInputWidget: React.FC<WidgetCommon & {
   );
 };
 
-export const NumberInputWidget: React.FC<WidgetCommon & {
-  label?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-}> = (props) => {
+export const NumberInputWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   return (
     <TextInput
@@ -807,12 +869,14 @@ export const NumberInputWidget: React.FC<WidgetCommon & {
   );
 };
 
-export const SliderWidget: React.FC<WidgetCommon & {
-  label?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-}> = (props) => {
+export const SliderWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const min = numOr(props.min, 0);
   return (
@@ -865,10 +929,12 @@ const optionValues = (options: unknown): string[] =>
         .filter((o): o is string => typeof o === "string" && o.length > 0)
     : [];
 
-export const SelectWidget: React.FC<WidgetCommon & {
-  label?: string;
-  options?: { value: string }[];
-}> = (props) => {
+export const SelectWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    options?: { value: string }[];
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const options = optionValues(props.options);
   return (
@@ -884,11 +950,13 @@ export const SelectWidget: React.FC<WidgetCommon & {
   );
 };
 
-export const RadioGroupWidget: React.FC<WidgetCommon & {
-  label?: string;
-  row?: boolean;
-  options?: { value: string }[];
-}> = (props) => {
+export const RadioGroupWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    row?: boolean;
+    options?: { value: string }[];
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const options = optionValues(props.options);
   return (
@@ -903,7 +971,13 @@ export const RadioGroupWidget: React.FC<WidgetCommon & {
         }}
       >
         {options.map((option) => (
-          <Radio key={option} value={option} label={option} size="small" compact />
+          <Radio
+            key={option}
+            value={option}
+            label={option}
+            size="small"
+            compact
+          />
         ))}
       </RadioSet>
     </FlexColumn>
@@ -914,11 +988,13 @@ export const RadioGroupWidget: React.FC<WidgetCommon & {
  * Writes the checked options as an array, so it binds to a list-typed input
  * rather than to a scalar one.
  */
-export const CheckboxGroupWidget: React.FC<WidgetCommon & {
-  label?: string;
-  row?: boolean;
-  options?: { value: string }[];
-}> = (props) => {
+export const CheckboxGroupWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    row?: boolean;
+    options?: { value: string }[];
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const options = optionValues(props.options);
   const selected = Array.isArray(value) ? value.map(str) : [];
@@ -950,10 +1026,12 @@ export const CheckboxGroupWidget: React.FC<WidgetCommon & {
   );
 };
 
-export const DateInputWidget: React.FC<WidgetCommon & {
-  label?: string;
-  withTime?: boolean;
-}> = (props) => {
+export const DateInputWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    withTime?: boolean;
+  }
+> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   return (
     <TextInput
@@ -1010,17 +1088,21 @@ const RunningLabel: React.FC = () => (
   </Box>
 );
 
-export const ButtonWidget: React.FC<WidgetCommon & {
-  label?: string;
-  variant?: string;
-  color?: string;
-}> = (props) => {
+export const ButtonWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    variant?: string;
+    color?: string;
+  }
+> = (props) => {
   const { emit, designMode, runnerState } = useBinding(props, "none");
   const isRunning = runnerState === "running";
   const showRunning = isRunning && !designMode;
   return (
     <EditorButton
-      variant={(props.variant as "contained" | "outlined" | "text") ?? "contained"}
+      variant={
+        (props.variant as "contained" | "outlined" | "text") ?? "contained"
+      }
       color={(props.color as "primary" | "secondary" | "warning") ?? "primary"}
       density="normal"
       size="medium"
@@ -1051,7 +1133,7 @@ export const ButtonWidget: React.FC<WidgetCommon & {
         })
       }}
     >
-      {showRunning ? <RunningLabel /> : props.label ?? "Button"}
+      {showRunning ? <RunningLabel /> : (props.label ?? "Button")}
     </EditorButton>
   );
 };
@@ -1160,7 +1242,10 @@ export const TabsWidget: React.FC<{
           <Box
             key={value}
             hidden={value !== current}
-            sx={{ width: "100%", ...(value !== current && { display: "none" }) }}
+            sx={{
+              width: "100%",
+              ...(value !== current && { display: "none" })
+            }}
           >
             <Slot style={slotStack} />
           </Box>

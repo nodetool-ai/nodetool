@@ -5,6 +5,11 @@ import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { convertGlbToGltf } from "./document-ops.js";
 import { modelBytes, modelFormat, modelRef, replaceExtension } from "./utils.js";
 
+/** Output handles FormatConverterNode.process() emits. */
+type FormatConverterNodeOutputs = {
+  output: { type: string; asset_id: null; metadata: null; data: string };
+};
+
 export class FormatConverterNode extends GlbTransformNode {
   static readonly nodeType = "nodetool.model3d.FormatConverter";
   static readonly title = "Format Converter";
@@ -37,7 +42,7 @@ export class FormatConverterNode extends GlbTransformNode {
     return null;
   }
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FormatConverterNodeOutputs> {
     const model = this.getModel();
     const bytes = modelBytes(model);
     const inputFormat = modelFormat(model);

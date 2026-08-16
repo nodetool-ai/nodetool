@@ -1,3 +1,4 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../../test-utils/nodeStore";
 /**
  * Frontend tests for PainterBody.
  *
@@ -5,23 +6,25 @@
  * basic rendering interactions.
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import PainterBody, { PAINTER_NODE_TYPE } from "../PainterBody";
 import { useUpstreamValue } from "../../../../hooks/nodes/useNodeIO";
 
 // ── Mocks ─────────────────────────────────────────────────────────
-jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) =>
-    selector({
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
+
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       edges: [],
       updateNodeProperties: jest.fn(),
       findNode: jest.fn(() => undefined)
     })
-  )
-}));
-
+);
 jest.mock("../../../../stores/ResultsStore", () =>
   jest.fn((selector) => selector({ getResult: () => undefined }))
 );

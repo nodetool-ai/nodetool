@@ -10,8 +10,9 @@ import type {
   NodeUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import {
   recordRunSignatures,
   getRunSignature,
@@ -55,10 +56,10 @@ beforeEach(() => {
   (clearRunSignatures as jest.Mock).mockClear();
 });
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );
@@ -72,7 +73,7 @@ const genComplete = (
   output: unknown,
   nodeId: string
 ): GenerationComplete =>
-  ({
+  stub<GenerationComplete>({
     type: "generation_complete",
     node_id: nodeId,
     node_name: "Computed",
@@ -80,7 +81,7 @@ const genComplete = (
     index,
     outputs: { output },
     job_id: jobId
-  }) as unknown as GenerationComplete;
+  });
 
 const nodeUpdate = (
   status: string,
@@ -88,7 +89,7 @@ const nodeUpdate = (
   nodeId: string,
   extra: Record<string, unknown> = {}
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     node_id: nodeId,
     node_name: "Computed",
@@ -96,7 +97,7 @@ const nodeUpdate = (
     status,
     job_id: jobId,
     ...extra
-  }) as unknown as NodeUpdate;
+  });
 
 describe("handleUpdate — stamps live generations with dispatch inputSignature (S38)", () => {
   it("generation_complete: stamps the recorded signature onto the completed generation", () => {
@@ -156,12 +157,12 @@ describe("handleUpdate — stamps live generations with dispatch inputSignature 
     recordRunSignatures(jobId, { [nodeId]: "SIG-C" });
     expect(getRunSignature(jobId, nodeId)).toBe("SIG-C");
 
-    dispatch({
+    dispatch(stub<JobUpdate>({
       type: "job_update",
       status: "completed",
       job_id: jobId,
       workflow_id: "workflow-1"
-    } as unknown as JobUpdate);
+    }));
 
     expect(clearRunSignatures).toHaveBeenCalledWith(jobId);
     // ...and the entry is actually gone, so it can't leak into the next run.

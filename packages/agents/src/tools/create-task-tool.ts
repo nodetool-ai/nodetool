@@ -32,12 +32,17 @@ const CREATE_TASK_INPUT_SCHEMA = {
   required: ["title", "steps"]
 };
 
+/** What {@link CreateTaskPlanTool} answers: the plan it stored, or why not. */
+export type CreateTaskResult =
+  | { status: "validation_failed"; errors: string[] }
+  | { status: "task_created"; title: string; steps: number };
+
 export class CreateTaskPlanTool extends Tool {
   readonly name = "create_task";
   readonly description =
     "Create an executable task with steps. " +
     "Steps form a DAG via depends_on for parallel execution within the task.";
-  readonly jsonSchema: Record<string, unknown> = CREATE_TASK_INPUT_SCHEMA;
+  readonly jsonSchema = CREATE_TASK_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   /** Captured validated task, or null if not yet created. */
   private _task: Task | null = null;
@@ -57,7 +62,7 @@ export class CreateTaskPlanTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<CreateTaskResult> {
     const task = this.buildTask(params);
     const errors = this.validateTask(task);
 

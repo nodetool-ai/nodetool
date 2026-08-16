@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { useResizeRightPanel } from "../useResizeRightPanel";
 
@@ -7,10 +8,10 @@ const MIN_PANEL_SIZE = 130;
 const MAX_PANEL_SIZE = 600;
 
 const createMouseEvent = (clientX: number) =>
-  ({
+  stub<React.MouseEvent<HTMLElement>>({
     clientX,
     preventDefault: jest.fn()
-  }) as unknown as React.MouseEvent<HTMLElement>;
+  });
 
 beforeEach(() => {
   useRightPanelStore.setState(useRightPanelStore.getInitialState());

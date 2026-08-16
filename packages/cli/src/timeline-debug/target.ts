@@ -16,6 +16,15 @@ import { existsSync, readFileSync } from "node:fs";
 import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineDebugTarget } from "@nodetool-ai/execution/timeline-debug";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** A `timeline_sequences` row as the harness needs it. */
 export interface TimelineSequenceRecord {
   id: string;
@@ -68,7 +77,7 @@ function settingsOf(raw: unknown): TimelineSequenceSettings {
 }
 
 /** A document is anything with `tracks` and `clips` arrays. */
-const looksLikeDocument = (value: unknown): boolean =>
+const looksLikeDocument = (value: JsonValue): boolean =>
   isRecord(value) && Array.isArray(value.tracks) && Array.isArray(value.clips);
 
 /**
@@ -76,8 +85,10 @@ const looksLikeDocument = (value: unknown): boolean =>
  * object) when there is one. Never throws — an unreadable document is a
  * validation finding, not a crash.
  */
-function documentOf(raw: unknown): unknown {
-  if (!isRecord(raw)) return raw;
+function documentOf(raw: unknown): JsonValue {
+  // SAFETY: a target is read from a JSON file or a json column, so every
+  // branch below carries decoded JSON.
+  if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
   if (typeof inner === "string") {
     try {
@@ -86,14 +97,15 @@ function documentOf(raw: unknown): unknown {
       return inner;
     }
   }
-  if (inner !== undefined) return inner;
-  return raw;
+  // SAFETY: same JSON provenance as the branch above.
+  if (inner !== undefined) return inner as JsonValue;
+  return raw as JsonValue;
 }
 
 /** Read a document as tracks + clips + markers, defaulting what is missing. */
-function asDocument(raw: unknown): TimelineDocument {
+function asDocument(raw: JsonValue): TimelineDocument {
   const record = isRecord(raw) ? raw : {};
-  return {
+  const document: TimelineDocument = {
     tracks: Array.isArray(record.tracks)
       ? (record.tracks as TimelineDocument["tracks"])
       : [],
@@ -102,14 +114,15 @@ function asDocument(raw: unknown): TimelineDocument {
       : [],
     markers: Array.isArray(record.markers)
       ? (record.markers as TimelineDocument["markers"])
-      : [],
-    ...(Array.isArray(record.transcript)
-      ? { transcript: record.transcript as TimelineDocument["transcript"] }
-      : {}),
-    ...(typeof record.scriptEnabled === "boolean"
-      ? { scriptEnabled: record.scriptEnabled }
-      : {})
+      : []
   };
+  if (Array.isArray(record.transcript)) {
+    document.transcript = record.transcript as TimelineDocument["transcript"];
+  }
+  if (typeof record.scriptEnabled === "boolean") {
+    document.scriptEnabled = record.scriptEnabled;
+  }
+  return document;
 }
 
 /** Resolve a timeline target: a JSON file path or a sequence row id. */
@@ -130,9 +143,16 @@ export async function resolveTimelineTarget(
         `${ref} is not a timeline document (no \`tracks\`/\`clips\` arrays, and no \`document\` field carrying them).`
       );
     }
-    const name = isRecord(parsed) && typeof parsed.name === "string" ? parsed.name : undefined;
+    const name =
+      isRecord(parsed) && typeof parsed.name === "string"
+        ? parsed.name
+        : undefined;
+    const target: TimelineDebugTarget = { kind: "file", ref };
+    if (name) {
+      target.name = name;
+    }
     return {
-      target: { kind: "file", ref, ...(name ? { name } : {}) },
+      target,
       raw,
       document: asDocument(raw),
       meta: { ...settingsOf(parsed), ...settingsOf(raw) }
@@ -144,12 +164,12 @@ export async function resolveTimelineTarget(
     throw new Error(`Timeline sequence not found: ${ref}`);
   }
   const raw = documentOf(record);
+  const target: TimelineDebugTarget = { kind: "id", ref };
+  if (record.name) {
+    target.name = record.name;
+  }
   return {
-    target: {
-      kind: "id",
-      ref,
-      ...(record.name ? { name: record.name } : {})
-    },
+    target,
     raw,
     document: asDocument(raw),
     meta: settingsOf(record)

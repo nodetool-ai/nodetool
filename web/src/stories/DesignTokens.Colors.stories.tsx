@@ -15,6 +15,9 @@ const PALETTE_ROLES = [
   "success"
 ] as const;
 
+/** The tones every palette role declares. */
+const PALETTE_TONES = ["main", "light", "dark", "contrastText"] as const;
+
 const Swatch = ({ label, color }: { label: string; color: string }) => (
   <Box
     sx={{
@@ -53,9 +56,7 @@ const ColorPalette = () => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {PALETTE_ROLES.map((role) => {
-        const group = palette[role] as unknown as
-          | Record<string, string>
-          | undefined;
+        const group = palette[role];
         if (!group) return null;
         return (
           <Box key={role}>
@@ -71,8 +72,7 @@ const ColorPalette = () => {
               {role}
             </Box>
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              {["main", "light", "dark", "contrastText"]
-                .filter((tone) => group[tone])
+              {PALETTE_TONES.filter((tone) => group[tone])
                 .map((tone) => (
                   <Swatch key={tone} label={tone} color={group[tone]} />
                 ))}

@@ -17,15 +17,15 @@
  */
 
 import path from "path";
+import * as httpProbe from "../httpProbe";
 
 const electronMock = jest.requireActual("../__mocks__/electron");
 jest.mock("electron", () => electronMock);
 
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
-jest.mock("../httpProbe", () => ({
-  probeHttpOk: jest.fn().mockResolvedValue(true),
-  waitForHttpOk: jest.fn().mockResolvedValue(true),
-}));
+// The real probe module; both network calls are stubbed so nothing dials out.
+jest.spyOn(httpProbe, "probeHttpOk").mockResolvedValue(true);
+jest.spyOn(httpProbe, "waitForHttpOk").mockResolvedValue(true);
 
 // fs/promises with controllable access result for PID file teardown
 jest.mock("fs", () => {
@@ -41,6 +41,23 @@ jest.mock("fs", () => {
     },
   };
 });
+
+type WatchdogInstance = import("../watchdog").Watchdog;
+
+/** `Watchdog#forkUtilityProcess`, which is `private` on the class. */
+interface WatchdogFork {
+  forkUtilityProcess(): Promise<void>;
+}
+
+/**
+ * Fork without going through the full async start (which depends on TCP probe
+ * loops).
+ */
+const forkUtilityProcess = (wd: WatchdogInstance): Promise<void> => {
+  // SAFETY: `forkUtilityProcess` is the watchdog's own private method.
+  const fork: WatchdogFork = wd as WatchdogInstance & WatchdogFork;
+  return fork.forkUtilityProcess();
+};
 
 describe("backend utilityProcess spawn contract", () => {
   let Watchdog: typeof import("../watchdog").Watchdog;
@@ -71,7 +88,7 @@ describe("backend utilityProcess spawn contract", () => {
     // local-only server features (Python bridge, file browser, vector nodes)
     // that the desktop app depends on. Pack trust comes from the dedicated
     // NODETOOL_PACKS_REQUIRE_ALLOWLIST flag instead.
-    const backendEnv: Record<string, string> = {
+    const backendEnv = {
       PORT: "7777",
       HOST: "127.0.0.1",
       STATIC_FOLDER: "/mock/web",
@@ -80,7 +97,7 @@ describe("backend utilityProcess spawn contract", () => {
       NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
       NODE_OPTIONS: "--conditions=nodetool-dev",
       NODE_PATH: "/mock/backend/node_modules",
-    };
+    } satisfies Record<string, string>;
 
     for (const key of requiredEnvKeys) {
       expect(backendEnv).toHaveProperty(key);
@@ -99,9 +116,7 @@ describe("backend utilityProcess spawn contract", () => {
 
     // Trigger the fork without going through the full async start (which
     // depends on TCP probe loops). Spawn directly via the private path.
-    await (watchdog as unknown as {
-      forkUtilityProcess: () => Promise<void>;
-    }).forkUtilityProcess();
+    await forkUtilityProcess(watchdog);
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/backend/server.mjs",
@@ -144,9 +159,7 @@ describe("backend utilityProcess spawn contract", () => {
       logOutput: false,
     });
 
-    await (watchdog as unknown as {
-      forkUtilityProcess: () => Promise<void>;
-    }).forkUtilityProcess();
+    await forkUtilityProcess(watchdog);
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/electron/dev-server-runner.cjs",

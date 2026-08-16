@@ -15,7 +15,10 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
-import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
+import {
+  NodeRegistry,
+  createGraphNodeTypeResolver
+} from "@nodetool-ai/node-sdk";
 import {
   registerBuiltInNodes,
   applyProductionNodePolicy
@@ -31,7 +34,9 @@ import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
 
-loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
+loadEnvironment(
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")
+);
 
 const log = createLogger("nodetool.websocket.server");
 const DEMO_IMAGE_PNG = Buffer.from(
@@ -1267,11 +1272,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
-    registry,
-    // Pass the resolved examples directory so handleWorkflowExamples can serve
-    // examples directly from the filesystem without requiring Python metadata.
-    ...(examplesDir ? { examplesDir } : {})
+    registry
   };
+  // Pass the resolved examples directory so handleWorkflowExamples can serve
+  // examples directly from the filesystem without requiring Python metadata.
+  if (examplesDir) {
+    resolvedApiOptions.examplesDir = examplesDir;
+  }
   const baseGraphNodeTypeResolver = createGraphNodeTypeResolver(registry);
   // When `passthroughUnknownNodes` is set, unknown node types (e.g. the
   // `test.Input` placeholder used by CLI fixtures) resolve to a permissive
@@ -1333,10 +1340,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     // empty behind a "threads.list" error.
     allowMethodOverride: true,
     createContext: ({ req }) => {
-      (req as IncomingMessage & { userId?: string }).userId = "1";
-      return trpcContextFactory({
-        req: req as unknown as Parameters<typeof trpcContextFactory>[0]["req"]
-      });
+      // SAFETY: the test-UI server has no auth plugin, so it attaches the
+      // single-user id the context reads directly onto the request.
+      const authedReq = req as IncomingMessage & { userId?: string };
+      authedReq.userId = "1";
+      return trpcContextFactory({ req: authedReq });
     }
   });
 
@@ -1410,9 +1418,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
         return;
       }
     }
-    if (
-      url.pathname.startsWith("/trpc")
-    ) {
+    if (url.pathname.startsWith("/trpc")) {
       const originalUrl = req.url;
       req.url = (req.url ?? "/").replace(/^\/trpc/, "") || "/";
       void trpcHandler(req, res);

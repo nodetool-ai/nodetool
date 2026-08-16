@@ -21,6 +21,8 @@ import {
 } from "../../components/storyboard/storyboardAgentBridge";
 import { useGenerateShot } from "./useGenerateShot";
 import { useAssembleTimeline } from "./useAssembleTimeline";
+import { useExtractScriptFromBoard } from "./useExtractScriptFromBoard";
+import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 
 const toShotNode = (shot: Shot): StoryboardShotNode => ({
   id: shot.id,
@@ -40,6 +42,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
   const { assemble } = useAssembleTimeline();
+  const { extract } = useExtractScriptFromBoard();
 
   const handler = useMemo<StoryboardAgentHandler>(() => {
     const store = () => useStoryboardStore.getState();
@@ -96,6 +99,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         style: board.style,
         aspectRatio: board.aspectRatio,
         hasScreenplay: board.screenplay !== null,
+        scriptId: linkedScriptId(board),
         selectedShotId: board.activeShotId,
         shots: board.shots.map(toShotNode)
       };
@@ -166,6 +170,10 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         return assemble(boardId);
       },
 
+      async extractScript(options) {
+        return extract(boardId, { relink: options?.relink });
+      },
+
       selectShot(target) {
         if (!target) {
           store().selectShot(boardId, null);
@@ -176,7 +184,14 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         return toShotNode(shot);
       }
     };
-  }, [boardId, generateKeyframe, generateClip, generateRevisedClip, assemble]);
+  }, [
+    boardId,
+    generateKeyframe,
+    generateClip,
+    generateRevisedClip,
+    assemble,
+    extract
+  ]);
 
   useEffect(() => {
     if (!boardId) return;

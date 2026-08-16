@@ -46,15 +46,23 @@
  *   3. Update `MIN_NODETOOL_CORE_VERSION` to that new release.
  */
 
-export const BRIDGE_PROTOCOL_VERSION = 3;
+export const BRIDGE_PROTOCOL_VERSION = 4;
 
 /**
  * Hard floor: the JS runtime rejects (at `discover`) any worker reporting a
  * protocol below this. Stays at 1 because every protocol change so far has
- * been additive — `models.*` (v2) is negotiated via `supportsModelManagement`
- * and `comfy.*` (v3) via `supportsComfy`, so a v1 worker still connects and
- * runs every pre-v2 feature; it just doesn't expose the newer families. Move
- * this only for a real wire break.
+ * been additive — `models.*` (v2) is negotiated via `supportsModelManagement`,
+ * `comfy.*` (v3) via `supportsComfy`, and run identity + `job.*` + `models.evict`
+ * (v4) via `supportsJobLifecycle` — so a v1 worker still connects and runs
+ * every pre-v2 feature; it just doesn't expose the newer families. Move this
+ * only for a real wire break.
+ *
+ * v4 is additive in both directions. The identity keys added to `execute` /
+ * `execute.stream` (`node_id`, `job_id`, `workflow_id`, `user_id`,
+ * `requires_vram_gb`) are extra dict entries a pre-v4 worker ignores, so the
+ * JS side sends them unconditionally; only the new `job.start` / `job.end` /
+ * `models.evict` message types are gated, because a pre-v4 worker answers
+ * those with `Unknown message type`.
  */
 export const MIN_BRIDGE_PROTOCOL_VERSION = 1;
 

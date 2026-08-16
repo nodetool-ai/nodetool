@@ -14,7 +14,7 @@ function getApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -91,6 +91,11 @@ export class EmbeddingNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 2. WebSearch
 // ---------------------------------------------------------------------------
+/** Output handles WebSearchNode.process() emits. */
+type WebSearchNodeOutputs = {
+  output: string;
+};
+
 export class WebSearchNode extends BaseNode {
   static readonly nodeType = "openai.text.WebSearch";
   static readonly title = "Web Search";
@@ -111,7 +116,7 @@ export class WebSearchNode extends BaseNode {
   })
   declare query: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<WebSearchNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const query = String(this.query ?? "");
     if (!query) throw new Error("Search query cannot be empty");
@@ -217,6 +222,11 @@ export class ModerationNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 4. CreateImage
 // ---------------------------------------------------------------------------
+/** Output handles CreateImageNode.process() emits. */
+type CreateImageNodeOutputs = {
+  output: { type: string; data: string; content_type: string } | { type: string; uri: string };
+};
+
 export class CreateImageNode extends BaseNode {
   static readonly nodeType = "openai.image.CreateImage";
   static readonly body = "content_card";
@@ -275,7 +285,7 @@ export class CreateImageNode extends BaseNode {
   })
   declare quality: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -319,6 +329,11 @@ export class CreateImageNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 5. EditImage
 // ---------------------------------------------------------------------------
+/** Output handles EditImageNode.process() emits. */
+type EditImageNodeOutputs = {
+  output: { type: string; data: string; content_type: string } | { type: string; uri: string };
+};
+
 export class EditImageNode extends BaseNode {
   static readonly nodeType = "openai.image.EditImage";
   static readonly body = "content_card";
@@ -397,7 +412,7 @@ export class EditImageNode extends BaseNode {
   })
   declare quality: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<EditImageNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Edit prompt cannot be empty");
@@ -457,6 +472,11 @@ export class EditImageNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 5b. ImageVariation
 // ---------------------------------------------------------------------------
+/** Output handles ImageVariationNode.process() emits. */
+type ImageVariationNodeOutputs = {
+  output: { type: string; data: string; content_type: string } | { type: string; uri: string };
+};
+
 export class ImageVariationNode extends BaseNode {
   static readonly nodeType = "openai.image.ImageVariation";
   static readonly body = "content_card";
@@ -494,7 +514,7 @@ export class ImageVariationNode extends BaseNode {
   })
   declare size: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageVariationNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const image = this.image as Record<string, unknown> | undefined;
     if (!image || (!image.data && !image.uri)) {
@@ -542,12 +562,12 @@ export class ImageVariationNode extends BaseNode {
  * asset-saving path (`decodeAssetBytes`) and downstream providers decode the
  * field directly, so a `data:` prefix would corrupt the bytes.
  */
-function imageRefFromB64(b64: string): Record<string, unknown> {
+function imageRefFromB64(b64: string) {
   return { type: "image", data: b64, content_type: "image/png" };
 }
 
 /** Build an audio ref from raw base64 with an explicit mime type. */
-function audioRefFromB64(b64: string, contentType: string): Record<string, unknown> {
+function audioRefFromB64(b64: string, contentType: string) {
   return { type: "audio", data: b64, content_type: contentType };
 }
 
@@ -576,6 +596,11 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
 // ---------------------------------------------------------------------------
 // 6. TextToSpeech
 // ---------------------------------------------------------------------------
+/** Output handles TextToSpeechNode.process() emits. */
+type TextToSpeechNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "openai.audio.TextToSpeech";
   static readonly body = "content_card";
@@ -633,7 +658,7 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare instructions: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToSpeechNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const text = String(this.input ?? "");
     if (!text) throw new Error("Input text cannot be empty");
@@ -677,6 +702,11 @@ export class TextToSpeechNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 7. Translate
 // ---------------------------------------------------------------------------
+/** Output handles TranslateNode.process() emits. */
+type TranslateNodeOutputs = {
+  output: string;
+};
+
 export class TranslateNode extends BaseNode {
   static readonly nodeType = "openai.audio.Translate";
   static readonly body = "content_card";
@@ -712,7 +742,7 @@ export class TranslateNode extends BaseNode {
   })
   declare temperature: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TranslateNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio as Record<string, unknown> | undefined;
     if (!audio || (!audio.data && !audio.uri)) {
@@ -743,6 +773,13 @@ export class TranslateNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 8. Transcribe
 // ---------------------------------------------------------------------------
+/** Output handles TranscribeNode.process() emits. */
+type TranscribeNodeOutputs = {
+  text: string;
+  words: { timestamp: [number, number]; text: string }[];
+  segments: { timestamp: [number, number]; text: string }[];
+};
+
 export class TranscribeNode extends BaseNode {
   static readonly nodeType = "openai.audio.Transcribe";
   static readonly body = "content_card";
@@ -881,7 +918,7 @@ export class TranscribeNode extends BaseNode {
   })
   declare temperature: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TranscribeNodeOutputs> {
     const apiKey = getApiKey(this._secrets);
     const audio = this.audio as Record<string, unknown> | undefined;
     if (!audio || (!audio.data && !audio.uri)) {

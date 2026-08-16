@@ -69,7 +69,11 @@ const pythonNodeMetadataSchema = z
     description: z.string().optional(),
     properties: z.array(z.record(z.string(), z.unknown())).optional(),
     outputs: z.array(z.record(z.string(), z.unknown())).optional(),
-    required_settings: z.array(z.string()).optional()
+    required_settings: z.array(z.string()).optional(),
+    // Protocol v4: approximate VRAM the node's weights need, in GiB. The JS
+    // side echoes it back on `execute` so the worker's reclaim pass has a
+    // number to target instead of a percentage threshold.
+    requires_vram_gb: z.number().optional()
   })
   .passthrough();
 

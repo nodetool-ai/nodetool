@@ -5,8 +5,9 @@ import type {
   NodeUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import { markJobSilent, unmarkJobSilent } from "../previewJobs";
 import {
   assetToGeneration,
@@ -42,16 +43,16 @@ beforeEach(() => {
 
 describe("handleUpdate live generations", () => {
   it("creates one finalized generation from running -> completed node_update", () => {
-    const running = {
+    const running = stub<NodeUpdate>({
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
       node_type: "test.Node",
       status: "running",
       job_id: "j1"
-    } as unknown as NodeUpdate;
+    });
 
-    const completed = {
+    const completed = stub<NodeUpdate>({
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
@@ -60,7 +61,7 @@ describe("handleUpdate live generations", () => {
       result: { output: 7 },
       provider_cost: undefined,
       job_id: "j1"
-    } as unknown as NodeUpdate;
+    });
 
     handleUpdate(mockWorkflow, running, mockRunnerStore as never, () => undefined);
     handleUpdate(
@@ -82,7 +83,7 @@ describe("handleUpdate live generations", () => {
   });
 
   it("records an error generation on a failed node_update", () => {
-    const errored = {
+    const errored = stub<NodeUpdate>({
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
@@ -90,7 +91,7 @@ describe("handleUpdate live generations", () => {
       status: "error",
       error: "boom",
       job_id: "j1"
-    } as unknown as NodeUpdate;
+    });
 
     handleUpdate(mockWorkflow, errored, mockRunnerStore as never, () => undefined);
 
@@ -106,10 +107,10 @@ describe("handleUpdate live generations", () => {
   });
 });
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );
@@ -120,7 +121,7 @@ const genComplete = (
   output: unknown,
   nodeId = "n4"
 ): GenerationComplete =>
-  ({
+  stub<GenerationComplete>({
     type: "generation_complete",
     node_id: nodeId,
     node_name: "TextToImage",
@@ -128,7 +129,7 @@ const genComplete = (
     index,
     outputs: { output },
     job_id: jobId
-  }) as unknown as GenerationComplete;
+  });
 
 const nodeUpdate = (
   status: string,
@@ -136,7 +137,7 @@ const nodeUpdate = (
   extra: Record<string, unknown> = {},
   nodeId = "n4"
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     node_id: nodeId,
     node_name: "TextToImage",
@@ -144,7 +145,7 @@ const nodeUpdate = (
     status,
     job_id: jobId,
     ...extra
-  }) as unknown as NodeUpdate;
+  });
 
 const gens = (nodeId = "n4") =>
   useResultsStore.getState().getLiveGenerations("workflow-1", nodeId);
@@ -266,11 +267,11 @@ describe("handleUpdate — node_update{completed} fallback", () => {
 
     // A fresh run reuses the same jobId — job_update{running} must clear the flag.
     useResultsStore.setState({ liveGenerations: {} } as never);
-    dispatch({
+    dispatch(stub<JobUpdate>({
       type: "job_update",
       status: "running",
       job_id: jobId
-    } as unknown as JobUpdate);
+    }));
 
     // Run 2: no generation_complete this time → fallback DOES synthesize.
     dispatch(nodeUpdate("completed", jobId, { result: { output: "synth" } }));
@@ -325,14 +326,14 @@ const persistedAsset = (
   jobId: string,
   createdAt: string
 ): Asset =>
-  ({
+  stub<Asset>({
     id,
     job_id: jobId,
     node_id: "n4",
     content_type: "image/png",
     get_url: `http://x/${id}.png`,
     created_at: createdAt
-  }) as unknown as Asset;
+  });
 
 // The real integration seam (Finding 3): drive N generation_complete through
 // the actual handleUpdate reducer + ResultsStore, read the live generations the

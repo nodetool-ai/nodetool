@@ -120,6 +120,9 @@ function isModelDownloadActive(modelId: string): boolean {
   return download ? ACTIVE_DOWNLOAD_STATUSES.has(download.status) : false;
 }
 
+/** The concept prompt, present only when the user typed one. */
+type ConceptPromptProperty = { prompt?: string };
+
 export class SamServiceNode implements SamService {
   private config: SamNodeConfig;
 
@@ -243,11 +246,7 @@ export class SamServiceNode implements SamService {
 
     const executor = getNodeExecutor();
     const graph = await this.buildGraph(resizedUrl, request, scale);
-    const result = await executor.execute(
-      graph,
-      {},
-      signal
-    );
+    const result = await executor.execute(graph, {}, signal);
 
     if (!result.success) {
       throw new Error(result.error ?? "Segmentation failed");
@@ -286,7 +285,9 @@ export class SamServiceNode implements SamService {
       );
     }
 
-    return Promise.resolve(this.buildFalSam31Graph(imageDataUrl, request, scale));
+    return Promise.resolve(
+      this.buildFalSam31Graph(imageDataUrl, request, scale)
+    );
   }
 
   private async buildLocalSam3Graph(
@@ -305,9 +306,7 @@ export class SamServiceNode implements SamService {
       pred_iou_thresh: request.settings.predIouThresh
     };
 
-    if (
-      promptMetadata.textPromptInputName
-    ) {
+    if (promptMetadata.textPromptInputName) {
       const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
       if (trimmedConceptPrompt.length > 0) {
         nodeData[promptMetadata.textPromptInputName] = trimmedConceptPrompt;
@@ -318,10 +317,8 @@ export class SamServiceNode implements SamService {
       promptMetadata.pointPromptsInputName &&
       request.pointPrompts.length > 0
     ) {
-      nodeData[promptMetadata.pointPromptsInputName] = this.buildLocalSam3PointPrompts(
-        request,
-        scale
-      );
+      nodeData[promptMetadata.pointPromptsInputName] =
+        this.buildLocalSam3PointPrompts(request, scale);
     }
 
     if (promptMetadata.boxPromptsInputName && request.boxPrompt) {
@@ -365,12 +362,15 @@ export class SamServiceNode implements SamService {
     boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
     sourceMetadata: SegmentationRequest["sourceMetadata"],
     scale: number
-  ): { x: number; y: number; width: number; height: number } {
+  ) {
     const promptMapper = this.createPromptMapper(sourceMetadata);
     // Map all four corners before taking min/max so rotated or affine-transformed
     // source layers still produce a correct axis-aligned box in source-image space.
     const corners = [
-      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x, y: boxPrompt.y },
+        promptMapper
+      ),
       this.mapPromptPointToSourceImage(
         { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
         promptMapper
@@ -470,7 +470,9 @@ export class SamServiceNode implements SamService {
     const [, mimeType] = match;
     const blob = await fetch(dataUrl).then((response) => {
       if (!response.ok) {
-        throw new Error("Failed to convert segmentation image data into a blob");
+        throw new Error(
+          "Failed to convert segmentation image data into a blob"
+        );
       }
       return response.blob();
     });
@@ -487,8 +489,11 @@ export class SamServiceNode implements SamService {
   }
 
   private getBase64ByteLength(base64Data: string): number {
-    const padding =
-      base64Data.endsWith("==") ? 2 : base64Data.endsWith("=") ? 1 : 0;
+    const padding = base64Data.endsWith("==")
+      ? 2
+      : base64Data.endsWith("=")
+        ? 1
+        : 0;
     return Math.max(0, Math.floor((base64Data.length * 3) / 4) - padding);
   }
 
@@ -496,7 +501,7 @@ export class SamServiceNode implements SamService {
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  ) {
     const falPrompts = request.pointPrompts.map((point) => ({
       x: Math.round(point.x * scale),
       y: Math.round(point.y * scale),
@@ -518,6 +523,10 @@ export class SamServiceNode implements SamService {
       ? imageDataUrl.split(",")[1]
       : imageDataUrl;
     const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
+    const promptProperty: ConceptPromptProperty = {};
+    if (trimmedConceptPrompt.length > 0) {
+      promptProperty.prompt = trimmedConceptPrompt;
+    }
 
     return {
       nodes: [
@@ -535,9 +544,7 @@ export class SamServiceNode implements SamService {
             max_masks: request.settings.maxObjects,
             include_scores: true,
             include_boxes: true,
-            ...(trimmedConceptPrompt.length > 0
-              ? { prompt: trimmedConceptPrompt }
-              : {})
+            ...promptProperty
           }
         }
       ],

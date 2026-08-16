@@ -41,6 +41,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { apiService } from '../../services/api';
 import { trpc } from '../../trpc/client';
+import { assetIdFromLocator } from '../../hooks/useResolvedMediaUri';
 import type { ThemeColors } from '../../utils/theme';
 
 // ── Document shape ─────────────────────────────────────────────────────────
@@ -147,7 +148,14 @@ export function asSketchDocument(value: unknown): SketchDocumentData | null {
   }
   return {
     sketch: {
-      canvas: canvas as unknown as SketchCanvas,
+      canvas: {
+        width: canvas.width,
+        height: canvas.height,
+        // SAFETY: the sketch document schema types `backgroundColor` as an
+        // optional CSS colour string, and it is read straight into a style
+        // prop — the same value the asserted canvas object carried before.
+        backgroundColor: canvas.backgroundColor as string | undefined,
+      },
       layers: value.layers as SketchLayer[],
     },
     layerBindings: Array.isArray(value.layerBindings)
@@ -277,7 +285,11 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
     const binding = bindings.get(layer.id) ?? null;
     const status = binding?.status ?? null;
     const inlineUri = layerDataImageUri(layer.data);
+    // `resolveUrl` returns null for an `asset://` reference — that one resolves
+    // through the asset lookup below, so route its id there rather than
+    // dropping the layer's only image.
     const referenceUri = apiService.resolveUrl(layer.imageReference?.uri);
+    const referenceAssetId = assetIdFromLocator(layer.imageReference?.uri);
     const hasPixels = !statusHasNoPixels(status);
 
     return {
@@ -288,7 +300,9 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
       opacity: ownOpacity * groupOpacity,
       rect,
       directUri: hasPixels ? (referenceUri ?? inlineUri) : null,
-      assetId: hasPixels ? (binding?.currentAssetId ?? null) : null,
+      assetId: hasPixels
+        ? (binding?.currentAssetId ?? referenceAssetId ?? null)
+        : null,
       status,
       prompt: binding?.prompt ?? null,
       model: binding?.model ?? null,
@@ -299,7 +313,7 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
 
 // ── Status presentation ────────────────────────────────────────────────────
 
-export const STATUS_LABEL: Record<SketchLayerStatus, string> = {
+export const STATUS_LABEL = {
   draft: 'Draft',
   queued: 'Queued',
   generating: 'Generating',
@@ -308,7 +322,7 @@ export const STATUS_LABEL: Record<SketchLayerStatus, string> = {
   failed: 'Failed',
   locked: 'Locked',
   missing: 'Missing',
-};
+} satisfies Record<SketchLayerStatus, string>;
 
 export function statusColor(status: SketchLayerStatus, colors: ThemeColors): string {
   switch (status) {

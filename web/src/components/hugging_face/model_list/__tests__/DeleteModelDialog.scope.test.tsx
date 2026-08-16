@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,13 +33,13 @@ jest.mock("../useModels", () => ({
 
 import DeleteModelDialog from "../DeleteModelDialog";
 
-const HF_MODEL: UnifiedModel = {
+const HF_MODEL: UnifiedModel = stub<UnifiedModel>({
   id: "org/m",
   name: "org/m",
   repo_id: "org/m",
   type: "hf.model",
   path: null
-} as unknown as UnifiedModel;
+});
 
 const renderDialog = (scope: "local" | "worker") => {
   const qc = new QueryClient();

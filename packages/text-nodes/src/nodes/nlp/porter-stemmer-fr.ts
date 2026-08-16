@@ -84,7 +84,7 @@ function prelude(token: string): string {
   return result;
 }
 
-function regions(token: string): { r1: number; r2: number; rv: number } {
+function regions(token: string) {
   const len = token.length;
   let r1 = len;
   let r2 = len;

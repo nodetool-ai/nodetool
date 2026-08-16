@@ -2,7 +2,7 @@
  * @nodetool-ai/execution – Public API
  */
 export { ExecutionSession } from "./session.js";
-export { normalizeGraph } from "./normalize-graph.js";
+export { normalizeGraph, toRawGraphInput } from "./normalize-graph.js";
 export { DEFAULT_MESSAGE_BUFFER_LIMIT } from "./message-stream.js";
 export {
   INTERVENTION_MARK,

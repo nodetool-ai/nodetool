@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import "@testing-library/jest-dom/jest-globals";
+import { stub } from "../../test-utils/doubles";
 import { describe, it, expect } from "@jest/globals";
 import { render, screen } from "@testing-library/react";
 import React from "react";
@@ -66,9 +67,9 @@ describe("formatBytes", () => {
 describe("groupModelsByType", () => {
   it("groups models by their type with fallback", () => {
     const models: UnifiedModel[] = [
-      { id: "1", type: "llama_model" } as unknown as UnifiedModel,
-      { id: "2", type: "hf.text_to_image" } as unknown as UnifiedModel,
-      { id: "3" } as unknown as UnifiedModel
+      stub<UnifiedModel>({ id: "1", type: "llama_model" }),
+      stub<UnifiedModel>({ id: "2", type: "hf.text_to_image" }),
+      stub<UnifiedModel>({ id: "3" })
     ];
 
     const grouped = groupModelsByType(models);

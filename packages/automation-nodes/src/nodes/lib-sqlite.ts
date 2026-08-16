@@ -14,6 +14,11 @@ function resolveDbPath(
   return join(workspaceDir, databaseName);
 }
 
+/** Output handles GetDatabasePathLibNode.process() emits. */
+type GetDatabasePathLibNodeOutputs = {
+  output: string;
+};
+
 export class GetDatabasePathLibNode extends BaseNode {
   static readonly nodeType = "lib.sqlite.GetDatabasePath";
   static readonly title = "Get Database Path";
@@ -33,7 +38,7 @@ export class GetDatabasePathLibNode extends BaseNode {
   })
   declare database_name: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GetDatabasePathLibNodeOutputs> {
     const databaseName = String(this.database_name ?? "memory.db");
     const dbPath = resolveDbPath(context, databaseName);
     return { output: dbPath };
@@ -41,5 +46,5 @@ export class GetDatabasePathLibNode extends BaseNode {
 }
 
 export const LIB_SQLITE_NODES: readonly NodeClass[] = [
-  GetDatabasePathLibNode as unknown as NodeClass
+  GetDatabasePathLibNode
 ];

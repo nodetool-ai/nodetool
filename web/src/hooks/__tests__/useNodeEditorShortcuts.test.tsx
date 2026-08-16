@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../test-utils/nodeStore";
+
 import { useNodeEditorShortcuts } from "../useNodeEditorShortcuts";
 import {
   registerComboCallback,
@@ -26,46 +27,29 @@ jest.mock("../../utils/MousePosition", () => ({
   getMousePosition: () => ({ x: 10, y: 20 })
 }));
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useTemporalNodes: (selector: (state: { undo: () => void; redo: () => void }) => unknown) =>
-    selector({
-      undo: jest.fn(),
-      redo: jest.fn()
-    }),
-  useNodes: (
-    selector: (state: {
-      getSelectedNodeCount: () => number;
-      selectAllNodes: () => void;
-      setNodes: () => void;
-      toggleBypassSelected: () => void;
-      edges: Array<{ selected?: boolean }>;
-    }) => unknown
-  ) =>
-    selector({
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore(
+    {
       getSelectedNodeCount: () => 0,
       selectAllNodes: jest.fn(),
       setNodes: jest.fn(),
       toggleBypassSelected: jest.fn(),
-      edges: []
-    }),
-  useNodeStoreRef: () => ({
-    getState: () => ({
-      getSelectedNodes: () => [],
-      getSelectedNodeCount: () => 0
-    })
-  })
-}));
-
+      edges: [],
+      getSelectedNodes: () => []
+    },
+    { undo: jest.fn(), redo: jest.fn() }
+  )
+);
 jest.mock("../../stores/NodeMenuStore", () => ({
   __esModule: true,
-  default: (selector: (state: { openNodeMenu: () => void }) => unknown) =>
+  default: <T,>(selector: (state: { openNodeMenu: () => void }) => T) =>
     selector({
       openNodeMenu: mockOpenNodeMenu
     })
 }));
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (
+  useWorkflowManager: <T,>(
     selector: (state: {
       saveExample: () => Promise<void>;
       removeWorkflow: () => void;
@@ -73,7 +57,7 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
       openWorkflows: Array<{ id: string }>;
       createNew: () => Promise<{ id: string }>;
       saveWorkflow: () => Promise<void>;
-    }) => unknown
+    }) => T
   ) =>
     selector({
       saveExample: async () => Promise.resolve(),
@@ -133,8 +117,8 @@ jest.mock("../useIpcRenderer", () => ({
 }));
 
 jest.mock("../../stores/NotificationStore", () => ({
-  useNotificationStore: (
-    selector: (state: { addNotification: () => void }) => unknown
+  useNotificationStore: <T,>(
+    selector: (state: { addNotification: () => void }) => T
   ) =>
     selector({
       addNotification: jest.fn()
@@ -142,8 +126,8 @@ jest.mock("../../stores/NotificationStore", () => ({
 }));
 
 jest.mock("../../stores/RightPanelStore", () => ({
-  useRightPanelStore: (
-    selector: (state: { handleViewChange: () => void }) => unknown
+  useRightPanelStore: <T,>(
+    selector: (state: { handleViewChange: () => void }) => T
   ) =>
     selector({
       handleViewChange: jest.fn()
@@ -151,8 +135,8 @@ jest.mock("../../stores/RightPanelStore", () => ({
 }));
 
 jest.mock("../../stores/BottomPanelStore", () => ({
-  useBottomPanelStore: (
-    selector: (state: { handleViewChange: () => void }) => unknown
+  useBottomPanelStore: <T,>(
+    selector: (state: { handleViewChange: () => void }) => T
   ) =>
     selector({
       handleViewChange: jest.fn()

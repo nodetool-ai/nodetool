@@ -97,14 +97,14 @@ describe("useDebouncedCallback", () => {
 
     const { result, rerender } = renderHook(
       ({ fn }) => useDebouncedCallback(fn, 200),
-      { initialProps: { fn: fn1 as (...args: unknown[]) => unknown } }
+      { initialProps: { fn: fn1 as (...args: unknown[]) => void } }
     );
 
     act(() => {
       result.current();
     });
 
-    rerender({ fn: fn2 as (...args: unknown[]) => unknown });
+    rerender({ fn: fn2 as (...args: unknown[]) => void });
 
     act(() => {
       jest.advanceTimersByTime(200);

@@ -77,7 +77,7 @@ describe("Canvas2DRuntime evaluateLayerEffects", () => {
     const result = runtime.evaluateLayerEffects(
       "layer1",
       sourceCanvas,
-      null as unknown as LayerEffect[]
+      null
     );
     expect(result.surface).toBe(sourceCanvas);
   });

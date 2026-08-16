@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from "@jest/globals";
+import { asMock, installGlobal, stub } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 jest.mock("../../../trpc/client", () =>
@@ -17,7 +18,7 @@ import {
 } from "../SketchSessionStore";
 import { getActiveSketchInstance } from "../SketchInstance";
 
-const updateMutate = trpcClient.sketch.update.mutate as unknown as jest.Mock;
+const updateMutate = asMock(trpcClient.sketch.update.mutate);
 type StandaloneResponse = NonNullable<
   Parameters<typeof useStandaloneSketchDocument>[0]
 >;
@@ -64,13 +65,14 @@ function buildResponse(): StandaloneResponse {
     height: 32,
     backgroundColor: "#ffffff",
     document: {
-      sketch: {
+      sketch: stub<StandaloneResponse["document"]["sketch"]>({
         ...doc,
+        toolSettings: { ...doc.toolSettings },
         activeTool: "brush",
         viewport: { zoom: 1, pan: { x: 0, y: 0 } },
         history: [],
         historyIndex: -1
-      } as unknown as StandaloneResponse["document"]["sketch"],
+      }),
       layerBindings: []
     },
     createdAt: "2026-01-01T00:00:00Z",
@@ -105,10 +107,13 @@ describe("useStandaloneSketchDocument", () => {
         thumb_url: null
       }))
     });
-    global.fetch = jest.fn(async () => ({
-      ok: true,
-      blob: async () => new Blob(["layer"], { type: "image/png" })
-    })) as unknown as typeof fetch;
+    installGlobal(
+      "fetch",
+      jest.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob(["layer"], { type: "image/png" })
+      }))
+    );
   });
 
   afterEach(() => {
@@ -193,7 +198,7 @@ describe("useStandaloneSketchDocument", () => {
 
     await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
 
-    const createAsset = useAssetStore.getState().createAsset as unknown as jest.Mock;
+    const createAsset = asMock(useAssetStore.getState().createAsset);
     expect(createAsset).toHaveBeenCalledTimes(1);
 
     const input = updateMutate.mock.calls[0][0] as {

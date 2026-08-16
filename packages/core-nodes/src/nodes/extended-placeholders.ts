@@ -7,6 +7,11 @@ export function titleFromNodeType(nodeType: string): string {
   return parts[parts.length - 1] ?? nodeType;
 }
 
+/** The one property a placeholder may carry from the saved graph. */
+interface StaticValueHolder {
+  value?: unknown;
+}
+
 export function makePlaceholderNode(nodeType: string): NodeClass {
   class PlaceholderNode extends BaseNode {
     static readonly nodeType = nodeType;
@@ -16,14 +21,17 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     static readonly inputFields = [];
 
     async process(): Promise<Record<string, unknown>> {
-      const staticValue = (this as unknown as { value?: unknown }).value;
+      // SAFETY: a placeholder stands in for an unregistered node type, so a
+      // `value` property exists only when the saved graph carried one — the
+      // class itself declares none.
+      const staticValue = (this as StaticValueHolder).value;
       return {
         output: staticValue ?? this.getDynamic("value") ?? this.serialize()
       };
     }
   }
 
-  return PlaceholderNode as unknown as NodeClass;
+  return PlaceholderNode;
 }
 
 /**

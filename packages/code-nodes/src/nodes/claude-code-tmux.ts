@@ -373,7 +373,12 @@ class TerminalStreamer {
       sessionName,
       `cat >> ${shQuote(pipeFile)}`
     );
-    const streamer = new TerminalStreamer(context, nodeId, sessionName, pipeFile);
+    const streamer = new TerminalStreamer(
+      context,
+      nodeId,
+      sessionName,
+      pipeFile
+    );
     streamer.offset = await stat(pipeFile)
       .then((s) => s.size)
       .catch(() => 0);
@@ -382,14 +387,25 @@ class TerminalStreamer {
   }
 
   private post(content: string, reset: boolean): void {
-    this.context.postMessage({
+    type MessageFields = {
+      type: "terminal_update";
+      node_id: string;
+      content: string;
+      cols: number;
+      rows: number;
+      reset?: boolean;
+    };
+    const message: MessageFields = {
       type: "terminal_update",
       node_id: this.nodeId,
       content,
       cols: TMUX_COLS,
-      rows: TMUX_ROWS,
-      ...(reset ? { reset: true } : {})
-    });
+      rows: TMUX_ROWS
+    };
+    if (reset) {
+      message.reset = true;
+    }
+    this.context.postMessage(message);
   }
 
   /** Send the current screen (escapes preserved), replacing client state. */
@@ -443,6 +459,14 @@ const POLL_MS = 750;
 const DIALOG_RETRY_MS = 2000;
 const READY_TIMEOUT_MS = 90_000;
 
+/** Output handles ClaudeCodeAgentNode.genProcess() emits. */
+type ClaudeCodeAgentNodeStreamOutputs = {
+  chunk: { type: string; content: string; content_type: string; done: boolean };
+  text: null | string;
+  transcript?: string;
+  session_id?: string;
+};
+
 export class ClaudeCodeAgentNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.ClaudeCodeAgent";
   static readonly title = "Claude Code Agent";
@@ -463,12 +487,12 @@ export class ClaudeCodeAgentNode extends BaseNode {
   };
   // `text` is the final assistant answer; `chunk` streams assistant messages
   // and tool-call markers as the agent works.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     transcript: { kind: "single", source: "__execution__" },
     session_id: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",
@@ -510,7 +534,8 @@ export class ClaudeCodeAgentNode extends BaseNode {
     type: "str",
     default: "",
     title: "Model",
-    description: "Optional model override passed as --model (e.g. opus, sonnet)."
+    description:
+      "Optional model override passed as --model (e.g. opus, sonnet)."
   })
   declare model: any;
 
@@ -570,7 +595,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ClaudeCodeAgentNodeStreamOutputs> {
     const promptText = combinePrompt(
       String(this.prompt ?? ""),
       String(this.input ?? "")
@@ -611,7 +636,8 @@ export class ClaudeCodeAgentNode extends BaseNode {
         command,
         sessionId,
         model: String(this.model ?? "").trim() || undefined,
-        appendSystemPrompt: String(this.system_prompt ?? "").trim() || undefined,
+        appendSystemPrompt:
+          String(this.system_prompt ?? "").trim() || undefined,
         extraArgs: String(this.extra_args ?? "").trim() || undefined
       });
       log.info("Starting Claude Code in tmux", {

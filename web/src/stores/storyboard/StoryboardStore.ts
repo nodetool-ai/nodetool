@@ -38,6 +38,11 @@ import type {
   LanguageModelValue,
   VideoModelValue
 } from "../ApiTypes";
+import {
+  linkedShots,
+  unlinkedScreenplay,
+  unlinkedShots
+} from "../../lib/scriptStoryboardLink";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,6 +120,22 @@ interface StoryboardStoreState {
   setVideoModel: (boardId: string, model: VideoModelValue | null) => void;
   /** Record the persisted timeline sequence this board assembles into. */
   setTimelineLink: (boardId: string, timelineId: string | null) => void;
+  /**
+   * Link the board to a script: the screenplay references it, and each shot
+   * named in `lineIdsByShotId` records the lines it covers plus the text as
+   * projected. No-op on a board with no screenplay — there is nothing to link.
+   */
+  setScriptLink: (
+    boardId: string,
+    scriptId: string,
+    lineIdsByShotId: Record<string, string[]>,
+    textByLineId: Map<string, string>
+  ) => void;
+  /**
+   * Drop the script link, keeping the projected words: with the script gone
+   * the shot's dialogue and narration are ordinary shot text.
+   */
+  clearScriptLink: (boardId: string) => void;
 
   /** Insert a shot, or replace the one with the same id. */
   upsertShot: (boardId: string, shot: Shot) => void;
@@ -486,6 +507,48 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         boardId,
         (b) => (b.timelineId === timelineId ? null : { ...b, timelineId }),
         // A timeline handoff isn't an authoring edit — keep it out of undo.
+        false
+      )
+    ),
+
+  setScriptLink: (boardId, scriptId, lineIdsByShotId, textByLineId) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          if (!b.screenplay) {
+            return null;
+          }
+          const shots = linkedShots(b.shots, lineIdsByShotId, textByLineId);
+          return {
+            ...b,
+            screenplay: { ...b.screenplay, script_id: scriptId, shots },
+            shots
+          };
+        },
+        // A link is a handoff between two documents, not an authoring edit.
+        false
+      )
+    ),
+
+  clearScriptLink: (boardId) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => {
+          const shots = unlinkedShots(b.shots);
+          const screenplay = unlinkedScreenplay(b.screenplay);
+          if (shots === b.shots && screenplay === b.screenplay) {
+            return null;
+          }
+          return {
+            ...b,
+            screenplay: screenplay ? { ...screenplay, shots } : screenplay,
+            shots
+          };
+        },
         false
       )
     ),

@@ -51,7 +51,11 @@ import {
   CANVAS_METHODS,
   CANVAS_PROPERTIES
 } from "../sandbox-canvas-api.js";
-import { BASE64_ALPHABET, SANDBOX_BYTES_MARKER } from "../sandbox-bytes.js";
+import {
+  BASE64_ALPHABET,
+  SANDBOX_BYTES_MARKER,
+  type GuestBytes
+} from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
 import type { ResolvedSandboxLimits } from "../js-sandbox.js";
 
@@ -773,7 +777,7 @@ export async function runInterpreter(
       bridges[SANDBOX_STREAM_OPEN_BINDING] =
         sandbox[SANDBOX_STREAM_OPEN_BINDING];
       // Object bridges whose members are all async: wrap each member.
-      const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
+      const wrapAllMembers = (bridge: unknown) => {
         const out: Record<string, unknown> = {};
         const members = bridge as Record<
           string,
@@ -794,8 +798,8 @@ export async function runInterpreter(
       const hostCrypto = bridges.crypto as {
         randomUUID: () => string;
         getRandomValues: (n: number) => Record<string, string>;
-        digest: (...a: never[]) => Promise<unknown>;
-        hmac: (...a: never[]) => Promise<unknown>;
+        digest: (...a: never[]) => Promise<GuestBytes>;
+        hmac: (...a: never[]) => Promise<GuestBytes>;
       };
       bridges.crypto = {
         // randomUUID/getRandomValues are synchronous and never throw, so they

@@ -4,16 +4,16 @@ jest.mock("../NodeStore", () => ({
 }));
 
 import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
+import { stub } from "../../test-utils/doubles";
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Workflow } from "../ApiTypes";
 
 const createMockWorkflow = (): Workflow =>
-  ({
+  stub<Workflow>({
     id: "wf",
     name: "Test Workflow",
     graph: { nodes: [], edges: [] },
-    engine: "mem"
-  } as unknown as Workflow);
+  });
 
 it("round-trips selected_generation through ui_properties", () => {
   const rf = {

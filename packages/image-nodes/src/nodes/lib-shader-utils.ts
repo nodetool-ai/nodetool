@@ -53,7 +53,7 @@ type ShaderRegistry = Awaited<ReturnType<typeof importRegistry>>;
 let cachedRegistry: Promise<ShaderRegistry> | null = null;
 
 async function importRegistry(): Promise<
-  ReturnType<typeof import("@nodetool-ai/gpu/pool")["createDefaultRegistry"]>
+  ReturnType<(typeof import("@nodetool-ai/gpu/pool"))["createDefaultRegistry"]>
 > {
   const { createDefaultRegistry } = await import("@nodetool-ai/gpu/pool");
   return createDefaultRegistry();
@@ -73,9 +73,7 @@ async function getRegistry(): Promise<ShaderRegistry> {
 
 /** Texture usage that lets a labeled texture be sampled and copied from. */
 const INPUT_USAGE =
-  0x04 /* TEXTURE_BINDING */ |
-  0x02 /* COPY_DST */ |
-  0x01; /* COPY_SRC */
+  0x04 /* TEXTURE_BINDING */ | 0x02 /* COPY_DST */ | 0x01; /* COPY_SRC */
 
 /** Texture usage for outputs the executor's fragment arm writes to. */
 const OUTPUT_USAGE =
@@ -85,9 +83,7 @@ const OUTPUT_USAGE =
 
 /** Texture usage for outputs the compute arm storage-writes to. */
 const COMPUTE_OUTPUT_USAGE =
-  0x08 /* STORAGE_BINDING */ |
-  0x04 /* TEXTURE_BINDING */ |
-  0x01; /* COPY_SRC */
+  0x08 /* STORAGE_BINDING */ | 0x04 /* TEXTURE_BINDING */ | 0x01; /* COPY_SRC */
 
 interface UploadedSource {
   texture: LabeledTexture;
@@ -156,7 +152,7 @@ function resolveOutputDims(
   module: ShaderModule | RecipeModule,
   source: UploadedSource | null,
   opts: RunShaderOptions
-): { width: number; height: number } {
+) {
   const declared = module.io.output.dimensions;
   if (declared === "host-specified" || declared === "derived") {
     const w = opts.outputWidth ?? source?.width;
@@ -201,10 +197,19 @@ export async function runShaderNode(
   let handedOff = false;
   try {
     const source = sourceImage
-      ? await uploadStraightAlpha(device, sourceImage, context, `${module.id}-source`)
+      ? await uploadStraightAlpha(
+          device,
+          sourceImage,
+          context,
+          `${module.id}-source`
+        )
       : null;
     if (source && !source.borrowed) owned.push(source.texture);
-    if (!source && module.io.inputs.source && !module.io.inputs.source.optional) {
+    if (
+      !source &&
+      module.io.inputs.source &&
+      !module.io.inputs.source.optional
+    ) {
       // No source bound and module requires one — no-op with an empty ImageRef
       // rather than fail loud (mirrors lib-image-filter), but warn so the blank
       // result is visible instead of propagating silently through a chain.
@@ -258,7 +263,9 @@ export async function runShaderNode(
       usage: module.kind === "compute" ? COMPUTE_OUTPUT_USAGE : OUTPUT_USAGE
     });
 
-    const encoder = device.createCommandEncoder({ label: `${module.id}-encode` });
+    const encoder = device.createCommandEncoder({
+      label: `${module.id}-encode`
+    });
     if (module.kind === "compute") {
       const [wx, wy] = module.workgroupSize;
       cachedExecutor.encode({
@@ -323,7 +330,12 @@ export async function runRecipeNode(
   let handedOff = false;
   try {
     const source = sourceImage
-      ? await uploadStraightAlpha(device, sourceImage, context, `${recipe.id}-source`)
+      ? await uploadStraightAlpha(
+          device,
+          sourceImage,
+          context,
+          `${recipe.id}-source`
+        )
       : null;
     if (!source) {
       // No source bound — no-op with an empty ImageRef rather than fail loud,
@@ -371,7 +383,9 @@ export async function runRecipeNode(
       usage: OUTPUT_USAGE
     });
 
-    const encoder = device.createCommandEncoder({ label: `${recipe.id}-encode` });
+    const encoder = device.createCommandEncoder({
+      label: `${recipe.id}-encode`
+    });
     cachedRecipeRunner.encode({
       ctx,
       module: recipe,
@@ -441,7 +455,10 @@ export const IMAGE_PROP: PropOptions = {
 };
 
 /** Optional second image slot (mask, alpha source, displacement map, …). */
-export function extraImageProp(title: string, description: string): PropOptions {
+export function extraImageProp(
+  title: string,
+  description: string
+): PropOptions {
   return {
     type: "image",
     default: {
@@ -459,31 +476,53 @@ export function extraImageProp(title: string, description: string): PropOptions 
 /** Numeric scalar prop with min/max/step taken from a module's `paramUi`. */
 export function floatProp(
   defaultValue: number,
-  ui: { label?: string; notes?: string; min?: number; max?: number; step?: number } = {}
+  ui: {
+    label?: string;
+    notes?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  } = {}
 ): PropOptions {
-  return {
+  const prop: PropOptions = {
     type: "float",
     default: defaultValue,
     title: ui.label ?? "",
-    description: ui.notes ?? "",
-    ...(ui.min !== undefined ? { min: ui.min } : {}),
-    ...(ui.max !== undefined ? { max: ui.max } : {})
+    description: ui.notes ?? ""
   };
+  if (ui.min !== undefined) {
+    prop.min = ui.min;
+  }
+  if (ui.max !== undefined) {
+    prop.max = ui.max;
+  }
+  return prop;
 }
 
 /** Integer-valued scalar (radius, mode enum, channel count). */
 export function intProp(
   defaultValue: number,
-  ui: { label?: string; notes?: string; min?: number; max?: number; step?: number } = {}
+  ui: {
+    label?: string;
+    notes?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  } = {}
 ): PropOptions {
-  return {
+  const prop: PropOptions = {
     type: "int",
     default: Math.round(defaultValue),
     title: ui.label ?? "",
-    description: ui.notes ?? "",
-    ...(ui.min !== undefined ? { min: ui.min } : {}),
-    ...(ui.max !== undefined ? { max: ui.max } : {})
+    description: ui.notes ?? ""
   };
+  if (ui.min !== undefined) {
+    prop.min = ui.min;
+  }
+  if (ui.max !== undefined) {
+    prop.max = ui.max;
+  }
+  return prop;
 }
 
 /** Hex/CSS color prop. Stored as `{ type: "color", value: "#RRGGBBAA" }`. */

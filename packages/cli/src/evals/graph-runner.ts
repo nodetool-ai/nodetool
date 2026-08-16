@@ -12,7 +12,7 @@
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
-import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
+import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
 import type { GraphRunner, GraphRunOutput } from "@nodetool-ai/agents";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
@@ -42,10 +42,7 @@ export function createEvalGraphRunner(): GraphRunner {
     });
 
     const session = await ExecutionSession.create({
-      // A planner-built `GraphData` is already in the shape the facade
-      // normalizes (properties under `properties`); the cast is only needed
-      // because `RawGraphInput` is typed as loose saved-graph JSON.
-      graph: graph as unknown as RawGraphInput,
+      graph: toRawGraphInput(graph),
       registry,
       // Registry alone hydrates node flags but not `propertyTypes`, and
       // correlation analysis reads list-ness only from that map — without it
@@ -72,7 +69,7 @@ export function createEvalGraphRunner(): GraphRunner {
       signal?.removeEventListener("abort", abort);
     }
 
-    const messages = (result.messages ?? []) as ProcessingMessage[];
+    const messages = result.messages ?? [];
     const outputs = collectOutputs(messages, result.outputs);
     const timedOut = session.cancelReason === "timeout";
 
@@ -107,12 +104,10 @@ function collectOutputs(
   // doesn't add a second, id-keyed copy of an output we already have.
   const seenNodeIds = new Set<string>();
 
-  for (const raw of messages) {
-    const msg = raw as unknown as Record<string, unknown>;
+  for (const msg of messages) {
     if (msg.type !== "output_update") continue;
     const name = String(msg.output_name ?? msg.node_name ?? "output");
-    const nodeId =
-      typeof msg.node_id === "string" ? msg.node_id : undefined;
+    const nodeId = msg.node_id;
     const previous = byName.get(name);
     const value =
       previous &&
@@ -141,14 +136,16 @@ function collectNodeErrors(
   messages: readonly ProcessingMessage[]
 ): { nodeId: string | null; message: string }[] {
   const errors: { nodeId: string | null; message: string }[] = [];
-  for (const raw of messages) {
-    const msg = raw as unknown as Record<string, unknown>;
-    if (msg.type === "node_update" && (msg.status === "error" || msg.status === "failed")) {
+  for (const msg of messages) {
+    if (
+      msg.type === "node_update" &&
+      (msg.status === "error" || msg.status === "failed")
+    ) {
       errors.push({
-        nodeId: typeof msg.node_id === "string" ? msg.node_id : null,
-        message: typeof msg.error === "string" ? msg.error : String(msg.status)
+        nodeId: msg.node_id,
+        message: msg.error ?? String(msg.status)
       });
-    } else if (msg.type === "error" && typeof msg.message === "string") {
+    } else if (msg.type === "error") {
       errors.push({ nodeId: null, message: msg.message });
     }
   }

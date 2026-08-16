@@ -1,4 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useVideoRecorder } from "../useVideoRecorder";
 
 // Mock the dependencies
@@ -8,16 +9,14 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
   })
 }));
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { workflow: { id: string; name: string } }) => unknown) =>
-    selector({
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
       workflow: {
         id: "test-workflow-id",
         name: "Test Workflow"
       }
     })
-}));
-
+);
 // Mock navigator.mediaDevices
 const mockGetUserMedia = jest.fn();
 const mockEnumerateDevices = jest.fn();

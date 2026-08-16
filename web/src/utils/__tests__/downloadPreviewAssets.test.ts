@@ -1,9 +1,15 @@
 import { downloadPreviewAssets } from "../downloadPreviewAssets";
+import { stub } from "../../test-utils/doubles";
 import { createAssetFile } from "../createAssetFile";
 
 const mockCreateAssetFile = createAssetFile as jest.Mock;
 
 jest.mock("../createAssetFile");
+
+const mockGetAsset = jest.fn();
+jest.mock("../../stores/AssetStore", () => ({
+  useAssetStore: { getState: () => ({ get: mockGetAsset }) }
+}));
 
 describe("downloadPreviewAssets", () => {
   beforeEach(() => {
@@ -95,13 +101,13 @@ describe("downloadPreviewAssets", () => {
   it("falls back to URI when createAssetFile fails with URI available", async () => {
     mockCreateAssetFile.mockRejectedValue(new Error("Failed to create asset"));
 
-    const mockAnchor = {
+    const mockAnchor = stub<HTMLAnchorElement>({
       href: "",
       download: "",
       click: jest.fn(),
-    };
+    });
 
-    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor);
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
 
@@ -126,16 +132,22 @@ describe("downloadPreviewAssets", () => {
     consoleWarnSpy.mockRestore();
   });
 
-  it("resolves asset:// URIs in direct-download fallback", async () => {
+  // The locator has no fetchable form of its own — the anchor gets the
+  // asset's `get_url`, which is signed on the cloud backends.
+  it("resolves asset:// URIs through the asset record in the fallback", async () => {
     mockCreateAssetFile.mockRejectedValue(new Error("Failed to create asset"));
+    mockGetAsset.mockResolvedValue({
+      id: "123",
+      get_url: "https://cdn.example.com/signed/user-1/123.mp4?sig=x"
+    });
 
-    const mockAnchor = {
+    const mockAnchor = stub<HTMLAnchorElement>({
       href: "",
       download: "",
       click: jest.fn(),
-    };
+    });
 
-    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor);
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
@@ -146,7 +158,10 @@ describe("downloadPreviewAssets", () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalled();
-    expect(mockAnchor.href).toBe("http://localhost:7777/api/storage/123.mp4");
+    expect(mockGetAsset).toHaveBeenCalledWith("123");
+    expect(mockAnchor.href).toBe(
+      "https://cdn.example.com/signed/user-1/123.mp4?sig=x"
+    );
     expect(mockAnchor.download).toBe("123.mp4");
     expect(mockAnchor.click).toHaveBeenCalled();
 

@@ -51,11 +51,18 @@ import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 const edgeTypes = { default: CustomEdge, control: ControlEdge };
 
 /**
+ * What this read-only viewer reads off a workflow: the id every node conversion
+ * is stamped with, the name in the header, and the graph it draws. A `?data=`
+ * payload supplies these three and nothing else.
+ */
+type WorkflowView = Pick<Workflow, "id" | "name" | "graph">;
+
+/**
  * Parse a workflow-like JSON object into ReactFlow nodes and edges.
  * Accepts either a full Workflow (with graph.nodes/graph.edges) or
  * the simplified format from team-workflow.json (with top-level nodes/edges).
  */
-function parseWorkflowJSON(raw: unknown): { workflow: Workflow } {
+function parseWorkflowJSON(raw: unknown) {
   const obj = raw as Record<string, unknown>;
 
   // Simplified format: { nodes: [...], edges: [...] }
@@ -86,12 +93,21 @@ function parseWorkflowJSON(raw: unknown): { workflow: Workflow } {
         id: "inline",
         name: (obj.name as string) || "Workflow",
         graph: { nodes, edges }
-      } as unknown as Workflow
+      }
     };
   }
 
-  // Full Workflow format
-  return { workflow: obj as unknown as Workflow };
+  // Full Workflow format. SAFETY: the payload is a workflow document the
+  // caller base64'd into `?data=`; the three fields read below are taken from
+  // it as they arrive, exactly as before, and a payload missing one renders
+  // the same empty canvas it always did.
+  return {
+    workflow: {
+      id: obj.id as string,
+      name: obj.name as string,
+      graph: obj.graph as Workflow["graph"]
+    }
+  };
 }
 
 function GraphInner() {
@@ -126,7 +142,7 @@ function GraphInner() {
   useEffect(() => {
     (async () => {
       try {
-        let workflow: Workflow;
+        let workflow: WorkflowView;
 
         // Check for inline JSON via ?data= (base64)
         const dataParam = searchParams.get("data");

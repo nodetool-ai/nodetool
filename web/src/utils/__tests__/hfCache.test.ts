@@ -50,7 +50,7 @@ describe("hfCache", () => {
     });
 
     it("handles undefined type", () => {
-      const model = createMockModel({ type: undefined as unknown as string });
+      const model = createMockModel({ type: undefined });
       expect(isHfModel(model)).toBe(false);
     });
 

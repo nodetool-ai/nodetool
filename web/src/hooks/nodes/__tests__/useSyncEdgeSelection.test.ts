@@ -1,12 +1,8 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+
 import { useSyncEdgeSelection } from "../useSyncEdgeSelection";
-import { useNodes } from "../../../contexts/NodeContext";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
-
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
 
 const mockGetInputEdges = jest.fn();
 const mockGetOutputEdges = jest.fn();
@@ -26,15 +22,18 @@ const createMockNode = (id: string, selected = false): Node<NodeData> => ({
   }
 });
 
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
+    getInputEdges: mockGetInputEdges,
+    getOutputEdges: mockGetOutputEdges,
+    findNode: mockFindNode,
+    setEdgeSelectionState: mockSetEdgeSelectionState
+  })
+);
+
 describe("useSyncEdgeSelection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as jest.Mock).mockReturnValue({
-      getInputEdges: mockGetInputEdges,
-      getOutputEdges: mockGetOutputEdges,
-      findNode: mockFindNode,
-      setEdgeSelectionState: mockSetEdgeSelectionState
-    });
   });
 
   afterEach(() => {

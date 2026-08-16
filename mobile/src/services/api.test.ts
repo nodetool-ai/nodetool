@@ -34,12 +34,14 @@ interface MockResponseInit {
 }
 
 function mockResponse({ ok, status, json, text }: MockResponseInit): Response {
-  return {
+  const partial: Pick<Response, 'ok' | 'status' | 'json' | 'text'> = {
     ok,
     status,
     json: jest.fn().mockResolvedValue(json ?? {}),
     text: jest.fn().mockResolvedValue(text ?? ''),
-  } as unknown as Response;
+  };
+  // SAFETY: `ApiService` reads only ok/status/json/text off a response.
+  return partial as Response;
 }
 
 const mockFetch = jest.fn();
@@ -47,7 +49,7 @@ const mockFetch = jest.fn();
 describe('ApiService request (via getNodeMetadata)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
   });
 
   it('returns parsed JSON on success', async () => {
@@ -123,7 +125,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
 describe('ApiService.uploadAsset', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
   });
 
   it('does NOT set a Content-Type header (preserves the multipart boundary)', async () => {
@@ -181,14 +183,13 @@ describe('ApiService.uploadAsset', () => {
 });
 
 describe('ApiService.resolveUrl', () => {
-  it('maps an asset:// URN to the storage endpoint', () => {
-    // React Native's image loader has no asset:// handler, so an unmapped URN
-    // surfaces as "No suitable image URL loader found".
+  it('refuses an asset:// URN', () => {
+    // The bytes live under `<user_id>/<asset_id>.<ext>` behind a signed URL,
+    // so there is no correct rewrite here — `useResolvedMediaUri` looks the
+    // asset up and reads its `get_url` instead.
     expect(
       apiService.resolveUrl('asset://5262eb0ff8f14873ac673ace9eff8ad8.png')
-    ).toBe(
-      'http://localhost:7777/api/storage/5262eb0ff8f14873ac673ace9eff8ad8.png'
-    );
+    ).toBeNull();
   });
 
   it('leaves absolute URLs untouched', () => {

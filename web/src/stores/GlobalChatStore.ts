@@ -80,10 +80,7 @@ export type StepToolCall = {
   status?: string | null;
 };
 
-type AgentExecutionToolCalls = Record<
-  string,
-  Record<string, StepToolCall[]>
->;
+type AgentExecutionToolCalls = Record<string, Record<string, StepToolCall[]>>;
 
 const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
 
@@ -379,8 +376,24 @@ const captureChatRunSpend = (
   }
 };
 
+/**
+ * The slice written to localStorage. The three newest keys are optional
+ * because a payload persisted before they existed does not carry them, and
+ * `migrate` returns only the four it can rebuild — persist merges the rest
+ * from the store's initial state.
+ */
+interface PersistedChatState {
+  threads: Record<string, Thread>;
+  lastUsedThreadId: string | null;
+  selectedModel: LanguageModel | null;
+  permissionMode: Record<string, PermissionMode>;
+  memoryEnabled?: boolean;
+  workflowThreadId?: Record<string, string>;
+  threadWorkflowId?: Record<string, string | null>;
+}
+
 const useGlobalChatStore = create<GlobalChatState>()(
-  persist<GlobalChatState>(
+  persist<GlobalChatState, [], [], PersistedChatState>(
     (set, get) => ({
       // Connection state
       status: "disconnected",
@@ -446,8 +459,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // workflow to it so openWorkflowThread won't pull the old one back.
         const threadId = await get().createNewThread();
         set((state) => ({
-          workflowThreadId: { ...state.workflowThreadId, [workflowId]: threadId },
-          threadWorkflowId: { ...state.threadWorkflowId, [threadId]: workflowId }
+          workflowThreadId: {
+            ...state.workflowThreadId,
+            [workflowId]: threadId
+          },
+          threadWorkflowId: {
+            ...state.threadWorkflowId,
+            [threadId]: workflowId
+          }
         }));
         return threadId;
       },
@@ -569,209 +588,211 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return connectPromise;
         }
         connectPromise = (async () => {
-        console.info("Connecting to global chat");
+          console.info("Connecting to global chat");
 
-        const state = get();
+          const state = get();
 
-        state.wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
-        Object.values(state.wsThreadSubscriptions).forEach((unsubscribe) =>
-          unsubscribe()
-        );
-        // Drop the now-dead handles immediately: if anything below throws,
-        // state must not keep truthy-but-unsubscribed entries, or sendMessage
-        // would skip re-subscribing and streamed replies would have no handler.
-        set({ wsEventUnsubscribes: [], wsThreadSubscriptions: {} });
+          state.wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
+          Object.values(state.wsThreadSubscriptions).forEach((unsubscribe) =>
+            unsubscribe()
+          );
+          // Drop the now-dead handles immediately: if anything below throws,
+          // state must not keep truthy-but-unsubscribed entries, or sendMessage
+          // would skip re-subscribing and streamed replies would have no handler.
+          set({ wsEventUnsubscribes: [], wsThreadSubscriptions: {} });
 
-        // Load threads if not already loaded
-        if (!state.threadsLoaded) {
-          await get().fetchThreads();
-        }
+          // Load threads if not already loaded
+          if (!state.threadsLoaded) {
+            await get().fetchThreads();
+          }
 
-        // Ensure WebSocket connection is established first
-        try {
-          await globalWebSocketManager.ensureConnection();
-        } catch (error) {
-          console.error("Failed to establish WebSocket connection:", error);
-          set({
-            error: "Failed to connect to chat service",
-            status: "failed"
-          });
-          throw error;
-        }
+          // Ensure WebSocket connection is established first
+          try {
+            await globalWebSocketManager.ensureConnection();
+          } catch (error) {
+            console.error("Failed to establish WebSocket connection:", error);
+            set({
+              error: "Failed to connect to chat service",
+              status: "failed"
+            });
+            throw error;
+          }
 
-        const eventUnsubscribes: Array<() => void> = [];
+          const eventUnsubscribes: Array<() => void> = [];
 
-        // Set up event handlers on the shared connection
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent(
-            "stateChange",
-            (newState: ConnectionState) => {
-              // Don't override loading status when WebSocket connects
-              const currentState = get();
-              if (
-                newState === "connected" &&
-                currentState.status === "loading"
-              ) {
-                // Keep loading status if we're waiting for a response
-                set({
-                  error: null,
-                  statusMessage: null
-                });
-              } else {
-                set({ status: newState });
-
-                if (newState === "connected") {
+          // Set up event handlers on the shared connection
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent(
+              "stateChange",
+              (newState: ConnectionState) => {
+                // Don't override loading status when WebSocket connects
+                const currentState = get();
+                if (
+                  newState === "connected" &&
+                  currentState.status === "loading"
+                ) {
+                  // Keep loading status if we're waiting for a response
                   set({
                     error: null,
                     statusMessage: null
                   });
+                } else {
+                  set({ status: newState });
+
+                  if (newState === "connected") {
+                    set({
+                      error: null,
+                      statusMessage: null
+                    });
+                  }
                 }
               }
-            }
-          )
-        );
-
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent(
-            "reconnecting",
-            (attempt: number, maxAttempts: number) => {
-              set({
-                statusMessage: Number.isFinite(maxAttempts)
-                  ? `Reconnecting... (attempt ${attempt}/${maxAttempts})`
-                  : `Reconnecting... (attempt ${attempt})`
-              });
-            }
-          )
-        );
-
-        const threadSubscriptions: Record<string, () => void> = {};
-        const stateThreads = Object.keys(get().threads);
-        stateThreads.forEach((threadId) => {
-          // Unsubscribe any handler that was registered between the
-          // initial cleanup and this point (possible during the await)
-          const existing = get().wsThreadSubscriptions[threadId];
-          if (existing) {
-            existing();
-          }
-          threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
-            threadId,
-            (data) => {
-              captureChatRunSpend(data, threadId, get);
-              handleChatWebSocketMessage(data, set, get, threadId);
-            }
+            )
           );
-        });
 
-        const sendManifest = () => {
-          const manifest = FrontendToolRegistry.getManifest();
-          if (manifest.length > 0) {
-            void globalWebSocketManager
-              .send({
-                type: "client_tools_manifest",
-                tools: manifest
-              })
-              .catch((e) => console.error("Failed to send manifest:", e));
-          }
-        };
-
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("open", sendManifest)
-        );
-
-        // After a reconnect, ask the server to replay what each in-flight
-        // generation emitted while the socket was down. The server keeps the
-        // agent turn running across the disconnect and buffers its frames;
-        // `resume_chat` reattaches this connection and replays from the
-        // thread's last seen `chat_seq`. Registered after sendManifest so the
-        // tools manifest lands before any replayed `tool_call` frames.
-        const resumeInFlightThreads = () => {
-          const s = get();
-          for (const [threadId, runtime] of Object.entries(s.threadRuntime)) {
-            if (
-              runtime.status !== "loading" &&
-              runtime.status !== "streaming" &&
-              runtime.status !== "stopping"
-            ) {
-              continue;
-            }
-            void globalWebSocketManager
-              .send({
-                command: "resume_chat",
-                data: {
-                  thread_id: threadId,
-                  last_seq: s.chatReplayCursors[threadId] ?? 0
-                }
-              })
-              .catch((e) =>
-                console.error("Failed to send resume_chat:", threadId, e)
-              );
-          }
-        };
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("open", resumeInFlightThreads)
-        );
-
-        // Discover turns this client knows nothing about. A page reload
-        // wipes threadRuntime and the replay cursors, so the loop above
-        // finds nothing even though the server kept the agent turn running.
-        // `list_chat_turns` answers with one `chat_turn_active` frame per
-        // running turn; the protocol handler reattaches each thread.
-        const discoverRunningTurns = () => {
-          void globalWebSocketManager
-            .send({ command: "list_chat_turns", data: {} })
-            .catch((e) => console.error("Failed to send list_chat_turns:", e));
-        };
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("open", discoverRunningTurns)
-        );
-
-        if (globalWebSocketManager.isConnectionOpen()) {
-          sendManifest();
-          // The initial connection's "open" fired before these subscribers
-          // existed — run discovery for it now that the per-thread handlers
-          // are registered.
-          discoverRunningTurns();
-        }
-
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent("error", (error: Error) => {
-            console.error("WebSocket error:", error);
-            let errorMessage = error.message;
-
-            if (!isLocalhost) {
-              errorMessage += " This may be due to an authentication issue.";
-            }
-
-            set({
-              error: errorMessage
-            });
-          })
-        );
-
-        eventUnsubscribes.push(
-          globalWebSocketManager.subscribeEvent(
-            "close",
-            (code?: number, _reason?: string) => {
-              if (code === 1008 || code === 4001 || code === 4003) {
-                // Authentication errors
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent(
+              "reconnecting",
+              (attempt: number, maxAttempts: number) => {
                 set({
-                  error: "Authentication failed. Please log in again."
+                  statusMessage: Number.isFinite(maxAttempts)
+                    ? `Reconnecting... (attempt ${attempt}/${maxAttempts})`
+                    : `Reconnecting... (attempt ${attempt})`
                 });
               }
+            )
+          );
+
+          const threadSubscriptions: Record<string, () => void> = {};
+          const stateThreads = Object.keys(get().threads);
+          stateThreads.forEach((threadId) => {
+            // Unsubscribe any handler that was registered between the
+            // initial cleanup and this point (possible during the await)
+            const existing = get().wsThreadSubscriptions[threadId];
+            if (existing) {
+              existing();
             }
-          )
-        );
+            threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
+              threadId,
+              (data) => {
+                captureChatRunSpend(data, threadId, get);
+                handleChatWebSocketMessage(data, set, get, threadId);
+              }
+            );
+          });
 
-        // Store subscriptions
-        set({
-          error: null,
-          wsEventUnsubscribes: eventUnsubscribes,
-          wsThreadSubscriptions: threadSubscriptions
-        });
+          const sendManifest = () => {
+            const manifest = FrontendToolRegistry.getManifest();
+            if (manifest.length > 0) {
+              void globalWebSocketManager
+                .send({
+                  type: "client_tools_manifest",
+                  tools: manifest
+                })
+                .catch((e) => console.error("Failed to send manifest:", e));
+            }
+          };
 
-        // Connection is automatic via globalWebSocketManager
-        // Subscriptions will trigger connection if not already connected
-        console.info("Global chat subscriptions set up");
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent("open", sendManifest)
+          );
+
+          // After a reconnect, ask the server to replay what each in-flight
+          // generation emitted while the socket was down. The server keeps the
+          // agent turn running across the disconnect and buffers its frames;
+          // `resume_chat` reattaches this connection and replays from the
+          // thread's last seen `chat_seq`. Registered after sendManifest so the
+          // tools manifest lands before any replayed `tool_call` frames.
+          const resumeInFlightThreads = () => {
+            const s = get();
+            for (const [threadId, runtime] of Object.entries(s.threadRuntime)) {
+              if (
+                runtime.status !== "loading" &&
+                runtime.status !== "streaming" &&
+                runtime.status !== "stopping"
+              ) {
+                continue;
+              }
+              void globalWebSocketManager
+                .send({
+                  command: "resume_chat",
+                  data: {
+                    thread_id: threadId,
+                    last_seq: s.chatReplayCursors[threadId] ?? 0
+                  }
+                })
+                .catch((e) =>
+                  console.error("Failed to send resume_chat:", threadId, e)
+                );
+            }
+          };
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent("open", resumeInFlightThreads)
+          );
+
+          // Discover turns this client knows nothing about. A page reload
+          // wipes threadRuntime and the replay cursors, so the loop above
+          // finds nothing even though the server kept the agent turn running.
+          // `list_chat_turns` answers with one `chat_turn_active` frame per
+          // running turn; the protocol handler reattaches each thread.
+          const discoverRunningTurns = () => {
+            void globalWebSocketManager
+              .send({ command: "list_chat_turns", data: {} })
+              .catch((e) =>
+                console.error("Failed to send list_chat_turns:", e)
+              );
+          };
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent("open", discoverRunningTurns)
+          );
+
+          if (globalWebSocketManager.isConnectionOpen()) {
+            sendManifest();
+            // The initial connection's "open" fired before these subscribers
+            // existed — run discovery for it now that the per-thread handlers
+            // are registered.
+            discoverRunningTurns();
+          }
+
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent("error", (error: Error) => {
+              console.error("WebSocket error:", error);
+              let errorMessage = error.message;
+
+              if (!isLocalhost) {
+                errorMessage += " This may be due to an authentication issue.";
+              }
+
+              set({
+                error: errorMessage
+              });
+            })
+          );
+
+          eventUnsubscribes.push(
+            globalWebSocketManager.subscribeEvent(
+              "close",
+              (code?: number, _reason?: string) => {
+                if (code === 1008 || code === 4001 || code === 4003) {
+                  // Authentication errors
+                  set({
+                    error: "Authentication failed. Please log in again."
+                  });
+                }
+              }
+            )
+          );
+
+          // Store subscriptions
+          set({
+            error: null,
+            wsEventUnsubscribes: eventUnsubscribes,
+            wsThreadSubscriptions: threadSubscriptions
+          });
+
+          // Connection is automatic via globalWebSocketManager
+          // Subscriptions will trigger connection if not already connected
+          console.info("Global chat subscriptions set up");
         })();
         try {
           await connectPromise;
@@ -848,12 +869,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ? noMediaModelSelectedMessage(mediaGeneration?.mode ?? "media")
             : NO_MODEL_SELECTED_MESSAGE;
           const knownThreadId = targetThreadId ?? currentThreadId;
-          set((state) => ({
-            error: reason,
-            ...(knownThreadId
-              ? threadRuntimeUpdate(state, knownThreadId, { error: reason })
-              : {})
-          }));
+          set((state) => {
+            const patch: Partial<GlobalChatState> = { error: reason };
+            if (knownThreadId) {
+              Object.assign(
+                patch,
+                threadRuntimeUpdate(state, knownThreadId, { error: reason })
+              );
+            }
+            return patch;
+          });
           return;
         }
 
@@ -864,14 +889,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const detail =
             connError instanceof Error ? connError.message : String(connError);
           const knownTid = targetThreadId ?? currentThreadId;
-          set((state) => ({
-            error: `Not connected to chat service: ${detail}`,
-            ...(knownTid
-              ? threadRuntimeUpdate(state, knownTid, {
-                  error: `Not connected to chat service: ${detail}`
+          const connectionError = `Not connected to chat service: ${detail}`;
+          set((state) => {
+            const patch: Partial<GlobalChatState> = { error: connectionError };
+            if (knownTid) {
+              Object.assign(
+                patch,
+                threadRuntimeUpdate(state, knownTid, {
+                  error: connectionError
                 })
-              : {})
-          }));
+              );
+            }
+            return patch;
+          });
           return;
         }
 
@@ -925,10 +955,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // untargeted sends bind the thread to the currently-open workflow as
         // before.
         const boundWorkflowId = targetThreadId
-          ? get().threads[tid]?.workflow_id ??
+          ? (get().threads[tid]?.workflow_id ??
             get().threadWorkflowId[tid] ??
-            null
-          : workflowId ?? null;
+            null)
+          : (workflowId ?? null);
         set((state) => ({
           threadWorkflowId: {
             ...state.threadWorkflowId,
@@ -941,9 +971,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const messageForCache: Message = {
           ...message,
           thread_id: threadId,
-          memory_enabled: memoryEnabled,
-          ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
+          memory_enabled: memoryEnabled
         };
+        if (mediaGeneration) {
+          messageForCache.media_generation = mediaGeneration;
+        }
 
         // Build the chat_message command data. Media-generation messages
         // use the provider/model chosen in the media composer instead of the
@@ -953,8 +985,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // are dropped from the send path. The active per-thread permission
         // mode is sent instead and governs how the agent's gated tool calls
         // are handled server-side.
-        const { tools: _tools, collections: _collections, ...messageWithoutTools } =
-          message;
+        const {
+          tools: _tools,
+          collections: _collections,
+          ...messageWithoutTools
+        } = message;
         const chatMessageData = {
           ...messageWithoutTools,
           workflow_id: message.workflow_id ?? boundWorkflowId,
@@ -962,10 +997,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
           memory_enabled: memoryEnabled,
           permission_mode: get().getPermissionMode(threadId),
           model: isMediaGeneration
-            ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
+            ? (mediaGeneration?.model ?? message.model ?? selectedModel?.id)
             : selectedModel?.id,
           provider: isMediaGeneration
-            ? mediaGeneration?.provider ?? message.provider ?? selectedModel?.provider
+            ? (mediaGeneration?.provider ??
+              message.provider ??
+              selectedModel?.provider)
             : selectedModel?.provider,
           media_generation: mediaGeneration
         };
@@ -986,22 +1023,28 @@ const useGlobalChatStore = create<GlobalChatState>()(
           await globalWebSocketManager.send(commandMessage);
 
           // Safety timeout - reset the thread if no response after 5 minutes
-          const timeoutId = setTimeout(() => {
-            const runtime = getThreadRuntime(get(), tid);
-            if (runtime.status === "loading" || runtime.status === "streaming") {
-              console.warn("Generation timeout - resetting thread to idle");
-              set((state) =>
-                threadRuntimeUpdate(state, tid, {
-                  status: "idle",
-                  progress: { current: 0, total: 0 },
-                  statusMessage: null,
-                  planningUpdate: null,
-                  taskUpdate: null,
-                  sendMessageTimeoutId: null
-                })
-              );
-            }
-          }, 5 * 60 * 1000);
+          const timeoutId = setTimeout(
+            () => {
+              const runtime = getThreadRuntime(get(), tid);
+              if (
+                runtime.status === "loading" ||
+                runtime.status === "streaming"
+              ) {
+                console.warn("Generation timeout - resetting thread to idle");
+                set((state) =>
+                  threadRuntimeUpdate(state, tid, {
+                    status: "idle",
+                    progress: { current: 0, total: 0 },
+                    statusMessage: null,
+                    planningUpdate: null,
+                    taskUpdate: null,
+                    sendMessageTimeoutId: null
+                  })
+                );
+              }
+            },
+            5 * 60 * 1000
+          );
           set((state) =>
             threadRuntimeUpdate(state, tid, { sendMessageTimeoutId: timeoutId })
           );
@@ -1099,10 +1142,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         } catch (error: unknown) {
           // Surface NOT_FOUND without logging — missing threads are expected
           // when fetching by stale id.
-          const isNotFound = isTRPCErrorWithCode(
-            error,
-            ApiErrorCode.NOT_FOUND
-          );
+          const isNotFound = isTRPCErrorWithCode(error, ApiErrorCode.NOT_FOUND);
           if (!isNotFound) {
             console.error("Failed to fetch thread:", error);
           }
@@ -1122,7 +1162,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // means "use current"; an explicit `null` forces a workflow-agnostic
         // thread.
         const boundWorkflowId =
-          workflowId !== undefined ? workflowId : get().workflowId ?? null;
+          workflowId !== undefined ? workflowId : (get().workflowId ?? null);
 
         // Create thread locally; server will auto-create on first message
         const id = crypto.randomUUID();
@@ -1148,34 +1188,38 @@ const useGlobalChatStore = create<GlobalChatState>()(
           handleChatWebSocketMessage(data, set, get, id);
         });
 
-        set((state) => ({
-          threads: {
-            ...state.threads,
-            [id]: localThread
-          },
-          threadWorkflowId: {
-            ...state.threadWorkflowId,
-            [id]: boundWorkflowId
-          },
-          messageCache: {
-            ...state.messageCache,
-            [id]: []
-          },
-          wsThreadSubscriptions: {
-            ...state.wsThreadSubscriptions,
-            [id]: newUnsub
-          },
-          ...(makeCurrent
-            ? {
-                currentThreadId: id,
-                lastUsedThreadId: id,
-                workflowThreadId: boundWorkflowId
-                  ? { ...state.workflowThreadId, [boundWorkflowId]: id }
-                  : state.workflowThreadId,
-                ...mirrorsForThread({ ...state, currentThreadId: id }, id)
-              }
-            : {})
-        }));
+        set((state) => {
+          const patch: Partial<GlobalChatState> = {
+            threads: {
+              ...state.threads,
+              [id]: localThread
+            },
+            threadWorkflowId: {
+              ...state.threadWorkflowId,
+              [id]: boundWorkflowId
+            },
+            messageCache: {
+              ...state.messageCache,
+              [id]: []
+            },
+            wsThreadSubscriptions: {
+              ...state.wsThreadSubscriptions,
+              [id]: newUnsub
+            }
+          };
+          if (makeCurrent) {
+            patch.currentThreadId = id;
+            patch.lastUsedThreadId = id;
+            patch.workflowThreadId = boundWorkflowId
+              ? { ...state.workflowThreadId, [boundWorkflowId]: id }
+              : state.workflowThreadId;
+            Object.assign(
+              patch,
+              mirrorsForThread({ ...state, currentThreadId: id }, id)
+            );
+          }
+          return patch;
+        });
 
         return id;
       },
@@ -1239,8 +1283,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadUnsubscribe?.();
             const { [threadId]: _deletedTodos, ...remainingTodos } =
               state.todosByThread;
-            const { [threadId]: _deletedReplayCursor, ...remainingReplayCursors } =
-              state.chatReplayCursors;
+            const {
+              [threadId]: _deletedReplayCursor,
+              ...remainingReplayCursors
+            } = state.chatReplayCursors;
             const { [threadId]: deletedRuntime, ...remainingRuntime } =
               state.threadRuntime;
             if (deletedRuntime?.sendMessageTimeoutId != null) {
@@ -1365,17 +1411,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         const load = (async (): Promise<Message[]> => {
           try {
-            const data = await trpcClient.messages.list.query({
-              thread_id: threadId,
-              ...(cursor ? { cursor } : {}),
-              limit: 100
-            });
+            const listInput: Parameters<
+              typeof trpcClient.messages.list.query
+            >[0] = { thread_id: threadId, limit: 100 };
+            if (cursor) listInput.cursor = cursor;
+            const data = await trpcClient.messages.list.query(listInput);
 
-            // The tRPC response shape is a strict subset of the web-side
-            // `Message` openapi type (which includes agent-specific fields
-            // that this endpoint never emits). Cast to the broader type so
-            // downstream store operations compile.
-            const messages = (data.messages ?? []) as unknown as Message[];
+            // SAFETY: the tRPC response shape is a strict subset of the
+            // web-side `Message` openapi type — the endpoint never emits the
+            // agent-specific fields that type adds, and every one of them is
+            // optional, so each row read here is a `Message` at run time.
+            const messages = (data.messages ?? []) as Message[];
             const nextCursor = data.next;
 
             set((state) => {
@@ -1523,7 +1569,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const tid = threadId ?? currentThreadId;
 
         // Clear the thread's pending sendMessage timeout
-        const pendingTimeoutId = getThreadRuntime(get(), tid).sendMessageTimeoutId;
+        const pendingTimeoutId = getThreadRuntime(
+          get(),
+          tid
+        ).sendMessageTimeoutId;
         if (pendingTimeoutId !== null) {
           clearTimeout(pendingTimeoutId);
         }
@@ -1625,18 +1674,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
       name: "global-chat-storage",
       version: 1,
       // Persist minimal subset incl. selections; do not persist message cache
-      // Note: Return type cast needed due to zustand persist middleware type limitations
-      partialize: (state) => ({
-        threads: state.threads || {},
-        lastUsedThreadId: state.lastUsedThreadId,
-        selectedModel: state.selectedModel,
-        permissionMode: state.permissionMode,
-        memoryEnabled: state.memoryEnabled,
-        // Per-workflow thread binding so the editor side panel restores the
-        // right conversation across reloads.
-        workflowThreadId: state.workflowThreadId,
-        threadWorkflowId: state.threadWorkflowId
-      }) as GlobalChatState,
+      partialize: (state) =>
+        ({
+          threads: state.threads || {},
+          lastUsedThreadId: state.lastUsedThreadId,
+          selectedModel: state.selectedModel,
+          permissionMode: state.permissionMode,
+          memoryEnabled: state.memoryEnabled,
+          // Per-workflow thread binding so the editor side panel restores the
+          // right conversation across reloads.
+          workflowThreadId: state.workflowThreadId,
+          threadWorkflowId: state.threadWorkflowId
+        }),
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
@@ -1649,7 +1698,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           permissionMode: {} as Record<string, PermissionMode>
         };
         if (!persistedState || typeof persistedState !== "object") {
-          return fallback as unknown as GlobalChatState;
+          return fallback;
         }
         const state = persistedState as Record<string, unknown>;
         return {
@@ -1664,8 +1713,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               ? state.lastUsedThreadId
               : fallback.lastUsedThreadId,
           selectedModel:
-            state.selectedModel &&
-            typeof state.selectedModel === "object"
+            state.selectedModel && typeof state.selectedModel === "object"
               ? (state.selectedModel as LanguageModel)
               : fallback.selectedModel,
           permissionMode:
@@ -1674,7 +1722,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             !Array.isArray(state.permissionMode)
               ? (state.permissionMode as Record<string, PermissionMode>)
               : fallback.permissionMode
-        } as unknown as GlobalChatState;
+        };
       },
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
@@ -1787,7 +1835,10 @@ declare global {
   }
 }
 
-if (typeof window !== "undefined" && !window.__nodetoolGlobalChatListenersBound) {
+if (
+  typeof window !== "undefined" &&
+  !window.__nodetoolGlobalChatListenersBound
+) {
   window.__nodetoolGlobalChatListenersBound = true;
   window.__nodetoolGlobalChatListenersCleanup = registerGlobalChatListeners();
 }
@@ -1857,7 +1908,7 @@ export const useThreadRuntime = (threadId: string | null): ThreadRuntime =>
   useGlobalChatStore(
     useShallow((state) =>
       threadId
-        ? state.threadRuntime[threadId] ?? DEFAULT_THREAD_RUNTIME
+        ? (state.threadRuntime[threadId] ?? DEFAULT_THREAD_RUNTIME)
         : DEFAULT_THREAD_RUNTIME
     )
   );

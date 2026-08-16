@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ChannelsBody } from "../ChannelsBody";
@@ -7,6 +8,11 @@ import "@testing-library/jest-dom";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
+
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
@@ -54,13 +60,13 @@ const renderWithTheme = (ui: React.ReactElement) => {
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.image.Channels",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof ChannelsBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.image.Channels",
-    properties: [{ name: "image", type: "image" }],
+    properties: [{ name: "image", type: { type: "image" } }],
     outputs: [],
     is_streaming_output: false
-  } as unknown as Parameters<typeof ChannelsBody>[0]["nodeMetadata"],
-  data: { properties: {} } as unknown as Parameters<typeof ChannelsBody>[0]["data"],
+  }),
+  data: stub<Parameters<typeof ChannelsBody>[0]["data"]>({ properties: {} }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

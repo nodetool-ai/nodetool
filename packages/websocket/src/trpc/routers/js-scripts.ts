@@ -45,6 +45,15 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
+/** A decoded JSON value: what a stored document or graph carries. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const listInput = z.object({
   projectId: z.string().optional()
 });
@@ -87,10 +96,12 @@ function toVersionListItem(version: JsScriptVersion) {
  * A version row carries its document as JSON text on SQLite and as an object on
  * Postgres, so parse only when it is a string.
  */
-function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded, and the row's
+  // document is JSON either way.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     throwApiError(
       ApiErrorCode.INTERNAL_ERROR,
@@ -145,13 +156,18 @@ export const jsScriptsRouter = router({
           return jsScriptResponse.parse(existing.toResponse());
         }
       }
-      const script = new JsScript({
-        ...(input.id ? { id: input.id } : {}),
+      const fields: ConstructorParameters<typeof JsScript>[0] = {
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,
         document: JSON.stringify(input.document ?? emptyJsScriptDocument())
-      });
+      };
+      // Set only when the client supplied one — the model defaults an id it
+      // does not already own as a property.
+      if (input.id) {
+        fields.id = input.id;
+      }
+      const script = new JsScript(fields);
       await script.save();
       return jsScriptResponse.parse(script.toResponse());
     }),

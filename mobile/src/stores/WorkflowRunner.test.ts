@@ -14,43 +14,39 @@ import {
 } from './WorkflowRunner';
 import { webSocketService } from '../services/WebSocketService';
 import { useAuthStore } from './AuthStore';
-import { notifyRunFinished } from '../services/notifications';
+import * as notifications from '../services/notifications';
+import { apiService } from '../services/api';
 import type { Workflow } from '../types/workflow';
 
-jest.mock('../services/WebSocketService', () => ({
-  webSocketService: {
-    ensureConnection: jest.fn().mockResolvedValue(undefined),
-    subscribe: jest.fn(),
-    send: jest.fn().mockResolvedValue(undefined),
-  },
-}));
+// Every collaborator below is the real module; only the methods that would
+// open a socket, read the API host, post a notification, or hit the keychain
+// are stubbed on the real object.
+const mockWs = {
+  ensureConnection: jest
+    .spyOn(webSocketService, 'ensureConnection')
+    .mockResolvedValue(undefined),
+  subscribe: jest.spyOn(webSocketService, 'subscribe'),
+  send: jest.spyOn(webSocketService, 'send').mockResolvedValue(undefined),
+};
 
-jest.mock('../services/api', () => ({
-  apiService: {
-    getApiHost: jest.fn().mockReturnValue('http://localhost:7777'),
-  },
-}));
-
-jest.mock('../services/notifications', () => ({
-  notifyRunFinished: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock('./AuthStore', () => ({
-  useAuthStore: {
-    getState: jest.fn().mockReturnValue({ session: null }),
-  },
-}));
-
-const mockWs = webSocketService as jest.Mocked<typeof webSocketService>;
+jest.spyOn(apiService, 'getApiHost').mockReturnValue('http://localhost:7777');
+const mockNotifyRunFinished = jest
+  .spyOn(notifications, 'notifyRunFinished')
+  .mockResolvedValue(undefined);
+// The real auth store, driven to the signed-out state the runner expects.
+useAuthStore.setState({ session: null });
 
 const WORKFLOW_ID = 'wf-1';
 
-const makeWorkflow = (): Workflow =>
-  ({
-    id: WORKFLOW_ID,
-    name: 'Test',
-    graph: { nodes: [], edges: [] },
-  } as unknown as Workflow);
+const makeWorkflow = (): Workflow => ({
+  id: WORKFLOW_ID,
+  name: 'Test',
+  description: '',
+  graph: { nodes: [], edges: [] },
+  access: 'private',
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+});
 
 /**
  * Boots a store through `run()` and returns the store plus the message handler
@@ -76,7 +72,7 @@ async function bootStore(): Promise<{
 describe('WorkflowRunner', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuthStore.getState as jest.Mock).mockReturnValue({ session: null });
+    useAuthStore.setState({ session: null });
     mockWs.subscribe.mockReturnValue(() => {});
   });
 
@@ -114,8 +110,20 @@ describe('WorkflowRunner', () => {
     });
 
     it('uses session token and user id when authenticated', async () => {
-      (useAuthStore.getState as jest.Mock).mockReturnValue({
-        session: { access_token: 'tok-123', user: { id: 'user-9' } },
+      useAuthStore.setState({
+        session: {
+          access_token: 'tok-123',
+          refresh_token: 'refresh-123',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: {
+            id: 'user-9',
+            aud: 'authenticated',
+            app_metadata: {},
+            user_metadata: {},
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        },
       });
       await bootStore();
       const sent = mockWs.send.mock.calls[0][0] as { data: Record<string, unknown> };
@@ -126,21 +134,38 @@ describe('WorkflowRunner', () => {
     it('filters out bypassed nodes and their edges', async () => {
       const store = createWorkflowRunnerStore('bypass-test');
       mockWs.subscribe.mockImplementation(() => () => {});
-      const workflow = {
+      const workflow: Workflow = {
+        ...makeWorkflow(),
         id: 'bypass-test',
         name: 'Bypass',
         graph: {
           nodes: [
-            { id: 'a', data: {} },
-            { id: 'b', data: { bypassed: true } },
-            { id: 'c', data: {} },
+            { id: 'a', type: 'nodetool.text.Concat', data: {} },
+            {
+              id: 'b',
+              type: 'nodetool.text.Concat',
+              data: { bypassed: true },
+            },
+            { id: 'c', type: 'nodetool.text.Concat', data: {} },
           ],
           edges: [
-            { source: 'a', target: 'b' },
-            { source: 'a', target: 'c' },
+            {
+              id: 'e1',
+              source: 'a',
+              sourceHandle: 'output',
+              target: 'b',
+              targetHandle: 'input',
+            },
+            {
+              id: 'e2',
+              source: 'a',
+              sourceHandle: 'output',
+              target: 'c',
+              targetHandle: 'input',
+            },
           ],
         },
-      } as unknown as Workflow;
+      };
       await store.getState().run({}, workflow);
       const sent = mockWs.send.mock.calls[0][0] as {
         data: { graph: { nodes: unknown[]; edges: unknown[] } };
@@ -250,7 +275,7 @@ describe('WorkflowRunner', () => {
   });
 
   describe('run-finished notifications', () => {
-    const mockNotify = notifyRunFinished as jest.MockedFunction<typeof notifyRunFinished>;
+    const mockNotify = mockNotifyRunFinished;
 
     it('notifies on completion with the job id and workflow name', async () => {
       const { handler } = await bootStore();

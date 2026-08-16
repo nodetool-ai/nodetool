@@ -36,7 +36,7 @@ jest.mock("../../../components/node_types/PlaceholderNode", () => ({
 }));
 
 jest.mock("../../../utils/lodashAlternatives", () => ({
-  debounce: (fn: (...args: unknown[]) => unknown) => fn
+  debounce: <F,>(fn: F) => fn
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
@@ -52,6 +52,7 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useNodeContextMenu } from "../useNodeContextMenu";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import { useNodeStoreRef, useNodes } from "../../../contexts/NodeContext";
@@ -71,19 +72,19 @@ import { useReactFlow } from "@xyflow/react";
 const mockedUseContextMenuStore = useContextMenuStore as jest.Mock;
 const mockedUseNodes = useNodes as jest.Mock;
 const mockedUseNodeStoreRef = useNodeStoreRef as jest.Mock;
-const mockedUseNotificationStore = useNotificationStore as unknown as jest.Mock;
-const mockedUseResultsStore = useResultsStore as unknown as jest.Mock;
+const mockedUseNotificationStore = asMock(useNotificationStore);
+const mockedUseResultsStore = asMock(useResultsStore);
 const mockedUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockedUseClipboard = useClipboard as jest.Mock;
 const mockedUseRemoveFromGroup = useRemoveFromGroup as jest.Mock;
 const mockedUseDuplicateNodes = useDuplicateNodes as jest.Mock;
-const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+const mockedUseMetadataStore = asMock(useMetadataStore);
 const mockedSubgraph = subgraph as jest.Mock;
 const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 const mockedConstantToInputType = constantToInputType as jest.Mock;
 const mockedInputToConstantType = inputToConstantType as jest.Mock;
 const mockedUseReactFlow = useReactFlow as jest.Mock;
-const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
+const mockRunInline = asMock(runInlineGraphJob);
 
 describe("useNodeContextMenu", () => {
   const mockCloseContextMenu = jest.fn();
@@ -202,9 +203,7 @@ describe("useNodeContextMenu", () => {
     mockGetMetadata.mockReturnValue({ title: "String Constant" });
     // buildRunSubgraph (used by handleRunFromHere) classifies upstream nodes via
     // the store's getState accessor, not the hook selector.
-    (
-      useMetadataStore as unknown as { getState: jest.Mock }
-    ).getState.mockReturnValue({ getMetadata: mockGetMetadata });
+    asMockStore(useMetadataStore).getState.mockReturnValue({ getMetadata: mockGetMetadata });
     mockedConstantToInputType.mockReturnValue("nodetool.input.StringInput");
     mockedInputToConstantType.mockReturnValue("nodetool.constant.String");
   });
@@ -367,7 +366,7 @@ describe("useNodeContextMenu", () => {
       expect(mockAddNotification).toHaveBeenCalledWith({
         type: "info",
         alert: true,
-        content: "Copied Node Data to Clipboard!"
+        content: "Copied node data to the clipboard"
       });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });

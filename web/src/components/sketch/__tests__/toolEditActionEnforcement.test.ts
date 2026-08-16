@@ -13,6 +13,7 @@ import {
   isPaintingTool,
   createDefaultDocument
 } from "../types";
+import { stub } from "../../../test-utils/doubles";
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { FillTool } from "../tools/FillTool";
@@ -92,13 +93,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }

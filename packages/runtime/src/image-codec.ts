@@ -44,7 +44,7 @@ async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule>("sharp");
       if (!mod) return null;
-      return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
+      return "default" in mod ? mod.default : mod;
     })();
     _sharpPromise = attempt;
     attempt.catch(() => {
@@ -96,7 +96,7 @@ export async function encodeRawRgbaToPng(
  * encoded to PNG and `mimeType` set to `image/png`; otherwise return it
  * unchanged. Use at any boundary that must hand out a portable image.
  */
-export async function encodeRawImageRef(ref: unknown): Promise<unknown> {
+export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
   if (!isRawRgbaImage(ref)) return ref;
   const png = await encodeRawRgbaToPng(ref.data, ref.width, ref.height);
   return { ...(ref as ImageRef), data: png, mimeType: "image/png" };

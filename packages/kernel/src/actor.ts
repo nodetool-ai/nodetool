@@ -778,10 +778,7 @@ export class NodeActor {
 
     const collect = (
       key: string
-    ): {
-      values: Record<string, unknown>;
-      envelopes: Map<string, MessageEnvelope>;
-    } => {
+    ) => {
       const values: Record<string, unknown> = {};
       const envelopes = new Map<string, MessageEnvelope>();
       for (const h of dataHandles) {
@@ -1962,24 +1959,30 @@ export class NodeActor {
     error?: string,
     errorDetail?: NodeErrorDetail
   ): void {
-    this._emitMessage({
-      type: "node_update",
+    const head = {
+      type: "node_update" as const,
       node_id: this.node.id,
       node_name: this.node.name ?? this.node.type,
       node_type: this.node.type,
       status,
       result: result ?? null,
-      error: error ?? null,
-      // Omitted (not null) when absent: every consumer treats a missing
-      // detail as "no structured cause", and the reliability goldens pin
-      // the node_update wire shape for ordinary runs.
-      ...(errorDetail ? { error_detail: errorDetail } : {}),
+      error: error ?? null
+    };
+    const tail = {
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)
           : null,
       provider_cost: this._executionContext?.getProviderCost?.() ?? null
-    });
+    };
+    // Omitted (not null) when absent: every consumer treats a missing
+    // detail as "no structured cause", and the reliability goldens pin
+    // the node_update wire shape for ordinary runs.
+    this._emitMessage(
+      errorDetail
+        ? { ...head, error_detail: errorDetail, ...tail }
+        : { ...head, ...tail }
+    );
   }
 
   /**
@@ -2020,7 +2023,7 @@ export class NodeActor {
 
   private _filterStreamingPartial(
     partial: Record<string, unknown>
-  ): Record<string, unknown> {
+  ) {
     const filtered: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(partial)) {
       if (value === null || value === undefined) continue;

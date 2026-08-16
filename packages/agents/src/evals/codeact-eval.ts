@@ -138,7 +138,9 @@ export function checkCodeActExpectations(
     checks.push({
       name: `result:${expect.resultCheckLabel ?? "predicate"}`,
       pass,
-      detail: pass ? undefined : `got ${JSON.stringify(obs.result)?.slice(0, 200)}`
+      detail: pass
+        ? undefined
+        : `got ${JSON.stringify(obs.result)?.slice(0, 200)}`
     });
   }
   return checks;
@@ -156,13 +158,14 @@ async function runCase(
   // A case that allows packages needs a catalog to resolve them; one that does
   // not stays on the process default, which is what every other case runs with.
   const sandboxPackages = evalCase.sandboxPackages ?? [];
-  const context = new ProcessingContext({
+  const contextInit: ConstructorParameters<typeof ProcessingContext>[0] = {
     jobId: `codeact-eval-${randomUUID()}`,
-    userId: "eval-user",
-    ...(sandboxPackages.length > 0
-      ? { sandboxModuleCatalog: shippedPackCatalog() }
-      : {})
-  });
+    userId: "eval-user"
+  };
+  if (sandboxPackages.length > 0) {
+    contextInit.sandboxModuleCatalog = shippedPackCatalog();
+  }
+  const context = new ProcessingContext(contextInit);
 
   const step: Step = {
     id: randomUUID(),

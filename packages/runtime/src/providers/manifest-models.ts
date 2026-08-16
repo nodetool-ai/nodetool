@@ -8,12 +8,7 @@
  */
 
 import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
-import type {
-  ImageModel,
-  MusicModel,
-  TTSModel,
-  VideoModel
-} from "./types.js";
+import type { ImageModel, MusicModel, TTSModel, VideoModel } from "./types.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
@@ -112,11 +107,7 @@ export function enumValuesFor(
 }
 
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
-export function videoConstraints(n: ManifestNode): {
-  durations?: number[];
-  resolutions?: string[];
-  aspectRatios?: string[];
-} {
+export function videoConstraints(n: ManifestNode) {
   const durationEnum = enumValuesFor(n, "duration");
   const durations = durationEnum
     ?.map((v) => Number(v))
@@ -154,10 +145,7 @@ export function sizeEnumToAspect(value: string): string | undefined {
 }
 
 /** Option constraints (aspect/resolution) for an image endpoint. */
-export function imageConstraints(n: ManifestNode): {
-  aspectRatios?: string[];
-  resolutions?: string[];
-} {
+export function imageConstraints(n: ManifestNode) {
   // FAL splits size across `aspect_ratio` and `image_size`; union both into one
   // aspect-ratio list, preserving first-seen order and dropping duplicates.
   const fromAspect = enumValuesFor(n, "aspect_ratio") ?? [];
@@ -201,7 +189,9 @@ export function inferVideoTasks(name: string, id: string): string[] {
   if (matchesAny(hay, "lipsync", "lip-sync", "lip sync")) {
     return ["lip_sync"];
   }
-  if (matchesAny(hay, "video-to-video", "video to video", "videotovideo", "v2v")) {
+  if (
+    matchesAny(hay, "video-to-video", "video to video", "videotovideo", "v2v")
+  ) {
     return ["video_to_video"];
   }
   if (matchesAny(hay, "text-to-video", "text to video", "texttovideo")) {
@@ -228,18 +218,61 @@ export function inferVideoTasks(name: string, id: string): string[] {
  */
 export function inferImageTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
-  if (matchesAny(hay, "upscal", "super-resolution", "super resolution", "superres", "esrgan", "seedvr", "clarity")) {
+  if (
+    matchesAny(
+      hay,
+      "upscal",
+      "super-resolution",
+      "super resolution",
+      "superres",
+      "esrgan",
+      "seedvr",
+      "clarity"
+    )
+  ) {
     return ["upscale"];
   }
-  if (matchesAny(hay, "background/remove", "remove-background", "remove background", "removebackground", "rembg", "bg-remove", "/remove-bg", "background-removal", "bria/background")) {
+  if (
+    matchesAny(
+      hay,
+      "background/remove",
+      "remove-background",
+      "remove background",
+      "removebackground",
+      "rembg",
+      "bg-remove",
+      "/remove-bg",
+      "background-removal",
+      "bria/background"
+    )
+  ) {
     return ["remove_background"];
   }
   // IC-Light (fal-ai/iclight-v2, zsxkib/ic-light-background, …) is a relighting
   // model but never spells out "relight" in its id/name, so match it explicitly.
-  if (matchesAny(hay, "relight", "relighting", "re-light", "iclight", "ic-light", "ic_light")) {
+  if (
+    matchesAny(
+      hay,
+      "relight",
+      "relighting",
+      "re-light",
+      "iclight",
+      "ic-light",
+      "ic_light"
+    )
+  ) {
     return ["relight"];
   }
-  if (matchesAny(hay, "vectorize", "vectorization", "/vectorize", "to-svg", "image-to-svg")) {
+  if (
+    matchesAny(
+      hay,
+      "vectorize",
+      "vectorization",
+      "/vectorize",
+      "to-svg",
+      "image-to-svg"
+    )
+  ) {
     return ["vectorize"];
   }
   return ["text_to_image", "image_to_image"];
@@ -444,22 +477,36 @@ export function getModelInputFields(
   );
   if (!entry) return [];
   if (entry.fields?.length) {
-    return entry.fields.map((f) => ({
-      name: f.name,
-      type: f.type.toLowerCase(),
-      ...(f.values && f.values.length > 0 ? { enumValues: f.values } : {}),
-      ...(f.required !== undefined ? { required: f.required } : {}),
-      ...(f.default !== undefined ? { default: f.default } : {}),
-      ...(typeof f.max === "number" ? { max: f.max } : {})
-    }));
+    return entry.fields.map((f) => {
+      const field: ModelInputField = {
+        name: f.name,
+        type: f.type.toLowerCase()
+      };
+      if (f.values && f.values.length > 0) {
+        field.enumValues = f.values;
+      }
+      if (f.required !== undefined) {
+        field.required = f.required;
+      }
+      if (f.default !== undefined) {
+        field.default = f.default;
+      }
+      if (typeof f.max === "number") {
+        field.max = f.max;
+      }
+      return field;
+    });
   }
-  return (entry.inputFields ?? []).map((f) => ({
-    name: f.apiParamName ?? f.name,
-    type: f.propType.toLowerCase(),
-    ...(f.enumValues && f.enumValues.length > 0
-      ? { enumValues: f.enumValues }
-      : {})
-  }));
+  return (entry.inputFields ?? []).map((f) => {
+    const field: ModelInputField = {
+      name: f.apiParamName ?? f.name,
+      type: f.propType.toLowerCase()
+    };
+    if (f.enumValues && f.enumValues.length > 0) {
+      field.enumValues = f.enumValues;
+    }
+    return field;
+  });
 }
 
 /** Kie execution metadata carried on a manifest entry. */
@@ -482,18 +529,17 @@ export function getManifestNodeMeta(
     (n) => nodeId(n) === modelId
   );
   if (!entry) return undefined;
-  return {
-    useSuno: Boolean(entry.useSuno),
-    ...(entry.sunoEndpoint !== undefined
-      ? { sunoEndpoint: entry.sunoEndpoint }
-      : {}),
-    ...(entry.pollInterval !== undefined
-      ? { pollInterval: entry.pollInterval }
-      : {}),
-    ...(entry.maxAttempts !== undefined
-      ? { maxAttempts: entry.maxAttempts }
-      : {})
-  };
+  const meta: ManifestNodeMeta = { useSuno: Boolean(entry.useSuno) };
+  if (entry.sunoEndpoint !== undefined) {
+    meta.sunoEndpoint = entry.sunoEndpoint;
+  }
+  if (entry.pollInterval !== undefined) {
+    meta.pollInterval = entry.pollInterval;
+  }
+  if (entry.maxAttempts !== undefined) {
+    meta.maxAttempts = entry.maxAttempts;
+  }
+  return meta;
 }
 
 // Auxiliary image inputs (mask / control / reference / style / end-frame, …)
@@ -529,9 +575,7 @@ const PRIMARY_IMAGE_PRIORITY = [
 export function selectMaskImageInput(
   inputs: ModelImageInput[]
 ): ModelImageInput | undefined {
-  return inputs.find(
-    (i) => /mask/i.test(i.name) || /mask/i.test(i.apiName)
-  );
+  return inputs.find((i) => /mask/i.test(i.name) || /mask/i.test(i.apiName));
 }
 
 /**
@@ -621,7 +665,13 @@ export function isTTSNode(n: ManifestNode): boolean {
   if (n.moduleName === "text_to_speech") return true;
   if (explicitTasks(n)?.includes("text_to_speech")) return true;
   const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();
-  return matchesAny(hay, "text-to-speech", "text to speech", "texttospeech", "tts");
+  return matchesAny(
+    hay,
+    "text-to-speech",
+    "text to speech",
+    "texttospeech",
+    "tts"
+  );
 }
 
 export function loadTTSModels(
@@ -646,12 +696,15 @@ export function buildTTSModels(
     // Preset voices come from an enumerated `voice` (or `speaker`) field.
     // Models that take a free-form voice id / reference audio have none.
     const voices = enumValuesFor(n, "voice") ?? enumValuesFor(n, "speaker");
-    seen.set(id, {
+    const model: TTSModel = {
       id,
       name: nodeName(n),
-      provider: provider as TTSModel["provider"],
-      ...(voices ? { voices } : {})
-    });
+      provider: provider as TTSModel["provider"]
+    };
+    if (voices) {
+      model.voices = voices;
+    }
+    seen.set(id, model);
   }
 
   return [...seen.values()];

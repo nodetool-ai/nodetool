@@ -10,6 +10,7 @@ import {
   displayableGenerations,
   type Generation
 } from "../nodeGenerations";
+import { stub } from "../../test-utils/doubles";
 import type { Asset } from "../../stores/ApiTypes";
 
 const gen = (outputs: Record<string, unknown>): Generation => ({
@@ -21,14 +22,14 @@ const gen = (outputs: Record<string, unknown>): Generation => ({
 });
 
 const asset = (id: string, jobId: string, createdAt: string): Asset =>
-  ({
+  stub<Asset>({
     id,
     job_id: jobId,
     node_id: "n1",
     content_type: "image/png",
     get_url: `http://x/${id}.png`,
     created_at: createdAt
-  }) as unknown as Asset;
+  });
 
 describe("outputOf", () => {
   it("returns the named handle when present", () => {
@@ -54,7 +55,7 @@ describe("assetToOutputValue", () => {
   });
 
   it("maps a text/plain asset to a text value using inline metadata", () => {
-    const textAsset = {
+    const textAsset = stub<Asset>({
       id: "t1",
       job_id: "j1",
       node_id: "n1",
@@ -62,7 +63,7 @@ describe("assetToOutputValue", () => {
       get_url: "http://x/t1.txt",
       metadata: { text: "hello world" },
       created_at: "2026-01-01T00:00:00Z"
-    } as unknown as Asset;
+    });
     expect(assetToOutputValue(textAsset)).toEqual({
       type: "text",
       text: "hello world",
@@ -71,11 +72,11 @@ describe("assetToOutputValue", () => {
   });
 
   it("returns empty text when a text asset has no inline metadata", () => {
-    const textAsset = {
+    const textAsset = stub<Asset>({
       id: "t2",
       content_type: "text/plain",
       get_url: "http://x/t2.txt"
-    } as unknown as Asset;
+    });
     expect(assetToOutputValue(textAsset)).toEqual({
       type: "text",
       text: "",
@@ -84,12 +85,12 @@ describe("assetToOutputValue", () => {
   });
 
   it("maps an application/json asset to its inline value", () => {
-    const jsonAsset = {
+    const jsonAsset = stub<Asset>({
       id: "jx",
       content_type: "application/json",
       get_url: "http://x/jx.json",
       metadata: { json: { output: ["a", "b"], index: 1 } }
-    } as unknown as Asset;
+    });
     expect(assetToOutputValue(jsonAsset)).toEqual({
       type: "json",
       value: { output: ["a", "b"], index: 1 },
@@ -108,7 +109,7 @@ describe("assetToGeneration", () => {
   });
 
   it("reloads a JSON generation's whole output dict so per-handle reads mirror a live run", () => {
-    const jsonAsset = {
+    const jsonAsset = stub<Asset>({
       id: "jg",
       job_id: "j9",
       node_id: "n1",
@@ -116,7 +117,7 @@ describe("assetToGeneration", () => {
       get_url: "http://x/jg.json",
       metadata: { json: { item: "z", index: 2, output: ["x", "y", "z"] } },
       created_at: "2026-01-01T00:00:00Z"
-    } as unknown as Asset;
+    });
     const g = assetToGeneration(jsonAsset);
     expect(g.assetId).toBe("jg");
     // outputs ARE the persisted dict (not wrapped under `output`), so a body
@@ -126,20 +127,20 @@ describe("assetToGeneration", () => {
   });
 
   it("falls back to a single output value when a JSON asset has no inline dict", () => {
-    const jsonAsset = {
+    const jsonAsset = stub<Asset>({
       id: "jg2",
       job_id: "j9",
       node_id: "n1",
       content_type: "application/json",
       get_url: "http://x/jg2.json",
       created_at: "2026-01-01T00:00:00Z"
-    } as unknown as Asset;
+    });
     const g = assetToGeneration(jsonAsset);
     expect(g.outputs.output).toEqual({ type: "json", uri: "http://x/jg2.json" });
   });
 
   it("reloads a text generation as a plain string so it mirrors a live run", () => {
-    const textAsset = {
+    const textAsset = stub<Asset>({
       id: "tg",
       job_id: "j7",
       node_id: "n1",
@@ -147,7 +148,7 @@ describe("assetToGeneration", () => {
       get_url: "http://x/tg.txt",
       metadata: { text: "hello world" },
       created_at: "2026-01-01T00:00:00Z"
-    } as unknown as Asset;
+    });
     const g = assetToGeneration(textAsset);
     expect(g.assetId).toBe("tg");
     // A live text run emits the raw process() string under its output handle;
@@ -159,14 +160,14 @@ describe("assetToGeneration", () => {
   });
 
   it("reloads a text generation with no inline text as an empty string", () => {
-    const textAsset = {
+    const textAsset = stub<Asset>({
       id: "tg2",
       job_id: "j7",
       node_id: "n1",
       content_type: "text/plain",
       get_url: "http://x/tg2.txt",
       created_at: "2026-01-01T00:00:00Z"
-    } as unknown as Asset;
+    });
     const g = assetToGeneration(textAsset);
     expect(g.outputs).toEqual({ output: "" });
     expect(outputOf(g)).toBe("");

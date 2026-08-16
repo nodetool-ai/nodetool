@@ -33,7 +33,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** A bound output holds one value or an accumulated list of streamed items. */
-const lastItem = (value: unknown): unknown =>
+const lastItem = <TItem>(value: TItem | TItem[]): TItem | undefined =>
   Array.isArray(value) ? value[value.length - 1] : value;
 
 const refId = (value: unknown): string | null => {
@@ -47,6 +47,10 @@ const refId = (value: unknown): string | null => {
  * Walk the envelopes a document can arrive in. Depth is bounded because these
  * values come off the wire, where a self-referential object is possible.
  */
+// HOLDOUT (anti-slop/no-unknown-returns): the walk ends on whatever envelope
+// key held the document, and what a bound output carries is the open
+// workflow-value domain — NodeTool has no named union for it. `isDoc` is the
+// caller's own check on the result.
 const unwrap = (
   value: unknown,
   keys: ReadonlyArray<string>,

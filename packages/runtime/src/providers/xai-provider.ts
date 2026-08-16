@@ -124,7 +124,7 @@ export class XAIProvider extends OpenAICompatProvider {
     this._xaiFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { XAI_API_KEY: this.apiKey };
   }
 
@@ -211,7 +211,7 @@ export class XAIProvider extends OpenAICompatProvider {
       }));
   }
 
-  private xaiHeaders(): Record<string, string> {
+  private xaiHeaders() {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json"

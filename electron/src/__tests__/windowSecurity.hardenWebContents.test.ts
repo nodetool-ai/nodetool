@@ -2,11 +2,6 @@ import { shell } from "electron";
 import { hardenWebContents } from "../windowSecurity";
 import { serverState } from "../state";
 
-jest.mock("../devMode", () => ({
-  isElectronDevMode: jest.fn(() => false),
-  getWebDevServerUrl: jest.fn(() => "http://127.0.0.1:3000"),
-}));
-
 type EventHandler = (event: { preventDefault: jest.Mock }, url: string) => void;
 type WebviewHandler = (event: { preventDefault: jest.Mock }) => void;
 
@@ -46,7 +41,7 @@ describe("hardenWebContents", () => {
     serverState.serverPort = 7777;
     jest.clearAllMocks();
     mock = createMockWebContents();
-    hardenWebContents(mock as unknown as Electron.WebContents);
+    hardenWebContents(mock);
   });
 
   it("registers all expected event handlers", () => {

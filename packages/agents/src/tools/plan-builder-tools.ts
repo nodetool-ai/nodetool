@@ -64,7 +64,7 @@ export class PlanBuilder {
     return { ok: true, task };
   }
 
-  removeTask(id: string): { ok: boolean; error?: string; warning?: string } {
+  removeTask(id: string) {
     const idx = this.tasks.findIndex((t) => t.id === id);
     if (idx === -1) {
       return { ok: false, error: `Task '${id}' is not in the plan.` };
@@ -102,7 +102,9 @@ export class PlanBuilder {
         ? (data["id"] as string)
         : randomUUID();
     const taskTitle =
-      typeof data["title"] === "string" ? (data["title"] as string) : "Untitled Task";
+      typeof data["title"] === "string"
+        ? (data["title"] as string)
+        : "Untitled Task";
     const taskDependsOn = Array.isArray(data["depends_on"])
       ? (data["depends_on"] as string[])
       : Array.isArray(data["dependsOn"])
@@ -368,13 +370,24 @@ const ADD_TASK_INPUT_SCHEMA = {
   required: ["id", "title", "depends_on", "steps"]
 };
 
+/** What {@link AddTaskTool} answers: the task it appended, or why not. */
+export type AddTaskResult =
+  | { status: "validation_failed"; errors: string[] }
+  | {
+      status: "task_added";
+      id: string;
+      title: string;
+      steps: number;
+      tasksSoFar: number;
+    };
+
 export class AddTaskTool extends Tool {
   readonly name = "add_task";
   readonly description =
     "Add one task to the plan being built. Validated immediately. " +
     "On validation failure the task is NOT added and errors are returned; " +
     "call add_task again with a corrected task.";
-  readonly jsonSchema: Record<string, unknown> = ADD_TASK_INPUT_SCHEMA;
+  readonly jsonSchema = ADD_TASK_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -383,7 +396,7 @@ export class AddTaskTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<AddTaskResult> {
     const result = this.builder.addTask(params);
     if (!result.ok) {
       return { status: "validation_failed", errors: result.errors };
@@ -398,7 +411,8 @@ export class AddTaskTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const title = typeof params["title"] === "string" ? params["title"] : "task";
+    const title =
+      typeof params["title"] === "string" ? params["title"] : "task";
     return `Adding task: ${title}`;
   }
 }
@@ -411,12 +425,22 @@ const REMOVE_TASK_INPUT_SCHEMA = {
   required: ["id"]
 };
 
+/** What {@link RemoveTaskTool} answers: the task it dropped, or why not. */
+export type RemoveTaskResult =
+  | { status: "error"; error: string | undefined }
+  | {
+      status: "task_removed";
+      id: string;
+      tasksSoFar: number;
+      warning?: string;
+    };
+
 export class RemoveTaskTool extends Tool {
   readonly name = "remove_task";
   readonly description =
     "Remove a previously added task. Use to correct mistakes " +
     "(e.g. when finish_plan reports a cross-task cycle).";
-  readonly jsonSchema: Record<string, unknown> = REMOVE_TASK_INPUT_SCHEMA;
+  readonly jsonSchema = REMOVE_TASK_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -425,18 +449,19 @@ export class RemoveTaskTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<RemoveTaskResult> {
     const id = typeof params["id"] === "string" ? params["id"] : "";
     const result = this.builder.removeTask(id);
     if (!result.ok) {
       return { status: "error", error: result.error };
     }
-    return {
+    const removed: RemoveTaskResult = {
       status: "task_removed",
       id,
-      tasksSoFar: this.builder.taskCount,
-      ...(result.warning ? { warning: result.warning } : {})
+      tasksSoFar: this.builder.taskCount
     };
+    if (result.warning) removed.warning = result.warning;
+    return removed;
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -453,13 +478,23 @@ const FINISH_PLAN_INPUT_SCHEMA = {
   required: ["title"]
 };
 
+/** What {@link FinishPlanTool} answers: the committed plan, or why not. */
+export type FinishPlanResult =
+  | { status: "validation_failed"; errors: string[] }
+  | {
+      status: "plan_finished";
+      title: string;
+      tasks: number;
+      totalSteps: number;
+    };
+
 export class FinishPlanTool extends Tool {
   readonly name = "finish_plan";
   readonly description =
     "Commit the plan after all tasks have been added. Runs full-plan " +
     "validation. On validation failure, call add_task or remove_task and then " +
     "call finish_plan again.";
-  readonly jsonSchema: Record<string, unknown> = FINISH_PLAN_INPUT_SCHEMA;
+  readonly jsonSchema = FINISH_PLAN_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -468,7 +503,7 @@ export class FinishPlanTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<FinishPlanResult> {
     const title =
       typeof params["title"] === "string" ? params["title"] : "Untitled Plan";
     const result = this.builder.finish(title);
@@ -484,7 +519,8 @@ export class FinishPlanTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const title = typeof params["title"] === "string" ? params["title"] : "plan";
+    const title =
+      typeof params["title"] === "string" ? params["title"] : "plan";
     return `Finalizing plan: ${title}`;
   }
 }

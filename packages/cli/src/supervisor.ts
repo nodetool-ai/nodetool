@@ -108,26 +108,25 @@ export function parseSupervisorFlags(
     return null;
   }
 
-  return {
+  const config: SupervisorRunConfig = {
     modelSpec:
       opts.supervisorModel ??
       process.env.NODETOOL_SUPERVISOR_MODEL ??
-      DEFAULT_SUPERVISOR_MODEL,
-    ...(opts.maxDecisions !== undefined
-      ? { maxDecisions: positiveInt(opts.maxDecisions, "--max-decisions") }
-      : {}),
-    ...(opts.maxRetries !== undefined
-      ? { maxRetriesPerNode: positiveInt(opts.maxRetries, "--max-retries") }
-      : {}),
-    ...(opts.supervisorCostCap !== undefined
-      ? {
-          maxCostUsd: positiveNumber(
-            opts.supervisorCostCap,
-            "--supervisor-cost-cap"
-          )
-        }
-      : {})
+      DEFAULT_SUPERVISOR_MODEL
   };
+  if (opts.maxDecisions !== undefined) {
+    config.maxDecisions = positiveInt(opts.maxDecisions, "--max-decisions");
+  }
+  if (opts.maxRetries !== undefined) {
+    config.maxRetriesPerNode = positiveInt(opts.maxRetries, "--max-retries");
+  }
+  if (opts.supervisorCostCap !== undefined) {
+    config.maxCostUsd = positiveNumber(
+      opts.supervisorCostCap,
+      "--supervisor-cost-cap"
+    );
+  }
+  return config;
 }
 
 /**
@@ -141,7 +140,7 @@ export function parseSupervisorFlags(
 export function parseModelSpec(
   spec: string,
   isRegisteredProvider: (id: string) => boolean
-): { providerId: string; model: string } {
+) {
   const cut = spec.indexOf("/");
   const head = cut === -1 ? spec : spec.slice(0, cut);
   if (cut === -1 || !isRegisteredProvider(head.toLowerCase())) {
@@ -176,12 +175,15 @@ export interface BuiltSupervisor {
 export async function createSupervisorHandle(
   init: SupervisorHandleInit
 ): Promise<BuiltSupervisor> {
-  const [{ BoundedHandle }, { SupervisorAgent }, { listRegisteredProviderIds }] =
-    await Promise.all([
-      import("@nodetool-ai/kernel"),
-      import("@nodetool-ai/agents"),
-      import("@nodetool-ai/runtime")
-    ]);
+  const [
+    { BoundedHandle },
+    { SupervisorAgent },
+    { listRegisteredProviderIds }
+  ] = await Promise.all([
+    import("@nodetool-ai/kernel"),
+    import("@nodetool-ai/agents"),
+    import("@nodetool-ai/runtime")
+  ]);
   const { createProviderStrict } = await import("./providers.js");
 
   const { providerId, model } = parseModelSpec(init.config.modelSpec, (id) =>
@@ -189,7 +191,7 @@ export async function createSupervisorHandle(
   );
   const provider = await createProviderStrict(providerId);
 
-  const agent = new SupervisorAgent({
+  const agentOptions: ConstructorParameters<typeof SupervisorAgent>[0] = {
     provider,
     model,
     // The supervisor reads and writes the run's memory (`supervisor:` keys)
@@ -199,20 +201,21 @@ export async function createSupervisorHandle(
     context: init.context.copy({
       shareMemory: true,
       inheritMessageListeners: false
-    }),
-    ...(init.config.maxCostUsd !== undefined
-      ? { maxCostUsd: init.config.maxCostUsd }
-      : {})
-  });
+    })
+  };
+  if (init.config.maxCostUsd !== undefined) {
+    agentOptions.maxCostUsd = init.config.maxCostUsd;
+  }
+  const agent = new SupervisorAgent(agentOptions);
 
-  const handle = new BoundedHandle(agent, {
-    ...(init.config.maxDecisions !== undefined
-      ? { maxDecisions: init.config.maxDecisions }
-      : {}),
-    ...(init.config.maxRetriesPerNode !== undefined
-      ? { maxRetriesPerNode: init.config.maxRetriesPerNode }
-      : {})
-  });
+  const bounds: ConstructorParameters<typeof BoundedHandle>[1] = {};
+  if (init.config.maxDecisions !== undefined) {
+    bounds.maxDecisions = init.config.maxDecisions;
+  }
+  if (init.config.maxRetriesPerNode !== undefined) {
+    bounds.maxRetriesPerNode = init.config.maxRetriesPerNode;
+  }
+  const handle = new BoundedHandle(agent, bounds);
 
   return { handle, providerId, model };
 }
@@ -227,14 +230,15 @@ export async function streamInterventionLines(
 ): Promise<void> {
   for await (const message of messages) {
     if (message.type !== "supervisor_decision") continue;
-    write(
-      formatInterventionLine({
-        escalation: message.escalation,
-        verdict: message.verdict,
-        decidedBy: message.decided_by,
-        ...(typeof message.cost === "number" ? { costUsd: message.cost } : {})
-      })
-    );
+    const intervention: Parameters<typeof formatInterventionLine>[0] = {
+      escalation: message.escalation,
+      verdict: message.verdict,
+      decidedBy: message.decided_by
+    };
+    if (typeof message.cost === "number") {
+      intervention.costUsd = message.cost;
+    }
+    write(formatInterventionLine(intervention));
   }
 }
 

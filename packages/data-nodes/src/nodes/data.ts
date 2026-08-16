@@ -61,7 +61,7 @@ export function asRows(value: unknown): Row[] {
   return [];
 }
 
-function toDataframe(rows: Row[]): { rows: Row[] } {
+function toDataframe(rows: Row[]) {
   return { rows };
 }
 
@@ -78,6 +78,12 @@ function parseCsv(csv: string): Row[] {
   );
 }
 
+/** Output handles ForEachRowNode.genProcess() emits. */
+type ForEachRowNodeStreamOutputs = {
+  row: Row;
+  index: number;
+};
+
 export class ForEachRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ForEachRow";
   static readonly retrySafe = true;
@@ -92,10 +98,10 @@ export class ForEachRowNode extends BaseNode {
   };
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     row: { kind: "iteration", source: "dataframe", group: "items" },
     index: { kind: "iteration", source: "dataframe", group: "items" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "dataframe",
@@ -116,7 +122,7 @@ export class ForEachRowNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<ForEachRowNodeStreamOutputs> {
     const rows = asRows(this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { row, index };
@@ -140,12 +146,12 @@ export class LoadCSVAssetsNode extends BaseNode {
   };
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     dataframe: { kind: "iteration", source: "folder", group: "items" },
     name: { kind: "iteration", source: "folder", group: "items" },
     dataframes: { kind: "single", source: "folder" },
     names: { kind: "single", source: "folder" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "folder",

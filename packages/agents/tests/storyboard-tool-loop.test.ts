@@ -56,7 +56,7 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 // --- createStoryboardToolBridge ----------------------------------------------
 
 describe("createStoryboardToolBridge", () => {
-  it("exposes exactly the 9 ui_storyboard_* tools", () => {
+  it("exposes exactly the 10 ui_storyboard_* tools", () => {
     const bridge = createStoryboardToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -69,10 +69,11 @@ describe("createStoryboardToolBridge", () => {
         "ui_storyboard_generate_clip",
         "ui_storyboard_revise_shot",
         "ui_storyboard_assemble_timeline",
+        "ui_storyboard_extract_script",
         "ui_storyboard_select_shot"
       ].sort()
     );
-    expect(names).toHaveLength(9);
+    expect(names).toHaveLength(10);
   });
 
   it("rejects a set_screenplay call with an invalid object", async () => {
@@ -277,6 +278,49 @@ describe("createStoryboardToolBridge", () => {
     expect(bridge.finalState().selectedShotId).toBeNull();
   });
 
+  it("extracts spoken shots into a linked script, and refuses a second extract", async () => {
+    const bridge = createStoryboardToolBridge({
+      shots: [
+        { action: "The keeper looks out.", dialogue: "The light goes out." },
+        { action: "The stairs.", narration: "Forty years of them." },
+        { action: "A silent wave." }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const extracted = (await byName["ui_storyboard_extract_script"].execute(
+      {}
+    )) as { ok: boolean; lineCount: number; linkedShotIds: string[] };
+    expect(extracted.ok).toBe(true);
+    expect(extracted.lineCount).toBe(2);
+    // The silent shot links nothing — it has no words to own.
+    expect(extracted.linkedShotIds).toHaveLength(2);
+
+    const state = bridge.finalState();
+    expect(state.scriptId).toBe("script_1");
+    expect(state.scriptLineCount).toBe(2);
+    expect(state.savable).toBe(true);
+
+    await expect(
+      byName["ui_storyboard_extract_script"].execute({})
+    ).rejects.toThrow(/already links script/);
+
+    const relinked = (await byName["ui_storyboard_extract_script"].execute({
+      relink: true
+    })) as { ok: boolean; relinked: boolean };
+    expect(relinked).toMatchObject({ ok: true, relinked: true });
+  });
+
+  it("refuses to extract a script from a board with no words", async () => {
+    const bridge = createStoryboardToolBridge({
+      shots: [{ action: "A silent wave." }]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    await expect(
+      byName["ui_storyboard_extract_script"].execute({})
+    ).rejects.toThrow(/nothing to extract/);
+  });
+
   it("loads a valid screenplay, replacing existing shots", async () => {
     const bridge = createStoryboardToolBridge({
       shots: [{ action: "A shot that will be replaced." }]
@@ -351,6 +395,24 @@ describe("STORYBOARD_TOOL_LOOP_CASES", () => {
       provider,
       model: "test-model",
       cases: [STORYBOARD_TOOL_LOOP_CASES[1]]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.score).toBe(1);
+  });
+
+  it("extract-script: extracting a spoken board's words passes", async () => {
+    const script: ScriptedCall[] = [
+      { name: "ui_storyboard_get_state", args: {} },
+      { name: "ui_storyboard_extract_script", args: {} }
+    ];
+    const provider = createScriptedProvider(script);
+    const report = await runToolLoopEval({
+      provider,
+      model: "test-model",
+      cases: [
+        STORYBOARD_TOOL_LOOP_CASES.find((c) => c.id === "extract-script")!
+      ]
     });
     const r = report.cases[0];
     expect(r.accepted).toBe(true);

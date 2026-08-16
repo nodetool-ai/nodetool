@@ -1,4 +1,4 @@
-import { resolveAssetUri } from "../../node/output/hooks";
+import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 import type { SegmentBackend, SegmentationMask, SegmentationSourceMetadata } from "../types";
 import type { SegmentationResponse } from "./SamService";
 
@@ -46,9 +46,13 @@ function getNormalizedMaskEntries(rawOutput: unknown): Array<{
   );
 }
 
-function getResolvedMaskUri(entry: SamMaskImageRef): string | null {
-  const rawUri = entry.uri ?? entry.url ?? null;
-  return resolveAssetUri(rawUri);
+/**
+ * A node-provider mask arrives as an `asset://` locator, which resolves only
+ * through the asset's own `get_url`; a hosted provider (fal) returns an http
+ * URL, which passes through untouched.
+ */
+function getResolvedMaskUri(entry: SamMaskImageRef): Promise<string> {
+  return resolveMediaUri(entry.uri ?? entry.url ?? null);
 }
 
 function getNormalizedDimension(
@@ -73,50 +77,47 @@ function getMaskLabel(entry: SamMaskImageRef, rawIndex: number): string {
   return explicitLabel.length > 0 ? explicitLabel : `Mask ${rawIndex + 1}`;
 }
 
-export function normalizeSamMasks({
+export async function normalizeSamMasks({
   rawOutput,
   backendId,
   modelId,
   nodeType,
   scale = 1,
   sourceMetadata
-}: NormalizeSamMasksParams): SegmentationResponse {
-  const masks = getNormalizedMaskEntries(rawOutput).reduce<SegmentationMask[]>(
-    (acc, { entry, rawIndex }) => {
-      const maskUri = getResolvedMaskUri(entry);
-      if (!maskUri) {
-        return acc;
-      }
+}: NormalizeSamMasksParams): Promise<SegmentationResponse> {
+  const masks: SegmentationMask[] = [];
+  for (const { entry, rawIndex } of getNormalizedMaskEntries(rawOutput)) {
+    const maskUri = await getResolvedMaskUri(entry);
+    if (!maskUri) {
+      continue;
+    }
 
-      acc.push({
-        id: `mask_${rawIndex}`,
-        kind: "mask",
-        label: getMaskLabel(entry, rawIndex),
-        maskDataUrl: maskUri,
-        confidence: 1,
-        bounds: {
-          x: 0,
-          y: 0,
-          width: getNormalizedDimension(
-            entry.width,
-            sourceMetadata?.contentBounds.width,
-            scale
-          ),
-          height: getNormalizedDimension(
-            entry.height,
-            sourceMetadata?.contentBounds.height,
-            scale
-          )
-        },
-        backendId,
-        modelId,
-        nodeType,
-        sourceMetadata
-      });
-      return acc;
-    },
-    []
-  );
+    masks.push({
+      id: `mask_${rawIndex}`,
+      kind: "mask",
+      label: getMaskLabel(entry, rawIndex),
+      maskDataUrl: maskUri,
+      confidence: 1,
+      bounds: {
+        x: 0,
+        y: 0,
+        width: getNormalizedDimension(
+          entry.width,
+          sourceMetadata?.contentBounds.width,
+          scale
+        ),
+        height: getNormalizedDimension(
+          entry.height,
+          sourceMetadata?.contentBounds.height,
+          scale
+        )
+      },
+      backendId,
+      modelId,
+      nodeType,
+      sourceMetadata
+    });
+  }
 
   return {
     masks,

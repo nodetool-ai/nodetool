@@ -26,9 +26,61 @@ import {
   browserUploadAsset as localUploadAsset
 } from "./browser-tools-local.js";
 import type {
+  BrowserCaptureMediaOutput,
   BrowserCaptureMediaRaw,
-  BrowserUploadAssetRaw
+  BrowserClickOutput,
+  BrowserConsoleExecOutput,
+  BrowserConsoleViewOutput,
+  BrowserInputTextOutput,
+  BrowserMoveMouseOutput,
+  BrowserNavigateOutput,
+  BrowserPressKeyOutput,
+  BrowserRestartOutput,
+  BrowserScrollOutput,
+  BrowserSelectOptionOutput,
+  BrowserUploadAssetOutput,
+  BrowserUploadAssetRaw,
+  BrowserViewOutput
 } from "./browser-schemas.js";
+
+/** What one browser action resolves to, before media is persisted. */
+type BrowserActionOutput =
+  | BrowserViewOutput
+  | BrowserNavigateOutput
+  | BrowserRestartOutput
+  | BrowserClickOutput
+  | BrowserInputTextOutput
+  | BrowserMoveMouseOutput
+  | BrowserPressKeyOutput
+  | BrowserSelectOptionOutput
+  | BrowserScrollOutput
+  | BrowserConsoleExecOutput
+  | BrowserConsoleViewOutput
+  | BrowserCaptureMediaRaw
+  | BrowserUploadAssetOutput;
+
+/** The persisted screenshot ref that replaces `screenshot_png_b64`. */
+type BrowserScreenshotRef = {
+  type: "image";
+  asset_id?: string;
+  asset_uri?: string;
+  uri?: string;
+  path?: string;
+  mime_type: string;
+  bytes: number;
+};
+
+/** A `browser_view` result with its base64 screenshot swapped for a ref. */
+type BrowserViewResult = Omit<BrowserViewOutput, "screenshot_png_b64"> & {
+  screenshot: BrowserScreenshotRef | null;
+};
+
+/** What a `browser_*` tool hands back to the agent. */
+type BrowserToolResult =
+  | BrowserActionOutput
+  | BrowserViewResult
+  | BrowserCaptureMediaOutput
+  | { error: string };
 
 const ELEMENT_REF_PROPS = {
   index: {
@@ -48,9 +100,7 @@ export interface BrowserActionSpec {
   /** JSON schema for the tool's input. */
   inputSchema: Record<string, unknown>;
   /** Local-process invocation. */
-  local: (
-    params: Record<string, unknown>
-  ) => Promise<unknown>;
+  local: (params: Record<string, unknown>) => Promise<BrowserActionOutput>;
 }
 
 export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
@@ -265,14 +315,12 @@ type ToolCtor = new () => Tool;
  */
 async function persistViewScreenshot(
   ctx: ProcessingContext,
-  result: unknown,
+  result: BrowserViewOutput,
   namePrefix: string
-): Promise<unknown> {
-  if (!result || typeof result !== "object") return result;
-  const view = result as Record<string, unknown>;
-  const b64 = view.screenshot_png_b64;
+): Promise<BrowserViewResult> {
+  const b64 = result.screenshot_png_b64;
   if (typeof b64 !== "string" || b64.length === 0) {
-    const { screenshot_png_b64: _drop, ...rest } = view;
+    const { screenshot_png_b64: _drop, ...rest } = result;
     return { ...rest, screenshot: null };
   }
   const bytes = new Uint8Array(Buffer.from(b64, "base64"));
@@ -289,7 +337,7 @@ async function persistViewScreenshot(
     mime_type: saved.mime_type,
     bytes: saved.bytes
   };
-  const { screenshot_png_b64: _drop, ...rest } = view;
+  const { screenshot_png_b64: _drop, ...rest } = result;
   return { ...rest, screenshot };
 }
 
@@ -302,11 +350,10 @@ async function persistViewScreenshot(
  */
 async function persistCaptureMedia(
   ctx: ProcessingContext,
-  result: unknown,
+  result: BrowserCaptureMediaRaw,
   namePrefix: string
-): Promise<unknown> {
-  if (!result || typeof result !== "object") return result;
-  const raw = result as Partial<BrowserCaptureMediaRaw>;
+): Promise<BrowserCaptureMediaRaw | BrowserCaptureMediaOutput> {
+  const raw = result;
   if (typeof raw.media_b64 !== "string" || raw.media_b64.length === 0) {
     // An error object (or already-transformed) — pass through unchanged.
     return result;
@@ -417,21 +464,30 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
     async process(
       ctx: ProcessingContext,
       params: Record<string, unknown>
-    ): Promise<unknown> {
+    ): Promise<BrowserToolResult> {
       try {
         const callParams =
           spec.key === "upload_asset"
-            ? ((await resolveUploadParams(ctx, params ?? {})) as unknown as Record<
-                string,
-                unknown
-              >)
+            ? await resolveUploadParams(ctx, params ?? {})
             : (params ?? {});
         const out = await spec.local(callParams);
         if (spec.key === "view") {
-          return await persistViewScreenshot(ctx, out, "browser-screenshot");
+          // SAFETY: the `view` spec's `local` is `browserView`, which resolves
+          // to a BrowserViewOutput.
+          return await persistViewScreenshot(
+            ctx,
+            out as BrowserViewOutput,
+            "browser-screenshot"
+          );
         }
         if (spec.key === "capture_media") {
-          return await persistCaptureMedia(ctx, out, "browser-capture");
+          // SAFETY: the `capture_media` spec's `local` is `browserCaptureMedia`,
+          // which resolves to a BrowserCaptureMediaRaw.
+          return await persistCaptureMedia(
+            ctx,
+            out as BrowserCaptureMediaRaw,
+            "browser-capture"
+          );
         }
         return out;
       } catch (e) {

@@ -161,10 +161,10 @@ function hintFor(
  * stack) is left intact. Aborts and already-annotated errors pass through
  * untouched. Returns the same error so callers can `throw annotateProviderError(...)`.
  */
-export function annotateProviderError(
-  error: unknown,
+export function annotateProviderError<TError>(
+  error: TError,
   context: { provider: string; model?: string }
-): unknown {
+): TError {
   if (!(error instanceof Error)) return error;
   const candidate = error as Error & ErrorLike;
   if (candidate[ANNOTATED] || isAbort(candidate)) return error;

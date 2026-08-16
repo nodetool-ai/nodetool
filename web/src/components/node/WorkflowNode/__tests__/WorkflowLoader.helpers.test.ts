@@ -3,12 +3,13 @@ import {
   INPUT_TYPE_MAP,
   OUTPUT_TYPE_MAP
 } from "../WorkflowLoader.helpers";
+import { stub } from "../../../../test-utils/doubles";
 import type { Workflow } from "../../../../stores/ApiTypes";
 
 function makeWorkflow(
   nodes: Array<{ type: string; data?: Record<string, unknown> }>
 ): Workflow {
-  return {
+  return stub<Workflow>({
     id: "wf-1",
     name: "Test",
     access: "private",
@@ -16,7 +17,7 @@ function makeWorkflow(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     graph: { nodes, edges: [] }
-  } as unknown as Workflow;
+  });
 }
 
 describe("extractDynamicIO", () => {

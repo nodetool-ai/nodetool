@@ -111,7 +111,7 @@ export type ClaudeQueryFn = (params: {
 export type ClaudeCreateMcpServerFn = (opts: {
   name: string;
   version?: string;
-  tools: Array<SdkMcpToolDefinition<never>>;
+  tools: Array<SdkMcpToolDefinition>;
 }) => McpSdkServerConfigWithInstance;
 
 /** MCP server name under which NodeTool's tools are exposed to the SDK. */
@@ -221,7 +221,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /** The subscription token is the SDK's business — never hand it to a sandbox. */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 
@@ -253,14 +253,16 @@ export class ClaudeAgentProvider extends BaseProvider {
   private async loadQuery(): Promise<ClaudeQueryFn> {
     if (this.injectedQueryFn) return this.injectedQueryFn;
     const mod = await loadSdk();
-    return mod.query as unknown as ClaudeQueryFn;
+    return mod.query as ClaudeQueryFn;
   }
 
   /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
   private async loadCreateMcpServer(): Promise<ClaudeCreateMcpServerFn> {
     if (this.injectedCreateMcpServerFn) return this.injectedCreateMcpServerFn;
     const mod = await loadSdk();
-    return mod.createSdkMcpServer as unknown as ClaudeCreateMcpServerFn;
+    // SAFETY: the SDK's factory is generic over each tool's Zod shape; this
+    // provider always hands it the default `AnyZodRawShape` definitions.
+    return mod.createSdkMcpServer as ClaudeCreateMcpServerFn;
   }
 
   /**
@@ -596,17 +598,23 @@ export class ClaudeAgentProvider extends BaseProvider {
       disallowedTools: plan.config.toolsOffered
         ? ["ToolSearch"]
         : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
-      // Anchor the path-scoped built-ins to the run's workspace, which is where
-      // the NodeTool tools they replace were contained.
-      ...(plan.config.cwd ? { cwd: plan.config.cwd } : {}),
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
       env: buildChildEnv(),
-      abortController,
-      ...(plan.config.mcp ? { mcpServers: plan.config.mcp.mcpServers } : {}),
-      ...(plan.resume ? { resume: plan.resume } : {})
+      abortController
     };
+    // Anchor the path-scoped built-ins to the run's workspace, which is where
+    // the NodeTool tools they replace were contained.
+    if (plan.config.cwd) {
+      options.cwd = plan.config.cwd;
+    }
+    if (plan.config.mcp) {
+      options.mcpServers = plan.config.mcp.mcpServers;
+    }
+    if (plan.resume) {
+      options.resume = plan.resume;
+    }
 
     // Log the exact wire body (sans the non-serializable AbortController, MCP
     // server instances, and the full env, which can carry secrets) so the
@@ -832,7 +840,7 @@ const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
  * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
  * token-based auth survives on headless hosts.
  */
-function buildChildEnv(): Record<string, string> {
+function buildChildEnv() {
   const env: Record<string, string> = {};
   const source = typeof process !== "undefined" ? process.env : {};
   for (const [key, value] of Object.entries(source)) {
@@ -897,7 +905,7 @@ function finalBlocks(
  *    `await tools.<name>({…})` and models turn that member expression into a
  *    top-level tool name. Without this the call reaches no tool at all.
  */
-function stripToolPrefix(name: unknown): string {
+function stripToolPrefix(name: string | undefined): string {
   let n = typeof name === "string" ? name : "";
   if (n.startsWith(TOOL_PREFIX)) n = n.slice(TOOL_PREFIX.length);
   if (n.startsWith(GUEST_TOOL_PREFIX)) n = n.slice(GUEST_TOOL_PREFIX.length);
@@ -905,10 +913,7 @@ function stripToolPrefix(name: unknown): string {
 }
 
 /** Split a final assistant message into its text and its tool calls. */
-function assistantParts(msg: SDKAssistantMessage): {
-  text: string;
-  toolCalls: ToolCall[];
-} {
+function assistantParts(msg: SDKAssistantMessage) {
   const content = msg.message?.content;
   let text = "";
   const toolCalls: ToolCall[] = [];
@@ -987,7 +992,7 @@ function toolDefinition(
     name: string,
     args: Record<string, unknown>
   ) => Promise<string | MessageContent[]>
-): SdkMcpToolDefinition<never> {
+): SdkMcpToolDefinition {
   return {
     name: tool.name,
     description: tool.description ?? "",
@@ -996,7 +1001,7 @@ function toolDefinition(
       const result = await run(tool.name, toolArgs ?? {});
       return { content: toolResultToMcpContent(result) };
     }
-  } as unknown as SdkMcpToolDefinition<never>;
+  };
 }
 
 type McpContentBlock =
@@ -1074,7 +1079,7 @@ export function toolResultToMcpContent(
 /** Convert a JSON-Schema object's properties to a Zod raw shape. */
 function jsonSchemaToZodShape(
   schema: Record<string, unknown> | undefined
-): Record<string, ZodTypeAny> {
+) {
   const props = (schema?.properties as Record<string, unknown>) ?? {};
   const required = new Set((schema?.required as string[]) ?? []);
   const shape: Record<string, ZodTypeAny> = {};

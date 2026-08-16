@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { installGlobal } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -16,7 +17,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Polyfill PointerEvent for jsdom (which doesn't support it natively).
 // PointerEvent extends MouseEvent so clientX/clientY/button work correctly.
 if (typeof window !== "undefined" && !window.PointerEvent) {
-  (window as unknown as Record<string, unknown>).PointerEvent =
+  installGlobal(
+    "PointerEvent",
     class PointerEvent extends MouseEvent {
       readonly pointerId: number;
       readonly pointerType: string;
@@ -28,7 +30,7 @@ if (typeof window !== "undefined" && !window.PointerEvent) {
         this.pointerType = params.pointerType ?? "";
         this.isPrimary = params.isPrimary ?? false;
       }
-    };
+    });
 }
 
 // ── Heavy media hooks → no-op mocks ─────────────────────────────────────────
@@ -43,24 +45,24 @@ jest.mock("../Tracks/useAudioPeaks", () => ({
 // ── Stores that pull in network/api dependencies → light mocks ─────────────
 
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (sel: (s: { get: () => Promise<null> }) => unknown) =>
+  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
     sel({ get: () => Promise.resolve(null) })
 }));
 jest.mock("../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (sel: (s: { focusedJob: Record<string, string> }) => unknown) =>
+  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
     sel({ focusedJob: {} })
 }));
 jest.mock("../../../stores/ErrorStore", () => ({
   __esModule: true,
-  default: (sel: (s: { errors: Record<string, unknown> }) => unknown) =>
+  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
     sel({ errors: {} }),
   hasNodeError: () => false,
   nodeErrorToDisplayString: () => ""
 }));
 jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: (
-    sel: (s: { clipJobs: Record<string, unknown> }) => unknown
+  useTimelineGenerationStore: <T,>(
+    sel: (s: { clipJobs: Record<string, unknown> }) => T
   ) => sel({ clipJobs: {} })
 }));
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MasksExtractorBody } from "./MasksExtractorBody";
 
@@ -7,6 +8,11 @@ import { MasksExtractorBody } from "./MasksExtractorBody";
 // Mock those boundaries directly.
 let mockNodeOutput: unknown = undefined;
 let mockUpstreamValue: unknown = undefined;
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../hooks/useResolvedMediaUri");
+
 jest.mock("../../../hooks/nodes/useNodeIO", () => ({
   __esModule: true,
   useNodeOutput: () => mockNodeOutput,
@@ -118,16 +124,16 @@ jest.mock("@mui/material/styles", () => ({
 import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
 
-const mockUseNodes = useNodes as unknown as jest.Mock;
-const mockUseRunSingleNode = useRunSingleNode as unknown as jest.Mock;
+const mockUseNodes = asMock(useNodes);
+const mockUseRunSingleNode = asMock(useRunSingleNode);
 
 describe("MasksExtractorBody", () => {
-  const defaultProps = {
+  const defaultProps = stub<React.ComponentProps<typeof MasksExtractorBody>>({
     id: "node-1",
     nodeType: "replicate.image.background.Bria_RemoveBackground",
     nodeMetadata: {
       node_type: "replicate.image.background.Bria_RemoveBackground",
-      properties: [{ name: "image", type: "image" }],
+      properties: [{ name: "image", type: { type: "image" } }],
       outputs: []
     },
     data: {
@@ -139,7 +145,7 @@ describe("MasksExtractorBody", () => {
     workflowId: "wf-1",
     status: "idle",
     isOutputNode: false
-  } as unknown as React.ComponentProps<typeof MasksExtractorBody>;
+  });
 
   const mockRunSingleNode = jest.fn();
 

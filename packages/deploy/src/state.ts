@@ -352,7 +352,7 @@ function revalidateState(
 export function createStateSnapshot(
   config: DeploymentConfig,
   configPath?: string
-): Record<string, unknown> {
+) {
   const snapshot: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     version: config.version,

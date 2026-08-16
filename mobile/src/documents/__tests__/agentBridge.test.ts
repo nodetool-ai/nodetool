@@ -10,10 +10,12 @@ import {
 } from '../agentBridge';
 
 interface FakeHandler {
-  getSnapshot: () => { id: string };
+  getSnapshot: () => { id: string; title: string };
 }
 
-const handler = (id: string): FakeHandler => ({ getSnapshot: () => ({ id }) });
+const handler = (id: string): FakeHandler => ({
+  getSnapshot: () => ({ id, title: id }),
+});
 
 describe('agentBridge', () => {
   beforeEach(() => {
@@ -25,7 +27,7 @@ describe('agentBridge', () => {
 
     const resolved = getDocumentHandler<FakeHandler>('storyboard', 'sb1');
 
-    expect(resolved.getSnapshot()).toEqual({ id: 'sb1' });
+    expect(resolved.getSnapshot()).toEqual({ id: 'sb1', title: 'sb1' });
     expect(hasDocumentHandler('storyboard', 'sb1')).toBe(true);
   });
 
@@ -35,10 +37,10 @@ describe('agentBridge', () => {
 
     expect(
       getDocumentHandler<FakeHandler>('storyboard', 'shared').getSnapshot()
-    ).toEqual({ id: 'board' });
+    ).toEqual({ id: 'board', title: 'board' });
     expect(
       getDocumentHandler<FakeHandler>('timeline', 'shared').getSnapshot()
-    ).toEqual({ id: 'sequence' });
+    ).toEqual({ id: 'sequence', title: 'sequence' });
   });
 
   it('names the open ids of the same kind when a lookup misses', () => {
@@ -153,7 +155,7 @@ describe('agentBridge', () => {
 
     expect(
       getDocumentHandler<FakeHandler>('storyboard', 'sb1').getSnapshot()
-    ).toEqual({ id: 'new' });
+    ).toEqual({ id: 'new', title: 'new' });
     expect(listOpenDocuments()).toHaveLength(1);
   });
 

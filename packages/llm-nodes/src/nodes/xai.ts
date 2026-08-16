@@ -55,6 +55,11 @@ function firstMessageContent(data: Record<string, unknown>): string {
 
 // ── Chat Completion ─────────────────────────────────────────────────────────
 
+/** Output handles ChatComplete.process() emits. */
+type ChatCompleteOutputs = {
+  output: string;
+};
+
 export class ChatComplete extends BaseNode {
   static readonly nodeType = "xai.text.ChatComplete";
   static readonly body = "content_card";
@@ -113,7 +118,7 @@ export class ChatComplete extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ChatCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -139,6 +144,12 @@ export class ChatComplete extends BaseNode {
 }
 
 // ── Web Search (Live Search) ────────────────────────────────────────────────
+
+/** Output handles WebSearch.process() emits. */
+type WebSearchOutputs = {
+  output: string;
+  citations: string[];
+};
 
 export class WebSearch extends BaseNode {
   static readonly nodeType = "xai.text.WebSearch";
@@ -190,7 +201,7 @@ export class WebSearch extends BaseNode {
   })
   declare max_results: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<WebSearchOutputs> {
     const apiKey = getApiKey(this._secrets);
     const query = String(this.query ?? "");
     if (!query) throw new Error("Search query cannot be empty");
@@ -219,6 +230,11 @@ export class WebSearch extends BaseNode {
 }
 
 // ── Image To Text (Vision) ──────────────────────────────────────────────────
+
+/** Output handles ImageToText.process() emits. */
+type ImageToTextOutputs = {
+  output: string;
+};
 
 export class ImageToText extends BaseNode {
   static readonly nodeType = "xai.vision.ImageToText";
@@ -283,7 +299,7 @@ export class ImageToText extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageToTextOutputs> {
     const apiKey = getApiKey(this._secrets);
     const image = (this.image ?? {}) as ImageRefLike;
     if (!image.data && !image.uri) throw new Error("Image is required");
@@ -318,6 +334,12 @@ export class ImageToText extends BaseNode {
 
 // ── Image Generation ────────────────────────────────────────────────────────
 
+/** Output handles GenerateImage.process() emits. */
+type GenerateImageOutputs = {
+  output: { type: string; data: string } | { type: string; uri: string };
+  revised_prompt: string;
+};
+
 export class GenerateImage extends BaseNode {
   static readonly nodeType = "xai.image.GenerateImage";
   static readonly body = "content_card";
@@ -350,7 +372,7 @@ export class GenerateImage extends BaseNode {
   })
   declare model: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GenerateImageOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");

@@ -3,6 +3,7 @@
  */
 
 import type { Session } from "@supabase/supabase-js";
+import { stub } from "../../test-utils/doubles";
 
 const mockRestFetch = jest.fn();
 let mockGoogleEnabled = true;
@@ -39,7 +40,7 @@ const installSessionStorage = (): void => {
 const googleSession = (
   overrides: Partial<Session> = {}
 ): Session =>
-  ({
+  stub<Session>({
     provider_token: "ya29.provider",
     provider_refresh_token: "refresh-1",
     user: {
@@ -47,7 +48,7 @@ const googleSession = (
       app_metadata: { provider: "google" }
     },
     ...overrides
-  }) as unknown as Session;
+  });
 
 describe("syncGoogleProviderToken", () => {
   beforeEach(() => {

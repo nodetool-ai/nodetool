@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useResizePanel } from "../useResizePanel";
 import { usePanelStore } from "../../../stores/PanelStore";
 
@@ -37,10 +38,10 @@ describe("useResizePanel", () => {
 
   it("handleMouseDown sets isDragging to true", () => {
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 100,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -63,10 +64,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 300,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -92,10 +93,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel("right"));
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 300,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -121,10 +122,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 100,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -150,10 +151,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 300,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -182,10 +183,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 300,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -208,10 +209,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 500,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -231,10 +232,10 @@ describe("useResizePanel", () => {
 
   it("mouseup after drag sets isDragging to false", () => {
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 100,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -282,10 +283,10 @@ describe("useResizePanel", () => {
     });
 
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 200,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);
@@ -307,10 +308,10 @@ describe("useResizePanel", () => {
     const removeSpy = jest.spyOn(document, "removeEventListener");
 
     const { result, unmount } = renderHook(() => useResizePanel());
-    const mockMouseEvent = {
+    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
       clientX: 100,
       preventDefault: jest.fn()
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleMouseDown(mockMouseEvent);

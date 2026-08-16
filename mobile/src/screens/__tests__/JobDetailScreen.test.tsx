@@ -33,6 +33,9 @@ const mockCancelMutate = jest.fn();
 
 jest.mock('../../trpc/client', () => ({
   trpc: {
+    // Output media resolves an `asset://` locator through `assets.get`.
+    assets: { get: { useQuery: () => ({ data: undefined, isLoading: false }) } },
+    useQueries: () => [],
     useUtils: () => ({
       jobs: { get: { invalidate: jest.fn() }, list: { invalidate: jest.fn() } },
     }),

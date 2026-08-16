@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -27,11 +28,11 @@ jest.mock("../../../trpc/client", () => ({
 // Mock useWorkflowManager to return currentWorkflowId "wf"
 const mockCurrentWorkflowId = { value: "wf" as string | null };
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: { currentWorkflowId: string | null }) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: { currentWorkflowId: string | null }) => T) =>
     selector({ currentWorkflowId: mockCurrentWorkflowId.value })
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 
 const job = (id: string, status: string, workflowId = "wf"): Job =>
   ({

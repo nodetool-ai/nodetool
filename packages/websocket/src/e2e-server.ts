@@ -49,8 +49,13 @@ const HOST = process.env.HOST ?? "127.0.0.1";
 const E2E_TEST_MASTER_KEY_B64 = "RTJFX1RFU1RfS0VZX0RPX05PVF9VU0VfSU5fUFJPRCE=";
 
 async function main(): Promise<void> {
-  if (process.env.NODE_ENV === "production" && !process.env.SECRETS_MASTER_KEY) {
-    throw new Error("[e2e-server] SECRETS_MASTER_KEY must be set when NODE_ENV=production");
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.SECRETS_MASTER_KEY
+  ) {
+    throw new Error(
+      "[e2e-server] SECRETS_MASTER_KEY must be set when NODE_ENV=production"
+    );
   }
   process.env.SECRETS_MASTER_KEY =
     process.env.SECRETS_MASTER_KEY ?? E2E_TEST_MASTER_KEY_B64;
@@ -58,11 +63,14 @@ async function main(): Promise<void> {
   const traceFile = process.env.NODETOOL_TRACE_FILE;
   if (traceFile || process.env.NODETOOL_TRACE_STDOUT) {
     const { initTelemetry } = await import("@nodetool-ai/runtime");
-    await initTelemetry({
+    const telemetryOptions: Parameters<typeof initTelemetry>[0] = {
       serviceName: "nodetool-e2e",
-      silent: true,
-      ...(traceFile ? { traceFile } : {})
-    });
+      silent: true
+    };
+    if (traceFile) {
+      telemetryOptions.traceFile = traceFile;
+    }
+    await initTelemetry(telemetryOptions);
   }
 
   initTestDb();
@@ -72,7 +80,7 @@ async function main(): Promise<void> {
   let registry: NodeRegistry | null = null;
 
   const examplesDir = resolveExamplesDir();
-  const srv = createTestUiServer({
+  const serverOptions: Parameters<typeof createTestUiServer>[0] = {
     port: PORT,
     host: HOST,
     passthroughUnknownNodes: true,
@@ -83,9 +91,12 @@ async function main(): Promise<void> {
       fakeAllProviders();
     },
     resolveExecutor: createFakeExecutorResolver(() => registry),
-    resolveProvider: resolveFakeProvider,
-    ...(examplesDir ? { examplesDir } : {})
-  });
+    resolveProvider: resolveFakeProvider
+  };
+  if (examplesDir) {
+    serverOptions.examplesDir = examplesDir;
+  }
+  const srv = createTestUiServer(serverOptions);
   await srv.listen();
 
   console.log(
@@ -102,7 +113,14 @@ function resolveExamplesDir(): string | undefined {
   if (fromEnv && existsSync(fromEnv)) return fromEnv;
   const repoRoot = resolve(__dirname, "..", "..", "..");
   const candidates = [
-    resolve(repoRoot, "packages", "base-nodes", "nodetool", "examples", "nodetool-base"),
+    resolve(
+      repoRoot,
+      "packages",
+      "base-nodes",
+      "nodetool",
+      "examples",
+      "nodetool-base"
+    ),
     resolve(repoRoot, "examples", "workflows")
   ];
   return candidates.find((dir) => existsSync(dir));

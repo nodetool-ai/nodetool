@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock, stub } from "../../test-utils/doubles";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -14,7 +15,7 @@ const mockRestFetch = restFetch as jest.MockedFunction<typeof restFetch>;
 const mockAddNotification = jest.fn();
 
 const jsonResponse = (body: unknown, ok = true): Response =>
-  ({ ok, json: async () => body }) as unknown as Response;
+  stub<Response>({ ok, json: async () => body });
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -29,19 +30,19 @@ const createWrapper = () => {
 
 /** Stand-in for the window connect() claims in the click's own tick. */
 const fakeAuthWindow = () =>
-  ({
+  stub<Window>({
     opener: {},
-    document: { title: "", body: null },
+    document: { title: "" },
     location: { replace: jest.fn() },
     close: jest.fn()
-  }) as unknown as Window;
+  });
 
 describe("useOAuthConnection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(window, "open").mockReturnValue(fakeAuthWindow());
-    (useNotificationStore as unknown as jest.Mock).mockImplementation(
-      (selector: (state: unknown) => unknown) =>
+    asMock(useNotificationStore).mockImplementation(
+      <T,>(selector: (state: { addNotification: typeof mockAddNotification }) => T) =>
         selector({ addNotification: mockAddNotification })
     );
     mockRestFetch.mockImplementation(async (input) => {

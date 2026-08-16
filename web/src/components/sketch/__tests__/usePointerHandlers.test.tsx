@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { usePointerHandlers } from "../sketchCanvasHooks/usePointerHandlers";
 import { getToolHandler } from "../tools";
@@ -89,7 +90,7 @@ describe("usePointerHandlers", () => {
     const { result } = renderHook(() => usePointerHandlers(params));
 
     act(() => {
-      result.current.handlePointerDown({
+      result.current.handlePointerDown(stub<React.PointerEvent>({
         button: 1,
         clientX: 100,
         clientY: 120,
@@ -99,17 +100,17 @@ describe("usePointerHandlers", () => {
         metaKey: false,
         nativeEvent: {} as PointerEvent,
         target
-      } as unknown as React.PointerEvent);
+      }));
     });
 
     expect(result.current.containerCursor).toBe("grabbing");
 
     act(() => {
-      result.current.handlePointerUp({
+      result.current.handlePointerUp(stub<React.PointerEvent>({
         clientX: 100,
         clientY: 120,
         nativeEvent: {} as PointerEvent
-      } as unknown as React.PointerEvent);
+      }));
     });
 
     expect(result.current.containerCursor).toBe("none");

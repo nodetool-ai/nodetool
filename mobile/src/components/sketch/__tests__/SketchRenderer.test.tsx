@@ -18,12 +18,12 @@ import {
   type SketchDocumentData,
 } from '../SketchRenderer';
 
-jest.mock('../../../services/api', () => ({
-  apiService: {
-    resolveUrl: (path?: string | null) =>
-      path ? (path.startsWith('http') ? path : `https://example.test${path}`) : null,
-  },
-}));
+import { apiService } from '../../../services/api';
+
+// Real `apiService`; only URL resolution is pinned to a stable test host.
+jest.spyOn(apiService, 'resolveUrl').mockImplementation((path) =>
+  path ? (path.startsWith('http') ? path : `https://example.test${path}`) : null
+);
 
 interface AssetQueryResult {
   data?: { get_url: string };
@@ -45,28 +45,6 @@ jest.mock('../../../trpc/client', () => ({
       },
     },
   },
-}));
-
-jest.mock('../../../hooks/useTheme', () => ({
-  useTheme: () => ({
-    colors: {
-      background: '#000',
-      surface: '#111',
-      surfaceElevated: '#222',
-      primary: '#6DB3F8',
-      text: '#fff',
-      textSecondary: '#aaa',
-      textTertiary: '#777',
-      border: '#222',
-      borderLight: '#333',
-      cardBg: '#111',
-      error: '#f00',
-      success: '#0f0',
-      warning: '#fc0',
-      info: '#08f',
-    },
-    shadows: { small: {}, medium: {}, large: {} },
-  }),
 }));
 
 const CANVAS = { width: 200, height: 100, backgroundColor: '#ffffff' };

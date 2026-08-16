@@ -19,11 +19,11 @@ const asset = (over: Partial<Asset>): Asset =>
     ...over
   }) as Asset;
 
-const img = (uri: string, assetId?: string): CollectionItem => ({
-  type: "image",
-  uri,
-  ...(assetId ? { asset_id: assetId } : {})
-});
+const img = (uri: string, assetId?: string): CollectionItem => {
+  const item: CollectionItem = { type: "image", uri };
+  if (assetId) item.asset_id = assetId;
+  return item;
+};
 
 describe("collectionItems", () => {
   describe("assetToItem", () => {
@@ -53,7 +53,8 @@ describe("collectionItems", () => {
     it("appends a matching-type item in order", () => {
       const result = appendItems([img("a", "1")], [img("b", "2")]);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.items.map((i) => i.asset_id)).toEqual(["1", "2"]);
+      if (result.ok)
+        expect(result.items.map((i) => i.asset_id)).toEqual(["1", "2"]);
     });
 
     it("rejects a mismatched type and reports the expected type", () => {
@@ -70,7 +71,11 @@ describe("collectionItems", () => {
 
     it("skips duplicates by asset_id", () => {
       const result = appendItems([img("a", "1")], [img("a-again", "1")]);
-      expect(result).toEqual({ ok: false, reason: "duplicate", expected: "image" });
+      expect(result).toEqual({
+        ok: false,
+        reason: "duplicate",
+        expected: "image"
+      });
     });
 
     it("skips duplicates by uri when no asset_id is present", () => {
@@ -81,7 +86,11 @@ describe("collectionItems", () => {
     it("adds only the matching subset of a mixed incoming batch", () => {
       const result = appendItems(
         [img("a", "1")],
-        [img("b", "2"), { type: "video", uri: "v", asset_id: "3" }, img("c", "4")]
+        [
+          img("b", "2"),
+          { type: "video", uri: "v", asset_id: "3" },
+          img("c", "4")
+        ]
       );
       expect(result.ok).toBe(true);
       if (result.ok) {

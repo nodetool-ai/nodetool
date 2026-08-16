@@ -2,22 +2,23 @@ import {
   computeOpaquePixelBounds,
   computeLayerOpaquePixelBounds
 } from "../opaquePixelBounds";
+import { stub } from "../../../../test-utils/doubles";
 
 function createMockCanvas(
   width: number,
   height: number,
-  pixels?: Uint8ClampedArray
+  pixels?: Uint8ClampedArray<ArrayBuffer>
 ): HTMLCanvasElement {
   const data = pixels ?? new Uint8ClampedArray(width * height * 4);
-  const imageData = { data, width, height };
-  const ctx = {
+  const imageData: ImageData = { data, width, height, colorSpace: "srgb" };
+  const ctx = stub<CanvasRenderingContext2D>({
     getImageData: jest.fn(() => imageData)
-  };
-  return {
-    width,
-    height,
-    getContext: jest.fn(() => ctx)
-  } as unknown as HTMLCanvasElement;
+  });
+  // SAFETY: `getContext` is overloaded over every context id; the bounds
+  // helpers ask only for "2d", which is the id this double answers.
+  const getContext = ((contextId: string) =>
+    contextId === "2d" ? ctx : null) as HTMLCanvasElement["getContext"];
+  return stub<HTMLCanvasElement>({ width, height, getContext });
 }
 
 function setPixelAlpha(
@@ -47,11 +48,11 @@ describe("computeOpaquePixelBounds", () => {
   });
 
   it("returns null when getContext returns null", () => {
-    const canvas = {
+    const canvas = stub<HTMLCanvasElement>({
       width: 10,
       height: 10,
       getContext: jest.fn(() => null)
-    } as unknown as HTMLCanvasElement;
+    });
     expect(computeOpaquePixelBounds(canvas)).toBeNull();
   });
 

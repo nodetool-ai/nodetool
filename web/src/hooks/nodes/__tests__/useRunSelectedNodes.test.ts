@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useRunSelectedNodes } from "../useRunSelectedNodes";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -46,10 +47,8 @@ import { createRunResolver } from "../../../utils/runResolver";
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
-const mockMetadataGetState = (
-  useMetadataStore as unknown as { getState: jest.Mock }
-).getState;
+const mockUseNotificationStore = asMock(useNotificationStore);
+const mockMetadataGetState = asMockStore(useMetadataStore).getState;
 const mockCreateRunResolver = createRunResolver as jest.Mock;
 
 type RunnerState = {
@@ -143,14 +142,14 @@ describe("useRunSelectedNodes", () => {
     });
 
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { run: mockRun, state: "idle" };
         return selector(state);
       }
     );
 
     mockUseNotificationStore.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { addNotification: mockAddNotification };
         return selector(state);
       }
@@ -181,10 +180,7 @@ describe("useRunSelectedNodes", () => {
   // Helper: a selected target fed by a single NON-selected external source.
   const setupExternal = (
     targetHandle = "prompt"
-  ): {
-    source: { id: string; type: string };
-    target: { id: string; type: string };
-  } => {
+  ) => {
     const source = {
       id: "src",
       type: "gen.Image",
@@ -273,7 +269,7 @@ describe("useRunSelectedNodes", () => {
 
   it("does not run when workflow is already running", async () => {
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { run: mockRun, state: "running" };
         return selector(state);
       }

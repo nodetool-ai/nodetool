@@ -114,24 +114,23 @@ export function registerSketchCommands(program: Command): void {
     .option("--json", "Print the full SketchDebugReport as JSON to stdout")
     .action(async (ref: string, opts: SketchDebugCliOptions) => {
       try {
-        const { parseInteractionScript, runSketchDebug } = await import(
-          "../sketch-debug/index.js"
-        );
+        const { parseInteractionScript, runSketchDebug } =
+          await import("../sketch-debug/index.js");
         const interact = opts.interact
           ? parseInteractionScript(opts.interact)
           : undefined;
 
-        const { report, bundleDir } = await runSketchDebug(
-          ref,
-          {
-            ...(interact ? { interact } : {}),
-            ...(opts.out ? { outDir: opts.out } : {})
-          },
-          {
-            loadDocument: await documentLoader(),
-            onLog: (line) => console.error(line)
-          }
-        );
+        const debugOptions: Parameters<typeof runSketchDebug>[1] = {};
+        if (interact) {
+          debugOptions.interact = interact;
+        }
+        if (opts.out) {
+          debugOptions.outDir = opts.out;
+        }
+        const { report, bundleDir } = await runSketchDebug(ref, debugOptions, {
+          loadDocument: await documentLoader(),
+          onLog: (line) => console.error(line)
+        });
 
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
@@ -148,7 +147,10 @@ export function registerSketchCommands(program: Command): void {
   registerSketchVersionsCommands(sketch);
 }
 
-function printSketchSummary(report: SketchDebugReport, bundleDir: string): void {
+function printSketchSummary(
+  report: SketchDebugReport,
+  bundleDir: string
+): void {
   const mark = report.verdict.ok ? "✅" : "❌";
   console.log(`\n${mark} ${report.verdict.headline}`);
   console.log(
@@ -166,7 +168,8 @@ function printSketchSummary(report: SketchDebugReport, bundleDir: string): void 
   }
   if (report.verdict.warnings && report.verdict.warnings.length > 0) {
     console.log("\nWarnings:");
-    for (const warning of report.verdict.warnings) console.log(`  - ${warning}`);
+    for (const warning of report.verdict.warnings)
+      console.log(`  - ${warning}`);
   }
   console.log(`\nDebug bundle: ${bundleDir}`);
   console.log("  report.md / report.json · sketch.json");

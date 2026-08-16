@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../../test-utils/doubles";
 import { render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -21,7 +22,7 @@ jest.mock("../JobItem", () => ({
   )
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 
 const job = (id: string, status: string): Job =>
   ({

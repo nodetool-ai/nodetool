@@ -103,6 +103,12 @@ function matches(reply: EscalationReply, text: string): boolean {
   return reply.when.every((needle) => lower.includes(needle.toLowerCase()));
 }
 
+/** What the scripted user answers with, as the model sees it. */
+export interface EscalationAnswer {
+  ok: true;
+  answer: string;
+}
+
 /**
  * Build the `ask_user` tool for a case, plus the transcript of what was asked.
  * Fresh per run — the returned channel owns its own turn log.
@@ -115,7 +121,7 @@ export function createEscalationChannel(
     name: config.toolName ?? DEFAULT_ESCALATION_TOOL_NAME,
     description: config.description ?? DEFAULT_DESCRIPTION,
     parameters: escalationParameters,
-    execute: async (args: Record<string, unknown>): Promise<unknown> => {
+    execute: async (args: Record<string, unknown>): Promise<EscalationAnswer> => {
       const text = matchText(args);
       const hit = config.replies.find((reply) => matches(reply, text));
       const reply = hit?.reply ?? config.fallback ?? DEFAULT_FALLBACK;

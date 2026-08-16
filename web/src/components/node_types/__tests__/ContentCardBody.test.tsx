@@ -1,6 +1,8 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -41,23 +43,15 @@ jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
 // `findNode`; the body also calls `updateNodeData`. Provide both. No selection
 // is persisted, so `findNode` returns a bare node and selection defaults to the
 // latest generation.
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (
-    selector: (state: {
-      updateNodeData: () => void;
-      findNode: (id: string) => unknown;
-      edges: unknown[];
-    }) => unknown
-  ) =>
-    selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       updateNodeData: jest.fn(),
       findNode: (id: string) => ({ id, data: {} }),
       // NodeHistoryViewer (rendered by ContentCardBody) subscribes to outgoing
       // edges to detect a downstream list consumer; none here.
       edges: []
     })
-}));
-
+);
 jest.mock("../../node/OutputRenderer", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown }) =>
@@ -86,7 +80,7 @@ jest.mock("../../assets/AssetViewer", () => ({
 
 let mockRunnerState: "idle" | "running" = "idle";
 jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWebsocketRunner: (selector: (s: { state: string }) => unknown) =>
+  useWebsocketRunner: <T,>(selector: (s: { state: string }) => T) =>
     selector({ state: mockRunnerState })
 }));
 
@@ -101,14 +95,14 @@ jest.mock("../../../hooks/nodes/useMediaSrc", () => ({
 // VideoPreview's "save to assets" / "download" actions delegate to these.
 const mockCreateAsset = jest.fn().mockResolvedValue({});
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (s: { createAsset: unknown }) => unknown) =>
+  useAssetStore: <T,>(selector: (s: { createAsset: unknown }) => T) =>
     selector({ createAsset: mockCreateAsset })
 }));
 
 const mockAddNotification = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (
-    selector: (s: { addNotification: unknown }) => unknown
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: unknown }) => T
   ) => selector({ addNotification: mockAddNotification })
 }));
 
@@ -152,7 +146,7 @@ const nodeData = {
 } as NodeData;
 
 const metadataForOutput = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     node_type: "fal.text_to_image.TestModel",
     title: "Test Model",
     namespace: "fal.text_to_image",
@@ -163,25 +157,25 @@ const metadataForOutput = (type: string): NodeMetadata =>
     supports_dynamic_inputs: false,
     // A generator/saver: persists each run, so its card gets the gallery.
     auto_save_asset: true
-  }) as unknown as NodeMetadata;
+  });
 
 /** A pure transform: outputs media but doesn't persist — no gallery. */
 const transformMetadata = (): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     ...metadataForOutput("image"),
     node_type: "lib.image.color_grading.Curves",
     namespace: "lib.image.color_grading",
     auto_save_asset: false
-  }) as unknown as NodeMetadata;
+  });
 
 /** A video transform (e.g. Concat): outputs video, doesn't auto-save. */
 const videoTransformMetadata = (): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     ...metadataForOutput("video"),
     node_type: "nodetool.video.Concat",
     namespace: "nodetool.video",
     auto_save_asset: false
-  }) as unknown as NodeMetadata;
+  });
 
 const renderContentCard = (nodeMetadata: NodeMetadata) =>
   render(
@@ -198,7 +192,7 @@ const renderContentCard = (nodeMetadata: NodeMetadata) =>
   );
 
 const fakeAsset = (id: string, jobId: string = "job-current"): Asset =>
-  ({
+  stub<Asset>({
     id,
     content_type: "image/png",
     name: id,
@@ -207,7 +201,7 @@ const fakeAsset = (id: string, jobId: string = "job-current"): Asset =>
     created_at: new Date().toISOString(),
     node_id: nodeId,
     job_id: jobId
-  }) as unknown as Asset;
+  });
 
 /** Seed durable generations into the asset store (drives the timeline). */
 const seedAssets = (assets: Asset[]) => {
@@ -364,7 +358,7 @@ describe("ContentCardBody results", () => {
       text: string,
       createdAt: string
     ): Asset =>
-      ({
+      stub<Asset>({
         id,
         content_type: "text/plain",
         name: id,
@@ -373,7 +367,7 @@ describe("ContentCardBody results", () => {
         created_at: createdAt,
         node_id: nodeId,
         job_id: jobId
-      }) as unknown as Asset;
+      });
     const assets = [
       textAsset("t1", "job-1", "first gen", "2026-01-01T00:00:00Z"),
       textAsset("t2", "job-2", "second gen", "2026-01-02T00:00:00Z")
@@ -458,13 +452,13 @@ describe("ContentCardBody video actions", () => {
 
 describe("ContentCardBody dynamic outputs", () => {
   const outputMetadata = (supportsDynamicOutputs: boolean): NodeMetadata =>
-    ({
+    stub<NodeMetadata>({
       ...metadataForOutput("str"),
       node_type: "nodetool.agents.Agent",
       title: "Agent",
       supports_dynamic_inputs: false,
       supports_dynamic_outputs: supportsDynamicOutputs
-    }) as unknown as NodeMetadata;
+    });
 
   it("shows the Add output button when the node supports dynamic outputs", () => {
     renderContentCard(outputMetadata(true));
@@ -483,14 +477,14 @@ describe("ContentCardBody dynamic outputs", () => {
 
 describe("ContentCardBody dynamic inputs", () => {
   const dynamicMetadata = (): NodeMetadata =>
-    ({
+    stub<NodeMetadata>({
       ...metadataForOutput("str"),
       node_type: "nodetool.text.Concat",
       title: "Concatenate Text",
       inline_fields: [],
       input_fields: [],
       supports_dynamic_inputs: true
-    }) as unknown as NodeMetadata;
+    });
 
   const renderDynamicCard = (dynamicProperties: Record<string, unknown>) =>
     render(

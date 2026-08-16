@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -16,11 +17,11 @@ import TableActions from "../TableActions";
 import type { TabulatorFull as Tabulator } from "tabulator-tables";
 
 describe("TableActions", () => {
-  const mockTabulator = {
+  const mockTabulator = stub<Tabulator>({
     clearSort: jest.fn(),
     undo: jest.fn(),
     redo: jest.fn()
-  } as unknown as Tabulator;
+  });
 
   const mockData = [
     { rownum: 0, col1: "value1", col2: "value2" }

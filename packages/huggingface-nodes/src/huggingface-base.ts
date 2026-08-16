@@ -17,7 +17,9 @@ export const HF_ROUTER = "https://router.huggingface.co";
 export const HF_TOKEN_SETTING = "HF_TOKEN";
 
 /** Resolve the Hugging Face access token from node secrets or the environment. */
-export function getHfToken(secrets: Record<string, string> | undefined): string {
+export function getHfToken(
+  secrets: Record<string, string> | undefined
+): string {
   const key =
     secrets?.HF_TOKEN ||
     secrets?.HUGGINGFACE_API_KEY ||
@@ -56,7 +58,11 @@ export function isRefSet(ref: MediaRef | undefined | null): ref is MediaRef {
  * dependency.
  */
 export type AssetResolveContext =
-  | { resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }> }
+  | {
+      resolveAssetBytes?: (
+        uri: string
+      ) => Promise<{ bytes: Uint8Array | null }>;
+    }
   | undefined;
 
 /** Read the raw bytes behind an image/audio/video ref (data URI, base64, or URL). */
@@ -121,7 +127,7 @@ export async function refToBase64(
 export function imageRefFromBytes(
   bytes: Uint8Array,
   mimeType = "image/png"
-): Record<string, unknown> {
+) {
   return {
     type: "image",
     data: Buffer.from(bytes).toString("base64"),
@@ -133,7 +139,7 @@ export function imageRefFromBytes(
 export function videoRefFromBytes(
   bytes: Uint8Array,
   mimeType = "video/mp4"
-): Record<string, unknown> {
+) {
   return {
     type: "video",
     data: Buffer.from(bytes).toString("base64"),
@@ -146,14 +152,14 @@ export function videoRefFromBytes(
 export function imageRefFromBase64(
   base64: string,
   mimeType = "image/png"
-): Record<string, unknown> {
+) {
   const clean = base64.startsWith("data:")
     ? base64.slice(base64.indexOf(",") + 1)
     : base64;
   return { type: "image", data: clean, content_type: mimeType };
 }
 
-function authHeaders(token: string): Record<string, string> {
+function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -238,7 +244,14 @@ function extractBase64(json: unknown): string | null {
   if (Array.isArray(json) && json.length > 0) return extractBase64(json[0]);
   if (json && typeof json === "object") {
     const obj = json as Record<string, unknown>;
-    for (const key of ["image", "video", "audio", "data", "b64_json", "generated_image"]) {
+    for (const key of [
+      "image",
+      "video",
+      "audio",
+      "data",
+      "b64_json",
+      "generated_image"
+    ]) {
       const value = obj[key];
       if (typeof value === "string") return value.replace(/^data:[^,]+,/, "");
     }
@@ -287,13 +300,17 @@ export async function hfChatCompletion(
     usage?: HfChatResult["usage"];
   };
   const content = json.choices?.[0]?.message?.content ?? "";
-  return { content, ...(json.usage ? { usage: json.usage } : {}) };
+  const result: HfChatResult = { content };
+  if (json.usage) {
+    result.usage = json.usage;
+  }
+  return result;
 }
 
 /** Build a `parameters` object, dropping null/undefined entries. */
 export function cleanParams(
   params: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
     if (value !== null && value !== undefined && value !== "") {

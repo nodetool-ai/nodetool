@@ -23,7 +23,13 @@ jest.mock("../../../hooks/useProviders", () => ({
 jest.mock("../GoogleWorkspaceCard", () => () => null);
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
+  default: <T,>(
+    selector: (state: {
+      secrets: unknown[];
+      updateSecret: jest.Mock;
+      deleteSecret: jest.Mock;
+    }) => T
+  ) =>
     selector({
       secrets: [],
       updateSecret: jest.fn(),
@@ -31,8 +37,9 @@ jest.mock("../../../stores/SecretsStore", () => ({
     })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (selector: (state: unknown) => unknown) =>
-    selector({ addNotification: jest.fn() })
+  useNotificationStore: <T,>(
+    selector: (state: { addNotification: jest.Mock }) => T
+  ) => selector({ addNotification: jest.fn() })
 }));
 
 // Imported after the mocks so the module picks up the hosted-env values.

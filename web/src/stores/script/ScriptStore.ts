@@ -86,6 +86,12 @@ export interface ScriptDraft {
   sections: ScriptSection[];
   /** Persisted timeline sequence this script was assembled into, if any. */
   timelineId: string | null;
+  /**
+   * Persisted storyboard this script is linked to (`scripts.storyboard_id`).
+   * The board owns the link (`Screenplay.script_id`); this is the back-pointer
+   * the script editor navigates by, so it survives a reload.
+   */
+  storyboardId: string | null;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -135,6 +141,10 @@ interface ScriptStoreState {
 
   setTitle: (scriptId: string, title: string) => void;
   setTimelineLink: (scriptId: string, timelineId: string | null) => void;
+  /** Record (or clear, with null) the storyboard derived from this script. */
+  setStoryboardLink: (scriptId: string, storyboardId: string | null) => void;
+  /** Forget the back-pointer of every script that names this board. */
+  clearStoryboardLink: (storyboardId: string) => void;
 
   // Cast
   addSpeaker: (scriptId: string, speaker: ScriptSpeaker) => void;
@@ -218,6 +228,7 @@ const emptyScript = (id: string): ScriptDraft => ({
   cast: [],
   sections: [],
   timelineId: null,
+  storyboardId: null,
   updatedAt: Date.now()
 });
 
@@ -398,6 +409,36 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         false
       )
     ),
+
+  setStoryboardLink: (scriptId, storyboardId) =>
+    set((state) =>
+      withScript(
+        state,
+        scriptId,
+        (s) => (s.storyboardId === storyboardId ? s : { ...s, storyboardId }),
+        // A link handoff isn't an authoring edit — keep it out of undo.
+        false
+      )
+    ),
+
+  clearStoryboardLink: (storyboardId) =>
+    set((state) => {
+      const linked = Object.values(state.scripts).filter(
+        (script) => script.storyboardId === storyboardId
+      );
+      if (linked.length === 0) {
+        return state;
+      }
+      const scripts = { ...state.scripts };
+      for (const script of linked) {
+        scripts[script.id] = {
+          ...script,
+          storyboardId: null,
+          updatedAt: Date.now()
+        };
+      }
+      return { scripts };
+    }),
 
   addSpeaker: (scriptId, speaker) =>
     set((state) =>
@@ -732,6 +773,10 @@ export const useScript = (
  */
 export const useScriptCast = (scriptId: string): ScriptSpeaker[] =>
   useScriptStore((state) => state.scripts[scriptId]?.cast ?? EMPTY_CAST);
+
+/** Reactive storyboard back-pointer for a script, or null when unlinked. */
+export const useScriptStoryboardLink = (scriptId: string): string | null =>
+  useScriptStore((state) => state.scripts[scriptId]?.storyboardId ?? null);
 
 /** Reactive title for a script — see {@link useScriptCast} on why it's narrow. */
 export const useScriptTitle = (scriptId: string): string =>

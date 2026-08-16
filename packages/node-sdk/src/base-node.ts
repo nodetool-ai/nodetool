@@ -30,10 +30,16 @@ import {
  * (e.g. a single Image into a `list[image]` slot) without a manual
  * wrapper node.
  */
-export function coerceToDeclaredType(
-  value: unknown,
+/** A URI string promoted to the tagged asset reference its slot declares. */
+export interface CoercedAssetRef {
+  type: string;
+  uri: string;
+}
+
+export function coerceToDeclaredType<TValue>(
+  value: TValue,
   declaredType: string
-): unknown {
+): TValue | TValue[] | CoercedAssetRef {
   // A URI string standing in for an asset ref. Callers reach for the plain
   // string — `--params '{"clip":"file:///clip.mp4"}'`, a REST body, a webhook
   // payload — and without this the ref stays empty, the node reads no bytes,
@@ -78,10 +84,10 @@ const URI_WITH_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
  * Coerce a value against a typed dynamic slot's declared type. Slots with no
  * resolvable type string pass the value through untouched (legacy `any` slot).
  */
-export function coerceToSlotType(
-  value: unknown,
+export function coerceToSlotType<TValue>(
+  value: TValue,
   slot: DynamicSlotMeta | undefined
-): unknown {
+): TValue | TValue[] | CoercedAssetRef {
   const declaredType = slotTypeToString(slot);
   return declaredType ? coerceToDeclaredType(value, declaredType) : value;
 }
@@ -250,9 +256,17 @@ export type NodeProps<T extends BaseNode> = Partial<
  * no flag needed. Mirrors the Python side, which derives the same boolean
  * solely from whether `gen_process` is overridden.
  */
-export const hasStreamingOutput = (cls: NodeClass): boolean => {
-  const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
-    .prototype;
+/**
+ * What {@link hasStreamingOutput} reads. Written as the two members it touches
+ * so the abstract `typeof BaseNode` — which cannot satisfy `NodeClass`'s
+ * concrete constructor — can be passed as well as a registered node class.
+ */
+type StreamingOutputSource = Pick<NodeClass, "outputCorrelation"> & {
+  prototype: BaseNode;
+};
+
+export const hasStreamingOutput = (cls: StreamingOutputSource): boolean => {
+  const proto = cls.prototype;
   if (
     // Stryker disable next-line OptionalChaining: a class constructor always has a .prototype, so proto is never nullish here (equivalent).
     !!proto?.genProcess &&
@@ -436,7 +450,7 @@ export abstract class BaseNode {
     return getDeclaredPropertiesForClass(this);
   }
 
-  static getDeclaredOutputs(): Record<string, string> {
+  static getDeclaredOutputs() {
     return { ...(this.outputTypes ?? {}) };
   }
 
@@ -458,8 +472,7 @@ export abstract class BaseNode {
     properties: Record<string, unknown>,
     options: NodeValidationOptions = {}
   ): NodePropertyValidationIssue[] {
-    const cls = this as unknown as typeof BaseNode;
-    const declared = cls.getDeclaredProperties();
+    const declared = this.getDeclaredProperties();
     const dynamicSlots = options.dynamicSlots;
     let dynamicValues = options.dynamicValues;
     if (dynamicSlots && !dynamicValues) {
@@ -475,7 +488,7 @@ export abstract class BaseNode {
     return validateNodeProperties(declared, properties, {
       connectedHandles: options.connectedHandles,
       nodeId: options.nodeId,
-      nodeType: cls.nodeType,
+      nodeType: this.nodeType,
       dynamicSlots,
       dynamicValues
     });
@@ -545,7 +558,7 @@ export abstract class BaseNode {
     }
   }
 
-  serialize(): Record<string, unknown> {
+  serialize() {
     const ctor = this.constructor as typeof BaseNode;
     const result: Record<string, unknown> = {};
 
@@ -785,29 +798,27 @@ export abstract class BaseNode {
   }
 
   static toDescriptor(id?: string): NodeDescriptor {
-    const cls = this as unknown as typeof BaseNode;
     const propertyTypes = Object.fromEntries(
-      cls
-        .getDeclaredProperties()
+      this.getDeclaredProperties()
         .map((entry) => [entry.name, entry.options.type])
     );
     const desc: NodeDescriptor = {
-      id: id ?? cls.nodeType,
-      type: cls.nodeType,
-      name: cls.title,
-      is_streaming_input: cls.isStreamingInput,
-      is_streaming_output: hasStreamingOutput(cls as unknown as NodeClass),
-      input_mode: cls.inputMode,
-      output_correlation: cls.outputCorrelation,
-      is_controlled: cls.isControlled,
-      is_join_node: cls.isJoinNode || undefined,
-      is_trigger: cls.isTrigger || undefined,
-      retry_safe: cls.retrySafe || undefined
+      id: id ?? this.nodeType,
+      type: this.nodeType,
+      name: this.title,
+      is_streaming_input: this.isStreamingInput,
+      is_streaming_output: hasStreamingOutput(this),
+      input_mode: this.inputMode,
+      output_correlation: this.outputCorrelation,
+      is_controlled: this.isControlled,
+      is_join_node: this.isJoinNode || undefined,
+      is_trigger: this.isTrigger || undefined,
+      retry_safe: this.retrySafe || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;
     }
-    const outputs = cls.getDeclaredOutputs();
+    const outputs = this.getDeclaredOutputs();
     if (Object.keys(outputs).length > 0) {
       desc.outputs = outputs;
     }

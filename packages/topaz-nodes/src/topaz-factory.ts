@@ -64,7 +64,24 @@ function isAssetType(type: string): boolean {
   return type === "image" || type === "video";
 }
 
-function castValue(value: unknown, type: string): unknown {
+/** A scalar as the Topaz API takes it, after coercion from the stored value. */
+type CoercedScalar = string | number | boolean | null | undefined;
+
+/**
+ * A value held by a node property: NodeTool's property types are scalars,
+ * media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+function castValue(value: unknown, type: string): CoercedScalar {
   if (value === null || value === undefined) return value;
   switch (type) {
     case "int":
@@ -77,7 +94,24 @@ function castValue(value: unknown, type: string): unknown {
   }
 }
 
-function defaultForType(type: string): unknown {
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | EmptyMediaRef;
+
+function defaultForType(type: string): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -108,15 +142,34 @@ function computeFieldClassification(fields: TopazFieldDef[]) {
 function collectScalarFields(
   instance: BaseNode,
   spec: TopazManifestEntry
-): Record<string, unknown> {
+) {
   const fields: Record<string, unknown> = {};
   for (const field of spec.fields) {
     if (field.uploadField || isAssetType(field.type)) continue;
-    const raw = (instance as unknown as Record<string, unknown>)[field.name];
+    const raw = propertyOf(instance, field.name);
     const value = raw ?? field.default ?? defaultForType(field.type);
     fields[field.name] = castValue(value, field.type);
   }
   return fields;
+}
+
+/**
+ * A manifest-built node seen through its declared properties. Each manifest
+ * field is registered as a plain instance property, so the manifest's field
+ * name indexes the instance directly.
+ */
+type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
+
+/**
+ * Read one declared property off a node instance, by the name the manifest
+ * gave it.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  // SAFETY: every declared property is registered from a manifest field, whose
+  // declared types are exactly the scalars, media refs, and lists or dicts of
+  // those that `NodeValue` names.
+  const properties = instance as ManifestNodeProperties;
+  return properties[name];
 }
 
 function uploadFieldName(spec: TopazManifestEntry): string {
@@ -137,7 +190,7 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     ): Promise<Record<string, unknown>> {
       const apiKey = getApiKey(this._secrets);
       const fields = collectScalarFields(this, specRef);
-      const asset = (this as unknown as Record<string, unknown>)[assetField];
+      const asset = propertyOf(this, assetField);
 
       if (isVideo) {
         const sourceContainer = sourceContainerFromRef(asset);
@@ -247,7 +300,7 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     registerDeclaredProperty(TopazNodeClass, field.name, propOptions);
   }
 
-  return TopazNodeClass as unknown as NodeClass;
+  return TopazNodeClass;
 }
 
 export function loadTopazNodesFromManifest(

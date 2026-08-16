@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionHandlers from "../useConnectionHandlers";
 import useConnectionStore from "../../../stores/ConnectionStore";
@@ -206,22 +207,22 @@ describe("useConnectionHandlers", () => {
     mockOpenContextMenu.mockReset();
 
     // Mock useConnectionStore
-    (useConnectionStore as unknown as jest.Mock).mockReturnValue({
+    asMock(useConnectionStore).mockReturnValue({
       connecting: false,
       startConnecting: mockStartConnecting,
       endConnecting: mockEndConnecting
     });
 
     // Mock useMetadataStore
-    (useMetadataStore as unknown as jest.Mock).mockReturnValue(mockGetMetadata);
+    asMock(useMetadataStore).mockReturnValue(mockGetMetadata);
 
     // Mock useNotificationStore
-    (useNotificationStore as unknown as jest.Mock).mockReturnValue(
+    asMock(useNotificationStore).mockReturnValue(
       mockAddNotification
     );
 
     // Mock useNodes
-    (useNodes as unknown as jest.Mock).mockReturnValue({
+    asMock(useNodes).mockReturnValue({
       findNode: mockFindNode,
       onConnect: mockOnConnect,
       edges: [],
@@ -701,9 +702,7 @@ describe("useConnectionHandlers", () => {
 
   describe("onConnectEnd", () => {
     it("auto connects when dropping onto a Preview node body", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "source",
         connectNodeId: "sourceNode",
@@ -783,9 +782,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("auto connects to reroute input when dragging from a source handle", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "source",
         connectNodeId: "sourceNode",
@@ -865,9 +862,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("auto connects from reroute output when dragging towards an input handle", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "target",
         connectNodeId: "targetNode",
@@ -947,9 +942,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("opens selection menu when multiple compatible inputs exist", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "source",
         connectNodeId: "sourceNode",
@@ -1032,9 +1025,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("opens selection menu when multiple compatible outputs exist", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "target",
         connectNodeId: "targetNode",
@@ -1116,9 +1107,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("passes dropPosition payload when opening source dropped-connection menu", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "source",
         connectNodeId: "sourceNode",
@@ -1170,9 +1159,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("preserves numeric payload and adds dropPosition for target dropped-connection menu", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "target",
         connectNodeId: "targetNode",
@@ -1232,9 +1219,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("generates unique key when connecting second node of same type to dynamic output node", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "target",
         connectNodeId: "inputNode",
@@ -1325,9 +1310,7 @@ describe("useConnectionHandlers", () => {
     });
 
     it("creates a dynamic input named after the upstream node when dropping on the Add-another button", () => {
-      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
-        getState?: jest.Mock;
-      };
+      const mockedConnectionStore = asMockStore(useConnectionStore);
       mockedConnectionStore.getState = jest.fn(() => ({
         connectDirection: "source",
         connectNodeId: "sourceNode",

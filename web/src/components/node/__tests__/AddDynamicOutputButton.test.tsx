@@ -1,16 +1,15 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 
 const updateNodeData = jest.fn();
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { updateNodeData: jest.Mock }) => unknown) =>
-    selector({ updateNodeData })
-}));
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeData })
+);
 import AddDynamicOutputButton from "../AddDynamicOutputButton";
 
 describe("AddDynamicOutputButton", () => {

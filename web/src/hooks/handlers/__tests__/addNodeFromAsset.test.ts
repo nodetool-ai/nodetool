@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import { useAddNodeFromAsset } from "../addNodeFromAsset";
 import { useNodes } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -19,7 +20,7 @@ describe("useAddNodeFromAsset", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    (useNodes as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useNodes).mockImplementation((selector) => {
       const state = {
         addNode: mockAddNode,
         createNode: mockCreateNode
@@ -27,14 +28,14 @@ describe("useAddNodeFromAsset", () => {
       return selector ? selector(state) : state;
     });
 
-    (useMetadataStore as unknown as jest.Mock).mockImplementation((selector) => {
+    asMock(useMetadataStore).mockImplementation((selector) => {
       const state = {
         getMetadata: mockGetMetadata
       };
       return selector ? selector(state) : state;
     });
 
-    (useNotificationStore as unknown as jest.Mock).mockImplementation(
+    asMock(useNotificationStore).mockImplementation(
       (selector) => {
         const state = {
           addNotification: mockAddNotification
@@ -48,13 +49,7 @@ describe("useAddNodeFromAsset", () => {
     const metadata = {
       node_type: "nodetool.constant.Model3D"
     };
-    const createdNode: {
-      data: {
-        properties: {
-          value?: unknown;
-        };
-      };
-    } = {
+    const createdNode: { data: { properties: { value?: unknown; }; }; } = {
       data: {
         properties: {}
       }

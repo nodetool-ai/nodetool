@@ -71,10 +71,7 @@ function deriveCachedWorkflowInterface(
 export function deriveWorkflowInterfaceSourceV1(args: {
   readonly workflow: Workflow;
   readonly registry: NodeRegistry;
-}): {
-  graph: Parameters<typeof deriveWorkflowInterfaceV1>[0]["graph"];
-  workflowInterface: WorkflowInterfaceV1Response;
-} {
+}) {
   const graph = graphSchema.safeParse(args.workflow.graph);
   if (!graph.success) {
     throw new WorkflowInterfaceServiceError(
@@ -200,9 +197,15 @@ export async function listWorkflowSummariesV1(args: {
   readonly cursor?: string;
 }): Promise<{ workflows: WorkflowSummary[]; next: string | null }> {
   requireFeature();
-  const [workflows, cursor] = await Workflow.paginateSummaries(args.userId, {
-    limit: args.limit,
-    ...(args.cursor ? { startKey: args.cursor } : {})
-  });
+  const page: Parameters<typeof Workflow.paginateSummaries>[1] = {
+    limit: args.limit
+  };
+  if (args.cursor) {
+    page.startKey = args.cursor;
+  }
+  const [workflows, cursor] = await Workflow.paginateSummaries(
+    args.userId,
+    page
+  );
   return { workflows, next: cursor || null };
 }

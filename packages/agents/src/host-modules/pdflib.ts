@@ -6,11 +6,19 @@
  * turns that into PDF bytes.
  */
 
-import { toGuestBytes } from "../sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
 
 const MAX_PAGE = 8192;
 const MAX_PAGES = 200;
+
+/** pdf-lib's RGB color value, handed straight back into draw options. */
+interface PdfRgb {
+  readonly type: "RGB";
+  readonly red: number;
+  readonly green: number;
+  readonly blue: number;
+}
 
 interface PdfLibLike {
   PDFDocument: {
@@ -18,7 +26,7 @@ interface PdfLibLike {
     load: (data: Uint8Array) => Promise<PdfDoc>;
   };
   StandardFonts: { Helvetica: unknown };
-  rgb: (r: number, g: number, b: number) => unknown;
+  rgb: (r: number, g: number, b: number) => PdfRgb;
 }
 
 interface PdfDoc {
@@ -146,7 +154,7 @@ async function drawItems(
 /**
  * Build a PDF from a JSON page list. Origin for items is top-left, in points.
  */
-export async function build(spec: unknown): Promise<unknown> {
+export async function build(spec: unknown): Promise<GuestBytes> {
   const where = "pdflib.build";
   const input = optionsOf(spec);
   const pages = Array.isArray(input.pages) ? input.pages : [];
@@ -179,7 +187,7 @@ export async function build(spec: unknown): Promise<unknown> {
 /**
  * Concatenate PDF byte arrays in order.
  */
-export async function merge(pdfs: unknown): Promise<unknown> {
+export async function merge(pdfs: unknown): Promise<GuestBytes> {
   const where = "pdflib.merge";
   if (!Array.isArray(pdfs) || pdfs.length === 0) {
     throw new Error(`${where}: provide a non-empty array of PDF byte arrays`);

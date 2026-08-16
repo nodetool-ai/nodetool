@@ -2,12 +2,13 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { installGlobal } from "../../../test-utils/doubles";
 import { render, fireEvent } from "@testing-library/react";
 
 // Polyfill PointerEvent for jsdom (which doesn't support it natively).
 // PointerEvent extends MouseEvent so clientX/clientY work correctly.
 if (typeof window !== "undefined" && !window.PointerEvent) {
-  (window as unknown as Record<string, unknown>).PointerEvent = class PointerEvent extends MouseEvent {
+  installGlobal("PointerEvent", class PointerEvent extends MouseEvent {
     readonly pointerId: number;
     readonly width: number;
     readonly height: number;
@@ -28,7 +29,7 @@ if (typeof window !== "undefined" && !window.PointerEvent) {
       this.pointerType = params.pointerType ?? "";
       this.isPrimary = params.isPrimary ?? false;
     }
-  };
+  });
 }
 
 // Polyfill setPointerCapture / releasePointerCapture for jsdom

@@ -28,7 +28,7 @@ const APPLY_TO = {
     "specific to this item."
 } as const;
 
-function branch(action: VerdictAction): Record<string, unknown> {
+function branch(action: VerdictAction) {
   const base: Record<string, unknown> = {
     type: "object",
     properties: {
@@ -60,7 +60,7 @@ function branch(action: VerdictAction): Record<string, unknown> {
 /** JSON schema for a verdict, restricted to `allowed`. */
 export function buildVerdictSchema(
   allowed: readonly VerdictAction[]
-): Record<string, unknown> {
+) {
   return {
     type: "object",
     description: "The verdict for this failed invocation.",

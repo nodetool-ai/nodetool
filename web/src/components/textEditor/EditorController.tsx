@@ -22,16 +22,21 @@ import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
 
 // CSS Custom Highlight API (experimental)
+/** One entry of the CSS Custom Highlight API registry: a live set of Ranges. */
+interface CssHighlight {
+  readonly size: number;
+}
+
 type CSSWithHighlights = typeof CSS & {
   highlights?: {
-    set(name: string, highlight: unknown): void;
+    set(name: string, highlight: CssHighlight): void;
     delete(name: string): void;
   };
 };
 
 // Highlight constructor (experimental)
 type WindowWithHighlight = Window & {
-  Highlight?: new (...ranges: Range[]) => unknown;
+  Highlight?: new (...ranges: Range[]) => CssHighlight;
 };
 
 // Text Fragment Directive (experimental polyfill)

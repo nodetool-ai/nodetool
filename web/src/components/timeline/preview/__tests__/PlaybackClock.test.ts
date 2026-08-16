@@ -1,3 +1,4 @@
+import { installGlobal, stub } from "../../../../test-utils/doubles";
 let rafCallback: (() => void) | null = null;
 let rafId = 1;
 
@@ -7,14 +8,20 @@ const mockPause = jest.fn();
 
 let mockIsPlaying = true;
 
-global.requestAnimationFrame = jest.fn((cb: () => void) => {
-  rafCallback = cb;
-  return rafId++;
-}) as unknown as typeof requestAnimationFrame;
+installGlobal(
+  "requestAnimationFrame",
+  jest.fn((cb: () => void) => {
+    rafCallback = cb;
+    return rafId++;
+  })
+);
 
-global.cancelAnimationFrame = jest.fn(() => {
-  rafCallback = null;
-}) as unknown as typeof cancelAnimationFrame;
+installGlobal(
+  "cancelAnimationFrame",
+  jest.fn(() => {
+    rafCallback = null;
+  })
+);
 
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
   useTimelinePlaybackStore: {
@@ -123,10 +130,10 @@ describe("PlaybackClock", () => {
   });
 
   it("uses AudioContext.currentTime when provided and running", () => {
-    const fakeCtx = {
+    const fakeCtx = stub<AudioContext>({
       currentTime: 5,
       state: "running"
-    } as unknown as AudioContext;
+    });
 
     clock.start(0, 1, fakeCtx);
 
@@ -141,10 +148,10 @@ describe("PlaybackClock", () => {
   });
 
   it("falls back to wall clock when AudioContext is suspended", () => {
-    const fakeCtx = {
+    const fakeCtx = stub<AudioContext>({
       currentTime: 5,
       state: "suspended"
-    } as unknown as AudioContext;
+    });
 
     clock.start(0, 1, fakeCtx);
     nowSpy.mockReturnValue(2000); // 2s wall elapsed (start was at 0)

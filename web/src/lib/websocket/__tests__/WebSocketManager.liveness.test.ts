@@ -3,11 +3,12 @@
  * half-open socket the browser still calls OPEN while nothing arrives.
  */
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
-  pack: jest.fn((msg: unknown) => msg),
-  unpack: jest.fn((buf: unknown) => buf)
+  pack: jest.fn(<T,>(msg: T) => msg),
+  unpack: jest.fn(<T,>(buf: T) => buf)
 }));
 
 interface FakeCloseEvent {
@@ -26,7 +27,7 @@ class FakeWebSocket {
   sent: Array<Record<string, unknown>> = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose: ((event: FakeCloseEvent) => void) | null = null;
 
   constructor(public url: string) {
@@ -90,7 +91,7 @@ const connect = async (mgr: WebSocketManager): Promise<void> => {
 describe("WebSocketManager liveness watchdog", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 
@@ -214,7 +215,7 @@ describe("WebSocketManager liveness watchdog", () => {
 describe("WebSocketManager outbound queue", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 

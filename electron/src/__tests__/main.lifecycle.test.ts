@@ -89,7 +89,8 @@ jest.mock("../devMode", () => ({
 }));
 
 describe("main.ts lifecycle wiring", () => {
-  type EventHandler = (...args: unknown[]) => unknown;
+  /** A handler the test drives; its result is never read. */
+  type EventHandler = (...args: unknown[]) => void | Promise<void>;
 
   let appOn: jest.Mock;
   let ipcHandle: jest.Mock;

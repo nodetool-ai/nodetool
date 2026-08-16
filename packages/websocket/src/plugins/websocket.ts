@@ -147,7 +147,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
             meta?.required_settings ?? [],
-            node.id
+            node.id,
+            meta?.requires_vram_gb
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
@@ -247,7 +248,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     app.get("/ws/extension", { websocket: true }, (socket, _req) => {
       // The @fastify/websocket socket satisfies the ExtensionSocket surface
       // (send(string) / close() / on("message"|"close"|"error")).
-      const extSocket = socket as unknown as ExtensionSocket;
+      // SAFETY: the @fastify/websocket socket satisfies the ExtensionSocket
+      // surface — send(string) / close() / on("message"|"close"|"error").
+      const extSocket = socket as ExtensionSocket;
       socket.on("error", (error: Error) => {
         log.error("Extension WebSocket error", error);
       });

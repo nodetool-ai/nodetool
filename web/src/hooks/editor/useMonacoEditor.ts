@@ -20,12 +20,15 @@ async function configureMonacoLoader() {
   loaderConfigured = true;
 }
 
+/** Construction options accepted by the lazily-loaded Monaco editor. */
+export type MonacoEditorOptions = monaco.editor.IStandaloneEditorConstructionOptions;
+
 type MonacoComponent = (props: {
   value: string;
   onChange?: (val?: string) => void;
   language?: string;
   theme?: string;
-  options?: Record<string, unknown>;
+  options?: MonacoEditorOptions;
   width?: string | number;
   height?: string | number;
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import("monaco-editor")) => void;
@@ -69,7 +72,10 @@ export function useMonacoEditor(): MonacoEditorResult {
     try {
       await configureMonacoLoader();
       const mod = await import("@monaco-editor/react");
-      setMonacoEditor(() => mod.default as unknown as MonacoComponent);
+      // SAFETY: `MonacoComponent` is the subset of `@monaco-editor/react`'s
+      // Editor props this hook renders with; the module's default export is
+      // that component, declared with a wider prop type.
+      setMonacoEditor(() => mod.default as MonacoComponent);
       isLoadedRef.current = true;
     } catch {
       setMonacoLoadError("Failed to load code editor");

@@ -1,10 +1,16 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import LevelsBody from "../LevelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ContextMenuProvider } from "../../../../providers/ContextMenuProvider";
+
+// Media sources resolve through TanStack Query; these suites render no
+// QueryClientProvider, so use the manual mock (resolution itself is covered
+// by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../hooks/useResolvedMediaUri");
 
 jest.mock("../../../node/ImageView", () => ({
   __esModule: true,
@@ -57,14 +63,14 @@ jest.mock("../../../../utils/histogram/histogramAsync", () => ({
 const defaultProps = {
   id: "node-1",
   nodeType: "nodetool.image.Levels",
-  nodeMetadata: {
+  nodeMetadata: stub<import("../../../../stores/ApiTypes").NodeMetadata>({
     node_type: "nodetool.image.Levels",
     properties: [
       { name: "image", type: { type: "image", type_args: [] } }
     ],
     outputs: [{ name: "output", type: { type: "image", type_args: [] } }],
     is_streaming_output: false
-  } as unknown as import("../../../../stores/ApiTypes").NodeMetadata,
+  }),
   data: { properties: {} } as import("../../../../stores/NodeData").NodeData,
   workflowId: "wf-1",
   status: "completed",

@@ -26,7 +26,11 @@ import { extractAssetId } from "../outputAssetId";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type ClipGenerationStatus = "queued" | "running" | "failed" | "completed";
+export type ClipGenerationStatus =
+  | "queued"
+  | "running"
+  | "failed"
+  | "completed";
 
 export interface ClipJobState {
   clipId: string;
@@ -115,7 +119,7 @@ function isClipJobEntry(value: unknown): value is ClipJobState {
   );
 }
 
-const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
+const loadPersistedClipJobs = () => {
   if (!canUseSessionStorage()) {
     return {};
   }
@@ -149,8 +153,8 @@ const persistClipJobs = (clipJobs: Record<string, ClipJobState>): void => {
   }
   try {
     const activeClipJobs = Object.fromEntries(
-      Object.entries(clipJobs).filter(([, value]) =>
-        value.status === "queued" || value.status === "running"
+      Object.entries(clipJobs).filter(
+        ([, value]) => value.status === "queued" || value.status === "running"
       )
     );
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(activeClipJobs));
@@ -200,7 +204,7 @@ function deriveMembership(
     TimelineGenerationStoreState,
     "generatingClipIds" | "failedClipIds"
   >
-): { generatingClipIds: string[]; failedClipIds: string[] } {
+) {
   const nextGenerating = deriveIds(clipJobs, isGenerating);
   const nextFailed = deriveIds(clipJobs, isFailed);
   return {
@@ -215,8 +219,8 @@ function deriveMembership(
 
 // ── Store ──────────────────────────────────────────────────────────────────
 
-export const useTimelineGenerationStore =
-  create<TimelineGenerationStoreState>((set, get) => {
+export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
+  (set, get) => {
     const persistedClipJobs = loadPersistedClipJobs();
     const persistedJobToClip = Object.fromEntries(
       Object.values(persistedClipJobs).map((job) => [job.jobId, job.clipId])
@@ -280,15 +284,13 @@ export const useTimelineGenerationStore =
         const updated: ClipJobState = {
           ...existing,
           status: effectiveStatus,
-          ...extra,
-          ...(completedWithoutAsset
-            ? {
-                errorMessage:
-                  extra?.errorMessage ??
-                  "Job completed without producing an output asset."
-              }
-            : {})
+          ...extra
         };
+        if (completedWithoutAsset) {
+          updated.errorMessage =
+            extra?.errorMessage ??
+            "Job completed without producing an output asset.";
+        }
 
         set((state) => {
           const nextClipJobs = { ...state.clipJobs, [clipId]: updated };
@@ -302,7 +304,9 @@ export const useTimelineGenerationStore =
         // ── Mirror status into TimelineStore ──────────────────────────────
 
         if (effectiveStatus === "running") {
-          useTimelineStore.getState().patchClip(clipId, { status: "generating" });
+          useTimelineStore
+            .getState()
+            .patchClip(clipId, { status: "generating" });
           return;
         }
 
@@ -394,7 +398,8 @@ export const useTimelineGenerationStore =
             .getOutputResult(workflowId, jobId, selectedOutputNodeId)
         )
     };
-  });
+  }
+);
 
 // ── Convenience selectors ──────────────────────────────────────────────────
 

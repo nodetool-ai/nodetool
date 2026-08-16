@@ -4,10 +4,11 @@
  * metadata, convert to ReactFlow nodes/edges, auto-layout with ELK, and seed a
  * minimal NodeStore so the real BaseNode component renders.
  */
-import { create } from "zustand";
 import type { Node, Edge } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import type { NodeData } from "../stores/NodeData";
+import type { NodeStore } from "../stores/NodeStore";
+import { createReadOnlyNodeStore } from "../stores/readOnlyNodeStore";
 import { graphNodeToReactFlowNode } from "../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../stores/graphEdgeToReactFlowEdge";
 import { autoLayout } from "../core/graph";
@@ -125,59 +126,13 @@ function toWorkflow(raw: RawGraph): Workflow {
         };
       })
     }
-  } as unknown as Workflow;
-}
-
-interface MinimalNodeStore {
-  nodes: Node<NodeData>[];
-  edges: Edge[];
-  workflow: Workflow;
-  viewport: null;
-  shouldFitToScreen: boolean;
-  setShouldFitToScreen: () => void;
-  onNodesChange: () => void;
-  onEdgesChange: () => void;
-  onEdgeUpdate: () => void;
-  deleteEdge: () => void;
-  setEdgeSelectionState: () => void;
-  updateNode: () => void;
-  updateNodeData: () => void;
-  getSelectedNodeCount: () => number;
-  findNode: (id: string) => Node<NodeData> | undefined;
-  getNodesByType: () => never[];
-}
-
-export type MinimalStore = ReturnType<typeof createMinimalNodeStore>;
-
-function createMinimalNodeStore(
-  nodes: Node<NodeData>[],
-  edges: Edge[],
-  workflow: Workflow
-) {
-  return create<MinimalNodeStore>(() => ({
-    nodes,
-    edges,
-    workflow,
-    viewport: null,
-    shouldFitToScreen: false,
-    setShouldFitToScreen: () => {},
-    onNodesChange: () => {},
-    onEdgesChange: () => {},
-    onEdgeUpdate: () => {},
-    deleteEdge: () => {},
-    setEdgeSelectionState: () => {},
-    updateNode: () => {},
-    updateNodeData: () => {},
-    getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodes.find((n) => n.id === id),
-    getNodesByType: () => []
-  }));
+  };
 }
 
 export interface RenderGraph {
   nodes: Node<NodeData>[];
   edges: Edge[];
-  store: MinimalStore;
+  store: NodeStore;
 }
 
 /**
@@ -206,10 +161,10 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
       );
     }
   }
-  const allMetadata: Record<string, NodeMetadata> = {
+  const allMetadata = {
     ...currentMetadata,
     ...newMetadata
-  };
+  } satisfies Record<string, NodeMetadata>;
   if (Object.keys(newMetadata).length > 0) {
     useMetadataStore.getState().setMetadata(allMetadata);
   }
@@ -217,7 +172,7 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
   // Only fill in types with no registered component yet — never override one
   // that's already there.
   const currentNodeTypes = useMetadataStore.getState().nodeTypes;
-  const newNodeTypes: Record<string, unknown> = {};
+  const newNodeTypes: Record<string, typeof BaseNode> = {};
   for (const node of graphNodes) {
     const nodeType = node.type;
     if (!currentNodeTypes[nodeType] && !newNodeTypes[nodeType]) {
@@ -252,6 +207,6 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
     };
   }
   const layoutedNodes = await autoLayout(rfEdges, rfNodes);
-  const store = createMinimalNodeStore(layoutedNodes, rfEdges, workflow);
+  const store = createReadOnlyNodeStore(layoutedNodes, rfEdges, workflow);
   return { nodes: layoutedNodes, edges: rfEdges, store };
 }

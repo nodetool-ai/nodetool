@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { parseWavBytes, toBytes, type WavData } from "@nodetool-ai/audio-nodes";
 import { tmpdir } from "node:os";
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -93,6 +94,54 @@ function longSine(sr = 8000, dur = 0.5): { uri: string; data: string } {
     samples[i] = 0.5 * Math.sin((2 * Math.PI * 440 * i) / sr);
   }
   return makeAudioRef(samples, sr);
+}
+
+/** Decode an AudioRef back to interleaved PCM so its content can be asserted. */
+function decode(ref: { data?: Uint8Array | string }): WavData {
+  const wav = parseWavBytes(toBytes(ref.data));
+  if (!wav) {
+    throw new Error("audio ref is not decodable WAV");
+  }
+  return wav;
+}
+
+function decodeOutput(res: Record<string, unknown>): WavData {
+  return decode(res.output as { data?: Uint8Array | string });
+}
+
+function peak(samples: Float32Array): number {
+  let max = 0;
+  for (const s of samples) {
+    max = Math.max(max, Math.abs(s));
+  }
+  return max;
+}
+
+function rms(samples: Float32Array, from: number, to: number): number {
+  let total = 0;
+  for (let i = from; i < to; i++) {
+    total += samples[i] * samples[i];
+  }
+  return Math.sqrt(total / (to - from));
+}
+
+/**
+ * Dominant frequency of one channel, read off the zero-crossing rate over the
+ * middle half — the edges of a rubberband render are still ramping up.
+ */
+function channelHz(wav: WavData, channel: number): number {
+  const frames = wav.samples.length / wav.numChannels;
+  const from = Math.floor(frames * 0.25);
+  const to = Math.floor(frames * 0.75);
+  let crossings = 0;
+  for (let i = from + 1; i < to; i++) {
+    const prev = wav.samples[(i - 1) * wav.numChannels + channel];
+    const cur = wav.samples[i * wav.numChannels + channel];
+    if (prev < 0 !== cur < 0) {
+      crossings++;
+    }
+  }
+  return crossings / 2 / ((to - from) / wav.sampleRate);
 }
 
 type Row = Record<string, unknown>;
@@ -1135,17 +1184,22 @@ describe("document.ts gaps", () => {
 // ============================================================================
 
 describe("lib-audio-dsp round 2", () => {
-  it("Gain with Uint8Array audio data", async () => {
+  it("Gain decodes Uint8Array audio data to the same PCM as base64", async () => {
     const wav = shortSine();
-    // pass Uint8Array directly instead of base64 string
     const rawBytes = Buffer.from(wav.data as string, "base64");
     const __n208 = new GainNode_();
     __n208.assign({
       audio: { uri: "", data: new Uint8Array(rawBytes) },
       gain_db: 0
     });
-    const res = await __n208.process();
-    expect(res.output).toBeDefined();
+    const out = decodeOutput(await __n208.process());
+    const input = decode(wav);
+
+    // 0 dB is a x1 multiply, so mis-decoding the raw bytes is the only way the
+    // samples can come back different from the base64 path's.
+    expect(out.sampleRate).toBe(input.sampleRate);
+    expect(out.numChannels).toBe(input.numChannels);
+    expect(out.samples).toEqual(input.samples);
   });
 
   it("Gain with invalid audio data throws", async () => {
@@ -1304,77 +1358,106 @@ startxref
   });
 });
 describe("lib-pedalboard-extra round 2", () => {
-  it("Limiter with loud signal triggers gain reduction", async () => {
-    // Create a WAV with loud samples (above typical threshold)
+  it("Limiter clamps a loud signal down to the threshold", async () => {
+    // Loud enough (0.9) to sit well above the threshold set below.
     const sr = 8000;
-    const dur = 0.05;
-    const n = Math.floor(sr * dur);
+    const n = Math.floor(sr * 0.05);
     const samples = new Float32Array(n);
-    for (let i = 0; i < n; i++)
-      samples[i] = 0.9 * Math.sin((2 * Math.PI * 440 * i) / sr);
-    const buf = Buffer.alloc(44 + n * 2);
-    buf.write("RIFF", 0);
-    buf.writeUInt32LE(36 + n * 2, 4);
-    buf.write("WAVE", 8);
-    buf.write("fmt ", 12);
-    buf.writeUInt32LE(16, 16);
-    buf.writeUInt16LE(1, 20);
-    buf.writeUInt16LE(1, 22);
-    buf.writeUInt32LE(sr, 24);
-    buf.writeUInt32LE(sr * 2, 28);
-    buf.writeUInt16LE(2, 32);
-    buf.writeUInt16LE(16, 34);
-    buf.write("data", 36);
-    buf.writeUInt32LE(n * 2, 40);
     for (let i = 0; i < n; i++) {
-      buf.writeInt16LE(Math.round(samples[i] * 0x7fff), 44 + i * 2);
+      samples[i] = 0.9 * Math.sin((2 * Math.PI * 440 * i) / sr);
     }
-    const audio = { uri: "", data: Buffer.from(buf).toString("base64") };
+    const audio = makeAudioRef(samples, sr);
+
     const __n222 = new LimiterNode();
     __n222.assign({
       audio,
       threshold_db: -20, // very low threshold to trigger limiting
-      release_ms: 10
+      release_ms: 10,
+      // Makeup gain would push the limited peaks back up to full scale; off, so
+      // the assertion reads the ceiling the limiter enforced.
+      auto_gain: false
     });
-    const res = await __n222.process();
-    expect(res.output).toBeDefined();
+    const out = decodeOutput(await __n222.process()).samples;
+
+    expect(peak(decode(audio).samples)).toBeCloseTo(0.9, 2);
+    expect(peak(out)).toBeCloseTo(Math.pow(10, -20 / 20), 3);
   });
 
-  it("PitchShift with stereo audio", async () => {
-    const audio = stereoSine();
+  // Rubberband reports a processing latency the nodes trim off the front. On a
+  // 0.05 s clip that trim eats the entire render and both nodes emit silence,
+  // so these fixtures are 0.5 s.
+  it("PitchShift raises both stereo channels by the requested interval", async () => {
+    const audio = stereoSine(8000, 0.5);
     const __n223 = new PitchShiftNode();
     __n223.assign({
       audio,
       semitones: 2
     });
-    const res = await __n223.process();
-    expect(res.output).toBeDefined();
+    const out = decodeOutput(await __n223.process());
+    const input = decode(audio);
+
+    expect(out.numChannels).toBe(2);
+    // Pitch shifting preserves duration.
+    expect(out.samples.length).toBe(input.samples.length);
+
+    const expected = Math.pow(2, 2 / 12);
+    for (const channel of [0, 1]) {
+      expect(channelHz(out, channel) / channelHz(input, channel)).toBeCloseTo(
+        expected,
+        1
+      );
+    }
   });
 
-  it("TimeStretch with stereo audio", async () => {
-    const audio = stereoSine();
-    const __n224 = new TimeStretchNode();
-    __n224.assign({
-      audio,
-      rate: 1.5
-    });
-    const res = await __n224.process();
-    expect(res.output).toBeDefined();
+  it("TimeStretch rescales stereo duration by the requested rate", async () => {
+    const audio = stereoSine(8000, 0.5);
+    const inFrames = decode(audio).samples.length / 2;
+
+    const stretch = async (rate: number) => {
+      const node = new TimeStretchNode();
+      node.assign({ audio, rate });
+      return decodeOutput(await node.process());
+    };
+
+    const faster = await stretch(1.5);
+    expect(faster.numChannels).toBe(2);
+    expect(faster.samples.length / 2).toBe(Math.round(inFrames / 1.5));
+
+    // Slowing down is the direction that needs rubberband to actually produce
+    // more frames than it was fed, rather than the trim just cutting fewer.
+    const slower = await stretch(0.75);
+    expect(slower.numChannels).toBe(2);
+    expect(slower.samples.length / 2).toBe(Math.round(inFrames / 0.75));
+    expect(peak(slower.samples)).toBeGreaterThan(0.4);
   });
 
-  it("Compress with Uint8Array data", async () => {
-    const wav = shortSine();
+  it("Compress narrows dynamic range from Uint8Array data too", async () => {
+    // CompressNode's props are `threshold` / `attack` / `release` — not the
+    // `_db` / `_ms` names its siblings in this module use.
+    const sr = 8000;
+    const n = Math.floor(sr * 0.2);
+    const samples = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const amp = i < n / 2 ? 0.9 : 0.09;
+      samples[i] = amp * Math.sin((2 * Math.PI * 440 * i) / sr);
+    }
+    const wav = makeAudioRef(samples, sr);
     const rawBytes = Buffer.from(wav.data as string, "base64");
+
     const __n225 = new CompressNode();
     __n225.assign({
       audio: { uri: "", data: new Uint8Array(rawBytes) },
-      threshold_db: -10,
+      threshold: -10,
       ratio: 4,
-      attack_ms: 5,
-      release_ms: 50
+      attack: 5,
+      release: 50,
+      auto_gain: false
     });
-    const res = await __n225.process();
-    expect(res.output).toBeDefined();
+    const out = decodeOutput(await __n225.process()).samples;
+
+    const range = (s: Float32Array) => rms(s, 100, 800) / rms(s, 900, 1600);
+    expect(range(decode(wav).samples)).toBeCloseTo(10, 1);
+    expect(range(out)).toBeLessThan(7);
   });
 
   it("Bitcrush with invalid WAV throws", async () => {

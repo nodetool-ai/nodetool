@@ -86,6 +86,8 @@ export const scriptResponse = z.object({
   document: scriptDocument,
   /** Timeline sequence this script was assembled into, if any. */
   timelineId: z.string().optional(),
+  /** Storyboard this script is linked to, if any. */
+  storyboardId: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
@@ -113,7 +115,8 @@ export const patchScriptInput = z
   .object({
     name: z.string().min(1).optional(),
     document: scriptDocument.optional(),
-    timelineId: z.string().nullable().optional()
+    timelineId: z.string().nullable().optional(),
+    storyboardId: z.string().nullable().optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field must be provided"

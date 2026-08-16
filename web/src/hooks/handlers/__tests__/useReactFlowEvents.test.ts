@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+
 import { Viewport } from "@xyflow/react";
 import { useReactFlowEvents } from "../useReactFlowEvents";
 
@@ -7,15 +8,9 @@ jest.mock("@xyflow/react");
 const mockSetViewport = jest.fn();
 const mockCloseNodeMenu = jest.fn();
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    if (typeof selector === 'function') {
-      return selector({ setViewport: mockSetViewport });
-    }
-    return { setViewport: mockSetViewport };
-  })
-}));
-
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({ setViewport: mockSetViewport })
+);
 jest.mock("../../../stores/NodeMenuStore", () => ({
   __esModule: true,
   default: jest.fn((selector) => {

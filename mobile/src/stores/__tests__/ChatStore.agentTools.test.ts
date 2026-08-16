@@ -1,3 +1,4 @@
+import { apiService } from '../../services/api';
 /**
  * The chat store's half of the agent tool contract: advertise the client tools
  * on every open, dispatch an incoming `tool_call`, and attach `ui_context` to
@@ -17,27 +18,34 @@ jest.mock('../../services/WebSocketManager', () => ({
   WebSocketManager: jest.fn(),
 }));
 
-jest.mock('../../services/api', () => ({
-  apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws'),
-  },
-}));
+// The real `apiService` singleton; only the URL lookup is stubbed.
+jest
+  .spyOn(apiService, 'getWebSocketUrl')
+  .mockReturnValue('ws://localhost:7777/ws');
 
 interface Callbacks {
   onOpen?: () => void;
   onMessage?: (data: unknown) => void;
 }
 
+/**
+ * The socket the store is given: a real `WebSocketManager` shell (the class is
+ * mocked, so its prototype is empty) carrying spies for the seven methods the
+ * store calls. Building it on the prototype keeps it a `WebSocketManager` to
+ * the type system, whose remaining members are private and unreachable here.
+ */
+type SocketDouble = WebSocketManager & {
+  connect: jest.Mock;
+  disconnect: jest.Mock;
+  destroy: jest.Mock;
+  send: jest.Mock;
+  isConnected: jest.Mock;
+  setCallbacks: jest.Mock;
+  getState: jest.Mock;
+};
+
 describe('ChatStore agent tool wiring', () => {
-  let socket: {
-    connect: jest.Mock;
-    disconnect: jest.Mock;
-    destroy: jest.Mock;
-    send: jest.Mock;
-    isConnected: jest.Mock;
-    setCallbacks: jest.Mock;
-    getState: jest.Mock;
-  };
+  let socket: SocketDouble;
   let callbacks: Callbacks;
 
   beforeEach(() => {
@@ -56,7 +64,7 @@ describe('ChatStore agent tool wiring', () => {
     });
 
     callbacks = {};
-    socket = {
+    socket = Object.assign(Object.create(WebSocketManager.prototype), {
       connect: jest.fn().mockResolvedValue(undefined),
       disconnect: jest.fn(),
       destroy: jest.fn(),
@@ -66,8 +74,8 @@ describe('ChatStore agent tool wiring', () => {
         callbacks = next;
       }),
       getState: jest.fn().mockReturnValue('connected'),
-    };
-    (WebSocketManager as unknown as jest.Mock).mockImplementation(() => socket);
+    });
+    jest.mocked(WebSocketManager).mockImplementation(() => socket);
   });
 
   afterEach(() => {
@@ -108,7 +116,7 @@ describe('ChatStore agent tool wiring', () => {
   it('answers a tool_call with a tool_result on the same id', async () => {
     await useChatStore.getState().connect();
     registerDocumentHandler('storyboard', 'sb1', 'Board', {
-      getSnapshot: () => ({ boardId: 'sb1', shots: [] }),
+      getSnapshot: () => ({ boardId: 'sb1', title: 'Board', shots: [] }),
     });
 
     callbacks.onMessage?.({

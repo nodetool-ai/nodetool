@@ -78,6 +78,11 @@ interface SSH2Client {
   ): void;
   sftp(callback: (err: Error | undefined, sftp: SSH2SFTPWrapper) => void): void;
   end(): void;
+  /**
+   * ssh2 keeps the transport on this undocumented field. Optional because a
+   * build that renames it must degrade to "not connected", not throw.
+   */
+  readonly _sock?: SshUnderlyingSocket;
 }
 
 export interface SSH2ClientConstructor {
@@ -115,6 +120,11 @@ function getClientCtor(): SSH2ClientConstructor {
 // ---------------------------------------------------------------------------
 // Custom Error Classes
 // ---------------------------------------------------------------------------
+
+/** The ssh2 Client's private socket, read only to check writability. */
+interface SshUnderlyingSocket {
+  writable?: boolean;
+}
 
 export class SSHConnectionError extends Error {
   constructor(message: string) {
@@ -273,10 +283,7 @@ export class SSHConnection {
   isConnected(): boolean {
     if (!this.client) return false;
     // Heuristic: check whether the underlying socket is writable.
-    const sock = (this.client as unknown as Record<string, unknown>)._sock as
-      | { writable?: boolean }
-      | undefined;
-    return sock?.writable === true;
+    return this.client._sock?.writable === true;
   }
 
   /** Ensure connection is active, reconnect if necessary. */

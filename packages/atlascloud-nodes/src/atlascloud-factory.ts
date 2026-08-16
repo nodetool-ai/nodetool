@@ -21,7 +21,6 @@ import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime
 import type {
   AssetMediaKind,
   MediaRefValue,
-  ProcessingContext,
   PromptAssetInputField,
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
@@ -428,7 +427,7 @@ export async function resolveAssetForAtlas(
   if (!isHttpUri(r.uri)) {
     const bytes = await loadMediaRefBytes(
       ref as MediaRefValue,
-      context as unknown as ProcessingContext | undefined
+      context
     );
     if (bytes && bytes.byteLength > 0) {
       return bytesToDataUri(bytes, resolvedMime(r, fieldType));
@@ -459,7 +458,7 @@ export async function resolveAssetForAtlas(
  * Callers must filter out null/undefined before invoking — the factory does
  * this in its field loop, so there's no defensive guard here.
  */
-function coerceScalar(v: unknown, type: AtlasFieldType): unknown {
+function coerceScalar(v: NodeValue, type: AtlasFieldType): NodeValue {
   switch (type) {
     case "int": {
       if (typeof v === "number") return Math.trunc(v);
@@ -481,7 +480,38 @@ function coerceScalar(v: unknown, type: AtlasFieldType): unknown {
   }
 }
 
-function defaultForType(type: AtlasFieldType): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
+
+function defaultForType(type: AtlasFieldType): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -526,6 +556,25 @@ function refHasSource(value: unknown): boolean {
 }
 
 /**
+ * A manifest-built node seen through its declared properties. Each manifest
+ * field is registered as a plain instance property, so the manifest's field
+ * name indexes the instance directly.
+ */
+type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
+
+/**
+ * Read one declared property off a node instance, by the name the manifest
+ * gave it.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  // SAFETY: every declared property is registered from a manifest field, whose
+  // declared types are exactly the scalars, media refs, and lists or dicts of
+  // those that `NodeValue` names.
+  const properties = instance as ManifestNodeProperties;
+  return properties[name];
+}
+
+/**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
  * empty image/audio/video inputs (and strip the mentions from the text). Shared
  * with FAL / KIE / Replicate / image-to-image via `mapPromptAssetsToInputs` —
@@ -533,14 +582,14 @@ function refHasSource(value: unknown): boolean {
  * and video clip straight from the prompt's @-mentions.
  */
 function promptAssetOverrides(
-  instance: Record<string, unknown>,
+  instance: BaseNode,
   spec: AtlasManifestEntry,
   context: ProcessContext | undefined
 ): Promise<Record<string, unknown>> {
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.fields) {
-    const value = instance[field.name];
+    const value = propertyOf(instance, field.name);
     if (ASSET_TYPES.has(field.type)) {
       assetFields.push({
         name: field.name,
@@ -579,15 +628,13 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       const apiKey = getApiKey(this._secrets);
       const input: Record<string, unknown> = {};
 
-      const overrides = await promptAssetOverrides(
-        this as unknown as Record<string, unknown>,
-        specRef,
-        context
-      );
-      const readValue = (name: string): unknown =>
-        name in overrides
+      const overrides = await promptAssetOverrides(this, specRef, context);
+      // SAFETY: both sources hold node property values, and NodeTool restricts
+      // those to its own property types — the shapes `NodeValue` names.
+      const readValue = (name: string): NodeValue =>
+        (name in overrides
           ? overrides[name]
-          : (this as unknown as Record<string, unknown>)[name];
+          : propertyOf(this, name)) as NodeValue;
 
       for (const f of specRef.fields) {
         const v = readValue(f.name);
@@ -736,7 +783,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     registerDeclaredProperty(AtlasNodeClass, field.name, propOptions);
   }
 
-  return AtlasNodeClass as unknown as NodeClass;
+  return AtlasNodeClass;
 }
 
 export function loadAtlasNodesFromManifest(

@@ -7,13 +7,32 @@ import {
   type MediaRef
 } from "../huggingface-base.js";
 
-
 const EMPTY_AUDIO = {
   type: "audio",
   uri: "",
   asset_id: null,
   data: null,
   metadata: null
+};
+
+type AsrBody = {
+  inputs: string;
+  parameters?: { return_timestamps: boolean };
+};
+
+/** The ASR request body, with `parameters` present only when timestamps are asked for. */
+function asrBody(inputs: string, returnTimestamps: boolean): AsrBody {
+  const body: AsrBody = { inputs };
+  if (returnTimestamps) {
+    body.parameters = { return_timestamps: true };
+  }
+  return body;
+}
+
+/** Output handles AutomaticSpeechRecognitionNode.process() emits. */
+type AutomaticSpeechRecognitionNodeOutputs = {
+  output: string;
+  chunks: { text?: string; timestamp?: number[] }[];
 };
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
@@ -56,7 +75,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {
@@ -69,12 +88,11 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const result = await hfPipelineJson<{
       text?: string;
       chunks?: Array<{ text?: string; timestamp?: number[] }>;
-    }>(token, String(this.model ?? "openai/whisper-large-v3"), {
-      inputs: base64,
-      ...(returnTimestamps
-        ? { parameters: { return_timestamps: true } }
-        : {})
-    });
+    }>(
+      token,
+      String(this.model ?? "openai/whisper-large-v3"),
+      asrBody(base64, returnTimestamps)
+    );
 
     return {
       output: String(result?.text ?? ""),
@@ -82,6 +100,12 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     };
   }
 }
+
+/** Output handles AudioClassificationNode.process() emits. */
+type AudioClassificationNodeOutputs = {
+  output: string;
+  scores: { label?: string; score?: number }[];
+};
 
 export class AudioClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.AudioClassification";
@@ -125,7 +149,7 @@ export class AudioClassificationNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AudioClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {

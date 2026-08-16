@@ -134,15 +134,13 @@ const SandboxPackagesProperty = (
         onChange(kept);
         return;
       }
-      const declaration: Declaration = {
-        specifier: entry.specifier,
-        ...(entry.packVersion === undefined
-          ? {}
-          : { resolvedPackVersion: entry.packVersion }),
-        ...(entry.contentDigest === undefined
-          ? {}
-          : { contentDigest: entry.contentDigest })
-      };
+      const declaration: Declaration = { specifier: entry.specifier };
+      if (entry.packVersion !== undefined) {
+        declaration.resolvedPackVersion = entry.packVersion;
+      }
+      if (entry.contentDigest !== undefined) {
+        declaration.contentDigest = entry.contentDigest;
+      }
       onChange([...kept, declaration]);
     },
     [onChange, value]
@@ -165,11 +163,13 @@ const SandboxPackagesProperty = (
           Installed sandbox packages could not be read.
         </AlertBanner>
       )}
-      {!modulesQuery.isLoading && modules.length === 0 && missing.length === 0 && (
-        <Text size="small" color="secondary">
-          No sandbox packages are installed.
-        </Text>
-      )}
+      {!modulesQuery.isLoading &&
+        modules.length === 0 &&
+        missing.length === 0 && (
+          <Text size="small" color="secondary">
+            No sandbox packages are installed.
+          </Text>
+        )}
 
       <FlexColumn gap={0.5}>
         {modules.map((entry) => {

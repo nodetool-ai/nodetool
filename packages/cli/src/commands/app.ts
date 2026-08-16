@@ -90,7 +90,8 @@ export function registerAppCommands(program: Command): void {
     .option("--json", "Print the full AppDebugReport as JSON to stdout")
     .action(async (ref: string, opts: AppDebugCliOptions) => {
       try {
-        const { initDb, Application, Workflow } = await import("@nodetool-ai/models");
+        const { initDb, Application, Workflow } =
+          await import("@nodetool-ai/models");
         const { initMasterKey } = await import("@nodetool-ai/security");
         const { getDefaultDbPath } = await import("@nodetool-ai/config");
         const { runAppDebug } = await import("../app-debug/index.js");
@@ -112,35 +113,36 @@ export function registerAppCommands(program: Command): void {
           ? (JSON.parse(opts.interact) as InteractionSteps)
           : undefined;
 
-        const report = await runAppDebug(
-          ref,
-          {
-            params,
-            interact,
-            run: opts.run,
-            ...(opts.out ? { outDir: opts.out } : {}),
-            ...(opts.timeout ? { timeoutMs: opts.timeout } : {})
+        const debugOptions: Parameters<typeof runAppDebug>[1] = {
+          params,
+          interact,
+          run: opts.run
+        };
+        if (opts.out) {
+          debugOptions.outDir = opts.out;
+        }
+        if (opts.timeout) {
+          debugOptions.timeoutMs = opts.timeout;
+        }
+        const report = await runAppDebug(ref, debugOptions, {
+          loadFromDb: (id: string) =>
+            Workflow.get(id) as Promise<{
+              graph: { nodes: never[]; edges: never[] };
+              app_doc?: unknown;
+            } | null>,
+          loadApplication: async (id: string) => {
+            const application = await Application.findById(id);
+            return application
+              ? {
+                  id: application.id,
+                  name: application.name,
+                  description: application.description,
+                  document: application.document
+                }
+              : null;
           },
-          {
-            loadFromDb: (id: string) =>
-              Workflow.get(id) as Promise<{
-                graph: { nodes: never[]; edges: never[] };
-                app_doc?: unknown;
-              } | null>,
-            loadApplication: async (id: string) => {
-              const application = await Application.findById(id);
-              return application
-                ? {
-                    id: application.id,
-                    name: application.name,
-                    description: application.description,
-                    document: application.document
-                  }
-                : null;
-            },
-            onLog: (line) => console.error(line.trimEnd())
-          }
-        );
+          onLog: (line) => console.error(line.trimEnd())
+        });
 
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
@@ -223,29 +225,29 @@ async function runAppBuild(
   const supervisorConfig = parseSupervisorFlags(opts);
   // Parsed before anything expensive is built: a mistyped bound must fail the
   // command, not silently become `NaN` and disable the cap it configures.
-  const bounds = {
-    ...(opts.maxRepairs !== undefined
-      ? {
-          maxRepairs: parseNumericOption(opts.maxRepairs, "--max-repairs", {
-            integer: true,
-            min: 0
-          })
-        }
-      : {}),
-    ...(opts.costCap !== undefined
-      ? {
-          costCapUsd: parseNumericOption(opts.costCap, "--cost-cap", { min: 0 })
-        }
-      : {}),
-    ...(opts.timeout !== undefined
-      ? {
-          timeoutMs: parseNumericOption(opts.timeout, "--timeout", {
-            integer: true,
-            min: 0
-          })
-        }
-      : {})
+  type BoundsFields = {
+    maxRepairs?: number;
+    costCapUsd?: number;
+    timeoutMs?: number;
   };
+  const bounds: BoundsFields = {};
+  if (opts.maxRepairs !== undefined) {
+    bounds.maxRepairs = parseNumericOption(opts.maxRepairs, "--max-repairs", {
+      integer: true,
+      min: 0
+    });
+  }
+  if (opts.costCap !== undefined) {
+    bounds.costCapUsd = parseNumericOption(opts.costCap, "--cost-cap", {
+      min: 0
+    });
+  }
+  if (opts.timeout !== undefined) {
+    bounds.timeoutMs = parseNumericOption(opts.timeout, "--timeout", {
+      integer: true,
+      min: 0
+    });
+  }
 
   const [
     { buildApp, renderBuildReportMarkdown, resolveJudgeModelSpec },
@@ -313,8 +315,7 @@ async function runAppBuild(
   });
 
   const runOnce = async (): Promise<BuildReport> => {
-    const built = await buildApp({
-      ...(isSpecFile ? { specPath: ref } : { prompt: ref }),
+    const buildOptions: Parameters<typeof buildApp>[0] = {
       provider,
       model,
       context,
@@ -331,14 +332,23 @@ async function runAppBuild(
         : runOnServer,
       loadWorkflow: async (id: string) => {
         const workflow = (await Workflow.get(id)) as {
-          graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+          graph?: {
+            nodes: Array<Record<string, unknown>>;
+            edges: Array<Record<string, unknown>>;
+          };
           name?: string;
         } | null;
-        return workflow?.graph
-          ? { graph: workflow.graph, ...(workflow.name ? { name: workflow.name } : {}) }
-          : null;
+        if (!workflow?.graph) return null;
+        type LoadedFields = {
+          graph: NonNullable<typeof workflow.graph>;
+          name?: string;
+        };
+        const loaded: LoadedFields = { graph: workflow.graph };
+        if (workflow.name) {
+          loaded.name = workflow.name;
+        }
+        return loaded;
       },
-      ...(opts.workflow ? { pinnedWorkflowIds: opts.workflow } : {}),
       ...bounds,
       buildId,
       ledger: { userId: "1" },
@@ -347,7 +357,16 @@ async function runAppBuild(
       },
       onRunMessages: (interaction, runIndex, messages) =>
         writeRunMessages(outDir, interaction, runIndex, messages)
-    });
+    };
+    if (isSpecFile) {
+      buildOptions.specPath = ref;
+    } else {
+      buildOptions.prompt = ref;
+    }
+    if (opts.workflow) {
+      buildOptions.pinnedWorkflowIds = opts.workflow;
+    }
+    const built = await buildApp(buildOptions);
     await writeBuildBundle(outDir, built, renderBuildReportMarkdown(built));
     return built;
   };
@@ -399,7 +418,7 @@ function resolveJudge(init: {
   explicit?: string;
   providers: Record<string, BaseProvider>;
   resolveSpec: typeof resolveJudgeModelSpec;
-}): { provider: BaseProvider; model: string } {
+}) {
   const resolution = init.resolveSpec({
     explicit: init.explicit,
     builderProviderId: init.builder.provider,
@@ -494,14 +513,18 @@ function printAppSummary(report: {
   });
   for (const inv of report.invocations) {
     const state =
-      inv.timedOutMs != null ? `timed out after ${inv.timedOutMs}ms` : inv.status;
+      inv.timedOutMs != null
+        ? `timed out after ${inv.timedOutMs}ms`
+        : inv.status;
     console.log(`  ${inv.operationId} (${inv.decision}): ${state}`);
   }
   const variables = Object.keys(report.variables);
   if (variables.length > 0) {
     console.log(`  variables: ${variables.join(", ")}`);
   }
-  const bound = report.widgets.filter((w) => w.bindingMode === "read" && w.binding);
+  const bound = report.widgets.filter(
+    (w) => w.bindingMode === "read" && w.binding
+  );
   if (bound.length > 0) {
     const filled = bound.filter((w) => w.hasValue).length;
     console.log(`  display widgets with values: ${filled}/${bound.length}`);
@@ -512,10 +535,13 @@ function printAppSummary(report: {
   }
   if (report.validation.warnings.length > 0) {
     console.log("\nWarnings:");
-    for (const warning of report.validation.warnings) console.log(`  - ${warning}`);
+    for (const warning of report.validation.warnings)
+      console.log(`  - ${warning}`);
   }
   if (report.bundleDir) {
     console.log(`\nDebug bundle: ${report.bundleDir}`);
-    console.log("  report.md / report.json · app.json · workflow.json · server/");
+    console.log(
+      "  report.md / report.json · app.json · workflow.json · server/"
+    );
   }
 }

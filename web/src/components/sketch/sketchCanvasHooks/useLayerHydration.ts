@@ -9,7 +9,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
-import { resolveAssetUri } from "../../node/output/hooks";
 import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
 export interface UseLayerHydrationParams {
@@ -39,14 +38,16 @@ export interface UseLayerHydrationResult {
   >;
 }
 
+/**
+ * The layer's own serialized data wins; otherwise the image reference is
+ * handed on as-is. The runtime resolves it (an `asset://` locator needs the
+ * asset's `get_url`, which is an async lookup) right before it loads.
+ */
 function resolveLayerHydrationSource(
   data: string | null | undefined,
   imageUri: string | null | undefined
 ): string | null {
-  if (data) {
-    return data;
-  }
-  return resolveAssetUri(imageUri);
+  return data || imageUri || null;
 }
 
 export function useLayerHydration({

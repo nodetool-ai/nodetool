@@ -289,15 +289,19 @@ export async function materializeWorkflowConstantAssets(
   graph: WorkflowGraphLike,
   options: MaterializeOptions
 ): Promise<MaterializeResult> {
-  const { graph: outGraph, assets, skipped } = await collectWorkflowAssets(
-    graph,
-    {
-      fetchAssetBytes: options.fetchAssetBytes,
-      ...(options.includeRemote ? { includeRemote: true } : {}),
-      fileNameFor: ({ source, refType }) => deriveFileName(source, refType),
-      uriFor: (fileName) => buildPackageAssetUri(options.packageName, fileName)
-    }
-  );
+  const collectOptions: Parameters<typeof collectWorkflowAssets>[1] = {
+    fetchAssetBytes: options.fetchAssetBytes,
+    fileNameFor: ({ source, refType }) => deriveFileName(source, refType),
+    uriFor: (fileName) => buildPackageAssetUri(options.packageName, fileName)
+  };
+  if (options.includeRemote) {
+    collectOptions.includeRemote = true;
+  }
+  const {
+    graph: outGraph,
+    assets,
+    skipped
+  } = await collectWorkflowAssets(graph, collectOptions);
 
   const targetDir = join(options.assetsRoot, options.packageName);
   if (assets.length > 0) {

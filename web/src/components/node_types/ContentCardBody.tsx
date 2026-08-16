@@ -608,17 +608,17 @@ const PreviewArea: React.FC<{
         </div>
       );
     }
-    const empty: Record<
-      Exclude<ContentCardVariant, "image_mask">,
-      { message: string; icon: React.ReactNode }
-    > = {
+    const empty = {
       image: { message: "Run to generate", icon: <ImageIcon /> },
       video: { message: "Run to generate video", icon: <MovieIcon /> },
       text: { message: "Run to generate text", icon: <TextFieldsIcon /> },
       audio: { message: "Run to generate audio", icon: <AudiotrackIcon /> },
       model_3d: { message: "Run to generate 3D", icon: <ViewInArIcon /> },
       generic: { message: "Run Model", icon: undefined }
-    };
+    } satisfies Record<
+      Exclude<ContentCardVariant, "image_mask">,
+      { message: string; icon: React.ReactNode }
+    >;
     const { message, icon } = empty[variant];
     return <CheckerDropzone message={message} icon={icon} />;
   }
@@ -677,7 +677,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // sized, the text preview drops its default height cap and fills the node.
   const isNodeSized = useNodes((s) => {
     const h = s.findNode(id)?.height;
-    return typeof h === "number" && h > 0;
+    return h != null && h > 0;
   });
 
   const result = useNodeResultValue(workflowId, id);

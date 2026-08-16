@@ -12,6 +12,7 @@ import {
   shapeConstraintFromRefs,
   type ModifierSnapshot
 } from "../tools/modifierIntent";
+import { stub } from "../../../test-utils/doubles";
 import { applySelectionFinalization } from "../tools/selectionFinalization";
 import {
   createPreviewSession,
@@ -244,9 +245,8 @@ describe("selectionFinalization", () => {
 
 describe("previewSession", () => {
   function makeMockCtx(overrides: Partial<ToolContext> = {}): ToolContext {
-    return {
+    return stub<ToolContext>({
       doc: {
-        id: "test-doc",
         canvas: { width: 100, height: 100 },
         activeLayerId: "layer-1",
         layers: [],
@@ -295,7 +295,7 @@ describe("previewSession", () => {
       setLayerTransformPreview: jest.fn(),
       clearLayerTransformPreview: jest.fn(),
       ...overrides
-    } as unknown as ToolContext;
+    });
   }
 
   let session: PreviewSession;

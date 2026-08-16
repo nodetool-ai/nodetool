@@ -27,11 +27,23 @@ export interface MobileToolContext {
   abortSignal: AbortSignal;
 }
 
+/**
+ * What a `ui_*` tool answers with: a primitive or an object, which
+ * `executeToolCall` sends back to the agent as the tool result payload.
+ */
+export type MobileToolResult =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | object;
+
 export interface MobileToolDefinition<Args = Record<string, unknown>> {
   name: `ui_${string}`;
   description: string;
   parameters: ToolParameterSchema;
-  execute: (args: Args, ctx: MobileToolContext) => Promise<unknown>;
+  execute: (args: Args, ctx: MobileToolContext) => Promise<MobileToolResult>;
 }
 
 /** One manifest entry, exactly as the server's `clientToolsManifest` reads it. */
@@ -71,7 +83,7 @@ export const MobileToolRegistry = {
     name: string,
     args: unknown,
     toolCallId: string
-  ): Promise<unknown> {
+  ): Promise<MobileToolResult> {
     const tool = registry.get(name);
     if (!tool) {
       throw new Error(`Unknown tool: ${name}`);

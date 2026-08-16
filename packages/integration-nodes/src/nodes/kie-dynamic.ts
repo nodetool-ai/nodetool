@@ -18,14 +18,29 @@ import {
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
+/** Inclusive numeric bounds parsed from a schema or its prose. */
+type NumericBounds = { min?: number; max?: number };
+
 type JsonRecord = Record<string, unknown>;
+
+/**
+ * A value a KIE parameter can carry: the JSON literal its documentation names,
+ * or the raw text when that text is not JSON.
+ */
+type ParamValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ParamValue[]
+  | { [key: string]: ParamValue };
 
 interface KieParamInfo {
   name: string;
   type: string;
   required: boolean;
   description: string;
-  default?: unknown;
+  default?: ParamValue;
   options?: string[];
   minVal?: number;
   maxVal?: number;
@@ -218,7 +233,10 @@ function resolveExecutionConfig(modelId: string): KieExecutionConfig {
   return { mode: "createTask" };
 }
 
-function supplementOmniParams(modelId: string, params: KieParamInfo[]): KieParamInfo[] {
+function supplementOmniParams(
+  modelId: string,
+  params: KieParamInfo[]
+): KieParamInfo[] {
   if (modelId !== "gemini-omni-video") {
     return params;
   }
@@ -265,7 +283,7 @@ function parseInputParams(text: string): KieParamInfo[] {
     );
     const description = descMatch ? descMatch[1].trim() : "";
 
-    let defaultVal: unknown = undefined;
+    let defaultVal: ParamValue | undefined = undefined;
     const defMatch = trimmed.match(/\*\*Default Value\*\*:\s*`([^`]*)`/);
     if (defMatch) defaultVal = coerceDefault(defMatch[1], paramType);
 
@@ -342,7 +360,8 @@ function openApiPropertyToParam(
       itemSchema.format === "uri" ||
       description.includes("asset://"));
   const isUrl =
-    schemaType === "string" && (name.endsWith("_url") || schema.format === "uri");
+    schemaType === "string" &&
+    (name.endsWith("_url") || schema.format === "uri");
   const isVideoClipList =
     name === "video_list" || (isArray && isVideoClipSchema(schema));
   const isIdArray = isArray && name.endsWith("_ids");
@@ -356,7 +375,11 @@ function openApiPropertyToParam(
   let paramType = schemaType;
   if (isArray) paramType = "array";
 
-  let defaultVal: unknown = schema.default;
+  // SAFETY: `schema` is a JSON-decoded OpenAPI schema, so its `default` is a
+  // JSON value.
+  let defaultVal: ParamValue | undefined = schema.default as
+    | ParamValue
+    | undefined;
   if (defaultVal === undefined && enumValues?.length) {
     defaultVal = enumValues[0];
   }
@@ -441,7 +464,10 @@ function parseFlatOpenApiParams(text: string, path: string): KieParamInfo[] {
   return params;
 }
 
-function parseOpenApiInputParams(text: string, modelId: string): KieParamInfo[] {
+function parseOpenApiInputParams(
+  text: string,
+  modelId: string
+): KieParamInfo[] {
   if (modelId === "gemini-omni-audio") {
     const omni = parseFlatOpenApiParams(text, "/api/v1/omni/audio/create");
     if (omni.length) return omni;
@@ -513,7 +539,7 @@ function mergeKieParams(
   return [...merged.values()];
 }
 
-function coerceDefault(raw: string, paramType: string): unknown {
+function coerceDefault(raw: string, paramType: string): ParamValue {
   if (paramType === "integer") {
     const n = parseInt(raw, 10);
     return isNaN(n) ? raw : n;
@@ -531,7 +557,7 @@ function coerceDefault(raw: string, paramType: string): unknown {
   }
 }
 
-function parseBounds(text: string): { min?: number; max?: number } {
+function parseBounds(text: string): NumericBounds {
   const rangeMatch = text.match(
     /\*\*Range\*\*:\s*`?(-?\d+(?:\.\d+)?)`?\s*(?:to|-|~)\s*`?(-?\d+(?:\.\d+)?)`?/i
   );
@@ -539,22 +565,28 @@ function parseBounds(text: string): { min?: number; max?: number } {
     return { min: Number(rangeMatch[1]), max: Number(rangeMatch[2]) };
   }
 
-  const minLengthMatch = text.match(/\*\*Min(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i);
-  const maxLengthMatch = text.match(/\*\*Max(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i);
+  const minLengthMatch = text.match(
+    /\*\*Min(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i
+  );
+  const maxLengthMatch = text.match(
+    /\*\*Max(?:imum)? Length\*\*:\s*`?(-?\d+(?:\.\d+)?)`?/i
+  );
   const minMatch = text.match(/\bMinimum:\s*(-?\d+(?:\.\d+)?)/i);
   const maxMatch = text.match(/\bMaximum:\s*(-?\d+(?:\.\d+)?)/i);
 
-  return {
-    ...(minLengthMatch || minMatch
-      ? { min: Number((minLengthMatch ?? minMatch)![1]) }
-      : {}),
-    ...(maxLengthMatch || maxMatch
-      ? { max: Number((maxLengthMatch ?? maxMatch)![1]) }
-      : {})
-  };
+  const bounds: NumericBounds = {};
+  if (minLengthMatch || minMatch) {
+    bounds.min = Number((minLengthMatch ?? minMatch)![1]);
+  }
+  if (maxLengthMatch || maxMatch) {
+    bounds.max = Number((maxLengthMatch ?? maxMatch)![1]);
+  }
+  return bounds;
 }
 
-function detectMediaKindFromText(text: string): "image" | "audio" | "video" | null {
+function detectMediaKindFromText(
+  text: string
+): "image" | "audio" | "video" | null {
   const firstToken = text.split(/\s+/)[0]?.toLowerCase() ?? "";
   if (/^image_urls?$|^images?$/.test(firstToken)) return "image";
   if (/^video_urls?$|^video_list$/.test(firstToken)) return "video";
@@ -599,12 +631,17 @@ function fieldNameForParam(param: KieParamInfo): string {
 
 function mapParamType(param: KieParamInfo): TypeMetadata {
   if (param.isVideoClipList) {
-    return {
+    const listType: TypeMetadata & { min?: number; max?: number } = {
       type: "list",
-      type_args: [{ type: "video", type_args: [] }],
-      ...(param.minVal !== undefined ? { min: param.minVal } : {}),
-      ...(param.maxVal !== undefined ? { max: param.maxVal } : {})
+      type_args: [{ type: "video", type_args: [] }]
     };
+    if (param.minVal !== undefined) {
+      listType.min = param.minVal;
+    }
+    if (param.maxVal !== undefined) {
+      listType.max = param.maxVal;
+    }
+    return listType;
   }
   if (param.name.endsWith("_ids") && param.type === "array") {
     return { type: "list", type_args: [{ type: "str", type_args: [] }] };
@@ -618,12 +655,13 @@ function mapParamType(param: KieParamInfo): TypeMetadata {
     return { type: kind, type_args: [] };
   }
   switch (param.type) {
-    case "string":
-      return {
-        type: "str",
-        type_args: [],
-        ...(param.options?.length ? { values: param.options } : {})
-      };
+    case "string": {
+      const strType: TypeMetadata = { type: "str", type_args: [] };
+      if (param.options?.length) {
+        strType.values = param.options;
+      }
+      return strType;
+    }
     case "boolean":
       return { type: "bool", type_args: [] };
     case "integer":
@@ -640,9 +678,29 @@ function mapParamType(param: KieParamInfo): TypeMetadata {
   }
 }
 
-function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+function defaultRefForKind(kind: "image" | "audio" | "video"): EmptyMediaRef {
   if (kind === "audio") {
-    return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
+    return {
+      type: "audio",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    };
   }
   if (kind === "video") {
     return {
@@ -658,7 +716,7 @@ function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
   return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
 }
 
-function defaultDynamicValue(param: KieParamInfo): unknown {
+function defaultDynamicValue(param: KieParamInfo): ParamValue {
   if (param.isVideoClipList || param.isFileUrlArray) {
     return [];
   }
@@ -698,7 +756,10 @@ function parseKieDocs(text: string): KieSchemaBundle {
   if (!modelId) throw new Error("Could not find model ID in documentation");
   const params = supplementOmniParams(
     modelId,
-    mergeKieParams(parseInputParams(text), parseOpenApiInputParams(text, modelId))
+    mergeKieParams(
+      parseInputParams(text),
+      parseOpenApiInputParams(text, modelId)
+    )
   );
   return {
     modelId,
@@ -718,16 +779,27 @@ export function resolveKieDynamicSchema(
   for (const param of bundle.params) {
     const fieldName = fieldNameForParam(param);
     dynamic_properties[fieldName] = defaultDynamicValue(param);
-    dynamic_inputs[fieldName] = {
+    const slot: ResolvedKieDynamicSchema["dynamic_inputs"][string] = {
       ...mapParamType(param),
-      optional: !param.required,
-      ...(param.description ? { description: param.description } : {}),
-      ...(param.minVal !== undefined ? { min: param.minVal } : {}),
-      ...(param.maxVal !== undefined ? { max: param.maxVal } : {}),
-      ...(param.default !== undefined && !param.isFileUrl && !param.isFileUrlArray
-        ? { default: param.default }
-        : {})
+      optional: !param.required
     };
+    if (param.description) {
+      slot.description = param.description;
+    }
+    if (param.minVal !== undefined) {
+      slot.min = param.minVal;
+    }
+    if (param.maxVal !== undefined) {
+      slot.max = param.maxVal;
+    }
+    if (
+      param.default !== undefined &&
+      !param.isFileUrl &&
+      !param.isFileUrlArray
+    ) {
+      slot.default = param.default;
+    }
+    dynamic_inputs[fieldName] = slot;
   }
 
   const outputName =
@@ -838,7 +910,9 @@ export class KieAINode extends BaseNode {
     let result: Awaited<ReturnType<typeof kieExecuteTask>>;
     if (bundle.execution.mode === "omniDirect") {
       if (!bundle.execution.submitEndpoint || !bundle.execution.responseIdKey) {
-        throw new Error(`Omni model ${bundle.modelId} is missing direct endpoint config`);
+        throw new Error(
+          `Omni model ${bundle.modelId} is missing direct endpoint config`
+        );
       }
       result = await kieExecuteOmniDirect(
         apiKey,

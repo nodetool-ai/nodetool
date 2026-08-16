@@ -62,10 +62,11 @@ export function registerNodeCommands(program: Command): void {
           secretResolver = (key) => getSecret(key);
         }
 
-        const result = await runSingleNode(nodeType, {
-          props,
-          ...(secretResolver ? { secretResolver } : {})
-        });
+        const runOptions: Parameters<typeof runSingleNode>[1] = { props };
+        if (secretResolver) {
+          runOptions.secretResolver = secretResolver;
+        }
+        const result = await runSingleNode(nodeType, runOptions);
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -76,9 +77,7 @@ export function registerNodeCommands(program: Command): void {
           );
           if (result.error) console.log(`\nError: ${result.error}`);
           if (result.chunks.length > 0) {
-            console.log(
-              `\nEmitted ${result.chunks.length} record(s):`
-            );
+            console.log(`\nEmitted ${result.chunks.length} record(s):`);
             for (const chunk of result.chunks) {
               console.log(`  ${JSON.stringify(chunk).slice(0, 500)}`);
             }

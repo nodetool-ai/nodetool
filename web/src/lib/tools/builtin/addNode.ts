@@ -24,7 +24,7 @@ FrontendToolRegistry.register({
     const normalizePosition = (
       input: unknown,
       fallbackIndex: number
-    ): { x: number; y: number } => {
+    ) => {
       if (typeof input === "object" && input !== null && "x" in input && "y" in input) {
         if (typeof input.x === "number" && typeof input.y === "number") {
           return { x: input.x, y: input.y };
@@ -97,7 +97,7 @@ FrontendToolRegistry.register({
       nodeStore.nodes.length
     );
 
-    const resolvedProperties: Record<string, unknown> = { ...(properties ?? {}) };
+    const resolvedProperties = { ...(properties ?? {}) } satisfies Record<string, unknown>;
     for (const property of metadata.properties) {
       const value = resolvedProperties[property.name];
       if (value === undefined) {

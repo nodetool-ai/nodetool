@@ -2,6 +2,7 @@ import {
   materializeBrowserOutputs,
   materializeBitmapRefs
 } from "../materializeBrowserOutputs";
+import { stub } from "../../../test-utils/doubles";
 
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 const BITMAP_IMAGE_MIME = "image/x-imagebitmap";
@@ -17,15 +18,21 @@ describe("materializeBrowserOutputs", () => {
 
   it("encodes a raw-RGBA ref to a PNG data URL via canvas", () => {
     const toDataURL = jest.fn(() => "data:image/png;base64,PNG");
-    const canvas = {
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the renderer asks for.
+    const getContext = ((contextId: string) =>
+      contextId === "2d"
+        ? stub<CanvasRenderingContext2D>({ putImageData: jest.fn() })
+        : null) as HTMLCanvasElement["getContext"];
+    const canvas = stub<HTMLCanvasElement>({
       width: 0,
       height: 0,
-      getContext: () => ({ putImageData: jest.fn() }),
+      getContext,
       toDataURL
-    };
+    });
     const spy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+      .mockReturnValue(canvas);
     (globalThis as { ImageData?: unknown }).ImageData ??= class {
       constructor(
         public data: Uint8ClampedArray,
@@ -88,15 +95,21 @@ describe("materializeBrowserOutputs", () => {
 
   it("materializeBitmapRefs converts bitmap refs to portable data-URL refs", () => {
     const toDataURL = jest.fn(() => "data:image/png;base64,PNG");
-    const canvas = {
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the materializer asks for.
+    const getContext = ((contextId: string) =>
+      contextId === "2d"
+        ? stub<CanvasRenderingContext2D>({ drawImage: jest.fn() })
+        : null) as HTMLCanvasElement["getContext"];
+    const canvas = stub<HTMLCanvasElement>({
       width: 0,
       height: 0,
-      getContext: () => ({ drawImage: jest.fn() }),
+      getContext,
       toDataURL
-    };
+    });
     const spy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+      .mockReturnValue(canvas);
 
     const out = materializeBitmapRefs({
       graph: {

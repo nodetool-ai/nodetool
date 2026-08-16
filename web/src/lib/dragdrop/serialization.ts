@@ -66,7 +66,7 @@ function isRecordWithId(value: unknown): value is { id: string; name: string } {
 }
 
 /** Legacy key mapping for backward compatibility */
-const LEGACY_KEY_MAP: Record<DragDataType, string> = {
+const LEGACY_KEY_MAP = {
   "create-node": "create-node",
   asset: "asset",
   "assets-multiple": "selectedAssetIds",
@@ -76,7 +76,7 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   tab: "text/plain",
   "collection-file": "",
   "chat-media": "" // Only carried in the unified format
-};
+} satisfies Record<DragDataType, string>;
 
 /**
  * Serialize drag data, setting both the unified MIME format and the legacy
@@ -216,7 +216,17 @@ export function resolveAssetsMultiple(
     .filter((asset): asset is Asset => asset !== undefined);
 }
 
-export function hasExternalFiles(dataTransfer: DataTransfer): boolean {
+/**
+ * The parts of a drag payload that decide whether external files are in play.
+ * Narrower than `DataTransfer` so a caller — or a test — can pass anything
+ * carrying the item kinds and a file count.
+ */
+export type ExternalFileProbe = {
+  items: Iterable<{ readonly kind: string }> | null;
+  files: { readonly length: number };
+};
+
+export function hasExternalFiles(dataTransfer: ExternalFileProbe): boolean {
   if (dataTransfer.items) {
     return Array.from(dataTransfer.items).some((item) => item.kind === "file");
   }

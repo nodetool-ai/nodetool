@@ -16,16 +16,17 @@ import {
 } from "../ui_primitives";
 import type {
   CreateWorkerProfileInput,
+  WorkerSpec,
   WorkerProfile,
   WorkerTarget,
   TokenPolicy
 } from "../../hooks/useWorkers";
 
 // The secret each provider's API needs before a worker can be provisioned.
-const API_KEY_BY_TARGET: Record<WorkerTarget, string> = {
+const API_KEY_BY_TARGET = {
   runpod: "RUNPOD_API_KEY",
   vast: "VAST_API_KEY"
-};
+} satisfies Record<WorkerTarget, string>;
 
 // A profile is a reusable template (target, image, GPU spec, token policy,
 // lifecycle limits); provisioning rents a GPU box from it.
@@ -97,10 +98,10 @@ const VAST_GPU_OPTIONS = [
 
 // Default GPU per target: a solid mid-range card for RunPod, and "Any cheapest"
 // for Vast.
-const DEFAULT_GPU: Record<WorkerTarget, string> = {
+const DEFAULT_GPU = {
   runpod: "NVIDIA A40",
   vast: ""
-};
+} satisfies Record<WorkerTarget, string>;
 
 // vCPU choices for a CPU-only RunPod pod. The provider passes this as the pod's
 // vCPU count; RunPod selects a matching CPU flavor.
@@ -210,7 +211,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       image: image.trim(),
       token_policy: tokenPolicy
     };
-    const spec: Record<string, unknown> = {};
+    const spec: WorkerSpec = {};
     if (resolvedGpu) {
       spec.gpu = resolvedGpu;
     }

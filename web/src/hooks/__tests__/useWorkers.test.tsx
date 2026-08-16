@@ -28,6 +28,7 @@ jest.mock("../../trpc/client", () => ({
 
 import { trpcClient } from "../../trpc/client";
 import { useWorkers } from "../useWorkers";
+import type { WorkerInstance, WorkerProfile } from "../useWorkers";
 
 const mockProfilesList = trpcClient.worker.profiles.list.query as jest.Mock;
 const mockProfilesCreate = trpcClient.worker.profiles.create.mutate as jest.Mock;
@@ -38,7 +39,7 @@ const mockStop = trpcClient.worker.stop.mutate as jest.Mock;
 const mockAttach = trpcClient.worker.attach.mutate as jest.Mock;
 const mockDetach = trpcClient.worker.detach.mutate as jest.Mock;
 
-const makeProfile = (overrides: Record<string, unknown> = {}) => ({
+const makeProfile = (overrides: Partial<WorkerProfile> = {}) => ({
   id: "p-1",
   name: "hf-a40",
   target: "runpod",
@@ -52,7 +53,7 @@ const makeProfile = (overrides: Record<string, unknown> = {}) => ({
   ...overrides
 });
 
-const makeInstance = (overrides: Record<string, unknown> = {}) => ({
+const makeInstance = (overrides: Partial<WorkerInstance> = {}) => ({
   id: "i-1",
   profile_name: "hf-a40",
   target: "runpod",

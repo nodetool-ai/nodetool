@@ -56,8 +56,25 @@ function sqliteType(fieldType: string): string {
   }
 }
 
-/** Serialize a value for SQLite storage based on its field definition type. */
-function serializeValue(value: unknown, fieldType: string): unknown {
+/** A value SQLite can bind directly into a column. */
+type StoredValue = string | number | null;
+
+/** A value `JSON.parse` can produce. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+/**
+ * Serialize a value for SQLite storage based on its field definition type.
+ *
+ * Booleans and JSON become a `StoredValue`; every other column type is stored
+ * as it arrives, which is why the passthrough keeps the caller's own type.
+ */
+function serializeValue<T>(value: T, fieldType: string): T | StoredValue {
   if (value === null || value === undefined) return null;
   switch (fieldType) {
     case "boolean":
@@ -74,8 +91,13 @@ function serializeValue(value: unknown, fieldType: string): unknown {
   }
 }
 
-/** Deserialize a value from SQLite storage based on its field definition type. */
-function deserializeValue(value: unknown, fieldType: string): unknown {
+/**
+ * Deserialize a value from SQLite storage based on its field definition type.
+ *
+ * Booleans, numbers and JSON are decoded; every other column type is returned
+ * as it was read, which is why the passthrough keeps the caller's own type.
+ */
+function deserializeValue<T>(value: T, fieldType: string): T | JsonValue {
   if (value === null || value === undefined) return null;
   switch (fieldType) {
     case "boolean":

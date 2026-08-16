@@ -55,6 +55,11 @@ const PDF_INPUT = {
   description: "The PDF document to process"
 };
 
+/** Output handles PdfExtractTextNode.process() emits. */
+type PdfExtractTextNodeOutputs = {
+  output: string;
+};
+
 export class PdfExtractTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractText";
   static readonly title = "PDF Extract Text";
@@ -83,7 +88,7 @@ export class PdfExtractTextNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PdfExtractTextNodeOutputs> {
     const result = await parsePdf(
       (this.pdf ?? {}) as DocumentRefLike,
       context
@@ -102,6 +107,11 @@ export class PdfExtractTextNode extends BaseNode {
     return { output: parts.join("\n\n").trim() };
   }
 }
+
+/** Output handles PdfExtractMarkdownNode.process() emits. */
+type PdfExtractMarkdownNodeOutputs = {
+  output: string;
+};
 
 export class PdfExtractMarkdownNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractMarkdown";
@@ -131,7 +141,7 @@ export class PdfExtractMarkdownNode extends BaseNode {
   })
   declare end_page: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PdfExtractMarkdownNodeOutputs> {
     const result = await parsePdf(
       (this.pdf ?? {}) as DocumentRefLike,
       context
@@ -536,6 +546,11 @@ export class PdfExtractStyledTextNode extends BaseNode {
   }
 }
 
+/** Output handles PdfScreenshotNode.process() emits. */
+type PdfScreenshotNodeOutputs = {
+  output: { type: string; data: string }[];
+};
+
 export class PdfScreenshotNode extends BaseNode {
   static readonly nodeType = "lib.pdf.Screenshot";
   static readonly title = "PDF Page Screenshot";
@@ -574,7 +589,7 @@ export class PdfScreenshotNode extends BaseNode {
   })
   declare dpi: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PdfScreenshotNodeOutputs> {
     // Bypass liteparse's parser.screenshot(): it loads the same buffer into
     // pdf.js *and* PDFium, but pdf.js detaches the underlying ArrayBuffer
     // during its load, leaving PDFium with a detached buffer (→ "File not in
@@ -630,6 +645,11 @@ export class PdfScreenshotNode extends BaseNode {
     return { output: images };
   }
 }
+
+/** Output handles PdfToppmNode.process() emits. */
+type PdfToppmNodeOutputs = {
+  output: { type: string; data: string }[];
+};
 
 export class PdfToppmNode extends BaseNode {
   static readonly nodeType = "lib.pdf.Pdftoppm";
@@ -690,7 +710,7 @@ export class PdfToppmNode extends BaseNode {
   })
   declare scale_to: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PdfToppmNodeOutputs> {
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
     const { promises: fs } = await import("node:fs");
@@ -770,6 +790,11 @@ async function countPdfPages(pdf: Buffer): Promise<number> {
   }
 }
 
+/** Output handles PdfExtractOcrNode.process() emits. */
+type PdfExtractOcrNodeOutputs = {
+  output: string;
+};
+
 export class PdfExtractOcrNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractOcr";
   static readonly title = "PDF Extract Text (OCR)";
@@ -816,7 +841,7 @@ export class PdfExtractOcrNode extends BaseNode {
   })
   declare dpi: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PdfExtractOcrNodeOutputs> {
     const { LiteParse } = await import("@llamaindex/liteparse");
     const pdfBuffer = await resolvePdfBuffer(
       (this.pdf ?? {}) as DocumentRefLike,

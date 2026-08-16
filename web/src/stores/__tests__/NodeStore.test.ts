@@ -1,6 +1,7 @@
 jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
 
 import { Position, Node, Edge, addEdge as xyflowAddEdge } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { createNodeStore } from "../NodeStore";
 import { NodeData } from "../NodeData";
 import useErrorStore from "../ErrorStore";
@@ -416,7 +417,7 @@ describe("Edge Validation", () => {
         ...useMetadataStore.getState(),
         metadata: {
           ...mockMetadata,
-          img_source: {
+          img_source: stub<NodeMetadata>({
             node_type: "img_source",
             title: "Img",
             description: "",
@@ -429,8 +430,8 @@ describe("Edge Validation", () => {
             recommended_models: [],
             is_streaming_output: false,
             required_settings: []
-          } as unknown as NodeMetadata,
-          fal_test: {
+          }),
+          fal_test: stub<NodeMetadata>({
             node_type: "fal_test",
             title: "Fal",
             description: "",
@@ -453,7 +454,7 @@ describe("Edge Validation", () => {
             recommended_models: [],
             is_streaming_output: false,
             required_settings: []
-          } as unknown as NodeMetadata
+          })
         }
       },
       true

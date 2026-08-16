@@ -9,6 +9,7 @@
  */
 
 import { CropTool } from "../tools/CropTool";
+import { stub } from "../../../test-utils/doubles";
 import { floodFill } from "../tools/FillTool";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
@@ -21,7 +22,7 @@ import { ellipseSelectionMask } from "../selection";
 function makeNativeEvent(
   overrides: Partial<React.PointerEvent> = {}
 ): React.PointerEvent {
-  return {
+  return stub<React.PointerEvent>({
     clientX: 100,
     clientY: 100,
     ctrlKey: false,
@@ -29,7 +30,7 @@ function makeNativeEvent(
     altKey: false,
     shiftKey: false,
     ...overrides
-  } as unknown as React.PointerEvent;
+  });
 }
 
 function makeToolPointerEvent(

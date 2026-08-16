@@ -237,7 +237,7 @@ export function clipToNode(
     model: clip.model,
     provider: clip.provider,
     linkId: clip.linkId,
-    hasAsset: typeof clip.currentAssetId === 'string' && clip.currentAssetId.length > 0,
+    hasAsset: clip.currentAssetId != null && clip.currentAssetId.length > 0,
   };
 }
 

@@ -11,6 +11,13 @@
  * Node compat), so callers can fall back to platform-specific paths.
  */
 
+/**
+ * What a dynamic `import()` (or a CJS `require`) resolves to: the module's
+ * namespace object. Its members are known only to the caller that named the
+ * specifier, which is why the loaders below are generic in that shape.
+ */
+type ModuleNamespace = object;
+
 export const IS_NODE =
   typeof process !== "undefined" &&
   typeof (process as { versions?: { node?: string } }).versions?.node ===
@@ -43,17 +50,19 @@ export const safeProcessPlatform = (): string =>
  * callback was not specified.") — in that case we fall back to a plain
  * dynamic `import(name)` evaluated in the calling module's context.
  */
-const hiddenImport: (id: string) => Promise<unknown> = (() => {
+const hiddenImport: (id: string) => Promise<ModuleNamespace> = (() => {
   try {
+    // SAFETY: the constructed body is exactly `import(id)`, whose resolution
+    // value is always a module namespace object.
     return new Function("id", "return import(id)") as (
       id: string
-    ) => Promise<unknown>;
+    ) => Promise<ModuleNamespace>;
   } catch {
     return (id: string) => import(/* @vite-ignore */ id);
   }
 })();
 
-async function tryImport(name: string): Promise<unknown> {
+async function tryImport(name: string): Promise<ModuleNamespace> {
   try {
     return await hiddenImport(name);
   } catch (err) {
@@ -69,6 +78,8 @@ async function tryImport(name: string): Promise<unknown> {
 export async function importNodeBuiltin<T>(name: string): Promise<T | null> {
   if (!IS_NODE) return null;
   try {
+    // SAFETY: `T` is the namespace shape the caller names for `name`; the
+    // pairing of specifier and type is the caller's to keep honest.
     return (await tryImport(name)) as T;
   } catch {
     return null;
@@ -82,18 +93,36 @@ export async function importNodeBuiltin<T>(name: string): Promise<T | null> {
  * back to `globalThis.require` for CJS bundles. Returns `null` on
  * non-Node runtimes or when the builtin cannot be resolved.
  */
+/** CommonJS `require`, present only in a CJS bundle. */
+type BuiltinRequire = (id: string) => ModuleNamespace;
+
+/** The Node `process` members this loader reaches for. */
+interface NodeProcessGlobal {
+  getBuiltinModule?: BuiltinRequire;
+}
+
+/** `globalThis` as a CJS bundle sees it. */
+interface GlobalWithRequire {
+  require?: BuiltinRequire;
+}
+
 export function getNodeBuiltinSync<T>(name: string): T | null {
   if (!IS_NODE) return null;
   try {
-    const proc = globalThis.process as unknown as {
-      getBuiltinModule?: (id: string) => unknown;
-    };
+    // SAFETY: `getBuiltinModule` landed in Node 18.19 and is absent from the
+    // `@types/node` `Process` this repo compiles against; the guard below is
+    // what decides whether it is really there.
+    const proc = globalThis.process as NodeProcessGlobal | undefined;
     if (typeof proc?.getBuiltinModule === "function") {
+      // SAFETY: `T` is the namespace shape the caller names for `name`.
       return proc.getBuiltinModule(name) as T;
     }
-    const g = globalThis as unknown as { require?: (id: string) => unknown };
-    if (typeof g.require === "function") {
-      return g.require(name) as T;
+    // SAFETY: `require` exists only when this module is loaded from a CJS
+    // bundle, so it is not on the ESM `globalThis` type; the guard decides.
+    const cjsRequire = (globalThis as GlobalWithRequire).require;
+    if (typeof cjsRequire === "function") {
+      // SAFETY: `T` is the export shape the caller names for `name`.
+      return cjsRequire(name) as T;
     }
   } catch {
     // fall through to null
@@ -114,5 +143,6 @@ export const importNodeBuiltinSync = getNodeBuiltinSync;
  */
 export async function importHidden<T>(name: string): Promise<T | null> {
   if (!IS_NODE) return null;
+  // SAFETY: `T` is the namespace shape the caller names for `name`.
   return (await tryImport(name)) as T;
 }

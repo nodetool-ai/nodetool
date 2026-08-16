@@ -7,7 +7,7 @@
  * - supabase: returns a Supabase signed URL valid for SIGNED_URL_TTL seconds.
  */
 
-import { S3Client } from "./s3/client.js";
+import { S3Client, type S3ClientOptions } from "./s3/client.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { createSupabaseStorageClient } from "./supabase-rest.js";
 import type { StorageConfig } from "./factory.js";
@@ -17,17 +17,18 @@ export function createAssetUrlBuilder(
 ): (key: string) => Promise<string> {
   switch (config.kind) {
     case "file": {
-      return async (key: string) =>
-        `/api/storage/${key.replace(/^\/+/, "")}`;
+      return async (key: string) => `/api/storage/${key.replace(/^\/+/, "")}`;
     }
 
     case "s3": {
-      const client = new S3Client({
-        region: config.region ?? "us-east-1",
-        ...(config.endpoint
-          ? { endpoint: config.endpoint, forcePathStyle: true }
-          : {})
-      });
+      const options: S3ClientOptions = {
+        region: config.region ?? "us-east-1"
+      };
+      if (config.endpoint) {
+        options.endpoint = config.endpoint;
+        options.forcePathStyle = true;
+      }
+      const client = new S3Client(options);
       const bucket = config.bucket;
       return (key: string) =>
         client.presignGetObject({ bucket, key, expiresIn: SIGNED_URL_TTL });

@@ -124,15 +124,16 @@ export function createSandboxMediaStore(
             : "image/png");
       entries.set(id, { bytes, type, mimeType });
       held += bytes.length;
-      return {
+      const handle: SandboxMediaHandle = {
         [SANDBOX_MEDIA_HANDLE]: id,
         type,
         uri: `${SANDBOX_MEDIA_SCHEME}${id}`,
         mimeType,
-        byteLength: bytes.length,
-        ...(meta.width === undefined ? {} : { width: meta.width }),
-        ...(meta.height === undefined ? {} : { height: meta.height })
+        byteLength: bytes.length
       };
+      if (meta.width !== undefined) handle.width = meta.width;
+      if (meta.height !== undefined) handle.height = meta.height;
+      return handle;
     },
 
     entry(

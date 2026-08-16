@@ -12,6 +12,7 @@
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { stub } from "../../../test-utils/doubles";
 import { HelperToolSession } from "../painting/HelperToolSession";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
@@ -99,14 +100,14 @@ function makePointerEvent(
   return {
     point: { x, y },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: x,
       clientY: y,
       pointerId: 1,
       pointerType: "mouse"
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }

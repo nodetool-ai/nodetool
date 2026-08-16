@@ -114,12 +114,16 @@ export function scriptRunMessages(
       done: true
     });
   }
-  messages.push({
+  const jobUpdate = {
     ...job,
     type: "job_update",
-    status: result.ok ? "completed" : "failed",
-    ...(result.error === undefined ? {} : { error: result.error })
-  });
+    status: result.ok ? "completed" : "failed"
+  };
+  messages.push(
+    result.error === undefined
+      ? jobUpdate
+      : { ...jobUpdate, error: result.error }
+  );
   return messages;
 }
 
@@ -134,11 +138,7 @@ export interface ScriptPortIO {
  * A script's bindable surface. Port names stand in for node ids: a script
  * declares no nodes, and its port names are what every mapping already keys on.
  */
-export function scriptPortIO(document: ScriptOperationDocument): {
-  inputs: ScriptPortIO[];
-  outputs: ScriptPortIO[];
-  nodeIds: string[];
-} {
+export function scriptPortIO(document: ScriptOperationDocument) {
   return {
     inputs: document.inputs.map((port) => ({
       nodeId: port.name,

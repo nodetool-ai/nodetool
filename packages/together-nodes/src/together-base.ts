@@ -29,7 +29,7 @@ export function getApiKey(secrets: Record<string, string> | undefined): string {
   return key.trim();
 }
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -365,7 +365,10 @@ export async function togetherTranscribe(
   }
 
   const form = new FormData();
-  const blob = new Blob([params.audio as unknown as BlobPart], {
+  // SAFETY: a Uint8Array is a BlobPart at runtime; the lib types disagree only
+  // over whether its buffer could be a SharedArrayBuffer, which this one — read
+  // from a node property — never is.
+  const blob = new Blob([params.audio as BlobPart], {
     type: "application/octet-stream"
   });
   form.append("file", blob, params.filename ?? "audio.wav");
@@ -408,7 +411,7 @@ export interface VideoPollOptions {
 export function resolveVideoDimensions(
   aspectRatio?: string | null,
   resolution?: string | null
-): { width: number; height: number } {
+) {
   const ar = (aspectRatio ?? "16:9").replace(/\s/g, "");
   const res = (resolution ?? "720p").toLowerCase();
 

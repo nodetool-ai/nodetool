@@ -12,6 +12,7 @@
  */
 
 import { TransformTool } from "../../../tools/TransformTool";
+import { stub } from "../../../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../../../tools";
 import { createDefaultDocument } from "../../../types";
 
@@ -83,13 +84,13 @@ function makeEvent(point = { x: 10, y: 10 }): ToolPointerEvent {
   return {
     point,
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: point.x,
       clientY: point.y,
       pointerId: 1
-    } as unknown as React.PointerEvent
+    })
   };
 }
 

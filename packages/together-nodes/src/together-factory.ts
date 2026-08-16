@@ -83,7 +83,7 @@ const ASSET_TYPES = new Set<TogetherFieldType>(["image", "audio", "video"]);
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & AssetResolveContext;
 
-function coerceScalar(v: unknown, type: TogetherFieldType): unknown {
+function coerceScalar(v: NodeValue, type: TogetherFieldType): NodeValue {
   switch (type) {
     case "int": {
       if (typeof v === "number") return Math.trunc(v);
@@ -105,7 +105,35 @@ function coerceScalar(v: unknown, type: TogetherFieldType): unknown {
   }
 }
 
-function defaultForType(type: TogetherFieldType): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an asset.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | EmptyMediaRef;
+
+function defaultForType(type: TogetherFieldType): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -133,19 +161,38 @@ function refHasSource(value: unknown): boolean {
 }
 
 /**
+ * A manifest-built node seen through its declared properties. Each manifest
+ * field is registered as a plain instance property, so the manifest's field
+ * name indexes the instance directly.
+ */
+type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
+
+/**
+ * Read one declared property off a node instance, by the name the manifest
+ * gave it.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  // SAFETY: every declared property is registered from a manifest field, whose
+  // declared types are exactly the scalars, media refs, and lists or dicts of
+  // those that `NodeValue` names.
+  const properties = instance as ManifestNodeProperties;
+  return properties[name];
+}
+
+/**
  * Route `asset://` media mentioned inline in a node's text inputs onto its empty
  * image/audio/video inputs (and strip the mentions from the text). Shared with
  * the FAL / KIE / Replicate / AtlasCloud factories via `mapPromptAssetsToInputs`.
  */
 function promptAssetOverrides(
-  instance: Record<string, unknown>,
+  instance: BaseNode,
   spec: TogetherManifestEntry,
   context: ProcessContext | undefined
 ): Promise<Record<string, unknown>> {
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.fields) {
-    const value = instance[field.name];
+    const value = propertyOf(instance, field.name);
     if (ASSET_TYPES.has(field.type)) {
       assetFields.push({
         name: field.name,
@@ -212,14 +259,13 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
     async process(context?: ProcessContext): Promise<Record<string, unknown>> {
       const apiKey = getApiKey(this._secrets);
 
-      const overrides = await promptAssetOverrides(
-        this as unknown as Record<string, unknown>,
-        spec,
-        context
-      );
-      const self = this as unknown as Record<string, unknown>;
-      const read = (name: string): unknown =>
-        name in overrides ? overrides[name] : self[name];
+      const overrides = await promptAssetOverrides(this, spec, context);
+      // SAFETY: both sources hold node property values, and NodeTool restricts
+      // those to its own property types — the shapes `NodeValue` names.
+      const read = (name: string): NodeValue =>
+        (name in overrides
+          ? overrides[name]
+          : propertyOf(this, name)) as NodeValue;
 
       // Collect scalar field values; resolve asset fields to raw bytes.
       const scalars: Record<string, unknown> = {};
@@ -371,7 +417,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
     registerDeclaredProperty(TogetherNodeClass, field.name, propOptions);
   }
 
-  return TogetherNodeClass as unknown as NodeClass;
+  return TogetherNodeClass;
 }
 
 export function loadTogetherNodesFromManifest(

@@ -46,8 +46,17 @@ export interface JsScriptRunDialogProps {
   onRun: (request: JsScriptRunRequest) => void;
 }
 
+/** A value round-trippable through `JSON.parse`/`JSON.stringify`. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** JSON when it parses, the raw string otherwise. An empty field is `null`. */
-export const parseInputValue = (raw: string): unknown => {
+export const parseInputValue = (raw: string): JsonValue => {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   try {
@@ -77,7 +86,7 @@ const getEmptyStore = () => {
 const usesJsonField = (port: JsScriptPort, streaming: boolean): boolean =>
   streaming || isJsonScriptPortType(port.type);
 
-const fallbackForPort = (port: JsScriptPort): unknown => {
+const fallbackForPort = (port: JsScriptPort) => {
   const input = workflowInputForScriptPort(port);
   const property = createPropertyForInput(input);
   const resolved = resolveInputValue(input, property, undefined);
@@ -148,6 +157,8 @@ const JsScriptRunDialog = ({
       open={open}
       onClose={onClose}
       title="Run script"
+      fullWidth
+      maxWidth="sm"
       actions={
         <FlexRow gap={SPACING.md}>
           <EditorButton onClick={onClose}>Cancel</EditorButton>
@@ -159,7 +170,9 @@ const JsScriptRunDialog = ({
     >
       <NodeContext.Provider value={store}>
         <EditorUiProvider scope="inspector">
-          <FlexColumn gap={SPACING.md} sx={{ minWidth: 380 }}>
+          {/* Phones are narrower than the 380px the controls want, so the
+              floor only applies once there is room for it. */}
+          <FlexColumn gap={SPACING.md} sx={{ minWidth: { xs: 0, sm: 380 } }}>
             {inputs.length === 0 ? (
               <Text size="small" color="secondary">
                 This script declares no inputs. Run it as it is.

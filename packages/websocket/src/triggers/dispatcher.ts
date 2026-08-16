@@ -505,7 +505,7 @@ export class TriggerDispatcher {
 
     let job: DispatchedJob;
     try {
-      job = await this.startJob({
+      const jobRequest: Parameters<typeof this.startJob>[0] = {
         workflowId: registration.workflow_id,
         userId: registration.user_id,
         params: triggerRunParams(registration, nowMs),
@@ -520,9 +520,12 @@ export class TriggerDispatcher {
         // doesn't hold up every other registration's dispatch.
         onAccepted: () => {
           void accept();
-        },
-        ...(this.registry ? { registry: this.registry } : {})
-      });
+        }
+      };
+      if (this.registry) {
+        jobRequest.registry = this.registry;
+      }
+      job = await this.startJob(jobRequest);
     } catch (err) {
       // The run was never accepted: leave the input unprocessed so the next
       // tick redelivers it. It still counts as a failure — a registration

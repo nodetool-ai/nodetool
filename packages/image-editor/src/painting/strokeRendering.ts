@@ -78,7 +78,7 @@ export function pixelPerfectPencilDabFootprint(
   x: number,
   y: number,
   effectiveSize: number
-): { ix: number; iy: number; n: number } {
+) {
   const n = Math.max(1, Math.round(effectiveSize));
   const offset = Math.floor((n - 1) / 2);
   return {

@@ -36,7 +36,8 @@ export type FetchLike = (
 ) => Promise<{
   ok: boolean;
   status: number;
-  json(): Promise<unknown>;
+  /** Decode the body as the caller's named response type. */
+  json<TBody>(): Promise<TBody>;
   text(): Promise<string>;
 }>;
 
@@ -67,7 +68,7 @@ export class OAuthClient {
 
   constructor(options: OAuthClientOptions) {
     this.config = options.config;
-    this.fetchFn = options.fetchFn ?? (globalThis.fetch as unknown as FetchLike);
+    this.fetchFn = options.fetchFn ?? globalThis.fetch;
     this.clock = options.clock ?? systemClock;
     this.logger = options.logger ?? createLogger("nodetool.runtime.oauth.client");
   }
@@ -177,7 +178,7 @@ export class OAuthClient {
 
   private async readJson(res: Awaited<ReturnType<FetchLike>>): Promise<TokenResponseBody> {
     try {
-      return (await res.json()) as TokenResponseBody;
+      return await res.json<TokenResponseBody>();
     } catch {
       // Some servers send an empty / non-JSON error body.
       return {};

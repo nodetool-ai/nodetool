@@ -1,14 +1,6 @@
 const electronMock = jest.requireActual("../../../__mocks__/electron");
 jest.mock("electron", () => electronMock);
-jest.mock("../../../utils", () => ({ fileExists: jest.fn() }));
 jest.mock("../../../logger", () => ({ logMessage: jest.fn() }));
-jest.mock("../../../events", () => ({ emitServerLog: jest.fn() }));
-jest.mock("../../../config", () => ({
-  getProcessEnv: jest.fn().mockReturnValue({}),
-  resolveNpmInvocation: jest
-    .fn()
-    .mockReturnValue({ command: "npm", baseArgs: [] })
-}));
 jest.mock("fs/promises", () => ({
   readFile: jest.fn(),
   access: jest.fn(),
@@ -21,11 +13,21 @@ jest.mock("child_process", () => ({
 }));
 
 import { NpmRuntimePackage } from "../NpmRuntimePackage";
-import { fileExists } from "../../../utils";
+import * as utils from "../../../utils";
+import * as events from "../../../events";
+import * as config from "../../../config";
+
+// Real collaborator modules; only the filesystem probe, the log emitter and
+// the two environment lookups are stubbed on them.
+const mockFileExists = jest.spyOn(utils, "fileExists");
+jest.spyOn(events, "emitServerLog").mockImplementation(() => {});
+jest.spyOn(config, "getProcessEnv").mockReturnValue({});
+jest
+  .spyOn(config, "resolveNpmInvocation")
+  .mockReturnValue({ command: "npm", baseArgs: [] });
 import * as fsp from "fs/promises";
 import type { RuntimeContext } from "../types";
 
-const mockFileExists = fileExists as jest.MockedFunction<typeof fileExists>;
 const mockReadFile = fsp.readFile as jest.MockedFunction<typeof fsp.readFile>;
 
 const ctx: RuntimeContext = {

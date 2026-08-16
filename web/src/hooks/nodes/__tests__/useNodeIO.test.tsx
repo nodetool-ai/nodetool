@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+
 
 import {
   useNodeOutput,
@@ -71,25 +72,27 @@ const setMockState = (
   Object.assign(mockNodes, nodes);
 };
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  __esModule: true,
-  useNodes: (selector: (state: unknown) => unknown) =>
-    selector({
-      edges: mockEdges,
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
+      // A getter, so each render reads whatever the current test assigned.
+      get edges() {
+        return mockEdges;
+      },
       findNode: (id: string) => mockNodes[id],
       updateNodeData: () => undefined
     })
-}));
-
+);
 jest.mock("../../../stores/WorkflowAssetStore", () => ({
   __esModule: true,
-  useWorkflowAssetStore: (selector: (state: unknown) => unknown) =>
-    selector({ assetsByWorkflow: {} })
+  useWorkflowAssetStore: <T,>(
+    selector: (state: { assetsByWorkflow: object }) => T
+  ) => selector({ assetsByWorkflow: {} })
 }));
 
 jest.mock("../../../stores/ResultsStore", () => {
   const getState = () => ({ liveGenerations: mockLiveGenerations });
-  const hook = (selector: (state: unknown) => unknown) => selector(getState());
+  const hook = <T,>(selector: (state: ReturnType<typeof getState>) => T) =>
+    selector(getState());
   hook.getState = getState;
   return { __esModule: true, default: hook };
 });

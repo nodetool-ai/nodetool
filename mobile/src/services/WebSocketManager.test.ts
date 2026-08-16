@@ -40,10 +40,16 @@ interface WebSocketManagerInternals {
   handleConnectionError(error: Error): void;
 }
 
+// SAFETY: every member above is one of `WebSocketManager`'s own `private`
+// fields and methods, named here so the tests that drive them stay checked.
 const internals = (
   manager: WebSocketManager | null
-): WebSocketManagerInternals =>
-  manager as unknown as WebSocketManagerInternals;
+): WebSocketManagerInternals => {
+  if (!manager) {
+    throw new Error('no manager under test');
+  }
+  return manager as WebSocketManager & WebSocketManagerInternals;
+};
 
 // Controllable stand-in for the AppState-backed lifecycle module, so tests can
 // drive foreground/background transitions deterministically.
@@ -92,7 +98,7 @@ class MockWebSocket {
   onmessage: ((event: MessageEventLike) => void) | null = null;
   onerror: ((event: { message: string }) => void) | null = null;
 
-  constructor(url: string, _protocols?: unknown, options?: { headers?: Record<string, string> }) {
+  constructor(url: string, _protocols?: string | string[], options?: { headers?: Record<string, string> }) {
     this.url = url;
     this.options = options;
   }
@@ -123,7 +129,7 @@ let mockWebSocketInstance: MockWebSocket | null = null;
 
 // @ts-ignore
 global.WebSocket = class extends MockWebSocket {
-  constructor(url: string, protocols?: unknown, options?: { headers?: Record<string, string> }) {
+  constructor(url: string, protocols?: string | string[], options?: { headers?: Record<string, string> }) {
     super(url, protocols, options);
     // oxlint-disable-next-line no-this-alias
     mockWebSocketInstance = this;

@@ -2,6 +2,7 @@ import {
   BESPOKE_BODY_REGISTRY,
   getBespokeBody
 } from "./bespokeRegistry";
+import { stub } from "../../../test-utils/doubles";
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
@@ -24,7 +25,7 @@ import { SYNTH_NODE_TYPES } from "../synth/synthModules";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 const meta = (node_type: string): NodeMetadata =>
-  ({ node_type, outputs: [] }) as unknown as NodeMetadata;
+  stub<NodeMetadata>({ node_type, outputs: [] });
 
 describe("bespokeRegistry", () => {
   it("returns undefined for undefined metadata", () => {

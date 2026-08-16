@@ -573,7 +573,7 @@ export class ParallelTaskExecutor {
   }
 
   /** Get all task results recorded in shared memory. */
-  getAllResults(): Record<string, unknown> {
+  getAllResults() {
     const results: Record<string, unknown> = {};
     for (const entry of this.context.memory.list({ kind: "task_result" })) {
       const id = entry.source ?? entry.key.replace(/^task:/, "");
@@ -585,7 +585,7 @@ export class ParallelTaskExecutor {
   /**
    * Get the result of the final task (last task in the plan, typically the aggregator).
    */
-  getFinalResult(): unknown {
+  getFinalResult() {
     if (this.taskPlan.tasks.length === 0) return null;
     const lastTask = this.taskPlan.tasks[this.taskPlan.tasks.length - 1];
     return this.context.memory.getValue(memoryKeys.task(lastTask.id)) ?? null;

@@ -7,6 +7,7 @@
  */
 
 import { getToolHandler } from "../tools";
+import { stub } from "../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import type { LayerTransform } from "../types";
@@ -55,7 +56,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawCursor: jest.fn(),
     clearGizmo: jest.fn(),
     drawGizmo: jest.fn((cb) => {
-      const mockGc = {
+      const mockGc = stub<CanvasRenderingContext2D>({
         save: jest.fn(),
         restore: jest.fn(),
         translate: jest.fn(),
@@ -76,7 +77,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
         set fillStyle(_: string) { /* noop */ },
         set lineWidth(_: number) { /* noop */ },
         set lineDashOffset(_: number) { /* noop */ },
-      } as unknown as CanvasRenderingContext2D;
+      });
       cb(mockGc, 1, 800, 600);
     }),
     onZoomChange: jest.fn(),
@@ -109,13 +110,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }
@@ -153,13 +154,7 @@ describe("TransformTool in-transform undo/redo", () => {
     const clickEvent = makePointerEvent();
 
     expect(
-      (tool as unknown as {
-        tryAutoSelectPick: (
-          toolCtx: ToolContext,
-          event: ToolPointerEvent,
-          pickedOverride?: typeof secondLayer
-        ) => boolean;
-      }).tryAutoSelectPick(ctx, clickEvent, secondLayer)
+      tool["tryAutoSelectPick"](ctx, clickEvent, secondLayer)
     ).toBe(true);
 
     expect(tool.getTargetSet().getIds()).toEqual([secondLayer.id]);

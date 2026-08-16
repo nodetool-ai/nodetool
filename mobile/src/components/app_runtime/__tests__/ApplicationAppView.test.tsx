@@ -40,21 +40,23 @@ const mockHandlers = new Map<
   (message: Record<string, unknown>) => void
 >();
 
-jest.mock("../../../services/WebSocketService", () => ({
-  webSocketService: {
-    subscribe: (key: string, handler: (m: Record<string, unknown>) => void) => {
-      mockHandlers.set(key, handler);
-      return () => mockHandlers.delete(key);
-    },
-  },
-}));
+import { webSocketService } from "../../../services/WebSocketService";
 
-jest.mock("../../../services/api", () => ({
-  apiService: {
-    resolveUrl: (uri: string) => uri,
-    getApiHost: () => "http://localhost:7777",
-  },
-}));
+// The real socket singleton; `subscribe` is stubbed to capture the handler so
+// the test can feed it messages without dialling out.
+jest.spyOn(webSocketService, "subscribe").mockImplementation((key, handler) => {
+  mockHandlers.set(key, handler);
+  return () => {
+    mockHandlers.delete(key);
+  };
+});
+
+import { apiService } from "../../../services/api";
+
+// The real `apiService` singleton, with only the two host-dependent lookups
+// pinned so URLs are stable regardless of the configured API host.
+jest.spyOn(apiService, "resolveUrl").mockImplementation((uri) => uri ?? null);
+jest.spyOn(apiService, "getApiHost").mockReturnValue("http://localhost:7777");
 
 import ApplicationAppView from "../ApplicationAppView";
 
@@ -133,7 +135,10 @@ const makeWorkflow = (id: string): Workflow =>
       ],
       edges: [],
     },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 /** Deliver a streamed message the way the websocket service would. */
 const emit = (message: Record<string, unknown>) => {

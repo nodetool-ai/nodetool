@@ -52,10 +52,7 @@ export function resolveExampleAppsDir(
     return existsSync(options.exampleAppsDir) ? options.exampleAppsDir : null;
   }
   if (!options.examplesDir) return null;
-  const sibling = nodePath.join(
-    nodePath.dirname(options.examplesDir),
-    "apps"
-  );
+  const sibling = nodePath.join(nodePath.dirname(options.examplesDir), "apps");
   return existsSync(sibling) ? sibling : null;
 }
 
@@ -143,11 +140,13 @@ export async function installExampleApp(
   if (!bundle) {
     throwApiError(ApiErrorCode.NOT_FOUND, `No example app named "${slug}"`);
   }
+  type ImportInputFields = { bundle: typeof bundle; projectId?: string };
+  const importInput: ImportInputFields = { bundle };
+  if (projectId) {
+    importInput.projectId = projectId;
+  }
   return importApplicationBundle(
     userId,
-    importApplicationBundleInput.parse({
-      bundle,
-      ...(projectId ? { projectId } : {})
-    })
+    importApplicationBundleInput.parse(importInput)
   );
 }

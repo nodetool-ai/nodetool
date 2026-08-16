@@ -39,7 +39,8 @@ const seedVoicedScript = (id: string, timelineId: string | null): void => {
     sections: [
       { id: "s1", lines: [{ id: "line-a", text: "hi", takes: [t], currentTakeId: t.id }] }
     ],
-    timelineId
+    timelineId,
+    storyboardId: null
   });
 };
 
@@ -82,7 +83,8 @@ describe("useAssembleScriptTimeline", () => {
       title: "Empty",
       cast: [],
       sections: [{ id: "s1", lines: [{ id: "l", text: "hi", takes: [] }] }],
-      timelineId: null
+      timelineId: null,
+      storyboardId: null
     });
     const { result } = renderHook(() => useAssembleScriptTimeline());
     await act(async () => {

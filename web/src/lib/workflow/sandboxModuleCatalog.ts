@@ -124,13 +124,14 @@ export function collectSandboxModuleDeclarations(
       const fields = asRecord(entry);
       const packVersion = fields?.["resolvedPackVersion"];
       const contentDigest = fields?.["contentDigest"];
-      bySpecifier.set(specifier, {
-        specifier,
-        ...(typeof packVersion === "string"
-          ? { resolvedPackVersion: packVersion }
-          : {}),
-        ...(typeof contentDigest === "string" ? { contentDigest } : {})
-      });
+      const declaration: SandboxModuleDeclaration = { specifier };
+      if (typeof packVersion === "string") {
+        declaration.resolvedPackVersion = packVersion;
+      }
+      if (typeof contentDigest === "string") {
+        declaration.contentDigest = contentDigest;
+      }
+      bySpecifier.set(specifier, declaration);
     }
   }
   return [...bySpecifier.values()];
@@ -271,26 +272,27 @@ async function fetchModule(
     fileId,
     internal: headers.get("X-Sandbox-Internal") === "1",
     packName,
-    ...(packVersion === null ? {} : { packVersion }),
     contentDigest,
     contentSha256,
     dependencies: parseDependencies(
       headers.get("X-Sandbox-Module-Dependencies")
     )
   };
+  if (packVersion !== null) common.packVersion = packVersion;
   const isWasm =
     headers.get("Content-Type")?.startsWith("application/wasm") === true;
   const contract = isWasm
     ? parseWasmContract(moduleId, headers.get("X-Sandbox-Wasm-Contract"))
     : undefined;
   const hostId = headers.get("X-Sandbox-Host-Module");
+  const wasmRecord: Extract<SandboxModuleRecord, { kind: "wasm" }> = {
+    ...common,
+    kind: "wasm",
+    bytes
+  };
+  if (contract !== undefined) wasmRecord.wasm = contract;
   const record: SandboxModuleRecord = isWasm
-    ? {
-        ...common,
-        kind: "wasm",
-        bytes,
-        ...(contract === undefined ? {} : { wasm: contract })
-      }
+    ? wasmRecord
     : hostId
       ? {
           ...common,
@@ -308,7 +310,10 @@ async function fetchFresh(moduleId: string): Promise<SandboxModuleRecord> {
   const record = await fetchModule(moduleId);
   // Unreachable: only a conditional request can be answered 304.
   if (record === NOT_MODIFIED) {
-    throw deliveryError(moduleId, "was answered 304 for a request that set no validator.");
+    throw deliveryError(
+      moduleId,
+      "was answered 304 for a request that set no validator."
+    );
   }
   return record;
 }
@@ -403,21 +408,38 @@ function toGraphFile(record: SandboxModuleRecord): SandboxModuleGraphFile {
 }
 
 /** A catalog that answers only from the records it was seeded with. */
+/** The fields every resolved-module shape shares, whatever its kind. */
+type ResolvedModuleCommon = {
+  specifier: string;
+  packName: string;
+  packVersion?: string;
+  contentDigest: string;
+  moduleId: string;
+  graph: SandboxModuleGraphFile[];
+};
+
 export function createSeededSandboxModuleCatalog(
   records: readonly SandboxModuleRecord[]
 ): SandboxModuleCatalog {
-  const byModuleId = new Map(records.map((record) => [record.moduleId, record]));
+  const byModuleId = new Map(
+    records.map((record) => [record.moduleId, record])
+  );
 
   const summaries: SandboxModuleSummary[] = records
-    .filter((record) => parseSandboxGraphFileModuleId(record.moduleId) === undefined)
-    .map((record) => ({
-      specifier: record.moduleId,
-      packName: record.packName,
-      ...(record.packVersion === undefined
-        ? {}
-        : { packVersion: record.packVersion }),
-      kind: record.kind
-    }))
+    .filter(
+      (record) => parseSandboxGraphFileModuleId(record.moduleId) === undefined
+    )
+    .map((record) => {
+      const summary: SandboxModuleSummary = {
+        specifier: record.moduleId,
+        packName: record.packName,
+        kind: record.kind
+      };
+      if (record.packVersion !== undefined) {
+        summary.packVersion = record.packVersion;
+      }
+      return summary;
+    })
     .sort((left, right) => left.specifier.localeCompare(right.specifier));
 
   return {
@@ -499,16 +521,16 @@ export function createSeededSandboxModuleCatalog(
         }
         graph.sort((left, right) => left.id.localeCompare(right.id));
 
-        const common = {
+        const common: ResolvedModuleCommon = {
           specifier: declaration.specifier,
           packName: entry.packName,
-          ...(entry.packVersion === undefined
-            ? {}
-            : { packVersion: entry.packVersion }),
           contentDigest: entry.contentDigest,
           moduleId: entry.fileId,
           graph
         };
+        if (entry.packVersion !== undefined) {
+          common.packVersion = entry.packVersion;
+        }
         if (entry.kind === "js") {
           modules.push({ ...common, kind: "js", source: entry.source });
           continue;
@@ -517,7 +539,12 @@ export function createSeededSandboxModuleCatalog(
         // facade and the dispatcher's allowlist both come from the protocol
         // registry, so a delivery cannot widen what an id means.
         if (entry.kind === "host") {
-          modules.push({ ...common, kind: "host", hostId: entry.hostId, graph: [] });
+          modules.push({
+            ...common,
+            kind: "host",
+            hostId: entry.hostId,
+            graph: []
+          });
           continue;
         }
         // A WASM entry without its call contract has nothing to build a facade

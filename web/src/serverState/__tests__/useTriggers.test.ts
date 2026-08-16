@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, stub } from "../../test-utils/doubles";
 import { triggersQueryKey } from "../useTriggers";
 
 jest.mock("@tanstack/react-query", () => ({
@@ -32,8 +33,9 @@ jest.mock("../../trpc/client", () => ({
 const mockAddNotification = jest.fn();
 jest.mock("../../stores/NotificationStore", () => ({
   __esModule: true,
-  useNotificationStore: (selector: (s: unknown) => unknown) =>
-    selector({ addNotification: mockAddNotification })
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: typeof mockAddNotification }) => T
+  ) => selector({ addNotification: mockAddNotification })
 }));
 
 // Default: no VITE_API_URL, i.e. local dev behind the Vite proxy.
@@ -54,6 +56,10 @@ import {
   runningTriggersQueryKey,
   triggerErrorMessage
 } from "../useTriggers";
+import type {
+  TriggerRegistrationStatus,
+  RunningTriggerRegistration
+} from "../useTriggers";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
@@ -62,13 +68,15 @@ const mockUseQueryClient = useQueryClient as jest.MockedFunction<
 >;
 
 interface MutationConfig<TVars> {
-  mutationFn: (vars: TVars) => Promise<unknown>;
+  /** The tests await the call and assert on the trpc mock; the resolved
+   *  value is never read. */
+  mutationFn: (vars: TVars) => Promise<void>;
   onSuccess: () => void;
   onError: (error: unknown, variables: TVars) => void;
 }
 
 const mutationConfig = <TVars,>(): MutationConfig<TVars> =>
-  mockUseMutation.mock.calls[0][0] as unknown as MutationConfig<TVars>;
+  asMock(useMutation).mock.calls[0][0];
 
 describe("triggersQueryKey", () => {
   it("is hierarchical and scoped to the workflow", () => {
@@ -83,12 +91,12 @@ describe("triggersQueryKey", () => {
 describe("useWorkflowTriggers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       isError: false,
       error: null
-    } as unknown as ReturnType<typeof useQuery>);
+    }));
   });
 
   it("disables the query when there is no workflow id", () => {
@@ -134,9 +142,8 @@ describe("useWorkflowTriggers", () => {
     });
 
     renderHook(() => useWorkflowTriggers("wf-1"));
-    const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<unknown>;
-    };
+    const queryFn: () => Promise<TriggerRegistrationStatus[]> =
+      asMock(useQuery).mock.calls[0][0].queryFn;
     const result = await queryFn();
     expect(trpcClient.triggers.listByWorkflow.query).toHaveBeenCalledWith({
       workflowId: "wf-1"
@@ -148,11 +155,11 @@ describe("useWorkflowTriggers", () => {
 describe("useRunningTriggers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       isError: false
-    } as unknown as ReturnType<typeof useQuery>);
+    }));
   });
 
   it("uses one shared key so a list of cards makes a single request", () => {
@@ -181,9 +188,8 @@ describe("useRunningTriggers", () => {
       triggers
     });
     renderHook(() => useRunningTriggers());
-    const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<unknown>;
-    };
+    const queryFn: () => Promise<RunningTriggerRegistration[]> =
+      asMock(useQuery).mock.calls[0][0].queryFn;
     expect(await queryFn()).toEqual(triggers);
   });
 });
@@ -219,9 +225,9 @@ describe("useSetTriggerEnabled", () => {
 
   it("invalidates the workflow's triggers query and the running list on success", () => {
     const invalidateQueries = jest.fn();
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig().onSuccess();
     expect(invalidateQueries).toHaveBeenCalledWith({
@@ -233,9 +239,9 @@ describe("useSetTriggerEnabled", () => {
   });
 
   it("notifies the user when arming a registration is rejected", () => {
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries: jest.fn()
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(
       new Error("Trigger registration not found"),
@@ -253,9 +259,9 @@ describe("useSetTriggerEnabled", () => {
   });
 
   it("says 'deactivate' when the failing call was a disable", () => {
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries: jest.fn()
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(
       new Error("forbidden"),
@@ -268,9 +274,9 @@ describe("useSetTriggerEnabled", () => {
 
   it("refetches after a failure so the UI does not show a state the server rejected", () => {
     const invalidateQueries = jest.fn();
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(new Error("x"), {
       id: "reg-1",

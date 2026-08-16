@@ -225,7 +225,7 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
   );
 
   const handleModeChange = useCallback(
-    (_: unknown, value: string | null) => {
+    (_: React.MouseEvent<HTMLElement>, value: string | null) => {
       if (value !== null) {
         setProperty(config!.modeToggle!.name, value);
         pushLive(config!.modeToggle!.name, value);

@@ -1,18 +1,9 @@
 import { describe, it, expect, afterEach, jest } from "@jest/globals";
+import { stub } from "../../test-utils/doubles";
 import { probeMediaDurationMs } from "../probeMediaDuration";
 
-interface FakeMediaElement {
-  preload: string;
-  duration: number;
-  src: string;
-  onloadedmetadata: (() => void) | null;
-  onerror: (() => void) | null;
-  removeAttribute: () => void;
-  load: () => void;
-}
-
-function fakeEl(duration: number): FakeMediaElement {
-  return {
+function fakeEl(duration: number): HTMLVideoElement {
+  return stub<HTMLVideoElement>({
     preload: "",
     duration,
     src: "",
@@ -20,7 +11,7 @@ function fakeEl(duration: number): FakeMediaElement {
     onerror: null,
     removeAttribute: () => {},
     load: () => {}
-  };
+  });
 }
 
 afterEach(() => {
@@ -32,10 +23,10 @@ describe("probeMediaDurationMs", () => {
     const el = fakeEl(12.5);
     jest
       .spyOn(document, "createElement")
-      .mockReturnValue(el as unknown as HTMLElement);
+      .mockReturnValue(el);
 
     const p = probeMediaDurationMs("blob:x", "video");
-    el.onloadedmetadata?.();
+    el.onloadedmetadata?.(new Event("loadedmetadata"));
 
     await expect(p).resolves.toBe(12500);
   });
@@ -44,10 +35,10 @@ describe("probeMediaDurationMs", () => {
     const el = fakeEl(NaN);
     jest
       .spyOn(document, "createElement")
-      .mockReturnValue(el as unknown as HTMLElement);
+      .mockReturnValue(el);
 
     const p = probeMediaDurationMs("blob:x", "video");
-    el.onloadedmetadata?.();
+    el.onloadedmetadata?.(new Event("loadedmetadata"));
 
     await expect(p).resolves.toBeNull();
   });
@@ -56,10 +47,10 @@ describe("probeMediaDurationMs", () => {
     const el = fakeEl(0);
     jest
       .spyOn(document, "createElement")
-      .mockReturnValue(el as unknown as HTMLElement);
+      .mockReturnValue(el);
 
     const p = probeMediaDurationMs("blob:x", "audio");
-    el.onerror?.();
+    el.onerror?.(new Event("error"));
 
     await expect(p).resolves.toBeNull();
   });

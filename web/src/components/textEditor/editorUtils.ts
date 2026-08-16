@@ -1,7 +1,7 @@
 /**
  * Detects if a string contains markdown-like syntax
  */
-export const isMarkdownText = (text: string): boolean => {
+export const isMarkdownText = (text: string | null | undefined): boolean => {
   if (!text || typeof text !== "string") {return false;}
 
   return (

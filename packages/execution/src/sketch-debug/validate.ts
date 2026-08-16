@@ -57,6 +57,25 @@ const asArray = (value: unknown): unknown[] =>
 const positive = (value: unknown): boolean =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
+/**
+ * A binding issue, with `layerId` left out when the binding names no layer.
+ * Kept in one place so every binding finding carries the same field order.
+ */
+function bindingIssue(
+  severity: "error" | "warning",
+  code: string,
+  message: string,
+  layerId: string,
+  path: string
+): SketchDebugIssue {
+  const issue: SketchDebugIssue = { severity, code, message };
+  if (layerId) {
+    issue.layerId = layerId;
+  }
+  issue.path = path;
+  return issue;
+}
+
 /** Collect every leaf/branch path the parse output dropped from the input. */
 function collectStrippedPaths(
   input: unknown,
@@ -92,7 +111,10 @@ function collectStrippedPaths(
  * The document schema keeps layers as `unknown`, so nothing inside a layer is
  * ever reported here; layer fields are checked directly instead.
  */
-function checkFieldStripping(raw: unknown, parsed: unknown): SketchDebugIssue[] {
+function checkFieldStripping(
+  raw: unknown,
+  parsed: unknown
+): SketchDebugIssue[] {
   const paths = new Set<string>();
   collectStrippedPaths(raw, parsed, "", paths);
   return [...paths].sort().map((path) => ({
@@ -103,24 +125,27 @@ function checkFieldStripping(raw: unknown, parsed: unknown): SketchDebugIssue[] 
   }));
 }
 
-function checkSchema(raw: unknown): {
-  issues: SketchDebugIssue[];
-  parsed: unknown;
-} {
+function checkSchema(raw: unknown) {
   const result = imageDocumentData.safeParse(raw);
   if (result.success) {
-    return { issues: checkFieldStripping(raw, result.data), parsed: result.data };
+    return {
+      issues: checkFieldStripping(raw, result.data),
+      parsed: result.data
+    };
   }
   const issues: SketchDebugIssue[] = result.error.issues
     .slice(0, 25)
     .map((issue) => {
       const path = issue.path.map((part) => String(part)).join(".");
-      return {
-        severity: "error" as const,
+      const schemaIssue: SketchDebugIssue = {
+        severity: "error",
         code: "schema_invalid",
-        message: `${path || "(root)"}: ${issue.message}`,
-        ...(path ? { path } : {})
+        message: `${path || "(root)"}: ${issue.message}`
       };
+      if (path) {
+        schemaIssue.path = path;
+      }
+      return schemaIssue;
     });
   if (issues.length === 0) {
     issues.push({
@@ -142,7 +167,8 @@ function checkCanvas(
     issues.push({
       severity: "error",
       code: "canvas_missing",
-      message: "The sketch has no `canvas` — nothing declares the artboard size.",
+      message:
+        "The sketch has no `canvas` — nothing declares the artboard size.",
       path: "sketch.canvas"
     });
     return issues;
@@ -196,10 +222,7 @@ interface LayerRead {
   record: Record<string, unknown>;
 }
 
-function readLayers(sketch: Record<string, unknown>): {
-  layers: LayerRead[];
-  issues: SketchDebugIssue[];
-} {
+function readLayers(sketch: Record<string, unknown>) {
   const issues: SketchDebugIssue[] = [];
   const layers: LayerRead[] = [];
   const seen = new Set<string>();
@@ -220,19 +243,23 @@ function readLayers(sketch: Record<string, unknown>): {
     if (!parsed.success) {
       for (const issue of parsed.error.issues.slice(0, 5)) {
         const field = issue.path.map((part) => String(part)).join(".");
-        issues.push({
+        const layerIssue: SketchDebugIssue = {
           severity: "error",
           code: "layer_invalid",
           message: `Layer at index ${index}: ${field || "(root)"}: ${issue.message}`,
-          path: field ? `${path}.${field}` : path,
-          ...(typeof entry.id === "string" ? { layerId: entry.id } : {})
-        });
+          path: field ? `${path}.${field}` : path
+        };
+        if (typeof entry.id === "string") {
+          layerIssue.layerId = entry.id;
+        }
+        issues.push(layerIssue);
       }
       if (typeof entry.id !== "string" || entry.id === "") return;
     }
 
     const id = String(entry.id);
-    const label = typeof entry.name === "string" && entry.name ? entry.name : id;
+    const label =
+      typeof entry.name === "string" && entry.name ? entry.name : id;
     if (seen.has(id)) {
       issues.push({
         severity: "error",
@@ -254,13 +281,21 @@ function readLayers(sketch: Record<string, unknown>): {
   return { layers, issues };
 }
 
-function checkLayer(layer: LayerRead, ids: ReadonlySet<string>): SketchDebugIssue[] {
+function checkLayer(
+  layer: LayerRead,
+  ids: ReadonlySet<string>
+): SketchDebugIssue[] {
   const issues: SketchDebugIssue[] = [];
   const { record, id, label } = layer;
 
   const { opacity } = record;
   if (opacity !== undefined) {
-    if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+    if (
+      typeof opacity !== "number" ||
+      !Number.isFinite(opacity) ||
+      opacity < 0 ||
+      opacity > 1
+    ) {
       issues.push({
         severity: "error",
         code: "layer_opacity_invalid",
@@ -382,7 +417,8 @@ function checkBindings(
     issues.push({
       severity: "error",
       code: "bindings_missing",
-      message: "`layerBindings` is missing or not an array — the document does not declare how any layer generates.",
+      message:
+        "`layerBindings` is missing or not an array — the document does not declare how any layer generates.",
       path: "layerBindings"
     });
     return issues;
@@ -431,36 +467,42 @@ function checkBindings(
     // Absent `kind` is legacy data, which the editor reads as "workflow".
     const kind = entry.kind === undefined ? "workflow" : String(entry.kind);
     if (!BINDING_KINDS.has(kind)) {
-      issues.push({
-        severity: "error",
-        code: "binding_kind_invalid",
-        message: `Binding for "${layerId}" has kind "${kind}" — expected one of ${[...BINDING_KINDS].join(", ")}.`,
-        ...(layerId ? { layerId } : {}),
-        path: `${path}.kind`
-      });
+      issues.push(
+        bindingIssue(
+          "error",
+          "binding_kind_invalid",
+          `Binding for "${layerId}" has kind "${kind}" — expected one of ${[...BINDING_KINDS].join(", ")}.`,
+          layerId,
+          `${path}.kind`
+        )
+      );
     }
 
     if (kind === "workflow") {
       const workflowId = entry.workflowId;
       if (typeof workflowId !== "string" || workflowId === "") {
-        issues.push({
-          severity: "error",
-          code: "binding_workflow_missing",
-          message: `Workflow binding for "${layerId}" names no workflowId — nothing can produce its pixels.`,
-          ...(layerId ? { layerId } : {}),
-          path: `${path}.workflowId`
-        });
+        issues.push(
+          bindingIssue(
+            "error",
+            "binding_workflow_missing",
+            `Workflow binding for "${layerId}" names no workflowId — nothing can produce its pixels.`,
+            layerId,
+            `${path}.workflowId`
+          )
+        );
       }
     } else {
       const prompt = entry.prompt;
       if (typeof prompt !== "string" || prompt.trim() === "") {
-        issues.push({
-          severity: "warning",
-          code: "binding_incomplete",
-          message: `${kind} binding for "${layerId}" carries no prompt — a generation would run on nothing.`,
-          ...(layerId ? { layerId } : {}),
-          path: `${path}.prompt`
-        });
+        issues.push(
+          bindingIssue(
+            "warning",
+            "binding_incomplete",
+            `${kind} binding for "${layerId}" carries no prompt — a generation would run on nothing.`,
+            layerId,
+            `${path}.prompt`
+          )
+        );
       }
       const source = entry.sourceLayerId;
       if (
@@ -469,48 +511,59 @@ function checkBindings(
         source !== "" &&
         !ids.has(source)
       ) {
-        issues.push({
-          severity: "warning",
-          code: "binding_source_layer_missing",
-          message: `${kind} binding for "${layerId}" reads source layer "${source}", which the document does not contain.`,
-          ...(layerId ? { layerId } : {}),
-          path: `${path}.sourceLayerId`
-        });
+        issues.push(
+          bindingIssue(
+            "warning",
+            "binding_source_layer_missing",
+            `${kind} binding for "${layerId}" reads source layer "${source}", which the document does not contain.`,
+            layerId,
+            `${path}.sourceLayerId`
+          )
+        );
       }
     }
 
     const status = entry.status;
     if (typeof status !== "string" || !BINDING_STATUSES.has(status)) {
-      issues.push({
-        severity: "error",
-        code: "binding_status_invalid",
-        message: `Binding for "${layerId}" has status ${JSON.stringify(status)} — expected one of ${[...BINDING_STATUSES].join(", ")}.`,
-        ...(layerId ? { layerId } : {}),
-        path: `${path}.status`
-      });
+      issues.push(
+        bindingIssue(
+          "error",
+          "binding_status_invalid",
+          `Binding for "${layerId}" has status ${JSON.stringify(status)} — expected one of ${[...BINDING_STATUSES].join(", ")}.`,
+          layerId,
+          `${path}.status`
+        )
+      );
     }
 
     const versions = entry.versions;
     if (versions !== undefined && !Array.isArray(versions)) {
-      issues.push({
-        severity: "error",
-        code: "binding_invalid",
-        message: `Binding for "${layerId}" has \`versions\` ${JSON.stringify(versions)} — expected an array.`,
-        ...(layerId ? { layerId } : {}),
-        path: `${path}.versions`
-      });
+      issues.push(
+        bindingIssue(
+          "error",
+          "binding_invalid",
+          `Binding for "${layerId}" has \`versions\` ${JSON.stringify(versions)} — expected an array.`,
+          layerId,
+          `${path}.versions`
+        )
+      );
     }
     asArray(versions).forEach((version, versionIndex) => {
       if (!isRecord(version)) return;
       const versionStatus = version.status;
-      if (typeof versionStatus !== "string" || !VERSION_STATUSES.has(versionStatus)) {
-        issues.push({
-          severity: "error",
-          code: "version_status_invalid",
-          message: `Version ${versionIndex} of the binding for "${layerId}" has status ${JSON.stringify(versionStatus)} — expected one of ${[...VERSION_STATUSES].join(", ")}.`,
-          ...(layerId ? { layerId } : {}),
-          path: `${path}.versions[${versionIndex}].status`
-        });
+      if (
+        typeof versionStatus !== "string" ||
+        !VERSION_STATUSES.has(versionStatus)
+      ) {
+        issues.push(
+          bindingIssue(
+            "error",
+            "version_status_invalid",
+            `Version ${versionIndex} of the binding for "${layerId}" has status ${JSON.stringify(versionStatus)} — expected one of ${[...VERSION_STATUSES].join(", ")}.`,
+            layerId,
+            `${path}.versions[${versionIndex}].status`
+          )
+        );
       }
     });
   });
@@ -551,7 +604,8 @@ export function validateSketchDocument(
         {
           severity: "error",
           code: "sketch_missing",
-          message: "Document has no `sketch` object — there is no layer stack to check.",
+          message:
+            "Document has no `sketch` object — there is no layer stack to check.",
           path: "sketch"
         }
       ],

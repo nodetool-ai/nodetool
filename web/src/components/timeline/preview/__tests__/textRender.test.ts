@@ -1,11 +1,13 @@
 import type { ClipTextStyle } from "@nodetool-ai/timeline";
+import { stub } from "../../../../test-utils/doubles";
 
 import { TextRasterizer } from "../textRender";
+import { installGlobal } from "../../../../test-utils/doubles";
 
 describe("TextRasterizer", () => {
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   const close = jest.fn();
-  const bitmap = { close } as unknown as ImageBitmap;
+  const bitmap = stub<ImageBitmap>({ close });
   const context = {
     fillStyle: "",
     font: "",
@@ -30,8 +32,7 @@ describe("TextRasterizer", () => {
         return transferToImageBitmap();
       }
     }
-    globalThis.OffscreenCanvas =
-      FakeOffscreenCanvas as unknown as typeof OffscreenCanvas;
+    installGlobal("OffscreenCanvas", FakeOffscreenCanvas);
   });
 
   afterAll(() => {

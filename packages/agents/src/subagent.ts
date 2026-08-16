@@ -189,6 +189,12 @@ export interface SubAgentStreamTag {
   depth?: number;
 }
 
+/** The nesting fields, under the wire names a tagged child event carries. */
+interface SubAgentMessageTags {
+  parent_tool_call_id?: string | null;
+  subtask_depth?: number;
+}
+
 /**
  * Shallow-clone a child event with the nesting tags the renderer reads.
  * Returns the message unchanged when no tag applies — the original object is
@@ -201,16 +207,16 @@ export function tagSubAgentMessage(
   if (tag.parentToolCallId === undefined && tag.depth === undefined) {
     return msg;
   }
-  const tagged: Record<string, unknown> = {
-    ...(msg as unknown as Record<string, unknown>)
-  };
+  // The two tag keys ride on the copy as extra fields; every message type in
+  // the union transports them, and the copy keeps the emitter's object clean.
+  const tags: SubAgentMessageTags = {};
   if (tag.parentToolCallId !== undefined) {
-    tagged.parent_tool_call_id = tag.parentToolCallId;
+    tags.parent_tool_call_id = tag.parentToolCallId;
   }
   if (tag.depth !== undefined) {
-    tagged.subtask_depth = tag.depth;
+    tags.subtask_depth = tag.depth;
   }
-  return tagged as unknown as ProcessingMessage;
+  return { ...msg, ...tags };
 }
 
 export interface ForwardSubAgentStreamOptions extends SubAgentStreamTag {

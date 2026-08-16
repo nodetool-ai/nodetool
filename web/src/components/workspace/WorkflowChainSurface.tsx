@@ -33,7 +33,9 @@ const WorkflowChainSurface = ({
   const toWorkflowGraph = useChainEditorStore((state) => state.toWorkflowGraph);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   // Metadata arrives asynchronously, and the chain store drops nodes it has no
   // metadata for — so wait for it before loading the graph in.
   const metadataLoaded = useMetadataStore(
@@ -79,24 +81,19 @@ const WorkflowChainSurface = ({
       if (!existing) {
         return node;
       }
-      return {
-        ...node,
-        ui_properties: {
-          ...(node.ui_properties as Record<string, unknown>),
-          position: existing.position,
-          ...(existing.width ? { width: existing.width } : {}),
-          ...(existing.height ? { height: existing.height } : {})
-        }
+      const ui_properties = {
+        ...(node.ui_properties as Record<string, unknown>)
       };
+      ui_properties.position = existing.position;
+      if (existing.width) ui_properties.width = existing.width;
+      if (existing.height) ui_properties.height = existing.height;
+      return { ...node, ui_properties };
     });
 
     const keptNodes = nodes.filter((node) => passthrough.has(node.id));
     setNodes([
       ...merged.map((node) =>
-        graphNodeToReactFlowNode(
-          { ...workflow, graph: { nodes: [], edges: [] } },
-          node
-        )
+        graphNodeToReactFlowNode(workflow, node)
       ),
       ...keptNodes
     ]);
@@ -125,7 +122,10 @@ const WorkflowChainSurface = ({
       if (state.workflowId !== workflowId) {
         return;
       }
-      if (state.chain === prev.chain && state.connections === prev.connections) {
+      if (
+        state.chain === prev.chain &&
+        state.connections === prev.connections
+      ) {
         return;
       }
       applyToNodeStore();

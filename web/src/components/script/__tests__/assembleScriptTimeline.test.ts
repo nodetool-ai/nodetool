@@ -45,6 +45,7 @@ const script = (overrides: Partial<ScriptDraft> = {}): ScriptDraft => ({
   cast: [],
   sections: [],
   timelineId: null,
+  storyboardId: null,
   updatedAt: 0,
   ...overrides
 });

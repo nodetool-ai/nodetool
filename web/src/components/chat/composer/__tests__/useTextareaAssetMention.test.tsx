@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -15,7 +16,7 @@ const MOCK_ASSETS: Asset[] = [
   { id: "a1", name: "fox.png", content_type: "image/png" } as Asset,
   { id: "a2", name: "wave.wav", content_type: "audio/wav" } as Asset
 ];
-const MOCK_ENTITIES = [
+const MOCK_ENTITIES = stub<Entity[]>([
   {
     type: "entity",
     id: "e1",
@@ -23,7 +24,7 @@ const MOCK_ENTITIES = [
     name: "Marta",
     descriptor: "red-haired detective"
   }
-] as unknown as Entity[];
+]);
 const setActiveTab = jest.fn();
 jest.mock(
   "../../../node_types/editing/promptComposer/useAssetMentionSearch",

@@ -77,7 +77,7 @@ interface SelectionActionBarProps {
 }
 
 /** Most recent direct-gen binding's model, to seed the inpaint picker. */
-function seedModelFromBindings(): { model: string; provider: string } {
+function seedModelFromBindings() {
   const bindings = Object.values(useSketchSessionStore.getState().bindings);
   const last = bindings
     .filter(

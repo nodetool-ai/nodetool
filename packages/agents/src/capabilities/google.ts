@@ -115,10 +115,10 @@ export {
  * `{ error }` result rather than a thrown exception, so the agent can recover
  * (re-authenticate, pick another file) instead of aborting the step.
  */
-async function googleCall(
+async function googleCall<TResult>(
   run: CapabilityRun,
-  call: (token: string) => Promise<unknown>
-): Promise<unknown> {
+  call: (token: string) => Promise<TResult>
+): Promise<TResult | { error: string }> {
   try {
     const token = await requireGoogleAccessToken(run.context);
     return await call(token);

@@ -45,7 +45,10 @@ import TextEditorModal from "../properties/TextEditorModal";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import {
+  useMonacoEditor,
+  type MonacoEditorOptions
+} from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { useNodes } from "../../contexts/NodeContext";
@@ -78,7 +81,7 @@ const readsScriptLink = (value: unknown): boolean =>
   typeof (value as { id?: unknown }).id === "string" &&
   (value as { id: string }).id !== "";
 
-const EDITOR_OPTIONS: Record<string, unknown> = {
+const EDITOR_OPTIONS = {
   minimap: { enabled: false },
   automaticLayout: true,
   scrollBeyondLastLine: false,
@@ -95,7 +98,7 @@ const EDITOR_OPTIONS: Record<string, unknown> = {
     verticalScrollbarSize: 8,
     horizontalScrollbarSize: 8
   }
-};
+} satisfies MonacoEditorOptions;
 
 const styles = (theme: Theme) =>
   css({

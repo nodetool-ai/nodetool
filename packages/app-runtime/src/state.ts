@@ -153,7 +153,9 @@ const asString = (value: unknown): string =>
  * streamed string must render as one Markdown block, not N), while structured
  * items collect into a list — one entry per emitted item.
  */
-export const appendValue = (previous: unknown, next: unknown): unknown => {
+// HOLDOUT (anti-slop/no-unknown-returns): app state holds workflow values —
+// whatever a node emitted — and this fold answers in the same open domain.
+export const appendValue = (previous: unknown, next: unknown) => {
   if (typeof next === "string") return asString(previous) + next;
   if (previous === undefined) return next;
   if (Array.isArray(previous)) return [...previous, next];

@@ -18,10 +18,7 @@ export const MODEL_INPUT_KINDS: ReadonlySet<WorkflowInputKind> = new Set([
   "huggingface_model"
 ]);
 
-const KIND_TO_PROPERTY_TYPE: Record<
-  WorkflowInputKind,
-  Property["type"]["type"]
-> = {
+const KIND_TO_PROPERTY_TYPE = {
   string: "str",
   integer: "int",
   float: "float",
@@ -51,7 +48,7 @@ const KIND_TO_PROPERTY_TYPE: Record<
   model3d: "model_3d",
   image_size: "image_size",
   huggingface_model: "hf.model"
-};
+} satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const getTypeArgsForKind = (kind: WorkflowInputKind) => {
   switch (kind) {
@@ -68,7 +65,9 @@ const getTypeArgsForKind = (kind: WorkflowInputKind) => {
   }
 };
 
-const kindFallbackDefault = (input: WorkflowInputIO): unknown => {
+const kindFallbackDefault = (
+  input: WorkflowInputIO
+): string | boolean | unknown[] | null => {
   switch (input.kind) {
     case "string":
     case "file_path":
@@ -94,7 +93,7 @@ const kindFallbackDefault = (input: WorkflowInputIO): unknown => {
  * select/boolean fallback the control shows (options[0] / false). Other kinds
  * stay unseeded — omitting the param lets the input node's own default apply.
  */
-export const seedInputValue = (input: WorkflowInputIO): unknown => {
+export const seedInputValue = (input: WorkflowInputIO) => {
   if (input.defaultValue !== undefined) return input.defaultValue;
   if (input.kind === "boolean") return false;
   if (input.kind === "select") return input.options?.[0];
@@ -149,7 +148,7 @@ export const resolveInputValue = (
   input: WorkflowInputIO,
   property: Property,
   stored: unknown
-): unknown => {
+) => {
   if (stored !== undefined) return stored;
   if (property.default !== undefined && property.default !== null) {
     return property.default;
@@ -191,7 +190,7 @@ export const normalizeInputValue = (
   if (
     input.kind === "string" &&
     typeof value === "string" &&
-    typeof input.maxLength === "number" &&
+    input.maxLength != null &&
     input.maxLength > 0
   ) {
     return value.slice(0, input.maxLength);

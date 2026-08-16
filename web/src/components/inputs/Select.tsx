@@ -268,7 +268,7 @@ const Select: React.FC<SelectProps> = ({
         <div
           ref={selectRef}
           role="combobox"
-          aria-label={typeof label === "string" ? label : undefined}
+          aria-label={label}
           aria-expanded={activeSelect === id}
           aria-haspopup="listbox"
           className={`custom-select select-wrapper ${

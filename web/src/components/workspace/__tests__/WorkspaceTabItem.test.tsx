@@ -17,8 +17,9 @@ jest.mock("../../../hooks/useWorkflowDirty", () => ({
   useWorkflowDirty: () => false
 }));
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (state: unknown) => unknown) =>
-    selector({ settings: { instantUpdate: false } })
+  useSettingsStore: <T,>(
+    selector: (state: { settings: { instantUpdate: boolean } }) => T
+  ) => selector({ settings: { instantUpdate: false } })
 }));
 
 const tab: WorkspaceTab = {

@@ -20,7 +20,6 @@ import {
   hydrateGraphNodeFlags,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
 import {
   listOfflineModelIds,
   listRegisteredProviderIds,
@@ -147,7 +146,7 @@ export const MAX_INTERACTIVE_DECISION_TIMEOUT_MS = 30 * 60_000;
  * instead of a bound that fails every decision instantly.
  */
 export function boundedRunOption(
-  value: unknown,
+  value: number | undefined,
   min: number,
   max: number
 ): number | undefined {
@@ -167,8 +166,7 @@ export function modelSelectionErrors(
   return collectModelSelectionIssues({ nodes: nodes as never[] }, catalogs)
     .filter((issue) => issue.severity === "error")
     .map(
-      (issue) =>
-        `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
+      (issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
     );
 }
 
@@ -205,7 +203,7 @@ export function buildWorkflowRunPayload(
   result: WorkflowRunResult,
   debug: boolean,
   extras: { background: boolean }
-): Record<string, unknown> {
+) {
   if (debug) {
     // The debug surface reports what actually happened — per-node status and
     // errors, logs, edges, LLM calls, outputs — plus the same verdict the CLI
@@ -254,7 +252,7 @@ export function buildWorkflowRunPayload(
 export function debugSessionEventPayload(
   session: DebugSession,
   event: DebugSessionEvent
-): Record<string, unknown> {
+) {
   switch (event.kind) {
     case "done":
       return { ...event.report, session_id: session.id };
@@ -378,22 +376,27 @@ export async function runWorkflow(
         MAX_INTERACTIVE_RETRIES_PER_NODE
       );
       interactiveHandle = new InteractiveEscalationHandle();
-      supervisorHandle = new BoundedHandle(interactiveHandle, {
-        ...(maxDecisions !== undefined ? { maxDecisions } : {}),
-        ...(maxRetriesPerNode !== undefined ? { maxRetriesPerNode } : {}),
+      const bounds: ConstructorParameters<typeof BoundedHandle>[1] = {
         decisionTimeoutMs:
           boundedRunOption(
             options.decisionTimeoutMs,
             1,
             MAX_INTERACTIVE_DECISION_TIMEOUT_MS
           ) ?? INTERACTIVE_DECISION_TIMEOUT_MS
-      });
+      };
+      if (maxDecisions !== undefined) {
+        bounds.maxDecisions = maxDecisions;
+      }
+      if (maxRetriesPerNode !== undefined) {
+        bounds.maxRetriesPerNode = maxRetriesPerNode;
+      }
+      supervisorHandle = new BoundedHandle(interactiveHandle, bounds);
     }
     const resolveExecutor =
       environment.resolveExecutor ??
       ((node: { id: string; type: string; [key: string]: unknown }) =>
         registry.resolve(node));
-    runner = new WorkflowRunner(job.id, {
+    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
       resolveExecutor: (node) =>
         resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
@@ -409,13 +412,13 @@ export async function runWorkflow(
         // without them an Output node that stores an image fails the run.
         environment.configureContext?.(executionContext);
         return executionContext;
-      })(),
-      ...(supervisorHandle ? { supervisor: supervisorHandle } : {})
-    });
-    hydratedGraph = hydrateGraphNodeFlags(
-      runnableGraph as unknown as GraphData,
-      registry
-    );
+      })()
+    };
+    if (supervisorHandle) {
+      runnerOptions.supervisor = supervisorHandle;
+    }
+    runner = new WorkflowRunner(job.id, runnerOptions);
+    hydratedGraph = hydrateGraphNodeFlags(runnableGraph, registry);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);

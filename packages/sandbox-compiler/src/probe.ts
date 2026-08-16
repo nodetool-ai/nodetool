@@ -18,6 +18,18 @@ import {
   modulePathNormalizer as defaultModulePathNormalizer
 } from "@sebastianwessel/quickjs";
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
+/**
+ * The variant package is CJS with a `default` export, so `ns.default` is the
+ * variant at runtime.
+ */
+// SAFETY: TypeScript's CJS interop synthesizes `default` as the whole module
+// object, contradicting the package's own `.d.ts`, which declares it as the
+// `QuickJSSyncVariant` this reads.
+const quickJsVariant = (
+  quickJsVariantModule as unknown as {
+    default: Parameters<typeof loadQuickJs>[0];
+  }
+).default;
 
 import {
   NPM_PROBE_MAX_LOG_CHARS,
@@ -27,9 +39,6 @@ import {
   NPM_PROBE_TIMEOUT_MS
 } from "./options.js";
 
-const quickJsVariant = (
-  quickJsVariantModule as unknown as { default: Parameters<typeof loadQuickJs>[0] }
-).default;
 
 /** The id the probe serves the bundle under. */
 const PROBE_MODULE_ID = "nodetool-probe-module";

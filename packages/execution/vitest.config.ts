@@ -32,7 +32,13 @@ export default defineConfig({
       "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts"),
       // Dependency-free source, so the app-debug tests exercise the real
       // runtime core rather than a build of it.
-      "@nodetool-ai/app-runtime": resolve(__dirname, "../app-runtime/src/index.ts")
+      "@nodetool-ai/app-runtime": resolve(
+        __dirname,
+        "../app-runtime/src/index.ts"
+      ),
+      // Same reason: the timeline validator should check the assembly code as
+      // written, not a build of it.
+      "@nodetool-ai/timeline": resolve(__dirname, "../timeline/src/index.ts")
     }
   },
   test: {

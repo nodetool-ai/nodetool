@@ -1,8 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import type { Config, ArrayField, Field } from "@puckeditor/core";
+import type { Theme } from "@mui/material/styles";
+import type { SystemCssProperties } from "@mui/system";
 
-import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
+import {
+  Box,
+  Text,
+  FlexColumn,
+  SPACING,
+  SPACING_PX
+} from "../../ui_primitives";
 import { APP_THEMES, appThemeFrame, resolveAppTheme } from "../appThemes";
 import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 import {
@@ -73,19 +81,36 @@ const ACTION_OPTIONS = [
  * format template are the whole logic surface of the app layer — everything
  * else is a node in the graph.
  */
-const conditionalFields = ({ format = true }: { format?: boolean } = {}) => ({
-  visibleWhen: conditionField("Visible when"),
-  disabledWhen: conditionField("Disabled when"),
-  ...(format
-    ? {
-        format: {
-          type: "text" as const,
-          label:
-            "Format ({binding} · number:2 · date:short · upper · lower · join:, · truncate:80)"
-        }
-      }
-    : {})
-});
+/** The declarative logic props every widget accepts. */
+type ConditionalFields = {
+  visibleWhen: Field;
+  disabledWhen: Field;
+  format?: { type: "text"; label: string };
+};
+
+/** A new event row's defaults; `pace` only on a change event. */
+type EventItemDefaults = {
+  trigger: "click" | "change";
+  kind: string;
+  key: string;
+  value: string;
+  pace?: string;
+};
+
+const conditionalFields = ({ format = true }: { format?: boolean } = {}) => {
+  const fields: ConditionalFields = {
+    visibleWhen: conditionField("Visible when"),
+    disabledWhen: conditionField("Disabled when")
+  };
+  if (format) {
+    fields.format = {
+      type: "text",
+      label:
+        "Format ({binding} · number:2 · date:short · upper · lower · join:, · truncate:80)"
+    };
+  }
+  return fields;
+};
 
 const PACE_OPTIONS = [
   { label: "Live", value: "live" },
@@ -97,50 +122,59 @@ const PACE_OPTIONS = [
 // release, input blur). Discrete controls — WorkflowInput, media/color pickers,
 // Switch, Select — emit only "change", so offering release there would silently
 // disable the action. They get Live/Debounced only.
-const PACE_OPTIONS_NO_RELEASE = PACE_OPTIONS.filter((o) => o.value !== "release");
+const PACE_OPTIONS_NO_RELEASE = PACE_OPTIONS.filter(
+  (o) => o.value !== "release"
+);
 
 /** Array field describing a widget's events (each item dispatches an action). */
 const eventsField = (
   trigger: "click" | "change",
   { commits = true }: { commits?: boolean } = {}
-): ArrayField => ({
-  type: "array",
-  label: trigger === "click" ? "On click" : "On change",
-  arrayFields: {
-    kind: { type: "select", label: "Action", options: ACTION_OPTIONS },
-    // Pacing throttles a run on continuous change (slider drag, typing); it has
-    // no meaning for a one-shot click, so it only appears on change events.
-    ...(trigger === "change"
-      ? {
-          pace: {
-            type: "select" as const,
-            label: "Pacing",
-            options: commits ? PACE_OPTIONS : PACE_OPTIONS_NO_RELEASE
-          }
-        }
-      : {}),
-    key: variableField("State variable"),
-    value: { type: "text", label: "Value" },
-    // Which workflow a run/cancel drives. Only rendered by a multi-operation
-    // app; otherwise the event runs the app's sole operation.
-    operationId: operationField("Operation")
-  },
-  defaultItemProps: {
+): ArrayField => {
+  // Field order is the editor's field order, so each one is assigned in place.
+  const arrayFields: ArrayField["arrayFields"] = {
+    kind: { type: "select", label: "Action", options: ACTION_OPTIONS }
+  };
+  // Pacing throttles a run on continuous change (slider drag, typing); it has
+  // no meaning for a one-shot click, so it only appears on change events.
+  if (trigger === "change") {
+    arrayFields.pace = {
+      type: "select",
+      label: "Pacing",
+      options: commits ? PACE_OPTIONS : PACE_OPTIONS_NO_RELEASE
+    };
+  }
+  arrayFields.key = variableField("State variable");
+  arrayFields.value = { type: "text", label: "Value" };
+  // Which workflow a run/cancel drives. Only rendered by a multi-operation
+  // app; otherwise the event runs the app's sole operation.
+  arrayFields.operationId = operationField("Operation");
+
+  const defaultItemProps: EventItemDefaults = {
     trigger,
     kind: "run",
     key: "",
-    value: "",
-    ...(trigger === "change" ? { pace: "live" } : {})
-  },
-  getItemSummary: (item: Record<string, unknown>) => String(item.kind ?? "action")
-});
+    value: ""
+  };
+  if (trigger === "change") defaultItemProps.pace = "live";
+
+  return {
+    type: "array",
+    label: trigger === "click" ? "On click" : "On change",
+    arrayFields,
+    defaultItemProps,
+    getItemSummary: (item: Record<string, unknown>) =>
+      String(item.kind ?? "action")
+  };
+};
 
 const optionsField: ArrayField = {
   type: "array",
   label: "Options",
   arrayFields: { value: { type: "text", label: "Option" } },
   defaultItemProps: { value: "Option" },
-  getItemSummary: (item: Record<string, unknown>) => String(item.value ?? "option")
+  getItemSummary: (item: Record<string, unknown>) =>
+    String(item.value ?? "option")
 };
 
 /**
@@ -208,6 +242,27 @@ const AppRoot: React.FC<{
 }> = ({ title, theme, children }) => {
   const { theme: documentTheme } = useAppRuntimeContext();
   const appTheme = resolveAppTheme(theme ?? documentTheme);
+  const widthSx: SystemCssProperties<Theme> = {};
+  if (appTheme.maxWidth) {
+    widthSx.maxWidth = appTheme.maxWidth;
+    widthSx.mx = "auto";
+  }
+  const frameSx = {
+    width: "100%",
+    ...widthSx,
+    ...appThemeFrame(appTheme),
+    // The root zone renders as a single direct div in both the editor
+    // (Puck's DropZone) and the runtime (a plain wrapper div); style
+    // its children as a gapped flex column so top-level widgets get
+    // the same vertical rhythm as slot contents (see slotStack in
+    // widgets.tsx) in both surfaces.
+    "& > div": {
+      display: "flex",
+      flexDirection: "column",
+      gap: `${SPACING_PX.xxl}px`,
+      width: "100%"
+    }
+  };
   return (
     <Box
       sx={{
@@ -220,27 +275,7 @@ const AppRoot: React.FC<{
         containerType: "inline-size"
       }}
     >
-      <FlexColumn
-        gap={SPACING.xxl}
-        sx={{
-          width: "100%",
-          ...(appTheme.maxWidth
-            ? { maxWidth: appTheme.maxWidth, mx: "auto" }
-            : {}),
-          ...appThemeFrame(appTheme),
-          // The root zone renders as a single direct div in both the editor
-          // (Puck's DropZone) and the runtime (a plain wrapper div); style
-          // its children as a gapped flex column so top-level widgets get
-          // the same vertical rhythm as slot contents (see slotStack in
-          // widgets.tsx) in both surfaces.
-          "& > div": {
-            display: "flex",
-            flexDirection: "column",
-            gap: `${SPACING_PX.xxl}px`,
-            width: "100%"
-          }
-        }}
-      >
+      <FlexColumn gap={SPACING.xxl} sx={frameSx}>
         {title ? (
           <Text size="big" weight={600}>
             {title}
@@ -869,7 +904,9 @@ export const appConfig: Config = {
         label: "",
         allowRemove: true
       },
-      render: withConditions((props) => <StoryboardSceneListWidget {...props} />)
+      render: withConditions((props) => (
+        <StoryboardSceneListWidget {...props} />
+      ))
     },
     // ── Chat & AI ──
     ChatThread: {

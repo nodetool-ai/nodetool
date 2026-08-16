@@ -1,4 +1,5 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
+import { stub } from "../../test-utils/doubles";
 import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
 import {
@@ -87,7 +88,7 @@ describe("normalizeOutputUpdateValue", () => {
 
 describe("handleUpdate", () => {
   it("stores workflow chunk updates by node id", () => {
-    const chunk = {
+    const chunk = stub<Chunk>({
       type: "chunk",
       node_id: "node-1",
       workflow_id: "workflow-1",
@@ -95,7 +96,7 @@ describe("handleUpdate", () => {
       content: "hello",
       // Per-node chunks are keyed by the producing run's job_id.
       job_id: "job-1"
-    } as unknown as Chunk;
+    });
 
     handleUpdate(
       mockWorkflow,
@@ -112,14 +113,14 @@ describe("handleUpdate", () => {
   });
 
   it("ignores workflow chunk updates without node id", () => {
-    const chunk = {
+    const chunk = stub<Chunk>({
       type: "chunk",
       workflow_id: "workflow-1",
       content_type: "text",
       content: "done",
       done: true,
       job_id: "job-1"
-    } as unknown as Chunk;
+    });
 
     handleUpdate(
       mockWorkflow,

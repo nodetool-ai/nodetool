@@ -1,12 +1,15 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
+import { screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CodeBody from "../CodeBody";
 import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { installGlobal } from "../../../test-utils/doubles";
 
 // jsdom has no layout; report a real size so CodeBody's size-gate mounts Monaco.
-class SizedResizeObserver {
+class SizedResizeObserver implements ResizeObserver {
   constructor(private cb: ResizeObserverCallback) {}
   observe(el: Element) {
     this.cb(
@@ -16,14 +19,13 @@ class SizedResizeObserver {
           contentRect: { width: 320, height: 200 } as DOMRectReadOnly
         } as ResizeObserverEntry
       ],
-      this as unknown as ResizeObserver
+      this
     );
   }
   unobserve() {}
   disconnect() {}
 }
-(globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
-  SizedResizeObserver as unknown as typeof ResizeObserver;
+installGlobal("ResizeObserver", SizedResizeObserver);
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -44,15 +46,13 @@ const mockUpdateNodeData = jest.fn();
 // handles wholesale, so a connected node is not eligible.
 let mockEdges: Array<{ source: string; target: string }> = [];
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: unknown) => unknown) =>
-    selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       findNode: mockFindNode,
       updateNodeData: mockUpdateNodeData,
       edges: mockEdges
     })
-}));
-
+);
 // The script-link header owns its own tRPC queries and its own test; here it
 // is only in the way.
 jest.mock("../CodeNodeScriptLink", () => ({
@@ -161,7 +161,7 @@ const renderWithTheme = (ui: React.ReactElement) =>
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.code.Code",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof CodeBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.code.Code",
     inline_fields: ["code"],
     properties: [
@@ -172,10 +172,10 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
     supports_dynamic_outputs: true,
     is_streaming_output: false,
     layout: "default"
-  } as unknown as Parameters<typeof CodeBody>[0]["nodeMetadata"],
-  data: {
+  }),
+  data: stub<Parameters<typeof CodeBody>[0]["data"]>({
     properties: { code: "return { x: 1 };" }
-  } as unknown as Parameters<typeof CodeBody>[0]["data"],
+  }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

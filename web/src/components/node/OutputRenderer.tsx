@@ -242,12 +242,7 @@ const stableKeyForOutputValue = (v: unknown): string => {
 
 const concatTextChunksSafely = (
   chunks: Chunk[]
-): {
-  text: string;
-  truncated: boolean;
-  totalChunks: number;
-  usedChunks: number;
-} => {
+) => {
   const parts: string[] = [];
   let used = 0;
   let currentLen = 0;

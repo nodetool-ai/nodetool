@@ -37,7 +37,11 @@ import type {
 
 import type { Tool } from "./tools/base-tool.js";
 import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
-import { UNGATED, createCapabilityRun } from "./capabilities/index.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  type CreateCapabilityRunOptions
+} from "./capabilities/index.js";
 import {
   GRAPH_DSL_PACKAGE,
   catalogServesGraphDsl
@@ -68,7 +72,7 @@ const AUTHORING_CAPABILITIES = [
  * The shape `finish()` must carry. Deliberately loose about what a node or an
  * edge holds — `validate_workflow` is what judges that, against the registry.
  */
-const GRAPH_RESULT_SCHEMA: Record<string, unknown> = {
+const GRAPH_RESULT_SCHEMA = {
   type: "object",
   properties: {
     nodes: {
@@ -83,7 +87,7 @@ const GRAPH_RESULT_SCHEMA: Record<string, unknown> = {
     }
   },
   required: ["nodes", "edges"]
-};
+} satisfies Record<string, unknown>;
 
 export interface AuthorGraphOptions {
   /** The context the sub-agent runs in — tools, sandbox catalog, memory. */
@@ -147,7 +151,9 @@ async function* authorGraphImpl(
       "pack, so the sub-agent has nothing to build the graph with. Install the " +
       "sandbox packs (`nodetool packs compile`) or supply a catalog that " +
       "carries the DSL pack.";
-    log.error("authorGraph: DSL pack unavailable", { objective: objective.slice(0, 120) });
+    log.error("authorGraph: DSL pack unavailable", {
+      objective: objective.slice(0, 120)
+    });
     yield {
       type: "planning_update",
       phase: "complete",
@@ -251,12 +257,13 @@ function resolveCatalog(
  * when providers are configured. Everything else the agent needs is the pack.
  */
 export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
-  const run = createCapabilityRun({
+  const runOptions: CreateCapabilityRunOptions = {
     context: opts.context,
     gate: UNGATED,
-    nodeRegistry: opts.registry,
-    ...(opts.providers ? { providers: opts.providers } : {})
-  });
+    nodeRegistry: opts.registry
+  };
+  if (opts.providers) runOptions.providers = opts.providers;
+  const run = createCapabilityRun(runOptions);
   const names: string[] = [...AUTHORING_CAPABILITIES];
   if (opts.providers && Object.keys(opts.providers).length > 0) {
     names.unshift("find_model");

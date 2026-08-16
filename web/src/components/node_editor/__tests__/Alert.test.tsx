@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import Alert from "../Alert";
@@ -29,7 +30,7 @@ jest.mock("../../../stores/NotificationStore", () => ({
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
 const renderWithStore = (notifications: any[]) => {
-  (useNotificationStore as unknown as jest.Mock).mockImplementation(
+  asMock(useNotificationStore).mockImplementation(
     (sel: any) => sel(makeStoreState(notifications))
   );
   return render(

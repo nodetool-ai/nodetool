@@ -1,4 +1,3 @@
-import type { FastifyRequest } from "fastify";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerConnection, WorkerManager } from "@nodetool-ai/compute";
@@ -64,11 +63,20 @@ export interface ContextFactoryInput {
   probeWorkerHealth?: ProbeWorkerHealth;
 }
 
+/**
+ * The one request field the context reads. Both `FastifyRequest` (with the
+ * `userId` the auth plugin attaches) and the plain `IncomingMessage` the
+ * test-UI server serves satisfy it.
+ */
+export interface ContextRequest {
+  userId?: string | null;
+}
+
 export function createContextFactory(
   deps: ContextFactoryInput
-): (opts: { req: FastifyRequest }) => Context {
+): (opts: { req: ContextRequest }) => Context {
   return ({ req }) => ({
-    userId: (req as FastifyRequest & { userId?: string | null }).userId ?? null,
+    userId: req.userId ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

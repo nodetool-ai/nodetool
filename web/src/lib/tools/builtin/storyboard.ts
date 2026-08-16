@@ -302,6 +302,46 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_storyboard_extract_script",
+  description:
+    "Project the specified storyboard's dialogue and narration into a new script resource and link the two: the board's screenplay records the script, and each shot records the lines it covers. One line per shot dialogue and one per shot narration, in shot order; a shot's character entity becomes the line's speaker. Fails when the board already links a script — use ui_storyboard_relink_script to re-project instead. Opens the script's tab.",
+  parameters: z.object({ storyboard_id: storyboardIdParam }),
+  async execute({ storyboard_id }) {
+    const link = await getStoryboardAgentHandler(storyboard_id).extractScript();
+    const persisted = await persistBoard(storyboard_id, "The script link");
+    return {
+      ok: true,
+      ...link,
+      ...persisted,
+      url: docUrl("script", link.scriptId)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_storyboard_relink_script",
+  description:
+    "Re-project the specified storyboard's words onto the script it already links: line texts are re-read from the shots and every shot's snapshot is refreshed, so drift clears. Recorded takes, voices, and performance directions survive on every line whose shot still exists. Fails when the board links no script — use ui_storyboard_extract_script first.",
+  parameters: z.object({ storyboard_id: storyboardIdParam }),
+  async execute({ storyboard_id }) {
+    const handler = getStoryboardAgentHandler(storyboard_id);
+    if (!handler.getSnapshot().scriptId) {
+      throw new Error(
+        `Storyboard ${storyboard_id} links no script. Call ui_storyboard_extract_script to create one.`
+      );
+    }
+    const link = await handler.extractScript({ relink: true });
+    const persisted = await persistBoard(storyboard_id, "The re-projection");
+    return {
+      ok: true,
+      ...link,
+      ...persisted,
+      url: docUrl("script", link.scriptId)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_storyboard_select_shot",
   description:
     "Select a shot on the specified storyboard (driving the surface's focus). Pass null to clear the selection.",

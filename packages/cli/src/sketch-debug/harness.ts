@@ -47,6 +47,11 @@ export interface SketchDebugCore {
 /** The bridge surface this host drives — one tool per `ui_sketch_*` name. */
 export interface SketchBridgeTool {
   name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_sketch_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
@@ -108,24 +113,32 @@ export interface SketchDebugResult {
 async function loadCore(): Promise<SketchDebugCore> {
   const core = await import("@nodetool-ai/execution/sketch-debug");
   return {
-    validateSketchDocument: (raw, meta) => core.validateSketchDocument(raw, meta),
+    validateSketchDocument: (raw, meta) =>
+      core.validateSketchDocument(raw, meta),
     buildSketchDebugReport: (input) => core.buildSketchDebugReport(input),
-    renderSketchReportMarkdown: (report) => core.renderSketchReportMarkdown(report)
+    renderSketchReportMarkdown: (report) =>
+      core.renderSketchReportMarkdown(report)
   };
 }
 
 async function loadBridgeFactory(): Promise<CreateSketchBridge> {
   const { createSketchToolBridge } = await import("@nodetool-ai/agents");
   return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the sketch document types independently, and that
+    // duplication is the only reason the structures do not line up.
     createSketchToolBridge(
       initial as Parameters<typeof createSketchToolBridge>[0]
-    ) as unknown as SketchBridge;
+    ) as SketchBridge;
 }
 
 function defaultOutDir(ref: string): string {
   const slug =
-    ref.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) ||
-    "sketch";
+    ref
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "sketch";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   return resolve(`nodetool-debug/sketch-${slug}-${stamp}`);
 }
@@ -137,7 +150,10 @@ export async function runSketchValidate(
 ): Promise<SketchValidateResult> {
   const resolved = await resolveSketchTarget(ref, deps);
   const core = deps.core ?? (await loadCore());
-  const validation = await core.validateSketchDocument(resolved.raw, resolved.meta);
+  const validation = await core.validateSketchDocument(
+    resolved.raw,
+    resolved.meta
+  );
   return { target: resolved.target, validation };
 }
 
@@ -150,10 +166,31 @@ export async function runSketchValidate(
  * records a layer's prompt/provider/model, not the persisted binding record.
  * The report's `notSimulated` says so.
  */
+/** The `{ sketch, layerBindings }` document a session leaves behind. */
+interface ReconstructedSketchDocument {
+  sketch: {
+    version: number;
+    canvas: { width: number; height: number; backgroundColor?: string };
+    layers: Array<{
+      id: string;
+      name: string;
+      type: SketchBridgeLayer["type"];
+      visible: boolean;
+      locked: boolean;
+      opacity: number | undefined;
+      blendMode: string | undefined;
+      data: null;
+    }>;
+    activeLayerId: string;
+    maskLayerId: string | null;
+  };
+  layerBindings: never[];
+}
+
 function reconstructDocument(
   snapshot: SketchBridgeSnapshot,
   resolved: ResolvedSketchTarget
-): unknown {
+): ReconstructedSketchDocument {
   const layers = (snapshot.layers ?? []).map((layer) => ({
     id: layer.id,
     name: layer.name,
@@ -171,14 +208,22 @@ function reconstructDocument(
     resolved.document.canvas.backgroundColor ??
     resolved.meta.backgroundColor;
 
+  type CanvasFields = {
+    width: number;
+    height: number;
+    backgroundColor?: string;
+  };
+  const canvas: CanvasFields = {
+    width: snapshot.width ?? resolved.document.canvas.width ?? 0,
+    height: snapshot.height ?? resolved.document.canvas.height ?? 0
+  };
+  if (background !== undefined) {
+    canvas.backgroundColor = background;
+  }
   return {
     sketch: {
       version: resolved.document.version,
-      canvas: {
-        width: snapshot.width ?? resolved.document.canvas.width ?? 0,
-        height: snapshot.height ?? resolved.document.canvas.height ?? 0,
-        ...(background !== undefined ? { backgroundColor: background } : {})
-      },
+      canvas,
       layers,
       activeLayerId,
       maskLayerId: null
@@ -208,21 +253,24 @@ export async function runSketchDebug(
 
   if (steps.length > 0) {
     const createBridge = deps.createBridge ?? (await loadBridgeFactory());
-    const bridge = createBridge({
-      ...(resolved.target.name ? { name: resolved.target.name } : {}),
-      ...(resolved.document.canvas.width !== undefined
-        ? { width: resolved.document.canvas.width }
-        : {}),
-      ...(resolved.document.canvas.height !== undefined
-        ? { height: resolved.document.canvas.height }
-        : {}),
+    const bridgeInit: Parameters<typeof createBridge>[0] = {
       // The bridge seeds names and types only; a group layer has no headless
       // equivalent, so it enters the stack as a raster.
       layers: resolved.document.layers.map((layer) => ({
         name: layer.name,
         type: layer.type === "mask" ? ("mask" as const) : ("raster" as const)
       }))
-    });
+    };
+    if (resolved.target.name) {
+      bridgeInit.name = resolved.target.name;
+    }
+    if (resolved.document.canvas.width !== undefined) {
+      bridgeInit.width = resolved.document.canvas.width;
+    }
+    if (resolved.document.canvas.height !== undefined) {
+      bridgeInit.height = resolved.document.canvas.height;
+    }
+    const bridge = createBridge(bridgeInit);
     const byName = new Map(bridge.tools.map((t) => [t.name, t]));
 
     for (const step of steps) {
@@ -240,11 +288,21 @@ export async function runSketchDebug(
       }
       try {
         const result = await tool.execute(step.input);
-        interactions.push({ tool: step.tool, input: step.input, ok: true, result });
+        interactions.push({
+          tool: step.tool,
+          input: step.input,
+          ok: true,
+          result
+        });
         deps.onLog?.(`✓ ${step.tool}`);
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
-        interactions.push({ tool: step.tool, input: step.input, ok: false, error });
+        interactions.push({
+          tool: step.tool,
+          input: step.input,
+          ok: false,
+          error
+        });
         deps.onLog?.(`✗ ${step.tool}: ${error}`);
       }
     }
@@ -255,16 +313,23 @@ export async function runSketchDebug(
     ? reconstructDocument(snapshot, resolved)
     : undefined;
 
-  const report = await core.buildSketchDebugReport({
+  const reportInput: Parameters<typeof core.buildSketchDebugReport>[0] = {
     target: resolved.target,
     document: resolved.raw,
     meta: resolved.meta,
-    interactions,
-    ...(snapshot ? { finalState: snapshot } : {}),
-    ...(finalDocument ? { finalDocument } : {})
-  });
+    interactions
+  };
+  if (snapshot) {
+    reportInput.finalState = snapshot;
+  }
+  if (finalDocument) {
+    reportInput.finalDocument = finalDocument;
+  }
+  const report = await core.buildSketchDebugReport(reportInput);
 
-  const bundleDir = options.outDir ? resolve(options.outDir) : defaultOutDir(ref);
+  const bundleDir = options.outDir
+    ? resolve(options.outDir)
+    : defaultOutDir(ref);
   await mkdir(bundleDir, { recursive: true });
   await writeFile(
     join(bundleDir, "sketch.json"),

@@ -65,7 +65,7 @@ export class GmailSearchLibNode extends BaseNode {
   ];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     email: { kind: "iteration", source: "__execution__", group: "items" },
     message_id: { kind: "iteration", source: "__execution__", group: "items" },
     subject: { kind: "iteration", source: "__execution__", group: "items" },
@@ -74,7 +74,7 @@ export class GmailSearchLibNode extends BaseNode {
     body: { kind: "iteration", source: "__execution__", group: "items" },
     emails: { kind: "single", source: "__execution__" },
     message_ids: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",
@@ -278,6 +278,11 @@ export class GmailSearchLibNode extends BaseNode {
   }
 }
 
+/** Output handles AddLabelLibNode.process() emits. */
+type AddLabelLibNodeOutputs = {
+  output: boolean;
+};
+
 export class AddLabelLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.AddLabel";
   static readonly title = "Add Label";
@@ -309,7 +314,7 @@ export class AddLabelLibNode extends BaseNode {
   })
   declare label: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<AddLabelLibNodeOutputs> {
     const user = this._secrets["GOOGLE_MAIL_USER"];
     const pass = this._secrets["GOOGLE_APP_PASSWORD"];
     if (!user || !pass) {
@@ -346,6 +351,11 @@ export class AddLabelLibNode extends BaseNode {
   }
 }
 
+/** Output handles MoveToArchiveLibNode.process() emits. */
+type MoveToArchiveLibNodeOutputs = {
+  output: boolean;
+};
+
 export class MoveToArchiveLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.MoveToArchive";
   static readonly title = "Move To Archive";
@@ -369,7 +379,7 @@ export class MoveToArchiveLibNode extends BaseNode {
   })
   declare message_id: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MoveToArchiveLibNodeOutputs> {
     const user = this._secrets["GOOGLE_MAIL_USER"];
     const pass = this._secrets["GOOGLE_APP_PASSWORD"];
     if (!user || !pass) {

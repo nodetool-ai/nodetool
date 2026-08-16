@@ -1,6 +1,7 @@
 import {
   createSupabaseStorageClient,
-  type SupabaseStorageApi
+  type SupabaseStorageApi,
+  type SupabaseUploadOptions
 } from "./supabase-rest.js";
 import type {
   StorageAdapter,
@@ -74,12 +75,13 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     contentType?: string
   ): Promise<string> {
     assertUploadWithinLimit(key, data.byteLength);
+    const uploadOptions: SupabaseUploadOptions = { upsert: true };
+    if (contentType) {
+      uploadOptions.contentType = contentType;
+    }
     const { error } = await this.getClient()
       .storage.from(this.bucket)
-      .upload(key, data, {
-        upsert: true,
-        ...(contentType ? { contentType } : {})
-      });
+      .upload(key, data, uploadOptions);
     if (error) {
       throw new Error(`Supabase upload failed for "${key}": ${error.message}`);
     }
@@ -172,17 +174,18 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         }
         continue;
       }
-      entries.push({
+      const entry: StorageEntry = {
         key: childKey,
         uri: `supabase://${this.bucket}/${childKey}`,
         size: (item.metadata?.size as number) ?? 0,
         modifiedAt: item.updated_at
           ? new Date(item.updated_at).getTime()
-          : Date.now(),
-        ...(item.metadata?.mimetype
-          ? { contentType: item.metadata.mimetype as string }
-          : {})
-      });
+          : Date.now()
+      };
+      if (item.metadata?.mimetype) {
+        entry.contentType = item.metadata.mimetype as string;
+      }
+      entries.push(entry);
     }
     return {
       entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
@@ -205,16 +208,17 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (error || !data) return null;
     const item = data.find((e) => e.name === name);
     if (!item) return null;
-    return {
+    const stat: StorageStat = {
       key: parsed.key,
       size: (item.metadata?.size as number) ?? 0,
       modifiedAt: item.updated_at
         ? new Date(item.updated_at).getTime()
-        : Date.now(),
-      ...(item.metadata?.mimetype
-        ? { contentType: item.metadata.mimetype as string }
-        : {})
+        : Date.now()
     };
+    if (item.metadata?.mimetype) {
+      stat.contentType = item.metadata.mimetype as string;
+    }
+    return stat;
   }
 
   /**
@@ -257,8 +261,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   getPublicUrl(uri: string): string | null {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
-    return this.getClient()
-      .storage.from(parsed.bucket)
-      .getPublicUrl(parsed.key).data.publicUrl;
+    return this.getClient().storage.from(parsed.bucket).getPublicUrl(parsed.key)
+      .data.publicUrl;
   }
 }

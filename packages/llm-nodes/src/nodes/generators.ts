@@ -178,10 +178,7 @@ function buildMessageContent(
   return parts;
 }
 
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function getModelConfig(props: Record<string, unknown>) {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -193,12 +190,7 @@ function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
   modelId: string
-): context is ProcessingContext & {
-  runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  streamProviderPrediction: (
-    req: Record<string, unknown>
-  ) => AsyncGenerator<unknown>;
-} {
+): context is ProcessingContext {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&
@@ -257,11 +249,7 @@ async function* streamListItemsViaToolCalls(
   maxTokens: number,
   systemPrompt: string = LIST_GENERATOR_SYSTEM_PROMPT
 ): AsyncGenerator<string> {
-  const provider = await (
-    context as ProcessingContext & {
-      getProvider: (id: string) => Promise<unknown>;
-    }
-  ).getProvider(providerId);
+  const provider = await context.getProvider(providerId);
   const tool = makeAddItemTool();
   const providerTools = toProviderTools([tool]);
 
@@ -275,15 +263,12 @@ async function* streamListItemsViaToolCalls(
     const assistantToolCalls: ToolCall[] = [];
     let assistantText = "";
 
-    for await (const item of streamProviderMessages(
-      provider as Parameters<typeof streamProviderMessages>[0],
-      {
-        messages,
-        model: modelId,
-        tools: providerTools,
-        maxTokens
-      }
-    )) {
+    for await (const item of streamProviderMessages(provider, {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens
+    })) {
       if (isToolCallItem(item)) {
         assistantToolCalls.push(item);
         if (item.name === "add_item") {
@@ -328,7 +313,7 @@ async function* streamListItemsViaToolCalls(
 function dataframeFromRows(
   rows: Row[],
   columnsInput: unknown
-): Record<string, unknown> {
+) {
   const names =
     rows.length > 0
       ? Object.keys(rows[0])
@@ -372,9 +357,7 @@ function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
 }
 
 async function generateDataframeFromCsv(
-  context: ProcessingContext & {
-    runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  },
+  context: ProcessingContext,
   providerId: string,
   modelId: string,
   prompt: string,
@@ -578,11 +561,11 @@ export class DataGeneratorNode extends BaseNode {
   static readonly primaryOutput = "dataframe";
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     record: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     dataframe: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "language_model",
@@ -673,6 +656,18 @@ export class DataGeneratorNode extends BaseNode {
   }
 }
 
+/** Output handles ListGeneratorNode.genProcess() emits. */
+type ListGeneratorNodeStreamOutputs = {
+  item?: string;
+  index?: number;
+  output?: string[];
+};
+
+/** Output handles ListGeneratorNode.process() emits. */
+type ListGeneratorNodeOutputs = {
+  output: string[];
+};
+
 export class ListGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.ListGenerator";
   static readonly title = "List Generator";
@@ -699,11 +694,11 @@ export class ListGeneratorNode extends BaseNode {
   static readonly primaryOutput = "output";
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     item: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     output: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "language_model",
@@ -746,7 +741,7 @@ export class ListGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ListGeneratorNodeOutputs> {
     const items: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const item = (chunk as { item?: unknown }).item;
@@ -757,7 +752,7 @@ export class ListGeneratorNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ListGeneratorNodeStreamOutputs> {
     const prompt = asText(this.prompt ?? "");
     const inputText = asText(this.input_text ?? "");
     const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
@@ -1054,6 +1049,11 @@ Set a descriptive title, axis labels, and legend settings.`;
   }
 }
 
+/** Output handles SVGGeneratorNode.process() emits. */
+type SVGGeneratorNodeOutputs = {
+  output: { content: string }[];
+};
+
 export class SVGGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.SVGGenerator";
   static readonly title = "SVGGenerator";
@@ -1120,7 +1120,7 @@ export class SVGGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SVGGeneratorNodeOutputs> {
     const prompt = asText(this.prompt ?? "");
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;

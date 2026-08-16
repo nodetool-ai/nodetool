@@ -25,6 +25,7 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 // Nodetool stores — seed metadata only (no NodeStore)
 import useMetadataStore from "./stores/MetadataStore";
 import { NodeData } from "./stores/NodeData";
+import { createReadOnlyNodeStore } from "./stores/readOnlyNodeStore";
 import { graphNodeToReactFlowNode } from "./stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./stores/graphEdgeToReactFlowEdge";
 import { autoLayout } from "./core/graph";
@@ -43,7 +44,6 @@ import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
 
 // NodeContext — we provide a real zustand store so BaseNode's useNodes() works
-import { create } from "zustand";
 import { NodeContext } from "./contexts/NodeContext";
 import type { NodeStore } from "./stores/NodeStore";
 import { ContextMenuProvider } from "./providers/ContextMenuProvider";
@@ -182,54 +182,6 @@ function parseWorkflow(raw: unknown): Workflow {
   };
 }
 
-// ─── Minimal NodeStore ───────────────────────────────────────────
-// BaseNode uses useNodes() which reads from NodeContext.
-// We create a minimal zustand store with just the fields BaseNode accesses.
-
-interface MinimalNodeStore {
-  nodes: Node<NodeData>[];
-  edges: Edge[];
-  workflow: Workflow;
-  viewport: null;
-  shouldFitToScreen: boolean;
-  setShouldFitToScreen: () => void;
-  onNodesChange: () => void;
-  onEdgesChange: () => void;
-  onEdgeUpdate: () => void;
-  deleteEdge: () => void;
-  setEdgeSelectionState: () => void;
-  updateNode: () => void;
-  updateNodeData: () => void;
-  getSelectedNodeCount: () => number;
-  findNode: (id: string) => Node<NodeData> | undefined;
-  getNodesByType: () => never[];
-}
-
-function createMinimalNodeStore(
-  nodes: Node<NodeData>[],
-  edges: Edge[],
-  workflow: Workflow
-) {
-  return create<MinimalNodeStore>(() => ({
-    nodes,
-    edges,
-    workflow,
-    viewport: null,
-    shouldFitToScreen: false,
-    setShouldFitToScreen: () => {},
-    onNodesChange: () => {},
-    onEdgesChange: () => {},
-    onEdgeUpdate: () => {},
-    deleteEdge: () => {},
-    setEdgeSelectionState: () => {},
-    updateNode: () => {},
-    updateNodeData: () => {},
-    getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodes.find((n) => n.id === id),
-    getNodesByType: () => [],
-  }));
-}
-
 // ─── Edge types & node types ─────────────────────────────────────
 const edgeTypes = { default: CustomEdge, control: ControlEdge };
 
@@ -317,7 +269,7 @@ export default function App() {
   const [graphData, setGraphData] = useState<{
     nodes: Node<NodeData>[];
     edges: Edge[];
-    store: ReturnType<typeof createMinimalNodeStore>;
+    store: NodeStore;
     workflow: Workflow;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -392,7 +344,7 @@ export default function App() {
         const layoutedNodes = await autoLayout(rfEdges, rfNodes);
 
         // 4. Create minimal store for NodeContext
-        const store = createMinimalNodeStore(layoutedNodes, rfEdges, workflow);
+        const store = createReadOnlyNodeStore(layoutedNodes, rfEdges, workflow);
 
         setGraphData({
           nodes: layoutedNodes,
@@ -454,7 +406,7 @@ export default function App() {
         <MenuProvider>
           <WorkflowManagerProvider queryClient={queryClient}>
             <ContextMenuProvider active={false}>
-              <NodeContext.Provider value={graphData.store as unknown as NodeStore}>
+              <NodeContext.Provider value={graphData.store}>
                 <ReactFlowProvider>
                   <GraphInner
                     nodes={graphData.nodes}

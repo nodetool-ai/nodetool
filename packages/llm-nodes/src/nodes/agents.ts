@@ -115,6 +115,12 @@ const ENHANCE_PROMPT_GUIDANCE: Record<string, string> = {
 };
 const ENHANCE_PROMPT_MAX_TOKENS = 1024;
 
+/** Output handles SummarizerNode.process() emits. */
+type SummarizerNodeOutputs = {
+  text: string;
+  output: string;
+};
+
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
   static readonly body = "content_card";
@@ -132,10 +138,10 @@ export class SummarizerNode extends BaseNode {
   static readonly inputFields = ["image", "audio", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final aggregated summary is the `text` single output.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = SUMMARIZER_RECOMMENDED_MODELS;
 
   @prop({
@@ -281,7 +287,7 @@ export class SummarizerNode extends BaseNode {
     yield { chunk: null, text: summary, output: summary };
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SummarizerNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
       if (typeof item.text === "string") text = item.text;
@@ -289,6 +295,12 @@ export class SummarizerNode extends BaseNode {
     return { text, output: text };
   }
 }
+
+/** Output handles EnhancePromptNode.process() emits. */
+type EnhancePromptNodeOutputs = {
+  text: string;
+  output: string;
+};
 
 export class EnhancePromptNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.EnhancePrompt";
@@ -307,10 +319,10 @@ export class EnhancePromptNode extends BaseNode {
   static readonly inputFields = ["target", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final improved prompt is the `text` single output.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = ENHANCE_PROMPT_RECOMMENDED_MODELS;
 
   @prop({
@@ -434,7 +446,7 @@ export class EnhancePromptNode extends BaseNode {
     yield { chunk: null, text: enhanced, output: enhanced };
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<EnhancePromptNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
       if (typeof item.text === "string") text = item.text;
@@ -442,6 +454,11 @@ export class EnhancePromptNode extends BaseNode {
     return { text, output: text };
   }
 }
+
+/** Output handles CreateThreadNode.process() emits. */
+type CreateThreadNodeOutputs = {
+  thread_id: string;
+};
 
 export class CreateThreadNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.CreateThread";
@@ -471,7 +488,7 @@ export class CreateThreadNode extends BaseNode {
   })
   declare thread_id: string;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CreateThreadNodeOutputs> {
     const requested = String(this.thread_id ?? "").trim();
     const title = String(this.title ?? "Agent Conversation");
     const id = requested || makeThreadId();
@@ -608,6 +625,12 @@ export class ExtractorNode extends BaseNode {
   }
 }
 
+/** Output handles ClassifierNode.process() emits. */
+type ClassifierNodeOutputs = {
+  output: string;
+  category: string;
+};
+
 export class ClassifierNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Classifier";
   static readonly body = "content_card";
@@ -703,7 +726,7 @@ export class ClassifierNode extends BaseNode {
   })
   declare max_tokens: number;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ClassifierNodeOutputs> {
     const text = asText(this.text ?? "");
     const categories = getCategories(this.categories);
     if (categories.length < 2) {
@@ -773,12 +796,12 @@ export class AgentNode extends BaseNode {
   // iteration step. Without this, the analyzer defaults to `single`, which
   // gives every yield the same lineage key — downstream collapses to the
   // last value and early chunks are dropped.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" },
     thinking: { kind: "iteration", source: "__execution__", group: "stream" },
     audio: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly recommendedModels = AGENT_RECOMMENDED_MODELS;
 
   @prop({

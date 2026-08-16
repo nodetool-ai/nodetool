@@ -14,6 +14,11 @@ import {
   videoRenderSettings
 } from "../minimax-base.js";
 
+/** Output handles MinimaxImageToVideoNode.process() emits. */
+type MinimaxImageToVideoNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class MinimaxImageToVideoNode extends BaseNode {
   static readonly nodeType = "minimax.ImageToVideo";
   static readonly body = "content_card";
@@ -80,7 +85,9 @@ export class MinimaxImageToVideoNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<MinimaxImageToVideoNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const imageBytes = await loadMediaRefBytes(this.image, context);

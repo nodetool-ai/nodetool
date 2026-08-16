@@ -28,7 +28,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
-import { authorGraph } from "../author-graph.js";
+import { authorGraph, type AuthorGraphOptions } from "../author-graph.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import {
   checkExpectations,
@@ -257,7 +257,7 @@ function matchesExactly(actual: unknown, expected: unknown): boolean {
 /** Last write wins, so a streaming output reports its final value. */
 export function outputsByName(
   outputs: readonly GraphRunOutput[]
-): Record<string, unknown> {
+) {
   const byName: Record<string, unknown> = {};
   for (const o of outputs) {
     byName[o.name || o.nodeId || "output"] = o.value;
@@ -349,9 +349,7 @@ export function checkRunOutputs(
   return checks;
 }
 
-function skippedResult(
-  evalCase: GraphE2eEvalCase
-): GraphE2eCaseResult {
+function skippedResult(evalCase: GraphE2eEvalCase): GraphE2eCaseResult {
   return {
     caseId: evalCase.id,
     description: evalCase.description,
@@ -391,16 +389,17 @@ async function runCase(
   let graph: GraphData | null = null;
   let error: string | undefined;
   try {
-    const gen = authorGraph(evalCase.objective, {
+    const authorOptions: AuthorGraphOptions = {
       context,
       provider: opts.provider,
       model: opts.model,
-      registry: opts.registry,
-      ...(opts.providers ? { providers: opts.providers } : {}),
-      ...(evalCase.inputs ? { inputs: evalCase.inputs } : {}),
-      ...(opts.maxIterations ? { maxIterations: opts.maxIterations } : {}),
-      ...(opts.signal ? { signal: opts.signal } : {})
-    });
+      registry: opts.registry
+    };
+    if (opts.providers) authorOptions.providers = opts.providers;
+    if (evalCase.inputs) authorOptions.inputs = evalCase.inputs;
+    if (opts.maxIterations) authorOptions.maxIterations = opts.maxIterations;
+    if (opts.signal) authorOptions.signal = opts.signal;
+    const gen = authorGraph(evalCase.objective, authorOptions);
     let res = await gen.next();
     while (!res.done) {
       const m = res.value as { type?: string } & Record<string, unknown>;
@@ -453,11 +452,15 @@ async function runCase(
     }
     const runError =
       run.error ??
-      run.nodeErrors?.map((n) => `${n.nodeId ?? "run"}: ${n.message}`).join("; ");
+      run.nodeErrors
+        ?.map((n) => `${n.nodeId ?? "run"}: ${n.message}`)
+        .join("; ");
     checks.push({
       name: "executed",
       pass: run.ok,
-      detail: run.ok ? undefined : `status=${run.status} ${runError ?? ""}`.trim()
+      detail: run.ok
+        ? undefined
+        : `status=${run.status} ${runError ?? ""}`.trim()
     });
     if (!run.ok && !error) error = runError ?? `run status ${run.status}`;
     outputChecks = checkRunOutputs(run, evalCase.expect);
@@ -584,8 +587,7 @@ export async function runGraphE2eEval(
       goalAchieved: achieved.length,
       successRate: ran.length > 0 ? achieved.length / ran.length : 0,
       planRate: ran.length > 0 ? planned.length / ran.length : 0,
-      executionRate:
-        planned.length > 0 ? executed.length / planned.length : 0,
+      executionRate: planned.length > 0 ? executed.length / planned.length : 0,
       meanScore: mean((r) => r.score),
       avgPlanMs: mean((r) => r.planMs),
       avgRunMs: mean((r) => r.runMs),

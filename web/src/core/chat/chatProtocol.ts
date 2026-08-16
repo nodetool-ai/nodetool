@@ -50,7 +50,10 @@ import type {
   ProposedPlan,
   StepToolCall
 } from "../../stores/GlobalChatStore";
-import { globalWebSocketManager, type WebSocketMessage } from "../../lib/websocket/GlobalWebSocketManager";
+import {
+  globalWebSocketManager,
+  type WebSocketMessage
+} from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 import type { Graph } from "../../stores/ApiTypes";
@@ -171,6 +174,35 @@ export interface ToolResultMessage {
   ok: boolean;
 }
 
+/**
+ * What a replay-status reconciliation writes: a run still going keeps whatever
+ * predictions it has, one that ended drops them.
+ */
+/** The plan-approval reply; `feedback` only when the user wrote some. */
+type PlanApprovalResponse = {
+  type: string;
+  approval_id: string;
+  decision: "approve" | "reject";
+  feedback?: string;
+};
+
+type ReplayResetPatch = {
+  status: "loading" | "idle";
+  statusMessage: null;
+  progress: { current: number; total: number };
+  activePredictions?: never[];
+};
+
+const replayResetPatch = (stillRunning: boolean): ReplayResetPatch => {
+  const patch: ReplayResetPatch = {
+    status: stillRunning ? "loading" : "idle",
+    statusMessage: null,
+    progress: { current: 0, total: 0 }
+  };
+  if (!stillRunning) patch.activePredictions = [];
+  return patch;
+};
+
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   // Hand the raw bytes to the renderer rather than minting an object URL here.
   // MessageContentRenderer (via ImageView / AudioPlayer, and its own <video>
@@ -246,7 +278,8 @@ const generateTitleFromFirstUserMessage = (
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
     const firstText = firstUserMessage.content.find(
-      (c): c is MessageTextContent => c?.type === "text" && typeof c.text === "string"
+      (c): c is MessageTextContent =>
+        c?.type === "text" && typeof c.text === "string"
     );
     contentText = firstText?.text || "";
   }
@@ -482,15 +515,13 @@ const applyOutputUpdate = (
   // same-workflow runs stay isolated. Skip the write if job_id is absent.
   const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
   if (effectiveWorkflowId && jobId) {
-    useResultsStore
-      .getState()
-      .setOutputResult(
-        effectiveWorkflowId,
-        jobId,
-        update.node_id,
-        update.value,
-        true // append
-      );
+    useResultsStore.getState().setOutputResult(
+      effectiveWorkflowId,
+      jobId,
+      update.node_id,
+      update.value,
+      true // append
+    );
   }
 
   if (update.output_type === "string" && typeof update.value === "string") {
@@ -517,7 +548,10 @@ const applyOutputUpdate = (
                 { type: "text", text: lastBlock.text + update.value }
               ]
             : [...existingContent, { type: "text", text: update.value }];
-      } else if (typeof existingContent === "string" || existingContent == null) {
+      } else if (
+        typeof existingContent === "string" ||
+        existingContent == null
+      ) {
         nextContent = (existingContent ?? "") + update.value;
       } else {
         // Record-shaped content shouldn't occur for a streaming assistant text
@@ -594,9 +628,7 @@ const applyToolCallUpdate = (
   threadId: string | null
 ): ReducerResult => {
   const toolCallId =
-    update.tool_call_id != null
-      ? String(update.tool_call_id)
-      : null;
+    update.tool_call_id != null ? String(update.tool_call_id) : null;
   const agentExecutionId = update.agent_execution_id ?? null;
   const stepId = update.step_id ?? null;
 
@@ -640,18 +672,17 @@ const applyToolCallUpdate = (
     };
   }
 
-  return {
-    update: {
-      ...(threadId
-        ? threadRuntimeUpdate(state, threadId, {
-            statusMessage: update.message ?? null,
-            runningToolCallId: toolCallId || null,
-            toolMessage: update.message || null
-          })
-        : {}),
-      ...(agentExecutionToolCalls ? { agentExecutionToolCalls } : {})
-    }
-  };
+  const patch: Partial<GlobalChatState> = threadId
+    ? threadRuntimeUpdate(state, threadId, {
+        statusMessage: update.message ?? null,
+        runningToolCallId: toolCallId || null,
+        toolMessage: update.message || null
+      })
+    : {};
+  if (agentExecutionToolCalls) {
+    patch.agentExecutionToolCalls = agentExecutionToolCalls;
+  }
+  return { update: patch };
 };
 
 interface AgentExecutionMessage extends Message {
@@ -765,6 +796,13 @@ const extractTextContent = (message: Message): string => {
   return "";
 };
 
+const isLocalStreamId = (id: string | null | undefined): boolean =>
+  id?.startsWith("local-stream-") ?? false;
+
+/** Finalized by the server: it stamped a timestamp, or an id we did not mint. */
+const isServerAuthored = (msg: Message): boolean =>
+  !!msg.created_at || (!!msg.id && !isLocalStreamId(msg.id));
+
 /**
  * Locate the trailing local streaming placeholder (the `local-stream-*`
  * assistant message that applyChunk builds from streamed text) that an incoming
@@ -775,75 +813,53 @@ const extractTextContent = (message: Message): string => {
  * reconciliation the placeholder and the finalized message both render, so the
  * same text appears twice. Returns -1 when the incoming message is genuinely new.
  *
- * Matching is anchored to the most-recently-appended local-stream-* placeholder.
- * We never scan past it: in multi-tool turns there can be several un-finalized
- * placeholders, and a short finalized message must not overwrite an older longer
- * one by matching via the reverse startsWith direction.
+ * Only the last un-finalized placeholder is considered. In multi-tool turns
+ * there can be several, and a short finalized message must not overwrite an
+ * older longer one by matching via the reverse startsWith direction.
  */
 const findStreamPlaceholderIndex = (
   messages: Message[],
   msg: Message,
   status: GlobalChatState["status"]
 ): number => {
-  const incomingText = extractTextContent(msg);
-  const incomingNormalized = normalizeTextForComparison(incomingText);
-
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const candidate = messages[i];
-    if (candidate?.role !== "assistant") {
-      continue;
-    }
-    if (candidate.type !== "message") {
-      continue;
-    }
-
-    const candidateId = candidate.id ?? null;
-    const isLocalStream =
-      typeof candidateId === "string" &&
-      candidateId.startsWith("local-stream-");
-    const isServerAuthored =
-      !!candidate.created_at || (!!candidateId && !isLocalStream);
-
-    if (isServerAuthored) {
-      continue;
-    }
-
-    // This is the most-recently-appended local-stream-* placeholder.
-    // Evaluate it and stop — never scan past it to older placeholders.
-    const candidateText = extractTextContent(candidate);
-    const candidateNormalized = normalizeTextForComparison(candidateText);
-    if (!candidateNormalized || !incomingNormalized) {
-      return -1;
-    }
-
-    if (
-      candidateNormalized === incomingNormalized ||
-      incomingNormalized.startsWith(candidateNormalized)
-    ) {
-      return i;
-    }
-
-    // Prefer replacing the trailing local placeholder even if trailing
-    // whitespace differs (streaming may not have flushed the final space).
-    if (
-      (status === "streaming" || isLocalStream) &&
-      candidateText &&
-      incomingText
-    ) {
-      const candidateTrimmed = candidateText.trimEnd();
-      const incomingTrimmed = incomingText.trimEnd();
-      if (
-        candidateTrimmed === incomingTrimmed ||
-        incomingTrimmed.startsWith(candidateTrimmed)
-      ) {
-        return i;
-      }
-    }
-
-    // No match at the trailing placeholder — the incoming is a new message.
+  const index = messages.findLastIndex(
+    (candidate) =>
+      candidate?.role === "assistant" &&
+      candidate.type === "message" &&
+      !isServerAuthored(candidate)
+  );
+  if (index < 0) {
     return -1;
   }
-  return -1;
+  const candidate = messages[index];
+
+  const candidateText = extractTextContent(candidate);
+  const incomingText = extractTextContent(msg);
+  const candidateNormalized = normalizeTextForComparison(candidateText);
+  const incomingNormalized = normalizeTextForComparison(incomingText);
+  if (!candidateNormalized || !incomingNormalized) {
+    return -1;
+  }
+  if (
+    candidateNormalized === incomingNormalized ||
+    incomingNormalized.startsWith(candidateNormalized)
+  ) {
+    return index;
+  }
+
+  // Prefer replacing the trailing local placeholder even if trailing
+  // whitespace differs (streaming may not have flushed the final space).
+  const allowLooseMatch =
+    status === "streaming" || isLocalStreamId(candidate.id);
+  if (!allowLooseMatch || !candidateText || !incomingText) {
+    return -1;
+  }
+  const candidateTrimmed = candidateText.trimEnd();
+  const incomingTrimmed = incomingText.trimEnd();
+  const looselyMatches =
+    candidateTrimmed === incomingTrimmed ||
+    incomingTrimmed.startsWith(candidateTrimmed);
+  return looselyMatches ? index : -1;
 };
 
 /**
@@ -863,9 +879,7 @@ const replaceStreamPlaceholderOrAppend = (
   // Keep the accumulated content when the server omits it (null/undefined) or
   // sends an empty string — an empty content frame must not wipe streamed text.
   const incomingContent =
-    msg.content === null ||
-    msg.content === undefined ||
-    msg.content === ""
+    msg.content === null || msg.content === undefined || msg.content === ""
       ? existing.content
       : msg.content;
   const replacement: Message = {
@@ -899,24 +913,26 @@ const applyToolMessage = (
     placeholderIndex,
     msg
   );
-  return {
-    update: {
-      messageCache: {
-        ...state.messageCache,
-        [threadId]: updatedMessages
-      },
-      threads: state.threads[threadId]
-        ? updateThreadTimestamp(threadId, state.threads)
-        : state.threads,
-      ...(msg.role === "tool"
-        ? threadRuntimeUpdate(state, threadId, {
-            runningToolCallId: null,
-            toolMessage: null,
-            statusMessage: null
-          })
-        : {})
-    }
+  const patch: Partial<GlobalChatState> = {
+    messageCache: {
+      ...state.messageCache,
+      [threadId]: updatedMessages
+    },
+    threads: state.threads[threadId]
+      ? updateThreadTimestamp(threadId, state.threads)
+      : state.threads
   };
+  if (msg.role === "tool") {
+    Object.assign(
+      patch,
+      threadRuntimeUpdate(state, threadId, {
+        runningToolCallId: null,
+        toolMessage: null,
+        statusMessage: null
+      })
+    );
+  }
+  return { update: patch };
 };
 
 const applyAssistantMessage = (
@@ -983,28 +999,29 @@ const applyAssistantMessage = (
       }
     : undefined;
 
-  return {
-    update: {
-      messageCache: {
-        ...state.messageCache,
-        [threadId]: updatedMessages
-      },
-      threads: state.threads[threadId]
-        ? updateThreadTimestamp(threadId, state.threads)
-        : state.threads,
-      ...(shouldResetStatusOnAssistantMessage
-        ? threadRuntimeUpdate(state, threadId, {
-            status: "idle",
-            progress: { current: 0, total: 0 },
-            statusMessage: null,
-            planningUpdate: null,
-            taskUpdate: null,
-            logUpdate: null
-          })
-        : {})
+  const patch: Partial<GlobalChatState> = {
+    messageCache: {
+      ...state.messageCache,
+      [threadId]: updatedMessages
     },
-    postAction
+    threads: state.threads[threadId]
+      ? updateThreadTimestamp(threadId, state.threads)
+      : state.threads
   };
+  if (shouldResetStatusOnAssistantMessage) {
+    Object.assign(
+      patch,
+      threadRuntimeUpdate(state, threadId, {
+        status: "idle",
+        progress: { current: 0, total: 0 },
+        statusMessage: null,
+        planningUpdate: null,
+        taskUpdate: null,
+        logUpdate: null
+      })
+    );
+  }
+  return { update: patch, postAction };
 };
 
 const applyMessage = (
@@ -1289,12 +1306,13 @@ export async function sendPlanApprovalResponse(
   feedback?: string
 ): Promise<void> {
   try {
-    await globalWebSocketManager.send({
+    const response: PlanApprovalResponse = {
       type: "plan_approval_response",
       approval_id: approvalId,
-      decision,
-      ...(feedback ? { feedback } : {})
-    });
+      decision
+    };
+    if (feedback) response.feedback = feedback;
+    await globalWebSocketManager.send(response);
   } catch (error) {
     console.error("Failed to send plan_approval_response:", error);
   }
@@ -1313,10 +1331,7 @@ export async function handleChatWebSocketMessage(
   // wins, else the subscription key it was routed under (every chat handler
   // is registered per thread), else the current thread.
   const tid: string | null =
-    msg.thread_id ??
-    routedThreadId ??
-    currentState.currentThreadId ??
-    null;
+    msg.thread_id ?? routedThreadId ?? currentState.currentThreadId ?? null;
 
   // Frames from a resilient chat turn are stamped with a monotonically
   // increasing `chat_seq`. Track the high-water mark per thread so a
@@ -1334,7 +1349,9 @@ export async function handleChatWebSocketMessage(
     (currentState.status === "stopping" &&
       (tid === null || tid === currentState.currentThreadId));
   if (isStopping) {
-    if (!["generation_stopped", "error", "job_update"].includes(data.type ?? "")) {
+    if (
+      !["generation_stopped", "error", "job_update"].includes(data.type ?? "")
+    ) {
       return;
     }
   }
@@ -1471,7 +1488,10 @@ export async function handleChatWebSocketMessage(
     clearSendTimeout();
     applyReducer((state) => applyGenerationStopped(state, tid), data);
     console.info("Generation stopped:", data.message);
-  } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
+  } else if (
+    data.type === "workflow_created" ||
+    data.type === "workflow_updated"
+  ) {
     if (tid && data.workflow_id) {
       set((state) => ({
         threadWorkflowId: {
@@ -1522,12 +1542,7 @@ export async function handleChatWebSocketMessage(
       clearSendTimeout();
       const stillRunning = data.status === "running";
       set((state) =>
-        threadRuntimeUpdate(state, tid, {
-          status: stillRunning ? "loading" : "idle",
-          statusMessage: null,
-          progress: { current: 0, total: 0 },
-          ...(stillRunning ? {} : { activePredictions: [] })
-        })
+        threadRuntimeUpdate(state, tid, replayResetPatch(stillRunning))
       );
       void get()
         .loadMessages(tid)

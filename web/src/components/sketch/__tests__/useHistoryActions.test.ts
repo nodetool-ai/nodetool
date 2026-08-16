@@ -1,6 +1,13 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useHistoryActions } from "../hooks/useHistoryActions";
 import type { HistoryEntry } from "../types";
+
+/**
+ * A canvas double tagged with the snapshot it stands for, so an assertion can
+ * tell one captured tip snapshot from another.
+ */
+type TaggedCanvas = HTMLCanvasElement & { snapshotData: string };
 
 function makeHistoryEntry(
   restoreMode: HistoryEntry["restoreMode"],
@@ -130,7 +137,7 @@ describe("useHistoryActions", () => {
   });
 
   it("captures current runtime layer snapshots before undo", () => {
-    const layer1Snapshot = { id: "layer-1-snapshot" } as unknown as HTMLCanvasElement;
+    const layer1Snapshot = stub<HTMLCanvasElement>({ id: "layer-1-snapshot" });
     const undo = jest.fn(() => null);
     const redo = jest.fn(() => null);
     const canvasRef = {
@@ -160,12 +167,12 @@ describe("useHistoryActions", () => {
   });
 
   it("replays captured structure-only tip snapshots synchronously on redo", () => {
-    const beforeSnapshot = {
+    const beforeSnapshot = stub<TaggedCanvas>({
       snapshotData: "before-runtime"
-    } as unknown as HTMLCanvasElement;
-    const afterSnapshot = {
+    });
+    const afterSnapshot = stub<TaggedCanvas>({
       snapshotData: "after-runtime"
-    } as unknown as HTMLCanvasElement;
+    });
     let runtimeData = "after-runtime";
     let tipLayerCanvasSnapshots: Record<string, HTMLCanvasElement | null> | undefined;
 

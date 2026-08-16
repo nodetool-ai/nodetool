@@ -1,4 +1,5 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import {
   useWorkspaceTabsStore,
@@ -25,16 +26,16 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
 });
 
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>
-  ({
+  stub<TimelineAgentHandler>({
     getSnapshot: () => snapshot(sequenceId)
-  }) as unknown as TimelineAgentHandler;
+  });
 
 const ctx = {
   getState: () =>
-    ({
+    stub<FrontendToolState>({
       getNodeStore: (workflowId: string) =>
         workflowId === "wf-open" ? ({} as never) : undefined
-    }) as unknown as FrontendToolState
+    })
 };
 
 const navigate = jest.fn();

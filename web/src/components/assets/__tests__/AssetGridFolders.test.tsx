@@ -72,26 +72,28 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 
 jest.mock("../../../stores/useAuth", () => ({
   __esModule: true,
-  default: (selector: (s: unknown) => unknown) =>
+  default: <T,>(selector: (s: { user: { id: string } }) => T) =>
     selector({ user: { id: "user-1" } })
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: (selector: (s: unknown) => unknown) =>
-    selector({ currentWorkflowId: null })
+  useWorkflowManager: <T,>(
+    selector: (s: { currentWorkflowId: string | null }) => T
+  ) => selector({ currentWorkflowId: null })
 }));
 
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
-  default: (selector: (s: unknown) => unknown) =>
+  default: <T,>(selector: (s: { openMenuType: string | null }) => T) =>
     selector({ openMenuType: null })
 }));
 
 jest.mock("../../../stores/KeyPressedStore", () => ({
   __esModule: true,
-  useKeyPressedStore: (selector: (s: unknown) => unknown) =>
-    selector({ isKeyPressed: () => false })
+  useKeyPressedStore: <T,>(
+    selector: (s: { isKeyPressed: () => boolean }) => T
+  ) => selector({ isKeyPressed: () => false })
 }));
 
 jest.mock("../../../hooks/assets/useAssetGridShortcuts", () => ({

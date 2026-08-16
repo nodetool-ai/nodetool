@@ -65,6 +65,34 @@ describe("useScriptServerSync", () => {
     );
   });
 
+  it("loads the persisted storyboard back-pointer and saves it back", async () => {
+    getQuery.mockResolvedValue({
+      id: "script-1",
+      name: "Saved script",
+      document: { cast: [], sections: [] },
+      storyboardId: "board-7",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "rev-1"
+    });
+    const { unmount } = renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    // The reload case: the link is on the loaded script, not on session state.
+    expect(useScriptStore.getState().scripts["script-1"]?.storyboardId).toBe(
+      "board-7"
+    );
+
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+    unmount();
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ storyboardId: "board-7" })
+    );
+  });
+
   it("marks the script saved after an autosave lands", async () => {
     renderHook(() => useScriptServerSync("script-1"));
 

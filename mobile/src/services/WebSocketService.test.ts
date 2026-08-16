@@ -12,7 +12,7 @@ interface MockManagerShape {
   destroyed: boolean;
   resumeCalls: number;
   pauseCalls: number;
-  setCallbacks: (cb: Record<string, unknown>) => void;
+  setCallbacks: (cb: Record<string, (...args: unknown[]) => void>) => void;
   isConnected: () => boolean;
   getState: () => string;
   connect: () => Promise<void>;
@@ -25,10 +25,11 @@ interface MockManagerShape {
   reopen: () => void;
 }
 
+/** Every manager the service constructed, newest last. */
+const mockManagerInstances: MockManagerShape[] = [];
+
 jest.mock('./WebSocketManager', () => {
-  const instances: MockManagerShape[] = [];
   class MockWebSocketManager {
-    static instances = instances;
     config: { url: string; headers?: Record<string, string> };
     callbacks: Record<string, ((...args: unknown[]) => void) | undefined> = {};
     connected = false;
@@ -39,7 +40,7 @@ jest.mock('./WebSocketManager', () => {
     pauseCalls = 0;
     constructor(config: { url: string; headers?: Record<string, string> }) {
       this.config = config;
-      instances.push(this as unknown as MockManagerShape);
+      mockManagerInstances.push(this);
     }
     setCallbacks(cb: Record<string, (...args: unknown[]) => void>) {
       this.callbacks = { ...this.callbacks, ...cb };
@@ -113,10 +114,9 @@ jest.mock('../stores/AuthStore', () => ({
 }));
 
 import { webSocketService } from './WebSocketService';
-import { WebSocketManager } from './WebSocketManager';
 
 function managerInstances(): MockManagerShape[] {
-  return (WebSocketManager as unknown as { instances: MockManagerShape[] }).instances;
+  return mockManagerInstances;
 }
 
 function latestManager(): MockManagerShape {

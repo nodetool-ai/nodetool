@@ -695,7 +695,7 @@ export class TaskPlanner {
     for await (const item of stream) {
       if (
         "type" in item &&
-        (item as unknown as Record<string, unknown>)["type"] === "chunk"
+        item.type === "chunk"
       ) {
         const chunk = item as { content?: string };
         if (typeof chunk.content === "string") {
