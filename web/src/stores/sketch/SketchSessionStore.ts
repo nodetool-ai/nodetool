@@ -813,6 +813,10 @@ async function saveSnapshot(
       backgroundColor: prepared.sketch.canvas.backgroundColor,
       baseUpdatedAt: store.baseUpdatedAt ?? undefined,
       document: {
+        // The editor's `SketchDocument` and the wire schema describe one
+        // payload with incompatible types: closed interfaces here
+        // (`ToolSettings`, `LayerStructureSnapshot`), open `z.record` shapes
+        // there. Neither is assignable to the other in either direction.
         sketch: prepared.sketch as unknown as ImageDocumentData["sketch"],
         layerBindings
       }

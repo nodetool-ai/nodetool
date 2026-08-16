@@ -421,7 +421,7 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
       const graph = version.graph;
       const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode({ ...workflow, graph }, n)
+        graphNodeToReactFlowNode(workflow, n)
       );
       const newEdges = graph.edges.map((e) =>
         graphEdgeToReactFlowEdge(e)

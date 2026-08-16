@@ -158,9 +158,10 @@ describe("normalizeVideoModel", () => {
   });
 
   it("falls back to empty name when model name is undefined", () => {
-    const model = makeVideoModel();
-    delete (model as unknown as Record<string, unknown>).name;
-    const result = normalizeVideoModel(model);
+    const { name: _name, ...withoutName } = makeVideoModel();
+    // SAFETY: a provider manifest can omit `name` — which is the case
+    // `normalizeVideoModel` falls back to "" for, and the one under test here.
+    const result = normalizeVideoModel(withoutName as VideoModel);
     expect(result.name).toBe("");
   });
 });

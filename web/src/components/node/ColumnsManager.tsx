@@ -142,16 +142,11 @@ const validDataTypes = ["string", "float", "int", "datetime"];
 
 interface ColumnsManagerProps {
   columns: ColumnDef[];
-  allData: Record<string, unknown>[];
-  onChange: (
-    newColumns: ColumnDef[],
-    newData: Record<string, unknown>[]
-  ) => void;
+  onChange: (newColumns: ColumnDef[]) => void;
 }
 
 const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   columns,
-  allData,
   onChange
 }: ColumnsManagerProps) => {
   const theme = useTheme();
@@ -176,23 +171,13 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       i === index ? { ...col, name: newName } : col
     );
 
-    const oldName = columns[index].name;
-    const newData = allData.map((row) => {
-      const newRow = { ...row };
-      if (newName !== oldName && oldName in newRow) {
-        newRow[newName] = newRow[oldName];
-        delete newRow[oldName];
-      }
-      return newRow;
-    });
-
     setLocalColumns(newColumns);
-    onChange(newColumns, newData);
+    onChange(newColumns);
 
     setTimeout(() => {
       inputRefs.current[index]?.focus();
     }, 0);
-  }, [localColumns, columns, allData, onChange]);
+  }, [localColumns, onChange]);
 
   const handleDescriptionChange = useCallback((index: number, newDescription: string) => {
     const newColumns = localColumns.map((col, i) =>
@@ -200,8 +185,8 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     );
 
     setLocalColumns(newColumns);
-    onChange(newColumns, allData);
-  }, [localColumns, allData, onChange]);
+    onChange(newColumns);
+  }, [localColumns, onChange]);
 
   const handleDataTypeChange = useCallback((index: number, newType: string) => {
     if (!validDataTypes.includes(newType)) {
@@ -214,20 +199,15 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     );
 
     setLocalColumns(newColumns);
-    onChange(newColumns, allData);
-  }, [localColumns, allData, onChange]);
+    onChange(newColumns);
+  }, [localColumns, onChange]);
 
   const handleDelete = useCallback((index: number) => {
     const newColumns = localColumns.filter((_, i) => i !== index);
-    const newData = allData.map((row) => {
-      const newRow = { ...row };
-      delete newRow[localColumns[index].name];
-      return newRow;
-    });
 
     setLocalColumns(newColumns);
-    onChange(newColumns, newData);
-  }, [localColumns, allData, onChange]);
+    onChange(newColumns);
+  }, [localColumns, onChange]);
 
   const deleteHandlers = useMemo(
     () => localColumns.map((_, i) => () => handleDelete(i)),

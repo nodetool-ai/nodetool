@@ -268,9 +268,12 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         const data = working.current;
         const rootProps = (data.root?.props ?? {}) as Record<string, unknown>;
         const themeId = rootProps.theme;
+        // SAFETY: `PuckData` is the structural restatement of Puck's own
+        // `Data` — root props, content, zones — kept in `app-runtime` so that
+        // package needs no Puck dependency. `working.current` is that document.
         const document: ApplicationDocument = {
           schemaVersion: APP_SCHEMA_VERSION,
-          ui: data as unknown as PuckData,
+          ui: data as PuckData,
           operations: metaRef.current.operations,
           resources: metaRef.current.resources,
           variables: metaRef.current.variables

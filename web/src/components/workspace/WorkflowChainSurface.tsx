@@ -93,10 +93,7 @@ const WorkflowChainSurface = ({
     const keptNodes = nodes.filter((node) => passthrough.has(node.id));
     setNodes([
       ...merged.map((node) =>
-        graphNodeToReactFlowNode(
-          { ...workflow, graph: { nodes: [], edges: [] } },
-          node
-        )
+        graphNodeToReactFlowNode(workflow, node)
       ),
       ...keptNodes
     ]);

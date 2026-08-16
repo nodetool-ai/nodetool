@@ -33,12 +33,15 @@ const gcState = {
   setMemoryEnabled: jest.fn(),
   connect
 };
-const useGlobalChatStore = (<T,>(selector: (s: typeof gcState) => T) =>
-  selector(gcState)) as unknown as {
-  <T,>(selector: (s: typeof gcState) => T): T;
+/** The store hook shape the component uses: callable, plus `getState`. */
+interface MockChatStoreHook {
+  <T>(selector: (s: typeof gcState) => T): T;
   getState: () => typeof gcState;
-};
-useGlobalChatStore.getState = () => gcState;
+}
+const useGlobalChatStore: MockChatStoreHook = Object.assign(
+  <T,>(selector: (s: typeof gcState) => T) => selector(gcState),
+  { getState: () => gcState }
+);
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
   default: useGlobalChatStore

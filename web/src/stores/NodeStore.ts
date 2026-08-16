@@ -1564,4 +1564,4 @@ export const createNodeStore = (
         }
       }
     )
-  ) as unknown as NodeStore;
+  );

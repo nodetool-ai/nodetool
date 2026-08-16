@@ -23,6 +23,21 @@
  */
 import { createStore, StoreApi, StateCreator } from "zustand";
 
+declare module "zustand/vanilla" {
+  /**
+   * Registers the middleware with zustand's mutator table so
+   * `create<TState>()(temporal(config, { partialize }))` is typed as a store
+   * carrying `temporal: StoreApi<TemporalState<PartialState>>` — no cast at
+   * the call site.
+   */
+  interface StoreMutators<S, A> {
+    "nodetool/temporal": S & { temporal: StoreApi<TemporalState<A>> };
+  }
+}
+
+/** The mutator entry this middleware contributes to a store's type. */
+type TemporalMutator<PartialState> = ["nodetool/temporal", PartialState];
+
 export interface TemporalState<PartialState> {
   pastStates: PartialState[];
   futureStates: PartialState[];
@@ -40,8 +55,15 @@ export interface TemporalOptions<TState, PartialState> {
   /**
    * Return true when two partialized snapshots are equivalent, so no-op
    * sets don't push duplicate undo entries. Without it every set pushes.
+   *
+   * `NoInfer` keeps `partialize` the single source of `PartialState`: an
+   * `equality` that accepts a wider argument type (e.g. `Snapshot |
+   * undefined`) stays assignable instead of widening the tracked slice.
    */
-  equality?: (pastState: PartialState, currentState: PartialState) => boolean;
+  equality?: (
+    pastState: NoInfer<PartialState>,
+    currentState: NoInfer<PartialState>
+  ) => boolean;
   /** Maximum number of past states retained (oldest dropped first). */
   limit?: number;
 }
@@ -51,19 +73,46 @@ export type WithTemporal<S, PartialState> = S & {
   temporal: StoreApi<TemporalState<PartialState>>;
 };
 
-export function temporal<TState, PartialState = TState>(
+/** Tracks the whole state — the default when no `partialize` is given. */
+export function temporal<TState extends object>(
   config: StateCreator<TState, [], []>,
-  options: TemporalOptions<TState, PartialState> = {}
-): StateCreator<TState, [], []> {
-  return (set, get, store) => {
-    const partialize =
-      options.partialize ?? ((state: TState) => state as unknown as PartialState);
+  options?: TemporalOptions<TState, TState>
+): StateCreator<TState, [], [TemporalMutator<TState>]>;
+/** Tracks the slice `partialize` projects out of the state. */
+export function temporal<
+  TState extends object,
+  PartialState extends Partial<TState>
+>(
+  config: StateCreator<TState, [], []>,
+  options: TemporalOptions<TState, PartialState> & {
+    partialize: (state: TState) => PartialState;
+  }
+): StateCreator<TState, [], [TemporalMutator<PartialState>]>;
+export function temporal<TState extends object>(
+  config: StateCreator<TState, [], []>,
+  options: TemporalOptions<TState, TState> = {}
+): StateCreator<TState, [], [TemporalMutator<TState>]> {
+  return createTemporal(
+    config,
+    options.partialize ?? ((state: TState) => state),
+    options
+  );
+}
 
+function createTemporal<
+  TState extends object,
+  PartialState extends Partial<TState>
+>(
+  config: StateCreator<TState, [], []>,
+  partialize: (state: TState) => PartialState,
+  options: TemporalOptions<TState, PartialState>
+): StateCreator<TState, [], [TemporalMutator<PartialState>]> {
+  return (set, get, store) => {
     // undo/redo restore through the RAW setter so they don't re-enter the
-    // history tracking below. PartialState is a subset of TState by
-    // construction (zundo semantics), hence the cast.
+    // history tracking below. A partialized snapshot is a subset of the state,
+    // so it applies as a merge patch.
     const restore = (state: PartialState): void => {
-      set(state as unknown as Partial<TState>);
+      set(state);
     };
 
     const temporalStore = createStore<TemporalState<PartialState>>(
@@ -111,6 +160,10 @@ export function temporal<TState, PartialState = TState>(
       })
     );
 
+    // SAFETY: the `store` handed to a state creator is typed with the mutators
+    // applied *before* this one, so it does not yet carry the `temporal`
+    // property this line is attaching. The store the caller receives does —
+    // that is what the `nodetool/temporal` mutator entry above declares.
     (
       store as WithTemporal<StoreApi<TState>, PartialState>
     ).temporal = temporalStore;

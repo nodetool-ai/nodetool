@@ -1,5 +1,5 @@
-import { createStore, StoreApi } from "zustand";
-import { temporal, TemporalState, WithTemporal } from "../temporal";
+import { createStore } from "zustand";
+import { temporal, TemporalState } from "../temporal";
 
 interface CounterState {
   count: number;
@@ -14,10 +14,9 @@ type Partialized = { count: number };
 const makeStore = (options?: {
   limit?: number;
   equality?: (a: Partialized, b: Partialized) => boolean;
-  partialize?: boolean;
-}) => {
-  const store = createStore<CounterState>()(
-    temporal<CounterState, Partialized>(
+}) =>
+  createStore<CounterState>()(
+    temporal(
       (set) => ({
         count: 0,
         untracked: "initial",
@@ -28,18 +27,13 @@ const makeStore = (options?: {
       {
         limit: options?.limit,
         equality: options?.equality,
-        partialize:
-          options?.partialize === false
-            ? undefined
-            : (state): Partialized => ({ count: state.count })
+        partialize: (state): Partialized => ({ count: state.count })
       }
     )
-  ) as WithTemporal<StoreApi<CounterState>, Partialized>;
-  return store;
-};
+  );
 
 const temporalOf = (
-  store: WithTemporal<StoreApi<CounterState>, Partialized>
+  store: ReturnType<typeof makeStore>
 ): TemporalState<Partialized> => store.temporal.getState();
 
 describe("temporal middleware", () => {
@@ -229,10 +223,7 @@ describe("temporal middleware", () => {
         n: 0,
         bump: () => set((s) => ({ n: s.n + 1 }))
       }))
-    ) as WithTemporal<
-      StoreApi<{ n: number; bump: () => void }>,
-      { n: number; bump: () => void }
-    >;
+    );
     store.getState().bump();
     expect(store.temporal.getState().pastStates).toHaveLength(1);
     expect(store.temporal.getState().pastStates[0].n).toBe(0);

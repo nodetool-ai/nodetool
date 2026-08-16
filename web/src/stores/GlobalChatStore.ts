@@ -376,8 +376,24 @@ const captureChatRunSpend = (
   }
 };
 
+/**
+ * The slice written to localStorage. The three newest keys are optional
+ * because a payload persisted before they existed does not carry them, and
+ * `migrate` returns only the four it can rebuild — persist merges the rest
+ * from the store's initial state.
+ */
+interface PersistedChatState {
+  threads: Record<string, Thread>;
+  lastUsedThreadId: string | null;
+  selectedModel: LanguageModel | null;
+  permissionMode: Record<string, PermissionMode>;
+  memoryEnabled?: boolean;
+  workflowThreadId?: Record<string, string>;
+  threadWorkflowId?: Record<string, string | null>;
+}
+
 const useGlobalChatStore = create<GlobalChatState>()(
-  persist<GlobalChatState>(
+  persist<GlobalChatState, [], [], PersistedChatState>(
     (set, get) => ({
       // Connection state
       status: "disconnected",
@@ -1401,11 +1417,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
             if (cursor) listInput.cursor = cursor;
             const data = await trpcClient.messages.list.query(listInput);
 
-            // The tRPC response shape is a strict subset of the web-side
-            // `Message` openapi type (which includes agent-specific fields
-            // that this endpoint never emits). Cast to the broader type so
-            // downstream store operations compile.
-            const messages = (data.messages ?? []) as unknown as Message[];
+            // SAFETY: the tRPC response shape is a strict subset of the
+            // web-side `Message` openapi type — the endpoint never emits the
+            // agent-specific fields that type adds, and every one of them is
+            // optional, so each row read here is a `Message` at run time.
+            const messages = (data.messages ?? []) as Message[];
             const nextCursor = data.next;
 
             set((state) => {
@@ -1658,7 +1674,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       name: "global-chat-storage",
       version: 1,
       // Persist minimal subset incl. selections; do not persist message cache
-      // Note: Return type cast needed due to zustand persist middleware type limitations
       partialize: (state) =>
         ({
           threads: state.threads || {},
@@ -1670,7 +1685,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // right conversation across reloads.
           workflowThreadId: state.workflowThreadId,
           threadWorkflowId: state.threadWorkflowId
-        }) as GlobalChatState,
+        }),
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
@@ -1683,7 +1698,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           permissionMode: {} as Record<string, PermissionMode>
         };
         if (!persistedState || typeof persistedState !== "object") {
-          return fallback as unknown as GlobalChatState;
+          return fallback;
         }
         const state = persistedState as Record<string, unknown>;
         return {
@@ -1707,7 +1722,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             !Array.isArray(state.permissionMode)
               ? (state.permissionMode as Record<string, PermissionMode>)
               : fallback.permissionMode
-        } as unknown as GlobalChatState;
+        };
       },
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage

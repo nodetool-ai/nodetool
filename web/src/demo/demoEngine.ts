@@ -169,11 +169,14 @@ export class DemoEngine {
     const resolved = resolveAssetUrls(cast.events, cast.assets, opts.resolveAssetUrl);
     this.events = remapJobIds(resolved);
 
+    // SAFETY: `DemoRunnerState` declares exactly the runner fields the update
+    // reducer reads and writes (see its docblock); nothing on the replay path
+    // touches the rest of `WorkflowRunnerStore`.
     this.runnerStore = create<DemoRunnerState>(() => ({
       ...IDLE_RUNNER,
       addNotification: (n) => useNotificationStore.getState().addNotification(n),
       setStatusMessage: (m) => this.runnerStore.setState({ statusMessage: m }),
-    })) as unknown as WorkflowRunnerStore;
+    })) as WorkflowRunnerStore;
   }
 
   /** Make the execution stores reflect exactly the events with `t <= timeMs`. */
@@ -196,9 +199,11 @@ export class DemoEngine {
     // Otherwise a node whose start and end events land in the same synchronous
     // seek gets a tiny, frame-dependent duration that wiggles the badge.
     setExecutionClock(() => event.t);
+    // SAFETY: a cast event's `message` is a recorded processing message —
+    // the same payload the socket delivers — replayed verbatim.
     handleUpdate(
       this.workflow,
-      event.message as unknown as MsgpackData,
+      event.message as MsgpackData,
       this.runnerStore,
       () => this.nodeStore
     );
