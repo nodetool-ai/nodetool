@@ -345,7 +345,7 @@ function clampLimit(
   min: number,
   max: number
 ): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  if (value == null || !Number.isFinite(value)) return fallback;
   return Math.min(Math.max(Math.floor(value), min), max);
 }
 
