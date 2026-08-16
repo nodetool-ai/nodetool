@@ -12,8 +12,6 @@ import {
   type ApplicationDocument,
 } from "@nodetool-ai/app-runtime";
 
-import type { Workflow } from "../../../types/workflow";
-
 jest.mock("../../../trpc/client", () => ({
   // Media widgets resolve an `asset://` locator through `assets.get`; these
   // cases render non-asset sources, so the lookup never settles.
@@ -38,16 +36,17 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
   }),
 }));
 
-jest.mock("../../../services/WebSocketService", () => ({
-  webSocketService: { subscribe: () => () => {} },
-}));
+import { webSocketService } from "../../../services/WebSocketService";
 
-jest.mock("../../../services/api", () => ({
-  apiService: {
-    resolveUrl: (uri: string) => uri,
-    getApiHost: () => "http://localhost:7777",
-  },
-}));
+// The real socket singleton; only `subscribe` is stubbed so nothing dials out.
+jest.spyOn(webSocketService, "subscribe").mockReturnValue(() => {});
+
+import { apiService } from "../../../services/api";
+
+// The real `apiService` singleton, with only the two host-dependent lookups
+// pinned so URLs are stable regardless of the configured API host.
+jest.spyOn(apiService, "resolveUrl").mockImplementation((uri) => uri ?? null);
+jest.spyOn(apiService, "getApiHost").mockReturnValue("http://localhost:7777");
 
 // The model picker's own data comes from tRPC; the routing test only cares that
 // the picker — not a text box — is what the model kinds render.

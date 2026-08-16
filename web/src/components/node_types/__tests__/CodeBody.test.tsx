@@ -1,6 +1,7 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
 import { stub } from "../../../test-utils/doubles";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CodeBody from "../CodeBody";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -45,15 +46,13 @@ const mockUpdateNodeData = jest.fn();
 // handles wholesale, so a connected node is not eligible.
 let mockEdges: Array<{ source: string; target: string }> = [];
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (state: unknown) => T) =>
-    selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       findNode: mockFindNode,
       updateNodeData: mockUpdateNodeData,
       edges: mockEdges
     })
-}));
-
+);
 // The script-link header owns its own tRPC queries and its own test; here it
 // is only in the way.
 jest.mock("../CodeNodeScriptLink", () => ({

@@ -37,30 +37,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-jest.mock('../../hooks/useTheme', () => ({
-  useTheme: () => ({
-    colors: {
-      background: '#000',
-      surface: '#111',
-      primary: '#6DB3F8',
-      primaryMuted: '#123',
-      text: '#fff',
-      textSecondary: '#aaa',
-      textTertiary: '#777',
-      textOnPrimary: '#fff',
-      border: '#222',
-      borderLight: '#333',
-      error: '#f00',
-      warning: '#fc0',
-      inputBg: '#222',
-      cardBg: '#111',
-      accent: '#a7f',
-      accentMuted: '#334',
-    },
-    shadows: { small: {}, medium: {}, large: {} },
-  }),
-}));
-
 const saveMock = jest.fn(async () => {});
 const loadMock = jest.fn(async () => {});
 const revertMock = jest.fn(async () => {});

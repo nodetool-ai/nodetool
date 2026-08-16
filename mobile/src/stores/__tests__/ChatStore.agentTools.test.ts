@@ -1,3 +1,4 @@
+import { apiService } from '../../services/api';
 /**
  * The chat store's half of the agent tool contract: advertise the client tools
  * on every open, dispatch an incoming `tool_call`, and attach `ui_context` to
@@ -17,11 +18,10 @@ jest.mock('../../services/WebSocketManager', () => ({
   WebSocketManager: jest.fn(),
 }));
 
-jest.mock('../../services/api', () => ({
-  apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws'),
-  },
-}));
+// The real `apiService` singleton; only the URL lookup is stubbed.
+jest
+  .spyOn(apiService, 'getWebSocketUrl')
+  .mockReturnValue('ws://localhost:7777/ws');
 
 interface Callbacks {
   onOpen?: () => void;

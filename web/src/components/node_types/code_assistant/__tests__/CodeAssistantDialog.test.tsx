@@ -1,5 +1,6 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../../test-utils/nodeStore";
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import "@testing-library/jest-dom";
@@ -45,14 +46,12 @@ const typeOf = (type: string) => ({
 const mockUpdateNodeData = jest.fn();
 let mockNode: Record<string, unknown> | undefined;
 
-jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (state: unknown) => T) =>
-    selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       findNode: () => mockNode,
       updateNodeData: mockUpdateNodeData
     })
-}));
-
+);
 const renderDialog = (
   props: Partial<React.ComponentProps<typeof CodeAssistantDialog>> = {}
 ) =>

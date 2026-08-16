@@ -4,54 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { SettingsButton } from "../SettingsButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/Settings", () => ({
-  __esModule: true,
-  default: () => <span data-testid="settings-icon" />
-}));
-
-jest.mock("@mui/icons-material/Tune", () => ({
-  __esModule: true,
-  default: () => <span data-testid="tune-icon" />
-}));
-
-jest.mock("@mui/icons-material/MoreVert", () => ({
-  __esModule: true,
-  default: () => <span data-testid="more-vert-icon" />
-}));
-
-jest.mock("@mui/icons-material/MoreHoriz", () => ({
-  __esModule: true,
-  default: () => <span data-testid="more-horiz-icon" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, "aria-label": ariaLabel, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      aria-label={ariaLabel}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: React.ReactNode }) => (
-    <div data-tooltip={typeof title === "string" ? title : "tooltip"}>
-      {children}
-    </div>
-  )
-}));
-
 describe("SettingsButton", () => {
   const mockOnClick = jest.fn();
 

@@ -1,21 +1,14 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import FloatProperty from "../FloatProperty";
 import useMetadataStore from "../../../stores/MetadataStore";
 
-jest.mock("../../../contexts/NodeContext", () => {
-  const actual = jest.requireActual("../../../contexts/NodeContext");
-  return {
-    ...actual,
-    useNodes: <T,>(selector: (state: { nodes: never[] }) => T) =>
-      selector({ nodes: [] }),
-    useTemporalNodes: <T,>(selector: (state: { pause: () => void; resume: () => void }) => T) =>
-      selector({ pause: jest.fn(), resume: jest.fn() })
-  };
-});
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ nodes: [] }, { pause: jest.fn(), resume: jest.fn() })
+);
 const renderWithTheme = (component: React.ReactNode) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };

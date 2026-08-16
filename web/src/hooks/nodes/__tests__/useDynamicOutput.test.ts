@@ -1,20 +1,17 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useDynamicOutput } from "../useDynamicOutput";
-import { useNodes } from "../../../contexts/NodeContext";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
-
 const mockUpdateNodeData = jest.fn();
+
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeData: mockUpdateNodeData })
+);
 
 describe("useDynamicOutput", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as jest.Mock).mockReturnValue({
-      updateNodeData: mockUpdateNodeData
-    });
   });
 
   it("returns handleDeleteOutput, handleAddOutput, and handleRenameOutput functions", () => {

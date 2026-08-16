@@ -43,11 +43,6 @@ jest.mock('../logger', () => ({
   logMessage: jest.fn(),
 }));
 
-jest.mock('../devMode', () => ({
-  isElectronDevMode: jest.fn().mockReturnValue(false),
-  getWebDevServerUrl: jest.fn().mockReturnValue('http://127.0.0.1:3000'),
-}));
-
 describe('workflowWindow', () => {
   beforeEach(() => {
     jest.clearAllMocks();

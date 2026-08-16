@@ -2,9 +2,25 @@ import React from 'react';
 import { Text } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { ErrorBoundary } from './ErrorBoundary';
-import { reportError } from '../services/errorReporting';
+import {
+  __resetErrorReportingForTests,
+  setErrorReporter,
+} from '../services/errorReporting';
 
-jest.mock('../services/errorReporting', () => ({ reportError: jest.fn() }));
+// The reporting module already exposes an injection seam, so the boundary runs
+// against the real `reportError` (Error coercion, sink routing) and only the
+// terminal sink is a double.
+const captureException = jest.fn();
+
+beforeEach(() => {
+  __resetErrorReportingForTests();
+  captureException.mockClear();
+  setErrorReporter({ captureException });
+});
+
+afterEach(() => {
+  __resetErrorReportingForTests();
+});
 
 function Boom(): React.ReactElement {
   throw new Error('kaboom');
@@ -28,7 +44,7 @@ describe('ErrorBoundary', () => {
     );
 
     expect(getByText('Something went wrong')).toBeTruthy();
-    expect(reportError).toHaveBeenCalledWith(
+    expect(captureException).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({ source: 'ErrorBoundary' })
     );

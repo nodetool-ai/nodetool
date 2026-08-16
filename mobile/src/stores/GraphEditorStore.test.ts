@@ -7,13 +7,15 @@ import { useGraphEditorStore } from './GraphEditorStore';
 import { apiService } from '../services/api';
 import type { NodeMetadata } from '../types/ApiTypes';
 
-jest.mock('../services/api', () => ({
-  apiService: {
-    getNodeMetadata: jest.fn(),
-  },
-}));
+// `apiService` is a real singleton instance, so the one network method the
+// store calls is stubbed on it directly — the rest of the module is real.
+const mockApi = {
+  getNodeMetadata: jest.spyOn(apiService, 'getNodeMetadata'),
+};
 
-const mockApi = apiService as jest.Mocked<typeof apiService>;
+afterAll(() => {
+  mockApi.getNodeMetadata.mockRestore();
+});
 
 /** Minimal NodeMetadata fixture; only fields the store reads are populated. */
 function meta(

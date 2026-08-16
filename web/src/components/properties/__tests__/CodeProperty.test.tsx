@@ -1,5 +1,6 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
@@ -41,11 +42,14 @@ jest.mock("../TextEditorModal", () => ({
 }));
 
 let mockEdges: Array<{ target: string; targetHandle: string }> = [];
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (state: unknown) => T) =>
-    selector({ edges: mockEdges })
-}));
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
+    // A getter, so each render reads whatever the current test assigned.
+    get edges() {
+      return mockEdges;
+    }
+  })
+);
 import CodeProperty from "../CodeProperty";
 
 const defaultProps = {

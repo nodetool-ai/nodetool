@@ -10,16 +10,6 @@ jest.mock("../LoadingSpinner", () => ({
   LoadingSpinner: () => <span data-testid="loading-spinner" />
 }));
 
-// Mock MUI Button
-jest.mock("@mui/material/Button", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button disabled={disabled} onClick={onClick} className={className} {...rest}>
-      {children}
-    </button>
-  )
-}));
-
 describe("DialogActionButtons", () => {
   const mockOnConfirm = jest.fn();
   const mockOnCancel = jest.fn();

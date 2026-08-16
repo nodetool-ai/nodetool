@@ -1,5 +1,6 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../../test-utils/nodeStore";
 import React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
 import type { NodeData } from "../../../../stores/NodeData";
 import { KieSchemaLoader } from "../KieSchemaLoader";
 
@@ -17,15 +18,11 @@ jest.mock("../../../ui_primitives", () => ({
   Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
 }));
 
-jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn(
-    <T,>(selector: (state: { updateNodeData: typeof mockUpdateNodeData }) => T) =>
-      selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
         updateNodeData: mockUpdateNodeData
       })
-  )
-}));
-
+);
 jest.mock("../../../../stores/BASE_URL", () => ({
   BASE_URL: ""
 }));

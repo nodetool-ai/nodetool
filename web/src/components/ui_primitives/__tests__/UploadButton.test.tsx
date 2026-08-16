@@ -4,66 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { UploadButton } from "../UploadButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/Upload", () => ({
-  __esModule: true,
-  default: () => <span data-testid="upload-icon" />
-}));
-
-jest.mock("@mui/icons-material/FileUpload", () => ({
-  __esModule: true,
-  default: () => <span data-testid="file-upload-icon" />
-}));
-
-jest.mock("@mui/icons-material/CloudUpload", () => ({
-  __esModule: true,
-  default: () => <span data-testid="cloud-upload-icon" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, "aria-label": ariaLabel, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      aria-label={ariaLabel}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-// Mock MUI Button
-jest.mock("@mui/material/Button", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, startIcon, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      data-has-start-icon={!!startIcon}
-      {...rest}
-    >
-      {startIcon}
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: React.ReactNode }) => (
-    <div data-tooltip={typeof title === "string" ? title : "tooltip"}>
-      {children}
-    </div>
-  )
-}));
-
 describe("UploadButton", () => {
   const mockOnFileSelect = jest.fn();
 

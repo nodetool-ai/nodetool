@@ -4,28 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { ToolbarIconButton } from "../ToolbarIconButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icon
-jest.mock("@mui/icons-material/Save", () => ({
-  __esModule: true,
-  default: () => <span data-testid="save-icon" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button disabled={disabled} onClick={onClick} className={className} {...rest}>
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-}));
-
 import SaveIcon from "@mui/icons-material/Save";
 
 describe("ToolbarIconButton", () => {
@@ -46,7 +24,7 @@ describe("ToolbarIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("save-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("SaveIcon")).toBeInTheDocument();
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
 

@@ -1,3 +1,4 @@
+import * as devMode from "../devMode";
 import { isTrustedInAppUrl } from "../windowSecurity";
 import { serverState } from "../state";
 
@@ -5,16 +6,10 @@ jest.mock("../logger", () => ({
   logMessage: jest.fn(),
 }));
 
-jest.mock("../devMode", () => ({
-  isElectronDevMode: jest.fn(() => false),
-  getWebDevServerUrl: jest.fn(() => "http://127.0.0.1:3000"),
-}));
-
-const { isElectronDevMode, getWebDevServerUrl } =
-  jest.requireMock("../devMode") as {
-    isElectronDevMode: jest.Mock;
-    getWebDevServerUrl: jest.Mock;
-  };
+// The real devMode module (a pure reader of two env vars); both lookups are
+// spied so each case can pin dev mode and the dev-server URL.
+const isElectronDevMode = jest.spyOn(devMode, "isElectronDevMode");
+const getWebDevServerUrl = jest.spyOn(devMode, "getWebDevServerUrl");
 
 describe("isTrustedInAppUrl", () => {
   beforeEach(() => {

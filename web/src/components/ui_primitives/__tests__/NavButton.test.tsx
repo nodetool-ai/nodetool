@@ -7,48 +7,6 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Mock icon
 const MockIcon = () => <span data-testid="mock-icon" />;
 
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, "aria-label": ariaLabel, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      aria-label={ariaLabel}
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-// Mock MUI Button
-jest.mock("@mui/material/Button", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, startIcon, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      {...rest}
-    >
-      {startIcon}
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: React.ReactNode }) => (
-    <div data-tooltip={typeof title === "string" ? title : "tooltip"}>
-      {children}
-    </div>
-  )
-}));
-
 describe("NavButton", () => {
   const mockOnClick = jest.fn();
 

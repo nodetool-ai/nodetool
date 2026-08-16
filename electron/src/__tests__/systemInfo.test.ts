@@ -10,13 +10,18 @@
 
 const electronMock = jest.requireActual("../__mocks__/electron");
 jest.mock("electron", () => electronMock);
+import * as config from "../config";
 
-jest.mock("../config", () => ({
-  getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
-  getPythonPath: jest.fn().mockReturnValue("/mock/conda/bin/python"),
-  getSystemDataPath: jest.fn().mockImplementation((name: string) => `/mock/data/${name}`),
-  getOptionalNodeModulesPath: jest.fn().mockReturnValue("/mock/userData/optional-node/node_modules"),
-}));
+// The real config module; only the four path lookups are stubbed so the
+// payload does not depend on this machine's conda/python install.
+jest.spyOn(config, "getCondaEnvPath").mockReturnValue("/mock/conda");
+jest.spyOn(config, "getPythonPath").mockReturnValue("/mock/conda/bin/python");
+jest
+  .spyOn(config, "getSystemDataPath")
+  .mockImplementation((name: string) => `/mock/data/${name}`);
+jest
+  .spyOn(config, "getOptionalNodeModulesPath")
+  .mockReturnValue("/mock/userData/optional-node/node_modules");
 
 jest.mock("../logger", () => ({
   logMessage: jest.fn(),

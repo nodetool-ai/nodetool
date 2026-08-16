@@ -2,11 +2,6 @@ import { shell } from "electron";
 import { hardenWebContents } from "../windowSecurity";
 import { serverState } from "../state";
 
-jest.mock("../devMode", () => ({
-  isElectronDevMode: jest.fn(() => false),
-  getWebDevServerUrl: jest.fn(() => "http://127.0.0.1:3000"),
-}));
-
 type EventHandler = (event: { preventDefault: jest.Mock }, url: string) => void;
 type WebviewHandler = (event: { preventDefault: jest.Mock }) => void;
 

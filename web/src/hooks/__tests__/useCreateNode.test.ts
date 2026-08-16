@@ -1,4 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import { useCreateNode } from "../useCreateNode";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -17,20 +18,13 @@ const mockCreateNode = jest.fn().mockReturnValue({
   }
 });
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    const mockState = {
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
       addNode: mockAddNode,
       createNode: mockCreateNode,
       updateNodeData: mockUpdateNodeData
-    };
-    if (typeof selector === "function") {
-      return selector(mockState);
-    }
-    return mockState;
-  }),
-}));
-
+    })
+);
 const mockClickPosition = { x: 50, y: 50 };
 const mockCloseNodeMenu = jest.fn();
 

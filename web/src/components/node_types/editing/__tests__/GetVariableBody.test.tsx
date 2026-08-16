@@ -1,6 +1,7 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../../test-utils/nodeStore";
 import React from "react";
 import { stub } from "../../../../test-utils/doubles";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { GetVariableBody } from "../GetVariableBody";
 import {
@@ -23,11 +24,9 @@ const mockUseGraphVariableNames =
 const mockUseGraphVariableTypes =
   useGraphVariableTypes as jest.MockedFunction<typeof useGraphVariableTypes>;
 
-jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (state: { updateNodeData: jest.Mock }) => T) =>
-    selector({ updateNodeData: mockUpdateNodeData })
-}));
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ updateNodeData: mockUpdateNodeData })
+);
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
     setProperty: mockSetProperty,

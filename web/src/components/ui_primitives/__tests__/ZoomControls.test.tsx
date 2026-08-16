@@ -4,22 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { ZoomControls } from "../ZoomControls";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/ZoomIn", () => ({
-  __esModule: true,
-  default: () => <span data-testid="zoom-in-icon" />
-}));
-
-jest.mock("@mui/icons-material/ZoomOut", () => ({
-  __esModule: true,
-  default: () => <span data-testid="zoom-out-icon" />
-}));
-
-jest.mock("@mui/icons-material/RestartAlt", () => ({
-  __esModule: true,
-  default: () => <span data-testid="reset-icon" />
-}));
-
 describe("ZoomControls", () => {
   const mockOnZoomChange = jest.fn();
 
@@ -34,9 +18,9 @@ describe("ZoomControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("zoom-out-icon")).toBeInTheDocument();
-    expect(screen.getByTestId("zoom-in-icon")).toBeInTheDocument();
-    expect(screen.getByTestId("reset-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("ZoomOutIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("ZoomInIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("RestartAltIcon")).toBeInTheDocument();
   });
 
   it("displays correct zoom percentage", () => {
@@ -199,9 +183,9 @@ describe("ZoomControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("zoom-out-icon")).toBeInTheDocument();
-    expect(screen.getByTestId("zoom-in-icon")).toBeInTheDocument();
-    expect(screen.queryByTestId("reset-icon")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ZoomOutIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("ZoomInIcon")).toBeInTheDocument();
+    expect(screen.queryByTestId("RestartAltIcon")).not.toBeInTheDocument();
   });
 
   it("has aria-labels for accessibility", () => {
@@ -268,8 +252,8 @@ describe("ZoomControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("zoom-in-icon")).toBeInTheDocument();
-    expect(screen.getByTestId("zoom-out-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("ZoomInIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("ZoomOutIcon")).toBeInTheDocument();
   });
 
   it("rounds zoom percentage correctly", () => {

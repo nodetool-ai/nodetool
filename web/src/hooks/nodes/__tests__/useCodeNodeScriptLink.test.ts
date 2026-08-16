@@ -1,17 +1,13 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 /**
  * The Code node's link/extract/detach transitions. tRPC and the node store are
  * mocked; what these assert is what the hook writes onto the node.
  */
-import { renderHook, act } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { useCodeNodeScriptLink } from "../useCodeNodeScriptLink";
-import { useNodes } from "../../../contexts/NodeContext";
 import { trpc } from "../../../trpc/client";
 import type { NodeData } from "../../../stores/NodeData";
-
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
-}));
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
@@ -61,17 +57,17 @@ const scriptGet = jest.fn(async () => ({
 const data = (properties: Record<string, unknown> = {}): NodeData =>
   ({ properties }) as NodeData;
 
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
+    findNode: mockFindNode,
+    updateNodeData: mockUpdateNodeData
+  })
+);
+
 describe("useCodeNodeScriptLink", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     nodeData = { properties: {} };
-    asMock(useNodes).mockImplementation(
-      <T,>(selector: (s: unknown) => T) =>
-        selector({
-          findNode: mockFindNode,
-          updateNodeData: mockUpdateNodeData
-        })
-    );
     asMock(trpc.useUtils).mockReturnValue({
       jsScripts: {
         get: { fetch: scriptGet },
