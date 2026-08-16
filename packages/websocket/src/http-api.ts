@@ -485,7 +485,8 @@ export async function getWorkflowRuntimeEnvironment(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
             meta?.required_settings ?? [],
-            node.id
+            node.id,
+            meta?.requires_vram_gb
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {

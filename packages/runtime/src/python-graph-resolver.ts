@@ -113,6 +113,7 @@ export function resolvePythonNodeExecutor(
     props,
     outputTypes,
     meta?.required_settings ?? [],
-    node.id
+    node.id,
+    meta?.requires_vram_gb
   );
 }

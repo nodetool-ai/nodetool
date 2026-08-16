@@ -105,6 +105,11 @@ import { PythonBridgeBase } from "./python-bridge-base.js";
 export { PythonBridgeBase };
 export type {
   UnifiedModelLike,
+  ExecuteIdentity,
+  JobBoundary,
+  PythonJobLifecycle,
+  ModelEvictRequest,
+  ModelEvictResult,
   ModelDownloadRequest,
   ModelDownloadUpdate,
   ComfyStatusInfo,

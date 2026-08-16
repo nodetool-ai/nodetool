@@ -59,7 +59,10 @@ Returns the worker's executable node inventory.
 Response data:
 
 - `protocol_version`
-- `nodes`
+- `nodes` — each entry may carry `requires_vram_gb` (v4+): the approximate VRAM
+  that node type's weights need, in GiB. The JS side echoes it back on
+  `execute` so the worker's reclaim pass has a real number to target instead of
+  a percentage threshold.
 - `load_errors`
 
 Example:
@@ -108,6 +111,25 @@ Request data:
 - `secrets`
 - `blobs`
 
+Run identity, added in **v4**. Every field is optional, and a field the JS host
+cannot name is omitted rather than sent as null:
+
+- `node_id` — the graph node id. Becomes the constructed node's `_id`. Before
+  v4 the worker built every node with no id, so `self._id` was `""` for all of
+  them: a node calling `set_model(self._id, …)` registered into a single shared
+  bucket, and `release_nodes()` had nothing meaningful to release. `node_id` is
+  what makes the worker's node → model map real.
+- `job_id` — pairs the execution with the `job.start` / `job.end` boundary.
+- `workflow_id`, `user_id` — populate the worker's `WorkerContext`, which
+  previously had neither.
+- `requires_vram_gb` — the hint the worker itself reported for this node type at
+  `discover`.
+
+These are extra dict entries, so the JS side sends them **unconditionally**
+rather than behind the v4 capability gate: a pre-v4 worker reads the four keys
+it knows and ignores the rest, and gating would only starve a worker that does
+understand them whenever its `worker.status` has not landed yet.
+
 Possible response types:
 
 - `progress`
@@ -117,9 +139,9 @@ Possible response types:
 ### `execute.stream`
 
 Executes a Python node that streams results. Same request data as `execute`
-(`node_type`, `fields`, `secrets`, `blobs`), but the worker emits zero or more
-`chunk` messages (each carrying partial `outputs`/`blobs`) followed by a
-terminal `result` or `error`.
+(including the v4 identity fields), but the worker emits zero or more `chunk`
+messages (each carrying partial `outputs`/`blobs`) followed by a terminal
+`result` or `error`.
 
 ### `cancel`
 
@@ -150,6 +172,45 @@ simply does not expose them (see [Versioning](#versioning)).
 - `models.list_cached` — list models cached on the worker's `HF_HOME` (cache-only, no network)
 - `models.download` — download a model onto the worker cache, streaming ordered `progress` frames then a terminal `result`
 - `models.delete` — delete a cached model; returns whether it existed
+- `models.evict` (**v4**, gated by `supportsJobLifecycle()`) — drop loaded model
+  weights. Optional request data narrows the scope: `node_ids`, `job_id`,
+  `target_vram_gb` (stop once that many GiB are reclaimed). Response data is
+  `{evicted: string[], freed_vram_gb?: number}`. This is the path for what only
+  the JS side knows — the user switched workflows, another process wants the
+  GPU, the worker is idle. Without it the worker only ever reclaims reactively,
+  on its own thresholds. Calling it against a pre-v4 worker resolves to
+  `{evicted: []}` instead of erroring, so a host asking to free memory never has
+  to branch on the worker's version.
+
+### `job.*`
+
+The run boundary. Introduced in bridge protocol **v4** and gated by
+`supportsJobLifecycle()`.
+
+- `job.start` — opens a run. Request data: `job_id`, plus optional
+  `workflow_id` / `user_id`. Optional in the sense that the worker needs no
+  `job.start` to attribute an execution (every `execute` carries its own
+  `job_id`); it exists as the one place to do a single reclaim pass per run
+  instead of one per node.
+- `job.end` — closes a run. Same data plus `reason`
+  (`completed` | `failed` | `cancelled` | `abandoned`). The job's nodes are
+  retired and their models become eligible for release. This is the caller
+  `release_nodes()` never had: without it the worker's model cache grows across
+  runs and is only ever trimmed reactively under memory pressure.
+
+`job.end` must fire on abnormal termination too — cancelled, client
+disconnected, run abandoned — or the leak simply moves to the failure path.
+On the JS side `ExecutionSession` sends it from the same `finally` that closes
+the bridge, so completion, failure, cancellation and timeout all reach it. Both
+calls are fire-and-forget and swallow their own failures: a boundary is
+bookkeeping, and a `job.end` that fails against a worker already tearing down
+must not turn a finished run into a failed one.
+
+A host that owns a long-lived shared bridge (the WebSocket runner) and injects
+its own executor resolver must pass that bridge to the session as
+`jobLifecycleBridge` — that host's `bridgeFactory` deliberately returns null, so
+without it nothing closes the boundary for the exact deployment the shared
+bridge exists for.
 
 ### `comfy.*`
 
@@ -274,7 +335,7 @@ The JS runtime and Python worker each report a `BRIDGE_PROTOCOL_VERSION`. Two
 distinct numbers govern compatibility (see `packages/protocol/src/bridge-protocol.ts`):
 
 - **`BRIDGE_PROTOCOL_VERSION`** — the protocol the JS runtime currently speaks
-  (presently `3`).
+  (presently `4`).
 - **`MIN_BRIDGE_PROTOCOL_VERSION`** — the *hard floor* (presently `1`). The JS
   runtime rejects a worker only if it reports a protocol **below** this floor.
 
@@ -283,9 +344,16 @@ Compatibility rules:
 - **Older worker, at or above the floor** — connects normally. It does **not**
   fail startup. Additive features the worker predates are gated per-capability:
   a v1 worker connects fine and simply doesn't expose the `models.*` family
-  (gated by `supportsModelManagement()`, which requires v2+) or `comfy.*`
-  (gated by `supportsComfy()`, which requires v3+ and `comfy.enabled`). Workers
-  that predate the `protocol_version` field are treated as v1.
+  (gated by `supportsModelManagement()`, which requires v2+), `comfy.*` (gated
+  by `supportsComfy()`, which requires v3+ and `comfy.enabled`), or `job.*` /
+  `models.evict` (gated by `supportsJobLifecycle()`, which requires v4+).
+  Workers that predate the `protocol_version` field are treated as v1.
+
+  The v4 identity fields on `execute` are the exception that proves the rule:
+  they are extra keys on an existing message, not a new message, so they are
+  sent to every worker and ignored by the ones that predate them. Only new
+  message *types* need a capability gate, because those are what a worker
+  answers with `Unknown message type`.
 - **Worker below `MIN_BRIDGE_PROTOCOL_VERSION`** — rejected at `discover` with
   an actionable error (reinstall the Python environment). This is the only
   startup-failing case, reserved for genuine wire breaks.
