@@ -18,6 +18,28 @@ tensor `shape` fields read out of safetensors headers and third-party contracts
 (tRPC's `DefaultErrorShape`, Zod's raw shape) that cannot be renamed at all.
 Vendoring exists so a rule that does not fit can go.
 
+## Local edits
+
+`no-runtime-typeof` carries two exemptions upstream does not, both for checks that are
+correct as written and that no predicate can replace:
+
+- **Global-existence probes.** `typeof someUndeclaredName` is the only way to ask whether
+  a global exists — reading the bare name throws `ReferenceError`, so `isString(window)`
+  is not a rewrite of `typeof window !== "undefined"`, it is a crash. An operand that
+  resolves to no variable in the scope chain is exempt. An operand that *does* resolve
+  still reports, so `declare const window` or a parameter named `window` is not a loophole.
+- **Value-producing `typeof`.** A `typeof` interpolated into a template literal or
+  returned reports what a representation is. It narrows nothing, so there is no contract
+  to parse instead. The exemption stops there: `const kind = typeof value` still reports,
+  because narrowing laundered through a local is still narrowing.
+
+Together they account for 157 of the 3,107 findings the rule had before this change.
+
+`@oxlint/plugins` ships no `RuleTester`, so `tests/no-runtime-typeof.test.ts` lints real
+files with the real binary: every case names the 1-based lines it expects reported, and
+one `oxlint` run covers them all. Reverting either exemption turns four cases red. It runs
+in `npm run test:packages` via the root `test:oxlint-rules` script.
+
 ## How it is wired
 
 `.oxlintrc.anti-slop.json` registers the plugin and enables all fourteen rules at
