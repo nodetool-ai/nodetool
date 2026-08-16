@@ -58,6 +58,7 @@ import type {
   TriggerRegistrationStatus,
   RunningTriggerRegistration
 } from "../useTriggers";
+import { stub } from "../../test-utils/doubles";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
@@ -89,12 +90,12 @@ describe("triggersQueryKey", () => {
 describe("useWorkflowTriggers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       isError: false,
       error: null
-    } as unknown as ReturnType<typeof useQuery>);
+    }));
   });
 
   it("disables the query when there is no workflow id", () => {
@@ -154,11 +155,11 @@ describe("useWorkflowTriggers", () => {
 describe("useRunningTriggers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       isError: false
-    } as unknown as ReturnType<typeof useQuery>);
+    }));
   });
 
   it("uses one shared key so a list of cards makes a single request", () => {
@@ -225,9 +226,9 @@ describe("useSetTriggerEnabled", () => {
 
   it("invalidates the workflow's triggers query and the running list on success", () => {
     const invalidateQueries = jest.fn();
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig().onSuccess();
     expect(invalidateQueries).toHaveBeenCalledWith({
@@ -239,9 +240,9 @@ describe("useSetTriggerEnabled", () => {
   });
 
   it("notifies the user when arming a registration is rejected", () => {
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries: jest.fn()
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(
       new Error("Trigger registration not found"),
@@ -259,9 +260,9 @@ describe("useSetTriggerEnabled", () => {
   });
 
   it("says 'deactivate' when the failing call was a disable", () => {
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries: jest.fn()
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(
       new Error("forbidden"),
@@ -274,9 +275,9 @@ describe("useSetTriggerEnabled", () => {
 
   it("refetches after a failure so the UI does not show a state the server rejected", () => {
     const invalidateQueries = jest.fn();
-    mockUseQueryClient.mockReturnValue({
+    mockUseQueryClient.mockReturnValue(stub<ReturnType<typeof useQueryClient>>({
       invalidateQueries
-    } as unknown as ReturnType<typeof useQueryClient>);
+    }));
     renderHook(() => useSetTriggerEnabled("wf-1"));
     mutationConfig<{ id: string; enabled: boolean }>().onError(new Error("x"), {
       id: "reg-1",

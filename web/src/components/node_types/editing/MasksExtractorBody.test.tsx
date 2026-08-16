@@ -122,12 +122,13 @@ jest.mock("@mui/material/styles", () => ({
 
 import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
+import { asMock, stub } from "../../../test-utils/doubles";
 
-const mockUseNodes = useNodes as unknown as jest.Mock;
-const mockUseRunSingleNode = useRunSingleNode as unknown as jest.Mock;
+const mockUseNodes = asMock(useNodes);
+const mockUseRunSingleNode = asMock(useRunSingleNode);
 
 describe("MasksExtractorBody", () => {
-  const defaultProps = {
+  const defaultProps = stub<React.ComponentProps<typeof MasksExtractorBody>>({
     id: "node-1",
     nodeType: "replicate.image.background.Bria_RemoveBackground",
     nodeMetadata: {
@@ -144,7 +145,7 @@ describe("MasksExtractorBody", () => {
     workflowId: "wf-1",
     status: "idle",
     isOutputNode: false
-  } as unknown as React.ComponentProps<typeof MasksExtractorBody>;
+  });
 
   const mockRunSingleNode = jest.fn();
 

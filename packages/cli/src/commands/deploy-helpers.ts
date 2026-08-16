@@ -81,19 +81,16 @@ export function defaultDeployerFactories(): Record<string, DeployerFactory> {
 
 function adaptDocker(d: DockerDeployer): Deployer {
   return {
-    plan: () => d.plan() as unknown as Promise<Record<string, unknown>>,
-    apply: (opts) =>
-      d.apply({ dryRun: opts?.dryRun }) as unknown as Promise<
-        Record<string, unknown>
-      >,
-    status: () => d.status() as unknown as Promise<Record<string, unknown>>,
+    plan: () => d.plan(),
+    apply: (opts) => d.apply({ dryRun: opts?.dryRun }),
+    status: () => d.status(),
     logs: (opts) =>
       d.logs({
         service: opts?.service,
         follow: opts?.follow,
         tail: opts?.tail
       }),
-    destroy: () => d.destroy() as unknown as Promise<Record<string, unknown>>
+    destroy: () => d.destroy()
   };
 }
 

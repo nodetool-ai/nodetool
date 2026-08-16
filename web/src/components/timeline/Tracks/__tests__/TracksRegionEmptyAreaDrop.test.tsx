@@ -17,6 +17,7 @@ import { TracksRegion } from "../TracksRegion";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../../stores/ApiTypes";
+import { stub } from "../../../../test-utils/doubles";
 
 /** The slice of `Response` the video-audio import path reads back. */
 type AudioExtractionResponse = {
@@ -55,13 +56,13 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
 // that deserializeDragData reads.
 function dataTransferFor(asset: Asset): DataTransfer {
   const data: Record<string, string> = { asset: JSON.stringify(asset) };
-  return {
+  return stub<DataTransfer>({
     types: ["asset"],
     dropEffect: "",
     effectAllowed: "all",
     getData: (k: string) => data[k] ?? "",
     setData: () => {}
-  } as unknown as DataTransfer;
+  });
 }
 
 const renderRegion = () =>

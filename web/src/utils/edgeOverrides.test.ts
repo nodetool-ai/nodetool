@@ -1,6 +1,7 @@
 import { EdgeOverrideCollector, applyNodeOverrides } from "./edgeOverrides";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { stub } from "../test-utils/doubles";
 
 const makeNode = (
   id: string,
@@ -8,12 +9,12 @@ const makeNode = (
   properties: Record<string, unknown> = {},
   dynamic_properties: Record<string, unknown> = {}
 ): Node<NodeData> =>
-  ({
+  stub<Node<NodeData>>({
     id,
     type,
     position: { x: 0, y: 0 },
     data: { properties, dynamic_properties }
-  }) as unknown as Node<NodeData>;
+  });
 
 describe("EdgeOverrideCollector", () => {
   it("stores and resolves a single value per handle", () => {

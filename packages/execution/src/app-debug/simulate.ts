@@ -752,8 +752,11 @@ export async function simulateApp(
       log(
         `Run ${runIndex + 1}: ${outcome.report.status} · ${outcome.report.summary.counts.errored} node error(s)`
       );
+      // SAFETY: the fold reads a message by field name off the wire shape,
+      // and a ProcessingMessage is that shape — it is what the runner
+      // serializes and what the web runtime folds.
       return {
-        messages: outcome.rawMessages as unknown as ReadonlyArray<
+        messages: outcome.rawMessages as ReadonlyArray<
           Record<string, unknown>
         >,
         runIndex
@@ -793,9 +796,12 @@ export async function simulateApp(
       const result = await deps.runScript!(scriptInput);
       const messages = jsScriptRunMessages(result);
       const runIndex = runs.length;
+      // SAFETY: `jsScriptRunMessages` builds the same per-emit and final
+      // message shapes the runner streams, and this hook only serializes them
+      // to JSONL.
       const messagesFile = await deps.onRunMessages?.(
         runIndex,
-        messages as unknown as ProcessingMessage[]
+        messages as ProcessingMessage[]
       );
       runs.push(
         scriptRunReport(result, Date.now() - started, script.name, messagesFile)

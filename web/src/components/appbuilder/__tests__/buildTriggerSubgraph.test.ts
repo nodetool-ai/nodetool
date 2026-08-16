@@ -7,6 +7,7 @@ import type { AppInstanceState, BindingRef } from "@nodetool-ai/app-runtime";
 import { buildTriggerSubgraph } from "../runtime/buildTriggerSubgraph";
 import type { AppRuntimeState } from "../runtime/appRuntimeStore";
 import { WorkflowIO } from "../workflowIO";
+import { stub } from "../../../test-utils/doubles";
 
 // browserSupportsSync needs the registry loaded; stub it so the prefix logic is
 // driven by the test, not by whether the browser runner warmed up.
@@ -52,7 +53,7 @@ const HUE_TRIGGER: BindingRef = {
 
 /** State with the slider at 42, in the runtime's namespaced input slots. */
 const stateWith = (values: Record<string, unknown> = {}): AppRuntimeState =>
-  ({
+  stub<AppRuntimeState>({
     inputs: Object.fromEntries(
       Object.entries(values).map(([key, value]) => [
         key,
@@ -67,7 +68,7 @@ const stateWith = (values: Record<string, unknown> = {}): AppRuntimeState =>
     activity: {},
     variableWriters: {},
     dispatchEvent: () => {}
-  }) as AppInstanceState as AppRuntimeState;
+  });
 
 // Every node in the fixture is pure, so the reactive effect gate lets the
 // subgraph run; the gate itself is covered by its own case below.

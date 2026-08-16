@@ -256,9 +256,17 @@ export type NodeProps<T extends BaseNode> = Partial<
  * no flag needed. Mirrors the Python side, which derives the same boolean
  * solely from whether `gen_process` is overridden.
  */
-export const hasStreamingOutput = (cls: NodeClass): boolean => {
-  const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
-    .prototype;
+/**
+ * What {@link hasStreamingOutput} reads. Written as the two members it touches
+ * so the abstract `typeof BaseNode` — which cannot satisfy `NodeClass`'s
+ * concrete constructor — can be passed as well as a registered node class.
+ */
+type StreamingOutputSource = Pick<NodeClass, "outputCorrelation"> & {
+  prototype: BaseNode;
+};
+
+export const hasStreamingOutput = (cls: StreamingOutputSource): boolean => {
+  const proto = cls.prototype;
   if (
     // Stryker disable next-line OptionalChaining: a class constructor always has a .prototype, so proto is never nullish here (equivalent).
     !!proto?.genProcess &&
@@ -464,7 +472,7 @@ export abstract class BaseNode {
     properties: Record<string, unknown>,
     options: NodeValidationOptions = {}
   ): NodePropertyValidationIssue[] {
-    const cls = this as unknown as typeof BaseNode;
+    const cls = this;
     const declared = cls.getDeclaredProperties();
     const dynamicSlots = options.dynamicSlots;
     let dynamicValues = options.dynamicValues;
@@ -791,7 +799,7 @@ export abstract class BaseNode {
   }
 
   static toDescriptor(id?: string): NodeDescriptor {
-    const cls = this as unknown as typeof BaseNode;
+    const cls = this;
     const propertyTypes = Object.fromEntries(
       cls
         .getDeclaredProperties()
@@ -802,7 +810,7 @@ export abstract class BaseNode {
       type: cls.nodeType,
       name: cls.title,
       is_streaming_input: cls.isStreamingInput,
-      is_streaming_output: hasStreamingOutput(cls as unknown as NodeClass),
+      is_streaming_output: hasStreamingOutput(cls),
       input_mode: cls.inputMode,
       output_correlation: cls.outputCorrelation,
       is_controlled: cls.isControlled,

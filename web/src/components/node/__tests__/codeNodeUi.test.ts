@@ -10,11 +10,12 @@ import {
   isCodeBodyNode
 } from "../codeNodeUi";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 const makeMetadata = (
   overrides: Partial<NodeMetadata> = {}
 ): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     node_type: CODE_NODE_TYPE,
     inline_fields: ["code"],
     properties: [
@@ -24,7 +25,7 @@ const makeMetadata = (
       }
     ],
     ...overrides
-  }) as unknown as NodeMetadata;
+  });
 
 describe("codeNodeUi", () => {
   describe("isCodeNode", () => {

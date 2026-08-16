@@ -149,8 +149,9 @@ import SketchNode from "../SketchNode";
 import { useNodes } from "../../../../contexts/NodeContext";
 import useResultsStore from "../../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../../stores/WorkflowAssetStore";
+import { asMock, stub } from "../../../../test-utils/doubles";
 
-const mockUseNodes = useNodes as unknown as jest.Mock;
+const mockUseNodes = asMock(useNodes);
 
 const WORKFLOW_ID = "wf-1";
 const SOURCE_ID = "src-node";
@@ -197,7 +198,7 @@ describe("SketchNode layer inputs via generations", () => {
     );
   });
 
-  const props = {
+  const props = stub<React.ComponentProps<typeof SketchNode>>({
     id: "sketch-1",
     type: "nodetool.constant.Sketch",
     selected: false,
@@ -209,7 +210,7 @@ describe("SketchNode layer inputs via generations", () => {
       dynamic_outputs: {},
       workflow_id: WORKFLOW_ID
     }
-  } as unknown as React.ComponentProps<typeof SketchNode>;
+  });
 
   it("loads the source's current-generation image into the exposed input layer", async () => {
     seedSourceGeneration("http://x/from-generation.png");

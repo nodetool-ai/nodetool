@@ -3,20 +3,25 @@ jest.mock("../NodeStore", () => ({
   DEFAULT_NODE_WIDTH: 200,
 }));
 
-import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
-import { Workflow, Node as GraphNode } from "../ApiTypes";
+import {
+  graphNodeToReactFlowNode,
+  type IncomingGraphNode
+} from "../graphNodeToReactFlowNode";
+import { Workflow } from "../ApiTypes";
 import { DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
+import { stub } from "../../test-utils/doubles";
 
 describe("graphNodeToReactFlowNode", () => {
-  const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => ({
+  const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => stub<Workflow>({
     id: "workflow-123",
     name: "Test Workflow",
     graph: { nodes: [], edges: [] },
-    engine: "mem",
     ...overrides,
-  } as unknown as Workflow);
+  });
 
-  const createMockGraphNode = (overrides: Partial<GraphNode> = {}): GraphNode => ({
+  const createMockGraphNode = (
+    overrides: Partial<IncomingGraphNode> = {}
+  ): IncomingGraphNode => ({
     id: "node-1",
     type: "nodetool.text.Prompt",
     data: { text: "Hello" },
@@ -571,12 +576,12 @@ describe("graphNodeToReactFlowNode", () => {
 
     it("normalizes a legacy flat declaration on the way in", () => {
       const workflow = createMockWorkflow();
-      const graphNode = createMockGraphNode({
+      const graphNode = createMockGraphNode(stub<Partial<IncomingGraphNode>>({
         dynamic_properties: { picture: null },
         dynamic_inputs: {
           picture: { type: "image", optional: false, type_args: [] }
         }
-      } as unknown as Partial<GraphNode>);
+      }));
 
       const result = graphNodeToReactFlowNode(workflow, graphNode);
 

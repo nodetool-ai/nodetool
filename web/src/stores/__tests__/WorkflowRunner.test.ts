@@ -2,6 +2,7 @@ import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import type { WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
   EditorInsertionProvider: ({ children }: any) => children,
@@ -90,10 +91,10 @@ if (typeof globalThis.crypto === "undefined") {
 
 describe("WorkflowRunner", () => {
   let store: ReturnType<typeof createWorkflowRunnerStore>;
-  const testWorkflow = {
+  const testWorkflow = stub<WorkflowAttributes>({
     id: "test-workflow-id",
     settings: {},
-  } as unknown as WorkflowAttributes;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -338,7 +339,7 @@ describe("WorkflowRunner", () => {
   });
 
   describe("deriveJobTitle", () => {
-    const wf = { id: "wf", name: "My Flow" } as unknown as WorkflowAttributes;
+    const wf = stub<WorkflowAttributes>({ id: "wf", name: "My Flow" });
     const node = (id: string, type: string, title?: string) =>
       ({ id, type, data: title ? { title } : {} }) as never;
 

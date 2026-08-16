@@ -9,6 +9,7 @@ import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
 import * as MousePosition from "../../../utils/MousePosition";
 import * as Browser from "../../../utils/browser";
+import { asMock } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -31,13 +32,13 @@ describe("useClipboardContentPaste", () => {
   const mockGetMetadata = jest.fn();
 
   const mockedUseReactFlow = useReactFlow as jest.Mock;
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseAssetUpload = useAssetUpload as unknown as jest.Mock;
-  const mockedUseAssetGridStore = useAssetGridStore as unknown as jest.Mock;
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseAssetUpload = asMock(useAssetUpload);
+  const mockedUseAssetGridStore = asMock(useAssetGridStore);
   const mockedUseNotificationStore =
-    useNotificationStore as unknown as jest.Mock;
-  const mockedUseAuth = useAuth as unknown as jest.Mock;
-  const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+    asMock(useNotificationStore);
+  const mockedUseAuth = asMock(useAuth);
+  const mockedUseMetadataStore = asMock(useMetadataStore);
 
   beforeEach(() => {
     jest.clearAllMocks();

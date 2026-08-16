@@ -27,7 +27,7 @@ const speech = ExpoSpeechRecognitionModule as unknown as {
   stop: jest.Mock;
   abort: jest.Mock;
 };
-const eventHook = useSpeechRecognitionEvent as unknown as jest.Mock;
+const eventHook = jest.mocked(useSpeechRecognitionEvent);
 
 /**
  * The composer reads the real bottom inset, so every render needs a provider

@@ -9,17 +9,17 @@ import {
   removeComponent,
   makeComponentId
 } from "../puck/puckDataOps";
+import { stub } from "../../../test-utils/doubles";
 
 // Minimal config: a leaf widget and a Panel with a `content` slot.
-const config = {
+const config = stub<Config>({
   components: {
-    Text: { fields: { text: { type: "text" } }, render: () => null },
+    Text: { fields: { text: { type: "text" } } },
     Panel: {
-      fields: { title: { type: "text" }, content: { type: "slot" } },
-      render: () => null
+      fields: { title: { type: "text" }, content: { type: "slot" } }
     }
   }
-} as unknown as Config;
+});
 
 const slotFields = getSlotFields(config);
 

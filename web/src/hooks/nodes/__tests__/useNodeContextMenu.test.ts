@@ -67,23 +67,24 @@ import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import { constantToInputType, inputToConstantType } from "../../../utils/NodeTypeMapping";
 import { useReactFlow } from "@xyflow/react";
+import { asMock } from "../../../test-utils/doubles";
 
 const mockedUseContextMenuStore = useContextMenuStore as jest.Mock;
 const mockedUseNodes = useNodes as jest.Mock;
 const mockedUseNodeStoreRef = useNodeStoreRef as jest.Mock;
-const mockedUseNotificationStore = useNotificationStore as unknown as jest.Mock;
-const mockedUseResultsStore = useResultsStore as unknown as jest.Mock;
+const mockedUseNotificationStore = asMock(useNotificationStore);
+const mockedUseResultsStore = asMock(useResultsStore);
 const mockedUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockedUseClipboard = useClipboard as jest.Mock;
 const mockedUseRemoveFromGroup = useRemoveFromGroup as jest.Mock;
 const mockedUseDuplicateNodes = useDuplicateNodes as jest.Mock;
-const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+const mockedUseMetadataStore = asMock(useMetadataStore);
 const mockedSubgraph = subgraph as jest.Mock;
 const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 const mockedConstantToInputType = constantToInputType as jest.Mock;
 const mockedInputToConstantType = inputToConstantType as jest.Mock;
 const mockedUseReactFlow = useReactFlow as jest.Mock;
-const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
+const mockRunInline = asMock(runInlineGraphJob);
 
 describe("useNodeContextMenu", () => {
   const mockCloseContextMenu = jest.fn();

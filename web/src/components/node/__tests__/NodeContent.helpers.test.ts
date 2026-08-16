@@ -4,9 +4,10 @@
 import { arePropsEqual, NodeContentProps } from "../NodeContent.helpers";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import { stub } from "../../../test-utils/doubles";
 
 function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps {
-  const defaultMeta: NodeMetadata = {
+  const defaultMeta: NodeMetadata = stub<NodeMetadata>({
     title: "TestNode",
     node_type: "test.Node",
     namespace: "test",
@@ -17,14 +18,10 @@ function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps 
     supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
-    description: "",
-    primary_field: "",
-    secondary_field: "",
-    output_type: "",
-    color: ""
-  } as unknown as NodeMetadata;
+    description: ""
+  });
 
-  const defaultData: NodeData = {
+  const defaultData: NodeData = stub<NodeData>({
     properties: {},
     dynamic_properties: {},
     dynamic_outputs: {},
@@ -33,7 +30,7 @@ function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps 
     exposedInputsHidden: [],
     selectable: true,
     workflow_id: "w1"
-  } as unknown as NodeData;
+  });
 
   return {
     id: "n1",
@@ -94,7 +91,7 @@ describe("arePropsEqual", () => {
     const b = makeProps({
       nodeMetadata: {
         ...a.nodeMetadata,
-        properties: [{ name: "x", type: { type: "string" } }] as unknown as NodeMetadata["properties"]
+        properties: stub<NodeMetadata["properties"]>([{ name: "x", type: { type: "string" } }])
       }
     });
     expect(arePropsEqual(a, b)).toBe(false);
@@ -105,7 +102,7 @@ describe("arePropsEqual", () => {
     const b = makeProps({
       nodeMetadata: {
         ...a.nodeMetadata,
-        outputs: [{ name: "out", type: { type: "image" } }] as unknown as NodeMetadata["outputs"]
+        outputs: stub<NodeMetadata["outputs"]>([{ name: "out", type: { type: "image" } }])
       }
     });
     expect(arePropsEqual(a, b)).toBe(false);
@@ -115,13 +112,13 @@ describe("arePropsEqual", () => {
     const a = makeProps({
       nodeMetadata: {
         ...makeProps().nodeMetadata,
-        outputs: [{ name: "out", type: { type: "image" } }] as unknown as NodeMetadata["outputs"]
+        outputs: stub<NodeMetadata["outputs"]>([{ name: "out", type: { type: "image" } }])
       }
     });
     const b = makeProps({
       nodeMetadata: {
         ...makeProps().nodeMetadata,
-        outputs: [{ name: "out", type: { type: "audio" } }] as unknown as NodeMetadata["outputs"]
+        outputs: stub<NodeMetadata["outputs"]>([{ name: "out", type: { type: "audio" } }])
       }
     });
     expect(arePropsEqual(a, b)).toBe(false);
@@ -129,40 +126,40 @@ describe("arePropsEqual", () => {
 
   it("detects data.properties value change", () => {
     const a = makeProps({
-      data: { ...makeProps().data, properties: { foo: "bar" } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, properties: { foo: "bar" } })
     });
     const b = makeProps({
-      data: { ...makeProps().data, properties: { foo: "baz" } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, properties: { foo: "baz" } })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
   it("detects data.properties key count change", () => {
     const a = makeProps({
-      data: { ...makeProps().data, properties: { a: 1 } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, properties: { a: 1 } })
     });
     const b = makeProps({
-      data: { ...makeProps().data, properties: { a: 1, b: 2 } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, properties: { a: 1, b: 2 } })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
   it("detects exposedInputs change", () => {
     const a = makeProps({
-      data: { ...makeProps().data, exposedInputs: ["x"] } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, exposedInputs: ["x"] })
     });
     const b = makeProps({
-      data: { ...makeProps().data, exposedInputs: ["y"] } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, exposedInputs: ["y"] })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
   it("detects dynamic_properties change", () => {
     const a = makeProps({
-      data: { ...makeProps().data, dynamic_properties: { a: 1 } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, dynamic_properties: { a: 1 } })
     });
     const b = makeProps({
-      data: { ...makeProps().data, dynamic_properties: { a: 1, b: 2 } } as unknown as NodeData
+      data: stub<NodeData>({ ...makeProps().data, dynamic_properties: { a: 1, b: 2 } })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });
@@ -173,42 +170,42 @@ describe("arePropsEqual", () => {
     // `Slugify(type)` — if this compare skips that map, the handle stays grey.
     const values = { a: "" };
     const a = makeProps({
-      data: {
+      data: stub<NodeData>({
         ...makeProps().data,
         dynamic_properties: values,
         dynamic_inputs: {
           a: { type: { type: "any", optional: false, type_args: [] } }
         }
-      } as unknown as NodeData
+      })
     });
     const b = makeProps({
-      data: {
+      data: stub<NodeData>({
         ...makeProps().data,
         dynamic_properties: values,
         dynamic_inputs: {
           a: { type: { type: "image", optional: false, type_args: [] } }
         }
-      } as unknown as NodeData
+      })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
   it("detects a dynamic_outputs type change with the same keys", () => {
     const a = makeProps({
-      data: {
+      data: stub<NodeData>({
         ...makeProps().data,
         dynamic_outputs: {
           out: { type: "any", optional: false, type_args: [] }
         }
-      } as unknown as NodeData
+      })
     });
     const b = makeProps({
-      data: {
+      data: stub<NodeData>({
         ...makeProps().data,
         dynamic_outputs: {
           out: { type: "str", optional: false, type_args: [] }
         }
-      } as unknown as NodeData
+      })
     });
     expect(arePropsEqual(a, b)).toBe(false);
   });

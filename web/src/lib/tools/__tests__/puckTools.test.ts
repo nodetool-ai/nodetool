@@ -18,6 +18,7 @@ import {
   PuckAgentHandler,
   PuckSnapshot
 } from "../../../components/appbuilder/puck/puckAgentBridge";
+import { stub } from "../../../test-utils/doubles";
 
 const APP_ID = "app-1";
 
@@ -99,9 +100,9 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
 const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
 
 const jsonResponse = (body: unknown): Response =>
-  ({ ok: true, status: 200, json: async () => body }) as unknown as Response;
+  stub<Response>({ ok: true, status: 200, json: async () => body });
 
-const ctx = { getState: () => ({}) as unknown as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 const call = (name: string, args: Record<string, unknown>) =>
   FrontendToolRegistry.call(name, args, `call-${name}`, ctx);

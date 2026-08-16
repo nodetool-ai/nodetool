@@ -35,6 +35,7 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import type { Generation } from "../../../utils/nodeGenerations";
+import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
@@ -44,7 +45,7 @@ const mockResultsGetState = (
 const mockAssetsGetState = (
   useWorkflowAssetStore as unknown as { getState: jest.Mock }
 ).getState;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 describe("useRunSingleNode", () => {
   const mockRun = jest.fn();

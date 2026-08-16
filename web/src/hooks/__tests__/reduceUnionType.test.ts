@@ -1,5 +1,6 @@
 import reduceUnionType from "../reduceUnionType";
 import { TypeMetadata } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 // Helper to create a minimal valid TypeMetadata
 const createTypeMetadata = (
@@ -125,11 +126,11 @@ describe("reduceUnionType", () => {
   describe("edge cases", () => {
     it("returns 'str' when union type has undefined type_args", () => {
       // Using type assertion to test the undefined case
-      const type = {
+      const type = stub<TypeMetadata>({
         type: "union",
         optional: false,
         type_args: undefined
-      } as unknown as TypeMetadata;
+      });
       expect(reduceUnionType(type)).toBe("str");
     });
 

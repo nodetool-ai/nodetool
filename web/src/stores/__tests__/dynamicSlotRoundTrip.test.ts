@@ -9,12 +9,13 @@ import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
 import type { Workflow } from "../ApiTypes";
 import type { NodeData } from "../NodeData";
+import { stub } from "../../test-utils/doubles";
 
-const workflow = {
+const workflow = stub<Workflow>({
   id: "wf-1",
   name: "Round trip",
   graph: { nodes: [], edges: [] }
-} as unknown as Workflow;
+});
 
 const imageType = {
   type: "image",

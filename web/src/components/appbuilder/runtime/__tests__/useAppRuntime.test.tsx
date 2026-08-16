@@ -78,6 +78,7 @@ import {
   workflowInstanceId
 } from "../appRuntimeStore";
 import { variableStorageKey } from "../variablePersistence";
+import { stub } from "../../../../test-utils/doubles";
 
 interface FakeRunnerState {
   job_id: string | null;
@@ -126,19 +127,19 @@ const graph = (nodeId: string, outputId: string) => ({
   edges: []
 });
 
-const workflowA = {
+const workflowA = stub<Workflow>({
   id: "wf-a",
   name: "A",
   access: "private",
   graph: graph("in1", "out1")
-} as unknown as Workflow;
+});
 
-const workflowB = {
+const workflowB = stub<Workflow>({
   id: "wf-b",
   name: "B",
   access: "private",
   graph: graph("in2", "out2")
-} as unknown as Workflow;
+});
 
 const emptyUi = { root: { props: {} }, content: [], zones: {} };
 

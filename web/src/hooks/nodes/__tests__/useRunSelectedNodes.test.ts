@@ -42,11 +42,12 @@ import {
 } from "../../../stores/WorkflowRunner";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createRunResolver } from "../../../utils/runResolver";
+import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseNotificationStore = asMock(useNotificationStore);
 const mockMetadataGetState = (
   useMetadataStore as unknown as { getState: jest.Mock }
 ).getState;

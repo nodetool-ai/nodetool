@@ -3,9 +3,10 @@
  */
 import { clipsById, findClipById } from "../clipLookup";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { stub } from "../../../test-utils/doubles";
 
 const makeClip = (id: string): TimelineClip =>
-  ({
+  stub<TimelineClip>({
     id,
     trackId: "t1",
     name: "",
@@ -16,7 +17,7 @@ const makeClip = (id: string): TimelineClip =>
     locked: false,
     versions: [],
     status: "generated",
-  }) as unknown as TimelineClip;
+  });
 
 describe("clipLookup", () => {
   describe("clipsById", () => {

@@ -23,7 +23,7 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     }
   }
 
-  return PlaceholderNode as unknown as NodeClass;
+  return PlaceholderNode;
 }
 
 /**

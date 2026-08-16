@@ -38,6 +38,7 @@ type JsonValue =
 /** An `image_documents` row as these commands need it. */
 export interface ImageDocumentRow {
   id: string;
+  user_id: string;
   name?: string | null;
   width: number;
   height: number;
@@ -182,8 +183,6 @@ async function defaultStore(): Promise<SketchVersionStore> {
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
-  type SnapshotArg = Parameters<typeof ImageDocumentVersion.snapshot>[0];
-
   return {
     loadDocument: async (id) =>
       (await ImageDocument.findById(id)) as ImageDocumentRow | null,
@@ -191,17 +190,14 @@ async function defaultStore(): Promise<SketchVersionStore> {
       (await ImageDocumentVersion.listForDocument(
         imageDocumentId,
         opts
-      )) as unknown as SketchVersionRow[],
+      )),
     findVersion: async (imageDocumentId, version) =>
       (await ImageDocumentVersion.findByVersion(
         imageDocumentId,
         version
-      )) as unknown as SketchVersionRow | null,
+      )),
     snapshot: async (doc, opts) =>
-      (await ImageDocumentVersion.snapshot(
-        doc as unknown as SnapshotArg,
-        opts
-      )) as unknown as SketchVersionRow,
+      await ImageDocumentVersion.snapshot(doc, opts),
     restore: async (doc, version) =>
       (await ImageDocument.updateFieldsIfUnchanged(doc.id, doc.updated_at, {
         document: version.document,

@@ -1,5 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFloatingToolbarState } from "../useFloatingToolbarState";
+import { stub } from "../../test-utils/doubles";
 
 describe("useFloatingToolbarState", () => {
   it("initializes with all menus closed", () => {
@@ -37,9 +38,9 @@ describe("useFloatingToolbarState", () => {
     it("opens actions menu with anchor element", () => {
       const { result } = renderHook(() => useFloatingToolbarState());
       const mockElement = document.createElement("button");
-      const mockEvent = {
+      const mockEvent = stub<React.MouseEvent<HTMLElement>>({
         currentTarget: mockElement
-      } as unknown as React.MouseEvent<HTMLElement>;
+      });
 
       act(() => {
         result.current.handleOpenActionsMenu(mockEvent);
@@ -51,9 +52,9 @@ describe("useFloatingToolbarState", () => {
     it("closes actions menu", () => {
       const { result } = renderHook(() => useFloatingToolbarState());
       const mockElement = document.createElement("button");
-      const mockEvent = {
+      const mockEvent = stub<React.MouseEvent<HTMLElement>>({
         currentTarget: mockElement
-      } as unknown as React.MouseEvent<HTMLElement>;
+      });
 
       act(() => {
         result.current.handleOpenActionsMenu(mockEvent);
@@ -68,9 +69,9 @@ describe("useFloatingToolbarState", () => {
     it("opens advanced menu with anchor element", () => {
       const { result } = renderHook(() => useFloatingToolbarState());
       const mockElement = document.createElement("button");
-      const mockEvent = {
+      const mockEvent = stub<React.MouseEvent<HTMLElement>>({
         currentTarget: mockElement
-      } as unknown as React.MouseEvent<HTMLElement>;
+      });
 
       act(() => {
         result.current.handleOpenAdvancedMenu(mockEvent);
@@ -82,9 +83,9 @@ describe("useFloatingToolbarState", () => {
     it("closes advanced menu", () => {
       const { result } = renderHook(() => useFloatingToolbarState());
       const mockElement = document.createElement("button");
-      const mockEvent = {
+      const mockEvent = stub<React.MouseEvent<HTMLElement>>({
         currentTarget: mockElement
-      } as unknown as React.MouseEvent<HTMLElement>;
+      });
 
       act(() => {
         result.current.handleOpenAdvancedMenu(mockEvent);
@@ -99,12 +100,12 @@ describe("useFloatingToolbarState", () => {
     const { result } = renderHook(() => useFloatingToolbarState());
     const mockElement1 = document.createElement("button");
     const mockElement2 = document.createElement("div");
-    const mockEvent1 = {
+    const mockEvent1 = stub<React.MouseEvent<HTMLElement>>({
       currentTarget: mockElement1
-    } as unknown as React.MouseEvent<HTMLElement>;
-    const mockEvent2 = {
+    });
+    const mockEvent2 = stub<React.MouseEvent<HTMLElement>>({
       currentTarget: mockElement2
-    } as unknown as React.MouseEvent<HTMLElement>;
+    });
 
     act(() => {
       result.current.handleOpenPaneMenu();

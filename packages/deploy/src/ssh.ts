@@ -116,6 +116,11 @@ function getClientCtor(): SSH2ClientConstructor {
 // Custom Error Classes
 // ---------------------------------------------------------------------------
 
+/** The ssh2 Client's private socket, read only to check writability. */
+interface SshUnderlyingSocket {
+  writable?: boolean;
+}
+
 export class SSHConnectionError extends Error {
   constructor(message: string) {
     super(message);
@@ -273,9 +278,10 @@ export class SSHConnection {
   isConnected(): boolean {
     if (!this.client) return false;
     // Heuristic: check whether the underlying socket is writable.
-    const sock = (this.client as unknown as Record<string, unknown>)._sock as
-      | { writable?: boolean }
-      | undefined;
+    const sock: SshUnderlyingSocket | undefined = Reflect.get(
+      this.client,
+      "_sock"
+    );
     return sock?.writable === true;
   }
 

@@ -9,13 +9,14 @@ import {
   useTextareaAssetMention
 } from "../useTextareaAssetMention";
 import type { AssetMentionMenuProps } from "../../../node_types/editing/promptComposer/AssetMentionMenu";
+import { stub } from "../../../../test-utils/doubles";
 
 // Stub the search hook so the picker shows a fixed asset set (no trpc / stores).
 const MOCK_ASSETS: Asset[] = [
   { id: "a1", name: "fox.png", content_type: "image/png" } as Asset,
   { id: "a2", name: "wave.wav", content_type: "audio/wav" } as Asset
 ];
-const MOCK_ENTITIES = [
+const MOCK_ENTITIES = stub<Entity[]>([
   {
     type: "entity",
     id: "e1",
@@ -23,7 +24,7 @@ const MOCK_ENTITIES = [
     name: "Marta",
     descriptor: "red-haired detective"
   }
-] as unknown as Entity[];
+]);
 const setActiveTab = jest.fn();
 jest.mock(
   "../../../node_types/editing/promptComposer/useAssetMentionSearch",

@@ -260,15 +260,26 @@ async function buildVideoClips(
  * empty image/audio/video uploads (and strip the mentions from the text).
  * Shared with FAL / Replicate / image-to-image via `mapPromptAssetsToInputs`.
  */
+/**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ */
+function propertyOf(instance: BaseNode, name: string): unknown {
+  return Reflect.get(instance, name);
+}
+
 async function promptAssetOverrides(
   instance: BaseNode,
   spec: KieManifestEntry,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
-  const values = instance as unknown as Record<string, unknown>;
   const textFields: PromptAssetTextField[] = spec.fields
     .filter((f) => f.type === "str")
-    .map((f) => ({ name: f.name, value: String(values[f.name] ?? "") }));
+    .map((f) => ({
+      name: f.name,
+      value: String(propertyOf(instance, f.name) ?? "")
+    }));
   const assetFields: PromptAssetInputField[] = [];
   for (const upload of spec.uploads ?? []) {
     // Video-clip uploads carry per-clip start/end timing, not a plain ref, so
@@ -280,7 +291,7 @@ async function promptAssetOverrides(
       upload.kind !== "video"
     )
       continue;
-    const value = values[upload.field];
+    const value = propertyOf(instance, upload.field);
     const list = Boolean(upload.isList);
     const hasSource = list
       ? Array.isArray(value) && value.some(isRefSet)
@@ -312,7 +323,7 @@ async function buildParams(
   const readValue = (name: string): NodeValue =>
     (name in overrides
       ? overrides[name]
-      : (instance as unknown as Record<string, unknown>)[name]) as NodeValue;
+      : propertyOf(instance, name)) as NodeValue;
 
   // Scalar and list[str] fields
   for (const field of spec.fields) {
@@ -442,7 +453,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     if (specRef.validation) {
       for (const v of specRef.validation) {
         if (v.rule === "not_empty") {
-          const val = (instance as unknown as Record<string, unknown>)[v.field];
+          const val = propertyOf(instance, v.field);
           if (!String(val ?? "").trim()) {
             throw new Error(v.message ?? `${v.field} cannot be empty`);
           }
@@ -559,7 +570,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     registerDeclaredProperty(KieNodeClass, field.name, propOptions);
   }
 
-  return KieNodeClass as unknown as NodeClass;
+  return KieNodeClass;
 }
 
 export function loadKieNodesFromManifest(

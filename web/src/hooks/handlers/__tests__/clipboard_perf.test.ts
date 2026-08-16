@@ -6,6 +6,7 @@ import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { asMock } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -34,11 +35,11 @@ describe("useClipboardContentPaste Performance", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useReactFlow as jest.Mock).mockReturnValue({ screenToFlowPosition: mockScreenToFlowPosition });
-    (useNodes as unknown as jest.Mock).mockReturnValue({ createNode: mockCreateNode, addNode: mockAddNode, workflow: { id: "1" } });
-    (useAssetUpload as unknown as jest.Mock).mockReturnValue({ uploadAsset: mockUploadAsset });
-    (useAssetGridStore as unknown as jest.Mock).mockReturnValue({ currentFolderId: "1" });
-    (useAuth as unknown as jest.Mock).mockReturnValue({ user: { id: "1" } });
-    (useMetadataStore as unknown as jest.Mock).mockReturnValue({ getMetadata: mockGetMetadata });
+    asMock(useNodes).mockReturnValue({ createNode: mockCreateNode, addNode: mockAddNode, workflow: { id: "1" } });
+    asMock(useAssetUpload).mockReturnValue({ uploadAsset: mockUploadAsset });
+    asMock(useAssetGridStore).mockReturnValue({ currentFolderId: "1" });
+    asMock(useAuth).mockReturnValue({ user: { id: "1" } });
+    asMock(useMetadataStore).mockReturnValue({ getMetadata: mockGetMetadata });
   });
 
   it("measures performance of sequential reads when first item fails", async () => {

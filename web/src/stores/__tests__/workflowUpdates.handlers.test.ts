@@ -12,6 +12,13 @@ import useStatusStore from "../StatusStore";
 import useLogsStore from "../LogStore";
 import useErrorStore from "../ErrorStore";
 import { handleUpdate } from "../workflowUpdates";
+import { stub } from "../../test-utils/doubles";
+
+/**
+ * The backend stamps a job id onto every frame it sends; the protocol update
+ * types do not declare it, and `handleUpdate` reads it back off the message.
+ */
+type StampedUpdate<T> = T & { job_id: string };
 
 const mockAddNotification = jest.fn();
 const mockDequeueNextPendingRun = jest.fn();
@@ -54,14 +61,14 @@ beforeEach(() => {
 
 describe("handleUpdate", () => {
   it("routes terminal_update into the per-node terminal buffer", () => {
-    const terminalUpdate = {
+    const terminalUpdate = stub<StampedUpdate<TerminalUpdate>>({
       type: "terminal_update",
       node_id: "n1",
       content: "\x1b[2J$ claude\r\n",
       cols: 120,
       rows: 36,
       job_id: "job-1"
-    } as unknown as TerminalUpdate;
+    });
 
     handleUpdate(mockWorkflow, terminalUpdate, mockRunnerStore as never, () => undefined);
 
@@ -92,14 +99,14 @@ describe("handleUpdate", () => {
   });
 
   it("stores progress on node_progress", () => {
-    const progress = {
+    const progress = stub<NodeProgress>({
       type: "node_progress",
       node_id: "n1",
       progress: 5,
       total: 10,
       // Per-node progress is keyed by the producing run's job_id.
       job_id: "job-1"
-    } as unknown as NodeProgress;
+    });
 
     handleUpdate(mockWorkflow, progress, mockRunnerStore as never, () => undefined);
 
@@ -110,7 +117,7 @@ describe("handleUpdate", () => {
   });
 
   it("stores error on node_update with error", () => {
-    const update = {
+    const update = stub<NodeUpdate>({
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
@@ -119,7 +126,7 @@ describe("handleUpdate", () => {
       error: "something failed",
       // Per-node error is keyed by the producing run's job_id.
       job_id: "job-1"
-    } as unknown as NodeUpdate;
+    });
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
@@ -129,7 +136,7 @@ describe("handleUpdate", () => {
   });
 
   it("stores provider_cost on completed node_update", () => {
-    const update = {
+    const update = stub<NodeUpdate>({
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
@@ -138,7 +145,7 @@ describe("handleUpdate", () => {
       provider_cost: { provider: "kie", amount: 12, unit: "credits" },
       // Per-node provider cost is keyed by the producing run's job_id.
       job_id: "job-1"
-    } as unknown as NodeUpdate;
+    });
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
@@ -152,7 +159,7 @@ describe("handleUpdate", () => {
   });
 
   it("stores output result on output_update", () => {
-    const output = {
+    const output = stub<OutputUpdate>({
       type: "output_update",
       node_id: "n1",
       node_name: "Out",
@@ -162,7 +169,7 @@ describe("handleUpdate", () => {
       metadata: {},
       // Per-node output result is keyed by the producing run's job_id.
       job_id: "job-1"
-    } as unknown as OutputUpdate;
+    });
 
     handleUpdate(mockWorkflow, output, mockRunnerStore as never, () => undefined);
 

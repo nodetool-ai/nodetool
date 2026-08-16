@@ -6,11 +6,12 @@ import {
 } from "../codeGenPaletteMetadata";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import { rankSearchNodes } from "../../utils/nodeSearch";
+import { stub } from "../../test-utils/doubles";
 
 const anyType = { type: "any", type_args: [], optional: false };
 
 const decoy = (title: string, nodeType: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     title,
     description: "An unrelated node.",
     namespace: "nodetool.other",
@@ -23,7 +24,7 @@ const decoy = (title: string, nodeType: string): NodeMetadata =>
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
-  }) as unknown as NodeMetadata;
+  });
 
 const catalog: NodeMetadata[] = [
   codeGenPaletteMetadata(),

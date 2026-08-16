@@ -15,7 +15,6 @@
 import { randomUUID } from "node:crypto";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "../session.js";
-import type { RawGraphInput } from "../types.js";
 import { collectExecutionSummary } from "../debug/collector.js";
 import type {
   AppServerRunInput,
@@ -48,7 +47,7 @@ export function createAppServerRunner(
       storage: new FileStorageAdapter(getDefaultAssetsPath())
     });
     const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
-      graph: input.graph as unknown as RawGraphInput,
+      graph: input.graph,
       registry,
       jobId,
       workflowId: input.workflowId,

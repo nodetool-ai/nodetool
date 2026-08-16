@@ -7,11 +7,12 @@ import {
   type OAuthConnection
 } from "../useOAuthConnection";
 import type { SecretResponse } from "../../stores/ApiTypes";
+import { asMock } from "../../test-utils/doubles";
 
 jest.mock("../../stores/SecretsStore");
 jest.mock("../useOAuthConnection");
 
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;

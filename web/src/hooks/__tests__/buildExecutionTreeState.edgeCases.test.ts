@@ -9,16 +9,17 @@
 import { buildExecutionTreeState } from "../useExecutionTreeState";
 import type { Message } from "../../stores/ApiTypes";
 import type { StepToolCall } from "../../stores/GlobalChatStore";
+import { stub } from "../../test-utils/doubles";
 
 function makeMessage(
   eventType: string,
   content: Record<string, unknown>
 ): Message {
-  return {
+  return stub<Message>({
     role: "agent_execution",
     execution_event_type: eventType,
     content: content
-  } as unknown as Message;
+  });
 }
 
 describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
@@ -62,11 +63,11 @@ describe("buildExecutionTreeState — content normalization edge cases", () => {
       content: "Double encoded"
     };
     const messages: Message[] = [
-      {
+      stub<Message>({
         role: "agent_execution",
         execution_event_type: undefined,
         content: JSON.stringify(JSON.stringify(inner))
-      } as unknown as Message
+      })
     ];
     const state = buildExecutionTreeState(messages);
     expect(state.phase).toBe("planning");

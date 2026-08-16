@@ -132,11 +132,20 @@ function collectScalarFields(
   const fields: Record<string, unknown> = {};
   for (const field of spec.fields) {
     if (field.uploadField || isAssetType(field.type)) continue;
-    const raw = (instance as unknown as Record<string, unknown>)[field.name];
+    const raw = propertyOf(instance, field.name);
     const value = raw ?? field.default ?? defaultForType(field.type);
     fields[field.name] = castValue(value, field.type);
   }
   return fields;
+}
+
+/**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ */
+function propertyOf(instance: BaseNode, name: string): unknown {
+  return Reflect.get(instance, name);
 }
 
 function uploadFieldName(spec: TopazManifestEntry): string {
@@ -157,7 +166,7 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     ): Promise<Record<string, unknown>> {
       const apiKey = getApiKey(this._secrets);
       const fields = collectScalarFields(this, specRef);
-      const asset = (this as unknown as Record<string, unknown>)[assetField];
+      const asset = propertyOf(this, assetField);
 
       if (isVideo) {
         const sourceContainer = sourceContainerFromRef(asset);
@@ -267,7 +276,7 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     registerDeclaredProperty(TopazNodeClass, field.name, propOptions);
   }
 
-  return TopazNodeClass as unknown as NodeClass;
+  return TopazNodeClass;
 }
 
 export function loadTopazNodesFromManifest(

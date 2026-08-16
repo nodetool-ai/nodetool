@@ -6,6 +6,7 @@ import { useNodeEvents } from "../useNodeEvents";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../nodes/useSelect";
+import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");
@@ -16,9 +17,9 @@ describe("useNodeEvents", () => {
   const mockCloseSelect = jest.fn();
   const mockOnNodesChange = jest.fn();
 
-  const mockedUseContextMenu = useContextMenu as unknown as jest.Mock;
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseSelect = useSelect as unknown as jest.Mock;
+  const mockedUseContextMenu = asMock(useContextMenu);
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseSelect = asMock(useSelect);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,12 +48,12 @@ describe("useNodeEvents", () => {
   describe("handleNodeContextMenu", () => {
     it("opens context menu at event coordinates", () => {
       const { result } = renderHook(() => useNodeEvents());
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 100,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
       const mockNode = { id: "node-1" } as Node;
 
       result.current.handleNodeContextMenu(mockEvent, mockNode);
@@ -71,12 +72,12 @@ describe("useNodeEvents", () => {
 
     it("handles context menu for any node", () => {
       const { result } = renderHook(() => useNodeEvents());
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 50,
         clientY: 75
-      } as unknown as ReactMouseEvent;
+      });
       const mockNode = { id: "different-node", type: "test" } as Node;
 
       result.current.handleNodeContextMenu(mockEvent, mockNode);

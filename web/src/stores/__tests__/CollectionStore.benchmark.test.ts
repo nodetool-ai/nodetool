@@ -2,6 +2,7 @@ import { act } from "@testing-library/react";
 import { restFetch } from "../../lib/rest-fetch";
 import { trpcClient } from "../../trpc/client";
 import { useCollectionStore } from "../CollectionStore";
+import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
@@ -40,12 +41,12 @@ describe("CollectionStore Benchmark", () => {
     const mockFile2 = new File(["content2"], "test2.txt", { type: "text/plain" });
     const mockFile3 = new File(["content3"], "test3.txt", { type: "text/plain" });
 
-    const mockEvent = {
+    const mockEvent = stub<React.DragEvent<HTMLDivElement>>({
       preventDefault: jest.fn(),
       dataTransfer: {
         files: [mockFile1, mockFile2, mockFile3]
       }
-    } as unknown as React.DragEvent<HTMLDivElement>;
+    });
 
     mockRestFetch.mockResolvedValue({
       ok: true,

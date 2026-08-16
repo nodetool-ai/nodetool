@@ -6,14 +6,15 @@ import { useEditVideoAsset } from "../useEditVideoAsset";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { Asset } from "../../stores/ApiTypes";
+import { asMock } from "../../test-utils/doubles";
 
 const navigateMock = jest.fn();
 jest.mock("react-router-dom", () => ({
   useNavigate: () => navigateMock
 }));
 
-const createMutate = trpcClient.timeline.create.mutate as unknown as jest.Mock;
-const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock;
+const createMutate = asMock(trpcClient.timeline.create.mutate);
+const updateMutate = asMock(trpcClient.timeline.update.mutate);
 
 const videoAsset = (overrides: Partial<Asset> = {}): Asset =>
   ({

@@ -6,9 +6,10 @@ import {
   rankNodeMetadata,
 } from "../nodeRanking";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 const makeNode = (overrides: Record<string, unknown>): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     description: "",
     properties: [],
     outputs: [],
@@ -19,7 +20,7 @@ const makeNode = (overrides: Record<string, unknown>): NodeMetadata =>
     is_streaming_output: false,
     required_settings: [],
     ...overrides,
-  }) as unknown as NodeMetadata;
+  });
 
 describe("searchTermsFromQuery", () => {
   it("returns empty array for empty/whitespace query", () => {

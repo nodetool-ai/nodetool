@@ -1,5 +1,9 @@
 import { Node } from "@xyflow/react";
-import { Workflow, Node as GraphNode } from "./ApiTypes";
+import {
+  Workflow,
+  Node as GraphNode,
+  PropertyTypeMetadata
+} from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { parseNodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import useMetadataStore from "./MetadataStore";
@@ -21,9 +25,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * A graph node on its way into the editor. Every field matches `Node`, except
+ * that `dynamic_inputs` may still hold the flat resolver form older workflows
+ * persisted — the TypeMetadata spread onto the slot itself, rather than nested
+ * under `type` — which `normalizeDynamicSlots` folds into the stored shape.
+ */
+export type IncomingGraphNode = {
+  [K in keyof GraphNode]: K extends "dynamic_inputs"
+    ? Record<string, DynamicSlotDeclarationOrType> | undefined
+    : GraphNode[K];
+};
+
+type DynamicSlotDeclarationOrType =
+  | NonNullable<GraphNode["dynamic_inputs"]>[string]
+  | PropertyTypeMetadata;
+
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
-  node: GraphNode
+  node: IncomingGraphNode
 ): Node<NodeData> {
   const ui_properties = parseNodeUIProperties(node.ui_properties);
   const isCollapsed = ui_properties?.collapsed === true;

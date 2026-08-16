@@ -6,14 +6,15 @@ import {
 } from "../nodeHash";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 // Generative nodes use the `gen.` prefix convention (mirrors runSubgraph.test.ts).
 const getMetadata = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 const node = (
   id: string,

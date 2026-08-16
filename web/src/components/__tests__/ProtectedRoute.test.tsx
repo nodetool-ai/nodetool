@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import ProtectedRoute from '../ProtectedRoute';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../stores/useAuth';
+import { asMock } from "../../test-utils/doubles";
 
 jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),
@@ -17,12 +18,12 @@ describe('ProtectedRoute', () => {
   const mockNavigate = jest.fn();
 
   beforeEach(() => {
-    (useNavigate as unknown as jest.Mock).mockReturnValue(mockNavigate);
+    asMock(useNavigate).mockReturnValue(mockNavigate);
     jest.clearAllMocks();
   });
 
   it('redirects to /login when logged_out', async () => {
-    (useAuth as unknown as jest.Mock).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
+    asMock(useAuth).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
       selector({ state: 'logged_out' })
     );
     render(
@@ -34,7 +35,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('shows loading spinner when state is loading', () => {
-    (useAuth as unknown as jest.Mock).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
+    asMock(useAuth).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
       selector({ state: 'loading' })
     );
     render(
@@ -46,7 +47,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children when logged_in', () => {
-    (useAuth as unknown as jest.Mock).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
+    asMock(useAuth).mockImplementation(<T,>(selector: (s: { state: string }) => T) =>
       selector({ state: 'logged_in' })
     );
     render(

@@ -17,6 +17,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { stub } from "../../../../test-utils/doubles";
 
 const renderRegion = () =>
   render(
@@ -28,14 +29,14 @@ const renderRegion = () =>
   );
 
 function dataTransferMock(): DataTransfer {
-  return {
+  return stub<DataTransfer>({
     types: [] as string[],
     dropEffect: "",
     effectAllowed: "",
     setData: () => {},
     getData: () => "",
     setDragImage: () => {}
-  } as unknown as DataTransfer;
+  });
 }
 
 function videoTrackIds(): string[] {

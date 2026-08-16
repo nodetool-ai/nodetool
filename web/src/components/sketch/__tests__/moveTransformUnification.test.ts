@@ -26,6 +26,7 @@ import {
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { setCanvasRasterBounds, getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -94,7 +95,7 @@ function makeMockCtx(docOverrides?: {
   const ch = docOverrides?.canvasHeight ?? 100;
   const layerCanvasesRef = { current: new Map<string, HTMLCanvasElement>() };
 
-  return {
+  return stub<ToolContext>({
     doc: {
       id: "test-doc",
       canvas: { width: cw, height: ch },
@@ -152,7 +153,7 @@ function makeMockCtx(docOverrides?: {
     withMirror: jest.fn(),
     setLayerTransformPreview: jest.fn(),
     clearLayerTransformPreview: jest.fn()
-  } as unknown as ToolContext;
+  });
 }
 
 function makePointerEvent(overrides?: {
@@ -162,7 +163,7 @@ function makePointerEvent(overrides?: {
   return {
     point: overrides?.point ?? { x: 0, y: 0 },
     pressure: overrides?.pressure ?? 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       clientX: 0,
       clientY: 0,
       ctrlKey: false,
@@ -171,7 +172,7 @@ function makePointerEvent(overrides?: {
       shiftKey: false,
       pointerId: 1,
       pointerType: "mouse"
-    } as unknown as React.PointerEvent
+    })
   };
 }
 

@@ -16,6 +16,16 @@ import type { TimelineSequence } from "./timeline-sequence.js";
 export type TimelineSequenceSaveType = "manual" | "autosave" | "restore";
 
 /**
+ * The fields {@link TimelineSequenceVersion.snapshot} copies off a sequence.
+ * Naming them lets a caller that holds only a row — the CLI's version-store
+ * seam — pass it without pretending to be a full model instance.
+ */
+export type TimelineSequenceSnapshotSource = Pick<
+  TimelineSequence,
+  "id" | "user_id" | "fps" | "width" | "height" | "duration_ms" | "document"
+>;
+
+/**
  * Whether an insert lost the race for a version number. SQLite and both
  * PostgreSQL drivers word it differently; all three mean the unique index on
  * (timeline_id, version) rejected the row.
@@ -127,7 +137,7 @@ export class TimelineSequenceVersion extends DBModel {
    * more before giving up.
    */
   static async snapshot(
-    seq: TimelineSequence,
+    seq: TimelineSequenceSnapshotSource,
     opts: {
       saveType: TimelineSequenceSaveType;
       name?: string | null;

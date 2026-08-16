@@ -2,11 +2,12 @@ import { countHeavyNodes } from "../heavyNodes";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 const meta = (over: Partial<NodeMetadata>): NodeMetadata => over as NodeMetadata;
 
 const node = (id: string, type: string, bypassed = false): Node<NodeData> =>
-  ({ id, type, data: { bypassed } }) as unknown as Node<NodeData>;
+  stub<Node<NodeData>>({ id, type, data: { bypassed } });
 
 describe("countHeavyNodes", () => {
   const getMeta = (type: string): NodeMetadata | undefined => {

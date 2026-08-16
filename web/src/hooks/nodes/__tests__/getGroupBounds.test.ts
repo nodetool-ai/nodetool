@@ -2,6 +2,7 @@ import { getGroupBounds } from "../getGroupBounds";
 import { getChildNodes } from "../getChildNodes";
 import { Node, getNodesBounds } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
+import { stub } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -69,7 +70,7 @@ describe("getGroupBounds", () => {
   });
 
   it("returns null when parentNode has no id", () => {
-    const parentNode = { id: undefined, position: { x: 0, y: 0 }, data: { properties: {}, selectable: true, dynamic_properties: {}, workflow_id: "test" } } as unknown as Node<NodeData>;
+    const parentNode = stub<Node<NodeData>>({ id: undefined, position: { x: 0, y: 0 }, data: { properties: {}, selectable: true, dynamic_properties: {}, workflow_id: "test" } });
     const result = getGroupBounds([], parentNode);
     expect(result).toBeNull();
   });

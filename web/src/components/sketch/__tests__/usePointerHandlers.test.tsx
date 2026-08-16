@@ -9,6 +9,7 @@ import { TransformTool } from "../tools/TransformTool";
 import { MoveTool } from "../tools/MoveTool";
 import { createDefaultDocument } from "../types";
 import type { UsePointerHandlersParams } from "../sketchCanvasHooks/usePointerHandlers";
+import { stub } from "../../../test-utils/doubles";
 
 function makeParams(): UsePointerHandlersParams {
   const doc = createDefaultDocument(64, 64);
@@ -89,7 +90,7 @@ describe("usePointerHandlers", () => {
     const { result } = renderHook(() => usePointerHandlers(params));
 
     act(() => {
-      result.current.handlePointerDown({
+      result.current.handlePointerDown(stub<React.PointerEvent>({
         button: 1,
         clientX: 100,
         clientY: 120,
@@ -99,17 +100,17 @@ describe("usePointerHandlers", () => {
         metaKey: false,
         nativeEvent: {} as PointerEvent,
         target
-      } as unknown as React.PointerEvent);
+      }));
     });
 
     expect(result.current.containerCursor).toBe("grabbing");
 
     act(() => {
-      result.current.handlePointerUp({
+      result.current.handlePointerUp(stub<React.PointerEvent>({
         clientX: 100,
         clientY: 120,
         nativeEvent: {} as PointerEvent
-      } as unknown as React.PointerEvent);
+      }));
     });
 
     expect(result.current.containerCursor).toBe("none");

@@ -27,6 +27,7 @@ const document = JSON.stringify({
 
 const sequence = (): TimelineSequenceRow => ({
   id: "seq-1",
+  user_id: "1",
   name: "My timeline",
   fps: 30,
   width: 1920,

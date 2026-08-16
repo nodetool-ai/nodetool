@@ -14,6 +14,7 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../serialization";
+import { stub } from "../../../test-utils/doubles";
 
 const mockDeserialize = deserializeDragData as jest.MockedFunction<
   typeof deserializeDragData
@@ -33,7 +34,7 @@ beforeEach(() => {
 function createMockDragEvent(
   overrides?: Partial<React.DragEvent>
 ): React.DragEvent {
-  return {
+  return stub<React.DragEvent>({
     preventDefault: jest.fn(),
     stopPropagation: jest.fn(),
     clientX: 100,
@@ -45,7 +46,7 @@ function createMockDragEvent(
       files: { length: 0 }
     } as unknown as DataTransfer,
     ...overrides
-  } as unknown as React.DragEvent;
+  });
 }
 
 describe("useDropZone", () => {

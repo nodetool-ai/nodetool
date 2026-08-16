@@ -2,6 +2,7 @@ import type { JobUpdate, WorkflowAttributes } from "../ApiTypes";
 import useOnboardingStore from "../OnboardingStore";
 import { handleUpdate } from "../workflowUpdates";
 import { markJobSilent, unmarkJobSilent } from "../previewJobs";
+import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({
@@ -20,7 +21,7 @@ const mockWorkflow = {
 } as WorkflowAttributes;
 
 const jobUpdate = (status: string, jobId: string): JobUpdate =>
-  ({ type: "job_update", status, job_id: jobId }) as unknown as JobUpdate;
+  stub<JobUpdate>({ type: "job_update", status, job_id: jobId });
 
 const dispatch = (status: string, jobId = "runner-job") =>
   handleUpdate(

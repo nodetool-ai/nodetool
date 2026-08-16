@@ -2,13 +2,14 @@ import { describe, it, expect } from "@jest/globals";
 import { __testOnly_buildPlan as buildPlan } from "../useGroupIntoSubgraph";
 import { Edge as RFEdge, Node as RFNode } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
+import { stub } from "../../../test-utils/doubles";
 
 const makeNode = (
   id: string,
   type = "test.Node",
   position = { x: 0, y: 0 }
 ): RFNode<NodeData> =>
-  ({
+  stub<RFNode<NodeData>>({
     id,
     type,
     position,
@@ -20,7 +21,7 @@ const makeNode = (
       dynamic_inputs: undefined,
       dynamic_outputs: undefined
     }
-  } as unknown as RFNode<NodeData>);
+  });
 
 const makeEdge = (
   id: string,

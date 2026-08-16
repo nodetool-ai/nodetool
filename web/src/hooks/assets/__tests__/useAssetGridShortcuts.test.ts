@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useAssetGridShortcuts } from "../useAssetGridShortcuts";
 import { Asset } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 // Capture every useCombo registration so tests can assert the active flags and
 // invoke the callbacks directly, without wiring the real global key bus.
@@ -44,7 +45,7 @@ jest.mock("../../../stores/AssetGridStore", () => ({
 }));
 
 const createAsset = (id: string, content_type = "image/png"): Asset =>
-  ({
+  stub<Asset>({
     id,
     user_id: "u",
     workflow_id: null,
@@ -56,7 +57,7 @@ const createAsset = (id: string, content_type = "image/png"): Asset =>
     get_url: "url",
     thumb_url: null,
     duration: null
-  } as unknown as Asset);
+  });
 
 const comboKey = (combo: string[]) => [...combo].sort().join("+");
 const find = (combo: string[]) =>

@@ -13,6 +13,7 @@ import {
 } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../stores/SecretsStore");
@@ -21,8 +22,8 @@ jest.mock("../../../stores/NotificationStore");
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 const updateSecret = jest.fn().mockResolvedValue(undefined);
 const validateSecret = jest.fn();

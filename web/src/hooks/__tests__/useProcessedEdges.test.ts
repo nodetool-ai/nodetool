@@ -4,6 +4,7 @@ import { Edge, Node, Position } from "@xyflow/react";
 import { DataType } from "../../config/data_types";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
+import { stub } from "../../test-utils/doubles";
 
 const createMockNode = (
   id: string,
@@ -124,7 +125,7 @@ describe("useProcessedEdges", () => {
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
         if (nodeType === "test.TextNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.TextNode",
             namespace: "test",
             title: "Text Node",
@@ -132,10 +133,10 @@ describe("useProcessedEdges", () => {
             outputs: [
               { name: "text_output", type: { type: "str" } }
             ]
-          } as unknown as NodeMetadata;
+          });
         }
         if (nodeType === "test.Node") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.Node",
             namespace: "test",
             title: "Node",
@@ -143,7 +144,7 @@ describe("useProcessedEdges", () => {
               { name: "text_input", type: { type: "str" } }
             ],
             outputs: []
-          } as unknown as NodeMetadata;
+          });
         }
         return undefined;
       };
@@ -176,13 +177,13 @@ describe("useProcessedEdges", () => {
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
         if (nodeType === "test.TextNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.TextNode",
             namespace: "test",
             title: "Text Node",
             properties: [],
             outputs: [{ name: "text_output", type: { type: "str" } }]
-          } as unknown as NodeMetadata;
+          });
         }
         return undefined;
       };
@@ -211,22 +212,22 @@ describe("useProcessedEdges", () => {
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
         if (nodeType === "test.ImageNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.ImageNode",
             namespace: "test",
             title: "Image Node",
             properties: [{ name: "audio_in", type: { type: "audio" } }],
             outputs: [{ name: "image_out", type: { type: "image" } }]
-          } as unknown as NodeMetadata;
+          });
         }
         if (nodeType === "test.AudioNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.AudioNode",
             namespace: "test",
             title: "Audio Node",
             properties: [{ name: "audio_in", type: { type: "audio" } }],
             outputs: []
-          } as unknown as NodeMetadata;
+          });
         }
         return undefined;
       };
@@ -251,13 +252,13 @@ describe("useProcessedEdges", () => {
       ];
       const edges = [createMockEdge("edge1", "node1", "node2", "text_out", "text_in")];
 
-      const getMetadata = (): NodeMetadata | undefined => ({
+      const getMetadata = (): NodeMetadata | undefined => stub<NodeMetadata>({
         node_type: "test.TextNode",
         namespace: "test",
         title: "Text Node",
         properties: [{ name: "text_in", type: { type: "str" } }],
         outputs: [{ name: "text_out", type: { type: "str" } }]
-      } as unknown as NodeMetadata);
+      });
 
       const { result } = renderHook(() =>
         useProcessedEdges({
@@ -323,14 +324,14 @@ describe("useProcessedEdges", () => {
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
         if (nodeType === "test.StreamingNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.StreamingNode",
             namespace: "test",
             title: "Streaming Node",
             properties: [],
             outputs: [],
             is_streaming_output: true
-          } as unknown as NodeMetadata;
+          });
         }
         return undefined;
       };
@@ -451,13 +452,13 @@ describe("useProcessedEdges", () => {
 
       const getMetadata = (nodeType: string): NodeMetadata | undefined => {
         if (nodeType === "test.TextNode") {
-          return {
+          return stub<NodeMetadata>({
             node_type: "test.TextNode",
             namespace: "test",
             title: "Text Node",
             properties: [],
             outputs: [{ name: "text_out", type: { type: "str" } }]
-          } as unknown as NodeMetadata;
+          });
         }
         return undefined;
       };
