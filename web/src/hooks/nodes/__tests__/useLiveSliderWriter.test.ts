@@ -17,7 +17,7 @@ const storeState = {
 };
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (s: unknown) => unknown) =>
+  useNodes: <T,>(selector: (s: unknown) => T) =>
     selector({
       updateNodeProperties: mockUpdateNodeProperties,
       edges: storeState.edges
@@ -26,7 +26,7 @@ jest.mock("../../../contexts/NodeContext", () => ({
 }));
 
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) =>
+  useSettingsStore: <T,>(selector: (s: unknown) => T) =>
     selector({ settings: { instantUpdate } })
 }));
 
@@ -71,7 +71,7 @@ if (typeof globalThis.crypto === "undefined") {
   "preview-job-1";
 
 jest.mock("../../../stores/LiveRunStore", () => ({
-  useLiveRunStore: (selector: (s: unknown) => unknown) =>
+  useLiveRunStore: <T,>(selector: (s: unknown) => T) =>
     selector({ isScrubbing: false, notifyScrubActivity: mockNotifyScrubActivity })
 }));
 

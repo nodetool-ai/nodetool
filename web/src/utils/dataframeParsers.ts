@@ -5,6 +5,13 @@
 import readXlsxFile, { Row } from "read-excel-file";
 import { DataframeRef, ColumnDef } from "../stores/ApiTypes";
 
+/**
+ * One raw cell, as the CSV reader and read-excel-file produce them. The xlsx
+ * reader types a date cell as `typeof Date` while yielding a `Date` instance,
+ * so both spellings are listed.
+ */
+type RawCell = string | number | boolean | Date | typeof Date | null;
+
 /** Infer the data type from a value. */
 function inferDataType(
   value: unknown
@@ -105,9 +112,9 @@ function inferColumnType(
  * @returns The converted value
  */
 function convertValue(
-  value: unknown,
+  value: RawCell,
   type: "int" | "float" | "datetime" | "string" | "object"
-): unknown {
+): RawCell {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -170,7 +177,7 @@ function parseCSV(csvText: string): DataframeRef {
 
   const headers = parseCSVLine(lines[0]);
 
-  const rawData: unknown[][] = [];
+  const rawData: RawCell[][] = [];
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
     rawData.push(values);
@@ -267,7 +274,7 @@ async function parseExcel(file: File): Promise<DataframeRef> {
   );
 
   // Cells are returned as-is (Date objects from Excel are preserved).
-  const rawData: unknown[][] = rows.slice(1).map((row) => [...row]);
+  const rawData: RawCell[][] = rows.slice(1).map((row) => [...row]);
 
   const columnTypes: ("int" | "float" | "datetime" | "string" | "object")[] =
     [];

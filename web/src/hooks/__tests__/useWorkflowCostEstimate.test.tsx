@@ -27,7 +27,7 @@ const mockNodeStore = {
 };
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: unknown) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: unknown) => T) =>
     selector({ getNodeStore: () => mockNodeStore })
 }));
 
@@ -100,7 +100,7 @@ jest.mock("../../utils/modelUnitPricing", () => ({
 
 jest.mock("../../stores/MetadataStore", () => ({
   __esModule: true,
-  default: (selector: (s: unknown) => unknown) =>
+  default: <T,>(selector: (s: unknown) => T) =>
     selector({
       getMetadata: (nodeType: string) => mockMetadata[nodeType]
     })

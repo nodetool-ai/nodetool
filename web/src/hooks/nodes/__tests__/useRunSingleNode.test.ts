@@ -91,7 +91,7 @@ describe("useRunSingleNode", () => {
     useGraph([defaultNode], []);
 
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ run: mockRun, state: "idle" })
     );
 
@@ -101,7 +101,7 @@ describe("useRunSingleNode", () => {
     mockAssetsGetState.mockReturnValue({ getWorkflowAssets: () => [] });
 
     mockUseNotificationStore.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ addNotification: mockAddNotification })
     );
 
@@ -115,7 +115,7 @@ describe("useRunSingleNode", () => {
 
   it("returns early when workflow is already running", () => {
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) =>
+      <T,>(selector: (state: Record<string, unknown>) => T) =>
         selector({ run: mockRun, state: "running" })
     );
 

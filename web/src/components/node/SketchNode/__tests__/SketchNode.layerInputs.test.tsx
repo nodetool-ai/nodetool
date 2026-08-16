@@ -97,11 +97,11 @@ jest.mock("../../../../hooks/useDelayedVisibility", () => ({
   useDelayedVisibility: () => false
 }));
 jest.mock("../../../../stores/NodeFocusStore", () => ({
-  useNodeFocusStore: (selector: (s: unknown) => unknown) =>
+  useNodeFocusStore: <T,>(selector: (s: unknown) => T) =>
     selector({ focusedNodeId: null })
 }));
 jest.mock("../../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) =>
+  useSettingsStore: <T,>(selector: (s: unknown) => T) =>
     selector({ settings: { imageEditorOpenMode: "modal" } })
 }));
 
@@ -183,7 +183,7 @@ describe("SketchNode layer inputs via generations", () => {
       Promise.resolve({ data: "layer-data", naturalWidth: 10, naturalHeight: 10 })
     );
 
-    mockUseNodes.mockImplementation((selector: (s: unknown) => unknown) =>
+    mockUseNodes.mockImplementation(<T,>(selector: (s: unknown) => T) =>
       selector({
         edges: [edge],
         updateNodeProperties: jest.fn(),

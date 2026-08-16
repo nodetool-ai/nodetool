@@ -14,18 +14,18 @@ const nodeId = "node-1";
 
 // The body reads the live stream buffer for the focused job. Drive `items`
 // straight through the buffer so we don't need a running graph.
-let mockStreamBuffer: unknown;
+let mockStreamBuffer: string[] | undefined;
 
 jest.mock("../../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (selector: (s: { focusedJob: Record<string, string> }) => unknown) =>
+  default: <T,>(selector: (s: { focusedJob: Record<string, string> }) => T) =>
     selector({ focusedJob: { "wf-1": "job-1" } })
 }));
 
 jest.mock("../../../../stores/ResultsStore", () => ({
   __esModule: true,
-  default: (
-    selector: (s: { getOutputResult: () => unknown }) => unknown
+  default: <T,>(
+    selector: (s: { getOutputResult: () => string[] | undefined }) => T
   ) => selector({ getOutputResult: () => mockStreamBuffer })
 }));
 

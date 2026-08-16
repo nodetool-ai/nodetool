@@ -114,7 +114,9 @@ export const isTypedSlot = (slot: unknown): boolean =>
   normalizeDynamicSlot(slot).type.type !== "any";
 
 /** Inline value a freshly created slot of `type` starts with. */
-export const defaultValueForType = (type: TypeMetadata): unknown => {
+export const defaultValueForType = (
+  type: TypeMetadata
+): string | number | boolean | unknown[] | object | null => {
   switch (type.type) {
     case "str":
     case "text":

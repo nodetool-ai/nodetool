@@ -3,7 +3,7 @@ import { useInputStream } from "./useInputStream";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 
 /** Stable ref wrapper — avoids effect restarts when callback identity changes. */
-function useStableCallback<T extends (...args: never[]) => unknown>(fn: T): T {
+function useStableCallback<T extends (...args: never[]) => void>(fn: T): T {
   const ref = useRef(fn);
   ref.current = fn;
   return useCallback(

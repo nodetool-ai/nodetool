@@ -20,7 +20,7 @@ jest.mock("../../../hooks/useApplications", () => ({
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   tabId: (type: string, ref: string) => `${type}:${ref}`,
-  useWorkspaceTabsStore: (selector: (s: unknown) => unknown) =>
+  useWorkspaceTabsStore: <T,>(selector: (s: unknown) => T) =>
     selector({ openTab, activeTabId: "application:app-1" })
 }));
 

@@ -68,7 +68,9 @@ const getTypeArgsForKind = (kind: WorkflowInputKind) => {
   }
 };
 
-const kindFallbackDefault = (input: WorkflowInputIO): unknown => {
+const kindFallbackDefault = (
+  input: WorkflowInputIO
+): string | boolean | unknown[] | null => {
   switch (input.kind) {
     case "string":
     case "file_path":

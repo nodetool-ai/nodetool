@@ -19,7 +19,7 @@ jest.mock("../../../ui_primitives", () => ({
 
 jest.mock("../../../../contexts/NodeContext", () => ({
   useNodes: jest.fn(
-    (selector: (state: { updateNodeData: typeof mockUpdateNodeData }) => unknown) =>
+    <T,>(selector: (state: { updateNodeData: typeof mockUpdateNodeData }) => T) =>
       selector({
         updateNodeData: mockUpdateNodeData
       })

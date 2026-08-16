@@ -23,7 +23,7 @@ const asCallable = (listener: ListenerConstraint): UntypedListener =>
 
 type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ...args: infer A
-) => unknown
+) => void
   ? A
   : unknown[];
 

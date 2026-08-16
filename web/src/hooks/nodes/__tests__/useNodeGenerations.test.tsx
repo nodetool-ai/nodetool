@@ -4,7 +4,7 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: unknown) => unknown) =>
+  useNodes: <T,>(selector: (state: unknown) => T) =>
     selector({
       findNode: () => undefined,
       updateNodeData: () => undefined

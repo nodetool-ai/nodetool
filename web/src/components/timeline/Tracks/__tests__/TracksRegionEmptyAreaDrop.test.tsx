@@ -18,7 +18,18 @@ import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../../stores/ApiTypes";
 
-const restFetchMock = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+/** The slice of `Response` the video-audio import path reads back. */
+type AudioExtractionResponse = {
+  ok: boolean;
+  status?: number;
+  json?: () => Promise<{
+    has_audio: boolean;
+    asset?: { id: string; duration?: number; content_type?: string };
+  }>;
+};
+
+const restFetchMock =
+  jest.fn<(...args: unknown[]) => Promise<AudioExtractionResponse>>();
 jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: (...args: unknown[]) => restFetchMock(...args)
 }));

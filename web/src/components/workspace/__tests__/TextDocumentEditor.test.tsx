@@ -17,11 +17,11 @@ jest.mock("../../textEditor/EditorToolbar", () => ({
 }));
 
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (s: { update: unknown }) => unknown) =>
+  useAssetStore: <T,>(selector: (s: { update: unknown }) => T) =>
     selector({ update: jest.fn() })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (selector: (s: { addNotification: unknown }) => unknown) =>
+  useNotificationStore: <T,>(selector: (s: { addNotification: unknown }) => T) =>
     selector({ addNotification: jest.fn() })
 }));
 

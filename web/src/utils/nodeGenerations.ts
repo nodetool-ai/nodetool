@@ -1,10 +1,24 @@
 import type { Asset, ProviderCost } from "../stores/ApiTypes";
 
 /**
+ * The `{ type, uri, … }` record the preview components render — the same shape
+ * that flows over `output_update` for a media output.
+ */
+export type OutputPreviewValue = {
+  type: "image" | "video" | "audio" | "text" | "json" | "model_3d" | "asset";
+  uri: string;
+  /** Capped inline text for a `text/*` asset. */
+  text?: string;
+  /** The full output dict a structured (JSON) generation persisted. */
+  value?: unknown;
+  name?: string;
+};
+
+/**
  * Convert a saved asset into the value shape the preview components expect
  * (mirrors the `{ type, uri }` records carried over `output_update`).
  */
-export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
+export const assetToOutputValue = (asset: Asset): OutputPreviewValue => {
   const ct = asset.content_type ?? "";
   const uri = asset.get_url ?? asset.thumb_url ?? "";
   if (ct.startsWith("image/")) return { type: "image", uri };

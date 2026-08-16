@@ -121,7 +121,7 @@ export function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
  * tag (e.g. image.ts's Load/Save/AI nodes are tagged server and dropped).
  */
 const NODE_MODULE_GROUPS: ReadonlyArray<
-  readonly [name: string, load: () => Promise<unknown>]
+  readonly [name: string, load: () => Promise<object>]
 > = [
   ["constant", () => import("@nodetool-ai/core-nodes/nodes/constant")],
   ["control", () => import("@nodetool-ai/core-nodes/nodes/control")],
@@ -232,9 +232,9 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
  * import resolves `undefined` instead — treat both as "not available",
  * keeping the failure for the caller's diagnostics.
  */
-async function importOptional(
-  load: () => Promise<unknown>
-): Promise<{ mod: unknown; error: unknown }> {
+async function importOptional<TModule extends object>(
+  load: () => Promise<TModule>
+): Promise<{ mod: TModule | null; error: unknown }> {
   try {
     const mod = (await load()) ?? null;
     return {
@@ -397,7 +397,7 @@ export function probeBrowserGpu(): Promise<boolean> {
     gpuProbe = (async () => {
       const nav = (
         globalThis as {
-          navigator?: { gpu?: { requestAdapter(): Promise<unknown> } };
+          navigator?: { gpu?: { requestAdapter(): Promise<object | null> } };
         }
       ).navigator;
       const gpu = nav?.gpu;

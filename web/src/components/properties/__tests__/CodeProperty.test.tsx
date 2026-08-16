@@ -42,7 +42,7 @@ jest.mock("../TextEditorModal", () => ({
 
 let mockEdges: Array<{ target: string; targetHandle: string }> = [];
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: unknown) => unknown) =>
+  useNodes: <T,>(selector: (state: unknown) => T) =>
     selector({ edges: mockEdges })
 }));
 

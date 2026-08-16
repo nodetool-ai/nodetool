@@ -45,7 +45,7 @@ const storeState = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseProviderOnboardingStore.mockImplementation(
-    (selector: (s: unknown) => unknown) => selector(storeState)
+    <T,>(selector: (s: unknown) => T) => selector(storeState)
   );
   mockUseSecrets.mockReturnValue({
     secrets: [],
@@ -61,11 +61,11 @@ beforeEach(() => {
     connect: jest.fn(),
     disconnect: jest.fn()
   });
-  mockUseSecretsStore.mockImplementation((selector: (s: unknown) => unknown) =>
+  mockUseSecretsStore.mockImplementation(<T,>(selector: (s: unknown) => T) =>
     selector({ updateSecret: jest.fn() })
   );
   mockUseNotificationStore.mockImplementation(
-    (selector: (s: unknown) => unknown) => selector({ addNotification: jest.fn() })
+    <T,>(selector: (s: unknown) => T) => selector({ addNotification: jest.fn() })
   );
 });
 

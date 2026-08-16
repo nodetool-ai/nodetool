@@ -64,7 +64,9 @@ const CATEGORY_INPUT_TYPE: Partial<Record<SnippetCategory, string>> = {
 };
 
 /** Value a slot of `type` starts with when the snippet declares no default. */
-function defaultValueForType(type: string): unknown {
+function defaultValueForType(
+  type: string
+): string | number | boolean | unknown[] | object {
   switch (type) {
     case "bool":
       return false;

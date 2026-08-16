@@ -73,7 +73,7 @@ const setMockState = (
 
 jest.mock("../../../contexts/NodeContext", () => ({
   __esModule: true,
-  useNodes: (selector: (state: unknown) => unknown) =>
+  useNodes: <T,>(selector: (state: unknown) => T) =>
     selector({
       edges: mockEdges,
       findNode: (id: string) => mockNodes[id],
@@ -83,13 +83,13 @@ jest.mock("../../../contexts/NodeContext", () => ({
 
 jest.mock("../../../stores/WorkflowAssetStore", () => ({
   __esModule: true,
-  useWorkflowAssetStore: (selector: (state: unknown) => unknown) =>
+  useWorkflowAssetStore: <T,>(selector: (state: unknown) => T) =>
     selector({ assetsByWorkflow: {} })
 }));
 
 jest.mock("../../../stores/ResultsStore", () => {
   const getState = () => ({ liveGenerations: mockLiveGenerations });
-  const hook = (selector: (state: unknown) => unknown) => selector(getState());
+  const hook = <T,>(selector: (state: unknown) => T) => selector(getState());
   hook.getState = getState;
   return { __esModule: true, default: hook };
 });

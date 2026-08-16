@@ -18,7 +18,7 @@ import { ProjectSettingsDialog } from "../ProjectSettingsDialog";
 let storeState = { fps: 30, width: 1920, height: 1080 };
 
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
-  useTimelineStore: (selector: (s: typeof storeState) => unknown) =>
+  useTimelineStore: <T,>(selector: (s: typeof storeState) => T) =>
     selector(storeState)
 }));
 

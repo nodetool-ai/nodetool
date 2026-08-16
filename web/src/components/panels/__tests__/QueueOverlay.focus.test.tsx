@@ -27,7 +27,7 @@ jest.mock("../../../trpc/client", () => ({
 // Mock useWorkflowManager to return currentWorkflowId "wf"
 const mockCurrentWorkflowId = { value: "wf" as string | null };
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: { currentWorkflowId: string | null }) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: { currentWorkflowId: string | null }) => T) =>
     selector({ currentWorkflowId: mockCurrentWorkflowId.value })
 }));
 

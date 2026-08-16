@@ -8,7 +8,7 @@ jest.mock("../../ui_primitives", () => {
 
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
-  default: (selector: (state: { openContextMenu: jest.Mock }) => unknown) =>
+  default: <T,>(selector: (state: { openContextMenu: jest.Mock }) => T) =>
     selector({ openContextMenu: jest.fn() }),
   useContextMenuActions: () => ({
     openContextMenu: jest.fn(),
@@ -32,12 +32,12 @@ const mockUpdateNode = jest.fn();
 const mockUpdateNodeData = jest.fn();
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector: (state: {
+  useNodes: jest.fn(<T,>(selector: (state: {
     updateNode: typeof mockUpdateNode;
     updateNodeData: typeof mockUpdateNodeData;
     workflow: { id: string };
     findNode: () => undefined;
-  }) => unknown) =>
+  }) => T) =>
     selector({
       updateNode: mockUpdateNode,
       updateNodeData: mockUpdateNodeData,
