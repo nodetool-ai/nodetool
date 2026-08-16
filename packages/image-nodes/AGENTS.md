@@ -7,9 +7,8 @@
 ## Bounds & silent-swallow
 
 - **Clamp crop/extract boxes to image bounds before calling `sharp.extract`.** An
-  oversized region makes sharp throw, and `transformImage` swallows the error and
-  returns the **full uncropped image** — a silent wrong result. Clamp
-  `right = min(right, imgW)`, `width = max(1, right - left)`.
+  oversized region makes sharp throw. Clamp `right = min(right, imgW)`,
+  `width = max(1, right - left)`.
 - **Resolve paired optional dimensions independently** — `Affine`/`Scale` once set
   output dims only when *both* `target_width` and `target_height` were `> 0`, so
   specifying just one was dropped. Use `w > 0 ? w : src.width` per dimension.

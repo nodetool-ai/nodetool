@@ -17,12 +17,3 @@ export const useCreateStoryboard = () => {
     }
   });
 };
-
-export const useDeleteStoryboard = () => {
-  const utils = trpc.useUtils();
-  return trpc.storyboards.delete.useMutation({
-    onSuccess: () => {
-      void utils.storyboards.list.invalidate();
-    }
-  });
-};

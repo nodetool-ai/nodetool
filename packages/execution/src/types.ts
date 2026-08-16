@@ -15,7 +15,11 @@ import type {
   SupervisorHandle
 } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonBridgeBase, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  PythonBridgeBase,
+  ProcessingContext,
+  PythonJobLifecycle
+} from "@nodetool-ai/runtime";
 
 /** A raw saved graph — the shape stored in the DB / sent over the wire. */
 export interface RawGraphInput {
@@ -116,6 +120,20 @@ export interface ExecutionSessionOptions {
   resolveNodeType?: NodeTypeResolver;
   /** See {@link BridgeFactory}. Omit to use the default TS-graph-aware connector. */
   bridgeFactory?: BridgeFactory;
+  /**
+   * Python bridge to bracket this run with `job.start` / `job.end` (bridge
+   * protocol v4). Defaults to whatever `bridgeFactory` returned, which is the
+   * right answer for a host whose bridge lives and dies with the run — the
+   * session closes it anyway.
+   *
+   * A host that owns a long-lived shared bridge and injects its own
+   * `resolveExecutor` (the WS runner) gets `null` from its `bridgeFactory` on
+   * purpose, so it must pass that bridge here. Without it nothing ever closes
+   * the run boundary, `release_nodes()` on the worker keeps having no caller,
+   * and the model cache grows across runs — which is the exact case the shared
+   * bridge exists for.
+   */
+  jobLifecycleBridge?: PythonJobLifecycle | null;
   /** Fixed job id; a random one is generated when omitted. */
   jobId?: string;
   workflowId?: string | null;
