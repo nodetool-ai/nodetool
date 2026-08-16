@@ -30,7 +30,12 @@ export interface StreamingInputs {
   any(): AsyncGenerator<[string, unknown]>;
   /** Yield [handle, MessageEnvelope] tuples in arrival order. */
   anyWithEnvelope(): AsyncGenerator<[string, MessageEnvelopeLike]>;
-  /** Return the first available item for a handle, or default if EOS. */
+  /**
+   * Return the first available item for a handle, or default if EOS.
+   *
+   * HOLDOUT (anti-slop/no-unknown-returns): the item is an arbitrary workflow
+   * value, the same open domain `stream()` and `any()` yield.
+   */
   first(name: string, defaultValue?: unknown): Promise<unknown>;
 
   /**

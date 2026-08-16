@@ -38,9 +38,24 @@ export function redactToken(value: string | null | undefined): string {
  * `<redacted>`. Safe to pass straight into a logger. Cycles are broken with a
  * `[Circular]` marker so logging can never throw.
  */
-export function redactObject(input: unknown, seen = new WeakSet<object>()): unknown {
+/** A value with every sensitive field replaced — safe to hand to a logger. */
+export type RedactedValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | RedactedValue[]
+  | { [key: string]: RedactedValue };
+
+export function redactObject(
+  input: unknown,
+  seen = new WeakSet<object>()
+): RedactedValue {
   if (input === null || typeof input !== "object") {
-    return input;
+    // SAFETY: a non-object carries no fields to redact and goes to the logger
+    // as it stands.
+    return input as RedactedValue;
   }
   if (seen.has(input as object)) {
     return "[Circular]";
@@ -51,7 +66,7 @@ export function redactObject(input: unknown, seen = new WeakSet<object>()): unkn
     return input.map((item) => redactObject(item, seen));
   }
 
-  const out: Record<string, unknown> = {};
+  const out: { [key: string]: RedactedValue } = {};
   for (const [key, val] of Object.entries(input as Record<string, unknown>)) {
     if (SENSITIVE_KEYS.has(key.toLowerCase())) {
       out[key] = REDACTED;

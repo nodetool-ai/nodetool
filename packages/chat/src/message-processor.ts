@@ -96,9 +96,20 @@ function isToolCall(item: ProviderStreamItem): item is ToolCall {
  * Serializer that handles objects with a `toJSON` method or falls back to
  * stringification, similar to the Python `default_serializer`.
  */
-export function defaultSerializer(_key: string, value: unknown): unknown {
+/** A value `JSON.stringify` can emit directly. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   if (value !== null && typeof value === "object" && "toJSON" in value) {
-    return (value as { toJSON: () => unknown }).toJSON();
+    // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
+    // value and, by that contract, produces a JSON-representable result.
+    return (value as { toJSON: () => JsonValue }).toJSON();
   }
   return value;
 }

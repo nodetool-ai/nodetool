@@ -325,7 +325,7 @@ function imageDataUri(bytes: Uint8Array): string {
 // ---------------------------------------------------------------------------
 
 /** Coerce a value to the manifest-declared scalar type, or null when it can't. */
-function coerceToType(value: unknown, type: string): unknown {
+function coerceToType<T>(value: T, type: string): T | number | boolean | null {
   switch (type) {
     case "int": {
       const n = typeof value === "number" ? value : Number(value);
@@ -349,15 +349,17 @@ function coerceToType(value: unknown, type: string): unknown {
  * 422); string enums must match exactly. Returns null when the field can't
  * take the value at all.
  */
-function resolveForField(field: FieldInfo, value: unknown): unknown {
+function resolveForField<T>(
+  field: FieldInfo,
+  value: T
+): T | string | number | boolean | null {
   const coerced = coerceToType(value, field.type);
   if (coerced === null || coerced === undefined || coerced === "") return null;
   const allowed = field.values;
   if (!allowed || allowed.length === 0) return coerced;
-  if (allowed.some((v) => String(v) === String(coerced))) {
-    // Return the declared member so numeric enums keep their JSON type.
-    return allowed.find((v) => String(v) === String(coerced));
-  }
+  // Return the declared member so numeric enums keep their JSON type.
+  const member = allowed.find((v) => String(v) === String(coerced));
+  if (member !== undefined) return member;
   if (typeof coerced === "number") {
     // Negative members are sentinels ("-1" = let the model decide), never a
     // sensible approximation of a number the caller actually asked for.

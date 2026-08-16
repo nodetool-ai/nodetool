@@ -41,7 +41,8 @@ export type JsonFetchLike = (
 ) => Promise<{
   ok: boolean;
   status: number;
-  json(): Promise<unknown>;
+  /** Decode the body as the caller's named response type. */
+  json<TBody>(): Promise<TBody>;
 }>;
 
 /** Which sign-in page the authorization URL points at. */
@@ -111,6 +112,16 @@ interface ClaudeTokenResponse {
   organization?: { uuid?: unknown } | null;
   error?: unknown;
   error_description?: unknown;
+}
+
+/** Raw profile-endpoint response. Every field is validated before use. */
+interface ClaudeProfileResponse {
+  account?: { email_address?: unknown; display_name?: unknown } | null;
+  organization?: {
+    organization_type?: unknown;
+    rate_limit_tier?: unknown;
+    name?: unknown;
+  } | null;
 }
 
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -219,14 +230,7 @@ export class ClaudeCodeOAuthClient {
         signal: signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
       });
       if (!res.ok) return null;
-      const body = (await res.json()) as {
-        account?: { email_address?: unknown; display_name?: unknown } | null;
-        organization?: {
-          organization_type?: unknown;
-          rate_limit_tier?: unknown;
-          name?: unknown;
-        } | null;
-      };
+      const body = await res.json<ClaudeProfileResponse>();
       return {
         subscriptionType: subscriptionTypeOf(
           body.organization?.organization_type
@@ -268,7 +272,7 @@ export class ClaudeCodeOAuthClient {
 
     let payload: ClaudeTokenResponse;
     try {
-      payload = (await res.json()) as ClaudeTokenResponse;
+      payload = await res.json<ClaudeTokenResponse>();
     } catch {
       payload = {};
     }

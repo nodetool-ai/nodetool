@@ -60,7 +60,13 @@ function targetInfo(
   };
 }
 
-/** The stored document, parsed out of its JSON string when it is one. */
+/**
+ * The stored document, parsed out of its JSON string when it is one.
+ *
+ * HOLDOUT (anti-slop/no-unknown-returns): the row's `document` column is
+ * free-form JSON that {@link parseAppSpec} validates downstream; naming a type
+ * here would claim a shape this function never checks.
+ */
 function rawDocumentOf(stored: unknown): unknown {
   if (typeof stored !== "string") return stored;
   try {

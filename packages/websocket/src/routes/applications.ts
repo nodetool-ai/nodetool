@@ -79,7 +79,16 @@ function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, status);
 }
 
-async function readJsonBody(request: Request): Promise<unknown> {
+/** A decoded JSON request body, before a schema validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+async function readJsonBody(request: Request): Promise<JsonValue> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) return {};
   try {
@@ -94,7 +103,9 @@ async function readJsonBody(request: Request): Promise<unknown> {
  * service raises tRPC errors (`throwApiError`); tRPC's own status mapping keeps
  * the two transports agreeing on what a not-found or a conflict is.
  */
-async function respond(produce: () => Promise<unknown>): Promise<Response> {
+async function respond<TResult>(
+  produce: () => Promise<TResult>
+): Promise<Response> {
   try {
     return jsonResponse(await produce());
   } catch (error) {

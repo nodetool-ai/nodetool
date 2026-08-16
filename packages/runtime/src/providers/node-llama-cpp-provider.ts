@@ -91,7 +91,8 @@ interface ChatSessionOptions {
 interface ChatSessionModelFunction {
   description?: string;
   params?: Record<string, unknown>;
-  handler: (params: Record<string, unknown>) => Promise<unknown> | unknown;
+  /** Always answers with text: either the harness's tool result or `""`. */
+  handler: (params: Record<string, unknown>) => Promise<string> | string;
 }
 
 type ChatSessionModelFunctions = Record<string, ChatSessionModelFunction>;

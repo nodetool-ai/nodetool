@@ -48,6 +48,11 @@ export interface TimelineDebugCore {
 /** The bridge surface this host drives — one tool per `ui_timeline_*` name. */
 export interface TimelineBridgeTool {
   name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_timeline_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 

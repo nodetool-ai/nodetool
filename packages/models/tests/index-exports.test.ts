@@ -55,7 +55,9 @@ describe("models index exports", () => {
   });
 
   it("round-trips the legacy adapter resolver shim", () => {
-    const resolver = (schema: unknown) => schema;
+    const resolver: models.AdapterResolver = () => {
+      throw new Error("the legacy resolver shim is never invoked");
+    };
     models.setGlobalAdapterResolver(resolver);
     expect(models.getGlobalAdapterResolver()).toBe(resolver);
   });

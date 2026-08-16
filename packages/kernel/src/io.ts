@@ -72,6 +72,10 @@ export class NodeInputs {
 
   /**
    * Return the first available item for a handle, or default if EOS.
+   *
+   * HOLDOUT (anti-slop/no-unknown-returns): the item is whatever the upstream
+   * node put on the handle — the open workflow-value domain, which NodeTool
+   * has no named union for. The kernel never inspects the payload.
    */
   async first(name: string, defaultValue?: unknown): Promise<unknown> {
     for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
@@ -84,10 +88,10 @@ export class NodeInputs {
   /**
    * Return the first available MessageEnvelope for a handle, or default if EOS.
    */
-  async firstWithEnvelope(
+  async firstWithEnvelope<TDefault>(
     name: string,
-    defaultValue?: unknown
-  ): Promise<MessageEnvelope | unknown> {
+    defaultValue?: TDefault
+  ): Promise<MessageEnvelope | TDefault | undefined> {
     for await (const envelope of this._inbox.iterInputWithEnvelope(name)) {
       this._envelopeTracker?.set(name, envelope);
       return envelope;

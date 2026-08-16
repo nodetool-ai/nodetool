@@ -157,7 +157,16 @@ function openAiAudioFormat(
  * Custom JSON replacer that handles objects with toJSON() methods
  * and other non-serializable types. Mirrors Python's _default_serializer.
  */
-function defaultSerializer(_key: string, value: unknown): unknown {
+/** A value `JSON.stringify` can emit directly. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   if (value === null || value === undefined) return value;
   if (typeof value === "bigint") return Number(value);
   if (value instanceof Date) return value.toISOString();
@@ -168,7 +177,9 @@ function defaultSerializer(_key: string, value: unknown): unknown {
     "toJSON" in value &&
     typeof (value as { toJSON: unknown }).toJSON === "function"
   ) {
-    return (value as { toJSON: () => unknown }).toJSON();
+    // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
+    // value and, by that contract, produces a JSON-representable result.
+    return (value as { toJSON: () => JsonValue }).toJSON();
   }
   return value;
 }

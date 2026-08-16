@@ -412,10 +412,20 @@ function sanitizeLargeText(
   return `${sanitized.slice(0, maxLength)}... (truncated ${truncatedChars} chars)`;
 }
 
+/** A value reduced to shapes a JSON frame can carry. */
+type JsonSafeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonSafeValue[]
+  | { [key: string]: JsonSafeValue };
+
 function sanitizeErrorValue(
   value: unknown,
   seen = new WeakSet<object>()
-): unknown {
+): JsonSafeValue {
   if (typeof value === "string") {
     return sanitizeLargeText(value);
   }
@@ -434,7 +444,7 @@ function sanitizeErrorValue(
     }
 
     seen.add(value);
-    const result: Record<string, unknown> = {};
+    const result: { [key: string]: JsonSafeValue } = {};
     for (const [key, nested] of Object.entries(
       value as Record<string, unknown>
     )) {
@@ -443,7 +453,9 @@ function sanitizeErrorValue(
     return result;
   }
 
-  return value;
+  // SAFETY: strings, errors, arrays and objects are handled above; what is
+  // left is a JSON scalar.
+  return value as JsonSafeValue;
 }
 
 function formatSanitizedError(error: unknown): string {
@@ -1032,7 +1044,7 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
         // raw — the `content` column is a jsonText type that serializes them, so
         // stringifying here would double-encode and break the getMessages read
         // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
-        return Message.create({
+        return Message.create<Message>({
           user_id: userId,
           thread_id: req.thread_id,
           role: req.role,
@@ -2579,18 +2591,20 @@ export class UnifiedWebSocketRunner {
     this.websocket = null;
   }
 
-  private serializeForJson(value: unknown): unknown {
+  private serializeForJson(value: unknown): JsonSafeValue {
     if (value instanceof Uint8Array) return Array.from(value);
     if (value instanceof Date) return value.toISOString();
     if (Array.isArray(value)) return value.map((v) => this.serializeForJson(v));
     if (value && typeof value === "object") {
-      const out: Record<string, unknown> = {};
+      const out: { [key: string]: JsonSafeValue } = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         out[k] = this.serializeForJson(v);
       }
       return out;
     }
-    return value;
+    // SAFETY: bytes, dates, arrays and objects are handled above; what is left
+    // is a JSON scalar.
+    return value as JsonSafeValue;
   }
 
   async sendMessage(message: Record<string, unknown>): Promise<void> {
@@ -2746,7 +2760,7 @@ export class UnifiedWebSocketRunner {
             `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
         );
       }
-      return unpackWebSocketMessage(message.bytes) as Record<string, unknown>;
+      return unpackWebSocketMessage<Record<string, unknown>>(message.bytes);
     }
     if (message.text) {
       const maxBytes = getMaxWsMessageBytes();
@@ -4812,6 +4826,9 @@ export class UnifiedWebSocketRunner {
    * - Arrays/objects: recursed into
    * - Primitives: returned as-is
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): a tool result is an arbitrary
+  // value — the same open domain `ProcessingContext.normalizeOutputValue`
+  // rewrites — and this walk answers in that domain.
   private async processToolResult(
     obj: unknown,
     ctx: ProcessingContext
@@ -4894,6 +4911,8 @@ export class UnifiedWebSocketRunner {
    * is the single mechanism that pulls pixels into context. Keeps image bytes
    * out of the standing chat history. Non-image results pass through untouched.
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): same open tool-result domain as
+  // `processToolResult`; non-image results pass through untouched.
   private async materializeToolResultImages(
     toolResult: unknown,
     ctx: ProcessingContext
@@ -5165,6 +5184,8 @@ export class UnifiedWebSocketRunner {
    * then returns the
    * node's completed result. Backs the `run_node` chat tool.
    */
+  // HOLDOUT (anti-slop/no-unknown-returns): answers with the node's own output
+  // — an arbitrary workflow value — or an `{ error }` bag when the run failed.
   private async runSingleNode(
     nodeType: string,
     inputs: Record<string, unknown>,
@@ -8463,9 +8484,9 @@ export class UnifiedWebSocketRunner {
    * Errors thrown by the procedure are mapped to `rpc_response.error` using
    * the `apiCode` cause attached by `throwApiError` in the tRPC layer.
    */
-  private async runRpc(
+  private async runRpc<TResult>(
     command: WebSocketCommandEnvelope,
-    fn: () => Promise<unknown>
+    fn: () => Promise<TResult>
   ): Promise<Record<string, unknown> | null> {
     const requestId = command.request_id;
     if (typeof requestId !== "string" || requestId.length === 0) {

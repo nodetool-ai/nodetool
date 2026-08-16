@@ -116,7 +116,13 @@ export const parseCondition = (
   return { ref, op, value: props.value };
 };
 
-/** Read the current value a {@link StateRef} points at. */
+/**
+ * Read the current value a {@link StateRef} points at.
+ *
+ * HOLDOUT (anti-slop/no-unknown-returns): a variable, input or output slot
+ * holds a workflow value — the open domain `AppInstanceState` stores as
+ * `unknown` — so the read answers in that domain too.
+ */
 export const readRef = (
   state: AppInstanceState,
   ref: StateRef
@@ -167,7 +173,7 @@ const isEmpty = (value: unknown): boolean => {
  * stores every literal as a string, so `count gt "3"` must compare numbers and
  * `dark eq "true"` must compare booleans.
  */
-const coerceLike = (value: unknown, sample: unknown): unknown => {
+const coerceLike = <T>(value: T, sample: unknown): T | number | boolean => {
   if (typeof sample === "number" && typeof value === "string") {
     const parsed = Number(value);
     return Number.isNaN(parsed) ? value : parsed;

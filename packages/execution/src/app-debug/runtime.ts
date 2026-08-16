@@ -559,6 +559,10 @@ export class HeadlessAppRuntime {
     }
   }
 
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a slot holds a workflow value —
+   * the open domain `AppInstanceState` stores as `unknown`.
+   */
   read(ref: BindingRef | null): unknown {
     if (!ref) return undefined;
     const key = stateKey(ref);

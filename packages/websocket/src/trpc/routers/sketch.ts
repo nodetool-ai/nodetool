@@ -60,6 +60,15 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
+/** A decoded JSON value: what a stored document or graph carries. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const listInput = z.object({
   projectId: z.string().optional()
 });
@@ -116,10 +125,12 @@ function toListItem(doc: ImageDocument) {
  * corrupt, and reporting that beats handing the client a string it will treat
  * as a document.
  */
-function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded, and the row's
+  // document is JSON either way.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     throwApiError(
       ApiErrorCode.INTERNAL_ERROR,
@@ -245,8 +256,9 @@ function inputNodeName(node: Record<string, unknown>): string | null {
   );
 }
 
-function inputNodeDefault(node: Record<string, unknown>): unknown {
-  const data = node.data as Record<string, unknown> | undefined;
+function inputNodeDefault(node: Record<string, unknown>): JsonValue {
+  // SAFETY: the graph is stored as JSON, so a node's `data` holds JSON members.
+  const data = node.data as { [key: string]: JsonValue } | undefined;
   return data?.value ?? null;
 }
 

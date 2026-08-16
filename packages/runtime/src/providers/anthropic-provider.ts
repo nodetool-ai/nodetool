@@ -48,6 +48,16 @@ interface AnthropicProviderOptions {
   providerId?: ProviderId;
 }
 
+/** One node of a JSON Schema document, as a tool's `input_schema` carries it. */
+type JsonSchemaNode =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonSchemaNode[]
+  | { [key: string]: JsonSchemaNode };
+
 type AnthropicRawBlock = Record<string, unknown>;
 type AnthropicToolCall = ToolCall & {
   _anthropicContentBlocks?: AnthropicRawBlock[];
@@ -508,12 +518,18 @@ export class AnthropicProvider extends BaseProvider {
     return [];
   }
 
-  private prepareJsonSchema(schema: unknown): unknown {
+  private prepareJsonSchema(schema: unknown): JsonSchemaNode {
     if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
-      return schema;
+      // SAFETY: a schema node that is not an object is carried through as it
+      // stands — a scalar, a list, or an absent schema.
+      return schema as JsonSchemaNode;
     }
 
-    const obj = { ...(schema as Record<string, unknown>) };
+    const obj: { [key: string]: JsonSchemaNode } = {
+      // SAFETY: the checks above proved `schema` is a plain object of schema
+      // members.
+      ...(schema as { [key: string]: JsonSchemaNode })
+    };
 
     if (obj.type === "object" && obj.additionalProperties === undefined) {
       obj.additionalProperties = false;
@@ -525,9 +541,10 @@ export class AnthropicProvider extends BaseProvider {
       !Array.isArray(obj.properties)
     ) {
       obj.properties = Object.fromEntries(
-        Object.entries(obj.properties as Record<string, unknown>).map(
-          ([k, v]) => [k, this.prepareJsonSchema(v)]
-        )
+        Object.entries(obj.properties).map(([k, v]) => [
+          k,
+          this.prepareJsonSchema(v)
+        ])
       );
     }
 
@@ -539,10 +556,7 @@ export class AnthropicProvider extends BaseProvider {
       const defs = obj[defsKey];
       if (defs && typeof defs === "object" && !Array.isArray(defs)) {
         obj[defsKey] = Object.fromEntries(
-          Object.entries(defs as Record<string, unknown>).map(([k, v]) => [
-            k,
-            this.prepareJsonSchema(v)
-          ])
+          Object.entries(defs).map(([k, v]) => [k, this.prepareJsonSchema(v)])
         );
       }
     }

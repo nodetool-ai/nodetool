@@ -407,7 +407,7 @@ function nearestAspect(
 function coerceDuration(
   field: ModelInputField | undefined,
   seconds: number
-): unknown {
+): string | number | undefined {
   if (!field) return undefined;
   if (field.type === "enum" && field.enumValues && field.enumValues.length > 0) {
     let best: { value: string; diff: number } | undefined;
@@ -429,6 +429,11 @@ function coerceDuration(
  * meaningful (not an empty string), otherwise the first enum option. KIE's
  * required `model` field ships with an empty default, so the first declared
  * version is used.
+ */
+/**
+ * HOLDOUT (anti-slop/no-unknown-returns): the value comes straight from the
+ * manifest's `default`, which `ModelInputField` declares `unknown`; naming the
+ * result means typing the manifest decoder in `manifest-models.ts`.
  */
 function defaultForField(field: ModelInputField): unknown {
   const d = field.default;
