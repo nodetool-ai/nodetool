@@ -327,7 +327,7 @@ function bindSteps(
   steps: readonly InteractionStep[],
   spec: BuildSpec,
   appSpec: AppSpec | null
-): { steps: InteractionStep[]; issues: BuildIssue[] } {
+) {
   const issues: BuildIssue[] = [];
   // A script may name a widget by role, label, or unique type — the same three
   // ways the Spec stage resolved it. Resolving by role alone here would turn a
@@ -364,7 +364,7 @@ function bindSteps(
 function ioGap(
   spec: BuildSpec["operations"][number],
   io: AppIO
-): { inputs: string[]; outputs: string[] } {
+) {
   const inputs = new Set(io.inputs.map((i) => i.name));
   const outputs = new Set(io.outputs.map((o) => o.name));
   return {

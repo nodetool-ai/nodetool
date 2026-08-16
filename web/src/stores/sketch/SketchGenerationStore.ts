@@ -73,7 +73,7 @@ function isLayerJobEntry(value: unknown): value is LayerJobState {
   );
 }
 
-const loadPersistedLayerJobs = (): Record<string, LayerJobState> => {
+const loadPersistedLayerJobs = () => {
   if (!canUseSessionStorage()) {
     return {};
   }

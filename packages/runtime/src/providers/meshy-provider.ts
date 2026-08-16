@@ -104,7 +104,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
 /** Pure: build the Meshy text-to-3D `preview` submit payload from params. */
 export function buildTextTo3DPayload(
   params: TextTo3DParams
-): Record<string, unknown> {
+) {
   const payload: Record<string, unknown> = {
     mode: "preview",
     prompt: params.prompt
@@ -224,7 +224,7 @@ export class MeshyProvider extends BaseProvider {
 
   // --- internals ---
 
-  private headers(): Record<string, string> {
+  private headers() {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json"

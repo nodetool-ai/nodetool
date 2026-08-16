@@ -158,7 +158,7 @@ export abstract class Tool {
    */
   static stripMessage(
     params: Record<string, unknown> | null | undefined
-  ): Record<string, unknown> {
+  ) {
     if (!params) return {};
     if (!(USER_MESSAGE_FIELD in params)) return params;
     const out = { ...params };
@@ -221,7 +221,7 @@ export abstract class Tool {
 
 function injectUserMessageField(
   schema: Record<string, unknown>
-): Record<string, unknown> {
+) {
   // Only object-type schemas have a `properties` map we can extend. Every tool
   // in the codebase declares an object schema; bail out cleanly if a custom
   // tool ever uses something exotic.

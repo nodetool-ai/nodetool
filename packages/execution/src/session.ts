@@ -322,12 +322,7 @@ export class ExecutionSession {
    * reliability harness's `cleanup-leaks` invariant asserts against these
    * numbers and reports a violation when a driver can't produce them.
    */
-  resourceCounters(): {
-    liveActors: number;
-    pendingControlResponses: number;
-    pendingTimers: number;
-    pythonBridgePendingRequests: number;
-  } {
+  resourceCounters() {
     return {
       liveActors: this.runner.liveActorCount,
       pendingControlResponses: this.runner.pendingControlResponseCount,

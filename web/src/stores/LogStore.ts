@@ -38,7 +38,7 @@ export const nodeLogKey = (workflowId: string, nodeId: string): string =>
   `${workflowId}:${nodeId}`;
 
 /** Rebuild the per-node map from a flat log array (used after trimming). */
-const buildLogsByNode = (logs: Log[]): Record<string, Log[]> => {
+const buildLogsByNode = (logs: Log[]) => {
   const result: Record<string, Log[]> = {};
   for (const log of logs) {
     const key = nodeLogKey(log.workflowId, log.nodeId);

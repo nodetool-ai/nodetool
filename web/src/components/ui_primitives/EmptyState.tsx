@@ -59,7 +59,7 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-const defaultContent: Record<EmptyStateVariant, { icon: React.ReactNode; title: string; description: string }> = {
+const defaultContent = {
   empty: {
     icon: <InboxIcon className="empty-icon" />,
     title: "Nothing here yet",
@@ -85,7 +85,10 @@ const defaultContent: Record<EmptyStateVariant, { icon: React.ReactNode; title: 
     title: "Something went wrong",
     description: "An error occurred. Please try again."
   }
-};
+} satisfies Record<
+  EmptyStateVariant,
+  { icon: React.ReactNode; title: string; description: string }
+>;
 
 export const EmptyState: React.FC<EmptyStateProps> = memo(({
   variant = "empty",

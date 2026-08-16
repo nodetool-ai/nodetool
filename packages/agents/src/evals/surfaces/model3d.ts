@@ -94,7 +94,7 @@ function kindToType(kind: Model3DPrimitiveKind): string {
 
 /** Title-case default name for a kind, e.g. "box" -> "Box". */
 function defaultKindLabel(kind: Model3DPrimitiveKind): string {
-  const labels: Record<Model3DPrimitiveKind, string> = {
+  const labels = {
     box: "Box",
     sphere: "Sphere",
     plane: "Plane",
@@ -102,7 +102,7 @@ function defaultKindLabel(kind: Model3DPrimitiveKind): string {
     torus: "Torus",
     directionalLight: "Directional Light",
     pointLight: "Point Light"
-  };
+  } satisfies Record<Model3DPrimitiveKind, string>;
   return labels[kind];
 }
 

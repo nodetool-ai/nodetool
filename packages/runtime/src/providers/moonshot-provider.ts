@@ -41,7 +41,7 @@ export class MoonshotProvider extends OpenAICompatProvider {
     this._moonshotFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { KIMI_API_KEY: this.apiKey };
   }
 

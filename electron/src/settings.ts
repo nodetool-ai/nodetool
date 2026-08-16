@@ -191,7 +191,7 @@ function writeSettings(settings: SettingsRecord): void {
  * @param {unknown} value - The new value for the setting
  * @throws {Error} If updating fails or key is invalid
  */
-function updateSetting(key: string, value: unknown): SettingsRecord {
+function updateSetting(key: string, value: unknown) {
   try {
     if (!key || typeof key !== "string") {
       throw new Error("Invalid setting key provided");

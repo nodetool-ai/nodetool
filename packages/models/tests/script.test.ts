@@ -103,6 +103,31 @@ describe("Script model", () => {
     expect(updated!.updated_at).not.toBe(created.updated_at);
   });
 
+  it("round-trips the storyboard back-pointer and clears it", async () => {
+    const created = await createScript("u1", "p1", "Linked");
+    expect(created.storyboard_id).toBeNull();
+    expect(created.toResponse().storyboardId).toBeUndefined();
+
+    const linked = await Script.updateFieldsIfUnchanged(
+      created.id,
+      created.updated_at,
+      { storyboard_id: "sb-1" }
+    );
+    expect(linked!.storyboard_id).toBe("sb-1");
+
+    const reloaded = await Script.findById(created.id);
+    expect(reloaded!.storyboard_id).toBe("sb-1");
+    expect(reloaded!.toResponse().storyboardId).toBe("sb-1");
+
+    const cleared = await Script.updateFieldsIfUnchanged(
+      created.id,
+      reloaded!.updated_at,
+      { storyboard_id: null }
+    );
+    expect(cleared!.storyboard_id).toBeNull();
+    expect((await Script.findById(created.id))!.storyboard_id).toBeNull();
+  });
+
   it("rejects a CAS update on a stale token", async () => {
     const created = await createScript("u1", "p1", "Old");
     // First write advances the token.

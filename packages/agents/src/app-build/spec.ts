@@ -45,7 +45,7 @@ import type {
 const SPEC_MAX_ITERATIONS = 8;
 
 /** The JSON schema the model answers with. */
-export const BUILD_SPEC_SCHEMA: Record<string, unknown> = {
+export const BUILD_SPEC_SCHEMA = {
   type: "object",
   required: ["title", "operations", "variables", "widgets", "interactions"],
   properties: {
@@ -144,7 +144,7 @@ export const BUILD_SPEC_SCHEMA: Record<string, unknown> = {
       }
     }
   }
-};
+} satisfies Record<string, unknown>;
 
 /** The app-debug script language, as schema branches. */
 function interactionStepSchemas(): Array<Record<string, unknown>> {
@@ -646,10 +646,7 @@ export function validateBuildSpec(spec: BuildSpec): BuildIssue[] {
 }
 
 /** Schema check then catalog check. The one gate every spec passes through. */
-export function parseBuildSpec(raw: unknown): {
-  spec: BuildSpec | null;
-  issues: BuildIssue[];
-} {
+export function parseBuildSpec(raw: unknown) {
   const violations = validateAgainstSchema(raw, BUILD_SPEC_SCHEMA, "spec");
   if (violations.length > 0) {
     return {

@@ -151,13 +151,13 @@ const ToolCallCard: React.FC<{
     const base = visibleArgs(rawArgs);
     if (!base) return base;
     if (isCodeAction) {
-      const stripped: Record<string, unknown> = { ...base };
+      const stripped = { ...base } satisfies Record<string, unknown>;
       delete stripped["code"];
       delete stripped["title"];
       return Object.keys(stripped).length > 0 ? stripped : null;
     }
     if (!isSubtask) return base;
-    const stripped: Record<string, unknown> = { ...base };
+    const stripped = { ...base } satisfies Record<string, unknown>;
     for (const k of ["description", "prompt", "title", "instructions"]) {
       delete stripped[k];
     }

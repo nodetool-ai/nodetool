@@ -32,7 +32,7 @@ export interface ResolveParamsContext {
  */
 export const resolveOperationParams = (
   ctx: ResolveParamsContext
-): Record<string, unknown> => {
+) => {
   const { operation, state } = ctx;
   const params: Record<string, unknown> = {};
 
@@ -92,7 +92,7 @@ export const outputVariableTargets = (
  */
 export const initialVariableValues = (
   variables: ReadonlyArray<VariableDeclaration>
-): Record<string, unknown> => {
+) => {
   const values: Record<string, unknown> = {};
   for (const variable of variables) {
     if (variable.default === undefined) continue;

@@ -481,7 +481,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
     set((state) => {
       let mutated = false;
       const nextBindings: Record<string, LayerWorkflowBinding> = {};
-      const nextExtras: Record<string, LayerHashExtras> = { ...state.extras };
+      const nextExtras = { ...state.extras } satisfies Record<string, LayerHashExtras>;
       for (const [layerId, binding] of Object.entries(state.bindings)) {
         if (binding.workflowId !== workflowId) {
           nextBindings[layerId] = binding;

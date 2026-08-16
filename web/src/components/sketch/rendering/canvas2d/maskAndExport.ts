@@ -105,7 +105,7 @@ export function readbackComposite(
   activeStroke: ActiveStrokeInfo | null,
   renderDocumentCompositeToContext: RenderDocumentCompositeFn,
   readbackCanvas: HTMLCanvasElement | null
-): { imageData: ImageData | null; readbackCanvas: HTMLCanvasElement | null } {
+) {
   const cw = doc.canvas.width;
   const ch = doc.canvas.height;
   if (cw === 0 || ch === 0) {

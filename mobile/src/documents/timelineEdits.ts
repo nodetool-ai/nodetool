@@ -184,7 +184,7 @@ export function addTrack(
   doc: TimelineDocument,
   type: TimelineTrack['type'],
   name?: string
-): { doc: TimelineDocument; track: TimelineTrack } {
+) {
   const track = makeTrack({
     type,
     name: name ?? `${type} ${doc.tracks.length + 1}`,
@@ -202,7 +202,7 @@ function authoredTrack(
   doc: TimelineDocument,
   trackId: string | undefined,
   fallbackName: string
-): { doc: TimelineDocument; trackId: string } {
+) {
   if (trackId !== undefined) {
     const track = resolveTrack(doc.tracks, trackId);
     if (!AUTHORED_TRACK_TYPES.includes(track.type)) {
@@ -253,7 +253,7 @@ export function shapeStyleWithDefaults(shape: ClipShapeStyle): ClipShapeStyle {
 export function addTextClip(
   doc: TimelineDocument,
   input: TimelineAddTextClipInput
-): { doc: TimelineDocument; clip: TimelineClip } {
+) {
   const text = input.text.trim();
   if (text.length === 0) {
     throw new Error('A text clip needs non-empty text.');
@@ -281,7 +281,7 @@ export function addTextClip(
 export function addShapeClip(
   doc: TimelineDocument,
   input: TimelineAddShapeClipInput
-): { doc: TimelineDocument; clip: TimelineClip } {
+) {
   const target = authoredTrack(doc, input.trackId, 'Shapes');
   const clip = makeClip({
     trackId: target.trackId,
@@ -317,7 +317,7 @@ export function moveClip(
   target: string,
   patch: TimelineMovePatch,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; clips: TimelineClip[] } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   const toTrackId =
     patch.trackId === undefined
@@ -369,7 +369,7 @@ export function trimClip(
   target: string,
   patch: TimelineTrimPatch,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; clips: TimelineClip[] } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   const next = new Map<string, TimelineClip>();
 
@@ -427,7 +427,7 @@ export function splitClipAt(
   target: string,
   atMs: number,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; clips: TimelineClip[] } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   const clipEndMs = clip.startMs + clip.durationMs;
   if (atMs <= clip.startMs || atMs >= clipEndMs) {
@@ -479,7 +479,7 @@ export function deleteClip(
   doc: TimelineDocument,
   target: string,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; deleted: TimelineClip } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   assertNotTranscribed(doc, [clip], 'delete');
 
@@ -509,7 +509,7 @@ export function duplicateClip(
   target: string,
   gapMs = 0,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; clips: TimelineClip[] } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   const group = linkGroup(doc.clips, clip);
   const offsetMs = clip.durationMs + gapMs;
@@ -556,7 +556,7 @@ export function setClipParams(
   target: string,
   patch: TimelineClipParamsPatch,
   selectedClipIds: readonly string[] = []
-): { doc: TimelineDocument; clip: TimelineClip } {
+) {
   const clip = resolveClip(doc.clips, target, selectedClipIds);
   const next: TimelineClip = { ...clip };
 
@@ -641,7 +641,7 @@ export function setClipParams(
 export function addMarker(
   doc: TimelineDocument,
   input: TimelineAddMarkerInput
-): { doc: TimelineDocument; marker: TimelineMarker } {
+) {
   if (input.timeMs < 0) {
     throw new Error(`A marker cannot sit before zero; got ${input.timeMs}ms.`);
   }
@@ -664,7 +664,7 @@ export function addMarker(
 export function deleteMarker(
   doc: TimelineDocument,
   target: string
-): { doc: TimelineDocument; deleted: TimelineMarker } {
+) {
   const lowered = target.toLowerCase();
   const marker =
     doc.markers.find((entry) => entry.id === target) ??

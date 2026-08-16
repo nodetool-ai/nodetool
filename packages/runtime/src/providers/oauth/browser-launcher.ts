@@ -16,7 +16,7 @@ export interface BrowserLauncher {
 }
 
 /** Per-platform command that opens a URL in the default browser. */
-function openCommand(platform: NodeJS.Platform): { cmd: string; args: string[] } {
+function openCommand(platform: NodeJS.Platform) {
   switch (platform) {
     case "darwin":
       return { cmd: "open", args: [] };

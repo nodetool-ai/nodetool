@@ -43,7 +43,7 @@ const notificationResponse = (
 });
 
 /** Resolve a path the way NavigationContainer does, then read the leaf route. */
-const routeForPath = (path: string): { name: string; params?: object } => {
+const routeForPath = (path: string) => {
   const state = getStateFromPath(path, linking.config);
   if (!state) {
     throw new Error(`no state for path: ${path}`);

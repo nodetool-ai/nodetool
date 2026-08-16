@@ -10,6 +10,8 @@ export const scripts = sqliteTable(
     document: text("document").notNull(),
     /** Timeline sequence this script was assembled into, if any. */
     timeline_id: text("timeline_id"),
+    /** Storyboard this script is linked to, if any. */
+    storyboard_id: text("storyboard_id"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

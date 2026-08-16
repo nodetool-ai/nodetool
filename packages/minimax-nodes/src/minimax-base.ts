@@ -19,7 +19,7 @@ export function getMinimaxApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-export function minimaxHeaders(apiKey: string): Record<string, string> {
+export function minimaxHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -92,7 +92,7 @@ export const AUDIO_FORMAT_MIME: Record<string, string> = {
 export function audioRefFromBytes(
   bytes: Uint8Array,
   format: string
-): { type: "audio"; data: string; content_type: string } {
+) {
   return {
     type: "audio",
     data: bytesToBase64(bytes),
@@ -119,7 +119,7 @@ export function inferImageMime(bytes: Uint8Array): string {
 
 export function imageRefFromBytes(
   bytes: Uint8Array
-): { type: "image"; data: string; mimeType: string } {
+) {
   return {
     type: "image",
     data: bytesToBase64(bytes),
@@ -129,7 +129,7 @@ export function imageRefFromBytes(
 
 export function videoRefFromBytes(
   bytes: Uint8Array
-): { type: "video"; data: string } {
+) {
   return { type: "video", data: bytesToBase64(bytes) };
 }
 
@@ -278,7 +278,7 @@ export function videoRenderSettings(
   model: string,
   duration: number,
   resolution: string
-): { duration?: number; resolution?: string } {
+) {
   if (!model.startsWith("MiniMax-Hailuo")) return {};
   const d = duration >= 9 ? 10 : 6;
   let r = resolution;

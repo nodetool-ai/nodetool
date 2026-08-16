@@ -22,6 +22,13 @@ const FAKE_INTERPRETER = resolve(
   "fixtures/fake-python-interpreter.mjs"
 );
 
+// Matches the bridge's own production default. At 5s a loaded CI runner lost
+// the race often enough to fail unrelated PRs: the spawn deadline elapsed
+// before the fake interpreter reported ready, so tests asserting on framing or
+// status errors saw a startup timeout instead. Tests that mean to exercise the
+// deadline itself pass an explicit short value.
+const DEFAULT_TEST_TIMEOUT_MS = 20000;
+
 function makeBridge(
   env: Record<string, string> = {},
   options: { startupTimeoutMs?: number; statusTimeoutMs?: number } = {}
@@ -33,8 +40,8 @@ function makeBridge(
   }
   const bridge = new PythonStdioBridge({
     pythonPath: FAKE_INTERPRETER,
-    startupTimeoutMs: options.startupTimeoutMs ?? 5000,
-    statusTimeoutMs: options.statusTimeoutMs ?? 5000
+    startupTimeoutMs: options.startupTimeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
+    statusTimeoutMs: options.statusTimeoutMs ?? DEFAULT_TEST_TIMEOUT_MS
   });
   // The spawned child inherits process.env synchronously when connect() is
   // called, so the env stays set for the whole test body; afterEach restores

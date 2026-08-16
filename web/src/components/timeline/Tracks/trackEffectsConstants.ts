@@ -7,7 +7,7 @@
 import type { TrackEffect } from "@nodetool-ai/timeline";
 
 /** Device-rack width (px) per effect type. */
-export const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
+export const DEVICE_WIDTHS = {
   gain: 200,
   eq3: 420,
   filter: 240,
@@ -17,10 +17,10 @@ export const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
   sharpen: 240,
   vignette: 260,
   chromaKey: 280
-};
+} satisfies Record<TrackEffect["type"], number>;
 
 /** Human-readable label per effect type. */
-export const EFFECT_LABELS: Record<TrackEffect["type"], string> = {
+export const EFFECT_LABELS = {
   gain: "Gain",
   eq3: "3-Band EQ",
   filter: "Filter",
@@ -30,7 +30,7 @@ export const EFFECT_LABELS: Record<TrackEffect["type"], string> = {
   sharpen: "Sharpen",
   vignette: "Vignette",
   chromaKey: "Chroma Key"
-};
+} satisfies Record<TrackEffect["type"], string>;
 
 /** Effect types available on audio tracks. */
 export const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = [

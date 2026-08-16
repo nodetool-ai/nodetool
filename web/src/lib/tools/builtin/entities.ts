@@ -37,7 +37,7 @@ export function injectEntities(
   text: string,
   entities: Entity[],
   entityIds?: string[]
-): { prompt: string; referenceAssetIds: string[] } {
+) {
   const base = text ?? "";
   const lower = base.toLowerCase();
   const empty = base.trim().length === 0;

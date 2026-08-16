@@ -16,7 +16,7 @@ function generateId(): string {
   });
 }
 
-function defaultProperties(metadata: NodeMetadata): Record<string, unknown> {
+function defaultProperties(metadata: NodeMetadata) {
   const props: Record<string, unknown> = {};
   for (const p of metadata.properties) {
     if (p.default !== undefined && p.default !== null) {

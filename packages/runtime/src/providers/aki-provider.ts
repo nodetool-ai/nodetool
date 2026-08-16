@@ -273,7 +273,7 @@ export class AkiProvider extends OpenAICompatProvider {
     this._akiFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { AKI_API_KEY: this.apiKey };
   }
 

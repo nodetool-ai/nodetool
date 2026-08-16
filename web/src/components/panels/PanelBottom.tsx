@@ -121,7 +121,7 @@ interface ViewSpec {
   enabled: boolean;
 }
 
-const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
+const VIEW_SPECS = {
   logs: { id: "logs", label: "Logs", icon: <ArticleIcon />, enabled: true },
   queue: {
     id: "queue",
@@ -153,7 +153,7 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     icon: <TimelineIcon />,
     enabled: true
   }
-};
+} satisfies Record<BottomPanelView, ViewSpec>;
 
 const ENABLED_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) =>
   g.views.filter((v) => VIEW_SPECS[v]?.enabled)

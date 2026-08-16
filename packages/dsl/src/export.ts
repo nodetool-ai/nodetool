@@ -263,10 +263,7 @@ function formatLiteral(value: unknown, indentLevel = 0): string {
   return `{\n${lines.join(",\n")}\n${indent}}`;
 }
 
-function normalizeGraph(graph: WorkflowLike): {
-  nodes: NormalizedNode[];
-  edges: NormalizedEdge[];
-} {
+function normalizeGraph(graph: WorkflowLike) {
   if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
     throw new Error("Workflow graph must contain node and edge arrays");
   }

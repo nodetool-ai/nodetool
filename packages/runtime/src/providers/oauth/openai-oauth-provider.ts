@@ -335,7 +335,7 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
    * environment as if it were a durable API key. Code runners that need OpenAI
    * access should refresh through the provider instead.
    */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 

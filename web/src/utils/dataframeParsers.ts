@@ -63,13 +63,13 @@ function inferDataType(
 function inferColumnType(
   values: unknown[]
 ): "int" | "float" | "datetime" | "string" | "object" {
-  const typeCounts: Record<string, number> = {
+  const typeCounts = {
     int: 0,
     float: 0,
     datetime: 0,
     string: 0,
     object: 0
-  };
+  } satisfies Record<string, number>;
 
   for (const value of values) {
     if (value === null || value === undefined || value === "") {

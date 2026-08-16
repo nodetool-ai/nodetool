@@ -214,7 +214,7 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
 ];
 
 /** Human-readable label for a required capability, for the dialog subtitle. */
-export const CAPABILITY_LABELS: Record<OnboardingCapability, string> = {
+export const CAPABILITY_LABELS = {
   generate_message: "chat and language models",
   text_to_image: "image generation",
   text_to_speech: "text-to-speech",
@@ -222,7 +222,7 @@ export const CAPABILITY_LABELS: Record<OnboardingCapability, string> = {
   text_to_music: "music generation",
   text_to_video: "video generation",
   generate_embedding: "embeddings"
-};
+} satisfies Record<OnboardingCapability, string>;
 
 /**
  * Hosted deployments can't finish a same-machine sign-in — hide those entries

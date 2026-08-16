@@ -55,14 +55,14 @@ export interface StatusIndicatorProps {
   className?: string;
 }
 
-const statusColors: Record<StatusType, string> = {
+const statusColors = {
   success: "success.main",
   error: "error.main",
   warning: "warning.main",
   info: "info.main",
   pending: "grey.500",
   default: "text.secondary"
-};
+} satisfies Record<StatusType, string>;
 
 const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
   status,

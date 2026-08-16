@@ -185,7 +185,7 @@ export const paletteDark: PaletteOptions = {
     dark: "#229A16",
     contrastText: "#000"
   },
-  grey: ((): Record<number, string> => ({
+  grey: (() => ({
     0: "#fff", // white
     50: "#F2F3F5",
     100: "#D4D6DB",

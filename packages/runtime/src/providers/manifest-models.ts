@@ -107,11 +107,7 @@ export function enumValuesFor(
 }
 
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
-export function videoConstraints(n: ManifestNode): {
-  durations?: number[];
-  resolutions?: string[];
-  aspectRatios?: string[];
-} {
+export function videoConstraints(n: ManifestNode) {
   const durationEnum = enumValuesFor(n, "duration");
   const durations = durationEnum
     ?.map((v) => Number(v))
@@ -149,10 +145,7 @@ export function sizeEnumToAspect(value: string): string | undefined {
 }
 
 /** Option constraints (aspect/resolution) for an image endpoint. */
-export function imageConstraints(n: ManifestNode): {
-  aspectRatios?: string[];
-  resolutions?: string[];
-} {
+export function imageConstraints(n: ManifestNode) {
   // FAL splits size across `aspect_ratio` and `image_size`; union both into one
   // aspect-ratio list, preserving first-seen order and dropping duplicates.
   const fromAspect = enumValuesFor(n, "aspect_ratio") ?? [];

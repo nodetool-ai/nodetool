@@ -338,10 +338,7 @@ export const mergeNodeUpdateProperties = ({
   existingStatic: Record<string, unknown>;
   existingDynamic: Record<string, unknown>;
   isDynamicSchemaNode: boolean;
-}): {
-  staticProperties: Record<string, unknown>;
-  dynamicProperties: Record<string, unknown>;
-} => {
+}) => {
   const nextDynamic = { ...existingDynamic };
   const nextStatic = { ...existingStatic };
 

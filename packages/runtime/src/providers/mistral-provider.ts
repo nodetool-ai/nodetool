@@ -34,7 +34,7 @@ export class MistralProvider extends OpenAICompatProvider {
     this._mistralFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { MISTRAL_API_KEY: this.apiKey };
   }
 

@@ -26,7 +26,7 @@ function setupScreenAnts(
   ctx: CanvasRenderingContext2D,
   phase: number,
   zoom: number
-): { dashLen: number; offset: number } {
+) {
   const z = Math.max(0.02, zoom);
   const screenPx = zoom < ANTS_WIDE_BELOW_ZOOM ? 2 : 1;
   const lw = screenPx / z;
@@ -266,12 +266,7 @@ export function rectSelectionMask(
  * axis-aligned box between the two points is included. Use for preview and
  * commit so marching ants do not shift on pointer up.
  */
-export function marqueeRectFromDocPoints(start: Point, end: Point): {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-} {
+export function marqueeRectFromDocPoints(start: Point, end: Point) {
   const minX = Math.min(start.x, end.x);
   const minY = Math.min(start.y, end.y);
   const maxX = Math.max(start.x, end.x);
@@ -292,7 +287,7 @@ export function marqueeAdjustedDocPoints(
   anchor: Point,
   pointer: Point,
   opts: { fromCenter: boolean; constrainSquare: boolean }
-): { start: Point; end: Point } {
+) {
   if (opts.fromCenter) {
     let hx = Math.abs(pointer.x - anchor.x);
     let hy = Math.abs(pointer.y - anchor.y);

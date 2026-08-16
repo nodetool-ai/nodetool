@@ -229,7 +229,7 @@ export type FolderTree = Record<string, AssetTreeNode>;
 const buildFolderTree = (
   folders: Asset[],
   sortBy: "name" | "updated_at" = "name"
-): FolderTree => {
+) => {
   const tree: FolderTree = {};
   const lookup: Record<string, AssetTreeNode> = {};
 

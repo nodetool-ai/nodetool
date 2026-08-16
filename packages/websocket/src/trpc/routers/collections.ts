@@ -38,7 +38,7 @@ import {
  */
 function normalizeMetadata(
   metadata: ProviderCollectionMetadata | undefined
-): Record<string, string | number | boolean> {
+) {
   const result: Record<string, string | number | boolean> = {};
   if (!metadata) return result;
   for (const [key, value] of Object.entries(metadata)) {

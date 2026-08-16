@@ -36,7 +36,7 @@ import {
 
 const APIFY_BASE = "https://api.apify.com";
 
-function bearer(token: string): Record<string, string> {
+function bearer(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 

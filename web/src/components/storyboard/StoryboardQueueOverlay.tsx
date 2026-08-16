@@ -52,10 +52,10 @@ interface JobRow extends ShotJobState {
   index: number;
 }
 
-const KIND_LABEL: Record<ShotJobKind, string> = {
+const KIND_LABEL = {
   keyframe: "Still",
   clip: "Clip"
-};
+} satisfies Record<ShotJobKind, string>;
 
 const sweep = keyframes`
   0% { transform: translateX(-110%); }

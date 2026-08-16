@@ -479,12 +479,12 @@ export class ClaudeCodeAgentNode extends BaseNode {
   };
   // `text` is the final assistant answer; `chunk` streams assistant messages
   // and tool-call markers as the agent works.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     text: { kind: "single", source: "__execution__" },
     transcript: { kind: "single", source: "__execution__" },
     session_id: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

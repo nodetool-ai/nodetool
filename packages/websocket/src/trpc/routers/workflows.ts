@@ -162,7 +162,7 @@ async function requireWorkflowRole(
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }
   const role = await resolveWorkflowRole(workflow, userId);
-  const rank: Record<WorkflowRole, number> = { viewer: 1, editor: 2, owner: 3 };
+  const rank = { viewer: 1, editor: 2, owner: 3 } satisfies Record<WorkflowRole, number>;
   if (!role || rank[role] < rank[minimum]) {
     throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
   }

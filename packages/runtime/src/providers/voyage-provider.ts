@@ -98,7 +98,7 @@ export class VoyageProvider extends BaseProvider {
     }
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { VOYAGE_API_KEY: this.apiKey };
   }
 

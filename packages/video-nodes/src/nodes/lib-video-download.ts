@@ -71,19 +71,19 @@ function isValidUrl(url: string): boolean {
 
 const DEFAULT_SUB_LANGS = "en,en-US,en-GB";
 
-function emptyVideoRef(): Record<string, unknown> {
+function emptyVideoRef() {
   return { type: "video", uri: "", asset_id: null, data: null, metadata: null };
 }
 
-function emptyAudioRef(): Record<string, unknown> {
+function emptyAudioRef() {
   return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
 }
 
-function emptyImageRef(): Record<string, unknown> {
+function emptyImageRef() {
   return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
 }
 
-function safeMetadata(info: Record<string, unknown>): Record<string, unknown> {
+function safeMetadata(info: Record<string, unknown>) {
   const keys = [
     "id",
     "title",
@@ -114,7 +114,7 @@ function safeMetadata(info: Record<string, unknown>): Record<string, unknown> {
 function base64Ref(
   bytes: Buffer,
   kind: "video" | "audio" | "image"
-): Record<string, unknown> {
+) {
   return {
     type: kind,
     data: bytes.toString("base64")

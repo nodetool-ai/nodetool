@@ -94,7 +94,7 @@ export const formatBytes = (bytes?: number): string => {
   return formatByteSize(bytes, MODEL_BYTE_UNITS, 2, "0 Bytes");
 };
 
-export const groupModelsByType = (models: UnifiedModel[]): Record<string, UnifiedModel[]> => {
+export const groupModelsByType = (models: UnifiedModel[]) => {
   const grouped: Record<string, UnifiedModel[]> = {};
   for (const model of models) {
     const type = model.type || "Other";

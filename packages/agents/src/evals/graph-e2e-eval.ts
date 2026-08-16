@@ -257,7 +257,7 @@ function matchesExactly(actual: unknown, expected: unknown): boolean {
 /** Last write wins, so a streaming output reports its final value. */
 export function outputsByName(
   outputs: readonly GraphRunOutput[]
-): Record<string, unknown> {
+) {
   const byName: Record<string, unknown> = {};
   for (const o of outputs) {
     byName[o.name || o.nodeId || "output"] = o.value;

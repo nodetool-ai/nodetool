@@ -132,7 +132,7 @@ export const applyPropertyOverrides = (
 export const browserRunnablePrefix = (
   graph: { nodes: Node<NodeData>[]; edges: Edge[] },
   isBrowserNode: (type: string | undefined) => boolean
-): { nodes: Node<NodeData>[]; edges: Edge[] } => {
+) => {
   const nodeIds = new Set(graph.nodes.map((n) => n.id));
   const predecessors = new Map<string, Set<string>>();
   for (const n of graph.nodes) {

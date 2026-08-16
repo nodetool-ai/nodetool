@@ -1362,10 +1362,7 @@ export async function installExpectedPackages(): Promise<{
 /**
  * Validate repository ID format
  */
-export function validateRepoId(repoId: string): {
-  valid: boolean;
-  error?: string;
-} {
+export function validateRepoId(repoId: string) {
   if (!repoId) {
     return { valid: false, error: "Repository ID cannot be empty" };
   }

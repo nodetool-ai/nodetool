@@ -161,7 +161,7 @@ export class ConditionBuilder {
   }
 
   /** Extract all Variable names used in the tree. */
-  getVariables(): Record<string, null> {
+  getVariables() {
     const vars: Record<string, null> = {};
     this._collectVars(this.root, vars);
     return vars;

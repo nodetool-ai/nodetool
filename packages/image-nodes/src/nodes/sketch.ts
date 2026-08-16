@@ -60,10 +60,7 @@ function decodeLayerPayload(
   data: string,
   fallbackWidth: number,
   fallbackHeight: number
-): {
-  image: string | null;
-  bounds: { x: number; y: number; width: number; height: number };
-} {
+) {
   const fallbackBounds = {
     x: 0,
     y: 0,

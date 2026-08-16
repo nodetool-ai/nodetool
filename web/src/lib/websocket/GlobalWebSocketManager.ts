@@ -560,10 +560,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
   }
 
-  getConnectionState(): {
-    isConnected: boolean;
-    isConnecting: boolean;
-  } {
+  getConnectionState() {
     return {
       isConnected: this.isConnected,
       isConnecting: this.isConnecting

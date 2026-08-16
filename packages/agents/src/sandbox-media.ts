@@ -517,7 +517,7 @@ function fitRects(
   return [0, 0, sw, sh, (dw - w) / 2, (dh - h) / 2, w, h];
 }
 
-const FILTER_BUILDERS: Record<string, (value: number) => string> = {
+const FILTER_BUILDERS = {
   brightness: (v) => `brightness(${v})`,
   contrast: (v) => `contrast(${v})`,
   saturate: (v) => `saturate(${v})`,
@@ -527,7 +527,7 @@ const FILTER_BUILDERS: Record<string, (value: number) => string> = {
   blur: (v) => `blur(${v}px)`,
   hueRotate: (v) => `hue-rotate(${v}deg)`,
   opacity: (v) => `opacity(${v})`
-};
+} satisfies Record<string, (value: number) => string>;
 
 function buildFilter(options: Record<string, unknown>): string {
   const parts: string[] = [];
@@ -683,7 +683,7 @@ export function createImageBridge(): ImageBridge {
         // Rec. 601 luma, the same weighting `adjust`'s grayscale uses.
         luminance += 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
       }
-      const channel = (c: number): Record<string, number> => ({
+      const channel = (c: number) => ({
         mean: sum[c] / count,
         min: min[c],
         max: max[c]

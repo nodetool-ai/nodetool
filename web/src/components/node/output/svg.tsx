@@ -31,13 +31,13 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
   const style = attributes.style
     ? convertStyleStringToObject(attributes.style)
     : undefined;
-  const svgProps: Record<string, unknown> = {
+  const svgProps = {
     ...value.attributes,
     className: attributes.class,
     xmlSpace: (attributes as Record<string, unknown>)["xml:space"],
     xmlLang: (attributes as Record<string, unknown>)["xml:lang"],
     style
-  };
+  } satisfies Record<string, unknown>;
 
   const children = [
     value.content &&

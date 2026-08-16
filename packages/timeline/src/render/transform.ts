@@ -25,7 +25,7 @@ export function containBaseScale(
   layerHeight: number,
   canvasWidth: number,
   canvasHeight: number
-): { x: number; y: number } {
+) {
   if (
     canvasWidth === 0 ||
     canvasHeight === 0 ||

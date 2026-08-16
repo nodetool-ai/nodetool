@@ -150,7 +150,7 @@ class BinaryCursor {
   skipRemaining(): void {
     this.offset = this.bytes.length;
   }
-  section(): { id: number; payload: Uint8Array } {
+  section() {
     const id = this.readByte();
     const size = this.u32();
     if (this.offset + size > this.bytes.length) {

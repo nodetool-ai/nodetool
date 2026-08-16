@@ -91,7 +91,7 @@ export const normalizeDynamicSlot = (raw: unknown): DynamicSlotDeclaration => {
 /** Normalize a whole `dynamic_inputs` map. */
 export const normalizeDynamicSlots = (
   raw: Record<string, unknown> | undefined | null
-): Record<string, DynamicSlotDeclaration> => {
+) => {
   const out: Record<string, DynamicSlotDeclaration> = {};
   for (const [name, slot] of Object.entries(raw ?? {})) {
     out[name] = normalizeDynamicSlot(slot);

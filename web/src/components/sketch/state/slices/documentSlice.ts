@@ -79,7 +79,7 @@ function isDescendantOfGroupFolder(
 function computeNewLayerInsertion(
   layers: Layer[],
   activeLayerId: string | undefined
-): { insertAt: number; parentId: string | undefined } {
+) {
   if (!activeLayerId) {
     return { insertAt: layers.length, parentId: undefined };
   }

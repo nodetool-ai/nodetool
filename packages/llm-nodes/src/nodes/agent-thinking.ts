@@ -38,7 +38,7 @@ function holdSuffixForPartialTag(
   return 0;
 }
 
-export function extractThinkTags(text: string): { thinking: string; text: string } {
+export function extractThinkTags(text: string) {
   const parts: string[] = [];
   const re = /<think>([\s\S]*?)<\/(?:redacted_thinking|think)>/g;
   let cleaned = text.replace(re, (_, content: string) => {

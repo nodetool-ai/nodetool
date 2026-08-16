@@ -41,7 +41,7 @@ export function cursorForHandle(
     return "crosshair";
   }
   // For scale handles, pick a directional resize cursor rotated by the layer rotation
-  const baseDeg: Partial<Record<TransformHandle, number>> = {
+  const baseDeg = {
     top: 0,
     "top-right": 45,
     right: 90,
@@ -50,7 +50,7 @@ export function cursorForHandle(
     "bottom-left": 225,
     left: 270,
     "top-left": 315
-  };
+  } satisfies Partial<Record<TransformHandle, number>>;
   const base = baseDeg[handle] ?? 0;
   // Normalize the total angle into a cursor bucket (8 directions, 45° each)
   const totalDeg =

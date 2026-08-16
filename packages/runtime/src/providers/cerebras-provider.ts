@@ -34,7 +34,7 @@ export class CerebrasProvider extends OpenAICompatProvider {
     this._cerebrasFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { CEREBRAS_API_KEY: this.apiKey };
   }
 

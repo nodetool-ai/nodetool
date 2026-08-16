@@ -242,7 +242,7 @@ function resolveRef(
 function mergeAllOf(
   openapi: Record<string, unknown>,
   schemas: Array<Record<string, unknown>>
-): Record<string, unknown> {
+) {
   const merged: Record<string, unknown> = { type: "object", properties: {} };
   const required: string[] = [];
   for (const entry of schemas) {
@@ -475,7 +475,7 @@ function mapOutputValues(
   openapi: Record<string, unknown>,
   outputSchema: Record<string, unknown>,
   response: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const properties = (outputSchema.properties as Record<string, unknown>) ?? {};
   const out: Record<string, unknown> = {};
   for (const [name, schema] of Object.entries(properties)) {

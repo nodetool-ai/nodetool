@@ -24,7 +24,7 @@ function rgbToHsl(
   r: number,
   g: number,
   b: number
-): { h: number; s: number; l: number } {
+) {
   const rr = r / 255;
   const gg = g / 255;
   const bb = b / 255;
@@ -71,7 +71,7 @@ function hslToRgb(
   h: number,
   s: number,
   l: number
-): { r: number; g: number; b: number } {
+) {
   if (s === 0) {
     const v = clampByte(l * 255);
     return { r: v, g: v, b: v };

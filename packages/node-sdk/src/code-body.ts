@@ -281,7 +281,7 @@ export function wrapImplicitReturn(code: string): string {
  * else (a string, an array, a class instance) becomes the single `output`
  * handle. `null`/`undefined` mean "no outputs".
  */
-export function normalizeCodeOutput(value: unknown): Record<string, unknown> {
+export function normalizeCodeOutput(value: unknown) {
   if (value === null || value === undefined) return {};
   if (
     typeof value === "object" &&

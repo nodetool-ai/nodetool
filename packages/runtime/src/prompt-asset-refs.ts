@@ -800,7 +800,7 @@ export async function mapPromptAssetsToInputs(
   // Fill empty inputs in declaration order from the matching kind's queue,
   // recording which input label each placed mention was routed into.
   const labelByRef = new Map<PromptAssetRef, string>();
-  const cursor: Record<AssetMediaKind, number> = { image: 0, audio: 0, video: 0 };
+  const cursor = { image: 0, audio: 0, video: 0 } satisfies Record<AssetMediaKind, number>;
   for (const field of assetFields) {
     if (field.hasSource) continue;
     const queue = queues[field.kind];

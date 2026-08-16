@@ -231,7 +231,7 @@ function axisPoint(
   c: number,
   width: number,
   height: number
-): { x: number; y: number } {
+) {
   switch (direction) {
     case "left":
       return { x: c * width, y: 0 };

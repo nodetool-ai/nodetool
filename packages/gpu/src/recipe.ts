@@ -162,7 +162,7 @@ function readPath(obj: Record<string, unknown>, path: ParamRef): unknown {
 function resolveParams(
   raw: Record<string, ParamRef | unknown>,
   recipeParams: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [name, value] of Object.entries(raw)) {
     if (typeof value === "string" && value.startsWith("$.")) {

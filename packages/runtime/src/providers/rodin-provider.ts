@@ -111,7 +111,7 @@ export function buildRodinTextPayload(
   prompt: string,
   format: string,
   seed: number | null | undefined
-): Record<string, unknown> {
+) {
   const payload: Record<string, unknown> = {
     prompt,
     geometry_file_format: format
@@ -126,7 +126,7 @@ export function buildRodinImagePayload(
   format: string,
   prompt: string | null | undefined,
   seed: number | null | undefined
-): Record<string, unknown> {
+) {
   const payload: Record<string, unknown> = {
     images: [encoded],
     geometry_file_format: format
@@ -232,7 +232,7 @@ export class RodinProvider extends BaseProvider {
 
   // --- internals ---
 
-  private headers(): Record<string, string> {
+  private headers() {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json"

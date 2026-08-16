@@ -120,10 +120,10 @@ export function createSupabaseStorageClient(
 ): SupabaseStorageApi {
   let base = supabaseUrl;
   while (base.endsWith("/")) base = base.slice(0, -1);
-  const authHeaders: Record<string, string> = {
+  const authHeaders = {
     apikey: supabaseKey,
     Authorization: `Bearer ${supabaseKey}`
-  };
+  } satisfies Record<string, string>;
 
   return {
     storage: {

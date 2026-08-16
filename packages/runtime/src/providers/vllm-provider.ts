@@ -47,7 +47,7 @@ export class VLLMProvider extends OpenAICompatProvider {
     this._vllmBaseURL = baseURL;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     const env: Record<string, string> = {
       VLLM_BASE_URL: this._vllmBaseURL
     };

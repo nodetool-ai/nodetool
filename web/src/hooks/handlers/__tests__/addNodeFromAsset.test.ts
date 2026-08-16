@@ -49,13 +49,7 @@ describe("useAddNodeFromAsset", () => {
     const metadata = {
       node_type: "nodetool.constant.Model3D"
     };
-    const createdNode: {
-      data: {
-        properties: {
-          value?: unknown;
-        };
-      };
-    } = {
+    const createdNode: { data: { properties: { value?: unknown; }; }; } = {
       data: {
         properties: {}
       }

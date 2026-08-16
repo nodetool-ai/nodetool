@@ -134,7 +134,7 @@ export const parseEntityUri = (uri: string): string =>
 
 export const parseAssetUri = (
   uri: string
-): { assetId: string; ext: string } => {
+) => {
   const noScheme = uri.startsWith("asset://")
     ? uri.slice("asset://".length)
     : uri;

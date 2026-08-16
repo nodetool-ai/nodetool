@@ -67,12 +67,12 @@ export interface MediaRefBridge {
   toVideo(bytes: unknown, options?: unknown): Promise<Record<string, unknown>>;
 }
 
-export const DEFAULT_MIME: Record<MediaRefKind, string> = {
+export const DEFAULT_MIME = {
   document: "application/octet-stream",
   image: "image/png",
   audio: "audio/mpeg",
   video: "video/mp4"
-};
+} satisfies Record<MediaRefKind, string>;
 
 const MIME_TO_EXT: Record<string, string> = {
   "application/json": "json",

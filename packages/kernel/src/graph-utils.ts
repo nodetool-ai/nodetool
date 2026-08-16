@@ -29,7 +29,7 @@ export function findNodeOrThrow(graph: Graph, nodeId: string): NodeDescriptor {
 export function getNodeInputTypes(
   graph: Graph,
   nodeId: string
-): Record<string, string | undefined> {
+) {
   const result: Record<string, string | undefined> = {};
 
   for (const edge of graph.findIncomingEdges(nodeId)) {
@@ -58,7 +58,7 @@ export function getDownstreamSubgraph(
   graph: Graph,
   nodeId: string,
   sourceHandle: string
-): { initialEdges: Edge[]; nodes: NodeDescriptor[]; edges: Edge[] } {
+) {
   // Find initial edges from nodeId with matching sourceHandle
   const initialEdges = graph
     .findOutgoingEdges(nodeId)
