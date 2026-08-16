@@ -1423,7 +1423,7 @@ export class ProcessingContext {
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(safeProcessEnv())) {
-      if (typeof v === "string") env[k] = v;
+      if (v != null) env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this.authToken = opts.authToken ?? null;
@@ -1730,10 +1730,7 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);
-    if (
-      typeof value === "string" &&
-      value.length >= MIN_MASKABLE_SECRET_LENGTH
-    ) {
+    if (value != null && value.length >= MIN_MASKABLE_SECRET_LENGTH) {
       this._resolvedSecrets.add(value);
     }
     return value ?? null;

@@ -1139,7 +1139,7 @@ export class KieProvider extends BaseProvider {
     fields: ModelInputField[]
   ): void {
     for (const field of fields) {
-      const max = typeof field.max === "number" ? field.max : undefined;
+      const max = field.max;
       if (max === undefined || max <= 0) continue;
       const value = input[field.name];
       if (typeof value !== "string" || value.length <= max) continue;
