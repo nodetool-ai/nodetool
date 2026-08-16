@@ -4,6 +4,8 @@
  * keystroke lands in the store and autosaves.
  */
 import { memo, useCallback, useEffect, useMemo } from "react";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import {
   Box,
@@ -29,6 +31,8 @@ const JsScriptEditorPane = ({
   scriptId,
   readOnly = false
 }: JsScriptEditorPaneProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const code = useJsScriptCode(scriptId);
   const setCode = useJsScriptStore((state) => state.setCode);
 
@@ -45,15 +49,25 @@ const JsScriptEditorPane = ({
     [scriptId, setCode]
   );
 
+  // On a phone there is no horizontal room to pan and no gutter to spare, so
+  // lines wrap, the line numbers and folding controls go away, and the
+  // scrollbars shrink to what a thumb can still hit.
   const editorOptions = useMemo(
     () => ({
       minimap: { enabled: false },
       automaticLayout: true,
       scrollBeyondLastLine: false,
       tabSize: 2,
-      readOnly
+      readOnly,
+      wordWrap: isMobile ? ("on" as const) : ("off" as const),
+      lineNumbers: isMobile ? ("off" as const) : ("on" as const),
+      folding: !isMobile,
+      lineDecorationsWidth: isMobile ? 0 : 10,
+      scrollbar: isMobile
+        ? { horizontal: "hidden" as const, verticalScrollbarSize: 8 }
+        : undefined
     }),
-    [readOnly]
+    [readOnly, isMobile]
   );
 
   return (

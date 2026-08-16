@@ -1,6 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
+import CodeIcon from "@mui/icons-material/Code";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
@@ -20,6 +23,7 @@ import {
   hasJsScriptAgentHandler
 } from "../jsScript/jsScriptAgentBridge";
 import {
+  Box,
   FlexColumn,
   FlexRow,
   TabGroup
@@ -40,11 +44,29 @@ interface JsScriptSurfaceProps {
 }
 
 type DockTab = "settings" | "assistant";
+type MobilePane = "code" | "console" | "settings" | "assistant";
 
 const DOCK_WIDTH = 340;
 const CONSOLE_HEIGHT = 220;
 
 const DEFAULT_NAME = "Untitled JS script";
+
+const MOBILE_TABS = [
+  { value: "code", label: "Code", icon: <CodeIcon /> },
+  { value: "console", label: "Run", icon: <TerminalIcon /> },
+  { value: "settings", label: "Script", icon: <TuneIcon /> },
+  { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
+];
+
+const MOBILE_PANES: readonly MobilePane[] = [
+  "code",
+  "console",
+  "settings",
+  "assistant"
+];
+
+const isMobilePane = (value: string): value is MobilePane =>
+  (MOBILE_PANES as readonly string[]).includes(value);
 
 /**
  * Workspace surface for a JS script tab. `refId` is the js_scripts row id. It
@@ -53,9 +75,15 @@ const DEFAULT_NAME = "Untitled JS script";
  * keeps the tab label in sync, and lays out the Code-assistant layout as a full
  * document editor: Monaco on the left, a dock that toggles between the
  * execution envelope and the assistant on the right, and the run console below.
+ *
+ * On phones neither the 340px dock nor the 220px console leaves room for the
+ * editor, so the four regions collapse to a single pane with a segmented
+ * switcher. Every pane stays mounted (toggled via `display`) so Monaco's model,
+ * the console output, and the assistant thread survive a switch.
  */
 const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const ensureScript = useJsScriptStore((state) => state.ensureScript);
   const undo = useJsScriptStore((state) => state.undo);
   const redo = useJsScriptStore((state) => state.redo);
@@ -63,6 +91,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   const name = useJsScriptName(refId);
   const readOnly = mode === "view";
   const [dockTab, setDockTab] = useState<DockTab>("settings");
+  const [mobilePane, setMobilePane] = useState<MobilePane>("code");
 
   useEffect(() => {
     ensureScript(refId);
@@ -118,6 +147,66 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     []
   );
 
+  const editor = <JsScriptEditorPane scriptId={refId} readOnly={readOnly} />;
+  const runConsole = (
+    <JsScriptRunConsole
+      scriptId={refId}
+      readOnly={readOnly}
+      onRun={handleRun}
+      onTest={handleTest}
+    />
+  );
+  const settings = (
+    <JsScriptSettingsPanel scriptId={refId} readOnly={readOnly} />
+  );
+  const assistant = <JsScriptAgentPanel scriptId={refId} />;
+
+  if (isMobile) {
+    return (
+      <FlexColumn fullHeight sx={{ minHeight: 0 }}>
+        <TabGroup
+          tabs={MOBILE_TABS}
+          value={mobilePane}
+          onChange={(value) => {
+            if (isMobilePane(value)) {
+              setMobilePane(value);
+            }
+          }}
+          size="small"
+          fullWidth
+          sx={{
+            flexShrink: 0,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        />
+        <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+          {MOBILE_PANES.map((pane) => (
+            <FlexColumn
+              key={pane}
+              fullWidth
+              padding={pane === "code" ? 1 : 0}
+              sx={{
+                position: "absolute",
+                inset: 0,
+                minHeight: 0,
+                overflow: "hidden",
+                display: mobilePane === pane ? "flex" : "none"
+              }}
+            >
+              {pane === "code"
+                ? editor
+                : pane === "console"
+                  ? runConsole
+                  : pane === "settings"
+                    ? settings
+                    : assistant}
+            </FlexColumn>
+          ))}
+        </Box>
+      </FlexColumn>
+    );
+  }
+
   return (
     <FlexRow fullHeight sx={{ minHeight: 0 }}>
       <FlexColumn fullHeight sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
@@ -126,7 +215,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
           padding={1}
           sx={{ flex: 1, minHeight: 0 }}
         >
-          <JsScriptEditorPane scriptId={refId} readOnly={readOnly} />
+          {editor}
         </FlexColumn>
 
         <FlexColumn
@@ -138,12 +227,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
             borderTop: `1px solid ${theme.vars.palette.divider}`
           }}
         >
-          <JsScriptRunConsole
-            scriptId={refId}
-            readOnly={readOnly}
-            onRun={handleRun}
-            onTest={handleTest}
-          />
+          {runConsole}
         </FlexColumn>
       </FlexColumn>
 
@@ -164,11 +248,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
           }}
         />
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {dockTab === "settings" ? (
-            <JsScriptSettingsPanel scriptId={refId} readOnly={readOnly} />
-          ) : (
-            <JsScriptAgentPanel scriptId={refId} />
-          )}
+          {dockTab === "settings" ? settings : assistant}
         </FlexColumn>
       </ResizableSideDock>
     </FlexRow>
