@@ -91,17 +91,29 @@ async function listUserWorkflows(
   });
 }
 
+/** The example-catalog query; `query` only when the caller narrowed it. */
+interface ExampleListOptions {
+  query?: string;
+  limit: number;
+}
+
+/** A graph program that would not evaluate, with whatever it logged first. */
+interface CodeErrorReport {
+  status: string;
+  error: string;
+  logs?: string[];
+}
+
 async function listExampleWorkflows(
   run: CapabilityRun,
   query: string | undefined,
   limit: number
 ): Promise<unknown> {
   if (!run.examples) return NO_EXAMPLES;
+  const listOptions: ExampleListOptions = { limit };
+  if (query) listOptions.query = query;
   return lightWorkflowList({
-    workflows: await run.examples.list({
-      ...(query ? { query } : {}),
-      limit
-    }),
+    workflows: await run.examples.list(listOptions),
     next: null
   });
 }
@@ -292,11 +304,12 @@ const validateWorkflow: CapabilityExport = {
       const { evaluateGraphDsl } = await import("../graph-dsl.js");
       const evaluated = await evaluateGraphDsl(code);
       if (!evaluated.graph) {
-        return {
+        const failure: CodeErrorReport = {
           status: "code_error",
-          error: evaluated.error ?? "Program produced no graph.",
-          ...(evaluated.logs?.length ? { logs: evaluated.logs } : {})
+          error: evaluated.error ?? "Program produced no graph."
         };
+        if (evaluated.logs?.length) failure.logs = evaluated.logs;
+        return failure;
       }
       graph = evaluated.graph;
     }

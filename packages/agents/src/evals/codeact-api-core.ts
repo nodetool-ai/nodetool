@@ -109,8 +109,9 @@ const NODE_CATALOG: readonly NodeSpec[] = [
     dynamicInputs: true,
     outputs: OUT_STR,
     evaluate: (props) =>
-      str(props["string"]).replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (_, slot) =>
-        str(props[String(slot)])
+      str(props["string"]).replace(
+        /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g,
+        (_, slot) => str(props[String(slot)])
       )
   },
   {
@@ -253,7 +254,11 @@ const stringInputGraph = (
   outputName: string
 ): WorldGraph => ({
   nodes: [
-    { id: "in_1", type: "nodetool.input.StringInput", properties: { name: inputName } },
+    {
+      id: "in_1",
+      type: "nodetool.input.StringInput",
+      properties: { name: inputName }
+    },
     { id: "mid_1", type: middleType, properties: middleProps },
     {
       id: "out_1",
@@ -348,7 +353,9 @@ class CoreWorld {
     for (const asset of this.assets.values()) {
       if (asset.name === key || asset.uri === key) return asset;
     }
-    throw new Error(`No asset "${key}" — list_assets or asset_search finds one.`);
+    throw new Error(
+      `No asset "${key}" — list_assets or asset_search finds one.`
+    );
   }
 
   saveAsset(
@@ -363,9 +370,9 @@ class CoreWorld {
       name,
       content,
       content_type: contentType,
-      uri: `asset://${id}`,
-      ...(prompt === undefined ? {} : { prompt })
+      uri: `asset://${id}`
     };
+    if (prompt !== undefined) asset.prompt = prompt;
     this.assets.set(id, asset);
     return asset;
   }
@@ -398,7 +405,9 @@ function validateGraph(graph: WorldGraph): ValidationReport {
       spec.dynamicInputs !== true &&
       !spec.properties.some((p) => p.name === handle)
     ) {
-      errors.push(`Node "${target.id}" (${target.type}) has no input "${handle}"`);
+      errors.push(
+        `Node "${target.id}" (${target.type}) has no input "${handle}"`
+      );
     }
     const set = fed.get(target.id) ?? new Set<string>();
     set.add(handle);
@@ -526,7 +535,7 @@ const EXAMPLE_WORKFLOWS: readonly WorldWorkflow[] = [
 export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = new CoreWorld();
 
-  const tool = <TResult,>(
+  const tool = <TResult>(
     name: string,
     description: string,
     properties: Record<string, unknown>,
@@ -584,7 +593,8 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
     const score =
       terms.length === 0
         ? 1
-        : Math.round(((terms.length - missing.length) / terms.length) * 100) / 100;
+        : Math.round(((terms.length - missing.length) / terms.length) * 100) /
+          100;
     return { asset, score, missing };
   };
 
@@ -602,10 +612,15 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
-    tool("get_workflow", "Get one workflow with its graph.", { workflow_id: s }, (params) => {
-      const workflow = world.workflow(params["workflow_id"]);
-      return { ...summarize(workflow), graph: workflow.graph };
-    }),
+    tool(
+      "get_workflow",
+      "Get one workflow with its graph.",
+      { workflow_id: s },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        return { ...summarize(workflow), graph: workflow.graph };
+      }
+    ),
     tool(
       "create_workflow",
       "Save a graph as a workflow.",
@@ -614,14 +629,18 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         const graph = toGraph(params["graph"]);
         const check = validateGraph(graph);
         if (!check.valid) {
-          throw new Error(`Refusing to save an invalid graph: ${check.errors.join("; ")}`);
+          throw new Error(
+            `Refusing to save an invalid graph: ${check.errors.join("; ")}`
+          );
         }
         const id = world.id("wf");
         const workflow: WorldWorkflow = {
           id,
           name: str(params["name"]) || id,
           description: str(params["description"]),
-          tags: Array.isArray(params["tags"]) ? (params["tags"] as string[]) : [],
+          tags: Array.isArray(params["tags"])
+            ? (params["tags"] as string[])
+            : [],
           graph
         };
         world.workflows.set(id, workflow);
@@ -715,7 +734,8 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       { session_id: s, escalation_id: s, action: s, outputs: o, reason: s },
       (params) => {
         const session = world.sessions.get(str(params["session_id"]));
-        if (!session) throw new Error(`No debug session "${str(params["session_id"])}"`);
+        if (!session)
+          throw new Error(`No debug session "${str(params["session_id"])}"`);
         if (str(params["escalation_id"]) !== session.escalation_id) {
           throw new Error(
             `Escalation "${str(params["escalation_id"])}" is not open on this session.`
@@ -778,7 +798,9 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
               .some(
                 (word) =>
                   spec.type.toLowerCase().includes(word) ||
-                  spec.keywords.some((k) => k.includes(word) || word.includes(k))
+                  spec.keywords.some(
+                    (k) => k.includes(word) || word.includes(k)
+                  )
               )
           )
         );
@@ -794,21 +816,26 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
-    tool("get_node_info", "Full metadata for one node type.", { node_type: s }, (params) => {
-      const spec = nodeSpec(str(params["node_type"]));
-      if (!spec) {
-        throw new Error(
-          `Unknown node type "${str(params["node_type"])}" — search_nodes lists them.`
-        );
+    tool(
+      "get_node_info",
+      "Full metadata for one node type.",
+      { node_type: s },
+      (params) => {
+        const spec = nodeSpec(str(params["node_type"]));
+        if (!spec) {
+          throw new Error(
+            `Unknown node type "${str(params["node_type"])}" — search_nodes lists them.`
+          );
+        }
+        return {
+          node_type: spec.type,
+          description: spec.description,
+          properties: spec.properties,
+          dynamic_inputs: spec.dynamicInputs === true,
+          outputs: spec.outputs
+        };
       }
-      return {
-        node_type: spec.type,
-        description: spec.description,
-        properties: spec.properties,
-        dynamic_inputs: spec.dynamicInputs === true,
-        outputs: spec.outputs
-      };
-    }),
+    ),
     tool(
       "list_nodes",
       "Browse the node catalog, optionally by namespace.",
@@ -832,7 +859,8 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       { node_type: s, inputs: o },
       (params) => {
         const spec = nodeSpec(str(params["node_type"]));
-        if (!spec) throw new Error(`Unknown node type "${str(params["node_type"])}"`);
+        if (!spec)
+          throw new Error(`Unknown node type "${str(params["node_type"])}"`);
         const inputs = record(params["inputs"]);
         const missing = spec.properties
           .filter((p) => p.required && str(inputs[p.name]).length === 0)
@@ -894,21 +922,34 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         };
       }
     ),
-    tool("list_provider_models", "One provider's catalog.", { provider: s }, (params) => {
-      const provider = str(params["provider"]);
-      return {
-        provider,
-        results: MODEL_CATALOG.filter((m) => m.provider === provider).map((m) => ({
-          provider: m.provider,
-          model_id: m.model_id,
-          type: m.type
-        }))
-      };
-    }),
+    tool(
+      "list_provider_models",
+      "One provider's catalog.",
+      { provider: s },
+      (params) => {
+        const provider = str(params["provider"]);
+        return {
+          provider,
+          results: MODEL_CATALOG.filter((m) => m.provider === provider).map(
+            (m) => ({
+              provider: m.provider,
+              model_id: m.model_id,
+              type: m.type
+            })
+          )
+        };
+      }
+    ),
     tool(
       "generate_image",
       "Generate an image and save it as an asset.",
-      { provider: s, model: s, prompt: s, width: { type: "number" }, height: { type: "number" } },
+      {
+        provider: s,
+        model: s,
+        prompt: s,
+        width: { type: "number" },
+        height: { type: "number" }
+      },
       (params) => generate(params, "text_to_image", "image/png", "image")
     ),
     tool(
@@ -933,7 +974,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       "Edit an existing image asset.",
       { provider: s, model: s, prompt: s, input_file: s },
       (params) => {
-        const model = world.model(params["provider"], params["model"], "image_to_image");
+        const model = world.model(
+          params["provider"],
+          params["model"],
+          "image_to_image"
+        );
         const source = world.asset(params["input_file"]);
         const prompt = `${source.prompt ?? source.content} | ${str(params["prompt"])}`;
         const asset = world.saveAsset(
@@ -961,7 +1006,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       "Animate an image asset into a video.",
       { provider: s, model: s, input_file: s },
       (params) => {
-        const model = world.model(params["provider"], params["model"], "image_to_video");
+        const model = world.model(
+          params["provider"],
+          params["model"],
+          "image_to_video"
+        );
         const source = world.asset(params["input_file"]);
         const asset = world.saveAsset(
           `clip-${source.name}`,
@@ -969,7 +1018,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
           "video/mp4",
           source.prompt ?? source.content
         );
-        return { asset_uri: asset.uri, provider: model.provider, model: model.model_id };
+        return {
+          asset_uri: asset.uri,
+          provider: model.provider,
+          model: model.model_id
+        };
       }
     ),
     tool(
@@ -1034,7 +1087,13 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "compare_images",
       "Rank 2-8 candidates against a brief.",
-      { provider: s, model: s, images: { type: "array" }, brief: s, taste_profile: s },
+      {
+        provider: s,
+        model: s,
+        images: { type: "array" },
+        brief: s,
+        taste_profile: s
+      },
       (params) => {
         world.model(params["provider"], params["model"], "vision");
         const images = Array.isArray(params["images"]) ? params["images"] : [];
@@ -1067,7 +1126,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "ffmpeg",
       "Run ffmpeg on workspace files.",
-      { args: { type: "array" }, output_file: s, timeout_seconds: { type: "number" } },
+      {
+        args: { type: "array" },
+        output_file: s,
+        timeout_seconds: { type: "number" }
+      },
       (params) => {
         const output =
           typeof params["output_file"] === "string" && params["output_file"]
@@ -1080,7 +1143,12 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "yt_dlp",
       "Download a video with yt-dlp.",
-      { url: s, output_file: s, format: s, timeout_seconds: { type: "number" } },
+      {
+        url: s,
+        output_file: s,
+        format: s,
+        timeout_seconds: { type: "number" }
+      },
       (params) => {
         const url = str(params["url"]);
         const output =
@@ -1104,7 +1172,9 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         const workflowId = str(params["workflow_id"]);
         return {
           jobs: [...world.jobs.values()]
-            .filter((job) => workflowId === "" || job.workflow_id === workflowId)
+            .filter(
+              (job) => workflowId === "" || job.workflow_id === workflowId
+            )
             .map((job) => ({
               id: job.id,
               workflow_id: job.workflow_id,
@@ -1150,10 +1220,16 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
           assets: [...world.assets.values()]
             .filter(
               (a) =>
-                (contentType === "" || a.content_type.startsWith(contentType)) &&
+                (contentType === "" ||
+                  a.content_type.startsWith(contentType)) &&
                 (query === "" || a.name.toLowerCase().includes(query))
             )
-            .map((a) => ({ id: a.id, name: a.name, uri: a.uri, content_type: a.content_type }))
+            .map((a) => ({
+              id: a.id,
+              name: a.name,
+              uri: a.uri,
+              content_type: a.content_type
+            }))
         };
       }
     ),
@@ -1201,15 +1277,20 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         return { id: asset.id, name: asset.name, uri: asset.uri };
       }
     ),
-    tool("read_asset", "Read a saved asset's content.", { name: s }, (params) => {
-      const asset = world.asset(params["name"]);
-      return {
-        id: asset.id,
-        name: asset.name,
-        content: asset.content,
-        content_type: asset.content_type
-      };
-    }),
+    tool(
+      "read_asset",
+      "Read a saved asset's content.",
+      { name: s },
+      (params) => {
+        const asset = world.asset(params["name"]);
+        return {
+          id: asset.id,
+          name: asset.name,
+          content: asset.content,
+          content_type: asset.content_type
+        };
+      }
+    ),
     tool(
       "list_images",
       "List image assets as handles.",
@@ -1254,7 +1335,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       "Build a workflow that takes a string input named `name` and reports an " +
       "output named `greeting` reading `<name>, welcome aboard!`. " +
       "Discover the node types from the catalog — never guess a type. " +
-      "Validate the graph before running it, then run it with name = \"Ada\" " +
+      'Validate the graph before running it, then run it with name = "Ada" ' +
       "and finish with {greeting: <the run's greeting output>}.",
     outputSchema: {
       type: "object",
@@ -1304,7 +1385,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
     id: "api-pick-model-and-batch-images",
     description: "Survey providers, pick a model, batch-generate images",
     objective:
-      "Three shots need rendering: \"a red fox in snow\", \"a fox by a river\", " +
+      'Three shots need rendering: "a red fox in snow", "a fox by a river", ' +
       'and "a fox on a rooftop". Report which providers this workspace has ' +
       "models from, resolve one text-to-image model from the ranked catalog " +
       "(never guess an id), generate all three images, and finish with " +
@@ -1396,14 +1477,17 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       maxActions: 4,
       resultCheck: (r) => {
         const result = asObject(r);
-        return result["status"] === "completed" && result["shout"] === "SHIP IT";
+        return (
+          result["status"] === "completed" && result["shout"] === "SHIP IT"
+        );
       },
       resultCheckLabel: 'status=completed, shout="SHIP IT"'
     }
   },
   {
     id: "api-batch-existing-workflow",
-    description: "Run one saved workflow over several inputs with bounded fan-out",
+    description:
+      "Run one saved workflow over several inputs with bounded fan-out",
     objective:
       'Find the saved workflow called "Shout Line" and run it once per line ' +
       'for "alpha", "beta" and "gamma", with bounded concurrency rather than ' +

@@ -37,7 +37,10 @@ import type {
 
 import { linkAbort } from "./utils/link-abort.js";
 import { Tool } from "./tools/base-tool.js";
-import { SubmitCodeTool } from "./tools/submit-code-tool.js";
+import {
+  SubmitCodeTool,
+  type SubmitCodeToolOptions
+} from "./tools/submit-code-tool.js";
 import {
   buildCodeGenRetryPrompt,
   buildCodeGenSystemPrompt,
@@ -134,7 +137,10 @@ export class CodePlanner {
     } satisfies PlanningUpdate;
 
     if (this.options.signal?.aborted) {
-      return this.fail({ code: "aborted", message: "Generation was cancelled." });
+      return this.fail({
+        code: "aborted",
+        message: "Generation was cancelled."
+      });
     }
 
     if (!(await this.providerSupportsTools())) {
@@ -175,13 +181,14 @@ export class CodePlanner {
     const unlinkAbort = linkAbort(abort, this.options.signal);
     // The seeded slots are the handles the caller already wired an edge to, so
     // the tool enforces them as a contract rather than a suggestion.
-    const tool = new SubmitCodeTool({
+    const toolOptions: SubmitCodeToolOptions = {
       onAccepted: () => abort.abort(),
-      requiredInputs: this.options.inputs ?? [],
-      ...(this.options.expectedOutput
-        ? { expectedOutput: this.options.expectedOutput }
-        : {})
-    });
+      requiredInputs: this.options.inputs ?? []
+    };
+    if (this.options.expectedOutput) {
+      toolOptions.expectedOutput = this.options.expectedOutput;
+    }
+    const tool = new SubmitCodeTool(toolOptions);
     // Tool results are produced inside the provider's `execute` closure, off
     // the message stream. Park them here and drain into the stream.
     const pending: ToolResultUpdate[] = [];
@@ -281,11 +288,16 @@ export class CodePlanner {
     }
 
     if (this.options.signal?.aborted) {
-      return this.fail({ code: "aborted", message: "Generation was cancelled." });
+      return this.fail({
+        code: "aborted",
+        message: "Generation was cancelled."
+      });
     }
 
     if (loopError) {
-      return this.fail(classifyProviderError(loopError, this.provider.provider));
+      return this.fail(
+        classifyProviderError(loopError, this.provider.provider)
+      );
     }
 
     yield {
@@ -316,7 +328,10 @@ export class CodePlanner {
   }
 
   private fail(error: CodeGenError): CodeGenResponse {
-    log.warn("CodePlanner failed", { code: error.code, message: error.message });
+    log.warn("CodePlanner failed", {
+      code: error.code,
+      message: error.message
+    });
     return { status: "error", error };
   }
 

@@ -25,15 +25,24 @@ import {
 
 export { LIST_JOBS_SCHEMA, GET_JOB_LOGS_SCHEMA } from "./jobs.specs.js";
 
+/** The paging/filter bag `Job.paginate` takes. */
+interface JobPageOptions {
+  limit: number;
+  workflowId?: string;
+}
+
 const listJobs: CapabilityExport = {
   spec: listJobsSpec,
   impl: async (run, params) => {
     const { Job } = await import("@nodetool-ai/models");
     const workflowId = params["workflow_id"];
-    const [jobs, next] = await Job.paginate(userIdOf(run.context), {
-      limit: Number(params["limit"] ?? 100),
-      ...(typeof workflowId === "string" && workflowId ? { workflowId } : {})
-    });
+    const page: JobPageOptions = {
+      limit: Number(params["limit"] ?? 100)
+    };
+    if (typeof workflowId === "string" && workflowId) {
+      page.workflowId = workflowId;
+    }
+    const [jobs, next] = await Job.paginate(userIdOf(run.context), page);
     return { jobs: jobs.map(jobRecord), next: next || null };
   }
 };

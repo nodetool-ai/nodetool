@@ -6,7 +6,15 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha, useTheme } from "@mui/material/styles";
-import { FlexRow, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import type { SystemCssProperties } from "@mui/system";
+import {
+  FlexRow,
+  Text,
+  Box,
+  MOTION,
+  BORDER_RADIUS,
+  Z_INDEX
+} from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {
@@ -86,10 +94,22 @@ function SketchToolIconLabel({
     </FlexRow>
   );
 
+  // Two-line clamp only in the compact column layout, where the label wraps.
+  const clampSx: SystemCssProperties<Theme> = {};
+  if (compact && !row) {
+    clampSx.display = "-webkit-box";
+    clampSx.WebkitBoxOrient = "vertical";
+    clampSx.WebkitLineClamp = 2;
+    clampSx.overflow = "hidden";
+    clampSx.wordBreak = "break-word";
+    clampSx.px = 0.5;
+  }
+
   return (
     <Box
       className={
-        ["sketch-tool-icon-label", className].filter(Boolean).join(" ") || undefined
+        ["sketch-tool-icon-label", className].filter(Boolean).join(" ") ||
+        undefined
       }
       sx={[
         {
@@ -120,16 +140,7 @@ function SketchToolIconLabel({
           width: row ? undefined : "100%",
           minWidth: 0,
           flex: row ? "1 1 auto" : undefined,
-          ...(compact && !row
-            ? {
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical" as const,
-                WebkitLineClamp: 2,
-                overflow: "hidden",
-                wordBreak: "break-word" as const,
-                px: 0.5
-              }
-            : {})
+          ...clampSx
         }}
       >
         {label}

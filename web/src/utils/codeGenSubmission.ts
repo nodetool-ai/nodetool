@@ -11,10 +11,7 @@ import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 import type { TypeMetadata } from "../stores/ApiTypes";
 import type { DynamicSlotDeclaration, NodeData } from "../stores/NodeData";
 import { toCodeGenType } from "./codeGenEntryPoints";
-import {
-  defaultValueForType,
-  normalizeTypeMetadata
-} from "./dynamicSlots";
+import { defaultValueForType, normalizeTypeMetadata } from "./dynamicSlots";
 
 /** The `NodeData` fields an accepted submission writes, and only those. */
 export type CodeGenNodeDataPatch = Required<
@@ -87,10 +84,13 @@ export function nodeInputsToCodeGenPorts(
   const identifier = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
   return Object.entries(dynamicInputs ?? {})
     .filter(([name]) => identifier.test(name))
-    .map(([name, slot]) => ({
-      name,
-      type: toCodeGenType(slot.type),
-      ...(slot.description ? { description: slot.description } : {}),
-      ...(slot.required !== undefined ? { required: slot.required } : {})
-    }));
+    .map(([name, slot]) => {
+      const port: codeGen.CodeGenInputPort = {
+        name,
+        type: toCodeGenType(slot.type)
+      };
+      if (slot.description) port.description = slot.description;
+      if (slot.required !== undefined) port.required = slot.required;
+      return port;
+    });
 }

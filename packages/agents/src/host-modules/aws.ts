@@ -131,13 +131,18 @@ function canonicalQuery(params: URLSearchParams): string {
   for (const [key, value] of params) {
     pairs.push([encodeRfc3986(key), encodeRfc3986(value)]);
   }
-  pairs.sort((a, b) => (a[0] === b[0] ? (a[1] < b[1] ? -1 : 1) : a[0] < b[0] ? -1 : 1));
+  pairs.sort((a, b) =>
+    a[0] === b[0] ? (a[1] < b[1] ? -1 : 1) : a[0] < b[0] ? -1 : 1
+  );
   return pairs.map(([key, value]) => `${key}=${value}`).join("&");
 }
 
 /** `20240115T093000Z` and its `20240115` date part. */
 function amzDate(now: Date): { stamp: string; date: string } {
-  const stamp = `${now.toISOString().replace(/[:-]|\.\d{3}/g, "").slice(0, 15)}Z`;
+  const stamp = `${now
+    .toISOString()
+    .replace(/[:-]|\.\d{3}/g, "")
+    .slice(0, 15)}Z`;
   return { stamp, date: stamp.slice(0, 8) };
 }
 
@@ -147,7 +152,10 @@ interface Credentials {
   readonly sessionToken?: string;
 }
 
-function readCredentials(where: string, opts: Record<string, unknown>): Credentials {
+function readCredentials(
+  where: string,
+  opts: Record<string, unknown>
+): Credentials {
   const accessKeyId = String(opts.accessKeyId ?? "");
   const secretAccessKey = String(opts.secretAccessKey ?? "");
   if (accessKeyId === "" || secretAccessKey === "") {
@@ -156,13 +164,10 @@ function readCredentials(where: string, opts: Record<string, unknown>): Credenti
     );
   }
   const sessionToken = opts.sessionToken;
-  return {
-    accessKeyId,
-    secretAccessKey,
-    ...(typeof sessionToken === "string" && sessionToken !== ""
-      ? { sessionToken }
-      : {})
-  };
+  if (typeof sessionToken === "string" && sessionToken !== "") {
+    return { accessKeyId, secretAccessKey, sessionToken };
+  }
+  return { accessKeyId, secretAccessKey };
 }
 
 function readUrl(where: string, opts: Record<string, unknown>): URL {
@@ -175,10 +180,7 @@ function readUrl(where: string, opts: Record<string, unknown>): URL {
   }
 }
 
-function readHeaders(
-  where: string,
-  value: unknown
-): Record<string, string> {
+function readHeaders(where: string, value: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   const source = optionsOf(value);
   for (const [name, headerValue] of Object.entries(source)) {
@@ -191,7 +193,10 @@ function readHeaders(
   return out;
 }
 
-function readBody(where: string, value: unknown): string | Uint8Array | undefined {
+function readBody(
+  where: string,
+  value: unknown
+): string | Uint8Array | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === "string") {
     if (encoder.encode(value).length > MAX_SIGNED_BODY_BYTES) {
@@ -280,7 +285,10 @@ export async function sigv4(request?: unknown): Promise<SignedRequest> {
   }
 
   const normalized = Object.entries(headers)
-    .map(([name, value]) => [name.toLowerCase(), value.trim().replace(/\s+/g, " ")])
+    .map(([name, value]) => [
+      name.toLowerCase(),
+      value.trim().replace(/\s+/g, " ")
+    ])
     .sort((a, b) => (a[0] < b[0] ? -1 : 1));
   const signedHeaders = normalized.map(([name]) => name).join(";");
   const canonicalHeaders = normalized

@@ -98,7 +98,10 @@ interface JsScriptStoreState {
   setServerRevision: (scriptId: string, revision: string | null) => void;
   setSaveStatus: (scriptId: string, status: JsScriptSaveStatus) => void;
   ensureScript: (id: string) => void;
-  loadScript: (id: string, entry: Omit<JsScriptEntry, "id" | "updatedAt">) => void;
+  loadScript: (
+    id: string,
+    entry: Omit<JsScriptEntry, "id" | "updatedAt">
+  ) => void;
   removeScript: (id: string) => void;
   getScript: (id: string) => JsScriptEntry | undefined;
 
@@ -109,10 +112,7 @@ interface JsScriptStoreState {
     scriptId: string,
     ports: { inputs?: JsScriptPort[]; outputs?: JsScriptPort[] }
   ) => void;
-  setPackages: (
-    scriptId: string,
-    packages: SandboxModuleDeclaration[]
-  ) => void;
+  setPackages: (scriptId: string, packages: SandboxModuleDeclaration[]) => void;
   setSecrets: (scriptId: string, secrets: string[]) => void;
   setTimeoutSeconds: (scriptId: string, timeoutSeconds: number) => void;
   setTests: (scriptId: string, tests: JsScriptTestCase[]) => void;
@@ -322,12 +322,12 @@ export const useJsScriptStore = create<JsScriptStoreState>((set, get) => ({
 
   setPorts: (scriptId, ports) =>
     set((state) =>
-      withScript(state, scriptId, (entry) =>
-        withDocument(entry, {
-          ...(ports.inputs ? { inputs: ports.inputs } : {}),
-          ...(ports.outputs ? { outputs: ports.outputs } : {})
-        })
-      )
+      withScript(state, scriptId, (entry) => {
+        const patch: Partial<JsScriptDocument> = {};
+        if (ports.inputs) patch.inputs = ports.inputs;
+        if (ports.outputs) patch.outputs = ports.outputs;
+        return withDocument(entry, patch);
+      })
     ),
 
   setPackages: (scriptId, packages) =>

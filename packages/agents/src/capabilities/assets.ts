@@ -167,6 +167,42 @@ function withZodValidation(
   };
 }
 
+/** The paging/filter bag `Asset.paginate` and `searchAssetsGlobal` take. */
+interface AssetQueryOptions {
+  contentType?: string;
+  limit: number;
+}
+
+/** What `read_asset` answers with when it found the bytes. */
+interface ReadAssetResult {
+  success: true;
+  name: string;
+  content: string;
+  content_base64?: string;
+  binary: boolean;
+  uri: string | null;
+  size: number;
+}
+
+/** The crop/downscale bag `extractImageRegion` takes. */
+interface ImageExtractOptions {
+  region?: ImageRegion;
+  maxSide?: number;
+  sourceMime?: string;
+}
+
+/** What `view_image` answers with once it has the image in hand. */
+interface ViewImageResult {
+  ok: true;
+  image_id: string;
+  mimeType: string | undefined;
+  detail: "low" | "high";
+  width?: number;
+  height?: number;
+  note: string;
+  image_content: { uri: string | undefined; mimeType: string | undefined };
+}
+
 const listAssets: CapabilityExport = {
   spec: listAssetsSpec,
   impl: async (run, params) => {
@@ -192,17 +228,19 @@ const listAssets: CapabilityExport = {
 
     const { Asset } = await import("@nodetool-ai/models");
     if (query) {
-      const [assets, next] = await Asset.searchAssetsGlobal(userId, query, {
-        ...(contentType ? { contentType } : {}),
-        limit
-      });
+      const search: AssetQueryOptions = { limit };
+      if (contentType) search.contentType = contentType;
+      const [assets, next] = await Asset.searchAssetsGlobal(
+        userId,
+        query,
+        search
+      );
       return { assets: assets.map(assetRecord), next: next || null };
     }
 
-    const [assets, next] = await Asset.paginate(userId, {
-      ...(contentType ? { contentType } : {}),
-      limit
-    });
+    const page: AssetQueryOptions = { limit };
+    if (contentType) page.contentType = contentType;
+    const [assets, next] = await Asset.paginate(userId, page);
     return { assets: assets.map(assetRecord), next: next || null };
   }
 };
@@ -346,11 +384,7 @@ const readAsset: CapabilityExport = {
       const looksLikeUri = name.includes("://") || name.startsWith("/api/");
       if (!looksLikeUri && context.storage) {
         const key = `assets/${name}`;
-        for (const uri of [
-          `memory://${key}`,
-          `file://${key}`,
-          `s3://${key}`
-        ]) {
+        for (const uri of [`memory://${key}`, `file://${key}`, `s3://${key}`]) {
           const result = await context.storage.retrieve(uri);
           if (result) {
             data = result;
@@ -406,17 +440,16 @@ const readAsset: CapabilityExport = {
         content = "";
       }
 
-      return {
+      const result: ReadAssetResult = {
         success: true,
         name,
         content,
-        ...(contentBase64 !== undefined
-          ? { content_base64: contentBase64 }
-          : {}),
         binary: contentBase64 !== undefined,
         uri: matchedUri,
         size: data.byteLength
       };
+      if (contentBase64 !== undefined) result.content_base64 = contentBase64;
+      return result;
     } catch (e) {
       return {
         success: false,
@@ -446,10 +479,9 @@ const assetSearch: CapabilityExport = {
 
     try {
       const { Asset } = await import("@nodetool-ai/models");
-      const [rows] = await Asset.searchAssetsGlobal(userId, query, {
-        ...(contentType ? { contentType } : {}),
-        limit
-      });
+      const search: AssetQueryOptions = { limit };
+      if (contentType) search.contentType = contentType;
+      const [rows] = await Asset.searchAssetsGlobal(userId, query, search);
       const assets = rows
         .filter((a) => a.content_type !== "folder")
         .map((a) => toHandle(a));
@@ -481,10 +513,9 @@ const assetList: CapabilityExport = {
       // `searchAssetsGlobal` with an empty query orders by created_at DESC and
       // supports a content_type prefix — exactly a "recent assets" listing.
       const { Asset } = await import("@nodetool-ai/models");
-      const [rows] = await Asset.searchAssetsGlobal(userId, "", {
-        ...(contentType ? { contentType } : {}),
-        limit
-      });
+      const recent: AssetQueryOptions = { limit };
+      if (contentType) recent.contentType = contentType;
+      const [rows] = await Asset.searchAssetsGlobal(userId, "", recent);
       const assets = rows
         .filter((a) => a.content_type !== "folder")
         .map((a) => toHandle(a));
@@ -701,11 +732,10 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
       outMime = sourceMime;
     } else {
       try {
-        const prepared = await extractImageRegion(sourceBytes, {
-          ...(region ? { region } : {}),
-          ...(maxSide ? { maxSide } : {}),
-          sourceMime
-        });
+        const extract: ImageExtractOptions = { sourceMime };
+        if (region) extract.region = region;
+        if (maxSide) extract.maxSide = maxSide;
+        const prepared = await extractImageRegion(sourceBytes, extract);
         // width/height 0 signals the no-sharp pass-through: the bytes were
         // NOT re-encoded, so keep the true source mime rather than a
         // fabricated one (mislabeling makes the provider reject the image).
@@ -741,16 +771,17 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
     `Image ${imageId}${regionNote}${dims}:` +
       (notes.length ? ` ${notes.join(" ")}` : "");
 
-  return {
+  const result: ViewImageResult = {
     ok: true,
     image_id: imageId,
     mimeType: outMime,
     detail,
-    ...(width ? { width } : {}),
-    ...(height ? { height } : {}),
     note,
     image_content: { uri: outUri, mimeType: outMime }
   };
+  if (width) result.width = width;
+  if (height) result.height = height;
+  return result;
 };
 
 const viewImage: CapabilityExport = {

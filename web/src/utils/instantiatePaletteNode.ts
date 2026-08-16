@@ -47,13 +47,21 @@ export interface PaletteNodeInstance {
  * For snippets, call `updateNodeData(node.id, afterAdd)` after `addNode(node)` —
  * dynamic IO is merged only once the node exists in the store.
  */
+/** A snippet's Code-node properties; `packages` only when it imports one. */
+type SnippetCodeProperties = {
+  code: string;
+  packages?: { specifier: string }[];
+};
+
 export function instantiatePaletteNode(
   metadata: NodeMetadata,
   position: XYPosition,
   createNode: PaletteCreateNodeFn
 ): PaletteNodeInstance {
   if (metadata.node_type === CODE_GEN_PALETTE_NODE_TYPE) {
-    const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
+    const codeMetadata = useMetadataStore
+      .getState()
+      .getMetadata(CODE_NODE_TYPE);
     if (codeMetadata) {
       const node = createNode(codeMetadata, position);
       return {
@@ -70,18 +78,19 @@ export function instantiatePaletteNode(
 
   const snippet = findSnippetByNodeType(metadata.node_type);
   if (snippet) {
-    const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
+    const codeMetadata = useMetadataStore
+      .getState()
+      .getMetadata(CODE_NODE_TYPE);
     if (codeMetadata) {
-      const node = createNode(codeMetadata, position, {
-        code: snippet.code,
-        // A snippet that imports a library seeds the declaration with it —
-        // the loader mounts only what the node declares.
-        ...(snippet.packages === undefined
-          ? {}
-          : {
-              packages: snippet.packages.map((specifier) => ({ specifier }))
-            })
-      });
+      const codeProperties: SnippetCodeProperties = { code: snippet.code };
+      // A snippet that imports a library seeds the declaration with it —
+      // the loader mounts only what the node declares.
+      if (snippet.packages !== undefined) {
+        codeProperties.packages = snippet.packages.map((specifier) => ({
+          specifier
+        }));
+      }
+      const node = createNode(codeMetadata, position, codeProperties);
       node.data.title = snippet.title;
       node.data.codeNodeMode = "snippet";
 
@@ -101,20 +110,22 @@ export function instantiatePaletteNode(
         for (const key of inputKeys) {
           const declared = snippet.inputs?.[key];
           dynProps[key] = declared
-            ? declared.default ?? defaultValueForType(typeMetadata(declared.type))
+            ? (declared.default ??
+              defaultValueForType(typeMetadata(declared.type)))
             : "";
           if (declared) {
-            dynInputs[key] = {
-              type: typeMetadata(declared.type),
-              ...(declared.description !== undefined
-                ? { description: declared.description }
-                : {}),
-              ...(declared.default !== undefined
-                ? { default: declared.default }
-                : {}),
-              ...(declared.min !== undefined ? { min: declared.min } : {}),
-              ...(declared.max !== undefined ? { max: declared.max } : {})
+            const slot: DynamicSlotDeclaration = {
+              type: typeMetadata(declared.type)
             };
+            if (declared.description !== undefined) {
+              slot.description = declared.description;
+            }
+            if (declared.default !== undefined) {
+              slot.default = declared.default;
+            }
+            if (declared.min !== undefined) slot.min = declared.min;
+            if (declared.max !== undefined) slot.max = declared.max;
+            dynInputs[key] = slot;
           }
         }
         afterAdd.dynamic_properties = dynProps;
@@ -123,7 +134,8 @@ export function instantiatePaletteNode(
         }
       }
       const hasFollowUp =
-        (afterAdd.dynamic_outputs && Object.keys(afterAdd.dynamic_outputs).length > 0) ||
+        (afterAdd.dynamic_outputs &&
+          Object.keys(afterAdd.dynamic_outputs).length > 0) ||
         (afterAdd.dynamic_properties &&
           Object.keys(afterAdd.dynamic_properties).length > 0);
 

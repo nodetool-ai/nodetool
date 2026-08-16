@@ -234,12 +234,12 @@ export function normalizeWorkflowGraph(graph: unknown): unknown {
     // and is filled in by `withAutoLayout` below.
     const { node_type, parameters, properties, ...rest } = node;
     const data = properties ?? parameters ?? node["data"];
-    return {
+    const base = {
       ...rest,
       id: node["id"] ?? fallbackId,
-      type: node["type"] ?? node_type,
-      ...(data === undefined ? {} : { data })
+      type: node["type"] ?? node_type
     };
+    return data === undefined ? base : { ...base, data };
   };
 
   const nodes = Array.isArray(rawNodes)
@@ -273,20 +273,30 @@ export function normalizeWorkflowGraph(graph: unknown): unknown {
 // Workflow Tools
 // ============================================================================
 
+/** The light workflow projection; `package_name` only on example records. */
+type LightWorkflowSummary = {
+  id: unknown;
+  name: unknown;
+  description: unknown;
+  tags: unknown;
+  package_name?: string;
+};
+
 /** Project a workflow record to a light summary — never the full graph. */
 function lightWorkflow(w: unknown): unknown {
   if (!w || typeof w !== "object") return w;
   const r = w as Record<string, unknown>;
-  return {
+  const summary: LightWorkflowSummary = {
     id: r["id"],
     name: r["name"],
     description: r["description"] ?? null,
-    tags: r["tags"] ?? null,
-    // Example records carry their package — get_example_workflow needs it.
-    ...(typeof r["package_name"] === "string" && r["package_name"]
-      ? { package_name: r["package_name"] }
-      : {})
+    tags: r["tags"] ?? null
   };
+  // Example records carry their package — get_example_workflow needs it.
+  if (typeof r["package_name"] === "string" && r["package_name"]) {
+    summary.package_name = r["package_name"];
+  }
+  return summary;
 }
 
 /** Strip embedded graphs from a workflow list, keeping pagination intact. */

@@ -183,10 +183,12 @@ function buildSandboxRecord(
 ): Record<string, unknown> {
   const sandbox: Record<string, unknown> = {};
   for (const name of shape.flat) sandbox[name] = proxyFor(session, [name]);
-  for (const [name, value] of Object.entries(shape.values)) sandbox[name] = value;
+  for (const [name, value] of Object.entries(shape.values))
+    sandbox[name] = value;
   for (const [name, members] of Object.entries(shape.objects)) {
     const table: Record<string, unknown> = {};
-    for (const member of members) table[member] = proxyFor(session, [name, member]);
+    for (const member of members)
+      table[member] = proxyFor(session, [name, member]);
     sandbox[name] = table;
   }
 
@@ -266,7 +268,21 @@ function spreadIfSet<K extends string, V>(
   return value === undefined ? {} : ({ [key]: value } as Record<K, V>);
 }
 
-async function executeRun(port: Port, run: RunMessage, session: RunSession): Promise<void> {
+/** The result message a run that threw before reporting posts back. */
+type RunFailureMessage = {
+  type: "result";
+  runId: string;
+  evalOk: false;
+  errorName: string;
+  errorMessage: string;
+  errorStack?: string;
+};
+
+async function executeRun(
+  port: Port,
+  run: RunMessage,
+  session: RunSession
+): Promise<void> {
   const { runSandboxed } = await getEngine();
   const shape = run.bridgeShape;
 
@@ -278,7 +294,10 @@ async function executeRun(port: Port, run: RunMessage, session: RunSession): Pro
     syncTargetNames: syncTargetNames(shape),
     ...spreadIfSet("wasmCall", dispatcherCall(shape, session, "wasm")),
     ...spreadIfSet("hostCall", dispatcherCall(shape, session, "host")),
-    ...spreadIfSet("capabilityCall", dispatcherCall(shape, session, "capability")),
+    ...spreadIfSet(
+      "capabilityCall",
+      dispatcherCall(shape, session, "capability")
+    ),
     ...spreadIfSet("modules", run.modules),
     ...spreadIfSet("capabilityFacades", run.capabilityFacades),
     timeoutMs: run.timeoutMs,
@@ -303,16 +322,17 @@ export async function startWorker(port: Port): Promise<void> {
         const active = new RunSession(port, raw);
         session = active;
         void executeRun(port, raw, active).catch((error: unknown) => {
-          port.postMessage({
+          const failed: RunFailureMessage = {
             type: "result",
             runId: raw.runId,
             evalOk: false,
             errorName: error instanceof Error ? error.name : "Error",
-            errorMessage: error instanceof Error ? error.message : String(error),
-            ...(error instanceof Error && error.stack !== undefined
-              ? { errorStack: error.stack }
-              : {})
-          });
+            errorMessage: error instanceof Error ? error.message : String(error)
+          };
+          if (error instanceof Error && error.stack !== undefined) {
+            failed.errorStack = error.stack;
+          }
+          port.postMessage(failed);
         });
         return;
       }

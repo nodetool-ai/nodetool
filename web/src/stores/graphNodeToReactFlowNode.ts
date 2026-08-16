@@ -30,10 +30,7 @@ export function graphNodeToReactFlowNode(
   const isPreviewNode = node.type === PREVIEW_NODE_TYPE;
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
-  if (
-    isRecord(node.data) &&
-    "workflow_id" in node.data
-  ) {
+  if (isRecord(node.data) && "workflow_id" in node.data) {
     console.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
       node.data.workflow_id,
@@ -74,9 +71,7 @@ export function graphNodeToReactFlowNode(
 
   const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
   const expandedHeightPxForData =
-    isCollapsed &&
-    typeof defaultHeight === "number" &&
-    defaultHeight > strip
+    isCollapsed && typeof defaultHeight === "number" && defaultHeight > strip
       ? defaultHeight
       : undefined;
   const reactFlowHeight = isCollapsed ? strip : defaultHeight;
@@ -84,9 +79,42 @@ export function graphNodeToReactFlowNode(
 
   const isBypassed = ui_properties?.bypassed || false;
 
-  // PreviewNodes are selectable via click and selection box, 
+  // PreviewNodes are selectable via click and selection box,
   // but should be ignored when dragging (handled in drag handler)
   const selectable = ui_properties?.selectable;
+
+  const data: NodeData = {
+    properties: (() => {
+      const raw = node.data;
+      const props: Record<string, unknown> = isRecord(raw) ? raw : {};
+      const meta = useMetadataStore.getState().getMetadata(node.type);
+      if (meta?.properties) {
+        return applyDefaultModels(props, meta.properties);
+      }
+      return props;
+    })(),
+    dynamic_properties: node.dynamic_properties ?? {},
+    dynamic_outputs: node.dynamic_outputs || {},
+    selectable,
+    collapsed: isCollapsed,
+    bypassed: isBypassed,
+    workflow_id: workflow.id,
+    title: ui_properties?.title,
+    color: ui_properties?.color,
+    originalType: node.type,
+    model_id: ui_properties?.model_id,
+    endpoint_id: ui_properties?.endpoint_id,
+    selected_generation: ui_properties?.selected_generation,
+    selected_generations: ui_properties?.selected_generations
+  };
+  // Left `undefined` when empty so the schema-loader / sync effects that
+  // compare against `data.dynamic_inputs` don't see a spurious change.
+  if (node.dynamic_inputs && Object.keys(node.dynamic_inputs).length > 0) {
+    data.dynamic_inputs = normalizeDynamicSlots(node.dynamic_inputs);
+  }
+  if (expandedHeightPxForData != null) {
+    data.expandedHeightPx = expandedHeightPxForData;
+  }
 
   return {
     type: node.type,
@@ -103,38 +131,7 @@ export function graphNodeToReactFlowNode(
       bypassed: isBypassed,
       collapsed: isCollapsed
     }),
-    data: {
-      properties: (() => {
-        const raw = node.data;
-        const props: Record<string, unknown> = isRecord(raw) ? raw : {};
-        const meta = useMetadataStore.getState().getMetadata(node.type);
-        if (meta?.properties) {
-          return applyDefaultModels(props, meta.properties);
-        }
-        return props;
-      })(),
-      dynamic_properties: node.dynamic_properties ?? {},
-      // Kept `undefined` when empty so the schema-loader / sync effects that
-      // compare against `data.dynamic_inputs` don't see a spurious change.
-      ...(node.dynamic_inputs && Object.keys(node.dynamic_inputs).length > 0
-        ? { dynamic_inputs: normalizeDynamicSlots(node.dynamic_inputs) }
-        : {}),
-      dynamic_outputs: node.dynamic_outputs || {},
-      selectable,
-      collapsed: isCollapsed,
-      bypassed: isBypassed,
-      workflow_id: workflow.id,
-      title: ui_properties?.title,
-      color: ui_properties?.color,
-      originalType: node.type,
-      model_id: ui_properties?.model_id,
-      endpoint_id: ui_properties?.endpoint_id,
-      selected_generation: ui_properties?.selected_generation,
-      selected_generations: ui_properties?.selected_generations,
-      ...(expandedHeightPxForData != null
-        ? { expandedHeightPx: expandedHeightPxForData }
-        : {})
-    },
+    data,
     position: ui_properties?.position || { x: 0, y: 0 },
     // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)
     // ReactFlow's applyNodeChanges sets node.width/height when user resizes, so we restore them here
@@ -145,8 +142,7 @@ export function graphNodeToReactFlowNode(
       height: reactFlowStyleHeight
     },
     zIndex:
-      node.type === "nodetool.group.Loop" ||
-      node.type === GROUP_NODE_TYPE
+      node.type === "nodetool.group.Loop" || node.type === GROUP_NODE_TYPE
         ? -10
         : ui_properties?.zIndex
   };

@@ -26,10 +26,7 @@ import {
   type SupervisorHandle
 } from "@nodetool-ai/kernel";
 import { createLogger } from "@nodetool-ai/config";
-import {
-  StepExecutor,
-  type StepResultAcceptance
-} from "../step-executor.js";
+import { StepExecutor, type StepResultAcceptance } from "../step-executor.js";
 import type { Step, Task } from "../types.js";
 import { buildSupervisorPrompt } from "./prompt.js";
 import { buildVerdictSchema } from "./verdict-schema.js";
@@ -196,10 +193,16 @@ export class SupervisorAgent implements SupervisorHandle {
     }
     if (verdict.action !== "substitute") return { accepted: true };
 
-    const validation = await validateSubstituteOutputs(verdict.outputs, {
-      declaredOutputs: escalation.declaredOutputs,
-      ...(this._opts.resolveRef ? { resolveRef: this._opts.resolveRef } : {})
-    });
+    const checkOptions: Parameters<typeof validateSubstituteOutputs>[1] = {
+      declaredOutputs: escalation.declaredOutputs
+    };
+    if (this._opts.resolveRef) {
+      checkOptions.resolveRef = this._opts.resolveRef;
+    }
+    const validation = await validateSubstituteOutputs(
+      verdict.outputs,
+      checkOptions
+    );
     return validation.ok
       ? { accepted: true }
       : { accepted: false, reason: validation.issues.join("; ") };

@@ -73,17 +73,24 @@ export interface CreateBridgeOptions {
   toolNames?: readonly string[];
 }
 
+/** A node's `ui_properties` on the wire; a title only when it has one. */
+interface WireUiProperties {
+  position: { x: number; y: number };
+  title?: string;
+}
+
 function toGraph(state: ToolLoopState): Graph {
   return {
-    nodes: state.nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      data: { ...node.data.properties },
-      ui_properties: {
-        position: { ...node.position },
-        ...(node.data.title !== undefined ? { title: node.data.title } : {})
-      }
-    })),
+    nodes: state.nodes.map((node) => {
+      const ui: WireUiProperties = { position: { ...node.position } };
+      if (node.data.title !== undefined) ui.title = node.data.title;
+      return {
+        id: node.id,
+        type: node.type,
+        data: { ...node.data.properties },
+        ui_properties: ui
+      };
+    }),
     edges: state.edges.map((edge) => ({ ...edge }))
   };
 }
@@ -102,14 +109,13 @@ function syncStateFromGraph(state: ToolLoopState, graph: Graph): void {
       ui.position && typeof ui.position === "object"
         ? (ui.position as { x: number; y: number })
         : { x: 0, y: 0 };
+    const nodeData: HeadlessNode["data"] = { properties: { ...data } };
+    if (typeof ui.title === "string") nodeData.title = ui.title;
     return {
       id: node.id,
       type: node.type,
       position: { ...position },
-      data: {
-        properties: { ...data },
-        ...(typeof ui.title === "string" ? { title: ui.title } : {})
-      }
+      data: nodeData
     };
   });
   state.edges = graph.edges.map((edge) => ({

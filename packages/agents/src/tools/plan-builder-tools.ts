@@ -102,7 +102,9 @@ export class PlanBuilder {
         ? (data["id"] as string)
         : randomUUID();
     const taskTitle =
-      typeof data["title"] === "string" ? (data["title"] as string) : "Untitled Task";
+      typeof data["title"] === "string"
+        ? (data["title"] as string)
+        : "Untitled Task";
     const taskDependsOn = Array.isArray(data["depends_on"])
       ? (data["depends_on"] as string[])
       : Array.isArray(data["dependsOn"])
@@ -409,7 +411,8 @@ export class AddTaskTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const title = typeof params["title"] === "string" ? params["title"] : "task";
+    const title =
+      typeof params["title"] === "string" ? params["title"] : "task";
     return `Adding task: ${title}`;
   }
 }
@@ -452,12 +455,13 @@ export class RemoveTaskTool extends Tool {
     if (!result.ok) {
       return { status: "error", error: result.error };
     }
-    return {
+    const removed: RemoveTaskResult = {
       status: "task_removed",
       id,
-      tasksSoFar: this.builder.taskCount,
-      ...(result.warning ? { warning: result.warning } : {})
+      tasksSoFar: this.builder.taskCount
     };
+    if (result.warning) removed.warning = result.warning;
+    return removed;
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -515,7 +519,8 @@ export class FinishPlanTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const title = typeof params["title"] === "string" ? params["title"] : "plan";
+    const title =
+      typeof params["title"] === "string" ? params["title"] : "plan";
     return `Finalizing plan: ${title}`;
   }
 }

@@ -121,7 +121,12 @@ export interface PackageManagerModel {
 function mergePython(available: PackageInfo[], installed: InstalledPackage[]) {
   const byRepo = new Map<
     string,
-    { repoId: string; name: string; description: string; installed?: InstalledPackage }
+    {
+      repoId: string;
+      name: string;
+      description: string;
+      installed?: InstalledPackage;
+    }
   >();
   for (const pack of available) {
     byRepo.set(pack.repo_id, {
@@ -325,7 +330,8 @@ export function usePackageManager(params: {
           {
             id: "language",
             label: "Languages",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "language").length
+            count: statuses.filter((p) => runtimeGroup(p.id) === "language")
+              .length
           },
           {
             id: "media",
@@ -346,14 +352,18 @@ export function usePackageManager(params: {
       : [
           { id: "included", label: "Included", count: includedItems.length },
           { id: "python", label: "Registry", count: pythonPacks.length },
-          { id: "thirdparty", label: "Third-party", count: thirdPartyPacks.length }
+          {
+            id: "thirdparty",
+            label: "Third-party",
+            count: thirdPartyPacks.length
+          }
         ];
 
     let rows: PMRow[] = [];
     let baseCount = 0;
     const chips: PMCount[] = [];
 
-    const applyChips = <T,>(
+    const applyChips = <T>(
       list: T[],
       defs: { id: string; label: string; pred: (item: T) => boolean }[]
     ) => {
@@ -405,27 +415,26 @@ export function usePackageManager(params: {
       ]);
       rows = filtered.map((rt) => {
         const busy = rtBusy.includes(rt.id) || rt.installing;
-        return {
+        const row: PMRow = {
           key: rt.id,
           name: rt.name,
           desc: rt.description,
-          badge: rt.installed ? "installed" : "notInstalled",
-          // Installing runs through the desktop app; in the browser the row is
-          // status-only.
-          ...(rtAvailable
-            ? {
-                buttons: {
-                  install: !rt.installed,
-                  update: false,
-                  uninstall: rt.installed,
-                  busy,
-                  onInstall: () => void rtInstall(rt.id),
-                  onUpdate: () => {},
-                  onUninstall: () => void rtUninstall(rt.id)
-                }
-              }
-            : {})
+          badge: rt.installed ? "installed" : "notInstalled"
         };
+        // Installing runs through the desktop app; in the browser the row is
+        // status-only.
+        if (rtAvailable) {
+          row.buttons = {
+            install: !rt.installed,
+            update: false,
+            uninstall: rt.installed,
+            busy,
+            onInstall: () => void rtInstall(rt.id),
+            onUpdate: () => {},
+            onUninstall: () => void rtUninstall(rt.id)
+          };
+        }
+        return row;
       });
     } else if (cat === "included") {
       baseCount = includedItems.length;
@@ -460,8 +469,16 @@ export function usePackageManager(params: {
         : pythonPacks;
       const filtered = applyChips(searched, [
         { id: "all", label: "All", pred: () => true },
-        { id: "installed", label: "Installed", pred: (p) => !!p.installed && !p.installed.hasUpdate },
-        { id: "updates", label: "Updates", pred: (p) => !!p.installed?.hasUpdate },
+        {
+          id: "installed",
+          label: "Installed",
+          pred: (p) => !!p.installed && !p.installed.hasUpdate
+        },
+        {
+          id: "updates",
+          label: "Updates",
+          pred: (p) => !!p.installed?.hasUpdate
+        },
         { id: "available", label: "Available", pred: (p) => !p.installed }
       ]);
       rows = filtered.map((pack) => {
@@ -533,7 +550,7 @@ export function usePackageManager(params: {
       isThirdParty,
       categories,
       title: TITLES[cat] ?? "Packages",
-      subtitle: isSoftware ? SUBTITLES.software : SUBTITLES[cat] ?? "",
+      subtitle: isSoftware ? SUBTITLES.software : (SUBTITLES[cat] ?? ""),
       count: baseCount,
       chips: notice ? [] : chips,
       rows,

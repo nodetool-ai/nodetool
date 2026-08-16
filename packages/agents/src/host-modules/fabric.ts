@@ -57,6 +57,23 @@ interface FabricLike {
   };
 }
 
+/** Canvas options, with a background only when the scene names one. */
+type CanvasOptions = {
+  width: number;
+  height: number;
+  backgroundColor?: string;
+};
+
+function canvasOptions(
+  width: number,
+  height: number,
+  scene: { backgroundColor?: string }
+): CanvasOptions {
+  const options: CanvasOptions = { width, height };
+  if (scene.backgroundColor) options.backgroundColor = scene.backgroundColor;
+  return options;
+}
+
 async function loadFabric(where: string): Promise<FabricLike> {
   // Fabric's default entry is its *browser* build: constructing a canvas there
   // reaches for `document`, so on Node every call failed with "document is not
@@ -144,11 +161,10 @@ export async function render(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
@@ -208,11 +224,10 @@ export async function renderSVG(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
@@ -252,11 +267,10 @@ export async function toDataURL(
   );
 
   const fabricLib = await loadFabric(where);
-  const canvas = new fabricLib.StaticCanvas(null, {
-    width,
-    height,
-    ...(scene.backgroundColor ? { backgroundColor: scene.backgroundColor } : {})
-  });
+  const canvas = new fabricLib.StaticCanvas(
+    null,
+    canvasOptions(width, height, scene)
+  );
 
   try {
     if (scene.objects || Object.keys(scene).length > 0) {
