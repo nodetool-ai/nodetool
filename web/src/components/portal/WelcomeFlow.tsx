@@ -2,7 +2,7 @@
 import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, type CSSProperties } from "react";
+import { memo, type CSSProperties, type ReactNode } from "react";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
@@ -69,6 +69,11 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       fontSize: "var(--fontSizeNormal)",
       lineHeight: 1.45,
       animation: `${rise} ${MOTION.slow} ${240}ms backwards`
+    },
+
+    ".welcome-command": {
+      marginBottom: getSpacingPx(SPACING.xxl),
+      animation: `${rise} ${MOTION.slow} ${280}ms backwards`
     },
 
     ".welcome-grid": {
@@ -179,6 +184,11 @@ interface WelcomeFlowProps {
    *  dashboard hero, which places a composer and an "open empty canvas" action
    *  below the cards). */
   hideFooter?: boolean;
+  /**
+   * The command bar, rendered between the intro copy and the starter cards.
+   * The host owns it so the same bar can appear alone on the compact hero.
+   */
+  commandBar?: ReactNode;
 }
 
 const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
@@ -186,7 +196,8 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
   onSkip,
   statusDot = false,
   fullWidth = false,
-  hideFooter = false
+  hideFooter = false,
+  commandBar
 }) => {
   const theme = useTheme();
 
@@ -202,6 +213,8 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
         to go — press send, or write your own. You can always change your mind,
         or skip and explore.
       </p>
+
+      {commandBar && <div className="welcome-command">{commandBar}</div>}
 
       <div className="welcome-grid">
         {WELCOME_TRACKS.map((track) => {

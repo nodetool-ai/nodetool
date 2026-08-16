@@ -6,12 +6,15 @@ import { useTheme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDashboardData } from "../../hooks/useDashboardData";
+import { useDashboardMode } from "../../hooks/useDashboardMode";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
 import { usePanelStore } from "../../stores/PanelStore";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import DashboardHero from "./DashboardHero";
+import DashboardActivity from "./DashboardActivity";
 import DashboardDownloads from "./DashboardDownloads";
+import { DashboardColumn, wrapStyles } from "./dashboardChrome";
 import GettingStartedChecklist from "./GettingStartedChecklist";
 import DashboardTemplates, {
   DASHBOARD_TEMPLATES_SECTION_ID
@@ -44,10 +47,45 @@ const styles = (theme: Theme) =>
     }
   });
 
+/** Two columns for the returning dashboard: the user's work, and a rail. */
+const columnStyles = (theme: Theme) =>
+  css({
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) 320px",
+    gap: getSpacingPx(SPACING.xxl),
+    alignItems: "start",
+    paddingTop: getSpacingPx(SPACING.md),
+    [theme.breakpoints.down("lg")]: {
+      gridTemplateColumns: "minmax(0, 1fr)"
+    },
+    ".dash-main": {
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.md)
+    },
+    ".dash-rail": {
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.lg),
+      position: "sticky",
+      top: getSpacingPx(SPACING.md),
+      [theme.breakpoints.down("lg")]: {
+        position: "static"
+      }
+    }
+  });
+
+/** A start the user asked for before a provider was configured. */
+interface PendingStart {
+  trackId: WelcomeTrackId;
+  prompt: string;
+}
+
 const Portal: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [pendingTrack, setPendingTrack] = useState<WelcomeTrackId | null>(null);
+  const [pendingStart, setPendingStart] = useState<PendingStart | null>(null);
 
   // The dashboard wants the full width; collapse the left panel on entry.
   useEffect(() => {
@@ -56,16 +94,20 @@ const Portal: React.FC = () => {
 
   const { sortedWorkflows, isLoadingWorkflows } = useDashboardData();
   const { handleCreateNewWorkflow } = useWorkflowActions();
+  const mode = useDashboardMode({
+    workflowCount: sortedWorkflows.length,
+    isLoadingWorkflows
+  });
 
   const startTrackChat = useStartTrackChat();
   const hasConfiguredProvider = useHasConfiguredProvider();
 
-  const handlePickTrack = useCallback(
-    (trackId: WelcomeTrackId) => {
+  const handleStart = useCallback(
+    (trackId: WelcomeTrackId, prompt: string) => {
       // The first send needs a model; route key-less users through the shared
       // provider onboarding first so that send doesn't fail.
       if (!hasConfiguredProvider) {
-        setPendingTrack(trackId);
+        setPendingStart({ trackId, prompt });
         const track = WELCOME_TRACKS.find((t) => t.id === trackId);
         const onboarding: Parameters<typeof openProviderOnboarding>[0] = {};
         if (track) {
@@ -75,24 +117,24 @@ const Portal: React.FC = () => {
         openProviderOnboarding(onboarding);
         return;
       }
-      void startTrackChat(trackId);
+      void startTrackChat(trackId, prompt);
     },
     [hasConfiguredProvider, startTrackChat]
   );
 
-  // Picking a track without a provider parks it here; once one is connected the
-  // chat opens on its own, so the user finishes the thing they asked for
+  // Starting without a provider parks the request here; once one is connected
+  // the chat opens on its own, so the user finishes the thing they asked for
   // rather than landing back on the dashboard.
   const startChat = useRef(startTrackChat);
   startChat.current = startTrackChat;
   useEffect(() => {
-    if (!pendingTrack || !hasConfiguredProvider) {
+    if (!pendingStart || !hasConfiguredProvider) {
       return;
     }
-    const trackId = pendingTrack;
-    setPendingTrack(null);
-    void startChat.current(trackId);
-  }, [pendingTrack, hasConfiguredProvider]);
+    const { trackId, prompt } = pendingStart;
+    setPendingStart(null);
+    void startChat.current(trackId, prompt);
+  }, [pendingStart, hasConfiguredProvider]);
 
   const handleOpenWorkflow = useCallback(
     (workflowId: string) => {
@@ -126,24 +168,60 @@ const Portal: React.FC = () => {
         <main>
           <DashboardDownloads />
           <DashboardHero
-            onPickTrack={handlePickTrack}
+            mode={mode}
+            onStart={handleStart}
             onOpenEmptyCanvas={handleCreateNewWorkflow}
             onOpenSettings={handleOpenSettings}
           />
-          <GettingStartedChecklist
-            hasConfiguredProvider={hasConfiguredProvider}
-            onConnectProvider={handleConnectProvider}
-            onOpenTemplates={handleOpenTemplates}
-            onCreateWorkflow={handleCreateNewWorkflow}
-          />
-          <DashboardTutorials />
-          <DashboardTemplates />
-          <DashboardWorkflows
-            workflows={sortedWorkflows}
-            isLoading={isLoadingWorkflows}
-            onOpenWorkflow={handleOpenWorkflow}
-            onCreateNew={handleCreateNewWorkflow}
-          />
+          {/* A returning user's own work leads, with the checklist and run
+              activity moved into a rail beside it. A first-run user has no
+              work yet, so the material that teaches them leads instead. */}
+          {mode === "returning" ? (
+            <div css={[wrapStyles(theme), columnStyles(theme)]}>
+              <div className="dash-main">
+                <DashboardColumn>
+                  <DashboardWorkflows
+                    workflows={sortedWorkflows}
+                    isLoading={isLoadingWorkflows}
+                    onOpenWorkflow={handleOpenWorkflow}
+                    onCreateNew={handleCreateNewWorkflow}
+                  />
+                  <DashboardTemplates />
+                  <DashboardTutorials variant="compact" />
+                </DashboardColumn>
+              </div>
+              <aside className="dash-rail">
+                <GettingStartedChecklist
+                  variant="inline"
+                  hasConfiguredProvider={hasConfiguredProvider}
+                  onConnectProvider={handleConnectProvider}
+                  onOpenTemplates={handleOpenTemplates}
+                  onCreateWorkflow={handleCreateNewWorkflow}
+                />
+                <DashboardActivity
+                  workflows={sortedWorkflows}
+                  onOpenWorkflow={handleOpenWorkflow}
+                />
+              </aside>
+            </div>
+          ) : (
+            <>
+              <GettingStartedChecklist
+                hasConfiguredProvider={hasConfiguredProvider}
+                onConnectProvider={handleConnectProvider}
+                onOpenTemplates={handleOpenTemplates}
+                onCreateWorkflow={handleCreateNewWorkflow}
+              />
+              <DashboardTutorials />
+              <DashboardTemplates />
+              <DashboardWorkflows
+                workflows={sortedWorkflows}
+                isLoading={isLoadingWorkflows}
+                onOpenWorkflow={handleOpenWorkflow}
+                onCreateNew={handleCreateNewWorkflow}
+              />
+            </>
+          )}
           <DashboardFooter
             workflowCount={sortedWorkflows.length}
             onGettingStarted={handleOpenTemplates}

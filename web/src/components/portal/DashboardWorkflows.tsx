@@ -19,10 +19,16 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { useRunningJobs } from "../../hooks/useRunningJobs";
+import { lastRunByWorkflow } from "./runStatus";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
-import { wrapStyles, SectionHeader, DashboardSearchBox } from "./dashboardChrome";
+import {
+  useSectionWrap,
+  SectionHeader,
+  DashboardSearchBox
+} from "./dashboardChrome";
 
 type ViewMode = "grid" | "list";
 
@@ -132,6 +138,7 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
   onCreateNew
 }) => {
   const theme = useTheme();
+  const sectionWrap = useSectionWrap();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const copyWorkflow = useWorkflowManager((state) => state.copy);
@@ -149,6 +156,9 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
   const [query, setQuery] = useState("");
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const { data: jobs } = useRunningJobs();
+  const lastRuns = useMemo(() => lastRunByWorkflow(jobs), [jobs]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -236,7 +246,7 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
         onClose={() => setIsDeleteOpen(false)}
         workflowsToDelete={workflowsToDelete}
       />
-      <div css={wrapStyles(theme)}>
+      <div css={sectionWrap}>
         <SectionHeader title="Recent workflows" count={countLabel}>
           <DashboardSearchBox
             value={query}
@@ -294,6 +304,7 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
                   key={workflow.id}
                   workflow={workflow}
                   onClick={handleOpen}
+                  lastRun={lastRuns.get(workflow.id)}
                 />
               ))}
             </div>
