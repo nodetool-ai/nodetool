@@ -23,6 +23,9 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 
 const moveShotMock = jest.fn();
 const removeShotMock = jest.fn();
+const updateShotMock = jest.fn();
+/** Script the board links, if any — set per test before rendering. */
+let linkedScriptId: string | null = null;
 jest.mock("../../../stores/storyboard/StoryboardStore", () => {
   const actual = jest.requireActual(
     "../../../stores/storyboard/StoryboardStore"
@@ -36,12 +39,65 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
         toggleShotEntity: jest.fn(),
         moveShot: moveShotMock,
         removeShot: removeShotMock,
+        updateShot: updateShotMock,
         selectKeyframeVersion: jest.fn(),
         selectClipVersion: jest.fn(),
-        boards: {}
+        boards: {
+          "board-1": {
+            screenplay: linkedScriptId ? { script_id: linkedScriptId } : null
+          }
+        }
       })
   };
 });
+
+/** The linked script: one line, voiced with a 3.4 s take plus 250 ms silence. */
+let lineIsVoiced = true;
+jest.mock("../../../trpc/client", () => ({
+  trpc: {
+    scripts: {
+      get: {
+        useQuery: (_input: { id: string }, options?: { enabled?: boolean }) =>
+          options?.enabled
+            ? {
+                data: {
+                  document: {
+                    cast: [],
+                    sections: [
+                      {
+                        id: "sec1",
+                        lines: [
+                          {
+                            id: "line-1",
+                            text: "We are closed.",
+                            pauseAfterMs: 250,
+                            currentTakeId: lineIsVoiced ? "take-1" : null,
+                            takes: lineIsVoiced
+                              ? [
+                                  {
+                                    id: "take-1",
+                                    assetId: "audio-1",
+                                    durationMs: 3400,
+                                    words: [],
+                                    textSnapshot: "We are closed.",
+                                    voiceSnapshot: null,
+                                    createdAt: "2026-01-01T00:00:00.000Z"
+                                  }
+                                ]
+                              : []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            : { data: undefined }
+      }
+    }
+  },
+  trpcClient: {}
+}));
 
 jest.mock("../../node/ImageRefPreview", () => ({
   __esModule: true,
@@ -79,6 +135,9 @@ describe("ShotCard", () => {
   beforeEach(() => {
     moveShotMock.mockClear();
     removeShotMock.mockClear();
+    updateShotMock.mockClear();
+    linkedScriptId = null;
+    lineIsVoiced = true;
   });
 
   it("renders the shot action and status label", () => {
@@ -202,5 +261,52 @@ describe("ShotCard", () => {
       ).toBeDisabled();
       unmount();
     }
+  });
+});
+
+describe("ShotCard duration source", () => {
+  const linkedShot = (overrides: Partial<Shot> = {}): Shot =>
+    makeShot({ duration_seconds: 8, script_line_ids: ["line-1"], ...overrides });
+
+  beforeEach(() => {
+    updateShotMock.mockClear();
+    linkedScriptId = "script-1";
+    lineIsVoiced = true;
+  });
+
+  it("shows the audio-derived length for a linked, voiced shot", () => {
+    renderCard(linkedShot());
+    // 3400 ms + 250 ms of silence, rounded up to whole seconds.
+    expect(screen.getByText("4s · from takes")).toBeInTheDocument();
+  });
+
+  it("shows the shot's own length when it is pinned to manual", () => {
+    renderCard(linkedShot({ duration_source: "manual" }));
+    expect(screen.getByText("8s · manual")).toBeInTheDocument();
+  });
+
+  it("falls back to the shot's own length while the line is unvoiced", () => {
+    lineIsVoiced = false;
+    renderCard(linkedShot());
+    expect(screen.getByText("8s · manual")).toBeInTheDocument();
+  });
+
+  it("shows nothing for a shot that covers no script lines", () => {
+    renderCard(makeShot({ duration_seconds: 8 }));
+    expect(screen.queryByText(/from takes|manual/)).not.toBeInTheDocument();
+  });
+
+  it("toggles the source through the store", async () => {
+    renderCard(linkedShot());
+    await userEvent.click(screen.getByText("4s · from takes"));
+    expect(updateShotMock).toHaveBeenCalledWith("board-1", "shot-1", {
+      duration_source: "manual"
+    });
+  });
+
+  it("does not toggle in read-only mode", async () => {
+    renderCard(linkedShot(), { readOnly: true });
+    await userEvent.click(screen.getByText("4s · from takes"));
+    expect(updateShotMock).not.toHaveBeenCalled();
   });
 });

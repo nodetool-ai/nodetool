@@ -56,7 +56,7 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 // --- createStoryboardToolBridge ----------------------------------------------
 
 describe("createStoryboardToolBridge", () => {
-  it("exposes exactly the 10 ui_storyboard_* tools", () => {
+  it("exposes exactly the 11 ui_storyboard_* tools", () => {
     const bridge = createStoryboardToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -70,10 +70,11 @@ describe("createStoryboardToolBridge", () => {
         "ui_storyboard_revise_shot",
         "ui_storyboard_assemble_timeline",
         "ui_storyboard_extract_script",
+        "ui_storyboard_set_duration_source",
         "ui_storyboard_select_shot"
       ].sort()
     );
-    expect(names).toHaveLength(10);
+    expect(names).toHaveLength(11);
   });
 
   it("rejects a set_screenplay call with an invalid object", async () => {
