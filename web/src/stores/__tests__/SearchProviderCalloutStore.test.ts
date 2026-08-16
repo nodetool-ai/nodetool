@@ -1,8 +1,10 @@
 import { useSearchProviderCalloutStore } from "../SearchProviderCalloutStore";
 import type { SearchToolNode } from "../../utils/findSearchToolNodes";
 
-const makeNode = (id: string): SearchToolNode =>
-  ({ node_type: `search.${id}`, id }) as unknown as SearchToolNode;
+const makeNode = (id: string): SearchToolNode => ({
+  nodeId: id,
+  nodeTitle: `search.${id}`
+});
 
 describe("SearchProviderCalloutStore", () => {
   beforeEach(() => {

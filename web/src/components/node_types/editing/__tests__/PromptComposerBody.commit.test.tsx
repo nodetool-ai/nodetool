@@ -21,6 +21,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PromptComposerBody } from "../PromptComposerBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperties = jest.fn();
 
@@ -108,7 +109,7 @@ const renderWithTheme = (ui: React.ReactElement) => {
 };
 
 const makeProps = (initialPrompt: string) =>
-  ({
+  stub<Parameters<typeof PromptComposerBody>[0]>({
     id: "node-1",
     nodeType: "nodetool.text.Prompt",
     nodeMetadata: {
@@ -123,7 +124,7 @@ const makeProps = (initialPrompt: string) =>
     },
     workflowId: "wf-1",
     isOutputNode: false
-  }) as unknown as Parameters<typeof PromptComposerBody>[0];
+  });
 
 // A stand-in for Lexical's EditorState whose `read` simply runs the callback;
 // $serializePrompt is mocked, so no Lexical context is required.

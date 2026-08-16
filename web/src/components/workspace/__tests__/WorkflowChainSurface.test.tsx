@@ -10,6 +10,7 @@ import type {
   TypeMetadata,
   Workflow
 } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 const saveWorkflow = jest.fn().mockResolvedValue(undefined);
 const updateWorkflow = jest.fn();
@@ -51,7 +52,7 @@ const makeMetadata = (nodeType: string): NodeMetadata =>
     required_settings: []
   }) as NodeMetadata;
 
-const workflow: Workflow = {
+const workflow: Workflow = stub<Workflow>({
   id: "wf-1",
   name: "Chain workflow",
   access: "private",
@@ -84,7 +85,7 @@ const workflow: Workflow = {
       }
     ]
   }
-} as unknown as Workflow;
+});
 
 describe("WorkflowChainSurface", () => {
   beforeEach(() => {
@@ -137,7 +138,7 @@ describe("WorkflowChainSurface", () => {
   });
 
   it("keeps nodes the chain view cannot represent", async () => {
-    const withComment = {
+    const withComment = stub<Workflow>({
       ...workflow,
       graph: {
         ...workflow.graph,
@@ -151,7 +152,7 @@ describe("WorkflowChainSurface", () => {
           }
         ]
       }
-    } as unknown as Workflow;
+    });
     const nodeStore = createNodeStore(withComment);
 
     render(<WorkflowChainSurface workflowId="wf-1" nodeStore={nodeStore} />);

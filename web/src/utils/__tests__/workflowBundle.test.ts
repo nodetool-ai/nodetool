@@ -4,6 +4,7 @@ import {
   exportWorkflowsBundle,
   importWorkflowBundle
 } from "../workflowBundle";
+import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -23,7 +24,7 @@ function fakeResponse(opts: {
   text?: string;
   disposition?: string;
 }): Response {
-  return {
+  return stub<Response>({
     ok: opts.ok,
     status: opts.status ?? (opts.ok ? 200 : 400),
     blob: async () => opts.blob ?? new Blob([new Uint8Array([1, 2, 3])]),
@@ -33,7 +34,7 @@ function fakeResponse(opts: {
       get: (k: string) =>
         k.toLowerCase() === "content-disposition" ? opts.disposition ?? null : null
     }
-  } as unknown as Response;
+  });
 }
 
 let lastAnchor: HTMLAnchorElement | null = null;

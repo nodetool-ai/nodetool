@@ -5,6 +5,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import QueuePanel from "../QueuePanel";
 import { Job } from "../../../../stores/ApiTypes";
 import { useRunningJobs } from "../../../../hooks/useRunningJobs";
+import { asMock } from "../../../../test-utils/doubles";
 
 jest.mock("../../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()
@@ -21,7 +22,7 @@ jest.mock("../JobItem", () => ({
   )
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 
 const job = (id: string, status: string): Job =>
   ({

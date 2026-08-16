@@ -74,7 +74,7 @@ async function runpodRest(
   apiKey: string,
   endpoint: string,
   method: HttpMethod = "GET",
-  data?: Record<string, unknown>
+  data?: object
 ): Promise<Record<string, unknown>> {
   if (!apiKey) throw new Error("RunPod API key is required");
   const init: RequestInit = {
@@ -113,7 +113,7 @@ export async function createPod(
     apiKey,
     "pods",
     "POST",
-    spec as unknown as Record<string, unknown>
+    spec
   )) as RunpodPod;
   if (!pod?.id) throw new Error("RunPod createPod returned no pod id");
   return pod;

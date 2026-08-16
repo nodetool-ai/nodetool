@@ -6,6 +6,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import WorkerStatusIndicator from "../WorkerStatusIndicator";
 import { useWorkers } from "../../../hooks/useWorkers";
 import type { WorkerInstance } from "../../../hooks/useWorkers";
+import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useWorkers", () => ({
   useWorkers: jest.fn()
@@ -33,7 +34,7 @@ const makeInstance = (
 const baseValue = (
   activeWorker: WorkerInstance | null
 ): ReturnType<typeof useWorkers> =>
-  ({
+  stub<ReturnType<typeof useWorkers>>({
     profiles: [],
     instances: activeWorker ? [activeWorker] : [],
     activeWorker,
@@ -51,7 +52,7 @@ const baseValue = (
     attach: jest.fn(),
     detach: jest.fn(),
     reconcile: jest.fn()
-  }) as unknown as ReturnType<typeof useWorkers>;
+  });
 
 const renderIndicator = () =>
   render(

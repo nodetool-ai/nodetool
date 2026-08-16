@@ -236,9 +236,13 @@ async function loadGrader(): Promise<
 async function loadBridgeFactory(): Promise<CreateJsScriptBridge> {
   const { createJsScriptToolBridge } = await import("@nodetool-ai/agents");
   return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the script document types independently, and that
+    // duplication is the only reason the structures do not line up.
     createJsScriptToolBridge(
       initial as Parameters<typeof createJsScriptToolBridge>[0]
-    ) as unknown as JsScriptBridge;
+    ) as JsScriptBridge;
 }
 
 function defaultOutDir(ref: string): string {

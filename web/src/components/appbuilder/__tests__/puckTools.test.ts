@@ -11,6 +11,7 @@ import {
   listOpenPuckApplicationIds,
   PuckAgentHandler
 } from "../puck/puckAgentBridge";
+import { stub } from "../../../test-utils/doubles";
 
 const APP_ID = "app-1";
 
@@ -82,13 +83,13 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
 const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
 
 const jsonResponse = (body: unknown, ok = true, status = 200): Response =>
-  ({
+  stub<Response>({
     ok,
     status,
     json: async () => body
-  }) as unknown as Response;
+  });
 
-const ctx = { getState: () => ({}) as unknown as FrontendToolState };
+const ctx = { getState: () => stub<FrontendToolState>({}) };
 
 afterEach(() => {
   for (const id of listOpenPuckApplicationIds()) setPuckAgentHandler(id, null);

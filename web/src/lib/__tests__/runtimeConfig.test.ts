@@ -1,3 +1,4 @@
+import { stub } from "../../test-utils/doubles";
 /**
  * @jest-environment node
  */
@@ -9,11 +10,11 @@ const mockFetch = jest.fn();
 (global as any).fetch = mockFetch;
 
 const jsonResponse = (body: unknown, ok = true): Response =>
-  ({
+  stub<Response>({
     ok,
     status: ok ? 200 : 500,
     json: async () => body
-  }) as unknown as Response;
+  });
 
 describe("runtimeConfig", () => {
   beforeEach(() => {

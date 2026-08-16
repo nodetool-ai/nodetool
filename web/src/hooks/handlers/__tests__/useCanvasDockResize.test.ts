@@ -5,6 +5,7 @@ import { useCanvasDockResize } from "../useCanvasDockResize";
 import useCanvasChatDockStore, {
   DEFAULT_OVERLAY_HEIGHT
 } from "../../../stores/CanvasChatDockStore";
+import { stub } from "../../../test-utils/doubles";
 
 const makeOverlay = (width: number, height: number) => {
   const el = document.createElement("div");
@@ -17,12 +18,12 @@ const makeOverlay = (width: number, height: number) => {
 };
 
 const mouseEvent = (clientX: number, clientY: number) =>
-  ({
+  stub<React.MouseEvent>({
     clientX,
     clientY,
     preventDefault: jest.fn(),
     stopPropagation: jest.fn()
-  }) as unknown as React.MouseEvent;
+  });
 
 describe("useCanvasDockResize", () => {
   beforeEach(() => {

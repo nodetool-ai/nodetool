@@ -49,6 +49,7 @@ jest.mock("../../../config/shortcuts", () => ({
 }));
 
 import { useNodes } from "../../../contexts/NodeContext";
+import { asMock } from "../../../test-utils/doubles";
 
 describe("SelectionActionToolbar", () => {
   const renderWithTheme = (ui: React.ReactElement) =>
@@ -56,7 +57,7 @@ describe("SelectionActionToolbar", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+    asMock(useNodes).mockImplementation((sel: any) =>
       sel({
         nodes: [
           { id: "1", position: { x: 0, y: 0 }, selected: true },

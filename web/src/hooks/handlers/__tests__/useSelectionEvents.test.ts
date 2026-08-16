@@ -6,6 +6,7 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useDragHandlers from "../useDragHandlers";
 import { NodeData } from "../../../stores/NodeData";
+import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/ContextMenuStore");
@@ -14,13 +15,13 @@ jest.mock("../useDragHandlers");
 
 describe("useSelectionEvents", () => {
   const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
-  const mockReactFlowInstance = {
+  const mockReactFlowInstance = stub<ReturnType<typeof useReactFlow>>({
     screenToFlowPosition: mockScreenToFlowPosition,
     flowToScreenPosition: jest.fn().mockImplementation((pos: { x: number; y: number }) => pos),
     getIntersectingNodes: jest.fn().mockReturnValue([]),
     getNodes: jest.fn().mockReturnValue([]),
     getEdges: jest.fn().mockReturnValue([])
-  } as unknown as ReturnType<typeof useReactFlow>;
+  });
 
   const mockOpenContextMenu = jest.fn();
   const mockUpdateNode = jest.fn();
@@ -31,10 +32,10 @@ describe("useSelectionEvents", () => {
   const mockOnSelectionDragStop = jest.fn();
   const mockSetSuppressNodeDrivenEdgeSelection = jest.fn();
 
-  const mockedUseContextMenu = useContextMenu as unknown as jest.Mock;
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseReactFlow = useReactFlow as unknown as jest.Mock;
-  const mockedUseDragHandlers = useDragHandlers as unknown as jest.Mock;
+  const mockedUseContextMenu = asMock(useContextMenu);
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseReactFlow = asMock(useReactFlow);
+  const mockedUseDragHandlers = asMock(useDragHandlers);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -98,12 +99,12 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         clientX: 300,
         clientY: 400
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleSelectionContextMenu(mockEvent);
 
@@ -132,10 +133,10 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleSelectionStart(mockEvent);
 
@@ -157,10 +158,10 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      result.current.handleSelectionStart({
+      result.current.handleSelectionStart(stub<ReactMouseEvent>({
         clientX: 150,
         clientY: 200
-      } as unknown as ReactMouseEvent);
+      }));
 
       expect(
         document.body.classList.contains("is-marquee-selecting")
@@ -181,10 +182,10 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         clientX: 250,
         clientY: 300
-      } as unknown as ReactMouseEvent;
+      });
 
       result.current.handleSelectionEnd(mockEvent);
 
@@ -206,10 +207,10 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      result.current.handleSelectionEnd({
+      result.current.handleSelectionEnd(stub<ReactMouseEvent>({
         clientX: 250,
         clientY: 300
-      } as unknown as ReactMouseEvent);
+      }));
 
       expect(
         document.body.classList.contains("is-marquee-selecting")
@@ -237,10 +238,10 @@ describe("useSelectionEvents", () => {
       );
 
       result.current.selectionStartRef.current = { x: 0, y: 0 };
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         clientX: 100,
         clientY: 100
-      } as unknown as ReactMouseEvent;
+      });
 
       const edgeIn = document.createElementNS("http://www.w3.org/2000/svg", "g");
       edgeIn.setAttribute("class", "react-flow__edge");
@@ -324,11 +325,11 @@ describe("useSelectionEvents", () => {
 
       result.current.selectionStartRef.current = { x: 0, y: 0 };
       result.current.selectionEndRef.current = { x: 100, y: 100 };
-      const mockEvent = {
+      const mockEvent = stub<ReactMouseEvent>({
         clientX: 100,
         clientY: 100,
         shiftKey: false
-      } as unknown as ReactMouseEvent;
+      });
 
       const rafSpy = jest
         .spyOn(window, "requestAnimationFrame")

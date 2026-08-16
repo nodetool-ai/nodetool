@@ -20,13 +20,14 @@ const mockFetch = jest.fn();
 // Import once — the module registers a window listener at import time, and
 // re-importing per test would stack duplicate listeners on the shared window.
 import "../preloadErrorReload";
+import { stub } from "../../test-utils/doubles";
 
 const htmlResponse = (body: string, ok = true): Response =>
-  ({
+  stub<Response>({
     ok,
     status: ok ? 200 : 500,
     text: async () => body
-  }) as unknown as Response;
+  });
 
 const firePreloadError = (): void => {
   window.dispatchEvent(new Event("vite:preloadError", { cancelable: true }));

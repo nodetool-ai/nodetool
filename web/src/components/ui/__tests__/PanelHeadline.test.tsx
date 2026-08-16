@@ -25,6 +25,7 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import PanelHeadline from "../PanelHeadline";
 import mockTheme from "../../../__mocks__/themeMock";
+import { stub } from "../../../test-utils/doubles";
 
 const renderWithTheme = (component: React.ReactElement) => {
   return render(
@@ -266,7 +267,7 @@ describe("PanelHeadline", () => {
 
     it("handles empty array as actions", () => {
       const { container } = renderWithTheme(
-        <PanelHeadline title="Test" actions={[] as unknown as React.ReactNode} />
+        <PanelHeadline title="Test" actions={stub<React.ReactNode>([])} />
       );
 
       // Empty array is truthy, so actions should render

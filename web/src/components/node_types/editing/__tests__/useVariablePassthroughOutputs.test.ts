@@ -6,6 +6,7 @@ import { useNodes } from "../../../../contexts/NodeContext";
 import useMetadataStore from "../../../../stores/MetadataStore";
 import type { NodeData } from "../../../../stores/NodeData";
 import type { TypeMetadata } from "../../../../stores/ApiTypes";
+import { asMock } from "../../../../test-utils/doubles";
 
 jest.mock("../../../../contexts/NodeContext", () => ({
   useNodes: jest.fn()
@@ -52,7 +53,7 @@ const imageSourceMetadata = {
 };
 
 const setupStore = (edges: Edge[]) => {
-  (useNodes as unknown as jest.Mock).mockImplementation(
+  asMock(useNodes).mockImplementation(
     <T,>(selector: (s: unknown) => T) =>
       selector({
         edges,
@@ -60,7 +61,7 @@ const setupStore = (edges: Edge[]) => {
         updateNodeData: mockUpdateNodeData
       })
   );
-  (useMetadataStore as unknown as jest.Mock).mockImplementation(
+  asMock(useMetadataStore).mockImplementation(
     <T,>(selector: (s: unknown) => T) =>
       selector({ getMetadata: () => imageSourceMetadata })
   );

@@ -225,7 +225,15 @@ function outputTypeForNode(
   const dynamicType = record(dynamic?.[handle]);
   if (dynamicType && typeof dynamicType.type === "string") {
     return {
-      type: cloneType(dynamicType as unknown as TypeMetadata),
+      type: cloneType({
+        ...dynamicType,
+        type: dynamicType.type,
+        // A slot saved before typed `type_args` existed has none; `cloneType`
+        // reads it as an array either way.
+        type_args: Array.isArray(dynamicType.type_args)
+          ? dynamicType.type_args
+          : []
+      }),
       stream: false
     };
   }

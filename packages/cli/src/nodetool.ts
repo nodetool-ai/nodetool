@@ -251,14 +251,27 @@ async function makeLocalAssetFetcher(): Promise<
 // Table printer
 // ---------------------------------------------------------------------------
 
-function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
+/**
+ * Render one cell. Reflection, not indexing: a table prints whatever column
+ * names the caller asked for off rows of any object shape, and `Reflect.get`
+ * expresses that without widening the row type to a dictionary.
+ */
+function cell(row: object, key: string): string {
+  const value: unknown = Reflect.get(row, key);
+  return String(value ?? "");
+}
+
+function printTable<Row extends object>(
+  rows: readonly Row[],
+  columns?: string[]
+): void {
   if (rows.length === 0) {
     console.log("(no results)");
     return;
   }
   const cols = columns ?? Object.keys(rows[0]!);
   const widths = cols.map((c) =>
-    Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
+    Math.max(c.length, ...rows.map((r) => cell(r, c).length))
   );
   const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
   const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
@@ -266,9 +279,7 @@ function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
   console.log(sep);
   for (const row of rows) {
     console.log(
-      cols
-        .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
-        .join("│")
+      cols.map((c, i) => ` ${cell(row, c).padEnd(widths[i]!)} `).join("│")
     );
   }
 }
@@ -569,12 +580,10 @@ workflows
   .option("--json", "Output as JSON")
   .action(async (workflowId, opts) => {
     try {
-      let data: Record<string, unknown>;
+      let data: WorkflowSummaryRow;
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        data = (await client.workflows.get.query({
-          id: workflowId
-        })) as unknown as Record<string, unknown>;
+        data = await client.workflows.get.query({ id: workflowId });
       } else {
         ensureDb();
         const wf = await Workflow.find(LOCAL_USER_ID, workflowId);
@@ -585,13 +594,12 @@ workflows
         asJson(data);
         return;
       }
-      const w = data;
       printTable([
         {
-          id: w["id"],
-          name: w["name"],
-          description: w["description"],
-          updated_at: w["updated_at"]
+          id: data.id,
+          name: data.name,
+          description: data.description,
+          updated_at: data.updated_at
         }
       ]);
     } catch (e) {
@@ -908,10 +916,7 @@ workflows
           ensureDb();
           const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
-          const graph = wf.getGraph() as unknown as {
-            nodes: Record<string, unknown>[];
-            edges: Record<string, unknown>[];
-          };
+          const graph = wf.getGraph();
           source = workflowToDsl(graph, {
             workflowName: typeof wf.name === "string" ? wf.name : null
           });
@@ -1023,7 +1028,7 @@ workflows
           tags = Array.isArray(wf.tags)
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
-          graph = wf.getGraph() as unknown as typeof graph;
+          graph = wf.getGraph();
         }
 
         if (!graph?.nodes) {
@@ -1249,10 +1254,10 @@ workflows
         }
       });
 
-      const created: Record<string, unknown>[] = [];
+      const created: CreatedWorkflowRow[] = [];
       for (const wf of result.workflows) {
         created.push(
-          (await Workflow.create({
+          await Workflow.create({
             user_id: "1",
             name: wf.name,
             description: wf.description ?? "",
@@ -1261,7 +1266,7 @@ workflows
             graph: wf.graph,
             run_mode: wf.run_mode ?? "workflow",
             settings: wf.settings ?? null
-          })) as unknown as Record<string, unknown>
+          })
         );
       }
 
@@ -1281,7 +1286,7 @@ workflows
         asJson(created);
       } else {
         for (const c of created) {
-          console.log(String(c["id"]));
+          console.log(String(c.id));
         }
       }
     } catch (e) {
@@ -1361,12 +1366,10 @@ jobs
   .option("--json", "Output as JSON")
   .action(async (jobId, opts) => {
     try {
-      let data: Record<string, unknown>;
+      let data: JobSummaryRow;
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        data = (await client.jobs.get.query({
-          id: jobId
-        })) as unknown as Record<string, unknown>;
+        data = await client.jobs.get.query({ id: jobId });
       } else {
         ensureDb();
         const job = await Job.find(LOCAL_USER_ID, jobId);
@@ -1377,14 +1380,13 @@ jobs
         asJson(data);
         return;
       }
-      const j = data;
       printTable([
         {
-          id: j["id"],
-          status: j["status"],
-          workflow_id: j["workflow_id"],
-          error: j["error"] ?? "",
-          cost: j["cost"] ?? ""
+          id: data.id,
+          status: data.status,
+          workflow_id: data.workflow_id,
+          error: data.error ?? "",
+          cost: data.cost ?? ""
         }
       ]);
     } catch (e) {
@@ -1476,12 +1478,10 @@ assets
   .option("--json", "Output as JSON")
   .action(async (assetId, opts) => {
     try {
-      let data: Record<string, unknown>;
+      let data: AssetSummaryRow;
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        data = (await client.assets.get.query({
-          id: assetId
-        })) as unknown as Record<string, unknown>;
+        data = await client.assets.get.query({ id: assetId });
       } else {
         ensureDb();
         const asset = await Asset.find(LOCAL_USER_ID, assetId);
@@ -1492,14 +1492,13 @@ assets
         asJson(data);
         return;
       }
-      const a = data;
       printTable([
         {
-          id: a["id"],
-          name: a["name"],
-          content_type: a["content_type"],
-          size: a["size"],
-          url: a["url"]
+          id: data.id,
+          name: data.name,
+          content_type: data.content_type,
+          size: data.size,
+          url: data.url
         }
       ]);
     } catch (e) {
@@ -1512,6 +1511,35 @@ assets
 // models
 // ---------------------------------------------------------------------------
 
+/** The fields the `workflows get` table prints, from either source. */
+type WorkflowSummaryRow = {
+  id?: unknown;
+  name?: unknown;
+  description?: unknown;
+  updated_at?: unknown;
+};
+
+/** The fields the `jobs get` table prints, from either source. */
+type JobSummaryRow = {
+  id?: unknown;
+  status?: unknown;
+  workflow_id?: unknown;
+  error?: unknown;
+  cost?: unknown;
+};
+
+/** The fields the `assets get` table prints, from either source. */
+type AssetSummaryRow = {
+  id?: unknown;
+  name?: unknown;
+  content_type?: unknown;
+  size?: unknown;
+  url?: unknown;
+};
+
+/** Exactly what `Workflow.create` hands back, kept for the id we print. */
+type CreatedWorkflowRow = Awaited<ReturnType<typeof Workflow.create>>;
+
 const models = program.command("models").description("Model management");
 
 const modelKinds = [
@@ -1523,13 +1551,15 @@ const modelKinds = [
   "embedding"
 ] as const;
 
-function modelRow(m: {
+type ModelRowInput = {
   id?: unknown;
   name?: unknown;
   provider?: unknown;
   type?: unknown;
   repo_id?: unknown;
-}): Record<string, unknown> {
+};
+
+function modelRow(m: ModelRowInput): Record<string, unknown> {
   return {
     id: m["id"],
     name: m["name"],
@@ -1552,16 +1582,13 @@ models
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      let rows: Record<string, unknown>[];
+      let rows: ModelRowInput[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        rows = (await client.models.all.query()) as unknown as Record<
-          string,
-          unknown
-        >[];
+        rows = await client.models.all.query();
       } else {
         await setupDb();
-        rows = (await listAllModels()) as unknown as Record<string, unknown>[];
+        rows = await listAllModels();
       }
       if (opts.json) {
         asJson(rows);
@@ -1614,19 +1641,13 @@ models
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      let rows: Record<string, unknown>[];
+      let rows: ModelRowInput[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        rows = (await client.models.ollama.query()) as unknown as Record<
-          string,
-          unknown
-        >[];
+        rows = await client.models.ollama.query();
       } else {
         await setupDb();
-        rows = (await listOllamaModels()) as unknown as Record<
-          string,
-          unknown
-        >[];
+        rows = await listOllamaModels();
       }
       if (opts.json) {
         asJson(rows);
@@ -1654,7 +1675,7 @@ models
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      let rows: Record<string, unknown>[];
+      let rows: ModelRowInput[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
         if (opts.query || opts.type) {
@@ -1666,15 +1687,9 @@ models
           if (opts.type) {
             search.type = String(opts.type);
           }
-          rows = (await client.models.huggingfaceSearch.query(
-            search
-          )) as unknown as Record<string, unknown>[];
+          rows = await client.models.huggingfaceSearch.query(search);
         } else {
-          rows =
-            (await client.models.huggingfaceList.query()) as unknown as Record<
-              string,
-              unknown
-            >[];
+          rows = await client.models.huggingfaceList.query();
         }
       } else if (opts.query || opts.type) {
         // Wrap a bare query in wildcards so it matches as a substring, the same
@@ -1682,15 +1697,12 @@ models
         const rawQuery = opts.query ? String(opts.query) : undefined;
         const query =
           rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
-        rows = (await searchCachedHfModels(
+        rows = await searchCachedHfModels(
           query ? [query] : undefined,
           opts.type ? [String(opts.type)] : undefined
-        )) as unknown as Record<string, unknown>[];
+        );
       } else {
-        rows = (await readCachedHfModels()) as unknown as Record<
-          string,
-          unknown
-        >[];
+        rows = await readCachedHfModels();
       }
       if (opts.json) {
         asJson(rows);

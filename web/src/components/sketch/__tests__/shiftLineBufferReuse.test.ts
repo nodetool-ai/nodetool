@@ -15,6 +15,7 @@ import type {
   StrokeBufferMode,
   EngineCompositeOp
 } from "../painting/PaintEngine";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
   const layerCanvases = new Map<string, HTMLCanvasElement>();
   layerCanvases.set(layer.id, layerCanvas);
 
-  return {
+  return stub<ToolContext>({
     doc: {
       canvas: { width: 64, height: 64 },
       layers: [layer],
@@ -75,8 +76,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
           stabilizer: 0,
           roundness: 1,
           angle: 0,
-          pressureSize: false,
-          pressureOpacity: false,
+          pressureSensitivity: false,
           color: "#000000",
           brushType: "round"
         },
@@ -84,15 +84,12 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
           size: 1,
           opacity: 1,
           color: "#000000",
-          pressureSize: false,
-          pressureOpacity: false
+          pressureSensitivity: false
         },
         eraser: {
           size: 10,
           opacity: 1,
-          hardness: 0.8,
-          pressureSize: false,
-          pressureOpacity: false
+          stabilizer: 0
         },
         fill: { tolerance: 32, color: "#000000" },
         shape: {
@@ -103,19 +100,14 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
         },
         gradient: {
           type: "linear",
-          angle: 0,
-          stops: [
-            { color: "#000000", position: 0 },
-            { color: "#ffffff", position: 100 }
-          ]
+          startColor: "#000000",
+          endColor: "#ffffff"
         },
-        blur: { size: 10, strength: 5, pressureSize: false },
+        blur: { size: 10, strength: 5 },
         cloneStamp: {
           size: 20,
           opacity: 1,
-          hardness: 0.8,
-          pressureSize: false,
-          pressureOpacity: false
+          hardness: 0.8
         }
       },
       foregroundColor: "#000000",
@@ -147,7 +139,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     strokeDirtyRectRef: { current: null },
     setContentBounds: jest.fn(),
     ...overrides
-  } as unknown as ToolContext;
+  });
 }
 
 function makePointerEvent(

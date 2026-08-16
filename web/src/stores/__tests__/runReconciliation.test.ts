@@ -13,6 +13,7 @@ import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManag
 import { isAuthRequired } from "../../lib/runtimeConfig";
 import { useAuth } from "../useAuth";
 import type { WorkflowAttributes } from "../ApiTypes";
+import { asMock } from "../../test-utils/doubles";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
@@ -43,7 +44,7 @@ const mockListQuery = trpcClient.jobs.list.query as jest.Mock;
 const mockSend = globalWebSocketManager.send as jest.Mock;
 const mockIsAuthRequired = isAuthRequired as jest.Mock;
 const mockAuthGetState = useAuth.getState as jest.Mock;
-const mockAuthSubscribe = useAuth.subscribe as unknown as jest.Mock;
+const mockAuthSubscribe = asMock(useAuth.subscribe);
 
 const workflow: WorkflowAttributes = {
   id: "wf",

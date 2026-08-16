@@ -3,6 +3,7 @@
  */
 import { sortThreadsByDate } from "../threadUtils";
 import type { ThreadInfo } from "../../types/thread.types";
+import { stub } from "../../../../test-utils/doubles";
 
 describe("sortThreadsByDate", () => {
   it("sorts threads by updatedAt in descending order (newest first)", () => {
@@ -27,7 +28,7 @@ describe("sortThreadsByDate", () => {
   it("handles threads with undefined updatedAt by sorting them last", () => {
     const threads: Record<string, ThreadInfo> = {
       withDate: { id: "withDate", updatedAt: "2024-01-01T00:00:00Z", messages: [] },
-      noDate: { id: "noDate", updatedAt: undefined } as unknown as ThreadInfo
+      noDate: stub<ThreadInfo>({ id: "noDate", updatedAt: undefined })
     };
 
     const sorted = sortThreadsByDate(threads);

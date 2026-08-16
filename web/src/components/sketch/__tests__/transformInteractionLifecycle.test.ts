@@ -12,6 +12,7 @@ import { TransformTool } from "../tools/TransformTool";
 import type { LayerTransform } from "../types";
 import { aff } from "./_transformFixtures";
 import { createDefaultDocument, makeAffineTransform } from "../types";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     drawCursor: jest.fn(),
     clearGizmo: jest.fn(),
     drawGizmo: jest.fn((cb) => {
-      const mockGc = {
+      const mockGc = stub<CanvasRenderingContext2D>({
         save: jest.fn(),
         restore: jest.fn(),
         translate: jest.fn(),
@@ -76,7 +77,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
         set fillStyle(_: string) { /* noop */ },
         set lineWidth(_: number) { /* noop */ },
         set lineDashOffset(_: number) { /* noop */ },
-      } as unknown as CanvasRenderingContext2D;
+      });
       cb(mockGc, 1, 800, 600);
     }),
     onZoomChange: jest.fn(),
@@ -109,13 +110,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }

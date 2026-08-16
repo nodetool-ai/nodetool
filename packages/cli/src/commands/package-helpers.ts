@@ -6,8 +6,18 @@ import path from "node:path";
  * formatter used by nodetool.ts so this file is self-contained when
  * imported from commands/.
  */
-export function printTable(
-  rows: Record<string, unknown>[],
+/**
+ * Render one cell. Reflection, not indexing: a table prints whatever column
+ * names the caller asked for off rows of any object shape, and `Reflect.get`
+ * expresses that without widening the row type to a dictionary.
+ */
+function cell(row: object, key: string): string {
+  const value: unknown = Reflect.get(row, key);
+  return String(value ?? "");
+}
+
+export function printTable<Row extends object>(
+  rows: readonly Row[],
   columns?: string[]
 ): void {
   if (rows.length === 0) {
@@ -16,7 +26,7 @@ export function printTable(
   }
   const cols = columns ?? Object.keys(rows[0]!);
   const widths = cols.map((c) =>
-    Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
+    Math.max(c.length, ...rows.map((r) => cell(r, c).length))
   );
   const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
   const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
@@ -24,9 +34,7 @@ export function printTable(
   console.log(sep);
   for (const row of rows) {
     console.log(
-      cols
-        .map((c, i) => ` ${String(row[c] ?? "").padEnd(widths[i]!)} `)
-        .join("│")
+      cols.map((c, i) => ` ${cell(row, c).padEnd(widths[i]!)} `).join("│")
     );
   }
 }

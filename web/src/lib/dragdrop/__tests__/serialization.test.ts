@@ -7,13 +7,14 @@ import {
   DRAG_DATA_MIME
 } from "../serialization";
 import type { DragData } from "../types";
+import { stub } from "../../../test-utils/doubles";
 
 describe("serialization", () => {
   describe("serializeDragData", () => {
     it("should serialize create-node data with both new and legacy formats", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn()
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"create-node"> = {
         type: "create-node",
@@ -33,9 +34,9 @@ describe("serialization", () => {
     });
 
     it("should serialize asset data with legacy key", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn()
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"asset"> = {
         type: "asset",
@@ -55,9 +56,9 @@ describe("serialization", () => {
     });
 
     it("should serialize assets-multiple with selectedAssetIds legacy key", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn()
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"assets-multiple"> = {
         type: "assets-multiple",
@@ -77,9 +78,9 @@ describe("serialization", () => {
     });
 
     it("should serialize sketch data with legacy key", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn()
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"sketch"> = {
         type: "sketch",
@@ -99,9 +100,9 @@ describe("serialization", () => {
     });
 
     it("should serialize timeline data with legacy key", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn()
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"timeline"> = {
         type: "timeline",
@@ -123,7 +124,7 @@ describe("serialization", () => {
 
   describe("deserializeDragData", () => {
     it("should prefer new format over legacy", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === DRAG_DATA_MIME) {
             return JSON.stringify({
@@ -138,7 +139,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -147,7 +148,7 @@ describe("serialization", () => {
     });
 
     it("should fall back to legacy create-node format", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "create-node") {
             return JSON.stringify({ node_type: "legacy.Node" });
@@ -156,7 +157,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -165,7 +166,7 @@ describe("serialization", () => {
     });
 
     it("should fall back to legacy asset format", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "asset") {
             return JSON.stringify({ id: "123", name: "test.png" });
@@ -174,7 +175,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -183,7 +184,7 @@ describe("serialization", () => {
     });
 
     it("should fall back to legacy selectedAssetIds format", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "selectedAssetIds") {
             return JSON.stringify(["id1", "id2"]);
@@ -192,7 +193,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -202,7 +203,7 @@ describe("serialization", () => {
     });
 
     it("should fall back to legacy sketch format", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "sketch") {
             return JSON.stringify({ id: "sketch-1", name: "Storyboard" });
@@ -211,7 +212,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -220,7 +221,7 @@ describe("serialization", () => {
     });
 
     it("should fall back to legacy timeline format", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "timeline") {
             return JSON.stringify({ id: "timeline-1", name: "Cutdown" });
@@ -229,7 +230,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -239,14 +240,14 @@ describe("serialization", () => {
 
     it("should round-trip chat-media through the unified format", () => {
       const store: Record<string, string> = {};
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         setData: jest.fn((key: string, value: string) => {
           store[key] = value;
         }),
         getData: jest.fn((key: string) => store[key] ?? ""),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const data: DragData<"chat-media"> = {
         type: "chat-media",
@@ -264,7 +265,7 @@ describe("serialization", () => {
     });
 
     it("should return null for invalid JSON", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {
           if (key === "create-node") {
             return "invalid json";
@@ -273,7 +274,7 @@ describe("serialization", () => {
         }),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -281,11 +282,11 @@ describe("serialization", () => {
     });
 
     it("should return null when no data is present", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn(() => ""),
         items: [],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       const result = deserializeDragData(mockDataTransfer);
 
@@ -295,27 +296,27 @@ describe("serialization", () => {
 
   describe("hasExternalFiles", () => {
     it("should detect files via items property", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         items: [{ kind: "file" }, { kind: "string" }]
-      } as unknown as DataTransfer;
+      });
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(true);
     });
 
     it("should return false when no file items", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         items: [{ kind: "string" }],
         files: { length: 0 }
-      } as unknown as DataTransfer;
+      });
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(false);
     });
 
     it("should fallback to files property", () => {
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         items: null,
         files: { length: 2 }
-      } as unknown as DataTransfer;
+      });
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(true);
     });
@@ -325,9 +326,9 @@ describe("serialization", () => {
     it("should convert FileList to array", () => {
       const file1 = new File(["content1"], "test1.txt");
       const file2 = new File(["content2"], "test2.txt");
-      const mockDataTransfer = {
+      const mockDataTransfer = stub<DataTransfer>({
         files: [file1, file2]
-      } as unknown as DataTransfer;
+      });
 
       const result = extractFiles(mockDataTransfer);
 

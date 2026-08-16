@@ -2,6 +2,7 @@ import {
   computeOpaquePixelBounds,
   computeLayerOpaquePixelBounds
 } from "../opaquePixelBounds";
+import { stub } from "../../../../test-utils/doubles";
 
 function createMockCanvas(
   width: number,
@@ -13,11 +14,11 @@ function createMockCanvas(
   const ctx = {
     getImageData: jest.fn(() => imageData)
   };
-  return {
+  return stub<HTMLCanvasElement>({
     width,
     height,
     getContext: jest.fn(() => ctx)
-  } as unknown as HTMLCanvasElement;
+  });
 }
 
 function setPixelAlpha(
@@ -47,11 +48,11 @@ describe("computeOpaquePixelBounds", () => {
   });
 
   it("returns null when getContext returns null", () => {
-    const canvas = {
+    const canvas = stub<HTMLCanvasElement>({
       width: 10,
       height: 10,
       getContext: jest.fn(() => null)
-    } as unknown as HTMLCanvasElement;
+    });
     expect(computeOpaquePixelBounds(canvas)).toBeNull();
   });
 

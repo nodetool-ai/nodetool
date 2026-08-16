@@ -1,6 +1,13 @@
 import type { ToolResultUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
+import { stub } from "../../test-utils/doubles";
+
+/**
+ * The backend stamps a job id onto every frame it sends; the protocol update
+ * types do not declare it, and `handleUpdate` reads it back off the message.
+ */
+type StampedUpdate<T> = T & { job_id: string };
 
 const mockRunnerStore = {
   getState: () => ({
@@ -28,15 +35,13 @@ beforeEach(() => {
 });
 
 const toolResultUpdate = (result: Record<string, unknown>): ToolResultUpdate =>
-  ({
+  stub<StampedUpdate<ToolResultUpdate>>({
     type: "tool_result_update",
     node_id: "agent-1",
     name: "search",
     result,
-    // job_id is stamped by the backend on every message but is not part of the
-    // protocol type; cast below carries it through to messageJobId.
     job_id: "job-1"
-  } as unknown as ToolResultUpdate);
+  });
 
 describe("handleUpdate tool_result_update → artifact channel", () => {
   it("appends each tool result into the toolResults artifact channel", () => {

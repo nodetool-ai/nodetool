@@ -498,12 +498,16 @@ const appBuildSuite: EvalSuite = {
   }
 };
 
-/** Minimal shape of a tool-loop case, enough for `--list` + id filtering. */
-interface ToolLoopCaseLike {
-  id: string;
-  description: string;
-  needsModelProviders?: boolean;
-}
+/**
+ * The runner's own case type, recovered from its signature. A suite reads its
+ * cases off a dynamically-named module export, so nothing carries the type
+ * across that lookup — naming it here is what lets the array reach the runner.
+ */
+type ToolLoopCaseLike = NonNullable<
+  Parameters<
+    typeof import("@nodetool-ai/agents").runToolLoopEval
+  >[0]["cases"]
+>[number];
 
 /**
  * Build a tool-loop suite (multi-turn `ui_*` tool calling) from a named export
@@ -516,16 +520,17 @@ function makeToolLoopSuite(
   description: string,
   casesExport: string
 ): EvalSuite {
-  const pickCases = (
-    mod: Record<string, unknown>
-  ): readonly ToolLoopCaseLike[] => {
-    const picked = mod[casesExport];
+  const pickCases = (mod: object): readonly ToolLoopCaseLike[] => {
+    const picked: unknown = Reflect.get(mod, casesExport);
     if (!Array.isArray(picked)) {
       throw new Error(
         `Eval suite "${id}" expected an array export "${casesExport}" from ` +
           `@nodetool-ai/agents, but got ${picked === undefined ? "undefined" : typeof picked}.`
       );
     }
+    // SAFETY: every `casesExport` name this file passes points at a
+    // tool-loop case array in @nodetool-ai/agents, and the Array.isArray guard
+    // above rejects an export that is not an array at all.
     return picked as readonly ToolLoopCaseLike[];
   };
 
@@ -533,10 +538,7 @@ function makeToolLoopSuite(
     id,
     description,
     async listCases() {
-      const mod = (await import("@nodetool-ai/agents")) as unknown as Record<
-        string,
-        unknown
-      >;
+      const mod = await import("@nodetool-ai/agents");
       return pickCases(mod).map((c) => ({
         id: c.id,
         description: c.description,
@@ -546,10 +548,7 @@ function makeToolLoopSuite(
     async run(deps) {
       const mod = await import("@nodetool-ai/agents");
       const { runToolLoopEval, formatToolLoopReport } = mod;
-      const cases = selectCases(
-        pickCases(mod as unknown as Record<string, unknown>),
-        deps.caseIds
-      );
+      const cases = selectCases(pickCases(mod), deps.caseIds);
 
       deps.log(
         `Running ${cases.length} ${id} case(s) with ${deps.providerId}/${deps.model}`
@@ -558,11 +557,7 @@ function makeToolLoopSuite(
       const report = await runToolLoopEval({
         provider: deps.provider,
         model: deps.model,
-        // Cases are surface-specific in their final-state type; the runner is
-        // generic and scores each case against its own predicates.
-        cases: cases as unknown as Parameters<
-          typeof runToolLoopEval
-        >[0]["cases"],
+        cases,
         maxIterations: deps.maxIterations,
         onEvent: deps.onEvent
       });

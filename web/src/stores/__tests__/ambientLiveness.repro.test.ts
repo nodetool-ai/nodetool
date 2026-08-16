@@ -16,6 +16,7 @@ import useWorkflowRunsStore from "../WorkflowRunsStore";
 import useStatusStore from "../StatusStore";
 import useResultsStore from "../ResultsStore";
 import { useNodeActiveRunCount } from "../../hooks/nodes/useNodeExecState";
+import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
@@ -46,13 +47,13 @@ const nodeUpdate = (
   node_id: string,
   status: string
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     job_id,
     node_id,
     status,
     workflow_id: "wf"
-  }) as unknown as NodeUpdate;
+  });
 
 beforeEach(() => {
   useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });

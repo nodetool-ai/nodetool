@@ -20,7 +20,6 @@ import {
   hydrateGraphNodeFlags,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
 import {
   listOfflineModelIds,
   listRegisteredProviderIds,
@@ -419,10 +418,7 @@ export async function runWorkflow(
       runnerOptions.supervisor = supervisorHandle;
     }
     runner = new WorkflowRunner(job.id, runnerOptions);
-    hydratedGraph = hydrateGraphNodeFlags(
-      runnableGraph as unknown as GraphData,
-      registry
-    );
+    hydratedGraph = hydrateGraphNodeFlags(runnableGraph, registry);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);

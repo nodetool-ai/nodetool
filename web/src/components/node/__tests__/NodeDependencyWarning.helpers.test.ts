@@ -6,9 +6,10 @@ import {
   ensureRuntimeStatuses
 } from "../NodeDependencyWarning.helpers";
 import { trpcClient } from "../../../trpc/client";
+import { asMock } from "../../../test-utils/doubles";
 
-const runtimeStatusesQuery = trpcClient.packs.runtimeStatuses
-  .query as unknown as jest.Mock;
+const runtimeStatusesQuery = asMock(trpcClient.packs.runtimeStatuses
+  .query);
 
 describe("RUNTIME_LABELS", () => {
   it("maps every runtime to a human-readable label", () => {

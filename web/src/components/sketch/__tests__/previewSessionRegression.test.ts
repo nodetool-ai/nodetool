@@ -12,13 +12,14 @@
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
 import { IDENTITY_AFFINE, makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
+import { stub } from "../../../test-utils/doubles";
 
 const I = () => ({ ...IDENTITY_AFFINE });
 const T = (x: number, y: number, scaleX = 1, scaleY = 1) =>
   makeAffineTransform({ x, y, scaleX, scaleY });
 
 function makeMockCtx(): ToolContext {
-  return {
+  return stub<ToolContext>({
     doc: {
       id: "test-doc",
       canvas: { width: 100, height: 100 },
@@ -68,7 +69,7 @@ function makeMockCtx(): ToolContext {
     withMirror: jest.fn(),
     setLayerTransformPreview: jest.fn(),
     clearLayerTransformPreview: jest.fn()
-  } as unknown as ToolContext;
+  });
 }
 
 describe("previewSession — cancel/supersede/stale-session regression", () => {

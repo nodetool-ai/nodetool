@@ -1,10 +1,12 @@
 import {
   extractDynamicIO,
   INPUT_TYPE_MAP,
-  OUTPUT_TYPE_MAP
+  OUTPUT_TYPE_MAP,
+  type DynamicIOSource
 } from "../WorkflowLoader.helpers";
 import { WORKFLOW_NODE_TYPE } from "../WorkflowLoader";
 import { Workflow } from "../../../../stores/ApiTypes";
+import { stub } from "../../../../test-utils/doubles";
 
 // Helper to create a minimal Workflow object for testing
 function makeWorkflow(nodes: unknown[]): Workflow {
@@ -269,8 +271,7 @@ describe("extractDynamicIO", () => {
   });
 
   it("handles nodes as object (non-array)", () => {
-    const workflow = {
-      ...makeWorkflow([]),
+    const workflow: DynamicIOSource = {
       graph: {
         nodes: {
           n1: {
@@ -278,10 +279,9 @@ describe("extractDynamicIO", () => {
             type: "nodetool.input.AudioInput",
             data: { properties: { name: "audio_in", value: null } }
           }
-        },
-        edges: []
+        }
       }
-    } as unknown as Workflow;
+    };
 
     const result = extractDynamicIO(workflow);
 

@@ -8,6 +8,7 @@ import {
 } from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -56,17 +57,17 @@ const renderWithTheme = (ui: React.ReactElement) =>
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "get-1",
   nodeType: "nodetool.variable.GetVariable",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof GetVariableBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.variable.GetVariable",
     properties: [
       { name: "name", type: { type: "str" } },
       { name: "trigger", type: { type: "any" } }
     ],
     outputs: [{ name: "output", type: { type: "any" } }]
-  } as unknown as Parameters<typeof GetVariableBody>[0]["nodeMetadata"],
-  data: {
+  }),
+  data: stub<Parameters<typeof GetVariableBody>[0]["data"]>({
     properties: { name: "" }
-  } as unknown as Parameters<typeof GetVariableBody>[0]["data"],
+  }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

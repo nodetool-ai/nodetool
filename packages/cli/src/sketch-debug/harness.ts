@@ -124,9 +124,13 @@ async function loadCore(): Promise<SketchDebugCore> {
 async function loadBridgeFactory(): Promise<CreateSketchBridge> {
   const { createSketchToolBridge } = await import("@nodetool-ai/agents");
   return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the sketch document types independently, and that
+    // duplication is the only reason the structures do not line up.
     createSketchToolBridge(
       initial as Parameters<typeof createSketchToolBridge>[0]
-    ) as unknown as SketchBridge;
+    ) as SketchBridge;
 }
 
 function defaultOutDir(ref: string): string {

@@ -7,6 +7,7 @@ import {
   type LoadedModules
 } from "../browserRunnerCore";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 function makeGraph(
   overrides: {
@@ -200,7 +201,7 @@ describe("browserRunnerCore", () => {
       const registry = {
         has: (t: string) => !serverTypes.has(t)
       };
-      return {
+      return stub<LoadedModules>({
         wf: {
           createBrowserRegistry: () => registry,
           runBrowserWorkflow: (() => {}) as never
@@ -210,7 +211,7 @@ describe("browserRunnerCore", () => {
           { nodeType: "gpu.Shader", requiresGpu: true },
           { nodeType: "server.Only", requiresGpu: true }
         ]
-      } as unknown as LoadedModules;
+      });
     }
 
     it("collects only browser-capable GPU types into gpuNodeTypes", () => {
@@ -229,13 +230,13 @@ describe("browserRunnerCore", () => {
 
     it("returns all browser types when the graph uses no GPU nodes", async () => {
       const serverTypes = new Set<string>();
-      const mods = {
+      const mods = stub<LoadedModules>({
         wf: {
           createBrowserRegistry: () => ({ has: (t: string) => !serverTypes.has(t) }),
           runBrowserWorkflow: (() => {}) as never
         },
         nodeClasses: [{ nodeType: "plain.A" }, { nodeType: "plain.B" }]
-      } as unknown as LoadedModules;
+      });
       const runner = buildBrowserRunner(mods);
       expect(runner.gpuNodeTypes.size).toBe(0);
       await expect(capabilityFilteredBrowserNodeTypes(runner)).resolves.toEqual([

@@ -14,13 +14,14 @@ jest.mock("tabulator-tables", () => ({
 
 import TableActions from "../TableActions";
 import type { TabulatorFull as Tabulator } from "tabulator-tables";
+import { stub } from "../../../../test-utils/doubles";
 
 describe("TableActions", () => {
-  const mockTabulator = {
+  const mockTabulator = stub<Tabulator>({
     clearSort: jest.fn(),
     undo: jest.fn(),
     redo: jest.fn()
-  } as unknown as Tabulator;
+  });
 
   const mockData = [
     { rownum: 0, col1: "value1", col2: "value2" }

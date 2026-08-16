@@ -9,11 +9,12 @@ import { trpcClient } from "../../../trpc/client";
 import SandboxPackDisclosure, {
   SANDBOX_PACK_CONSENT_TEXT
 } from "../SandboxPackDisclosure";
+import { asMock } from "../../../test-utils/doubles";
 
-const modulesQuery = trpcClient.packs.sandboxModules
-  .query as unknown as jest.Mock;
-const docsQuery = trpcClient.packs.sandboxPackageDocs
-  .query as unknown as jest.Mock;
+const modulesQuery = asMock(trpcClient.packs.sandboxModules
+  .query);
+const docsQuery = asMock(trpcClient.packs.sandboxPackageDocs
+  .query);
 
 function renderPanel(packName = "@acme/geo") {
   const client = new QueryClient({

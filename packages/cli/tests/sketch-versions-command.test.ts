@@ -31,6 +31,7 @@ const document = JSON.stringify({
 
 const imageDocument = (): ImageDocumentRow => ({
   id: "doc-1",
+  user_id: "1",
   name: "My sketch",
   width: 1024,
   height: 1024,

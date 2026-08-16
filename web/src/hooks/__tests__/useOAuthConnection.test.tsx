@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useOAuthConnection } from "../useOAuthConnection";
 import { restFetch } from "../../lib/rest-fetch";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { asMock, stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/rest-fetch");
 jest.mock("../../lib/env", () => ({ isElectron: false }));
@@ -14,7 +15,7 @@ const mockRestFetch = restFetch as jest.MockedFunction<typeof restFetch>;
 const mockAddNotification = jest.fn();
 
 const jsonResponse = (body: unknown, ok = true): Response =>
-  ({ ok, json: async () => body }) as unknown as Response;
+  stub<Response>({ ok, json: async () => body });
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -29,18 +30,18 @@ const createWrapper = () => {
 
 /** Stand-in for the window connect() claims in the click's own tick. */
 const fakeAuthWindow = () =>
-  ({
+  stub<Window>({
     opener: {},
     document: { title: "", body: null },
     location: { replace: jest.fn() },
     close: jest.fn()
-  }) as unknown as Window;
+  });
 
 describe("useOAuthConnection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(window, "open").mockReturnValue(fakeAuthWindow());
-    (useNotificationStore as unknown as jest.Mock).mockImplementation(
+    asMock(useNotificationStore).mockImplementation(
       <T,>(selector: (state: unknown) => T) =>
         selector({ addNotification: mockAddNotification })
     );

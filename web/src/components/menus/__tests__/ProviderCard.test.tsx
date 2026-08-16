@@ -15,6 +15,7 @@ import {
 
 import { useProviders } from "../../../hooks/useProviders";
 import type { ProviderInfo } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../hooks/useProviders");
@@ -46,14 +47,14 @@ const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
 });
 
 const secret = (isConfigured: boolean): SecretResponse =>
-  ({
+  stub<SecretResponse>({
     key: "OPENAI_API_KEY",
     is_configured: isConfigured,
     description: "",
     user_id: null,
     created_at: null,
     updated_at: null
-  }) as unknown as SecretResponse;
+  });
 
 const oauthMeta = {
   key: "OPENAI_API_KEY",

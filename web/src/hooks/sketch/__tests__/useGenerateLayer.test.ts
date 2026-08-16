@@ -12,6 +12,7 @@ import {
   __resetGenerateLayerSubscriptionsForTests,
   useGenerateLayer
 } from "../useGenerateLayer";
+import { asMock } from "../../../test-utils/doubles";
 
 const subscribeMock = jest.fn();
 const ensureConnectionMock = jest.fn(async () => {});
@@ -34,7 +35,7 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 
 describe("useGenerateLayer", () => {
   const jobHandlers = new Map<string, (msg: Record<string, unknown>) => void>();
-  const cancelMutate = trpcClient.jobs.cancel.mutate as unknown as jest.Mock;
+  const cancelMutate = asMock(trpcClient.jobs.cancel.mutate);
 
   const baseBinding = {
     documentId: "doc-1",

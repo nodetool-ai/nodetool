@@ -41,5 +41,5 @@ export class GetDatabasePathLibNode extends BaseNode {
 }
 
 export const LIB_SQLITE_NODES: readonly NodeClass[] = [
-  GetDatabasePathLibNode as unknown as NodeClass
+  GetDatabasePathLibNode
 ];

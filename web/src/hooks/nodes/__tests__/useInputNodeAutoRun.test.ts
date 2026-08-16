@@ -38,6 +38,7 @@ import { getNodeGenerations } from "../../../stores/nodeGenerationAccessor";
 import type { Generation } from "../../../utils/nodeGenerations";
 import { subgraph } from "../../../core/graph";
 import { useSettingsStore } from "../../../stores/SettingsStore";
+import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
@@ -45,7 +46,7 @@ const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 
 const mockGetNodeGenerations = getNodeGenerations as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
-const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
+const mockUseSettingsStore = asMock(useSettingsStore);
 
 /** Build a completed generation whose outputs feed downstream edges. */
 const completedGeneration = (outputs: Record<string, unknown>): Generation => ({

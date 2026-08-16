@@ -11,6 +11,7 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
+import { stub } from "../../../test-utils/doubles";
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   sequenceId,
@@ -25,16 +26,16 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
 });
 
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>
-  ({
+  stub<TimelineAgentHandler>({
     getSnapshot: () => snapshot(sequenceId)
-  }) as unknown as TimelineAgentHandler;
+  });
 
 const ctx = {
   getState: () =>
-    ({
+    stub<FrontendToolState>({
       getNodeStore: (workflowId: string) =>
         workflowId === "wf-open" ? ({} as never) : undefined
-    }) as unknown as FrontendToolState
+    })
 };
 
 const navigate = jest.fn();

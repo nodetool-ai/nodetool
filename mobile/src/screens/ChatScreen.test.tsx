@@ -64,7 +64,7 @@ type MockChatStore = Pick<
   getCurrentMessages: jest.Mock;
 };
 
-const useChatStoreMock = useChatStore as unknown as jest.Mock;
+const useChatStoreMock = jest.mocked(useChatStore);
 
 /** Point the mocked store hook at a state object, selector-aware. */
 const mockStoreState = (state: MockChatStore): void => {

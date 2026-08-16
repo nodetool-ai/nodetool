@@ -7,23 +7,24 @@ import {
 } from "../quickAccessCategories";
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 import type { NodeCategoryId } from "../../stores/PanelStore";
+import { stub } from "../../test-utils/doubles";
 
 const slot = (kind: string): OutputSlot =>
-  ({ name: "output", type: { type: kind } }) as unknown as OutputSlot;
+  stub<OutputSlot>({ name: "output", type: { type: kind } });
 
 const meta = (
   node_type: string,
   outputKind = "any",
   extra: Partial<NodeMetadata> = {}
 ): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     node_type,
     title: node_type.split(".").pop() ?? node_type,
     namespace: node_type.split(".").slice(0, -1).join("."),
     outputs: [slot(outputKind)],
     description: "",
     ...extra
-  }) as unknown as NodeMetadata;
+  });
 
 const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   filterNodesForCategory(getNodeSubcategory(category)!, all).map(

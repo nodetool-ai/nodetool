@@ -164,7 +164,11 @@ function runningPayload(
   };
 }
 
-/** The compacted report as the HTTP surface and the tool see it. */
+/**
+ * The compacted report as the HTTP surface and the tool see it. The session
+ * fronts an untyped JSON payload, so the summary's own fields are spread
+ * through `Object.entries` rather than asserted into a dictionary.
+ */
 function debugPayload(
   report: AppDebugReport,
   debugId: string
@@ -172,7 +176,7 @@ function debugPayload(
   return {
     debug_id: debugId,
     status: report.verdict.ok ? "completed" : "failed",
-    ...(summarizeAppReport(report) as unknown as Record<string, unknown>)
+    ...Object.fromEntries(Object.entries(summarizeAppReport(report)))
   };
 }
 

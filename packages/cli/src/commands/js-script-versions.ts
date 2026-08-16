@@ -37,6 +37,7 @@ type JsonValue =
 /** A `js_scripts` row as these commands need it. */
 export interface JsScriptRow {
   id: string;
+  user_id: string;
   name?: string | null;
   updated_at: string;
   document: string;
@@ -162,30 +163,25 @@ async function defaultStore(): Promise<JsScriptVersionStore> {
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
-  type SnapshotArg = Parameters<typeof JsScriptVersion.snapshot>[0];
-
   return {
     loadScript: async (id) =>
-      (await JsScript.findById(id)) as unknown as JsScriptRow | null,
+      await JsScript.findById(id),
     listVersions: async (jsScriptId, opts) =>
       (await JsScriptVersion.listForScript(
         jsScriptId,
         opts
-      )) as unknown as JsScriptVersionRow[],
+      )),
     findVersion: async (jsScriptId, version) =>
       (await JsScriptVersion.findByVersion(
         jsScriptId,
         version
-      )) as unknown as JsScriptVersionRow | null,
+      )),
     snapshot: async (script, opts) =>
-      (await JsScriptVersion.snapshot(
-        script as unknown as SnapshotArg,
-        opts
-      )) as unknown as JsScriptVersionRow,
+      await JsScriptVersion.snapshot(script, opts),
     restore: async (script, version) =>
       (await JsScript.updateFieldsIfUnchanged(script.id, script.updated_at, {
         document: version.document
-      })) as unknown as JsScriptRow | null,
+      })),
     deleteVersion: async (jsScriptId, version) => {
       const row = await JsScriptVersion.findByVersion(jsScriptId, version);
       if (row) await row.delete();

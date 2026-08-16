@@ -16,20 +16,21 @@ import { ConnectedToolTopBar } from "../editor-shell/ConnectedToolTopBar";
 import type { ConnectedToolTopBarProps } from "../editor-shell/ConnectedToolTopBar";
 import { useSketchStore } from "../state";
 import type { useSegmentation } from "../hooks/useSegmentation";
+import { stub } from "../../../test-utils/doubles";
 
 const mockIsMobile = jest.fn(() => false);
 jest.mock("../hooks/useSketchIsMobile", () => ({
   useSketchIsMobile: () => mockIsMobile()
 }));
 
-const segmentation = {
+const segmentation = stub<ReturnType<typeof useSegmentation>>({
   status: "idle",
   modelInfo: null,
   applyResult: jest.fn(),
   discardResult: jest.fn(),
   cancelSegmentation: jest.fn(),
   checkModel: jest.fn()
-} as unknown as ReturnType<typeof useSegmentation>;
+});
 
 const props: ConnectedToolTopBarProps = {
   adjBrightness: 0,

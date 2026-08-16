@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { ExtractVideoFrameBody } from "../ExtractVideoFrameBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -59,15 +60,15 @@ const renderWithTheme = (ui: React.ReactElement) =>
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.video.ExtractFrame",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof ExtractVideoFrameBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.video.ExtractFrame",
     properties: [{ name: "video", type: "video" }],
     outputs: [{ name: "output", type: "image" }],
     is_streaming_output: false
-  } as unknown as Parameters<typeof ExtractVideoFrameBody>[0]["nodeMetadata"],
-  data: { properties: {} } as unknown as Parameters<
+  }),
+  data: stub<Parameters<
     typeof ExtractVideoFrameBody
-  >[0]["data"],
+  >[0]["data"]>({ properties: {} }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

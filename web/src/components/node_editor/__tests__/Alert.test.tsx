@@ -27,9 +27,10 @@ jest.mock("../../../stores/NotificationStore", () => ({
 }));
 
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { asMock } from "../../../test-utils/doubles";
 
 const renderWithStore = (notifications: any[]) => {
-  (useNotificationStore as unknown as jest.Mock).mockImplementation(
+  asMock(useNotificationStore).mockImplementation(
     (sel: any) => sel(makeStoreState(notifications))
   );
   return render(

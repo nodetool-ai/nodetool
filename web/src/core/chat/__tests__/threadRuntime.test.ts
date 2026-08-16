@@ -11,11 +11,12 @@ import type {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
+import { stub } from "../../../test-utils/doubles";
 
 const makeState = (
   overrides: Partial<GlobalChatState> = {}
 ): GlobalChatState =>
-  ({
+  stub<GlobalChatState>({
     currentThreadId: null,
     threadRuntime: {},
     status: "connected",
@@ -29,7 +30,7 @@ const makeState = (
     currentRunningToolCallId: null,
     currentToolMessage: null,
     ...overrides
-  }) as unknown as GlobalChatState;
+  });
 
 describe("threadRuntime", () => {
   describe("getThreadRuntime", () => {

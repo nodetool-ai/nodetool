@@ -111,9 +111,13 @@ async function loadCore(): Promise<TimelineDebugCore> {
 async function loadBridgeFactory(): Promise<CreateTimelineBridge> {
   const { createTimelineToolBridge } = await import("@nodetool-ai/agents");
   return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the timeline document types independently, and that
+    // duplication is the only reason the structures do not line up.
     createTimelineToolBridge(
       initial as Parameters<typeof createTimelineToolBridge>[0]
-    ) as unknown as TimelineBridge;
+    ) as TimelineBridge;
 }
 
 function defaultOutDir(ref: string): string {

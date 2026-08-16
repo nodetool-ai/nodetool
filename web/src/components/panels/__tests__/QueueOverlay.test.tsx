@@ -6,6 +6,7 @@ import QueueOverlay from "../QueueOverlay";
 import { Job } from "../../../stores/ApiTypes";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { trpcClient } from "../../../trpc/client";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()
@@ -24,7 +25,7 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: { jobs: { cancel: { mutate: jest.fn().mockResolvedValue({}) } } }
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 const mockCancel = trpcClient.jobs.cancel.mutate as jest.Mock;
 
 const job = (id: string, status: string): Job =>

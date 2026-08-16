@@ -37,6 +37,7 @@ type JsonValue =
 /** A `timeline_sequences` row as these commands need it. */
 export interface TimelineSequenceRow {
   id: string;
+  user_id: string;
   name?: string | null;
   fps: number;
   width: number;
@@ -179,8 +180,6 @@ async function defaultStore(): Promise<TimelineVersionStore> {
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
-  type SnapshotArg = Parameters<typeof TimelineSequenceVersion.snapshot>[0];
-
   return {
     loadSequence: async (id) =>
       (await TimelineSequence.findById(id)) as TimelineSequenceRow | null,
@@ -188,17 +187,14 @@ async function defaultStore(): Promise<TimelineVersionStore> {
       (await TimelineSequenceVersion.listForTimeline(
         timelineId,
         opts
-      )) as unknown as TimelineVersionRow[],
+      )),
     findVersion: async (timelineId, version) =>
       (await TimelineSequenceVersion.findByVersion(
         timelineId,
         version
-      )) as unknown as TimelineVersionRow | null,
+      )),
     snapshot: async (seq, opts) =>
-      (await TimelineSequenceVersion.snapshot(
-        seq as unknown as SnapshotArg,
-        opts
-      )) as unknown as TimelineVersionRow,
+      await TimelineSequenceVersion.snapshot(seq, opts),
     restore: async (seq, version) =>
       (await TimelineSequence.updateFieldsIfUnchanged(seq.id, seq.updated_at, {
         document: version.document,

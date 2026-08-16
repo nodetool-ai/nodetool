@@ -6,14 +6,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import type {
-  ProcessingMessage,
-  TaskUpdate,
-  StepResult,
-  ToolCallUpdate,
-  Chunk,
-  PlanningUpdate,
-} from "@nodetool-ai/protocol";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
@@ -88,7 +81,7 @@ export function useExecutionState() {
     (msg: ProcessingMessage) => {
       switch (msg.type) {
         case "planning_update": {
-          const pu = msg as unknown as PlanningUpdate;
+          const pu = msg;
           // CompilerAgent emits planning_updates with phase==="compile" so the
           // UI can switch from "executing" → "compiling" → "done" without
           // losing the planning_update channel for the planner itself.
@@ -109,7 +102,7 @@ export function useExecutionState() {
         }
 
         case "task_update": {
-          const tu = msg as unknown as TaskUpdate;
+          const tu = msg;
           setState((prev) => {
             const tasks = [...prev.tasks];
 
@@ -264,7 +257,7 @@ export function useExecutionState() {
         }
 
         case "tool_call_update": {
-          const tc = msg as unknown as ToolCallUpdate;
+          const tc = msg;
           const stepId = tc.node_id ?? tc.step_id;
           if (!stepId) break;
 
@@ -293,7 +286,7 @@ export function useExecutionState() {
         }
 
         case "chunk": {
-          const ch = msg as unknown as Chunk;
+          const ch = msg;
           const stepId = ch.node_id;
           if (!stepId) break;
 
@@ -320,7 +313,7 @@ export function useExecutionState() {
         }
 
         case "step_result": {
-          const sr = msg as unknown as StepResult;
+          const sr = msg;
           const stepId = sr.step?.id;
           if (!stepId) break;
 

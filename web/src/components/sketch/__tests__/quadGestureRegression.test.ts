@@ -22,6 +22,7 @@ import {
   type LayerTransform
 } from "../types";
 import { useSketchStore } from "../state/useSketchStore";
+import { stub } from "../../../test-utils/doubles";
 
 function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
   const doc = createDefaultDocument(64, 64);
@@ -93,7 +94,7 @@ function makePointerEvent(
   return {
     point: { x: 0, y: 0 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 0,
@@ -102,7 +103,7 @@ function makePointerEvent(
       ctrlKey: false,
       metaKey: false,
       shiftKey: false
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }
