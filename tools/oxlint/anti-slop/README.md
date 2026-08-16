@@ -16,8 +16,11 @@ module mocking, `Reflect.get`/`Reflect.apply`.
 `error`. It is a **separate config**, run only by `npm run lint:anti-slop`:
 
 ```bash
-npm run lint:anti-slop                       # whole repo, exits 1 while findings remain
-npm run lint:anti-slop -- packages/cli/src   # one directory
+npm run lint:anti-slop   # whole repo, exits 1 while findings remain
+
+# One directory — npm *appends* extra args to the script's own path list, so
+# passing a path to `lint:anti-slop` still lints everything. Call oxlint direct:
+npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
 ```
 
 `npm run lint` and CI do not run it. The rules find 28,689 violations in the
