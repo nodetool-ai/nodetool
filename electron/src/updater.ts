@@ -137,13 +137,15 @@ async function setupAutoUpdater(): Promise<void> {
     autoUpdater.channel = updateChannel;
     autoUpdater.allowPrerelease = allowPrerelease;
     autoUpdater.allowDowngrade = true;
-    autoUpdater.setFeedURL({
+    const feedUrl = {
       provider: "github",
       owner: "nodetool-ai",
       repo: "nodetool",
       updaterCacheDirName: "nodetool-updater",
-      ...(updateChannel === "nightly" ? { channel: "nightly" } : {}),
-    });
+    } as const;
+    autoUpdater.setFeedURL(
+      updateChannel === "nightly" ? { ...feedUrl, channel: "nightly" } : feedUrl
+    );
 
     logMessage(
       `Auto-updater using ${updateChannel} channel (allowPrerelease=${allowPrerelease})`
