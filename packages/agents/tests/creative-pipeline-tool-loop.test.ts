@@ -22,7 +22,8 @@ import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createCreativePipelineBridge,
   CREATIVE_PIPELINE_TOOL_LOOP_CASES,
-  LANTERN_BRIEF
+  LANTERN_BRIEF,
+  TIDEWATCH_BRIEF
 } from "../src/evals/surfaces/creative-pipeline.js";
 
 interface ScriptedCall {
@@ -66,9 +67,31 @@ async function call(
   return tool.execute(args);
 }
 
+const linkedBridge = () =>
+  createCreativePipelineBridge({ brief: TIDEWATCH_BRIEF });
+
+/** Write a voiced 2-line narration on a bridge, returning nothing. */
+async function writeNarration(bridge: ReturnType<typeof bridgeOf>) {
+  await call(bridge, "ui_script_add_speaker", {
+    name: "Narrator",
+    voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
+  });
+  await call(bridge, "ui_script_add_line", {
+    text: "The river mouth was closed for thirty years.",
+    speakerId: "spk_1"
+  });
+  await call(bridge, "ui_script_add_line", {
+    text: "It reopened in a single winter.",
+    speakerId: "spk_1"
+  });
+  await call(bridge, "ui_script_voice_all");
+}
+
 describe("createCreativePipelineBridge", () => {
-  it("composes all three creative surfaces plus brief and review tools", () => {
+  it("composes all four creative surfaces plus brief and review tools", () => {
     const names = bridgeOf().tools.map((t) => t.name);
+    expect(names.filter((n) => n.startsWith("ui_script_")).length).toBeGreaterThan(5);
+    expect(names).toContain("validate_timeline");
     expect(names.filter((n) => n.startsWith("ui_sketch_")).length).toBeGreaterThan(5);
     expect(names.filter((n) => n.startsWith("ui_storyboard_")).length).toBeGreaterThan(5);
     expect(names.filter((n) => n.startsWith("ui_timeline_")).length).toBeGreaterThan(5);
@@ -187,6 +210,126 @@ describe("createCreativePipelineBridge", () => {
     ]);
   });
 
+  it("lays one shot per script line when the board is derived, keeping the linkage", async () => {
+    const bridge = linkedBridge();
+    await writeNarration(bridge);
+    await call(bridge, "ui_script_derive_storyboard");
+
+    const state = bridge.finalState();
+    expect(state.scriptLinked).toBe(true);
+    expect(state.storyboard.shots).toHaveLength(2);
+    expect(state.scriptLineIdsByShotId).toEqual({
+      shot_1: ["line_1"],
+      shot_2: ["line_2"]
+    });
+  });
+
+  it("assembles words and pictures into one cut once the board is linked", async () => {
+    const bridge = linkedBridge();
+    await writeNarration(bridge);
+    await call(bridge, "ui_script_derive_storyboard");
+    for (const target of ["0", "1"]) {
+      await call(bridge, "ui_storyboard_generate_keyframe", { target });
+      await call(bridge, "ui_storyboard_generate_clip", { target });
+    }
+    const assembled = (await call(
+      bridge,
+      "ui_storyboard_assemble_timeline"
+    )) as { linked: boolean; skippedLineIds: string[] };
+    expect(assembled.linked).toBe(true);
+    expect(assembled.skippedLineIds).toEqual([]);
+
+    const state = bridge.finalState();
+    expect(state.assembledLinked).toBe(true);
+    // Two shot clips plus one voiceover clip per voiced line.
+    expect(state.timeline.clips).toHaveLength(4);
+    const voice = state.timeline.documentClips.filter((c) => c.scriptLineId);
+    expect(voice).toHaveLength(2);
+    for (const clip of voice) {
+      expect(clip.scriptId).toBeTruthy();
+      expect(clip.storyboardBoardId).toBeTruthy();
+      expect(clip.storyboardShotId).toBeTruthy();
+    }
+    // Shot length comes from the takes, not from the render overshoot: 8 words
+    // in the first line and 6 in the second, at 350ms each.
+    expect(state.cutDurationSeconds).toBeCloseTo(14 * 0.35, 3);
+  });
+
+  it("keeps editing the cut the linked assemble produced, not the one it replaced", async () => {
+    const bridge = linkedBridge();
+    await writeNarration(bridge);
+    await call(bridge, "ui_script_derive_storyboard");
+    for (const target of ["0", "1"]) {
+      await call(bridge, "ui_storyboard_generate_keyframe", { target });
+      await call(bridge, "ui_storyboard_generate_clip", { target });
+    }
+    await call(bridge, "ui_storyboard_assemble_timeline");
+
+    const firstClipId = bridge.finalState().timeline.clips[0].id;
+    await call(bridge, "ui_timeline_trim_clip", {
+      target: firstClipId,
+      durationMs: 1000
+    });
+    const trimmed = bridge
+      .finalState()
+      .timeline.clips.find((c) => c.id === firstClipId);
+    expect(trimmed?.durationMs).toBe(1000);
+    expect(bridge.finalState().editsAfterAssembly).toBe(1);
+  });
+
+  it("validates the jointly-assembled cut with the shipped timeline validator", async () => {
+    const bridge = linkedBridge();
+    await writeNarration(bridge);
+    await call(bridge, "ui_script_derive_storyboard");
+    for (const target of ["0", "1"]) {
+      await call(bridge, "ui_storyboard_generate_keyframe", { target });
+      await call(bridge, "ui_storyboard_generate_clip", { target });
+    }
+    await call(bridge, "ui_storyboard_assemble_timeline");
+    const validated = (await call(bridge, "validate_timeline")) as {
+      ok: boolean;
+      errors: unknown[];
+    };
+    expect(validated.errors).toEqual([]);
+    expect(validated.ok).toBe(true);
+    expect(bridge.finalState().timelineValidation?.ok).toBe(true);
+  });
+
+  it("reports a cut the validator refuses rather than calling it green", async () => {
+    // The check has to be able to fail: a clip dragged past the sequence into
+    // negative time is exactly what the validator exists to catch.
+    const bridge = linkedBridge();
+    await writeNarration(bridge);
+    await call(bridge, "ui_script_derive_storyboard");
+    await call(bridge, "ui_storyboard_generate_keyframe", { target: "0" });
+    await call(bridge, "ui_storyboard_generate_clip", { target: "0" });
+    await call(bridge, "ui_storyboard_assemble_timeline");
+    const clipId = bridge.finalState().timeline.clips[0].id;
+    await call(bridge, "ui_timeline_trim_clip", {
+      target: clipId,
+      durationMs: 0
+    });
+    await call(bridge, "validate_timeline");
+    expect(bridge.finalState().timelineValidation?.ok).toBe(false);
+  });
+
+  it("still assembles one clip per rendered shot when no script is linked", async () => {
+    const bridge = bridgeOf();
+    await call(bridge, "ui_storyboard_add_shot", {
+      action: "hands at sunrise",
+      durationSeconds: 4
+    });
+    await call(bridge, "ui_storyboard_generate_keyframe", { target: "0" });
+    await call(bridge, "ui_storyboard_generate_clip", { target: "0" });
+    const assembled = (await call(
+      bridge,
+      "ui_storyboard_assemble_timeline"
+    )) as { linked: boolean };
+    expect(assembled.linked).toBe(false);
+    expect(bridge.finalState().assembledLinked).toBe(false);
+    expect(bridge.finalState().cutDurationSeconds).toBeCloseTo(5.4, 3);
+  });
+
   it("rejects committing to a concept that was never proposed", async () => {
     const bridge = bridgeOf();
     await expect(
@@ -265,9 +408,49 @@ function fullPipelineScript(): ScriptedCall[] {
   return script;
 }
 
+/** A scripted run of the linked case: script → derive → render → cut → check. */
+function linkedPipelineScript(): ScriptedCall[] {
+  const lines = [
+    "The river mouth was closed for thirty years.",
+    "One winter storm opened it again.",
+    "The fish came back before the surveyors did."
+  ];
+  const script: ScriptedCall[] = [
+    { name: "ui_brief_get", args: {} },
+    {
+      name: "ui_script_add_speaker",
+      args: {
+        name: "Narrator",
+        voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
+      }
+    }
+  ];
+  for (const text of lines) {
+    script.push({
+      name: "ui_script_add_line",
+      args: { text, speakerId: "spk_1" }
+    });
+  }
+  script.push({ name: "ui_script_voice_all", args: {} });
+  script.push({ name: "ui_script_derive_storyboard", args: {} });
+  lines.forEach((_, i) => {
+    script.push({
+      name: "ui_storyboard_generate_keyframe",
+      args: { target: String(i) }
+    });
+    script.push({
+      name: "ui_storyboard_generate_clip",
+      args: { target: String(i) }
+    });
+  });
+  script.push({ name: "ui_storyboard_assemble_timeline", args: {} });
+  script.push({ name: "validate_timeline", args: {} });
+  return script;
+}
+
 describe("CREATIVE_PIPELINE_TOOL_LOOP_CASES", () => {
-  it("registers three cases, each solvable without configured providers", () => {
-    expect(CREATIVE_PIPELINE_TOOL_LOOP_CASES).toHaveLength(3);
+  it("registers four cases, each solvable without configured providers", () => {
+    expect(CREATIVE_PIPELINE_TOOL_LOOP_CASES).toHaveLength(4);
     for (const c of CREATIVE_PIPELINE_TOOL_LOOP_CASES) {
       // The bridge fakes every generate/render job, so no case depends on a
       // real provider being configured — marking them otherwise would silently
@@ -309,6 +492,58 @@ describe("CREATIVE_PIPELINE_TOOL_LOOP_CASES", () => {
     expect(failedNames).toContain("state:cutRevisedAfterAssembly");
     expect(failedNames).toContain("state:withinBriefRuntime");
     expect(result.score).toBeLessThan(1);
+  });
+
+  it("scores a complete scripted run at 1 on the linked case", async () => {
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(linkedPipelineScript()),
+      model: "scripted",
+      cases: CREATIVE_PIPELINE_TOOL_LOOP_CASES.filter(
+        (c) => c.id === "script-to-linked-cut"
+      )
+    });
+    const [result] = report.cases;
+    const failed = result.checks.filter((c) => !c.pass);
+    expect(failed.map((f) => `${f.name}: ${f.detail ?? ""}`)).toEqual([]);
+    expect(result.score).toBe(1);
+  });
+
+  it("fails the linked case when the board is built by hand instead of derived", async () => {
+    // Same job, same tools, no link: the shots render and the cut assembles,
+    // but the words never reach the timeline — the failure this case exists
+    // to separate from a run that looks identical in its call list.
+    const script = linkedPipelineScript().flatMap<ScriptedCall>((c) =>
+      c.name === "ui_script_derive_storyboard"
+        ? [
+            {
+              name: "ui_storyboard_add_shot",
+              args: { action: "the river mouth, closed" }
+            },
+            {
+              name: "ui_storyboard_add_shot",
+              args: { action: "a winter storm at the bar" }
+            },
+            {
+              name: "ui_storyboard_add_shot",
+              args: { action: "fish moving through the new channel" }
+            }
+          ]
+        : [c]
+    );
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(script),
+      model: "scripted",
+      cases: CREATIVE_PIPELINE_TOOL_LOOP_CASES.filter(
+        (c) => c.id === "script-to-linked-cut"
+      )
+    });
+    const failedNames = report.cases[0].checks
+      .filter((c) => !c.pass)
+      .map((c) => c.name);
+    expect(failedNames).toContain("state:boardDerivedFromScript");
+    expect(failedNames).toContain("state:assembledJointly");
+    expect(failedNames).toContain("state:clipsCarryBothLinks");
+    expect(report.cases[0].score).toBeLessThan(1);
   });
 
   it("fails the brief checks when a forbidden element reaches the board", async () => {
