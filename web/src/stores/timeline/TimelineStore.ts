@@ -788,14 +788,14 @@ export const createTimelineStore = (
         setProjectSettings: (patch) =>
           set((state) => {
             const next: Partial<TimelineStoreState> = {};
-            if (typeof patch.fps === "number" && patch.fps !== state.fps) {
+            if (patch.fps != null && patch.fps !== state.fps) {
               next.fps = patch.fps;
             }
-            if (typeof patch.width === "number" && patch.width !== state.width) {
+            if (patch.width != null && patch.width !== state.width) {
               next.width = patch.width;
             }
             if (
-              typeof patch.height === "number" &&
+              patch.height != null &&
               patch.height !== state.height
             ) {
               next.height = patch.height;

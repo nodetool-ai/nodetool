@@ -156,7 +156,7 @@ export const assetToGeneration = (asset: Asset): Generation => ({
  * (a running/error settle merged onto the newest slot) is treated as slot 0.
  */
 const liveIndexOf = (gen: Generation): number => {
-  if (typeof gen.index === "number") return gen.index;
+  if (gen.index != null) return gen.index;
   if (gen.jobId == null) return 0;
   if (gen.id === gen.jobId) return 0;
   const prefix = `${gen.jobId}#`;

@@ -689,7 +689,7 @@ const Inspector: React.FC = () => {
       edges
         .filter(
           (edge): edge is typeof edge & { targetHandle: string } =>
-            edge.target === selectedNode.id && typeof edge.targetHandle === "string"
+            edge.target === selectedNode.id && edge.targetHandle != null
         )
         .map((edge) => edge.targetHandle)
     );

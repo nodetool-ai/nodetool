@@ -115,7 +115,7 @@ export interface StoryboardAgentHandler {
 }
 
 const hasUri = (ref: ImageRef | VideoRef | null | undefined): boolean =>
-  typeof ref?.uri === 'string' && ref.uri.length > 0;
+  ref?.uri != null && ref.uri.length > 0;
 
 /** Project a stored shot into the agent's view of it. */
 export function shotToNode(shot: Shot, index: number): StoryboardShotNode {

@@ -248,7 +248,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
   const handleInsert = useCallback(() => {
-    if (typeof onInsert === "function") {
+    if (onInsert != null) {
       const language = match ? match[1] : undefined;
       onInsert(codeContent, language);
     }
@@ -304,7 +304,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <FlexRow gap={SPACING.md} align="center">
-            {typeof onInsert === "function" && (
+            {onInsert != null && (
               <button
                 type="button"
                 className="button"

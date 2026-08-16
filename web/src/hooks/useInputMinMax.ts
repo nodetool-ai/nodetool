@@ -55,15 +55,15 @@ export const useInputMinMax = ({
   const nodeBounds = useNodes(selector);
 
   const min =
-    typeof nodeBounds?.min === "number"
+    nodeBounds?.min != null
       ? nodeBounds.min
-      : typeof propertyMin === "number"
+      : propertyMin != null
         ? propertyMin
         : 0;
   const max =
-    typeof nodeBounds?.max === "number"
+    nodeBounds?.max != null
       ? nodeBounds.max
-      : typeof propertyMax === "number"
+      : propertyMax != null
         ? propertyMax
         : 99999;
 

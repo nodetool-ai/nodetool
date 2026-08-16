@@ -292,7 +292,7 @@ const InputContextMenu: React.FC = () => {
         fallback: number
       ): number => {
         if (typeof value === "number") return value;
-        if (typeof value === "string") return parseInt(value, 10) || fallback;
+        if (value != null) return parseInt(value, 10) || fallback;
         return fallback;
       };
       const nodeWidth = parseDim(extMeta.style?.width, 200);
@@ -430,10 +430,10 @@ const InputContextMenu: React.FC = () => {
           connectMax?: number | null;
           connectDefault?: unknown;
         };
-        if (typeof connectMin === "number") {
+        if (connectMin != null) {
           newNode.data.properties.min = connectMin;
         }
-        if (typeof connectMax === "number") {
+        if (connectMax != null) {
           newNode.data.properties.max = connectMax;
         }
         if (typeof connectDefault === "number") {

@@ -713,7 +713,7 @@ async function externalizeOversizedBitmaps(
     }
 
     const sourceData = candidate.getValue();
-    if (typeof sourceData !== "string" || !sourceData.startsWith("data:")) {
+    if (sourceData == null || !sourceData.startsWith("data:")) {
       continue;
     }
 

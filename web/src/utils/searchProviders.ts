@@ -95,6 +95,6 @@ export const isSearchProviderConfigured = (getValue: SettingGetter): boolean => 
   const config = SEARCH_PROVIDER_CONFIGS[selected];
   return config.credentialFields.every((field) => {
     const value = getValue(field);
-    return typeof value === "string" && value.trim().length > 0;
+    return value != null && value.trim().length > 0;
   });
 };

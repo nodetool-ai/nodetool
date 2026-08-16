@@ -677,7 +677,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // sized, the text preview drops its default height cap and fills the node.
   const isNodeSized = useNodes((s) => {
     const h = s.findNode(id)?.height;
-    return typeof h === "number" && h > 0;
+    return h != null && h > 0;
   });
 
   const result = useNodeResultValue(workflowId, id);

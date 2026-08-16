@@ -11,7 +11,7 @@ const SKETCH_PROJECT_ID = "default";
 /** The sketch document this image asset is already backed by, if any. */
 export function readSketchDocumentId(asset: Asset): string | null {
   const id = asset.sketch_document_id;
-  return typeof id === "string" && id.length > 0 ? id : null;
+  return id != null && id.length > 0 ? id : null;
 }
 
 /** Common image content types → file extension for building storage keys. */

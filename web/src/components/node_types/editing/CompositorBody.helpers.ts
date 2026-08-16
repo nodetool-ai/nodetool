@@ -51,8 +51,8 @@ export const resolveImageUrl = (
     // Raw-RGBA buffers (length === w*h*4) aren't an encoded image — base64-ing
     // the bytes as PNG yields an undecodable URL. Encode them via a canvas.
     if (
-      typeof width === "number" &&
-      typeof height === "number" &&
+      width != null &&
+      height != null &&
       image.data.length === width * height * 4
     ) {
       return rawRgbaToPngDataUrl(image.data, width, height) || undefined;

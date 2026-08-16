@@ -57,7 +57,7 @@ function formatKieLastRun(cost: ProviderCost): string {
   const parts: string[] = [];
   if (
     cost.billing_unit === "credits" &&
-    typeof cost.quantity === "number" &&
+    cost.quantity != null &&
     Number.isFinite(cost.quantity)
   ) {
     parts.push(formatKieCredits({ credit_balance: cost.quantity }));

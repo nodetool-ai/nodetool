@@ -115,10 +115,10 @@ export const resolve = (
     );
 
     const ttl = ctx.cacheTtl(id);
-    const cacheable = ttl === "forever" || (typeof ttl === "number" && ttl > 0);
+    const cacheable = ttl === "forever" || (ttl != null && ttl > 0);
     const withinTtl =
       ttl === "forever" ||
-      (!!g && typeof ttl === "number" && ctx.now - g.createdAt < ttl * 1000);
+      (!!g && ttl != null && ctx.now - g.createdAt < ttl * 1000);
     const fresh = !!g && cacheable && withinTtl;
 
     return !anyUpstreamWillRun && fresh ? "reuse" : "run";

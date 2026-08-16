@@ -55,7 +55,7 @@ export const getAuthRedirectUrl = (): string => {
     return fromRuntime;
   }
   const configured = getBuildEnv("VITE_AUTH_REDIRECT_URL");
-  if (typeof configured === "string" && configured.length > 0) {
+  if (configured != null && configured.length > 0) {
     return configured;
   }
   if (typeof window !== "undefined" && window.location?.origin) {

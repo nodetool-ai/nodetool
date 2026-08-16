@@ -353,7 +353,7 @@ const ReactFlowWrapper = ({
           ...(n.data.exposedInputsLabeled ?? []),
           ...(n.data.exposedInputsHidden ?? [])
         ].join(",");
-        sig = `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
+        sig = `${n.id}:${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
         sigCache.set(n.data, sig);
       }
       parts.push(sig);
@@ -395,7 +395,7 @@ const ReactFlowWrapper = ({
       const dynOutputsPart = getSortedKeys(n.data.dynamic_outputs);
       next.set(
         n.id,
-        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
+        `${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
       );
     }
     const changedIds: string[] = [];

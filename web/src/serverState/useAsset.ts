@@ -34,14 +34,14 @@ export function useAsset(props: UseAssetProps) {
   const assetResource = assetResourceFromType(props);
 
   const declaredId =
-    typeof assetResource?.asset_id === "string" &&
+    assetResource?.asset_id != null &&
     assetResource.asset_id.trim() !== ""
       ? assetResource.asset_id.trim()
       : undefined;
   const assetId =
     declaredId ??
     assetIdFromLocator(
-      typeof assetResource?.uri === "string" ? assetResource.uri : undefined
+      assetResource?.uri
     );
 
   const load = useCallback(async () => {

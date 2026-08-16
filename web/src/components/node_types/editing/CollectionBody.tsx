@@ -170,7 +170,7 @@ const styles = (theme: Theme) =>
   });
 
 const Thumb: React.FC<{ item: CollectionItem }> = ({ item }) => {
-  const uri = typeof item.uri === "string" ? item.uri : "";
+  const uri = item.uri != null ? item.uri : "";
   const alt = item.name ?? item.type;
   if (item.type === "image" && uri) {
     return <img src={uri} alt={alt} draggable={false} />;

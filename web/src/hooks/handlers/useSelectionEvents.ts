@@ -42,8 +42,8 @@ export function useSelectionEvents({
   const projectMouseEventToFlow = useCallback(
     (event?: { clientX?: number; clientY?: number } | null) => {
       const fallback = { x: 0, y: 0 };
-      const x = typeof event?.clientX === "number" ? event.clientX : fallback.x;
-      const y = typeof event?.clientY === "number" ? event.clientY : fallback.y;
+      const x = event?.clientX != null ? event.clientX : fallback.x;
+      const y = event?.clientY != null ? event.clientY : fallback.y;
       return reactFlowInstance.screenToFlowPosition({ x, y });
     },
     [reactFlowInstance]
