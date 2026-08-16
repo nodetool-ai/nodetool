@@ -28,16 +28,24 @@ interface Callbacks {
   onMessage?: (data: unknown) => void;
 }
 
+/**
+ * The socket the store is given: a real `WebSocketManager` shell (the class is
+ * mocked, so its prototype is empty) carrying spies for the seven methods the
+ * store calls. Building it on the prototype keeps it a `WebSocketManager` to
+ * the type system, whose remaining members are private and unreachable here.
+ */
+type SocketDouble = WebSocketManager & {
+  connect: jest.Mock;
+  disconnect: jest.Mock;
+  destroy: jest.Mock;
+  send: jest.Mock;
+  isConnected: jest.Mock;
+  setCallbacks: jest.Mock;
+  getState: jest.Mock;
+};
+
 describe('ChatStore agent tool wiring', () => {
-  let socket: {
-    connect: jest.Mock;
-    disconnect: jest.Mock;
-    destroy: jest.Mock;
-    send: jest.Mock;
-    isConnected: jest.Mock;
-    setCallbacks: jest.Mock;
-    getState: jest.Mock;
-  };
+  let socket: SocketDouble;
   let callbacks: Callbacks;
 
   beforeEach(() => {
@@ -56,7 +64,7 @@ describe('ChatStore agent tool wiring', () => {
     });
 
     callbacks = {};
-    socket = {
+    socket = Object.assign(Object.create(WebSocketManager.prototype), {
       connect: jest.fn().mockResolvedValue(undefined),
       disconnect: jest.fn(),
       destroy: jest.fn(),
@@ -66,7 +74,7 @@ describe('ChatStore agent tool wiring', () => {
         callbacks = next;
       }),
       getState: jest.fn().mockReturnValue('connected'),
-    };
+    });
     jest.mocked(WebSocketManager).mockImplementation(() => socket);
   });
 

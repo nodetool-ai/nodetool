@@ -139,11 +139,11 @@ import kieWebhookRoute from "./routes/kie-webhook.js";
 // the heuristic back to Node mode so NodeBinaryDataFactory / fs-based asset
 // loading is selected. No-op outside Electron.
 {
-  const proc = process as unknown as {
-    type?: string;
-    versions: { electron?: string };
-  };
-  if (proc.versions?.electron && proc.type && proc.type !== "browser") {
+  // Electron adds these two to the Node `process`; on plain Node both reads
+  // come back undefined and the check below fails, as it should.
+  const electronVersion = Reflect.get(process.versions, "electron");
+  const processType = Reflect.get(process, "type");
+  if (electronVersion && processType && processType !== "browser") {
     try {
       Object.defineProperty(process, "type", {
         value: "browser",

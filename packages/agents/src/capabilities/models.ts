@@ -669,8 +669,7 @@ const listProviderModels: CapabilityExport = {
     }
 
     if (
-      typeof (provider as unknown as Record<string, unknown>)
-        .getAvailableLanguageModels !== "function"
+      typeof Reflect.get(provider, "getAvailableLanguageModels") !== "function"
     ) {
       return {
         success: false,

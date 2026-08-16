@@ -183,8 +183,9 @@ function createNodeBackend(mod: NapiCanvasModule): MediaBackend {
       return { width, height, handle: canvas };
     },
     async encode(surface, format, quality) {
-      const canvas = (surface as unknown as { __canvas: NapiSurfaceCanvas })
-        .__canvas;
+      // SAFETY: `createSurface` above stashes the backing canvas under
+      // `__canvas`, and only this backend's own surfaces reach its `encode`.
+      const canvas = Reflect.get(surface, "__canvas") as NapiSurfaceCanvas;
       const q = napiQuality(format, quality);
       const out =
         q === undefined
@@ -208,18 +209,17 @@ interface OffscreenCanvasLike {
 }
 
 function createBrowserBackend(): MediaBackend {
+  // SAFETY: this backend is chosen only on a host that has the browser
+  // canvas globals; `createBrowserBackend` is never reached otherwise.
+  const OffscreenCanvasCtor = Reflect.get(
+    globalThis,
+    "OffscreenCanvas"
+  ) as new (w: number, h: number) => OffscreenCanvasLike;
   const make = (w: number, h: number): OffscreenCanvasLike =>
-    new (globalThis as unknown as {
-      OffscreenCanvas: new (w: number, h: number) => OffscreenCanvasLike;
-    }).OffscreenCanvas(w, h);
-  const createBitmap = (
-    globalThis as unknown as {
-      createImageBitmap: (source: unknown) => Promise<{
-        width: number;
-        height: number;
-      }>;
-    }
-  ).createImageBitmap;
+    new OffscreenCanvasCtor(w, h);
+  const createBitmap = Reflect.get(globalThis, "createImageBitmap") as (
+    source: unknown
+  ) => Promise<{ width: number; height: number }>;
 
   return {
     createSurface(width, height) {
@@ -250,8 +250,9 @@ function createBrowserBackend(): MediaBackend {
       return { width, height, handle: bitmap };
     },
     async encode(surface, format, quality) {
-      const canvas = (surface as unknown as { __canvas: OffscreenCanvasLike })
-        .__canvas;
+      // SAFETY: `createSurface` above stashes the backing canvas under
+      // `__canvas`, and only this backend's own surfaces reach its `encode`.
+      const canvas = Reflect.get(surface, "__canvas") as OffscreenCanvasLike;
       const blob = await canvas.convertToBlob({
         type: `image/${format}`,
         quality

@@ -318,7 +318,7 @@ const validateWorkflow: CapabilityExport = {
       const { Workflow } = await import("@nodetool-ai/models");
       const workflow = await Workflow.find(userIdOf(run.context), workflowId);
       if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
-      graph = workflow.getGraph() as unknown as typeof graph;
+      graph = workflow.getGraph();
     }
 
     if (!graph || !Array.isArray(graph.nodes)) {

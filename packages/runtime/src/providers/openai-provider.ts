@@ -42,7 +42,7 @@ type SharpModule = SharpModuleNs | { default: SharpFn };
 async function loadSharp(): Promise<SharpFn> {
   const mod = await importHidden<SharpModule>("sharp");
   if (!mod) throw new Error("sharp requires Node");
-  return (mod as { default?: SharpFn }).default ?? (mod as unknown as SharpFn);
+  return "default" in mod ? mod.default : mod;
 }
 
 const log = createLogger("nodetool.runtime.providers.openai");

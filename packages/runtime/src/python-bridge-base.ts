@@ -299,7 +299,7 @@ export abstract class PythonBridgeBase
         this._pendingStream.delete(requestId);
         const data = msg.data as { error: string; traceback?: string };
         const err = new Error(data.error);
-        (err as unknown as Record<string, unknown>).traceback = data.traceback;
+        Reflect.set(err, "traceback", data.traceback);
         streamReq.reject(err);
         return;
       }
@@ -308,7 +308,7 @@ export abstract class PythonBridgeBase
         this._pending.delete(requestId);
         const data = msg.data as { error: string; traceback?: string };
         const err = new Error(data.error);
-        (err as unknown as Record<string, unknown>).traceback = data.traceback;
+        Reflect.set(err, "traceback", data.traceback);
         pending.reject(err);
       }
     } else if (type === "chunk" && requestId) {
@@ -1052,7 +1052,7 @@ export abstract class PythonBridgeBase
   ): Promise<void> {
     return this._streamingDownload(
       "models.download",
-      req as unknown as Record<string, unknown>,
+      { ...req },
       (u) => onProgress(u as unknown as ModelDownloadUpdate),
       requestId
     );
@@ -1113,7 +1113,7 @@ export abstract class PythonBridgeBase
         reject: () => undefined,
         onProgress: (event) => {
           armIdleTimer();
-          onProgress(event as unknown as Record<string, unknown>);
+          onProgress({ ...event });
         }
       });
       this._pendingStream.set(requestId, {
@@ -1438,7 +1438,7 @@ export abstract class PythonBridgeBase
   ): Promise<void> {
     return this._streamingDownload(
       "comfy.models.download",
-      req as unknown as Record<string, unknown>,
+      { ...req },
       (u) => onProgress(u as ComfyModelDownloadUpdate),
       requestId
     );

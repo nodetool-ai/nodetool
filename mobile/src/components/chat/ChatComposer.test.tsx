@@ -63,8 +63,12 @@ describe('ChatComposer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     speechListeners = {};
-    eventHook.mockImplementation((name: string, listener: Listener) => {
-      speechListeners[name] = listener;
+    eventHook.mockImplementation((name, listener) => {
+      // SAFETY: `listener` is the hook's handler for the single event `name`,
+      // and each test fires that event's own payload shape. The union of
+      // per-event listener types cannot express that pairing, so the payload is
+      // handed over as `never`.
+      speechListeners[name] = (event) => listener(event as never);
     });
     speech.isRecognitionAvailable.mockReturnValue(true);
     speech.getPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });

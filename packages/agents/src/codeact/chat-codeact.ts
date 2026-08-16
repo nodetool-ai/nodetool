@@ -573,10 +573,7 @@ export function createChatCodeActSession(
       description:
         "Execute a JavaScript action in the sandbox. The observation " +
         "(return value, logs, error) is the tool result.",
-      inputSchema: EXECUTE_CODE_INPUT_SCHEMA as unknown as Record<
-        string,
-        unknown
-      >
+      inputSchema: EXECUTE_CODE_INPUT_SCHEMA
     },
     systemPromptSection,
     executeAction,

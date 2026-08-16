@@ -51,11 +51,8 @@ jest.mock('../stores/ChatStore', () => ({
 type ChatState = ReturnType<typeof useChatStore.getState>;
 type ChatScreenProps = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
-/** The slice of the store these tests stand up, with the actions as spies. */
-type MockChatStore = Pick<
-  ChatState,
-  'status' | 'error' | 'statusMessage' | 'currentThreadId' | 'messageCache'
-> & {
+/** The whole store these tests stand up, with the actions as spies. */
+type MockChatStore = ChatState & {
   connect: jest.Mock;
   disconnect: jest.Mock;
   sendMessage: jest.Mock;
@@ -68,9 +65,8 @@ const useChatStoreMock = jest.mocked(useChatStore);
 
 /** Point the mocked store hook at a state object, selector-aware. */
 const mockStoreState = (state: MockChatStore): void => {
-  useChatStoreMock.mockImplementation(
-    <T,>(selector?: (chatState: MockChatStore) => T) =>
-      selector ? selector(state) : state
+  useChatStoreMock.mockImplementation((selector) =>
+    selector ? selector(state) : state
   );
 };
 
@@ -87,6 +83,21 @@ describe('ChatScreen', () => {
     stopGeneration: jest.fn(),
     createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
     getCurrentMessages: jest.fn().mockReturnValue([]),
+    wsManager: null,
+    threads: {},
+    isLoadingMessages: false,
+    selectedModel: null,
+    agentMode: false,
+    helpMode: false,
+    selectedCollections: [],
+    selectedTools: [],
+    loadThreadFromServer: jest.fn().mockResolvedValue(undefined),
+    setSelectedModel: jest.fn(),
+    setAgentMode: jest.fn(),
+    setHelpMode: jest.fn(),
+    setSelectedCollections: jest.fn(),
+    setSelectedTools: jest.fn(),
+    addMessageToCache: jest.fn(),
   };
 
   const mockNavigation = {
@@ -175,7 +186,12 @@ describe('ChatScreen', () => {
     it('displays selected model name in header', () => {
       const storeWithModel = {
         ...mockStore,
-        selectedModel: { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
+        selectedModel: {
+          type: 'language_model' as const,
+          id: 'gpt-4',
+          name: 'GPT-4',
+          provider: 'openai' as const,
+        },
       };
       
       mockStoreState(storeWithModel);

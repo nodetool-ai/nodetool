@@ -489,15 +489,16 @@ export class CompilerAgent {
 function isChunk(item: ProviderStreamItem): item is Chunk {
   return (
     "type" in item &&
-    (item as unknown as Record<string, unknown>)["type"] === "chunk" &&
-    typeof (item as unknown as Record<string, unknown>)["content"] === "string"
+    item.type === "chunk" &&
+    "content" in item &&
+    typeof item.content === "string"
   );
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
   return (
     "name" in item &&
-    typeof (item as unknown as Record<string, unknown>)["name"] === "string" &&
+    typeof item.name === "string" &&
     "id" in item
   );
 }

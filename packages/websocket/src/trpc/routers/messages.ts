@@ -44,8 +44,11 @@ async function toMessageResponse(
     workflow_target: msg.workflow_target ?? null,
     media_generation: msg.media_generation ?? null,
     created_at: msg.created_at,
-    updated_at: (msg as unknown as { updated_at?: string }).updated_at ??
-      msg.created_at
+    // SAFETY: the messages table has an `updated_at` column the row type
+    // does not declare; a row written before it existed falls back to
+    // `created_at`, which is what the `??` below covers.
+    updated_at:
+      (Reflect.get(msg, "updated_at") as string | undefined) ?? msg.created_at
   };
 }
 

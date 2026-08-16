@@ -944,9 +944,7 @@ export class FileStorageAdapter implements StorageAdapter {
         isFile: () => boolean;
       }>;
       try {
-        children = (await rd(baseAbs, {
-          withFileTypes: true
-        })) as unknown as typeof children;
+        children = await rd(baseAbs, { withFileTypes: true });
       } catch {
         return { entries: [], commonPrefixes: [] };
       }
@@ -989,9 +987,7 @@ export class FileStorageAdapter implements StorageAdapter {
         isFile: () => boolean;
       }>;
       try {
-        children = (await rd(dirAbs, {
-          withFileTypes: true
-        })) as unknown as typeof children;
+        children = await rd(dirAbs, { withFileTypes: true });
       } catch {
         return;
       }

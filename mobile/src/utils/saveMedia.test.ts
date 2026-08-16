@@ -20,8 +20,18 @@ jest.mock('expo-media-library/legacy', () => ({
 const mockedFs = FileSystem as jest.Mocked<typeof FileSystem>;
 const mockedMedia = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
 
-const granted = { granted: true, canAskAgain: true, status: 'granted' };
-const denied = { granted: false, canAskAgain: true, status: 'denied' };
+const granted: MediaLibrary.PermissionResponse = {
+  granted: true,
+  canAskAgain: true,
+  status: 'granted' as MediaLibrary.PermissionStatus,
+  expires: 'never',
+};
+const denied: MediaLibrary.PermissionResponse = {
+  granted: false,
+  canAskAgain: true,
+  status: 'denied' as MediaLibrary.PermissionStatus,
+  expires: 'never',
+};
 
 describe('saveableMediaKind', () => {
   it('accepts images and videos', () => {
@@ -57,14 +67,14 @@ describe('saveMediaToLibrary', () => {
     setCachedApiHost('http://10.0.0.5:7777');
     useAuthStore.setState({ session: null });
     mockedMedia.getPermissionsAsync.mockResolvedValue(
-      granted as unknown as MediaLibrary.PermissionResponse
+      granted
     );
     mockedFs.downloadAsync.mockResolvedValue({
       uri: 'file:///cache/download.png',
       status: 200,
       headers: {},
       mimeType: 'image/png',
-    } as unknown as FileSystem.FileSystemDownloadResult);
+    });
   });
 
   it('downloads, saves and cleans up the temp file', async () => {
@@ -138,10 +148,10 @@ describe('saveMediaToLibrary', () => {
 
   it('requests permission and throws when denied', async () => {
     mockedMedia.getPermissionsAsync.mockResolvedValue(
-      denied as unknown as MediaLibrary.PermissionResponse
+      denied
     );
     mockedMedia.requestPermissionsAsync.mockResolvedValue(
-      denied as unknown as MediaLibrary.PermissionResponse
+      denied
     );
 
     await expect(
@@ -160,7 +170,8 @@ describe('saveMediaToLibrary', () => {
       uri: 'file:///cache/download.png',
       status: 401,
       headers: {},
-    } as unknown as FileSystem.FileSystemDownloadResult);
+      mimeType: null,
+    });
 
     await expect(
       saveMediaToLibrary({

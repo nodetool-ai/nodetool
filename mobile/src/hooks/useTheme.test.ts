@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 import { useTheme } from './useTheme';
 import { useThemeStore } from '../stores/ThemeStore';
+import { paletteDark, ThemeColors } from '../utils/theme';
 import { Appearance } from 'react-native';
 
 // Mock the ThemeStore
@@ -13,7 +14,9 @@ jest.mock('react-native/Libraries/Utilities/Appearance', () => ({
 describe('useTheme', () => {
   const mockSetTheme = jest.fn();
   const mockToggleTheme = jest.fn();
-  const mockColors = {
+  const mockUpdateSystemTheme = jest.fn();
+  const mockColors: ThemeColors = {
+    ...paletteDark,
     background: '#000000',
     text: '#FFFFFF',
     textSecondary: '#AAAAAA',
@@ -29,6 +32,7 @@ describe('useTheme', () => {
     colors: mockColors,
     setTheme: mockSetTheme,
     toggleTheme: mockToggleTheme,
+    updateSystemTheme: mockUpdateSystemTheme,
   };
 
   beforeEach(() => {

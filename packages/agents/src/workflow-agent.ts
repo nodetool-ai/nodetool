@@ -14,8 +14,8 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import {
   ExecutionSession,
-  type ExecutionSessionOptions,
-  type RawGraphInput
+  toRawGraphInput,
+  type ExecutionSessionOptions
 } from "@nodetool-ai/execution";
 import type { RunResult, SupervisorHandle } from "@nodetool-ai/kernel";
 import {
@@ -62,7 +62,24 @@ export async function resolveAgentGraph(
   if (!workflow) {
     throw new Error(`Workflow not found: ${source.workflowId}`);
   }
-  return workflow.getGraph() as unknown as GraphData;
+  // A saved graph is stored as plain records. What a `NodeDescriptor` and an
+  // `Edge` add over that is the declared string type of their identity
+  // fields, so read those out rather than assert them.
+  const saved = workflow.getGraph();
+  return {
+    nodes: saved.nodes.map((n) => ({
+      ...n,
+      id: String(n.id ?? ""),
+      type: String(n.type ?? "")
+    })),
+    edges: saved.edges.map((e) => ({
+      ...e,
+      source: String(e.source ?? ""),
+      sourceHandle: String(e.sourceHandle ?? ""),
+      target: String(e.target ?? ""),
+      targetHandle: String(e.targetHandle ?? "")
+    }))
+  };
 }
 
 /**
@@ -93,7 +110,7 @@ export async function* runWorkflowAsAgent(
   });
 
   const sessionOptions: ExecutionSessionOptions = {
-    graph: graph as unknown as RawGraphInput,
+    graph: toRawGraphInput(graph),
     registry,
     // Registry alone hydrates node flags but not `propertyTypes`, and
     // correlation analysis reads list-ness only from that map — without it

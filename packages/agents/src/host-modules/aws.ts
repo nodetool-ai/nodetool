@@ -45,7 +45,14 @@ function subtleCrypto(where: string): SubtleCrypto {
 
 const encoder = new TextEncoder();
 
-function toBytes(value: string | Uint8Array): Uint8Array {
+/**
+ * WebCrypto's `BufferSource` wants a view over a plain `ArrayBuffer`, not the
+ * `SharedArrayBuffer` a bare `Uint8Array` also admits, so every byte string
+ * that reaches `subtle` is carried as `Bytes`.
+ */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+function toBytes(value: string | Bytes): Bytes {
   return typeof value === "string" ? encoder.encode(value) : value;
 }
 
@@ -57,24 +64,24 @@ function toHex(bytes: Uint8Array): string {
 
 async function sha256Hex(
   where: string,
-  data: string | Uint8Array
+  data: string | Bytes
 ): Promise<string> {
   const digest = await subtleCrypto(where).digest(
     "SHA-256",
-    toBytes(data) as unknown as BufferSource
+    toBytes(data)
   );
   return toHex(new Uint8Array(digest));
 }
 
 async function hmac(
   where: string,
-  key: Uint8Array,
+  key: Bytes,
   data: string
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const subtle = subtleCrypto(where);
   const cryptoKey = await subtle.importKey(
     "raw",
-    key as unknown as BufferSource,
+    key,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -82,7 +89,7 @@ async function hmac(
   const signature = await subtle.sign(
     "HMAC",
     cryptoKey,
-    encoder.encode(data) as unknown as BufferSource
+    encoder.encode(data)
   );
   return new Uint8Array(signature);
 }
@@ -196,7 +203,7 @@ function readHeaders(where: string, value: unknown): Record<string, string> {
 function readBody(
   where: string,
   value: unknown
-): string | Uint8Array | undefined {
+): string | Bytes | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value === "string") {
     if (encoder.encode(value).length > MAX_SIGNED_BODY_BYTES) {
@@ -212,7 +219,9 @@ function readBody(
         `${where}: body exceeds the ${MAX_SIGNED_BODY_BYTES} byte signing limit`
       );
     }
-    return value;
+    // Copied onto a plain ArrayBuffer: a guest array may sit on a
+    // SharedArrayBuffer, which WebCrypto's `BufferSource` does not accept.
+    return new Uint8Array(value);
   }
   throw new Error(`${where}: body must be a string or Uint8Array`);
 }
@@ -232,7 +241,7 @@ async function signingKey(
   date: string,
   region: string,
   service: string
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const kDate = await hmac(where, encoder.encode(`AWS4${secret}`), date);
   const kRegion = await hmac(where, kDate, region);
   const kService = await hmac(where, kRegion, service);

@@ -356,7 +356,7 @@ function buildPayload(
   return {
     build_id: buildId,
     status: report.verdict.ok ? "completed" : "failed",
-    ...(report as unknown as Record<string, unknown>),
+    ...report,
     log: logLines,
     install: report.bundle
       ? 'POST /api/applications/import-bundle with {"bundle": <report.bundle>} to install this app.'
