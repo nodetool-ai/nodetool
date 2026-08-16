@@ -75,6 +75,7 @@ export interface ScriptResponse {
   name: string;
   document: ScriptDocument;
   timelineId?: string;
+  storyboardId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +126,7 @@ export class Script extends DBModel {
   declare name: string;
   declare document: string;
   declare timeline_id: string | null;
+  declare storyboard_id: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -136,6 +138,7 @@ export class Script extends DBModel {
     this.name ??= "Untitled script";
     this.document ??= JSON.stringify(emptyScriptDocument());
     this.timeline_id ??= null;
+    this.storyboard_id ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -159,6 +162,7 @@ export class Script extends DBModel {
       name: this.name,
       document: this.toDocument(),
       timelineId: this.timeline_id ?? undefined,
+      storyboardId: this.storyboard_id ?? undefined,
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -208,6 +212,7 @@ export class Script extends DBModel {
       name: string;
       document: string;
       timeline_id: string | null;
+      storyboard_id: string | null;
     }>
   ): Promise<Script | null> {
     if (fields.document !== undefined) {

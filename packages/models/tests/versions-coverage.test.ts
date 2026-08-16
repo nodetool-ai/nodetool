@@ -136,6 +136,20 @@ describe("built-in migration versions", () => {
     await expect(runMode.up(adapter)).resolves.toBeUndefined();
   });
 
+  it("add_storyboard_id_to_scripts adds the column only when missing", async () => {
+    const runner = new MigrationRunner(adapter);
+    await runner.migrate({ target: "20260812_000001" });
+
+    expect(await adapter.columnExists("scripts", "storyboard_id")).toBe(false);
+    const backPointer = migrations.find(
+      (m) => m.name === "add_storyboard_id_to_scripts"
+    )!;
+    await backPointer.up(adapter);
+    expect(await adapter.columnExists("scripts", "storyboard_id")).toBe(true);
+    // Second call takes the guard's false branch and is a no-op.
+    await expect(backPointer.up(adapter)).resolves.toBeUndefined();
+  });
+
   it("column-guarded prediction migrations early-return when the table is absent", async () => {
     // On a totally empty DB (no nodetool_predictions), the tableExists guard
     // must short-circuit these ups without throwing.

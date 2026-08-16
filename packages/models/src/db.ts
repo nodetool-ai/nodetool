@@ -1203,6 +1203,7 @@ function getCreateSchemaSql(): string {
       "name" text NOT NULL,
       "document" text NOT NULL,
       "timeline_id" text,
+      "storyboard_id" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
