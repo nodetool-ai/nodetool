@@ -257,7 +257,7 @@ export function deriveCodeIOUpdates(
     Object.assign(dynamic_outputs, existingDynOutputs);
   }
 
-  const dynamic_properties: Record<string, unknown> = { ...existingDynProps };
+  const dynamic_properties = { ...existingDynProps } satisfies Record<string, unknown>;
   if (inputKeys) {
     for (const key of inputKeys) {
       if (!(key in dynamic_properties)) {

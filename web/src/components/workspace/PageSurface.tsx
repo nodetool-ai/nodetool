@@ -20,7 +20,7 @@ const WorkspacesPage = React.lazy(
 const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
 const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
 
-const PAGE_COMPONENTS: Record<PageTabKey, React.ComponentType> = {
+const PAGE_COMPONENTS = {
   assets: AssetExplorer,
   tutorials: TutorialsPage,
   examples: ExamplesPage,
@@ -31,7 +31,7 @@ const PAGE_COMPONENTS: Record<PageTabKey, React.ComponentType> = {
   workspaces: WorkspacesPage,
   entities: EntityLibrary,
   settings: SettingsPage
-};
+} satisfies Record<PageTabKey, React.ComponentType>;
 
 const surfaceStyle: React.CSSProperties = {
   display: "flex",

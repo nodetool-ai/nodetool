@@ -158,7 +158,7 @@ export const createRunResolver = ({
   const reuseValue = (
     source: string,
     edge: Edge
-  ): { value: unknown; hasValue: boolean } => {
+  ) => {
     const kind = hasher.classify(source);
     if (kind === "constant") {
       const { value, hasValue } = resolveExternalEdgeValue(

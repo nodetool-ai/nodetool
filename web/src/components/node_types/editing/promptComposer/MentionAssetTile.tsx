@@ -53,13 +53,13 @@ const mediaKindOf = (asset: Asset): MediaKind => {
   return "other";
 };
 
-const MEDIA_ICON: Record<MediaKind, typeof ImageIcon> = {
+const MEDIA_ICON = {
   image: ImageIcon,
   video: MovieIcon,
   audio: AudiotrackIcon,
   folder: FolderIcon,
   other: InsertDriveFileIcon
-};
+} satisfies Record<MediaKind, typeof ImageIcon>;
 
 const styles = (theme: Theme) =>
   css({

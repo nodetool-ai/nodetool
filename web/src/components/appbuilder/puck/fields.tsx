@@ -50,12 +50,7 @@ const NONE: Option = { label: "— none —", value: "" };
  */
 const useBindingOperation = (
   binding: string
-): {
-  operationId: string;
-  operations: ReadonlyArray<{ id: string; name: string }>;
-  workflow: WorkflowState;
-  select: (operationId: string) => void;
-} => {
+) => {
   const { operations, selectedOperationId, selectOperation, workflowFor } =
     useBuilderOperations();
   const stored = parseBinding(binding);

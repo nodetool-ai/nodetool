@@ -139,14 +139,14 @@ export function getNodeCategoryColor(
   category: NodeTypeCategory,
   isDarkMode: boolean
 ): string {
-  const colors: Record<NodeTypeCategory, { light: string; dark: string }> = {
+  const colors = {
     [NodeTypeCategory.Input]: { light: "#3b82f6", dark: "#60a5fa" }, // Blue
     [NodeTypeCategory.Constant]: { light: "#8b5cf6", dark: "#a78bfa" }, // Purple
     [NodeTypeCategory.Processing]: { light: "#64748b", dark: "#94a3b8" }, // Slate
     [NodeTypeCategory.Group]: { light: "#6366f1", dark: "#818cf8" }, // Indigo
     [NodeTypeCategory.Comment]: { light: "#22c55e", dark: "#4ade80" }, // Green
     [NodeTypeCategory.Output]: { light: "#f59e0b", dark: "#fbbf24" } // Amber
-  };
+  } satisfies Record<NodeTypeCategory, { light: string; dark: string }>;
 
   return isDarkMode ? colors[category].dark : colors[category].light;
 }

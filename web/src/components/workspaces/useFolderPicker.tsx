@@ -10,10 +10,7 @@ const hasNativeDialog = (): boolean => {
  * Opens a folder picker (native in Electron, custom FileBrowserDialog otherwise)
  * and resolves with the selected absolute path or `null` when cancelled.
  */
-export function useFolderPicker(): {
-  pickFolder: () => Promise<string | null>;
-  dialog: React.JSX.Element;
-} {
+export function useFolderPicker() {
   const [isOpen, setIsOpen] = useState(false);
   const [resolver, setResolver] = useState<
     ((path: string | null) => void) | null

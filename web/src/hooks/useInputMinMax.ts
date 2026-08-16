@@ -16,7 +16,7 @@ export const useInputMinMax = ({
   propertyName,
   propertyMin,
   propertyMax,
-}: UseInputMinMaxOptions): { min?: number; max?: number } => {
+}: UseInputMinMaxOptions) => {
   const shouldLookupBounds =
     nodeType &&
     (nodeType === "nodetool.input.FloatInput" ||

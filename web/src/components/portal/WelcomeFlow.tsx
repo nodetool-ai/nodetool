@@ -11,12 +11,12 @@ import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 
-const TRACK_ICONS: Record<WelcomeTrackId, SvgIconComponent> = {
+const TRACK_ICONS = {
   image: ImageOutlinedIcon,
   video: VideocamOutlinedIcon,
   audio: GraphicEqIcon,
   agent: SmartToyOutlinedIcon
-};
+} satisfies Record<WelcomeTrackId, SvgIconComponent>;
 
 const rise = keyframes`
   from { opacity: 0; transform: translateY(8px); }

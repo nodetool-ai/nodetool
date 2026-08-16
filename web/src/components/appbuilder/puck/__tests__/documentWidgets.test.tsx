@@ -25,10 +25,10 @@ const IDLE: QueryResult = {
 };
 
 /** What each fetch resolves to, per test. */
-const results: { sketch: QueryResult; timeline: QueryResult } = {
+const results = {
   sketch: IDLE,
   timeline: IDLE
-};
+} satisfies { sketch: QueryResult; timeline: QueryResult };
 const sketchEnabled = jest.fn();
 const timelineEnabled = jest.fn();
 

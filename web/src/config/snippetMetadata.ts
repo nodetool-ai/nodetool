@@ -102,7 +102,7 @@ export function findSnippetByNodeType(
 }
 
 /** Generate metadata records for all snippets */
-export function generateSnippetMetadata(): Record<string, NodeMetadata> {
+export function generateSnippetMetadata() {
   const result: Record<string, NodeMetadata> = {};
 
   for (const snippet of CODE_SNIPPETS) {

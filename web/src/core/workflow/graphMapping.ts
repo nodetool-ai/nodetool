@@ -253,7 +253,7 @@ export const sanitizeGraph = (
   nodes: Node<NodeData>[],
   edges: Edge[],
   metadata: Record<string, NodeMetadata>
-): { nodes: Node<NodeData>[]; edges: Edge[] } => {
+) => {
   const nodesWithDynamicHandles = ensureHandlesForEdges(nodes, edges, metadata);
   const nodeMap = new Map(
     nodesWithDynamicHandles.map((node) => [node.id, node])

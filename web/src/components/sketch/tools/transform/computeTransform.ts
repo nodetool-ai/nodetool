@@ -33,18 +33,18 @@ import {
 type GestureTransformMode = TransformMode;
 type PerspectiveQuad = [Point, Point, Point, Point];
 
-const CORNER_INDEX_BY_HANDLE: Record<
+const CORNER_INDEX_BY_HANDLE = {
+  "top-left": 0,
+  "top-right": 1,
+  "bottom-right": 2,
+  "bottom-left": 3
+} satisfies Record<
   Extract<
     TransformHandle,
     "top-left" | "top-right" | "bottom-right" | "bottom-left"
   >,
   0 | 1 | 2 | 3
-> = {
-  "top-left": 0,
-  "top-right": 1,
-  "bottom-right": 2,
-  "bottom-left": 3
-};
+>;
 
 function projectVector(delta: Point, axis: Point): Point {
   const length = Math.hypot(axis.x, axis.y);

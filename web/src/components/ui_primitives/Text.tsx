@@ -85,13 +85,13 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
   // Font sizes are driven by the theme CSS variables (single source of truth
   // in ThemeNodetool). Five names, five real values — no aliases.
   const getFontSize = () => {
-    const sizeMap: Record<NonNullable<TextProps["size"]>, string> = {
+    const sizeMap = {
       giant: "var(--fontSizeGiant)",
       big: "var(--fontSizeBig)",
       normal: "var(--fontSizeNormal)",
       small: "var(--fontSizeSmall)",
       smaller: "var(--fontSizeSmaller)"
-    };
+    } satisfies Record<NonNullable<TextProps["size"]>, string>;
     return sizeMap[size];
   };
 

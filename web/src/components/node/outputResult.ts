@@ -13,7 +13,7 @@
  * array of either. Arrays are mapped element-wise; an all-string array is joined
  * with newlines so streamed text renders as one block.
  */
-export const getOutputFromResult = (result: unknown): unknown => {
+export const getOutputFromResult = (result: unknown) => {
   if (result === null || result === undefined) {
     return null;
   }

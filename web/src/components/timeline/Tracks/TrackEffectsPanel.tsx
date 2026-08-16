@@ -337,17 +337,17 @@ const EQ_GRAPH_HEIGHT = 160;
 
 type Band = "low" | "mid" | "high";
 
-const BAND_COLORS: Record<Band, string> = {
+const BAND_COLORS = {
   low: "var(--palette-info-main)",
   mid: "var(--palette-success-main)",
   high: "var(--palette-warning-main)"
-};
+} satisfies Record<Band, string>;
 
-const BAND_RANGES: Record<Band, { fMin: number; fMax: number }> = {
+const BAND_RANGES = {
   low: { fMin: 40, fMax: 400 },
   mid: { fMin: 100, fMax: 8000 },
   high: { fMin: 2000, fMax: 16000 }
-};
+} satisfies Record<Band, { fMin: number; fMax: number }>;
 
 const clamp = (v: number, a: number, b: number) =>
   v < a ? a : v > b ? b : v;

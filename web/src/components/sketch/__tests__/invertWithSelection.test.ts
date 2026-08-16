@@ -32,11 +32,7 @@ function makeDocAndCanvas(
     transformX?: number;
     transformY?: number;
   }
-): {
-  doc: SketchDocument;
-  layerCanvases: Map<string, HTMLCanvasElement>;
-  canvas: HTMLCanvasElement;
-} {
+) {
   const doc = createDefaultDocument(canvasW, canvasH);
   const layer = doc.layers[0];
 

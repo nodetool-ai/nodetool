@@ -860,10 +860,10 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
  * A mapping of shortcut categories to their human-readable display names.
  * Used for grouping shortcuts in the UI.
  */
-export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
+export const SHORTCUT_CATEGORIES = {
   workflow: "Workflows",
   panel: "Panels",
   editor: "Node Editor",
   assets: "Assets",
   "image-editor": "Image Editor"
-};
+} satisfies Record<Shortcut["category"], string>;

@@ -5,10 +5,7 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useSelect from "../nodes/useSelect";
 
-export function useNodeEvents(): {
-  handleNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
-  handleNodesChange: (changes: NodeChange<Node<NodeData>>[]) => void;
-} {
+export function useNodeEvents() {
   const { openContextMenu } = useContextMenu();
   const { close: closeSelect } = useSelect();
 

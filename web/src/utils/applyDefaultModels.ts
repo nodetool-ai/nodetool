@@ -24,7 +24,7 @@ function getTypeString(type: { type: string } | string): string {
 export function applyDefaultModels(
   properties: Record<string, unknown>,
   propertyMetadata: PropertyMeta[]
-): Record<string, unknown> {
+) {
   const defaults = useModelPreferencesStore.getState().defaults;
   if (Object.keys(defaults).length === 0) return properties;
 

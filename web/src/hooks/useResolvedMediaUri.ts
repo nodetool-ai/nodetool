@@ -31,7 +31,7 @@ export type MediaLocator =
 
 const locatorParts = (
   source: MediaLocator
-): { uri?: string; assetId?: string } => {
+) => {
   if (typeof source === "string") {
     return { uri: source || undefined, assetId: assetIdFromLocator(source) };
   }

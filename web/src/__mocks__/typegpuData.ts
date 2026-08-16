@@ -6,7 +6,7 @@
 
 type Schema = Record<string, unknown>;
 
-export const struct = (fields: Record<string, unknown>): Schema => ({
+export const struct = (fields: Record<string, unknown>) => ({
   fields
 });
 

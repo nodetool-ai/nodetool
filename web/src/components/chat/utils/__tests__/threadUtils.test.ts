@@ -7,11 +7,11 @@ import type { ThreadInfo } from "../../types/thread.types";
 
 describe("sortThreadsByDate", () => {
   it("sorts threads by updatedAt in descending order (newest first)", () => {
-    const threads: Record<string, ThreadInfo> = {
+    const threads = {
       old: { id: "old", updatedAt: "2024-01-01T00:00:00Z", messages: [] },
       newest: { id: "newest", updatedAt: "2024-03-01T00:00:00Z", messages: [] },
       middle: { id: "middle", updatedAt: "2024-02-01T00:00:00Z", messages: [] }
-    };
+    } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 
@@ -26,10 +26,10 @@ describe("sortThreadsByDate", () => {
   });
 
   it("handles threads with undefined updatedAt by sorting them last", () => {
-    const threads: Record<string, ThreadInfo> = {
+    const threads = {
       withDate: { id: "withDate", updatedAt: "2024-01-01T00:00:00Z", messages: [] },
       noDate: stub<ThreadInfo>({ id: "noDate", updatedAt: undefined })
-    };
+    } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 
@@ -38,9 +38,9 @@ describe("sortThreadsByDate", () => {
   });
 
   it("handles single thread", () => {
-    const threads: Record<string, ThreadInfo> = {
+    const threads = {
       only: { id: "only", updatedAt: "2024-01-01T00:00:00Z", messages: [] }
-    };
+    } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 
@@ -54,7 +54,7 @@ describe("sortThreadsByDate", () => {
       updatedAt: "2024-05-01T12:00:00Z",
       messages: []
     };
-    const threads: Record<string, ThreadInfo> = { myThread: threadInfo };
+    const threads = { myThread: threadInfo } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 
@@ -62,10 +62,10 @@ describe("sortThreadsByDate", () => {
   });
 
   it("handles threads with identical dates stably", () => {
-    const threads: Record<string, ThreadInfo> = {
+    const threads = {
       a: { id: "a", updatedAt: "2024-01-01T00:00:00Z", messages: [] },
       b: { id: "b", updatedAt: "2024-01-01T00:00:00Z", messages: [] }
-    };
+    } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 
@@ -73,10 +73,10 @@ describe("sortThreadsByDate", () => {
   });
 
   it("handles ISO date strings with different time zones", () => {
-    const threads: Record<string, ThreadInfo> = {
+    const threads = {
       earlier: { id: "earlier", updatedAt: "2024-01-01T23:00:00Z", messages: [] },
       later: { id: "later", updatedAt: "2024-01-02T01:00:00Z", messages: [] }
-    };
+    } satisfies Record<string, ThreadInfo>;
 
     const sorted = sortThreadsByDate(threads);
 

@@ -143,7 +143,7 @@ describe("duplicateLine", () => {
 });
 
 describe("moveLine", () => {
-  const seed = (n: number): { sectionId: string; ids: string[] } => {
+  const seed = (n: number) => {
     const store = useScriptStore.getState();
     store.ensureScript(SCRIPT);
     for (let i = 0; i < n; i++) store.addLine(SCRIPT);

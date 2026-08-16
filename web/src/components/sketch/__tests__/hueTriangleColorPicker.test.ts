@@ -12,13 +12,13 @@ import {
  */
 
 // ─── Barycentric helpers (inlined from component for testability) ─────
-function baryToSV(u: number, v: number, _w: number): { s: number; val: number } {
+function baryToSV(u: number, v: number, _w: number) {
   const val = Math.max(0, Math.min(1, u + v));
   const s = val > 0 ? Math.max(0, Math.min(1, u / val)) : 0;
   return { s, val };
 }
 
-function svToBary(s: number, val: number): { u: number; v: number; w: number } {
+function svToBary(s: number, val: number) {
   const u = s * val;
   const v = (1 - s) * val;
   const w = 1 - val;

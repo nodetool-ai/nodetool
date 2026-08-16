@@ -26,12 +26,12 @@ interface TrackTypeMeta {
   Icon: SvgIconComponent;
 }
 
-const TRACK_TYPES: Record<TrackTypeKey, TrackTypeMeta> = {
+const TRACK_TYPES = {
   video: { prefix: "V", label: "Video", Icon: VideocamOutlinedIcon },
   audio: { prefix: "A", label: "Audio", Icon: AudiotrackOutlinedIcon },
   overlay: { prefix: "O", label: "Overlay", Icon: LayersOutlinedIcon },
   subtitle: { prefix: "T", label: "Text", Icon: SubtitlesOutlinedIcon }
-};
+} satisfies Record<TrackTypeKey, TrackTypeMeta>;
 
 export function trackTypeMeta(type: TrackTypeKey): TrackTypeMeta {
   return TRACK_TYPES[type] ?? TRACK_TYPES.video;

@@ -47,13 +47,13 @@ function statusLabel(pack: PackInfo): string {
   return pack.status;
 }
 
-const SKIP_REASON_LABEL: Record<SkipReason, string> = {
+const SKIP_REASON_LABEL = {
   "not-allowed": "not on allowlist",
   "api-version": "incompatible pack API version",
   "reserved-namespace": "reserved namespace",
   collision: "node type already registered",
   "no-node-type": "no nodeType defined"
-};
+} satisfies Record<SkipReason, string>;
 
 interface PackRowProps {
   pack: PackInfo;
@@ -194,12 +194,12 @@ function nodePacksApi(): NodePacksApi | undefined {
   return packs as NodePacksApi;
 }
 
-const MODE_LABEL: Record<NodePackInstallMode, string> = {
+const MODE_LABEL = {
   "sandbox-only": "sandbox modules only",
   register: "registers host nodes",
   hybrid: "host nodes + sandbox modules",
   unknown: "unrecognized manifest"
-};
+} satisfies Record<NodePackInstallMode, string>;
 
 /**
  * What the install mode means for the user. Install is never authorization:

@@ -180,7 +180,7 @@ export const formatMoney = (n: number): string => {
   return `$${n.toFixed(moneyDp(n))}`;
 };
 
-export const splitMoney = (n: number): { whole: string; decimal: string } => {
+export const splitMoney = (n: number) => {
   const fixed = n.toFixed(moneyDp(n));
   const [w, d] = fixed.split(".");
   return { whole: `$${w}`, decimal: d ? `.${d}` : "" };

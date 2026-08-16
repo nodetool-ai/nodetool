@@ -29,10 +29,7 @@ const assetResourceFromType = (props: UseAssetProps) => {
   }
 };
 
-export function useAsset(props: UseAssetProps): {
-  asset?: Asset;
-  uri?: string;
-} {
+export function useAsset(props: UseAssetProps) {
   const getAsset = useAssetStore((state) => state.get);
   const assetResource = assetResourceFromType(props);
 

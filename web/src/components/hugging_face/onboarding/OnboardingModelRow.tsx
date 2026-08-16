@@ -32,15 +32,12 @@ interface OnboardingModelRowProps {
   onDownload: (entry: OnboardingModel) => void;
 }
 
-const FIT_COLOR: Record<
-  FitLevel,
-  "success" | "warning" | "error" | "default"
-> = {
+const FIT_COLOR = {
   fits: "success",
   tight: "warning",
   over: "error",
   unknown: "default"
-};
+} satisfies Record<FitLevel, "success" | "warning" | "error" | "default">;
 
 const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
   entry,

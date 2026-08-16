@@ -37,7 +37,7 @@ interface KindVisual {
 }
 
 /** Kinds share the accent vocabulary of `getToolVisual` so chat reads as one surface. */
-const KIND_VISUALS: Record<ResourceKind, KindVisual> = {
+const KIND_VISUALS = {
   asset: { Icon: ImageOutlinedIcon, accent: "secondary" },
   workflow: { Icon: AccountTreeOutlinedIcon, accent: "primary" },
   timeline: { Icon: MovieOutlinedIcon, accent: "secondary" },
@@ -48,7 +48,7 @@ const KIND_VISUALS: Record<ResourceKind, KindVisual> = {
   model3d: { Icon: ViewInArOutlinedIcon, accent: "secondary" },
   collection: { Icon: StorageRoundedIcon, accent: "info" },
   thread: { Icon: ChatBubbleOutlineRoundedIcon, accent: "neutral" }
-};
+} satisfies Record<ResourceKind, KindVisual>;
 
 type ChipColor = "default" | "primary" | "secondary" | "success" | "warning" | "error" | "info";
 

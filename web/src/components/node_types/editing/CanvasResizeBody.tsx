@@ -118,7 +118,7 @@ function computeLayout(
   srcH: number,
   mode: CanvasMode,
   props: Record<string, unknown>
-): { canvasW: number; canvasH: number; offsetX: number; offsetY: number } {
+) {
   if (mode === "fixed") {
     const canvasW = Math.max(1, Math.floor(Number(props.width ?? srcW)));
     const canvasH = Math.max(1, Math.floor(Number(props.height ?? srcH)));

@@ -35,7 +35,7 @@ import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
-const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
+const SUPPORTS_BOTH_MODES = {
   workflow: false,
   image: true,
   sketch: false,
@@ -49,9 +49,9 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   chat: false,
   application: false,
   page: false
-};
+} satisfies Record<WorkspaceTabType, boolean>;
 
-const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
+const TYPE_GLYPH = {
   workflow: "⬡",
   image: "▦",
   sketch: "✎",
@@ -65,10 +65,10 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   chat: "❝",
   application: "◧",
   page: "☰"
-};
+} satisfies Record<WorkspaceTabType, string>;
 
 /** Pin color per tab type, reusing the app's canonical data-type palette. */
-const TYPE_COLOR: Record<WorkspaceTabType, string> = {
+const TYPE_COLOR = {
   workflow: colorForType("any"),
   image: colorForType("image"),
   sketch: colorForType("image"),
@@ -82,7 +82,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   chat: colorForType("str"),
   application: colorForType("any"),
   page: colorForType("any")
-};
+} satisfies Record<WorkspaceTabType, string>;
 
 const styles = (theme: Theme) =>
   css({
