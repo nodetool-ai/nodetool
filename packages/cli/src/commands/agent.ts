@@ -453,7 +453,7 @@ async function diagnoseCommand(
       opts.traceFile,
       process.env["NODETOOL_TRACE_FILE"],
       bundle ? path.join(bundle, "server", "trace.jsonl") : undefined
-    ].filter((p): p is string => typeof p === "string")
+    ].filter((p): p is string => p != null)
   );
   if (tracePath) {
     try {

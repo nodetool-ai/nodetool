@@ -116,11 +116,7 @@ function shortestClipSecond(clip: GenspendPrice["clip_seconds"]): number {
     const legal = clip.set.filter((s) => Number.isFinite(s) && s > 0);
     if (legal.length > 0) return Math.min(...legal);
   }
-  if (
-    typeof clip.min === "number" &&
-    Number.isFinite(clip.min) &&
-    clip.min > 1
-  ) {
+  if (clip.min != null && Number.isFinite(clip.min) && clip.min > 1) {
     return clip.min;
   }
   return 1;
@@ -135,18 +131,10 @@ function outsideEnvelope(
   if (Array.isArray(clip.set) && !clip.set.includes(seconds)) {
     return `no published price at ${seconds}s`;
   }
-  if (
-    typeof clip.min === "number" &&
-    Number.isFinite(clip.min) &&
-    seconds < clip.min
-  ) {
+  if (clip.min != null && Number.isFinite(clip.min) && seconds < clip.min) {
     return `below the receipted clip envelope (${clip.min}s minimum)`;
   }
-  if (
-    typeof clip.max === "number" &&
-    Number.isFinite(clip.max) &&
-    seconds > clip.max
-  ) {
+  if (clip.max != null && Number.isFinite(clip.max) && seconds > clip.max) {
     return `above the receipted clip envelope (${clip.max}s maximum)`;
   }
   return null;
@@ -215,9 +203,7 @@ function selectRow(
   const wantAudio =
     typeof params.withAudio === "boolean"
       ? params.withAudio
-      : typeof baseRow?.with_audio === "boolean"
-        ? baseRow.with_audio
-        : null;
+      : (baseRow?.with_audio ?? null);
   if (wantAudio !== null) {
     const audio = candidates.filter((row) => row.with_audio === wantAudio);
     if (audio.length > 0) candidates = audio;
