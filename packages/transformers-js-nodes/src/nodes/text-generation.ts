@@ -136,15 +136,17 @@ export class TextGenerationNode extends BaseNode {
     const prompt = asString(this.prompt);
     if (!prompt) throw new Error("Prompt is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<GenerationResult | GenerationResult[]>
+    >({
       task: "text-generation",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<GenerationResult | GenerationResult[]>;
+    });
 
     const opts: Record<string, unknown> = {
       max_new_tokens: asNumber(this.max_new_tokens, 128),

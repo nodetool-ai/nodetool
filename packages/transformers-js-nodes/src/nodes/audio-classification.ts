@@ -99,15 +99,17 @@ export class AudioClassificationNode extends BaseNode {
     const samplingRate = asNumber(this.sampling_rate, DEFAULT_SAMPLING_RATE);
     const samples = await loadAudioSamples(this.audio, samplingRate, context);
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: Float32Array,
+        opts?: Record<string, unknown>
+      ) => Promise<AudioClassificationResult | AudioClassificationResult[]>
+    >({
       task: "audio-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: Float32Array,
-      opts?: Record<string, unknown>
-    ) => Promise<AudioClassificationResult | AudioClassificationResult[]>;
+    });
 
     const raw = await pipeline(samples, { top_k: asNumber(this.top_k, 5) });
     const results = ensureArray<AudioClassificationResult>(raw);

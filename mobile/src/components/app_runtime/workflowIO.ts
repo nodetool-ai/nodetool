@@ -9,6 +9,19 @@
 import type { Node, Workflow } from "../../types/workflow";
 import { getWorkflowInputKind, WorkflowInputKind } from "./inputKinds";
 
+/**
+ * A value an input node carries: NodeTool's property types are scalars, media
+ * refs, and lists or dicts of those.
+ */
+export type InputValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | InputValue[]
+  | { [key: string]: InputValue };
+
 export interface WorkflowInputIO {
   nodeId: string;
   nodeType: string;
@@ -20,7 +33,7 @@ export interface WorkflowInputIO {
   max?: number;
   multiline?: boolean;
   options?: string[];
-  defaultValue?: unknown;
+  defaultValue?: InputValue;
 }
 
 export interface WorkflowOutputIO {
@@ -96,7 +109,9 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
         options: Array.isArray(data.options)
           ? (data.options as string[])
           : undefined,
-        defaultValue: data.value,
+        // SAFETY: `value` is the input node's stored property value, which
+        // NodeTool restricts to its own property types.
+        defaultValue: data.value as InputValue,
       });
       continue;
     }
@@ -130,7 +145,7 @@ export const extractVariableNames = (workflow?: Workflow | null): string[] => {
  * fallback the control displays. Seeding only fills empty slots, so a form the
  * user never touched runs with exactly what it shows.
  */
-export const seedInputValue = (input: WorkflowInputIO): unknown => {
+export const seedInputValue = (input: WorkflowInputIO): InputValue => {
   if (input.defaultValue !== undefined && input.defaultValue !== null) {
     return input.defaultValue;
   }

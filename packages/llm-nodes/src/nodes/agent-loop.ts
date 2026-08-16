@@ -8,7 +8,7 @@ import type {
 import type { Chunk } from "@nodetool-ai/protocol";
 import { Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTools } from "./agent-tool-hydration.js";
-import type { ToolLike } from "./agent-utils.js";
+import type { ToolLike, ToolResult } from "./agent-utils.js";
 import {
   classifyProviderStream,
   serializeToolResult,
@@ -29,7 +29,7 @@ export class ToolLikeAdapter extends AgentTool {
   private readonly _process: (
     context: ProcessingContext,
     params: Record<string, unknown>
-  ) => Promise<unknown>;
+  ) => Promise<ToolResult>;
   private readonly _execute: ToolLike["execute"];
 
   constructor(toolLike: ToolLike) {
@@ -65,7 +65,7 @@ export class ToolLikeAdapter extends AgentTool {
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<ToolResult> {
     return this._process(context, params);
   }
 }

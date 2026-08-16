@@ -665,7 +665,7 @@ export class SchemaParser {
     propType: string,
     required: boolean,
     enumName?: string
-  ): unknown {
+  ): string | number | boolean | null | never[] {
     if (propType === "image") return null;
     if (propType === "video") return null;
     if (propType === "audio") return null;

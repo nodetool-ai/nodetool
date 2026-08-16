@@ -345,12 +345,35 @@ function endpointIdFromOpenApi(
 // Value coercion: asset refs → FAL CDN URLs
 // ---------------------------------------------------------------------------
 
+/**
+ * A value held by a node property, or one placed in a FAL request body: a
+ * scalar, a media ref, or a list or dict of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/** A value in a FAL endpoint's JSON response body. */
+type FalResponseValue =
+  | string
+  | number
+  | boolean
+  | null
+  | FalResponseValue[]
+  | { [key: string]: FalResponseValue };
+
 async function coerceInputValue(
   apiKey: string,
   openapi: Record<string, unknown>,
   propSchema: Record<string, unknown>,
-  value: unknown
-): Promise<unknown> {
+  value: NodeValue
+): Promise<NodeValue> {
   const resolved = resolveSchemaRef(openapi, propSchema);
 
   // Check for asset ref (has .uri or .data)
@@ -387,9 +410,7 @@ async function coerceInputValue(
   if (resolved.type === "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
     return Promise.all(
-      (value as unknown[]).map((item) =>
-        coerceInputValue(apiKey, openapi, itemSchema, item)
-      )
+      value.map((item) => coerceInputValue(apiKey, openapi, itemSchema, item))
     );
   }
 
@@ -426,16 +447,14 @@ function mapOutputValue(
   openapi: Record<string, unknown>,
   name: string,
   schema: Record<string, unknown>,
-  value: unknown
-): unknown {
+  value: FalResponseValue
+): FalResponseValue {
   if (value === null || value === undefined) return value;
   const resolved = resolveSchemaRef(openapi, schema);
 
   if (resolved.type === "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
-    return (value as unknown[]).map((item) =>
-      mapOutputValue(openapi, name, itemSchema, item)
-    );
+    return value.map((item) => mapOutputValue(openapi, name, itemSchema, item));
   }
 
   // File schema (has "url" property) → return {uri, type}
@@ -465,7 +484,9 @@ function mapOutputValues(
       openapi,
       name,
       schema as Record<string, unknown>,
-      response[name]
+      // SAFETY: `response` is the endpoint's JSON response body, so every value
+      // in it is a JSON value.
+      response[name] as FalResponseValue
     );
   }
   return out;

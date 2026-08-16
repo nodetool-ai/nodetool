@@ -22,11 +22,32 @@ const execFileP = promisify(execFile);
  * descriptive error at execution time instead).
  */
 
-type PipelineFn = (
+/**
+ * `pipeline()` builds a callable whose input and output shapes depend entirely
+ * on the task string, so the caller names the call signature it expects.
+ */
+type PipelineFn = <TPipeline>(
   task: string,
   model?: string,
   options?: Record<string, unknown>
-) => Promise<unknown>;
+) => Promise<TPipeline>;
+
+/**
+ * A decoded image as Transformers.js represents it. NodeTool builds one and
+ * hands it straight to a pipeline; the fields are the library's own.
+ */
+export type RawImage = {
+  data: Uint8Array | Uint8ClampedArray;
+  width: number;
+  height: number;
+  channels: number;
+};
+
+/**
+ * An opaque helper object constructed from the Transformers.js module and
+ * passed back to it (a streamer, a stopping criterion) without being inspected.
+ */
+export type TransformersHandle = object;
 
 type TransformersEnv = {
   cacheDir?: string;
@@ -38,8 +59,8 @@ type TransformersModule = {
   pipeline: PipelineFn;
   env?: TransformersEnv;
   RawImage?: {
-    fromBlob(blob: Blob): Promise<unknown>;
-    fromURL(url: string): Promise<unknown>;
+    fromBlob(blob: Blob): Promise<RawImage>;
+    fromURL(url: string): Promise<RawImage>;
   };
   TextStreamer?: new (
     tokenizer: unknown,
@@ -49,7 +70,7 @@ type TransformersModule = {
       callback_function?: (text: string) => void;
       token_callback_function?: (tokens: unknown) => void;
     }
-  ) => unknown;
+  ) => TransformersHandle;
   InterruptableStoppingCriteria?: new () => {
     interrupt(): void;
   };
@@ -135,7 +156,7 @@ export function __setTransformersModuleForTesting(
 }
 
 type PipelineCacheKey = string;
-const pipelineCache = new Map<PipelineCacheKey, Promise<unknown>>();
+const pipelineCache = new Map<PipelineCacheKey, Promise<object>>();
 
 export interface PipelineOptions {
   task: string;
@@ -151,8 +172,12 @@ export interface PipelineOptions {
  * Pipelines are cached globally by their (task, model, dtype, device, revision)
  * tuple. Loading large models is expensive, so reusing pipelines across
  * invocations is essential for sensible performance.
+ *
+ * Each task has its own call signature, so the caller names the one it expects.
  */
-export async function getPipeline(options: PipelineOptions): Promise<unknown> {
+export async function getPipeline<TPipeline extends object>(
+  options: PipelineOptions
+): Promise<TPipeline> {
   const { task, model, dtype, device, revision } = options;
   const key: PipelineCacheKey = JSON.stringify([
     task,
@@ -169,13 +194,17 @@ export async function getPipeline(options: PipelineOptions): Promise<unknown> {
       if (dtype) pipelineOptions.dtype = dtype;
       if (device) pipelineOptions.device = device;
       if (revision) pipelineOptions.revision = revision;
-      return transformers.pipeline(task, model, pipelineOptions);
+      return transformers.pipeline<TPipeline>(task, model, pipelineOptions);
     })();
     pipelineCache.set(key, entry);
     // Drop failed entries so a later invocation can retry.
     entry.catch(() => pipelineCache.delete(key));
   }
-  return entry;
+  // SAFETY: the cache key encodes task, model, dtype, device and revision, so
+  // an entry can only be the pipeline built for exactly these options. The
+  // `@huggingface/transformers` module ships no types for it, so `TPipeline`
+  // is the caller's declaration of that task's documented call signature.
+  return entry as Promise<TPipeline>;
 }
 
 /** Reset the pipeline cache. Intended for tests. */
@@ -286,7 +315,7 @@ export async function loadMediaBytes(
 export async function bytesToRawImage(
   bytes: Uint8Array,
   mimeType?: string
-): Promise<unknown> {
+): Promise<RawImage> {
   if (!bytes.length) {
     throw new Error("Image input is empty");
   }
@@ -306,7 +335,7 @@ export async function bytesToRawImage(
 export async function loadRawImage(
   ref: ImageRefLike | undefined,
   context?: ProcessingContext
-): Promise<unknown> {
+): Promise<RawImage> {
   const bytes = await loadMediaBytes(ref, context);
   return bytesToRawImage(bytes, ref?.mimeType);
 }

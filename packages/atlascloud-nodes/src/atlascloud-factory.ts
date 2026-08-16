@@ -459,7 +459,7 @@ export async function resolveAssetForAtlas(
  * Callers must filter out null/undefined before invoking — the factory does
  * this in its field loop, so there's no defensive guard here.
  */
-function coerceScalar(v: unknown, type: AtlasFieldType): unknown {
+function coerceScalar(v: NodeValue, type: AtlasFieldType): NodeValue {
   switch (type) {
     case "int": {
       if (typeof v === "number") return Math.trunc(v);
@@ -481,7 +481,38 @@ function coerceScalar(v: unknown, type: AtlasFieldType): unknown {
   }
 }
 
-function defaultForType(type: AtlasFieldType): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
+
+function defaultForType(type: AtlasFieldType): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -584,10 +615,12 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         specRef,
         context
       );
-      const readValue = (name: string): unknown =>
-        name in overrides
+      // SAFETY: both sources hold node property values, and NodeTool restricts
+      // those to its own property types — the shapes `NodeValue` names.
+      const readValue = (name: string): NodeValue =>
+        (name in overrides
           ? overrides[name]
-          : (this as unknown as Record<string, unknown>)[name];
+          : (this as unknown as Record<string, unknown>)[name]) as NodeValue;
 
       for (const f of specRef.fields) {
         const v = readValue(f.name);

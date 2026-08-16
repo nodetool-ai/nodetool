@@ -84,15 +84,17 @@ export class TextClassificationNode extends BaseNode {
     if (!text) throw new Error("Text is required");
     const topK = asNumber(this.top_k, 1);
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<ClassificationResult | ClassificationResult[]>
+    >({
       task: "text-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<ClassificationResult | ClassificationResult[]>;
+    });
 
     const raw = await pipeline(text, { top_k: topK });
     const results = ensureArray<ClassificationResult>(raw);

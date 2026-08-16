@@ -101,15 +101,17 @@ export class ObjectDetectionNode extends BaseNode {
   ): Promise<Record<string, unknown>> {
     const rawImage = await loadRawImage(this.image, context);
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: unknown,
+        opts?: Record<string, unknown>
+      ) => Promise<ObjectBox | ObjectBox[]>
+    >({
       task: "object-detection",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: unknown,
-      opts?: Record<string, unknown>
-    ) => Promise<ObjectBox | ObjectBox[]>;
+    });
 
     const raw = await pipeline(rawImage, {
       threshold: asNumber(this.threshold, 0.9),

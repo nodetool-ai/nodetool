@@ -96,15 +96,17 @@ export class TranslationNode extends BaseNode {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<TranslationResult | TranslationResult[]>
+    >({
       task: "translation",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<TranslationResult | TranslationResult[]>;
+    });
 
     const opts: Record<string, unknown> = {
       max_length: asNumber(this.max_length, 256)

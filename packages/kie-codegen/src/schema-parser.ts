@@ -160,7 +160,19 @@ function outputTypeForModelId(modelId: string, moduleName: ModuleConfig["moduleN
   return outputTypeForModule(moduleName);
 }
 
-function defaultForMedia(kind: MediaKind): unknown {
+/** The empty media ref a media property starts at before the user picks one. */
+type MediaRefDefault = typeof IMAGE_REF | typeof AUDIO_REF | typeof VIDEO_REF;
+
+/** What a field starts at when the schema names no default. */
+type FieldDefault =
+  | string
+  | number
+  | boolean
+  | null
+  | FieldDefault[]
+  | { [key: string]: FieldDefault };
+
+function defaultForMedia(kind: MediaKind): MediaRefDefault {
   if (kind === "audio") {
     return AUDIO_REF;
   }
@@ -259,7 +271,10 @@ function applyBounds(field: FieldDef, schema: JsonRecord): void {
   }
 }
 
-function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): unknown {
+function coerceDefault(
+  schema: JsonRecord,
+  type: FieldDef["type"]
+): FieldDefault {
   if (type === "image" || type === "audio" || type === "video") {
     return defaultForMedia(type);
   }
@@ -267,7 +282,9 @@ function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): unknown {
     return [];
   }
   if (schema.default !== undefined) {
-    return schema.default;
+    // SAFETY: `schema` is a JSON-decoded API schema, so its `default` is a
+    // JSON value.
+    return schema.default as FieldDefault;
   }
   if (type === "bool") {
     return false;

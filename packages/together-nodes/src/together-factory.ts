@@ -83,7 +83,7 @@ const ASSET_TYPES = new Set<TogetherFieldType>(["image", "audio", "video"]);
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & AssetResolveContext;
 
-function coerceScalar(v: unknown, type: TogetherFieldType): unknown {
+function coerceScalar(v: NodeValue, type: TogetherFieldType): NodeValue {
   switch (type) {
     case "int": {
       if (typeof v === "number") return Math.trunc(v);
@@ -105,7 +105,35 @@ function coerceScalar(v: unknown, type: TogetherFieldType): unknown {
   }
 }
 
-function defaultForType(type: TogetherFieldType): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an asset.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | EmptyMediaRef;
+
+function defaultForType(type: TogetherFieldType): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -218,8 +246,10 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
         context
       );
       const self = this as unknown as Record<string, unknown>;
-      const read = (name: string): unknown =>
-        name in overrides ? overrides[name] : self[name];
+      // SAFETY: both sources hold node property values, and NodeTool restricts
+      // those to its own property types — the shapes `NodeValue` names.
+      const read = (name: string): NodeValue =>
+        (name in overrides ? overrides[name] : self[name]) as NodeValue;
 
       // Collect scalar field values; resolve asset fields to raw bytes.
       const scalars: Record<string, unknown> = {};

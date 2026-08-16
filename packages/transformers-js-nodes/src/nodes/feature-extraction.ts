@@ -13,11 +13,17 @@ import { defaultRepoFor } from "../recommended-models.js";
 
 const TJS_TYPE = "tjs.feature_extraction";
 
+/**
+ * A tensor rendered as plain JS arrays, nested as deep as the tensor's rank:
+ * `[dim]`, `[batch][dim]` or `[batch][seq][dim]`.
+ */
+type TensorList = number[] | number[][] | number[][][];
+
 type Tensor = {
   data?: ArrayLike<number>;
   dims?: number[];
   size?: number;
-  tolist?: () => unknown;
+  tolist?: () => TensorList;
 };
 
 function meanPool(matrix: number[][]): number[] {
@@ -146,15 +152,14 @@ export class FeatureExtractionNode extends BaseNode {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (input: string, opts?: Record<string, unknown>) => Promise<Tensor>
+    >({
       task: "feature-extraction",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<unknown>;
+    });
 
     const opts: Record<string, unknown> = {
       normalize: Boolean(this.normalize)

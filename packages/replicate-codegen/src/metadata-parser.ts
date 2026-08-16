@@ -11,6 +11,15 @@ import { SchemaParser } from "./schema-parser.js";
 
 type AnyRecord = Record<string, any>;
 
+/** A JSON value read out of the package metadata. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** A single node entry from the Python metadata JSON. */
 export interface MetadataNodeEntry {
   title: string;
@@ -206,7 +215,7 @@ export class MetadataParser {
     rawDefault: unknown,
     propType: string,
     optional?: boolean
-  ): unknown {
+  ): JsonValue {
     // Asset refs always default to null
     if (propType === "image" || propType === "video" || propType === "audio") {
       return null;
@@ -218,7 +227,9 @@ export class MetadataParser {
         // Object defaults (like image refs) → null
         return null;
       }
-      return rawDefault;
+      // SAFETY: the metadata is JSON, and the object case was just excluded,
+      // so what is left is a primitive or an array of them.
+      return rawDefault as JsonValue;
     }
 
     if (optional) return null;

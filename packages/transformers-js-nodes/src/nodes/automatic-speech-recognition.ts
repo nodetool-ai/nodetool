@@ -109,15 +109,17 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     );
 
     const repoId = extractRepoId(this.model);
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: Float32Array,
+        opts?: Record<string, unknown>
+      ) => Promise<AsrResult>
+    >({
       task: "automatic-speech-recognition",
       model: repoId || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: Float32Array,
-      opts?: Record<string, unknown>
-    ) => Promise<AsrResult>;
+    });
 
     const opts: Record<string, unknown> = {
       return_timestamps: Boolean(this.return_timestamps)

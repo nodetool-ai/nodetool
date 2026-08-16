@@ -23,7 +23,10 @@ interface MockState {
 let mockState: MockState;
 
 jest.mock('../../documents/documentStore', () => ({
-  documentStore: () => (selector: (state: MockState) => unknown) => selector(mockState),
+  documentStore:
+    () =>
+    <T,>(selector: (state: MockState) => T) =>
+      selector(mockState),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
