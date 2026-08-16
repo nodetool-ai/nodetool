@@ -41,10 +41,10 @@ export function createToolRecorder(): ToolRecorder {
   return { invocations: [], store: new Map() };
 }
 
-type ToolHandler = (
+type ToolHandler<TResult> = (
   args: Record<string, unknown>,
   ctx: { store: Map<string, string>; depth: number }
-) => unknown;
+) => TResult;
 
 /**
  * A real {@link Tool} that records each call (with its subtask depth) into a
@@ -52,19 +52,19 @@ type ToolHandler = (
  * toolset and the inherited child toolset, so the depth read from `context`
  * tells us which agent made the call.
  */
-class InstrumentedTool extends Tool {
+class InstrumentedTool<TResult> extends Tool {
   readonly name: string;
   readonly description: string;
   readonly jsonSchema: JsonSchema;
   private readonly recorder: ToolRecorder;
-  private readonly handler: ToolHandler;
+  private readonly handler: ToolHandler<TResult>;
 
   constructor(
     name: string,
     description: string,
     schema: JsonSchema,
     recorder: ToolRecorder,
-    handler: ToolHandler
+    handler: ToolHandler<TResult>
   ) {
     super();
     this.name = name;
@@ -77,9 +77,9 @@ class InstrumentedTool extends Tool {
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<TResult | { error: string }> {
     const depth = context.get<number>(SUBTASK_DEPTH_KEY) ?? 0;
-    let result: unknown;
+    let result: TResult | { error: string };
     let isError = false;
     try {
       result = this.handler(params, { store: this.recorder.store, depth });

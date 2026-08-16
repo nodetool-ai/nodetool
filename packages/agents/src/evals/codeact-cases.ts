@@ -16,13 +16,13 @@ export function createCodeActRecorder(): CodeActToolRecorder {
   return { invocations: [] };
 }
 
-export class RecordingTool extends Tool {
+export class RecordingTool<TResult> extends Tool {
   constructor(
     readonly name: string,
     readonly description: string,
     protected override readonly jsonSchema: Record<string, unknown>,
     private readonly recorder: CodeActToolRecorder,
-    private readonly impl: (params: Record<string, unknown>) => unknown
+    private readonly impl: (params: Record<string, unknown>) => TResult
   ) {
     super();
   }
@@ -30,7 +30,7 @@ export class RecordingTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<TResult> {
     this.recorder.invocations.push({ name: this.name, args: params });
     return this.impl(params);
   }

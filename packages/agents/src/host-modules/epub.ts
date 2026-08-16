@@ -10,6 +10,41 @@ import os from "node:os";
 import path from "node:path";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
 
+/**
+ * An EPUB's OPF metadata, mirroring the fields epub2 parses out of the package
+ * document. A book may declare further keys; they ride along as strings.
+ */
+export interface EpubMetadata {
+  title?: string;
+  creator?: string;
+  creatorFileAs?: string;
+  publisher?: string;
+  language?: string;
+  subject?: string[];
+  description?: string;
+  date?: string;
+  ISBN?: string;
+  UUID?: string;
+  cover?: string;
+  readonly [key: string]: string | string[] | undefined;
+}
+
+/** One table-of-contents entry, as `tableOfContents` reports it. */
+export interface EpubTocItem {
+  id: string | undefined;
+  title: string | undefined;
+  href: string | undefined;
+  order: number | undefined;
+}
+
+/** One chapter's text, as `extractChapters` reports it. */
+export interface EpubChapter {
+  id: string;
+  title: string;
+  href: string;
+  text: string;
+}
+
 interface EpubTocEntry {
   id?: string;
   title?: string;
@@ -21,7 +56,7 @@ interface EpubFlowItem {
   href?: string;
 }
 interface EpubInstance {
-  metadata: Record<string, unknown>;
+  metadata: EpubMetadata;
   toc: EpubTocEntry[];
   flow: EpubFlowItem[];
   getChapterAsync: (id: string) => Promise<string>;
@@ -79,12 +114,12 @@ async function withEpub<T>(
 }
 
 /** An EPUB's metadata: title, creator, language, publisher, and the rest. */
-export async function metadata(bytes: unknown): Promise<unknown> {
+export async function metadata(bytes: unknown): Promise<EpubMetadata> {
   return withEpub("epub.metadata", bytes, async (epub) => ({ ...epub.metadata }));
 }
 
 /** The table of contents, in reading order. */
-export async function tableOfContents(bytes: unknown): Promise<unknown> {
+export async function tableOfContents(bytes: unknown): Promise<EpubTocItem[]> {
   return withEpub("epub.tableOfContents", bytes, async (epub) =>
     (epub.toc ?? []).map((entry) => ({
       id: entry.id,
@@ -96,7 +131,7 @@ export async function tableOfContents(bytes: unknown): Promise<unknown> {
 }
 
 /** All chapters concatenated to plain text, joined by `options.chapterSeparator`. */
-export async function extractText(bytes: unknown, options?: unknown): Promise<unknown> {
+export async function extractText(bytes: unknown, options?: unknown): Promise<string> {
   const opts = optionsOf(options);
   const separator =
     typeof opts.chapterSeparator === "string" ? opts.chapterSeparator : "\n\n";
@@ -113,7 +148,7 @@ export async function extractText(bytes: unknown, options?: unknown): Promise<un
 }
 
 /** Each chapter as its own item, with the title the table of contents gives it. */
-export async function extractChapters(bytes: unknown): Promise<unknown> {
+export async function extractChapters(bytes: unknown): Promise<EpubChapter[]> {
   return withEpub("epub.extractChapters", bytes, async (epub) => {
     const titleById = new Map<string, string>();
     for (const entry of epub.toc ?? []) {
@@ -121,7 +156,7 @@ export async function extractChapters(bytes: unknown): Promise<unknown> {
         titleById.set(entry.id, entry.title);
       }
     }
-    const chapters: Array<Record<string, unknown>> = [];
+    const chapters: EpubChapter[] = [];
     for (const item of epub.flow ?? []) {
       if (!item.id) continue;
       const html = await epub.getChapterAsync(item.id);

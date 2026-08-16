@@ -76,7 +76,8 @@ import {
 import {
   SANDBOX_SERIALIZE_MAX_DEPTH,
   toGuestBytes,
-  toGuestBytesDeep
+  toGuestBytesDeep,
+  type GuestBytes
 } from "./sandbox-bytes.js";
 import {
   createSandboxMediaStore,
@@ -113,6 +114,7 @@ const quickJsVariant = (
   }
 ).default;
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import type { AssetRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
@@ -1282,10 +1284,7 @@ export function buildSandbox(
       if (size > 0) globalThis.crypto.getRandomValues(bytes);
       return toGuestBytes(bytes);
     },
-    digest: async (
-      algorithm: string,
-      data: unknown
-    ): Promise<Record<string, string>> => {
+    digest: async (algorithm: string, data: unknown): Promise<GuestBytes> => {
       const algo = normalizeDigestAlgorithm(algorithm);
       const bytes = coerceBytesInput(data, "data");
       const digest = await webCryptoSubtle().digest(algo, bytes);
@@ -1295,7 +1294,7 @@ export function buildSandbox(
       algorithm: string,
       key: unknown,
       data: unknown
-    ): Promise<Record<string, string>> => {
+    ): Promise<GuestBytes> => {
       const algo = normalizeDigestAlgorithm(algorithm);
       const keyBytes = coerceBytesInput(key, "key");
       const dataBytes = coerceBytesInput(data, "data");
@@ -1563,10 +1562,10 @@ export function buildSandbox(
       };
 
   const sandboxToAsset = context
-    ? async (path: string): Promise<unknown> => {
+    ? async (path: string): Promise<AssetRef> => {
         return context.sandboxToAsset(path);
       }
-    : async (_path: string): Promise<unknown> => {
+    : async (_path: string): Promise<AssetRef> => {
         throw new Error("sandboxToAsset is not available without a context");
       };
 
@@ -2044,7 +2043,7 @@ export function buildSandbox(
      * ProcessingContext, so a Code node that really does parse an encoded image
      * works exactly as it did.
      */
-    bytes: async (value: unknown): Promise<unknown> => {
+    bytes: async (value: unknown): Promise<GuestBytes> => {
       const resolved = await resolveMediaArgs(
         "image.bytes",
         value,
@@ -2157,7 +2156,7 @@ export function buildSandbox(
 
   const avBytes =
     (namespace: "audio" | "video") =>
-    async (value: unknown): Promise<unknown> => {
+    async (value: unknown): Promise<GuestBytes> => {
       const where = `${namespace}.bytes`;
       const resolved = await resolveMediaArgs(where, value, true, 0, namespace);
       return toGuestBytes(requireMediaBytes(where, resolved));

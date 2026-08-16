@@ -89,7 +89,7 @@ export class BraveProvider implements SerpProvider {
   async searchRaw(
     query: string,
     options?: SearchOptions
-  ): Promise<unknown> {
+  ): Promise<BraveResponse | { error: string }> {
     const numResults = options?.numResults ?? 10;
     return braveRequest(this.apiKey, query, numResults);
   }

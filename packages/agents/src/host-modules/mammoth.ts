@@ -27,7 +27,7 @@ async function loadMammoth(where: string): Promise<MammothLike> {
 }
 
 /** A Word document's text, with formatting discarded. */
-export async function extractRawText(bytes: unknown): Promise<unknown> {
+export async function extractRawText(bytes: unknown): Promise<string> {
   const where = "mammoth.extractRawText";
   const buffer = Buffer.from(requireBytes(where, bytes));
   const mammoth = await loadMammoth(where);
@@ -36,7 +36,7 @@ export async function extractRawText(bytes: unknown): Promise<unknown> {
 }
 
 /** A Word document rendered as HTML — headings, lists, tables, and images kept. */
-export async function convertToHtml(bytes: unknown): Promise<unknown> {
+export async function convertToHtml(bytes: unknown): Promise<string> {
   const where = "mammoth.convertToHtml";
   const buffer = Buffer.from(requireBytes(where, bytes));
   const mammoth = await loadMammoth(where);

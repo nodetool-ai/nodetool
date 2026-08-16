@@ -122,7 +122,10 @@ export class DataForSeoProvider implements SerpProvider {
       }));
   }
 
-  async searchRaw(query: string, options?: SearchOptions): Promise<unknown> {
+  async searchRaw(
+    query: string,
+    options?: SearchOptions
+  ): Promise<DataForSEOResponse | { error: string; details?: unknown }> {
     const numResults = options?.numResults ?? 10;
 
     const payload = [

@@ -12,7 +12,19 @@
  *
  * Returns null if no valid JSON can be extracted.
  */
-export function extractJSON(text: string): unknown | null {
+/**
+ * A value `JSON.parse` can produce — the only shapes that survive a JSON round
+ * trip, and therefore the only ones that cross a text or WASM boundary.
+ */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export function extractJSON(text: string): JsonValue | null {
   // Stryker disable next-line MethodExpression: JSON.parse already tolerates
   // surrounding whitespace and strategy 3 scans via indexOf, so dropping trim()
   // changes no observable result.
