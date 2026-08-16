@@ -207,7 +207,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_send_to_timeline",
   description:
-    "Assemble the specified script's current takes into a persisted timeline sequence and open it in the timeline editor — one voiceover clip per voiced line, laid end to end with the authored pauses. Lines without a current take are skipped (returned in skippedLineIds). If the script is already linked to a timeline, its voiceover track is rewritten in place (reassembled). Voice at least one line first.",
+    "Assemble the specified script's current takes into a persisted timeline sequence and open it in the timeline editor — one voiceover clip per voiced line, laid end to end with the authored pauses. When the script links a storyboard, its rendered shots are cut in too and each line sits inside the shot that covers it (shots left out are returned in skippedShotIds). Lines without a current take are skipped (returned in skippedLineIds). If the script is already linked to a timeline, what it owns there is rewritten in place (reassembled), keeping tracks the editor added. Voice at least one line first.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const result = await getScriptAgentHandler(script_id).sendToTimeline();

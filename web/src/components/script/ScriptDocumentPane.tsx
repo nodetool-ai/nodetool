@@ -32,6 +32,7 @@ import {
   useScript,
   useScriptCast,
   useScriptStore,
+  useScriptStoryboardLink,
   useScriptCanUndo,
   useScriptCanRedo,
   type ScriptLine,
@@ -423,6 +424,9 @@ const ScriptDocumentPane = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { sections, timelineId } = useScript(scriptId);
+  // A linked board means the cut carries picture as well as voice, so the
+  // button stops promising a voiceover track and offers the whole video.
+  const storyboardId = useScriptStoryboardLink(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
@@ -673,15 +677,19 @@ const ScriptDocumentPane = ({
             disabled={assembling || !hasVoicedLine}
             title={
               hasVoicedLine
-                ? undefined
+                ? storyboardId
+                  ? "Cut the linked storyboard's shots and these takes into one timeline"
+                  : undefined
                 : "Voice at least one line to send it to a timeline"
             }
           >
             {assembling
               ? "Assembling…"
-              : timelineId
-                ? "Update timeline"
-                : "Send to timeline"}
+              : storyboardId
+                ? "Assemble video"
+                : timelineId
+                  ? "Update timeline"
+                  : "Send to timeline"}
           </EditorButton>
         )}
         {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}

@@ -210,7 +210,9 @@ describe("ui_storyboard_* tools", () => {
     handler.assembleTimeline.mockResolvedValue({
       sequenceId: "seq-1",
       clipCount: 3,
-      skippedShotIds: ["shot-9"]
+      skippedShotIds: ["shot-9"],
+      skippedLineIds: [],
+      reassembled: false
     });
     setStoryboardAgentHandler(BOARD_ID, handler);
 

@@ -98,6 +98,7 @@ export interface ScriptAgentHandler {
     sequenceId: string;
     clipCount: number;
     skippedLineIds: string[];
+    skippedShotIds: string[];
     reassembled: boolean;
   }>;
   /**

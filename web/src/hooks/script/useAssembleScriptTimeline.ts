@@ -3,10 +3,12 @@
  *
  * The script → timeline handoff: projects the current takes into a persisted
  * voiceover sequence, links the script to it, and opens the timeline tab. When
- * the script is already linked (re-assemble after structural drift), it rewrites
- * the linked sequence's voiceover track in place instead of creating a new one,
- * preserving any other tracks the editor added. The pure document mapping lives
- * in {@link buildScriptTimelineDocument}.
+ * the script links a storyboard, the board's shots are cut in with the words —
+ * one video track of rendered shots, each line's take inside the shot that
+ * covers it. When the script is already linked (re-assemble after structural
+ * drift), it rewrites what it owns in the linked sequence in place instead of
+ * creating a new one, preserving any other tracks the editor added. The pure
+ * document mapping lives in {@link buildScriptTimelineDocument}.
  */
 
 import { useCallback, useState } from "react";
@@ -15,12 +17,19 @@ import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { loadLinkedBoard } from "../../lib/linkedAssembly";
+import {
+  mergeIntoSequence,
+  stampBoardProvenance
+} from "../../lib/assembledSequenceMerge";
 import { newDocumentId } from "../../lib/newDocumentId";
 
 export interface AssembleScriptResult {
   sequenceId: string;
   clipCount: number;
   skippedLineIds: string[];
+  /** Shots left out of the cut; empty when the script links no storyboard. */
+  skippedShotIds: string[];
   /** True when an existing linked sequence was rewritten rather than created. */
   reassembled: boolean;
 }
@@ -42,8 +51,14 @@ export const useAssembleScriptTimeline =
         if (!script) {
           throw new Error(`No script "${scriptId}".`);
         }
-        const doc = buildScriptTimelineDocument(script);
-        if (doc.clips.length === 0) {
+        // A linked board that cannot be read leaves the script assembling the
+        // way an unlinked one does — a deleted board must not break assemble.
+        const board = script.storyboardId
+          ? await loadLinkedBoard(script.storyboardId)
+          : null;
+        const doc = buildScriptTimelineDocument(script, board);
+        const lineClips = doc.clips.filter((clip) => clip.scriptLineId);
+        if (lineClips.length === 0) {
           const message =
             "No voiced lines to assemble — voice at least one line first.";
           setError(message);
@@ -54,38 +69,29 @@ export const useAssembleScriptTimeline =
         setAssembling(true);
         try {
           const name = script.title.trim() || "Script voiceover";
+          const clips = board
+            ? stampBoardProvenance(doc.clips, board.boardId)
+            : doc.clips;
           const existingId = script.timelineId;
 
           if (existingId) {
-            // Re-assemble: replace the script's voiceover track/clips, keep any
-            // other tracks and clips the editor added.
+            // Re-assemble: replace what these documents put in the sequence,
+            // keep every other track and clip the editor added.
             const sequence = await trpcClient.timeline.get.query({
               id: existingId
             });
-            const existingClips = sequence.clips as TimelineClip[];
-            const foreignClips = existingClips.filter(
-              (c) => c.scriptId !== scriptId
-            );
-            // Drop only the previous voiceover track(s) — tracks that carried
-            // this script's clips and hold no foreign clip. Empty tracks and
-            // tracks the editor added stay.
-            const thisScriptTrackIds = new Set(
-              existingClips
-                .filter((c) => c.scriptId === scriptId)
-                .map((c) => c.trackId)
-            );
-            const foreignTrackIds = new Set(foreignClips.map((c) => c.trackId));
-            const foreignTracks = sequence.tracks.filter(
-              (t) => foreignTrackIds.has(t.id) || !thisScriptTrackIds.has(t.id)
+            const merged = mergeIntoSequence(
+              { tracks: doc.tracks, clips },
+              {
+                tracks: sequence.tracks,
+                clips: sequence.clips as TimelineClip[]
+              },
+              { scriptId, boardId: board?.boardId ?? null }
             );
             await trpcClient.timeline.update.mutate({
               id: existingId,
               baseUpdatedAt: sequence.updatedAt,
-              document: {
-                tracks: [...doc.tracks, ...foreignTracks],
-                clips: [...doc.clips, ...foreignClips],
-                markers: sequence.markers ?? []
-              }
+              document: { ...merged, markers: sequence.markers ?? [] }
             });
             useWorkspaceTabsStore.getState().openTab({
               type: "timeline",
@@ -95,8 +101,9 @@ export const useAssembleScriptTimeline =
             });
             return {
               sequenceId: existingId,
-              clipCount: doc.clips.length,
+              clipCount: lineClips.length,
               skippedLineIds: doc.skippedLineIds,
+              skippedShotIds: doc.skippedShotIds,
               reassembled: true
             };
           }
@@ -108,7 +115,7 @@ export const useAssembleScriptTimeline =
           });
           await trpcClient.timeline.update.mutate({
             id: sequence.id,
-            document: { tracks: doc.tracks, clips: doc.clips, markers: [] }
+            document: { tracks: doc.tracks, clips, markers: [] }
           });
           useScriptStore.getState().setTimelineLink(scriptId, sequence.id);
           useWorkspaceTabsStore.getState().openTab({
@@ -119,8 +126,9 @@ export const useAssembleScriptTimeline =
           });
           return {
             sequenceId: sequence.id,
-            clipCount: doc.clips.length,
+            clipCount: lineClips.length,
             skippedLineIds: doc.skippedLineIds,
+            skippedShotIds: doc.skippedShotIds,
             reassembled: false
           };
         } catch (err) {

@@ -138,13 +138,16 @@ export interface StoryboardAgentHandler {
   reprojectShots: (targets?: string[]) => Promise<StoryboardReprojection>;
   /**
    * Assemble the board's rendered shots into a persisted timeline sequence
-   * (plus draft narration/music clips) and open its tab. Throws when no shot
-   * has a rendered, persisted clip.
+   * (plus draft narration/music clips) and open its tab. A board linked to a
+   * script cuts the voiced lines in too, and reports the ones it could not.
+   * Throws when no shot has a rendered, persisted clip.
    */
   assembleTimeline: () => Promise<{
     sequenceId: string;
     clipCount: number;
     skippedShotIds: string[];
+    skippedLineIds: string[];
+    reassembled: boolean;
   }>;
 }
 
