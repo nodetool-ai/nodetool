@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material/styles";
+import type { CSSObject } from "@mui/system";
 import { NODE_COLLAPSED_BASE_NODE_SX } from "../../styles/collapsedNodeTokens";
 import { MOTION } from "../ui_primitives";
 
@@ -24,10 +25,7 @@ const CRISP_NO_BLUR_STYLES = {
   filter: "none"
 } as const;
 
-export const getPreviewNodeSelectionSx = (
-  theme: Theme,
-  selected: boolean
-) => ({
+export const getPreviewNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   display: "flex" as const,
   boxShadow: selected
     ? `0 0 0 2px var(--palette-grey-100)`
@@ -36,10 +34,7 @@ export const getPreviewNodeSelectionSx = (
   ...CRISP_NO_BLUR_STYLES
 });
 
-export const getOutputNodeSelectionSx = (
-  theme: Theme,
-  selected: boolean
-) => ({
+export const getOutputNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   display: "flex" as const,
   border: selected
     ? `3px solid ${theme.vars.palette.primary.main}`
@@ -87,6 +82,21 @@ export const getBaseNodeSelectionStyles = ({
         overflow: "visible" as const
       };
 
+  const resizeHandleSx: CSSObject = {};
+  if (hasToggleableResult) {
+    resizeHandleSx["& .react-flow__resize-control.nodrag.bottom.right.handle"] =
+      {
+        opacity: 0,
+        position: "absolute",
+        right: "-8px",
+        bottom: "-9px",
+        transition: `opacity ${MOTION.normal}`
+      };
+    resizeHandleSx[
+      "&:hover .react-flow__resize-control.nodrag.bottom.right.handle"
+    ] = { opacity: 1 };
+  }
+
   return {
     display: "flex" as const,
     ...sizeStyles,
@@ -112,20 +122,7 @@ export const getBaseNodeSelectionStyles = ({
     borderRadius: theme.rounded.node,
     transition: `${MOTION.shadow}, outline-color ${MOTION.normal}, ${MOTION.border}`,
     "--node-primary-color": resolvedBaseColor,
-    ...(hasToggleableResult
-      ? {
-          "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-            opacity: 0,
-            position: "absolute" as const,
-            right: "-8px",
-            bottom: "-9px",
-            transition: `opacity ${MOTION.normal}`
-          },
-          "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-            opacity: 1
-          }
-        }
-      : {}),
+    ...resizeHandleSx,
     ...CRISP_NO_BLUR_STYLES
   };
 };

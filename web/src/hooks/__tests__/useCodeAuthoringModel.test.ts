@@ -14,7 +14,7 @@ const mockCatalog: { models: LanguageModel[]; isLoading: boolean } = {
 
 jest.mock("../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: <T,>(selector: (state: unknown) => T) => selector(mockChatState)
+  default: <T>(selector: (state: unknown) => T) => selector(mockChatState)
 }));
 
 jest.mock("../useModelsByProvider", () => ({
@@ -26,13 +26,16 @@ const model = (
   provider: string,
   id: string,
   supportsTools?: boolean
-): LanguageModel => ({
-  type: "language_model",
-  provider: provider as LanguageModel["provider"],
-  id,
-  name: id.toUpperCase(),
-  ...(supportsTools === undefined ? {} : { supports_tools: supportsTools })
-});
+): LanguageModel => {
+  const built: LanguageModel = {
+    type: "language_model",
+    provider: provider as LanguageModel["provider"],
+    id,
+    name: id.toUpperCase()
+  };
+  if (supportsTools !== undefined) built.supports_tools = supportsTools;
+  return built;
+};
 
 const TOOL_MODEL = model("openai", "gpt-tools");
 const CHAT_MODEL = model("anthropic", "claude-tools");

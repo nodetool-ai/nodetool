@@ -602,12 +602,14 @@ const validateTimeline: CapabilityExport = {
     const { validateTimelineSequence } =
       await import("@nodetool-ai/execution/timeline-debug");
     const validation = validateTimelineSequence(document, meta);
-    return {
-      ...validation,
-      ...(timelineId ? { timeline_id: timelineId } : {}),
-      ...(name ? { name } : {}),
-      summary: validationSummary(validation)
-    };
+    const report: typeof validation & {
+      timeline_id?: string;
+      name?: string;
+      summary: string;
+    } = { ...validation, summary: validationSummary(validation) };
+    if (timelineId) report.timeline_id = timelineId;
+    if (name) report.name = name;
+    return report;
   }
 };
 

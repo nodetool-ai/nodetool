@@ -43,9 +43,8 @@ let serverReady: Promise<void> | undefined;
 async function ensureCodecs(): Promise<void> {
   if (!IS_NODE) return;
   serverReady ??= (async () => {
-    const server = await importHidden<MediabunnyServerModule>(
-      "@mediabunny/server"
-    );
+    const server =
+      await importHidden<MediabunnyServerModule>("@mediabunny/server");
     if (!server) {
       throw new Error("Mediabunny's server codec adapter is unavailable");
     }
@@ -63,12 +62,13 @@ async function validateVideoDimensions(
   maxBytes: number,
   where: string
 ): Promise<void> {
-  const [displayWidth, displayHeight, codedWidth, codedHeight] = await Promise.all([
-    track.getDisplayWidth(),
-    track.getDisplayHeight(),
-    track.getCodedWidth(),
-    track.getCodedHeight()
-  ]);
+  const [displayWidth, displayHeight, codedWidth, codedHeight] =
+    await Promise.all([
+      track.getDisplayWidth(),
+      track.getDisplayHeight(),
+      track.getCodedWidth(),
+      track.getCodedHeight()
+    ]);
   validatePixelDimensions(displayWidth, displayHeight, maxBytes, where);
   validatePixelDimensions(codedWidth, codedHeight, maxBytes, where);
 }
@@ -90,7 +90,10 @@ function validatePixelDimensions(
   }
 }
 
-function limitedTarget(maxBytes: number, where: string): {
+function limitedTarget(
+  maxBytes: number,
+  where: string
+): {
   readonly target: StreamTarget;
   bytes(): Uint8Array;
 } {
@@ -364,10 +367,16 @@ async function wavData(
       // the one PCM16 form the low-level editing loops use.
     }
   }
-  const wav = await convert(bytes, "audio", {
-    video: { discard: true },
-    audio: { codec: "pcm-s16" }
-  }, signal, maxBytes);
+  const wav = await convert(
+    bytes,
+    "audio",
+    {
+      video: { discard: true },
+      audio: { codec: "pcm-s16" }
+    },
+    signal,
+    maxBytes
+  );
   return parseWav(wav, maxBytes, signal);
 }
 
@@ -401,21 +410,43 @@ function matchingAudio(inputs: readonly WavData[], where: string): WavData {
 export interface AudioBridge {
   info(bytes: Uint8Array): Promise<Record<string, unknown>>;
   normalize(bytes: Uint8Array): Promise<Uint8Array>;
-  trim(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
+  trim(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
   concat(inputs: Uint8Array[]): Promise<Uint8Array>;
   mix(inputs: Uint8Array[]): Promise<Uint8Array>;
   reverse(bytes: Uint8Array): Promise<Uint8Array>;
-  fadeIn(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
-  fadeOut(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
-  repeat(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
+  fadeIn(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
+  fadeOut(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
+  repeat(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
 }
 
 export interface VideoBridge {
   info(bytes: Uint8Array): Promise<Record<string, unknown>>;
-  trim(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
-  resize(bytes: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
+  trim(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
+  resize(
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
   rotate(bytes: Uint8Array, degrees: unknown): Promise<Uint8Array>;
-  addAudio(video: Uint8Array, audio: Uint8Array, options?: Record<string, unknown>): Promise<Uint8Array>;
+  addAudio(
+    video: Uint8Array,
+    audio: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Uint8Array>;
   extractAudio(bytes: Uint8Array): Promise<Uint8Array>;
   extractFrame(bytes: Uint8Array, time?: unknown): Promise<Uint8Array>;
 }
@@ -433,7 +464,8 @@ export function createAudioBridge(
     const decoded: WavData[] = [];
     let aggregateSamples = 0;
     for (const input of inputs) {
-      const remainingBytes = maxBytes - aggregateSamples * Float32Array.BYTES_PER_ELEMENT;
+      const remainingBytes =
+        maxBytes - aggregateSamples * Float32Array.BYTES_PER_ELEMENT;
       const data = await wavData(input, signal, remainingBytes);
       aggregateSamples += data.samples.length;
       ensureDecodedSize(aggregateSamples, maxBytes, where);
@@ -494,7 +526,10 @@ export function createAudioBridge(
       const first = Math.floor(start * data.sampleRate) * data.channels;
       const last = Math.ceil(end * data.sampleRate) * data.channels;
       return encodeWav(
-        { ...data, samples: await copySamples(data.samples, signal, first, last) },
+        {
+          ...data,
+          samples: await copySamples(data.samples, signal, first, last)
+        },
         maxBytes,
         signal
       );
@@ -502,14 +537,27 @@ export function createAudioBridge(
     async concat(inputs) {
       const decoded = await decodeMany(inputs, "audio.concat");
       const first = matchingAudio(decoded, "audio.concat");
-      const length = decoded.reduce((sum, item) => sum + item.samples.length, 0);
+      const length = decoded.reduce(
+        (sum, item) => sum + item.samples.length,
+        0
+      );
       ensureDecodedSize(length, maxBytes, "audio.concat");
       const samples = new Float32Array(length);
       let offset = 0;
       for (const item of decoded) {
-        for (let inputOffset = 0; inputOffset < item.samples.length; inputOffset += MEDIA_LOOP_CHUNK) {
-          const next = Math.min(item.samples.length, inputOffset + MEDIA_LOOP_CHUNK);
-          samples.set(item.samples.subarray(inputOffset, next), offset + inputOffset);
+        for (
+          let inputOffset = 0;
+          inputOffset < item.samples.length;
+          inputOffset += MEDIA_LOOP_CHUNK
+        ) {
+          const next = Math.min(
+            item.samples.length,
+            inputOffset + MEDIA_LOOP_CHUNK
+          );
+          samples.set(
+            item.samples.subarray(inputOffset, next),
+            offset + inputOffset
+          );
           await mediaChunkCheckpoint(signal);
         }
         offset += item.samples.length;
@@ -550,7 +598,11 @@ export function createAudioBridge(
         Math.round(numberOption(options, "duration", 1) * data.sampleRate)
       );
       const samples = await copySamples(data.samples, signal);
-      for (let frame = 0; frame < Math.min(fadeFrames, samples.length / data.channels); frame += 1) {
+      for (
+        let frame = 0;
+        frame < Math.min(fadeFrames, samples.length / data.channels);
+        frame += 1
+      ) {
         const gain = frame / fadeFrames;
         for (let channel = 0; channel < data.channels; channel += 1) {
           samples[frame * data.channels + channel] *= gain;
@@ -564,7 +616,10 @@ export function createAudioBridge(
       const frames = data.samples.length / data.channels;
       const fadeFrames = Math.max(
         1,
-        Math.min(frames, Math.round(numberOption(options, "duration", 1) * data.sampleRate))
+        Math.min(
+          frames,
+          Math.round(numberOption(options, "duration", 1) * data.sampleRate)
+        )
       );
       const samples = await copySamples(data.samples, signal);
       for (let offset = 0; offset < fadeFrames; offset += 1) {
@@ -587,7 +642,11 @@ export function createAudioBridge(
       const samples = new Float32Array(data.samples.length * loops);
       for (let index = 0; index < loops; index += 1) {
         const base = index * data.samples.length;
-        for (let offset = 0; offset < data.samples.length; offset += MEDIA_LOOP_CHUNK) {
+        for (
+          let offset = 0;
+          offset < data.samples.length;
+          offset += MEDIA_LOOP_CHUNK
+        ) {
           const next = Math.min(data.samples.length, offset + MEDIA_LOOP_CHUNK);
           samples.set(data.samples.subarray(offset, next), base + offset);
           await mediaChunkCheckpoint(signal);
@@ -609,6 +668,16 @@ async function videoConvert(
 ): Promise<Uint8Array> {
   return convert(bytes, "video", options, signal, maxBytes);
 }
+
+/** A video trim window; `end` only when the caller bounded it. */
+type VideoTrimRange = { start: number; end?: number };
+
+/** A video resize target; `fit` only when the caller chose one. */
+type VideoResizeTarget = {
+  width: number;
+  height: number;
+  fit?: "fill" | "contain" | "cover";
+};
 
 export function createVideoBridge(
   signal?: AbortSignal,
@@ -649,35 +718,54 @@ export function createVideoBridge(
       if (end !== undefined && end <= start) {
         throw new Error("video.trim: end must be after start");
       }
-      return videoConvert(
-        bytes,
-        { trim: { start, ...(end === undefined ? {} : { end }) } },
-        signal,
-        maxBytes
-      );
+      const trim: VideoTrimRange = { start };
+      if (end !== undefined) trim.end = end;
+      return videoConvert(bytes, { trim }, signal, maxBytes);
     },
     async resize(bytes, options) {
       const width = numberOption(options, "width", 0);
       const height = numberOption(options, "height", 0);
-      if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) {
-        throw new Error("video.resize: width and height must be positive integers");
+      if (
+        !Number.isInteger(width) ||
+        !Number.isInteger(height) ||
+        width < 1 ||
+        height < 1
+      ) {
+        throw new Error(
+          "video.resize: width and height must be positive integers"
+        );
       }
       validatePixelDimensions(width, height, maxBytes, "video.resize");
       const fit = options?.fit;
-      if (fit !== undefined && fit !== "fill" && fit !== "contain" && fit !== "cover") {
+      if (
+        fit !== undefined &&
+        fit !== "fill" &&
+        fit !== "contain" &&
+        fit !== "cover"
+      ) {
         throw new Error("video.resize: fit must be fill, contain, or cover");
       }
-      return videoConvert(bytes, {
-        video: { width, height, ...(fit === undefined ? {} : { fit }) }
-      }, signal, maxBytes);
+      const video: VideoResizeTarget = { width, height };
+      if (fit !== undefined) video.fit = fit;
+      return videoConvert(bytes, { video }, signal, maxBytes);
     },
     async rotate(bytes, rawDegrees) {
-      if (rawDegrees !== 0 && rawDegrees !== 90 && rawDegrees !== 180 && rawDegrees !== 270) {
+      if (
+        rawDegrees !== 0 &&
+        rawDegrees !== 90 &&
+        rawDegrees !== 180 &&
+        rawDegrees !== 270
+      ) {
         throw new Error("video.rotate: degrees must be 0, 90, 180, or 270");
       }
-      return videoConvert(bytes, {
-        video: { rotate: rawDegrees as Rotation }
-      }, signal, maxBytes);
+      return videoConvert(
+        bytes,
+        {
+          video: { rotate: rawDegrees as Rotation }
+        },
+        signal,
+        maxBytes
+      );
     },
     async addAudio(videoBytes, audioBytes, options) {
       await ensureCodecs();
@@ -711,11 +799,7 @@ export function createVideoBridge(
             "video.addAudio: audio input has no usable audio track"
           );
         }
-        await validateVideoDimensions(
-          videoTrack,
-          maxBytes,
-          "video.addAudio"
-        );
+        await validateVideoDimensions(videoTrack, maxBytes, "video.addAudio");
         const keepOriginal = options?.keepOriginalAudio === true;
         videoConversion = await Conversion.init({
           input: videoInput,
@@ -778,10 +862,16 @@ export function createVideoBridge(
       }
     },
     async extractAudio(bytes) {
-      return convert(bytes, "audio", {
-        video: { discard: true },
-        audio: { codec: "pcm-s16" }
-      }, signal, maxBytes);
+      return convert(
+        bytes,
+        "audio",
+        {
+          video: { discard: true },
+          audio: { codec: "pcm-s16" }
+        },
+        signal,
+        maxBytes
+      );
     },
     async extractFrame(bytes, rawTime) {
       signal?.throwIfAborted();

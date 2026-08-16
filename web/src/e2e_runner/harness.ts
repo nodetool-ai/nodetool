@@ -95,7 +95,8 @@ function extractArtifact(output: {
     const uri = typeof obj.uri === "string" ? obj.uri : undefined;
     const data = typeof obj.data === "string" ? obj.data : undefined;
     const type = typeof obj.type === "string" ? obj.type : output.output_type;
-    const mimeType = typeof obj.mimeType === "string" ? obj.mimeType : undefined;
+    const mimeType =
+      typeof obj.mimeType === "string" ? obj.mimeType : undefined;
     if (uri || data) {
       // The value's own mimeType is authoritative; the type-based guess is a fallback.
       const contentType =
@@ -180,12 +181,17 @@ function reduceRecordEvent(
         nodeStatus[nodeId] = status;
         const isError = status === "error" || status === "failed";
         const message =
-          typeof msg.error === "string" && msg.error.length > 0 ? msg.error : null;
+          typeof msg.error === "string" && msg.error.length > 0
+            ? msg.error
+            : null;
         rec.nodeIO[nodeId] = {
           node_type:
-            typeof msg.node_type === "string" ? msg.node_type : rec.nodeIO[nodeId]?.node_type,
+            typeof msg.node_type === "string"
+              ? msg.node_type
+              : rec.nodeIO[nodeId]?.node_type,
           status,
-          result: (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
+          result:
+            (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
           // Only treat a node as errored when its status says so — a
           // node_update can carry a stale/empty error field while completing.
           error: isError ? (message ?? status) : null
@@ -196,9 +202,12 @@ function reduceRecordEvent(
     case "output_update": {
       const output = {
         node_id: typeof msg.node_id === "string" ? msg.node_id : undefined,
-        node_name: typeof msg.node_name === "string" ? msg.node_name : undefined,
-        output_name: typeof msg.output_name === "string" ? msg.output_name : undefined,
-        output_type: typeof msg.output_type === "string" ? msg.output_type : undefined,
+        node_name:
+          typeof msg.node_name === "string" ? msg.node_name : undefined,
+        output_name:
+          typeof msg.output_name === "string" ? msg.output_name : undefined,
+        output_type:
+          typeof msg.output_type === "string" ? msg.output_type : undefined,
         value: (msg as { value?: unknown }).value
       };
       rec.outputs.push(output);
@@ -217,7 +226,8 @@ function reduceRecordEvent(
     }
     case "error": {
       // A backend { type:"error", message } frame is terminal.
-      const text = typeof msg.message === "string" && msg.message ? msg.message : "error";
+      const text =
+        typeof msg.message === "string" && msg.message ? msg.message : "error";
       if (!rec.error) rec.error = text;
       return { status: "error", error: text };
     }
@@ -250,7 +260,10 @@ export class Harness {
     stage: 0
   };
   private secretsAvailable: string[] = [];
-  private graphCache = new Map<string, { nodes: unknown[]; edges: unknown[] }>();
+  private graphCache = new Map<
+    string,
+    { nodes: unknown[]; edges: unknown[] }
+  >();
   // Serializes runs: a second runNext/runGraph while one is in flight returns
   // the in-flight promise instead of racing the same pending record.
   private runInFlight: Promise<RunRecord | null> | null = null;
@@ -274,7 +287,9 @@ export class Harness {
     try {
       const res = await fetch(manifestUrl);
       if (!res.ok) {
-        throw new Error(`Failed to load manifest: ${res.status} ${res.statusText}`);
+        throw new Error(
+          `Failed to load manifest: ${res.status} ${res.statusText}`
+        );
       }
       const manifest = (await res.json()) as Manifest;
       this.secretsAvailable = manifest.secretsAvailable ?? [];
@@ -299,7 +314,8 @@ export class Harness {
     const cached = this.graphCache.get(ref.file);
     if (cached) return cached;
     const res = await fetch(ref.file);
-    if (!res.ok) throw new Error(`Failed to load graph ${ref.file}: ${res.status}`);
+    if (!res.ok)
+      throw new Error(`Failed to load graph ${ref.file}: ${res.status}`);
     const json = (await res.json()) as {
       graph?: { nodes?: unknown[]; edges?: unknown[] };
       nodes?: unknown[];
@@ -509,7 +525,10 @@ export class Harness {
     if (expect.status && rec.status !== expect.status) {
       failures.push(`expected status ${expect.status}, got ${rec.status}`);
     }
-    if (typeof expect.minOutputs === "number" && rec.outputs.length < expect.minOutputs) {
+    if (
+      typeof expect.minOutputs === "number" &&
+      rec.outputs.length < expect.minOutputs
+    ) {
       failures.push(
         `expected at least ${expect.minOutputs} outputs, got ${rec.outputs.length}`
       );
@@ -540,9 +559,11 @@ export class Harness {
   ): Promise<RunRecord> {
     // Refuse a concurrent run: hand back the in-flight promise instead.
     if (this.runInFlight) return this.runInFlight as Promise<RunRecord>;
-    const promise = this.runGraphInternal(graph, params, options).finally(() => {
-      this.runInFlight = null;
-    });
+    const promise = this.runGraphInternal(graph, params, options).finally(
+      () => {
+        this.runInFlight = null;
+      }
+    );
     this.runInFlight = promise;
     return promise;
   }
@@ -616,7 +637,11 @@ export class Harness {
         rec.durationMs = rec.finishedAt - startedAt;
         if (error && !rec.error) rec.error = error;
         finalizeCounts(rec);
-        this.setState({ records: [rec], state: "done", stage: this.state.stage + 1 });
+        this.setState({
+          records: [rec],
+          state: "done",
+          stage: this.state.stage + 1
+        });
         resolve();
       };
 
@@ -624,13 +649,16 @@ export class Harness {
         const terminal = reduceRecordEvent(rec, msg, nodeStatus);
         // A node starting/finishing or a job status change is a new visual
         // stage worth a screenshot; chunks/edges/logs are not.
-        const advances = msg.type === "node_update" || msg.type === "job_update";
-        this.setState({
+        const advances =
+          msg.type === "node_update" || msg.type === "job_update";
+        const next: Partial<HarnessState> = {
           records: [rec],
-          nodeStatus: { ...nodeStatus },
-          ...(advances ? { stage: this.state.stage + 1 } : {})
-        });
-        if (terminal) queueMicrotask(() => finish(terminal.status, terminal.error));
+          nodeStatus: { ...nodeStatus }
+        };
+        if (advances) next.stage = this.state.stage + 1;
+        this.setState(next);
+        if (terminal)
+          queueMicrotask(() => finish(terminal.status, terminal.error));
       });
       const unsubscribeClose = ws.onClose(() =>
         finish("error", "WebSocket connection closed unexpectedly")
@@ -666,7 +694,8 @@ export class Harness {
       runNext: () => this.runNext(),
       runAll: () => this.runAll(),
       currentIndex: () => this.state.currentIndex,
-      runGraph: (graph, params, options) => this.runGraph(graph, params, options),
+      runGraph: (graph, params, options) =>
+        this.runGraph(graph, params, options),
       snapshot: () => this.snapshot()
     };
   }

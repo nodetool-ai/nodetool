@@ -353,7 +353,9 @@ const findModel: CapabilityExport = {
 
     const notes: string[] = [];
     if (unavailable.length > 0) {
-      notes.push(`Skipped providers that cannot run here: ${unavailable.join(", ")}.`);
+      notes.push(
+        `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
+      );
     }
     let words = queryWords(typeof query === "string" ? query : "");
 
@@ -420,15 +422,44 @@ const findModel: CapabilityExport = {
       return a.model_id.localeCompare(b.model_id);
     });
 
-    return {
+    const answer: FindModelAnswer = {
       capability,
       total: collected.length,
-      results: collected.slice(0, limit),
-      ...(queryMatched === undefined ? {} : { query_matched: queryMatched }),
-      ...(notes.length > 0 ? { note: notes.join(" ") } : {})
+      results: collected.slice(0, limit)
     };
+    if (queryMatched !== undefined) answer.query_matched = queryMatched;
+    if (notes.length > 0) answer.note = notes.join(" ");
+    return answer;
   }
 };
+
+/** One ranked candidate `find_model` returns. */
+interface RankedModel {
+  provider: string;
+  model_id: string;
+  name: string;
+  downloaded: boolean;
+  recommended: boolean;
+  score: number;
+  ref: ReturnType<typeof modelRef>;
+}
+
+/** `find_model`'s answer; each note appears only when there is one. */
+interface FindModelAnswer {
+  capability: string;
+  total: number;
+  results: RankedModel[];
+  query_matched?: boolean;
+  note?: string;
+}
+
+/** `list_models`' answer; the note names providers that could not be reached. */
+interface ListModelsAnswer {
+  total: number;
+  truncated: boolean;
+  results: ListedModel[];
+  note?: string;
+}
 
 type ModelType = (typeof MODEL_TYPES)[number];
 
@@ -608,16 +639,15 @@ const listModels: CapabilityExport = {
       return a.model_id.localeCompare(b.model_id);
     });
 
-    return {
+    const answer: ListModelsAnswer = {
       total: collected.length,
       truncated: collected.length > limit,
-      results: collected.slice(0, limit),
-      ...(unavailable.length > 0
-        ? {
-            note: `Skipped providers that cannot run here: ${unavailable.join(", ")}.`
-          }
-        : {})
+      results: collected.slice(0, limit)
     };
+    if (unavailable.length > 0) {
+      answer.note = `Skipped providers that cannot run here: ${unavailable.join(", ")}.`;
+    }
+    return answer;
   }
 };
 

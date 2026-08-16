@@ -250,7 +250,10 @@ export function createModel3DToolBridge(
       z.object({ target: targetParam }),
       async ({ target }) => {
         const node = resolveTarget(target as string);
-        const toRemove = new Set([node.uuid, ...descendantsOf(node.uuid).map((d) => d.uuid)]);
+        const toRemove = new Set([
+          node.uuid,
+          ...descendantsOf(node.uuid).map((d) => d.uuid)
+        ]);
         for (let i = nodes.length - 1; i >= 0; i -= 1) {
           if (toRemove.has(nodes[i].uuid)) nodes.splice(i, 1);
         }
@@ -329,18 +332,21 @@ export function createModel3DToolBridge(
     tools,
     finalState: (): Model3DBridgeFinalState => ({
       selectedUuid,
-      objects: nodes.map((n) => ({
-        uuid: n.uuid,
-        name: n.name,
-        type: n.type,
-        visible: n.visible,
-        position: n.position,
-        rotation: n.rotation,
-        scale: n.scale,
-        ...(n.materialColor !== undefined
-          ? { materialColor: n.materialColor }
-          : {})
-      }))
+      objects: nodes.map((n) => {
+        const entry: Model3DBridgeFinalState["objects"][number] = {
+          uuid: n.uuid,
+          name: n.name,
+          type: n.type,
+          visible: n.visible,
+          position: n.position,
+          rotation: n.rotation,
+          scale: n.scale
+        };
+        if (n.materialColor !== undefined) {
+          entry.materialColor = n.materialColor;
+        }
+        return entry;
+      })
     })
   };
 }
@@ -469,7 +475,8 @@ export const MODEL3D_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<Model3DBridgeFin
           {
             name: "remainingHidden",
             detail: "the remaining object is still visible",
-            test: (s) => s.objects.length === 1 && s.objects[0].visible === false
+            test: (s) =>
+              s.objects.length === 1 && s.objects[0].visible === false
           }
         ]
       }

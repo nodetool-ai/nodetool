@@ -115,7 +115,9 @@ function splitSpec(
   const cut = spec.indexOf("/");
   if (cut === -1) return null;
   const head = spec.slice(0, cut).toLowerCase();
-  return isProvider(head) ? { providerId: head, model: spec.slice(cut + 1) } : null;
+  return isProvider(head)
+    ? { providerId: head, model: spec.slice(cut + 1) }
+    : null;
 }
 
 /**
@@ -198,7 +200,10 @@ export function renderJudgePrompt(
   prompt?: string
 ): string {
   const objectives = spec.operations
-    .map((operation) => `- ${operation.id}: ${operation.objective || "(bound to an existing workflow)"}`)
+    .map(
+      (operation) =>
+        `- ${operation.id}: ${operation.objective || "(bound to an existing workflow)"}`
+    )
     .join("\n");
   return [
     `APP: ${spec.title}`,
@@ -235,7 +240,9 @@ export function parseJudgeAnswer(
   const raw = typeof obj.confidence === "number" ? obj.confidence : NaN;
   const confidence = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
   const reasons = Array.isArray(obj.reasons)
-    ? obj.reasons.map((reason) => String(reason)).filter((reason) => reason.length > 0)
+    ? obj.reasons
+        .map((reason) => String(reason))
+        .filter((reason) => reason.length > 0)
     : typeof obj.reasons === "string"
       ? [obj.reasons]
       : [];
@@ -364,19 +371,23 @@ export async function runJudgeStage(
   for (const input of opts.interactions) {
     if (opts.signal?.aborted) {
       verdicts.push(
-        notAchieved(input.interaction.name, "the build was cancelled before this interaction was judged")
+        notAchieved(
+          input.interaction.name,
+          "the build was cancelled before this interaction was judged"
+        )
       );
       continue;
     }
-    const verdict = await judgeInteraction({
+    const judgeArgs: Parameters<typeof judgeInteraction>[0] = {
       spec: opts.spec,
-      ...(opts.prompt !== undefined ? { prompt: opts.prompt } : {}),
       provider: opts.provider,
       model: opts.model,
-      ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
-      ...(opts.signal ? { signal: opts.signal } : {}),
       input
-    });
+    };
+    if (opts.prompt !== undefined) judgeArgs.prompt = opts.prompt;
+    if (opts.timeoutMs !== undefined) judgeArgs.timeoutMs = opts.timeoutMs;
+    if (opts.signal) judgeArgs.signal = opts.signal;
+    const verdict = await judgeInteraction(judgeArgs);
     verdicts.push(verdict);
     opts.onLog?.(
       `judge: ${verdict.interaction} — ${verdict.achieved ? "achieved" : "not achieved"}`

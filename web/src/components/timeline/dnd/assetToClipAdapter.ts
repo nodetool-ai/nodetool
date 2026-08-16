@@ -67,15 +67,14 @@ export function assetToClip(
   // Thumbnail: for video assets check metadata.thumbnails array
   let thumbnailAssetId: string | undefined;
   if (mediaType === "video") {
-    const thumbnails = (
-      asset.metadata as { thumbnails?: string[] } | null
-    )?.thumbnails;
+    const thumbnails = (asset.metadata as { thumbnails?: string[] } | null)
+      ?.thumbnails;
     if (thumbnails && thumbnails.length > 0) {
       thumbnailAssetId = thumbnails[0];
     }
   }
 
-  return makeClip({
+  const init: Parameters<typeof makeClip>[0] = {
     trackId,
     name: asset.name,
     startMs,
@@ -84,7 +83,8 @@ export function assetToClip(
     sourceType: "imported",
     status: "generated",
     currentAssetId: asset.id,
-    ...(thumbnailAssetId ? { thumbnailAssetId } : {}),
     versions: []
-  });
+  };
+  if (thumbnailAssetId) init.thumbnailAssetId = thumbnailAssetId;
+  return makeClip(init);
 }

@@ -11,14 +11,7 @@
  * untouched (and the host's discard plan removes a node created only to open
  * the dialog).
  */
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
@@ -258,12 +251,12 @@ const CodeAssistantDialogInner = ({
       packages.length !== seed.packages.length ||
       packages.some((specifier, i) => specifier !== seed.packages[i]);
 
+    const properties = packagesChanged
+      ? { ...node.data.properties, code, packages }
+      : { ...node.data.properties, code };
+
     updateNodeData(nodeId, {
-      properties: {
-        ...node.data.properties,
-        code,
-        ...(packagesChanged ? { packages } : {})
-      },
+      properties,
       dynamic_inputs,
       dynamic_properties,
       dynamic_outputs
@@ -306,7 +299,11 @@ const CodeAssistantDialogInner = ({
             <PortChips label="Inputs" ports={draftInputs} />
             <PortChips label="Outputs" ports={draftOutputs} />
             {draftPackages.length > 0 && (
-              <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
+              <FlexRow
+                gap={SPACING.xs}
+                align="center"
+                sx={{ flexWrap: "wrap" }}
+              >
                 <Label>Packages</Label>
                 {draftPackages.map((specifier) => (
                   <Chip key={specifier} compact label={specifier} />

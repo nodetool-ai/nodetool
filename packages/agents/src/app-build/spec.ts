@@ -23,7 +23,11 @@ import {
   type BindingRef
 } from "@nodetool-ai/app-runtime";
 import type { InteractionStep } from "@nodetool-ai/execution/app-debug";
-import { StepExecutor, MAX_REPAIR_ROUNDS } from "../step-executor.js";
+import {
+  StepExecutor,
+  MAX_REPAIR_ROUNDS,
+  type StepExecutorOptions
+} from "../step-executor.js";
 import type { Step, Task } from "../types.js";
 import {
   validateAgainstSchema,
@@ -196,14 +200,17 @@ const issue = (
   code: string,
   message: string,
   ref?: { widget?: string; operation?: string }
-): BuildIssue => ({
-  stage: "spec",
-  code,
-  severity: "error",
-  message,
-  ...(ref?.widget !== undefined ? { widget: ref.widget } : {}),
-  ...(ref?.operation !== undefined ? { operation: ref.operation } : {})
-});
+): BuildIssue => {
+  const built: BuildIssue = {
+    stage: "spec",
+    code,
+    severity: "error",
+    message
+  };
+  if (ref?.widget !== undefined) built.widget = ref.widget;
+  if (ref?.operation !== undefined) built.operation = ref.operation;
+  return built;
+};
 
 /**
  * Resolve a widget reference the way the simulator does: component id (here the
@@ -747,7 +754,7 @@ export async function runSpecStage(
   // The last rejection is the failure reason: it is what the model could not
   // fix, which is exactly what a human reading the report needs.
   let lastIssues: BuildIssue[] = [];
-  const executor = new StepExecutor({
+  const executorOptions: StepExecutorOptions = {
     task,
     step,
     context: opts.context,
@@ -755,9 +762,6 @@ export async function runSpecStage(
     model: opts.model,
     tools: [],
     maxIterations: SPEC_MAX_ITERATIONS,
-    ...(opts.maxTokens !== undefined ? { maxTokens: opts.maxTokens } : {}),
-    ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
-    ...(opts.signal ? { signal: opts.signal } : {}),
     acceptResult: async (result) => {
       const issues = validateBuildSpec(result as BuildSpec);
       lastIssues = issues;
@@ -768,7 +772,11 @@ export async function runSpecStage(
             reason: issues.map((i) => `${i.code}: ${i.message}`).join("; ")
           };
     }
-  });
+  };
+  if (opts.maxTokens !== undefined) executorOptions.maxTokens = opts.maxTokens;
+  if (opts.turnBudget) executorOptions.turnBudget = opts.turnBudget;
+  if (opts.signal) executorOptions.signal = opts.signal;
+  const executor = new StepExecutor(executorOptions);
 
   for await (const _message of executor.execute()) {
     if (opts.signal?.aborted) break;

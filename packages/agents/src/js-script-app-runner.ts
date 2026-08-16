@@ -31,22 +31,22 @@ export function createJsScriptAppRunner(
   } = {}
 ): JsScriptOperationRunner {
   return async (input) => {
-    const context = new ProcessingContext({
+    const contextInit: ConstructorParameters<typeof ProcessingContext>[0] = {
       jobId: `js-script-op-${input.scriptId}-${Date.now()}`,
       userId,
-      storage: new FileStorageAdapter(getDefaultAssetsPath()),
-      ...(options.secretResolver
-        ? { secretResolver: options.secretResolver }
-        : {})
-    });
+      storage: new FileStorageAdapter(getDefaultAssetsPath())
+    };
+    if (options.secretResolver) {
+      contextInit.secretResolver = options.secretResolver;
+    }
+    const context = new ProcessingContext(contextInit);
     const declared = Math.min(
       input.document.timeoutSeconds,
       JS_SCRIPT_MAX_TIMEOUT_SECONDS
     );
-    return runCodeBody(context, {
+    const bodyParams: Parameters<typeof runCodeBody>[1] = {
       code: input.document.code,
       inputs: input.inputs,
-      ...(input.inputStreams ? { inputStreams: input.inputStreams } : {}),
       packages: input.document.packages.map((pack) => pack.specifier),
       secrets: input.document.secrets,
       timeoutSeconds:
@@ -54,6 +54,8 @@ export function createJsScriptAppRunner(
           ? declared
           : Math.min(declared, Math.max(1, Math.round(input.timeoutMs / 1000))),
       withToolbelt: true
-    });
+    };
+    if (input.inputStreams) bodyParams.inputStreams = input.inputStreams;
+    return runCodeBody(context, bodyParams);
   };
 }

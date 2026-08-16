@@ -106,12 +106,15 @@ export const useJsScriptServerSync = (scriptId: string): void => {
         // Unknown to the server: upsert-create carrying any local content.
         const local = store.getState().scripts[scriptId];
         try {
-          const created = await trpcClient.jsScripts.create.mutate({
+          const input: Parameters<
+            typeof trpcClient.jsScripts.create.mutate
+          >[0] = {
             id: scriptId,
             name: local?.name || DEFAULT_NAME,
-            projectId: "default",
-            ...(local ? { document: local.document } : {})
-          });
+            projectId: "default"
+          };
+          if (local) input.document = local.document;
+          const created = await trpcClient.jsScripts.create.mutate(input);
           if (disposed) return;
           store.getState().setServerRevision(scriptId, created.updatedAt);
           syncedRef.current = store.getState().scripts[scriptId] ?? null;

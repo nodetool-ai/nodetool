@@ -27,7 +27,10 @@ interface CheerioSelection extends CheerioElement {
   each: (fn: (index: number, el: unknown) => void) => CheerioSelection;
 }
 
-type CheerioAPI = ((selector: string | unknown, context?: unknown) => CheerioSelection) & {
+type CheerioAPI = ((
+  selector: string | unknown,
+  context?: unknown
+) => CheerioSelection) & {
   root: () => CheerioElement;
 };
 
@@ -75,7 +78,9 @@ export async function select(
   }
   const opts = optionsOf(options);
   const attr =
-    opts.attr === undefined || opts.attr === null ? undefined : String(opts.attr);
+    opts.attr === undefined || opts.attr === null
+      ? undefined
+      : String(opts.attr);
   const rawLimit = Number(opts.limit ?? DEFAULT_SELECT_HTML_LIMIT);
   const limit = Number.isFinite(rawLimit)
     ? Math.min(Math.max(Math.floor(rawLimit), 0), MAX_SELECT_HTML_LIMIT)
@@ -114,13 +119,15 @@ export async function toMarkdown(
   const source = requireText(where, html, "html");
   const opts = optionsOf(options);
   const Turndown = await loadTurndown(where);
+  const overrides =
+    typeof opts.turndown === "object" && opts.turndown !== null
+      ? (opts.turndown as Record<string, unknown>)
+      : {};
   const service = new Turndown({
     headingStyle: "atx",
     codeBlockStyle: "fenced",
     bulletListMarker: "-",
-    ...(typeof opts.turndown === "object" && opts.turndown !== null
-      ? (opts.turndown as Record<string, unknown>)
-      : {})
+    ...overrides
   });
   return service.turndown(source);
 }
@@ -252,7 +259,9 @@ interface ExtractedMetadata {
 }
 
 /** `<title>` and the description/keywords `<meta>` tags. */
-export async function extractMetadata(html: unknown): Promise<ExtractedMetadata> {
+export async function extractMetadata(
+  html: unknown
+): Promise<ExtractedMetadata> {
   const where = "html.extractMetadata";
   const source = requireText(where, html, "html");
   const cheerio = await loadCheerio(where);

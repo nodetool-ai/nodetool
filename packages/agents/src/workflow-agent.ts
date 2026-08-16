@@ -12,9 +12,16 @@
 
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  type ExecutionSessionOptions,
+  type RawGraphInput
+} from "@nodetool-ai/execution";
 import type { RunResult, SupervisorHandle } from "@nodetool-ai/kernel";
-import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  createGraphNodeTypeResolver,
+  type NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 
@@ -85,7 +92,7 @@ export async function* runWorkflowAsAgent(
     context.emit(message);
   });
 
-  const session = await ExecutionSession.create({
+  const sessionOptions: ExecutionSessionOptions = {
     graph: graph as unknown as RawGraphInput,
     registry,
     // Registry alone hydrates node flags but not `propertyTypes`, and
@@ -98,9 +105,10 @@ export async function* runWorkflowAsAgent(
     jobId,
     context: runContext,
     params: options.params ?? {},
-    captureMessages: true,
-    ...(supervisor ? { supervisor } : {})
-  });
+    captureMessages: true
+  };
+  if (supervisor) sessionOptions.supervisor = supervisor;
+  const session = await ExecutionSession.create(sessionOptions);
 
   const onAbort = (): void => session.cancel("cancelled");
   if (signal?.aborted) session.cancel("cancelled");

@@ -23,7 +23,11 @@ interface SecretsStore {
   getSecretValue: (key: string) => Promise<string | null>;
   /** Alias for getSecretValue – returns the decrypted secret value or null. */
   fetchDecryptedSecret: (key: string) => Promise<string | null>;
-  updateSecret: (key: string, value: string, description?: string) => Promise<void>;
+  updateSecret: (
+    key: string,
+    value: string,
+    description?: string
+  ) => Promise<void>;
   deleteSecret: (key: string) => Promise<void>;
   /**
    * Ask the server to probe a credential. Omit `value` to test the key already
@@ -92,11 +96,11 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   updateSecret: async (key: string, value: string, description?: string) => {
     set({ error: null });
     try {
-      await trpcClient.settings.secrets.upsert.mutate({
-        key,
-        value,
-        ...(description !== undefined ? { description } : {})
-      });
+      const input: Parameters<
+        typeof trpcClient.settings.secrets.upsert.mutate
+      >[0] = { key, value };
+      if (description !== undefined) input.description = description;
+      await trpcClient.settings.secrets.upsert.mutate(input);
       await get().fetchSecrets();
       invalidateProviderDependentCaches();
     } catch (err: unknown) {
@@ -126,10 +130,11 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
 
   validateSecret: async (key: string, value?: string) => {
     try {
-      return await trpcClient.settings.secrets.validate.mutate({
-        key,
-        ...(value !== undefined ? { value } : {})
-      });
+      const input: Parameters<
+        typeof trpcClient.settings.secrets.validate.mutate
+      >[0] = { key };
+      if (value !== undefined) input.value = value;
+      return await trpcClient.settings.secrets.validate.mutate(input);
     } catch {
       // The server was unreachable, which says nothing about the key itself.
       return {

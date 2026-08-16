@@ -42,7 +42,11 @@ import {
   listRegisteredProviderIds,
   type BaseProvider
 } from "@nodetool-ai/runtime";
-import { buildApp, DEFAULT_BUILD_COST_CAP_USD } from "./build.js";
+import {
+  buildApp,
+  DEFAULT_BUILD_COST_CAP_USD,
+  type BuildAppOptions
+} from "./build.js";
 import { parseBuildSpec } from "./spec.js";
 import { resolveJudgeModelSpec } from "./judge.js";
 import type { BuildReport, BuildSpec } from "./types.js";
@@ -80,7 +84,10 @@ export interface AppBuildRequest {
  * user's secrets and the registry from the host's own bootstrap.
  */
 export interface AppBuildDeps {
-  createProvider?: (providerId: string, userId: string) => Promise<BaseProvider>;
+  createProvider?: (
+    providerId: string,
+    userId: string
+  ) => Promise<BaseProvider>;
   loadProviders?: (userId: string) => Promise<Record<string, BaseProvider>>;
   registry?: NodeRegistry;
 }
@@ -165,13 +172,14 @@ function resolveJudge(init: {
   explicit?: string;
   providers: Record<string, BaseProvider>;
 }): { provider: BaseProvider; model: string } {
-  const resolution = resolveJudgeModelSpec({
-    ...(init.explicit !== undefined ? { explicit: init.explicit } : {}),
+  const spec: Parameters<typeof resolveJudgeModelSpec>[0] = {
     builderProviderId: init.builder.provider,
     builderModel: init.builderModel,
     isAvailable: (id: string) =>
       id === init.builder.provider || id in init.providers
-  });
+  };
+  if (init.explicit !== undefined) spec.explicit = init.explicit;
+  const resolution = resolveJudgeModelSpec(spec);
   const provider =
     resolution.providerId === init.builder.provider
       ? init.builder
@@ -259,19 +267,19 @@ export async function runApplicationBuild(
   const maxRepairs = count("max_repairs", body.max_repairs);
   const timeoutMs = positive("timeout_ms", body.timeout_ms);
   const costCapUsd = positive("cost_cap_usd", body.cost_cap_usd);
-  const judge = resolveJudge({
+  const judgeInit: Parameters<typeof resolveJudge>[0] = {
     builder: provider,
     builderModel: selection.model,
-    providers,
-    ...(body.judge_model ? { explicit: body.judge_model } : {})
-  });
+    providers
+  };
+  if (body.judge_model) judgeInit.explicit = body.judge_model;
+  const judge = resolveJudge(judgeInit);
 
   // The promise a session fronts must never reject: a rejected build would
   // leave the session parked forever with no report to hand back.
   const done: Promise<Record<string, unknown>> = (async () => {
     try {
-      const report = await buildApp({
-        ...(spec ? { spec } : { prompt: body.prompt ?? "" }),
+      const buildOptions: BuildAppOptions = {
         provider,
         model: selection.model,
         context,
@@ -288,24 +296,30 @@ export async function runApplicationBuild(
                 edges: Array<Record<string, unknown>>;
               }
             | undefined;
-          return graph
-            ? { graph, ...(workflow?.name ? { name: workflow.name } : {}) }
-            : null;
+          if (!graph) return null;
+          return workflow?.name ? { graph, name: workflow.name } : { graph };
         },
-        ...(body.workflow_ids?.length
-          ? { pinnedWorkflowIds: body.workflow_ids }
-          : {}),
-        ...(maxRepairs !== undefined ? { maxRepairs } : {}),
         judge: { provider: judge.provider, model: judge.model },
         costCapUsd: costCapUsd ?? DEFAULT_BUILD_COST_CAP_USD,
-        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
         signal: controller.signal,
         buildId,
         ledger: { userId },
         onLog: (line) => {
           logLines.push(line.trimEnd());
         }
-      });
+      };
+      if (spec) {
+        buildOptions.spec = spec;
+      } else {
+        buildOptions.prompt = body.prompt ?? "";
+      }
+      if (body.workflow_ids?.length) {
+        buildOptions.pinnedWorkflowIds = body.workflow_ids;
+      }
+      if (maxRepairs !== undefined) buildOptions.maxRepairs = maxRepairs;
+      if (timeoutMs !== undefined) buildOptions.timeoutMs = timeoutMs;
+
+      const report = await buildApp(buildOptions);
       return buildPayload(report, buildId, logLines);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -345,7 +359,7 @@ function buildPayload(
     ...(report as unknown as Record<string, unknown>),
     log: logLines,
     install: report.bundle
-      ? "POST /api/applications/import-bundle with {\"bundle\": <report.bundle>} to install this app."
+      ? 'POST /api/applications/import-bundle with {"bundle": <report.bundle>} to install this app.'
       : null
   };
 }

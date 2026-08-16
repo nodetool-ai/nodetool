@@ -80,14 +80,17 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   const dynamic_inputs = normalizeDynamicSlots(node.data?.dynamic_inputs);
 
-  return {
+  const graphNode: GraphNode = {
     id: node.id,
     type: node.type || "",
     data: node.data?.properties,
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},
-    ...(Object.keys(dynamic_inputs).length > 0 ? { dynamic_inputs } : {}),
     dynamic_outputs: node.data?.dynamic_outputs || {}
   };
+  if (Object.keys(dynamic_inputs).length > 0) {
+    graphNode.dynamic_inputs = dynamic_inputs;
+  }
+  return graphNode;
 }

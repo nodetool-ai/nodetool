@@ -85,14 +85,9 @@ async function normalizeResources(
     const type = typeof obj.type === "string" ? obj.type.trim() : "";
     const id = typeof obj.id === "string" ? obj.id.trim() : "";
     if (!type || !id) continue;
-    const ref: ThreadMemoryResource = {
-      type,
-      id,
-      ...(typeof obj.uri === "string" && obj.uri ? { uri: obj.uri } : {}),
-      ...(typeof obj.label === "string" && obj.label
-        ? { label: obj.label }
-        : {})
-    };
+    const ref: ThreadMemoryResource = { type, id };
+    if (typeof obj.uri === "string" && obj.uri) ref.uri = obj.uri;
+    if (typeof obj.label === "string" && obj.label) ref.label = obj.label;
     if (type === "asset") {
       const asset = await Asset.find(userId, id);
       if (!asset) {

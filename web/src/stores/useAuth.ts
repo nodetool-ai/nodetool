@@ -11,6 +11,26 @@ import {
 import { getBuildEnv } from "../lib/buildEnv";
 import { syncGoogleProviderToken } from "../lib/googleSession";
 
+/**
+ * `access_type=offline` is what yields a refresh token, and Google only
+ * re-issues one when consent is shown again — so both ride together, or
+ * neither does.
+ */
+type GoogleConsentOptions = {
+  scopes?: string;
+  queryParams?: Record<string, string>;
+};
+
+const googleConsentOptions = (
+  scopes: readonly string[]
+): GoogleConsentOptions => {
+  if (scopes.length === 0) return {};
+  return {
+    scopes: scopes.join(" "),
+    queryParams: { access_type: "offline", prompt: "consent" }
+  };
+};
+
 type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
 /**
@@ -140,8 +160,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
         error
       } = await supabase.auth.getSession();
 
-      if (error)
-        {throw new Error("Failed to get initial session: " + error.message);}
+      if (error) {
+        throw new Error("Failed to get initial session: " + error.message);
+      }
 
       set({
         session,
@@ -157,7 +178,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
       void syncGoogleProviderToken(session);
 
       // Subscribe to auth state changes and store the subscription for cleanup
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const {
+        data: { subscription }
+      } = supabase.auth.onAuthStateChange((event, session) => {
         console.info(
           "Auth: State Change Event -",
           event,
@@ -180,7 +203,10 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // Store subscription reference for cleanup
       set({ _authSubscription: subscription });
     } catch (error: unknown) {
-      const errorMessage = createErrorMessage(error, "Auth initialization failed");
+      const errorMessage = createErrorMessage(
+        error,
+        "Auth initialization failed"
+      );
       console.info("Auth: Initialization error", errorMessage);
       set({
         state: "error",
@@ -212,12 +238,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          ...(googleScopes.length > 0
-            ? {
-                scopes: googleScopes.join(" "),
-                queryParams: { access_type: "offline", prompt: "consent" }
-              }
-            : {}),
+          ...googleConsentOptions(googleScopes),
           // URL to redirect to after successful authentication.
           // Must be added to your Supabase project's redirect allow list,
           // otherwise Supabase falls back to the project's Site URL
@@ -226,10 +247,15 @@ export const useAuth = create<LoginStore>((set, get) => ({
           redirectTo: getAuthRedirectUrl()
         }
       });
-      if (error) {throw error;}
+      if (error) {
+        throw error;
+      }
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
     } catch (error: unknown) {
-      const errorMessage = createErrorMessage(error, `Failed to sign in with ${provider}`);
+      const errorMessage = createErrorMessage(
+        error,
+        `Failed to sign in with ${provider}`
+      );
       console.info(`Auth: Sign in with ${provider} error`, errorMessage);
       set({
         state: "error",
@@ -248,7 +274,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
       get().cleanup();
 
       const { error } = await supabase.auth.signOut();
-      if (error) {throw error;}
+      if (error) {
+        throw error;
+      }
       // Explicitly set state to logged_out here, although onAuthStateChange
       // will also fire and update the state.
       set({ session: null, user: null, state: "logged_out", error: null });

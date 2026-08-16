@@ -39,7 +39,11 @@ import type {
   AppServerRunInput,
   AppServerRunOutcome
 } from "@nodetool-ai/execution/app-debug";
-import { buildApp, type BuildJudgeOptions } from "../app-build/build.js";
+import {
+  buildApp,
+  type BuildAppOptions,
+  type BuildJudgeOptions
+} from "../app-build/build.js";
 import type { BuildReport, BuildSpec } from "../app-build/types.js";
 
 /**
@@ -307,15 +311,11 @@ function hasCondition(node: DocWidget): boolean {
   });
 }
 
-const check = (
-  name: string,
-  pass: boolean,
-  detail?: string
-): AppBuildCheck => ({
-  name,
-  pass,
-  ...(detail !== undefined ? { detail } : {})
-});
+const check = (name: string, pass: boolean, detail?: string): AppBuildCheck => {
+  const built: AppBuildCheck = { name, pass };
+  if (detail !== undefined) built.detail = detail;
+  return built;
+};
 
 /**
  * Score the built app against the case's target shape.
@@ -535,37 +535,37 @@ async function runCase(
 
   let report: BuildReport;
   try {
-    report = await buildApp({
-      ...(deterministic
-        ? { spec: deterministic.spec, judge: { enabled: false } }
-        : {
-            prompt: evalCase.prompt ?? "",
-            ...(opts.judge ? { judge: opts.judge } : {})
-          }),
+    const buildOptions: BuildAppOptions = {
       provider,
       model: deterministic ? "scripted" : opts.model,
       context: opts.context,
       registry: opts.registry,
-      ...(opts.providers ? { providers: opts.providers } : {}),
       runOnServer: opts.runOnServer,
-      ...(deterministic
-        ? {
-            loadWorkflow: async (id: string) => {
-              const graph = deterministic.workflows[id];
-              return graph ? { graph, name: id } : null;
-            }
-          }
-        : {}),
-      ...(evalCase.maxRepairs !== undefined
-        ? { maxRepairs: evalCase.maxRepairs }
-        : opts.maxRepairs !== undefined
-          ? { maxRepairs: opts.maxRepairs }
-          : {}),
-      ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
-      ...(opts.costCapUsd !== undefined ? { costCapUsd: opts.costCapUsd } : {}),
-      ...(opts.signal ? { signal: opts.signal } : {}),
       buildId: `eval-${evalCase.id}-${Date.now()}`
-    });
+    };
+    if (deterministic) {
+      buildOptions.spec = deterministic.spec;
+      buildOptions.judge = { enabled: false };
+      buildOptions.loadWorkflow = async (id: string) => {
+        const graph = deterministic.workflows[id];
+        return graph ? { graph, name: id } : null;
+      };
+    } else {
+      buildOptions.prompt = evalCase.prompt ?? "";
+      if (opts.judge) buildOptions.judge = opts.judge;
+    }
+    if (opts.providers) buildOptions.providers = opts.providers;
+    if (evalCase.maxRepairs !== undefined) {
+      buildOptions.maxRepairs = evalCase.maxRepairs;
+    } else if (opts.maxRepairs !== undefined) {
+      buildOptions.maxRepairs = opts.maxRepairs;
+    }
+    if (opts.timeoutMs !== undefined) buildOptions.timeoutMs = opts.timeoutMs;
+    if (opts.costCapUsd !== undefined) {
+      buildOptions.costCapUsd = opts.costCapUsd;
+    }
+    if (opts.signal) buildOptions.signal = opts.signal;
+    report = await buildApp(buildOptions);
   } catch (e) {
     return {
       ...base,

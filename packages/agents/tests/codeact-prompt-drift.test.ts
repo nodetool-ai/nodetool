@@ -44,7 +44,10 @@ const PROSE_ALLOWLIST = new Set([
   "items"
 ]);
 
-const KNOWN = new Set<string>([...CODEACT_INJECTED_GLOBALS, ...PROSE_ALLOWLIST]);
+const KNOWN = new Set<string>([
+  ...CODEACT_INJECTED_GLOBALS,
+  ...PROSE_ALLOWLIST
+]);
 
 function undocumented(prompt: string): string[] {
   return unknownApiReferences(prompt).filter((name) => !KNOWN.has(name));
@@ -80,9 +83,7 @@ describe("CodeAct prompt / sandbox drift", () => {
       expect(prompt).toContain(
         "state.video = state.video ?? await nodetool.media.generateVideo"
       );
-      expect(prompt).toContain(
-        "so a later throw does not discard it"
-      );
+      expect(prompt).toContain("so a later throw does not discard it");
     }
   });
 
@@ -131,9 +132,10 @@ describe("CodeAct prompt / sandbox drift", () => {
     for (const variant of ["step", "chat"] as const) {
       const prompt = buildCodeActSystemPrompt({ tools: [], variant });
       for (const note of nodeOnly) {
-        expect(prompt, `${variant} prompt leaks a code-node note`).not.toContain(
-          note.text
-        );
+        expect(
+          prompt,
+          `${variant} prompt leaks a code-node note`
+        ).not.toContain(note.text);
       }
     }
   });
@@ -148,7 +150,9 @@ describe("CodeAct prompt / sandbox drift", () => {
 
   it("says nothing is importable when the session allows no package", () => {
     const prompt = buildCodeActSystemPrompt({ tools: [], variant: "step" });
-    expect(prompt).toContain("No sandbox packages are available in this session");
+    expect(prompt).toContain(
+      "No sandbox packages are available in this session"
+    );
   });
 
   it("advertises one line per session-allowed package", () => {
@@ -332,8 +336,10 @@ describe("chat variant exclusions", () => {
 
   it("is what createChatCodeActSession enforces", () => {
     // No `context` reaches the sandbox, so every context-only bridge throws.
-    const call = chatSource.slice(chatSource.indexOf("await runInSandbox({"));
-    const args = call.slice(0, call.indexOf("\n    });"));
+    const options = chatSource.slice(
+      chatSource.indexOf("const sandboxOptions: RunSandboxOptions = {")
+    );
+    const args = options.slice(0, options.indexOf("\n    };"));
     expect(args).not.toMatch(/^\s*context:/m);
     expect(args).toContain("maxFetchCalls: 0");
   });
