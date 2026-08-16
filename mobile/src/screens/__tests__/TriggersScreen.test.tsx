@@ -24,14 +24,14 @@ type QueryResult = {
 
 const idle = { isLoading: false, isRefetching: false, error: null, refetch: jest.fn() };
 
-const mockState = {
-  running: { ...idle, data: { triggers: [] } },
-  workflows: { ...idle, data: { workflows: [] } },
-  byWorkflow: [],
-} satisfies {
+const mockState: {
   running: QueryResult;
   workflows: QueryResult;
   byWorkflow: QueryResult[];
+} = {
+  running: { ...idle, data: { triggers: [] } },
+  workflows: { ...idle, data: { workflows: [] } },
+  byWorkflow: [],
 };
 
 const mockStartMutate = jest.fn();
