@@ -25,9 +25,16 @@ export interface OpenDocument {
   title: string;
 }
 
-/** What every kind's snapshot carries; each kind adds its own fields on top. */
+/**
+ * The human-facing label a snapshot carries. Storyboards, timelines and
+ * scripts call it `title`; the JS-script surface calls it `name`. Both are
+ * optional here because the authoritative title is the one passed to
+ * `registerDocumentHandler` — this type exists so the marker below names a
+ * real member rather than accepting anything.
+ */
 export interface DocumentSnapshot {
-  title: string;
+  title?: string;
+  name?: string;
 }
 
 /**
