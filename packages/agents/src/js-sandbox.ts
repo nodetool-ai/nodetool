@@ -81,6 +81,15 @@ import {
   type GuestBytes
 } from "./sandbox-bytes.js";
 import {
+  isBoolean,
+  isFunction,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./utils/type-guards.js";
+import {
   createSandboxMediaStore,
   isSandboxMediaHandle,
   MAX_RUN_MEDIA_BYTES,
@@ -791,7 +800,7 @@ async function readBodyCapped(
 function formatArg(arg: unknown): string {
   if (arg === null) return "null";
   if (arg === undefined) return "undefined";
-  if (typeof arg === "string") return arg;
+  if (isString(arg)) return arg;
   try {
     return JSON.stringify(arg, null, 2);
   } catch {
@@ -800,7 +809,7 @@ function formatArg(arg: unknown): string {
 }
 
 function isTypedArray(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
+  if (!isObjectLike(value)) return false;
   const name = (value as object).constructor?.name;
   return (
     name === "Uint8Array" ||
@@ -858,15 +867,11 @@ function coerceBytesInput(
   value: unknown,
   label: string
 ): Uint8Array<ArrayBuffer> {
-  if (typeof value === "string") return new TextEncoder().encode(value);
+  if (isString(value)) return new TextEncoder().encode(value);
   if (value instanceof Uint8Array) return Uint8Array.from(value);
   if (isTypedArray(value)) return toNativeUint8Array(value);
   if (Array.isArray(value)) return Uint8Array.from(value.map(Number));
-  if (
-    value &&
-    typeof value === "object" &&
-    typeof (value as { length?: unknown }).length === "number"
-  ) {
+  if (isObjectLike(value) && isNumber((value as { length?: unknown }).length)) {
     return toNativeUint8Array(value);
   }
   throw new Error(`crypto: ${label} must be a string or Uint8Array`);
@@ -895,7 +900,7 @@ function containsTypedArray(
   seen = new WeakSet<object>()
 ): boolean {
   if (isTypedArray(value)) return true;
-  if (value === null || typeof value !== "object") return false;
+  if (!isObjectLike(value)) return false;
   if (depth >= SERIALIZE_MAX_DEPTH) return false;
   const obj = value as object;
   if (seen.has(obj)) return false;
@@ -916,7 +921,7 @@ function convertTypedArraysDeep(
   seen = new WeakSet<object>()
 ): unknown {
   if (isTypedArray(value)) return toNativeUint8Array(value);
-  if (value === null || typeof value !== "object") return value;
+  if (!isObjectLike(value)) return value;
   if (depth >= SERIALIZE_MAX_DEPTH) return value;
   const obj = value as object;
   if (seen.has(obj)) return null;
@@ -941,12 +946,8 @@ export function serializeResult(
 ) {
   if (result === undefined) return null;
   if (result === null) return null;
-  if (
-    typeof result === "string" ||
-    typeof result === "number" ||
-    typeof result === "boolean"
-  ) {
-    if (typeof result === "string" && result.length > maxOutputSize) {
+  if (isString(result) || isNumber(result) || isBoolean(result)) {
+    if (isString(result) && result.length > maxOutputSize) {
       return truncate(result, maxOutputSize);
     }
     return result;
@@ -954,7 +955,7 @@ export function serializeResult(
   if (isTypedArray(result)) {
     return toNativeUint8Array(result);
   }
-  if (typeof result === "object") {
+  if (isObjectLike(result)) {
     // The scan and the rebuild are both deep. They used to look one level in,
     // so a typed array nested any deeper fell through to the JSON path below —
     // and `JSON.stringify(new Uint8Array([137, 80]))` is `{"0":137,"1":80}`,
@@ -1086,7 +1087,7 @@ export function buildSandbox(
         `Fetch limit exceeded (max ${resolvedLimits.maxFetchCalls} requests per execution)`
       );
     }
-    if (typeof url !== "string" || !url) {
+    if (!isNonEmptyString(url)) {
       throw new Error("fetch: url must be a non-empty string");
     }
     // SSRF guard: untrusted guest code must not reach loopback, link-local
@@ -1118,7 +1119,7 @@ export function buildSandbox(
       if (resolvedLimits.userAgent) {
         requestHeaders["User-Agent"] = resolvedLimits.userAgent;
       }
-      if (options?.headers && typeof options.headers === "object") {
+      if (isObjectLike(options?.headers)) {
         Object.assign(
           requestHeaders,
           options.headers as Record<string, string>
@@ -1129,7 +1130,7 @@ export function buildSandbox(
       }
       if (options?.body !== undefined) {
         const body = options.body;
-        if (typeof body === "string") {
+        if (isString(body)) {
           fetchOptions.body = body;
         } else if (isTypedArray(body)) {
           // Binary request body. A guest Uint8Array reaches the host as a
@@ -1151,7 +1152,7 @@ export function buildSandbox(
       // opaque response whose Location is unreadable, and cross-origin bodies
       // are CORS-blocked anyway, so the browser keeps the single redirect:
       // "follow" call with only the already-run initial-URL check.
-      const onNode = typeof globalThis.process?.versions?.node === "string";
+      const onNode = isString(globalThis.process?.versions?.node);
       let response: Response;
       if (!onNode) {
         response = await fetch(url, { ...fetchOptions, redirect: "follow" });
@@ -1624,7 +1625,7 @@ export function buildSandbox(
   const outputs = new Map<string, unknown>();
 
   const handleName = (fn: string, name: unknown): string => {
-    if (typeof name !== "string") {
+    if (!isString(name)) {
       throw new TypeError(`${fn}: name must be a string`);
     }
     return name;
@@ -1663,7 +1664,7 @@ export function buildSandbox(
     if (!streams?.onTakeInput) {
       throw new Error(NO_INPUT_STREAM_MESSAGE);
     }
-    if (name !== null && typeof name !== "string") {
+    if (name !== null && !isString(name)) {
       throw new TypeError("stream: name must be a string");
     }
     // Waiting on upstream is not the guest executing, so it must not spend the
@@ -1688,7 +1689,7 @@ export function buildSandbox(
   // stream at all — and the prelude turns it into the thrown error.
   const streamOpen = (name: unknown): boolean | null => {
     if (!streams?.onTakeInput) return null;
-    if (typeof name !== "string" || !streams.onStreamOpen) return false;
+    if (!isString(name) || !streams.onStreamOpen) return false;
     try {
       return streams.onStreamOpen(name) === true;
     } catch {
@@ -1907,8 +1908,8 @@ export function buildSandbox(
       return resolved;
     }
     if (resolveRefs && looksLikeMediaRef(value)) {
-      if (expectedType && value && typeof value === "object") {
-        const declared = (value as Record<string, unknown>).type;
+      if (expectedType && isObjectLike(value)) {
+        const declared = value.type;
         if (
           (declared === "image" ||
             declared === "audio" ||
@@ -1923,8 +1924,8 @@ export function buildSandbox(
       const remainingBytes = resolvedLimits.runMediaBytes - budget.used;
       return accountBytes(await loadMediaRef(where, value, remainingBytes));
     }
-    if (value !== null && typeof value === "object") {
-      const record = value as Record<string, unknown>;
+    if (isObjectLike(value)) {
+      const record = value;
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(record)) {
         out[k] = await resolveMediaArgs(
@@ -1958,13 +1959,10 @@ export function buildSandbox(
         defaultMediaMime(expectedType)
       );
     }
-    const record =
-      value !== null && typeof value === "object" && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : undefined;
+    const record = isRecord(value) ? value : undefined;
     const declared = record?.mimeType ?? record?.mime_type;
     const ref: MediaRefValue & { mimeType?: string } = remapMediaRef(value);
-    if (typeof declared === "string") ref.mimeType = declared;
+    if (isString(declared)) ref.mimeType = declared;
     return mimeForRef(ref, defaultMediaMime(expectedType));
   };
 
@@ -2696,11 +2694,11 @@ function replaceInPlace(target: unknown, source: unknown): void {
     }
     return;
   }
-  if (target && typeof target === "object") {
-    const t = target as Record<string, unknown>;
+  if (isObjectLike(target)) {
+    const t = target;
     for (const key of Object.keys(t)) delete t[key];
-    if (source && typeof source === "object" && !Array.isArray(source)) {
-      const s = source as Record<string, unknown>;
+    if (isRecord(source)) {
+      const s = source;
       for (const [k, v] of Object.entries(s)) t[k] = v;
     }
   }
@@ -2881,7 +2879,7 @@ export async function runInSandbox(
   // Identify object-typed globals whose contents should be synced back to the
   // host after the guest runs. Primitives are passed by value and need no sync.
   const syncTargetNames = Object.entries(userGlobals)
-    .filter(([, v]) => v !== null && typeof v === "object")
+    .filter(([, v]) => isObjectLike(v))
     .map(([k]) => k);
 
   // Write the extracted object-global snapshots back into the caller's own
@@ -2895,12 +2893,7 @@ export async function runInSandbox(
     for (const name of syncTargetNames) {
       const hostValue = userGlobals[name] as unknown;
       const guestValue = extracted[name];
-      if (
-        hostValue !== null &&
-        typeof hostValue === "object" &&
-        guestValue !== null &&
-        typeof guestValue === "object"
-      ) {
+      if (isObjectLike(hostValue) && isObjectLike(guestValue)) {
         replaceInPlace(hostValue, guestValue);
       }
     }
@@ -2953,7 +2946,7 @@ export async function runInSandbox(
     bindDispatcher("host", dispatchCallOf(hostModules));
     bindDispatcher("capability", dispatchCallOf(capabilities));
     for (const [name, value] of Object.entries(userGlobals)) {
-      if (typeof value === "function") dispatch[name] = value;
+      if (isFunction(value)) dispatch[name] = value;
     }
 
     const workerRun: WritableRun = {

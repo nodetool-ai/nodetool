@@ -30,6 +30,14 @@ import type {
   ScriptVoiceBinding
 } from "@nodetool-ai/models";
 import type { CaptionWord } from "@nodetool-ai/timeline";
+import {
+  isNonBlankString,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 import { UNGATED, createCapabilityRun } from "./invoke.js";
 import type {
   CapabilityExport,
@@ -90,7 +98,7 @@ async function loadScript(
   run: CapabilityRun,
   scriptId: unknown
 ): Promise<ScriptHandle | ToolError> {
-  if (typeof scriptId !== "string" || !scriptId) {
+  if (!isNonEmptyString(scriptId)) {
     return { error: "script_id is required (use list_scripts to find one)." };
   }
   const { Script } = await import("@nodetool-ai/models");
@@ -367,15 +375,12 @@ function voiceOverrideFrom(
   const provider = params["provider"];
   const model = params["model"];
   const voice = params["voice"];
-  const any = [provider, model, voice].some((v) => typeof v === "string" && v);
+  const any = [provider, model, voice].some((v) => isNonEmptyString(v));
   if (!any) return null;
   if (
-    typeof provider !== "string" ||
-    !provider ||
-    typeof model !== "string" ||
-    !model ||
-    typeof voice !== "string" ||
-    !voice
+    !isNonEmptyString(provider) ||
+    !isNonEmptyString(model) ||
+    !isNonEmptyString(voice)
   ) {
     return {
       error:
@@ -475,17 +480,14 @@ const voiceScriptLines: CapabilityExport = {
     const { generateSpeech } = await import("./media.js");
     const speechRun = createCapabilityRun({ context, gate: UNGATED });
 
-    const speed =
-      typeof params["speed"] === "number" ? params["speed"] : undefined;
+    const speed = isNumber(params["speed"]) ? params["speed"] : undefined;
     const transcribe = params["transcribe"] !== false;
-    const asrProvider =
-      typeof params["asr_provider"] === "string"
-        ? (params["asr_provider"] as string)
-        : DEFAULT_ASR_PROVIDER;
-    const asrModel =
-      typeof params["asr_model"] === "string"
-        ? (params["asr_model"] as string)
-        : DEFAULT_ASR_MODEL;
+    const asrProvider = isString(params["asr_provider"])
+      ? params["asr_provider"]
+      : DEFAULT_ASR_PROVIDER;
+    const asrModel = isString(params["asr_model"])
+      ? params["asr_model"]
+      : DEFAULT_ASR_MODEL;
 
     const results = await mapWithConcurrency(
       selected,
@@ -602,10 +604,9 @@ const assembleScriptTimeline: CapabilityExport = {
     }
 
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
-    const name =
-      typeof params["name"] === "string" && params["name"]
-        ? (params["name"] as string)
-        : row.name;
+    const name = isNonEmptyString(params["name"])
+      ? params["name"]
+      : row.name;
 
     const existing = row.timeline_id
       ? await TimelineSequence.findById(row.timeline_id)
@@ -725,11 +726,11 @@ function parseScriptOps(raw: unknown): ParsedScriptOp[] | ToolError {
   }
   const parsed: ParsedScriptOp[] = [];
   for (const [index, entry] of raw.entries()) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isRecord(entry)) {
       return { error: `ops[${index}] must be an object.` };
     }
-    const { op, ...args } = entry as Record<string, unknown>;
-    if (typeof op !== "string" || !isScriptOpName(op.trim())) {
+    const { op, ...args } = entry;
+    if (!isString(op) || !isScriptOpName(op.trim())) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${SCRIPT_OPS.join(", ")}.`
       };
@@ -741,7 +742,7 @@ function parseScriptOps(raw: unknown): ParsedScriptOp[] | ToolError {
 
 /** Resolve a speaker reference: id or name (case-insensitive). */
 function findSpeakerIndex(doc: ScriptDocument, target: unknown): number {
-  const raw = typeof target === "string" ? target.trim() : "";
+  const raw = isString(target) ? target.trim() : "";
   const byId = doc.cast.findIndex((speaker) => speaker.id === raw);
   if (byId >= 0) return byId;
   const name = raw.toLowerCase();
@@ -752,7 +753,7 @@ function findSpeakerIndex(doc: ScriptDocument, target: unknown): number {
 
 /** The section an op addresses: by id, else the last one, else a fresh one. */
 function resolveSection(doc: ScriptDocument, target: unknown) {
-  if (typeof target === "string" && target.trim() !== "") {
+  if (isNonBlankString(target)) {
     const found = doc.sections.find((section) => section.id === target.trim());
     if (!found) throw new Error(`No section matches "${target}".`);
     return found;
@@ -778,7 +779,7 @@ function parseVoiceBinding(
   const provider = args["provider"];
   const model = args["model"];
   const voice = args["voice"];
-  const given = [provider, model, voice].filter((v) => typeof v === "string");
+  const given = [provider, model, voice].filter((v) => isString(v));
   if (given.length === 0) return null;
   if (given.length !== 3) {
     throw new Error(
@@ -790,8 +791,8 @@ function parseVoiceBinding(
     model: String(model),
     voice: String(voice)
   };
-  if (args["settings"] && typeof args["settings"] === "object") {
-    binding.settings = args["settings"] as Record<string, unknown>;
+  if (isObjectLike(args["settings"])) {
+    binding.settings = args["settings"];
   }
   return binding;
 }
@@ -812,7 +813,7 @@ function applyScriptOp(
   switch (op) {
     case "add_speaker": {
       const name = args["name"];
-      if (typeof name !== "string" || name.trim() === "") {
+      if (!isNonBlankString(name)) {
         throw new Error("add_speaker needs a non-empty `name`.");
       }
       const speaker: ScriptSpeaker = {
@@ -820,7 +821,7 @@ function applyScriptOp(
         name: name.trim(),
         voice: parseVoiceBinding(args)
       };
-      if (typeof args["color"] === "string") speaker.color = args["color"];
+      if (isString(args["color"])) speaker.color = args["color"];
       doc.cast.push(speaker);
       return { id: speaker.id, name: speaker.name, has_voice: !!speaker.voice };
     }
@@ -870,14 +871,14 @@ function applyScriptOp(
         id: mintId("section", new Set(doc.sections.map((s) => s.id))),
         lines: []
       };
-      if (typeof args["title"] === "string") section.title = args["title"];
+      if (isString(args["title"])) section.title = args["title"];
       doc.sections.push(section);
       return { id: section.id, title: section.title };
     }
 
     case "add_line": {
       const text = args["text"];
-      if (typeof text !== "string" || text.trim() === "") {
+      if (!isNonBlankString(text)) {
         throw new Error("add_line needs a non-empty `text`.");
       }
       const section = resolveSection(doc, args["section"]);
@@ -896,19 +897,15 @@ function applyScriptOp(
         text,
         takes: []
       };
-      if (typeof args["direction"] === "string") {
+      if (isString(args["direction"])) {
         line.direction = args["direction"];
       }
-      if (typeof args["pause_after_ms"] === "number") {
+      if (isNumber(args["pause_after_ms"])) {
         line.pauseAfterMs = args["pause_after_ms"];
       }
-      const at =
-        typeof args["index"] === "number"
-          ? Math.max(
-              0,
-              Math.min(Math.trunc(args["index"]), section.lines.length)
-            )
-          : section.lines.length;
+      const at = isNumber(args["index"])
+        ? Math.max(0, Math.min(Math.trunc(args["index"]), section.lines.length))
+        : section.lines.length;
       section.lines.splice(at, 0, line);
       return { id: line.id, section_id: section.id, index: at };
     }
@@ -918,7 +915,7 @@ function applyScriptOp(
       const line = findLine(scriptLines(doc.sections), target);
       if (!line) throw new Error(`No line matches "${target}".`);
       const text = args["text"];
-      if (typeof text !== "string" || text.trim() === "") {
+      if (!isNonBlankString(text)) {
         throw new Error("set_line_text needs a non-empty `text`.");
       }
       // The takes stay: each carries the text it was voiced from, so rewriting
