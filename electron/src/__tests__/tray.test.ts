@@ -110,8 +110,8 @@ describe("createTray platform branching", () => {
 
   beforeEach(() => {
     originalPlatform = Object.getOwnPropertyDescriptor(process, "platform");
-    (electronMock.Tray as jest.Mock).mockClear();
-    (electronMock.app.setAppUserModelId as jest.Mock).mockClear();
+    jest.mocked(electronMock.Tray).mockClear();
+    jest.mocked(electronMock.app.setAppUserModelId).mockClear();
   });
 
   afterEach(() => {
@@ -126,7 +126,7 @@ describe("createTray platform branching", () => {
 
     await createTray();
 
-    const ctorArg = (electronMock.Tray as jest.Mock).mock.calls[0][0];
+    const ctorArg = jest.mocked(electronMock.Tray).mock.calls[0][0];
     expect(ctorArg).toMatch(/tray-icon\.png$/);
     expect(ctorArg).not.toMatch(/\.ico$/);
     expect(electronMock.app.setAppUserModelId).not.toHaveBeenCalled();
@@ -137,7 +137,7 @@ describe("createTray platform branching", () => {
 
     await createTray();
 
-    const ctorArg = (electronMock.Tray as jest.Mock).mock.calls[0][0];
+    const ctorArg = jest.mocked(electronMock.Tray).mock.calls[0][0];
     expect(ctorArg).toMatch(/tray-icon\.ico$/);
     expect(electronMock.app.setAppUserModelId).toHaveBeenCalledWith(
       "com.nodetool.desktop",
@@ -148,7 +148,7 @@ describe("createTray platform branching", () => {
     Object.defineProperty(process, "platform", { value: "darwin" });
 
     const first = await createTray();
-    const destroySpy = first.destroy as jest.Mock;
+    const destroySpy = jest.mocked(first.destroy);
 
     await createTray();
 

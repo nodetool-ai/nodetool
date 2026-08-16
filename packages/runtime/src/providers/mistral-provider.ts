@@ -101,6 +101,6 @@ export class MistralProvider extends OpenAICompatProvider {
       input
     });
 
-    return response.data.map((row) => row.embedding as number[]);
+    return response.data.map((row) => row.embedding);
   }
 }

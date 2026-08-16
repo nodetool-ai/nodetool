@@ -14,7 +14,7 @@ export function zodToJsonSchema(schema: ZodType) {
       target: "draft-2020-12",
       io: "input",
       unrepresentable: "any"
-    }) as JsonSchema;
+    });
     return json;
   } catch {
     return { type: "object" };

@@ -307,7 +307,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
       backend === "vulkan" ||
       backend === "cpu" ||
       backend === "auto"
-        ? (backend as NodeLlamaCppProvider["gpuBackend"])
+        ? backend
         : undefined;
   }
 

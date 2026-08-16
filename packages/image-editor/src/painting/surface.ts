@@ -102,6 +102,10 @@ interface CanvasDocumentHost {
 }
 
 const browserPaintSurfaceFactory: PaintSurfaceFactory = (width, height) => {
+  // SAFETY: the assertion declares `window` optional, so it claims nothing
+  // about this host; the `!host` branch below is what handles a runtime
+  // without one, and every `host.document.createElement` result flows back
+  // through the `PaintSurface` contract this module already checks.
   const host = (globalThis as { window?: CanvasDocumentHost }).window;
   if (!host) {
     throw new Error(

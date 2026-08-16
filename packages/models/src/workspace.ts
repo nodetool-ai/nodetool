@@ -61,7 +61,7 @@ export class Workspace extends DBModel {
       .from(workspaces)
       .where(and(eq(workspaces.user_id, userId), eq(workspaces.id, workspaceId)))
       .limit(1);
-    return row ? new Workspace(row as Record<string, unknown>) : null;
+    return row ? new Workspace(row) : null;
   }
 
   static async paginate(
@@ -76,7 +76,7 @@ export class Workspace extends DBModel {
       .where(eq(workspaces.user_id, userId))
       .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Workspace(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Workspace(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -90,7 +90,7 @@ export class Workspace extends DBModel {
       .from(workspaces)
       .where(and(eq(workspaces.user_id, userId), eq(workspaces.is_default, true)))
       .limit(1);
-    return row ? new Workspace(row as Record<string, unknown>) : null;
+    return row ? new Workspace(row) : null;
   }
 
   static async hasLinkedWorkflows(workspaceId: string): Promise<boolean> {
@@ -110,7 +110,7 @@ export class Workspace extends DBModel {
       .from(workspaces)
       .where(eq(workspaces.user_id, userId));
     for (const row of rows) {
-      const ws = new Workspace(row as Record<string, unknown>);
+      const ws = new Workspace(row);
       if (ws.is_default) {
         ws.is_default = false;
         await ws.save();

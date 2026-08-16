@@ -394,7 +394,7 @@ export class Graph {
       const resolvedPropertyTypes = resolved.propertyTypes ?? {};
       const allowedProperties = new Set(Object.keys(resolvedPropertyTypes));
       const mergedProperties = {
-        ...((node.properties as Record<string, unknown> | undefined) ?? {})
+        ...(node.properties ?? {})
       };
 
       const effectiveAllowUndefined =
@@ -1024,7 +1024,7 @@ export class Graph {
           typeof targetProp === "object" &&
           targetProp !== null &&
           "type" in targetProp &&
-          typeof (targetProp as { type: unknown }).type === "string"
+          typeof targetProp.type === "string"
         ) {
           targetType = (targetProp as { type: string }).type;
         }

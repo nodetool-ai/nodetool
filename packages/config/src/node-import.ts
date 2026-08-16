@@ -20,8 +20,7 @@ type ModuleNamespace = object;
 
 export const IS_NODE =
   typeof process !== "undefined" &&
-  typeof (process as { versions?: { node?: string } }).versions?.node ===
-    "string";
+  typeof process.versions?.node === "string";
 
 /**
  * `process` is undefined in browser/edge runtimes, where a bare `process.env`

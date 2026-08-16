@@ -699,7 +699,7 @@ export function buildTTSModels(
     const model: TTSModel = {
       id,
       name: nodeName(n),
-      provider: provider as TTSModel["provider"]
+      provider: provider
     };
     if (voices) {
       model.voices = voices;
@@ -809,7 +809,7 @@ export function buildMusicModels(
     seen.set(id, {
       id,
       name: nodeName(n),
-      provider: provider as MusicModel["provider"],
+      provider: provider,
       supportedTasks: ["text_to_music"]
     });
   }

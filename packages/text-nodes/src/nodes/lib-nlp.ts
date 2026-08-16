@@ -79,7 +79,7 @@ export class SentimentAnalysisLibNode extends BaseNode {
     const analyzer = new SentimentAnalyzer(language, stemmer, vocabularyType);
 
     const comparative = analyzer.getSentiment(tokens);
-    const vocabulary = analyzer.vocabulary as Record<string, number | string>;
+    const vocabulary = analyzer.vocabulary;
 
     const positiveWords: string[] = [];
     const negativeWords: string[] = [];
@@ -339,11 +339,8 @@ export class ClassifyTextLibNode extends BaseNode {
 
     classifier.train();
 
-    const predicted = classifier.classify(text) as string;
-    const classifications = classifier.getClassifications(text) as Array<{
-      label: string;
-      value: number;
-    }>;
+    const predicted = classifier.classify(text);
+    const classifications = classifier.getClassifications(text);
 
     return { output: predicted, classifications };
   }

@@ -91,7 +91,7 @@ export const threadMemorySaveSpec: CapabilitySpec = {
       kind: KIND_SCHEMA,
       resources: RESOURCES_SCHEMA
     },
-    required: ["content"] as string[]
+    required: ["content"]
   },
   category: "write",
   userMessage: (params) => {
@@ -115,7 +115,7 @@ export const threadMemoryListSpec: CapabilitySpec = {
         description: "Maximum memories to return (default 100, max 200)."
       }
     },
-    required: [] as string[]
+    required: []
   },
   category: "read",
   userMessage: () => "Recalling conversation memory"
@@ -138,7 +138,7 @@ export const threadMemoryUpdateSpec: CapabilitySpec = {
       kind: KIND_SCHEMA,
       resources: RESOURCES_SCHEMA
     },
-    required: ["memory_id"] as string[]
+    required: ["memory_id"]
   },
   category: "write",
   userMessage: () => "Updating conversation memory"
@@ -157,7 +157,7 @@ export const threadMemoryDeleteSpec: CapabilitySpec = {
         description: "Id of the memory to delete (from thread_memory_list)."
       }
     },
-    required: ["memory_id"] as string[]
+    required: ["memory_id"]
   },
   category: "write",
   userMessage: () => "Forgetting a memory"

@@ -84,7 +84,7 @@ export class WorkflowSyncer {
     workflowData: Record<string, unknown>
   ): Promise<number> {
     const models = extractModels(
-      workflowData as Parameters<typeof extractModels>[0]
+      workflowData
     );
 
     if (models.length === 0) {

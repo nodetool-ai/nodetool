@@ -279,8 +279,7 @@ export async function getMediaBackend(): Promise<MediaBackend> {
         return createNodeBackend(mod);
       }
       if (
-        typeof (globalThis as { OffscreenCanvas?: unknown }).OffscreenCanvas ===
-        "function"
+        typeof globalThis.OffscreenCanvas === "function"
       ) {
         return createBrowserBackend();
       }
@@ -315,7 +314,7 @@ export function setMediaBackend(backend: MediaBackend | null): void {
 export function asImageBytes(value: unknown, label: string): Uint8Array {
   if (value instanceof Uint8Array) return value;
   if (ArrayBuffer.isView(value)) {
-    const view = value as ArrayBufferView;
+    const view = value;
     return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   }
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
@@ -644,7 +643,7 @@ export function createImageBridge(): ImageBridge {
       return {
         width: image.width,
         height: image.height,
-        pixels: Uint8Array.from(data.data as ArrayLike<number>)
+        pixels: Uint8Array.from(data.data)
       };
     },
 
@@ -667,7 +666,7 @@ export function createImageBridge(): ImageBridge {
       const surface = backend.createSurface(image.width, image.height);
       surface.ctx.drawImage(image.handle, 0, 0);
       const data = surface.ctx.getImageData(0, 0, image.width, image.height);
-      const px = data.data as ArrayLike<number>;
+      const px = data.data;
       const count = image.width * image.height;
       const sum = [0, 0, 0, 0];
       const min = [255, 255, 255, 255];
@@ -1231,7 +1230,7 @@ export async function measureCanvasText(
   }
   const metrics = surface.ctx.measureText(text);
   const pick = (key: string): number => {
-    const value = (metrics as Record<string, unknown>)[key];
+    const value = metrics[key];
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
   };
   return {

@@ -99,7 +99,7 @@ export async function resolveTarget(
     source = "id";
   }
 
-  const rawGraph: DebugGraph = (raw.graph ?? (raw as DebugGraph)) as DebugGraph;
+  const rawGraph: DebugGraph = raw.graph ?? (raw as DebugGraph);
   if (!rawGraph?.nodes || !rawGraph?.edges) {
     throw new Error("Invalid workflow: missing nodes or edges");
   }

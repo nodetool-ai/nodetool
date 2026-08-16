@@ -42,7 +42,7 @@ export class Setting extends DBModel {
       .from(appSettings)
       .where(and(eq(appSettings.user_id, userId), eq(appSettings.key, key)))
       .limit(1);
-    return row ? new Setting(row as Record<string, unknown>) : null;
+    return row ? new Setting(row) : null;
   }
 
   /** Create or update a setting. Value is stored as plaintext. */
@@ -93,7 +93,7 @@ export class Setting extends DBModel {
       .select()
       .from(appSettings)
       .where(eq(appSettings.user_id, userId));
-    return rows.map((r: Record<string, unknown>) => new Setting(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new Setting(r));
   }
 
   /** Get the plaintext value. */

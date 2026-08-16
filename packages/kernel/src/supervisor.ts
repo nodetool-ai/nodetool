@@ -121,7 +121,7 @@ export function redactValue(
   if (typeof value === "string") return truncate(maskSecrets(value, secrets));
   // SAFETY: the `typeof` above proved which of the two it is.
   if (typeof value === "number" || typeof value === "boolean") {
-    return value as number | boolean;
+    return value;
   }
   if (depth >= 6) return MASK;
   if (Array.isArray(value)) {
@@ -187,7 +187,7 @@ export function failureSignature(err: unknown): string | undefined {
         ? e.statusCode
         : typeof (e.response as { status?: unknown } | undefined)?.status ===
             "number"
-          ? ((e.response as { status: number }).status as number)
+          ? (e.response as { status: number }).status
           : undefined;
   if (status !== undefined) return `http:${status}`;
 

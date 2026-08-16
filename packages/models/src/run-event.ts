@@ -157,7 +157,7 @@ export class RunEvent extends DBModel {
       .orderBy(asc(runEvents.seq))
       .limit(limit)
 
-    return rows.map((r: Record<string, unknown>) => new RunEvent(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new RunEvent(r));
   }
 
   /** Deserialize a RunEvent from a plain object (e.g. from JSON). */
@@ -192,7 +192,7 @@ export class RunEvent extends DBModel {
       .limit(1)
 
     return rows.length > 0
-      ? new RunEvent(rows[0] as Record<string, unknown>)
+      ? new RunEvent(rows[0])
       : null;
   }
 }

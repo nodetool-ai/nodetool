@@ -571,7 +571,7 @@ export function createCreativePipelineBridge(
         t.name === "ui_storyboard_update_shot"
       ) {
         const shot = (result as { shot?: { id?: string } })?.shot;
-        const seconds = (args as { durationSeconds?: unknown })
+        const seconds = args
           ?.durationSeconds;
         if (shot?.id && typeof seconds === "number") {
           shotSeconds.set(shot.id, seconds);

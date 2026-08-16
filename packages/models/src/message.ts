@@ -111,7 +111,7 @@ export class Message extends DBModel {
       .orderBy(reverse ? desc(messages.created_at) : asc(messages.created_at))
       .limit(limit + 1)
 
-    const items = rows.map((r: Record<string, unknown>) => new Message(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Message(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

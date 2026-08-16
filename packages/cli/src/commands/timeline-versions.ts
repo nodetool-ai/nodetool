@@ -178,7 +178,7 @@ async function defaultStore(): Promise<TimelineVersionStore> {
 
   return {
     loadSequence: async (id) =>
-      (await TimelineSequence.findById(id)) as TimelineSequenceRow | null,
+      (await TimelineSequence.findById(id)),
     listVersions: async (timelineId, opts) =>
       (await TimelineSequenceVersion.listForTimeline(
         timelineId,
@@ -198,7 +198,7 @@ async function defaultStore(): Promise<TimelineVersionStore> {
         width: version.width,
         height: version.height,
         duration_ms: version.duration_ms
-      })) as TimelineSequenceRow | null,
+      })),
     deleteVersion: async (timelineId, version) => {
       const row = await TimelineSequenceVersion.findByVersion(
         timelineId,

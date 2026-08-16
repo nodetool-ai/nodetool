@@ -30,7 +30,7 @@ async function toMessageResponse(
     role: msg.role,
     name: msg.name ?? null,
     content: await resolveContentUrls(
-      msg.content as string | unknown[] | Record<string, unknown> | null,
+      msg.content,
       msg.user_id
     ),
     tool_calls: msg.tool_calls,

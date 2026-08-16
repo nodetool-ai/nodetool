@@ -142,7 +142,7 @@ describe("Watchdog constructor: healthUrl parsing", () => {
 
 describe("Watchdog: utilityProcess.fork option contract (fork mode)", () => {
   beforeEach(() => {
-    (electronMock.utilityProcess.fork as jest.Mock).mockClear();
+    jest.mocked(electronMock.utilityProcess.fork).mockClear();
   });
 
   test("forks with stdio:'pipe', cwd, env, and serviceName", async () => {
@@ -191,7 +191,7 @@ describe("Watchdog: utilityProcess.fork option contract (fork mode)", () => {
 
 describe("Watchdog: child_process.spawn option contract (spawn mode)", () => {
   beforeEach(() => {
-    (spawn as jest.Mock).mockReset();
+    jest.mocked(spawn).mockReset();
   });
 
   test("spawns with stdio:'pipe', shell:false, detached:false, windowsHide:true", async () => {
@@ -202,7 +202,7 @@ describe("Watchdog: child_process.spawn option contract (spawn mode)", () => {
       killed: false,
       kill: jest.fn(),
     });
-    (spawn as jest.Mock).mockReturnValue(proc);
+    jest.mocked(spawn).mockReturnValue(proc);
 
     const wd = new Watchdog({
       name: "llama-server",
@@ -233,7 +233,7 @@ describe("Watchdog: child_process.spawn option contract (spawn mode)", () => {
   });
 
   test("rejects with a wrapped error if spawn() throws synchronously", async () => {
-    (spawn as jest.Mock).mockImplementation(() => {
+    jest.mocked(spawn).mockImplementation(() => {
       throw new Error("EACCES");
     });
 
@@ -260,7 +260,7 @@ describe("Watchdog: graceful stop sequence", () => {
       stderr: new EventEmitter(),
       kill: jest.fn().mockReturnValue(true),
     });
-    (electronMock.utilityProcess.fork as jest.Mock).mockReturnValueOnce(utilProc);
+    jest.mocked(electronMock.utilityProcess.fork).mockReturnValueOnce(utilProc);
 
     const wd = new Watchdog({
       name: "nodetool",
@@ -290,7 +290,7 @@ describe("Watchdog: graceful stop sequence", () => {
       killed: false,
       kill: jest.fn(),
     });
-    (spawn as jest.Mock).mockReturnValue(child);
+    jest.mocked(spawn).mockReturnValue(child);
 
     const wd = new Watchdog({
       name: "x",
@@ -326,7 +326,7 @@ describe("Watchdog: output handler delegation", () => {
       killed: false,
       kill: jest.fn(),
     });
-    (spawn as jest.Mock).mockReturnValue(proc);
+    jest.mocked(spawn).mockReturnValue(proc);
 
     const lines: string[] = [];
     const wd = new Watchdog({

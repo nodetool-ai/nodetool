@@ -1313,7 +1313,7 @@ const todoWrite: CapabilityExport = {
         acc[t.status] += 1;
         return acc;
       },
-      { pending: 0, in_progress: 0, completed: 0 } as Record<TodoStatus, number>
+      { pending: 0, in_progress: 0, completed: 0 }
     );
 
     return {

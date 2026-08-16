@@ -38,7 +38,7 @@ export function errorFormatter({
   const cause = error.cause as TRPCErrorCause | undefined;
   const zodError =
     error.cause instanceof ZodError
-      ? (error.cause.flatten().fieldErrors as Record<string, string[]>)
+      ? error.cause.flatten().fieldErrors
       : null;
   return {
     ...shape,

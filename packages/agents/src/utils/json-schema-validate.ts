@@ -114,7 +114,7 @@ function validate(
   const types: TypeName[] = Array.isArray(declared)
     ? (declared.filter((t): t is TypeName =>
         (TYPE_NAMES as readonly string[]).includes(t as string)
-      ) as TypeName[])
+      ))
     : typeof declared === "string" &&
         (TYPE_NAMES as readonly string[]).includes(declared)
       ? [declared as TypeName]

@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
-import type { MediaRefValue } from "@nodetool-ai/runtime";
 import { getElevenLabsApiKey } from "../elevenlabs-base.js";
 
 export class SpeechToTextNode extends BaseNode {
@@ -123,7 +122,7 @@ export class SpeechToTextNode extends BaseNode {
     // `data` (raw base64 or `data:` URI), `asset://<id>` / `asset_id`, package
     // and storage URIs, local files, and local http(s) — routing each through
     // the appropriate guarded path rather than fetching arbitrary URLs.
-    const resolved = await loadMediaRefBytes(audio as MediaRefValue, context);
+    const resolved = await loadMediaRefBytes(audio, context);
     if (!resolved) {
       throw new Error("Failed to resolve audio input for transcription");
     }

@@ -99,10 +99,7 @@ export function resolvePythonNodeExecutor(
   const meta = bridge
     .getNodeMetadata()
     .find((m) => m.node_type === node.type);
-  const props = (node.properties ?? node.data ?? {}) as Record<
-    string,
-    unknown
-  >;
+  const props = node.properties ?? node.data ?? {};
   const outputTypes = Object.fromEntries(
     (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
   );

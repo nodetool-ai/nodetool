@@ -353,7 +353,7 @@ function collectModelRefs(
   }
   if (value === null || typeof value !== "object") return;
   if (isModelRef(value)) {
-    out.push({ path, ref: value as Record<string, unknown> });
+    out.push({ path, ref: value });
     return;
   }
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {

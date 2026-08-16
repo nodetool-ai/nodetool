@@ -126,7 +126,7 @@ export async function runOnServer(
   supervisor?.handle.close();
   const timedOut = session.cancelReason === "timeout";
 
-  const messages = (result.messages ?? []) as ProcessingMessage[];
+  const messages = result.messages ?? [];
   const summary = collectExecutionSummary(messages);
   // The runner's RunResult status is authoritative; fall back to the message
   // stream's view if it's missing.

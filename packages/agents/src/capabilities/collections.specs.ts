@@ -39,7 +39,7 @@ export const listCollectionsSpec: CapabilitySpec = {
   inputSchema: {
     type: "object",
     properties: {},
-    required: [] as string[]
+    required: []
   },
   category: "read",
   userMessage: () => "Listing knowledge collections"

@@ -61,7 +61,7 @@ export async function runSingleNode(
     type: typeMetaToString(o.type)
   }));
 
-  if ((cls as { isStreamingInput?: boolean }).isStreamingInput) {
+  if (cls.isStreamingInput) {
     throw new Error(
       `Node "${nodeType}" is a streaming-input node — it consumes a live input stream and must run inside a graph. Use \`nodetool debug\` instead.`
     );

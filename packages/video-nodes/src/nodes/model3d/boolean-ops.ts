@@ -22,7 +22,7 @@ let manifoldPromise: Promise<ManifoldApi> | null = null;
 
 async function getManifoldApi(): Promise<ManifoldApi> {
   if (!manifoldPromise) {
-    manifoldPromise = (ManifoldModule() as Promise<ManifoldApi>).then((wasm) => {
+    manifoldPromise = ManifoldModule().then((wasm) => {
       wasm.setup();
       return wasm;
     });

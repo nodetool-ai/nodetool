@@ -35,7 +35,7 @@ export async function resolveDocumentBytes(
   ref: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<Buffer | null> {
-  const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
+  const bytes = await loadMediaRefBytes(ref, context);
   if (bytes) {
     return Buffer.from(bytes);
   }

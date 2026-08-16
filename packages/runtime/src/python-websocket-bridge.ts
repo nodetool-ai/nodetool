@@ -476,7 +476,7 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     if (data instanceof ArrayBuffer) return new Uint8Array(data);
     if (Array.isArray(data)) return Buffer.concat(data);
     // Buffer is a Uint8Array subclass; msgpack.decode accepts it directly.
-    return data as Uint8Array;
+    return data;
   }
 
   // ── Send ────────────────────────────────────────────────────────────

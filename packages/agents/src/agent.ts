@@ -19,7 +19,6 @@ const log = createLogger("nodetool.agents.agent");
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   ProcessingMessage,
-  StepResult,
   LogUpdate,
   PlanningUpdate,
   TaskUpdate,
@@ -1152,7 +1151,7 @@ export class Agent {
 
     for await (const item of run) {
       if (item.type === "step_result") {
-        const sr = item as StepResult;
+        const sr = item;
         if (sr.is_task_result) {
           this.results = sr.result;
         }
@@ -1304,7 +1303,7 @@ export class Agent {
 
     for await (const item of executor.executeTasks()) {
       if (item.type === "step_result") {
-        const stepResult = item as StepResult;
+        const stepResult = item;
         if (stepResult.is_task_result) {
           log.info("Setting final results", {
             objective: this.objective.slice(0, 50)

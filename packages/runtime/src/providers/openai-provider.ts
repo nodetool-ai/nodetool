@@ -56,10 +56,8 @@ import type {
   ImageToVideoParams,
   LanguageModel,
   Message,
-  MessageAudioContent,
   MessageContent,
   MessageImageContent,
-  MessageTextContent,
   ProviderId,
   ProviderSession,
   ProviderStreamItem,
@@ -175,7 +173,7 @@ function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   if (
     typeof value === "object" &&
     "toJSON" in value &&
-    typeof (value as { toJSON: unknown }).toJSON === "function"
+    typeof value.toJSON === "function"
   ) {
     // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
     // value and, by that contract, produces a JSON-representable result.
@@ -867,12 +865,12 @@ export class OpenAIProvider extends BaseProvider {
     content: MessageContent
   ): Promise<Record<string, unknown>> {
     if (content.type === "text") {
-      const c = content as MessageTextContent;
+      const c = content;
       return { type: "text", text: c.text };
     }
 
     if (content.type === "audio") {
-      const c = content as MessageAudioContent;
+      const c = content;
       let bytes: Uint8Array;
       let mime = c.audio.mimeType;
       if (c.audio.uri) {
@@ -960,7 +958,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       const parts = await Promise.all(
-        (message.content as MessageContent[]).map((part) =>
+        message.content.map((part) =>
           this.messageContentToOpenAIContentPart(part)
         )
       );
@@ -2270,7 +2268,7 @@ export class OpenAIProvider extends BaseProvider {
 
     const video = await this.getClient().videos.create(
       {
-        model: params.model.id as OpenAI.Videos.VideoModel,
+        model: params.model.id,
         prompt: params.prompt ?? "",
         input_reference: await toFile(Buffer.from(resized), "input_image.png", {
           type: "image/png"
@@ -2354,7 +2352,7 @@ export class OpenAIProvider extends BaseProvider {
     }
     const response = await this.getClient().embeddings.create(request);
 
-    return response.data.map((row) => row.embedding as number[]);
+    return response.data.map((row) => row.embedding);
   }
 
   isContextLengthError(error: unknown): boolean {

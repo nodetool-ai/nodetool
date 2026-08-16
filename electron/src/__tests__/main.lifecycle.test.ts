@@ -103,13 +103,13 @@ describe("main.ts lifecycle wiring", () => {
     process.env.NODE_ENV = "test";
 
     // Capture handler registrations *before* main.ts runs.
-    appOn = electronMock.app.on as jest.Mock;
+    appOn = jest.mocked(electronMock.app.on);
     appOn.mockImplementation((event: string, handler: EventHandler) => {
       appHandlers[event] = handler;
       return electronMock.app;
     });
 
-    ipcHandle = electronMock.ipcMain.handle as jest.Mock;
+    ipcHandle = jest.mocked(electronMock.ipcMain.handle);
     ipcHandle.mockImplementation((channel: string, handler: EventHandler) => {
       ipcHandlers[channel] = handler;
     });
@@ -150,7 +150,7 @@ describe("main.ts lifecycle wiring", () => {
   describe("before-quit handler", () => {
     test("first invocation calls stopServer; subsequent invocations do not", async () => {
       const { stopServer } = require("../server");
-      (stopServer as jest.Mock).mockClear();
+      jest.mocked(stopServer).mockClear();
 
       await appHandlers["before-quit"]({ preventDefault: jest.fn() });
       expect(stopServer).toHaveBeenCalledTimes(1);
@@ -164,11 +164,11 @@ describe("main.ts lifecycle wiring", () => {
   describe("window-all-closed handler", () => {
     test("'quit' setting bypasses dialog and calls app.quit", async () => {
       const { readSettingsAsync } = require("../settings");
-      (readSettingsAsync as jest.Mock).mockResolvedValueOnce({
+      jest.mocked(readSettingsAsync).mockResolvedValueOnce({
         windowCloseAction: "quit",
       });
-      (electronMock.app.quit as jest.Mock).mockClear();
-      (electronMock.dialog.showMessageBox as jest.Mock).mockClear();
+      jest.mocked(electronMock.app.quit).mockClear();
+      jest.mocked(electronMock.dialog.showMessageBox).mockClear();
 
       await appHandlers["window-all-closed"]();
       expect(electronMock.app.quit).toHaveBeenCalledTimes(1);
@@ -177,11 +177,11 @@ describe("main.ts lifecycle wiring", () => {
 
     test("'background' setting keeps app running (no quit, no dialog)", async () => {
       const { readSettingsAsync } = require("../settings");
-      (readSettingsAsync as jest.Mock).mockResolvedValueOnce({
+      jest.mocked(readSettingsAsync).mockResolvedValueOnce({
         windowCloseAction: "background",
       });
-      (electronMock.app.quit as jest.Mock).mockClear();
-      (electronMock.dialog.showMessageBox as jest.Mock).mockClear();
+      jest.mocked(electronMock.app.quit).mockClear();
+      jest.mocked(electronMock.dialog.showMessageBox).mockClear();
 
       await appHandlers["window-all-closed"]();
       expect(electronMock.app.quit).not.toHaveBeenCalled();
@@ -190,10 +190,10 @@ describe("main.ts lifecycle wiring", () => {
 
     test("'ask' setting opens a question dialog", async () => {
       const { readSettingsAsync } = require("../settings");
-      (readSettingsAsync as jest.Mock).mockResolvedValueOnce({
+      jest.mocked(readSettingsAsync).mockResolvedValueOnce({
         windowCloseAction: "ask",
       });
-      (electronMock.dialog.showMessageBox as jest.Mock)
+      jest.mocked(electronMock.dialog.showMessageBox)
         .mockClear()
         .mockResolvedValueOnce({ response: 1, checkboxChecked: false });
 
@@ -211,9 +211,9 @@ describe("main.ts lifecycle wiring", () => {
     test("unregisters globalShortcut and tears down tray + log stream", () => {
       const { closeLogStream } = require("../logger");
       const { cleanupTrayEvents } = require("../tray");
-      (electronMock.globalShortcut.unregisterAll as jest.Mock).mockClear();
-      (cleanupTrayEvents as jest.Mock).mockClear();
-      (closeLogStream as jest.Mock).mockClear();
+      jest.mocked(electronMock.globalShortcut.unregisterAll).mockClear();
+      jest.mocked(cleanupTrayEvents).mockClear();
+      jest.mocked(closeLogStream).mockClear();
 
       appHandlers["will-quit"]();
 
@@ -226,7 +226,7 @@ describe("main.ts lifecycle wiring", () => {
   describe("activate handler", () => {
     test("delegates to handleActivation from window module", () => {
       const { handleActivation } = require("../window");
-      (handleActivation as jest.Mock).mockClear();
+      jest.mocked(handleActivation).mockClear();
 
       appHandlers["activate"]();
 
@@ -236,7 +236,7 @@ describe("main.ts lifecycle wiring", () => {
 
   describe("update-installed IPC handler", () => {
     test("opens a 'Restart Now' dialog", async () => {
-      (electronMock.dialog.showMessageBox as jest.Mock)
+      jest.mocked(electronMock.dialog.showMessageBox)
         .mockClear()
         .mockResolvedValueOnce({ response: 0 });
 

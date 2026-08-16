@@ -60,11 +60,6 @@ interface WebhookBody {
   json?: unknown;
 }
 
-interface WebhookRegistrationConfig {
-  webhook_token?: unknown;
-  webhook_secret_hash?: unknown;
-}
-
 function hashSecret(secret: string): string {
   return createHash("sha256").update(secret).digest("hex");
 }
@@ -87,8 +82,8 @@ async function findByToken(token: string): Promise<TriggerRegistration | null> {
     where: (t, { eq }) => eq(t.kind, "webhook")
   });
   for (const row of rows) {
-    const reg = new TriggerRegistration(row as Record<string, unknown>);
-    const config = (reg.config_json ?? {}) as WebhookRegistrationConfig;
+    const reg = new TriggerRegistration(row);
+    const config = reg.config_json ?? {};
     if (config.webhook_token === token) return reg;
   }
   return null;
@@ -166,8 +161,7 @@ export function createWebhookRoute(
           return reply.status(404).send({ error: "Unknown webhook token" });
         }
 
-        const config = (registration.config_json ??
-          {}) as WebhookRegistrationConfig;
+        const config = registration.config_json ?? {};
         const secretHash =
           typeof config.webhook_secret_hash === "string"
             ? config.webhook_secret_hash
@@ -198,7 +192,7 @@ export function createWebhookRoute(
           inputId,
           payload: {
             body: body.json ?? body.raw,
-            headers: sanitizeHeaders(req.headers as Record<string, unknown>),
+            headers: sanitizeHeaders(req.headers),
             query: req.query ?? {},
             method: req.method
           }

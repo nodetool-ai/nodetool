@@ -1,5 +1,4 @@
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -7,7 +6,7 @@ const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
 );
 const randomUUID = (): string => {
   if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
-  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  const g = globalThis;
   if (g.crypto?.randomUUID) return g.crypto.randomUUID();
   return `id_${Date.now().toString(36)}_${Math.random()
     .toString(36)
@@ -306,7 +305,7 @@ export class FakeProvider extends BaseProvider {
           content: chunkText,
           done,
           content_type: "text"
-        } as Chunk;
+        };
       }
     } else {
       yield {
@@ -314,7 +313,7 @@ export class FakeProvider extends BaseProvider {
         content: response,
         done: true,
         content_type: "text"
-      } as Chunk;
+      };
     }
   }
 

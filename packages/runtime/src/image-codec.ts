@@ -99,7 +99,7 @@ export async function encodeRawRgbaToPng(
 export async function encodeRawImageRef<T>(ref: T): Promise<T | ImageRef> {
   if (!isRawRgbaImage(ref)) return ref;
   const png = await encodeRawRgbaToPng(ref.data, ref.width, ref.height);
-  return { ...(ref as ImageRef), data: png, mimeType: "image/png" };
+  return { ...ref, data: png, mimeType: "image/png" };
 }
 
 /** A crop box in source-image pixels. */

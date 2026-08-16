@@ -34,7 +34,7 @@ export function registerReliabilityCommands(program: Command): void {
       "Run only this surface (repeatable) — overrides the journey's own surfaces list; " +
         "the kernel oracle is always included",
       (value: string, previous: string[] = []) => [...previous, value],
-      [] as string[]
+      []
     )
     .option(
       "--faults <name>",
@@ -43,7 +43,7 @@ export function registerReliabilityCommands(program: Command): void {
         "malformed-sse/slow-drip/cost-omission) are implemented (task D1); ws/bridge/host/" +
         "client fault names are recognized but report as unimplemented until D2/D3 land",
       (value: string, previous: string[] = []) => [...previous, value],
-      [] as string[]
+      []
     )
     .option("--diff", "Print the full per-channel stream diff for any diverging surface")
     .option("--json", "Print the full CompareReport as JSON instead of the human-readable summary")

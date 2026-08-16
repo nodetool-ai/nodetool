@@ -480,11 +480,11 @@ const voiceScriptLines: CapabilityExport = {
     const transcribe = params["transcribe"] !== false;
     const asrProvider =
       typeof params["asr_provider"] === "string"
-        ? (params["asr_provider"] as string)
+        ? params["asr_provider"]
         : DEFAULT_ASR_PROVIDER;
     const asrModel =
       typeof params["asr_model"] === "string"
-        ? (params["asr_model"] as string)
+        ? params["asr_model"]
         : DEFAULT_ASR_MODEL;
 
     const results = await mapWithConcurrency(
@@ -604,7 +604,7 @@ const assembleScriptTimeline: CapabilityExport = {
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
       typeof params["name"] === "string" && params["name"]
-        ? (params["name"] as string)
+        ? params["name"]
         : row.name;
 
     const existing = row.timeline_id

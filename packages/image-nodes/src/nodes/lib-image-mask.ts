@@ -30,7 +30,7 @@ class MaskApplyNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       maskApplyV1,
       { invert: num(props.invert, 0) },
@@ -54,7 +54,7 @@ class MaskFromImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       maskFromImageV1,
       { mode: num(props.mode, 1), invert: num(props.invert, 0) },
@@ -77,7 +77,7 @@ class MaskInvertNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       maskInvertV1,
       { unused: 0 },

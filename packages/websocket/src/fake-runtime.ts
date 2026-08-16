@@ -109,7 +109,7 @@ export class FakeProvider extends ScriptedProvider {
   ): AsyncGenerator<ProviderStreamItem> {
     for await (const item of super.generateMessages(args)) {
       if (typeof item === "object" && item !== null && "type" in item) {
-        const type = (item as { type?: unknown }).type;
+        const type = item.type;
         if (type === "chunk") assertValidFakeChunk(item);
       }
       yield item;
@@ -268,7 +268,7 @@ export function fakeExecutor(meta: FakeMeta | undefined): NodeExecutor {
       }
       return result;
     }
-  } as NodeExecutor;
+  };
 }
 
 /** True when a node type should be faked rather than executed for real. */
@@ -307,7 +307,7 @@ export function createFakeExecutorResolver(
     async process(inputs: Record<string, unknown>) {
       return inputs;
     }
-  } as NodeExecutor;
+  };
 
   return (node) => {
     const registry = getRegistry();
@@ -317,7 +317,7 @@ export function createFakeExecutorResolver(
     }
     if (isStructural(node.type)) return registry.resolve(node);
 
-    const meta = registry.getMetadata(node.type) as FakeMeta | undefined;
+    const meta = registry.getMetadata(node.type);
     const fake = shouldFakeNode(node.type, meta);
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
     return fake ? fakeExecutor(meta) : registry.resolve(node);

@@ -50,7 +50,7 @@ const PORT_TYPE_SCHEMA = {
       items: { type: "object" as const }
     }
   },
-  required: ["type"] as string[]
+  required: ["type"]
 };
 
 const SUBMIT_CODE_INPUT_SCHEMA = {
@@ -88,7 +88,7 @@ const SUBMIT_CODE_INPUT_SCHEMA = {
           description: { type: "string" as const },
           required: { type: "boolean" as const }
         },
-        required: ["name", "type"] as string[]
+        required: ["name", "type"]
       }
     },
     outputs: {
@@ -106,11 +106,11 @@ const SUBMIT_CODE_INPUT_SCHEMA = {
           type: PORT_TYPE_SCHEMA,
           description: { type: "string" as const }
         },
-        required: ["name", "type"] as string[]
+        required: ["name", "type"]
       }
     }
   },
-  required: ["title", "summary", "code", "inputs", "outputs"] as string[]
+  required: ["title", "summary", "code", "inputs", "outputs"]
 };
 
 export interface SubmitCodeToolOptions {
@@ -225,7 +225,7 @@ export class SubmitCodeTool extends Tool {
   ): Promise<SubmitCodeResult> {
     this.rounds++;
     this.lastCode =
-      typeof params["code"] === "string" ? (params["code"] as string) : null;
+      typeof params["code"] === "string" ? params["code"] : null;
     this.lastErrors = [];
 
     const parsed = codeGenSubmission.safeParse(params);
