@@ -72,6 +72,8 @@ interface DocumentRow {
   document: string;
   revision: number;
   updated_at: string;
+  /** From the base model every document row extends. */
+  delete(): Promise<void>;
 }
 
 const toSummary = (kind: ResourceKind, row: DocumentRow): ResourceSummary => ({
@@ -159,10 +161,7 @@ function documentProvider(
     async delete(userId, id) {
       const row = await owned(userId, id);
       if (!row) return false;
-      // SAFETY: every document row here extends the base model, which
-      // defines `delete()`; only the generic `model` binding loses it.
-      const remove = Reflect.get(row, "delete") as () => Promise<void>;
-      await remove.call(row);
+      await row.delete();
       return true;
     }
   };

@@ -668,9 +668,7 @@ const listProviderModels: CapabilityExport = {
       return { success: false, error: `Unknown provider: ${providerId}` };
     }
 
-    if (
-      typeof Reflect.get(provider, "getAvailableLanguageModels") !== "function"
-    ) {
+    if (typeof provider.getAvailableLanguageModels !== "function") {
       return {
         success: false,
         error: `Provider ${providerId} does not support model listing`

@@ -169,11 +169,7 @@ async function uploadBytesToReplicate(
     type: contentType
   });
   const file = await client.files.create(blob, { filename });
-  // SAFETY: the files API answers with a record whose `urls` map holds the
-  // download links keyed by relation name; `get` is the one read below.
-  const fileUrl = Reflect.get(file, "urls") as
-    | Record<string, string>
-    | undefined;
+  const fileUrl = file.urls;
   if (fileUrl?.get) return fileUrl.get;
   throw new Error("No URL in upload response");
 }
