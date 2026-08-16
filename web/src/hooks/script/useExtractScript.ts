@@ -68,7 +68,8 @@ export const useExtractScript = (): UseExtractScriptResult => {
           title: name,
           cast: extracted.cast,
           sections: extracted.sections,
-          timelineId: null
+          timelineId: null,
+          storyboardId: null
         });
         useScriptStore.getState().setServerRevision(created.id, created.updatedAt);
         useWorkspaceTabsStore.getState().openTab({

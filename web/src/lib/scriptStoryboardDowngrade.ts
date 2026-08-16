@@ -15,6 +15,7 @@ import { trpcClient } from "../trpc/client";
 import { useScriptStore } from "../stores/script/ScriptStore";
 import { useStoryboardStore } from "../stores/storyboard/StoryboardStore";
 import { unlinkedScreenplay, unlinkedShots } from "./scriptStoryboardLink";
+import { writeScriptStoryboardId } from "./scriptStoryboardBackpointer";
 
 type StoryboardDocument = Awaited<
   ReturnType<typeof trpcClient.storyboards.get.query>
@@ -68,10 +69,39 @@ export async function downgradeBoardsLinkedToScript(
 }
 
 /**
- * Forget the deleted board on the script side. The persisted back-pointer
- * (`scripts.storyboard_id`) is a separate change, so today this clears the
- * session-scoped link the script editor navigates by.
+ * Clear the deleted board from every script that points at it, in the store and
+ * on the server. Returns the ids cleared. Never throws: a script whose pointer
+ * survives the delete reads as linked to a board that is gone, which the header
+ * reports rather than breaking on.
  */
-export function downgradeScriptsLinkedToBoard(storyboardId: string): void {
+export async function downgradeScriptsLinkedToBoard(
+  storyboardId: string
+): Promise<string[]> {
   useScriptStore.getState().clearStoryboardLink(storyboardId);
+
+  const cleared: string[] = [];
+  let scripts: Array<{ id: string }> = [];
+  try {
+    scripts = await trpcClient.scripts.list.query({});
+  } catch (error) {
+    console.error("Could not list scripts to clear the deleted board", error);
+    return cleared;
+  }
+
+  for (const item of scripts) {
+    try {
+      const script = await trpcClient.scripts.get.query({ id: item.id });
+      if (script.storyboardId !== storyboardId) {
+        continue;
+      }
+      await writeScriptStoryboardId(item.id, null);
+      cleared.push(item.id);
+    } catch (error) {
+      console.error(
+        `Could not clear the deleted board from script ${item.id}`,
+        error
+      );
+    }
+  }
+  return cleared;
 }

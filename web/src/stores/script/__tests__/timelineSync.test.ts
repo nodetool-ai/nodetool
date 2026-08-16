@@ -57,7 +57,8 @@ const seedScript = (timelineId: string | null): void => {
     title: "S",
     cast: [],
     sections: [],
-    timelineId
+    timelineId,
+    storyboardId: null
   });
 };
 
@@ -80,7 +81,8 @@ describe("syncLineClipToTimeline", () => {
           { id: "line-2", text: "Two", takes: [], currentTakeId: null }
         ] }
       ],
-      timelineId: "tl-1"
+      timelineId: "tl-1",
+      storyboardId: null
     });
     getQuery.mockResolvedValue({
       id: "tl-1",

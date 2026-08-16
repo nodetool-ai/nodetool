@@ -86,6 +86,12 @@ export interface ScriptDraft {
   sections: ScriptSection[];
   /** Persisted timeline sequence this script was assembled into, if any. */
   timelineId: string | null;
+  /**
+   * Persisted storyboard this script is linked to (`scripts.storyboard_id`).
+   * The board owns the link (`Screenplay.script_id`); this is the back-pointer
+   * the script editor navigates by, so it survives a reload.
+   */
+  storyboardId: string | null;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -115,13 +121,6 @@ interface ScriptStoreState {
   saveStatus: Record<string, ScriptSaveStatus>;
   /** Line ids currently generating a take — transient, not persisted. */
   voicingLineIds: Record<string, true>;
-  /**
-   * Storyboard this script is linked to, per script id. The board owns the
-   * link (`Screenplay.script_id`); this is the back-pointer the script editor
-   * navigates by. It is **not** persisted — the `scripts.storyboard_id` column
-   * is a separate change — so it holds for the session that made the link.
-   */
-  storyboardLinks: Record<string, string>;
   /** Per-script undo/redo checkpoints of the {@link ScriptDraft} document. */
   history: HistoryMap<ScriptDraft>;
 
@@ -229,6 +228,7 @@ const emptyScript = (id: string): ScriptDraft => ({
   cast: [],
   sections: [],
   timelineId: null,
+  storyboardId: null,
   updatedAt: Date.now()
 });
 
@@ -300,7 +300,6 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
   serverRevisions: {},
   saveStatus: {},
   voicingLineIds: {},
-  storyboardLinks: {},
   history: {},
 
   undo: (scriptId) =>
@@ -412,32 +411,33 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
     ),
 
   setStoryboardLink: (scriptId, storyboardId) =>
-    set((state) => {
-      if ((state.storyboardLinks[scriptId] ?? null) === storyboardId) {
-        return state;
-      }
-      const storyboardLinks = { ...state.storyboardLinks };
-      if (storyboardId === null) {
-        delete storyboardLinks[scriptId];
-      } else {
-        storyboardLinks[scriptId] = storyboardId;
-      }
-      return { storyboardLinks };
-    }),
+    set((state) =>
+      withScript(
+        state,
+        scriptId,
+        (s) => (s.storyboardId === storyboardId ? s : { ...s, storyboardId }),
+        // A link handoff isn't an authoring edit — keep it out of undo.
+        false
+      )
+    ),
 
   clearStoryboardLink: (storyboardId) =>
     set((state) => {
-      const linked = Object.entries(state.storyboardLinks).filter(
-        ([, boardId]) => boardId === storyboardId
+      const linked = Object.values(state.scripts).filter(
+        (script) => script.storyboardId === storyboardId
       );
       if (linked.length === 0) {
         return state;
       }
-      const storyboardLinks = { ...state.storyboardLinks };
-      for (const [scriptId] of linked) {
-        delete storyboardLinks[scriptId];
+      const scripts = { ...state.scripts };
+      for (const script of linked) {
+        scripts[script.id] = {
+          ...script,
+          storyboardId: null,
+          updatedAt: Date.now()
+        };
       }
-      return { storyboardLinks };
+      return { scripts };
     }),
 
   addSpeaker: (scriptId, speaker) =>
@@ -774,13 +774,9 @@ export const useScript = (
 export const useScriptCast = (scriptId: string): ScriptSpeaker[] =>
   useScriptStore((state) => state.scripts[scriptId]?.cast ?? EMPTY_CAST);
 
-/**
- * Reactive storyboard back-pointer for a script, or null when none was linked
- * in this session. See {@link ScriptStoreState.storyboardLinks} on why it does
- * not survive a reload.
- */
+/** Reactive storyboard back-pointer for a script, or null when unlinked. */
 export const useScriptStoryboardLink = (scriptId: string): string | null =>
-  useScriptStore((state) => state.storyboardLinks[scriptId] ?? null);
+  useScriptStore((state) => state.scripts[scriptId]?.storyboardId ?? null);
 
 /** Reactive title for a script — see {@link useScriptCast} on why it's narrow. */
 export const useScriptTitle = (scriptId: string): string =>

@@ -62,7 +62,8 @@ beforeEach(() => {
     title: "Perf",
     cast: [],
     sections: [makeSection("a", 6), makeSection("b", 6)],
-    timelineId: null
+    timelineId: null,
+    storyboardId: null
   });
   rowRenders.length = 0;
 });

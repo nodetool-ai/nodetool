@@ -38,6 +38,7 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import { stampScriptStoryboardId } from "./script-link.js";
 import {
   listStoryboardsSpec,
   getStoryboardSpec,
@@ -1301,6 +1302,22 @@ const extractScriptFromStoryboard: CapabilityExport = {
         }
       );
       if (!saved) continue;
+
+      // Last write, and only now that the board carries the forward link: the
+      // back-pointer never names a board that failed to link (design §7).
+      const stamped = await stampScriptStoryboardId(
+        scriptId,
+        current.id,
+        context.userId
+      );
+      if (isError(stamped)) {
+        return {
+          error: `Storyboard ${current.id} links script ${scriptId}, but the script's back-pointer could not be written: ${stamped.error} The board is valid; the script reads as unlinked until this is retried with relink: true.`,
+          storyboard_id: current.id,
+          script_id: scriptId
+        };
+      }
+
       return {
         ok: true,
         storyboard_id: current.id,
