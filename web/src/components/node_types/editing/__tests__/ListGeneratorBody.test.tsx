@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -8,7 +9,6 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
 import type { NodeData } from "../../../../stores/NodeData";
 import ListGeneratorBody from "../ListGeneratorBody";
-import { stub } from "../../../../test-utils/doubles";
 
 const workflowId = "wf-1";
 const nodeId = "node-1";

@@ -2,8 +2,8 @@
  * @jest-environment node
  */
 import { clipsById, findClipById } from "../clipLookup";
-import type { TimelineClip } from "@nodetool-ai/timeline";
 import { stub } from "../../../test-utils/doubles";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 
 const makeClip = (id: string): TimelineClip =>
   stub<TimelineClip>({

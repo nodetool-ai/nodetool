@@ -1,9 +1,9 @@
 import React from 'react';
+import { asMock } from "../../test-utils/doubles";
 import { render, screen, waitFor } from '@testing-library/react';
 import ProtectedRoute from '../ProtectedRoute';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../stores/useAuth';
-import { asMock } from "../../test-utils/doubles";
 
 jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),

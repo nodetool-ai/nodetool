@@ -4,6 +4,7 @@
  * what a declared timeout means.
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
@@ -78,7 +79,6 @@ import {
   workflowInstanceId
 } from "../appRuntimeStore";
 import { variableStorageKey } from "../variablePersistence";
-import { stub } from "../../../../test-utils/doubles";
 
 interface FakeRunnerState {
   job_id: string | null;

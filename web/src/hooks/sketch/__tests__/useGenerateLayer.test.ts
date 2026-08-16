@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import {
@@ -12,7 +13,6 @@ import {
   __resetGenerateLayerSubscriptionsForTests,
   useGenerateLayer
 } from "../useGenerateLayer";
-import { asMock } from "../../../test-utils/doubles";
 
 const subscribeMock = jest.fn();
 const ensureConnectionMock = jest.fn(async () => {});

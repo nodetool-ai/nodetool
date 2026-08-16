@@ -12,6 +12,7 @@ import {
   shapeConstraintFromRefs,
   type ModifierSnapshot
 } from "../tools/modifierIntent";
+import { stub } from "../../../test-utils/doubles";
 import { applySelectionFinalization } from "../tools/selectionFinalization";
 import {
   createPreviewSession,
@@ -20,7 +21,6 @@ import {
 import type { Selection, LayerTransform } from "../types";
 import { makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
-import { stub } from "../../../test-utils/doubles";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // modifierIntent
@@ -247,7 +247,6 @@ describe("previewSession", () => {
   function makeMockCtx(overrides: Partial<ToolContext> = {}): ToolContext {
     return stub<ToolContext>({
       doc: {
-        id: "test-doc",
         canvas: { width: 100, height: 100 },
         activeLayerId: "layer-1",
         layers: [],

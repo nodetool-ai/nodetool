@@ -274,7 +274,7 @@ describe("getSelectionBounds", () => {
 
   it("returns null for null input", () => {
     // validateSelectionMask returns false for null, so getSelectionBounds returns null
-    expect(getSelectionBounds(null as unknown as Selection)).toBeNull();
+    expect(getSelectionBounds(null)).toBeNull();
   });
 
   it("returns correct bounds for a single non-zero pixel", () => {

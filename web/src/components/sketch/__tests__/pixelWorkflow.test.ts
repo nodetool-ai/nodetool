@@ -10,8 +10,8 @@ import {
   PIXEL_GRID_FULL_OPACITY_ZOOM,
   PIXEL_GRID_MIN_ZOOM
 } from "../drawingUtils";
-import { PencilEngine } from "../painting/PencilEngine";
 import { stub } from "../../../test-utils/doubles";
+import { PencilEngine } from "../painting/PencilEngine";
 
 // ─── drawPixelGrid tests ────────────────────────────────────────────────────
 

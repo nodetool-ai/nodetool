@@ -9,13 +9,13 @@
  */
 
 import { CropTool } from "../tools/CropTool";
+import { stub } from "../../../test-utils/doubles";
 import { floodFill } from "../tools/FillTool";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { Point, SketchDocument } from "../types";
 import { createDefaultDocument } from "../types";
 import { ellipseSelectionMask } from "../selection";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

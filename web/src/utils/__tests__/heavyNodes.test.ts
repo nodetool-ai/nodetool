@@ -1,8 +1,8 @@
 import { countHeavyNodes } from "../heavyNodes";
+import { stub } from "../../test-utils/doubles";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeMetadata } from "../../stores/ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 const meta = (over: Partial<NodeMetadata>): NodeMetadata => over as NodeMetadata;
 

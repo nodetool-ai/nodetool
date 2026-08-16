@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 
 import { useHasConfiguredProvider } from "../useHasConfiguredProvider";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -7,7 +8,6 @@ import {
   type OAuthConnection
 } from "../useOAuthConnection";
 import type { SecretResponse } from "../../stores/ApiTypes";
-import { asMock } from "../../test-utils/doubles";
 
 jest.mock("../../stores/SecretsStore");
 jest.mock("../useOAuthConnection");

@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from "@jest/globals";
+import { asMock, installGlobal, stub } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 jest.mock("../../../trpc/client", () =>
@@ -16,7 +17,6 @@ import {
   useSketchSessionStore
 } from "../SketchSessionStore";
 import { getActiveSketchInstance } from "../SketchInstance";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 const updateMutate = asMock(trpcClient.sketch.update.mutate);
 type StandaloneResponse = NonNullable<
@@ -67,6 +67,7 @@ function buildResponse(): StandaloneResponse {
     document: {
       sketch: stub<StandaloneResponse["document"]["sketch"]>({
         ...doc,
+        toolSettings: { ...doc.toolSettings },
         activeTool: "brush",
         viewport: { zoom: 1, pan: { x: 0, y: 0 } },
         history: [],
@@ -106,10 +107,13 @@ describe("useStandaloneSketchDocument", () => {
         thumb_url: null
       }))
     });
-    global.fetch = jest.fn(async () => ({
-      ok: true,
-      blob: async () => new Blob(["layer"], { type: "image/png" })
-    })) as unknown as typeof fetch;
+    installGlobal(
+      "fetch",
+      jest.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob(["layer"], { type: "image/png" })
+      }))
+    );
   });
 
   afterEach(() => {

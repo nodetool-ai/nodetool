@@ -1,11 +1,11 @@
 import React from "react";
+import { asMock } from "../../../../test-utils/doubles";
 import { render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import QueuePanel from "../QueuePanel";
 import { Job } from "../../../../stores/ApiTypes";
 import { useRunningJobs } from "../../../../hooks/useRunningJobs";
-import { asMock } from "../../../../test-utils/doubles";
 
 jest.mock("../../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()

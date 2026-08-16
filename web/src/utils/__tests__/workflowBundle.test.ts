@@ -1,10 +1,10 @@
 import { restFetch } from "../../lib/rest-fetch";
+import { stub } from "../../test-utils/doubles";
 import {
   exportWorkflowBundle,
   exportWorkflowsBundle,
   importWorkflowBundle
 } from "../workflowBundle";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()

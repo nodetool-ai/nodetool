@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -14,7 +15,6 @@ import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
 import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/ProviderOnboardingStore");
 jest.mock("../../../hooks/useSecrets");

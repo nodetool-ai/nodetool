@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useBottomPanelStore } from "../../../stores/BottomPanelStore";
 import { useResizeBottomPanel } from "../useResizeBottomPanel";
-import { stub } from "../../../test-utils/doubles";
 
 beforeEach(() => {
   jest.useFakeTimers();

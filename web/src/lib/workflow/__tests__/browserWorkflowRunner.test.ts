@@ -1,4 +1,5 @@
 import { globalWebSocketManager } from "../../websocket/GlobalWebSocketManager";
+import { stub } from "../../../test-utils/doubles";
 import {
   __setBrowserRunnerLoader,
   canRunGraphInBrowserSync,
@@ -8,7 +9,6 @@ import {
 } from "../browserWorkflowRunner";
 import { clearSandboxModuleCache } from "../sandboxModuleCatalog";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 const browserGraph = (type: string): WorkflowGraph =>
   stub<WorkflowGraph>({

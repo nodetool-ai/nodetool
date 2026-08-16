@@ -1,7 +1,7 @@
 import type { OutputUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
-import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({

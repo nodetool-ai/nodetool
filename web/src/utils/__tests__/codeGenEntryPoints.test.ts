@@ -1,4 +1,5 @@
 import type { Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 
 import {
   isCodeGenApplied,
@@ -9,7 +10,6 @@ import {
 } from "../codeGenEntryPoints";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import { stub } from "../../test-utils/doubles";
 
 const anyType = { type: "any", type_args: [], optional: false };
 

@@ -5,6 +5,7 @@ import type {
   NodeUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
 import { markJobSilent, unmarkJobSilent } from "../previewJobs";
@@ -13,7 +14,6 @@ import {
   mergeGenerations,
   groupByRun
 } from "../../utils/nodeGenerations";
-import { stub } from "../../test-utils/doubles";
 
 const mockAddNotification = jest.fn();
 const mockDequeueNextPendingRun = jest.fn();

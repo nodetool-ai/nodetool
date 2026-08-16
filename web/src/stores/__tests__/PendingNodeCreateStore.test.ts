@@ -1,6 +1,6 @@
 import usePendingNodeCreateStore from "../PendingNodeCreateStore";
-import type { NodeMetadata } from "../ApiTypes";
 import { stub } from "../../test-utils/doubles";
+import type { NodeMetadata } from "../ApiTypes";
 
 const fakeMeta = (node_type: string): NodeMetadata =>
   stub<NodeMetadata>({ node_type, title: node_type, namespace: "x", outputs: [] });

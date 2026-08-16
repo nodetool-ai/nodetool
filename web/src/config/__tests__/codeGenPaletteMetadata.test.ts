@@ -4,9 +4,9 @@ import {
   codeGenPaletteMetadata,
   generateCodeGenPaletteMetadata
 } from "../codeGenPaletteMetadata";
+import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import { rankSearchNodes } from "../../utils/nodeSearch";
-import { stub } from "../../test-utils/doubles";
 
 const anyType = { type: "any", type_args: [], optional: false };
 

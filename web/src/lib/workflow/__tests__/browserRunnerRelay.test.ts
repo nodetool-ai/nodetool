@@ -1,6 +1,6 @@
 import { normalizeWorkerStreamMessage } from "../browserRunnerRelay";
-import type { WebSocketMessage } from "../../websocket/GlobalWebSocketManager";
 import { stub } from "../../../test-utils/doubles";
+import type { WebSocketMessage } from "../../websocket/GlobalWebSocketManager";
 
 /**
  * Worker-path relay (the production browser path: Web Worker → main thread).

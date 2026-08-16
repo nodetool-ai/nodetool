@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { asMock, stub } from "../../../../../test-utils/doubles";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
   filterEntitiesForMention,
@@ -7,7 +8,6 @@ import {
 import { useAssetStore } from "../../../../../stores/AssetStore";
 import { useRecentAssetsStore } from "../../../../../stores/RecentAssetsStore";
 import { useEntities } from "../../../../../serverState/useEntities";
-import { asMock, stub } from "../../../../../test-utils/doubles";
 
 jest.mock("../../../../../stores/AssetStore");
 jest.mock("../../../../../stores/RecentAssetsStore");

@@ -103,7 +103,7 @@ describe("RemoteSettingStore", () => {
       });
 
       // Store should not have a 'secrets' field
-      expect((result.current as unknown as { secrets?: unknown }).secrets).toBeUndefined();
+      expect("secrets" in result.current).toBe(false);
     });
 
     it("should group settings by group field", async () => {

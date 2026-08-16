@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 
 import { trpcClient } from "../../__mocks__/trpcClientMock";
@@ -6,7 +7,6 @@ import { useEditVideoAsset } from "../useEditVideoAsset";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { Asset } from "../../stores/ApiTypes";
-import { asMock } from "../../test-utils/doubles";
 
 const navigateMock = jest.fn();
 jest.mock("react-router-dom", () => ({

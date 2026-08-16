@@ -13,6 +13,7 @@ import {
   isPaintingTool,
   createDefaultDocument
 } from "../types";
+import { stub } from "../../../test-utils/doubles";
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { FillTool } from "../tools/FillTool";
@@ -21,7 +22,6 @@ import { CloneStampTool } from "../tools/CloneStampTool";
 import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
 import { AdjustTool } from "../tools/AdjustTool";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 

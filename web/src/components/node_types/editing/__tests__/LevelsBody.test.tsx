@@ -1,11 +1,11 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import LevelsBody from "../LevelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ContextMenuProvider } from "../../../../providers/ContextMenuProvider";
-import { stub } from "../../../../test-utils/doubles";
 
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered

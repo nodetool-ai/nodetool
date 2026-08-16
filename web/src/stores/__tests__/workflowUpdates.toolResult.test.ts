@@ -1,7 +1,7 @@
 import type { ToolResultUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
-import { stub } from "../../test-utils/doubles";
 
 /**
  * The backend stamps a job id onto every frame it sends; the protocol update

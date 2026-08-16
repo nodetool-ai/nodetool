@@ -1,11 +1,11 @@
 import { extractWorkflowIO, WorkflowInputIO } from "../workflowIO";
+import { PartialMembers, stub } from "../../../test-utils/doubles";
 import {
   createPropertyForInput,
   normalizeInputValue,
   resolveInputValue
 } from "../inputProperty";
 import { Node, Workflow } from "../../../stores/ApiTypes";
-import { PartialMembers, stub } from "../../../test-utils/doubles";
 
 const makeInput = (over: Partial<WorkflowInputIO>): WorkflowInputIO => ({
   nodeId: "n1",

@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,7 +32,6 @@ jest.mock("../useModels", () => ({
 }));
 
 import DeleteModelDialog from "../DeleteModelDialog";
-import { stub } from "../../../../test-utils/doubles";
 
 const HF_MODEL: UnifiedModel = stub<UnifiedModel>({
   id: "org/m",

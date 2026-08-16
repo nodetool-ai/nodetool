@@ -47,9 +47,7 @@ describe("useModalResize", () => {
       })
     );
 
-    const { setModalHeight } = result.current as unknown as {
-      setModalHeight: (h: number) => void;
-    };
+    const { setModalHeight } = result.current;
 
     act(() => {
       setModalHeight(50);

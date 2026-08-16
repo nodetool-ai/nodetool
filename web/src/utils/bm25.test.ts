@@ -7,8 +7,8 @@ describe("tokenize", () => {
   });
 
   it("returns empty array for null/undefined", () => {
-    expect(tokenize(null as unknown as string)).toEqual([]);
-    expect(tokenize(undefined as unknown as string)).toEqual([]);
+    expect(tokenize(null)).toEqual([]);
+    expect(tokenize(undefined)).toEqual([]);
   });
 
   it("lowercases tokens", () => {

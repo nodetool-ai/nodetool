@@ -1,8 +1,13 @@
 import { describe, it, expect } from "@jest/globals";
+import { stub } from "../../../test-utils/doubles";
 import { __testOnly_buildPlan as buildPlan } from "../useGroupIntoSubgraph";
 import { Edge as RFEdge, Node as RFNode } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
-import { stub } from "../../../test-utils/doubles";
+import { z } from "zod";
+
+/** A generated input/output node carries its handle name in `data.name`,
+ *  which the wire schema types as `unknown`. */
+const namedNodeData = z.object({ name: z.string() });
 
 const makeNode = (
   id: string,
@@ -79,11 +84,8 @@ describe("buildPlan (Group into Subgraph cut-set)", () => {
       (n) => n.type === "nodetool.input.StringInput"
     );
     expect(inputNodes).toHaveLength(1);
-    const inputNode = inputNodes[0] as unknown as {
-      id: string;
-      data: { name: string };
-    };
-    expect(inputNode.data.name).toBe("in1");
+    const inputNode = inputNodes[0];
+    expect(namedNodeData.parse(inputNode.data).name).toBe("in1");
 
     expect(plan.innerEdges).toHaveLength(1);
     expect(plan.innerEdges[0].source).toBe(inputNode.id);
@@ -118,11 +120,8 @@ describe("buildPlan (Group into Subgraph cut-set)", () => {
       (n) => n.type === "nodetool.output.Output"
     );
     expect(outputNodes).toHaveLength(1);
-    const outputNode = outputNodes[0] as unknown as {
-      id: string;
-      data: { name: string };
-    };
-    expect(outputNode.data.name).toBe("out1");
+    const outputNode = outputNodes[0];
+    expect(namedNodeData.parse(outputNode.data).name).toBe("out1");
 
     expect(plan.innerEdges).toHaveLength(1);
     expect(plan.innerEdges[0].source).toBe("a");

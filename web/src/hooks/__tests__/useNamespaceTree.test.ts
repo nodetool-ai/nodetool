@@ -1,10 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
-import { asMock } from "../../test-utils/doubles";
 
 jest.mock("../../stores/MetadataStore", () => ({
   __esModule: true,

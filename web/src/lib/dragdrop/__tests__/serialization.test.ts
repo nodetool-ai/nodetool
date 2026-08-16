@@ -6,8 +6,9 @@ import {
   createDragCountBadge,
   DRAG_DATA_MIME
 } from "../serialization";
-import type { DragData } from "../types";
 import { stub } from "../../../test-utils/doubles";
+import type { ExternalFileProbe } from "../serialization";
+import type { DragData } from "../types";
 
 describe("serialization", () => {
   describe("serializeDragData", () => {
@@ -296,27 +297,28 @@ describe("serialization", () => {
 
   describe("hasExternalFiles", () => {
     it("should detect files via items property", () => {
-      const mockDataTransfer = stub<DataTransfer>({
-        items: [{ kind: "file" }, { kind: "string" }]
-      });
+      const mockDataTransfer: ExternalFileProbe = {
+        items: [{ kind: "file" }, { kind: "string" }],
+        files: { length: 0 }
+      };
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(true);
     });
 
     it("should return false when no file items", () => {
-      const mockDataTransfer = stub<DataTransfer>({
+      const mockDataTransfer: ExternalFileProbe = {
         items: [{ kind: "string" }],
         files: { length: 0 }
-      });
+      };
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(false);
     });
 
     it("should fallback to files property", () => {
-      const mockDataTransfer = stub<DataTransfer>({
+      const mockDataTransfer: ExternalFileProbe = {
         items: null,
         files: { length: 2 }
-      });
+      };
 
       expect(hasExternalFiles(mockDataTransfer)).toBe(true);
     });

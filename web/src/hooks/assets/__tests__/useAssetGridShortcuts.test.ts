@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useAssetGridShortcuts } from "../useAssetGridShortcuts";
 import { Asset } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 // Capture every useCombo registration so tests can assert the active flags and
 // invoke the callbacks directly, without wiring the real global key bus.

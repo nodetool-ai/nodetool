@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -6,7 +7,6 @@ import QueueOverlay from "../QueueOverlay";
 import { Job } from "../../../stores/ApiTypes";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
-import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()

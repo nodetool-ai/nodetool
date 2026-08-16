@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
-import { useFloatingToolbarState } from "../useFloatingToolbarState";
 import { stub } from "../../test-utils/doubles";
+import { useFloatingToolbarState } from "../useFloatingToolbarState";
 
 describe("useFloatingToolbarState", () => {
   it("initializes with all menus closed", () => {

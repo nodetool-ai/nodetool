@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import type { Message } from "../../../stores/ApiTypes";
 
 interface MockChatState {
@@ -27,7 +28,6 @@ jest.mock("../useGenerationToCanvas", () => ({
 }));
 
 import { useAutoAddGeneratedMediaToCanvas } from "../useAutoAddGeneratedMediaToCanvas";
-import { stub } from "../../../test-utils/doubles";
 
 const mediaMessage = (assetId: string): Message =>
   stub<Message>({

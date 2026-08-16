@@ -1,9 +1,9 @@
 import React from 'react';
+import { asMock } from "../../../test-utils/doubles";
 import { render } from '@testing-library/react';
 import ConnectionLine from '../ConnectionLine';
 import useConnectionStore from '../../../stores/ConnectionStore';
 import { ConnectionLineType } from '@xyflow/react';
-import { asMock } from "../../../test-utils/doubles";
 
 jest.mock('../../../stores/ConnectionStore');
 

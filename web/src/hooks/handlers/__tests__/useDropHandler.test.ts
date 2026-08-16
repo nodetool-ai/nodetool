@@ -1,5 +1,6 @@
 
 import { renderHook, act } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { useDropHandler } from "../useDropHandler";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -10,7 +11,16 @@ import { useAddNodeFromAsset } from "../addNodeFromAsset";
 import { useRecentNodesStore } from "../../../stores/RecentNodesStore";
 import { useFileHandlers } from "../dropHandlerUtils";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { asMock, stub } from "../../../test-utils/doubles";
+
+/** A drag/click target that answers `classList.contains("react-flow__pane")`. */
+const paneTarget = (isPane: boolean): HTMLDivElement => {
+  const el = document.createElement("div");
+  if (isPane) {
+    el.classList.add("react-flow__pane");
+  }
+  return el;
+};
+
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -118,7 +128,7 @@ describe("useDropHandler", () => {
 
     const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
       preventDefault: jest.fn(),
-      target: { classList: { contains: () => true } },
+      target: paneTarget(true),
       clientX: 100,
       clientY: 100,
       dataTransfer: {
@@ -179,7 +189,7 @@ describe("useDropHandler", () => {
 
     const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
       preventDefault: jest.fn(),
-      target: { classList: { contains: () => true } },
+      target: paneTarget(true),
       clientX: 100,
       clientY: 100,
       dataTransfer: {
@@ -235,7 +245,7 @@ describe("useDropHandler", () => {
 
     const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
-        target: { classList: { contains: () => true } }, // Is Pane
+        target: paneTarget(true), // Is Pane
         clientX: 100,
         clientY: 100,
         dataTransfer: {
@@ -293,7 +303,7 @@ describe("useDropHandler", () => {
 
     const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
         preventDefault: jest.fn(),
-        target: { classList: { contains: () => true } }, // Is Pane
+        target: paneTarget(true), // Is Pane
         clientX: 100,
         clientY: 100,
         dataTransfer: {

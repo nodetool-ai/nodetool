@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -9,7 +10,6 @@ import {
   useTextareaAssetMention
 } from "../useTextareaAssetMention";
 import type { AssetMentionMenuProps } from "../../../node_types/editing/promptComposer/AssetMentionMenu";
-import { stub } from "../../../../test-utils/doubles";
 
 // Stub the search hook so the picker shows a fixed asset set (no trpc / stores).
 const MOCK_ASSETS: Asset[] = [

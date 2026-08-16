@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -16,7 +17,6 @@ import {
   getAppRuntimeStore,
   workflowInstanceId
 } from "../runtime/appRuntimeStore";
-import { stub } from "../../../test-utils/doubles";
 
 const workflow = stub<Workflow>({
   id: "wf-puck-runtime",

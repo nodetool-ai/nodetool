@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { usePointerHandlers } from "../sketchCanvasHooks/usePointerHandlers";
 import { getToolHandler } from "../tools";
@@ -9,7 +10,6 @@ import { TransformTool } from "../tools/TransformTool";
 import { MoveTool } from "../tools/MoveTool";
 import { createDefaultDocument } from "../types";
 import type { UsePointerHandlersParams } from "../sketchCanvasHooks/usePointerHandlers";
-import { stub } from "../../../test-utils/doubles";
 
 function makeParams(): UsePointerHandlersParams {
   const doc = createDefaultDocument(64, 64);

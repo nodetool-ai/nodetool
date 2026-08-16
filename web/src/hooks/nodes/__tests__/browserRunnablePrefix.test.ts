@@ -1,7 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
+import { stub } from "../../../test-utils/doubles";
 import type { NodeData } from "../../../stores/NodeData";
 import { browserRunnablePrefix } from "../buildDownstreamRunGraph";
-import { stub } from "../../../test-utils/doubles";
 
 const node = (id: string, type: string): Node<NodeData> =>
   stub<Node<NodeData>>({ id, type, data: {} });

@@ -1,8 +1,9 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useAutoFocusEnabled } from "../useAutoFocusEnabled";
 
 const mockMatchMedia = (coarse: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: query.includes("pointer: coarse") ? coarse : false,
     media: query,
     onchange: null,
@@ -11,7 +12,7 @@ const mockMatchMedia = (coarse: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 describe("useAutoFocusEnabled", () => {

@@ -1,8 +1,8 @@
 import { findMissingModelNodes } from "../findMissingModelNodes";
+import { stub } from "../../test-utils/doubles";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 const makeNode = (
   id: string,

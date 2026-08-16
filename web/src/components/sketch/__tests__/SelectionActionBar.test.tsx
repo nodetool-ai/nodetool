@@ -11,6 +11,7 @@
  */
 
 import React from "react";
+import { installGlobal } from "../../../test-utils/doubles";
 import { render, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -43,9 +44,7 @@ class StubResizeObserver implements ResizeObserver {
   unobserve = jest.fn();
   disconnect = jest.fn();
 }
-(
-  globalThis as unknown as { ResizeObserver: typeof ResizeObserver }
-).ResizeObserver = StubResizeObserver as unknown as typeof ResizeObserver;
+installGlobal("ResizeObserver", StubResizeObserver);
 
 function containerRef(): React.RefObject<HTMLDivElement | null> {
   const el = document.createElement("div");

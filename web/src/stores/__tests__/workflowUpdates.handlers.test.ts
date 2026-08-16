@@ -7,12 +7,12 @@ import type {
   TerminalUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import useStatusStore from "../StatusStore";
 import useLogsStore from "../LogStore";
 import useErrorStore from "../ErrorStore";
 import { handleUpdate } from "../workflowUpdates";
-import { stub } from "../../test-utils/doubles";
 
 /**
  * The backend stamps a job id onto every frame it sends; the protocol update

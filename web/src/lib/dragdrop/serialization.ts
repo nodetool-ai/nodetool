@@ -216,7 +216,17 @@ export function resolveAssetsMultiple(
     .filter((asset): asset is Asset => asset !== undefined);
 }
 
-export function hasExternalFiles(dataTransfer: DataTransfer): boolean {
+/**
+ * The parts of a drag payload that decide whether external files are in play.
+ * Narrower than `DataTransfer` so a caller — or a test — can pass anything
+ * carrying the item kinds and a file count.
+ */
+export type ExternalFileProbe = {
+  items: Iterable<{ readonly kind: string }> | null;
+  files: { readonly length: number };
+};
+
+export function hasExternalFiles(dataTransfer: ExternalFileProbe): boolean {
   if (dataTransfer.items) {
     return Array.from(dataTransfer.items).some((item) => item.kind === "file");
   }

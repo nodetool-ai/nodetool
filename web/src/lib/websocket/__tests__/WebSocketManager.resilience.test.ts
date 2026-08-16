@@ -4,6 +4,7 @@
  * how it responds when the environment says the wait is over.
  */
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
@@ -80,7 +81,7 @@ const connect = async (mgr: WebSocketManager): Promise<void> => {
 describe("WebSocketManager outage resilience", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
     jest.spyOn(Math, "random").mockReturnValue(1);
   });

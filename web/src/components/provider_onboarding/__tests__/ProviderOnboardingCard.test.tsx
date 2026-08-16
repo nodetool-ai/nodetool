@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -13,7 +14,6 @@ import {
 } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../stores/SecretsStore");

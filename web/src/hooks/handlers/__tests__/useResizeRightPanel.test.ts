@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { useResizeRightPanel } from "../useResizeRightPanel";
-import { stub } from "../../../test-utils/doubles";
 
 const DEFAULT_PANEL_SIZE = 350;
 const MIN_PANEL_SIZE = 130;

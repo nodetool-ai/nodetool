@@ -9,6 +9,7 @@
  * once the provider is rendered.
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { describe, it, expect } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
@@ -17,7 +18,6 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
-import { stub } from "../../../../test-utils/doubles";
 
 const renderRegion = () =>
   render(
@@ -31,8 +31,8 @@ const renderRegion = () =>
 function dataTransferMock(): DataTransfer {
   return stub<DataTransfer>({
     types: [] as string[],
-    dropEffect: "",
-    effectAllowed: "",
+    dropEffect: "none",
+    effectAllowed: "uninitialized",
     setData: () => {},
     getData: () => "",
     setDragImage: () => {}

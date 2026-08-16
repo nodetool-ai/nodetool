@@ -1,11 +1,11 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import type { Edge } from "@xyflow/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import useEdgeHandlers from "../useEdgeHandlers";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import useConnectionStore from "../../../stores/ConnectionStore";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/ContextMenuStore");

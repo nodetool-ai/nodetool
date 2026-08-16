@@ -6,6 +6,7 @@
  * every message was routed twice.
  */
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
@@ -88,7 +89,7 @@ const latestSocket = (): FakeWebSocket =>
 describe("GlobalWebSocketManager reconnect handling", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 

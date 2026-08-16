@@ -130,7 +130,7 @@ describe("nodeErrorToDisplayString", () => {
   });
 
   it("returns empty string for object with null message", () => {
-    expect(nodeErrorToDisplayString(stub<null>({ message: null }))).toBe(
+    expect(nodeErrorToDisplayString({ message: null })).toBe(
       ""
     );
   });

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
@@ -10,7 +11,6 @@ import {
   __resetGenerateClipSubscriptionsForTests,
   useGenerateClip
 } from "../useGenerateClip";
-import { asMock } from "../../../test-utils/doubles";
 
 const subscribeMock = jest.fn();
 const ensureConnectionMock = jest.fn(async () => {});

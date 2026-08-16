@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,7 +7,6 @@ import { PromptComposerBody } from "../PromptComposerBody";
 import { useGraphVariableNames } from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
-import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperties = jest.fn();
 const mockSetPropertyComplete = jest.fn();

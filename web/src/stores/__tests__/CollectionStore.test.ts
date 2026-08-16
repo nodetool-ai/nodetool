@@ -1,8 +1,8 @@
 import { act } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { restFetch } from "../../lib/rest-fetch";
 import { trpcClient } from "../../trpc/client";
 import { useCollectionStore } from "../CollectionStore";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {

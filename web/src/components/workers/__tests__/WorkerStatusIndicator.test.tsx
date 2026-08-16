@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -6,7 +7,6 @@ import mockTheme from "../../../__mocks__/themeMock";
 import WorkerStatusIndicator from "../WorkerStatusIndicator";
 import { useWorkers } from "../../../hooks/useWorkers";
 import type { WorkerInstance } from "../../../hooks/useWorkers";
-import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useWorkers", () => ({
   useWorkers: jest.fn()

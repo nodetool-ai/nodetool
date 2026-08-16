@@ -1,11 +1,11 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { act } from "react";
 
 import { useCanvasDockResize } from "../useCanvasDockResize";
 import useCanvasChatDockStore, {
   DEFAULT_OVERLAY_HEIGHT
 } from "../../../stores/CanvasChatDockStore";
-import { stub } from "../../../test-utils/doubles";
 
 const makeOverlay = (width: number, height: number) => {
   const el = document.createElement("div");

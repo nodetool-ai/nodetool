@@ -3,6 +3,7 @@
  * scene model's stagger context / redraw-gate behavior.
  */
 import type { ClipTextStyle, TimelineClip } from "@nodetool-ai/timeline";
+import { stub } from "../../../../test-utils/doubles";
 import { compileClipAnimations } from "@nodetool-ai/timeline";
 
 import { TextRasterizer } from "../textRender";
@@ -13,7 +14,7 @@ import {
   resolveTextStaggerContext,
   type ActiveLayer
 } from "@nodetool-ai/timeline/render";
-import { stub } from "../../../../test-utils/doubles";
+import { installGlobal } from "../../../../test-utils/doubles";
 
 const CANVAS = { width: 1920, height: 1080 };
 
@@ -129,8 +130,7 @@ describe("TextRasterizer stagger", () => {
         return stub<ImageBitmap>({ close: jest.fn() });
       }
     }
-    globalThis.OffscreenCanvas =
-      FakeOffscreenCanvas as unknown as typeof OffscreenCanvas;
+    installGlobal("OffscreenCanvas", FakeOffscreenCanvas);
   });
 
   afterAll(() => {

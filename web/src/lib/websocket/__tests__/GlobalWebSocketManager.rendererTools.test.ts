@@ -29,20 +29,23 @@ jest.mock("../../tools/frontendToolRuntimeState", () => ({
   getFrontendToolRuntimeState: jest.fn()
 }));
 
-type ManagerInternals = {
-  executeRendererToolCall(message: Record<string, unknown>): Promise<void>;
-  send(message: Record<string, unknown>): Promise<void>;
-};
+/**
+ * The manager's renderer-tool path is private; element access reaches it
+ * without discarding its types, which is what these tests drive.
+ */
+const executeRendererToolCall =
+  globalWebSocketManager["executeRendererToolCall"].bind(
+    globalWebSocketManager
+  );
 
-const internals = (): ManagerInternals =>
-  globalWebSocketManager as unknown as ManagerInternals;
+const setRendererId = (id: string | null): void => {
+  globalWebSocketManager["rendererId"] = id;
+};
 
 describe("GlobalWebSocketManager renderer tool calls", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (
-      globalWebSocketManager as unknown as { rendererId: string | null }
-    ).rendererId = null;
+    setRendererId(null);
     jest.spyOn(window, "confirm").mockReturnValue(false);
   });
 
@@ -55,11 +58,9 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
       .spyOn(globalWebSocketManager, "send")
       .mockResolvedValue(undefined);
     (FrontendToolRegistry.get as jest.Mock).mockReturnValue(undefined);
-    (
-      globalWebSocketManager as unknown as { rendererId: string | null }
-    ).rendererId = "renderer-1";
+    setRendererId("renderer-1");
 
-    await internals().executeRendererToolCall({
+    await executeRendererToolCall({
       type: "renderer_tool_call",
       renderer_id: "renderer-1",
       tool_call_id: "call-1",
@@ -84,11 +85,9 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
     const sendSpy = jest
       .spyOn(globalWebSocketManager, "send")
       .mockResolvedValue(undefined);
-    (
-      globalWebSocketManager as unknown as { rendererId: string | null }
-    ).rendererId = "renderer-1";
+    setRendererId("renderer-1");
 
-    await internals().executeRendererToolCall({
+    await executeRendererToolCall({
       type: "renderer_tool_call",
       renderer_id: "renderer-2",
       tool_call_id: "call-mismatch",
@@ -114,11 +113,9 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
     (FrontendToolRegistry.get as jest.Mock).mockReturnValue({
       requireUserConsent: true
     });
-    (
-      globalWebSocketManager as unknown as { rendererId: string | null }
-    ).rendererId = "renderer-1";
+    setRendererId("renderer-1");
 
-    await internals().executeRendererToolCall({
+    await executeRendererToolCall({
       type: "renderer_tool_call",
       renderer_id: "renderer-1",
       tool_call_id: "call-2",
@@ -148,11 +145,9 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
     (FrontendToolRegistry.call as jest.Mock).mockResolvedValue({ ok: true });
     (getFrontendToolRuntimeState as jest.Mock).mockReturnValue(runtimeState);
     (window.confirm as jest.Mock).mockReturnValue(true);
-    (
-      globalWebSocketManager as unknown as { rendererId: string | null }
-    ).rendererId = "renderer-1";
+    setRendererId("renderer-1");
 
-    await internals().executeRendererToolCall({
+    await executeRendererToolCall({
       type: "renderer_tool_call",
       renderer_id: "renderer-1",
       tool_call_id: "call-3",

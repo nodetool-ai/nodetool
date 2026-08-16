@@ -2,12 +2,12 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { useLayerHydration } from "../sketchCanvasHooks/useLayerHydration";
 import type { DisplayFrameCoordinator } from "../sketchCanvasHooks/DisplayFrameCoordinator";
 import { createDefaultDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
-import { stub } from "../../../test-utils/doubles";
 
 describe("useLayerHydration", () => {
   it("hydrates image-backed layers from imageReference uri when layer data is null", () => {

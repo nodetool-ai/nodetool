@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -49,7 +50,6 @@ jest.mock("../../../config/shortcuts", () => ({
 }));
 
 import { useNodes } from "../../../contexts/NodeContext";
-import { asMock } from "../../../test-utils/doubles";
 
 describe("SelectionActionToolbar", () => {
   const renderWithTheme = (ui: React.ReactElement) =>

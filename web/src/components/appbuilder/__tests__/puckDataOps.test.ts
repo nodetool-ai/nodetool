@@ -1,4 +1,5 @@
 import type { Config, Data } from "@puckeditor/core";
+import { stub } from "../../../test-utils/doubles";
 
 import {
   getSlotFields,
@@ -9,7 +10,6 @@ import {
   removeComponent,
   makeComponentId
 } from "../puck/puckDataOps";
-import { stub } from "../../../test-utils/doubles";
 
 // Minimal config: a leaf widget and a Panel with a `content` slot.
 const config = stub<Config>({

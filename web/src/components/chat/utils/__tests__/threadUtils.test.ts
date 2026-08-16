@@ -2,8 +2,8 @@
  * @jest-environment node
  */
 import { sortThreadsByDate } from "../threadUtils";
-import type { ThreadInfo } from "../../types/thread.types";
 import { stub } from "../../../../test-utils/doubles";
+import type { ThreadInfo } from "../../types/thread.types";
 
 describe("sortThreadsByDate", () => {
   it("sorts threads by updatedAt in descending order (newest first)", () => {

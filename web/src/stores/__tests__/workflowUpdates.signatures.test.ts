@@ -10,6 +10,7 @@ import type {
   NodeUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import { handleUpdate } from "../workflowUpdates";
 import {
@@ -17,7 +18,6 @@ import {
   getRunSignature,
   clearRunSignatures
 } from "../runSignatures";
-import { stub } from "../../test-utils/doubles";
 
 // Keep the real registry (record/get share one in-memory map) but spy on the
 // clear so the job-terminal test can assert it fired with the run's job_id.

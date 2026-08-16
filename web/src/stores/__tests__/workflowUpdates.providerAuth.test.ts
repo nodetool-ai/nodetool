@@ -1,6 +1,7 @@
 import type { NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import useProviderOnboardingStore from "../ProviderOnboardingStore";
 import { handleUpdate } from "../workflowUpdates";
+import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({
@@ -20,22 +21,11 @@ const mockWorkflow = {
 
 let nodeCounter = 0;
 
-type NodeUpdateFixture = {
-  type: string;
-  node_id: string;
-  node_name: string;
-  node_type: string;
-  status: string;
-  error: string;
-  error_detail?: NodeUpdate["error_detail"];
-  job_id: string;
-};
-
 const nodeError = (
   jobId: string,
   detail?: NodeUpdate["error_detail"]
 ): NodeUpdate => {
-  const update: NodeUpdateFixture = {
+  const update = stub<NodeUpdate>({
     type: "node_update",
     node_id: `node-${++nodeCounter}`,
     node_name: "Chat",
@@ -43,9 +33,11 @@ const nodeError = (
     status: "error",
     error: "401 Incorrect API key",
     job_id: jobId
-  };
-  if (detail) update.error_detail = detail;
-  return update as unknown as NodeUpdate;
+  });
+  if (detail) {
+    update.error_detail = detail;
+  }
+  return update;
 };
 
 const dispatch = (update: NodeUpdate) =>

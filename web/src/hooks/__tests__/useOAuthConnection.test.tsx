@@ -1,11 +1,11 @@
 import React from "react";
+import { asMock, stub } from "../../test-utils/doubles";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { useOAuthConnection } from "../useOAuthConnection";
 import { restFetch } from "../../lib/rest-fetch";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { asMock, stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/rest-fetch");
 jest.mock("../../lib/env", () => ({ isElectron: false }));
@@ -32,7 +32,7 @@ const createWrapper = () => {
 const fakeAuthWindow = () =>
   stub<Window>({
     opener: {},
-    document: { title: "", body: null },
+    document: { title: "" },
     location: { replace: jest.fn() },
     close: jest.fn()
   });

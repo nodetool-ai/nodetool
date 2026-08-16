@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
@@ -15,7 +16,6 @@ import {
 
 import { useProviders } from "../../../hooks/useProviders";
 import type { ProviderInfo } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../hooks/useProviders");

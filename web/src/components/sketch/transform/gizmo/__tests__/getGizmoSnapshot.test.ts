@@ -12,9 +12,9 @@
  */
 
 import { TransformTool } from "../../../tools/TransformTool";
+import { stub } from "../../../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../../../tools";
 import { createDefaultDocument } from "../../../types";
-import { stub } from "../../../../../test-utils/doubles";
 
 function makeCtx(overrides?: Partial<ToolContext>): ToolContext {
   const doc = createDefaultDocument(64, 64);

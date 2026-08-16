@@ -1825,7 +1825,7 @@ export class WebGPURuntime implements SketchRuntime {
   evaluateLayerEffects(
     layerId: string,
     source: HTMLCanvasElement,
-    effects: import("../types").LayerEffect[]
+    effects: import("../types").LayerEffect[] | null
   ): ResolvedLayerBitmap {
     // Delegate to the CPU runtime; WebGPU-accelerated effects will be added later.
     // When GPU-backed effects are implemented, this method will evaluate them

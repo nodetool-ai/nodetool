@@ -6,8 +6,8 @@ describe("inferOutputKeysFromCode", () => {
   });
 
   it("returns null for non-string input", () => {
-    expect(inferOutputKeysFromCode(null as unknown as string)).toBeNull();
-    expect(inferOutputKeysFromCode(undefined as unknown as string)).toBeNull();
+    expect(inferOutputKeysFromCode(null)).toBeNull();
+    expect(inferOutputKeysFromCode(undefined)).toBeNull();
   });
 
   it("extracts keys from a simple return object", () => {

@@ -1,7 +1,7 @@
 import { isTextLikeChunk, isAudioChunkLike } from "../outputChunkUtils";
+import { stub } from "../../../test-utils/doubles";
 import type { ReceivedChunk } from "../outputChunkUtils";
 import type { Chunk } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 describe("outputChunkUtils", () => {
   describe("isTextLikeChunk", () => {

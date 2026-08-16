@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { Node, NodeChange } from "@xyflow/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { NodeData } from "../../../stores/NodeData";
@@ -6,7 +7,6 @@ import { useNodeEvents } from "../useNodeEvents";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../nodes/useSelect";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");

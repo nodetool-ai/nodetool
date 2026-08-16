@@ -14,6 +14,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import "@testing-library/jest-dom/jest-globals";
 import {
   describe,
@@ -25,7 +26,6 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import PanelHeadline from "../PanelHeadline";
 import mockTheme from "../../../__mocks__/themeMock";
-import { stub } from "../../../test-utils/doubles";
 
 const renderWithTheme = (component: React.ReactElement) => {
   return render(
@@ -258,7 +258,7 @@ describe("PanelHeadline", () => {
 
     it("handles null actions prop", () => {
       const { container } = renderWithTheme(
-        <PanelHeadline title="Test" actions={null as unknown as React.ReactNode} />
+        <PanelHeadline title="Test" actions={null} />
       );
 
       const actionsContainer = container.querySelector(".headline-actions");

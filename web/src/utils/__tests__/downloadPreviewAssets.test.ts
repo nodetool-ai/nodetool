@@ -1,4 +1,5 @@
 import { downloadPreviewAssets } from "../downloadPreviewAssets";
+import { stub } from "../../test-utils/doubles";
 import { createAssetFile } from "../createAssetFile";
 
 const mockCreateAssetFile = createAssetFile as jest.Mock;
@@ -100,13 +101,13 @@ describe("downloadPreviewAssets", () => {
   it("falls back to URI when createAssetFile fails with URI available", async () => {
     mockCreateAssetFile.mockRejectedValue(new Error("Failed to create asset"));
 
-    const mockAnchor = {
+    const mockAnchor = stub<HTMLAnchorElement>({
       href: "",
       download: "",
       click: jest.fn(),
-    };
+    });
 
-    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor);
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
 
@@ -140,13 +141,13 @@ describe("downloadPreviewAssets", () => {
       get_url: "https://cdn.example.com/signed/user-1/123.mp4?sig=x"
     });
 
-    const mockAnchor = {
+    const mockAnchor = stub<HTMLAnchorElement>({
       href: "",
       download: "",
       click: jest.fn(),
-    };
+    });
 
-    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor);
     const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
     const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();

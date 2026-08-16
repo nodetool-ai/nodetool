@@ -10,6 +10,7 @@
  */
 
 import { getToolHandler } from "../tools";
+import { installGlobal, stub } from "../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import type { ToolRuntime } from "../tools/types";
 import { BrushTool } from "../tools/BrushTool";
@@ -32,7 +33,6 @@ import { aff } from "./_transformFixtures";
 import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -154,19 +154,25 @@ function makeMock2dContext(
   canvas: HTMLCanvasElement
 ): CanvasRenderingContext2D {
   const gradient = { addColorStop: jest.fn() };
+  // SAFETY: `createImageData` is overloaded (width/height, or an existing
+  // ImageData); this double answers the width/height call, the only form the
+  // fill and gradient tools make.
+  const createImageData = ((width: number, height: number): ImageData => ({
+    data: new Uint8ClampedArray(width * height * 4),
+    width,
+    height,
+    colorSpace: "srgb"
+  })) as CanvasRenderingContext2D["createImageData"];
   return stub<CanvasRenderingContext2D>({
     canvas,
     getImageData: jest.fn(() => ({
       data: new Uint8ClampedArray(canvas.width * canvas.height * 4),
       width: canvas.width,
-      height: canvas.height
+      height: canvas.height,
+      colorSpace: "srgb" as const
     })),
     putImageData: jest.fn(),
-    createImageData: jest.fn((width: number, height: number) => ({
-      data: new Uint8ClampedArray(width * height * 4),
-      width,
-      height
-    })),
+    createImageData,
     save: jest.fn(),
     restore: jest.fn(),
     clearRect: jest.fn(),
@@ -1126,10 +1132,12 @@ describe("ShapeTool", () => {
       fill: jest.fn(),
       ellipse: jest.fn()
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       tool.onDown(ctx, makePointerEvent());
@@ -1194,11 +1202,16 @@ describe("GradientTool", () => {
         return canvas;
       })
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockImplementation((function (this: HTMLCanvasElement) {
-        return makeMock2dContext(this);
-      }) as unknown as HTMLCanvasElement["getContext"]);
+      .mockImplementation((function (
+        this: HTMLCanvasElement,
+        contextId: string
+      ) {
+        return contextId === "2d" ? makeMock2dContext(this) : null;
+      }) as HTMLCanvasElement["getContext"]);
 
     try {
       expect(tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }))).toBe(true);
@@ -1257,11 +1270,16 @@ describe("FillTool", () => {
         return canvas;
       })
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockImplementation((function (this: HTMLCanvasElement) {
-        return makeMock2dContext(this);
-      }) as unknown as HTMLCanvasElement["getContext"]);
+      .mockImplementation((function (
+        this: HTMLCanvasElement,
+        contextId: string
+      ) {
+        return contextId === "2d" ? makeMock2dContext(this) : null;
+      }) as HTMLCanvasElement["getContext"]);
 
     try {
       tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
@@ -1317,10 +1335,12 @@ describe("EraserTool", () => {
       drawImage: jest.fn(),
       restore: jest.fn()
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       const result = tool.onDown(ctx, makePointerEvent());
@@ -1337,13 +1357,14 @@ describe("BlurTool", () => {
   it("returns true on pointer down for active layer", () => {
     const tool = new BlurTool();
     const ctx = makeToolContext({ activeTool: "blur" });
-    class MockImageData {
-      data: Uint8ClampedArray;
+    class MockImageData implements ImageData {
+      data: Uint8ClampedArray<ArrayBuffer>;
       width: number;
       height: number;
+      readonly colorSpace = "srgb";
 
       constructor(
-        dataOrWidth: Uint8ClampedArray | number,
+        dataOrWidth: Uint8ClampedArray<ArrayBuffer> | number,
         width?: number,
         height?: number
       ) {
@@ -1367,11 +1388,13 @@ describe("BlurTool", () => {
       drawImage: jest.fn(),
       restore: jest.fn()
     });
-    globalThis.ImageData = MockImageData as unknown as typeof ImageData;
+    installGlobal("ImageData", MockImageData);
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       const result = tool.onDown(ctx, makePointerEvent());

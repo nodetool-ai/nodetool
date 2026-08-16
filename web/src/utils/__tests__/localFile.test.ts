@@ -7,6 +7,7 @@ import {
   isFileUri,
   fileUriToHttpUrl
 } from "../localFile";
+import { installGlobal, removeGlobal } from "../../test-utils/doubles";
 
 describe("pathToFileUri", () => {
   it("builds a file:// URI from a POSIX path", () => {
@@ -76,20 +77,20 @@ describe("getLocalFilePath", () => {
   const file = new File(["x"], "pic.png", { type: "image/png" });
 
   afterEach(() => {
-    delete (window as unknown as { api?: unknown }).api;
+    removeGlobal("api");
   });
 
   it("returns the resolved path from the Electron bridge", () => {
-    (window as unknown as { api: unknown }).api = {
+    installGlobal("api", {
       files: { getPathForFile: () => "/Users/me/pic.png" }
-    };
+    });
     expect(getLocalFilePath(file)).toBe("/Users/me/pic.png");
   });
 
   it("returns null when the bridge yields an empty path", () => {
-    (window as unknown as { api: unknown }).api = {
+    installGlobal("api", {
       files: { getPathForFile: () => "" }
-    };
+    });
     expect(getLocalFilePath(file)).toBeNull();
   });
 

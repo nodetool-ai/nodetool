@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useMessageQueue } from "../useMessageQueue";
 import { MessageContent } from "../../stores/ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 describe("useMessageQueue", () => {
   const mockOnSendMessage = jest.fn();
@@ -14,7 +14,7 @@ describe("useMessageQueue", () => {
   };
 
   const mockPointer = (coarse: boolean) => {
-    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+    window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
       matches: query.includes("pointer: coarse") ? coarse : false,
       media: query,
       onchange: null,
@@ -23,7 +23,7 @@ describe("useMessageQueue", () => {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       dispatchEvent: jest.fn()
-    })) as unknown as typeof window.matchMedia;
+    }));
   };
   const originalMatchMedia = window.matchMedia;
 

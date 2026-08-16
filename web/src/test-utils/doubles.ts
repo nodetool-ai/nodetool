@@ -59,3 +59,24 @@ export function asMockStore<T>(moduleExport: T): MockedStoreHook {
   // the call and `getState` are jest mocks at run time.
   return moduleExport as MockedStoreHook;
 }
+
+/**
+ * Installs a stand-in for a global — a DOM class jsdom does not ship, or one a
+ * test must control. `Object.defineProperty` is how jsdom installs its own
+ * globals, so a fake goes in the same way, with nothing asserted away.
+ *
+ * In jsdom `window` and `globalThis` are the same object, so this also
+ * installs `window.*` members such as the Electron `api` bridge.
+ */
+export function installGlobal<T>(name: string, value: T): void {
+  Object.defineProperty(globalThis, name, {
+    value,
+    configurable: true,
+    writable: true
+  });
+}
+
+/** Removes a global a test installed. */
+export function removeGlobal(name: string): void {
+  Reflect.deleteProperty(globalThis, name);
+}

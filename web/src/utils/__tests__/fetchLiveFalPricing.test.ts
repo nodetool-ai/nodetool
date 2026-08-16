@@ -1,10 +1,11 @@
 import { fetchLiveFalPricing } from "../fetchLiveFalPricing";
+import { installGlobal } from "../../test-utils/doubles";
 
 const mockFetch = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
-  global.fetch = mockFetch as unknown as typeof fetch;
+  installGlobal("fetch", mockFetch);
 });
 
 describe("fetchLiveFalPricing", () => {

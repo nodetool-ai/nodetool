@@ -2,11 +2,11 @@
  * @jest-environment jsdom
  */
 import type { RefObject } from "react";
+import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { useCanvasGeometryActions } from "../hooks/useCanvasGeometryActions";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state/useSketchStore";
-import { stub } from "../../../test-utils/doubles";
 
 function makeParams() {
   const store = useSketchStore.getState();

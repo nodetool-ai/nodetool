@@ -9,6 +9,7 @@ jest.mock("../../rest-fetch", () => ({
 }));
 
 import type { FrontendToolState } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import { restFetch } from "../../rest-fetch";
 import { FrontendToolRegistry } from "../frontendTools";
 import "../builtin/puck";
@@ -18,7 +19,6 @@ import {
   PuckAgentHandler,
   PuckSnapshot
 } from "../../../components/appbuilder/puck/puckAgentBridge";
-import { stub } from "../../../test-utils/doubles";
 
 const APP_ID = "app-1";
 

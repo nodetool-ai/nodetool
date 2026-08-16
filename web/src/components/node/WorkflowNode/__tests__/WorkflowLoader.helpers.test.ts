@@ -3,8 +3,8 @@ import {
   INPUT_TYPE_MAP,
   OUTPUT_TYPE_MAP
 } from "../WorkflowLoader.helpers";
-import type { Workflow } from "../../../../stores/ApiTypes";
 import { stub } from "../../../../test-utils/doubles";
+import type { Workflow } from "../../../../stores/ApiTypes";
 
 function makeWorkflow(
   nodes: Array<{ type: string; data?: Record<string, unknown> }>
