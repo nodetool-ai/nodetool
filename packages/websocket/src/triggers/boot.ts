@@ -138,35 +138,42 @@ export function startTriggerServices(
     // Starting the dispatcher also runs one immediate pass, which is the
     // boot-backlog drain: any input a previous process life stored but never
     // dispatched goes out now.
-    dispatcher = startDispatcher({
-      store: inputStore,
-      ...(options.startJob ? { startJob: options.startJob } : {}),
-      ...(options.registry ? { registry: options.registry } : {}),
-      ...(options.dispatcherIntervalMs !== undefined
-        ? { intervalMs: options.dispatcherIntervalMs }
-        : {})
-    });
+    const dispatcherOptions: Parameters<typeof startDispatcher>[0] = {
+      store: inputStore
+    };
+    if (options.startJob) {
+      dispatcherOptions.startJob = options.startJob;
+    }
+    if (options.registry) {
+      dispatcherOptions.registry = options.registry;
+    }
+    if (options.dispatcherIntervalMs !== undefined) {
+      dispatcherOptions.intervalMs = options.dispatcherIntervalMs;
+    }
+    dispatcher = startDispatcher(dispatcherOptions);
 
     const notify = dispatcher.notify;
 
     if (options.scheduler !== false) {
-      scheduler = startScheduler({
+      const schedulerOptions: Parameters<typeof startScheduler>[0] = {
         wakeupService,
-        notify,
-        ...(options.schedulerIntervalMs !== undefined
-          ? { intervalMs: options.schedulerIntervalMs }
-          : {})
-      });
+        notify
+      };
+      if (options.schedulerIntervalMs !== undefined) {
+        schedulerOptions.intervalMs = options.schedulerIntervalMs;
+      }
+      scheduler = startScheduler(schedulerOptions);
     }
 
     if (options.fileWatch !== false) {
-      fileWatch = startFileWatch({
+      const fileWatchOptions: Parameters<typeof startFileWatch>[0] = {
         wakeupService,
-        notify,
-        ...(options.fileWatchIntervalMs !== undefined
-          ? { intervalMs: options.fileWatchIntervalMs }
-          : {})
-      });
+        notify
+      };
+      if (options.fileWatchIntervalMs !== undefined) {
+        fileWatchOptions.intervalMs = options.fileWatchIntervalMs;
+      }
+      fileWatch = startFileWatch(fileWatchOptions);
     }
   } catch (err) {
     log.warn(

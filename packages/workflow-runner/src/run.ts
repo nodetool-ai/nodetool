@@ -92,6 +92,33 @@ export interface RunWorkflowOptions {
  * for await (const msg of runWorkflow(opts)) { ... }
  * ```
  */
+/**
+ * The context the run builds when the caller supplied none. The sandbox module
+ * catalog is left out entirely when there is none, rather than set to
+ * `undefined`.
+ */
+function contextInit(
+  opts: RunWorkflowOptions,
+  jobId: string
+): ConstructorParameters<typeof ProcessingContext>[0] {
+  const init: ConstructorParameters<typeof ProcessingContext>[0] = {
+    jobId,
+    workflowId: opts.workflowId ?? null,
+    storage: opts.storage ?? null,
+    workspaceStorage: opts.workspaceStorage ?? null,
+    cache: opts.cache,
+    environment: opts.environment,
+    secretResolver: opts.secretResolver,
+    // The caller streams via a message listener and never drains the pull
+    // queue — retaining it would pin every streamed chunk.
+    retainMessageQueue: false
+  };
+  if (opts.sandboxModuleCatalog !== undefined) {
+    init.sandboxModuleCatalog = opts.sandboxModuleCatalog;
+  }
+  return init;
+}
+
 export async function* runWorkflow(
   opts: RunWorkflowOptions
 ): AsyncGenerator<ProcessingMessage, RunResult, void> {
@@ -109,22 +136,7 @@ export async function* runWorkflow(
   const graph = hydrateGraphNodeFlags(opts.graph, opts.registry);
 
   const context =
-    opts.context ??
-    new ProcessingContext({
-      jobId,
-      workflowId: opts.workflowId ?? null,
-      storage: opts.storage ?? null,
-      workspaceStorage: opts.workspaceStorage ?? null,
-      cache: opts.cache,
-      environment: opts.environment,
-      secretResolver: opts.secretResolver,
-      ...(opts.sandboxModuleCatalog === undefined
-        ? {}
-        : { sandboxModuleCatalog: opts.sandboxModuleCatalog }),
-      // This path streams via the message listener below and never drains
-      // the pull queue — retaining it would pin every streamed chunk.
-      retainMessageQueue: false
-    });
+    opts.context ?? new ProcessingContext(contextInit(opts, jobId));
 
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor: (node) => opts.registry.resolve(node),

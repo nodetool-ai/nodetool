@@ -34,13 +34,18 @@ const snapshot = (): JsScriptSnapshot => ({
   lastTest: null,
 });
 
-const runOutcome = (ok: boolean): JsScriptRunOutcome => ({
-  ok,
-  outputs: { total: 3 },
-  logs: [],
-  duration_ms: 7,
-  ...(ok ? {} : { error: 'boom' }),
-});
+const runOutcome = (ok: boolean): JsScriptRunOutcome => {
+  const outcome: JsScriptRunOutcome = {
+    ok,
+    outputs: { total: 3 },
+    logs: [],
+    duration_ms: 7,
+  };
+  if (!ok) {
+    outcome.error = 'boom';
+  }
+  return outcome;
+};
 
 type MockHandler = {
   [K in keyof JsScriptAgentHandler]: jest.Mock;

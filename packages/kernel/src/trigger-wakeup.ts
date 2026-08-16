@@ -227,14 +227,23 @@ export class TriggerWakeupService {
 
       await this._store.insertIfAbsent(input);
 
-      // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
-      log.info("Stored trigger input", {
+      type LogFieldsFields = {
+        inputId: string;
+        runId: string;
+        nodeId: string;
+        cursor?: string;
+      };
+      const logFields: LogFieldsFields = {
         inputId: opts.inputId,
         runId: opts.runId,
-        nodeId: opts.nodeId,
-        // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
-        ...(opts.cursor ? { cursor: opts.cursor } : {})
-      });
+        nodeId: opts.nodeId
+      };
+      // Stryker disable next-line ConditionalExpression: diagnostic log field only
+      if (opts.cursor) {
+        logFields.cursor = opts.cursor;
+      }
+      // Stryker disable next-line StringLiteral: diagnostic log message only
+      log.info("Stored trigger input", logFields);
 
       return true;
     } finally {

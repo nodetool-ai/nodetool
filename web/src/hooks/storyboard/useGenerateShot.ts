@@ -21,6 +21,7 @@ import type { Edge, Node } from "@xyflow/react";
 import type { Entity, Shot } from "@nodetool-ai/protocol";
 import type { NodeData } from "../../stores/NodeData";
 import type { WorkflowAttributes } from "../../stores/ApiTypes";
+import type { ImageModelValue } from "../../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
@@ -70,6 +71,34 @@ const makeWorkflow = (id: string, name: string): WorkflowAttributes => ({
   run_mode: "workflow",
   workspace_id: null
 });
+
+/** A `model` property, present only when a model was chosen. */
+type ModelProp<T> = { model?: T };
+
+/** The board's model, when it picked one; the node's default otherwise. */
+const modelProp = <T>(model: T | undefined | null): ModelProp<T> => {
+  const prop: ModelProp<T> = {};
+  if (model) prop.model = model;
+  return prop;
+};
+
+/** Properties for the keyframe generator, which takes an image when editing. */
+const stillProps = (
+  useEditModel: boolean,
+  prompt: string,
+  entities: unknown[],
+  aspectRatio: string,
+  model: ImageModelValue | undefined | null
+) => {
+  // Board-level still model; omitted = the node's default model.
+  const props = {
+    prompt,
+    entities,
+    aspect_ratio: aspectRatio,
+    ...modelProp(model)
+  };
+  return useEditModel ? { image: [], ...props } : props;
+};
 
 const makeNode = (
   id: string,
@@ -143,7 +172,9 @@ export interface UseGenerateShotResult {
 }
 
 export const useGenerateShot = (): UseGenerateShotResult => {
-  const registerJob = useStoryboardGenerationStore((state) => state.registerJob);
+  const registerJob = useStoryboardGenerationStore(
+    (state) => state.registerJob
+  );
   // Library entities; a board's `entityIds` picks which ones season prompts.
   const { data: allEntities } = useEntities();
   // Model catalog, for checking whether the still model can take entity
@@ -232,14 +263,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             ? "nodetool.image.ImageToImage"
             : "nodetool.image.TextToImage",
           0,
-          {
-            ...(useEditModel ? { image: [] } : {}),
-            prompt: keyframePrompt(shot, style),
-            entities: entities.map(wireEntity),
-            aspect_ratio: aspectRatio,
-            // Board-level still model; omitted = the node's default model.
-            ...(board?.imageModel ? { model: board.imageModel } : {})
-          },
+          stillProps(
+            useEditModel,
+            keyframePrompt(shot, style),
+            entities.map(wireEntity),
+            aspectRatio,
+            board?.imageModel
+          ),
           workflowId
         ),
         makeNode(
@@ -250,7 +280,14 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           workflowId
         )
       ];
-      await startJob(boardId, shot, "keyframe", nodes, [outputEdge()], workflowId);
+      await startJob(
+        boardId,
+        shot,
+        "keyframe",
+        nodes,
+        [outputEdge()],
+        workflowId
+      );
     },
     [startJob, boardEntities, imageModels]
   );
@@ -258,7 +295,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   const generateClip = useCallback(
     async (boardId: string, shot: Shot): Promise<void> => {
       if (!shot.keyframe) {
-        throw new Error("Shot has no keyframe to animate. Generate a still first.");
+        throw new Error(
+          "Shot has no keyframe to animate. Generate a still first."
+        );
       }
       const board = useStoryboardStore.getState().getBoard(boardId);
       const aspectRatio = board?.aspectRatio ?? "16:9";
@@ -278,7 +317,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             aspect_ratio: aspectRatio,
             duration: shot.duration_seconds,
             // Board-level clip model; omitted = the node's default model.
-            ...(board?.videoModel ? { model: board.videoModel } : {})
+            ...modelProp(board?.videoModel)
           },
           workflowId
         ),
@@ -315,7 +354,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             video: shot.clip,
             prompt,
             // Board-level clip model; omitted = the node's default model.
-            ...(board?.videoModel ? { model: board.videoModel } : {})
+            ...modelProp(board?.videoModel)
           },
           workflowId
         ),

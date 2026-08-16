@@ -725,11 +725,12 @@ export const createNodeStore = (
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: sourceHandle || null,
-              targetHandle,
-              ...(isControlEdge
-                ? { type: "control", data: { edge_type: "control" } }
-                : {})
+              targetHandle
             };
+            if (isControlEdge) {
+              newEdge.type = "control";
+              newEdge.data = { edge_type: "control" };
+            }
 
             // Edge comparison and serialization expect null, not undefined.
             const normalizedEdges = filteredEdges.map((edge) => ({

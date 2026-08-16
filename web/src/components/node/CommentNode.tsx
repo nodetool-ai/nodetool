@@ -13,10 +13,7 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
-import {
-  EditorState,
-  LexicalEditor
-} from "lexical";
+import { EditorState, LexicalEditor } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
@@ -192,10 +189,13 @@ const initialConfigTemplate = {
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const { updateNodeData, updateNode } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData,
-    updateNode: state.updateNode
-  }), shallow);
+  const { updateNodeData, updateNode } = useNodes(
+    (state) => ({
+      updateNodeData: state.updateNodeData,
+      updateNode: state.updateNode
+    }),
+    shallow
+  );
   const [color, setColor] = useState<string>(
     (props.data.properties.comment_color as string) ||
       theme.vars.palette.c_bg_comment ||
@@ -229,10 +229,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       editorState = JSON.stringify(comment);
     }
 
-    return {
-      ...initialConfigTemplate,
-      ...(editorState !== undefined ? { editorState } : {})
-    };
+    // Lexical reads `editorState` only when it is present, so a comment with
+    // no saved state starts the editor empty.
+    return editorState === undefined
+      ? initialConfigTemplate
+      : { ...initialConfigTemplate, editorState };
   }, [props.data.properties.comment]);
 
   const textColor = useMemo(() => {
@@ -269,9 +270,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const handleScaleToFit = useCallback(() => {
     if (editorRef.current && containerRef.current) {
-      const editorDiv = editorRef.current.querySelector(
-        ".editor-input"
-      );
+      const editorDiv = editorRef.current.querySelector(".editor-input");
       if (!(editorDiv instanceof HTMLDivElement)) {
         return;
       }
@@ -350,11 +349,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  const containerStyle = useMemo<React.CSSProperties>(() => ({
-    backgroundColor: hexToRgba(color, 0.5),
-    color: textColor,
-    paddingRight: "2em"
-  }), [color, textColor]);
+  const containerStyle = useMemo<React.CSSProperties>(
+    () => ({
+      backgroundColor: hexToRgba(color, 0.5),
+      color: textColor,
+      paddingRight: "2em"
+    }),
+    [color, textColor]
+  );
 
   return (
     <LexicalComposer initialConfig={editorConfig}>

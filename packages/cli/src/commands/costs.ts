@@ -43,7 +43,8 @@ export function registerCostsCommands(program: Command): void {
           (acc, p) => ({
             total_cost: acc.total_cost + p.total_cost,
             total_input_tokens: acc.total_input_tokens + p.total_input_tokens,
-            total_output_tokens: acc.total_output_tokens + p.total_output_tokens,
+            total_output_tokens:
+              acc.total_output_tokens + p.total_output_tokens,
             total_tokens: acc.total_tokens + p.total_tokens,
             call_count: acc.call_count + p.call_count
           }),
@@ -111,11 +112,14 @@ export function registerCostsCommands(program: Command): void {
         }
         try {
           await setupLocalDb();
-          const [calls] = await Prediction.paginate(LOCAL_USER_ID, {
-            limit,
-            ...(opts.provider ? { provider: opts.provider } : {}),
-            ...(opts.model ? { model: opts.model } : {})
-          });
+          const page: Parameters<typeof Prediction.paginate>[1] = { limit };
+          if (opts.provider) {
+            page.provider = opts.provider;
+          }
+          if (opts.model) {
+            page.model = opts.model;
+          }
+          const [calls] = await Prediction.paginate(LOCAL_USER_ID, page);
           if (opts.json) {
             asJson(calls);
             return;

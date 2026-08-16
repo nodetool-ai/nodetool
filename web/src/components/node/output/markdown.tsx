@@ -13,21 +13,28 @@ type MaybeMarkdownProps = {
   fillContainer?: boolean;
 };
 
+/** Plain-text output styling, filling its container when asked to. */
+const plainTextStyle = (fillContainer: boolean): React.CSSProperties => {
+  const style: React.CSSProperties = { ...MARKDOWN_TEXT_STYLE };
+  if (fillContainer) {
+    style.height = "100%";
+    style.minHeight = 0;
+  }
+  return style;
+};
+
 export const MaybeMarkdown: React.FC<MaybeMarkdownProps> = memo(
   ({ text, fillContainer = false }) => {
-  return isLikelyMarkdown(text) ? (
-    <MarkdownRenderer content={text} fillContainer={fillContainer} />
-  ) : (
-    <div
-      className="output no-markdown-text"
-      style={{
-        ...MARKDOWN_TEXT_STYLE,
-        ...(fillContainer ? { height: "100%", minHeight: 0 } : {})
-      }}
-    >
-      {text}
-    </div>
-  );
+    return isLikelyMarkdown(text) ? (
+      <MarkdownRenderer content={text} fillContainer={fillContainer} />
+    ) : (
+      <div
+        className="output no-markdown-text"
+        style={plainTextStyle(fillContainer)}
+      >
+        {text}
+      </div>
+    );
   }
 );
 

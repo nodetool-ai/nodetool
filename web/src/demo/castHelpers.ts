@@ -13,14 +13,14 @@ import type {
   NodeMetadata,
   OutputSlot,
   Property,
-  PropertyTypeMetadata,
+  PropertyTypeMetadata
 } from "../stores/ApiTypes";
 import type { CastEvent } from "./castTypes";
 
 export const propType = (type: string): PropertyTypeMetadata => ({
   type,
   optional: false,
-  type_args: [],
+  type_args: []
 });
 
 export const prop = (name: string, type: string): Property => ({
@@ -32,13 +32,17 @@ export const prop = (name: string, type: string): Property => ({
   min: null,
   max: null,
   json_schema_extra: null,
-  required: false,
+  required: false
 });
 
-export const out = (name: string, type: string, stream = false): OutputSlot => ({
+export const out = (
+  name: string,
+  type: string,
+  stream = false
+): OutputSlot => ({
   name,
   type: propType(type),
-  stream,
+  stream
 });
 
 export const meta = (
@@ -56,7 +60,7 @@ export const meta = (
   supports_dynamic_inputs: false,
   is_streaming_output: false,
   supports_dynamic_outputs: false,
-  ...partial,
+  ...partial
 });
 
 /**
@@ -91,9 +95,15 @@ export const node = (
   id,
   type,
   data,
-  ui_properties: { position: { x, y }, zIndex: 0, width, selectable: true, title },
+  ui_properties: {
+    position: { x, y },
+    zIndex: 0,
+    width,
+    selectable: true,
+    title
+  },
   dynamic_properties: dynamicProperties,
-  dynamic_outputs: {},
+  dynamic_outputs: {}
 });
 
 export const edge = (
@@ -114,7 +124,10 @@ export function castMessages(workflowId: string, jobId: string) {
     result?: Record<string, unknown>
   ): CastEvent => ({
     t,
-    message: { type: "job_update", status, ...(result ? { result } : {}), ...base },
+    // `result` rides along only on the message that carries one.
+    message: result
+      ? { type: "job_update", status, result, ...base }
+      : { type: "job_update", status, ...base }
   });
 
   const nodeUpdate = (
@@ -126,20 +139,35 @@ export function castMessages(workflowId: string, jobId: string) {
     result?: Record<string, unknown>
   ): CastEvent => ({
     t,
-    message: {
-      type: "node_update",
-      status,
-      node_id: nodeId,
-      node_name: nodeName,
-      node_type: nodeType,
-      ...(result ? { result } : {}),
-      ...base,
-    },
+    message: result
+      ? {
+          type: "node_update",
+          status,
+          node_id: nodeId,
+          node_name: nodeName,
+          node_type: nodeType,
+          result,
+          ...base
+        }
+      : {
+          type: "node_update",
+          status,
+          node_id: nodeId,
+          node_name: nodeName,
+          node_type: nodeType,
+          ...base
+        }
   });
 
   const chunk = (t: number, nodeId: string, content: string): CastEvent => ({
     t,
-    message: { type: "chunk", node_id: nodeId, content_type: "text", content, ...base },
+    message: {
+      type: "chunk",
+      node_id: nodeId,
+      content_type: "text",
+      content,
+      ...base
+    }
   });
 
   const edgeUpdate = (
@@ -148,7 +176,7 @@ export function castMessages(workflowId: string, jobId: string) {
     status: "active" | "completed"
   ): CastEvent => ({
     t,
-    message: { type: "edge_update", edge_id: edgeId, status, ...base },
+    message: { type: "edge_update", edge_id: edgeId, status, ...base }
   });
 
   const output = (
@@ -168,8 +196,8 @@ export function castMessages(workflowId: string, jobId: string) {
       value,
       output_type: outputType,
       metadata: {},
-      ...base,
-    },
+      ...base
+    }
   });
 
   /** Stream `text` split into `chunks` evenly across [startMs, startMs+spanMs]. */
@@ -199,8 +227,8 @@ export function castMessages(workflowId: string, jobId: string) {
           node_id: nodeId,
           progress: step,
           total,
-          ...base,
-        },
+          ...base
+        }
       } satisfies CastEvent;
     });
 

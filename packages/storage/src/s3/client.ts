@@ -230,37 +230,44 @@ function rawPathRequest(input: {
   const hostname = hasPort ? input.host.slice(0, colon) : input.host;
   const port = hasPort ? Number(input.host.slice(colon + 1)) : undefined;
   return new Promise((resolve, reject) => {
-    const req = requestFn(
-      {
-        hostname,
-        ...(port !== undefined ? { port } : {}),
-        path: input.pathWithQuery,
-        method: input.method,
-        headers: input.headers
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => {
-          const status = res.statusCode ?? 0;
-          const body = Buffer.concat(chunks);
-          const headers = new Headers();
-          for (const [name, value] of Object.entries(res.headers)) {
-            if (typeof value === "string") headers.set(name, value);
-            else if (Array.isArray(value)) headers.set(name, value.join(", "));
-          }
-          const bodyAllowed =
-            input.method !== "HEAD" && status !== 204 && status !== 304;
-          resolve(
-            new Response(bodyAllowed && body.length > 0 ? body : null, {
-              status,
-              headers
-            })
-          );
-        });
-        res.on("error", reject);
-      }
-    );
+    type RequestOptionsFields = {
+      hostname: string;
+      port?: number;
+      path: string;
+      method: string;
+      headers: Record<string, string>;
+    };
+    const requestOptions: RequestOptionsFields = {
+      hostname,
+      path: input.pathWithQuery,
+      method: input.method,
+      headers: input.headers
+    };
+    if (port !== undefined) {
+      requestOptions.port = port;
+    }
+    const req = requestFn(requestOptions, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        const status = res.statusCode ?? 0;
+        const body = Buffer.concat(chunks);
+        const headers = new Headers();
+        for (const [name, value] of Object.entries(res.headers)) {
+          if (typeof value === "string") headers.set(name, value);
+          else if (Array.isArray(value)) headers.set(name, value.join(", "));
+        }
+        const bodyAllowed =
+          input.method !== "HEAD" && status !== 204 && status !== 304;
+        resolve(
+          new Response(bodyAllowed && body.length > 0 ? body : null, {
+            status,
+            headers
+          })
+        );
+      });
+      res.on("error", reject);
+    });
     req.on("error", reject);
     if (input.body) req.write(input.body);
     req.end();
@@ -335,29 +342,38 @@ export class S3Client implements S3Api {
     const pathWithQuery = `${target.path}${canonicalQuery ? `?${canonicalQuery}` : ""}`;
     const url = `${target.protocol}//${target.host}${pathWithQuery}`;
     if (this.customFetch) {
-      return this.customFetch(url, {
+      const fetchInit: RequestInit = {
         method: init.method,
-        headers: init.headers,
-        ...(init.body ? { body: new Uint8Array(init.body) } : {})
-      });
+        headers: init.headers
+      };
+      if (init.body) {
+        fetchInit.body = new Uint8Array(init.body);
+      }
+      return this.customFetch(url, fetchInit);
     }
     // fetch normalizes dot segments in the path; when that would change the
     // signed path (keys like `a/../b`), send over a raw-path transport.
     if (new URL(url).pathname !== target.path) {
-      return rawPathRequest({
+      const rawInit: Parameters<typeof rawPathRequest>[0] = {
         protocol: target.protocol,
         host: target.host,
         pathWithQuery,
         method: init.method,
-        headers: init.headers,
-        ...(init.body ? { body: init.body } : {})
-      });
+        headers: init.headers
+      };
+      if (init.body) {
+        rawInit.body = init.body;
+      }
+      return rawPathRequest(rawInit);
     }
-    return fetch(url, {
+    const fetchInit: RequestInit = {
       method: init.method,
-      headers: init.headers,
-      ...(init.body ? { body: new Uint8Array(init.body) } : {})
-    });
+      headers: init.headers
+    };
+    if (init.body) {
+      fetchInit.body = new Uint8Array(init.body);
+    }
+    return fetch(url, fetchInit);
   }
 
   private async request(input: {
@@ -371,7 +387,9 @@ export class S3Client implements S3Api {
     retryable?: boolean;
   }): Promise<Response> {
     const target = this.target(input.bucket, input.key);
-    const payloadHash = input.body ? sha256Hex(input.body) : EMPTY_PAYLOAD_SHA256;
+    const payloadHash = input.body
+      ? sha256Hex(input.body)
+      : EMPTY_PAYLOAD_SHA256;
     // Send the query exactly as signed (strict RFC 3986 encoding, sorted).
     const canonicalQuery = canonicalQueryString(input.query ?? {});
     const maxAttempts = input.retryable ? this.maxAttempts : 1;
@@ -391,11 +409,19 @@ export class S3Client implements S3Api {
 
       let response: Response;
       try {
-        response = await this.send(target, canonicalQuery, {
+        type SendInitFields = {
+          method: string;
+          headers: Record<string, string>;
+          body?: Uint8Array;
+        };
+        const sendInit: SendInitFields = {
           method: input.method,
-          headers: signed.headers,
-          ...(input.body ? { body: input.body } : {})
-        });
+          headers: signed.headers
+        };
+        if (input.body) {
+          sendInit.body = input.body;
+        }
+        response = await this.send(target, canonicalQuery, sendInit);
       } catch (err) {
         // Network-level failure (connection refused, reset, DNS, timeout).
         if (attempt < maxAttempts) {
@@ -435,7 +461,8 @@ export class S3Client implements S3Api {
       xmlText(body, "Code") ??
       (response.status === 404 ? "NotFound" : `HTTP${response.status}`);
     const message =
-      xmlText(body, "Message") ?? `S3 request failed with status ${response.status}`;
+      xmlText(body, "Message") ??
+      `S3 request failed with status ${response.status}`;
     return new S3Error(code, message, response.status);
   }
 
@@ -467,15 +494,20 @@ export class S3Client implements S3Api {
       : undefined;
     const lastModified = parseDateHeader(response.headers.get("last-modified"));
     const etag = response.headers.get("etag");
-    return {
-      body,
-      ...(contentType ? { contentType } : {}),
-      ...(contentLength !== undefined && Number.isFinite(contentLength)
-        ? { contentLength }
-        : {}),
-      ...(lastModified ? { lastModified } : {}),
-      ...(etag ? { etag } : {})
-    };
+    const result: S3GetObjectResult = { body };
+    if (contentType) {
+      result.contentType = contentType;
+    }
+    if (contentLength !== undefined && Number.isFinite(contentLength)) {
+      result.contentLength = contentLength;
+    }
+    if (lastModified) {
+      result.lastModified = lastModified;
+    }
+    if (etag) {
+      result.etag = etag;
+    }
+    return result;
   }
 
   async headObject(input: S3ObjectRef): Promise<S3HeadObjectResult> {
@@ -489,14 +521,21 @@ export class S3Client implements S3Api {
     const contentType = response.headers.get("content-type");
     const lastModified = parseDateHeader(response.headers.get("last-modified"));
     const etag = response.headers.get("etag");
-    return {
+    const result: S3HeadObjectResult = {
       contentLength: contentLengthHeader
         ? Number.parseInt(contentLengthHeader, 10)
-        : 0,
-      ...(contentType ? { contentType } : {}),
-      ...(lastModified ? { lastModified } : {}),
-      ...(etag ? { etag } : {})
+        : 0
     };
+    if (contentType) {
+      result.contentType = contentType;
+    }
+    if (lastModified) {
+      result.lastModified = lastModified;
+    }
+    if (etag) {
+      result.etag = etag;
+    }
+    return result;
   }
 
   async deleteObject(input: S3ObjectRef): Promise<void> {
@@ -552,13 +591,20 @@ export class S3Client implements S3Api {
           : undefined;
         const etag = xmlText(block, "ETag");
         const storageClass = xmlText(block, "StorageClass");
-        return {
+        const item: S3ObjectSummary = {
           key: xmlText(block, "Key") ?? "",
-          size: Number.parseInt(xmlText(block, "Size") ?? "0", 10) || 0,
-          ...(lastModified ? { lastModified } : {}),
-          ...(etag ? { etag } : {}),
-          ...(storageClass ? { storageClass } : {})
+          size: Number.parseInt(xmlText(block, "Size") ?? "0", 10) || 0
         };
+        if (lastModified) {
+          item.lastModified = lastModified;
+        }
+        if (etag) {
+          item.etag = etag;
+        }
+        if (storageClass) {
+          item.storageClass = storageClass;
+        }
+        return item;
       }
     );
 
@@ -567,12 +613,15 @@ export class S3Client implements S3Api {
       .filter((p): p is string => p !== null);
 
     const nextContinuationToken = xmlText(xml, "NextContinuationToken");
-    return {
+    const listing: S3ListObjectsV2Result = {
       contents,
       commonPrefixes,
-      isTruncated: xmlText(xml, "IsTruncated") === "true",
-      ...(nextContinuationToken ? { nextContinuationToken } : {})
+      isTruncated: xmlText(xml, "IsTruncated") === "true"
     };
+    if (nextContinuationToken) {
+      listing.nextContinuationToken = nextContinuationToken;
+    }
+    return listing;
   }
 
   async listBuckets(): Promise<S3BucketSummary[]> {
@@ -587,10 +636,13 @@ export class S3Client implements S3Api {
       const creationDate = creationDateText
         ? parseDateHeader(creationDateText)
         : undefined;
-      return {
-        name: xmlText(block, "Name") ?? "",
-        ...(creationDate ? { creationDate } : {})
+      const bucket: S3BucketSummary = {
+        name: xmlText(block, "Name") ?? ""
       };
+      if (creationDate) {
+        bucket.creationDate = creationDate;
+      }
+      return bucket;
     });
   }
 

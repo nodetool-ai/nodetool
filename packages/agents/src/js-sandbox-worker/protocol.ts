@@ -169,7 +169,12 @@ function isPlainObject(value: ScannedObject): boolean {
   return proto === null || proto === Object.prototype;
 }
 
-function scan(value: unknown, path: string, depth: number, seen: Set<object>): string | null {
+function scan(
+  value: unknown,
+  path: string,
+  depth: number,
+  seen: Set<object>
+): string | null {
   if (value === null) return null;
   const type = typeof value;
   if (type === "function") {
@@ -183,7 +188,10 @@ function scan(value: unknown, path: string, depth: number, seen: Set<object>): s
   seen.add(object);
   if (depth >= MAX_PRECHECK_DEPTH) return null;
 
-  if (ArrayBuffer.isView(object) || CLONEABLE_TAGS.has(Object.prototype.toString.call(object))) {
+  if (
+    ArrayBuffer.isView(object) ||
+    CLONEABLE_TAGS.has(Object.prototype.toString.call(object))
+  ) {
     return null;
   }
   if (Array.isArray(object)) {
@@ -212,7 +220,9 @@ function scan(value: unknown, path: string, depth: number, seen: Set<object>): s
   if (!isPlainObject(object)) {
     return `${path} is a ${describe(object)} instance, which loses its prototype in a structured clone`;
   }
-  for (const [key, entry] of Object.entries(object as Record<string, unknown>)) {
+  for (const [key, entry] of Object.entries(
+    object as Record<string, unknown>
+  )) {
     const reason = scan(entry, `${path}.${key}`, depth + 1, seen);
     if (reason !== null) return reason;
   }
@@ -278,7 +288,12 @@ export interface StreamClosedMessage {
 }
 
 export type RpcReplyMessage =
-  | { readonly type: "rpc-reply"; readonly id: number; readonly ok: true; readonly value: unknown }
+  | {
+      readonly type: "rpc-reply";
+      readonly id: number;
+      readonly ok: true;
+      readonly value: unknown;
+    }
   | {
       readonly type: "rpc-reply";
       readonly id: number;
@@ -354,6 +369,11 @@ export type WorkerToHostMessage =
  * flat form is what crosses. `syncedGlobals` rides on both branches — the
  * extractor runs even when the guest code failed.
  */
+/** {@link ResultMessage} with `readonly` dropped, so it can be filled in steps. */
+type MutableResultMessage = {
+  -readonly [K in keyof ResultMessage]: ResultMessage[K];
+};
+
 export function interpreterResultMessage(
   runId: string,
   outcome: InterpreterOutcome
@@ -363,17 +383,26 @@ export function interpreterResultMessage(
       ? {}
       : { syncedGlobals: outcome.syncedGlobals };
   if (outcome.ok) {
-    return { type: "result", runId, evalOk: true, data: outcome.data, ...synced };
+    return {
+      type: "result",
+      runId,
+      evalOk: true,
+      data: outcome.data,
+      ...synced
+    };
   }
-  return {
+  const failed: MutableResultMessage = {
     type: "result",
     runId,
     evalOk: false,
     errorName: outcome.error.name,
     errorMessage: outcome.error.message,
-    ...(outcome.error.stack === undefined ? {} : { errorStack: outcome.error.stack }),
     ...synced
   };
+  if (outcome.error.stack !== undefined) {
+    failed.errorStack = outcome.error.stack;
+  }
+  return failed;
 }
 
 function isTagged(value: unknown): value is { type: unknown } {

@@ -111,17 +111,25 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
     const handler: PuckAgentHandler = {
       getSnapshot: () => ({
         applicationId,
-        rootProps: (working.current.root.props ?? {}) as Record<string, unknown>,
+        rootProps: (working.current.root.props ?? {}) as Record<
+          string,
+          unknown
+        >,
         selectedId:
-          (puckRef.current.selectedItem?.props.id as string | undefined) ?? null,
+          (puckRef.current.selectedItem?.props.id as string | undefined) ??
+          null,
         componentTypes: Object.keys(config.components ?? {}),
         components: flattenComponents(working.current, slotFields)
       }),
       listComponentTypes: () =>
         Object.entries(config.components ?? {}).map(([type, component]) => {
           const fields =
-            (component as { label?: string; fields?: Record<string, { type?: string }> })
-              .fields ?? {};
+            (
+              component as {
+                label?: string;
+                fields?: Record<string, { type?: string }>;
+              }
+            ).fields ?? {};
           return {
             type,
             label: (component as { label?: string }).label,
@@ -162,7 +170,11 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         return findComponent(data, slotFields, id);
       },
       removeComponent: (id) => {
-        const { data, removed } = removeComponent(working.current, slotFields, id);
+        const { data, removed } = removeComponent(
+          working.current,
+          slotFields,
+          id
+        );
         if (removed) apply(data);
         return removed;
       },
@@ -205,7 +217,10 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
 
       listVariables: () => metaRef.current.variables,
       declareVariable: (input) => {
-        const { meta: next, variable } = declareVariable(metaRef.current, input);
+        const { meta: next, variable } = declareVariable(
+          metaRef.current,
+          input
+        );
         applyMeta(next);
         return variable;
       },
@@ -253,16 +268,17 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         const data = working.current;
         const rootProps = (data.root?.props ?? {}) as Record<string, unknown>;
         const themeId = rootProps.theme;
-        return {
+        const document: ApplicationDocument = {
           schemaVersion: APP_SCHEMA_VERSION,
           ui: data as unknown as PuckData,
           operations: metaRef.current.operations,
           resources: metaRef.current.resources,
-          variables: metaRef.current.variables,
-          ...(typeof themeId === "string" && themeId
-            ? { theme: { id: themeId } }
-            : {})
+          variables: metaRef.current.variables
         };
+        if (typeof themeId === "string" && themeId) {
+          document.theme = { id: themeId };
+        }
+        return document;
       }
     };
 

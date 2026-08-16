@@ -60,11 +60,10 @@ const overlap = (query: string, text: string): number => {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const obj = (properties: Record<string, unknown>, required: string[] = []) => ({
-  type: "object",
-  properties,
-  ...(required.length > 0 ? { required } : {})
-});
+const obj = (properties: Record<string, unknown>, required: string[] = []) =>
+  required.length > 0
+    ? { type: "object", properties, required }
+    : { type: "object", properties };
 
 const S = { type: "string" };
 const N = { type: "number" };
@@ -100,7 +99,11 @@ interface ChatMessage {
   role: string;
   text: string;
   created_at: string;
-  tool_calls?: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+  tool_calls?: Array<{
+    id: string;
+    name: string;
+    args: Record<string, unknown>;
+  }>;
 }
 
 interface ChatThread {
@@ -530,7 +533,10 @@ const ANIMATION_PRESETS = ["fade", "slide", "zoom", "wipe"];
 const BLEND_MODES = ["normal", "multiply", "screen", "overlay", "add"];
 
 const slug = (text: string): string =>
-  text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "item";
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "") || "item";
 
 function needTimeline(world: World, id: string): TimelineDoc {
   const doc = world.timelines.get(id);
@@ -748,7 +754,8 @@ function applySketchOp(doc: SketchDoc, op: Record<string, unknown>): void {
       const name = str(op["name"], "Layer");
       let id = str(op["id"]) || `layer_${slug(name)}`;
       let n = 2;
-      while (doc.layers.some((l) => l.id === id)) id = `layer_${slug(name)}_${n++}`;
+      while (doc.layers.some((l) => l.id === id))
+        id = `layer_${slug(name)}_${n++}`;
       doc.layers.push({
         id,
         name,
@@ -760,8 +767,10 @@ function applySketchOp(doc: SketchDoc, op: Record<string, unknown>): void {
     }
     case "set_layer_props": {
       const layer = findLayer(doc, str(op["target"]));
-      if (op["opacity"] !== undefined) layer.opacity = num(op["opacity"], layer.opacity);
-      if (op["blendMode"] !== undefined) layer.blendMode = str(op["blendMode"], layer.blendMode);
+      if (op["opacity"] !== undefined)
+        layer.opacity = num(op["opacity"], layer.opacity);
+      if (op["blendMode"] !== undefined)
+        layer.blendMode = str(op["blendMode"], layer.blendMode);
       if (op["visible"] !== undefined) layer.visible = op["visible"] !== false;
       if (op["name"] !== undefined) layer.name = str(op["name"], layer.name);
       return;
@@ -848,7 +857,9 @@ function applyStoryboardOp(
     }
     case "reorder_shot": {
       const target = str(op["target"]);
-      const from = doc.shots.findIndex((s) => s.id === target || s.slug === target);
+      const from = doc.shots.findIndex(
+        (s) => s.id === target || s.slug === target
+      );
       if (from < 0) throw new Error(`no shot matching "${target}"`);
       const [shot] = doc.shots.splice(from, 1);
       doc.shots.splice(Math.max(0, num(op["index"], 0)), 0, shot);
@@ -858,9 +869,13 @@ function applyStoryboardOp(
       const target = str(op["target"]);
       const shot = doc.shots.find((s) => s.id === target || s.slug === target);
       if (!shot) throw new Error(`no shot matching "${target}"`);
-      if (op["action"] !== undefined) shot.action = str(op["action"], shot.action);
+      if (op["action"] !== undefined)
+        shot.action = str(op["action"], shot.action);
       if (op["duration_seconds"] !== undefined) {
-        shot.duration_seconds = num(op["duration_seconds"], shot.duration_seconds);
+        shot.duration_seconds = num(
+          op["duration_seconds"],
+          shot.duration_seconds
+        );
       }
       return;
     }
@@ -900,7 +915,7 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
  */
 export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = createWorld();
-  const tool = <TResult,>(
+  const tool = <TResult>(
     name: string,
     description: string,
     schema: Record<string, unknown>,
@@ -991,7 +1006,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           }))
           .filter((hit) => hit.score > 0)
           .sort(
-            (a, b) => b.score - a.score || a.source_id.localeCompare(b.source_id)
+            (a, b) =>
+              b.score - a.score || a.source_id.localeCompare(b.source_id)
           );
         return { query, results: ranked.slice(0, limit) };
       }
@@ -1014,7 +1030,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           }))
           .filter((hit) => hit.score > 0)
           .sort(
-            (a, b) => b.score - a.score || a.source_id.localeCompare(b.source_id)
+            (a, b) =>
+              b.score - a.score || a.source_id.localeCompare(b.source_id)
           );
         return { query, results: ranked.slice(0, limit) };
       }
@@ -1033,7 +1050,9 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           title: str(params["title"], content.slice(0, 40)),
           content,
           kind: str(params["kind"], "note"),
-          resources: Array.isArray(params["resources"]) ? params["resources"] : []
+          resources: Array.isArray(params["resources"])
+            ? params["resources"]
+            : []
         };
         world.memories.push(entry);
         return { saved: true, memory_id: entry.memory_id };
@@ -1057,9 +1076,12 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const id = str(params["memory_id"]);
         const entry = world.memories.find((m) => m.memory_id === id);
         if (!entry) throw new Error(`no memory with id "${id}"`);
-        if (params["content"] !== undefined) entry.content = str(params["content"], entry.content);
-        if (params["title"] !== undefined) entry.title = str(params["title"], entry.title);
-        if (Array.isArray(params["resources"])) entry.resources = params["resources"];
+        if (params["content"] !== undefined)
+          entry.content = str(params["content"], entry.content);
+        if (params["title"] !== undefined)
+          entry.title = str(params["title"], entry.title);
+        if (Array.isArray(params["resources"]))
+          entry.resources = params["resources"];
         return { updated: true, memory_id: id };
       }
     ),
@@ -1124,9 +1146,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const ordered = world.chatMessages
           .filter((m) => m.thread_id === id)
           .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
-        const rows = params["newest_first"] === true
-          ? ordered.reverse()
-          : ordered;
+        const rows =
+          params["newest_first"] === true ? ordered.reverse() : ordered;
         return {
           ...clone(thread),
           // Tool calls come back named but without their arguments — the
@@ -1297,7 +1318,9 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       (params) => {
         const path = str(params["path"]);
         if (path !== "reports/q3.pdf") {
-          throw new Error(`no such file: ${path} (the workspace has reports/q3.pdf)`);
+          throw new Error(
+            `no such file: ${path} (the workspace has reports/q3.pdf)`
+          );
         }
         return { path, pages: 1, text: PDF_TEXT };
       }
@@ -1323,7 +1346,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       obj({ input_file: S, output_file: S }, ["input_file", "output_file"]),
       (params) => {
         const input = str(params["input_file"]);
-        if (input !== "reports/q3.pdf") throw new Error(`no such file: ${input}`);
+        if (input !== "reports/q3.pdf")
+          throw new Error(`no such file: ${input}`);
         const output = str(params["output_file"], "out.md");
         return { output_file: output, characters: PDF_TEXT.length + 8 };
       }
@@ -1379,7 +1403,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           if (!includeArchived && message.archived) return false;
           if (message.hours_ago > since) return false;
           const haystack = `${message.subject} ${message.from}`.toLowerCase();
-          if (subject && !message.subject.toLowerCase().includes(subject)) return false;
+          if (subject && !message.subject.toLowerCase().includes(subject))
+            return false;
           if (from && !message.from.toLowerCase().includes(from)) return false;
           if (text && !haystack.includes(text)) return false;
           return true;
@@ -1449,7 +1474,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       obj({ takeaway: S, chosen: S, rejected: S, brief: S }, ["takeaway"]),
       (params) => {
         const takeaway = str(params["takeaway"]);
-        if (!takeaway) throw new Error("record_style_preference needs a takeaway");
+        if (!takeaway)
+          throw new Error("record_style_preference needs a takeaway");
         world.preferences.push(takeaway);
         return {
           recorded: true,
@@ -1468,7 +1494,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       ]),
       (params) => {
         const id = str(params["application_id"]);
-        if (!world.apps.has(id)) throw new Error(`no application with id "${id}"`);
+        if (!world.apps.has(id))
+          throw new Error(`no application with id "${id}"`);
         return {
           application_id: id,
           verdict: { ok: true, issues: [] },
@@ -1483,14 +1510,19 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
 
     // -- timelines --------------------------------------------------------
-    tool("list_timelines", "List saved timeline sequences.", obj({ limit: N }), () => ({
-      timelines: [...world.timelines.values()].map((doc) => ({
-        timeline_id: doc.id,
-        name: doc.name,
-        tracks: doc.tracks.length,
-        clips: doc.clips.length
-      }))
-    })),
+    tool(
+      "list_timelines",
+      "List saved timeline sequences.",
+      obj({ limit: N }),
+      () => ({
+        timelines: [...world.timelines.values()].map((doc) => ({
+          timeline_id: doc.id,
+          name: doc.name,
+          tracks: doc.tracks.length,
+          clips: doc.clips.length
+        }))
+      })
+    ),
     tool(
       "validate_timeline",
       "Statically check a timeline sequence.",
@@ -1516,7 +1548,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       (params) => {
         const doc = needTimeline(world, str(params["timeline_id"]));
         const ops = recList(params["ops"]);
-        if (ops.length === 0) throw new Error("edit_timeline needs at least one op");
+        if (ops.length === 0)
+          throw new Error("edit_timeline needs at least one op");
         ops.forEach((op, index) => {
           try {
             applyTimelineOp(doc, op);
@@ -1557,7 +1590,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const found = (world.versions.get(`timeline:${id}`) ?? []).find(
           (v) => v.version === version
         );
-        if (!found) throw new Error(`no version ${version} for timeline "${id}"`);
+        if (!found)
+          throw new Error(`no version ${version} for timeline "${id}"`);
         return { timeline_id: id, version, document: clone(found.document) };
       }
     ),
@@ -1589,8 +1623,15 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const found = (world.versions.get(`timeline:${id}`) ?? []).find(
           (v) => v.version === version
         );
-        if (!found) throw new Error(`no version ${version} for timeline "${id}"`);
-        snapshotVersion(world, `timeline:${id}`, "before restore", "restore", doc);
+        if (!found)
+          throw new Error(`no version ${version} for timeline "${id}"`);
+        snapshotVersion(
+          world,
+          `timeline:${id}`,
+          "before restore",
+          "restore",
+          doc
+        );
         const restored = clone(found.document) as TimelineDoc;
         world.timelines.set(id, restored);
         const issues = timelineIssues(restored);
@@ -1603,13 +1644,18 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
 
     // -- sketches ---------------------------------------------------------
-    tool("list_sketches", "List saved image documents.", obj({ limit: N }), () => ({
-      sketches: [...world.sketches.values()].map((doc) => ({
-        image_document_id: doc.id,
-        name: doc.name,
-        layers: doc.layers.length
-      }))
-    })),
+    tool(
+      "list_sketches",
+      "List saved image documents.",
+      obj({ limit: N }),
+      () => ({
+        sketches: [...world.sketches.values()].map((doc) => ({
+          image_document_id: doc.id,
+          name: doc.name,
+          layers: doc.layers.length
+        }))
+      })
+    ),
     tool(
       "validate_sketch",
       "Statically check an image document.",
@@ -1631,11 +1677,15 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "edit_sketch",
       "Apply layer-structure edits to a saved sketch.",
-      obj({ image_document_id: S, ops: ANY_ARRAY }, ["image_document_id", "ops"]),
+      obj({ image_document_id: S, ops: ANY_ARRAY }, [
+        "image_document_id",
+        "ops"
+      ]),
       (params) => {
         const doc = needSketch(world, str(params["image_document_id"]));
         const ops = recList(params["ops"]);
-        if (ops.length === 0) throw new Error("edit_sketch needs at least one op");
+        if (ops.length === 0)
+          throw new Error("edit_sketch needs at least one op");
         ops.forEach((op, index) => {
           try {
             applySketchOp(doc, op);
@@ -1669,7 +1719,10 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "get_sketch_version",
       "Read one sketch snapshot without restoring it.",
-      obj({ image_document_id: S, version: N }, ["image_document_id", "version"]),
+      obj({ image_document_id: S, version: N }, [
+        "image_document_id",
+        "version"
+      ]),
       (params) => {
         const id = str(params["image_document_id"]);
         const version = num(params["version"], 0);
@@ -1677,7 +1730,11 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           (v) => v.version === version
         );
         if (!found) throw new Error(`no version ${version} for sketch "${id}"`);
-        return { image_document_id: id, version, document: clone(found.document) };
+        return {
+          image_document_id: id,
+          version,
+          document: clone(found.document)
+        };
       }
     ),
     tool(
@@ -1694,13 +1751,20 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           "manual",
           doc
         );
-        return { image_document_id: id, version: entry.version, name: entry.name };
+        return {
+          image_document_id: id,
+          version: entry.version,
+          name: entry.name
+        };
       }
     ),
     tool(
       "restore_sketch_version",
       "Restore a sketch snapshot, snapshotting the current state first.",
-      obj({ image_document_id: S, version: N }, ["image_document_id", "version"]),
+      obj({ image_document_id: S, version: N }, [
+        "image_document_id",
+        "version"
+      ]),
       (params) => {
         const id = str(params["image_document_id"]);
         const doc = needSketch(world, id);
@@ -1709,7 +1773,13 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           (v) => v.version === version
         );
         if (!found) throw new Error(`no version ${version} for sketch "${id}"`);
-        snapshotVersion(world, `sketch:${id}`, "before restore", "restore", doc);
+        snapshotVersion(
+          world,
+          `sketch:${id}`,
+          "before restore",
+          "restore",
+          doc
+        );
         const restored = clone(found.document) as SketchDoc;
         world.sketches.set(id, restored);
         const issues = sketchIssues(restored);
@@ -1744,14 +1814,17 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     tool(
       "voice_script_lines",
       "Synthesize a take per line; defaults to every draft or stale line.",
-      obj({
-        script_id: S,
-        targets: ANY_ARRAY,
-        provider: S,
-        model: S,
-        voice: S,
-        transcribe: B
-      }, ["script_id"]),
+      obj(
+        {
+          script_id: S,
+          targets: ANY_ARRAY,
+          provider: S,
+          model: S,
+          voice: S,
+          transcribe: B
+        },
+        ["script_id"]
+      ),
       (params) => {
         const id = str(params["script_id"]);
         const doc = world.scripts.get(id);
@@ -1774,7 +1847,10 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           }
           line.status = "voiced";
           line.take = `asset://take_${line.id}`;
-          line.duration_seconds = Math.max(1, Math.round(line.text.length / 10));
+          line.duration_seconds = Math.max(
+            1,
+            Math.round(line.text.length / 10)
+          );
           voiced.push(line.id);
         }
         return { script_id: id, voiced, skipped };
@@ -1829,7 +1905,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const doc = world.scripts.get(id);
         if (!doc) throw new Error(`no script with id "${id}"`);
         const ops = recList(params["ops"]);
-        if (ops.length === 0) throw new Error("edit_script needs at least one op");
+        if (ops.length === 0)
+          throw new Error("edit_script needs at least one op");
         ops.forEach((op, index) => {
           try {
             applyScriptOp(doc, op);
@@ -1845,15 +1922,20 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
 
     // -- storyboards ------------------------------------------------------
-    tool("list_storyboards", "List saved storyboards.", obj({ limit: N }), () => ({
-      storyboards: [...world.storyboards.values()].map((doc) => ({
-        storyboard_id: doc.storyboard_id,
-        name: doc.name,
-        shots: doc.shots.length,
-        stills: doc.shots.filter((s) => s.still !== null).length,
-        clips: doc.shots.filter((s) => s.clip !== null).length
-      }))
-    })),
+    tool(
+      "list_storyboards",
+      "List saved storyboards.",
+      obj({ limit: N }),
+      () => ({
+        storyboards: [...world.storyboards.values()].map((doc) => ({
+          storyboard_id: doc.storyboard_id,
+          name: doc.name,
+          shots: doc.shots.length,
+          stills: doc.shots.filter((s) => s.still !== null).length,
+          clips: doc.shots.filter((s) => s.clip !== null).length
+        }))
+      })
+    ),
     tool(
       "get_storyboard",
       "One board: its shots, their status, and its models.",
@@ -1891,7 +1973,9 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         if (!doc) throw new Error(`no storyboard with id "${id}"`);
         const requested = resolveShots(doc, params["targets"]);
         const targets =
-          requested.length > 0 ? requested : doc.shots.filter((s) => s.still === null);
+          requested.length > 0
+            ? requested
+            : doc.shots.filter((s) => s.still === null);
         const rendered: string[] = [];
         for (const shot of targets) {
           shot.still = `asset://still_${shot.id}`;
@@ -1916,12 +2000,17 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         if (!doc) throw new Error(`no storyboard with id "${id}"`);
         const requested = resolveShots(doc, params["targets"]);
         const targets =
-          requested.length > 0 ? requested : doc.shots.filter((s) => s.clip === null);
+          requested.length > 0
+            ? requested
+            : doc.shots.filter((s) => s.clip === null);
         const rendered: string[] = [];
         const skipped: Array<{ id: string; reason: string }> = [];
         for (const shot of targets) {
           if (shot.still === null) {
-            skipped.push({ id: shot.id, reason: "no keyframe — render its still first" });
+            skipped.push({
+              id: shot.id,
+              reason: "no keyframe — render its still first"
+            });
             continue;
           }
           shot.clip = `asset://clip_${shot.id}`;
@@ -1948,7 +2037,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const doc = world.storyboards.get(id);
         if (!doc) throw new Error(`no storyboard with id "${id}"`);
         const [shot] = resolveShots(doc, [str(params["target"])]);
-        if (shot.clip === null) throw new Error(`shot "${shot.id}" has no clip to revise`);
+        if (shot.clip === null)
+          throw new Error(`shot "${shot.id}" has no clip to revise`);
         shot.revision++;
         shot.clip = `asset://clip_${shot.id}_r${shot.revision}`;
         return { storyboard_id: id, revised: shot.id, revision: shot.revision };
@@ -2003,7 +2093,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         const doc = world.storyboards.get(id);
         if (!doc) throw new Error(`no storyboard with id "${id}"`);
         const ops = recList(params["ops"]);
-        if (ops.length === 0) throw new Error("edit_storyboard needs at least one op");
+        if (ops.length === 0)
+          throw new Error("edit_storyboard needs at least one op");
         ops.forEach((op, index) => {
           try {
             applyStoryboardOp(doc, op);
@@ -2035,7 +2126,8 @@ const asString = (value: unknown): string =>
 export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   {
     id: "rag-index-and-answer",
-    description: "Index a collection's documents, then answer from vector search",
+    description:
+      "Index a collection's documents, then answer from vector search",
     namespaces: ["collections"],
     objective:
       "The `handbook` collection holds our support policy, one document per " +
@@ -2113,7 +2205,8 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   },
   {
     id: "shared-handoff",
-    description: "Read what upstream steps shared, then publish a derived value",
+    description:
+      "Read what upstream steps shared, then publish a derived value",
     namespaces: ["shared"],
     objective:
       "Earlier steps of this run left their results in shared memory. Find " +
@@ -2141,7 +2234,8 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   },
   {
     id: "web-research-brief",
-    description: "Search the web, open the page, and report facts only the page carries",
+    description:
+      "Search the web, open the page, and report facts only the page carries",
     namespaces: ["web"],
     objective:
       "Find our NodeTool 4.2 release-notes page on the web and read it. " +
@@ -2243,7 +2337,13 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         glowOpacity: N,
         activeLayerId: S
       },
-      ["issuesBefore", "issuesAfter", "layerCount", "glowOpacity", "activeLayerId"]
+      [
+        "issuesBefore",
+        "issuesAfter",
+        "layerCount",
+        "glowOpacity",
+        "activeLayerId"
+      ]
     ),
     expect: {
       requiredTools: ["validate_sketch", "edit_sketch"],
@@ -2260,7 +2360,8 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   },
   {
     id: "script-voice-and-assemble",
-    description: "Voice only the lines that need it, then assemble the voiceover",
+    description:
+      "Voice only the lines that need it, then assemble the voiceover",
     namespaces: ["scripts", "timelines"],
     objective:
       "Script scr_intro has lines that still need recording. Record exactly " +
@@ -2289,7 +2390,8 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   },
   {
     id: "storyboard-render-and-assemble",
-    description: "Stills, then clips, then a cut — in the order the board allows",
+    description:
+      "Stills, then clips, then a cut — in the order the board allows",
     namespaces: ["storyboards", "timelines"],
     objective:
       "Board sb_lighthouse is directed but unfinished. Every shot needs a " +
@@ -2346,10 +2448,11 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   },
   {
     id: "style-aware-app-check",
-    description: "Check a saved app's wiring for free, and record the user's taste",
+    description:
+      "Check a saved app's wiring for free, and record the user's taste",
     namespaces: ["style", "apps"],
     objective:
-      "The app \"app_notes\" drafts a short note from a prompt. Read the " +
+      'The app "app_notes" drafts a short note from a prompt. Read the ' +
       "user's recorded style first, then run the FREE wiring check on that " +
       "app — no run, it costs nothing and spends nothing. Record that the " +
       "user liked the dark, high-contrast variant with the style recorder. " +
@@ -2357,10 +2460,12 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
       "verdict, whether it executed the app, how many widgets it reported, " +
       "and the preference count the style profile's details report after " +
       "your recording.",
-    outputSchema: obj(
-      { verdictOk: B, ran: B, widgets: N, preferences: N },
-      ["verdictOk", "ran", "widgets", "preferences"]
-    ),
+    outputSchema: obj({ verdictOk: B, ran: B, widgets: N, preferences: N }, [
+      "verdictOk",
+      "ran",
+      "widgets",
+      "preferences"
+    ]),
     expect: {
       requiredTools: [
         "get_style_profile",

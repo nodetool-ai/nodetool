@@ -2,6 +2,9 @@ import yaml from "js-yaml";
 import type { FieldDef, NodeConfig, ModuleConfig } from "./types.js";
 import type { KieDocsEntry } from "./schema-fetcher.js";
 
+/** Inclusive numeric bounds parsed from a schema or its prose. */
+type NumericBounds = { min?: number; max?: number };
+
 type JsonRecord = Record<string, unknown>;
 type MediaKind = "image" | "audio" | "video";
 
@@ -69,7 +72,11 @@ function sanitizeParamName(name: string): string {
   return name.trim().replace(/\s+/g, "_");
 }
 
-function fieldNameForUrl(paramName: string, kind: MediaKind, isList: boolean): string {
+function fieldNameForUrl(
+  paramName: string,
+  kind: MediaKind,
+  isList: boolean
+): string {
   if (isList) {
     if (paramName === "input_urls") {
       return `${kind}s`;
@@ -121,7 +128,9 @@ function classNameForModelId(modelId: string, fallback: string): string {
   return toPascalCase(fallback);
 }
 
-function moduleFromCategory(category: string): ModuleConfig["moduleName"] | null {
+function moduleFromCategory(
+  category: string
+): ModuleConfig["moduleName"] | null {
   const lower = category.toLowerCase().replace(/\s+/g, " ");
   if (lower.includes("video models")) {
     return "video";
@@ -140,7 +149,9 @@ function moduleFromCategory(category: string): ModuleConfig["moduleName"] | null
   return "image";
 }
 
-function outputTypeForModule(moduleName: ModuleConfig["moduleName"]): NodeConfig["outputType"] {
+function outputTypeForModule(
+  moduleName: ModuleConfig["moduleName"]
+): NodeConfig["outputType"] {
   if (moduleName === "video") {
     return "video";
   }
@@ -150,7 +161,10 @@ function outputTypeForModule(moduleName: ModuleConfig["moduleName"]): NodeConfig
   return "image";
 }
 
-function outputTypeForModelId(modelId: string, moduleName: ModuleConfig["moduleName"]): NodeConfig["outputType"] {
+function outputTypeForModelId(
+  modelId: string,
+  moduleName: ModuleConfig["moduleName"]
+): NodeConfig["outputType"] {
   if (modelId === "gemini-omni-audio" || modelId === "gemini-omni-character") {
     return "text";
   }
@@ -212,7 +226,10 @@ function isVideoClipSchema(schema: JsonRecord): boolean {
     return false;
   }
   const props = asRecord(items.properties);
-  return !!(props?.url && (props.start !== undefined || props.ends !== undefined));
+  return !!(
+    props?.url &&
+    (props.start !== undefined || props.ends !== undefined)
+  );
 }
 
 function cleanDescription(value: unknown): string {
@@ -223,17 +240,23 @@ function cleanDescription(value: unknown): string {
 }
 
 function numericValue(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
-function numericBoundsFromText(text: string): { min?: number; max?: number } {
+function numericBoundsFromText(text: string): NumericBounds {
   const minMatch = text.match(/\bMinimum:\s*(-?\d+(?:\.\d+)?)/i);
   const maxMatch = text.match(/\bMaximum:\s*(-?\d+(?:\.\d+)?)/i);
   if (minMatch || maxMatch) {
-    return {
-      ...(minMatch ? { min: Number(minMatch[1]) } : {}),
-      ...(maxMatch ? { max: Number(maxMatch[1]) } : {})
-    };
+    const bounds: NumericBounds = {};
+    if (minMatch) {
+      bounds.min = Number(minMatch[1]);
+    }
+    if (maxMatch) {
+      bounds.max = Number(maxMatch[1]);
+    }
+    return bounds;
   }
 
   const rangeMatch = text.match(
@@ -245,8 +268,10 @@ function numericBoundsFromText(text: string): { min?: number; max?: number } {
   return {};
 }
 
-function boundsForSchema(schema: JsonRecord): { min?: number; max?: number } {
-  const descriptionBounds = numericBoundsFromText(cleanDescription(schema.description));
+function boundsForSchema(schema: JsonRecord): NumericBounds {
+  const descriptionBounds = numericBoundsFromText(
+    cleanDescription(schema.description)
+  );
   return {
     min:
       numericValue(schema.minimum) ??
@@ -295,7 +320,11 @@ function coerceDefault(
   return "";
 }
 
-function mapField(paramName: string, schema: JsonRecord, required: boolean): {
+function mapField(
+  paramName: string,
+  schema: JsonRecord,
+  required: boolean
+): {
   field: FieldDef;
   upload?: NonNullable<NodeConfig["uploads"]>[number];
   paramName?: string;
@@ -311,8 +340,12 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
   const itemSchema = asRecord(schema.items) ?? {};
   const isUrlArray =
     isArray &&
-    (sourceName.endsWith("_urls") || itemSchema.format === "uri" || cleanDescription(schema.description).includes("asset://"));
-  const isUrl = schemaType === "string" && (sourceName.endsWith("_url") || schema.format === "uri");
+    (sourceName.endsWith("_urls") ||
+      itemSchema.format === "uri" ||
+      cleanDescription(schema.description).includes("asset://"));
+  const isUrl =
+    schemaType === "string" &&
+    (sourceName.endsWith("_url") || schema.format === "uri");
   const isIdArray =
     isArray &&
     sourceName.endsWith("_ids") &&
@@ -354,11 +387,14 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
     };
   }
 
-  const mediaKind = isUrl || isUrlArray ? inferMediaKind(sourceName, schema) : null;
+  const mediaKind =
+    isUrl || isUrlArray ? inferMediaKind(sourceName, schema) : null;
 
   if (mediaKind) {
     const fieldName = fieldNameForUrl(sourceName, mediaKind, isUrlArray);
-    const fieldType = isUrlArray ? (`list[${mediaKind}]` as FieldDef["type"]) : mediaKind;
+    const fieldType = isUrlArray
+      ? (`list[${mediaKind}]` as FieldDef["type"])
+      : mediaKind;
     const field: FieldDef = {
       name: fieldName,
       type: fieldType,
@@ -368,15 +404,15 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
       required
     };
     applyBounds(field, schema);
-    return {
-      field,
-      upload: {
-        field: fieldName,
-        kind: mediaKind,
-        ...(isUrlArray ? { isList: true } : {}),
-        paramName: sourceName
-      }
+    const upload: NonNullable<NodeConfig["uploads"]>[number] = {
+      field: fieldName,
+      kind: mediaKind,
+      paramName: sourceName
     };
+    if (isUrlArray) {
+      upload.isList = true;
+    }
+    return { field, upload };
   }
 
   let type: FieldDef["type"];
@@ -502,7 +538,9 @@ function flattenProperties(schema: JsonRecord): {
       if (!branchRecord || !branchProperties) {
         continue;
       }
-      const branchRequired = new Set(asStringArray(branchRecord.required) ?? []);
+      const branchRequired = new Set(
+        asStringArray(branchRecord.required) ?? []
+      );
       for (const [name, value] of Object.entries(branchProperties)) {
         if (name in properties) {
           continue;
@@ -557,7 +595,9 @@ export class KieSchemaParser {
     }
     const input = isCreateTask ? inputSchema(schema) : schema;
     const modelId =
-      (isCreateTask ? modelIdFromSchema(schema) : omniModelIdFromPath(post.path)) ??
+      (isCreateTask
+        ? modelIdFromSchema(schema)
+        : omniModelIdFromPath(post.path)) ??
       String(post.operation.operationId ?? post.path.replace(/^\//, ""));
     if (!input) {
       return null;
@@ -573,14 +613,20 @@ export class KieSchemaParser {
     const paramNames: Record<string, string> = {};
 
     for (const [rawName, rawSchema] of Object.entries(inputProperties)) {
-      if (["callBackUrl", "callback_url", "callbackUrl"].includes(rawName.trim())) {
+      if (
+        ["callBackUrl", "callback_url", "callbackUrl"].includes(rawName.trim())
+      ) {
         continue;
       }
       const propertySchema = asRecord(rawSchema);
       if (!propertySchema) {
         continue;
       }
-      const mapped = mapField(rawName, propertySchema, requiredFields.has(rawName.trim()));
+      const mapped = mapField(
+        rawName,
+        propertySchema,
+        requiredFields.has(rawName.trim())
+      );
       if (!mapped) {
         continue;
       }
@@ -600,15 +646,47 @@ export class KieSchemaParser {
     );
     const description = `${entry.title} via Kie.ai.\n\n    kie, ${moduleName}, ai\n\n    ${entry.summary || cleanDescription(post.operation.summary)}`;
     const validation = fields
-      .filter((field) => field.required && (field.type === "str" || field.type === "enum"))
+      .filter(
+        (field) =>
+          field.required && (field.type === "str" || field.type === "enum")
+      )
       .map((field) => ({
         field: field.name,
         rule: "not_empty" as const,
         message: `${field.title ?? field.name} is required`
       }));
 
-    const omniModule =
-      modelId.startsWith("gemini-omni-") ? GEMINI_OMNI_MODULE : undefined;
+    const omniModule = modelId.startsWith("gemini-omni-")
+      ? GEMINI_OMNI_MODULE
+      : undefined;
+
+    // Built in two halves so the emitted config keeps the key order the
+    // checked-in `configs/*.ts` files were generated with.
+    const execution: Partial<NodeConfig> = {};
+    if (omniModule) {
+      execution.moduleName = omniModule;
+    }
+    if (moduleName === "audio" && !isCreateTask && !useOmniDirect) {
+      execution.useSuno = true;
+      execution.sunoEndpoint = post.path;
+    }
+    if (useOmniDirect) {
+      execution.useOmniDirect = true;
+      execution.submitEndpoint = post.path;
+      execution.responseIdKey =
+        post.path === "/api/v1/omni/audio/create" ? "audioId" : "characterId";
+    }
+
+    const extras: Partial<NodeConfig> = {};
+    if (uploads.length) {
+      extras.uploads = uploads;
+    }
+    if (Object.keys(paramNames).length) {
+      extras.paramNames = paramNames;
+    }
+    if (validation.length) {
+      extras.validation = validation;
+    }
 
     return {
       className,
@@ -616,22 +694,9 @@ export class KieSchemaParser {
       title: entry.title,
       description,
       outputType,
-      ...(omniModule ? { moduleName: omniModule } : {}),
-      ...(moduleName === "audio" && !isCreateTask && !useOmniDirect
-        ? { useSuno: true, sunoEndpoint: post.path }
-        : {}),
-      ...(useOmniDirect
-        ? {
-            useOmniDirect: true,
-            submitEndpoint: post.path,
-            responseIdKey:
-              post.path === "/api/v1/omni/audio/create" ? "audioId" : "characterId"
-          }
-        : {}),
+      ...execution,
       fields,
-      ...(uploads.length ? { uploads } : {}),
-      ...(Object.keys(paramNames).length ? { paramNames } : {}),
-      ...(validation.length ? { validation } : {})
+      ...extras
     };
   }
 }

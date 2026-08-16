@@ -71,6 +71,7 @@ import {
   SANDBOX_STREAM_OPEN_BINDING,
   SANDBOX_WASM_BRIDGE_BINDING,
   type InterpreterOutcome,
+  type InterpreterParams,
   type SandboxDispatchCall
 } from "./js-sandbox-worker/interpreter.js";
 import {
@@ -83,6 +84,7 @@ import {
   createSandboxMediaStore,
   isSandboxMediaHandle,
   MAX_RUN_MEDIA_BYTES,
+  type SandboxMediaMeta,
   type SandboxMediaType
 } from "./sandbox-media-handle.js";
 import {
@@ -92,19 +94,27 @@ import {
   remapMediaRef,
   resolveRefBytes
 } from "./sandbox-media-ref.js";
+import type { MediaRefValue } from "@nodetool-ai/runtime";
 import {
   createSandboxWasmDispatcher,
   type SandboxWasmDispatcher,
   type WasmWorkerPool
 } from "./wasm-sandbox/host.js";
 import { runInWorker } from "./js-sandbox-worker/host.js";
+import type { RunInWorkerOptions } from "./js-sandbox-worker/host.js";
 import {
   deriveBridgeShape,
   precheckCloneSafety,
   SANDBOX_DISPATCHER_BINDINGS,
   type ResultMessage as SandboxWorkerResult,
+  type RunMessage,
   type SandboxDispatcherKind
 } from "./js-sandbox-worker/protocol.js";
+
+/** The same shape with `readonly` dropped, so a caller can fill it in steps. */
+type Writable<T> = { -readonly [K in keyof T]: T[K] };
+type WritableRun = Writable<Omit<RunMessage, "type">>;
+type WritableRunInWorkerOptions = Writable<RunInWorkerOptions>;
 // The variant package uses a `default` export. With `esModuleInterop` this
 // typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
@@ -1945,10 +1955,8 @@ export function buildSandbox(
         ? (value as Record<string, unknown>)
         : undefined;
     const declared = record?.mimeType ?? record?.mime_type;
-    const ref = {
-      ...remapMediaRef(value),
-      ...(typeof declared === "string" ? { mimeType: declared } : {})
-    };
+    const ref: MediaRefValue & { mimeType?: string } = remapMediaRef(value);
+    if (typeof declared === "string") ref.mimeType = declared;
     return mimeForRef(ref, defaultMediaMime(expectedType));
   };
 
@@ -2024,11 +2032,12 @@ export function buildSandbox(
           height?: number;
           format?: string;
         };
-        return mediaStore.put(result, {
-          mimeType: info.format ? `image/${info.format}` : "image/png",
-          ...(info.width === undefined ? {} : { width: info.width }),
-          ...(info.height === undefined ? {} : { height: info.height })
-        });
+        const meta: SandboxMediaMeta = {
+          mimeType: info.format ? `image/${info.format}` : "image/png"
+        };
+        if (info.width !== undefined) meta.width = info.width;
+        if (info.height !== undefined) meta.height = info.height;
+        return mediaStore.put(result, meta);
       }
       return toGuestBytesDeep(result);
     };
@@ -2329,10 +2338,14 @@ export function buildSandbox(
         )
     ])
   ) as unknown as typeof mediaRefBridge;
-  const promoteTypedHandle = (
-    name: "toImage" | "toAudio" | "toVideo",
-    promote: (value: unknown, options?: Record<string, unknown>) => Promise<unknown>
-  ) =>
+  const promoteTypedHandle =
+    (
+      name: "toImage" | "toAudio" | "toVideo",
+      promote: (
+        value: unknown,
+        options?: Record<string, unknown>
+      ) => Promise<unknown>
+    ) =>
     async (
       value: unknown,
       options?: Record<string, unknown>
@@ -2804,17 +2817,17 @@ export async function runInSandbox(
   // broken facade the guest imports.
   let wasm: SandboxWasmDispatcher | undefined;
   let hostModules: SandboxHostDispatcher | undefined;
+  const wasmOptions: Parameters<typeof createSandboxWasmDispatcher>[1] = {};
+  if (wasmPool !== undefined) wasmOptions.pool = wasmPool;
+  if (signal !== undefined) wasmOptions.signal = signal;
+  const hostOptions: Parameters<typeof createSandboxHostDispatcher>[1] = {};
+  if (signal !== undefined) hostOptions.signal = signal;
   try {
     wasm = modules
-      ? createSandboxWasmDispatcher(modules.modules, {
-          ...(wasmPool === undefined ? {} : { pool: wasmPool }),
-          ...(signal === undefined ? {} : { signal })
-        })
+      ? createSandboxWasmDispatcher(modules.modules, wasmOptions)
       : undefined;
     hostModules = modules
-      ? createSandboxHostDispatcher(modules.modules, {
-          ...(signal === undefined ? {} : { signal })
-        })
+      ? createSandboxHostDispatcher(modules.modules, hostOptions)
       : undefined;
   } catch (error) {
     return {
@@ -2828,17 +2841,18 @@ export async function runInSandbox(
     return { success: false, error: "Execution cancelled", logs: [] };
   }
 
+  const streams: SandboxInputStreams = {};
+  if (onTakeInput !== undefined) streams.onTakeInput = onTakeInput;
+  if (onStreamOpen !== undefined) streams.onStreamOpen = onStreamOpen;
+  if (activeClock !== undefined) streams.clock = activeClock;
+
   const { sandbox, getLogs, getOutputs, getEmitted } = buildSandbox(
     context,
     signal,
     resolvedLimits,
     onProgress,
     onEmit,
-    {
-      ...(onTakeInput === undefined ? {} : { onTakeInput }),
-      ...(onStreamOpen === undefined ? {} : { onStreamOpen }),
-      ...(activeClock === undefined ? {} : { clock: activeClock })
-    },
+    streams,
     resolveMediaRef,
     promoteMedia
   );
@@ -2931,40 +2945,43 @@ export async function runInSandbox(
       if (typeof value === "function") dispatch[name] = value;
     }
 
-    const message: SandboxWorkerResult | null = await runInWorker({
-      run: {
-        runId: globalThis.crypto.randomUUID(),
-        code,
-        timeoutMs,
-        limits: resolvedLimits,
-        suspendAllowanceMs,
-        hasClock: activeClock !== undefined,
-        engineTimeoutMs:
-          activeClock !== undefined
-            ? Math.min(timeoutMs + suspendAllowanceMs, MAX_ENGINE_TIMEOUT_MS)
-            : timeoutMs,
-        ...(modules === undefined ? {} : { modules }),
-        ...(capabilities?.facades === undefined
-          ? {}
-          : { capabilityFacades: capabilities.facades }),
-        streamOpenSeed: null,
-        bridgeShape: deriveBridgeShape({
-          bridges: sandbox,
-          dispatchers: dispatcherKinds,
-          globals: userGlobals
-        })
-      },
+    const workerRun: WritableRun = {
+      runId: globalThis.crypto.randomUUID(),
+      code,
+      timeoutMs,
+      limits: resolvedLimits,
+      suspendAllowanceMs,
+      hasClock: activeClock !== undefined,
+      engineTimeoutMs:
+        activeClock !== undefined
+          ? Math.min(timeoutMs + suspendAllowanceMs, MAX_ENGINE_TIMEOUT_MS)
+          : timeoutMs,
+      streamOpenSeed: null,
+      bridgeShape: deriveBridgeShape({
+        bridges: sandbox,
+        dispatchers: dispatcherKinds,
+        globals: userGlobals
+      })
+    };
+    if (modules !== undefined) workerRun.modules = modules;
+    if (capabilities?.facades !== undefined) {
+      workerRun.capabilityFacades = capabilities.facades;
+    }
+    const workerOptions: WritableRunInWorkerOptions = {
+      run: workerRun,
       dispatch,
       // Console and progress already reach their accumulators through the
       // RPC'd bridges; the push channel exists for a worker that has nothing
       // else to say, which this integration does not use.
       onLog: () => {},
-      onProgress: () => {},
-      ...(signal === undefined ? {} : { signal }),
-      ...(activeClock === undefined
-        ? {}
-        : { suspendedMs: () => activeClock.suspendedMs() })
-    });
+      onProgress: () => {}
+    };
+    if (signal !== undefined) workerOptions.signal = signal;
+    if (activeClock !== undefined) {
+      workerOptions.suspendedMs = () => activeClock.suspendedMs();
+    }
+    const message: SandboxWorkerResult | null =
+      await runInWorker(workerOptions);
     if (message === null) {
       workerUnavailable = "no sandbox worker could be started here";
     } else {
@@ -3040,7 +3057,7 @@ export async function runInSandbox(
     // The dispatchers stay on this side of the boundary — the interpreter only
     // ever sees a call function, which is as true of a worker's RPC proxy as it
     // is of the real dispatcher here.
-    const sandboxRun = runInterpreter({
+    const interpreterParams: InterpreterParams = {
       runSandboxed,
       code,
       sandbox,
@@ -3054,20 +3071,25 @@ export async function runInSandbox(
       hostCall: dispatchCallOf(hostModules),
       capabilityCall: dispatchCallOf(capabilities),
       modules,
-      capabilityFacades: capabilities?.facades,
-      // The interpreter cannot hold either host object: neither an AbortSignal
-      // nor a clock survives a thread boundary, so both arrive as a probe.
-      ...(signal === undefined ? {} : { isAborted: () => signal.aborted }),
-      ...(activeClock === undefined
-        ? {}
-        : { suspendedMs: () => activeClock.suspendedMs() })
-    }).then((outcome: InterpreterOutcome) => {
-      // The write-back runs as soon as the guest is done, even when
-      // cancellation already won the race below — an orphaned run still owns
-      // the answer it computed.
-      writeBackGlobals(outcome.syncedGlobals);
-      return outcome;
-    });
+      capabilityFacades: capabilities?.facades
+    };
+    // The interpreter cannot hold either host object: neither an AbortSignal
+    // nor a clock survives a thread boundary, so both arrive as a probe.
+    if (signal !== undefined) {
+      interpreterParams.isAborted = () => signal.aborted;
+    }
+    if (activeClock !== undefined) {
+      interpreterParams.suspendedMs = () => activeClock.suspendedMs();
+    }
+    const sandboxRun = runInterpreter(interpreterParams).then(
+      (outcome: InterpreterOutcome) => {
+        // The write-back runs as soon as the guest is done, even when
+        // cancellation already won the race below — an orphaned run still owns
+        // the answer it computed.
+        writeBackGlobals(outcome.syncedGlobals);
+        return outcome;
+      }
+    );
 
     // Return as soon as cancellation lands. The bridges above make a guest that
     // awaits anything unwind almost immediately; this race additionally covers

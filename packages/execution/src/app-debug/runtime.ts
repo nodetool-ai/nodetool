@@ -118,7 +118,8 @@ export const describeCondition = (
 ): string | null => {
   if (!props?.binding) return null;
   const op = props.op ?? "notEmpty";
-  const value = props.value === undefined || props.value === "" ? "" : ` ${props.value}`;
+  const value =
+    props.value === undefined || props.value === "" ? "" : ` ${props.value}`;
   return `${props.binding} ${op}${value}`;
 };
 
@@ -239,7 +240,8 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
   }
 
   selected(): ResourceRef | null {
-    const targetId = this.pinnedId ?? this.chosenId ?? this.items[0]?.ref.id ?? null;
+    const targetId =
+      this.pinnedId ?? this.chosenId ?? this.items[0]?.ref.id ?? null;
     if (!targetId) return null;
     // A pinned id can sit outside the collection; point at it anyway, the way
     // the web runtime does.
@@ -260,21 +262,26 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
       }
       case "create":
       case "upload": {
-        const item = this.toItem({
+        const seed: SeedResourceItem = {
           id: typeof args.id === "string" ? args.id : this.nextId(),
-          ...(name !== undefined ? { name } : {}),
-          document: args.document,
-          ...(typeof args.contentType === "string"
-            ? { contentType: args.contentType }
-            : {})
-        });
+          document: args.document
+        };
+        if (name !== undefined) {
+          seed.name = name;
+        }
+        if (typeof args.contentType === "string") {
+          seed.contentType = args.contentType;
+        }
+        const item = this.toItem(seed);
         this.items.push(item);
         this.chosenId = item.ref.id;
         return item;
       }
       case "update": {
         const ref = op.ref ?? this.selected();
-        const index = ref ? this.items.findIndex((i) => i.ref.id === ref.id) : -1;
+        const index = ref
+          ? this.items.findIndex((i) => i.ref.id === ref.id)
+          : -1;
         if (!ref || index < 0) {
           throw new Error(
             `Resource command "update" has nothing to write: the collection holds no resource "${ref?.id ?? ""}".`
@@ -305,7 +312,9 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
       }
       case "delete": {
         const ref = op.ref ?? this.selected();
-        const index = ref ? this.items.findIndex((i) => i.ref.id === ref.id) : -1;
+        const index = ref
+          ? this.items.findIndex((i) => i.ref.id === ref.id)
+          : -1;
         if (!ref || index < 0) {
           throw new Error(
             `Resource command "delete" has nothing to remove: the collection holds no resource "${ref?.id ?? ""}".`
@@ -504,11 +513,13 @@ export class HeadlessAppRuntime {
           (declared.length > 0 ? ` (declared: ${declared.join(", ")}).` : ".")
       );
     }
-    const provider = new InMemoryResourceProvider({
-      kind: binding.kind,
-      items,
-      ...(binding.scope.fixedId ? { pinnedId: binding.scope.fixedId } : {})
-    });
+    const providerOptions: ConstructorParameters<
+      typeof InMemoryResourceProvider
+    >[0] = { kind: binding.kind, items };
+    if (binding.scope.fixedId) {
+      providerOptions.pinnedId = binding.scope.fixedId;
+    }
+    const provider = new InMemoryResourceProvider(providerOptions);
     this.providers.set(resourceBindingId, provider);
     return provider;
   }
@@ -631,7 +642,10 @@ export class HeadlessAppRuntime {
         await this.run(action.operationId);
         break;
       case "cancel":
-        this.cancel(action.operationId ?? this.init.defaultOperationId, action.invocationId);
+        this.cancel(
+          action.operationId ?? this.init.defaultOperationId,
+          action.invocationId
+        );
         break;
       case "setVariable":
         this.state = applyEvent(this.state, {
@@ -653,11 +667,14 @@ export class HeadlessAppRuntime {
             `Resource command "${action.command}" targets resource binding "${action.resourceBindingId}", which nothing seeded — ${seedResourceHint(action.resourceBindingId)}.`
           );
         }
-        provider.apply({
+        const command: HeadlessResourceCommand = {
           command: action.command,
-          ref: provider.selected(),
-          ...(action.args ? { args: action.args } : {})
-        });
+          ref: provider.selected()
+        };
+        if (action.args) {
+          command.args = action.args;
+        }
+        provider.apply(command);
         this.resourceCommands.push({
           resourceBindingId: action.resourceBindingId,
           command: action.command
@@ -797,11 +814,14 @@ export class HeadlessAppRuntime {
       job_id: invocation.id
     }));
     const outputVariables = new Map(
-      outputVariableTargets(operation.binding).map((t) => [t.nodeId, t.variableId])
+      outputVariableTargets(operation.binding).map((t) => [
+        t.nodeId,
+        t.variableId
+      ])
     );
     const events = messagesToEvents(stamped, {
       resolveInvocation: (jobId: string | null | undefined) =>
-        jobId ? this.state.invocations[jobId] ?? null : null,
+        jobId ? (this.state.invocations[jobId] ?? null) : null,
       outputKey: (_operationId: string, nodeId: string) =>
         operation.outputKeyByNodeId.get(nodeId) ?? null,
       outputVariable: (_operationId: string, nodeId: string) =>

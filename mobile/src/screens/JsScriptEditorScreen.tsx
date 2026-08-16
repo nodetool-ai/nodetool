@@ -244,11 +244,16 @@ export default function JsScriptEditorScreen({ navigation, route }: Props) {
       setCode: (code: string) => write((script) => ({ ...script, code })),
 
       setPorts: ({ inputs, outputs }) =>
-        write((script) => ({
-          ...script,
-          ...(inputs ? { inputs } : {}),
-          ...(outputs ? { outputs } : {}),
-        })),
+        write((script) => {
+          const next = { ...script };
+          if (inputs) {
+            next.inputs = inputs;
+          }
+          if (outputs) {
+            next.outputs = outputs;
+          }
+          return next;
+        }),
 
       setMeta: ({ name: nextName, description, secrets, timeoutSeconds }) => {
         requireDoc();
@@ -260,12 +265,19 @@ export default function JsScriptEditorScreen({ navigation, route }: Props) {
           secrets !== undefined ||
           timeoutSeconds !== undefined
         ) {
-          edit((script) => ({
-            ...script,
-            ...(description !== undefined ? { description } : {}),
-            ...(secrets !== undefined ? { secrets } : {}),
-            ...(timeoutSeconds !== undefined ? { timeoutSeconds } : {}),
-          }));
+          edit((script) => {
+            const next = { ...script };
+            if (description !== undefined) {
+              next.description = description;
+            }
+            if (secrets !== undefined) {
+              next.secrets = secrets;
+            }
+            if (timeoutSeconds !== undefined) {
+              next.timeoutSeconds = timeoutSeconds;
+            }
+            return next;
+          });
         }
         return snapshot();
       },

@@ -778,12 +778,14 @@ const validateSketch: CapabilityExport = {
     const { validateSketchDocument } =
       await import("@nodetool-ai/execution/sketch-debug");
     const validation = validateSketchDocument(document, meta);
-    return {
-      ...validation,
-      ...(sketchId ? { image_document_id: sketchId } : {}),
-      ...(name ? { name } : {}),
-      summary: validationSummary(validation)
-    };
+    const report: typeof validation & {
+      image_document_id?: string;
+      name?: string;
+      summary: string;
+    } = { ...validation, summary: validationSummary(validation) };
+    if (sketchId) report.image_document_id = sketchId;
+    if (name) report.name = name;
+    return report;
   }
 };
 

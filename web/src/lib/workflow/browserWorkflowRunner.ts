@@ -267,9 +267,10 @@ export async function reportBrowserEligibility(
   const browserNodeTypes: string[] = [];
   const serverNodeTypes: string[] = [];
   for (const type of types) {
-    (browserSupportsSync(type) === true ? browserNodeTypes : serverNodeTypes).push(
-      type
-    );
+    (browserSupportsSync(type) === true
+      ? browserNodeTypes
+      : serverNodeTypes
+    ).push(type);
   }
   return {
     eligible: types.length > 0 && serverNodeTypes.length === 0,
@@ -399,7 +400,7 @@ async function runBrowserGraphJobLocal(
       `(job ${jobId}): ${nodeTypes.join(", ")}`
   );
 
-  const gen = runner.runBrowserWorkflow({
+  const runOptions: Parameters<LoadedBrowserRunner["runBrowserWorkflow"]>[0] = {
     graph: normalizeGraphForKernel(graph) as unknown as Parameters<
       LoadedBrowserRunner["runBrowserWorkflow"]
     >[0]["graph"],
@@ -408,16 +409,16 @@ async function runBrowserGraphJobLocal(
     jobId,
     workflowId,
     signal,
-    ...(sandboxModules === null
-      ? {}
-      : {
-          sandboxModuleCatalog:
-            createSeededSandboxModuleCatalog(sandboxModules)
-        }),
     onRunner: (workflowRunner) => {
       localRunners.set(jobId, workflowRunner);
     }
-  });
+  };
+  if (sandboxModules !== null) {
+    runOptions.sandboxModuleCatalog =
+      createSeededSandboxModuleCatalog(sandboxModules);
+  }
+
+  const gen = runner.runBrowserWorkflow(runOptions);
 
   try {
     while (true) {

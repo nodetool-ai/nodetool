@@ -131,8 +131,7 @@ function wrapFetch(
 
     const cb = options.onProgress;
     const lenHeader =
-      resp.headers.get("content-length") ??
-      resp.headers.get("x-linked-size");
+      resp.headers.get("content-length") ?? resp.headers.get("x-linked-size");
     const total = lenHeader ? parseInt(lenHeader, 10) : null;
 
     const stream = resp.body.pipeThrough(
@@ -194,12 +193,17 @@ export async function asyncHfDownload(
         })
       : undefined;
 
-  return await downloadFileToCacheDir({
+  const args: Parameters<typeof downloadFileToCacheDir>[0] = {
     repo: { name: repoId, type: repoType },
     path: filename,
     revision,
-    cacheDir: cacheDir ?? hfCacheRoot(),
-    ...(tokenStr ? { accessToken: tokenStr } : {}),
-    ...(wrappedFetch ? { fetch: wrappedFetch } : {})
-  });
+    cacheDir: cacheDir ?? hfCacheRoot()
+  };
+  if (tokenStr) {
+    args.accessToken = tokenStr;
+  }
+  if (wrappedFetch) {
+    args.fetch = wrappedFetch;
+  }
+  return await downloadFileToCacheDir(args);
 }

@@ -27,10 +27,10 @@ export async function runJsScript(
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        inputs,
-        ...(inputStreams ? { input_streams: inputStreams } : {})
-      })
+      // `input_streams` rides along only when the caller staged items.
+      body: JSON.stringify(
+        inputStreams ? { inputs, input_streams: inputStreams } : { inputs }
+      )
     }
   );
 

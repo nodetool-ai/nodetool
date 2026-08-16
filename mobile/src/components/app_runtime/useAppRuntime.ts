@@ -33,12 +33,13 @@ import {
   resolveOperationParams,
   stateKey,
   type AppAction,
+  type AppStateEvent,
   type ApplicationDocument,
   type BindingRef,
   type BindingScope,
   type InvocationState,
   type OperationBinding,
-  type ResourceRef,
+  type ResourceRef
 } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../types/workflow";
@@ -48,19 +49,19 @@ import { AppRuntimeContextValue } from "./AppRuntimeContext";
 import {
   AppRuntimeStore,
   getAppRuntimeStore,
-  appInstanceId,
+  appInstanceId
 } from "./appRuntimeStore";
 import {
   extractVariableNames,
   extractWorkflowIO,
-  seedInputValue,
+  seedInputValue
 } from "./workflowIO";
 import { useOpenResource } from "./useOpenResource";
 import {
   loadPersistedVariables,
   persistableValues,
   persistableVariableIds,
-  savePersistedVariables,
+  savePersistedVariables
 } from "./variablePersistence";
 
 type RawMessage = Record<string, unknown>;
@@ -137,10 +138,7 @@ export const useAppRuntime = (
 
   const variables = useMemo(
     () =>
-      mergeVariables(
-        document?.variables ?? [],
-        extractVariableNames(workflow)
-      ),
+      mergeVariables(document?.variables ?? [], extractVariableNames(workflow)),
     [document, workflow]
   );
 
@@ -163,9 +161,9 @@ export const useAppRuntime = (
               (node: { id: string }) => node.id
             )
           : [],
-        variableNames: extractVariableNames(workflow),
+        variableNames: extractVariableNames(workflow)
       })),
-      variables,
+      variables
     }),
     [io, isRunnable, operation.id, operations, variables, workflow]
   );
@@ -206,8 +204,13 @@ export const useAppRuntime = (
       for (const input of io.inputs) {
         const seed = seedInputValue(input);
         if (seed !== undefined) {
-          values[stateKey({ kind: "input", operationId: op.id, nodeId: input.nodeId })] =
-            seed;
+          values[
+            stateKey({
+              kind: "input",
+              operationId: op.id,
+              nodeId: input.nodeId
+            })
+          ] = seed;
         }
       }
     }
@@ -221,7 +224,9 @@ export const useAppRuntime = (
     let cancelled = false;
     const defaults = initialVariableValues(variables);
     void loadPersistedVariables(instanceId, variables).then((restored) => {
-      if (cancelled) {return;}
+      if (cancelled) {
+        return;
+      }
       const { dispatchEvent } = store.getState();
       dispatchEvent({ type: "seedVariables", values: restored });
       dispatchEvent({ type: "seedVariables", values: defaults });
@@ -235,15 +240,23 @@ export const useAppRuntime = (
   // view values never reach storage — that is what their scope means.
   useEffect(() => {
     const ids = persistableVariableIds(variables);
-    if (ids.size === 0) {return undefined;}
-    let last = JSON.stringify(persistableValues(store.getState().variables, ids));
+    if (ids.size === 0) {
+      return undefined;
+    }
+    let last = JSON.stringify(
+      persistableValues(store.getState().variables, ids)
+    );
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = store.subscribe((state) => {
       const values = persistableValues(state.variables, ids);
       const encoded = JSON.stringify(values);
-      if (encoded === last) {return;}
+      if (encoded === last) {
+        return;
+      }
       last = encoded;
-      if (timer) {clearTimeout(timer);}
+      if (timer) {
+        clearTimeout(timer);
+      }
       timer = setTimeout(() => {
         timer = null;
         void savePersistedVariables(instanceId, values);
@@ -251,7 +264,9 @@ export const useAppRuntime = (
     });
     return () => {
       unsubscribe();
-      if (timer) {clearTimeout(timer);}
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
   }, [instanceId, store, variables]);
 
@@ -269,7 +284,9 @@ export const useAppRuntime = (
     const byOperation = new Map<string, Map<string, string>>();
     for (const op of operations) {
       const targets = outputVariableTargets(op);
-      if (targets.length === 0) {continue;}
+      if (targets.length === 0) {
+        continue;
+      }
       byOperation.set(
         op.id,
         new Map(targets.map(({ nodeId, variableId }) => [nodeId, variableId]))
@@ -295,19 +312,21 @@ export const useAppRuntime = (
     (message: RawMessage) => {
       const events = messageToEvents(message, {
         resolveInvocation: (jobId) =>
-          jobId ? ownedRef.current.get(jobId) ?? null : null,
+          jobId ? (ownedRef.current.get(jobId) ?? null) : null,
         outputKey: (operationId, nodeId) =>
           outputNodeIdsRef.current.has(nodeId)
             ? outputKey(operationId, nodeId)
             : null,
         outputVariable: (operationId, nodeId) =>
-          outputVariablesRef.current.get(operationId)?.get(nodeId) ?? null,
+          outputVariablesRef.current.get(operationId)?.get(nodeId) ?? null
       });
       for (const event of events) {
         store.getState().dispatchEvent(event);
         if (event.type === "invocationStatus") {
           const invocation = ownedRef.current.get(event.invocationId);
-          if (invocation) {invocation.status = event.status;}
+          if (invocation) {
+            invocation.status = event.status;
+          }
           if (event.status !== "pending" && event.status !== "running") {
             const start = startsByInvocationRef.current.get(event.invocationId);
             clearTimer(start);
@@ -332,13 +351,13 @@ export const useAppRuntime = (
         operationId,
         status: "failed",
         error,
-        startedAt: Date.now(),
+        startedAt: Date.now()
       };
       ownedRef.current.set(failed.id, failed);
       store.getState().dispatchEvent({
         type: "runStarted",
         invocation: failed,
-        outputKeys: [],
+        outputKeys: []
       });
     },
     [store]
@@ -352,7 +371,7 @@ export const useAppRuntime = (
         id: start.invocationId,
         operationId: start.operationId,
         status: "running",
-        startedAt: Date.now(),
+        startedAt: Date.now()
       };
       ownedRef.current.set(start.invocationId, invocation);
       store.getState().dispatchEvent({
@@ -360,29 +379,32 @@ export const useAppRuntime = (
         invocation,
         outputKeys: outputsRef.current.map((output) =>
           outputKey(start.operationId, output.nodeId)
-        ),
+        )
       });
     },
     [outputKey, store]
   );
 
   useEffect(() => {
-    if (!workflowId) {return undefined;}
+    if (!workflowId) {
+      return undefined;
+    }
 
     const handler = (message: RawMessage) => {
       const jobId = message.job_id;
       // Only jobs this app minted an id for are folded. A message with no job
       // id, or one naming a run started elsewhere (the chain editor, another
       // app instance), belongs to nobody here.
-      if (typeof jobId !== "string") {return;}
-      if (!ownedRef.current.has(jobId)) {return;}
+      if (typeof jobId !== "string") {
+        return;
+      }
+      if (!ownedRef.current.has(jobId)) {
+        return;
+      }
       foldRef.current(message);
     };
 
-    const unsubscribeWorkflow = webSocketService.subscribe(
-      workflowId,
-      handler
-    );
+    const unsubscribeWorkflow = webSocketService.subscribe(workflowId, handler);
 
     let unsubscribeJob: (() => void) | null = null;
     const updateJobSubscription = (jobId: string | null) => {
@@ -393,7 +415,9 @@ export const useAppRuntime = (
     };
     updateJobSubscription(runnerStore.getState().job_id);
     const unsubscribeRunner = runnerStore.subscribe((state, prev) => {
-      if (state.job_id !== prev.job_id) {updateJobSubscription(state.job_id);}
+      if (state.job_id !== prev.job_id) {
+        updateJobSubscription(state.job_id);
+      }
     });
 
     return () => {
@@ -411,17 +435,24 @@ export const useAppRuntime = (
     async (invocationIds: ReadonlyArray<string>, error?: string) => {
       for (const id of invocationIds) {
         const invocation = ownedRef.current.get(id);
-        if (invocation && !isLiveInvocation(invocation)) {continue;}
+        if (invocation && !isLiveInvocation(invocation)) {
+          continue;
+        }
         clearTimer(startsByInvocationRef.current.get(id));
         startsByInvocationRef.current.delete(id);
         await runnerStore.getState().cancel(id);
-        if (invocation) {invocation.status = error ? "failed" : "cancelled";}
-        store.getState().dispatchEvent({
+        if (invocation) {
+          invocation.status = error ? "failed" : "cancelled";
+        }
+        const event: Extract<AppStateEvent, { type: "invocationStatus" }> = {
           type: "invocationStatus",
           invocationId: id,
-          status: error ? "failed" : "cancelled",
-          ...(error ? { error } : {}),
-        });
+          status: error ? "failed" : "cancelled"
+        };
+        if (error) {
+          event.error = error;
+        }
+        store.getState().dispatchEvent(event);
       }
     },
     [clearTimer, runnerStore, store]
@@ -441,7 +472,9 @@ export const useAppRuntime = (
           return;
         }
         const unsubscribe = store.subscribe(() => {
-          if (!settled()) {return;}
+          if (!settled()) {
+            return;
+          }
           unsubscribe();
           resolve();
         });
@@ -451,7 +484,9 @@ export const useAppRuntime = (
 
   const startTimeout = useCallback(
     (start: StartedRun) => {
-      if (!start.timeoutMs || start.timeoutMs <= 0) {return;}
+      if (!start.timeoutMs || start.timeoutMs <= 0) {
+        return;
+      }
       const limit = start.timeoutMs;
       start.timer = setTimeout(() => {
         start.timer = undefined;
@@ -468,10 +503,7 @@ export const useAppRuntime = (
     async (operationId: string) => {
       const target = operations.find((op) => op.id === operationId);
       if (!target) {
-        failRun(
-          operation.id,
-          `This app has no operation "${operationId}".`
-        );
+        failRun(operation.id, `This app has no operation "${operationId}".`);
         return;
       }
       if (!workflow || !isRunnable(target)) {
@@ -499,7 +531,7 @@ export const useAppRuntime = (
         inputName: (nodeId) =>
           io.inputs.find((input) => input.nodeId === nodeId)?.name,
         resourceRef: (resourceBindingId) =>
-          resourceRefsRef.current.get(resourceBindingId),
+          resourceRefsRef.current.get(resourceBindingId)
       });
 
       // The job id is minted before the request goes out and sent as the
@@ -509,28 +541,37 @@ export const useAppRuntime = (
       const start: StartedRun = {
         operationId: target.id,
         invocationId: uuidv4(),
-        timeoutMs: target.timeoutMs,
+        timeoutMs: target.timeoutMs
       };
       registerInvocation(start);
       startTimeout(start);
       try {
-        await runnerStore.getState().run(params, workflow, {
+        type RunOptionsFields = {
+          jobId: string;
+          operationId: string;
+          application?: typeof application;
+        };
+        const runOptions: RunOptionsFields = {
           jobId: start.invocationId,
-          operationId: target.id,
-          ...(application ? { application } : {}),
-        });
+          operationId: target.id
+        };
+        if (application) {
+          runOptions.application = application;
+        }
+        await runnerStore.getState().run(params, workflow, runOptions);
       } catch (error) {
         clearTimer(start);
         startsByInvocationRef.current.delete(start.invocationId);
-        const message =
-          error instanceof Error ? error.message : "Run failed";
+        const message = error instanceof Error ? error.message : "Run failed";
         const invocation = ownedRef.current.get(start.invocationId);
-        if (invocation) {invocation.status = "failed";}
+        if (invocation) {
+          invocation.status = "failed";
+        }
         store.getState().dispatchEvent({
           type: "invocationStatus",
           invocationId: start.invocationId,
           status: "failed",
-          error: message,
+          error: message
         });
       }
     },
@@ -548,7 +589,7 @@ export const useAppRuntime = (
       startTimeout,
       store,
       waitForSettled,
-      workflow,
+      workflow
     ]
   );
 
@@ -570,7 +611,9 @@ export const useAppRuntime = (
   useEffect(
     () => () => {
       for (const start of startsByInvocationRef.current.values()) {
-        if (start.timer) {clearTimeout(start.timer);}
+        if (start.timer) {
+          clearTimeout(start.timer);
+        }
       }
     },
     []
@@ -585,7 +628,7 @@ export const useAppRuntime = (
           dispatchEvent({
             type: "setVariable",
             variableId: ref.variableId,
-            value,
+            value
           });
           break;
         case "view":
@@ -605,22 +648,19 @@ export const useAppRuntime = (
           void run(action.operationId);
           break;
         case "cancel":
-          void cancel(
-            action.operationId ?? operation.id,
-            action.invocationId
-          );
+          void cancel(action.operationId ?? operation.id, action.invocationId);
           break;
         case "setVariable":
           store.getState().dispatchEvent({
             type: "setVariable",
             variableId: action.variableId,
-            value: action.value,
+            value: action.value
           });
           break;
         case "toggleVariable":
           store.getState().dispatchEvent({
             type: "toggleVariable",
-            variableId: action.variableId,
+            variableId: action.variableId
           });
           break;
         case "openResource": {
@@ -652,7 +692,7 @@ export const useAppRuntime = (
       resources,
       dispatch,
       write,
-      selectResource,
+      selectResource
     }),
     [
       dispatch,
@@ -663,7 +703,7 @@ export const useAppRuntime = (
       scope,
       selectResource,
       store,
-      write,
+      write
     ]
   );
 };

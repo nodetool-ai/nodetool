@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
@@ -7,7 +8,12 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
 
-const styles = (theme: Theme, accent: string, active: boolean, compact: boolean) =>
+const styles = (
+  theme: Theme,
+  accent: string,
+  active: boolean,
+  compact: boolean
+) =>
   css({
     display: "flex",
     flexDirection: compact ? "row" : "column",
@@ -15,9 +21,7 @@ const styles = (theme: Theme, accent: string, active: boolean, compact: boolean)
     textAlign: "left",
     width: "100%",
     padding: 0,
-    border: `1px solid ${
-      active ? accent : theme.vars.palette.divider
-    }`,
+    border: `1px solid ${active ? accent : theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.lg,
     background: active
       ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.04)`
@@ -121,21 +125,25 @@ const styles = (theme: Theme, accent: string, active: boolean, compact: boolean)
       fontWeight: 600,
       color: theme.vars.palette.text.primary
     },
-    ".tagline": {
-      margin: 0,
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary,
-      lineHeight: 1.4,
-      ...(compact
-        ? {
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical" as const,
-            WebkitLineClamp: 2,
-            overflow: "hidden"
-          }
-        : {})
-    }
+    ".tagline": taglineStyles(theme, compact)
   });
+
+/** The tagline, clamped to two lines in the compact row layout. */
+const taglineStyles = (theme: Theme, compact: boolean): CSSObject => {
+  const styles: CSSObject = {
+    margin: 0,
+    fontSize: "var(--fontSizeSmall)",
+    color: theme.vars.palette.text.secondary,
+    lineHeight: 1.4
+  };
+  if (compact) {
+    styles.display = "-webkit-box";
+    styles.WebkitBoxOrient = "vertical";
+    styles.WebkitLineClamp = 2;
+    styles.overflow = "hidden";
+  }
+  return styles;
+};
 
 export interface TutorialCardProps {
   tutorial: Tutorial;
@@ -167,9 +175,7 @@ const TutorialCardInner: React.FC<TutorialCardProps> = ({
             <PlayArrowRoundedIcon />
           </span>
         </span>
-        {!compact && (
-          <span className="duration">{tutorial.durationLabel}</span>
-        )}
+        {!compact && <span className="duration">{tutorial.durationLabel}</span>}
       </span>
       <span className="body">
         <span className="meta">

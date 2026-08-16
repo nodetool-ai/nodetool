@@ -44,7 +44,9 @@ import {
   bundleTarget,
   extractAppIO,
   simulateApp,
+  type AppDebugOptions,
   type AppDebugReport,
+  type AppSimulationDeps,
   type AppIO,
   type AppServerRunInput,
   type AppServerRunOutcome,
@@ -52,10 +54,12 @@ import {
   type AppWidgetState,
   type InteractionStep
 } from "@nodetool-ai/execution/app-debug";
+import type { AuthorGraphOptions } from "../author-graph.js";
 import { authorGraph } from "../author-graph.js";
 import {
   runAuthorStage,
   DEFAULT_AUTHOR_TURNS,
+  type AuthorStageOptions,
   type AuthorWorkflow
 } from "./author.js";
 import type { AppBridgeDocument } from "./bridge.js";
@@ -63,9 +67,15 @@ import { completeInteractions } from "./interactions.js";
 import {
   runJudgeStage,
   type JudgeInteractionInput,
+  type JudgeStageOptions,
   type JudgeWidgetState
 } from "./judge.js";
-import { resolveSpecWidget, runSpecStage, specFromFile } from "./spec.js";
+import {
+  resolveSpecWidget,
+  runSpecStage,
+  specFromFile,
+  type SpecStageOptions
+} from "./spec.js";
 import {
   issueFingerprint,
   type BuildComplaint,
@@ -188,16 +198,14 @@ const issue = (
     step?: number;
   } = {},
   severity: BuildIssue["severity"] = "error"
-): BuildIssue => ({
-  stage,
-  code,
-  severity,
-  message,
-  ...(ref.widget !== undefined ? { widget: ref.widget } : {}),
-  ...(ref.operation !== undefined ? { operation: ref.operation } : {}),
-  ...(ref.interaction !== undefined ? { interaction: ref.interaction } : {}),
-  ...(ref.step !== undefined ? { step: ref.step } : {})
-});
+): BuildIssue => {
+  const built: BuildIssue = { stage, code, severity, message };
+  if (ref.widget !== undefined) built.widget = ref.widget;
+  if (ref.operation !== undefined) built.operation = ref.operation;
+  if (ref.interaction !== undefined) built.interaction = ref.interaction;
+  if (ref.step !== undefined) built.step = ref.step;
+  return built;
+};
 
 const errorsOf = (issues: readonly BuildIssue[]): BuildIssue[] =>
   issues.filter((i) => i.severity === "error");
@@ -218,7 +226,7 @@ const costOf = (stages: readonly StageRecord[]): BuildReport["cost"] => {
 };
 
 /** The simulator's dependencies: the caller's runner and workflow loader. */
-const simulationDeps = (opts: BuildAppOptions) => ({
+const simulationDeps = (opts: BuildAppOptions): AppSimulationDeps => ({
   loadFromDb: async (id: string) => {
     const loaded = await opts.loadWorkflow?.(id);
     return loaded ? { graph: loaded.graph } : null;
@@ -536,7 +544,7 @@ async function planGraph(
   operation: BuildSpec["operations"][number],
   objective: string
 ): Promise<BuildGraph | null> {
-  const generator = authorGraph(objective, {
+  const authorOptions: AuthorGraphOptions = {
     context: opts.context,
     provider: opts.provider,
     model: opts.model,
@@ -549,11 +557,12 @@ async function planGraph(
       properties: Object.fromEntries(
         operation.outputs.map((output) => [output.name, { type: "string" }])
       )
-    },
-    ...(opts.providers ? { providers: opts.providers } : {}),
-    ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
-    ...(opts.signal ? { signal: opts.signal } : {})
-  });
+    }
+  };
+  if (opts.providers) authorOptions.providers = opts.providers;
+  if (opts.turnBudget) authorOptions.turnBudget = opts.turnBudget;
+  if (opts.signal) authorOptions.signal = opts.signal;
+  const generator = authorGraph(objective, authorOptions);
   let next = await generator.next();
   while (!next.done) next = await generator.next();
   const graph = next.value;
@@ -579,7 +588,11 @@ async function runCheckStage(
   bundle: ApplicationBundle,
   workflows: PlannedWorkflow[],
   round: number
-): Promise<{ report: AppDebugReport; issues: BuildIssue[]; record: StageRecord }> {
+): Promise<{
+  report: AppDebugReport;
+  issues: BuildIssue[];
+  record: StageRecord;
+}> {
   const startedAt = Date.now();
   const report = await simulateApp(
     bundleTarget(bundle, opts.buildId ?? "app-build"),
@@ -735,12 +748,13 @@ function judgeWidgetStates(
     const declared = spec.widgets.find(
       (candidate) => placedWidget(report.spec, candidate)?.id === widget.id
     );
-    return {
+    const state: JudgeWidgetState = {
       widget: declared?.role ?? widget.id,
       type: widget.type,
-      ...(declared?.label ? { label: declared.label } : {}),
       value: widget.display ?? widget.value
     };
+    if (declared?.label) state.label = declared.label;
+    return state;
   });
 }
 
@@ -791,25 +805,25 @@ async function runRunStage(
     issues.push(...bound.issues);
     if (errorsOf(bound.issues).length > 0) continue;
 
+    const simulateOptions: AppDebugOptions = {
+      interact: bound.steps,
+      run: true
+    };
+    if (opts.runTimeoutMs !== undefined) {
+      simulateOptions.timeoutMs = opts.runTimeoutMs;
+    }
+    const deps = simulationDeps(opts);
+    if (opts.onLog) deps.onLog = opts.onLog;
+    const onRunMessages = opts.onRunMessages;
+    if (onRunMessages) {
+      deps.onRunMessages = (index: number, messages: ProcessingMessage[]) =>
+        onRunMessages(interaction.name, index, messages);
+    }
+
     const report = await simulateApp(
       bundleTarget(bundle, opts.buildId ?? "app-build"),
-      {
-        interact: bound.steps,
-        run: true,
-        ...(opts.runTimeoutMs !== undefined
-          ? { timeoutMs: opts.runTimeoutMs }
-          : {})
-      },
-      {
-        ...simulationDeps(opts),
-        ...(opts.onLog ? { onLog: opts.onLog } : {}),
-        ...(opts.onRunMessages
-          ? {
-              onRunMessages: (index: number, messages: ProcessingMessage[]) =>
-                opts.onRunMessages!(interaction.name, index, messages)
-            }
-          : {})
-      }
+      simulateOptions,
+      deps
     );
     last = report;
     judged.push({ interaction, widgets: judgeWidgetStates(spec, report) });
@@ -1001,10 +1015,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   const judgeProvider = opts.judge?.provider ?? opts.provider;
   const judgeModel = opts.judge?.model ?? opts.model;
 
-  const target: BuildReport["target"] = {
-    prompt: opts.prompt ?? "",
-    ...(opts.specPath ? { specPath: opts.specPath } : {})
-  };
+  const target: BuildReport["target"] = { prompt: opts.prompt ?? "" };
+  if (opts.specPath) target.specPath = opts.specPath;
   const stages: StageRecord[] = [];
   const repairs: BuildComplaint[] = [];
 
@@ -1032,14 +1044,15 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     if (!opts.prompt) {
       throw new Error("buildApp needs one of: prompt, specPath, spec");
     }
-    return runSpecStage({
+    const specOptions: SpecStageOptions = {
       prompt: opts.prompt,
       provider: options.provider,
       model: options.model,
       context: options.context,
-      turnBudget: budget,
-      ...(opts.signal ? { signal: opts.signal } : {})
-    });
+      turnBudget: budget
+    };
+    if (opts.signal) specOptions.signal = opts.signal;
+    return runSpecStage(specOptions);
   });
   stages.push(specResult.record);
   const spec = specResult.spec;
@@ -1051,7 +1064,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       stages,
       repairs,
       null,
-      specResult.record.issues[0]?.message ?? "the prompt could not be specified"
+      specResult.record.issues[0]?.message ??
+        "the prompt could not be specified"
     );
   }
   log_(`spec: ${spec.title} — ${spec.operations.length} operation(s)`);
@@ -1061,7 +1075,15 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   // ---- Plan ---------------------------------------------------------------
   const stopAfterSpec = budgetStop();
   if (stopAfterSpec) {
-    return failedReport(target, spec, interactions, stages, repairs, null, stopAfterSpec);
+    return failedReport(
+      target,
+      spec,
+      interactions,
+      stages,
+      repairs,
+      null,
+      stopAfterSpec
+    );
   }
 
   const planned = await withSpan("app.build.plan", {}, () =>
@@ -1115,21 +1137,22 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       io: workflow.io
     }));
     const author = () =>
-      withSpan("app.build.author", { "app.build.round": round }, () =>
-        runAuthorStage({
+      withSpan("app.build.author", { "app.build.round": round }, () => {
+        const authorOptions: AuthorStageOptions = {
           spec,
           workflows: authorWorkflows,
           provider: options.provider,
           model: options.model,
           round,
           maxTurns: opts.maxAuthorTurns ?? DEFAULT_AUTHOR_TURNS,
-          turnBudget: budget,
-          ...(document ? { resumeFrom: document } : {}),
-          ...(complaint ? { complaint } : {}),
-          ...(opts.signal ? { signal: opts.signal } : {}),
-          ...(opts.onLog ? { onLog: opts.onLog } : {})
-        })
-      );
+          turnBudget: budget
+        };
+        if (document) authorOptions.resumeFrom = document;
+        if (complaint) authorOptions.complaint = complaint;
+        if (opts.signal) authorOptions.signal = opts.signal;
+        if (opts.onLog) authorOptions.onLog = opts.onLog;
+        return runAuthorStage(authorOptions);
+      });
     let authored = await author();
     stages.push(authored.record);
     // A provider that errored is infrastructure, not a defect the Author can
@@ -1178,8 +1201,17 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       opts.prompt ?? spec.title
     );
 
-    const checked = await withSpan("app.build.check", { "app.build.round": round }, () =>
-      runCheckStage(options, spec, bundle as ApplicationBundle, workflows, round)
+    const checked = await withSpan(
+      "app.build.check",
+      { "app.build.round": round },
+      () =>
+        runCheckStage(
+          options,
+          spec,
+          bundle as ApplicationBundle,
+          workflows,
+          round
+        )
     );
     stages.push(checked.record);
     appDebug = checked.report;
@@ -1190,15 +1222,18 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     ];
 
     if (errorsOf(checked.issues).length === 0) {
-      const ran = await withSpan("app.build.run", { "app.build.round": round }, () =>
-        runRunStage(
-          options,
-          spec,
-          bundle as ApplicationBundle,
-          interactions,
-          checked.report.spec,
-          round
-        )
+      const ran = await withSpan(
+        "app.build.run",
+        { "app.build.round": round },
+        () =>
+          runRunStage(
+            options,
+            spec,
+            bundle as ApplicationBundle,
+            interactions,
+            checked.report.spec,
+            round
+          )
       );
       stages.push(ran.record);
       if (ran.report) appDebug = ran.report;
@@ -1212,20 +1247,23 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
           ? await withSpan(
               "app.build.judge",
               { "app.build.round": round, "app.build.judge.model": judgeModel },
-              () =>
-                runJudgeStage({
+              () => {
+                const judgeOptions: JudgeStageOptions = {
                   spec,
-                  ...(opts.prompt !== undefined ? { prompt: opts.prompt } : {}),
                   interactions: ran.judged,
                   provider: judgeProvider,
                   model: judgeModel,
-                  round,
-                  ...(opts.judge?.timeoutMs !== undefined
-                    ? { timeoutMs: opts.judge.timeoutMs }
-                    : {}),
-                  ...(opts.signal ? { signal: opts.signal } : {}),
-                  ...(opts.onLog ? { onLog: opts.onLog } : {})
-                })
+                  round
+                };
+                if (opts.prompt !== undefined)
+                  judgeOptions.prompt = opts.prompt;
+                if (opts.judge?.timeoutMs !== undefined) {
+                  judgeOptions.timeoutMs = opts.judge.timeoutMs;
+                }
+                if (opts.signal) judgeOptions.signal = opts.signal;
+                if (opts.onLog) judgeOptions.onLog = opts.onLog;
+                return runJudgeStage(judgeOptions);
+              }
             )
           : null;
         if (judged) {
@@ -1360,13 +1398,16 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
             .join(" ")}`
         ])
       );
-      const replanned = await withSpan("app.build.plan", { "app.build.round": round + 1 }, () =>
-        runPlanStage(options, {
-          spec,
-          round: round + 1,
-          only: replan,
-          deltas
-        })
+      const replanned = await withSpan(
+        "app.build.plan",
+        { "app.build.round": round + 1 },
+        () =>
+          runPlanStage(options, {
+            spec,
+            round: round + 1,
+            only: replan,
+            deltas
+          })
       );
       stages.push(replanned.record);
       // A replan that failed leaves the stale graph in place, so the next round

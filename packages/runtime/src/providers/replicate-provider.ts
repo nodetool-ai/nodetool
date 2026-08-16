@@ -75,12 +75,13 @@ export class ReplicateProvider extends BaseProvider {
     }
 
     this.apiKey = apiKey;
-    this._client =
-      options.client ??
-      new Replicate({
-        auth: apiKey,
-        ...(options.fetchFn ? { fetch: options.fetchFn } : {})
-      });
+    const replicateOptions: ConstructorParameters<typeof Replicate>[0] = {
+      auth: apiKey
+    };
+    if (options.fetchFn) {
+      replicateOptions.fetch = options.fetchFn;
+    }
+    this._client = options.client ?? new Replicate(replicateOptions);
   }
 
   getContainerEnv(): Record<string, string> {

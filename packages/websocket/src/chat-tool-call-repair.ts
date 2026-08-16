@@ -62,13 +62,16 @@ export function supersededToolMessage(
   toolCallId: string,
   threadId?: string | null
 ): ProviderMessage {
-  return {
+  const message: ProviderMessage = {
     role: "tool",
     content: SUPERSEDED_TOOL_RESULT,
     toolCallId,
-    toolCalls: null,
-    ...(threadId === undefined ? {} : { threadId })
+    toolCalls: null
   };
+  if (threadId !== undefined) {
+    message.threadId = threadId;
+  }
+  return message;
 }
 
 /**

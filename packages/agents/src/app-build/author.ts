@@ -18,8 +18,16 @@
 import type { BaseProvider, TurnBudget } from "@nodetool-ai/runtime";
 import type { AppIO } from "@nodetool-ai/execution/app-debug";
 import type { BindableWorkflow } from "@nodetool-ai/app-runtime";
-import { createAppToolBridge, type AppBridgeDocument } from "./bridge.js";
-import { runToolLoop, type ToolLoopRun } from "./tool-loop.js";
+import {
+  createAppToolBridge,
+  type AppBridgeDocument,
+  type AppBridgeInitialState
+} from "./bridge.js";
+import {
+  runToolLoop,
+  type RunToolLoopOptions,
+  type ToolLoopRun
+} from "./tool-loop.js";
 import type {
   BuildComplaint,
   BuildIssue,
@@ -103,17 +111,21 @@ export async function runAuthorStage(
   // Every operation's workflow is loaded, not just the first: an app with two
   // operations binds against both, and a workflow the bridge does not hold
   // reports no bindable surface at all.
-  const bridge = createAppToolBridge({
+  const initial: AppBridgeInitialState = {
     title: opts.spec.title,
     finishTool: true,
-    ...(host ? { workflowId: host.key, workflow: bindable(host.io) } : {}),
     workflows: Object.fromEntries(
       opts.workflows.map((workflow) => [workflow.key, bindable(workflow.io)])
     )
-  });
+  };
+  if (host) {
+    initial.workflowId = host.key;
+    initial.workflow = bindable(host.io);
+  }
+  const bridge = createAppToolBridge(initial);
   if (opts.resumeFrom) bridge.loadDocument(opts.resumeFrom);
 
-  const run = await runToolLoop({
+  const loopOptions: RunToolLoopOptions = {
     provider: opts.provider,
     model: opts.model,
     tools: bridge.tools,
@@ -122,16 +134,16 @@ export async function runAuthorStage(
       ? renderComplaintPrompt(opts.complaint)
       : "Build the app the specification describes, then call ui_app_finish.",
     maxIterations: opts.maxTurns ?? DEFAULT_AUTHOR_TURNS,
-    ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
-    ...(opts.signal ? { signal: opts.signal } : {}),
-    ...(opts.onLog
-      ? {
-          onToolCall: (call) =>
-            opts.onLog?.(`  ${call.name}${call.isError ? " (error)" : ""}`)
-        }
-      : {}),
     stopOn: (call) => call.name === "ui_app_finish" && !call.isError
-  });
+  };
+  if (opts.turnBudget) loopOptions.turnBudget = opts.turnBudget;
+  if (opts.signal) loopOptions.signal = opts.signal;
+  const onLog = opts.onLog;
+  if (onLog) {
+    loopOptions.onToolCall = (call) =>
+      onLog(`  ${call.name}${call.isError ? " (error)" : ""}`);
+  }
+  const run = await runToolLoop(loopOptions);
 
   const finished = bridge.finalState().finished;
   const issues: BuildIssue[] = [];
@@ -189,7 +201,7 @@ function renderOperations(
       return [
         `- operation \`${workflow.operationId}\` runs workflow \`${workflow.key}\``,
         `  (ui_app_add_operation: id "${workflow.operationId}", target_workflow_id "${workflow.key}"${
-          operation?.streaming ? ", policy \"replace\"" : ""
+          operation?.streaming ? ', policy "replace"' : ""
         })`,
         bullet(inputs),
         bullet(outputs)

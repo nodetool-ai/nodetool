@@ -144,7 +144,11 @@ const MINI_APP_DOC: Record<string, unknown> = {
           content: [
             {
               type: "WorkflowInput",
-              props: { id: "in-prompt", binding: "op:main/in:prompt_input", events: [] }
+              props: {
+                id: "in-prompt",
+                binding: "op:main/in:prompt_input",
+                events: []
+              }
             },
             {
               type: "Button",
@@ -1581,23 +1585,24 @@ if (HERMETIC) {
 }
 
 // Start the actual backend server
-const srv = createTestUiServer({
+const serverOptions: Parameters<typeof createTestUiServer>[0] = {
   port: PORT,
-  host: HOST,
-  ...(existsSync(EXAMPLES_DIR) ? { examplesDir: EXAMPLES_DIR } : {}),
-  ...(HERMETIC
-    ? {
-        configureRegistry: (r: NodeRegistry) => {
-          registry = r;
-          // Providers self-register on import, so re-fake once node packages
-          // have finished registering.
-          fakeAllProviders();
-        },
-        resolveExecutor: createFakeExecutorResolver(() => registry),
-        resolveProvider: resolveFakeProvider
-      }
-    : {})
-});
+  host: HOST
+};
+if (existsSync(EXAMPLES_DIR)) {
+  serverOptions.examplesDir = EXAMPLES_DIR;
+}
+if (HERMETIC) {
+  serverOptions.configureRegistry = (r: NodeRegistry) => {
+    registry = r;
+    // Providers self-register on import, so re-fake once node packages
+    // have finished registering.
+    fakeAllProviders();
+  };
+  serverOptions.resolveExecutor = createFakeExecutorResolver(() => registry);
+  serverOptions.resolveProvider = resolveFakeProvider;
+}
+const srv = createTestUiServer(serverOptions);
 await srv.listen();
 
 console.log(

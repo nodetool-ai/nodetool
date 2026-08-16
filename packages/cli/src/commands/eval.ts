@@ -144,15 +144,18 @@ const graphPlannerSuite: EvalSuite = {
           : " (no model providers — model-dependent cases skipped)")
     );
 
-    const report = await runGraphPlannerEval({
+    const evalOptions: Parameters<typeof runGraphPlannerEval>[0] = {
       provider: deps.provider,
       model: deps.model,
       registry: deps.registry,
       providers: deps.providers,
       cases,
-      ...(deps.maxIterations ? { maxIterations: deps.maxIterations } : {}),
       onEvent: deps.onEvent
-    });
+    };
+    if (deps.maxIterations) {
+      evalOptions.maxIterations = deps.maxIterations;
+    }
+    const report = await runGraphPlannerEval(evalOptions);
 
     return {
       report,
@@ -197,21 +200,25 @@ const graphE2eSuite: EvalSuite = {
           : " (no model providers — model-dependent cases skipped)")
     );
 
-    const report = await runGraphE2eEval({
+    const evalOptions: Parameters<typeof runGraphE2eEval>[0] = {
       provider: deps.provider,
       model: deps.model,
       registry: deps.registry,
       providers: deps.providers,
       runGraph: createEvalGraphRunner(),
       cases,
-      // Without this the judge is the run's own provider/model grading itself.
-      ...(deps.judge
-        ? { judgeProvider: deps.judge.provider, judgeModel: deps.judge.model }
-        : {}),
-      ...(deps.maxIterations ? { maxIterations: deps.maxIterations } : {}),
       timeoutMs: deps.timeoutMs,
       onEvent: deps.onEvent
-    });
+    };
+    // Without this the judge is the run's own provider/model grading itself.
+    if (deps.judge) {
+      evalOptions.judgeProvider = deps.judge.provider;
+      evalOptions.judgeModel = deps.judge.model;
+    }
+    if (deps.maxIterations) {
+      evalOptions.maxIterations = deps.maxIterations;
+    }
+    const report = await runGraphE2eEval(evalOptions);
 
     return {
       report,
@@ -451,7 +458,7 @@ const appBuildSuite: EvalSuite = {
           : " (no model providers — prompt cases skipped)")
     );
 
-    const report = await runAppBuildEval({
+    const evalOptions: Parameters<typeof runAppBuildEval>[0] = {
       provider: deps.provider,
       model: deps.model,
       registry: deps.registry,
@@ -462,22 +469,25 @@ const appBuildSuite: EvalSuite = {
         secretResolver: getSecret,
         storage: new FileStorageAdapter(getDefaultAssetsPath())
       }),
-      ...(deps.providers ? { providers: deps.providers } : {}),
-      // `--judge-model` overrides `buildApp`'s own judge default.
-      ...(deps.judge
-        ? {
-            judge: {
-              enabled: true,
-              provider: deps.judge.provider,
-              model: deps.judge.model
-            }
-          }
-        : {}),
       runOnServer,
       cases,
-      ...(deps.timeoutMs !== undefined ? { timeoutMs: deps.timeoutMs } : {}),
       onEvent: deps.onEvent
-    });
+    };
+    if (deps.providers) {
+      evalOptions.providers = deps.providers;
+    }
+    // `--judge-model` overrides `buildApp`'s own judge default.
+    if (deps.judge) {
+      evalOptions.judge = {
+        enabled: true,
+        provider: deps.judge.provider,
+        model: deps.judge.model
+      };
+    }
+    if (deps.timeoutMs !== undefined) {
+      evalOptions.timeoutMs = deps.timeoutMs;
+    }
+    const report = await runAppBuildEval(evalOptions);
 
     return {
       report,
@@ -683,14 +693,13 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       ? await resolveJudge(opts.judgeModel, createProviderStrict)
       : undefined;
 
-    const result = await suite.run({
+    const runOptions: Parameters<typeof suite.run>[0] = {
       provider,
       providerId: opts.provider,
       model: opts.model,
       registry,
       providers,
       caseIds,
-      ...(judge ? { judge } : {}),
       maxRetries:
         opts.maxRetries !== undefined
           ? parseNumericOption(opts.maxRetries, "--max-retries", {
@@ -718,7 +727,11 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       onEvent: (line) => {
         if (!opts.json) console.log(line);
       }
-    });
+    };
+    if (judge) {
+      runOptions.judge = judge;
+    }
+    const result = await suite.run(runOptions);
 
     if (opts.out) {
       const { writeFile } = await import("node:fs/promises");

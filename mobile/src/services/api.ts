@@ -1,21 +1,19 @@
-import { components } from '../api';
+import { components } from "../api";
 import type {
   ApplicationListItem,
   ApplicationReleaseResponse,
-  ApplicationResponse,
-} from '@nodetool-ai/protocol/api-schemas/applications.js';
-import type {
-  Workflow as AppWorkflow,
-} from '../types/ApiTypes';
-import type { JsScriptRunOutcome } from '../documents/jsScriptTypes';
-import { useAuthStore } from '../stores/AuthStore';
-import { createMobileTRPCClient } from '../trpc/client';
+  ApplicationResponse
+} from "@nodetool-ai/protocol/api-schemas/applications.js";
+import type { Workflow as AppWorkflow } from "../types/ApiTypes";
+import type { JsScriptRunOutcome } from "../documents/jsScriptTypes";
+import { useAuthStore } from "../stores/AuthStore";
+import { createMobileTRPCClient } from "../trpc/client";
 import {
   getApiHost as getSharedApiHost,
   loadApiHost as loadSharedApiHost,
   saveApiHost as saveSharedApiHost,
-  setCachedApiHost,
-} from './apiHost';
+  setCachedApiHost
+} from "./apiHost";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -26,8 +24,8 @@ export class ApiError extends Error {
   readonly status: number;
   readonly body: string;
   constructor(status: number, body: string) {
-    super(`Request failed (${status})${body ? `: ${body}` : ''}`);
-    this.name = 'ApiError';
+    super(`Request failed (${status})${body ? `: ${body}` : ""}`);
+    this.name = "ApiError";
     this.status = status;
     this.body = body;
   }
@@ -49,8 +47,8 @@ async function fetchWithTimeout(
 }
 
 function isRetriableMethod(method: string | undefined): boolean {
-  const m = (method ?? 'GET').toUpperCase();
-  return m === 'GET' || m === 'HEAD';
+  const m = (method ?? "GET").toUpperCase();
+  return m === "GET" || m === "HEAD";
 }
 
 function delay(ms: number): Promise<void> {
@@ -67,7 +65,7 @@ export type JobListResponse = components["schemas"]["JobListResponse"];
 export type {
   ApplicationListItem,
   ApplicationReleaseResponse,
-  ApplicationResponse,
+  ApplicationResponse
 };
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
@@ -132,7 +130,7 @@ interface TRPCWorkflowResponse {
 export function normalizeWorkflow(workflow: TRPCWorkflowResponse): AppWorkflow {
   return {
     ...workflow,
-    description: workflow.description ?? '',
+    description: workflow.description ?? ""
   } as AppWorkflow;
 }
 
@@ -150,7 +148,7 @@ export function normalizeModels<T extends { id: string; name: string }>(
   return models.map((model) => ({
     ...model,
     provider,
-    type: model.type ?? null,
+    type: model.type ?? null
   })) as unknown as T[];
 }
 
@@ -180,9 +178,13 @@ class ApiService {
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await fetchWithTimeout(url, { ...init, headers }, timeoutMs);
+        const response = await fetchWithTimeout(
+          url,
+          { ...init, headers },
+          timeoutMs
+        );
         if (!response.ok) {
-          const text = await response.text().catch(() => '');
+          const text = await response.text().catch(() => "");
           throw new ApiError(response.status, text);
         }
         return (await response.json()) as T;
@@ -203,7 +205,7 @@ class ApiService {
         await delay(Math.min(1000 * 2 ** (attempt - 1), 8000));
       }
     }
-    throw lastError instanceof Error ? lastError : new Error('Request failed');
+    throw lastError instanceof Error ? lastError : new Error("Request failed");
   }
 
   async loadApiHost(): Promise<string> {
@@ -211,7 +213,7 @@ class ApiService {
       const host = await loadSharedApiHost();
       this.updateBaseURL(host);
     } catch (error) {
-      console.error('Failed to load API host:', error);
+      console.error("Failed to load API host:", error);
     }
     return getSharedApiHost();
   }
@@ -221,7 +223,7 @@ class ApiService {
       await saveSharedApiHost(host);
       this.updateBaseURL(host);
     } catch (error) {
-      console.error('Failed to save API host:', error);
+      console.error("Failed to save API host:", error);
       throw error;
     }
   }
@@ -239,9 +241,7 @@ class ApiService {
     const result = await trpc.workflows.list.query({ limit });
     return {
       ...result,
-      workflows: result.workflows.map((workflow) =>
-        normalizeWorkflow(workflow)
-      ),
+      workflows: result.workflows.map((workflow) => normalizeWorkflow(workflow))
     };
   }
 
@@ -249,7 +249,7 @@ class ApiService {
     // `fields` defaults to "summary" server-side, which omits properties and
     // outputs. The chain editor needs both, so ask for the full records.
     return this.request<components["schemas"]["NodeMetadata"][]>(
-      '/api/nodes/metadata?fields=full'
+      "/api/nodes/metadata?fields=full"
     );
   }
 
@@ -263,7 +263,7 @@ class ApiService {
   async listApplications(projectId?: string): Promise<ApplicationListItem[]> {
     const query = projectId
       ? `?project_id=${encodeURIComponent(projectId)}`
-      : '';
+      : "";
     return this.request<ApplicationListItem[]>(`/api/applications${query}`);
   }
 
@@ -305,12 +305,11 @@ class ApiService {
       return await this.request<JsScriptRunOutcome>(
         `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
         {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            inputs,
-            ...(inputStreams ? { input_streams: inputStreams } : {}),
-          }),
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(
+            inputStreams ? { inputs, input_streams: inputStreams } : { inputs }
+          )
         },
         130_000
       );
@@ -328,7 +327,7 @@ class ApiService {
         // Not JSON — fall through to the status message below.
       }
       throw new Error(
-        typeof detail === 'string' && detail.length > 0
+        typeof detail === "string" && detail.length > 0
           ? detail
           : `The script run failed (HTTP ${error.status}).`
       );
@@ -343,13 +342,16 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.update.mutate({
+    const update: Parameters<typeof trpc.workflows.update.mutate>[0] = {
       id: workflow.id,
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {}),
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      update.access = workflow.access;
+    }
+    return trpc.workflows.update.mutate(update);
   }
 
   async createWorkflow(workflow: {
@@ -359,12 +361,15 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.create.mutate({
+    const create: Parameters<typeof trpc.workflows.create.mutate>[0] = {
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {}),
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      create.access = workflow.access;
+    }
+    return trpc.workflows.create.mutate(create);
   }
 
   async uploadAsset(params: {
@@ -374,16 +379,19 @@ class ApiService {
     parentId: string;
   }): Promise<Asset> {
     const formData = new FormData();
-    formData.append('file', {
+    formData.append("file", {
       uri: params.uri,
       name: params.name,
-      type: params.contentType,
+      type: params.contentType
     } as unknown as Blob);
-    formData.append('json', JSON.stringify({
-      name: params.name,
-      content_type: params.contentType,
-      parent_id: params.parentId,
-    }));
+    formData.append(
+      "json",
+      JSON.stringify({
+        name: params.name,
+        content_type: params.contentType,
+        parent_id: params.parentId
+      })
+    );
 
     // Do NOT set Content-Type here: React Native derives the multipart boundary
     // from the FormData body, and setting the header manually drops it so the
@@ -392,23 +400,25 @@ class ApiService {
 
     const response = await fetchWithTimeout(
       `${getSharedApiHost()}/api/assets`,
-      { method: 'POST', headers, body: formData },
+      { method: "POST", headers, body: formData },
       UPLOAD_TIMEOUT_MS
     );
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
+      const text = await response.text().catch(() => "");
       throw new ApiError(response.status, text);
     }
     return (await response.json()) as Asset;
   }
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
-    if (!urlOrPath) {return null;}
+    if (!urlOrPath) {
+      return null;
+    }
     // An `asset://` URN is an identifier, not a path: the bytes live under
     // `<user_id>/<asset_id>.<ext>` behind a signed URL, so `/api/storage/<id>`
     // 404s on any cloud deploy. Resolving it needs an `assets.get` lookup —
     // callers use `useResolvedMediaUri`, and get null here.
-    if (urlOrPath.startsWith('asset://')) {
+    if (urlOrPath.startsWith("asset://")) {
       return null;
     }
     // Anything else already carrying a scheme (http, https, file, data,
@@ -416,11 +426,11 @@ class ApiService {
     if (/^[a-z][a-z0-9+.-]*:/i.test(urlOrPath)) {
       return urlOrPath;
     }
-    return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+    return `${getSharedApiHost()}${urlOrPath.startsWith("/") ? "" : "/"}${urlOrPath}`;
   }
 
   getWebSocketUrl(path: string): string {
-    const wsProtocol = getSharedApiHost().startsWith('https') ? 'wss:' : 'ws:';
+    const wsProtocol = getSharedApiHost().startsWith("https") ? "wss:" : "ws:";
     const url = getSharedApiHost().replace(/^https?:/, wsProtocol);
     return `${url}${path}`;
   }

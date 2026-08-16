@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       overflowX: "hidden"
     },
-    "main": {
+    main: {
       paddingBottom: getSpacingPx(SPACING.md)
     }
   });
@@ -67,14 +67,12 @@ const Portal: React.FC = () => {
       if (!hasConfiguredProvider) {
         setPendingTrack(trackId);
         const track = WELCOME_TRACKS.find((t) => t.id === trackId);
-        openProviderOnboarding({
-          ...(track ? { capability: track.capability } : {}),
-          ...(track
-            ? {
-                reason: `Almost there — your ${track.label} starter needs a model to run.`
-              }
-            : {})
-        });
+        const onboarding: Parameters<typeof openProviderOnboarding>[0] = {};
+        if (track) {
+          onboarding.capability = track.capability;
+          onboarding.reason = `Almost there — your ${track.label} starter needs a model to run.`;
+        }
+        openProviderOnboarding(onboarding);
         return;
       }
       void startTrackChat(trackId);

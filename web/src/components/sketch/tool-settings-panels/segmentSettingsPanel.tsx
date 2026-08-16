@@ -172,7 +172,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     settings.promptMode === "auto" ? "Split selected layer" : "Segment";
   const showClearPrompts = settings.promptMode !== "auto";
   const backendLabel =
-    modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "Selected backend");
+    modelInfo?.backendLabel ??
+    (isLocalSam3 ? "Local SAM3" : "Selected backend");
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
     localSam3Downloading,
@@ -208,12 +209,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.backend}
           onChange={(_, v) => {
             if (v) {
-              onChange({
-                backend: v as SegmentBackend,
-                // Default Local SAM3 to auto mode; prompted modes appear
-                // only when installed node metadata confirms them.
-                ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
-              });
+              const next: Partial<SegmentSettings> = {
+                backend: v as SegmentBackend
+              };
+              // Default Local SAM3 to auto mode; prompted modes appear
+              // only when installed node metadata confirms them.
+              if (v === "local-sam3") next.promptMode = "auto";
+              onChange(next);
               onCheckModel();
             }
           }}
@@ -309,9 +311,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.minObjectSize}
           onChange={(_, v) => onChange({ minObjectSize: v as number })}
         />
-        <Text className="setting-value">
-          {settings.minObjectSize}
-        </Text>
+        <Text className="setting-value">{settings.minObjectSize}</Text>
       </Box>
 
       <Box className="setting-row">
@@ -325,9 +325,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.maskFeather}
           onChange={(_, v) => onChange({ maskFeather: v as number })}
         />
-        <Text className="setting-value">
-          {settings.maskFeather}
-        </Text>
+        <Text className="setting-value">{settings.maskFeather}</Text>
       </Box>
 
       <Box className="setting-row" sx={{ gap: getSpacingPx(SPACING.xs) }}>
@@ -401,9 +399,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 onChange({ pointsPerSide: value as number })
               }
             />
-            <Text className="setting-value">
-              {settings.pointsPerSide}
-            </Text>
+            <Text className="setting-value">{settings.pointsPerSide}</Text>
           </Box>
 
           <Box className="setting-row">

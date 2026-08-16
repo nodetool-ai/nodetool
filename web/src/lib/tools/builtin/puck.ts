@@ -13,7 +13,12 @@
  * requested application has no app builder open.
  */
 import { z } from "zod";
-import type { InputMapping, OutputMapping } from "@nodetool-ai/app-runtime";
+import type {
+  InputMapping,
+  OperationPatch,
+  OutputMapping,
+  VariablePatch
+} from "@nodetool-ai/app-runtime";
 
 import { FrontendToolRegistry } from "../frontendTools";
 import type { PuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
@@ -160,9 +165,7 @@ FrontendToolRegistry.register({
   description: "Remove a widget (and anything nested inside it) from the app.",
   parameters: z.object({
     application_id: applicationIdParam,
-    id: z
-      .string()
-      .describe("Widget id to remove — a component inside the app.")
+    id: z.string().describe("Widget id to remove — a component inside the app.")
   }),
   async execute({ application_id, id }) {
     const removed = getPuckAgentHandler(application_id).removeComponent(id);
@@ -257,7 +260,11 @@ function parseInputMappings(
   const out: Record<string, InputMapping> = {};
   for (const [nodeId, value] of Object.entries(raw)) {
     const where = `inputs["${nodeId}"]`;
-    const mapping = value as { from?: unknown; variableId?: unknown; resourceBindingId?: unknown };
+    const mapping = value as {
+      from?: unknown;
+      variableId?: unknown;
+      resourceBindingId?: unknown;
+    };
     const from = mapping?.from;
     if (from === "widget") {
       out[nodeId] = { from: "widget" };
@@ -451,21 +458,22 @@ FrontendToolRegistry.register({
     outputs,
     timeout_ms
   }) {
-    const operation = getPuckAgentHandler(application_id).updateOperation(id, {
-      ...(name !== undefined ? { name } : {}),
-      ...(target_workflow_id !== undefined
-        ? { workflowId: target_workflow_id }
-        : {}),
-      ...(workflow_version !== undefined
-        ? { workflowVersion: workflow_version }
-        : {}),
-      ...(policy !== undefined ? { policy } : {}),
-      ...(inputs !== undefined ? { inputs: parseInputMappings(inputs) } : {}),
-      ...(outputs !== undefined
-        ? { outputs: parseOutputMappings(outputs) }
-        : {}),
-      ...(timeout_ms !== undefined ? { timeoutMs: timeout_ms } : {})
-    });
+    const patch: OperationPatch = {};
+    if (name !== undefined) patch.name = name;
+    if (target_workflow_id !== undefined) {
+      patch.workflowId = target_workflow_id;
+    }
+    if (workflow_version !== undefined) {
+      patch.workflowVersion = workflow_version;
+    }
+    if (policy !== undefined) patch.policy = policy;
+    if (inputs !== undefined) patch.inputs = parseInputMappings(inputs);
+    if (outputs !== undefined) patch.outputs = parseOutputMappings(outputs);
+    if (timeout_ms !== undefined) patch.timeoutMs = timeout_ms;
+    const operation = getPuckAgentHandler(application_id).updateOperation(
+      id,
+      patch
+    );
     if (!operation) {
       return { ok: false, error: `No operation with id ${id}` };
     }
@@ -537,7 +545,15 @@ FrontendToolRegistry.register({
       .optional()
       .describe("Persist across sessions. User scope only.")
   }),
-  async execute({ application_id, id, name, type, default: def, scope, persist }) {
+  async execute({
+    application_id,
+    id,
+    name,
+    type,
+    default: def,
+    scope,
+    persist
+  }) {
     const variable = getPuckAgentHandler(application_id).declareVariable({
       id,
       name,
@@ -567,14 +583,25 @@ FrontendToolRegistry.register({
     scope: variableScope.optional(),
     persist: z.boolean().optional()
   }),
-  async execute({ application_id, id, name, type, default: def, scope, persist }) {
-    const variable = getPuckAgentHandler(application_id).updateVariable(id, {
-      ...(name !== undefined ? { name } : {}),
-      ...(type !== undefined ? { type } : {}),
-      ...(def !== undefined ? { default: def } : {}),
-      ...(scope !== undefined ? { scope } : {}),
-      ...(persist !== undefined ? { persist } : {})
-    });
+  async execute({
+    application_id,
+    id,
+    name,
+    type,
+    default: def,
+    scope,
+    persist
+  }) {
+    const patch: VariablePatch = {};
+    if (name !== undefined) patch.name = name;
+    if (type !== undefined) patch.type = type;
+    if (def !== undefined) patch.default = def;
+    if (scope !== undefined) patch.scope = scope;
+    if (persist !== undefined) patch.persist = persist;
+    const variable = getPuckAgentHandler(application_id).updateVariable(
+      id,
+      patch
+    );
     if (!variable) {
       return { ok: false, error: `No variable with id ${id}` };
     }
@@ -773,8 +800,7 @@ function assertWidgetRef(
 ): void {
   const targets = widgetTargets(handler);
   const matches = targets.some(
-    (target) =>
-      target.id === ref || target.type === ref || target.label === ref
+    (target) => target.id === ref || target.type === ref || target.label === ref
   );
   if (matches) {
     return;

@@ -236,7 +236,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 27,955 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 27,159 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
   inside `npm run lint`, so they cannot come back.
@@ -253,11 +253,10 @@ skips those trees. Remaining backlog, largest first:
 | `no-unsafe-dictionary-type` | 5132 |
 | `no-runtime-typeof` | 4419 |
 | `no-unknown-parameters` | 1904 |
-| `no-known-value-widening` | 1761 |
+| `no-known-value-widening` | 1737 |
 | `no-module-mocking` | 1545 |
 | `no-chained-type-assertions` | 1053 |
 | `no-shape-in-symbol-names` | 921 |
-| `no-conditional-empty-object-spread` | 772 |
 | `no-unknown-returns` | 182 |
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what

@@ -8,6 +8,9 @@
 import type { ReplicateSchema } from "./schema-fetcher.js";
 import type { EnumDef, FieldDef, NodeSpec } from "./types.js";
 
+/** Inclusive numeric bounds parsed from a schema or its prose. */
+type NumericBounds = { min?: number; max?: number };
+
 type AnyRecord = Record<string, any>;
 
 export class SchemaParser {
@@ -133,10 +136,7 @@ export class SchemaParser {
     return parts.join(" ");
   }
 
-  private _descriptionBounds(
-    prop: AnyRecord,
-    propType: string
-  ): { min?: number; max?: number } {
+  private _descriptionBounds(prop: AnyRecord, propType: string): NumericBounds {
     const text = this._descriptionText(prop).replace(/\s+/g, " ");
     if (!text) {
       return {};
@@ -159,10 +159,14 @@ export class SchemaParser {
     const minMatch = text.match(/\bminimum\s*:?\s*(-?\d+(?:\.\d+)?)/i);
     const maxMatch = text.match(/\bmaximum\s*:?\s*(-?\d+(?:\.\d+)?)/i);
     if (minMatch || maxMatch) {
-      return {
-        ...(minMatch ? { min: Number(minMatch[1]) } : {}),
-        ...(maxMatch ? { max: Number(maxMatch[1]) } : {})
-      };
+      const bounds: NumericBounds = {};
+      if (minMatch) {
+        bounds.min = Number(minMatch[1]);
+      }
+      if (maxMatch) {
+        bounds.max = Number(maxMatch[1]);
+      }
+      return bounds;
     }
 
     const rangeMatch = text.match(
@@ -189,10 +193,7 @@ export class SchemaParser {
     return {};
   }
 
-  private _getBounds(
-    prop: AnyRecord,
-    propType: string
-  ): { min?: number; max?: number } {
+  private _getBounds(prop: AnyRecord, propType: string): NumericBounds {
     if (propType === "enum") {
       return {};
     }

@@ -256,10 +256,7 @@ export async function handleSdkModelCatalog(
         }
       } satisfies SdkV1ModelCatalogHttpService),
     getUserId: (authenticatedRequest) =>
-      getUserId(
-        authenticatedRequest,
-        options.userIdHeader ?? "x-user-id"
-      ),
+      getUserId(authenticatedRequest, options.userIdHeader ?? "x-user-id"),
     onInternalError: (error) => {
       log.error(
         "SDK model catalog failed",
@@ -357,15 +354,15 @@ export async function getWorkflowRuntimeEnvironment(
 ): Promise<WorkflowRuntimeEnvironment> {
   if (!workflowRuntimePromise) {
     workflowRuntimePromise = (async () => {
+      const bootstrapOptions: Parameters<typeof bootstrapNodeRegistry>[0] = {
+        metadataMaxDepth: options.metadataMaxDepth ?? 8,
+        log
+      };
+      if (options.metadataRoots) {
+        bootstrapOptions.metadataRoots = options.metadataRoots;
+      }
       const registry =
-        options.registry ??
-        (await bootstrapNodeRegistry({
-          ...(options.metadataRoots
-            ? { metadataRoots: options.metadataRoots }
-            : {}),
-          metadataMaxDepth: options.metadataMaxDepth ?? 8,
-          log
-        }));
+        options.registry ?? (await bootstrapNodeRegistry(bootstrapOptions));
 
       const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
@@ -895,7 +892,7 @@ export async function handleWorkflowRun(
     decision_timeout_ms?: number;
   }>(request);
 
-  const outcome = await runWorkflow({
+  const runOptions: Parameters<typeof runWorkflow>[0] = {
     workflowId,
     userId,
     debug,
@@ -905,18 +902,19 @@ export async function handleWorkflowRun(
     params: body?.params ?? {},
     background: body?.background ?? false,
     interactive: body?.interactive === true,
-    ...(typeof body?.max_decisions === "number"
-      ? { maxDecisions: body.max_decisions }
-      : {}),
-    ...(typeof body?.max_retries_per_node === "number"
-      ? { maxRetriesPerNode: body.max_retries_per_node }
-      : {}),
-    ...(typeof body?.decision_timeout_ms === "number"
-      ? { decisionTimeoutMs: body.decision_timeout_ms }
-      : {}),
     // The server's own import site, so a test that mocks it still governs.
     resolveWorkspace: resolveWorkflowWorkspace
-  });
+  };
+  if (typeof body?.max_decisions === "number") {
+    runOptions.maxDecisions = body.max_decisions;
+  }
+  if (typeof body?.max_retries_per_node === "number") {
+    runOptions.maxRetriesPerNode = body.max_retries_per_node;
+  }
+  if (typeof body?.decision_timeout_ms === "number") {
+    runOptions.decisionTimeoutMs = body.decision_timeout_ms;
+  }
+  const outcome = await runWorkflow(runOptions);
 
   if (outcome.kind === "error") {
     return errorResponse(outcome.status, outcome.detail);
@@ -1935,14 +1933,15 @@ export async function handleSdkNodeTypeInventory(
     return errorResponse(405, "Method not allowed");
   }
   const url = new URL(request.url);
-  const parsed = sdkNodeTypeInventoryInput.safeParse({
-    ...(url.searchParams.has("cursor")
-      ? { cursor: Number(url.searchParams.get("cursor")) }
-      : {}),
-    ...(url.searchParams.has("limit")
-      ? { limit: Number(url.searchParams.get("limit")) }
-      : {})
-  });
+  type InventoryQueryFields = { cursor?: number; limit?: number };
+  const inventoryQuery: InventoryQueryFields = {};
+  if (url.searchParams.has("cursor")) {
+    inventoryQuery.cursor = Number(url.searchParams.get("cursor"));
+  }
+  if (url.searchParams.has("limit")) {
+    inventoryQuery.limit = Number(url.searchParams.get("limit"));
+  }
+  const parsed = sdkNodeTypeInventoryInput.safeParse(inventoryQuery);
   if (!parsed.success) {
     return sdkErrorResponse(
       400,
@@ -1999,14 +1998,16 @@ export async function handleSdkWorkflowSummaries(
     return errorResponse(405, "Method not allowed");
   }
   const url = new URL(request.url);
-  const parsed = sdkWorkflowSummariesInput.safeParse({
-    ...(url.searchParams.has("limit")
-      ? { limit: Number(url.searchParams.get("limit")) }
-      : {}),
-    ...(url.searchParams.get("cursor")
-      ? { cursor: url.searchParams.get("cursor") }
-      : {})
-  });
+  type SummariesQueryFields = { limit?: number; cursor?: string };
+  const summariesQuery: SummariesQueryFields = {};
+  if (url.searchParams.has("limit")) {
+    summariesQuery.limit = Number(url.searchParams.get("limit"));
+  }
+  const cursorParam = url.searchParams.get("cursor");
+  if (cursorParam) {
+    summariesQuery.cursor = cursorParam;
+  }
+  const parsed = sdkWorkflowSummariesInput.safeParse(summariesQuery);
   if (!parsed.success) {
     return sdkErrorResponse(
       400,
@@ -2015,11 +2016,19 @@ export async function handleSdkWorkflowSummaries(
     );
   }
   try {
-    const result = await listWorkflowSummariesV1({
+    type ListInputFields = {
+      userId: string;
+      limit: number;
+      cursor?: string;
+    };
+    const listInput: ListInputFields = {
       userId: getUserId(request, options.userIdHeader ?? "x-user-id"),
-      limit: parsed.data.limit,
-      ...(parsed.data.cursor ? { cursor: parsed.data.cursor } : {})
-    });
+      limit: parsed.data.limit
+    };
+    if (parsed.data.cursor) {
+      listInput.cursor = parsed.data.cursor;
+    }
+    const result = await listWorkflowSummariesV1(listInput);
     return jsonResponse(
       sdkWorkflowSummariesOutput.parse({
         workflows: result.workflows.map((workflow) => ({

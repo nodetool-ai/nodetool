@@ -1194,12 +1194,15 @@ export abstract class PythonBridgeBase
       "models.evict",
       req as unknown as Record<string, unknown>
     );
-    return {
-      evicted: Array.isArray(result.evicted) ? (result.evicted as string[]) : [],
-      ...(typeof result.freed_vram_gb === "number"
-        ? { freed_vram_gb: result.freed_vram_gb }
-        : {})
+    const evictResult: ModelEvictResult = {
+      // SAFETY: the worker answers `models.evict` with a list of model ids; a
+      // reply that is not an array is treated as evicting nothing.
+      evicted: Array.isArray(result.evicted) ? (result.evicted as string[]) : []
     };
+    if (typeof result.freed_vram_gb === "number") {
+      evictResult.freed_vram_gb = result.freed_vram_gb;
+    }
+    return evictResult;
   }
 
   // ── Run boundary (bridge protocol v4+) ─────────────────────────────────

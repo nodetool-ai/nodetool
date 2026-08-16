@@ -46,6 +46,15 @@ type DocxElement =
   | ImageElement
   | PageBreakElement;
 
+/** The `docx.Document` option bag; each property only when the spec set it. */
+interface DocxDocumentOptions {
+  sections: { children: DocxComponent[] }[];
+  title?: string;
+  creator?: string;
+  subject?: string;
+  keywords?: string;
+}
+
 interface DocxSpec {
   properties?: {
     title?: string;
@@ -171,7 +180,11 @@ export async function build(spec: unknown): Promise<GuestBytes> {
         });
       }
       case "image": {
-        const data = requireBytes(`${where}: elements[${index}]`, raw.data, "data");
+        const data = requireBytes(
+          `${where}: elements[${index}]`,
+          raw.data,
+          "data"
+        );
         const width = Number(raw.width ?? 0);
         const height = Number(raw.height ?? 0);
         return new docx.Paragraph({
@@ -197,14 +210,15 @@ export async function build(spec: unknown): Promise<GuestBytes> {
   });
 
   const properties = input.properties ?? {};
-  const document = new docx.Document({
-    ...(properties.title ? { title: properties.title } : {}),
-    ...(properties.author ? { creator: properties.author } : {}),
-    ...(properties.subject ? { subject: properties.subject } : {}),
-    ...(properties.keywords ? { keywords: properties.keywords } : {}),
-    sections: [{ children }]
-  });
+  const documentOptions: DocxDocumentOptions = { sections: [{ children }] };
+  if (properties.title) documentOptions.title = properties.title;
+  if (properties.author) documentOptions.creator = properties.author;
+  if (properties.subject) documentOptions.subject = properties.subject;
+  if (properties.keywords) documentOptions.keywords = properties.keywords;
+  const document = new docx.Document(documentOptions);
 
   const buffer = await docx.Packer.toBuffer(document);
-  return toGuestBytes(buffer instanceof Uint8Array ? buffer : Buffer.from(buffer));
+  return toGuestBytes(
+    buffer instanceof Uint8Array ? buffer : Buffer.from(buffer)
+  );
 }

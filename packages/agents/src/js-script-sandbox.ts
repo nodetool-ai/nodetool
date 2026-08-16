@@ -82,9 +82,7 @@ export async function mountJsScriptSandbox(
     };
   }
 
-  return {
-    ok: true,
-    modules: resolution,
-    ...(platform.mount === undefined ? {} : { capabilities: platform.mount })
-  };
+  const mount: JsScriptSandboxMount = { ok: true, modules: resolution };
+  if (platform.mount !== undefined) mount.capabilities = platform.mount;
+  return mount;
 }

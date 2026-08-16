@@ -16,6 +16,9 @@ import type {
   NodeOutput
 } from "./types.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 /**
  * The deciders a `supervisor_decision` may name. Written as a total record so
  * a new value in the protocol enum fails this file rather than slipping
@@ -63,7 +66,9 @@ export function previewValue(
     return `<binary ${value.byteLength} bytes>`;
   }
   if (Array.isArray(value)) {
-    const head = value.slice(0, MAX_ARRAY_PREVIEW).map((v) => previewValue(v, maxLen));
+    const head = value
+      .slice(0, MAX_ARRAY_PREVIEW)
+      .map((v) => previewValue(v, maxLen));
     return value.length > MAX_ARRAY_PREVIEW
       ? [...head, `…[${value.length - MAX_ARRAY_PREVIEW} more]`]
       : head;
@@ -148,7 +153,10 @@ export function collectExecutionSummary(
         if (s === "error" || s === "failed") {
           n.error = str(msg.error) || s;
         }
-        const cost = msg.provider_cost as Record<string, unknown> | null | undefined;
+        const cost = msg.provider_cost as
+          | Record<string, unknown>
+          | null
+          | undefined;
         if (cost && typeof cost === "object") {
           n.cost = {
             provider: str(cost.provider) ?? "",
@@ -167,7 +175,11 @@ export function collectExecutionSummary(
         n.nodeName = str(msg.node_name) ?? n.nodeName;
         const out = (msg.outputs as Record<string, unknown>) ?? {};
         for (const [name, v] of Object.entries(out)) {
-          n.outputs.push({ outputName: name, outputType: typeof v, value: previewValue(v) });
+          n.outputs.push({
+            outputName: name,
+            outputType: typeof v,
+            value: previewValue(v)
+          });
         }
         break;
       }
@@ -189,13 +201,20 @@ export function collectExecutionSummary(
       case "node_progress": {
         const id = str(msg.node_id);
         if (!id) break;
-        node(id).progress = { progress: num(msg.progress) ?? 0, total: num(msg.total) ?? 0 };
+        node(id).progress = {
+          progress: num(msg.progress) ?? 0,
+          total: num(msg.total) ?? 0
+        };
         break;
       }
       case "edge_update": {
         const id = str(msg.edge_id);
         if (!id) break;
-        edges.set(id, { edgeId: id, status: str(msg.status) ?? "", counter: num(msg.counter) });
+        edges.set(id, {
+          edgeId: id,
+          status: str(msg.status) ?? "",
+          counter: num(msg.counter)
+        });
         break;
       }
       case "log_update": {
@@ -298,10 +317,14 @@ function readIntervention(msg: Record<string, unknown>): Intervention | null {
   if (typeof decidedBy !== "string") return null;
   if (!Object.prototype.hasOwnProperty.call(DECIDED_BY, decidedBy)) return null;
   const cost = msg.cost;
-  return {
+  type InterventionFields = Mutable<Intervention>;
+  const intervention: InterventionFields = {
     escalation: escalation as Intervention["escalation"],
     verdict: verdict as Intervention["verdict"],
-    decidedBy: decidedBy as Intervention["decidedBy"],
-    ...(typeof cost === "number" ? { costUsd: cost } : {})
+    decidedBy: decidedBy as Intervention["decidedBy"]
   };
+  if (typeof cost === "number") {
+    intervention.costUsd = cost;
+  }
+  return intervention;
 }

@@ -14,7 +14,10 @@ import {
   UploadValidationError,
   UploadSource
 } from "../utils/imageUploadValidation";
-import { normalizeAssetUrls, normalizeAssetList } from "../utils/normalizeAsset";
+import {
+  normalizeAssetUrls,
+  normalizeAssetList
+} from "../utils/normalizeAsset";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -71,13 +74,17 @@ const uploadAssetDirect = async (
   file: File,
   onUploadProgress?: (progressEvent: UploadProgressEvent) => void
 ): Promise<Asset | null> => {
-  const created = await trpcClient.assets.createUpload.mutate({
+  const uploadInput: Parameters<
+    typeof trpcClient.assets.createUpload.mutate
+  >[0] = {
     name: payload.name ?? file.name,
-    content_type: payload.content_type || file.type || "application/octet-stream",
+    content_type:
+      payload.content_type || file.type || "application/octet-stream",
     parent_id: payload.parent_id ?? "",
-    size: file.size,
-    ...(payload.workflow_id ? { workflow_id: payload.workflow_id } : {})
-  });
+    size: file.size
+  };
+  if (payload.workflow_id) uploadInput.workflow_id = payload.workflow_id;
+  const created = await trpcClient.assets.createUpload.mutate(uploadInput);
 
   if (!created.upload) {
     return null;
@@ -89,9 +96,7 @@ const uploadAssetDirect = async (
     body: file
   });
   if (!response.ok) {
-    throw new Error(
-      `Upload to storage failed with status ${response.status}`
-    );
+    throw new Error(`Upload to storage failed with status ${response.status}`);
   }
 
   emitUploadProgress(onUploadProgress, file.size, file.size);
@@ -324,13 +329,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
       return { next: null, assets: normalized };
     }
-    const data = await trpcClient.assets.list.query({
-      ...(query.parent_id !== undefined && query.parent_id !== null
-        ? { parent_id: query.parent_id }
-        : {}),
-      ...(query.content_type ? { content_type: query.content_type } : {}),
-      ...(query.workflow_id ? { workflow_id: query.workflow_id } : {})
-    });
+    const listInput: Parameters<typeof trpcClient.assets.list.query>[0] = {};
+    if (query.parent_id !== undefined && query.parent_id !== null) {
+      listInput.parent_id = query.parent_id;
+    }
+    if (query.content_type) listInput.content_type = query.content_type;
+    if (query.workflow_id) listInput.workflow_id = query.workflow_id;
+    const data = await trpcClient.assets.list.query(listInput);
     const normalized = normalizeAssetList(data.assets);
     for (const asset of normalized) {
       get().add(asset);
@@ -384,12 +389,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
     try {
-      const data = await trpcClient.assets.search.query({
-        query: query.query,
-        ...(query.content_type ? { content_type: query.content_type } : {}),
-        ...(query.page_size ? { page_size: query.page_size } : {}),
-        ...(query.cursor ? { cursor: query.cursor } : {})
-      });
+      const searchInput: Parameters<typeof trpcClient.assets.search.query>[0] =
+        { query: query.query };
+      if (query.content_type) searchInput.content_type = query.content_type;
+      if (query.page_size) searchInput.page_size = query.page_size;
+      if (query.cursor) searchInput.cursor = query.cursor;
+      const data = await trpcClient.assets.search.query(searchInput);
       const result = data as AssetSearchResult;
       return { ...result, assets: normalizeAssetList(result.assets) };
     } catch (error) {
@@ -440,7 +445,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       let result: Asset[] = [];
       for (const node of nodes) {
         // Create a copy without children to return as a flat asset
-         
+
         const { children, ...asset } = node;
         result.push(asset);
         if (node.children && node.children.length > 0) {
@@ -480,7 +485,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   download: async (ids: string[]): Promise<boolean> => {
-    console.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
+    console.info(
+      `[AssetStore] Attempting to download assets: ${ids.join(", ")}`
+    );
     try {
       const headers = await authHeader();
 
@@ -500,13 +507,14 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         try {
           const errorBuffer = await response.arrayBuffer();
           errorDetail = JSON.parse(new TextDecoder().decode(errorBuffer));
-          console.error("[AssetStore] Decoded server error message:", errorDetail);
+          console.error(
+            "[AssetStore] Decoded server error message:",
+            errorDetail
+          );
         } catch {
           // Could not parse error response
         }
-        throw new Error(
-          `Download failed with status ${response.status}`
-        );
+        throw new Error(`Download failed with status ${response.status}`);
       }
 
       const data = await response.arrayBuffer();
@@ -516,7 +524,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ? disposition.split("filename=")[1]
         : "assets.zip";
 
-      const contentType = response.headers.get("content-type") || "application/zip";
+      const contentType =
+        response.headers.get("content-type") || "application/zip";
       const blob = new Blob([data], { type: contentType });
       const downloadUrl = window.URL.createObjectURL(blob);
       const anchorElement = document.createElement("a");
@@ -548,7 +557,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     // Use provided values or fall back to previous values for required fields.
     // This ensures we don't accidentally clear fields like parent_id when only
     // updating the name.
-    const data = await trpcClient.assets.update.mutate({
+    const updateInput: Parameters<typeof trpcClient.assets.update.mutate>[0] = {
       id: req.id,
       name: req.name !== undefined ? req.name : prev.name,
       parent_id:
@@ -556,21 +565,20 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           ? req.parent_id
           : (prev.parent_id ?? undefined),
       content_type:
-        req.content_type !== undefined
-          ? req.content_type
-          : prev.content_type,
-      ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
-      ...(req.sketch_document_id !== undefined
-        ? { sketch_document_id: req.sketch_document_id }
-        : {}),
-      ...(req.timeline_id !== undefined
-        ? { timeline_id: req.timeline_id }
-        : {}),
-      ...(req.data !== undefined ? { data: req.data } : {}),
-      ...(req.data_encoding !== undefined
-        ? { data_encoding: req.data_encoding }
-        : {})
-    });
+        req.content_type !== undefined ? req.content_type : prev.content_type
+    };
+    if (req.metadata !== undefined) updateInput.metadata = req.metadata;
+    if (req.sketch_document_id !== undefined) {
+      updateInput.sketch_document_id = req.sketch_document_id;
+    }
+    if (req.timeline_id !== undefined) {
+      updateInput.timeline_id = req.timeline_id;
+    }
+    if (req.data !== undefined) updateInput.data = req.data;
+    if (req.data_encoding !== undefined) {
+      updateInput.data_encoding = req.data_encoding;
+    }
+    const data = await trpcClient.assets.update.mutate(updateInput);
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
     // Refresh the single-asset cache (keyed `["asset", id]` by useAssetById) so

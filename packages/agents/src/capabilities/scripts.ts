@@ -24,6 +24,8 @@ import type {
   Script,
   ScriptDocument,
   ScriptLine,
+  ScriptSection,
+  ScriptSpeaker,
   ScriptTake,
   ScriptVoiceBinding
 } from "@nodetool-ai/models";
@@ -647,11 +649,12 @@ const assembleScriptTimeline: CapabilityExport = {
     sequence.name = name;
     sequence.fps = fps;
     sequence.duration_ms = durationMs;
+    const previous = reuse?.toDocument();
     sequence.fromDocument({
-      ...(reuse ? reuse.toDocument() : {}),
+      ...previous,
       tracks,
       clips,
-      markers: reuse ? reuse.toDocument().markers : []
+      markers: previous ? previous.markers : []
     });
     await sequence.save();
 
@@ -812,12 +815,12 @@ function applyScriptOp(
       if (typeof name !== "string" || name.trim() === "") {
         throw new Error("add_speaker needs a non-empty `name`.");
       }
-      const speaker = {
+      const speaker: ScriptSpeaker = {
         id: mintId("speaker", new Set(doc.cast.map((s) => s.id))),
         name: name.trim(),
-        ...(typeof args["color"] === "string" ? { color: args["color"] } : {}),
         voice: parseVoiceBinding(args)
       };
+      if (typeof args["color"] === "string") speaker.color = args["color"];
       doc.cast.push(speaker);
       return { id: speaker.id, name: speaker.name, has_voice: !!speaker.voice };
     }
@@ -863,11 +866,11 @@ function applyScriptOp(
     }
 
     case "add_section": {
-      const section = {
+      const section: ScriptSection = {
         id: mintId("section", new Set(doc.sections.map((s) => s.id))),
-        ...(typeof args["title"] === "string" ? { title: args["title"] } : {}),
         lines: []
       };
+      if (typeof args["title"] === "string") section.title = args["title"];
       doc.sections.push(section);
       return { id: section.id, title: section.title };
     }
@@ -891,14 +894,14 @@ function applyScriptOp(
         id: mintId("line", used),
         speakerId,
         text,
-        ...(typeof args["direction"] === "string"
-          ? { direction: args["direction"] }
-          : {}),
-        ...(typeof args["pause_after_ms"] === "number"
-          ? { pauseAfterMs: args["pause_after_ms"] }
-          : {}),
         takes: []
       };
+      if (typeof args["direction"] === "string") {
+        line.direction = args["direction"];
+      }
+      if (typeof args["pause_after_ms"] === "number") {
+        line.pauseAfterMs = args["pause_after_ms"];
+      }
       const at =
         typeof args["index"] === "number"
           ? Math.max(

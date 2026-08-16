@@ -22,7 +22,12 @@
  */
 
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import type { CapabilityExport, CapabilityModule } from "./types.js";
+import type { RunSandboxOptions } from "../js-sandbox.js";
+import type {
+  CapabilityExport,
+  CapabilityImpl,
+  CapabilityModule
+} from "./types.js";
 import {
   gradeCodeCases,
   type GradedCase,
@@ -162,9 +167,8 @@ return __yielded;`
   };
   let source = body;
   if (params.withToolbelt) {
-    const { NODETOOL_PRELUDE, sandboxToolBridgeGlobals } = await import(
-      "../sandbox-toolbelt.js"
-    );
+    const { NODETOOL_PRELUDE, sandboxToolBridgeGlobals } =
+      await import("../sandbox-toolbelt.js");
     source = `${NODETOOL_PRELUDE}\n${body}`;
     Object.assign(globals, sandboxToolBridgeGlobals(context));
   }
@@ -176,16 +180,18 @@ return __yielded;`
     ? stagedInputStreams(params.inputStreams)
     : undefined;
 
-  const result = await runInSandbox({
+  const sandboxOptions: RunSandboxOptions = {
     code: source,
     context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,
     limits: { secretScope: [...params.secrets] },
-    ...(modules ? { modules } : {}),
-    ...(capabilities ? { capabilities } : {}),
     ...(staged ?? {})
-  });
+  };
+  if (modules) sandboxOptions.modules = modules;
+  if (capabilities) sandboxOptions.capabilities = capabilities;
+
+  const result = await runInSandbox(sandboxOptions);
 
   const logs = result.logs ?? [];
   if (!result.success) {
@@ -231,7 +237,9 @@ return __yielded;`
  * one item twice.
  */
 function stagedInputStreams(streams: Record<string, unknown[]>): {
-  onTakeInput: (handle: string | null) => Promise<
+  onTakeInput: (
+    handle: string | null
+  ) => Promise<
     { done: true } | { done: false; handle: string; value: unknown }
   >;
   onStreamOpen: (handle: string) => boolean;
@@ -280,9 +288,7 @@ function stringList(value: unknown): string[] {
  * `{handle: [items]}` staged for a body that reads `stream`. Entries that are
  * not arrays are dropped: a handle with nothing behind it reads as ended.
  */
-function inputStreamBag(
-  value: unknown
-): Record<string, unknown[]> | undefined {
+function inputStreamBag(value: unknown): Record<string, unknown[]> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
@@ -376,19 +382,25 @@ const validateCode: CapabilityExport = {
 // run_code
 // ---------------------------------------------------------------------------
 
+/** `run_code`'s arguments as {@link runCodeBody} params. */
+function runCodeParams(
+  params: Parameters<CapabilityImpl>[1]
+): Parameters<typeof runCodeBody>[1] {
+  const bodyParams: Parameters<typeof runCodeBody>[1] = {
+    code: String(params["code"] ?? ""),
+    inputs: inputBag(params["inputs"]),
+    packages: stringList(params["packages"]),
+    secrets: stringList(params["secrets"]),
+    timeoutSeconds: timeoutSeconds(params["timeout_seconds"])
+  };
+  const staged = inputStreamBag(params["input_streams"]);
+  if (staged !== undefined) bodyParams.inputStreams = staged;
+  return bodyParams;
+}
+
 const runCode: CapabilityExport = {
   spec: runCodeSpec,
-  impl: async (run, params) =>
-    runCodeBody(run.context, {
-      code: String(params["code"] ?? ""),
-      inputs: inputBag(params["inputs"]),
-      packages: stringList(params["packages"]),
-      secrets: stringList(params["secrets"]),
-      timeoutSeconds: timeoutSeconds(params["timeout_seconds"]),
-      ...(inputStreamBag(params["input_streams"]) !== undefined
-        ? { inputStreams: inputStreamBag(params["input_streams"])! }
-        : {})
-    })
+  impl: async (run, params) => runCodeBody(run.context, runCodeParams(params))
 };
 
 // ---------------------------------------------------------------------------
@@ -422,31 +434,30 @@ const testCode: CapabilityExport = {
           ? raw["name"]
           : `case ${i + 1}`;
       const staged = inputStreamBag(raw["input_streams"]);
-      return {
-        name,
-        inputs: inputBag(raw["inputs"]),
-        ...(raw["expect"] && typeof raw["expect"] === "object"
-          ? { expect: raw["expect"] as Record<string, unknown> }
-          : {}),
-        ...(Array.isArray(raw["expected_streamed"])
-          ? { expectedStreamed: raw["expected_streamed"] as unknown[] }
-          : {}),
-        ...(staged !== undefined ? { inputStreams: staged } : {})
-      };
+      const graded: GradedCase = { name, inputs: inputBag(raw["inputs"]) };
+      if (raw["expect"] && typeof raw["expect"] === "object") {
+        graded.expect = raw["expect"] as Record<string, unknown>;
+      }
+      if (Array.isArray(raw["expected_streamed"])) {
+        graded.expectedStreamed = raw["expected_streamed"] as unknown[];
+      }
+      if (staged !== undefined) graded.inputStreams = staged;
+      return graded;
     });
 
-    return gradeCodeCases(cases, (testCase) =>
-      runCodeBody(run.context, {
+    return gradeCodeCases(cases, (testCase) => {
+      const bodyParams: Parameters<typeof runCodeBody>[1] = {
         code,
         inputs: testCase.inputs,
         packages,
         secrets,
-        timeoutSeconds: timeout,
-        ...(testCase.inputStreams !== undefined
-          ? { inputStreams: testCase.inputStreams }
-          : {})
-      })
-    );
+        timeoutSeconds: timeout
+      };
+      if (testCase.inputStreams !== undefined) {
+        bodyParams.inputStreams = testCase.inputStreams;
+      }
+      return runCodeBody(run.context, bodyParams);
+    });
   }
 };
 

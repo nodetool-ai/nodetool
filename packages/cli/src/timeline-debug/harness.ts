@@ -118,8 +118,10 @@ async function loadBridgeFactory(): Promise<CreateTimelineBridge> {
 
 function defaultOutDir(ref: string): string {
   const slug =
-    ref.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) ||
-    "timeline";
+    ref
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "timeline";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   return resolve(`nodetool-debug/timeline-${slug}-${stamp}`);
 }
@@ -183,11 +185,21 @@ export async function runTimelineDebug(
       }
       try {
         const result = await tool.execute(step.input);
-        interactions.push({ tool: step.tool, input: step.input, ok: true, result });
+        interactions.push({
+          tool: step.tool,
+          input: step.input,
+          ok: true,
+          result
+        });
         deps.onLog?.(`✓ ${step.tool}`);
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
-        interactions.push({ tool: step.tool, input: step.input, ok: false, error });
+        interactions.push({
+          tool: step.tool,
+          input: step.input,
+          ok: false,
+          error
+        });
         deps.onLog?.(`✗ ${step.tool}: ${error}`);
       }
     }
@@ -206,16 +218,23 @@ export async function runTimelineDebug(
         }
       : undefined;
 
-  const report = await core.buildTimelineDebugReport({
+  const reportInput: Parameters<typeof core.buildTimelineDebugReport>[0] = {
     target: resolved.target,
     document: resolved.raw,
     meta: resolved.meta,
-    interactions,
-    ...(snapshot ? { finalState: snapshot } : {}),
-    ...(finalDocument ? { finalDocument } : {})
-  });
+    interactions
+  };
+  if (snapshot) {
+    reportInput.finalState = snapshot;
+  }
+  if (finalDocument) {
+    reportInput.finalDocument = finalDocument;
+  }
+  const report = await core.buildTimelineDebugReport(reportInput);
 
-  const bundleDir = options.outDir ? resolve(options.outDir) : defaultOutDir(ref);
+  const bundleDir = options.outDir
+    ? resolve(options.outDir)
+    : defaultOutDir(ref);
   await mkdir(bundleDir, { recursive: true });
   await writeFile(
     join(bundleDir, "timeline.json"),

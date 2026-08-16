@@ -44,7 +44,10 @@ interface HfChatResponse {
 }
 
 /** A binary result the SDK may return as bytes, a buffer, or a Blob. */
-type HfBinary = Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> };
+type HfBinary =
+  | Uint8Array
+  | ArrayBuffer
+  | { arrayBuffer(): Promise<ArrayBuffer> };
 
 /** Minimal shape of the HfInference client used by this provider. */
 interface HfClient {
@@ -62,7 +65,10 @@ interface HfClient {
   textToSpeech(params: Record<string, unknown>): Promise<HfBinary>;
   automaticSpeechRecognition(
     params: Record<string, unknown>
-  ): Promise<{ text?: string; chunks?: Array<{ text?: string; timestamp?: [number, number] }> }>;
+  ): Promise<{
+    text?: string;
+    chunks?: Array<{ text?: string; timestamp?: [number, number] }>;
+  }>;
   featureExtraction(
     params: Record<string, unknown>
   ): Promise<number[] | number[][] | number[][][]>;
@@ -191,9 +197,7 @@ function hfModelName(id: string): string {
   // "black-forest-labs/FLUX.1-schnell" → "FLUX.1 Schnell"
   const parts = id.split("/");
   const raw = parts[parts.length - 1];
-  return raw
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return raw.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 async function getHfLanguageModels(): Promise<LanguageModel[]> {
@@ -266,6 +270,41 @@ function extractTextContent(
     .filter((c): c is MessageTextContent => c.type === "text")
     .map((c) => c.text)
     .join("\n");
+}
+
+type HfChatPayload = {
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+  max_tokens: number;
+  temperature?: number;
+  top_p?: number;
+};
+
+/**
+ * The HF chat request body, with temperature and top_p omitted when the caller
+ * did not set them.
+ */
+function chatPayload(
+  args: {
+    model: string;
+    maxTokens?: number;
+    temperature?: number;
+    topP?: number;
+  },
+  messages: Array<{ role: string; content: string }>
+): HfChatPayload {
+  const payload: HfChatPayload = {
+    model: args.model,
+    messages,
+    max_tokens: args.maxTokens ?? 4096
+  };
+  if (args.temperature != null) {
+    payload.temperature = args.temperature;
+  }
+  if (args.topP != null) {
+    payload.top_p = args.topP;
+  }
+  return payload;
 }
 
 export class HuggingFaceProvider extends BaseProvider {
@@ -345,13 +384,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
     log.debug("HuggingFace chatCompletion", { model: args.model });
 
-    const requestPayload = {
-      model: args.model,
-      messages: hfMessages,
-      max_tokens: args.maxTokens ?? 4096,
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {})
-    };
+    const requestPayload = chatPayload(args, hfMessages);
     this.recordRequestPayload(requestPayload);
     const response = await client.chatCompletion(requestPayload, {
       signal: args.signal
@@ -398,13 +431,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
     log.debug("HuggingFace chatCompletionStream", { model: args.model });
 
-    const requestPayload = {
-      model: args.model,
-      messages: hfMessages,
-      max_tokens: args.maxTokens ?? 4096,
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {})
-    };
+    const requestPayload = chatPayload(args, hfMessages);
     this.recordRequestPayload(requestPayload);
     const stream = client.chatCompletionStream(requestPayload, {
       signal: args.signal
@@ -414,8 +441,11 @@ export class HuggingFaceProvider extends BaseProvider {
       // OpenAI-compatible streams (which the HF Inference SDK proxies) carry
       // usage on the terminal chunk. Record it, otherwise every streamed HF
       // call reports 0 tokens / $0 cost (the non-streaming path already tracks).
-      const usage = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number } })
-        ?.usage;
+      const usage = (
+        chunk as {
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+        }
+      )?.usage;
       if (usage) {
         this.trackUsage(args.model, {
           inputTokens: usage.prompt_tokens ?? 0,
@@ -508,8 +538,10 @@ export class HuggingFaceProvider extends BaseProvider {
 
     const parameters: Record<string, unknown> = {};
     if (params.prompt) parameters.prompt = params.prompt;
-    if (params.negativePrompt) parameters.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) parameters.guidance_scale = params.guidanceScale;
+    if (params.negativePrompt)
+      parameters.negative_prompt = params.negativePrompt;
+    if (params.guidanceScale != null)
+      parameters.guidance_scale = params.guidanceScale;
     if (params.numInferenceSteps != null)
       parameters.num_inference_steps = params.numInferenceSteps;
     if (params.targetWidth && params.targetHeight) {
@@ -519,11 +551,19 @@ export class HuggingFaceProvider extends BaseProvider {
       };
     }
 
-    const result = await client.imageToImage({
+    type RequestFields = {
+      model: string;
+      inputs: Blob;
+      parameters?: typeof parameters;
+    };
+    const request: RequestFields = {
       model: params.model.id,
-      inputs: new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>]),
-      ...(Object.keys(parameters).length > 0 ? { parameters } : {})
-    });
+      inputs: new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>])
+    };
+    if (Object.keys(parameters).length > 0) {
+      request.parameters = parameters;
+    }
+    const result = await client.imageToImage(request);
     return toBytes(result);
   }
 
@@ -537,18 +577,28 @@ export class HuggingFaceProvider extends BaseProvider {
     log.debug("HuggingFace textToVideo", { model: params.model.id });
 
     const parameters: Record<string, unknown> = {};
-    if (params.negativePrompt) parameters.negative_prompt = params.negativePrompt;
+    if (params.negativePrompt)
+      parameters.negative_prompt = params.negativePrompt;
     if (params.numFrames != null) parameters.num_frames = params.numFrames;
-    if (params.guidanceScale != null) parameters.guidance_scale = params.guidanceScale;
+    if (params.guidanceScale != null)
+      parameters.guidance_scale = params.guidanceScale;
     if (params.numInferenceSteps != null)
       parameters.num_inference_steps = params.numInferenceSteps;
     if (params.seed != null) parameters.seed = params.seed;
 
-    const result = await client.textToVideo({
+    type RequestFields2 = {
+      model: string;
+      inputs: string;
+      parameters?: typeof parameters;
+    };
+    const request: RequestFields2 = {
       model: params.model.id,
-      inputs: params.prompt,
-      ...(Object.keys(parameters).length > 0 ? { parameters } : {})
-    });
+      inputs: params.prompt
+    };
+    if (Object.keys(parameters).length > 0) {
+      request.parameters = parameters;
+    }
+    const result = await client.textToVideo(request);
     return toBytes(result);
   }
 
@@ -564,25 +614,28 @@ export class HuggingFaceProvider extends BaseProvider {
 
     log.debug("HuggingFace automaticSpeechRecognition", { model: args.model });
 
-    const result = await client.automaticSpeechRecognition({
-      model: args.model,
-      data: new Blob([new Uint8Array(args.audio) as Uint8Array<ArrayBuffer>]),
-      ...(args.word_timestamps
-        ? { parameters: { return_timestamps: true } }
-        : {})
-    });
-
-    return {
-      text: result?.text ?? "",
-      ...(result?.chunks
-        ? {
-            chunks: result.chunks.map((c) => ({
-              text: c.text ?? "",
-              timestamp: c.timestamp ?? [0, 0]
-            }))
-          }
-        : {})
+    type RequestFields3 = {
+      model: string;
+      data: Blob;
+      parameters?: { return_timestamps: boolean };
     };
+    const request: RequestFields3 = {
+      model: args.model,
+      data: new Blob([new Uint8Array(args.audio) as Uint8Array<ArrayBuffer>])
+    };
+    if (args.word_timestamps) {
+      request.parameters = { return_timestamps: true };
+    }
+    const result = await client.automaticSpeechRecognition(request);
+
+    const asr: ASRResult = { text: result?.text ?? "" };
+    if (result?.chunks) {
+      asr.chunks = result.chunks.map((c) => ({
+        text: c.text ?? "",
+        timestamp: c.timestamp ?? [0, 0]
+      }));
+    }
+    return asr;
   }
 
   override async generateEmbedding(args: {
@@ -643,11 +696,21 @@ export class HuggingFaceProvider extends BaseProvider {
     // HuggingFace Inference API returns FLAC by default for most TTS models.
     // Detect format from magic bytes, fall back to FLAC.
     let mimeType = "audio/flac";
-    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+    if (
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46
+    ) {
       mimeType = "audio/wav";
     } else if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) {
       mimeType = "audio/mpeg";
-    } else if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    } else if (
+      bytes[0] === 0x4f &&
+      bytes[1] === 0x67 &&
+      bytes[2] === 0x67 &&
+      bytes[3] === 0x53
+    ) {
       mimeType = "audio/ogg";
     }
 

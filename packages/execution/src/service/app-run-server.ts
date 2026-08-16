@@ -47,17 +47,18 @@ export function createAppServerRunner(
       secretResolver: (key: string) => getSecret(key, userId),
       storage: new FileStorageAdapter(getDefaultAssetsPath())
     });
-    const session = await ExecutionSession.create({
+    const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
       graph: input.graph as unknown as RawGraphInput,
       registry,
       jobId,
       workflowId: input.workflowId,
       params: input.params,
-      context,
-      ...(input.timeoutMs !== undefined
-        ? { limits: { runTimeoutMs: input.timeoutMs } }
-        : {})
-    });
+      context
+    };
+    if (input.timeoutMs !== undefined) {
+      sessionOptions.limits = { runTimeoutMs: input.timeoutMs };
+    }
+    const session = await ExecutionSession.create(sessionOptions);
     // `session.result` never rejects: a kernel failure resolves as
     // `status: "failed"`, which the simulator turns into a complaint.
     const result = await session.result;

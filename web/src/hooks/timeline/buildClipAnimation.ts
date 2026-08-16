@@ -68,11 +68,12 @@ export function buildClipAnimation(input: ClipAnimationInput): ClipAnimation {
   if (input.enabled !== undefined) anim.enabled = input.enabled;
   if (input.params !== undefined) anim.params = input.params;
   if (input.stagger !== undefined) {
-    anim.stagger = {
+    const stagger: NonNullable<ClipAnimation["stagger"]> = {
       unit: input.stagger.unit,
-      offsetMs: input.stagger.offsetMs,
-      ...(input.stagger.from !== undefined ? { from: input.stagger.from } : {})
+      offsetMs: input.stagger.offsetMs
     };
+    if (input.stagger.from !== undefined) stagger.from = input.stagger.from;
+    anim.stagger = stagger;
   }
   return anim;
 }

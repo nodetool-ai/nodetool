@@ -156,13 +156,18 @@ export const jsScriptsRouter = router({
           return jsScriptResponse.parse(existing.toResponse());
         }
       }
-      const script = new JsScript({
-        ...(input.id ? { id: input.id } : {}),
+      const fields: ConstructorParameters<typeof JsScript>[0] = {
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,
         document: JSON.stringify(input.document ?? emptyJsScriptDocument())
-      });
+      };
+      // Set only when the client supplied one — the model defaults an id it
+      // does not already own as a property.
+      if (input.id) {
+        fields.id = input.id;
+      }
+      const script = new JsScript(fields);
       await script.save();
       return jsScriptResponse.parse(script.toResponse());
     }),

@@ -20,28 +20,36 @@ const mockWorkflow = {
 
 let nodeCounter = 0;
 
+type NodeUpdateFixture = {
+  type: string;
+  node_id: string;
+  node_name: string;
+  node_type: string;
+  status: string;
+  error: string;
+  error_detail?: NodeUpdate["error_detail"];
+  job_id: string;
+};
+
 const nodeError = (
   jobId: string,
   detail?: NodeUpdate["error_detail"]
-): NodeUpdate =>
-  ({
+): NodeUpdate => {
+  const update: NodeUpdateFixture = {
     type: "node_update",
     node_id: `node-${++nodeCounter}`,
     node_name: "Chat",
     node_type: "nodetool.llm.Chat",
     status: "error",
     error: "401 Incorrect API key",
-    ...(detail ? { error_detail: detail } : {}),
     job_id: jobId
-  }) as unknown as NodeUpdate;
+  };
+  if (detail) update.error_detail = detail;
+  return update as unknown as NodeUpdate;
+};
 
 const dispatch = (update: NodeUpdate) =>
-  handleUpdate(
-    mockWorkflow,
-    update,
-    mockRunnerStore as never,
-    () => undefined
-  );
+  handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
 const authDetail = {
   code: "provider_auth",

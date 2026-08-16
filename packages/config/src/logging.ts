@@ -75,8 +75,7 @@ export function configureLogging(opts: LoggingOptions = {}): void {
   if (opts.level) {
     currentLevel = opts.level;
   } else {
-    const envRaw =
-      ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "info";
+    const envRaw = ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "info";
     currentLevel = normalizeLevel(envRaw) ?? "info";
   }
 
@@ -97,8 +96,7 @@ export function getLogLevel(): LogLevel {
 }
 
 // Colour support — only on Node where process.stderr.isTTY exists.
-const USE_COLOR =
-  IS_NODE && Boolean(process.stderr?.isTTY) && !ENV["NO_COLOR"];
+const USE_COLOR = IS_NODE && Boolean(process.stderr?.isTTY) && !ENV["NO_COLOR"];
 
 const C = {
   reset: USE_COLOR ? "\x1b[0m" : "",
@@ -139,12 +137,17 @@ interface SerializedError {
 
 function jsonReplacer<T>(_key: string, value: T): T | SerializedError {
   if (value instanceof Error) {
-    return {
+    const serialized: SerializedError = {
       name: value.name,
-      message: value.message,
-      ...(value.stack ? { stack: value.stack } : {}),
-      ...(value.cause !== undefined ? { cause: value.cause } : {})
+      message: value.message
     };
+    if (value.stack) {
+      serialized.stack = value.stack;
+    }
+    if (value.cause !== undefined) {
+      serialized.cause = value.cause;
+    }
+    return serialized;
   }
   return value;
 }

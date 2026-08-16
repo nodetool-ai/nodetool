@@ -998,12 +998,18 @@ async function autoSaveAssets(
         // would not parse on reload. Oversized values reload from the bytes.
         const inline =
           bytes.length <= TEXT_GENERATION_PREVIEW_CAP ? structured : undefined;
-        asset.metadata = {
-          ...(inline !== undefined ? { json: inline } : {}),
-          ...(typeof opts.generationIndex === "number"
-            ? { generation_index: opts.generationIndex }
-            : {})
+        type AssetMetadataFields = {
+          json?: typeof inline;
+          generation_index?: number;
         };
+        const metadata: AssetMetadataFields = {};
+        if (inline !== undefined) {
+          metadata.json = inline;
+        }
+        if (typeof opts.generationIndex === "number") {
+          metadata.generation_index = opts.generationIndex;
+        }
+        asset.metadata = metadata;
         const fileName = `${asset.id}.json`;
         try {
           await storeAssetWithThumbnail(
@@ -1036,169 +1042,169 @@ async function autoSaveAssets(
  */
 export function serverModelInterfaces(): ProcessingContextModelInterfaces {
   return {
-      // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
-      // one persistence path, one home-folder default.
-      createAsset: createAssetModelInterface,
-      createMessage: async ({ userId, req }) => {
-        // Persist an AgentNode thread message. `content` / `tool_calls` are stored
-        // raw — the `content` column is a jsonText type that serializes them, so
-        // stringifying here would double-encode and break the getMessages read
-        // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
-        return Message.create<Message>({
-          user_id: userId,
-          thread_id: req.thread_id,
-          role: req.role,
-          name: req.name ?? null,
-          content: req.content ?? null,
-          tool_calls: req.tool_calls ?? null,
-          tool_call_id: req.tool_call_id ?? null,
-          workflow_id: req.workflow_id ?? null
-        });
-      },
-      getMessages: async ({ userId, threadId, limit, startKey, reverse }) => {
-        const [msgs, cursor] = await Message.paginate(threadId, {
-          limit: limit ?? 1000,
-          startKey: startKey ?? undefined,
-          reverse: reverse ?? false
-        });
-        // Scope to the requesting user — thread_id has no ownership column of its
-        // own, so filter the rows the same way the tRPC messages router does.
-        const owned = msgs.filter((m) => m.user_id === userId);
-        return {
-          messages: owned as unknown as Array<Record<string, unknown>>,
-          next: cursor || null
-        };
-      },
-      listFolderAssets: async ({ userId, folderId }) => {
-        const folder = await Asset.find(userId, folderId);
-        if (!folder || folder.content_type !== "folder") return null;
-        const out: Array<{ id: string; content_type: string; name: string }> = [];
-        const seen = new Set<string>();
-        const visit = async (parentId: string): Promise<void> => {
-          if (seen.has(parentId)) return; // guard against cyclic parent links
-          seen.add(parentId);
-          const children = await Asset.getChildren(userId, parentId, 1000);
-          for (const child of children) {
-            if (child.content_type === "folder") {
-              await visit(child.id);
-            } else {
-              out.push({
-                id: child.id,
-                content_type: child.content_type,
-                name: child.name
-              });
-            }
+    // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
+    // one persistence path, one home-folder default.
+    createAsset: createAssetModelInterface,
+    createMessage: async ({ userId, req }) => {
+      // Persist an AgentNode thread message. `content` / `tool_calls` are stored
+      // raw — the `content` column is a jsonText type that serializes them, so
+      // stringifying here would double-encode and break the getMessages read
+      // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
+      return Message.create<Message>({
+        user_id: userId,
+        thread_id: req.thread_id,
+        role: req.role,
+        name: req.name ?? null,
+        content: req.content ?? null,
+        tool_calls: req.tool_calls ?? null,
+        tool_call_id: req.tool_call_id ?? null,
+        workflow_id: req.workflow_id ?? null
+      });
+    },
+    getMessages: async ({ userId, threadId, limit, startKey, reverse }) => {
+      const [msgs, cursor] = await Message.paginate(threadId, {
+        limit: limit ?? 1000,
+        startKey: startKey ?? undefined,
+        reverse: reverse ?? false
+      });
+      // Scope to the requesting user — thread_id has no ownership column of its
+      // own, so filter the rows the same way the tRPC messages router does.
+      const owned = msgs.filter((m) => m.user_id === userId);
+      return {
+        messages: owned as unknown as Array<Record<string, unknown>>,
+        next: cursor || null
+      };
+    },
+    listFolderAssets: async ({ userId, folderId }) => {
+      const folder = await Asset.find(userId, folderId);
+      if (!folder || folder.content_type !== "folder") return null;
+      const out: Array<{ id: string; content_type: string; name: string }> = [];
+      const seen = new Set<string>();
+      const visit = async (parentId: string): Promise<void> => {
+        if (seen.has(parentId)) return; // guard against cyclic parent links
+        seen.add(parentId);
+        const children = await Asset.getChildren(userId, parentId, 1000);
+        for (const child of children) {
+          if (child.content_type === "folder") {
+            await visit(child.id);
+          } else {
+            out.push({
+              id: child.id,
+              content_type: child.content_type,
+              name: child.name
+            });
           }
-        };
-        await visit(folderId);
-        out.sort((a, b) => a.name.localeCompare(b.name));
-        return out;
-      },
-      getAssetInfo: async ({ userId, assetId }) => {
-        const asset = await Asset.find(userId, assetId);
-        if (!asset) return null;
-        return {
-          id: asset.id,
-          content_type: asset.content_type,
-          name: asset.name,
-          metadata: asset.metadata ?? null
-        };
-      },
-      getImageDocument: async ({ userId, id }) => {
-        const doc = await ImageDocument.findById(id);
-        if (!doc || doc.user_id !== userId) return null;
-        return doc.toResponse();
-      },
-      createImageDocument: async ({
-        userId,
+        }
+      };
+      await visit(folderId);
+      out.sort((a, b) => a.name.localeCompare(b.name));
+      return out;
+    },
+    getAssetInfo: async ({ userId, assetId }) => {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return null;
+      return {
+        id: asset.id,
+        content_type: asset.content_type,
+        name: asset.name,
+        metadata: asset.metadata ?? null
+      };
+    },
+    getImageDocument: async ({ userId, id }) => {
+      const doc = await ImageDocument.findById(id);
+      if (!doc || doc.user_id !== userId) return null;
+      return doc.toResponse();
+    },
+    createImageDocument: async ({
+      userId,
+      name,
+      projectId,
+      width,
+      height,
+      document
+    }) => {
+      const doc = new ImageDocument({
+        user_id: userId,
+        project_id: projectId ?? "default",
         name,
-        projectId,
         width,
         height,
-        document
-      }) => {
-        const doc = new ImageDocument({
-          user_id: userId,
-          project_id: projectId ?? "default",
-          name,
-          width,
-          height,
-          document: JSON.stringify(document)
-        });
-        await doc.save();
-        return doc.toResponse();
-      },
-      getTimelineSequence: async ({ userId, id }) => {
-        const seq = await TimelineSequence.findById(id);
-        if (!seq || seq.user_id !== userId) return null;
-        return seq.toTimelineSequence();
-      },
-      createTimelineSequence: async ({ userId, sequence }) => {
-        const seq = TimelineSequence.fromTimelineSequence(
-          userId,
-          sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-        );
-        await seq.save();
-        return seq.toTimelineSequence();
-      },
-      updateTimelineSequence: async ({ userId, id, sequence }) => {
-        const existing = await TimelineSequence.findById(id);
-        if (!existing || existing.user_id !== userId) return null;
-        const next = TimelineSequence.fromTimelineSequence(
-          userId,
-          sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
-        );
-        const updated = await TimelineSequence.updateFieldsIfUnchanged(
-          id,
-          next.updated_at,
-          {
-            name: next.name,
-            fps: next.fps,
-            width: next.width,
-            height: next.height,
-            duration_ms: next.duration_ms,
-            document: next.document
-          }
-        );
-        return updated ? updated.toTimelineSequence() : null;
-      },
-      getScript: async ({ userId, id }) => {
-        const script = await Script.findById(id);
-        if (!script || script.user_id !== userId) return null;
-        return script.toResponse();
-      },
-      createScript: async ({ userId, name, projectId, document }) => {
-        const script = new Script({
-          user_id: userId,
-          name: name ?? "Untitled script",
-          project_id: projectId ?? "default",
-          document: JSON.stringify(document)
-        });
-        await script.save();
-        return script.toResponse();
-      },
-      updateScript: async ({
+        document: JSON.stringify(document)
+      });
+      await doc.save();
+      return doc.toResponse();
+    },
+    getTimelineSequence: async ({ userId, id }) => {
+      const seq = await TimelineSequence.findById(id);
+      if (!seq || seq.user_id !== userId) return null;
+      return seq.toTimelineSequence();
+    },
+    createTimelineSequence: async ({ userId, sequence }) => {
+      const seq = TimelineSequence.fromTimelineSequence(
         userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      await seq.save();
+      return seq.toTimelineSequence();
+    },
+    updateTimelineSequence: async ({ userId, id, sequence }) => {
+      const existing = await TimelineSequence.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const next = TimelineSequence.fromTimelineSequence(
+        userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      const updated = await TimelineSequence.updateFieldsIfUnchanged(
         id,
-        document,
-        timelineId,
-        baseUpdatedAt
-      }) => {
-        const existing = await Script.findById(id);
-        if (!existing || existing.user_id !== userId) return null;
-        const fields: Partial<{
-          document: string;
-          timeline_id: string | null;
-        }> = {};
-        if (document !== undefined) fields.document = JSON.stringify(document);
-        if (timelineId !== undefined) fields.timeline_id = timelineId;
-        const updated = await Script.updateFieldsIfUnchanged(
-          id,
-          baseUpdatedAt ?? existing.updated_at,
-          fields
-        );
-        return updated ? updated.toResponse() : null;
-      }
+        next.updated_at,
+        {
+          name: next.name,
+          fps: next.fps,
+          width: next.width,
+          height: next.height,
+          duration_ms: next.duration_ms,
+          document: next.document
+        }
+      );
+      return updated ? updated.toTimelineSequence() : null;
+    },
+    getScript: async ({ userId, id }) => {
+      const script = await Script.findById(id);
+      if (!script || script.user_id !== userId) return null;
+      return script.toResponse();
+    },
+    createScript: async ({ userId, name, projectId, document }) => {
+      const script = new Script({
+        user_id: userId,
+        name: name ?? "Untitled script",
+        project_id: projectId ?? "default",
+        document: JSON.stringify(document)
+      });
+      await script.save();
+      return script.toResponse();
+    },
+    updateScript: async ({
+      userId,
+      id,
+      document,
+      timelineId,
+      baseUpdatedAt
+    }) => {
+      const existing = await Script.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const fields: Partial<{
+        document: string;
+        timeline_id: string | null;
+      }> = {};
+      if (document !== undefined) fields.document = JSON.stringify(document);
+      if (timelineId !== undefined) fields.timeline_id = timelineId;
+      const updated = await Script.updateFieldsIfUnchanged(
+        id,
+        baseUpdatedAt ?? existing.updated_at,
+        fields
+      );
+      return updated ? updated.toResponse() : null;
+    }
   };
 }
 
@@ -3712,7 +3718,7 @@ export class UnifiedWebSocketRunner {
       defaultModel: this.defaultModel
     });
 
-    const session = await ExecutionSession.create({
+    const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
       graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
         this.resolveExecutor(
@@ -3727,9 +3733,12 @@ export class UnifiedWebSocketRunner {
       workflowId,
       context,
       params: req.params ?? {},
-      validateNode: this.validateNode,
-      ...(supervisor ? { supervisor } : {})
-    });
+      validateNode: this.validateNode
+    };
+    if (supervisor) {
+      sessionOptions.supervisor = supervisor;
+    }
+    const session = await ExecutionSession.create(sessionOptions);
 
     const active: ActiveJob = {
       jobId,
@@ -5662,17 +5671,13 @@ export class UnifiedWebSocketRunner {
           gate: UNGATED,
           subAgent: subAgentRuntime
         });
-      serverTools.unshift(
-        toolForCapabilityName("run_subtask", delegationRun)
-      );
+      serverTools.unshift(toolForCapabilityName("run_subtask", delegationRun));
 
       // Read-only fan-out search (opt-in). Reuses the same runtime — the
       // capability filters the parent belt to its read-only allowlist
       // internally, so passing the full snapshot is correct.
       if (enableReadOnlySearch) {
-        serverTools.unshift(
-          toolForCapabilityName("run_search", delegationRun)
-        );
+        serverTools.unshift(toolForCapabilityName("run_search", delegationRun));
       }
     }
 
@@ -6131,14 +6136,16 @@ export class UnifiedWebSocketRunner {
         const assistantMsgData: Record<string, unknown> = {
           type: "message",
           role: "assistant",
-          content: persistedContent,
-          ...(toolCalls ? { tool_calls: toolCalls } : {}),
-          thread_id: threadId,
-          workflow_id: workflowId,
-          provider: providerId,
-          model,
-          provider_session: sessionForPersist()
+          content: persistedContent
         };
+        if (toolCalls) {
+          assistantMsgData.tool_calls = toolCalls;
+        }
+        assistantMsgData.thread_id = threadId;
+        assistantMsgData.workflow_id = workflowId;
+        assistantMsgData.provider = providerId;
+        assistantMsgData.model = model;
+        assistantMsgData.provider_session = sessionForPersist();
         await this.saveMessageToDb(assistantMsgData);
         if (echo) await this.sendMessage(assistantMsgData);
         return;
@@ -6359,14 +6366,25 @@ export class UnifiedWebSocketRunner {
         }
       }
 
-      await this.sendMessage({
+      type ErrorMessageFields = {
+        type: "error";
+        message: string;
+        error_type: string;
+        status_code?: number;
+        thread_id?: string | null;
+        workflow_id?: string | null;
+      };
+      const errorMessage: ErrorMessageFields = {
         type: "error",
         message: formattedMsg,
-        error_type: errorType,
-        ...(statusCode !== undefined ? { status_code: statusCode } : {}),
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
+        error_type: errorType
+      };
+      if (statusCode !== undefined) {
+        errorMessage.status_code = statusCode;
+      }
+      errorMessage.thread_id = threadId;
+      errorMessage.workflow_id = workflowId;
+      await this.sendMessage(errorMessage);
       // Signal completion even on error — matches Python
       await this.sendMessage({
         type: "chunk",
@@ -7570,11 +7588,11 @@ export class UnifiedWebSocketRunner {
       // Prepare params — matches Python's WorkflowMessageProcessor
       const params: Record<string, unknown> = {
         [messageInputName]: currentMessage,
-        [messagesInputName]: [...chatHistorySerialized, currentMessage],
-        ...(typeof data.params === "object" && data.params !== null
-          ? (data.params as Record<string, unknown>)
-          : {})
+        [messagesInputName]: [...chatHistorySerialized, currentMessage]
       };
+      if (typeof data.params === "object" && data.params !== null) {
+        Object.assign(params, data.params as Record<string, unknown>);
+      }
 
       // If chat workflow, add legacy params — matches Python's ChatWorkflowMessageProcessor
       if (workflow.run_mode === "chat") {

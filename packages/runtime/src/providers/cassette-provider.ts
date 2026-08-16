@@ -25,9 +25,8 @@ import type {
   ProviderTool
 } from "./types.js";
 
-const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
-  "node:crypto"
-);
+const _nodeCrypto =
+  getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
 
 // ---------------------------------------------------------------------------
 // Cassette data model
@@ -334,9 +333,10 @@ export function hashRequest(
  */
 export class CassetteStore {
   static async load(path: string): Promise<Cassette> {
-    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fsP =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fsP) {
       throw new Error("CassetteStore.load requires node:fs/promises");
     }
@@ -360,9 +360,10 @@ export class CassetteStore {
   }
 
   static async save(path: string, cassette: Cassette): Promise<void> {
-    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fsP =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fsP) {
       throw new Error("CassetteStore.save requires node:fs/promises");
     }
@@ -437,7 +438,8 @@ export class CassetteProvider extends BaseProvider {
       yield* items;
       return;
     }
-    const limit = fault.kind === "truncated-stream" ? fault.afterChunks ?? 2 : null;
+    const limit =
+      fault.kind === "truncated-stream" ? (fault.afterChunks ?? 2) : null;
     let count = 0;
     for await (const item of items) {
       if (limit !== null && count >= limit) {
@@ -535,7 +537,8 @@ export class CassetteProvider extends BaseProvider {
       const hit = this.matchInteraction("generateMessage", hash);
       if (hit) {
         if (hit.error) throw reconstructScriptedError(hit.error);
-        if (hit.usage && !this.omitCost) this.trackUsage(request.model, hit.usage);
+        if (hit.usage && !this.omitCost)
+          this.trackUsage(request.model, hit.usage);
         return cloneMessage(hit.response as Message);
       }
       if (this.mode === "replay") {
@@ -552,13 +555,16 @@ export class CassetteProvider extends BaseProvider {
     const result = await runInSlot(() => this.inner.generateMessage(args));
     const usage = this.omitCost ? undefined : usageFromSlot(getUsage());
     if (usage) this.trackUsage(request.model, usage);
-    this.cassette.interactions.push({
+    const interaction: CassetteInteraction = {
       hash,
       method: "generateMessage",
       request,
-      response: cloneMessage(result),
-      ...(usage ? { usage } : {})
-    });
+      response: cloneMessage(result)
+    };
+    if (usage) {
+      interaction.usage = usage;
+    }
+    this.cassette.interactions.push(interaction);
     return result;
   }
 
@@ -587,7 +593,8 @@ export class CassetteProvider extends BaseProvider {
         // Reproduce recorded usage AFTER the stream so a consumer that reads
         // cost post-iteration (the common case) sees the same total a live run
         // produced. trackUsage also feeds the tracing/cost slot.
-        if (hit.usage && !this.omitCost) this.trackUsage(request.model, hit.usage);
+        if (hit.usage && !this.omitCost)
+          this.trackUsage(request.model, hit.usage);
         return;
       }
       if (this.mode === "replay") {
@@ -619,13 +626,16 @@ export class CassetteProvider extends BaseProvider {
     }
     const usage = this.omitCost ? undefined : usageFromSlot(getUsage());
     if (usage) this.trackUsage(request.model, usage);
-    this.cassette.interactions.push({
+    const interaction: CassetteInteraction = {
       hash,
       method: "generateMessages",
       request,
-      response: captured,
-      ...(usage ? { usage } : {})
-    });
+      response: captured
+    };
+    if (usage) {
+      interaction.usage = usage;
+    }
+    this.cassette.interactions.push(interaction);
   }
 }
 

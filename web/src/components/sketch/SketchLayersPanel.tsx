@@ -7,7 +7,14 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useState, useRef, useMemo } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  useMemo
+} from "react";
 import AddIcon from "@mui/icons-material/Add";
 import {
   sketchSliderSx,
@@ -20,6 +27,7 @@ import {
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import type { SystemStyleObject } from "@mui/system";
 
 import {
   FlexColumn,
@@ -168,6 +176,12 @@ const OPS_ICON_SX = {
   transition: `${MOTION.background}, color ${MOTION.fast}`,
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
   "&.Mui-disabled": { color: "grey.700" }
+};
+/** The shared op-icon styling, tinted when the op it drives is on. */
+const opsIconSx = (activeColor: string | null): SystemStyleObject<Theme> => {
+  const sx: SystemStyleObject<Theme> = { ...OPS_ICON_SX };
+  if (activeColor) sx.color = activeColor;
+  return sx;
 };
 
 /**
@@ -417,10 +431,7 @@ export interface SketchLayersPanelProps {
   onGroupSelectedLayers: () => void;
   onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
-  onLoadLayerAsSelection?: (
-    layerId: string,
-    mode?: "replace" | "add"
-  ) => void;
+  onLoadLayerAsSelection?: (layerId: string, mode?: "replace" | "add") => void;
 }
 
 const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
@@ -472,10 +483,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => new Map(layers.map((layer) => [layer.id, layer])),
     [layers]
   );
-  const layerRows = useMemo(
-    () => buildLayersPanelRows(layers),
-    [layers]
-  );
+  const layerRows = useMemo(() => buildLayersPanelRows(layers), [layers]);
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -527,7 +535,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         .pop();
       const sourceLayerId =
         kind === "image-to-image"
-          ? layers.find((l) => l.id !== layerId)?.id ?? null
+          ? (layers.find((l) => l.id !== layerId)?.id ?? null)
           : null;
       // Fall back to the cross-session remembered image model so the first
       // generated layer in a fresh document still preselects a model.
@@ -901,53 +909,55 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     ? selectedLayersPresentCount > 0
     : layers.length > 1;
 
-  const cycleBlendMode = useCallback((direction: -1 | 1) => {
-    if (!activeLayer) {
-      return;
-    }
-    const current = coerceBlendMode(activeLayer.blendMode);
-    const currentIndex = QUICK_CYCLE_BLEND_MODES.indexOf(current);
-    const next = cycleArrayValue(
-      QUICK_CYCLE_BLEND_MODES,
-      currentIndex,
-      direction
-    );
-    if (next && next !== current) {
-      onLayerBlendModeChange(activeLayer.id, next);
-    }
-  }, [activeLayer, onLayerBlendModeChange]);
+  const cycleBlendMode = useCallback(
+    (direction: -1 | 1) => {
+      if (!activeLayer) {
+        return;
+      }
+      const current = coerceBlendMode(activeLayer.blendMode);
+      const currentIndex = QUICK_CYCLE_BLEND_MODES.indexOf(current);
+      const next = cycleArrayValue(
+        QUICK_CYCLE_BLEND_MODES,
+        currentIndex,
+        direction
+      );
+      if (next && next !== current) {
+        onLayerBlendModeChange(activeLayer.id, next);
+      }
+    },
+    [activeLayer, onLayerBlendModeChange]
+  );
 
-  const handleBlendModeQuickCycleKeyDownCapture = useCallback((
-    e: React.KeyboardEvent
-  ) => {
-    if (e.altKey || e.ctrlKey || e.metaKey) {
-      return;
-    }
-    const direction = quickCycleDirectionForArrowKey(e.key);
-    if (direction === null) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    cycleBlendMode(direction);
-  }, [cycleBlendMode]);
+  const handleBlendModeQuickCycleKeyDownCapture = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) {
+        return;
+      }
+      const direction = quickCycleDirectionForArrowKey(e.key);
+      if (direction === null) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      cycleBlendMode(direction);
+    },
+    [cycleBlendMode]
+  );
 
-  const handleBlendModeQuickCycleWheelCapture = useCallback((
-    e: React.WheelEvent
-  ) => {
-    if (e.deltaY === 0) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    cycleBlendMode(e.deltaY > 0 ? 1 : -1);
-  }, [cycleBlendMode]);
+  const handleBlendModeQuickCycleWheelCapture = useCallback(
+    (e: React.WheelEvent) => {
+      if (e.deltaY === 0) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      cycleBlendMode(e.deltaY > 0 ? 1 : -1);
+    },
+    [cycleBlendMode]
+  );
 
   return (
-    <Box
-      className="sketch-layers-panel sketch-panel-right"
-      css={panelStyles}
-    >
+    <Box className="sketch-layers-panel sketch-panel-right" css={panelStyles}>
       {/* ── Color Selector ── */}
       {showColorPicker && (
         <Box className="sketch-layers-panel__color-picker">
@@ -969,7 +979,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             rowGap: 0.5
           }}
         >
-          <Tooltip title="Add Transparent Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip
+            title="Add Transparent Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
             <IconButton
               aria-label="Add Transparent Layer"
               size="small"
@@ -985,11 +999,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[400] }}
+                sx={{
+                  fontSize: "var(--fontSizeNormal)",
+                  color: theme.vars.palette.grey[400]
+                }}
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add Black Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip
+            title="Add Black Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
             <IconButton
               aria-label="Add Black Layer"
               size="small"
@@ -1008,11 +1029,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[500] }}
+                sx={{
+                  fontSize: "var(--fontSizeNormal)",
+                  color: theme.vars.palette.grey[500]
+                }}
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add White Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip
+            title="Add White Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
             <IconButton
               aria-label="Add White Layer"
               size="small"
@@ -1031,11 +1059,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[600] }}
+                sx={{
+                  fontSize: "var(--fontSizeNormal)",
+                  color: theme.vars.palette.grey[600]
+                }}
               />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add Gray Layer" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip
+            title="Add Gray Layer"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
             <IconButton
               aria-label="Add Gray Layer"
               size="small"
@@ -1054,7 +1089,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[300] }}
+                sx={{
+                  fontSize: "var(--fontSizeNormal)",
+                  color: theme.vars.palette.grey[300]
+                }}
               />
             </IconButton>
           </Tooltip>
@@ -1095,7 +1133,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <AutoFixHighIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="New empty layer group (folder)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip
+            title="New empty layer group (folder)"
+            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+          >
             <IconButton
               aria-label="New empty layer group (folder)"
               size="small"
@@ -1117,7 +1159,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               data-testid="layers-panel-generate-layer"
               sx={ADD_ACTION_ICON_SX}
             >
-              <AddPhotoAlternateIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              <AddPhotoAlternateIcon
+                sx={{ fontSize: "var(--fontSizeNormal)" }}
+              />
             </IconButton>
           </Tooltip>
         </FlexRow>
@@ -1216,10 +1260,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 maskLayerId === activeLayerId ? null : activeLayerId
               )
             }
-            sx={{
-              ...OPS_ICON_SX,
-              ...(maskLayerId === activeLayerId ? { color: "warning.main" } : {})
-            }}
+            sx={opsIconSx(
+              maskLayerId === activeLayerId ? "warning.main" : null
+            )}
           >
             <MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />
           </IconButton>
@@ -1234,14 +1277,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           <IconButton
             aria-label={
-              activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
+              activeLayer?.alphaLock
+                ? "Unlock Transparency"
+                : "Lock Transparency"
             }
             size="small"
             onClick={() => onToggleAlphaLock(activeLayerId)}
-            sx={{
-              ...OPS_ICON_SX,
-              ...(activeLayer?.alphaLock ? { color: "info.main" } : {})
-            }}
+            sx={opsIconSx(activeLayer?.alphaLock ? "info.main" : null)}
           >
             <LockIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
           </IconButton>
@@ -1313,7 +1355,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {activeLayer && (
         <>
           <Box className="opacity-row sketch-layers-panel__opacity-row">
-            <Text sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}>
+            <Text
+              sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}
+            >
               Opacity
             </Text>
             <Slider
@@ -1328,7 +1372,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
             />
             <Text
-              sx={{ fontSize: SKETCH_FONT.md, minWidth: "30px", textAlign: "right" }}
+              sx={{
+                fontSize: SKETCH_FONT.md,
+                minWidth: "30px",
+                textAlign: "right"
+              }}
             >
               {Math.round(activeLayer.opacity * 100)}%
             </Text>
@@ -1368,7 +1416,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           {activeLayer.imageReference ? (
             <Box
               className="sketch-layers-panel__active-layer-ref"
-              sx={{ px: getSpacingPx(SPACING.sm), pt: getSpacingPx(SPACING.xs) }}
+              sx={{
+                px: getSpacingPx(SPACING.sm),
+                pt: getSpacingPx(SPACING.xs)
+              }}
             >
               <Text
                 sx={{
@@ -1501,7 +1552,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
 
-        const menuItemSx = { fontSize: "var(--fontSizeSmall)", py: getSpacingPx(SPACING.xs), minHeight: 0 };
+        const menuItemSx = {
+          fontSize: "var(--fontSizeSmall)",
+          py: getSpacingPx(SPACING.xs),
+          minHeight: 0
+        };
 
         return (
           <Menu
@@ -1620,7 +1675,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               <MenuItem
                 sx={menuItemSx}
                 onClick={handleCtxMergeSelected}
-                disabled={getMergeSelectedLayersPlan(layers, targetIds) === null}
+                disabled={
+                  getMergeSelectedLayersPlan(layers, targetIds) === null
+                }
               >
                 Merge Selected
               </MenuItem>

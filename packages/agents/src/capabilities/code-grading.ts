@@ -114,15 +114,16 @@ export async function gradeCodeCases(
       );
     }
 
-    results.push({
+    const entry: TestCaseReport = {
       name: testCase.name,
       ok: outcome.ok && mismatches.length === 0,
-      ...(outcome.outputs !== undefined ? { outputs: outcome.outputs } : {}),
-      ...(outcome.streamed !== undefined ? { streamed: outcome.streamed } : {}),
       logs: outcome.logs,
-      ...(outcome.error !== undefined ? { error: outcome.error } : {}),
       mismatches
-    });
+    };
+    if (outcome.outputs !== undefined) entry.outputs = outcome.outputs;
+    if (outcome.streamed !== undefined) entry.streamed = outcome.streamed;
+    if (outcome.error !== undefined) entry.error = outcome.error;
+    results.push(entry);
   }
 
   const passed = results.filter((entry) => entry.ok).length;

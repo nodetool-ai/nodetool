@@ -24,7 +24,6 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-
 /** A `js_scripts` row as the harness needs it. */
 export interface JsScriptRecord {
   id: string;
@@ -97,15 +96,20 @@ export async function resolveJsScriptTarget(
       isRecord(parsed) && typeof parsed.name === "string"
         ? parsed.name
         : undefined;
-    return { target: { kind: "file", ref, ...(name ? { name } : {}) }, raw };
+    const target: JsScriptDebugTarget = { kind: "file", ref };
+    if (name) {
+      target.name = name;
+    }
+    return { target, raw };
   }
 
   const record = await deps.loadScript(ref);
   if (!record) {
     throw new Error(`JS script not found: ${ref}`);
   }
-  return {
-    target: { kind: "id", ref, ...(record.name ? { name: record.name } : {}) },
-    raw: documentOf(record)
-  };
+  const target: JsScriptDebugTarget = { kind: "id", ref };
+  if (record.name) {
+    target.name = record.name;
+  }
+  return { target, raw: documentOf(record) };
 }

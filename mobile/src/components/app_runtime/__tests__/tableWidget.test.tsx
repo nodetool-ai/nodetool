@@ -8,13 +8,13 @@ import { render, screen } from "@testing-library/react-native";
 
 import {
   parseApplicationDocument,
-  type ApplicationDocument,
+  type ApplicationDocument
 } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../../types/workflow";
 
 jest.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn() })
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -22,24 +22,36 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     getState: () => ({
       job_id: null,
       run: jest.fn().mockResolvedValue(undefined),
-      cancel: jest.fn().mockResolvedValue(undefined),
+      cancel: jest.fn().mockResolvedValue(undefined)
     }),
-    subscribe: () => () => {},
-  }),
+    subscribe: () => () => {}
+  })
 }));
 
 jest.mock("../../../services/WebSocketService", () => ({
-  webSocketService: { subscribe: () => () => {} },
+  webSocketService: { subscribe: () => () => {} }
 }));
 
 jest.mock("../../../services/api", () => ({
   apiService: {
     resolveUrl: (uri: string) => uri,
-    getApiHost: () => "http://localhost:7777",
-  },
+    getApiHost: () => "http://localhost:7777"
+  }
 }));
 
 import ApplicationAppView from "../ApplicationAppView";
+
+const tableProps = (placeholder?: string) => {
+  type PropsFields = { id: string; binding: string; placeholder?: string };
+  const props: PropsFields = {
+    id: "table-1",
+    binding: "var:rows"
+  };
+  if (placeholder) {
+    props.placeholder = placeholder;
+  }
+  return props;
+};
 
 const appDoc = (rows: unknown, placeholder?: string) => ({
   schemaVersion: 3,
@@ -48,14 +60,10 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
     content: [
       {
         type: "Table",
-        props: {
-          id: "table-1",
-          binding: "var:rows",
-          ...(placeholder ? { placeholder } : {}),
-        },
-      },
+        props: tableProps(placeholder)
+      }
     ],
-    zones: {},
+    zones: {}
   },
   operations: [
     {
@@ -64,8 +72,8 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
       workflowId: "wf-table",
       inputs: {},
       outputs: {},
-      policy: "replace",
-    },
+      policy: "replace"
+    }
   ],
   resources: [],
   variables: [
@@ -74,9 +82,9 @@ const appDoc = (rows: unknown, placeholder?: string) => ({
       name: "rows",
       scope: "instance",
       persist: false,
-      default: rows,
-    },
-  ],
+      default: rows
+    }
+  ]
 });
 
 const makeWorkflow = (id: string): Workflow =>
@@ -84,7 +92,7 @@ const makeWorkflow = (id: string): Workflow =>
     id,
     name: "Report",
     description: "",
-    graph: { nodes: [], edges: [] },
+    graph: { nodes: [], edges: [] }
   }) as unknown as Workflow;
 
 const renderApp = (id: string, doc: unknown) =>
@@ -101,7 +109,7 @@ describe("Table widget", () => {
       "wf-table-objects",
       appDoc([
         { city: "Berlin", score: 7 },
-        { city: "Lisbon", extra: true },
+        { city: "Lisbon", extra: true }
       ])
     );
 

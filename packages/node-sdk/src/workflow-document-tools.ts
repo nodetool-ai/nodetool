@@ -230,17 +230,27 @@ function projectGraph(
     workflow_id: workflowId,
     nodes: graph.nodes.map((node) => {
       const ui = nodeUi(node);
+      type DataFields = {
+        properties: ReturnType<typeof nodeData>;
+        dynamic_properties: unknown;
+        dynamic_inputs: unknown;
+        dynamic_outputs: unknown;
+        title?: string;
+      };
+      const data: DataFields = {
+        properties: nodeData(node),
+        dynamic_properties: node.dynamic_properties ?? {},
+        dynamic_inputs: node.dynamic_inputs ?? {},
+        dynamic_outputs: node.dynamic_outputs ?? {}
+      };
+      if (typeof ui.title === "string") {
+        data.title = ui.title;
+      }
       return {
         id: node.id,
         type: node.type,
         position: normalizePosition(ui.position, 0),
-        data: {
-          properties: nodeData(node),
-          dynamic_properties: node.dynamic_properties ?? {},
-          dynamic_inputs: node.dynamic_inputs ?? {},
-          dynamic_outputs: node.dynamic_outputs ?? {},
-          ...(typeof ui.title === "string" ? { title: ui.title } : {})
-        }
+        data
       };
     }),
     edges: graph.edges.map((edge) => ({ ...edge }))
@@ -317,15 +327,15 @@ export function applyWorkflowDocumentTool(
     };
     applyInferredCodeHandles(added);
     graph.nodes.push(added);
-    return {
-      graph,
-      result: {
-        ok: true,
-        node_id: id,
-        ...(warnings.length ? { warnings } : {})
-      },
-      changed: true
+    type ResultFields = { ok: true; node_id: string; warnings?: string[] };
+    const result: ResultFields = {
+      ok: true,
+      node_id: id
     };
+    if (warnings.length) {
+      result.warnings = warnings;
+    }
+    return { graph, result, changed: true };
   }
 
   if (name === "ui_connect_nodes") {

@@ -39,10 +39,7 @@ import {
   renderLayersMerged
 } from "../../lib/sketch/renderLayerToAsset";
 import { getRememberedModel } from "../../stores/lastModelStore";
-import type {
-  Layer,
-  SketchDocument
-} from "../../components/sketch/types";
+import type { Layer, SketchDocument } from "../../components/sketch/types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import { CoordinateMapper } from "../../components/sketch/painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../../components/sketch/transform/geometry/layerGeometry";
@@ -51,6 +48,7 @@ import {
   getSketchAgentHandler,
   hasSketchAgentHandler,
   setSketchAgentHandler,
+  type SketchAdjustLayerResult,
   type SketchAgentHandler,
   type SketchLayerNode,
   type SketchRenderedAssetResult,
@@ -259,7 +257,10 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
         const state = editor.getState();
         if (patch.name !== undefined) state.renameLayer(layer.id, patch.name);
         if (patch.opacity !== undefined) {
-          state.setLayerOpacity(layer.id, Math.max(0, Math.min(1, patch.opacity)));
+          state.setLayerOpacity(
+            layer.id,
+            Math.max(0, Math.min(1, patch.opacity))
+          );
         }
         if (patch.blendMode !== undefined) {
           state.setLayerBlendMode(layer.id, coerceBlendMode(patch.blendMode));
@@ -267,7 +268,10 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
         if (patch.visible !== undefined && patch.visible !== layer.visible) {
           state.toggleLayerVisibility(layer.id);
         }
-        if (patch.alphaLock !== undefined && patch.alphaLock !== layer.alphaLock) {
+        if (
+          patch.alphaLock !== undefined &&
+          patch.alphaLock !== layer.alphaLock
+        ) {
           state.toggleAlphaLock(layer.id);
         }
         editor.getState().pushHistory("edit layer");
@@ -669,18 +673,17 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
 
       adjustLayer(opts) {
         const layer = requireRasterLayer(opts.target ?? "active");
-        const adjustments = {
-          ...(opts.brightness !== undefined
-            ? { brightness: opts.brightness }
-            : {}),
-          ...(opts.contrast !== undefined ? { contrast: opts.contrast } : {}),
-          ...(opts.exposure !== undefined ? { exposure: opts.exposure } : {}),
-          ...(opts.saturation !== undefined
-            ? { saturation: opts.saturation }
-            : {}),
-          ...(opts.hue !== undefined ? { hue: opts.hue } : {}),
-          ...(opts.blur !== undefined ? { blur: opts.blur } : {})
-        };
+        const adjustments: SketchAdjustLayerResult["adjustments"] = {};
+        if (opts.brightness !== undefined) {
+          adjustments.brightness = opts.brightness;
+        }
+        if (opts.contrast !== undefined) adjustments.contrast = opts.contrast;
+        if (opts.exposure !== undefined) adjustments.exposure = opts.exposure;
+        if (opts.saturation !== undefined) {
+          adjustments.saturation = opts.saturation;
+        }
+        if (opts.hue !== undefined) adjustments.hue = opts.hue;
+        if (opts.blur !== undefined) adjustments.blur = opts.blur;
         if (Object.keys(adjustments).length === 0) {
           throw new Error(
             "Provide at least one adjustment (brightness, contrast, exposure, saturation, hue, blur)."

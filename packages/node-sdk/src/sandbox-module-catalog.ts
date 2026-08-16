@@ -11,6 +11,7 @@ import {
   type SandboxModuleGraphFile,
   type SandboxModuleStatus,
   type SandboxModuleSummary,
+  type SandboxPackSkill,
   type SandboxPackSkillDisclosure,
   type SandboxWasmContract
 } from "@nodetool-ai/protocol";
@@ -39,10 +40,13 @@ export function createSandboxModuleCatalog(
   // Trust is the operator's pack-loader allowlist, resolved once per catalog so
   // one build cannot disagree with itself about a pack.
   const isTrusted = options.isTrusted ?? trustFromConfig();
-  const discoveredBySpecifier = new Map<string, {
-    readonly discovery: SandboxPackDiscovery;
-    readonly module: SandboxDiscoveredModule;
-  }>();
+  const discoveredBySpecifier = new Map<
+    string,
+    {
+      readonly discovery: SandboxPackDiscovery;
+      readonly module: SandboxDiscoveredModule;
+    }
+  >();
   const unavailableSpecifiers = new Set<string>();
   const statuses: SandboxModuleStatus[] = [...hostStatuses];
   const packNames = new Set<string>();
@@ -59,7 +63,9 @@ export function createSandboxModuleCatalog(
         continue;
       }
       if (discoveredBySpecifier.has(module.specifier)) {
-        throw new Error(`duplicate sandbox module specifier: ${module.specifier}`);
+        throw new Error(
+          `duplicate sandbox module specifier: ${module.specifier}`
+        );
       }
       discoveredBySpecifier.set(module.specifier, { discovery, module });
     }
@@ -74,29 +80,42 @@ export function createSandboxModuleCatalog(
     .map(({ discovery, module }): SandboxModuleSummary => {
       // The one-line tier: the skill's own description, flattened and capped.
       // The body never travels with a summary — that is the tool's job.
-      const description = discovery.skill === undefined
-        ? ""
-        : sanitizeSandboxDescription(discovery.skill.description);
-      return {
+      const description =
+        discovery.skill === undefined
+          ? ""
+          : sanitizeSandboxDescription(discovery.skill.description);
+      const summary: SandboxModuleSummary = {
         specifier: module.specifier,
         packName: discovery.name,
-        ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
         kind: module.kind,
-        ...(description === "" ? {} : { description }),
         contentDigest: module.digest
       };
+      if (discovery.version !== undefined) {
+        summary.packVersion = discovery.version;
+      }
+      if (description !== "") {
+        summary.description = description;
+      }
+      return summary;
     })
     .sort((left, right) => left.specifier.localeCompare(right.specifier));
 
   const skillsByPack = new Map<string, SandboxPackSkillDisclosure>();
   for (const discovery of discoveries) {
     if (discovery.skill === undefined) continue;
-    skillsByPack.set(discovery.name, {
+    const disclosure: SandboxPackSkill & {
+      packName: string;
+      packVersion?: string;
+      trusted: boolean;
+    } = {
       ...discovery.skill,
       packName: discovery.name,
-      ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
       trusted: isTrusted(discovery.name)
-    });
+    };
+    if (discovery.version !== undefined) {
+      disclosure.packVersion = discovery.version;
+    }
+    skillsByPack.set(discovery.name, disclosure);
   }
 
   return {
@@ -104,9 +123,15 @@ export function createSandboxModuleCatalog(
     diagnostics: () => statuses,
     packSkill: (packName) => skillsByPack.get(packName),
     // Asynchronous by contract; the v1 entitlement decision is synchronous.
-    authorizeDelivery: (moduleId) => Promise.resolve(
-      authorizeDelivery(moduleId, discoveredBySpecifier, unavailableSpecifiers, packs)
-    ),
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(
+        authorizeDelivery(
+          moduleId,
+          discoveredBySpecifier,
+          unavailableSpecifiers,
+          packs
+        )
+      ),
     resolveForExecution: (declarations) => {
       const modules: ResolvedSandboxModule[] = [];
       const resolutionStatuses: SandboxModuleStatus[] = [];
@@ -215,10 +240,13 @@ function packDelivery(discovery: SandboxPackDiscovery): PackDelivery {
  */
 function authorizeDelivery(
   moduleId: string,
-  discoveredBySpecifier: ReadonlyMap<string, {
-    readonly discovery: SandboxPackDiscovery;
-    readonly module: SandboxDiscoveredModule;
-  }>,
+  discoveredBySpecifier: ReadonlyMap<
+    string,
+    {
+      readonly discovery: SandboxPackDiscovery;
+      readonly module: SandboxDiscoveredModule;
+    }
+  >,
   unavailableSpecifiers: ReadonlySet<string>,
   packs: ReadonlyMap<string, PackDelivery>
 ): SandboxModuleDeliveryResult {
@@ -241,13 +269,12 @@ function authorizeDelivery(
           `Sandbox module ${moduleId} has no host facade.`
         );
       }
-      return {
+      const hostDelivery: SandboxModuleDeliveryResult = {
         authorized: true,
         moduleId,
         fileId: module.id,
         internal: false,
         packName: discovery.name,
-        ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
         contentDigest: module.digest,
         contentSha256: sha256(Buffer.from(module.source, "utf8")),
         dependencies: [],
@@ -256,20 +283,31 @@ function authorizeDelivery(
         hostId: module.hostId,
         source: module.source
       };
+      if (discovery.version !== undefined) {
+        hostDelivery.packVersion = discovery.version;
+      }
+      return hostDelivery;
     }
-    return deliveryFor(discovery, {
+    const content: DeliveryContent = {
       moduleId,
       fileId: module.id,
       // A public entry is the pack's advertised surface, never an internal file.
       internal: false,
       digest: module.digest,
       kind: module.kind,
-      ...(module.source === undefined ? {} : { source: module.source }),
-      ...(module.bytes === undefined ? {} : { bytes: module.bytes }),
-      // Only a public entry carries the call contract the facade is built from.
-      ...(module.wasm === undefined ? {} : { wasm: module.wasm }),
       dependencies: module.dependencies
-    });
+    };
+    if (module.source !== undefined) {
+      content.source = module.source;
+    }
+    if (module.bytes !== undefined) {
+      content.bytes = module.bytes;
+    }
+    // Only a public entry carries the call contract the facade is built from.
+    if (module.wasm !== undefined) {
+      content.wasm = module.wasm;
+    }
+    return deliveryFor(discovery, content);
   }
   if (unavailableSpecifiers.has(moduleId)) {
     return sandboxDeliveryRefusal(
@@ -280,53 +318,82 @@ function authorizeDelivery(
 
   const parsed = parseSandboxGraphFileModuleId(moduleId);
   const pack = parsed === undefined ? undefined : packs.get(parsed.packName);
-  const file = parsed === undefined || pack === undefined
-    ? undefined
-    : pack.filesById.get(parsed.fileId);
-  const digest = parsed === undefined || pack === undefined
-    ? undefined
-    : pack.digestByFileId.get(parsed.fileId);
-  if (parsed === undefined || pack === undefined || file === undefined || digest === undefined) {
-    return sandboxDeliveryRefusal("not-found", `Sandbox module ${moduleId} is not installed.`);
+  const file =
+    parsed === undefined || pack === undefined
+      ? undefined
+      : pack.filesById.get(parsed.fileId);
+  const digest =
+    parsed === undefined || pack === undefined
+      ? undefined
+      : pack.digestByFileId.get(parsed.fileId);
+  if (
+    parsed === undefined ||
+    pack === undefined ||
+    file === undefined ||
+    digest === undefined
+  ) {
+    return sandboxDeliveryRefusal(
+      "not-found",
+      `Sandbox module ${moduleId} is not installed.`
+    );
   }
-  return deliveryFor(pack.discovery, {
+  const content: DeliveryContent = {
     moduleId,
     fileId: parsed.fileId,
     internal: file.internal,
     digest,
     kind: file.kind,
-    ...(file.source === undefined ? {} : { source: file.source }),
-    ...(file.bytes === undefined ? {} : { bytes: file.bytes }),
     dependencies: file.dependencies
-  });
+  };
+  if (file.source !== undefined) {
+    content.source = file.source;
+  }
+  if (file.bytes !== undefined) {
+    content.bytes = file.bytes;
+  }
+  return deliveryFor(pack.discovery, content);
+}
+
+interface DeliveryContent {
+  readonly moduleId: string;
+  readonly fileId: string;
+  readonly internal: boolean;
+  readonly digest: string;
+  readonly kind: "js" | "wasm";
+  source?: string;
+  bytes?: Uint8Array;
+  wasm?: SandboxWasmContract;
+  readonly dependencies: readonly string[];
 }
 
 function deliveryFor(
   discovery: SandboxPackDiscovery,
-  content: {
-    readonly moduleId: string;
-    readonly fileId: string;
-    readonly internal: boolean;
-    readonly digest: string;
-    readonly kind: "js" | "wasm";
-    readonly source?: string;
-    readonly bytes?: Uint8Array;
-    readonly wasm?: SandboxWasmContract;
-    readonly dependencies: readonly string[];
-  }
+  content: DeliveryContent
 ): SandboxModuleDeliveryResult {
-  const common = {
+  type CommonFields = {
+    authorized: true;
+    moduleId: string;
+    fileId: string;
+    internal: boolean;
+    packName: string;
+    packVersion?: string;
+    contentDigest: string;
+    dependencies: string[];
+  };
+  const common: CommonFields = {
     authorized: true as const,
     moduleId: content.moduleId,
     fileId: content.fileId,
     internal: content.internal,
     packName: discovery.name,
-    ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
     contentDigest: content.digest,
     dependencies: content.dependencies.map((dependency) =>
       sandboxGraphFileModuleId(discovery.name, dependency)
     )
   };
+  if (discovery.version !== undefined) {
+    common.packVersion = discovery.version;
+  }
   if (content.kind === "js") {
     if (content.source === undefined) {
       return sandboxDeliveryRefusal(
@@ -348,14 +415,17 @@ function deliveryFor(
       `Sandbox module ${content.moduleId} has no WASM bytes.`
     );
   }
-  return {
+  const wasmDelivery: SandboxModuleDeliveryResult = {
     ...common,
     kind: "wasm",
     mediaType: SandboxDeliveryMediaType.WASM,
     contentSha256: sha256(content.bytes),
-    bytes: new Uint8Array(content.bytes),
-    ...(content.wasm === undefined ? {} : { wasm: content.wasm })
+    bytes: new Uint8Array(content.bytes)
   };
+  if (content.wasm !== undefined) {
+    wasmDelivery.wasm = content.wasm;
+  }
+  return wasmDelivery;
 }
 
 /** Hash of exactly the bytes a client receives, so the client can check them. */
@@ -367,24 +437,39 @@ function toResolvedModule(
   discovery: SandboxPackDiscovery,
   module: SandboxDiscoveredModule
 ): ResolvedSandboxModule {
-  const graph = module.kind === "host" ? [] : moduleGraph(discovery.graph, module.id);
-  const common = {
+  const graph =
+    module.kind === "host" ? [] : moduleGraph(discovery.graph, module.id);
+  type CommonFields2 = {
+    specifier: string;
+    packName: string;
+    packVersion?: string;
+    contentDigest: string;
+    moduleId: string;
+    graph: typeof graph;
+  };
+  const common: CommonFields2 = {
     specifier: module.specifier,
     packName: discovery.name,
-    ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
     contentDigest: module.digest,
     moduleId: module.id,
     graph
   };
+  if (discovery.version !== undefined) {
+    common.packVersion = discovery.version;
+  }
   if (module.kind === "host") {
     if (module.hostId === undefined) {
-      throw new Error(`sandbox module ${module.specifier} has no host module id`);
+      throw new Error(
+        `sandbox module ${module.specifier} has no host module id`
+      );
     }
     return { ...common, kind: "host", hostId: module.hostId };
   }
   if (module.kind === "js") {
     if (module.source === undefined) {
-      throw new Error(`sandbox module ${module.specifier} has no JavaScript source`);
+      throw new Error(
+        `sandbox module ${module.specifier} has no JavaScript source`
+      );
     }
     return { ...common, kind: "js", source: module.source };
   }
@@ -392,9 +477,16 @@ function toResolvedModule(
     throw new Error(`sandbox module ${module.specifier} has no WASM bytes`);
   }
   if (module.wasm === undefined) {
-    throw new Error(`sandbox module ${module.specifier} has no WASM call contract`);
+    throw new Error(
+      `sandbox module ${module.specifier} has no WASM call contract`
+    );
   }
-  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes), wasm: module.wasm };
+  return {
+    ...common,
+    kind: "wasm",
+    bytes: new Uint8Array(module.bytes),
+    wasm: module.wasm
+  };
 }
 
 function moduleGraph(
@@ -414,13 +506,15 @@ function moduleGraph(
     reachable.add(id);
     pending.push(...file.dependencies);
   }
-  return [...reachable].map((id) => {
-    const file = filesById.get(id);
-    if (file === undefined) {
-      throw new Error(`sandbox graph is missing ${id}`);
-    }
-    return toGraphFile(file);
-  }).sort((left, right) => left.id.localeCompare(right.id));
+  return [...reachable]
+    .map((id) => {
+      const file = filesById.get(id);
+      if (file === undefined) {
+        throw new Error(`sandbox graph is missing ${id}`);
+      }
+      return toGraphFile(file);
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
 function toGraphFile(file: SandboxDiscoveredFile): SandboxModuleGraphFile {

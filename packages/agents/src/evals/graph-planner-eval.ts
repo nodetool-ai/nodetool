@@ -28,7 +28,7 @@ import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { isJsCodeNodeType, PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
-import { authorGraph } from "../author-graph.js";
+import { authorGraph, type AuthorGraphOptions } from "../author-graph.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import { AGENT_NODE_TYPE } from "../graph-builder.js";
 import { GRAPH_PLANNER_EVAL_CASES } from "./graph-planner-cases.js";
@@ -231,7 +231,10 @@ function reaches(graph: GraphData, from: RegExp, to: RegExp): boolean {
   const typeById = new Map(graph.nodes.map((n) => [n.id, n.type]));
   const outgoing = new Map<string, string[]>();
   for (const edge of graph.edges) {
-    outgoing.set(edge.source, [...(outgoing.get(edge.source) ?? []), edge.target]);
+    outgoing.set(edge.source, [
+      ...(outgoing.get(edge.source) ?? []),
+      edge.target
+    ]);
   }
   const queue = graph.nodes.filter((n) => from.test(n.type)).map((n) => n.id);
   const seen = new Set(queue);
@@ -451,7 +454,9 @@ export function checkExpectations(
     checks.push({
       name: `codeFeeds:${pattern}`,
       pass: found,
-      detail: found ? undefined : `no Code node feeds a node matching /${pattern}/`
+      detail: found
+        ? undefined
+        : `no Code node feeds a node matching /${pattern}/`
     });
   }
 
@@ -520,17 +525,20 @@ async function runCase(
   let graph: GraphData | null = null;
   let error: string | undefined;
   try {
-    const gen = authorGraph(evalCase.objective, {
+    const authorOptions: AuthorGraphOptions = {
       context,
       provider: opts.provider,
       model: opts.model,
-      registry: opts.registry,
-      ...(opts.providers ? { providers: opts.providers } : {}),
-      ...(evalCase.inputs ? { inputs: evalCase.inputs } : {}),
-      ...(evalCase.outputSchema ? { outputSchema: evalCase.outputSchema } : {}),
-      ...(opts.maxIterations ? { maxIterations: opts.maxIterations } : {}),
-      ...(opts.signal ? { signal: opts.signal } : {})
-    });
+      registry: opts.registry
+    };
+    if (opts.providers) authorOptions.providers = opts.providers;
+    if (evalCase.inputs) authorOptions.inputs = evalCase.inputs;
+    if (evalCase.outputSchema) {
+      authorOptions.outputSchema = evalCase.outputSchema;
+    }
+    if (opts.maxIterations) authorOptions.maxIterations = opts.maxIterations;
+    if (opts.signal) authorOptions.signal = opts.signal;
+    const gen = authorGraph(evalCase.objective, authorOptions);
     let res = await gen.next();
     while (!res.done) {
       const m = res.value as { type?: string } & Record<string, unknown>;

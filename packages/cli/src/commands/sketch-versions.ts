@@ -35,7 +35,6 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-
 /** An `image_documents` row as these commands need it. */
 export interface ImageDocumentRow {
   id: string;
@@ -172,9 +171,8 @@ async function defaultValidate(
   document: unknown,
   meta: { width?: number; height?: number; backgroundColor?: string }
 ): Promise<SketchValidation> {
-  const { validateSketchDocument } = await import(
-    "@nodetool-ai/execution/sketch-debug"
-  );
+  const { validateSketchDocument } =
+    await import("@nodetool-ai/execution/sketch-debug");
   return validateSketchDocument(document, meta);
 }
 
@@ -282,10 +280,14 @@ export function registerSketchVersionsCommands(
       try {
         const store = await openStore();
         await requireDocument(store, documentId);
-        const rows = await store.listVersions(documentId, {
-          ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-          ...(opts.saveType ? { saveType: opts.saveType } : {})
-        });
+        const query: Parameters<typeof store.listVersions>[1] = {};
+        if (opts.limit !== undefined) {
+          query.limit = opts.limit;
+        }
+        if (opts.saveType) {
+          query.saveType = opts.saveType;
+        }
+        const rows = await store.listVersions(documentId, query);
         const items = rows.map(toVersionListItem);
 
         if (opts.json) {
