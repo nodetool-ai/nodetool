@@ -179,6 +179,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   voice_script_lines: "write",
   assemble_script_timeline: "write",
   edit_script: "write",
+  derive_storyboard_from_script: "write",
   // threads (chat history — read-only)
   list_threads: "read",
   get_thread: "read",
@@ -191,6 +192,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   revise_storyboard_clip: "write",
   assemble_storyboard_timeline: "write",
   edit_storyboard: "write",
+  extract_script_from_storyboard: "write",
   // packs — sandbox package discovery, mounted per CodeAct session.
   get_sandbox_package_docs: "read",
   list_sandbox_packages: "read",

@@ -24,6 +24,7 @@
 
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+import { deriveShotScaffold, joinLineTexts } from "@nodetool-ai/protocol";
 import {
   assembleSubtitleCues,
   formatSubtitles,
@@ -97,6 +98,10 @@ export interface ScriptBridgeInitialState {
 export interface ScriptBridgeFinalState {
   title: string;
   hasTimeline: boolean;
+  /** The storyboard derived from this script, once one exists. */
+  storyboardId: string | null;
+  /** The shots that board holds, each with the line ids it covers. */
+  derivedShots: { id: string; scriptLineIds: string[] }[];
   cast: { id: string; name: string; hasVoice: boolean }[];
   lines: {
     id: string;
@@ -171,6 +176,8 @@ export function createScriptToolBridge(
   const title = initial.title ?? "Untitled Script";
   let hasTimeline = false;
   let timelineId: string | null = null;
+  let storyboardId: string | null = null;
+  let derivedShots: { id: string; scriptLineIds: string[] }[] = [];
 
   let speakerSeq = 0;
   let lineSeq = 0;
@@ -454,6 +461,66 @@ export function createScriptToolBridge(
     ),
 
     tool(
+      "ui_script_derive_storyboard",
+      "Create a storyboard whose shots cover this script's lines and open it: one shot per line in reading order, each carrying the ids of the lines it covers and the text projected from them. The shots start 'planned' with no visuals — direct or render them from the storyboard surface. The script keeps the words.",
+      z.object({
+        name: z
+          .string()
+          .optional()
+          .describe("Name for the created storyboard. Defaults to the script's.")
+      }),
+      async () => {
+        if (storyboardId) {
+          throw new Error(
+            `This script already has storyboard "${storyboardId}".`
+          );
+        }
+        const spoken = lines.filter((l) => l.text.trim().length > 0);
+        if (spoken.length === 0) {
+          throw new Error(
+            "The script has no line with text, so there is nothing to storyboard."
+          );
+        }
+        // The same pure scaffold the headless `derive_storyboard_from_script`
+        // tool builds, so the eval cannot pass on linkage the tool refuses.
+        const scaffolds = deriveShotScaffold({
+          id: "script_1",
+          cast: cast.map((s) => ({ id: s.id, name: s.name, voice: s.voice })),
+          sections: [
+            {
+              id: "section_1",
+              lines: lines.map((l) => ({
+                id: l.id,
+                speakerId: l.speakerId,
+                text: l.text,
+                takes: []
+              }))
+            }
+          ]
+        });
+        const textById = new Map(lines.map((l) => [l.id, l.text]));
+        storyboardId = "board_1";
+        derivedShots = scaffolds.map((scaffold, index) => ({
+          id: `shot_${index + 1}`,
+          scriptLineIds: scaffold.script_line_ids
+        }));
+        return {
+          ok: true,
+          storyboardId,
+          shots: scaffolds.map((scaffold, index) => ({
+            id: `shot_${index + 1}`,
+            index,
+            status: "planned",
+            scriptLineIds: scaffold.script_line_ids,
+            text: joinLineTexts(
+              scaffold.script_line_ids.map((id) => textById.get(id) ?? "")
+            )
+          }))
+        };
+      }
+    ),
+
+    tool(
       "ui_script_send_to_timeline",
       "Assemble the specified script's current takes into a persisted timeline sequence and open it in the timeline editor — one voiceover clip per voiced line, laid end to end with the authored pauses. Lines without a current take are skipped (returned in skippedLineIds). If the script is already linked to a timeline, its voiceover track is rewritten in place (reassembled). Voice at least one line first.",
       z.object({}),
@@ -488,6 +555,8 @@ export function createScriptToolBridge(
     finalState: (): ScriptBridgeFinalState => ({
       title,
       hasTimeline,
+      storyboardId,
+      derivedShots,
       cast: cast.map((s) => ({
         id: s.id,
         name: s.name,
@@ -514,6 +583,7 @@ The script is a sequence of lines, each optionally assigned to a cast member (sp
 - Assign or change a line's speaker with ui_script_set_speaker; edit its text with ui_script_set_line_text.
 - Voice a single line with ui_script_voice_line, or every unvoiced/stale line at once with ui_script_voice_all — a line needs text and an effective voice (from its speaker) before it can be voiced.
 - Export subtitles with ui_script_export_subtitles, or assemble voiced lines into a timeline with ui_script_send_to_timeline.
+- Turn the script into a shot list with ui_script_derive_storyboard — one shot per line, linked back to the lines it covers.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
@@ -619,6 +689,55 @@ export const SCRIPT_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<ScriptBridgeFinal
             detail: "line_1 is not voiced",
             test: (s) =>
               s.lines.find((l) => l.id === "line_1")?.status === "voiced"
+          }
+        ]
+      }
+    },
+    {
+      // What is scored is the link the derived board carries: a shot per line,
+      // each naming the line it covers. A board that lost the references is a
+      // board whose shots no longer say anything about the script.
+      id: "derive-storyboard",
+      description: "Derive a linked storyboard from a written 3-line script",
+      objective:
+        "The script is written. Turn it into a storyboard whose shots cover its lines.",
+      systemPrompt: SCRIPT_SYSTEM_PROMPT,
+      createBridge: () =>
+        createScriptToolBridge({
+          cast: [{ id: "spk_1", name: "Narrator" }],
+          lines: [
+            { id: "line_1", text: "The tide came in before dawn.", speakerId: "spk_1" },
+            { id: "line_2", text: "It took the boats with it.", speakerId: "spk_1" },
+            { id: "line_3", text: "Nobody saw them again.", speakerId: "spk_1" }
+          ]
+        }),
+      needsModelProviders: false,
+      expect: {
+        requiredTools: ["ui_script_derive_storyboard"],
+        forbiddenTools: ["ui_script_send_to_timeline"],
+        noErrorResults: true,
+        minToolCalls: 1,
+        maxToolCalls: 8,
+        finalState: [
+          {
+            name: "storyboardExists",
+            detail: "no storyboard was derived",
+            test: (s) => s.storyboardId !== null
+          },
+          {
+            name: "oneShotPerLine",
+            detail: "the board does not hold a shot per script line",
+            test: (s) => s.derivedShots.length === s.lines.length
+          },
+          {
+            name: "everyLineIsCovered",
+            detail: "a line is covered by no shot",
+            test: (s) => {
+              const covered = new Set(
+                s.derivedShots.flatMap((shot) => shot.scriptLineIds)
+              );
+              return s.lines.every((line) => covered.has(line.id));
+            }
           }
         ]
       }

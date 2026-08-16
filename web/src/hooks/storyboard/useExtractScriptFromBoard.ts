@@ -18,9 +18,9 @@ import type { Entity } from "@nodetool-ai/protocol";
 import { trpcClient } from "../../trpc/client";
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
+import { writeScriptStoryboardId } from "../../lib/scriptStoryboardBackpointer";
 import {
   boardLinkIssues,
   extractScriptFromBoard,
@@ -136,7 +136,19 @@ export const useExtractScriptFromBoard = (): UseExtractScriptResult => {
             extracted.lineIdsByShotId,
             texts
           );
-        useScriptStore.getState().setStoryboardLink(scriptId, boardId);
+        // Last write, once the board carries the forward link: a back-pointer
+        // that fails here leaves a valid unlinked script, never a half-link.
+        try {
+          await writeScriptStoryboardId(scriptId, boardId);
+        } catch (writeError) {
+          throw new Error(
+            `Script ${scriptId} was written and the board links it, but the script's back-pointer failed: ${
+              writeError instanceof Error
+                ? writeError.message
+                : String(writeError)
+            }`
+          );
+        }
 
         if (options.open !== false) {
           useWorkspaceTabsStore.getState().openTab({

@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.36",
   "description": "Compiles a pack's npm dependency into a guest sandbox module: esbuild bundle, scope-aware scan, QuickJS admission probe, content-addressed cache",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

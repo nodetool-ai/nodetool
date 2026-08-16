@@ -127,6 +127,32 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
   required: ["script_id", "ops"]
 };
 
+export const DERIVE_STORYBOARD_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    script_id: { type: "string", description: "Script id." },
+    provider: {
+      type: "string",
+      description:
+        "Language-model provider id (from find_model) for the director pass " +
+        "that writes each shot's visuals. Omit provider and model together to " +
+        "get the deterministic scaffold only."
+    },
+    model: {
+      type: "string",
+      description:
+        "Language model id (from find_model) for the director pass. Omit " +
+        "provider and model together to get the deterministic scaffold only."
+    },
+    name: {
+      type: "string",
+      description:
+        "Name for the created storyboard. Defaults to the script's name."
+    }
+  },
+  required: ["script_id"]
+};
+
 export const listScriptsSpec: CapabilitySpec = {
   name: "list_scripts",
   description:
@@ -205,11 +231,29 @@ export const editScriptSpec: CapabilitySpec = {
   }
 };
 
+export const deriveStoryboardFromScriptSpec: CapabilitySpec = {
+  name: "derive_storyboard_from_script",
+  description:
+    "Create a storyboard whose shots cover this script's lines, linked to it: " +
+    "one shot per line in reading order, each carrying the line ids it covers " +
+    "and the projected dialogue/narration. With provider + model, a director " +
+    "pass writes each shot's action, slug, camera and motion over that " +
+    "scaffold; a response that drops or reassigns the line links is refused " +
+    "and retried, and the scaffold is the floor. Without them the shots are " +
+    "the scaffold alone, status 'planned'. Render it with " +
+    "render_storyboard_stills.",
+  inputSchema: DERIVE_STORYBOARD_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deriving a storyboard from script ${String(params["script_id"])}`
+};
+
 /** Every spec this module declares, in declaration order. */
 export const scriptsSpecs: readonly CapabilitySpec[] = [
   listScriptsSpec,
   getScriptSpec,
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
-  editScriptSpec
+  editScriptSpec,
+  deriveStoryboardFromScriptSpec
 ];

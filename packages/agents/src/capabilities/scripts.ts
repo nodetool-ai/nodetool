@@ -23,14 +23,22 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   Script,
   ScriptDocument,
+  Storyboard,
   ScriptLine,
   ScriptSection,
   ScriptSpeaker,
   ScriptTake,
   ScriptVoiceBinding
 } from "@nodetool-ai/models";
+import type {
+  Screenplay,
+  ScriptLinkDocument,
+  Shot,
+  ShotScaffold
+} from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
 import { UNGATED, createCapabilityRun } from "./invoke.js";
+import { stampScriptStoryboardId } from "./script-link.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -42,6 +50,7 @@ import {
   voiceScriptLinesSpec,
   assembleScriptTimelineSpec,
   editScriptSpec,
+  deriveStoryboardFromScriptSpec,
   DEFAULT_CONCURRENCY,
   MAX_CONCURRENCY,
   DEFAULT_ASR_PROVIDER,
@@ -51,7 +60,8 @@ import {
   GET_SCRIPT_SCHEMA,
   VOICE_SCRIPT_LINES_SCHEMA,
   ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
-  EDIT_SCRIPT_SCHEMA
+  EDIT_SCRIPT_SCHEMA,
+  DERIVE_STORYBOARD_SCHEMA
 } from "./scripts.specs.js";
 
 export {
@@ -64,7 +74,8 @@ export {
   GET_SCRIPT_SCHEMA,
   VOICE_SCRIPT_LINES_SCHEMA,
   ASSEMBLE_SCRIPT_TIMELINE_SCHEMA,
-  EDIT_SCRIPT_SCHEMA
+  EDIT_SCRIPT_SCHEMA,
+  DERIVE_STORYBOARD_SCHEMA
 } from "./scripts.specs.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
@@ -287,6 +298,102 @@ function lineStatus(
   return helpers.needsVoicing(line, voice) ? "stale" : "voiced";
 }
 
+// ---------------------------------------------------------------------------
+// Script ↔ storyboard link
+// ---------------------------------------------------------------------------
+
+/** What a script's link to a storyboard looks like from the script's side. */
+interface StoryboardLinkSummary {
+  linked: boolean;
+  storyboard_id: string | null;
+  /** Lines the linked board covers with no shot. */
+  orphan_line_ids: string[];
+  /** Shots whose projected text no longer matches the lines they cover. */
+  drifted_shot_ids: string[];
+  /** The shot covering each line, for the lines a shot covers. */
+  shot_id_by_line_id: Record<string, string>;
+  issues: string[];
+}
+
+const EMPTY_LINK: StoryboardLinkSummary = {
+  linked: false,
+  storyboard_id: null,
+  orphan_line_ids: [],
+  drifted_shot_ids: [],
+  shot_id_by_line_id: {},
+  issues: []
+};
+
+/**
+ * The board this script points at, and what its link looks like now.
+ *
+ * The board owns the link (design §1.1) and `scripts.storyboard_id` is the
+ * back-pointer (design §1.2), so this is one read by id. A pointer at a board
+ * that is gone, or at one that no longer names this script, is reported as an
+ * issue rather than silently dropped — the script still works, only the link
+ * affordances do not.
+ */
+async function storyboardLinkFor(
+  userId: string | undefined,
+  storyboardId: string | null,
+  scriptId: string,
+  doc: ScriptDocument
+): Promise<StoryboardLinkSummary> {
+  if (!userId || !storyboardId) return EMPTY_LINK;
+  const { Storyboard } = await import("@nodetool-ai/models");
+  const { orphanedLineIds, shotDialogueDrifted, validateScriptLink } =
+    await import("@nodetool-ai/protocol");
+
+  const stale = (message: string): StoryboardLinkSummary => ({
+    ...EMPTY_LINK,
+    storyboard_id: storyboardId,
+    issues: [message]
+  });
+
+  const board = await Storyboard.findById(storyboardId);
+  if (!board || board.user_id !== userId) {
+    return stale(
+      `Storyboard ${storyboardId} is no longer available, so the script's back-pointer is stale.`
+    );
+  }
+  const boardDoc = board.toDocument();
+  if (boardDoc.screenplay?.script_id !== scriptId) {
+    return stale(
+      `Storyboard ${storyboardId} does not link this script back, so the back-pointer is stale.`
+    );
+  }
+
+  const screenplay: Screenplay = {
+    ...boardDoc.screenplay,
+    shots: boardDoc.shots
+  };
+  const scriptDoc: ScriptLinkDocument = { sections: doc.sections };
+  const linesById = new Map(
+    doc.sections.flatMap((section) =>
+      section.lines.map((line) => [line.id, line] as const)
+    )
+  );
+  const shotIdByLineId: Record<string, string> = {};
+  for (const shot of screenplay.shots) {
+    for (const lineId of shot.script_line_ids ?? []) {
+      shotIdByLineId[lineId] = shot.id;
+    }
+  }
+  const validation = validateScriptLink(screenplay, scriptDoc);
+  return {
+    linked: true,
+    storyboard_id: board.id,
+    orphan_line_ids: orphanedLineIds(screenplay, scriptDoc),
+    drifted_shot_ids: screenplay.shots
+      .filter((shot) => shotDialogueDrifted(shot, linesById))
+      .map((shot) => shot.id),
+    shot_id_by_line_id: shotIdByLineId,
+    issues: [...validation.errors, ...validation.warnings].map(
+      (issue) => issue.message
+    )
+  };
+}
+
 const listScripts: CapabilityExport = {
   spec: listScriptsSpec,
   impl: async (run, params) => {
@@ -329,10 +436,19 @@ const getScript: CapabilityExport = {
     const { row, doc } = handle;
     const { currentTake, effectiveVoice, needsVoicing, scriptLines } =
       await import("@nodetool-ai/timeline");
+    const link = await storyboardLinkFor(
+      run.context.userId,
+      row.storyboard_id ?? null,
+      row.id,
+      doc
+    );
+    const orphans = new Set(link.orphan_line_ids);
     return {
       id: row.id,
       name: row.name,
       timeline_id: row.timeline_id ?? undefined,
+      storyboard_id: link.storyboard_id,
+      storyboard_link: link,
       cast: doc.cast.map((speaker) => ({
         id: speaker.id,
         name: speaker.name,
@@ -349,7 +465,9 @@ const getScript: CapabilityExport = {
           pause_after_ms: line.pauseAfterMs,
           voice,
           status: lineStatus(line, voice, { currentTake, needsVoicing }),
-          take_count: line.takes.length
+          take_count: line.takes.length,
+          shot_id: link.shot_id_by_line_id[line.id] ?? null,
+          orphaned: link.linked && orphans.has(line.id)
         };
       })
     };
@@ -1018,13 +1136,378 @@ const editScript: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// derive_storyboard_from_script
+// ---------------------------------------------------------------------------
+//
+// `deriveShotScaffold` pins linkage, order and the projected text
+// deterministically; shot *content* — action, slug, camera, motion — is the
+// director's job. The normalizer holds the line: a response that drops or
+// reassigns `script_line_ids` is refused and retried, and the scaffold is the
+// floor a failed director pass falls back to.
+
+/** Attempts at a director response that keeps every scaffold's line links. */
+const DIRECTOR_ATTEMPTS = 2;
+
+interface DirectorModel {
+  provider: string;
+  model: string;
+}
+
+/**
+ * The model the director pass runs on. Both fields absent means "no director" —
+ * the scaffold ships as it is. One without the other is a mistake worth naming
+ * rather than guessing at, the same posture the render tools take.
+ */
+function resolveDirectorModel(
+  params: Record<string, unknown>
+): DirectorModel | null | ToolError {
+  const provider =
+    typeof params["provider"] === "string" ? params["provider"].trim() : "";
+  const model =
+    typeof params["model"] === "string" ? params["model"].trim() : "";
+  if (!provider && !model) return null;
+  if (!provider || !model) {
+    return {
+      error:
+        "The director pass needs provider and model together (use find_model with capability=text_generation). Omit both for the deterministic scaffold."
+    };
+  }
+  return { provider, model };
+}
+
+const DIRECTOR_SHOTS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["shots"],
+  properties: {
+    style: { type: "string" },
+    shots: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["script_line_ids", "action"],
+        properties: {
+          script_line_ids: { type: "array", items: { type: "string" } },
+          action: { type: "string" },
+          slug: { type: "string" },
+          motion: { type: "string" },
+          duration_seconds: { type: "number" },
+          camera: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              framing: { type: "string" },
+              lens: { type: "string" },
+              angle: { type: "string" },
+              movement: { type: "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
+const DIRECTOR_SYSTEM_PROMPT = [
+  "You are a film director turning a written script into a shot list.",
+  "Each shot below already covers a fixed set of script lines. Keep every",
+  "shot's `script_line_ids` exactly as given — same ids, same order, one entry",
+  "per shot — and write what the camera sees: a concrete visual `action`, plus",
+  "`slug`, `camera` and `motion` where they help. Call the shots tool once."
+].join(" ");
+
+const optionalText = (value: unknown): string | undefined => {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text.length > 0 ? text : undefined;
+};
+
+/**
+ * Merge a director response onto the scaffold, or say why it cannot be trusted.
+ * Shots are matched by the line ids they claim, so a response that drops a
+ * shot, invents one, or moves a line between shots fails here rather than
+ * producing a board whose links no longer describe the script.
+ */
+function normalizeDirectedShots(
+  raw: unknown,
+  scaffoldShots: Shot[]
+): Shot[] | ToolError {
+  const shots =
+    raw && typeof raw === "object"
+      ? (raw as { shots?: unknown }).shots
+      : undefined;
+  if (!Array.isArray(shots)) {
+    return { error: "the response carried no `shots` array" };
+  }
+  if (shots.length !== scaffoldShots.length) {
+    return {
+      error: `the response has ${shots.length} shots; the script's scaffold has ${scaffoldShots.length}`
+    };
+  }
+
+  const key = (ids: readonly string[]): string => ids.join("\u0000");
+  const byKey = new Map(
+    scaffoldShots.map((shot) => [key(shot.script_line_ids ?? []), shot])
+  );
+  const directed = new Map<string, Shot>();
+
+  for (const [index, entry] of shots.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return { error: `shots[${index}] is not an object` };
+    }
+    const args = entry as Record<string, unknown>;
+    const lineIds = args["script_line_ids"];
+    if (!Array.isArray(lineIds) || lineIds.some((id) => typeof id !== "string")) {
+      return { error: `shots[${index}] dropped its \`script_line_ids\`` };
+    }
+    const scaffold = byKey.get(key(lineIds as string[]));
+    if (!scaffold) {
+      return {
+        error: `shots[${index}] reassigned its lines to [${(lineIds as string[]).join(", ")}], which no scaffold shot covers`
+      };
+    }
+    if (directed.has(scaffold.id)) {
+      return {
+        error: `shots[${index}] repeats the lines already covered by shot ${scaffold.id}`
+      };
+    }
+    const action = optionalText(args["action"]);
+    if (!action) {
+      return { error: `shots[${index}] has no \`action\`` };
+    }
+
+    const shot: Shot = { ...scaffold, action };
+    const slug = optionalText(args["slug"]);
+    if (slug) shot.slug = slug;
+    const motion = optionalText(args["motion"]);
+    if (motion) shot.motion = motion;
+    const camera = args["camera"];
+    if (camera && typeof camera === "object" && !Array.isArray(camera)) {
+      shot.camera = camera as Shot["camera"];
+    }
+    const seconds = Number(args["duration_seconds"]);
+    if (Number.isFinite(seconds) && seconds > 0) {
+      shot.duration_seconds = seconds;
+    }
+    directed.set(scaffold.id, shot);
+  }
+
+  const missing = scaffoldShots.filter((shot) => !directed.has(shot.id));
+  if (missing.length > 0) {
+    return {
+      error: `the response covers no shot for lines [${(missing[0].script_line_ids ?? []).join(", ")}]`
+    };
+  }
+  return scaffoldShots.map((shot) => directed.get(shot.id) as Shot);
+}
+
+/** One director round-trip, returning whatever the provider answered with. */
+async function callDirector(
+  context: ProcessingContext,
+  model: DirectorModel,
+  userPrompt: string
+): Promise<unknown> {
+  const provider = await context.getProvider(model.provider);
+  const call =
+    typeof provider.generateMessageTraced === "function"
+      ? provider.generateMessageTraced.bind(provider)
+      : provider.generateMessage.bind(provider);
+  const result = await call({
+    model: model.model,
+    messages: [
+      { role: "system", content: DIRECTOR_SYSTEM_PROMPT },
+      { role: "user", content: userPrompt }
+    ],
+    tools: [
+      {
+        name: "shots",
+        description:
+          "Submit the directed shots, one per scaffold entry, with the line ids unchanged.",
+        inputSchema: DIRECTOR_SHOTS_SCHEMA
+      }
+    ],
+    toolChoice: "shots"
+  });
+  const call0 = result.toolCalls?.[0];
+  return call0?.name === "shots" ? call0.args : null;
+}
+
+const deriveStoryboardFromScript: CapabilityExport = {
+  spec: deriveStoryboardFromScriptSpec,
+  impl: async (run, params) => {
+    const context = run.context;
+    const handle = await loadScript(run, params["script_id"]);
+    if (isError(handle)) return handle;
+    const { row, doc } = handle;
+
+    const model = resolveDirectorModel(params);
+    if (isError(model)) return model;
+
+    const { deriveShotScaffold, joinLineTexts, validateScriptLink } =
+      await import("@nodetool-ai/protocol");
+    const scaffolds: ShotScaffold[] = deriveShotScaffold({
+      id: row.id,
+      cast: doc.cast,
+      sections: doc.sections
+    });
+    if (scaffolds.length === 0) {
+      return {
+        error: `Script ${row.id} has no line with text, so there is nothing to storyboard. Write the lines with edit_script first.`
+      };
+    }
+
+    const textByLineId = new Map(
+      doc.sections.flatMap((section) =>
+        section.lines.map((line) => [line.id, line.text] as const)
+      )
+    );
+    const stamp = Date.now().toString(36);
+    const scaffoldShots: Shot[] = scaffolds.map((scaffold, index) => {
+      const shot: Shot = {
+        type: "shot",
+        id: `shot_${index + 1}_${stamp}`,
+        index,
+        // The floor a failed director pass falls back to: the words the shot
+        // covers, standing in for the visual nobody has described yet.
+        action: scaffold.dialogue ?? scaffold.narration ?? "",
+        status: "planned",
+        script_line_ids: scaffold.script_line_ids,
+        script_text_snapshot: joinLineTexts(
+          scaffold.script_line_ids.map((id) => textByLineId.get(id) ?? "")
+        )
+      };
+      if (scaffold.dialogue) shot.dialogue = scaffold.dialogue;
+      if (scaffold.narration) shot.narration = scaffold.narration;
+      return shot;
+    });
+
+    let shots = scaffoldShots;
+    let directorRounds = 0;
+    let directorNote: string | undefined;
+    if (model) {
+      const brief = scaffolds
+        .map(
+          (scaffold, index) =>
+            `${index + 1}. script_line_ids=${JSON.stringify(scaffold.script_line_ids)} ` +
+            `words=${JSON.stringify(scaffold.dialogue ?? scaffold.narration ?? "")}`
+        )
+        .join("\n");
+      let complaint = "";
+      for (let attempt = 0; attempt < DIRECTOR_ATTEMPTS; attempt++) {
+        directorRounds += 1;
+        let normalized: Shot[] | ToolError;
+        try {
+          const raw = await callDirector(
+            context,
+            model,
+            `Script: ${row.name}\n\nShots to direct, in order:\n${brief}` +
+              (complaint ? `\n\nYour last answer was rejected: ${complaint}` : "")
+          );
+          normalized = normalizeDirectedShots(raw, scaffoldShots);
+        } catch (e) {
+          normalized = { error: errorMessage(e) };
+        }
+        if (!isError(normalized)) {
+          shots = normalized;
+          directorNote = undefined;
+          break;
+        }
+        complaint = normalized.error;
+        directorNote = `The director pass was refused after ${directorRounds} attempt(s) (${complaint}); the shots are the deterministic scaffold.`;
+      }
+    }
+
+    const screenplay: Screenplay = {
+      type: "screenplay",
+      id: `sp_${stamp}`,
+      title: row.name,
+      shots,
+      script_id: row.id
+    };
+    const validation = validateScriptLink(screenplay, { sections: doc.sections });
+    if (validation.errors.length > 0) {
+      return {
+        error: `The derived board would not validate, so nothing was created: ${validation.errors
+          .map((issue) => issue.message)
+          .join(" ")}`
+      };
+    }
+
+    // The board is created already carrying `script_id` and every shot's line
+    // references, so the forward link needs no second write. The script's
+    // back-pointer does, and it is stamped after — a board that exists without
+    // the pointer is consistent and navigable from the board side, while a
+    // pointer written first could name a board that was never created.
+    // Bound as a namespace so the `Storyboard` row type imported at the top of
+    // this file stays visible here.
+    const models = await import("@nodetool-ai/models");
+    const name =
+      typeof params["name"] === "string" && params["name"]
+        ? (params["name"] as string)
+        : row.name;
+    const board = await models.Storyboard.create<Storyboard>({
+      user_id: context.userId,
+      project_id: row.project_id,
+      name,
+      document: JSON.stringify({
+        screenplay,
+        shots,
+        brief: "",
+        style: "",
+        entityIds: [],
+        aspectRatio: "16:9",
+        directorModel: model
+          ? { type: "language_model", provider: model.provider, id: model.model }
+          : null,
+        imageModel: null,
+        videoModel: null
+      })
+    });
+
+    const stamped = await stampScriptStoryboardId(
+      row.id,
+      board.id,
+      context.userId
+    );
+    if (isError(stamped)) {
+      return {
+        error: `Storyboard ${board.id} was created and links script ${row.id}, but the script's back-pointer could not be written: ${stamped.error} The board is valid; the script reads as unlinked until this is retried.`,
+        storyboard_id: board.id,
+        script_id: row.id
+      };
+    }
+
+    return {
+      ok: true,
+      storyboard_id: board.id,
+      script_id: row.id,
+      name: board.name,
+      shot_count: shots.length,
+      directed: shots !== scaffoldShots,
+      director_rounds: directorRounds,
+      note: directorNote,
+      warnings: validation.warnings.map((issue) => issue.message),
+      shots: shots.map((shot) => ({
+        id: shot.id,
+        index: shot.index,
+        slug: shot.slug,
+        action: shot.action,
+        status: shot.status,
+        script_line_ids: shot.script_line_ids ?? []
+      }))
+    };
+  }
+};
+
 /** Every script capability, in the order the tool file declared them. */
 export const SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
   listScripts,
   getScript,
   voiceScriptLines,
   assembleScriptTimeline,
-  editScript
+  editScript,
+  deriveStoryboardFromScript
 ];
 
 export const module: CapabilityModule = {
@@ -1037,5 +1520,6 @@ export {
   getScript,
   voiceScriptLines,
   assembleScriptTimeline,
-  editScript
+  editScript,
+  deriveStoryboardFromScript
 };

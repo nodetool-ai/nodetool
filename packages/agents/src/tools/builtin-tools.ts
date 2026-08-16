@@ -61,6 +61,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "voice_script_lines",
   "assemble_script_timeline",
   "edit_script",
+  "derive_storyboard_from_script",
 
   // Storyboard → rendered media → timeline, without authoring a workflow
   "list_storyboards",
@@ -70,6 +71,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "revise_storyboard_clip",
   "assemble_storyboard_timeline",
   "edit_storyboard",
+  "extract_script_from_storyboard",
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   "list_sketches",

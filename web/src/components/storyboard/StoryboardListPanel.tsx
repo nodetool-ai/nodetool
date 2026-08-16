@@ -396,9 +396,14 @@ const StoryboardListPanel = () => {
     }
     const { id } = itemToDelete;
     deleteStoryboard.mutate({ id });
-    // The script keeps its words; only its pointer at this board goes.
-    downgradeScriptsLinkedToBoard(id);
-  }, [itemToDelete, deleteStoryboard]);
+    // The script keeps its words; only its pointer at this board goes. Never
+    // blocks the delete (design §4).
+    void downgradeScriptsLinkedToBoard(id).then((scriptIds) => {
+      if (scriptIds.length > 0) {
+        void utils.scripts.list.invalidate();
+      }
+    });
+  }, [itemToDelete, deleteStoryboard, utils]);
 
   useEffect(() => {
     setActions({

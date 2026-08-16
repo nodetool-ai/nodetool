@@ -44,7 +44,8 @@ const responseToScript = (
     title: res.name === "Untitled script" ? "" : res.name,
     cast: doc.cast,
     sections: doc.sections,
-    timelineId: res.timelineId ?? null
+    timelineId: res.timelineId ?? null,
+    storyboardId: res.storyboardId ?? null
   };
 };
 
@@ -140,7 +141,8 @@ export const useScriptServerSync = (scriptId: string): void => {
           baseUpdatedAt: revision,
           name: script.title || "Untitled script",
           document: scriptToDocument(script),
-          timelineId: script.timelineId
+          timelineId: script.timelineId,
+          storyboardId: script.storyboardId
         });
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = script;
