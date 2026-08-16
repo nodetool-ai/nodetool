@@ -115,6 +115,13 @@ interface ScriptStoreState {
   saveStatus: Record<string, ScriptSaveStatus>;
   /** Line ids currently generating a take — transient, not persisted. */
   voicingLineIds: Record<string, true>;
+  /**
+   * Storyboard this script is linked to, per script id. The board owns the
+   * link (`Screenplay.script_id`); this is the back-pointer the script editor
+   * navigates by. It is **not** persisted — the `scripts.storyboard_id` column
+   * is a separate change — so it holds for the session that made the link.
+   */
+  storyboardLinks: Record<string, string>;
   /** Per-script undo/redo checkpoints of the {@link ScriptDraft} document. */
   history: HistoryMap<ScriptDraft>;
 
@@ -135,6 +142,10 @@ interface ScriptStoreState {
 
   setTitle: (scriptId: string, title: string) => void;
   setTimelineLink: (scriptId: string, timelineId: string | null) => void;
+  /** Record (or clear, with null) the storyboard derived from this script. */
+  setStoryboardLink: (scriptId: string, storyboardId: string | null) => void;
+  /** Forget the back-pointer of every script that names this board. */
+  clearStoryboardLink: (storyboardId: string) => void;
 
   // Cast
   addSpeaker: (scriptId: string, speaker: ScriptSpeaker) => void;
@@ -289,6 +300,7 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
   serverRevisions: {},
   saveStatus: {},
   voicingLineIds: {},
+  storyboardLinks: {},
   history: {},
 
   undo: (scriptId) =>
@@ -398,6 +410,35 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         false
       )
     ),
+
+  setStoryboardLink: (scriptId, storyboardId) =>
+    set((state) => {
+      if ((state.storyboardLinks[scriptId] ?? null) === storyboardId) {
+        return state;
+      }
+      const storyboardLinks = { ...state.storyboardLinks };
+      if (storyboardId === null) {
+        delete storyboardLinks[scriptId];
+      } else {
+        storyboardLinks[scriptId] = storyboardId;
+      }
+      return { storyboardLinks };
+    }),
+
+  clearStoryboardLink: (storyboardId) =>
+    set((state) => {
+      const linked = Object.entries(state.storyboardLinks).filter(
+        ([, boardId]) => boardId === storyboardId
+      );
+      if (linked.length === 0) {
+        return state;
+      }
+      const storyboardLinks = { ...state.storyboardLinks };
+      for (const [scriptId] of linked) {
+        delete storyboardLinks[scriptId];
+      }
+      return { storyboardLinks };
+    }),
 
   addSpeaker: (scriptId, speaker) =>
     set((state) =>
@@ -732,6 +773,14 @@ export const useScript = (
  */
 export const useScriptCast = (scriptId: string): ScriptSpeaker[] =>
   useScriptStore((state) => state.scripts[scriptId]?.cast ?? EMPTY_CAST);
+
+/**
+ * Reactive storyboard back-pointer for a script, or null when none was linked
+ * in this session. See {@link ScriptStoreState.storyboardLinks} on why it does
+ * not survive a reload.
+ */
+export const useScriptStoryboardLink = (scriptId: string): string | null =>
+  useScriptStore((state) => state.storyboardLinks[scriptId] ?? null);
 
 /** Reactive title for a script — see {@link useScriptCast} on why it's narrow. */
 export const useScriptTitle = (scriptId: string): string =>

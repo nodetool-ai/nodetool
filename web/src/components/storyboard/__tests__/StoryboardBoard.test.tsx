@@ -46,6 +46,13 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
   useStoryboardCanRedo: () => false
 }));
 
+// The script-link control reads the real store and a trpc query; it has its
+// own suite (ScriptLinkControl.test.tsx).
+jest.mock("../ScriptLinkControl", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(),

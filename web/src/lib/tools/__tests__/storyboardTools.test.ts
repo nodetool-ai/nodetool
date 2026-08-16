@@ -34,6 +34,7 @@ const snapshot = (): StoryboardSnapshot => ({
   style: "noir",
   aspectRatio: "16:9",
   hasScreenplay: true,
+  scriptId: null,
   selectedShotId: null,
   shots: [shotNode()]
 });
@@ -47,7 +48,8 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   generateClip: jest.fn(),
   reviseShot: jest.fn(),
   selectShot: jest.fn(),
-  assembleTimeline: jest.fn()
+  assembleTimeline: jest.fn(),
+  extractScript: jest.fn()
 });
 
 // The storyboard tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -75,6 +77,8 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_generate_clip",
         "ui_storyboard_revise_shot",
         "ui_storyboard_assemble_timeline",
+        "ui_storyboard_extract_script",
+        "ui_storyboard_relink_script",
         "ui_storyboard_select_shot"
       ])
     );
@@ -417,5 +421,93 @@ describe("ui_storyboard_* tools", () => {
     );
 
     expect(handler.selectShot).toHaveBeenCalledWith(null);
+  });
+
+  describe("script link tools", () => {
+    it("extracts a script through the handler and reports the link", async () => {
+      const handler = createMockHandler();
+      handler.extractScript.mockResolvedValue({
+        scriptId: "script-9",
+        lineCount: 4,
+        linkedShotCount: 3,
+        created: true
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_extract_script",
+        { storyboard_id: BOARD_ID },
+        "tc-extract",
+        ctx
+      )) as { ok: boolean; scriptId: string; created: boolean; url: string };
+
+      expect(handler.extractScript).toHaveBeenCalledWith();
+      expect(result.ok).toBe(true);
+      expect(result.scriptId).toBe("script-9");
+      expect(result.created).toBe(true);
+      expect(result.url).toContain("script-9");
+    });
+
+    it("fails the extraction when the write cannot persist", async () => {
+      const handler = createMockHandler();
+      handler.extractScript.mockResolvedValue({
+        scriptId: "script-9",
+        lineCount: 1,
+        linkedShotCount: 1,
+        created: true
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+      registerStoryboardSaver(BOARD_ID, async () => ({
+        ok: false,
+        error: "409 revision conflict"
+      }));
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_extract_script",
+          { storyboard_id: BOARD_ID },
+          "tc-extract-2",
+          ctx
+        )
+      ).rejects.toThrow("409 revision conflict");
+    });
+
+    it("re-projects onto the linked script with relink", async () => {
+      const handler = createMockHandler();
+      handler.getSnapshot.mockReturnValue({ ...snapshot(), scriptId: "script-9" });
+      handler.extractScript.mockResolvedValue({
+        scriptId: "script-9",
+        lineCount: 4,
+        linkedShotCount: 3,
+        created: false
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_relink_script",
+        { storyboard_id: BOARD_ID },
+        "tc-relink",
+        ctx
+      )) as { ok: boolean; created: boolean };
+
+      expect(handler.extractScript).toHaveBeenCalledWith({ relink: true });
+      expect(result.created).toBe(false);
+    });
+
+    it("refuses to relink a board that links no script", async () => {
+      const handler = createMockHandler();
+      handler.getSnapshot.mockReturnValue(snapshot());
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_relink_script",
+          { storyboard_id: BOARD_ID },
+          "tc-relink-2",
+          ctx
+        )
+      ).rejects.toThrow(/links no script/i);
+      expect(handler.extractScript).not.toHaveBeenCalled();
+    });
   });
 });

@@ -41,7 +41,8 @@ const snapshot = (): ScriptSnapshot => ({
   cast: [speakerNode()],
   lines: [lineNode()],
   hasTimeline: false,
-  timelineId: null
+  timelineId: null,
+  storyboardId: null
 });
 
 const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
@@ -54,6 +55,7 @@ const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
   voiceLine: jest.fn(),
   voiceAll: jest.fn(),
   sendToTimeline: jest.fn(),
+  deriveStoryboard: jest.fn(),
   exportSubtitles: jest.fn()
 });
 
@@ -285,5 +287,51 @@ describe("ui_script_* tools", () => {
     );
 
     expect(handler.setLineSpeaker).toHaveBeenCalledWith("0", null);
+  });
+
+  describe("ui_script_derive_storyboard", () => {
+    it("derives a linked storyboard through the handler", async () => {
+      const handler = createMockHandler();
+      handler.deriveStoryboard.mockResolvedValue({
+        boardId: "board-9",
+        shotCount: 3
+      });
+      setScriptAgentHandler(SCRIPT_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_script_derive_storyboard",
+        { script_id: SCRIPT_ID },
+        "tc-derive",
+        ctx
+      )) as { ok: boolean; boardId: string; shotCount: number; url: string };
+
+      expect(handler.deriveStoryboard).toHaveBeenCalled();
+      expect(result.ok).toBe(true);
+      expect(result.boardId).toBe("board-9");
+      expect(result.shotCount).toBe(3);
+      expect(result.url).toContain("board-9");
+    });
+
+    it("surfaces the handler's refusal when a board is already linked", async () => {
+      const handler = createMockHandler();
+      handler.deriveStoryboard.mockRejectedValue(
+        new Error("This script already has storyboard board-9.")
+      );
+      setScriptAgentHandler(SCRIPT_ID, handler);
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_script_derive_storyboard",
+          { script_id: SCRIPT_ID },
+          "tc-derive-2",
+          ctx
+        )
+      ).rejects.toThrow("already has storyboard board-9");
+    });
+
+    it("registers the tool in the manifest", () => {
+      const names = FrontendToolRegistry.getManifest().map((t) => t.name);
+      expect(names).toContain("ui_script_derive_storyboard");
+    });
   });
 });
