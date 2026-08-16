@@ -246,37 +246,53 @@ function resolveJsonPointer(
  * Inline local `$ref`s so dropping `$defs` doesn't leave empty schemas behind.
  * A ref that is cyclic or unresolvable degrades to a permissive object.
  */
+/**
+ * One node of a JSON Schema document: an object of nodes, a list of nodes, or
+ * a scalar. This is the domain the three walkers below rewrite.
+ */
+type SchemaNode =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | SchemaNode[]
+  | { [key: string]: SchemaNode };
+
 function inlineGeminiRefs(
   node: unknown,
   root: unknown,
   seen: ReadonlySet<string>
-): unknown {
+): SchemaNode {
   if (Array.isArray(node)) {
     return node.map((item) => inlineGeminiRefs(item, root, seen));
   }
-  if (!isPlainObject(node)) return node;
+  // SAFETY: a schema node that is neither a list nor an object is a JSON
+  // scalar — this walker is only ever handed a decoded JSON Schema.
+  if (!isPlainObject(node)) return node as SchemaNode;
 
   if (typeof node.$ref === "string") {
     const { $ref, ...rest } = node;
     if (seen.has($ref)) return { type: "object", ...rest };
     const { found, value } = resolveJsonPointer(root, $ref);
     if (!found || !isPlainObject(value)) return { type: "object", ...rest };
-    const resolved = inlineGeminiRefs(
-      value,
-      root,
-      new Set([...seen, $ref])
-    ) as Record<string, unknown>;
-    const overrides = inlineGeminiRefs(rest, root, seen) as Record<
-      string,
-      unknown
-    >;
+    // SAFETY: both inputs are objects, so both results are objects too.
+    const resolved = inlineGeminiRefs(value, root, new Set([...seen, $ref])) as {
+      [key: string]: SchemaNode;
+    };
+    // SAFETY: as above.
+    const overrides = inlineGeminiRefs(rest, root, seen) as {
+      [key: string]: SchemaNode;
+    };
     return { ...resolved, ...overrides };
   }
 
-  const out: Record<string, unknown> = {};
+  const out: { [key: string]: SchemaNode } = {};
   for (const [key, value] of Object.entries(node)) {
     out[key] = GEMINI_DATA_KEYS.has(key)
-      ? value
+      ? // SAFETY: a data key's value is carried through verbatim; it is part of
+        // the same decoded JSON Schema.
+        (value as SchemaNode)
       : inlineGeminiRefs(value, root, seen);
   }
   return out;
@@ -284,15 +300,19 @@ function inlineGeminiRefs(
 
 /** Fold `allOf` members into the parent schema; parent keys win. */
 function mergeAllOf(
-  out: Record<string, unknown>,
+  out: { [key: string]: SchemaNode },
   members: unknown[]
-): Record<string, unknown> {
+): { [key: string]: SchemaNode } {
   for (const member of members) {
     const sanitized = sanitizeSchemaNode(member);
     if (!isPlainObject(sanitized)) continue;
     for (const [key, value] of Object.entries(sanitized)) {
       if (key === "properties" && isPlainObject(value)) {
-        out.properties = { ...value, ...((out.properties as object) ?? {}) };
+        // SAFETY: both sides are `properties` maps of the same schema.
+        out.properties = {
+          ...(value as { [key: string]: SchemaNode }),
+          ...((out.properties as { [key: string]: SchemaNode }) ?? {})
+        };
         continue;
       }
       if (key === "required" && Array.isArray(value)) {
@@ -306,15 +326,16 @@ function mergeAllOf(
   return out;
 }
 
-function sanitizeSchemaNode(value: unknown): unknown {
+function sanitizeSchemaNode(value: unknown): SchemaNode {
   if (Array.isArray(value)) return value.map(sanitizeSchemaNode);
-  if (!isPlainObject(value)) return value;
+  // SAFETY: as in `inlineGeminiRefs` — a non-list, non-object node is a scalar.
+  if (!isPlainObject(value)) return value as SchemaNode;
 
-  const out: Record<string, unknown> = {};
+  const out: { [key: string]: SchemaNode } = {};
   for (const [key, nested] of Object.entries(value)) {
     if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(key)) continue;
     if (key === "properties" && isPlainObject(nested)) {
-      const properties: Record<string, unknown> = {};
+      const properties: { [key: string]: SchemaNode } = {};
       // Property *names* are data — a property called "const" must survive.
       for (const [name, sub] of Object.entries(nested)) {
         properties[name] = sanitizeSchemaNode(sub);
@@ -332,7 +353,11 @@ function sanitizeSchemaNode(value: unknown): unknown {
       out.anyOf = nested.map(sanitizeSchemaNode);
       continue;
     }
-    out[key] = GEMINI_DATA_KEYS.has(key) ? nested : sanitizeSchemaNode(nested);
+    out[key] = GEMINI_DATA_KEYS.has(key)
+      ? // SAFETY: a data key's value is carried through verbatim; it is part of
+        // the same decoded JSON Schema.
+        (nested as SchemaNode)
+      : sanitizeSchemaNode(nested);
   }
 
   // `oneOf` means the same thing to a model as `anyOf`, which Gemini accepts.
@@ -347,7 +372,8 @@ function sanitizeSchemaNode(value: unknown): unknown {
   if (value.const !== undefined && out.enum === undefined) {
     const literalType = primitiveSchemaType(value.const);
     if (literalType === "string") {
-      out.enum = [value.const];
+      // SAFETY: `primitiveSchemaType` proved the literal is a string.
+      out.enum = [value.const as string];
       out.type ??= "string";
     } else if (literalType) {
       out.type ??= literalType;
@@ -378,7 +404,7 @@ function sanitizeSchemaNode(value: unknown): unknown {
   return out;
 }
 
-function sanitizeGeminiSchema(value: unknown): unknown {
+function sanitizeGeminiSchema(value: unknown): SchemaNode {
   return sanitizeSchemaNode(inlineGeminiRefs(value, value, new Set()));
 }
 

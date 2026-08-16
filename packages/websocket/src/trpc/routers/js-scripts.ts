@@ -45,6 +45,15 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
+/** A decoded JSON value: what a stored document or graph carries. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const listInput = z.object({
   projectId: z.string().optional()
 });
@@ -87,10 +96,12 @@ function toVersionListItem(version: JsScriptVersion) {
  * A version row carries its document as JSON text on SQLite and as an object on
  * Postgres, so parse only when it is a string.
  */
-function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded, and the row's
+  // document is JSON either way.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     throwApiError(
       ApiErrorCode.INTERNAL_ERROR,

@@ -107,7 +107,16 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 };
 
-function extractKieModelInfo(body: unknown): unknown {
+/** A decoded JSON value from the request body. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+function extractKieModelInfo(body: unknown): JsonValue | undefined {
   if (Buffer.isBuffer(body)) {
     const text = body.toString("utf8").trim();
     if (!text) {
@@ -133,7 +142,9 @@ function extractKieModelInfo(body: unknown): unknown {
     return undefined;
   }
 
-  const record = body as Record<string, unknown>;
+  // SAFETY: the checks above proved `body` is a non-null object; its members
+  // came out of a JSON request body.
+  const record = body as { [key: string]: JsonValue };
   return (
     record.model_info ??
     record.modelInfo ??

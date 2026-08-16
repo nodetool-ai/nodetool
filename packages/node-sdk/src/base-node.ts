@@ -30,10 +30,16 @@ import {
  * (e.g. a single Image into a `list[image]` slot) without a manual
  * wrapper node.
  */
-export function coerceToDeclaredType(
-  value: unknown,
+/** A URI string promoted to the tagged asset reference its slot declares. */
+export interface CoercedAssetRef {
+  type: string;
+  uri: string;
+}
+
+export function coerceToDeclaredType<TValue>(
+  value: TValue,
   declaredType: string
-): unknown {
+): TValue | TValue[] | CoercedAssetRef {
   // A URI string standing in for an asset ref. Callers reach for the plain
   // string — `--params '{"clip":"file:///clip.mp4"}'`, a REST body, a webhook
   // payload — and without this the ref stays empty, the node reads no bytes,
@@ -78,10 +84,10 @@ const URI_WITH_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
  * Coerce a value against a typed dynamic slot's declared type. Slots with no
  * resolvable type string pass the value through untouched (legacy `any` slot).
  */
-export function coerceToSlotType(
-  value: unknown,
+export function coerceToSlotType<TValue>(
+  value: TValue,
   slot: DynamicSlotMeta | undefined
-): unknown {
+): TValue | TValue[] | CoercedAssetRef {
   const declaredType = slotTypeToString(slot);
   return declaredType ? coerceToDeclaredType(value, declaredType) : value;
 }

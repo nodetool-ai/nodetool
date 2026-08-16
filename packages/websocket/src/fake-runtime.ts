@@ -208,8 +208,18 @@ const needsSecret = (meta: FakeMeta | undefined): boolean =>
 const needsRuntime = (meta: FakeMeta | undefined): boolean =>
   Array.isArray(meta?.required_runtimes) && meta.required_runtimes.length > 0;
 
+/** A placeholder value standing in for one output slot. */
+export type FakeSlotValue =
+  | string
+  | number
+  | boolean
+  | null
+  | never[]
+  | Record<string, never>
+  | { type: string; uri: string; data: string; mimeType: string };
+
 /** Build a type-correct placeholder for a single output slot. */
-export function fakeValueForType(type: string): unknown {
+export function fakeValueForType(type: string): FakeSlotValue {
   if (MEDIA_TYPES.has(type)) {
     const mime =
       type === "image"

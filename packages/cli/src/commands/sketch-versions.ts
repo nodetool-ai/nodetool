@@ -26,6 +26,16 @@ import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
 import { renderSketchValidation } from "./sketch-validation-output.js";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+
 /** An `image_documents` row as these commands need it. */
 export interface ImageDocumentRow {
   id: string;
@@ -132,10 +142,12 @@ export function versionTableRows(
 }
 
 /** Parse a stored document without throwing — an unreadable one is a finding. */
-export function parseVersionDocument(raw: unknown): unknown {
-  if (typeof raw !== "string") return raw;
+export function parseVersionDocument(raw: unknown): JsonValue {
+  // SAFETY: a Postgres json column arrives already decoded; either way the
+  // stored document is JSON.
+  if (typeof raw !== "string") return raw as JsonValue;
   try {
-    return JSON.parse(raw) as unknown;
+    return JSON.parse(raw) as JsonValue;
   } catch {
     return raw;
   }

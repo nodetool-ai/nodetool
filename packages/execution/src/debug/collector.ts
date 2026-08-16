@@ -40,7 +40,20 @@ const BLOB_KEEP = 64;
  * collapse binary and base64 blobs, and cap array/object fan-out. Keeps enough
  * to debug (shape, prefixes, sizes) without dumping megabytes of media bytes.
  */
-export function previewValue(value: unknown, maxLen: number = MAX_STRING_PREVIEW): unknown {
+/** A value reduced to what a JSON debug report can carry. */
+export type PreviewValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | PreviewValue[]
+  | { [key: string]: PreviewValue };
+
+export function previewValue(
+  value: unknown,
+  maxLen: number = MAX_STRING_PREVIEW
+): PreviewValue {
   if (typeof value === "string") {
     return value.length > maxLen
       ? `${value.slice(0, maxLen)}…[${value.length} chars]`
@@ -56,7 +69,7 @@ export function previewValue(value: unknown, maxLen: number = MAX_STRING_PREVIEW
       : head;
   }
   if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
+    const out: { [key: string]: PreviewValue } = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (BLOB_KEYS.has(k) && typeof v === "string" && v.length > 256) {
         out[k] = `${v.slice(0, BLOB_KEEP)}…[${v.length} chars]`;
@@ -66,7 +79,9 @@ export function previewValue(value: unknown, maxLen: number = MAX_STRING_PREVIEW
     }
     return out;
   }
-  return value;
+  // SAFETY: strings, binary, arrays and objects are handled above; what is
+  // left is a JSON scalar the report can carry as it stands.
+  return value as PreviewValue;
 }
 
 function emptyNode(nodeId: string): NodeDebug {

@@ -12,6 +12,14 @@ type RequirementProbe = (
   requirement: Readonly<SdkV1Requirement>
 ) => Promise<SdkV1RequirementAvailability> | SdkV1RequirementAvailability;
 
+/**
+ * Just enough of an asset row for a preflight check: the resolver only asks
+ * whether the asset exists.
+ */
+interface AssetIdentity {
+  id: string;
+}
+
 export interface CreateNodeToolSdkV1RequirementResolverOptions {
   userId: string;
   /**
@@ -21,7 +29,10 @@ export interface CreateNodeToolSdkV1RequirementResolverOptions {
    */
   probes?: Partial<Record<RequirementKind, RequirementProbe>>;
   getCredential?: (userId: string, key: string) => Promise<string | null>;
-  findAsset?: (userId: string, assetId: string) => Promise<unknown | null>;
+  findAsset?: (
+    userId: string,
+    assetId: string
+  ) => Promise<AssetIdentity | null>;
   listProviderIds?: () => readonly string[];
   isProviderReady?: (userId: string, providerId: string) => Promise<boolean>;
 }

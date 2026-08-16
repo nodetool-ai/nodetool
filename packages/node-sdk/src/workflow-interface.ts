@@ -144,12 +144,21 @@ function obviouslyExceedsDefaultBudget(value: unknown): boolean {
   return false;
 }
 
+/** A JSON round-trippable value — what a discovered default is reduced to. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 function safeDefault(
   value: unknown,
   nodeId: string,
   pinName: string,
   diagnostics: WorkflowInterfaceDiagnostic[]
-): unknown {
+): JsonValue {
   if (value === undefined) return null;
 
   if (obviouslyExceedsDefaultBudget(value)) {
@@ -198,7 +207,7 @@ function safeDefault(
     });
     return null;
   }
-  const normalized: unknown = JSON.parse(json);
+  const normalized: JsonValue = JSON.parse(json);
   return normalized;
 }
 

@@ -176,6 +176,15 @@ export function createEmptyCassette(): Cassette {
 // Stable hashing
 // ---------------------------------------------------------------------------
 
+/** A value reduced to the JSON shapes `stableStringify` hashes. */
+type StableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | StableValue[]
+  | { [key: string]: StableValue };
+
 /**
  * Deterministic JSON with object keys sorted at every level. Arrays keep their
  * order. Typed arrays/Buffers are encoded as a tagged base64 string so binary
@@ -184,13 +193,14 @@ export function createEmptyCassette(): Cassette {
 export function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
 
-  const encode = (v: unknown): unknown => {
+  const encode = (v: unknown): StableValue => {
     if (v === null || typeof v !== "object") {
       // Normalize undefined (omitted by JSON.stringify) and functions to null
       // so two requests differing only in an unset optional hash identically.
       if (typeof v === "undefined" || typeof v === "function") return null;
       if (typeof v === "bigint") return `__bigint__:${v.toString()}`;
-      return v;
+      // SAFETY: what is left is a JSON scalar — string, number, boolean, null.
+      return v as StableValue;
     }
     if (v instanceof Uint8Array) {
       return `__bytes__:${bytesToBase64(v)}`;
@@ -208,7 +218,7 @@ export function stableStringify(value: unknown): string {
         return v.map(encode);
       }
       const obj = v as Record<string, unknown>;
-      const out: Record<string, unknown> = {};
+      const out: { [key: string]: StableValue } = {};
       for (const key of Object.keys(obj).sort()) {
         out[key] = encode(obj[key]);
       }
