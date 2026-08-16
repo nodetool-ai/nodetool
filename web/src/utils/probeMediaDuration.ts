@@ -20,7 +20,7 @@ export function probeMediaDurationMs(
       return;
     }
 
-    const el = document.createElement(kind) as HTMLMediaElement;
+    const el = document.createElement(kind);
     let settled = false;
 
     const finish = (value: number | null) => {

@@ -24,7 +24,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tempDir, { recursive: true, force: true });
-  (os.homedir as jest.Mock).mockRestore();
+  jest.mocked(os.homedir).mockRestore();
   setPlatform(originalPlatform as NodeJS.Platform);
   process.env = { ...originalEnv };
 });
@@ -45,7 +45,7 @@ function readPersistedSettings(): Record<string, unknown> {
 describe("showKeychainExplanationIfNeeded", () => {
   test("shows dialog on macOS and records acknowledgement on first launch", async () => {
     const { dialog } = await import("electron");
-    (dialog.showMessageBox as jest.Mock).mockResolvedValueOnce({ response: 0 });
+    jest.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 });
 
     const {
       showKeychainExplanationIfNeeded,
@@ -55,7 +55,7 @@ describe("showKeychainExplanationIfNeeded", () => {
     await showKeychainExplanationIfNeeded();
 
     expect(dialog.showMessageBox).toHaveBeenCalledTimes(1);
-    const [options] = (dialog.showMessageBox as jest.Mock).mock.calls[0];
+    const [options] = jest.mocked(dialog.showMessageBox).mock.calls[0];
     expect(options.buttons).toEqual(["Continue"]);
     expect(options.title).toMatch(/keychain/i);
 
@@ -129,7 +129,7 @@ describe("showKeychainExplanationIfNeeded", () => {
     setPlatform("linux");
 
     const { dialog } = await import("electron");
-    (dialog.showMessageBox as jest.Mock).mockResolvedValueOnce({ response: 0 });
+    jest.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0 });
 
     const { showKeychainExplanationIfNeeded } = await import(
       "../keychainPrompt"
@@ -138,13 +138,13 @@ describe("showKeychainExplanationIfNeeded", () => {
     await showKeychainExplanationIfNeeded();
 
     expect(dialog.showMessageBox).toHaveBeenCalledTimes(1);
-    const [options] = (dialog.showMessageBox as jest.Mock).mock.calls[0];
+    const [options] = jest.mocked(dialog.showMessageBox).mock.calls[0];
     expect(options.detail).toMatch(/gnome-keyring|kwallet|secret service/i);
   });
 
   test("still records acknowledgement if dialog itself throws", async () => {
     const { dialog } = await import("electron");
-    (dialog.showMessageBox as jest.Mock).mockRejectedValueOnce(
+    jest.mocked(dialog.showMessageBox).mockRejectedValueOnce(
       new Error("ipc boom"),
     );
 

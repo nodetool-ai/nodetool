@@ -25,6 +25,9 @@ function isSamMaskImageRef(value: unknown): value is SamMaskImageRef {
     return false;
   }
 
+  // SAFETY: the assertion makes the two probes expressible on a value the
+  // guard has only proven to be a non-null object; the returned predicate is
+  // decided by the `typeof` checks on the next line, not by this line.
   const candidate = value as SamMaskImageRef;
   return typeof candidate.uri === "string" || typeof candidate.url === "string";
 }

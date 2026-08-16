@@ -57,10 +57,10 @@ export function redactObject(
     // as it stands.
     return input as RedactedValue;
   }
-  if (seen.has(input as object)) {
+  if (seen.has(input)) {
     return "[Circular]";
   }
-  seen.add(input as object);
+  seen.add(input);
 
   if (Array.isArray(input)) {
     return input.map((item) => redactObject(item, seen));

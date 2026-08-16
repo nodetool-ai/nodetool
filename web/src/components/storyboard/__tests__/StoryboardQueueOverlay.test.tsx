@@ -20,7 +20,7 @@ import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 import { trpcClient } from "../../../trpc/client";
 
-const mockCancel = trpcClient.jobs.cancel.mutate as jest.Mock;
+const mockCancel = jest.mocked(trpcClient.jobs.cancel.mutate);
 
 const BOARD = "qo-board";
 

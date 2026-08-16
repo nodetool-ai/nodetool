@@ -123,7 +123,7 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
     error,
     refetch,
   } = trpc.settings.secrets.list.useQuery();
-  const secrets = useMemo(() => (data?.secrets ?? []) as SecretResponse[], [data]);
+  const secrets = useMemo(() => data?.secrets ?? [], [data]);
   const loadError = error ? error.message || 'Failed to load secrets' : null;
 
   const upsertSecret = trpc.settings.secrets.upsert.useMutation({

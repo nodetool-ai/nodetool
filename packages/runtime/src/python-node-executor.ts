@@ -129,7 +129,7 @@ export class PythonNodeExecutor {
     if (context?.userId) {
       identity.userId = context.userId;
     }
-    if (typeof this.requiresVramGb === "number") {
+    if (this.requiresVramGb != null) {
       identity.requiresVramGb = this.requiresVramGb;
     }
     return identity;

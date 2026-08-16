@@ -159,7 +159,7 @@ type AgentTool = InstanceType<AgentsModule["Tool"]>;
  * and every `nodetool.*` method throws naming its missing tool.
  */
 const NO_TOOLS_GLOBALS = {
-  __toolNames: [] as string[],
+  __toolNames: [],
   __callTool: async () => ({
     ok: false as const,
     error: "no tools in this environment"
@@ -362,7 +362,7 @@ class InputStreamBridge {
     return {
       done: false,
       handle,
-      value: jsonSafe((result as IteratorYieldResult<unknown>).value)
+      value: jsonSafe(result.value)
     };
   }
 }

@@ -80,7 +80,7 @@ const listCollections: CapabilityExport = {
     const infos = await provider.listCollections();
     const collections: CollectionSummary[] = infos.map((info) => ({
       name: info.name,
-      metadata: info.metadata as Record<string, unknown>
+      metadata: info.metadata
     }));
     return { collections };
   }

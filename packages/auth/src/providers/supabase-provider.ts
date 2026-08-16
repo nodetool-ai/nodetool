@@ -83,7 +83,7 @@ function createGoTrueClient(
 
         const user =
           body && typeof body === "object" && "id" in body
-            ? { id: String((body as { id: unknown }).id) }
+            ? { id: String(body.id) }
             : null;
         return { data: { user }, error: null };
       }
@@ -203,7 +203,7 @@ export class SupabaseAuthProvider extends AuthProvider {
         // `error` is truthy here, so it cannot be null — no null guard needed.
         const errMsg =
           typeof error === "object" && "message" in error
-            ? String((error as { message: string }).message)
+            ? String(error.message)
             : String(error);
         return { ok: false, error: errMsg };
       }

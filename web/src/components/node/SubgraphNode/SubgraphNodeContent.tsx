@@ -22,7 +22,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
   ({ id, nodeType, nodeMetadata, data, status, workflowId }) => {
     const { handleAddProperty } = useDynamicProperty(
       id,
-      data.dynamic_properties as Record<string, unknown>
+      data.dynamic_properties
     );
 
     const innerGraph = data.properties?.graph as

@@ -95,7 +95,6 @@ import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
-import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
@@ -311,7 +310,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
         const dragData = deserializeDragData(e.dataTransfer);
         if (!dragData || dragData.type !== "asset") return;
-        const asset = dragData.payload as Asset;
+        const asset = dragData.payload;
 
         const mediaType = assetMediaType(asset.content_type);
         if (!mediaType) return;

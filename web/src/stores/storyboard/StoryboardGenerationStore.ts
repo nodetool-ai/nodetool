@@ -265,6 +265,9 @@ function isMediaRefLike(
   value: unknown
 ): value is Record<string, unknown> & { uri?: string; asset_id?: string; data?: unknown } {
   if (!value || typeof value !== "object") return false;
+  // SAFETY: the line above returned for anything that is not a non-null
+  // object, so indexing is defined; the three reads are unknown-typed and only
+  // tested for truthiness, which is what the predicate reports.
   const v = value as Record<string, unknown>;
   return Boolean(v.uri || v.asset_id || v.data);
 }

@@ -287,12 +287,7 @@ export async function runApplicationBuild(
         }),
         loadWorkflow: async (id: string) => {
           const workflow = await Workflow.find(userId, id);
-          const graph = workflow?.getGraph() as
-            | {
-                nodes: Array<Record<string, unknown>>;
-                edges: Array<Record<string, unknown>>;
-              }
-            | undefined;
+          const graph = workflow?.getGraph();
           if (!graph) return null;
           return workflow?.name ? { graph, name: workflow.name } : { graph };
         },

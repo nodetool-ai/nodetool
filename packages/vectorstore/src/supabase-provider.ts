@@ -564,7 +564,7 @@ export class SupabaseProvider implements VectorProvider {
   async createCollection(
     opts: CreateCollectionOptions
   ): Promise<VectorCollection> {
-    const metric = (opts.metric ?? "cosine") as "cosine" | "l2" | "ip";
+    const metric = opts.metric ?? "cosine";
     const metadata = opts.metadata ?? {};
     const dimension = opts.dimension ?? null;
 

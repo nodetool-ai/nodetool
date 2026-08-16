@@ -23,7 +23,7 @@ import { SUBGRAPH_ACCENT_COLOR } from "../../../constants/nodeTypes";
 const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const { id, type, data, selected, parentId, dragging } = props;
-  const workflow_id = (data as NodeData & { workflow_id?: string }).workflow_id ?? "";
+  const workflow_id = data.workflow_id ?? "";
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
   const hasParent = Boolean(parentId);
 

@@ -151,11 +151,11 @@ export class ComfyWorkflowNode extends BaseNode {
     }
 
     if (isMediaRef(value)) {
-      const bytes = await loadMediaRefBytes(value as MediaRefValue, context);
+      const bytes = await loadMediaRefBytes(value, context);
       if (!bytes) return;
-      const kind = (value as MediaRefValue).type ?? "image";
+      const kind = value.type ?? "image";
       const fallback = UPLOAD_DEFAULTS[kind] ?? UPLOAD_DEFAULTS.image;
-      const ext = extFromUri((value as MediaRefValue).uri) ?? fallback.ext;
+      const ext = extFromUri(value.uri) ?? fallback.ext;
       const filename = `nodetool_${nodeId}_${field}.${ext}`;
       const stored = await uploadComfyFile(
         endpoint,
@@ -534,7 +534,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
         continue;
       }
       if (isMediaRef(value)) {
-        const bytes = await loadMediaRefBytes(value as MediaRefValue, context);
+        const bytes = await loadMediaRefBytes(value, context);
         if (!bytes) continue;
         const key = `${nodeId}_${field}`;
         blobs[key] = bytes;

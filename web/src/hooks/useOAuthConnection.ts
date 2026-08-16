@@ -91,7 +91,7 @@ export const useOAuthConnection = (
     },
     enabled: provider !== null,
     refetchInterval: (query) => {
-      const current = query.state.data as TokensResponse | undefined;
+      const current = query.state.data;
       if (isConnecting && !(current?.tokens && current.tokens.length > 0)) {
         return 2000;
       }

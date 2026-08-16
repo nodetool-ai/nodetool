@@ -37,7 +37,7 @@ export function slotTypeToString(
   slot: DynamicSlotMeta | null | undefined
 ): string {
   if (!slot) return "";
-  return typeMetaToString(slot.type as TypeMetaLike);
+  return typeMetaToString(slot.type);
 }
 
 /** Types that accept anything — never a mismatch on either side of an edge. */

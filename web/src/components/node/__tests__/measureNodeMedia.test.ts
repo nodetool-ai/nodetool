@@ -9,7 +9,7 @@ function makeNode(): HTMLElement {
 function mockRect(el: Element, width: number, height: number): void {
   jest
     .spyOn(el, "getBoundingClientRect")
-    .mockReturnValue({ width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) } as DOMRect);
+    .mockReturnValue({ width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) });
 }
 
 describe("measureNodeMedia", () => {

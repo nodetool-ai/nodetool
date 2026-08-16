@@ -284,7 +284,7 @@ export async function loadMediaBytes(
   const hasInlineData =
     ref.data instanceof Uint8Array ? ref.data.length > 0 : Boolean(ref.data);
   if (hasInlineData) return decodeBase64Data(ref.data);
-  const uri = typeof ref.uri === "string" ? ref.uri : "";
+  const uri = ref.uri ?? "";
   if (!uri) return new Uint8Array();
 
   if (context?.storage) {

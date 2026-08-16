@@ -3,16 +3,15 @@ import type {
   Message,
   MessageContent,
   MessageImageContent,
-  MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
   ToolCall
 } from "./types.js";
 import type { UsageInfo } from "./cost-calculator.js";
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+import { isRecord } from "../type-predicates.js";
+
+export { isRecord };
 
 export function stringifyContent(
   value: string | MessageContent[] | null | undefined
@@ -34,11 +33,11 @@ export async function responseInputContent(
   resolveUri: (uri: string) => Promise<string>
 ): Promise<Record<string, unknown> | null> {
   if (content.type === "text") {
-    return { type: "input_text", text: (content as MessageTextContent).text };
+    return { type: "input_text", text: content.text };
   }
 
   if (content.type === "image_url") {
-    const image = (content as MessageImageContent).image;
+    const image = content.image;
     if (image.uri) {
       const resolved = await resolveUri(image.uri);
       return { type: "input_image", image_url: resolved };

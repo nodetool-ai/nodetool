@@ -34,7 +34,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
   }) => {
     const { handleAddProperty } = useDynamicProperty(
       id,
-      data.dynamic_properties as Record<string, unknown>
+      data.dynamic_properties
     );
 
     return (

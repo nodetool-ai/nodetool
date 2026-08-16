@@ -128,7 +128,7 @@ export async function getPod(apiKey: string, id: string): Promise<RunpodPod> {
 export async function listPods(apiKey: string): Promise<RunpodPod[]> {
   const res = await runpodRest(apiKey, "pods");
   if (Array.isArray(res)) return res as RunpodPod[];
-  const arr = (res as { pods?: unknown }).pods;
+  const arr = res.pods;
   return Array.isArray(arr) ? (arr as RunpodPod[]) : [];
 }
 

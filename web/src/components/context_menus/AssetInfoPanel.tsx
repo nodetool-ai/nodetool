@@ -82,7 +82,7 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
 
   const isImage = asset.content_type?.startsWith("image/");
   const thumbSrc = asset.thumb_url || (isImage ? asset.get_url : null);
-  const metadata = asset.metadata as Record<string, unknown> | null | undefined;
+  const metadata = asset.metadata;
 
   return (
     <Box css={styles(theme)}>

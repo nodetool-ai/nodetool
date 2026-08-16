@@ -8,7 +8,6 @@ import {
 } from "@nodetool-ai/runtime";
 import type {
   NodeDescriptor as GraphNodeDescriptor,
-  Edge,
   NodeUpdate
 } from "@nodetool-ai/protocol";
 
@@ -174,7 +173,7 @@ export function createNode<
     nodeType,
     inputs,
     output
-  }) as DslNode<TOutputs, TDefault>;
+  });
 
   return node;
 }
@@ -328,7 +327,7 @@ export async function run(
     sourceHandle: e.sourceHandle,
     target: e.target,
     targetHandle: e.targetHandle
-  })) as Edge[];
+  }));
 
   const context = new ProcessingContext({
     jobId,
@@ -433,7 +432,7 @@ export async function run(
   // node_update messages with status "error" without failing the whole run.
   const nodeErrors = (result.messages ?? []).filter(
     (m): m is NodeUpdate =>
-      m.type === "node_update" && (m as NodeUpdate).status === "error"
+      m.type === "node_update" && m.status === "error"
   );
   if (nodeErrors.length > 0) {
     throw new Error(nodeErrors[0].error ?? "A node failed during execution");

@@ -42,6 +42,13 @@ import {
 import { inferImageMime, persistOutput } from "../tools/asset-persist.js";
 import { persistBinaryOutput } from "../tools/binary-output.js";
 import { extractJSON } from "../utils/json-parser.js";
+import {
+  isNonBlankString,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   generateImageSpec,
@@ -100,10 +107,10 @@ function parseModelArgs(
 ): MediaModelArgs | { error: string } {
   const provider = params["provider"];
   const model = params["model"];
-  if (typeof provider !== "string" || !provider) {
+  if (!isNonEmptyString(provider)) {
     return { error: "provider must be a non-empty string (use find_model)" };
   }
-  if (typeof model !== "string" || !model) {
+  if (!isNonEmptyString(model)) {
     return { error: "model must be a non-empty string (use find_model)" };
   }
   return { provider, model };
@@ -146,7 +153,7 @@ const generateImage: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
-    if (typeof prompt !== "string" || !prompt)
+    if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
 
     try {
@@ -165,10 +172,9 @@ const generateImage: CapabilityExport = {
       const persisted = await persistOutput(context, result, {
         namePrefix: "generated-image",
         mime: inferImageMime(result),
-        outputFile:
-          typeof params["output_file"] === "string"
-            ? (params["output_file"] as string)
-            : undefined
+        outputFile: isString(params["output_file"])
+          ? params["output_file"]
+          : undefined
       });
       return {
         type: "image",
@@ -192,9 +198,9 @@ const editImage: CapabilityExport = {
     if ("error" in m) return m;
     const inputFile = params["input_file"];
     const prompt = params["prompt"];
-    if (typeof inputFile !== "string" || !inputFile)
+    if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
-    if (typeof prompt !== "string" || !prompt)
+    if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
 
     try {
@@ -215,10 +221,9 @@ const editImage: CapabilityExport = {
       const persisted = await persistOutput(context, result, {
         namePrefix: "edited-image",
         mime: inferImageMime(result),
-        outputFile:
-          typeof params["output_file"] === "string"
-            ? (params["output_file"] as string)
-            : undefined
+        outputFile: isString(params["output_file"])
+          ? params["output_file"]
+          : undefined
       });
       return {
         type: "image",
@@ -241,7 +246,7 @@ const generateVideo: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const prompt = params["prompt"];
-    if (typeof prompt !== "string" || !prompt)
+    if (!isNonEmptyString(prompt))
       return { error: "prompt is required" };
 
     try {
@@ -260,10 +265,9 @@ const generateVideo: CapabilityExport = {
       const persisted = await persistOutput(context, result, {
         namePrefix: "generated-video",
         mime: "video/mp4",
-        outputFile:
-          typeof params["output_file"] === "string"
-            ? (params["output_file"] as string)
-            : undefined
+        outputFile: isString(params["output_file"])
+          ? params["output_file"]
+          : undefined
       });
       return {
         type: "video",
@@ -286,7 +290,7 @@ const animateImage: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const inputFile = params["input_file"];
-    if (typeof inputFile !== "string" || !inputFile)
+    if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
 
     try {
@@ -306,10 +310,9 @@ const animateImage: CapabilityExport = {
       const persisted = await persistOutput(context, result, {
         namePrefix: "animated-video",
         mime: "video/mp4",
-        outputFile:
-          typeof params["output_file"] === "string"
-            ? (params["output_file"] as string)
-            : undefined
+        outputFile: isString(params["output_file"])
+          ? params["output_file"]
+          : undefined
       });
       return {
         type: "video",
@@ -418,12 +421,11 @@ const generateSpeech: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const text = params["text"];
-    if (typeof text !== "string" || !text) return { error: "text is required" };
+    if (!isNonEmptyString(text)) return { error: "text is required" };
 
-    const outputFile =
-      typeof params["output_file"] === "string"
-        ? (params["output_file"] as string)
-        : undefined;
+    const outputFile = isString(params["output_file"])
+      ? params["output_file"]
+      : undefined;
     const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
 
     try {
@@ -476,7 +478,7 @@ const generateSpeech: CapabilityExport = {
             parts.push(chunk.data);
             if (chunk.mimeType) mimeType = chunk.mimeType;
             pcmOnly = false;
-          } else if (typeof chunk.data === "string") {
+          } else if (isString(chunk.data)) {
             parts.push(Buffer.from(chunk.data, "base64"));
             if (chunk.mimeType) mimeType = chunk.mimeType;
             pcmOnly = false;
@@ -533,7 +535,7 @@ const transcribeAudio: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const inputFile = params["input_file"];
-    if (typeof inputFile !== "string" || !inputFile)
+    if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
 
     try {
@@ -576,7 +578,7 @@ const embedText: CapabilityExport = {
     const m = parseModelArgs(params);
     if ("error" in m) return m;
     const text = params["text"];
-    if (typeof text !== "string" && !Array.isArray(text))
+    if (!isString(text) && !Array.isArray(text))
       return { error: "text must be a string or array of strings" };
 
     try {
@@ -619,13 +621,13 @@ function parseJudgeModelArgs(
 ): JudgeModelArgs | { error: string } {
   const provider = params["provider"];
   const model = params["model"];
-  if (typeof provider !== "string" || !provider) {
+  if (!isNonEmptyString(provider)) {
     return {
       error:
         "provider must be a non-empty string (use find_model with a vision-capable chat model)"
     };
   }
-  if (typeof model !== "string" || !model) {
+  if (!isNonEmptyString(model)) {
     return {
       error:
         "model must be a non-empty string (use find_model with a vision-capable chat model)"
@@ -663,7 +665,7 @@ function textPart(text: string): MessageContent {
 /** Pull the text out of a provider response message. */
 function messageText(message: Message): string {
   const content = message.content;
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (Array.isArray(content)) {
     return content
       .map((part) => (part.type === "text" ? part.text : ""))
@@ -693,7 +695,7 @@ async function judgeCall(
 
 function tasteBlock(params: Record<string, unknown>): string {
   const profile = params["taste_profile"];
-  if (typeof profile !== "string" || !profile.trim()) return "";
+  if (!isNonBlankString(profile)) return "";
   return `\n\nThe user's known aesthetic preferences (weigh these alongside the brief):\n${profile.trim()}`;
 }
 
@@ -715,16 +717,14 @@ interface CritiqueResult {
 
 function parseCritique(text: string): CritiqueResult | null {
   const parsed = extractJSON(text);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     return null;
   }
-  const obj = parsed as Record<string, unknown>;
+  const obj = parsed;
   const verdict = obj["verdict"] === "pass" ? "pass" : "revise";
   const defects: CritiqueDefect[] = Array.isArray(obj["defects"])
     ? (obj["defects"] as unknown[])
-        .filter((d): d is Record<string, unknown> =>
-          Boolean(d && typeof d === "object")
-        )
+        .filter(isObjectLike)
         .map((d) => ({
           defect: String(d["defect"] ?? ""),
           location: String(d["location"] ?? ""),
@@ -746,9 +746,9 @@ const critiqueImage: CapabilityExport = {
     if ("error" in m) return m;
     const image = params["image"];
     const brief = params["brief"];
-    if (typeof image !== "string" || !image)
+    if (!isNonEmptyString(image))
       return { error: "image is required" };
-    if (typeof brief !== "string" || !brief)
+    if (!isNonEmptyString(brief))
       return { error: "brief is required" };
 
     const prompt =
@@ -808,9 +808,8 @@ function parsePairVerdict(
   text: string
 ): { winner: 1 | 2; reason: string } | null {
   const parsed = extractJSON(text);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-    return null;
-  const obj = parsed as Record<string, unknown>;
+  if (!isRecord(parsed)) return null;
+  const obj = parsed;
   const winner = Number(obj["winner"]);
   if (winner !== 1 && winner !== 2) return null;
   return { winner, reason: String(obj["reason"] ?? "") };
@@ -827,7 +826,7 @@ const compareImages: CapabilityExport = {
     if (
       !Array.isArray(images) ||
       images.length < 2 ||
-      images.some((i) => typeof i !== "string" || !i)
+      images.some((i) => !isNonEmptyString(i))
     ) {
       return { error: "images must be an array of 2-8 non-empty strings" };
     }
@@ -836,7 +835,7 @@ const compareImages: CapabilityExport = {
         error: `images must contain at most ${MAX_COMPARE_IMAGES} candidates`
       };
     }
-    if (typeof brief !== "string" || !brief)
+    if (!isNonEmptyString(brief))
       return { error: "brief is required" };
 
     const prompt =
@@ -947,9 +946,9 @@ const scoreImageAdherence: CapabilityExport = {
     if ("error" in m) return m;
     const image = params["image"];
     const brief = params["brief"];
-    if (typeof image !== "string" || !image)
+    if (!isNonEmptyString(image))
       return { error: "image is required" };
-    if (typeof brief !== "string" || !brief)
+    if (!isNonEmptyString(brief))
       return { error: "brief is required" };
 
     try {
@@ -970,10 +969,7 @@ const scoreImageAdherence: CapabilityExport = {
           )
         ]);
         const parsed = extractJSON(decomposeText);
-        const list =
-          parsed && typeof parsed === "object" && !Array.isArray(parsed)
-            ? (parsed as Record<string, unknown>)["questions"]
-            : parsed;
+        const list = isRecord(parsed) ? parsed["questions"] : parsed;
         questions = Array.isArray(list) ? list.map(String).filter(Boolean) : [];
         if (questions.length === 0) {
           return {
@@ -994,19 +990,14 @@ const scoreImageAdherence: CapabilityExport = {
         imagePart(image)
       ]);
       const parsed = extractJSON(answerText);
-      const rawAnswers =
-        parsed && typeof parsed === "object" && !Array.isArray(parsed)
-          ? (parsed as Record<string, unknown>)["answers"]
-          : null;
+      const rawAnswers: unknown = isRecord(parsed) ? parsed["answers"] : null;
       if (!Array.isArray(rawAnswers) || rawAnswers.length === 0) {
         return {
           error: `Judge did not return parseable answers: ${answerText.slice(0, 300)}`
         };
       }
       const answers: AdherenceAnswer[] = rawAnswers
-        .filter((a): a is Record<string, unknown> =>
-          Boolean(a && typeof a === "object")
-        )
+        .filter(isObjectLike)
         .map((a) => ({
           question: String(a["question"] ?? ""),
           answer: a["answer"] === "yes" ? "yes" : "no",
@@ -1047,7 +1038,7 @@ const readMediaBytes: CapabilityExport = {
   spec: readMediaBytesSpec,
   impl: async (run, params) => {
     const uri = params.uri;
-    if (typeof uri !== "string" || uri.trim() === "") {
+    if (!isNonBlankString(uri)) {
       return { error: "uri is required and must be a non-empty string" };
     }
     const trimmed = uri.trim();
@@ -1089,7 +1080,7 @@ const readMediaBytes: CapabilityExport = {
 
 function requireWorkspaceDir(context: ProcessingContext): string | { error: string } {
   const dir = context.workspaceDir;
-  if (typeof dir !== "string" || !dir) {
+  if (!isNonEmptyString(dir)) {
     return { error: "workspaceDir is required to run a host media binary" };
   }
   return dir;
@@ -1101,7 +1092,7 @@ function stringArgs(raw: unknown): string[] | { error: string } {
   }
   const args: string[] = [];
   for (const item of raw) {
-    if (typeof item !== "string") {
+    if (!isString(item)) {
       return { error: "args must be a non-empty array of strings" };
     }
     args.push(item);
@@ -1136,14 +1127,13 @@ const ffmpeg: CapabilityExport = {
   spec: ffmpegSpec,
   impl: async (run, params) => {
     const workspace = requireWorkspaceDir(run.context);
-    if (typeof workspace !== "string") return workspace;
+    if (!isString(workspace)) return workspace;
     const args = stringArgs(params["args"]);
     if ("error" in args) return args;
 
-    const outputFile =
-      typeof params["output_file"] === "string" && params["output_file"].trim()
-        ? params["output_file"].trim()
-        : "";
+    const outputFile = isNonBlankString(params["output_file"])
+      ? params["output_file"].trim()
+      : "";
     const argv = [...args];
     if (outputFile && !argv.includes(outputFile)) {
       argv.push(outputFile);
@@ -1188,9 +1178,9 @@ const ytDlp: CapabilityExport = {
   spec: ytDlpSpec,
   impl: async (run, params) => {
     const workspace = requireWorkspaceDir(run.context);
-    if (typeof workspace !== "string") return workspace;
+    if (!isString(workspace)) return workspace;
     const url = params["url"];
-    if (typeof url !== "string" || !url.trim()) {
+    if (!isNonBlankString(url)) {
       return { error: "url is required" };
     }
     try {
@@ -1202,14 +1192,12 @@ const ytDlp: CapabilityExport = {
       return { error: `invalid url: ${url}` };
     }
 
-    const outputFile =
-      typeof params["output_file"] === "string" && params["output_file"].trim()
-        ? params["output_file"].trim()
-        : DEFAULT_YT_DLP_OUTPUT;
-    const format =
-      typeof params["format"] === "string" && params["format"].trim()
-        ? params["format"].trim()
-        : "";
+    const outputFile = isNonBlankString(params["output_file"])
+      ? params["output_file"].trim()
+      : DEFAULT_YT_DLP_OUTPUT;
+    const format = isNonBlankString(params["format"])
+      ? params["format"].trim()
+      : "";
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
 

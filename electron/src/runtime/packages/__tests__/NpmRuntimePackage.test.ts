@@ -28,7 +28,7 @@ jest
 import * as fsp from "fs/promises";
 import type { RuntimeContext } from "../types";
 
-const mockReadFile = fsp.readFile as jest.MockedFunction<typeof fsp.readFile>;
+const mockReadFile = jest.mocked(fsp.readFile);
 
 const ctx: RuntimeContext = {
   condaEnvPath: "/mock/conda",

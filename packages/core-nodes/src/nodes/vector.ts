@@ -234,7 +234,7 @@ export class GetDocumentsNode extends BaseNode {
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
 
-    const ids = (this.ids ?? []) as string[];
+    const ids = this.ids ?? [];
     const limit = Number(this.limit ?? 100);
     const offset = Number(this.offset ?? 0);
 
@@ -363,11 +363,11 @@ export class IndexImageNode extends BaseNode {
 
     const image = (this.image ?? {}) as Record<string, unknown>;
     const indexId = String(this.index_id ?? "");
-    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
+    const metadataRaw = this.metadata ?? {};
 
     const resolvedId =
       indexId.trim() ||
-      String((image as Record<string, unknown>).document_id ?? "").trim();
+      String(image.document_id ?? "").trim();
 
     if (!resolvedId) {
       throw new Error(
@@ -491,7 +491,7 @@ export class IndexEmbeddingNode extends BaseNode {
         }
         metadatas = metadataRaw.map(flattenMetadata);
       } else {
-        const flat = flattenMetadata(metadataRaw as Record<string, unknown>);
+        const flat = flattenMetadata(metadataRaw);
         metadatas = Array(indexId.length).fill(flat) as RecordMetadata[];
       }
 
@@ -507,10 +507,7 @@ export class IndexEmbeddingNode extends BaseNode {
       if (!idStr.trim()) throw new Error("The ID cannot be empty");
 
       const flat = flattenMetadata(
-        (Array.isArray(metadataRaw) ? metadataRaw[0] : metadataRaw) as Record<
-          string,
-          unknown
-        >
+        (Array.isArray(metadataRaw) ? metadataRaw[0] : metadataRaw)
       );
 
       await collection.upsert([
@@ -576,7 +573,7 @@ export class IndexTextChunkNode extends BaseNode {
     if (!documentId.trim()) throw new Error("The document ID cannot be empty");
 
     const text = String(this.text ?? "");
-    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
+    const metadataRaw = this.metadata ?? {};
 
     const collection = await getCollectionByName(name);
     await collection.upsert([
@@ -658,7 +655,7 @@ export class IndexAggregatedTextNode extends BaseNode {
 
     const document = String(this.document ?? "");
     const documentId = String(this.document_id ?? "");
-    const metadataRaw = (this.metadata ?? {}) as Record<string, unknown>;
+    const metadataRaw = this.metadata ?? {};
     const textChunksRaw = (this.text_chunks ?? []) as (
       | string
       | { text: string }
@@ -671,7 +668,7 @@ export class IndexAggregatedTextNode extends BaseNode {
       throw new Error("The text chunks cannot be empty");
 
     const collection = await getCollectionByName(name);
-    const model = (collection.metadata as Record<string, unknown> | undefined)
+    const model = collection.metadata
       ?.embedding_model as string | undefined;
     if (!model)
       throw new Error(
@@ -969,7 +966,7 @@ export class RemoveOverlapNode extends BaseNode {
   declare min_overlap_words: number;
 
   async process(): Promise<RemoveOverlapNodeOutputs> {
-    const documents = (this.documents ?? []) as string[];
+    const documents = this.documents ?? [];
     const minOverlapWords = Number(this.min_overlap_words ?? 2);
 
     if (documents.length === 0) {

@@ -89,11 +89,6 @@ interface VideoFrameMeta {
   mediaTime: number;
 }
 type VideoFrameCallback = (now: number, metadata: VideoFrameMeta) => void;
-interface RVFCVideo {
-  requestVideoFrameCallback?: (cb: VideoFrameCallback) => number;
-  cancelVideoFrameCallback?: (handle: number) => void;
-}
-
 const styles = (theme: Theme) =>
   css({
     "&.extract-video-frame-body": {
@@ -285,7 +280,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
     deltas: []
   });
   useEffect(() => {
-    const video = videoRef.current as (HTMLVideoElement & RVFCVideo) | null;
+    const video = videoRef.current;
     if (!video || typeof video.requestVideoFrameCallback !== "function") {
       return;
     }

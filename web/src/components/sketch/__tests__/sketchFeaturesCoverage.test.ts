@@ -45,7 +45,7 @@ function makeLayer(overrides: Partial<Layer> = {}): Layer {
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: [],
     ...overrides
-  } as Layer;
+  };
 }
 
 function makeDoc(overrides: Partial<SketchDocument> = {}): SketchDocument {
@@ -61,7 +61,7 @@ function makeDoc(overrides: Partial<SketchDocument> = {}): SketchDocument {
       updatedAt: new Date().toISOString()
     },
     ...overrides
-  } as SketchDocument;
+  };
 }
 
 /** Paint a solid-color rectangle on a canvas. */

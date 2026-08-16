@@ -322,7 +322,7 @@ export class Job extends DBModel {
       .orderBy(desc(jobs.updated_at))
       .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Job(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Job(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

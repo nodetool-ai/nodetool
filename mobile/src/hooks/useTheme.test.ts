@@ -105,7 +105,7 @@ describe('useTheme', () => {
   });
 
   it('uses system appearance as light when system is light', () => {
-    (Appearance.getColorScheme as jest.Mock).mockReturnValue('light');
+    jest.mocked(Appearance.getColorScheme).mockReturnValue('light');
     const systemState = { ...mockState, mode: 'system' as const };
     jest.mocked(useThemeStore).mockImplementation((selector?) => {
       return selector ? selector(systemState) : systemState;

@@ -128,7 +128,7 @@ function registerList(
           return;
         }
         printTable(
-          (cached as Record<string, unknown>[]).map((m) => ({
+          cached.map((m) => ({
             repo_id: m["repo_id"] ?? m["id"] ?? "",
             type: m["type"] ?? "-",
             size: formatBytes(m["size_on_disk"] as number | undefined),

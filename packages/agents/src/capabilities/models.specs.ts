@@ -65,7 +65,7 @@ export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
       default: 5
     }
   },
-  required: ["capability"] as string[]
+  required: ["capability"]
 };
 
 export const MODEL_TYPES = [
@@ -105,7 +105,7 @@ export const LIST_MODELS_SCHEMA: JsonSchema = {
       default: 50
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const findModelSpec: CapabilitySpec = {

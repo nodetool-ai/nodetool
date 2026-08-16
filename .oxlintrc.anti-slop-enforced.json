@@ -10,6 +10,23 @@
     "anti-slop/no-unknown-type-aliases": "error",
     "anti-slop/no-widen-then-assert": "error"
   },
+  "overrides": [
+    {
+      "files": ["packages/protocol/src/**"],
+      "rules": {
+        "anti-slop/no-runtime-typeof": [
+          "error",
+          { "allowInTypeGuards": true }
+        ]
+      }
+    },
+    {
+      "files": ["packages/protocol/src/typecheck.ts"],
+      "rules": {
+        "anti-slop/no-runtime-typeof": "off"
+      }
+    }
+  ],
   "jsPlugins": [
     {
       "name": "anti-slop",

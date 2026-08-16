@@ -433,7 +433,7 @@ function costSummary(
       .filter((item) => item.confidence === "unknown")
       .map((item) => item.node_id),
     approval_required:
-      typeof threshold === "number" && estimate.total > threshold
+      threshold != null && estimate.total > threshold
   };
 }
 

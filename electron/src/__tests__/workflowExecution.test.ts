@@ -26,17 +26,15 @@ jest.mock('../logger', () => ({
 jest.mock('../workflowWindow', () => ({
   createWorkflowWindow: jest.fn(),
 }));
-const mockedCreateWorkflowWindow = createWorkflowWindow as jest.MockedFunction<
-  typeof createWorkflowWindow
->;
+const mockedCreateWorkflowWindow = jest.mocked(createWorkflowWindow);
 
 // The real runner module; only the factory is stubbed so no socket is dialled.
 const mockedCreateWorkflowRunner = jest.spyOn(
   workflowRunnerModule,
   'createWorkflowRunner'
 );
-const mockedClipboard = clipboard as jest.Mocked<typeof clipboard>;
-const mockedNativeImage = nativeImage as jest.Mocked<typeof nativeImage>;
+const mockedClipboard = jest.mocked(clipboard);
+const mockedNativeImage = jest.mocked(nativeImage);
 
 function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string, outputData: any = {}): Workflow {
   return {

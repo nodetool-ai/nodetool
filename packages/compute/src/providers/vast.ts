@@ -169,7 +169,7 @@ export class VastProvider implements WorkerProvider {
 
   async list(): Promise<ProviderInstance[]> {
     const res = await vastApi(this.apiKey, "instances/");
-    const arr = (res as { instances?: unknown }).instances;
+    const arr = res.instances;
     const instances = Array.isArray(arr) ? (arr as VastInstance[]) : [];
     return instances.map((instance) => ({
       providerRef: String(instance.id),
@@ -204,7 +204,7 @@ export class VastProvider implements WorkerProvider {
       q: query,
       order: [["dph_total", "asc"]],
     });
-    const offers = (res as { offers?: unknown }).offers;
+    const offers = res.offers;
     const first = Array.isArray(offers)
       ? (offers[0] as { id?: number; dph_total?: number } | undefined)
       : undefined;
@@ -234,7 +234,7 @@ export class VastProvider implements WorkerProvider {
     // The launch response is `{success, new_contract}` per the Vast HTTP API
     // (https://console.vast.ai/api/v0). On failure it carries `error`/`message`
     // instead, so include the whole body to keep the failure debuggable.
-    const contract = (res as { new_contract?: number }).new_contract;
+    const contract = res.new_contract;
     if (!contract) {
       throw new Error(
         `Vast.ai launch returned no instance id: ${JSON.stringify(res)}`
@@ -271,7 +271,7 @@ export class VastProvider implements WorkerProvider {
 
   private async getInstance(id: string): Promise<VastInstance> {
     const res = await vastApi(this.apiKey, `instances/${id}/`);
-    const instance = (res as { instances?: unknown }).instances;
+    const instance = res.instances;
     return (instance ?? {}) as VastInstance;
   }
 }

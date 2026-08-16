@@ -46,7 +46,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
       const dragData = deserializeDragData(event.dataTransfer);
 
       if (dragData?.type === "asset") {
-        const asset = dragData.payload as Asset;
+        const asset = dragData.payload;
         const assetType = asset.content_type.split("/")[0];
         if (
           props.type === "all" ||

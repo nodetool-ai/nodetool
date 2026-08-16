@@ -26,7 +26,7 @@ function mockMetadata(overrides: Partial<NodeMetadata>): NodeMetadata {
     is_streaming_output: false,
     supports_dynamic_outputs: false,
     ...overrides
-  } as NodeMetadata;
+  };
 }
 
 function mockOutputSlot(typeName: string, name = "output"): OutputSlot {

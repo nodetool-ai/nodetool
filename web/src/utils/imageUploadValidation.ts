@@ -163,9 +163,7 @@ export const prepareUploadFile = async (
   }
 
   const headerBytes = await (async (): Promise<Uint8Array> => {
-    const sliced = file.slice(0, HEADER_BYTES) as Blob & {
-      arrayBuffer?: () => Promise<ArrayBuffer>;
-    };
+    const sliced = file.slice(0, HEADER_BYTES);
     if (typeof sliced.arrayBuffer === "function") {
       const headerBuffer = await sliced.arrayBuffer();
       return new Uint8Array(headerBuffer);

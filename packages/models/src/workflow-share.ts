@@ -51,7 +51,7 @@ export class WorkflowShare extends DBModel {
       .from(workflowShares)
       .where(eq(workflowShares.token, token))
       .limit(1);
-    return row ? new WorkflowShare(row as Record<string, unknown>) : null;
+    return row ? new WorkflowShare(row) : null;
   }
 
   /** Active (non-revoked) share with the given role, if one exists. */
@@ -71,7 +71,7 @@ export class WorkflowShare extends DBModel {
         )
       )
       .limit(1);
-    return row ? new WorkflowShare(row as Record<string, unknown>) : null;
+    return row ? new WorkflowShare(row) : null;
   }
 
   /** All shares for a workflow, active and revoked. */
@@ -99,7 +99,7 @@ export class WorkflowShare extends DBModel {
       workflow_id: opts.workflowId,
       role: opts.role,
       created_by: opts.createdBy
-    })) as WorkflowShare;
+    }));
   }
 
   async revoke(): Promise<void> {

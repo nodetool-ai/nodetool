@@ -26,6 +26,7 @@ import { ModelSelectModal } from "./ModelSelectModal";
 import { apiService } from "../../services/api";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import type { Property } from "../../types/ApiTypes";
+import { isNumber, isRecord, isString } from "../../utils/typePredicates";
 
 // ── Shared types ────────────────────────────────────────────────────
 
@@ -730,15 +731,15 @@ function mediaLocatorOf(value: unknown): string | null {
   if (!value) {
     return null;
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value;
   }
-  if (typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string") {
+  if (isRecord(value)) {
+    const v = value;
+    if (isString(v.uri)) {
       return v.uri;
     }
-    if (typeof v.id === "string") {
+    if (isString(v.id)) {
       return v.id;
     }
   }
@@ -776,12 +777,11 @@ const ColorWidget: React.FC<{
   onChange: (v: ColorValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
-  const colorValue =
-    typeof value === "object" && value !== null
-      ? ((value as Record<string, unknown>).value as string | undefined)
-      : typeof value === "string"
-        ? value
-        : undefined;
+  const colorValue = isRecord(value)
+    ? (value.value as string | undefined)
+    : isString(value)
+      ? value
+      : undefined;
 
   const [customInput, setCustomInput] = useState(colorValue ?? "");
 
@@ -897,11 +897,11 @@ const ImageSizeWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const safeValue = useMemo(() => {
-    if (typeof value === "object" && value !== null) {
-      const v = value as Record<string, unknown>;
+    if (isRecord(value)) {
+      const v = value;
       return {
-        width: typeof v.width === "number" ? v.width : 1024,
-        height: typeof v.height === "number" ? v.height : 1024
+        width: isNumber(v.width) ? v.width : 1024,
+        height: isNumber(v.height) ? v.height : 1024
       };
     }
     return { width: 1024, height: 1024 };
@@ -1109,12 +1109,9 @@ const JSONWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const dataStr =
-    typeof value === "object" &&
-    value !== null &&
-    "data" in value &&
-    typeof value.data === "string"
+    isRecord(value) && "data" in value && isString(value.data)
       ? value.data
-      : typeof value === "string"
+      : isString(value)
         ? value
         : undefined;
 
@@ -1185,8 +1182,8 @@ const DictWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const dict = useMemo(() => {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      return value as Record<string, unknown>;
+    if (isRecord(value) && !Array.isArray(value)) {
+      return value;
     }
     return {};
   }, [value]);
@@ -1558,7 +1555,7 @@ const FilePathWidget: React.FC<{
   colors: ThemeColors;
   isFolder?: boolean;
 }> = ({ value, onChange, colors, isFolder }) => {
-  const pathStr = typeof value === "string" ? value : "";
+  const pathStr = isString(value) ? value : "";
 
   const pickFile = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -1673,11 +1670,11 @@ const ModelWidget: React.FC<{
     if (!value) {
       return { modelId: "", modelName: "" };
     }
-    if (typeof value === "string") {
+    if (isString(value)) {
       return { modelId: value, modelName: value };
     }
-    if (typeof value === "object") {
-      const v = value as Record<string, unknown>;
+    if (isRecord(value)) {
+      const v = value;
       const id = String(v.id ?? v.name ?? v.repo_id ?? "");
       const name = String(v.name ?? v.id ?? v.repo_id ?? "");
       return { modelId: id, modelName: name };
@@ -1761,10 +1758,7 @@ const ModelWidget: React.FC<{
       </TouchableOpacity>
 
       {/* Provider badge */}
-      {modelId &&
-      typeof value === "object" &&
-      value !== null &&
-      (value as Record<string, unknown>).provider ? (
+      {modelId && isRecord(value) && value.provider ? (
         <Text
           style={[modelStyles.providerBadge, { color: colors.textTertiary }]}
         >
@@ -1832,11 +1826,11 @@ const AssetRefWidget: React.FC<{
     if (!value) {
       return "";
     }
-    if (typeof value === "string") {
+    if (isString(value)) {
       return value;
     }
-    if (typeof value === "object") {
-      const v = value as Record<string, unknown>;
+    if (isRecord(value)) {
+      const v = value;
       return String(v.id ?? v.asset_id ?? v.name ?? v.uri ?? "");
     }
     return "";

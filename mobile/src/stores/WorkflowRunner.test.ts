@@ -59,7 +59,7 @@ async function bootStore(): Promise<{
   const store = createWorkflowRunnerStore(WORKFLOW_ID);
   let handler: ((message: Record<string, unknown>) => void) | undefined;
   mockWs.subscribe.mockImplementation((_key: string, h) => {
-    handler = h as (message: Record<string, unknown>) => void;
+    handler = h;
     return () => {};
   });
   await store.getState().run({}, makeWorkflow());
@@ -445,7 +445,7 @@ describe('WorkflowRunner', () => {
       let wfHandler: ((m: Record<string, unknown>) => void) | undefined;
       mockWs.subscribe.mockImplementation((key: string, h) => {
         if (key === WORKFLOW_ID) {
-          wfHandler = h as (m: Record<string, unknown>) => void;
+          wfHandler = h;
         }
         return () => {};
       });

@@ -14,7 +14,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { blendModeGpuId, type BlendMode } from "@nodetool-ai/gpu";
+import { blendModeGpuId } from "@nodetool-ai/gpu";
 import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
 
 import {
@@ -359,7 +359,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
                     propertyKey={layer.id}
                     state={{
                       opacity: layer.opacity,
-                      blend_mode: layer.blendMode as BlendMode,
+                      blend_mode: layer.blendMode,
                       visible: layer.visible
                     }}
                     image={layer.url ? { uri: layer.url } : undefined}

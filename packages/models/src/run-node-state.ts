@@ -81,7 +81,7 @@ export class RunNodeState extends DBModel {
         and(eq(runNodeState.run_id, runId), eq(runNodeState.node_id, nodeId))
       )
       .limit(1);
-    return row ? new RunNodeState(row as Record<string, unknown>) : null;
+    return row ? new RunNodeState(row) : null;
   }
 
   /** Get existing node state or create an idle one. */
@@ -113,7 +113,7 @@ export class RunNodeState extends DBModel {
         )
       )
       .limit(10000);
-    return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new RunNodeState(r));
   }
 
   static async getSuspendedNodes(runId: string): Promise<RunNodeState[]> {
@@ -128,7 +128,7 @@ export class RunNodeState extends DBModel {
         )
       )
       .limit(10000);
-    return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new RunNodeState(r));
   }
 
   async markScheduled(attempt?: number): Promise<void> {

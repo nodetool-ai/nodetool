@@ -212,21 +212,21 @@ function SquareHandle({ cx, cy, cursor, onDown }: SquareHandleProps) {
       style={{ cursor, pointerEvents: "all" }}
       onPointerDown={onDown}
       onPointerEnter={(e) => {
-        (e.currentTarget as SVGRectElement).setAttribute(
+        e.currentTarget.setAttribute(
           "fill",
           HANDLE_FILL_HOVERED
         );
-        (e.currentTarget as SVGRectElement).setAttribute(
+        e.currentTarget.setAttribute(
           "stroke-width",
           String(GIZMO_LINE_WIDTH_HOVERED)
         );
       }}
       onPointerLeave={(e) => {
-        (e.currentTarget as SVGRectElement).setAttribute(
+        e.currentTarget.setAttribute(
           "fill",
           HANDLE_FILL_DEFAULT
         );
-        (e.currentTarget as SVGRectElement).setAttribute(
+        e.currentTarget.setAttribute(
           "stroke-width",
           String(GIZMO_LINE_WIDTH)
         );

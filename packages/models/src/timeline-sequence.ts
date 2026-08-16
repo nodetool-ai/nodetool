@@ -257,7 +257,7 @@ export class TimelineSequence extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new TimelineSequence(row);
@@ -300,7 +300,7 @@ export class TimelineSequence extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new TimelineSequence(row);

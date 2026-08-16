@@ -207,7 +207,7 @@ export class Prediction extends DBModel {
       .orderBy(desc(predictions.created_at))
       .limit(limit + 1)
 
-    const items = rows.map((r: Record<string, unknown>) => new Prediction(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Prediction(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -266,7 +266,7 @@ export class Prediction extends DBModel {
 
     const groups = new Map<string, ProviderAggregateResult>();
     for (const p of rows) {
-      const prov = p.provider as string;
+      const prov = p.provider;
       let entry = groups.get(prov);
       if (!entry) {
         entry = {
@@ -306,8 +306,8 @@ export class Prediction extends DBModel {
 
     const groups = new Map<string, ModelAggregateResult>();
     for (const p of rows) {
-      const prov = p.provider as string;
-      const mod = p.model as string;
+      const prov = p.provider;
+      const mod = p.model;
       const key = `${prov}::${mod}`;
       let entry = groups.get(key);
       if (!entry) {
@@ -408,9 +408,9 @@ export class Prediction extends DBModel {
 
     for (const p of rows) {
       const cost = (p.cost as number) ?? 0;
-      const provider = (p.provider as string) || "unknown";
-      const model = (p.model as string) || "unknown";
-      const status = (p.status as string) ?? "";
+      const provider = p.provider || "unknown";
+      const model = p.model || "unknown";
+      const status = p.status ?? "";
       total_cost += cost;
       if (status === "failed" || status === "error") failed_count += 1;
 
@@ -431,7 +431,7 @@ export class Prediction extends DBModel {
       me.total_cost += cost;
       me.call_count += 1;
 
-      const created = p.created_at as string | null;
+      const created = p.created_at;
       if (created) {
         const idx = Math.floor(
           (Date.parse(created) - tzMs - startLocal) / DAY_MS
@@ -459,7 +459,7 @@ export class Prediction extends DBModel {
     const recent = rows.slice(0, execLimit);
     const wfIdSet = new Set<string>();
     for (const p of recent) {
-      const wf = p.workflow_id as string | null;
+      const wf = p.workflow_id;
       if (wf) wfIdSet.add(wf);
     }
     const wfIds = [...wfIdSet];
@@ -469,27 +469,27 @@ export class Prediction extends DBModel {
         .select({ id: workflows.id, name: workflows.name })
         .from(workflows)
         .where(inArray(workflows.id, wfIds));
-      for (const w of wfRows) wfNames.set(w.id as string, w.name as string);
+      for (const w of wfRows) wfNames.set(w.id, w.name);
     }
 
     const executions: DashboardExecutionResult[] = [];
     for (const p of recent) {
-      const workflow_id = (p.workflow_id as string | null) ?? null;
+      const workflow_id = p.workflow_id ?? null;
       executions.push({
-        id: p.id as string,
-        node_id: (p.node_id as string) ?? "",
-        node_type: (p.node_type as string) ?? "",
+        id: p.id,
+        node_id: p.node_id ?? "",
+        node_type: p.node_type ?? "",
         workflow_id,
         workflow_name: workflow_id ? (wfNames.get(workflow_id) ?? null) : null,
-        provider: (p.provider as string) ?? "",
-        model: (p.model as string) ?? "",
-        cost: (p.cost as number | null) ?? null,
-        input_tokens: (p.input_tokens as number | null) ?? null,
-        output_tokens: (p.output_tokens as number | null) ?? null,
-        total_tokens: (p.total_tokens as number | null) ?? null,
-        duration: (p.duration as number | null) ?? null,
-        status: (p.status as string) ?? "",
-        created_at: (p.created_at as string | null) ?? null
+        provider: p.provider ?? "",
+        model: p.model ?? "",
+        cost: p.cost ?? null,
+        input_tokens: p.input_tokens ?? null,
+        output_tokens: p.output_tokens ?? null,
+        total_tokens: p.total_tokens ?? null,
+        duration: p.duration ?? null,
+        status: p.status ?? "",
+        created_at: p.created_at ?? null
       });
     }
 

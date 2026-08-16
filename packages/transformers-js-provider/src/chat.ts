@@ -31,7 +31,7 @@ export function normalizeMessages(messages: Message[]): ChatMessage[] {
     } else if (Array.isArray(m.content)) {
       text = m.content
         .filter((c) => c?.type === "text")
-        .map((c) => (c as { text: string }).text)
+        .map((c) => c.text)
         .join("");
     } else {
       text = "";
@@ -73,7 +73,7 @@ async function getChatPipeline(model: string): Promise<ChatPipelineFn> {
   return (await getPipeline({
     task: "text-generation",
     model
-  })) as ChatPipelineFn;
+  }));
 }
 
 function buildPipelineOpts(args: ChatArgs) {
@@ -275,7 +275,7 @@ function makeStopper(
 
 function makeAbortError(): Error {
   // DOMException is available in Node 18+ as a global.
-  const Ctor = (globalThis as { DOMException?: new (msg: string, name: string) => Error })
+  const Ctor = globalThis
     .DOMException;
   if (Ctor) return new Ctor("Aborted", "AbortError");
   const err = new Error("Aborted");

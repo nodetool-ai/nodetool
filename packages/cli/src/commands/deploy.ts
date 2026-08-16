@@ -494,7 +494,7 @@ function registerWorkflows(deploy: Command): void {
     .option("-p, --param <k=v>", "Parameter k=v (repeatable)", (val, acc: string[] = []) => {
       acc.push(val);
       return acc;
-    }, [] as string[])
+    }, [])
     .option("--token <token>", "Admin bearer token")
     .action(
       runAction(

@@ -19,7 +19,6 @@ import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ProcessingMessage,
-  StepResult,
   LogUpdate,
   TaskUpdate
 } from "@nodetool-ai/protocol";
@@ -309,7 +308,7 @@ export class ParallelTaskExecutor {
           instructions: s.instructions,
           completed: s.completed
         }))
-      } as TaskUpdate["task"]
+      }
     } satisfies TaskUpdate;
 
     // Create TaskExecutor for this task's steps. Each step discovers
@@ -345,7 +344,7 @@ export class ParallelTaskExecutor {
 
     for await (const item of executor.executeTasks()) {
       if (item.type === "step_result") {
-        const stepResult = item as StepResult;
+        const stepResult = item;
         if (stepResult.is_task_result) {
           taskResult = stepResult.result;
         }
@@ -397,7 +396,7 @@ export class ParallelTaskExecutor {
           id: task.id,
           title: task.title,
           error: failureReason
-        } as TaskUpdate["task"]
+        }
       } satisfies TaskUpdate;
       return;
     }
@@ -429,7 +428,7 @@ export class ParallelTaskExecutor {
         id: task.id,
         title: task.title,
         result: taskResult
-      } as TaskUpdate["task"]
+      }
     } satisfies TaskUpdate;
 
     log.info("Task completed", {
@@ -519,7 +518,7 @@ export class ParallelTaskExecutor {
           id: task.id,
           title: task.title,
           error: message
-        } as TaskUpdate["task"]
+        }
       } satisfies TaskUpdate;
     }
   }

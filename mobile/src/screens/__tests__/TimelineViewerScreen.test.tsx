@@ -158,7 +158,7 @@ const findByLabel = (
 };
 
 const headerButton = (label: string): Record<string, unknown> => {
-  const calls = (navigation.setOptions as jest.Mock).mock.calls as [
+  const calls = jest.mocked(navigation.setOptions).mock.calls as [
     { headerRight?: () => React.ReactElement },
   ][];
   const headerRight = calls[calls.length - 1][0].headerRight;

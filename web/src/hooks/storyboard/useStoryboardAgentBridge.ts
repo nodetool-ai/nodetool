@@ -32,6 +32,7 @@ const toShotNode = (shot: Shot): StoryboardShotNode => ({
   camera: shot.camera,
   motion: shot.motion,
   durationSeconds: shot.duration_seconds,
+  durationSource: shot.duration_source,
   status: shot.status,
   hasKeyframe: !!shot.keyframe,
   hasClip: !!shot.clip,
@@ -144,6 +145,9 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         if (patch.camera !== undefined) next.camera = patch.camera;
         if (patch.motion !== undefined) next.motion = patch.motion;
         if (patch.status !== undefined) next.status = patch.status;
+        if (patch.durationSource !== undefined) {
+          next.duration_source = patch.durationSource;
+        }
         store().updateShot(boardId, shot.id, next);
         return toShotNode(reRead(shot.id));
       },

@@ -9,7 +9,7 @@ jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../stores/NotificationStore");
 // fetch is used natively for asset downloads
-global.fetch = jest.fn() as jest.Mock;
+global.fetch = jest.mocked(jest.fn());
 
 describe("useAddNodeFromAsset", () => {
   const mockAddNode = jest.fn();

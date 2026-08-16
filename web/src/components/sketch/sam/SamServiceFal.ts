@@ -135,6 +135,10 @@ function isFalMaskMetadata(value: unknown): value is FalMaskMetadata {
   if (!value || typeof value !== "object") {
     return false;
   }
+  // SAFETY: the assertion makes the probes below expressible on a value the
+  // guard has only proven to be a non-null object. Every field of
+  // `FalMaskMetadata` is optional and each is checked below, so nothing is
+  // read that the checks have not accounted for.
   const candidate = value as FalMaskMetadata;
   return (
     typeof candidate.label === "string" ||

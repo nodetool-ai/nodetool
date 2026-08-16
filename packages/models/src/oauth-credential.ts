@@ -124,7 +124,7 @@ export class OAuthCredential extends DBModel {
         )
       )
       .limit(1);
-    return row ? new OAuthCredential(row as Record<string, unknown>) : null;
+    return row ? new OAuthCredential(row) : null;
   }
 
   /** List all credentials for a user and provider. */
@@ -143,7 +143,7 @@ export class OAuthCredential extends DBModel {
         )
       )
       .orderBy(desc(oauthCredentials.updated_at));
-    return rows.map((r: Record<string, unknown>) => new OAuthCredential(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new OAuthCredential(r));
   }
 
   /** Create a new credential with encrypted tokens. */

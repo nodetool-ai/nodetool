@@ -212,7 +212,7 @@ describe("usePointerHandlers", () => {
     const moveTool = getToolHandler("move") as MoveTool;
     expect(moveTool).toBeInstanceOf(MoveTool);
 
-    (params.clearGizmo as jest.Mock).mockClear();
+    jest.mocked(params.clearGizmo).mockClear();
     const updatedDoc = {
       ...initialDoc,
       activeLayerId: nextLayer.id

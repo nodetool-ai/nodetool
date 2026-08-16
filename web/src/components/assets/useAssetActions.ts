@@ -175,9 +175,9 @@ export const useAssetActions = (asset: Asset) => {
       let assetIdsToMove: string[] = [];
 
       if (dragData.type === "assets-multiple") {
-        assetIdsToMove = dragData.payload as string[];
+        assetIdsToMove = dragData.payload;
       } else if (dragData.type === "asset") {
-        assetIdsToMove = [(dragData.payload as Asset).id];
+        assetIdsToMove = [dragData.payload.id];
       }
 
       if (asset.content_type === "folder" && assetIdsToMove.length > 0) {

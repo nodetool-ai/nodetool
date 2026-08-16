@@ -236,7 +236,7 @@ export async function runInlineGraphJob(
 
   const unsubWs = globalWebSocketManager.subscribe(
     workflowId,
-    handler as (m: Record<string, unknown>) => void
+    handler
   );
   const unsubJob = globalWebSocketManager.subscribe(jobId, handler);
 

@@ -466,7 +466,7 @@ export abstract class PythonBridgeBase
     if (identity.jobId) payload.job_id = identity.jobId;
     if (identity.workflowId) payload.workflow_id = identity.workflowId;
     if (identity.userId) payload.user_id = identity.userId;
-    if (typeof identity.requiresVramGb === "number") {
+    if (identity.requiresVramGb != null) {
       payload.requires_vram_gb = identity.requiresVramGb;
     }
     return payload;
@@ -1333,7 +1333,7 @@ export abstract class PythonBridgeBase
     if (options.blobs) data.blobs = options.blobs;
     if (options.previews) data.previews = true;
     if (options.includeTemp) data.include_temp = true;
-    if (typeof options.timeout === "number") data.timeout = options.timeout;
+    if (options.timeout != null) data.timeout = options.timeout;
 
     return new Promise<ComfyExecuteResult>((resolve, reject) => {
       let settled = false;

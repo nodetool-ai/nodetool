@@ -39,7 +39,7 @@ function isNodeMetadataLike(value: unknown): value is NodeMetadata {
     typeof value === "object" &&
     value !== null &&
     "node_type" in value &&
-    typeof (value as NodeMetadata).node_type === "string"
+    typeof value.node_type === "string"
   );
 }
 
@@ -52,7 +52,7 @@ function isAssetLike(value: unknown): value is Asset {
     typeof value === "object" &&
     value !== null &&
     "id" in value &&
-    typeof (value as { id: unknown }).id === "string"
+    typeof value.id === "string"
   );
 }
 
@@ -61,7 +61,7 @@ function isRecordWithId(value: unknown): value is { id: string; name: string } {
     typeof value === "object" &&
     value !== null &&
     "id" in value &&
-    typeof (value as { id: string }).id === "string"
+    typeof value.id === "string"
   );
 }
 
@@ -157,7 +157,7 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
       if (isRecordWithId(sketchPayload)) {
         return {
           type: "sketch",
-          payload: sketchPayload as DragData<"sketch">["payload"]
+          payload: sketchPayload
         };
       }
     } catch {
@@ -172,7 +172,7 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
       if (isRecordWithId(timelinePayload)) {
         return {
           type: "timeline",
-          payload: timelinePayload as DragData<"timeline">["payload"]
+          payload: timelinePayload
         };
       }
     } catch {

@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import isEqual from "../../../utils/isEqual";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
-import { Workflow, WorkflowList } from "../../../stores/ApiTypes";
+import { Workflow } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
 import { extractDynamicIO } from "./WorkflowLoader.helpers";
 
@@ -58,7 +58,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
       queryKey: ["workflows-list-for-node"],
       queryFn: async () => {
         const response = await load("", 200, "id,name");
-        const workflowList = response as WorkflowList;
+        const workflowList = response;
         return (workflowList.workflows ?? []).map((workflow) => ({
           id: workflow.id,
           name: workflow.name

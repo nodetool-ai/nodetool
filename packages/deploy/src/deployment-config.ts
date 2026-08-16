@@ -70,7 +70,7 @@ function expandUser(p: string): string {
  */
 function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return schema.default(() => schema.parse({}) as any) as z.ZodDefault<T>;
+  return schema.default(() => schema.parse({}) as any);
 }
 
 // ============================================================================

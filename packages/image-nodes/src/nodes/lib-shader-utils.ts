@@ -296,7 +296,7 @@ export async function runShaderNode(
     device.queue.submit([encoder.finish()]);
 
     if (keepOnGpu) {
-      trackRunTexture(runId as string, output);
+      trackRunTexture(runId, output);
       handedOff = true;
       return gpuTextureImageRef(output, dims.width, dims.height);
     }
@@ -398,7 +398,7 @@ export async function runRecipeNode(
     device.queue.submit([encoder.finish()]);
 
     if (keepOnGpu) {
-      trackRunTexture(runId as string, output);
+      trackRunTexture(runId, output);
       handedOff = true;
       return gpuTextureImageRef(output, dims.width, dims.height);
     }
@@ -571,7 +571,7 @@ export function colorValueToVec4(
     const maybe = (color as { value?: unknown }).value;
     if (typeof maybe === "string") value = maybe;
   }
-  if (typeof value !== "string") return fallback;
+  if (value == null) return fallback;
   let hex = value.startsWith("#") ? value.slice(1) : value;
   // Expand 3-/4-digit shorthand (#fff, #fff8) by doubling each nibble.
   if (hex.length === 3 || hex.length === 4) {

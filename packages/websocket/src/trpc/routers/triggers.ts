@@ -40,7 +40,7 @@ const listByWorkflowInput = z.object({ workflowId: z.string() });
  * has no next fire.
  */
 function toEditorRegistration(reg: TriggerRegistration) {
-  const config = (reg.config_json ?? {}) as Record<string, unknown>;
+  const config = reg.config_json ?? {};
   const isWebhook = reg.kind === "webhook";
   return {
     id: reg.id,
@@ -84,7 +84,7 @@ export const triggersRouter = router({
   fire: protectedProcedure.input(fireInput).mutation(async ({ ctx, input }) => {
     const reg = (await TriggerRegistration.get(
       input.registrationId
-    )) as TriggerRegistration | null;
+    ));
     if (!reg || reg.user_id !== ctx.userId) {
       throwApiError(ApiErrorCode.NOT_FOUND, "Trigger registration not found");
     }

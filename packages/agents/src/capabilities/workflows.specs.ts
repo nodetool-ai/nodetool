@@ -30,7 +30,7 @@ export const LIST_WORKFLOWS_SCHEMA: JsonSchema = {
       default: 100
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const CREATE_WORKFLOW_SCHEMA: JsonSchema = {

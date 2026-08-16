@@ -11,11 +11,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
-interface ParsedCSV {
-  data: string[][];
-  errors: Papa.ParseError[];
-  meta: Papa.ParseMeta;
-}
 export const useAddNodeFromAsset = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
@@ -45,7 +40,7 @@ export const useAddNodeFromAsset = () => {
     (csvContent: string, position: XYPosition, nodeMetadata: NodeMetadata) => {
       const res = Papa.parse<string[]>(csvContent, {
         header: false
-      }) as ParsedCSV;
+      });
 
       if (res.data.length > 0) {
         const columnDefs = res.data[0].map((col: string) => ({

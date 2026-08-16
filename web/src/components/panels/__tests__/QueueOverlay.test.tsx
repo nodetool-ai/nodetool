@@ -26,7 +26,7 @@ jest.mock("../../../trpc/client", () => ({
 }));
 
 const mockUseRunningJobs = asMock(useRunningJobs);
-const mockCancel = trpcClient.jobs.cancel.mutate as jest.Mock;
+const mockCancel = jest.mocked(trpcClient.jobs.cancel.mutate);
 
 const job = (id: string, status: string): Job =>
   ({

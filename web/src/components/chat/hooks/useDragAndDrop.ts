@@ -82,7 +82,7 @@ export const useDragAndDrop = (
           const droppedFiles: DroppedFile[] = [];
 
           if (dragData.type === "assets-multiple") {
-            const selectedIds = dragData.payload as string[];
+            const selectedIds = dragData.payload;
             const { filteredAssets, globalSearchResults, selectedAssets } =
               useAssetGridStore.getState();
             const fallbackAssets = [
@@ -101,7 +101,7 @@ export const useDragAndDrop = (
           }
 
           if (droppedFiles.length === 0 && dragData.type === "asset") {
-            const asset = dragData.payload as Asset;
+            const asset = dragData.payload;
             droppedFiles.push(assetToDroppedFile(asset));
           }
 
@@ -115,7 +115,7 @@ export const useDragAndDrop = (
                   typeof parsed === "object" &&
                   parsed !== null &&
                   "id" in parsed &&
-                  typeof (parsed as { id: unknown }).id === "string"
+                  typeof parsed.id === "string"
                 ) {
                   droppedFiles.push(assetToDroppedFile(parsed as Asset));
                 }

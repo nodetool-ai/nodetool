@@ -33,6 +33,12 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import type { TodoItem, TodoStatus, TodoUpdate } from "@nodetool-ai/protocol";
 import { Tool } from "../tools/base-tool.js";
+import {
+  isNonBlankString,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 import { UNGATED, createCapabilityRun } from "./invoke.js";
 import type {
   CapabilityExport,
@@ -174,7 +180,7 @@ const readFileCapability: CapabilityExport = {
   impl: async (run, params) => {
     const context = run.context;
     const filePath = params["file_path"];
-    if (typeof filePath !== "string") {
+    if (!isString(filePath)) {
       return "Error: file_path must be a string";
     }
     const storage = getStorage(context);
@@ -203,11 +209,9 @@ const readFileCapability: CapabilityExport = {
     const rawOffset = params["offset"];
     const rawLimit = params["limit"];
     const offset =
-      typeof rawOffset === "number" && rawOffset >= 1
-        ? Math.floor(rawOffset)
-        : 1;
+      isNumber(rawOffset) && rawOffset >= 1 ? Math.floor(rawOffset) : 1;
     const limit =
-      typeof rawLimit === "number" && rawLimit >= 1
+      isNumber(rawLimit) && rawLimit >= 1
         ? Math.floor(rawLimit)
         : DEFAULT_READ_LIMIT;
 
@@ -255,10 +259,10 @@ const writeFileCapability: CapabilityExport = {
     const filePath = params["file_path"];
     const content = params["content"];
 
-    if (typeof filePath !== "string") {
+    if (!isString(filePath)) {
       return "Error: file_path must be a string";
     }
-    if (typeof content !== "string") {
+    if (!isString(content)) {
       return "Error: content must be a string";
     }
     const storage = getStorage(context);
@@ -378,7 +382,7 @@ async function listEntries(
     for (const cp of result.commonPrefixes) {
       const subKey = cp.replace(/\/+$/, "");
       const subEntries = await listEntries(context, subKey, true);
-      if (typeof subEntries === "string") continue; // skip errored subdirs
+      if (isString(subEntries)) continue; // skip errored subdirs
       const subBase = subKey.split("/").pop() ?? subKey;
       for (const child of subEntries) {
         entries.push({ ...child, name: `${subBase}/${child.name}` });
@@ -394,7 +398,7 @@ const listDirectory: CapabilityExport = {
   impl: async (run, params) => {
     const context = run.context;
     const rawPath = params["path"];
-    if (typeof rawPath !== "string") {
+    if (!isString(rawPath)) {
       return "Error: path must be a string";
     }
     const storage = getStorage(context);
@@ -402,7 +406,7 @@ const listDirectory: CapabilityExport = {
 
     const recursive = params["recursive"] === true;
     const entries = await listEntries(context, rawPath, recursive);
-    if (typeof entries === "string") return entries; // error already formatted
+    if (isString(entries)) return entries; // error already formatted
 
     if (entries.length === 0) {
       return `(empty) ${rawPath || "."}`;
@@ -762,11 +766,11 @@ const editFile: CapabilityExport = {
     const newString = params["new_string"];
     const replaceAll = params["replace_all"] === true;
 
-    if (typeof rawPath !== "string")
+    if (!isString(rawPath))
       return { success: false, error: "path must be a string" };
-    if (typeof oldString !== "string")
+    if (!isString(oldString))
       return { success: false, error: "old_string must be a string" };
-    if (typeof newString !== "string")
+    if (!isString(newString))
       return { success: false, error: "new_string must be a string" };
     if (oldString === newString)
       return {
@@ -920,14 +924,14 @@ const glob: CapabilityExport = {
     const pattern = params["pattern"];
     const rawPath = params["path"];
 
-    if (typeof pattern !== "string")
+    if (!isString(pattern))
       return { success: false, error: "pattern must be a string" };
 
     let searchDir: string;
     try {
       searchDir = resolveSafePath(
         context,
-        typeof rawPath === "string" ? rawPath : "."
+        isString(rawPath) ? rawPath : "."
       );
     } catch (e) {
       return {
@@ -1011,19 +1015,19 @@ const grep: CapabilityExport = {
     const rawPath = params["path"];
     const include = params["include"];
     const contextLines =
-      typeof params["context"] === "number" ? params["context"] : 0;
+      isNumber(params["context"]) ? params["context"] : 0;
     const caseInsensitive = params["case_insensitive"] === true;
     const maxResults =
-      typeof params["max_results"] === "number" ? params["max_results"] : 100;
+      isNumber(params["max_results"]) ? params["max_results"] : 100;
 
-    if (typeof pattern !== "string")
+    if (!isString(pattern))
       return { success: false, error: "pattern must be a string" };
 
     let searchDir: string;
     try {
       searchDir = resolveSafePath(
         context,
-        typeof rawPath === "string" ? rawPath : "."
+        isString(rawPath) ? rawPath : "."
       );
     } catch (e) {
       return {
@@ -1082,7 +1086,7 @@ const grep: CapabilityExport = {
     }
 
     // Apply include filter
-    if (typeof include === "string") {
+    if (isString(include)) {
       const includeRegex = globToRegex(include);
       filesToSearch = filesToSearch.filter((f) => {
         const rel = relative(searchDir, f);
@@ -1265,19 +1269,16 @@ function normalizeTodos(raw: unknown): TodoItem[] {
     throw new Error("`todos` must be an array");
   }
   return raw.map((item, i) => {
-    if (!item || typeof item !== "object") {
+    if (!isObjectLike(item)) {
       throw new Error(`todos[${i}] must be an object`);
     }
-    const rec = item as Record<string, unknown>;
+    const rec = item;
     const content = rec.content;
     const status = rec.status;
-    if (typeof content !== "string" || content.trim().length === 0) {
+    if (!isNonBlankString(content)) {
       throw new Error(`todos[${i}].content must be a non-empty string`);
     }
-    if (
-      typeof status !== "string" ||
-      !VALID_STATUSES.has(status as TodoStatus)
-    ) {
+    if (!isString(status) || !VALID_STATUSES.has(status as TodoStatus)) {
       throw new Error(
         `todos[${i}].status must be one of: pending, in_progress, completed`
       );
@@ -1313,7 +1314,7 @@ const todoWrite: CapabilityExport = {
         acc[t.status] += 1;
         return acc;
       },
-      { pending: 0, in_progress: 0, completed: 0 } as Record<TodoStatus, number>
+      { pending: 0, in_progress: 0, completed: 0 }
     );
 
     return {

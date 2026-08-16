@@ -72,7 +72,7 @@ export function mcpToolHostDeps(
     exportDsl: (graph, opts) =>
       workflowToDsl(
         graph as Parameters<typeof workflowToDsl>[0],
-        opts as Parameters<typeof workflowToDsl>[1]
+        opts
       ),
     listPackageAssets: async ({ limit }) =>
       listPackageAssets(options, ...(limit === undefined ? [] : [{ limit }])),

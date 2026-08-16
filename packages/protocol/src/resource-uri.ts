@@ -14,6 +14,8 @@
  * addressed as `thread`) plus `asset`, `collection`, `model3d`, and `thread`.
  * It is spelled out here rather than derived because the two sets differ.
  */
+import { isString } from "./predicates.js";
+
 export type ResourceKind =
   | "asset"
   | "workflow"
@@ -75,7 +77,7 @@ const buildRef = (
 };
 
 export function parseResourceUri(uri: string): ResourceUri | null {
-  if (typeof uri !== "string") return null;
+  if (!isString(uri)) return null;
   const trimmed = uri.trim();
   if (!trimmed) return null;
 

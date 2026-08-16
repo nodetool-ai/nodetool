@@ -33,6 +33,10 @@ export const isAudioChunkLike = (
     return false;
   }
 
+  // SAFETY: the guard above returned for anything that is not a non-null,
+  // non-array object, so indexing is defined. The assertion only makes the two
+  // reads expressible — `timestamp` and `text` are both re-checked below, and
+  // it is those checks, not this line, that the predicate rests on.
   const record = value as Record<string, unknown>;
   const { timestamp, text } = record;
 

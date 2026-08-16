@@ -7,6 +7,7 @@ import type { Shot } from "@nodetool-ai/protocol";
 import type { ScriptLine } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import { PLACEHOLDER_LINE_MS } from "../src/script.js";
 import {
+  effectiveShotDuration,
   linkedLineDurationMs,
   linkedShotDurationMs,
   scriptLinesById
@@ -119,5 +120,52 @@ describe("linkedShotDurationMs", () => {
         linesById
       )
     ).toBe(3250);
+  });
+});
+
+describe("effectiveShotDuration", () => {
+  const linesById = scriptLinesById([
+    {
+      id: "section-1",
+      lines: [
+        voicedLine("a", 1000, { pauseAfterMs: 250 }),
+        voicedLine("b", 2000),
+        draftLine("c")
+      ]
+    }
+  ]);
+
+  it("rounds the audio-derived length up to whole seconds", () => {
+    expect(
+      effectiveShotDuration(
+        linkedShot(["a", "b"], { duration_seconds: 5 }),
+        linesById
+      )
+    ).toEqual({ seconds: 4, source: "audio" });
+  });
+
+  it("keeps the shot's own length when it is pinned to manual", () => {
+    expect(
+      effectiveShotDuration(
+        linkedShot(["a", "b"], { duration_seconds: 5, duration_source: "manual" }),
+        linesById
+      )
+    ).toEqual({ seconds: 5, source: "manual" });
+  });
+
+  it("falls back to the shot's own length when a linked line is unvoiced", () => {
+    expect(
+      effectiveShotDuration(
+        linkedShot(["a", "c"], { duration_seconds: 6 }),
+        linesById
+      )
+    ).toEqual({ seconds: 6, source: "manual" });
+  });
+
+  it("reports no seconds for an unlinked shot that sets none", () => {
+    expect(effectiveShotDuration(linkedShot([]), linesById)).toEqual({
+      seconds: undefined,
+      source: "manual"
+    });
   });
 });

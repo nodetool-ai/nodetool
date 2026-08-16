@@ -319,7 +319,7 @@ export class ChatSocket {
     if (!frame || typeof frame !== "object" || !("type" in frame)) return;
 
     this.emit("raw", frame);
-    const type = (frame as ChatEvent).type;
+    const type = frame.type;
     if (isKnownEventType(type)) {
       this.emit(type, frame as never);
     }

@@ -119,7 +119,7 @@ export async function loadSettings(): Promise<ChatSettings> {
   try {
     const content = await readFile(SETTINGS_FILE, "utf-8");
     const parsed = JSON.parse(content) as Record<string, unknown>;
-    return { ...DEFAULT_SETTINGS, ...migrateSettings(parsed) } as ChatSettings;
+    return { ...DEFAULT_SETTINGS, ...migrateSettings(parsed) };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

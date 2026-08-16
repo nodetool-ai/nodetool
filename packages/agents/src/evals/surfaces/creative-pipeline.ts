@@ -8,20 +8,36 @@
  * still lose the client's aspect ratio somewhere between them, or assemble a
  * cut that runs twice the length it was commissioned at and call it done.
  *
- * The three creative surfaces are *composed*, not reimplemented: this bridge
- * builds the real {@link createSketchToolBridge}, {@link createStoryboardToolBridge}
- * and {@link createTimelineToolBridge} and merges their tool arrays, so the
- * model drives the same `ui_sketch_*` / `ui_storyboard_*` / `ui_timeline_*`
- * contract those suites already cover, and this file cannot drift from them.
+ * The four creative surfaces are *composed*, not reimplemented: this bridge
+ * builds the real {@link createScriptToolBridge}, {@link createSketchToolBridge},
+ * {@link createStoryboardToolBridge} and {@link createTimelineToolBridge} and
+ * merges their tool arrays, so the model drives the same `ui_script_*` /
+ * `ui_sketch_*` / `ui_storyboard_*` / `ui_timeline_*` contract those suites
+ * already cover, and this file cannot drift from them.
  *
- * Two things are added on top.
+ * Three things are added on top.
  *
  * `ui_storyboard_assemble_timeline` is replaced. The storyboard bridge's own
  * version returns a plausible `sequenceId` and touches nothing, which is fine
  * when only the board is under test and useless here — the handoff *is* the
  * thing being measured. The replacement drives the timeline bridge's own tools
  * to lay one clip per rendered shot, so a later timeline edit acts on the
- * storyboard's output rather than on an unrelated blank sequence.
+ * storyboard's output rather than on an unrelated blank sequence. When the
+ * board was derived from the script it takes the *linked* path instead: the
+ * pure `buildLinkedTimeline` cuts board and script into one sequence — shots
+ * as long as the takes they cover, a voiceover clip per voiced line carrying
+ * both linkage families — and the timeline bridge is reseeded with it, so the
+ * cut the model goes on to edit is the jointly-assembled one.
+ *
+ * `ui_script_derive_storyboard` is replaced for the same reason. The script
+ * bridge's own version scaffolds shots into a board only it can see; the
+ * replacement lays those shots onto the shared storyboard bridge and records
+ * which script lines each covers, which is the link the joint assemble reads.
+ *
+ * `validate_timeline` is the agent-side tool, not a `ui_*` one, and runs the
+ * shipped `validateTimelineSequence` over whatever the timeline now holds. A
+ * cut that assembles is not a cut that validates, and this is the only tool
+ * here that can tell the two apart.
  *
  * The brief and review phases have no shipped `ui_*` surface, so their tools
  * are defined here and named `ui_brief_*` / `ui_review_*`. They are eval
@@ -40,11 +56,21 @@
 
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+import type { Shot } from "@nodetool-ai/protocol";
+import { buildLinkedTimeline } from "@nodetool-ai/timeline";
+import {
+  validateTimelineSequence,
+  type TimelineValidation
+} from "@nodetool-ai/execution/timeline-debug";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
+import {
+  createScriptToolBridge,
+  type ScriptBridgeFinalState
+} from "./script.js";
 import {
   createSketchToolBridge,
   type SketchBridgeFinalState
@@ -106,11 +132,22 @@ export interface CreativePipelineFinalState {
   briefReadBeforeWork: boolean;
   concepts: CreativeConcept[];
   chosenConceptId: string | null;
+  script: ScriptBridgeFinalState;
   sketch: SketchBridgeFinalState;
   storyboard: StoryboardBridgeFinalState;
   timeline: TimelineBridgeFinalState;
   /** The replaced assemble tool ran and laid clips into the timeline. */
   timelineAssembled: boolean;
+  /** The board was derived from the script, so the two documents are linked. */
+  scriptLinked: boolean;
+  /** Script lines each board shot covers, keyed by shot id. */
+  scriptLineIdsByShotId: Record<string, string[]>;
+  /** Assembly took the joint path: one cut built from board and script together. */
+  assembledLinked: boolean;
+  /** Lines the joint assemble gave no clip — unvoiced, or on a skipped shot. */
+  skippedLineIds: string[];
+  /** What `validate_timeline` last said about the cut, or null when never run. */
+  timelineValidation: TimelineValidation | null;
   /** Total runtime of the assembled cut, in seconds. */
   cutDurationSeconds: number;
   reviewNotes: ReviewNote[];
@@ -194,7 +231,12 @@ const TIMELINE_MUTATORS = new Set([
 ]);
 
 /** Surface tools that count as "work" for the brief-read-first check. */
-const WORK_PREFIXES = ["ui_sketch_", "ui_storyboard_", "ui_timeline_"];
+const WORK_PREFIXES = [
+  "ui_script_",
+  "ui_sketch_",
+  "ui_storyboard_",
+  "ui_timeline_"
+];
 
 /** One piece of media a live backend actually produced. */
 export interface GeneratedArtifact {
@@ -257,6 +299,7 @@ export function createCreativePipelineBridge(
   const media = initial.media;
   const artifacts: GeneratedArtifact[] = [];
 
+  const script = createScriptToolBridge({ title: brief.product });
   const sketch = createSketchToolBridge({
     name: `${brief.product} — style frame`,
     layers: [{ name: "Background" }]
@@ -266,7 +309,12 @@ export function createCreativePipelineBridge(
     brief: brief.objective,
     aspectRatio: brief.aspectRatio
   });
-  const timeline = createTimelineToolBridge({});
+  // Reassigned by the linked assemble, which reseeds the editor with the cut
+  // `buildLinkedTimeline` produced rather than replaying it through the tools
+  // (a replay would drop the script/board ids every clip carries). Every
+  // timeline tool below dispatches through the current instance, so the swap
+  // is invisible to the model.
+  let timeline = createTimelineToolBridge({});
 
   let briefRead = false;
   let briefReadBeforeWork = false;
@@ -279,6 +327,13 @@ export function createCreativePipelineBridge(
   let toolSeq = 0;
   let editsAfterAssembly = 0;
   let conceptSeq = 0;
+  let scriptLinked = false;
+  let assembledLinked = false;
+  let skippedLineIds: string[] = [];
+  let timelineValidation: TimelineValidation | null = null;
+
+  /** Script lines each board shot covers — the link the joint assemble reads. */
+  const scriptLineIdsByShotId = new Map<string, string[]>();
 
   /** Requested duration per shot id, since the board's snapshot omits it. */
   const shotSeconds = new Map<string, number>();
@@ -289,17 +344,80 @@ export function createCreativePipelineBridge(
     return found;
   };
 
+  interface AssembleResult {
+    sequenceId: string;
+    clipCount: number;
+    skippedShotIds: string[];
+    durationSeconds: number;
+    linked: boolean;
+    skippedLineIds?: string[];
+  }
+
+  /**
+   * The board as the pure assemblers want it: wire `Shot` objects carrying the
+   * rendered clip and the script lines each shot covers. The storyboard bridge
+   * projects its shots for its own answers, so this rebuilds the fields joint
+   * assembly reads from that projection.
+   */
+  function linkedShots(): Shot[] {
+    return storyboard.finalState().shots.map((s) => ({
+      type: "shot",
+      id: s.id,
+      index: s.index,
+      action: s.action,
+      status: s.status,
+      duration_seconds: s.durationSeconds,
+      clip: s.hasClip
+        ? { type: "video" as const, asset_id: `asset_clip_${s.id}` }
+        : undefined,
+      script_line_ids: scriptLineIdsByShotId.get(s.id)
+    }));
+  }
+
+  /**
+   * Cut board and script into one sequence with the shipped
+   * `buildLinkedTimeline`, then reseed the timeline editor with the result.
+   *
+   * Shot length here is the length of the takes the shot covers, so the
+   * {@link RENDER_OVERSHOOT} the unlinked path models does not apply: on a
+   * linked board the audio decides, which is the whole point of the link.
+   */
+  function assembleLinked(): AssembleResult {
+    const shots = linkedShots();
+    const assembled = buildLinkedTimeline({
+      boardId: "board_1",
+      shots,
+      script: script.finalState().assembly
+    });
+    const { fps, width, height } = timeline.finalState();
+    timeline = createTimelineToolBridge({
+      sequence: {
+        fps,
+        width,
+        height,
+        tracks: assembled.tracks,
+        clips: assembled.clips
+      }
+    });
+    timelineAssembled = true;
+    assembledLinked = true;
+    skippedLineIds = assembled.skippedLineIds;
+    return {
+      sequenceId: "seq_1",
+      clipCount: assembled.clips.length,
+      skippedShotIds: assembled.skippedShotIds,
+      skippedLineIds: assembled.skippedLineIds,
+      durationSeconds: assembled.durationMs / 1000,
+      linked: true
+    };
+  }
+
   /**
    * Lay one timeline clip per rendered shot, end to end, by driving the
    * timeline bridge's own tools — so the assembled cut is real state a later
    * trim or delete operates on.
    */
-  async function assembleTimeline(): Promise<{
-    sequenceId: string;
-    clipCount: number;
-    skippedShotIds: string[];
-    durationSeconds: number;
-  }> {
+  async function assembleTimeline(): Promise<AssembleResult> {
     const board = storyboard.finalState();
     const rendered = board.shots.filter((s) => s.hasClip);
     if (rendered.length === 0) {
@@ -307,6 +425,7 @@ export function createCreativePipelineBridge(
         "No shot has a rendered clip yet. Generate at least one clip before assembling the timeline."
       );
     }
+    if (scriptLinked) return assembleLinked();
 
     const addTrack = byName(timeline, "ui_timeline_add_track");
     const generate = byName(timeline, "ui_timeline_generate_clip");
@@ -337,7 +456,8 @@ export function createCreativePipelineBridge(
       sequenceId: "seq_1",
       clipCount: rendered.length,
       skippedShotIds: board.shots.filter((s) => !s.hasClip).map((s) => s.id),
-      durationSeconds: startMs / 1000
+      durationSeconds: startMs / 1000,
+      linked: false
     };
   }
 
@@ -462,19 +582,103 @@ export function createCreativePipelineBridge(
     )
   ];
 
-  // Compose: real surface tools, minus the assemble stub the storyboard bridge
-  // ships (replaced below so the handoff actually moves state).
+  /**
+   * Derive the board from the script and record the link.
+   *
+   * The script bridge's own derive scaffolds shots onto a board only it can
+   * see. This runs that scaffold — so the line→shot mapping is still the pure
+   * `deriveShotScaffold` every surface uses — and then lays each scaffolded
+   * shot onto the shared storyboard bridge, keeping the line ids it covers.
+   * That map is what {@link assembleLinked} reads.
+   */
+  async function deriveStoryboard(args: Record<string, unknown>): Promise<{
+    ok: true;
+    storyboardId: string;
+    shots: { id: string; scriptLineIds: string[]; action: string }[];
+  }> {
+    const derived = (await byName(
+      script,
+      "ui_script_derive_storyboard"
+    ).execute(args)) as {
+      storyboardId: string;
+      shots: { scriptLineIds: string[]; text: string }[];
+    };
+    const addShot = byName(storyboard, "ui_storyboard_add_shot");
+    const placed: { id: string; scriptLineIds: string[]; action: string }[] = [];
+    for (const scaffold of derived.shots) {
+      // The design's headless fallback: with no director pass the shot's
+      // action is the line text it covers, status planned.
+      const action = scaffold.text;
+      const result = (await addShot.execute({ action })) as {
+        shot: { id: string };
+      };
+      scriptLineIdsByShotId.set(result.shot.id, scaffold.scriptLineIds);
+      placed.push({
+        id: result.shot.id,
+        scriptLineIds: scaffold.scriptLineIds,
+        action
+      });
+    }
+    scriptLinked = true;
+    return { ok: true, storyboardId: derived.storyboardId, shots: placed };
+  }
+
+  const deriveTool = tool(
+    "ui_script_derive_storyboard",
+    "Create a storyboard whose shots cover this script's lines and open it: one shot per line in reading order, each carrying the ids of the lines it covers and an action projected from them. The board is linked to the script from here on, so assembling it cuts words and pictures together. Direct or render the shots from the storyboard surface.",
+    z.object({
+      name: z
+        .string()
+        .optional()
+        .describe("Name for the created storyboard. Defaults to the script's.")
+    }),
+    deriveStoryboard
+  );
+
+  const validateTool = tool(
+    "validate_timeline",
+    "Check the assembled sequence without rendering it: tracks and clips a render would refuse, timings that cannot lay out, animation presets that do not exist. Returns errors and warnings. Call it on the delivered cut — a sequence that assembled is not necessarily a sequence that validates.",
+    z.object({}),
+    async () => {
+      const { fps, width, height, documentTracks, documentClips } =
+        timeline.finalState();
+      timelineValidation = validateTimelineSequence(
+        { tracks: documentTracks, clips: documentClips, markers: [] },
+        { fps, width, height }
+      );
+      // `ok` here is the validator's verdict, not "the call succeeded" — a cut
+      // that fails validation is a successful call with a negative answer.
+      return { ...timelineValidation };
+    }
+  );
+
+  // Compose: real surface tools, minus the two the surfaces can only fake in
+  // isolation (assemble and derive, replaced below so the handoffs actually
+  // move state) and the script's own send-to-timeline, which would open a
+  // second sequence nothing else in this bridge can see.
   const surfaceTools: HeadlessTool[] = [
+    ...script.tools.filter(
+      (t) =>
+        t.name !== "ui_script_derive_storyboard" &&
+        t.name !== "ui_script_send_to_timeline"
+    ),
     ...sketch.tools,
     ...storyboard.tools.filter(
       (t) => t.name !== "ui_storyboard_assemble_timeline"
     ),
-    ...timeline.tools
+    // Dispatch by name at call time: the linked assemble swaps the timeline
+    // bridge underneath, and a captured `execute` would keep editing the cut
+    // that was replaced.
+    ...timeline.tools.map((t) => ({
+      ...t,
+      execute: (args: Record<string, unknown>) =>
+        byName(timeline, t.name).execute(args)
+    }))
   ];
 
   const assembleTool = tool(
     "ui_storyboard_assemble_timeline",
-    "Assemble the storyboard's rendered shots into a timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order. Shots without a rendered clip are skipped (returned in skippedShotIds). The delivered clip lengths are what the renderer produced, which is not necessarily what each shot requested.",
+    "Assemble the storyboard's rendered shots into a timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order. Shots without a rendered clip are skipped (returned in skippedShotIds). The delivered clip lengths are what the renderer produced, which is not necessarily what each shot requested. When the board was derived from a script, the cut is assembled jointly instead: each shot runs as long as the takes it covers, every voiced line gets its own voiceover clip, and lines that got none are returned in skippedLineIds.",
     z.object({}),
     async () => {
       const result = await assembleTimeline();
@@ -571,7 +775,7 @@ export function createCreativePipelineBridge(
         t.name === "ui_storyboard_update_shot"
       ) {
         const shot = (result as { shot?: { id?: string } })?.shot;
-        const seconds = (args as { durationSeconds?: unknown })
+        const seconds = args
           ?.durationSeconds;
         if (shot?.id && typeof seconds === "number") {
           shotSeconds.set(shot.id, seconds);
@@ -587,6 +791,8 @@ export function createCreativePipelineBridge(
     ...briefTools,
     ...surfaceTools.map(instrument),
     instrument(assembleTool),
+    instrument(deriveTool),
+    validateTool,
     ...reviewTools
   ];
 
@@ -597,10 +803,16 @@ export function createCreativePipelineBridge(
       briefReadBeforeWork: briefRead && briefReadBeforeWork,
       concepts: [...concepts],
       chosenConceptId,
+      script: script.finalState(),
       sketch: sketch.finalState(),
       storyboard: storyboard.finalState(),
       timeline: timeline.finalState(),
       timelineAssembled,
+      scriptLinked,
+      scriptLineIdsByShotId: Object.fromEntries(scriptLineIdsByShotId),
+      assembledLinked,
+      skippedLineIds: [...skippedLineIds],
+      timelineValidation,
       cutDurationSeconds: cutDurationSeconds(),
       reviewNotes: [...reviewNotes],
       inspectedCut,
@@ -611,6 +823,8 @@ export function createCreativePipelineBridge(
 }
 
 const CREATIVE_PIPELINE_SYSTEM_PROMPT = `You are a creative director running a commissioned video job end to end through UI tools.
+
+A narrated job starts from the words: write the script with the ui_script_* tools, give the cast a voice and voice every line, then call ui_script_derive_storyboard to turn it into a linked board — one shot per line. Rendering and assembly are the same tools as any other job, except that an assembled linked board cuts the words in with the pictures, and validate_timeline checks the sequence that comes out.
 
 Work the job in phases, and finish each before starting the next:
 
@@ -648,6 +862,24 @@ export const ATLAS_BRIEF: CreativeBrief = {
   mustFeature: ["mud"],
   forbid: ["treadmill"],
   deliverable: "One landscape cut for pre-roll, under 8 seconds."
+};
+
+/**
+ * A narrated commission, used by the linked case.
+ *
+ * Its runtime ceiling is generous on purpose: a linked cut is as long as the
+ * voiced takes make it, so a runtime predicate here would score how many words
+ * the model wrote rather than whether it carried the link through.
+ */
+export const TIDEWATCH_BRIEF: CreativeBrief = {
+  client: "Tidewatch Trust",
+  product: "Estuary Restoration",
+  objective: "A narrated piece about a river mouth coming back to life.",
+  aspectRatio: "16:9",
+  maxDurationSeconds: 60,
+  mustFeature: [],
+  forbid: [],
+  deliverable: "One narrated cut, words and pictures assembled together."
 };
 
 const actionsOf = (s: CreativePipelineFinalState) =>
@@ -881,6 +1113,123 @@ The storyboard phase is already done for this job: add the shots that were plann
             test: (s) =>
               s.cutDurationSeconds > 0 &&
               s.cutDurationSeconds <= s.brief.maxDurationSeconds
+          }
+        ]
+      }
+    },
+
+    {
+      // The link is the thing under test, and it is only observable at the
+      // end: a run can call every tool in the right order and still deliver a
+      // cut whose voiceover clips point at nothing, or a board whose shots
+      // lost the lines they cover. So the predicates read the assembled
+      // document — both linkage families on every voiceover clip — rather
+      // than the calls that produced it, and the last one asks the shipped
+      // validator whether the cut would survive a render at all.
+      id: "script-to-linked-cut",
+      description:
+        "Write and voice a script, derive a linked board from it, render it, assemble words and pictures together, and validate the cut",
+      objective:
+        "This is a narrated piece. Write a short narration of at least three lines, give the narrator a voice and voice every line, then derive a storyboard from the script. Render a keyframe and a clip for every shot, assemble the cut, and validate the assembled sequence.",
+      createBridge: () =>
+        createCreativePipelineBridge({ brief: TIDEWATCH_BRIEF }),
+      systemPrompt: CREATIVE_PIPELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_script_add_speaker",
+          "ui_script_add_line",
+          "ui_script_derive_storyboard",
+          "ui_storyboard_generate_keyframe",
+          "ui_storyboard_generate_clip",
+          "ui_storyboard_assemble_timeline",
+          "validate_timeline"
+        ],
+        forbiddenTools: ["ui_sketch_generate"],
+        ordering: [
+          ["ui_script_add_line", "ui_script_derive_storyboard"],
+          ["ui_script_derive_storyboard", "ui_storyboard_generate_keyframe"],
+          ["ui_storyboard_generate_keyframe", "ui_storyboard_generate_clip"],
+          ["ui_storyboard_generate_clip", "ui_storyboard_assemble_timeline"],
+          ["ui_storyboard_assemble_timeline", "validate_timeline"]
+        ],
+        noErrorResults: true,
+        // The scripted optimum in the harness test is 15 calls. The ceiling
+        // matches the sibling cases' allowance for state polling.
+        minToolCalls: 10,
+        maxToolCalls: 130,
+        finalState: [
+          {
+            name: "scriptWritten",
+            detail: "fewer than 3 lines of narration were written",
+            test: (s) => s.script.lines.length >= 3
+          },
+          {
+            name: "everyLineVoiced",
+            detail:
+              "a line reached assembly unvoiced, so its words are not in the cut",
+            test: (s) =>
+              s.script.lines.length > 0 &&
+              s.script.lines.every((l) => l.status === "voiced")
+          },
+          {
+            name: "boardDerivedFromScript",
+            detail: "the board was built by hand instead of derived, so the two documents are not linked",
+            test: (s) => s.scriptLinked
+          },
+          {
+            name: "everyShotKeepsItsLines",
+            detail: "a shot covers no script line",
+            test: (s) =>
+              s.storyboard.shots.length > 0 &&
+              s.storyboard.shots.every(
+                (sh) => (s.scriptLineIdsByShotId[sh.id] ?? []).length > 0
+              )
+          },
+          {
+            name: "everyShotRendered",
+            detail: "a shot reached assembly without a rendered clip",
+            test: (s) =>
+              s.storyboard.shots.length > 0 &&
+              s.storyboard.shots.every((sh) => sh.hasClip)
+          },
+          {
+            name: "assembledJointly",
+            detail:
+              "the cut was assembled from the board alone — the words never reached the timeline",
+            test: (s) => s.assembledLinked && s.skippedLineIds.length === 0
+          },
+          {
+            name: "voiceoverClipPerLine",
+            detail: "the cut holds fewer voiceover clips than the script has lines",
+            test: (s) =>
+              s.timeline.documentClips.filter((c) => c.scriptLineId).length >=
+              s.script.lines.length
+          },
+          {
+            name: "clipsCarryBothLinks",
+            detail:
+              "a voiceover clip reached the cut without its script or storyboard ids, so neither editor can sync it back",
+            test: (s) => {
+              const voice = s.timeline.documentClips.filter(
+                (c) => c.scriptLineId
+              );
+              return (
+                voice.length > 0 &&
+                voice.every(
+                  (c) =>
+                    !!c.scriptId && !!c.storyboardBoardId && !!c.storyboardShotId
+                )
+              );
+            }
+          },
+          {
+            name: "cutValidates",
+            detail:
+              "validate_timeline never ran, or the assembled cut does not validate",
+            test: (s) =>
+              s.timelineValidation !== null &&
+              s.timelineValidation.ok &&
+              s.timelineValidation.errors.length === 0
           }
         ]
       }

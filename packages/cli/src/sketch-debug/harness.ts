@@ -201,8 +201,7 @@ function reconstructDocument(
     blendMode: layer.blendMode,
     data: null
   }));
-  const activeLayerId =
-    typeof snapshot.activeLayerId === "string" ? snapshot.activeLayerId : "";
+  const activeLayerId = snapshot.activeLayerId ?? "";
   const background =
     snapshot.backgroundColor ??
     resolved.document.canvas.backgroundColor ??

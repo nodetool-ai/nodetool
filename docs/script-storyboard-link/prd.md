@@ -1,6 +1,8 @@
 # Script ↔ Storyboard Link — PRD
 
-> Status: Proposed · Owner: matti
+> Status: Phase 1 shipped · Phase 2 shipped except audio-led timing ·
+> Phase 3 has the joint builder, not the assemble switch · Phase 4 has the
+> drift helpers and the tool summaries, no UI · Owner: matti
 >
 > Companion documents: [design.md](design.md) (technical design),
 > [tasks.md](tasks.md) (implementation checklist).

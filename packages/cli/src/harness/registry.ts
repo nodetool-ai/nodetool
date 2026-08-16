@@ -319,6 +319,29 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "script-storyboard-link",
+    title:
+      "Script ↔ storyboard link (extract, scaffold, joint assemble, link validation)",
+    // No CLI command owns the link: it is pure functions in protocol and
+    // timeline plus the tools that call them. The checked-in suites are the
+    // headless surface — they build a linked document and hand the assembled
+    // timeline to the same validator `nodetool timeline validate` runs.
+    command:
+      "npm run test --workspace=packages/protocol -- script-link && " +
+      "npm run test --workspace=packages/timeline -- script-link linked && " +
+      "npm run test --workspace=packages/execution -- linked-timeline-validate",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/script-storyboard-link/design.md § 6",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/protocol -- script-link && " +
+        "npm run test --workspace=packages/timeline -- script-link linked && " +
+        "npm run test --workspace=packages/execution -- linked-timeline-validate",
+      cost: "cheap"
+    }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
@@ -374,6 +397,7 @@ export const SURFACES: SurfaceEntry[] = [
       "eval"
     ],
     paths: [
+      "packages/timeline/",
       "packages/execution/src/timeline-debug/",
       "packages/cli/src/timeline-debug/",
       "packages/cli/src/commands/timeline-versions.ts",
@@ -421,6 +445,51 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/protocol/src/api-schemas/js-scripts.ts",
       "packages/websocket/src/trpc/routers/js-scripts.ts",
       "packages/websocket/src/routes/js-scripts.ts"
+    ]
+  },
+  {
+    id: "storyboard",
+    title:
+      "Storyboards (shots, keyframes, clips, ui_storyboard_* tools, script link)",
+    harnesses: ["script-storyboard-link", "timeline-validate", "eval"],
+    paths: [
+      "packages/protocol/src/script-link.ts",
+      "packages/protocol/src/api-schemas/storyboards.ts",
+      "packages/timeline/src/storyboard.ts",
+      "packages/timeline/src/script-link.ts",
+      "packages/timeline/src/linked.ts",
+      "packages/agents/src/capabilities/storyboards.ts",
+      "packages/agents/src/capabilities/storyboards.specs.ts",
+      "packages/agents/src/tools/storyboard-render-tools.ts",
+      "packages/agents/src/evals/surfaces/storyboard.ts",
+      "packages/agents/src/evals/surfaces/creative-pipeline.ts",
+      "packages/models/src/schema/storyboards.ts",
+      "packages/websocket/src/trpc/routers/storyboards.ts",
+      "web/src/components/storyboard/",
+      "web/src/lib/tools/builtin/storyboard.ts",
+      "web/src/studio/"
+    ]
+  },
+  {
+    id: "script",
+    title: "Scripts (lines, cast, voicing, ui_script_* tools, storyboard link)",
+    harnesses: ["script-storyboard-link", "timeline-validate", "eval"],
+    paths: [
+      "packages/protocol/src/script-link.ts",
+      "packages/protocol/src/api-schemas/scripts.ts",
+      "packages/timeline/src/script.ts",
+      "packages/timeline/src/script-link.ts",
+      "packages/timeline/src/linked.ts",
+      "packages/agents/src/capabilities/scripts.ts",
+      "packages/agents/src/capabilities/scripts.specs.ts",
+      "packages/agents/src/tools/script-voice-tools.ts",
+      "packages/agents/src/evals/surfaces/script.ts",
+      "packages/agents/src/evals/surfaces/creative-pipeline.ts",
+      "packages/models/src/schema/scripts.ts",
+      "packages/websocket/src/trpc/routers/scripts.ts",
+      "web/src/components/script/",
+      "web/src/lib/tools/builtin/script.ts",
+      "web/src/studio/"
     ]
   },
   {

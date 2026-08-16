@@ -252,7 +252,7 @@ export class ImageDocument extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new ImageDocument(row);
@@ -283,7 +283,7 @@ export class ImageDocument extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) {
       return null;
     }

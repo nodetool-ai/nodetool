@@ -4,8 +4,8 @@ import { readSettings, updateSetting } from "../settings";
 jest.mock("../settings");
 jest.mock("../logger");
 
-const mockReadSettings = readSettings as jest.MockedFunction<typeof readSettings>;
-const mockUpdateSetting = updateSetting as jest.MockedFunction<typeof updateSetting>;
+const mockReadSettings = jest.mocked(readSettings);
+const mockUpdateSetting = jest.mocked(updateSetting);
 
 describe("torchPlatformCache", () => {
   beforeEach(() => {

@@ -40,6 +40,10 @@ function isSketchNodeImageRef(value: unknown): value is SketchNodeImageRef {
   if (!value || typeof value !== "object") {
     return false;
   }
+  // SAFETY: `Partial<…>` claims nothing about which fields are present — the
+  // guard above only established a non-null object. Every field is checked
+  // below (`type`, `uri`, and the `in` tests for `asset_id`/`data`) before the
+  // predicate returns true.
   const maybeImageRef = value as Partial<SketchNodeImageRef>;
   return (
     maybeImageRef.type === "image" &&

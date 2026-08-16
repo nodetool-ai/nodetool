@@ -167,7 +167,7 @@ export function chatUnavailableBridges(
         bridge.members.length > 0 &&
         bridge.members.every((member) => member.requiresContext)
     )
-    .map((bridge) => bridge.name as string);
+    .map((bridge) => bridge.name);
   return [...new Set([...CHAT_UNAVAILABLE_BRIDGES, ...derived])].sort();
 }
 

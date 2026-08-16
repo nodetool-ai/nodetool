@@ -38,7 +38,7 @@ jest.mock("../../node/DataTable/DataTable", () => ({
     dataframe: DataframeRef;
     onChange?: (df: DataframeRef) => void;
   }) => {
-    const rows = (dataframe.data ?? []) as unknown[][];
+    const rows = dataframe.data ?? [];
     const addRow = () =>
       onChange?.({
         ...dataframe,

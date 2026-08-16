@@ -16,7 +16,7 @@ import { trpcClient } from "../../trpc/client";
 import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { loadLinkedBoard } from "../../lib/linkedAssembly";
 import {
   mergeIntoSequence,
@@ -83,7 +83,7 @@ export const useAssembleScriptTimeline =
             const merged = mergeIntoSequence(
               { tracks: doc.tracks, clips },
               {
-                tracks: sequence.tracks as TimelineTrack[],
+                tracks: sequence.tracks,
                 clips: sequence.clips as TimelineClip[]
               },
               { scriptId, boardId: board?.boardId ?? null }

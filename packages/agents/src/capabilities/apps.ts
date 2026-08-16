@@ -19,7 +19,6 @@
 
 import { noRegistryError, userIdOf } from "../tools/mcp-tool-support.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
-import type { AppDebugRequest } from "@nodetool-ai/execution/service";
 import { debugAppSpec } from "./apps.specs.js";
 
 export { DEBUG_APP_SCHEMA } from "./apps.specs.js";
@@ -36,7 +35,7 @@ const debugApp: CapabilityExport = {
     );
     const userId = userIdOf(run.context);
     try {
-      return await runApplicationDebug(userId, params as AppDebugRequest, registry, {
+      return await runApplicationDebug(userId, params, registry, {
         // The run's own secrets: the server's app-debug service and the CLI
         // harness both pass a resolver, and without one a script operation
         // that reads `nodetool.secrets.get(...)` saw undefined here only.

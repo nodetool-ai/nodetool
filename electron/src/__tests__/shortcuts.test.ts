@@ -22,9 +22,9 @@ jest.mock('electron', () => ({
 }));
 
 describe('Shortcuts', () => {
-  const mockGlobalShortcut = globalShortcut as jest.Mocked<typeof globalShortcut>;
-  const mockFetchWorkflows = fetchWorkflows as jest.MockedFunction<typeof fetchWorkflows>;
-  const mockRunWorkflow = runWorkflow as jest.MockedFunction<typeof runWorkflow>;
+  const mockGlobalShortcut = jest.mocked(globalShortcut);
+  const mockFetchWorkflows = jest.mocked(fetchWorkflows);
+  const mockRunWorkflow = jest.mocked(runWorkflow);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,7 +41,7 @@ describe('Shortcuts', () => {
 
     it('should register shortcut for workflow with settings', async () => {
       mockGlobalShortcut.register.mockReturnValue(true);
-      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(true);
+      jest.mocked(mockGlobalShortcut.isRegistered).mockReturnValue(true);
 
       await registerWorkflowShortcut(mockWorkflow);
 
@@ -54,7 +54,7 @@ describe('Shortcuts', () => {
 
     it('should execute workflow when shortcut is triggered', async () => {
       let shortcutCallback: () => void = () => {};
-      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(true);
+      jest.mocked(mockGlobalShortcut.isRegistered).mockReturnValue(true);
       mockGlobalShortcut.register.mockImplementation((shortcut, callback) => {
         shortcutCallback = callback;
         return true;
@@ -95,7 +95,7 @@ describe('Shortcuts', () => {
 
     it('should handle registration failure', async () => {
       mockGlobalShortcut.register.mockReturnValue(false);
-      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(false);
+      jest.mocked(mockGlobalShortcut.isRegistered).mockReturnValue(false);
 
       const result = await registerWorkflowShortcut(mockWorkflow);
 
@@ -104,7 +104,7 @@ describe('Shortcuts', () => {
     });
 
     it('should handle errors during registration', async () => {
-      (mockGlobalShortcut.isRegistered as jest.Mock).mockReturnValue(false);
+      jest.mocked(mockGlobalShortcut.isRegistered).mockReturnValue(false);
       mockGlobalShortcut.register.mockImplementation(() => {
         throw new Error('Registration error');
       });
