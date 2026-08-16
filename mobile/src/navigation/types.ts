@@ -33,6 +33,11 @@ export type RootStackParamList = {
     id: string;
     name?: string;
   };
+  /** JS script editor. `name` seeds the header before the load resolves. */
+  JsScriptEditor: {
+    id: string;
+    name?: string;
+  };
   /** Read-only timeline. */
   TimelineViewer: {
     id: string;
