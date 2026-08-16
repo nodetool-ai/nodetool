@@ -1,3 +1,4 @@
+import { apiService } from '../../services/api';
 /**
  * Tests for JsScriptEditorScreen.
  *
@@ -38,31 +39,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-jest.mock('../../hooks/useTheme', () => ({
-  useTheme: () => ({
-    colors: {
-      background: '#000',
-      surface: '#111',
-      primary: '#6DB3F8',
-      primaryMuted: '#123',
-      text: '#fff',
-      textSecondary: '#aaa',
-      textTertiary: '#777',
-      textOnPrimary: '#fff',
-      border: '#222',
-      borderLight: '#333',
-      error: '#f00',
-      warning: '#fc0',
-      success: '#0c6',
-      inputBg: '#222',
-      cardBg: '#111',
-      accent: '#a7f',
-      accentMuted: '#334',
-    },
-    shadows: { small: {}, medium: {}, large: {} },
-  }),
-}));
-
 const mockRunJsScript = jest.fn(
   async (
     _scriptId: string,
@@ -76,14 +52,10 @@ const mockRunJsScript = jest.fn(
   })
 );
 
-// Referenced lazily: the factory runs while the module graph is still being
-// initialized, so reading the const eagerly would capture it before assignment.
-jest.mock('../../services/api', () => ({
-  apiService: {
-    runJsScript: (...args: Parameters<typeof mockRunJsScript>) =>
-      mockRunJsScript(...args),
-  },
-}));
+// The real `apiService` singleton; only the script run is stubbed.
+jest
+  .spyOn(apiService, 'runJsScript')
+  .mockImplementation((...args) => mockRunJsScript(...args));
 
 const saveMock = jest.fn(async () => {});
 const loadMock = jest.fn(async () => {});

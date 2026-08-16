@@ -17,15 +17,15 @@
  */
 
 import path from "path";
+import * as httpProbe from "../httpProbe";
 
 const electronMock = jest.requireActual("../__mocks__/electron");
 jest.mock("electron", () => electronMock);
 
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
-jest.mock("../httpProbe", () => ({
-  probeHttpOk: jest.fn().mockResolvedValue(true),
-  waitForHttpOk: jest.fn().mockResolvedValue(true),
-}));
+// The real probe module; both network calls are stubbed so nothing dials out.
+jest.spyOn(httpProbe, "probeHttpOk").mockResolvedValue(true);
+jest.spyOn(httpProbe, "waitForHttpOk").mockResolvedValue(true);
 
 // fs/promises with controllable access result for PID file teardown
 jest.mock("fs", () => {

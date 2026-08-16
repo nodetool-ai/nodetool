@@ -16,7 +16,9 @@ jest.mock("../logger", () => ({
   LOG_FILE: "/mock/logs/nodetool.log",
 }));
 
-// Mock config
+// HOLDOUT (anti-slop/no-module-mocking): `config.ts` reads `app.isPackaged` at
+// module load, and this file's `electron` double carries only `shell`, so the
+// real module cannot be imported here.
 jest.mock("../config", () => ({
   getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda/env"),
 }));

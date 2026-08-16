@@ -35,36 +35,12 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-jest.mock('../../services/api', () => ({
-  apiService: {
-    resolveUrl: (path?: string | null) =>
-      path ? `https://example.test${path}` : null,
-  },
-}));
+import { apiService } from '../../services/api';
 
-jest.mock('../../hooks/useTheme', () => ({
-  useTheme: () => ({
-    colors: {
-      background: '#000',
-      surface: '#111',
-      primary: '#6DB3F8',
-      primaryMuted: '#123',
-      text: '#fff',
-      textSecondary: '#aaa',
-      textTertiary: '#777',
-      textOnPrimary: '#fff',
-      border: '#222',
-      borderLight: '#333',
-      error: '#f00',
-      warning: '#fc0',
-      inputBg: '#222',
-      cardBg: '#111',
-      accent: '#a7f',
-      accentMuted: '#334',
-    },
-    shadows: { small: {}, medium: {}, large: {} },
-  }),
-}));
+// Real `apiService`; only URL resolution is pinned to a stable test host.
+jest.spyOn(apiService, 'resolveUrl').mockImplementation((path) =>
+  path ? `https://example.test${path}` : null
+);
 
 const saveMock = jest.fn(async () => {});
 const loadMock = jest.fn(async () => {});

@@ -1,20 +1,42 @@
 /**
  * Tests for unsaved-changes (isDirty) tracking in GraphEditorStore.
- * services/api is mocked to avoid pulling the tRPC/auth stack.
+ * The two network methods are stubbed on the real `apiService` singleton so
+ * nothing reaches the tRPC/auth stack.
  */
 
-const mockSaveWorkflow = jest.fn();
-const mockCreateWorkflow = jest.fn();
-
-jest.mock('../services/api', () => ({
-  apiService: {
-    getNodeMetadata: jest.fn(),
-    saveWorkflow: (...args: unknown[]) => mockSaveWorkflow(...args),
-    createWorkflow: (...args: unknown[]) => mockCreateWorkflow(...args),
-  },
-}));
-
 import { useGraphEditorStore } from './GraphEditorStore';
+import { apiService } from '../services/api';
+
+const mockSaveWorkflow = jest.spyOn(apiService, 'saveWorkflow');
+
+/**
+ * A full saved-workflow row, as `workflows.update` returns it. The store hands
+ * this to the real `normalizeWorkflow`, so it has to carry the whole shape.
+ */
+const savedWorkflow: Awaited<ReturnType<typeof apiService.saveWorkflow>> = {
+  id: 'wf1',
+  name: 'Test',
+  access: 'private',
+  tool_name: null,
+  thumbnail: null,
+  thumbnail_url: null,
+  package_name: null,
+  path: null,
+  run_mode: null,
+  workspace_id: null,
+  html_app: null,
+  etag: null,
+  description: '',
+  graph: { nodes: [], edges: [] },
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+const mockCreateWorkflow = jest.spyOn(apiService, 'createWorkflow');
+
+afterAll(() => {
+  mockSaveWorkflow.mockRestore();
+  mockCreateWorkflow.mockRestore();
+});
 
 describe('GraphEditorStore unsaved-changes tracking', () => {
   beforeEach(() => {
@@ -49,7 +71,7 @@ describe('GraphEditorStore unsaved-changes tracking', () => {
   });
 
   it('clears dirty after a successful save', async () => {
-    mockSaveWorkflow.mockResolvedValue({ id: 'wf1' });
+    mockSaveWorkflow.mockResolvedValue(savedWorkflow);
     useGraphEditorStore.setState({ isDirty: true, workflowId: 'wf1' });
 
     await useGraphEditorStore.getState().saveWorkflow();

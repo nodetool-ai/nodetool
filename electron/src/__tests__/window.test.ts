@@ -107,11 +107,6 @@ jest.mock('path', () => ({
   join: jest.fn().mockImplementation((...args) => args.join('/')),
 }));
 
-jest.mock('../devMode', () => ({
-  isElectronDevMode: jest.fn().mockReturnValue(false),
-  getWebDevServerUrl: jest.fn().mockReturnValue('http://127.0.0.1:3000'),
-}));
-
 describe('Window Module', () => {
   let mockWindow: any;
   

@@ -1,6 +1,6 @@
 import { clipboard, nativeImage } from 'electron';
 import { runWorkflow } from '../workflowExecution';
-import { createWorkflowRunner } from '../WorkflowRunner';
+import * as workflowRunnerModule from '../WorkflowRunner';
 import { createWorkflowWindow } from '../workflowWindow';
 import { Workflow } from '../types';
 
@@ -16,20 +16,25 @@ jest.mock('electron', () => ({
   },
 }));
 
-jest.mock('../WorkflowRunner', () => ({
-  createWorkflowRunner: jest.fn(),
-}));
-
-jest.mock('../workflowWindow', () => ({
-  createWorkflowWindow: jest.fn(),
-}));
-
 jest.mock('../logger', () => ({
   logMessage: jest.fn(),
 }));
 
-const mockedCreateWorkflowRunner = createWorkflowRunner as jest.MockedFunction<typeof createWorkflowRunner>;
-const mockedCreateWorkflowWindow = createWorkflowWindow as jest.MockedFunction<typeof createWorkflowWindow>;
+// HOLDOUT (anti-slop/no-module-mocking): `workflowWindow.ts` reads
+// `app.isPackaged` at module load, which this file's `electron` double does not
+// carry, so the module cannot be imported for real here.
+jest.mock('../workflowWindow', () => ({
+  createWorkflowWindow: jest.fn(),
+}));
+const mockedCreateWorkflowWindow = createWorkflowWindow as jest.MockedFunction<
+  typeof createWorkflowWindow
+>;
+
+// The real runner module; only the factory is stubbed so no socket is dialled.
+const mockedCreateWorkflowRunner = jest.spyOn(
+  workflowRunnerModule,
+  'createWorkflowRunner'
+);
 const mockedClipboard = clipboard as jest.Mocked<typeof clipboard>;
 const mockedNativeImage = nativeImage as jest.Mocked<typeof nativeImage>;
 

@@ -20,12 +20,14 @@ jest.mock('../services/WebSocketManager', () => ({
   })),
 }));
 
-// Mock apiService
-jest.mock('../services/api', () => ({
-  apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws'),
-  },
-}));
+// `apiService` is a real singleton; only the URL lookup is stubbed on it.
+const mockGetWebSocketUrl = jest
+  .spyOn(apiService, 'getWebSocketUrl')
+  .mockReturnValue('ws://localhost:7777/ws');
+
+afterAll(() => {
+  mockGetWebSocketUrl.mockRestore();
+});
 
 /** Jest mocks that keep each method's real signature. */
 type MockedMethods<T, K extends keyof T> = {

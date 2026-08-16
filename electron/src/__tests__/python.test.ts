@@ -1,4 +1,8 @@
 import { EventEmitter } from "events";
+import * as config from "../config";
+import * as utils from "../utils";
+import * as events from "../events";
+import * as torchPlatformCache from "../torchPlatformCache";
 
 import {
   installRequiredPythonPackages,
@@ -28,31 +32,24 @@ jest.mock("electron", () => ({
   },
 }));
 
-jest.mock("../config", () => ({
-  getNodePath: jest.fn().mockReturnValue("/conda/bin/node"),
-  getPythonPath: jest.fn().mockReturnValue("/conda/bin/python"),
-  getUVPath: jest.fn().mockReturnValue("/conda/bin/uv"),
-  getProcessEnv: jest.fn().mockReturnValue({}),
-}));
+// The real config module; only the four toolchain lookups are stubbed.
+jest.spyOn(config, "getNodePath").mockReturnValue("/conda/bin/node");
+jest.spyOn(config, "getPythonPath").mockReturnValue("/conda/bin/python");
+jest.spyOn(config, "getUVPath").mockReturnValue("/conda/bin/uv");
+jest.spyOn(config, "getProcessEnv").mockReturnValue({});
 
 jest.mock("../logger", () => ({
   logMessage: jest.fn(),
   LOG_FILE: "/tmp/nodetool.log",
 }));
 
-jest.mock("../utils", () => ({
-  checkPermissions: jest.fn(),
-  fileExists: jest.fn().mockResolvedValue(true),
-}));
-
-jest.mock("../events", () => ({
-  emitBootMessage: jest.fn(),
-  emitServerLog: jest.fn(),
-}));
-
-jest.mock("../torchPlatformCache", () => ({
-  getTorchIndexUrl: jest.fn().mockReturnValue(null),
-}));
+// Real modules; only the filesystem probes, the log emitters and the torch
+// index lookup are stubbed on them.
+jest.spyOn(utils, "checkPermissions");
+jest.spyOn(utils, "fileExists").mockResolvedValue(true);
+jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
+jest.spyOn(events, "emitServerLog").mockImplementation(() => {});
+jest.spyOn(torchPlatformCache, "getTorchIndexUrl").mockReturnValue(null);
 
 jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
   BRIDGE_PROTOCOL_VERSION: 1,

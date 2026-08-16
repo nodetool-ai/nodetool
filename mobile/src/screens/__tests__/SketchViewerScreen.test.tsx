@@ -41,12 +41,12 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-jest.mock('../../services/api', () => ({
-  apiService: {
-    resolveUrl: (path?: string | null) =>
-      path ? (path.startsWith('http') ? path : `https://example.test${path}`) : null,
-  },
-}));
+import { apiService } from '../../services/api';
+
+// Real `apiService`; only URL resolution is pinned to a stable test host.
+jest.spyOn(apiService, 'resolveUrl').mockImplementation((path) =>
+  path ? (path.startsWith('http') ? path : `https://example.test${path}`) : null
+);
 
 interface AssetQueryResult {
   data?: { get_url: string };
@@ -68,31 +68,6 @@ jest.mock('../../trpc/client', () => ({
       },
     },
   },
-}));
-
-jest.mock('../../hooks/useTheme', () => ({
-  useTheme: () => ({
-    colors: {
-      background: '#000',
-      surface: '#111',
-      surfaceElevated: '#222',
-      primary: '#6DB3F8',
-      primaryMuted: '#123',
-      text: '#fff',
-      textSecondary: '#aaa',
-      textTertiary: '#777',
-      textOnPrimary: '#fff',
-      border: '#222',
-      borderLight: '#333',
-      error: '#f00',
-      success: '#0f0',
-      warning: '#fc0',
-      info: '#08f',
-      inputBg: '#222',
-      cardBg: '#111',
-    },
-    shadows: { small: {}, medium: {}, large: {} },
-  }),
 }));
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
