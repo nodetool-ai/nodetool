@@ -286,7 +286,9 @@ describe("nodePackManager", () => {
         name: "@scope/pkg",
         version: "2.0.0",
         nodetool: { register: "register" },
-        ...(lockfile === undefined ? {} : { lockfile })
+        // The stub reads `options.lockfile ?? <default>`, so an absent key and
+        // an undefined one take the same branch.
+        lockfile
       });
       await installNodePack("@scope/pkg");
       jest.clearAllMocks();

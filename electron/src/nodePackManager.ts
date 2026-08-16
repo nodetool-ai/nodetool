@@ -288,19 +288,28 @@ async function classifyInstalledNodePack(name: string): Promise<NodePackInstallR
   const lockfile = await readLockfilePackages();
   const artifact = artifactIdentity(name, lockfile);
   const dependencies = dependencyClosure(name, lockfile);
-  const base = {
+  const base: Omit<NodePackInstallRecord, "mode" | "active"> = {
     name,
-    scripts: "skipped" as const,
-    ...(artifact === undefined ? {} : { artifact }),
-    ...(dependencies.length === 0 ? {} : { dependencies }),
+    scripts: "skipped",
     installedAt: new Date().toISOString()
   };
-  const unknown = (reason?: unknown): NodePackInstallRecord => ({
-    ...base,
-    mode: "unknown",
-    active: false,
-    ...(reason instanceof Error ? { reason: reason.message } : {})
-  });
+  if (artifact !== undefined) {
+    base.artifact = artifact;
+  }
+  if (dependencies.length > 0) {
+    base.dependencies = dependencies;
+  }
+  const unknown = (reason?: unknown): NodePackInstallRecord => {
+    const record: NodePackInstallRecord = {
+      ...base,
+      mode: "unknown",
+      active: false
+    };
+    if (reason instanceof Error) {
+      record.reason = reason.message;
+    }
+    return record;
+  };
 
   let rawPackage: string;
   try {
@@ -396,12 +405,17 @@ function artifactIdentity(
 ): NodePackArtifactIdentity | undefined {
   const entry = packages[lockPath];
   if (entry === undefined) return undefined;
-  return {
-    name,
-    ...(entry.version === undefined ? {} : { version: entry.version }),
-    ...(entry.resolved === undefined ? {} : { resolved: entry.resolved }),
-    ...(entry.integrity === undefined ? {} : { integrity: entry.integrity })
-  };
+  const identity: NodePackArtifactIdentity = { name };
+  if (entry.version !== undefined) {
+    identity.version = entry.version;
+  }
+  if (entry.resolved !== undefined) {
+    identity.resolved = entry.resolved;
+  }
+  if (entry.integrity !== undefined) {
+    identity.integrity = entry.integrity;
+  }
+  return identity;
 }
 
 /**
