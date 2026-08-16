@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { isString } from "./type-predicates.js";
 
 type ImageRefLike = { data?: string | Uint8Array; uri?: string };
 
@@ -10,7 +11,7 @@ function getApiKey(secrets: Record<string, string>): string {
 }
 
 function imageToDataUri(image: ImageRefLike): string {
-  if (typeof image.data === "string") {
+  if (isString(image.data)) {
     return `data:image/png;base64,${image.data}`;
   }
   if (image.data instanceof Uint8Array) {

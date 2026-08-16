@@ -41,6 +41,7 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { ffprobeDuration } from "./ffmpeg-helpers.js";
+import { isPositiveNumber, isString } from "../type-predicates.js";
 
 const scriptRefDefault = { type: "script", id: null, data: null } as const;
 
@@ -467,7 +468,7 @@ async function synthesizeLine(
       params
     })) {
       const piece = item as { samples?: Int16Array; sampleRate?: number };
-      if (typeof piece.sampleRate === "number" && piece.sampleRate > 0) {
+      if (isPositiveNumber(piece.sampleRate)) {
         sampleRate = piece.sampleRate;
       }
       if (piece.samples instanceof Int16Array) {
@@ -496,7 +497,7 @@ async function synthesizeLine(
   return {
     bytes: encoded.data,
     contentType:
-      typeof encoded.mimeType === "string" ? encoded.mimeType : "audio/mpeg"
+      isString(encoded.mimeType) ? encoded.mimeType : "audio/mpeg"
   };
 }
 

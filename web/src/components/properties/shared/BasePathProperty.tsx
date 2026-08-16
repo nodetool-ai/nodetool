@@ -8,6 +8,7 @@ import { useTheme } from "@mui/material/styles";
 import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
+import { isString } from "../../../utils/typePredicates";
 
 export type PathType = "file_path" | "folder_path";
 
@@ -123,7 +124,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
     // The second check is required for TypeScript type narrowing.
     if (hasNativeDialog() && window.api.dialog) {
       try {
-        const currentValue = typeof props.value === "string" ? props.value : undefined;
+        const currentValue = isString(props.value) ? props.value : undefined;
 
         if (props.onlyDirs) {
           const result = await window.api.dialog.openFolder({
@@ -188,7 +189,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
         onClose={handleCancel}
         onConfirm={handleConfirm}
         title={props.dialogTitle}
-        initialPath={typeof props.value === "string" ? props.value : "~"}
+        initialPath={isString(props.value) ? props.value : "~"}
         selectionMode={props.onlyDirs ? "directory" : "file"}
       />
     </div>

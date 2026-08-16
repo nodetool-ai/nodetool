@@ -1,0 +1,13 @@
+{
+  "plugins": [],
+  "categories": {},
+  "rules": {
+    "anti-slop/no-runtime-typeof": ["error", { "allowInTypeGuards": true }]
+  },
+  "jsPlugins": [
+    {
+      "name": "anti-slop",
+      "specifier": "../index.ts"
+    }
+  ]
+}

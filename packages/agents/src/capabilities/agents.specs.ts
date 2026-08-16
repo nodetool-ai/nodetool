@@ -11,6 +11,7 @@
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { READ_ONLY_SEARCH_DESCRIPTION } from "../prompts/read-only-search-prompt.js";
+import { isString } from "../utils/type-guards.js";
 
 export const RUN_SUBTASK_DESCRIPTION = [
   "Spawn a focused subtask handled by a fresh agent loop. The subtask returns",
@@ -78,7 +79,7 @@ export const runSubtaskSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const desc =
-      typeof params["description"] === "string"
+      isString(params["description"])
         ? params["description"].trim()
         : "";
     return desc ? `Running subtask: ${desc}` : "Running subtask";
@@ -97,7 +98,7 @@ export const runSearchSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const query =
-      typeof params["query"] === "string" ? params["query"].trim() : "";
+      isString(params["query"]) ? params["query"].trim() : "";
     return query ? `Searching: ${query}` : "Searching workspace";
   }
 };

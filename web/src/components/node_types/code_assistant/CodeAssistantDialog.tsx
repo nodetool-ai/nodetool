@@ -44,6 +44,7 @@ import type {
 import { registerCodeAssistantHandler } from "./codeAssistantBridge";
 import CodeAssistantChatPanel from "./CodeAssistantChatPanel";
 import ResizableSideDock from "../../chat/assistant/ResizableSideDock";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 const CHAT_PANEL_WIDTH = 360;
 
@@ -60,12 +61,12 @@ export interface CodeAssistantDialogProps {
 
 /** A saved `packages` entry is a specifier string or a declaration object. */
 const packageSpecifier = (entry: unknown): string | null => {
-  if (typeof entry === "string") {
+  if (isString(entry)) {
     return entry;
   }
-  if (entry !== null && typeof entry === "object") {
+  if (isObjectLike(entry)) {
     const specifier = (entry as { specifier?: unknown }).specifier;
-    if (typeof specifier === "string") {
+    if (isString(specifier)) {
       return specifier;
     }
   }
@@ -114,7 +115,7 @@ const CodeAssistantDialogInner = ({
     const node = findNode(nodeId);
     const data = node?.data;
     const code =
-      typeof data?.properties?.code === "string"
+      isString(data?.properties?.code)
         ? data.properties.code
         : "";
     const inputPorts: CodeAssistantPort[] = Object.entries(

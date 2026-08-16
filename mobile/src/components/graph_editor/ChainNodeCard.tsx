@@ -32,6 +32,7 @@ import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import { OutputRenderer } from "../outputs/OutputRenderer";
 import { useWorkflowRunner } from "../../stores/WorkflowRunner";
+import { isRecord } from "../../utils/typePredicates";
 
 // Enable LayoutAnimation on Android
 if (
@@ -64,7 +65,7 @@ interface ChainNodeCardProps {
 function getOutputFromResult(result: unknown): unknown {
   if (result === undefined || result === null) {return undefined;}
   if (
-    typeof result === "object" &&
+    isRecord(result) &&
     !Array.isArray(result) &&
     "output" in result
   ) {
@@ -93,7 +94,7 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
     const nodeResult = s.nodeResults[nodeId];
     if (nodeResult !== undefined) {return nodeResult;}
     const results = s.results;
-    if (results && typeof results === "object" && !Array.isArray(results)) {
+    if (isRecord(results) && !Array.isArray(results)) {
       return (results as Record<string, unknown>)[nodeId];
     }
     return undefined;

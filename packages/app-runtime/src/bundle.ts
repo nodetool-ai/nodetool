@@ -18,6 +18,13 @@ import type { Mutable } from "./mutable.js";
  */
 
 import {
+  isCallable,
+  isNonEmptyString,
+  isNumber,
+  isRecord,
+  isString
+} from "./predicates.js";
+import {
   operationTarget,
   parseApplicationDocument,
   type ApplicationDocument,
@@ -130,9 +137,6 @@ export interface BundleWorkflowSource {
   version?: number | null;
   graphHash?: string | null;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const isGraph = (value: unknown): value is BundleGraph =>
   isRecord(value) && Array.isArray(value.nodes) && Array.isArray(value.edges);
@@ -307,7 +311,7 @@ export interface ApplyBundleOptions {
 
 const defaultMintedId = (option: string): string => {
   const uuid = globalThis.crypto?.randomUUID;
-  if (typeof uuid !== "function") {
+  if (!isCallable(uuid)) {
     throw new Error(
       `applyBundle needs a ${option} option: crypto.randomUUID is unavailable`
     );
@@ -354,10 +358,7 @@ const isPortList = (
 ): value is BundleJsScriptDocument["inputs"] =>
   Array.isArray(value) &&
   value.every(
-    (port) =>
-      isRecord(port) &&
-      typeof port.name === "string" &&
-      typeof port.type === "string"
+    (port) => isRecord(port) && isString(port.name) && isString(port.type)
   );
 
 /**
@@ -382,15 +383,14 @@ export const pinScriptVersions = (
 
 const parseScriptDocument = (value: unknown): BundleJsScriptDocument | null => {
   if (!isRecord(value)) return null;
-  if (typeof value.code !== "string") return null;
+  if (!isString(value.code)) return null;
   if (!isPortList(value.inputs) || !isPortList(value.outputs)) return null;
   // Everything past the ports is carried through untouched — the pinned Zod
   // contract in `@nodetool-ai/protocol` is what checks the rest, wherever the
   // document is actually run.
   return {
     ...value,
-    schemaVersion:
-      typeof value.schemaVersion === "number" ? value.schemaVersion : 1,
+    schemaVersion: isNumber(value.schemaVersion) ? value.schemaVersion : 1,
     code: value.code,
     inputs: value.inputs,
     outputs: value.outputs
@@ -400,17 +400,17 @@ const parseScriptDocument = (value: unknown): BundleJsScriptDocument | null => {
 const parseScript = (value: unknown): BundledJsScript | null => {
   if (!isRecord(value)) return null;
   const { key, name } = value;
-  if (typeof key !== "string" || key.length === 0) return null;
+  if (!isNonEmptyString(key)) return null;
   const document = parseScriptDocument(value.document);
   if (!document) return null;
   type ParsedFields = Mutable<BundledJsScript>;
   const parsed: ParsedFields = {
     key,
-    name: typeof name === "string" ? name : key,
+    name: isString(name) ? name : key,
     document,
-    version: typeof value.version === "number" ? value.version : null
+    version: isNumber(value.version) ? value.version : null
   };
-  if (typeof value.sourceId === "string" && value.sourceId.length > 0) {
+  if (isNonEmptyString(value.sourceId)) {
     parsed.sourceId = value.sourceId;
   }
   return parsed;
@@ -419,20 +419,20 @@ const parseScript = (value: unknown): BundledJsScript | null => {
 const parseWorkflow = (value: unknown): BundledWorkflow | null => {
   if (!isRecord(value)) return null;
   const { key, name, graph } = value;
-  if (typeof key !== "string" || key.length === 0) return null;
+  if (!isNonEmptyString(key)) return null;
   if (!isGraph(graph)) return null;
   type ParsedFields2 = Mutable<BundledWorkflow>;
   const parsed: ParsedFields2 = {
     key,
-    name: typeof name === "string" ? name : key,
+    name: isString(name) ? name : key,
     graph,
-    version: typeof value.version === "number" ? value.version : null,
-    graphHash: typeof value.graphHash === "string" ? value.graphHash : null
+    version: isNumber(value.version) ? value.version : null,
+    graphHash: isString(value.graphHash) ? value.graphHash : null
   };
-  if (typeof value.description === "string") {
+  if (isString(value.description)) {
     parsed.description = value.description;
   }
-  if (typeof value.sourceId === "string" && value.sourceId.length > 0) {
+  if (isNonEmptyString(value.sourceId)) {
     parsed.sourceId = value.sourceId;
   }
   return parsed;
@@ -449,10 +449,9 @@ export const parseApplicationBundle = (
   value: unknown
 ): ApplicationBundle | null => {
   if (!isRecord(value)) return null;
-  const schemaVersion =
-    typeof value.schemaVersion === "number"
-      ? value.schemaVersion
-      : APPLICATION_BUNDLE_SCHEMA_VERSION;
+  const schemaVersion = isNumber(value.schemaVersion)
+    ? value.schemaVersion
+    : APPLICATION_BUNDLE_SCHEMA_VERSION;
   if (schemaVersion > APPLICATION_BUNDLE_SCHEMA_VERSION) return null;
   const app = parseApplicationDocument(value.app);
   if (!app) return null;
@@ -468,8 +467,8 @@ export const parseApplicationBundle = (
     : [];
   return {
     schemaVersion: APPLICATION_BUNDLE_SCHEMA_VERSION,
-    name: typeof value.name === "string" ? value.name : "Untitled app",
-    description: typeof value.description === "string" ? value.description : "",
+    name: isString(value.name) ? value.name : "Untitled app",
+    description: isString(value.description) ? value.description : "",
     app,
     workflows,
     scripts

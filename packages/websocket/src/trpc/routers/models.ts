@@ -43,6 +43,7 @@ import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
+import { isString } from "../../lib/wire-values.js";
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
@@ -229,7 +230,7 @@ function normalizePatterns(
   patterns: string | string[] | null | undefined
 ): string[] | null {
   if (patterns == null) return null;
-  if (typeof patterns === "string") return patterns ? [patterns] : null;
+  if (isString(patterns)) return patterns ? [patterns] : null;
   const cleaned = patterns.filter((p) => Boolean(p));
   return cleaned.length > 0 ? cleaned : null;
 }

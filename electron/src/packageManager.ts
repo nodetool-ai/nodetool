@@ -7,6 +7,7 @@ import {
   getCondaEnvPath,
 } from "./config";
 import * as path from "path";
+import { isString } from "./typePredicates";
 
 
 /** Extract the message from an unknown catch-clause error. */
@@ -58,7 +59,7 @@ export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" |
   if (override) {
     return override;
   }
-  return typeof pkg.description === "string" ? pkg.description.trim() : "";
+  return isString(pkg.description) ? pkg.description.trim() : "";
 }
 
 export function needsTorchPlatformDetection(packageName: string): boolean {

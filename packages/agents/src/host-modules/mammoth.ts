@@ -6,6 +6,7 @@
  */
 
 import { requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 interface MammothResult {
   value: string;
@@ -22,7 +23,7 @@ async function loadMammoth(where: string): Promise<MammothLike> {
     mod,
     where,
     "mammoth",
-    (v) => typeof (v as MammothLike | undefined)?.extractRawText === "function"
+    (v) => isFunction((v as MammothLike | undefined)?.extractRawText)
   );
 }
 

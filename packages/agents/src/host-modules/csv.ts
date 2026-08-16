@@ -7,6 +7,7 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import { isFunction, isObjectLike } from "../utils/type-guards.js";
 
 interface PapaparseLike {
   parse: (
@@ -22,7 +23,7 @@ async function loadPapaparse(where: string): Promise<PapaparseLike> {
     mod,
     where,
     "papaparse",
-    (v) => typeof (v as PapaparseLike | undefined)?.parse === "function"
+    (v) => isFunction((v as PapaparseLike | undefined)?.parse)
   );
 }
 
@@ -57,7 +58,7 @@ export async function parse(
   });
   const rows = Array.isArray(parsed.data) ? parsed.data : [];
   return header
-    ? rows.filter((row) => row !== null && typeof row === "object")
+    ? rows.filter((row) => isObjectLike(row))
     : rows.filter((row) => Array.isArray(row));
 }
 

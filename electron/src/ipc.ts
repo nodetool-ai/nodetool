@@ -74,6 +74,7 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
+import { isNonEmptyString, isString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
@@ -168,7 +169,7 @@ const SAFE_EXTERNAL_PROTOCOLS = new Set([
 ]);
 
 function isSafeExternalUrl(urlValue: unknown): boolean {
-  if (typeof urlValue !== "string" || urlValue.length === 0) {
+  if (!isNonEmptyString(urlValue)) {
     return false;
   }
   // Allow well-known OS-preference deep links used by our own code paths.
@@ -1107,7 +1108,7 @@ export function initializeIpcHandlers(): void {
 
       socket.on("message", (data) => {
         const textData =
-          typeof data === "string"
+          isString(data)
             ? data
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")

@@ -1,4 +1,5 @@
 import { BASE_URL } from "../stores/BASE_URL";
+import { isNumber } from "./typePredicates";
 
 /** kie.ai dashboard to manage API keys. */
 export const KIE_API_KEY_URL = "https://kie.ai/api-key";
@@ -34,7 +35,7 @@ export function formatKieCredits(data: KieCredits): string {
     return "N/A";
   }
   let amount: number | undefined;
-  if (typeof bal === "number") {
+  if (isNumber(bal)) {
     amount = bal;
   } else if (typeof bal === "object" && bal.amount != null) {
     amount = bal.amount;

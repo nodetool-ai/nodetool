@@ -14,7 +14,7 @@ describe("nodeUtils", () => {
     });
 
     it("should be a string", () => {
-      expect(typeof GROUP_NODE_TYPE).toBe("string");
+      expect(GROUP_NODE_TYPE).toEqual(expect.any(String));
     });
   });
 

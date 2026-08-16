@@ -21,6 +21,7 @@ Object.defineProperty(globalThis, "import", {
 
 // Mock TextEncoder/TextDecoder for msgpack
 import { TextEncoder, TextDecoder } from "util";
+import { isFunction } from "./utils/typePredicates";
 
 installGlobal("TextEncoder", TextEncoder);
 installGlobal("TextDecoder", TextDecoder);
@@ -44,7 +45,7 @@ if (typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === "unde
 // components using setPointerCapture (e.g. <OnScreenKeyboard />) work in tests.
 if (
   typeof Element !== "undefined" &&
-  typeof Element.prototype.setPointerCapture !== "function"
+  !isFunction(Element.prototype.setPointerCapture)
 ) {
   const captured = new WeakMap<Element, Set<number>>();
   Element.prototype.setPointerCapture = function (pointerId: number): void {

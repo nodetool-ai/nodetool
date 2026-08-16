@@ -73,6 +73,7 @@ import { rawRgbaToPngDataUrl } from "../../../lib/workflow/materializeBrowserOut
 import { createImageUrl } from "../../../utils/imageUtils";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
+import { isFunction, isNumber, isString } from "../../../utils/typePredicates";
 
 // Max number of undo states retained. Keeps memory bounded; older
 // states are dropped from the front of the queue.
@@ -436,11 +437,11 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   const rawCanvasWidth = data.properties?.canvas_width;
   const rawCanvasHeight = data.properties?.canvas_height;
   const configuredW =
-    typeof rawCanvasWidth === "number" && rawCanvasWidth > 0
+    isNumber(rawCanvasWidth) && rawCanvasWidth > 0
       ? rawCanvasWidth
       : DEFAULT_CANVAS_SIZE;
   const configuredH =
-    typeof rawCanvasHeight === "number" && rawCanvasHeight > 0
+    isNumber(rawCanvasHeight) && rawCanvasHeight > 0
       ? rawCanvasHeight
       : DEFAULT_CANVAS_SIZE;
   const canvasW = imgDims?.w ?? configuredW;
@@ -460,16 +461,16 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   const props = data.properties ?? {};
   const [tool, setTool] = useState<Tool>("brush");
   const [brushSize, setBrushSize] = useState<number>(
-    typeof props.brush_size === "number" ? props.brush_size : DEFAULT_BRUSH_SIZE
+    isNumber(props.brush_size) ? props.brush_size : DEFAULT_BRUSH_SIZE
   );
   const [brushOpacity, setBrushOpacity] = useState<number>(
-    typeof props.brush_opacity === "number" ? props.brush_opacity : DEFAULT_BRUSH_OPACITY
+    isNumber(props.brush_opacity) ? props.brush_opacity : DEFAULT_BRUSH_OPACITY
   );
   const [color, setColor] = useState<string>(
-    typeof props.brush_color === "string" ? props.brush_color : DEFAULT_COLOR
+    isString(props.brush_color) ? props.brush_color : DEFAULT_COLOR
   );
   const [bgFade, setBgFade] = useState<number>(
-    typeof props.bg_fade === "number" ? props.bg_fade : DEFAULT_BG_FADE
+    isNumber(props.bg_fade) ? props.bg_fade : DEFAULT_BG_FADE
   );
 
   // ── Paint canvas + history ───────────────────────────────────────
@@ -625,7 +626,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   // Mount-time hydration: load existing mask_data into the canvas.
   const propsMaskData = data.properties?.mask_data;
   useEffect(() => {
-    const raw = typeof propsMaskData === "string" ? propsMaskData : "";
+    const raw = isString(propsMaskData) ? propsMaskData : "";
     if (raw === lastMaskDataRef.current) return;
     if (isDirtyRef.current) return; // local stroke in flight
     lastMaskDataRef.current = raw;
@@ -731,7 +732,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
       lastPointRef.current = pt;
       drawStrokeTo(pt); // dot at click
       const target = e.currentTarget;
-      if (typeof target.setPointerCapture === "function") {
+      if (isFunction(target.setPointerCapture)) {
         target.setPointerCapture(e.pointerId);
       }
       pointerCaptureTargetRef.current = target;

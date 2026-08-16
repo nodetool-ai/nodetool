@@ -15,6 +15,8 @@
  * arrives as a flag from the caller.
  */
 
+import { isRecord, isString } from "./predicates.js";
+
 /** One declared port. `type` is a TypeMetadata name (`"str"`, `"list[str]"`). */
 export interface ScriptPort {
   name: string;
@@ -67,11 +69,11 @@ export function scriptInvocationInput(
 }
 
 const emitEntry = (item: unknown): { name: string; value: unknown } | null => {
-  if (item === null || typeof item !== "object" || Array.isArray(item)) {
+  if (!isRecord(item)) {
     return null;
   }
-  const record = item as Record<string, unknown>;
-  return typeof record.name === "string"
+  const record = item;
+  return isString(record.name)
     ? { name: record.name, value: record.value }
     : null;
 };

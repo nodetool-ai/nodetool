@@ -1,3 +1,4 @@
+import { isNumber, isObjectLike } from "../../utils/typePredicates";
 /**
  * Browser-side dependency-hash helper for sketch layer bindings.
  *
@@ -42,7 +43,7 @@ function stableSerialize(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
   }
-  if (value !== null && typeof value === "object") {
+  if (isObjectLike(value)) {
     const entries = Object.entries(value as Record<string, unknown>).sort(
       ([leftKey], [rightKey]) => byCodeUnit(leftKey, rightKey)
     );
@@ -50,7 +51,7 @@ function stableSerialize(value: unknown): string {
       .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableSerialize(entryValue)}`)
       .join(",")}}`;
   }
-  if (typeof value === "number" && !Number.isFinite(value)) {
+  if (isNumber(value) && !Number.isFinite(value)) {
     // JSON.stringify collapses NaN / ±Infinity to "null"; keep them distinct.
     return Number.isNaN(value) ? "NaN" : value > 0 ? "Infinity" : "-Infinity";
   }

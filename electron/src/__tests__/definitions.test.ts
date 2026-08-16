@@ -14,23 +14,23 @@ describe("RUNTIME_PACKAGES", () => {
   it("every package has required fields", () => {
     for (const [id, pkg] of Object.entries(RUNTIME_PACKAGES)) {
       expect(pkg.id).toBe(id);
-      expect(typeof pkg.name).toBe("string");
+      expect(pkg.name).toEqual(expect.any(String));
       expect(pkg.name.length).toBeGreaterThan(0);
-      expect(typeof pkg.description).toBe("string");
+      expect(pkg.description).toEqual(expect.any(String));
       expect(pkg.description.length).toBeGreaterThan(0);
       expect(["language", "tool", "library"]).toContain(pkg.category);
-      expect(typeof pkg.versionRange).toBe("string");
+      expect(pkg.versionRange).toEqual(expect.any(String));
     }
   });
 
   it("every package implements the RuntimePackage interface", () => {
     for (const pkg of Object.values(RUNTIME_PACKAGES)) {
-      expect(typeof pkg.status).toBe("function");
-      expect(typeof pkg.install).toBe("function");
-      expect(typeof pkg.update).toBe("function");
-      expect(typeof pkg.repair).toBe("function");
-      expect(typeof pkg.uninstall).toBe("function");
-      expect(typeof pkg.resolve).toBe("function");
+      expect(pkg.status).toEqual(expect.any(Function));
+      expect(pkg.install).toEqual(expect.any(Function));
+      expect(pkg.update).toEqual(expect.any(Function));
+      expect(pkg.repair).toEqual(expect.any(Function));
+      expect(pkg.uninstall).toEqual(expect.any(Function));
+      expect(pkg.resolve).toEqual(expect.any(Function));
     }
   });
 

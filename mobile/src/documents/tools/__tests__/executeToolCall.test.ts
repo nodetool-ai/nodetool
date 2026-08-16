@@ -59,7 +59,7 @@ describe('executeToolCall', () => {
       ok: true,
       result: { ok: true, shots: 2 },
     });
-    expect(typeof payload.elapsed_ms).toBe('number');
+    expect(payload.elapsed_ms).toEqual(expect.any(Number));
   });
 
   it('passes the args through to the tool', async () => {

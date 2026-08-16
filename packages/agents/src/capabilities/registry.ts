@@ -45,6 +45,7 @@ import { timelinesSpecs } from "./timelines.specs.js";
 import { uiSpecs } from "./ui.specs.js";
 import { webSpecs } from "./web.specs.js";
 import { workflowsSpecs } from "./workflows.specs.js";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 type Loader = () => Promise<CapabilityModule>;
 
@@ -304,7 +305,7 @@ export function capabilityModuleIssues(
   const seen = new Set<string>();
   for (const entry of mod.exports) {
     const name = entry.spec.name;
-    if (typeof name !== "string" || name.trim() === "") {
+    if (!isString(name) || name.trim() === "") {
       issues.push(`${moduleName} exports a capability with no name`);
       continue;
     }
@@ -324,7 +325,7 @@ export function capabilityModuleIssues(
           `(got ${JSON.stringify(entry.spec.category)})`
       );
     }
-    if (typeof entry.impl !== "function") {
+    if (!isFunction(entry.impl)) {
       issues.push(`${name} carries no implementation`);
     }
   }

@@ -15,6 +15,7 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { CapabilitySpec } from "./types.js";
+import { isNonEmptyString, isString } from "../utils/type-guards.js";
 
 export const SANDBOX_PACKAGE_DOCS_TOOL_NAME = "get_sandbox_package_docs";
 
@@ -48,7 +49,7 @@ export const sandboxPackageDocsSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const specifier = params["specifier"];
-    return typeof specifier === "string"
+    return isString(specifier)
       ? `Reading ${specifier} package docs`
       : "Reading package docs";
   }
@@ -65,7 +66,7 @@ export const sandboxPackageListSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const specifier = params["specifier"];
-    return typeof specifier === "string" && specifier !== ""
+    return isNonEmptyString(specifier)
       ? `Reading ${specifier} exports`
       : "Listing sandbox packages";
   }

@@ -15,8 +15,8 @@ describe("useResizePanel", () => {
     expect(result.current.isVisible).toBe(false);
     expect(result.current.isDragging).toBe(false);
     expect(result.current.ref).toBeDefined();
-    expect(typeof result.current.handleMouseDown).toBe("function");
-    expect(typeof result.current.handlePanelToggle).toBe("function");
+    expect(result.current.handleMouseDown).toEqual(expect.any(Function));
+    expect(result.current.handlePanelToggle).toEqual(expect.any(Function));
   });
 
   it("reflects custom store state", () => {

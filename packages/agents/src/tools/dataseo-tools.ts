@@ -8,6 +8,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 const API_BASE = "https://api.dataforseo.com";
 const DEFAULT_LOCATION_CODE = 2840; // United States
@@ -57,10 +58,10 @@ function removeBase64Images(data: unknown): unknown {
   if (Array.isArray(data)) {
     return data.map(removeBase64Images);
   }
-  if (data !== null && typeof data === "object") {
+  if (isObjectLike(data)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
-      if (typeof v === "string" && v.startsWith("data:image/")) continue;
+      if (isString(v) && v.startsWith("data:image/")) continue;
       out[k] = removeBase64Images(v);
     }
     return out;

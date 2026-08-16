@@ -1,3 +1,4 @@
+import { isString } from "../utils/typePredicates";
 /**
  * Base URL for the backend API.
  *
@@ -41,7 +42,7 @@ export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 export const withApiBase = <T extends string | null | undefined>(url: T): T => {
   if (!BASE_URL) return url;
   if (!url) return url;
-  if (typeof url !== "string") return url;
+  if (!isString(url)) return url;
   if (!url.startsWith("/")) return url;
   return `${BASE_URL}${url}` as T;
 };

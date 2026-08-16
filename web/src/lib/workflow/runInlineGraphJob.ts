@@ -13,6 +13,7 @@ import {
   recordRunSignatures,
   clearRunSignatures
 } from "../../stores/runSignatures";
+import { isString } from "../../utils/typePredicates";
 
 export type GraphNode = Node;
 export type GraphEdge = Edge;
@@ -49,7 +50,7 @@ const deriveInlineJobName = (graph: InlineGraph): string => {
   }
   const node = nodes[0];
   const custom =
-    typeof node.data?.title === "string" ? node.data.title.trim() : "";
+    isString(node.data?.title) ? node.data.title.trim() : "";
   const metadataTitle = node.type
     ? useMetadataStore.getState().getMetadata(node.type)?.title
     : undefined;
@@ -152,7 +153,7 @@ export async function runInlineGraphJob(
   };
 
   const str = (v: unknown): string | undefined =>
-    typeof v === "string" ? v : undefined;
+    isString(v) ? v : undefined;
 
   const handler = (message: Record<string, unknown>): void => {
     const msgWorkflow = str(message.workflow_id);

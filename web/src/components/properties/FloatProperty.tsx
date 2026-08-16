@@ -4,6 +4,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
 import { useTemporalNodes } from "../../contexts/NodeContext";
+import { isNumber } from "../../utils/typePredicates";
 
 const FloatProperty = (props: PropertyProps<number>) => {
   const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
@@ -11,7 +12,7 @@ const FloatProperty = (props: PropertyProps<number>) => {
   const name = property.name.replaceAll("_", " ");
   const description = property.description || "No description available";
 
-  const value = typeof propValue === "number" ? propValue : 0;
+  const value = isNumber(propValue) ? propValue : 0;
   const pauseHistory = useTemporalNodes((state) => state.pause);
   const resumeHistory = useTemporalNodes((state) => state.resume);
 

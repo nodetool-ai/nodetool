@@ -1,6 +1,7 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { isNonEmptyString, isRecord, isString } from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
 import type {
@@ -66,10 +67,10 @@ function parseDataUri(uri: string) {
 
 function normalizeToolArgs(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     try {
       const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (isRecord(parsed)) {
         return parsed as Record<string, unknown>;
       }
       return {};
@@ -77,8 +78,8 @@ function normalizeToolArgs(raw: unknown): Record<string, unknown> {
       return {};
     }
   }
-  if (typeof raw === "object" && !Array.isArray(raw)) {
-    return raw as Record<string, unknown>;
+  if (isRecord(raw)) {
+    return raw;
   }
   return {};
 }
@@ -258,13 +259,13 @@ export class OllamaProvider extends BaseProvider {
   private async imageToBase64(
     image: MessageImageContent["image"]
   ): Promise<string> {
-    if (typeof image.data === "string" && image.data.startsWith("data:")) {
+    if (isString(image.data) && image.data.startsWith("data:")) {
       return parseDataUri(image.data).base64;
     }
-    if (typeof image.uri === "string" && image.uri.startsWith("data:")) {
+    if (isString(image.uri) && image.uri.startsWith("data:")) {
       return parseDataUri(image.uri).base64;
     }
-    if (typeof image.data === "string") {
+    if (isString(image.data)) {
       return image.data;
     }
     if (image.data instanceof Uint8Array) {
@@ -287,10 +288,9 @@ export class OllamaProvider extends BaseProvider {
 
   async convertMessage(message: Message): Promise<Record<string, unknown>> {
     if (message.role === "tool") {
-      const content =
-        typeof message.content === "string"
-          ? message.content
-          : JSON.stringify(message.content ?? null);
+      const content = isString(message.content)
+        ? message.content
+        : JSON.stringify(message.content ?? null);
       return { role: "tool", content };
     }
 
@@ -300,12 +300,11 @@ export class OllamaProvider extends BaseProvider {
         // Flatten array-typed content like the system/user branches do; the
         // previous `: ""` silently erased a prior assistant turn stored as text
         // parts, dropping it from the replayed context.
-        content:
-          typeof message.content === "string"
-            ? message.content
-            : Array.isArray(message.content)
-              ? asTextParts(message.content)
-              : ""
+        content: isString(message.content)
+          ? message.content
+          : Array.isArray(message.content)
+            ? asTextParts(message.content)
+            : ""
       };
 
       const toolCalls = message.toolCalls ?? [];
@@ -321,7 +320,7 @@ export class OllamaProvider extends BaseProvider {
     }
 
     if (message.role === "system") {
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         return { role: "system", content: message.content };
       }
       if (Array.isArray(message.content)) {
@@ -334,7 +333,7 @@ export class OllamaProvider extends BaseProvider {
       throw new Error(`Unsupported message role: ${message.role}`);
     }
 
-    if (typeof message.content === "string") {
+    if (isString(message.content)) {
       return { role: "user", content: message.content };
     }
 
@@ -418,7 +417,7 @@ export class OllamaProvider extends BaseProvider {
     return toolCalls
       .map((tc, idx) => {
         const fn = tc.function ?? {};
-        const name = typeof fn.name === "string" ? fn.name : "";
+        const name = isString(fn.name) ? fn.name : "";
         if (!name) return null;
         return {
           id: `tool_${idx + 1}`,
@@ -527,7 +526,7 @@ export class OllamaProvider extends BaseProvider {
     >("/api/chat", request, args.signal);
     this.trackOllamaUsage(args.model, response);
     const message = response.message ?? {};
-    const content = typeof message.content === "string" ? message.content : "";
+    const content = isString(message.content) ? message.content : "";
 
     let toolCalls: ToolCall[];
     let finalContent = content;
@@ -570,17 +569,15 @@ export class OllamaProvider extends BaseProvider {
     for (const msg of messages) {
       if (msg.role === "system" && !systemFound) {
         systemFound = true;
-        const existingContent =
-          typeof msg.content === "string"
-            ? msg.content
-            : asTextParts(msg.content ?? []);
+        const existingContent = isString(msg.content)
+          ? msg.content
+          : asTextParts(msg.content ?? []);
         result.push({ ...msg, content: existingContent + emulationSuffix });
       } else if (msg.role === "tool") {
         // Convert tool result to user message
-        const toolContent =
-          typeof msg.content === "string"
-            ? msg.content
-            : JSON.stringify(msg.content ?? null);
+        const toolContent = isString(msg.content)
+          ? msg.content
+          : JSON.stringify(msg.content ?? null);
         result.push({
           role: "user",
           content: `Function result: ${toolContent}`
@@ -676,7 +673,7 @@ export class OllamaProvider extends BaseProvider {
           // Reasoning models stream their chain of thought in `thinking` while
           // `content` stays empty. Surface it as a thinking chunk so the UI
           // shows activity instead of appearing frozen until the answer lands.
-          if (typeof message.thinking === "string" && message.thinking) {
+          if (isNonEmptyString(message.thinking)) {
             const thinkingChunk: Chunk = {
               type: "chunk",
               content: message.thinking,
@@ -692,8 +689,7 @@ export class OllamaProvider extends BaseProvider {
             }
           }
 
-          const content =
-            typeof message.content === "string" ? message.content : "";
+          const content = isString(message.content) ? message.content : "";
 
           if (useToolEmulation) {
             // Buffer content instead of streaming it verbatim: the emulated
@@ -754,10 +750,7 @@ export class OllamaProvider extends BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const values = Array.isArray(args.text) ? args.text : [args.text];
-    if (
-      values.length === 0 ||
-      values.some((v) => typeof v !== "string" || v.length === 0)
-    ) {
+    if (values.length === 0 || values.some((v) => !isNonEmptyString(v))) {
       throw new Error("text must not be empty");
     }
     const response = await this.postJson<{ embeddings?: number[][] }>(

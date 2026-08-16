@@ -1,4 +1,12 @@
 import type { NodeMetadata, TypeMetadata } from "./metadata.js";
+import {
+  isBoolean,
+  isFiniteNumber,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
 
 export interface WorkflowInterfaceGraphNode {
   id?: unknown;
@@ -73,9 +81,7 @@ const DEDICATED_OUTPUT_TYPES: Readonly<Record<string, string>> = {
 };
 
 function record(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
+  return isRecord(value) ? value : null;
 }
 
 function nodeProperties(
@@ -112,7 +118,7 @@ function dedicatedOutputType(nodeType: string): TypeMetadata | null {
 }
 
 function pinText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+  return isString(value) ? value.trim() : "";
 }
 
 function obviouslyExceedsDefaultBudget(value: unknown): boolean {
@@ -124,12 +130,12 @@ function obviouslyExceedsDefaultBudget(value: unknown): boolean {
     const current = pending.pop();
     if (current == null) {
       minimumBytes += 4;
-    } else if (typeof current === "string") {
+    } else if (isString(current)) {
       // UTF-8 JSON needs at least one byte per UTF-16 code unit, plus quotes.
       minimumBytes += current.length + 2;
-    } else if (typeof current === "number" || typeof current === "boolean") {
+    } else if (isNumber(current) || isBoolean(current)) {
       minimumBytes += 1;
-    } else if (typeof current === "object") {
+    } else if (isObjectLike(current)) {
       if (ArrayBuffer.isView(current)) {
         if (current.byteLength > MAX_DEFAULT_JSON_BYTES) return true;
       }
@@ -223,7 +229,7 @@ function outputTypeForNode(
 ): { type: TypeMetadata; stream: boolean } | null {
   const dynamic = record(node.dynamic_outputs);
   const dynamicType = record(dynamic?.[handle]);
-  if (dynamicType && typeof dynamicType.type === "string") {
+  if (dynamicType && isString(dynamicType.type)) {
     return {
       type: cloneType({
         ...dynamicType,
@@ -238,7 +244,7 @@ function outputTypeForNode(
     };
   }
 
-  const nodeType = typeof node.type === "string" ? node.type : "";
+  const nodeType = isString(node.type) ? node.type : "";
   const metadata = registry.resolveMetadata(nodeType);
   const slot = metadata?.outputs.find((output) => output.name === handle);
   return slot
@@ -262,12 +268,12 @@ export function deriveWorkflowInterfaceV1(args: {
   const outputNames = new Set<string>();
 
   for (const node of nodes) {
-    if (typeof node.id === "string") nodesById.set(node.id, node);
+    if (isString(node.id)) nodesById.set(node.id, node);
   }
 
   for (const node of nodes) {
-    const nodeId = typeof node.id === "string" ? node.id : "";
-    const nodeType = typeof node.type === "string" ? node.type : "";
+    const nodeId = isString(node.id) ? node.id : "";
+    const nodeType = isString(node.type) ? node.type : "";
     if (!nodeType.startsWith(INPUT_PREFIX)) continue;
     const props = nodeProperties(node);
     const name = pinText(props.name) || nodeId;
@@ -323,16 +329,14 @@ export function deriveWorkflowInterfaceV1(args: {
       default: safeDefault(props.value, nodeId, name, diagnostics),
       type
     };
-    if (typeof props.min === "number" && Number.isFinite(props.min))
-      input.min = props.min;
-    if (typeof props.max === "number" && Number.isFinite(props.max))
-      input.max = props.max;
+    if (isFiniteNumber(props.min)) input.min = props.min;
+    if (isFiniteNumber(props.max)) input.max = props.max;
     inputs.push(input);
   }
 
   for (const node of nodes) {
-    const nodeId = typeof node.id === "string" ? node.id : "";
-    const nodeType = typeof node.type === "string" ? node.type : "";
+    const nodeId = isString(node.id) ? node.id : "";
+    const nodeType = isString(node.type) ? node.type : "";
     const dedicatedType = dedicatedOutputType(nodeType);
     if (nodeType !== OUTPUT_TYPE && !dedicatedType) continue;
     const props = nodeProperties(node);
@@ -371,7 +375,7 @@ export function deriveWorkflowInterfaceV1(args: {
       if (incoming.length === 1) {
         const edge = incoming[0]!;
         const source =
-          typeof edge.source === "string"
+          isString(edge.source)
             ? nodesById.get(edge.source)
             : undefined;
         const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
@@ -397,7 +401,7 @@ export function deriveWorkflowInterfaceV1(args: {
             const dynamic = record(source.dynamic_outputs);
             const hasDynamicHandle = record(dynamic?.[handle]) !== null;
             const sourceType =
-              typeof source.type === "string" ? source.type : "";
+              isString(source.type) ? source.type : "";
             const sourceMetadata = args.registry.resolveMetadata(sourceType);
             diagnostics.push({
               severity: "error",
@@ -409,7 +413,7 @@ export function deriveWorkflowInterfaceV1(args: {
                 !hasDynamicHandle && !sourceMetadata
                   ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
                   : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
-              node_id: typeof source.id === "string" ? source.id : nodeId,
+              node_id: isString(source.id) ? source.id : nodeId,
               pin_name: handle
             });
           }

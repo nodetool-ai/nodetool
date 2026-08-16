@@ -39,6 +39,7 @@ import {
   createSeededSandboxModuleCatalog,
   type SandboxModuleRecord
 } from "./sandboxModuleCatalog";
+import { isObjectLike } from "../../utils/typePredicates";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -46,7 +47,7 @@ const controllers = new Map<string, AbortController>();
 
 /** Streamed audio chunk payload — never contains image refs to resolve. */
 const isAudioChunkValue = (value: unknown): boolean => {
-  if (!value || typeof value !== "object") return false;
+  if (!value || !isObjectLike(value)) return false;
   const v = value as { type?: unknown; content_type?: unknown };
   return v.type === "chunk" && v.content_type === "audio";
 };

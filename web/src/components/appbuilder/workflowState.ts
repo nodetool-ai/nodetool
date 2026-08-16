@@ -16,6 +16,7 @@ import {
 } from "../../constants/nodeTypes";
 import { parseNodeUIProperties } from "../../stores/nodeUiDefaults";
 import { extractWorkflowIO, WorkflowInputIO, WorkflowOutputIO } from "./workflowIO";
+import { isString } from "../../utils/typePredicates";
 
 /** A graph node offered by the node-property binding picker. */
 export interface BindableGraphNode {
@@ -47,8 +48,8 @@ const readVariableName = (node: { type?: string; data?: unknown }): string => {
   const data = (node.data ?? {}) as Record<string, unknown>;
   const nested = (data.properties as Record<string, unknown> | undefined)?.name;
   const flat = data.name;
-  const raw = typeof nested === "string" ? nested : flat;
-  return typeof raw === "string" ? raw.trim() : "";
+  const raw = isString(nested) ? nested : flat;
+  return isString(raw) ? raw.trim() : "";
 };
 
 export const extractVariableNames = (workflow?: Workflow | null): string[] => {

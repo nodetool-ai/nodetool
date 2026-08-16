@@ -33,6 +33,10 @@ import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
+import {
+  isNonEmptyString,
+  isString
+} from "./lib/wire-values.js";
 
 loadEnvironment(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")
@@ -1055,7 +1059,7 @@ print(json.dumps(sorted(roots)))
       const roots = JSON.parse(proc.stdout.trim()) as string[];
       if (!Array.isArray(roots)) continue;
       return roots.filter(
-        (p) => typeof p === "string" && p.length > 0 && existsSync(p)
+        (p) => isNonEmptyString(p) && existsSync(p)
       );
     } catch {
       // try next python executable
@@ -1209,13 +1213,13 @@ function listExampleWorkflows(
       items.push({
         id: file,
         name:
-          typeof parsed.name === "string"
+          isString(parsed.name)
             ? parsed.name
             : file.replace(/\.json$/i, ""),
         description:
-          typeof parsed.description === "string" ? parsed.description : "",
+          isString(parsed.description) ? parsed.description : "",
         tags: Array.isArray(parsed.tags)
-          ? parsed.tags.filter((t) => typeof t === "string")
+          ? parsed.tags.filter((t) => isString(t))
           : []
       });
     } catch {
@@ -1243,13 +1247,13 @@ function readExampleWorkflow(
   return {
     id: safeId,
     name:
-      typeof parsed.name === "string"
+      isString(parsed.name)
         ? parsed.name
         : safeId.replace(/\.json$/i, ""),
     description:
-      typeof parsed.description === "string" ? parsed.description : "",
+      isString(parsed.description) ? parsed.description : "",
     tags: Array.isArray(parsed.tags)
-      ? parsed.tags.filter((t) => typeof t === "string")
+      ? parsed.tags.filter((t) => isString(t))
       : [],
     graph
   };

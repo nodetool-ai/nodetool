@@ -17,6 +17,10 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
 import { getDb, TriggerRegistration } from "@nodetool-ai/models";
+import {
+  isNonEmptyString,
+  isString
+} from "../lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.webhook-route");
 
@@ -132,7 +136,7 @@ export function createWebhookRoute(
       "*",
       { parseAs: "string", bodyLimit: maxBodyBytes },
       (_req, body, done) => {
-        const raw = typeof body === "string" ? body : String(body);
+        const raw = isString(body) ? body : String(body);
         let json: unknown;
         try {
           json = JSON.parse(raw);
@@ -163,12 +167,12 @@ export function createWebhookRoute(
 
         const config = registration.config_json ?? {};
         const secretHash =
-          typeof config.webhook_secret_hash === "string"
+          isString(config.webhook_secret_hash)
             ? config.webhook_secret_hash
             : "";
         const provided = req.headers[WEBHOOK_SECRET_HEADER];
         if (
-          typeof provided !== "string" ||
+          !isString(provided) ||
           !secretMatches(provided, secretHash)
         ) {
           return reply.status(401).send({ error: "Invalid webhook secret" });
@@ -182,7 +186,7 @@ export function createWebhookRoute(
         const deliveryId = req.headers[WEBHOOK_DELIVERY_ID_HEADER];
         const inputId = idempotencyKey(
           token,
-          typeof deliveryId === "string" && deliveryId ? deliveryId : undefined,
+          isNonEmptyString(deliveryId) ? deliveryId : undefined,
           body.raw
         );
 

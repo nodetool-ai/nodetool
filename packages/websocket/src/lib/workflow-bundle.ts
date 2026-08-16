@@ -29,6 +29,7 @@ import {
   transformMediaRefs,
   type WorkflowGraphLike
 } from "./package-asset-export.js";
+import { isString } from "./wire-values.js";
 
 export const WORKFLOW_BUNDLE_SCHEME = "bundle://";
 export const WORKFLOW_BUNDLE_FORMAT = "nodetool-workflow-bundle";
@@ -398,7 +399,7 @@ export async function importWorkflowBundle(
   const resolvedByFile = new Map<string, { uri: string; assetId?: string }>();
 
   const rewriteRef = async (ref: Record<string, unknown>): Promise<void> => {
-    const uri = typeof ref.uri === "string" ? ref.uri : "";
+    const uri = isString(ref.uri) ? ref.uri : "";
     if (!uri.startsWith(WORKFLOW_BUNDLE_SCHEME)) {
       return;
     }

@@ -11,6 +11,7 @@
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
+import { isObjectLike } from "../utils/type-guards.js";
 
 export const READ_FILE_SCHEMA: JsonSchema = {
   type: "object",
@@ -269,8 +270,7 @@ export const todoWriteSpec: CapabilitySpec = {
     const total = raw.length;
     const inProgress = raw.find(
       (t) =>
-        t &&
-        typeof t === "object" &&
+        isObjectLike(t) &&
         (t as Record<string, unknown>).status === "in_progress"
     ) as { content?: string } | undefined;
     if (inProgress?.content) {

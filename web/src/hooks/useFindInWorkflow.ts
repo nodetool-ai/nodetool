@@ -5,6 +5,7 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { isString } from "../utils/typePredicates";
 
 // Stable empty array so the `useNodes` selector below returns the same
 // reference while the dialog is closed — `useNodes` uses shallow equality by
@@ -53,7 +54,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const getNodeDisplayName = useCallback(
     (node: Node<NodeData>): string => {
       const title = node.data?.properties?.name;
-      if (title && typeof title === "string" && title.trim()) {
+      if (title && isString(title) && title.trim()) {
         return title;
       }
       const nodeType = node.type ?? "";

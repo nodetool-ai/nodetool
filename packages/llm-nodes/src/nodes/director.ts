@@ -23,6 +23,13 @@ import { isEntity } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import { asText, generateStructured, getModelConfig } from "./agent-utils.js";
+import {
+  isCallable,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
 
 const EMPTY_MODEL = {
   type: "language_model",
@@ -45,7 +52,7 @@ const DIRECTOR_SYSTEM_PROMPT = [
 // ---------------------------------------------------------------------------
 
 function str(value: unknown): string {
-  return typeof value === "string" ? value : "";
+  return isString(value) ? value : "";
 }
 
 function optionalStr(value: unknown): string | undefined {
@@ -54,7 +61,7 @@ function optionalStr(value: unknown): string | undefined {
 }
 
 function optionalNumber(value: unknown): number | undefined {
-  const n = typeof value === "number" ? value : Number(value);
+  const n = isNumber(value) ? value : Number(value);
   return Number.isFinite(n) ? n : undefined;
 }
 
@@ -67,13 +74,13 @@ function stripFences(text: string): string {
 
 /** Coerce a parsed object, a JSON string, or a fenced JSON block to a record. */
 function coerceObject(raw: unknown): Record<string, unknown> {
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+  if (isRecord(raw)) {
     return raw as Record<string, unknown>;
   }
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     try {
       const parsed = JSON.parse(stripFences(raw));
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (isRecord(parsed)) {
         return parsed as Record<string, unknown>;
       }
     } catch {
@@ -84,7 +91,7 @@ function coerceObject(raw: unknown): Record<string, unknown> {
 }
 
 function coerceCamera(raw: unknown): CameraDirection | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
+  if (!isObjectLike(raw)) return undefined;
   const obj = raw as Record<string, unknown>;
   const camera: CameraDirection = {};
   const framing = optionalStr(obj.framing);
@@ -99,7 +106,7 @@ function coerceCamera(raw: unknown): CameraDirection | undefined {
 }
 
 function coerceShot(raw: unknown, index: number): Shot {
-  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const obj = isObjectLike(raw) ? (raw as Record<string, unknown>) : {};
   const shot: Shot = {
     type: "shot",
     id: `shot-${index}`,
@@ -286,7 +293,7 @@ function coerceEntity(
         : []
     };
   }
-  if (raw && typeof raw === "object") {
+  if (isObjectLike(raw)) {
     const obj = raw as Record<string, unknown>;
     return {
       name: str(obj.name),
@@ -456,7 +463,7 @@ export class DirectorNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!context || !isCallable(context.getProvider)) {
       throw new Error("Processing context is required");
     }
 
@@ -550,7 +557,7 @@ export class ScreenplayShotsNode extends BaseNode {
     const prompts: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const prompt = chunk.shot_prompt;
-      if (typeof prompt === "string") prompts.push(prompt);
+      if (isString(prompt)) prompts.push(prompt);
     }
     return { output: prompts };
   }

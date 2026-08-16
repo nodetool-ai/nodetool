@@ -21,6 +21,7 @@ import {
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime } from "./useWidgetRuntime";
+import { isNumber, isString } from "../../../utils/typePredicates";
 
 const LazyPlotlyChart = React.lazy(
   () => import("../../node/output/PlotlyChart")
@@ -43,8 +44,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 /** A number the chart can plot, tolerating the numeric strings JSON carries. */
 const numeric = (value: unknown): number | null => {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string" && value.trim() !== "") {
+  if (isNumber(value)) return Number.isFinite(value) ? value : null;
+  if (isString(value) && value.trim() !== "") {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -55,7 +56,7 @@ const fromDataframe = (value: unknown): ChartTable | null => {
   if (!isRecord(value) || value.type !== "dataframe") return null;
   const columns = Array.isArray(value.columns)
     ? value.columns.map((column) =>
-        typeof column === "string"
+        isString(column)
           ? column
           : String((column as { name?: unknown })?.name ?? "")
       )

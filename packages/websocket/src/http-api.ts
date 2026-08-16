@@ -122,6 +122,24 @@ import {
   handleSdkV1ModelDownloadStart
 } from "./sdk/sdk-model-download-http-handler.js";
 import type { SdkV1ModelDownloadService } from "./sdk/sdk-model-download-service.js";
+import { z } from "zod";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./lib/wire-values.js";
+import {
+  assetCreateBodySchema,
+  escalationVerdictBodySchema,
+  workflowAutosaveBodySchema,
+  workflowRequestBodySchema,
+  workflowRunBodySchema,
+  workflowVersionCreateBodySchema,
+  workflowsExportBundleBodySchema,
+  type ParsedAssetCreateBody,
+  type ParsedWorkflowRequestBody
+} from "./http-body-schemas.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -609,16 +627,45 @@ export function getUserId(request: Request, headerName: string): string {
   );
 }
 
-async function parseJsonBody<T>(request: Request): Promise<T | null> {
+/** The raw JSON body, or null when there is nothing readable to parse. */
+async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) {
     return null;
   }
   try {
-    return (await request.json()) as T;
+    return await request.json();
   } catch {
     return null;
   }
+}
+
+/**
+ * Parse a request body once, at the route boundary.
+ *
+ * `null` means "no body the route can read": a non-JSON content type,
+ * unparseable JSON, or a falsy JSON value (`null`, `0`, `""`) — the cases
+ * every route already answered with its own 400 via `if (!body)`.
+ *
+ * A truthy non-object body (a number, a string, an array) parses as a record
+ * with every field absent, which is exactly what the routes saw when they read
+ * `.name` off a number, so their own error messages still fire.
+ */
+function parseBodyValue<S extends z.ZodType>(
+  raw: unknown,
+  schema: S
+): z.output<S> | null {
+  if (!raw) {
+    return null;
+  }
+  return schema.parse(isRecord(raw) ? raw : {});
+}
+
+async function parseBody<S extends z.ZodType>(
+  request: Request,
+  schema: S
+): Promise<z.output<S> | null> {
+  return parseBodyValue(await readJsonBody(request), schema);
 }
 
 export function toWorkflowResponse(workflow: Workflow) {
@@ -745,10 +792,10 @@ export function parseLimit(url: URL, defaultLimit = 100): number {
 }
 
 async function createWorkflow(
-  body: WorkflowRequestBody,
+  body: ParsedWorkflowRequestBody,
   userId: string
 ): Promise<Workflow> {
-  if (!body || typeof body.name !== "string") {
+  if (!body || body.name === undefined) {
     throw new Error("Invalid workflow");
   }
   if (
@@ -782,10 +829,10 @@ async function createWorkflow(
 
 async function updateWorkflow(
   id: string,
-  body: WorkflowRequestBody,
+  body: ParsedWorkflowRequestBody,
   userId: string
 ): Promise<Workflow> {
-  if (!body || typeof body.name !== "string") {
+  if (!body || body.name === undefined) {
     throw new Error("Invalid workflow");
   }
   if (
@@ -877,20 +924,7 @@ export async function handleWorkflowRun(
   }
 
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const body = await parseJsonBody<{
-    params?: Record<string, unknown>;
-    background?: boolean;
-    /**
-     * Bubble node failures up to the caller instead of resolving them
-     * server-side: the response returns as soon as a node invocation
-     * escalates, and the run stays parked until a verdict arrives on
-     * `POST /api/debug/sessions/:id/verdict`.
-     */
-    interactive?: boolean;
-    max_decisions?: number;
-    max_retries_per_node?: number;
-    decision_timeout_ms?: number;
-  }>(request);
+  const body = await parseBody(request, workflowRunBodySchema);
 
   const runOptions: Parameters<typeof runWorkflow>[0] = {
     workflowId,
@@ -905,13 +939,13 @@ export async function handleWorkflowRun(
     // The server's own import site, so a test that mocks it still governs.
     resolveWorkspace: resolveWorkflowWorkspace
   };
-  if (typeof body?.max_decisions === "number") {
+  if (body?.max_decisions !== undefined) {
     runOptions.maxDecisions = body.max_decisions;
   }
-  if (typeof body?.max_retries_per_node === "number") {
+  if (body?.max_retries_per_node !== undefined) {
     runOptions.maxRetriesPerNode = body.max_retries_per_node;
   }
-  if (typeof body?.decision_timeout_ms === "number") {
+  if (body?.decision_timeout_ms !== undefined) {
     runOptions.decisionTimeoutMs = body.decision_timeout_ms;
   }
   const outcome = await runWorkflow(runOptions);
@@ -959,11 +993,8 @@ export async function handleDebugSessionRequest(
     if (request.method !== "POST") {
       return errorResponse(405, "Method not allowed");
     }
-    const body = await parseJsonBody<{
-      escalation_id?: string;
-      verdict?: unknown;
-    }>(request);
-    if (!body || typeof body.escalation_id !== "string") {
+    const body = await parseBody(request, escalationVerdictBodySchema);
+    if (!body || body.escalation_id === undefined) {
       return errorResponse(400, "Body must carry escalation_id and verdict");
     }
     const parsed = verdictSchema.safeParse(body.verdict);
@@ -997,20 +1028,6 @@ export async function handleDebugSessionRequest(
 
 // ── Autosave ──────────────────────────────────────────────────────────
 
-interface AutosaveBody {
-  name?: string;
-  access?: string;
-  save_type?: string;
-  description?: string;
-  graph?: {
-    nodes: Record<string, unknown>[];
-    edges: Record<string, unknown>[];
-  };
-  client_id?: string;
-  force?: boolean;
-  max_versions?: number;
-}
-
 export async function handleWorkflowAutosave(
   request: Request,
   workflowId: string,
@@ -1026,14 +1043,13 @@ export async function handleWorkflowAutosave(
   if (workflow.user_id !== userId)
     return errorResponse(404, "Workflow not found");
 
-  const body = await parseJsonBody<AutosaveBody>(request);
+  const body = await parseBody(request, workflowAutosaveBodySchema);
   if (!body || !body.graph) {
     return errorResponse(400, "Invalid body: graph is required");
   }
   const graph = body.graph;
-  const force = body?.force === true;
-  const maxVersions =
-    typeof body?.max_versions === "number" ? body.max_versions : 10;
+  const force = body.force === true;
+  const maxVersions = body.max_versions ?? 10;
 
   // Rate-limit: skip if last autosave < 30s ago and force is false
   if (!force) {
@@ -1156,10 +1172,9 @@ function buildExamplesFromDir(
     try {
       const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
       const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const name =
-        typeof parsed.name === "string"
-          ? parsed.name
-          : file.replace(/\.json$/i, "");
+      const name = isString(parsed.name)
+        ? parsed.name
+        : file.replace(/\.json$/i, "");
       // Point thumbnail_url to the served JPG when the file exists in
       // assets. withCacheBuster() appends ?v=<md5-8> so the browser cache
       // invalidates whenever the JPG is regenerated.
@@ -1178,29 +1193,24 @@ function buildExamplesFromDir(
         updated_at: now,
         name,
         tool_name: null,
-        description:
-          typeof parsed.description === "string" ? parsed.description : "",
-        tags: Array.isArray(parsed.tags)
-          ? parsed.tags.filter((t: unknown) => typeof t === "string")
-          : [],
+        description: isString(parsed.description) ? parsed.description : "",
+        tags: Array.isArray(parsed.tags) ? parsed.tags.filter(isString) : [],
         thumbnail: thumbnailUrl ? jpgFile : null,
         thumbnail_url: thumbnailUrl,
         graph: { nodes: [], edges: [] },
         input_schema: null,
         output_schema: null,
         settings: null,
-        package_name:
-          typeof parsed.package_name === "string" ? parsed.package_name : null,
+        package_name: isString(parsed.package_name)
+          ? parsed.package_name
+          : null,
         path: null,
         run_mode: null,
         workspace_id: null,
         required_providers: null,
         required_models: null,
         html_app: null,
-        app_doc:
-          parsed.app_doc && typeof parsed.app_doc === "object"
-            ? (parsed.app_doc as Record<string, unknown>)
-            : null,
+        app_doc: isObjectLike(parsed.app_doc) ? parsed.app_doc : null,
         etag: null
       });
     } catch (err) {
@@ -1432,7 +1442,7 @@ function deriveWorkflowName(workflow: Workflow): string {
   // Collect unique category segments from node types (second dotted segment).
   const categories = new Set<string>();
   for (const n of nodes) {
-    if (typeof n.type === "string") {
+    if (isString(n.type)) {
       const parts = n.type.split(".");
       // Require at least root.category format.
       if (parts.length >= 2 && parts[1]) {
@@ -1623,10 +1633,8 @@ export async function handleWorkflowsExportBundle(
     return errorResponse(405, "Method not allowed");
   }
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const body = await parseJsonBody<{ workflow_ids?: unknown }>(request);
-  const ids = Array.isArray(body?.workflow_ids)
-    ? body.workflow_ids.filter((v): v is string => typeof v === "string")
-    : [];
+  const body = await parseBody(request, workflowsExportBundleBodySchema);
+  const ids = body?.workflow_ids ?? [];
   if (ids.length === 0) {
     return errorResponse(400, "workflow_ids (non-empty array) is required");
   }
@@ -1763,11 +1771,6 @@ function toVersionResponse(v: WorkflowVersion) {
   };
 }
 
-interface VersionCreateBody {
-  name?: string;
-  description?: string;
-}
-
 export async function handleWorkflowVersions(
   request: Request,
   workflowId: string,
@@ -1781,7 +1784,7 @@ export async function handleWorkflowVersions(
     if (workflow.user_id !== userId)
       return errorResponse(404, "Workflow not found");
 
-    const body = await parseJsonBody<VersionCreateBody>(request);
+    const body = await parseBody(request, workflowVersionCreateBodySchema);
     const nextVer = await WorkflowVersion.nextVersion(workflowId);
     const version = (await WorkflowVersion.create({
       workflow_id: workflowId,
@@ -1898,7 +1901,7 @@ export async function handleWorkflowsRoot(
   }
 
   if (request.method === "POST") {
-    const body = await parseJsonBody<WorkflowRequestBody>(request);
+    const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
       const fromPkg =
@@ -2095,7 +2098,7 @@ export async function handleWorkflowInterfaces(
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
   }
-  const body = await parseJsonBody<unknown>(request);
+  const body = await readJsonBody(request);
   const parsed = workflowInterfacesInput.safeParse(body);
   if (!parsed.success) {
     return sdkErrorResponse(
@@ -2181,7 +2184,7 @@ export async function handleWorkflowById(
   }
 
   if (request.method === "PUT") {
-    const body = await parseJsonBody<WorkflowRequestBody>(request);
+    const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
       const workflow = await updateWorkflow(workflowId, body, userId);
@@ -2250,17 +2253,6 @@ export async function handleNodesDummy(request: Request): Promise<Response> {
 
 // ── Asset types & helpers ──────────────────────────────────────────
 
-interface AssetCreateBody {
-  name: string;
-  content_type: string;
-  parent_id: string;
-  workflow_id?: string | null;
-  node_id?: string | null;
-  job_id?: string | null;
-  metadata?: Record<string, unknown> | null;
-  size?: number | null;
-}
-
 // Lazily initialized URL builder based on the configured storage backend.
 let _httpStorageConfig: StorageConfig | null = null;
 let _httpUrlBuilder: ((key: string) => Promise<string>) | null = null;
@@ -2324,7 +2316,7 @@ export async function handleAssetsRoot(
 
   if (request.method === "POST") {
     const contentType = request.headers.get("content-type") ?? "";
-    let body: AssetCreateBody | null = null;
+    let body: ParsedAssetCreateBody | null = null;
     let fileBuffer: Buffer | null = null;
     let fileSize: number | null = null;
 
@@ -2334,8 +2326,8 @@ export async function handleAssetsRoot(
         const file = fd.get("file") as File | null;
         // Frontend sends metadata as "json" field
         const assetJson = fd.get("json") ?? fd.get("asset");
-        if (assetJson && typeof assetJson === "string") {
-          body = JSON.parse(assetJson) as AssetCreateBody;
+        if (isNonEmptyString(assetJson)) {
+          body = parseBodyValue(JSON.parse(assetJson), assetCreateBodySchema);
         }
         if (file) {
           const arrayBuffer = await file.arrayBuffer();
@@ -2359,14 +2351,14 @@ export async function handleAssetsRoot(
         return errorResponse(400, "Invalid multipart form data");
       }
     } else {
-      body = await parseJsonBody<AssetCreateBody>(request);
+      body = await parseBody(request, assetCreateBodySchema);
     }
 
     if (
       !body ||
-      typeof body.name !== "string" ||
-      typeof body.content_type !== "string" ||
-      typeof body.parent_id !== "string"
+      body.name === undefined ||
+      body.content_type === undefined ||
+      body.parent_id === undefined
     ) {
       return errorResponse(
         400,

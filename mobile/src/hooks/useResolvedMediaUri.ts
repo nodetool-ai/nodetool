@@ -16,6 +16,7 @@
 
 import { apiService } from '../services/api';
 import { trpc } from '../trpc/client';
+import { isRecord, isString } from '../utils/typePredicates';
 
 /** The asset id inside `asset://<id>` or `asset://<id>.<ext>`. */
 export function assetIdFromLocator(
@@ -39,14 +40,14 @@ export type MediaLocator =
   | undefined;
 
 const locatorUri = (source: MediaLocator): string | null => {
-  if (typeof source === 'string') {
+  if (isString(source)) {
     return source || null;
   }
   return source?.uri ?? null;
 };
 
 const locatorAssetId = (source: MediaLocator): string | null => {
-  if (source && typeof source === 'object' && source.asset_id) {
+  if (isRecord(source) && source.asset_id) {
     return source.asset_id;
   }
   return assetIdFromLocator(locatorUri(source));

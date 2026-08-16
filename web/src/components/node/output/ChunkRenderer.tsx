@@ -9,6 +9,7 @@ import ImageView from "../ImageView";
 import StreamPcm16Player from "./StreamPcm16Player";
 import { ToolCallRenderer } from "./ToolCallRenderer";
 import { AgentStatusRenderer } from "./AgentStatusRenderer";
+import { isString } from "../../../utils/typePredicates";
 
 type Props = {
   chunk: Chunk;
@@ -38,7 +39,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     case "image":
       return (
         <ImageView
-          source={typeof chunk.content === "string" ? chunk.content : undefined}
+          source={isString(chunk.content) ? chunk.content : undefined}
         />
       );
     case "audio": {

@@ -16,6 +16,7 @@ import CuratedModelSelect from "./curated/CuratedModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import { STUDIO_VOICES } from "../../studio/curatedModels";
 import { SPACING, getSpacingPx } from "../ui_primitives";
+import { isString } from "../../utils/typePredicates";
 
 interface TTSModelSelectProps {
   onChange: (value: TTSModelValue) => void;
@@ -41,7 +42,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
 
   // Extract model ID from value (can be string or TTSModel object)
   const modelId = useMemo(() => {
-    if (typeof value === "string") {
+    if (isString(value)) {
       return value;
     }
     return value?.id || "";

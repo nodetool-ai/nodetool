@@ -8,6 +8,7 @@
  */
 
 import { importOptionalModule } from "@nodetool-ai/config";
+import { isRecord, isString } from "../utils/type-guards.js";
 
 /** Largest text payload a host module accepts, in characters. */
 export const MAX_HOST_INPUT_CHARS = 5 * 1024 * 1024;
@@ -21,7 +22,7 @@ export function requireText(
   value: unknown,
   label = "text"
 ): string {
-  if (typeof value !== "string") {
+  if (!isString(value)) {
     throw new Error(`${where}: ${label} must be a string`);
   }
   if (value.length > MAX_HOST_INPUT_CHARS) {
@@ -53,7 +54,7 @@ export function requireBytes(
 
 /** An options bag argument, defaulted and type-checked in one place. */
 export function optionsOf(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
+  return isRecord(value)
     ? (value as Record<string, unknown>)
     : {};
 }

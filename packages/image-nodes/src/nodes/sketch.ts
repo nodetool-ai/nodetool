@@ -26,6 +26,7 @@ import {
   rawRgbaImageRef,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
+import { isNumber, isObjectLike } from "../type-predicates.js";
 
 // ─── Sketch document shapes (minimal, tolerant of legacy payloads) ──────────
 
@@ -129,7 +130,7 @@ function ancestorOpacityProduct(
     seen.add(parentId);
     const parent = byId.get(parentId);
     if (!parent) break;
-    opacity *= typeof parent.opacity === "number" ? parent.opacity : 1;
+    opacity *= isNumber(parent.opacity) ? parent.opacity : 1;
     parentId = parent.parentId;
   }
   return opacity;
@@ -161,10 +162,8 @@ async function loadSketchDocument(
     | (SketchDocRaw & { sketch?: SketchDocRaw })
     | null
     | undefined;
-  if (inline && typeof inline === "object") {
-    return inline.sketch && typeof inline.sketch === "object"
-      ? inline.sketch
-      : inline;
+  if (isObjectLike(inline)) {
+    return isObjectLike(inline.sketch) ? inline.sketch : inline;
   }
   throw new Error(
     "Sketch input is empty — connect a Constant Sketch node and pick a sketch"
@@ -196,12 +195,12 @@ async function layerToHeadless(
     data: dataUrlToBytes(image)
   });
   if (!width || !height) return null;
-  const tx = typeof layer.transform?.x === "number" ? layer.transform.x : 0;
-  const ty = typeof layer.transform?.y === "number" ? layer.transform.y : 0;
+  const tx = isNumber(layer.transform?.x) ? layer.transform.x : 0;
+  const ty = isNumber(layer.transform?.y) ? layer.transform.y : 0;
   const left = tx + bounds.x;
   const top = ty + bounds.y;
   const opacity =
-    (typeof layer.opacity === "number" ? layer.opacity : 1) *
+    (isNumber(layer.opacity) ? layer.opacity : 1) *
     ancestorOpacityProduct(layers, layer);
   return {
     rgba,

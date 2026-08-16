@@ -5,6 +5,7 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import { IS_NODE, getNodeBuiltinSync } from "@nodetool-ai/config";
+import { isObjectLike, isString } from "./type-predicates.js";
 
 // `node:fs`/`path`/`crypto`/`os` are loaded lazily so this module loads
 // in browser / Edge runtimes. Python metadata loading is Node-only;
@@ -437,16 +438,16 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
 
     const pkg: PackageMetadata = {
       name:
-        typeof parsed.name === "string"
+        isString(parsed.name)
           ? parsed.name
           : path.basename(file, ".json"),
       description:
-        typeof parsed.description === "string" ? parsed.description : undefined,
-      version: typeof parsed.version === "string" ? parsed.version : undefined,
+        isString(parsed.description) ? parsed.description : undefined,
+      version: isString(parsed.version) ? parsed.version : undefined,
       authors: Array.isArray(parsed.authors)
         ? (parsed.authors as string[])
         : undefined,
-      repo_id: typeof parsed.repo_id === "string" ? parsed.repo_id : undefined,
+      repo_id: isString(parsed.repo_id) ? parsed.repo_id : undefined,
       nodes: Array.isArray(parsed.nodes)
         ? (parsed.nodes as NodeMetadata[])
         : undefined,
@@ -461,8 +462,8 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
       if (
         !node ||
         // Stryker disable next-line ConditionalExpression: a non-object truthy node has no string node_type, so the next check rejects it either way (equivalent).
-        typeof node !== "object" ||
-        typeof node.node_type !== "string"
+        !isObjectLike(node) ||
+        !isString(node.node_type)
       ) {
         continue;
       }

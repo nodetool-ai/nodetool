@@ -59,7 +59,7 @@ describe("descriptionForType", () => {
   it("returns a non-empty description for known types", () => {
     const desc = descriptionForType("str");
     expect(desc).toBeTruthy();
-    expect(typeof desc).toBe("string");
+    expect(desc).toEqual(expect.any(String));
     expect(desc.length).toBeGreaterThan(10);
   });
 

@@ -12,6 +12,11 @@
  * Both spellings resolve to the same tool: the `ui_timeline_` prefix is what
  * the bridge and the browser call it, and typing it for every step is noise.
  */
+import {
+  isNonBlankString,
+  isRecord
+} from "../predicates.js";
+
 
 /** One parsed step, with the tool name in its canonical `ui_timeline_*` form. */
 export interface TimelineInteractionStep {
@@ -20,9 +25,6 @@ export interface TimelineInteractionStep {
 }
 
 const PREFIX = "ui_timeline_";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** `add_track`, `ui_timeline_add_track`, and `ui_add_track` all normalize alike. */
 export function normalizeToolName(name: string): string {
@@ -46,7 +48,7 @@ export function parseInteractionScript(json: string): TimelineInteractionStep[] 
     );
   }
   return parsed.map((step, index) => {
-    if (!isRecord(step) || typeof step.tool !== "string" || step.tool.trim() === "") {
+    if (!isRecord(step) || !isNonBlankString(step.tool)) {
       throw new Error(`--interact step ${index + 1} has no \`tool\` name.`);
     }
     const input = step.input ?? {};

@@ -40,10 +40,10 @@ describe("useDynamicProperty", () => {
   it("exposes the slot mutation callbacks", () => {
     const { result } = renderHook(() => useDynamicProperty("node-1", {}));
 
-    expect(typeof result.current.handleDeleteProperty).toBe("function");
-    expect(typeof result.current.handleAddProperty).toBe("function");
-    expect(typeof result.current.handleUpdatePropertyName).toBe("function");
-    expect(typeof result.current.handleUpdatePropertyType).toBe("function");
+    expect(result.current.handleDeleteProperty).toEqual(expect.any(Function));
+    expect(result.current.handleAddProperty).toEqual(expect.any(Function));
+    expect(result.current.handleUpdatePropertyName).toEqual(expect.any(Function));
+    expect(result.current.handleUpdatePropertyType).toEqual(expect.any(Function));
   });
 
   describe("handleDeleteProperty", () => {

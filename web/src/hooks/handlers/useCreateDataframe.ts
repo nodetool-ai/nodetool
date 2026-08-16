@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
+import { isString } from "../../utils/typePredicates";
 
 export const useCreateDataframe = (
   createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>,
@@ -21,7 +22,7 @@ export const useCreateDataframe = (
             throw new Error("metadata for dataframe node is missing");
           }
           reader.onload = (event) => {
-            if (event.target && typeof event.target.result === "string") {
+            if (event.target && isString(event.target.result)) {
               const csv = event.target.result;
               const res = Papa.parse<string[]>(csv, {
                 header: false

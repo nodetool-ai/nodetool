@@ -39,6 +39,7 @@ import { documentKindInfo, type ResourceDocumentKind } from "../../documents/kin
 import { useAppRuntimeContext } from "./AppRuntimeContext";
 import { useOpenResource } from "./useOpenResource";
 import { useWidgetRuntime } from "./useWidgetRuntime";
+import { isRecord, isString } from "../../utils/typePredicates";
 
 /** How many members of a collection one widget lists. */
 const LIST_LIMIT = 25;
@@ -52,11 +53,7 @@ interface ResourceWidgetProps {
   props: Record<string, unknown>;
 }
 
-const str = (value: unknown): string =>
-  typeof value === "string" ? value : "";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+const str = (value: unknown): string => (isString(value) ? value : "");
 
 const arrayLength = (doc: unknown, key: string): number => {
   const value = isRecord(doc) ? doc[key] : undefined;

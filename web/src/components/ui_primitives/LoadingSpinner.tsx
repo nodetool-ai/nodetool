@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { reducedMotion } from "./tokens";
+import { isNumber } from "../../utils/typePredicates";
 
 const pulse = keyframes`
   0%, 80%, 100% {
@@ -79,14 +80,14 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const theme = useTheme();
 
   const circularSize =
-    typeof size === "number"
+    isNumber(size)
       ? size
       : size === "small"
         ? 20
         : size === "large"
           ? 48
           : 32;
-  const sizePreset = typeof size === "number" ? "small" : size;
+  const sizePreset = isNumber(size) ? "small" : size;
 
   const renderContent = () => {
     switch (variant) {

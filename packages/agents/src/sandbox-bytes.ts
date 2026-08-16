@@ -14,6 +14,7 @@
  */
 
 /** How deep the marshaler walks before it stops rewriting. */
+import { isObjectLike } from "./utils/type-guards.js";
 export const SANDBOX_SERIALIZE_MAX_DEPTH = 32;
 
 /** Marker key carrying base64 bytes from host to guest. */
@@ -73,7 +74,7 @@ export function toGuestBytesDeep(value: unknown, depth = 0): unknown {
   if (Array.isArray(value)) {
     return value.map((v) => toGuestBytesDeep(v, depth + 1));
   }
-  if (value !== null && typeof value === "object") {
+  if (isObjectLike(value)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = toGuestBytesDeep(v, depth + 1);

@@ -40,6 +40,11 @@ import {
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 
@@ -61,16 +66,16 @@ type SlotComponent = (props?: {
 }) => React.ReactNode;
 
 const str = (v: unknown): string =>
-  typeof v === "string" ? v : v == null ? "" : String(v);
+  isString(v) ? v : v == null ? "" : String(v);
 const numOr = (v: unknown, fallback: number): number =>
-  typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  isNumber(v) && Number.isFinite(v) ? v : fallback;
 
 export const resolveImageSrc = (value: unknown): string | null => {
-  if (typeof value === "string") return value.length > 0 ? value : null;
-  if (value && typeof value === "object") {
+  if (isString(value)) return value.length > 0 ? value : null;
+  if (value && isObjectLike(value)) {
     const obj = value as Record<string, unknown>;
     const candidate = obj.uri ?? obj.url ?? obj.data;
-    if (typeof candidate === "string" && candidate.length > 0) return candidate;
+    if (isString(candidate) && candidate.length > 0) return candidate;
   }
   return null;
 };
@@ -379,7 +384,7 @@ export const VideoWidget: React.FC<
 };
 
 const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
-  if (value && typeof value === "object") {
+  if (value && isObjectLike(value)) {
     const t = (value as { type?: unknown }).type;
     if (t === "image" || t === "audio" || t === "video") return t;
   }
@@ -409,7 +414,7 @@ export const renderOutputItem = (
     default:
       break;
   }
-  if (item && typeof item === "object") {
+  if (item && isObjectLike(item)) {
     return <JsonBlock key={key} value={item} />;
   }
   return <MarkdownBlock key={key} text={str(item)} />;
@@ -489,7 +494,7 @@ export const TableWidget: React.FC<
           Object.fromEntries(
             keys.map((key) => [
               key,
-              typeof row[key] === "object" && row[key] !== null
+              isObjectLike(row[key])
                 ? JSON.stringify(row[key])
                 : str(row[key])
             ])
@@ -607,7 +612,7 @@ export const CodeBlockWidget: React.FC<
     ? [props.formattedValue]
     : value != null
       ? asItems(value).map((item) =>
-          typeof item === "object" && item !== null
+          isObjectLike(item)
             ? JSON.stringify(item, null, 2)
             : str(item)
         )
@@ -708,7 +713,7 @@ export const KeyValueWidget: React.FC<
 > = (props) => {
   const { value } = useBinding(props, "read");
   const entries =
-    value && typeof value === "object" && !Array.isArray(value)
+    value && isObjectLike(value) && !Array.isArray(value)
       ? Object.entries(value as Record<string, unknown>)
       : value == null || value === ""
         ? []
@@ -738,7 +743,7 @@ export const KeyValueWidget: React.FC<
               size="normal"
               sx={{ textAlign: "right", wordBreak: "break-word" }}
             >
-              {typeof entry === "object" && entry !== null
+              {isObjectLike(entry)
                 ? JSON.stringify(entry)
                 : str(entry)}
             </Text>
@@ -924,7 +929,7 @@ const optionValues = (options: unknown): string[] =>
   Array.isArray(options)
     ? options
         .map((o) =>
-          typeof o === "string" ? o : (o as { value?: unknown } | null)?.value
+          isString(o) ? o : (o as { value?: unknown } | null)?.value
         )
         .filter((o): o is string => typeof o === "string" && o.length > 0)
     : [];

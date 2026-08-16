@@ -48,6 +48,7 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
 import { TextRenderer } from "./output/TextRenderer";
 import { extractTextValue } from "../../utils/extractTextValue";
+import { isString } from "../../utils/typePredicates";
 
 interface NodeHistoryViewerProps {
   workflowId: string;
@@ -75,7 +76,7 @@ type View = "grid" | "single";
 const MEDIA_PREFIXES = ["image/", "video/", "audio/"] as const;
 
 const isMediaAsset = (asset: Asset): boolean => {
-  if (typeof asset.content_type !== "string") return false;
+  if (!isString(asset.content_type)) return false;
   return MEDIA_PREFIXES.some((p) => asset.content_type.startsWith(p));
 };
 

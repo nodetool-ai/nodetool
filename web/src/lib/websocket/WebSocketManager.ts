@@ -17,6 +17,7 @@
  */
 import { EventEmitter } from "../EventEmitter";
 import { pack, unpack } from "msgpackr";
+import { isFunction, isObjectLike, isString } from "../../utils/typePredicates";
 
 export type ConnectionState =
   | "disconnected"
@@ -332,18 +333,18 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
           data = unpack(new Uint8Array(buf));
         } else if (
           event.data &&
-          typeof event.data === "object" &&
+          isObjectLike(event.data) &&
           "arrayBuffer" in event.data &&
-          typeof event.data.arrayBuffer === "function"
+          isFunction(event.data.arrayBuffer)
         ) {
           const buf = await (event.data.arrayBuffer as () => Promise<ArrayBuffer>)();
           data = unpack(new Uint8Array(buf));
-        } else if (typeof event.data === "string") {
+        } else if (isString(event.data)) {
           data = JSON.parse(event.data);
         } else {
           data = event.data;
         }
-      } else if (typeof event.data === "string") {
+      } else if (isString(event.data)) {
         data = JSON.parse(event.data);
       } else {
         data = event.data;
@@ -367,7 +368,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
    */
   private handleLivenessFrame(data: unknown): boolean {
     const type =
-      data && typeof data === "object"
+      data && isObjectLike(data)
         ? (data as { type?: unknown }).type
         : undefined;
 

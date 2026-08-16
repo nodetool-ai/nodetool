@@ -16,6 +16,7 @@
  */
 import { BASE_URL } from "../stores/BASE_URL";
 import { getBuildEnv } from "./buildEnv";
+import { isObjectLike } from "../utils/typePredicates";
 
 export type AuthMode = "local" | "supabase";
 
@@ -83,7 +84,7 @@ export const isRuntimeConfigFromBackend = (): boolean => fromBackend;
 export const isAuthRequired = (): boolean => current.authMode === "supabase";
 
 const coerce = (data: unknown): RuntimeConfig => {
-  if (!data || typeof data !== "object") return fallbackConfig();
+  if (!data || !isObjectLike(data)) return fallbackConfig();
   const d = data as Partial<RuntimeConfig>;
   return {
     authMode: d.authMode === "supabase" ? "supabase" : "local",

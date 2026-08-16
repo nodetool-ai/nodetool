@@ -3,6 +3,7 @@ import { Text } from "../../../ui_primitives";
 import { normalizeSearchResults } from "./parseSearchResults";
 import { SearchResults } from "./SearchResults";
 import { ToolResultJson } from "./ToolResultJson";
+import { isString } from "../../../../utils/typePredicates";
 
 interface ToolResultProps {
   toolName?: string | null;
@@ -24,7 +25,7 @@ const ToolResultBase: React.FC<ToolResultProps> = ({ content }) => {
     return <SearchResults items={searchItems} />;
   }
 
-  if (typeof content === "string") {
+  if (isString(content)) {
     return (
       <Text
         size="small"

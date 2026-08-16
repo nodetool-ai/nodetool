@@ -5,6 +5,7 @@
  *   POST /api/workflows/import-bundle        → import a bundle into the library
  */
 import { restFetch } from "../lib/rest-fetch";
+import { isObjectLike } from "./typePredicates";
 
 interface ImportedBundleWorkflow {
   id: string;
@@ -113,7 +114,7 @@ export async function importWorkflowBundle(
   const data: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const detail =
-      data && typeof data === "object" && "detail" in data
+      data && isObjectLike(data) && "detail" in data
         ? String(data.detail)
         : `Import failed (${res.status})`;
     throw new Error(detail);

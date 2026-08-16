@@ -14,6 +14,7 @@
 import { readFile } from "node:fs/promises";
 import { resolvePackageAssetPath } from "@nodetool-ai/config";
 import type { Render3DOptions } from "./render3d-core.js";
+import { isNonEmptyString } from "../../type-predicates.js";
 
 const RENDER_TIMEOUT_MS = 120_000;
 
@@ -217,7 +218,7 @@ export async function renderGlbHeadless(
     throwOnException(call, "render");
 
     const pngBase64 = call.result?.value;
-    if (typeof pngBase64 !== "string" || pngBase64.length === 0) {
+    if (!isNonEmptyString(pngBase64)) {
       throw new Error("RenderToImage: headless render returned no image data");
     }
     return new Uint8Array(Buffer.from(pngBase64, "base64"));

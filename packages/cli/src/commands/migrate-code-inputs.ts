@@ -16,6 +16,11 @@ import {
   migrateCodeBodyToInputs,
   isJsCodeNodeType
 } from "@nodetool-ai/node-sdk";
+import {
+  isNonBlankString,
+  isObjectLike,
+  isString
+} from "../predicates.js";
 
 /** The CLI's local-mode user, matching `nodetool.ts`. */
 const LOCAL_USER_ID = "1";
@@ -56,9 +61,7 @@ interface GraphEdge {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : {};
+  return isObjectLike(value) ? (value as Record<string, unknown>) : {};
 }
 
 /**
@@ -73,7 +76,7 @@ function inputNamesFor(node: GraphNode, edges: readonly GraphEdge[]): string[] {
     ...Object.keys(asRecord(node.dynamic_inputs))
   ]);
   for (const edge of edges) {
-    if (edge.target === node.id && typeof edge.targetHandle === "string") {
+    if (edge.target === node.id && isString(edge.targetHandle)) {
       names.add(edge.targetHandle);
     }
   }
@@ -106,13 +109,13 @@ export async function migrateCodeInputs(
     let touched = false;
 
     for (const node of nodes) {
-      if (typeof node.type !== "string" || !isJsCodeNodeType(node.type)) {
+      if (!isString(node.type) || !isJsCodeNodeType(node.type)) {
         continue;
       }
       report.codeNodesScanned++;
       const data = asRecord(node.data);
       const code = data.code;
-      if (typeof code !== "string" || code.trim() === "") continue;
+      if (!isNonBlankString(code)) continue;
 
       try {
         const result = migrateCodeBodyToInputs(code, inputNamesFor(node, edges));

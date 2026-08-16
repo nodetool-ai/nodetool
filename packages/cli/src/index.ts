@@ -30,6 +30,7 @@ import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { mkdirSync } from "node:fs";
+import { isString } from "./predicates.js";
 
 if (!process.env["NODETOOL_LOG_LEVEL"]) {
   process.env["NODETOOL_LOG_LEVEL"] = "error";
@@ -110,7 +111,7 @@ await initTelemetry({
 function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
   if (v === false) return false;
   if (v === true) return "pretty";
-  if (typeof v === "string") {
+  if (isString(v)) {
     const lower = v.toLowerCase();
     if (lower === "false" || lower === "0" || lower === "no") return false;
     if (lower === "json") return "json";

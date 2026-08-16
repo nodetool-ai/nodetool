@@ -783,7 +783,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     const mocks = mockCanvas2DContext();
     try {
       const result = runtime.flattenToDataUrl(doc);
-      expect(typeof result).toBe("string");
+      expect(result).toEqual(expect.any(String));
       expect(result.startsWith("data:image/png")).toBe(true);
 
       // flattenToDataUrl must NOT draw display chrome
@@ -883,7 +883,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     const mocks = mockCanvas2DContext();
     try {
       const result = runtime.getMaskDataUrl(doc);
-      expect(typeof result).toBe("string");
+      expect(result).toEqual(expect.any(String));
       expect(result!.startsWith("data:image/png")).toBe(true);
     } finally {
       mocks.restore();
@@ -987,7 +987,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     const mocks = mockCanvas2DContext();
     try {
       const result = runtime.reconcileLayerToDocumentSpace(layerId, doc);
-      expect(typeof result).toBe("string");
+      expect(result).toEqual(expect.any(String));
       // Serialized layer data starts with the ntlayer: prefix
       expect(result!.startsWith("ntlayer:")).toBe(true);
     } finally {
@@ -1007,7 +1007,7 @@ describe("Phase 1.6 – compositing and rendering hardening", () => {
     try {
       const result = runtime.reconcileLayerToDocumentSpace(layerId, doc);
       // Identity transform still serializes the layer data (no-op reconcile)
-      expect(typeof result).toBe("string");
+      expect(result).toEqual(expect.any(String));
       expect(result!.startsWith("ntlayer:")).toBe(true);
     } finally {
       mocks.restore();

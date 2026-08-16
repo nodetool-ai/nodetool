@@ -25,6 +25,7 @@ import { printCommandError } from "../command-errors.js";
 import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
 import { renderSketchValidation } from "./sketch-validation-output.js";
+import { isString } from "../predicates.js";
 
 /** A decoded JSON document, before anything validates its shape. */
 type JsonValue =
@@ -145,7 +146,7 @@ export function versionTableRows(
 export function parseVersionDocument(raw: unknown): JsonValue {
   // SAFETY: a Postgres json column arrives already decoded; either way the
   // stored document is JSON.
-  if (typeof raw !== "string") return raw as JsonValue;
+  if (!isString(raw)) return raw as JsonValue;
   try {
     return JSON.parse(raw) as JsonValue;
   } catch {

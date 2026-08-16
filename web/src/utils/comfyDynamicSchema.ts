@@ -12,6 +12,7 @@
  */
 
 import type { TypeMetadata } from "../stores/ApiTypes";
+import { isBoolean, isNumber, isObjectLike, isString } from "./typePredicates";
 
 type ComfyPromptNode = {
   class_type: string;
@@ -100,8 +101,8 @@ export function isComfyConnection(value: unknown): boolean {
   return (
     Array.isArray(value) &&
     value.length === 2 &&
-    (typeof value[0] === "string" || typeof value[0] === "number") &&
-    typeof value[1] === "number"
+    (isString(value[0]) || isNumber(value[0])) &&
+    isNumber(value[1])
   );
 }
 
@@ -125,7 +126,7 @@ function resolveLoadInput(
       ? "video"
       : "image";
   const field = Object.entries(inputs).find(
-    ([, v]) => typeof v === "string" && !isComfyConnection(v)
+    ([, v]) => isString(v) && !isComfyConnection(v)
   )?.[0];
   return field ? { field, type } : null;
 }
@@ -145,11 +146,11 @@ function resolveSaveOutput(
 }
 
 function inferScalarType(value: unknown): string {
-  if (typeof value === "boolean") return "bool";
-  if (typeof value === "number") {
+  if (isBoolean(value)) return "bool";
+  if (isNumber(value)) {
     return Number.isInteger(value) ? "int" : "float";
   }
-  if (typeof value === "string") return "str";
+  if (isString(value)) return "str";
   return "any";
 }
 
@@ -159,16 +160,16 @@ function inferScalarType(value: unknown): string {
  * Throws a helpful error for the UI/full ("nodes" array) format.
  */
 export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
-  if (parsed && typeof parsed === "object" && "prompt" in parsed) {
+  if (parsed && isObjectLike(parsed) && "prompt" in parsed) {
     const inner = parsed.prompt;
-    if (inner && typeof inner === "object") return normalizeComfyPrompt(inner);
+    if (inner && isObjectLike(inner)) return normalizeComfyPrompt(inner);
   }
-  if (parsed && typeof parsed === "object" && "nodes" in parsed) {
+  if (parsed && isObjectLike(parsed) && "nodes" in parsed) {
     throw new Error(
       "This looks like a ComfyUI UI workflow. Use “Save (API Format)” in ComfyUI, or drop a PNG exported by ComfyUI."
     );
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!parsed || !isObjectLike(parsed) || Array.isArray(parsed)) {
     throw new Error("Not a ComfyUI workflow (expected a JSON object).");
   }
   const entries = Object.entries(parsed as Record<string, unknown>);

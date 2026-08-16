@@ -58,10 +58,10 @@ describe("useDropZone", () => {
 
     const { result } = renderHook(() => useDropZone(config));
 
-    expect(typeof result.current.onDragEnter).toBe("function");
-    expect(typeof result.current.onDragOver).toBe("function");
-    expect(typeof result.current.onDragLeave).toBe("function");
-    expect(typeof result.current.onDrop).toBe("function");
+    expect(result.current.onDragEnter).toEqual(expect.any(Function));
+    expect(result.current.onDragOver).toEqual(expect.any(Function));
+    expect(result.current.onDragLeave).toEqual(expect.any(Function));
+    expect(result.current.onDrop).toEqual(expect.any(Function));
     expect(result.current.isOver).toBe(false);
     expect(result.current.canDrop).toBe(false);
     expect(result.current["data-dropzone"]).toBe(true);

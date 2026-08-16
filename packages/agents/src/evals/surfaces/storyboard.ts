@@ -37,6 +37,7 @@ import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
+import { isNumber, isString } from "../../utils/type-guards.js";
 
 const targetParam = z
   .string()
@@ -349,7 +350,7 @@ export function createStoryboardToolBridge(
           shots.length,
           { generateId: nextShotId }
         );
-        if (typeof index === "number" && index >= 0 && index <= shots.length) {
+        if (isNumber(index) && index >= 0 && index <= shots.length) {
           shots.splice(index, 0, shot);
         } else {
           shots.push(shot);
@@ -371,9 +372,9 @@ export function createStoryboardToolBridge(
       }),
       async ({ target, action, camera, motion, status }) => {
         const shot = resolveTarget(target as string);
-        if (typeof action === "string") shot.action = action;
+        if (isString(action)) shot.action = action;
         if (camera !== undefined) shot.camera = camera as CameraDirection;
-        if (typeof motion === "string") shot.motion = motion;
+        if (isString(motion)) shot.motion = motion;
         if (status !== undefined) shot.status = status as ShotStatus;
         return { ok: true, shot: serialize(shot) };
       }

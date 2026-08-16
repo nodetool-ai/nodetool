@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../trpc/client";
 import { BASE_URL, withApiBase } from "../stores/BASE_URL";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { isString } from "../utils/typePredicates";
 
 export interface TriggerRegistrationStatus {
   id: string;
@@ -117,7 +118,7 @@ export const useRunningTriggers = (options: { enabled?: boolean } = {}) => {
 /** Human-readable text for whatever a tRPC mutation rejected with. */
 export const triggerErrorMessage = (error: unknown): string => {
   if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "string" && error) return error;
+  if (isString(error) && error) return error;
   return "Unknown error";
 };
 

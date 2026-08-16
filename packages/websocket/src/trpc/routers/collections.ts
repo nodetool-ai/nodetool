@@ -31,6 +31,10 @@ import {
   deleteInput,
   deleteOutput
 } from "@nodetool-ai/protocol/api-schemas/collections.js";
+import {
+  isNonEmptyString,
+  isString
+} from "../../lib/wire-values.js";
 
 /**
  * Normalize a CollectionMetadata (may contain `undefined`/`null`) to the wire
@@ -134,7 +138,7 @@ export const collectionsRouter = router({
           const collection = await provider.getCollection({ name: info.name });
           const count = await collection.count();
           const workflowName = await resolveWorkflowName(
-            typeof metadata.workflow === "string"
+            isString(metadata.workflow)
               ? metadata.workflow
               : undefined
           );
@@ -220,7 +224,7 @@ export const collectionsRouter = router({
         ...stripReservedMetadata(input.metadata)
       };
       const owner = existing[OWNER_METADATA_KEY];
-      if (typeof owner === "string" && owner) {
+      if (isNonEmptyString(owner)) {
         merged[OWNER_METADATA_KEY] = owner;
       } else {
         delete merged[OWNER_METADATA_KEY];

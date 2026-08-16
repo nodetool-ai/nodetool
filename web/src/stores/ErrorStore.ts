@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { nodeKey, type NodeKey } from "./nodeKey";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 interface ErrorObject {
   /** Nullable: a payload off the wire can carry `message: null`, which
@@ -31,7 +32,7 @@ export const normalizeNodeError = (
     return undefined;
   }
 
-  if (typeof error === "string") {
+  if (isString(error)) {
     const trimmed = error.trim();
     if (
       trimmed === "" ||
@@ -61,7 +62,7 @@ export const nodeErrorToDisplayString = (
     return "";
   }
 
-  if (typeof normalized === "string") {
+  if (isString(normalized)) {
     return normalized;
   }
 
@@ -71,7 +72,7 @@ export const nodeErrorToDisplayString = (
 
   if (
     normalized &&
-    typeof normalized === "object" &&
+    isObjectLike(normalized) &&
     "message" in normalized
   ) {
     const message = normalized.message;

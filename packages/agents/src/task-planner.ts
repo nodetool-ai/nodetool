@@ -37,6 +37,11 @@ import {
   RemoveTaskTool,
   FinishPlanTool
 } from "./tools/plan-builder-tools.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "./utils/type-guards.js";
 
 const MAX_RETRIES = 3;
 const MAX_PER_TASK_RETRIES = 3;
@@ -460,7 +465,7 @@ export class TaskPlanner {
         args
       )) as Record<string, unknown>;
       const status = result["status"];
-      const taskId = typeof args["id"] === "string" ? args["id"] : undefined;
+      const taskId = isString(args["id"]) ? args["id"] : undefined;
       if (status === "task_added") {
         const added = builder.currentTasks[builder.currentTasks.length - 1];
         if (added) uiEvents.push(this.taskPlannedEvent(added));
@@ -498,7 +503,7 @@ export class TaskPlanner {
       )) as Record<string, unknown>;
       const status = result["status"];
       const removedId =
-        typeof args["id"] === "string" ? args["id"] : "";
+        isString(args["id"]) ? args["id"] : "";
       if (status === "task_removed") {
         uiEvents.push({
           type: "task_update",
@@ -601,8 +606,7 @@ export class TaskPlanner {
         if ("type" in item && item.type === "chunk") {
           const chunk = item as { content?: string; done?: boolean };
           if (
-            typeof chunk.content === "string" &&
-            chunk.content.length > 0 &&
+            isNonEmptyString(chunk.content) &&
             !chunk.done
           ) {
             yield {
@@ -697,7 +701,7 @@ export class TaskPlanner {
         item.type === "chunk"
       ) {
         const chunk = item as { content?: string };
-        if (typeof chunk.content === "string") {
+        if (isString(chunk.content)) {
           content += chunk.content;
           yield {
             type: "chunk",
@@ -725,8 +729,7 @@ export class TaskPlanner {
     );
 
     if (
-      typeof result === "object" &&
-      result !== null &&
+      isObjectLike(result) &&
       (result as Record<string, unknown>)["status"] === "validation_failed"
     ) {
       const errors = (result as Record<string, unknown>)["errors"] as string[];
@@ -768,7 +771,7 @@ export class TaskPlanner {
     for (const tool of this.tools) {
       let schemaInfo = "";
       const schema = tool.inputSchema;
-      if (schema && typeof schema === "object" && "properties" in schema) {
+      if (isObjectLike(schema) && "properties" in schema) {
         const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required)
           ? (schema.required as string[])

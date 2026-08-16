@@ -51,6 +51,7 @@ import type {
   CapabilityImpl,
   CapabilityModule
 } from "./types.js";
+import { isRecord, isString } from "../utils/type-guards.js";
 
 export { workflowDocumentSchema } from "./ui.specs.js";
 
@@ -66,7 +67,7 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
 
     const { Workflow } = await import("@nodetool-ai/models");
     const workflowId =
-      typeof params["workflow_id"] === "string"
+      isString(params["workflow_id"])
         ? params["workflow_id"]
         : run.context.workflowId;
     if (!workflowId) {
@@ -91,7 +92,7 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
       if (local) metadataByType.set(nodeType, local);
     };
 
-    if (name === "ui_add_node" && typeof params["type"] === "string") {
+    if (name === "ui_add_node" && isString(params["type"])) {
       await loadMetadata(params["type"]);
     } else if (name === "ui_connect_nodes") {
       const sourceId = String(params["source_node_id"]);
@@ -166,7 +167,7 @@ function withZodValidation(
         issues
       };
     }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (!isRecord(parsed)) {
       return {
         error: "invalid_tool_arguments",
         message: `Invalid arguments for ${name}: expected an object`,

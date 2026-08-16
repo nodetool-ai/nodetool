@@ -9,6 +9,10 @@ import { queryClient } from "../../queryClient";
 import { ResourceChangeUpdate } from "../ApiTypes";
 import { loadMetadata } from "../../serverState/useMetadata";
 
+const isFunction = (
+  value: unknown
+): value is (...args: never[]) => unknown => typeof value === "function";
+
 // Mock the queryClient
 jest.mock("../../queryClient", () => ({
   queryClient: {
@@ -389,7 +393,7 @@ describe("handleResourceChange", () => {
     );
     const predicateCall = (
       queryClient.invalidateQueries as jest.Mock
-    ).mock.calls.find((call) => typeof call[0]?.predicate === "function");
+    ).mock.calls.find((call) => isFunction(call[0]?.predicate));
     expect(predicateCall).toBeTruthy();
     const predicate = predicateCall![0].predicate as (q: {
       queryKey: readonly unknown[];

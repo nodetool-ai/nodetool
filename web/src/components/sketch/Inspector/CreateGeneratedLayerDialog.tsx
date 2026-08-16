@@ -30,6 +30,7 @@ import {
 } from "../../ui_primitives";
 import { useCreateGeneratedLayer } from "../../../hooks/sketch/useCreateGeneratedLayer";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
+import { isString } from "../../../utils/typePredicates";
 
 const IMAGE_OUTPUT_TYPES = new Set([
   "nodetool.output.ImageOutput",
@@ -91,9 +92,9 @@ const rowStyles = (theme: Theme, selected: boolean) =>
 function shortNodeLabel(node: { id: string; type?: string; data?: unknown }) {
   const data = node.data as { name?: unknown; title?: unknown } | undefined;
   const name =
-    typeof data?.title === "string" && data.title
+    isString(data?.title) && data.title
       ? data.title
-      : typeof data?.name === "string" && data.name
+      : isString(data?.name) && data.name
       ? data.name
       : (node.type ?? "").split(".").pop() ?? node.id;
   return `${name}`;

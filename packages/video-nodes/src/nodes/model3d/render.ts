@@ -21,6 +21,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import type { LightingPreset, Render3DOptions } from "./render3d-core.js";
 import type { Model3DRefLike } from "./types.js";
+import { isNonEmptyString, isObjectLike } from "../../type-predicates.js";
 
 const RENDERABLE_FORMATS = new Set(["", "glb", "gltf"]);
 
@@ -29,13 +30,13 @@ async function resolveModelBytes(
   model: unknown,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
-  if (!model || typeof model !== "object") return new Uint8Array();
+  if (!isObjectLike(model)) return new Uint8Array();
   const ref = model as Model3DRefLike;
 
   if (ref.data instanceof Uint8Array && ref.data.length > 0) {
     return ref.data;
   }
-  if (typeof ref.data === "string" && ref.data.length > 0) {
+  if (isNonEmptyString(ref.data)) {
     return base64ToBytes(ref.data);
   }
 

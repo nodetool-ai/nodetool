@@ -9,6 +9,7 @@
 
 import { AggressiveTokenizer } from "./tokenizers.js";
 import { STOPWORDS } from "./data/stopwords.js";
+import { isString } from "../../type-predicates.js";
 
 // Denote groups of consecutive consonants with a C and vowels with a V.
 function categorizeGroups(token: string): string {
@@ -51,7 +52,7 @@ function attemptReplace(
   let result: string | null = null;
 
   if (
-    typeof pattern === "string" &&
+    isString(pattern) &&
     token.substr(0 - pattern.length) === pattern
   ) {
     result = token.replace(new RegExp(pattern + "$"), replacement);

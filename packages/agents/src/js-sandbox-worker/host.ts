@@ -24,6 +24,7 @@ import {
   type RunMessage,
   type WorkerToHostMessage
 } from "./protocol.js";
+import { isFunction, isObjectLike } from "../utils/type-guards.js";
 
 /** Workers alive at once. A fifth concurrent run waits for a free one. */
 export const MAX_SANDBOX_WORKERS = 4;
@@ -419,12 +420,12 @@ async function dispatchRpc(
 ): Promise<unknown> {
   let current: unknown = table;
   for (const segment of path) {
-    if (current === null || typeof current !== "object") {
+    if (!isObjectLike(current)) {
       throw new Error(`no sandbox bridge at ${path.join(".")}`);
     }
     current = (current as Record<string, unknown>)[segment];
   }
-  if (typeof current !== "function") {
+  if (!isFunction(current)) {
     throw new Error(`no sandbox bridge at ${path.join(".")}`);
   }
   return (current as (...a: unknown[]) => unknown)(...args);

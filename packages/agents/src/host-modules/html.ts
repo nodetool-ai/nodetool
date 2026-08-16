@@ -8,6 +8,11 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /** Matches `select` returns when the caller names no limit. */
 export const DEFAULT_SELECT_HTML_LIMIT = 100;
@@ -48,7 +53,7 @@ async function loadCheerio(where: string): Promise<CheerioLike> {
     mod,
     where,
     "cheerio",
-    (v) => typeof (v as CheerioLike | undefined)?.load === "function"
+    (v) => isFunction((v as CheerioLike | undefined)?.load)
   );
 }
 
@@ -58,7 +63,7 @@ async function loadTurndown(where: string): Promise<TurndownLike> {
     mod,
     where,
     "turndown",
-    (v) => typeof v === "function"
+    (v) => isFunction(v)
   );
 }
 
@@ -73,7 +78,7 @@ export async function select(
 ): Promise<string[]> {
   const where = "html.select";
   const source = requireText(where, html, "html");
-  if (typeof selector !== "string" || !selector.trim()) {
+  if (!isString(selector) || !selector.trim()) {
     throw new Error(`${where}: selector must be a non-empty string`);
   }
   const opts = optionsOf(options);
@@ -120,7 +125,7 @@ export async function toMarkdown(
   const opts = optionsOf(options);
   const Turndown = await loadTurndown(where);
   const overrides =
-    typeof opts.turndown === "object" && opts.turndown !== null
+    isObjectLike(opts.turndown)
       ? (opts.turndown as Record<string, unknown>)
       : {};
   const service = new Turndown({

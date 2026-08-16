@@ -24,6 +24,11 @@ import type {
   RunWorkflowOutcome,
   WorkflowRunEnvironment
 } from "@nodetool-ai/execution/service";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isRecord
+} from "../utils/type-guards.js";
 
 /** The user every read and write is scoped to. */
 export function userIdOf(context: ProcessingContext): string {
@@ -180,8 +185,6 @@ function computeAutoLayout(
  */
 function withAutoLayout(nodes: unknown, edges: unknown): unknown {
   if (!Array.isArray(nodes)) return nodes;
-  const isRecord = (v: unknown): v is Record<string, unknown> =>
-    !!v && typeof v === "object" && !Array.isArray(v);
   const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
   const ids = nodes.filter(isRecord).map((node) => String(node["id"] ?? ""));
   const positions = computeAutoLayout(ids, edgeList);
@@ -219,13 +222,13 @@ function withAutoLayout(nodes: unknown, edges: unknown): unknown {
  * always auto-lays-out the result.
  */
 export function normalizeWorkflowGraph(graph: unknown) {
-  if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
+  if (!isRecord(graph)) return graph;
   const record = graph as Record<string, unknown>;
   const rawNodes = record["nodes"];
   const rawEdges = record["edges"];
 
   const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (!isRecord(value)) {
       return value;
     }
     const node = value as Record<string, unknown>;
@@ -244,7 +247,7 @@ export function normalizeWorkflowGraph(graph: unknown) {
 
   const nodes = Array.isArray(rawNodes)
     ? rawNodes.map((node) => normalizeNode(node))
-    : rawNodes && typeof rawNodes === "object"
+    : isObjectLike(rawNodes)
       ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
           normalizeNode(node, id)
         )
@@ -252,7 +255,7 @@ export function normalizeWorkflowGraph(graph: unknown) {
 
   const edges = Array.isArray(rawEdges)
     ? rawEdges.map((value, index) => {
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
+        if (!isRecord(value)) {
           return value;
         }
         const edge = value as Record<string, unknown>;
@@ -284,7 +287,7 @@ type LightWorkflowSummary = {
 
 /** Project a workflow record to a light summary — never the full graph. */
 function lightWorkflow(w: unknown) {
-  if (!w || typeof w !== "object") return w;
+  if (!isObjectLike(w)) return w;
   const r = w as Record<string, unknown>;
   const summary: LightWorkflowSummary = {
     id: r["id"],
@@ -293,7 +296,7 @@ function lightWorkflow(w: unknown) {
     tags: r["tags"] ?? null
   };
   // Example records carry their package — get_example_workflow needs it.
-  if (typeof r["package_name"] === "string" && r["package_name"]) {
+  if (isNonEmptyString(r["package_name"])) {
     summary.package_name = r["package_name"];
   }
   return summary;
@@ -302,7 +305,7 @@ function lightWorkflow(w: unknown) {
 /** Strip embedded graphs from a workflow list, keeping pagination intact. */
 export function lightWorkflowList(resp: unknown) {
   if (Array.isArray(resp)) return resp.map(lightWorkflow);
-  if (resp && typeof resp === "object") {
+  if (isObjectLike(resp)) {
     const r = resp as Record<string, unknown>;
     if (Array.isArray(r["workflows"])) {
       return { ...r, workflows: r["workflows"].map(lightWorkflow) };
@@ -363,7 +366,7 @@ export async function modelSelectionError(
   graph: unknown,
   catalogs: ModelCatalogs
 ): Promise<Record<string, unknown> | null> {
-  if (!graph || typeof graph !== "object") return null;
+  if (!isObjectLike(graph)) return null;
   const nodes = (graph as { nodes?: unknown }).nodes;
   if (!Array.isArray(nodes)) return null;
   const { collectModelSelectionIssues } = await import("@nodetool-ai/node-sdk");
@@ -390,7 +393,7 @@ export async function modelSelectionError(
  * loop knows how to answer without reading endpoint docs.
  */
 export function annotateEscalatedRun(run: unknown) {
-  if (!run || typeof run !== "object") return run;
+  if (!isObjectLike(run)) return run;
   const record = run as Record<string, unknown>;
   if (record["status"] !== "escalated") return run;
   return {
@@ -404,7 +407,7 @@ export function annotateEscalatedRun(run: unknown) {
 
 /** Distill a workflow API record down to a graph overview for a debug report. */
 export function summarizeWorkflowGraph(workflow: unknown) {
-  if (!workflow || typeof workflow !== "object") return workflow;
+  if (!isObjectLike(workflow)) return workflow;
   const wf = workflow as Record<string, unknown>;
   const graph = (wf.graph ?? wf) as Record<string, unknown>;
   const nodes = Array.isArray(graph.nodes)

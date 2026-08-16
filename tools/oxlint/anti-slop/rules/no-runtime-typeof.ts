@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 
-import type { ESTree } from "@oxlint/plugins";
+import type { ESTree, Scope, SourceCode } from "@oxlint/plugins";
 
 type RuntimeFunction = ESTree.ArrowFunctionExpression | ESTree.Function;
 
@@ -20,6 +20,46 @@ function isInsideTypeGuard(node: ESTree.Node): boolean {
 		}
 		current = current.parent;
 	}
+	return false;
+}
+
+function unwrapParentheses(node: ESTree.Node): ESTree.Node {
+	let current = node;
+	while (current.type === "ParenthesizedExpression") {
+		current = current.expression;
+	}
+	return current;
+}
+
+/**
+ * `typeof someUndeclaredName` is the only way to ask whether a global exists: reading
+ * the bare name throws `ReferenceError`, so no predicate can stand in for it. An operand
+ * that resolves to nothing in the scope chain is that question, not a narrowing.
+ */
+function isGlobalExistenceProbe(
+	sourceCode: SourceCode,
+	argument: ESTree.Node,
+): boolean {
+	const operand = unwrapParentheses(argument);
+	if (operand.type !== "Identifier") return false;
+	let scope: Scope | null = sourceCode.getScope(operand);
+	while (scope !== null) {
+		if (scope.set.has(operand.name)) return false;
+		scope = scope.upper;
+	}
+	return true;
+}
+
+/**
+ * `typeof x` used as a value — interpolated into a message, or returned — reports what a
+ * representation is. It narrows nothing, so there is no contract to parse instead.
+ */
+function isValueProducing(node: ESTree.Node): boolean {
+	const parent = node.parent;
+	if (parent === null) return false;
+	if (parent.type === "TemplateLiteral") return true;
+	if (parent.type === "ReturnStatement") return parent.argument === node;
+	if (parent.type === "ParenthesizedExpression") return isValueProducing(parent);
 	return false;
 }
 
@@ -55,12 +95,11 @@ export const noRuntimeTypeofRule = defineRule({
 					option !== null &&
 					!Array.isArray(option) &&
 					option.allowInTypeGuards === true;
-				if (
-					node.operator === "typeof" &&
-					(!allowInTypeGuards || !isInsideTypeGuard(node))
-				) {
-					context.report({ node, messageId: "runtimeTypeof" });
-				}
+				if (node.operator !== "typeof") return;
+				if (allowInTypeGuards && isInsideTypeGuard(node)) return;
+				if (isValueProducing(node)) return;
+				if (isGlobalExistenceProbe(context.sourceCode, node.argument)) return;
+				context.report({ node, messageId: "runtimeTypeof" });
 			},
 		};
 	},

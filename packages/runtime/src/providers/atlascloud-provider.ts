@@ -29,6 +29,7 @@
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
+import { isBoolean, isNumber, isString } from "../type-predicates.js";
 import {
   getManifestNodeMeta,
   getModelInputFields,
@@ -302,11 +303,11 @@ async function atlasPoll(
 function pickOutputUrl(result: AtlasPollResult): string {
   if (Array.isArray(result.outputs) && result.outputs.length > 0) {
     const first = result.outputs[0];
-    if (typeof first === "string") return first;
-    if (first && typeof first.url === "string") return first.url;
+    if (isString(first)) return first;
+    if (first && isString(first.url)) return first.url;
   }
-  if (typeof result.output === "string") return result.output;
-  if (typeof result.url === "string") return result.url;
+  if (isString(result.output)) return result.output;
+  if (isString(result.url)) return result.url;
   throw new Error("No output URL in AtlasCloud result");
 }
 
@@ -355,15 +356,15 @@ function imageDataUri(bytes: Uint8Array): string {
 function coerceToType<T>(value: T, type: string): T | number | boolean | null {
   switch (type) {
     case "int": {
-      const n = typeof value === "number" ? value : Number(value);
+      const n = isNumber(value) ? value : Number(value);
       return Number.isFinite(n) ? Math.trunc(n) : null;
     }
     case "float": {
-      const n = typeof value === "number" ? value : Number(value);
+      const n = isNumber(value) ? value : Number(value);
       return Number.isFinite(n) ? n : null;
     }
     case "bool":
-      return typeof value === "boolean" ? value : String(value) === "true";
+      return isBoolean(value) ? value : String(value) === "true";
     default:
       return value;
   }
@@ -387,7 +388,7 @@ function resolveForField<T>(
   // Return the declared member so numeric enums keep their JSON type.
   const member = allowed.find((v) => String(v) === String(coerced));
   if (member !== undefined) return member;
-  if (typeof coerced === "number") {
+  if (isNumber(coerced)) {
     // Negative members are sentinels ("-1" = let the model decide), never a
     // sensible approximation of a number the caller actually asked for.
     const numeric = allowed

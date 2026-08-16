@@ -10,13 +10,18 @@
  */
 
 import { createHash } from "node:crypto";
+import {
+  isBoolean,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 export function flattenMetadata(
   obj: Record<string, unknown>
 ) {
   const out: Record<string, string | number | boolean> = {};
   for (const [k, v] of Object.entries(obj ?? {})) {
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    if (isString(v) || isNumber(v) || isBoolean(v)) {
       out[k] = v;
     } else if (v !== null && v !== undefined) {
       out[k] = String(v);

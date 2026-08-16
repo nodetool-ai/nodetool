@@ -59,6 +59,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { isString } from "../../lib/wire-values.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -128,7 +129,7 @@ function toListItem(doc: ImageDocument) {
 function parseVersionDocument(raw: unknown): JsonValue {
   // SAFETY: a Postgres json column arrives already decoded, and the row's
   // document is JSON either way.
-  if (typeof raw !== "string") return raw as JsonValue;
+  if (!isString(raw)) return raw as JsonValue;
   try {
     return JSON.parse(raw) as JsonValue;
   } catch {

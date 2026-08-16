@@ -10,6 +10,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
+import { isString } from "../type-predicates.js";
 
 /**
  * Minimal typed surface of the optional `node-llama-cpp` native binding. The
@@ -249,7 +250,7 @@ async function walkGgufFiles(
 }
 
 function asText(content: Message["content"]): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!content) return "";
   return content
     .filter(
@@ -595,7 +596,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
       if ("args" in item) toolCalls.push(item);
-      else if ("content" in item && typeof item.content === "string")
+      else if ("content" in item && isString(item.content))
         content += item.content;
     }
     return {

@@ -16,6 +16,7 @@ import { useTheme } from "@mui/material/styles";
 import { CONTROL } from "./tokens";
 import { Label } from "./Label";
 import { useFormFieldContext } from "./formFieldContext";
+import { isString } from "../../utils/typePredicates";
 
 export interface TextInputProps
   extends Omit<MuiTextFieldProps, "variant" | "size"> {
@@ -101,7 +102,7 @@ export const TextInput = memo(
       const showLabel = !suppressed && !!label && !hideLabel;
       // A hidden (or absent) visible label still needs an accessible name.
       const ariaLabel =
-        !suppressed && !showLabel && typeof label === "string"
+        !suppressed && !showLabel && isString(label)
           ? label
           : undefined;
 

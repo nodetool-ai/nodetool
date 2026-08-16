@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import { type JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const DEBUG_APP_SCHEMA: JsonSchema = {
   type: "object",
@@ -81,7 +82,7 @@ export const debugAppSpec: CapabilitySpec = {
   userMessage: (params) => {
     const target = params["application_id"];
     const label =
-      typeof target === "string" && target.trim() ? ` ${target}` : " draft";
+      isString(target) && target.trim() ? ` ${target}` : " draft";
     return params["run"] === false
       ? `Checking app${label} wiring`
       : `Debugging app${label}`;

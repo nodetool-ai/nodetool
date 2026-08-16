@@ -1,4 +1,5 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { isNumber } from "./typePredicates";
 
 /**
  * Provider-backed model property types. A node exposing one of these is driven
@@ -58,7 +59,7 @@ export function nodeExpectedQuantity(
   if (!data) return 1;
   for (const name of FAN_OUT_PROPERTY_NAMES) {
     const value = data[name];
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    if (isNumber(value) && Number.isFinite(value) && value > 0) {
       return Math.floor(value);
     }
   }

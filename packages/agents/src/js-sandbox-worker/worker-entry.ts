@@ -39,6 +39,7 @@ import {
 } from "./protocol.js";
 
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
+import { isFiniteNumber, isObjectLike } from "../utils/type-guards.js";
 /**
  * The variant package is CJS with a `default` export, so `ns.default` is the
  * variant at runtime.
@@ -157,7 +158,7 @@ class RunSession {
 /** Random bytes, tagged the way the host bridge tags them. */
 function getRandomValues(requested: unknown): Record<string, string> {
   const size =
-    typeof requested === "number" && Number.isFinite(requested)
+    isFiniteNumber(requested)
       ? Math.min(Math.max(Math.floor(requested), 0), MAX_RANDOM_BYTES)
       : 0;
   const bytes = new Uint8Array(size);
@@ -232,8 +233,7 @@ function syncTargetNames(shape: BridgeShape): string[] {
     .filter(
       ([, global]) =>
         global.kind === "value" &&
-        global.value !== null &&
-        typeof global.value === "object"
+        isObjectLike(global.value)
     )
     .map(([name]) => name);
 }

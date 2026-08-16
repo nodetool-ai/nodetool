@@ -7,6 +7,7 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
+import { isObjectLike } from "../utils/type-guards.js";
 
 export interface CodeActToolRecorder {
   invocations: Array<{ name: string; args: Record<string, unknown> }>;
@@ -175,8 +176,7 @@ export const CODEACT_EVAL_CASES: readonly CodeActEvalCase[] = [
       maxActions: 2,
       minToolCalls: 2,
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         (r as { total?: unknown }).total === 412,
       resultCheckLabel: "total=412"
     }
@@ -193,8 +193,7 @@ export const CODEACT_EVAL_CASES: readonly CodeActEvalCase[] = [
       maxActions: 3,
       minToolCalls: 6,
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         (r as { total?: unknown }).total === 9_017_763,
       resultCheckLabel: "total=9017763"
     }
@@ -216,8 +215,7 @@ export const CODEACT_EVAL_CASES: readonly CodeActEvalCase[] = [
       minToolCalls: 2,
       maxActions: 3,
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         (r as { revision?: unknown }).revision === "2026-08",
       resultCheckLabel: "revision=2026-08"
     }
@@ -235,8 +233,7 @@ export const CODEACT_EVAL_CASES: readonly CodeActEvalCase[] = [
       requiredTools: ["list_cities", "lookup_population"],
       maxActions: 3,
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         (r as { total?: unknown }).total === 3_755_251,
       resultCheckLabel: "total=3755251 (Berlin)"
     }

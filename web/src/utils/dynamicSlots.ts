@@ -13,6 +13,7 @@
  */
 import type { TypeMetadata } from "../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../stores/NodeData";
+import { isBoolean, isNumber, isString } from "./typePredicates";
 
 export const ANY_TYPE: TypeMetadata = {
   type: "any",
@@ -38,13 +39,13 @@ const asEnumValues = (value: unknown): Array<string | number> | null => {
 
 /** Coerce anything resolver-shaped into a complete `TypeMetadata`. */
 export const normalizeTypeMetadata = (raw: unknown): TypeMetadata => {
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     return { ...ANY_TYPE, type: raw };
   }
   if (!isRecord(raw)) {
     return { ...ANY_TYPE };
   }
-  const typeName = typeof raw.type === "string" ? raw.type : "any";
+  const typeName = isString(raw.type) ? raw.type : "any";
   const typeArgs = Array.isArray(raw.type_args)
     ? raw.type_args.map(normalizeTypeMetadata)
     : [];
@@ -54,7 +55,7 @@ export const normalizeTypeMetadata = (raw: unknown): TypeMetadata => {
     // Resolvers emit JSON-schema `enum`; the editor reads `values`.
     values: asEnumValues(raw.values) ?? asEnumValues(raw.enum),
     type_args: typeArgs,
-    type_name: typeof raw.type_name === "string" ? raw.type_name : null
+    type_name: isString(raw.type_name) ? raw.type_name : null
   };
 };
 
@@ -70,19 +71,19 @@ export const normalizeDynamicSlot = (raw: unknown): DynamicSlotDeclaration => {
   // TypeMetadata is spread across the slot object itself.
   const typeSource = isRecord(raw.type) ? raw.type : raw;
   const slot: DynamicSlotDeclaration = { type: normalizeTypeMetadata(typeSource) };
-  if (typeof raw.description === "string") {
+  if (isString(raw.description)) {
     slot.description = raw.description;
   }
   if (raw.default !== undefined) {
     slot.default = raw.default;
   }
-  if (typeof raw.required === "boolean") {
+  if (isBoolean(raw.required)) {
     slot.required = raw.required;
   }
-  if (typeof raw.min === "number") {
+  if (isNumber(raw.min)) {
     slot.min = raw.min;
   }
-  if (typeof raw.max === "number") {
+  if (isNumber(raw.max)) {
     slot.max = raw.max;
   }
   return slot;
@@ -173,7 +174,7 @@ const inferValueType = (value: unknown): TypeMetadata | undefined => {
   }
 
   const tag = (value as Record<string, unknown>).type;
-  if (typeof tag === "string" && tag.length > 0) {
+  if (isString(tag) && tag.length > 0) {
     return { ...ANY_TYPE, type: tag };
   }
   return { ...ANY_TYPE, type: "dict" };

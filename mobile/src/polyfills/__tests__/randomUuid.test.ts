@@ -19,7 +19,7 @@ describe('installRandomUuid', () => {
 
     installRandomUuid();
 
-    expect(typeof host.crypto.randomUUID).toBe('function');
+    expect(host.crypto.randomUUID).toEqual(expect.any(Function));
     // `uuid` is mocked in jest.setup.js, so this asserts the delegation rather
     // than the id format.
     expect(host.crypto.randomUUID?.()).toBe(uuidv4());
@@ -33,7 +33,7 @@ describe('installRandomUuid', () => {
     // Read through a fresh reference: the `delete` above narrows `host.crypto`
     // to undefined, so TS would not admit that the install put it back.
     const patched = (globalThis as CryptoHost).crypto;
-    expect(typeof patched?.randomUUID).toBe('function');
+    expect(patched?.randomUUID).toEqual(expect.any(Function));
   });
 
   it('leaves an existing randomUUID alone', () => {

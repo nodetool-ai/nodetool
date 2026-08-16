@@ -1,3 +1,4 @@
+import { isObjectLike, isString } from "./typePredicates";
 /**
  * Returns the download URL from an asset response object.
  *
@@ -6,7 +7,7 @@
  * typecheck. This helper centralises the cast so callers stay clean.
  */
 export function getAssetUrl(asset: unknown): string | null {
-  if (typeof asset !== "object" || asset === null) return null;
+  if (!isObjectLike(asset)) return null;
   const url = (asset as Record<string, unknown>)["get_url"];
-  return typeof url === "string" ? url : null;
+  return isString(url) ? url : null;
 }

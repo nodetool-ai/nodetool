@@ -28,6 +28,7 @@ import {
   createChatCodeActSession,
   type ChatCodeActSession
 } from "@nodetool-ai/agents";
+import { isNonBlankString } from "./predicates.js";
 
 /** The tool that stays a direct provider tool alongside `execute_code`. */
 const VIEW_IMAGE_TOOL = "view_image";
@@ -57,7 +58,7 @@ class ExecuteCodeTool extends Tool {
 
   override userMessage(params: Record<string, unknown>): string {
     const title = params["title"];
-    return typeof title === "string" && title.trim()
+    return isNonBlankString(title)
       ? title.trim()
       : "Executing code action";
   }

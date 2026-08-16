@@ -35,6 +35,9 @@ import {
 import { logMessage } from "../logger";
 import { getCondaEnvPath } from "../config";
 
+const isString = (value: unknown): value is string =>
+  typeof value === "string";
+
 const mockShell = jest.mocked(shell);
 
 describe("fileExplorer", () => {
@@ -93,7 +96,7 @@ describe("fileExplorer", () => {
 
       // Result depends on whether .ollama exists on the system
       // It should be either a valid path or undefined
-      expect(typeof result === "string" || result === undefined).toBe(true);
+      expect(isString(result) || result === undefined).toBe(true);
     });
   });
 
@@ -161,7 +164,7 @@ describe("fileExplorer", () => {
       const result = await getHuggingFaceCacheDir();
 
       // It might still find the default home directory cache, so just check the type
-      expect(typeof result === "string" || result === undefined).toBe(true);
+      expect(isString(result) || result === undefined).toBe(true);
     });
   });
 

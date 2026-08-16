@@ -14,6 +14,7 @@ import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { isString } from "../../utils/typePredicates";
 
 export type ImageSource = Uint8Array | string;
 
@@ -460,7 +461,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       }
       if (!map.has(img)) {
         const url =
-          typeof img === "string"
+          isString(img)
             ? img
             : URL.createObjectURL(
               new Blob([toArrayBuffer(img)], { type: "image/png" })
@@ -475,7 +476,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       if (!currentSet.has(key)) {
         map.delete(key);
         try {
-          if (typeof key !== "string" && url.startsWith("blob:")) {
+          if (!isString(key) && url.startsWith("blob:")) {
             URL.revokeObjectURL(url);
           }
         } catch {
@@ -491,7 +492,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       if (urlMap && urlMap.size) {
         for (const [key, url] of urlMap.entries()) {
           try {
-            if (typeof key !== "string" && url.startsWith("blob:")) {
+            if (!isString(key) && url.startsWith("blob:")) {
               URL.revokeObjectURL(url);
             }
           } catch {

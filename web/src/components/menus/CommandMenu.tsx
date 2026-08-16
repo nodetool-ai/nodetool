@@ -100,6 +100,12 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 
 // Icons — Nodes & Workflows list
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../utils/typePredicates";
 
 type CommandMenuProps = {
   open: boolean;
@@ -128,9 +134,9 @@ const isSettingsRecord = (value: unknown): value is WorkflowSettings =>
   Object.values(value).every(
     (entry) =>
       entry === null ||
-      typeof entry === "string" ||
-      typeof entry === "number" ||
-      typeof entry === "boolean"
+      isString(entry) ||
+      isNumber(entry) ||
+      isBoolean(entry)
   );
 
 // The file is whatever the user picked, so a field that isn't the shape it
@@ -142,7 +148,7 @@ const readImportedWorkflow = (
   "name" | "description" | "graph" | "tags" | "settings" | "run_mode" | "html_app"
 > => {
   const parsed: unknown = JSON.parse(text);
-  if (typeof parsed !== "object" || parsed === null) {
+  if (!isObjectLike(parsed)) {
     throw new Error("Workflow file must contain a JSON object");
   }
   const source = parsed as Record<string, unknown>;
@@ -154,7 +160,7 @@ const readImportedWorkflow = (
     Array.isArray((graph as WorkflowGraph).edges);
 
   const asString = (value: unknown): string | undefined =>
-    typeof value === "string" ? value : undefined;
+    isString(value) ? value : undefined;
 
   return {
     name: asString(source.name) ?? "",

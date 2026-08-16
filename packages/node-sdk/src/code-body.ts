@@ -6,6 +6,8 @@
  */
 
 /** Statement keywords that should never be wrapped with `return (...)`. */
+import { isRecord } from "./type-predicates.js";
+
 const STATEMENT_KEYWORDS =
   /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
 
@@ -283,11 +285,7 @@ export function wrapImplicitReturn(code: string): string {
  */
 export function normalizeCodeOutput(value: unknown) {
   if (value === null || value === undefined) return {};
-  if (
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    value.constructor?.name === "Object"
-  ) {
+  if (isRecord(value) && value.constructor?.name === "Object") {
     return value as Record<string, unknown>;
   }
   return { output: value };

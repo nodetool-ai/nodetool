@@ -179,7 +179,7 @@ describe('Window Module', () => {
           devTools: true,
         }),
       );
-      expect(typeof ctorArgs.webPreferences.preload).toBe('string');
+      expect(ctorArgs.webPreferences.preload).toEqual(expect.any(String));
       expect(ctorArgs.webPreferences.preload).toMatch(/preload\.js$/);
       
       // Assertions for window configuration

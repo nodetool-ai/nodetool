@@ -2,12 +2,16 @@
  * Renders a `SketchDebugReport` as human-readable Markdown for the bundle.
  */
 import type { SketchDebugIssue, SketchDebugReport } from "./types.js";
+import {
+  isObjectLike,
+  isString
+} from "../predicates.js";
 
 const short = (value: unknown, max = 120): string => {
   if (value === undefined) return "—";
   let s: string;
   try {
-    s = typeof value === "string" ? value : JSON.stringify(value);
+    s = isString(value) ? value : JSON.stringify(value);
   } catch {
     s = String(value);
   }
@@ -50,7 +54,7 @@ interface SnapshotLayer {
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  isObjectLike(value) ? value : null;
 
 /**
  * The snapshot carries the whole layer stack; the markdown wants one line per

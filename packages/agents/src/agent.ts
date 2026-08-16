@@ -72,6 +72,7 @@ import {
   formatMemoryForPrompt,
   type LongTermMemory
 } from "./long-term-memory.js";
+import { isFunction, isString } from "./utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -747,7 +748,7 @@ export class Agent {
     // variable), pause here and present the plan. Rejection with feedback
     // replans; plain rejection ends the run with a rejection notice.
     const requestApproval = this.resolveApprovalCallback(context);
-    if (typeof requestApproval === "function") {
+    if (isFunction(requestApproval)) {
       const approved = yield* this.awaitPlanApproval(
         requestApproval,
         taskPlan,
@@ -878,7 +879,7 @@ export class Agent {
       const wrapAsMarkdown =
         this.outputFormat === "structured" &&
         this.outputSchema?.type === "object" &&
-        typeof compiled === "string";
+        isString(compiled);
       this.results = wrapAsMarkdown ? { markdown: compiled } : compiled;
     } else {
       // Compiler timed out — fall back to the executor's last task result so
@@ -902,7 +903,7 @@ export class Agent {
     const callback =
       this.requestPlanApproval ??
       context.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
-    return typeof callback === "function" ? callback : undefined;
+    return isFunction(callback) ? callback : undefined;
   }
 
   /**
@@ -1336,7 +1337,7 @@ export class Agent {
     const resultText =
       this.results === null || this.results === undefined
         ? ""
-        : typeof this.results === "string"
+        : isString(this.results)
           ? this.results
           : (() => {
               try {

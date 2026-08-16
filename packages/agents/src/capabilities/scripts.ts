@@ -38,6 +38,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
 import {
+  isFunction,
   isNonBlankString,
   isNonEmptyString,
   isNumber,
@@ -1154,9 +1155,9 @@ function resolveDirectorModel(
   params: Record<string, unknown>
 ): DirectorModel | null | ToolError {
   const provider =
-    typeof params["provider"] === "string" ? params["provider"].trim() : "";
+    isString(params["provider"]) ? params["provider"].trim() : "";
   const model =
-    typeof params["model"] === "string" ? params["model"].trim() : "";
+    isString(params["model"]) ? params["model"].trim() : "";
   if (!provider && !model) return null;
   if (!provider || !model) {
     return {
@@ -1210,7 +1211,7 @@ const DIRECTOR_SYSTEM_PROMPT = [
 ].join(" ");
 
 const optionalText = (value: unknown): string | undefined => {
-  const text = typeof value === "string" ? value.trim() : "";
+  const text = isString(value) ? value.trim() : "";
   return text.length > 0 ? text : undefined;
 };
 
@@ -1225,7 +1226,7 @@ function normalizeDirectedShots(
   scaffoldShots: Shot[]
 ): Shot[] | ToolError {
   const shots =
-    raw && typeof raw === "object"
+    isObjectLike(raw)
       ? (raw as { shots?: unknown }).shots
       : undefined;
   if (!Array.isArray(shots)) {
@@ -1244,12 +1245,12 @@ function normalizeDirectedShots(
   const directed = new Map<string, Shot>();
 
   for (const [index, entry] of shots.entries()) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isRecord(entry)) {
       return { error: `shots[${index}] is not an object` };
     }
     const args = entry as Record<string, unknown>;
     const lineIds = args["script_line_ids"];
-    if (!Array.isArray(lineIds) || lineIds.some((id) => typeof id !== "string")) {
+    if (!Array.isArray(lineIds) || lineIds.some((id) => !isString(id))) {
       return { error: `shots[${index}] dropped its \`script_line_ids\`` };
     }
     const scaffold = byKey.get(key(lineIds as string[]));
@@ -1274,7 +1275,7 @@ function normalizeDirectedShots(
     const motion = optionalText(args["motion"]);
     if (motion) shot.motion = motion;
     const camera = args["camera"];
-    if (camera && typeof camera === "object" && !Array.isArray(camera)) {
+    if (isRecord(camera)) {
       shot.camera = camera as Shot["camera"];
     }
     const seconds = Number(args["duration_seconds"]);
@@ -1301,7 +1302,7 @@ async function callDirector(
 ): Promise<unknown> {
   const provider = await context.getProvider(model.provider);
   const call =
-    typeof provider.generateMessageTraced === "function"
+    isFunction(provider.generateMessageTraced)
       ? provider.generateMessageTraced.bind(provider)
       : provider.generateMessage.bind(provider);
   const result = await call({
@@ -1434,7 +1435,7 @@ const deriveStoryboardFromScript: CapabilityExport = {
     // this file stays visible here.
     const models = await import("@nodetool-ai/models");
     const name =
-      typeof params["name"] === "string" && params["name"]
+      isString(params["name"]) && params["name"]
         ? (params["name"] as string)
         : row.name;
     const board = await models.Storyboard.create<Storyboard>({

@@ -37,6 +37,7 @@ import {
   statusColorFor,
   statusVariant,
 } from './JobsScreen';
+import { isNonEmptyString } from '../utils/typePredicates';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JobDetail'>;
 
@@ -80,7 +81,7 @@ const EMPTY_LIVE: LiveState = {
 };
 
 function str(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null;
+  return isNonEmptyString(value) ? value : null;
 }
 
 /**

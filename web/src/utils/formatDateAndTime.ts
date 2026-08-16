@@ -1,3 +1,4 @@
+import { isString } from "./typePredicates";
 const differenceInSeconds = (later: Date, earlier: Date): number =>
   Math.trunc((later.getTime() - earlier.getTime()) / 1000);
 
@@ -91,7 +92,7 @@ function agoLabel(count: number, singular: string, plural: string): string {
 
 export function relativeTime(date: Date | string): string {
   const now = new Date();
-  const past = typeof date === "string" ? new Date(date) : date;
+  const past = isString(date) ? new Date(date) : date;
 
   const seconds = differenceInSeconds(now, past);
   if (seconds < 1) {

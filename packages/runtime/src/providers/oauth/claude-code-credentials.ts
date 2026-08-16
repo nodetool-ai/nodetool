@@ -25,6 +25,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import type { ClaudeCodeTokens } from "./claude-code-oauth-client.js";
+import { isObjectLike, isString } from "../../type-predicates.js";
 
 /** The `claudeAiOauth` entry, field-for-field as the CLI writes it. */
 export interface ClaudeAiOAuthCredentials {
@@ -86,7 +87,7 @@ export class ClaudeCodeCredentialsStore {
   async read(): Promise<ClaudeAiOAuthCredentials | null> {
     const file = await this.readFile();
     const oauth = file?.claudeAiOauth;
-    return oauth && typeof oauth.accessToken === "string" ? oauth : null;
+    return oauth && isString(oauth.accessToken) ? oauth : null;
   }
 
   /**
@@ -143,9 +144,7 @@ export class ClaudeCodeCredentialsStore {
     }
     try {
       const parsed: unknown = JSON.parse(raw);
-      return typeof parsed === "object" && parsed !== null
-        ? (parsed as CredentialsFile)
-        : null;
+      return isObjectLike(parsed) ? (parsed as CredentialsFile) : null;
     } catch {
       this.logger.warn("Claude credential file is not valid JSON", {
         path: this.path

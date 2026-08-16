@@ -18,6 +18,7 @@
  */
 
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import { isString } from "../utils/type-guards.js";
 
 export interface WasmCallRequest {
   readonly module: WebAssembly.Module;
@@ -95,7 +96,7 @@ class ChannelWorker implements WasmCallWorker {
     const pending = this.pending;
     if (pending === undefined) return;
     this.pending = undefined;
-    if (typeof reply.error === "string") {
+    if (isString(reply.error)) {
       pending.reject(new Error(reply.error));
       return;
     }

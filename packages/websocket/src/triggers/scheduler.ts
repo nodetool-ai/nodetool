@@ -22,6 +22,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { TriggerRegistration } from "@nodetool-ai/models";
 import type { TriggerWakeupService } from "@nodetool-ai/kernel";
 import { computeScheduleTiming, SCHEDULE_KIND } from "./schedule-timing.js";
+import { isFunctionValue } from "../lib/wire-values.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.websocket.triggers.scheduler");
@@ -186,7 +187,7 @@ export function startScheduler(opts: StartSchedulerOptions): SchedulerHandle {
       );
     });
   }, intervalMs);
-  if (typeof timer.unref === "function") {
+  if (isFunctionValue(timer.unref)) {
     timer.unref();
   }
   return () => clearInterval(timer);

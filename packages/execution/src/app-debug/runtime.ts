@@ -46,6 +46,7 @@ import {
   type VariableDeclaration
 } from "@nodetool-ai/app-runtime";
 import type { ResourceDetail } from "@nodetool-ai/protocol/api-schemas/resources.js";
+import { isString } from "../predicates.js";
 
 /** What one run returned: its messages plus where its report landed. */
 export interface HeadlessRunResult {
@@ -254,7 +255,7 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
 
   apply(op: HeadlessResourceCommand): ResourceItem | null {
     const args = op.args ?? {};
-    const name = typeof args.name === "string" ? args.name : undefined;
+    const name = isString(args.name) ? args.name : undefined;
     switch (op.command) {
       case "read": {
         const ref = op.ref ?? this.selected();
@@ -263,13 +264,13 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
       case "create":
       case "upload": {
         const seed: SeedResourceItem = {
-          id: typeof args.id === "string" ? args.id : this.nextId(),
+          id: isString(args.id) ? args.id : this.nextId(),
           document: args.document
         };
         if (name !== undefined) {
           seed.name = name;
         }
-        if (typeof args.contentType === "string") {
+        if (isString(args.contentType)) {
           seed.contentType = args.contentType;
         }
         const item = this.toItem(seed);

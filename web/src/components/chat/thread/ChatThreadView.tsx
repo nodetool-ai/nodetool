@@ -46,6 +46,11 @@ import {
   getThreadRuntime
 } from "../../../core/chat/threadRuntime";
 import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 interface ChatThreadViewProps {
   /** Conversation rendered by this ChatView instance. */
@@ -103,7 +108,7 @@ function formatElapsed(seconds: number): string {
 /** Jump an element to its bottom. Guards `scrollTo` (absent in jsdom). */
 function scrollElementToBottom(el: HTMLElement | null): void {
   if (!el) return;
-  if (typeof el.scrollTo === "function") {
+  if (isFunction(el.scrollTo)) {
     el.scrollTo({ top: el.scrollHeight });
   } else {
     el.scrollTop = el.scrollHeight;
@@ -472,14 +477,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         !!m.execution_event_type || m.role === "agent_execution";
 
       let hasContent = false;
-      if (typeof m.content === "string") {
+      if (isString(m.content)) {
         hasContent = m.content.trim().length > 0;
       } else if (Array.isArray(m.content)) {
         hasContent = m.content.some((block) => {
-          if (!block || typeof block !== "object") return false;
+          if (!block || !isObjectLike(block)) return false;
           if (block.type === "text") {
             return (
-              typeof block.text === "string" && block.text.trim().length > 0
+              isString(block.text) && block.text.trim().length > 0
             );
           }
           if (block.type === "image_url") return true;

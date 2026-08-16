@@ -70,6 +70,10 @@ import { getAssetAdapter } from "./lib/storage.js";
 import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
+import {
+  isRecord,
+  isString
+} from "./lib/wire-values.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 
@@ -204,7 +208,7 @@ function jsonSchemaPropToZod(prop: Record<string, unknown>): z.ZodTypeAny {
       const values = prop["enum"];
       if (
         Array.isArray(values) &&
-        values.every((v) => typeof v === "string") &&
+        values.every((v) => isString(v)) &&
         values.length > 0
       ) {
         return z.enum(values as [string, ...string[]]);
@@ -240,7 +244,7 @@ function jsonSchemaToZodShape(schema: JsonSchema | undefined): z.ZodRawShape {
   );
   for (const [key, prop] of Object.entries(properties)) {
     let zt = jsonSchemaPropToZod(prop);
-    if (typeof prop["description"] === "string") {
+    if (isString(prop["description"])) {
       zt = zt.describe(prop["description"]);
     }
     if ("default" in prop) {
@@ -256,15 +260,14 @@ function jsonSchemaToZodShape(schema: JsonSchema | undefined): z.ZodRawShape {
 // ── MCP response helpers ────────────────────────────────────────────
 
 function isErrorResult(result: unknown): boolean {
-  if (!result || typeof result !== "object" || Array.isArray(result))
-    return false;
+  if (!isRecord(result)) return false;
   const r = result as Record<string, unknown>;
   return Boolean(r["error"]) || r["success"] === false;
 }
 
 function toToolResponse(result: unknown) {
   const isObject =
-    result !== null && typeof result === "object" && !Array.isArray(result);
+    isRecord(result);
   const isError = isErrorResult(result);
   const base = {
     content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }]
@@ -379,10 +382,6 @@ const RENDERER_ID_PROPERTY = {
     "most-recently-active one. List ids with list_renderers()."
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 function recordValue(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
@@ -401,7 +400,7 @@ async function executeFrontendTool(
   const { renderer_id, ...toolArgs } = args;
   return registry.execute({
     userId,
-    rendererId: typeof renderer_id === "string" ? renderer_id : undefined,
+    rendererId: isString(renderer_id) ? renderer_id : undefined,
     toolName: name,
     args: toolArgs
   });
@@ -442,7 +441,7 @@ class FrontendUiTool extends Tool {
     if (!outcome.handled) {
       const rendererId = params["renderer_id"];
       throw new Error(
-        typeof rendererId === "string"
+        isString(rendererId)
           ? `No connected NodeTool renderer with id "${rendererId}".`
           : `${this.name} needs a connected NodeTool editor; none is open.`
       );
@@ -681,7 +680,7 @@ export function registerAgentMcpTools(
       if (live.handled) return live.result;
 
       const rendererId = args["renderer_id"];
-      if (typeof rendererId === "string") {
+      if (isString(rendererId)) {
         throw new Error(
           `No connected NodeTool renderer with id "${rendererId}".`
         );

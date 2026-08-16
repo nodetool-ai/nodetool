@@ -8,6 +8,7 @@
 
 import type { Message } from "./providers/types.js";
 import { countTokens, truncateToTokens } from "./token-counter.js";
+import { isString } from "./type-predicates.js";
 
 /** Fixed token overhead for non-text content blocks (images, audio). */
 const NON_TEXT_BLOCK_TOKENS = 25;
@@ -16,7 +17,7 @@ function estimateMessageTokens(msg: Message): number {
   let tokens = 0;
   if (msg.content === null || msg.content === undefined) {
     tokens = 1;
-  } else if (typeof msg.content === "string") {
+  } else if (isString(msg.content)) {
     tokens = countTokens(msg.content);
   } else {
     for (const part of msg.content) {

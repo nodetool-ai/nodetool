@@ -1,4 +1,5 @@
 import { BASE_URL } from "../stores/BASE_URL";
+import { isNumber } from "./typePredicates";
 
 /** fal.ai dashboard to create Admin API keys (billing endpoint requires admin scope). */
 export const FAL_DASHBOARD_KEYS_URL = "https://fal.ai/dashboard/keys";
@@ -27,7 +28,7 @@ export function formatCredits(data: FalCredits): string {
   if (bal == null) {
     return "N/A";
   }
-  if (typeof bal === "number") {
+  if (isNumber(bal)) {
     return `$${bal.toFixed(2)}`;
   }
   if (typeof bal === "object") {

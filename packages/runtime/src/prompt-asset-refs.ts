@@ -24,6 +24,7 @@
 import type { ProcessingContext } from "./context.js";
 import type { MessageContent } from "./providers/types.js";
 import { encodeBase64, loadMediaRefBytes } from "./media-ref-bytes.js";
+import { isCallable, isObjectLike, isString } from "./type-predicates.js";
 
 export type AssetMediaKind = "image" | "audio" | "video";
 
@@ -182,14 +183,14 @@ function extForRef(ref: {
   content_type?: unknown;
 }): string | null {
   const mime =
-    typeof ref.mimeType === "string"
+    isString(ref.mimeType)
       ? ref.mimeType
-      : typeof ref.content_type === "string"
+      : isString(ref.content_type)
         ? ref.content_type
         : "";
   const byMime = mime ? extForMime(mime) : null;
   if (byMime) return byMime;
-  const kind = typeof ref.type === "string" ? ref.type.toLowerCase() : "";
+  const kind = isString(ref.type) ? ref.type.toLowerCase() : "";
   return Object.hasOwn(DEFAULT_EXT_BY_KIND, kind)
     ? DEFAULT_EXT_BY_KIND[kind]
     : null;
@@ -212,7 +213,7 @@ function extForRef(ref: {
  * verbatim — it won't route as media, but it still beats `"[object Object]"`.
  */
 export function assetRefToPromptToken(value: unknown): string | null {
-  if (!value || typeof value !== "object") return null;
+  if (!isObjectLike(value)) return null;
   const ref = value as {
     type?: unknown;
     uri?: unknown;
@@ -220,8 +221,8 @@ export function assetRefToPromptToken(value: unknown): string | null {
     mimeType?: unknown;
     content_type?: unknown;
   };
-  const uri = typeof ref.uri === "string" ? ref.uri.trim() : "";
-  const assetId = typeof ref.asset_id === "string" ? ref.asset_id.trim() : "";
+  const uri = isString(ref.uri) ? ref.uri.trim() : "";
+  const assetId = isString(ref.asset_id) ? ref.asset_id.trim() : "";
 
   if (uri.startsWith("asset://")) {
     // Drop any query/hash; keep the id (and any existing extension) intact.
@@ -587,12 +588,12 @@ function readEntityMarker(
   metadata: Record<string, unknown> | null
 ): EntityMarkerLike | null {
   const raw = metadata?.["nodetool_entity"];
-  if (!raw || typeof raw !== "object") return null;
+  if (!isObjectLike(raw)) return null;
   const obj = raw as Record<string, unknown>;
-  const name = typeof obj.name === "string" ? obj.name.trim() : "";
+  const name = isString(obj.name) ? obj.name.trim() : "";
   if (!name) return null;
   const descriptor =
-    typeof obj.descriptor === "string" ? obj.descriptor.trim() : "";
+    isString(obj.descriptor) ? obj.descriptor.trim() : "";
   return { name, descriptor };
 }
 
@@ -641,7 +642,7 @@ export async function expandEntityRefs(
   for (const token of tokens) {
     if (resolved.has(token.id)) continue;
     const info =
-      typeof context?.getAssetInfo === "function"
+      isCallable(context?.getAssetInfo)
         ? await context.getAssetInfo(token.id)
         : null;
     const marker = info ? readEntityMarker(info.metadata) : null;

@@ -69,22 +69,22 @@ describe("useEditorSession", () => {
 
     // Narrow state
     expect(s.document).toBeDefined();
-    expect(typeof s.activeTool).toBe("string");
-    expect(typeof s.interactionTool).toBe("string");
+    expect(s.activeTool).toEqual(expect.any(String));
+    expect(s.interactionTool).toEqual(expect.any(String));
 
     // Composed actions
-    expect(typeof s.handleUndo).toBe("function");
-    expect(typeof s.handleRedo).toBe("function");
+    expect(s.handleUndo).toEqual(expect.any(Function));
+    expect(s.handleRedo).toEqual(expect.any(Function));
     expect(s.layerActions).toBeDefined();
     expect(s.canvasActions).toBeDefined();
     expect(s.colorActions).toBeDefined();
     expect(s.segmentation).toBeDefined();
 
     // Lifecycle
-    expect(typeof s.canvasReady).toBe("boolean");
+    expect(s.canvasReady).toEqual(expect.any(Boolean));
     expect(s.initialDocumentRef).toBeDefined();
-    expect(typeof s.canvasResizeHandlesEnabled).toBe("boolean");
-    expect(typeof s.handleCanvasResizeHandlesEnabledChange).toBe("function");
+    expect(s.canvasResizeHandlesEnabled).toEqual(expect.any(Boolean));
+    expect(s.handleCanvasResizeHandlesEnabledChange).toEqual(expect.any(Function));
   });
 
   it("derives interactionTool as 'move' when transientMoveModifierHeld is true and activeTool is not 'move'", () => {
@@ -233,9 +233,9 @@ describe("useTransformAdapter", () => {
       scaleY: 1,
       rotation: 0
     });
-    expect(typeof result.current.actions.onCommit).toBe("function");
-    expect(typeof result.current.actions.onCancel).toBe("function");
-    expect(typeof result.current.actions.onReset).toBe("function");
+    expect(result.current.actions.onCommit).toEqual(expect.any(Function));
+    expect(result.current.actions.onCancel).toEqual(expect.any(Function));
+    expect(result.current.actions.onReset).toEqual(expect.any(Function));
   });
 
   it("display state reflects preview transform when active", () => {

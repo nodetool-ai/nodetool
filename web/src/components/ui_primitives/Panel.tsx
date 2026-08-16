@@ -9,6 +9,7 @@ import React, { useCallback, useRef } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { snapSpacing } from "./spacing";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface PanelProps extends BoxProps {
   /** Panel title */
@@ -105,7 +106,7 @@ export const Panel: React.FC<PanelProps> = ({
   }
   const contentId = idRef.current;
 
-  const paddingValue = typeof padding === "number"
+  const paddingValue = isNumber(padding)
     ? padding
     : PADDING_VARIANTS[padding];
 

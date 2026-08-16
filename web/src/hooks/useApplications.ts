@@ -16,6 +16,7 @@ import {
 
 import { trpc } from "../trpc/client";
 import { fetchWorkflowById, workflowQueryKey } from "../serverState/useWorkflow";
+import { isObjectLike } from "../utils/typePredicates";
 
 const LIST_STALE_TIME = 30_000;
 const WORKFLOW_STALE_TIME = 60_000;
@@ -26,13 +27,12 @@ const WORKFLOW_STALE_TIME = 60_000;
  * CONFLICT; callers must tell the user their edit was not saved.
  */
 export const isConcurrencyConflict = (error: unknown): boolean => {
-  if (typeof error !== "object" || error === null || !("data" in error)) {
+  if (!isObjectLike(error) || !("data" in error)) {
     return false;
   }
   const { data } = error;
   return (
-    typeof data === "object" &&
-    data !== null &&
+    isObjectLike(data) &&
     "code" in data &&
     data.code === "CONFLICT"
   );

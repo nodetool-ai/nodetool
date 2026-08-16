@@ -22,6 +22,7 @@ import type {
   CostConfidence
 } from "@nodetool-ai/protocol";
 import type { UnitPricing } from "./pricing-bundle.js";
+import { isFiniteNumber, isObjectLike, isString } from "./type-predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -159,9 +160,7 @@ export interface CostEstimateInput {
 const DEFAULT_CURRENCY = "USD";
 
 function positiveQuantity(value: number | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : 1;
+  return isFiniteNumber(value) && value > 0 ? value : 1;
 }
 
 function confidenceFromSource(
@@ -205,13 +204,13 @@ function selectedModel(
       continue;
     }
     const value = data[name];
-    if (value && typeof value === "object") {
+    if (isObjectLike(value)) {
       const id = (value as { id?: unknown }).id;
-      if (typeof id === "string" && id.trim() !== "") {
+      if (isString(id) && id.trim() !== "") {
         const provider = (value as { provider?: unknown }).provider;
         return {
           id,
-          provider: typeof provider === "string" ? provider : null
+          provider: isString(provider) ? provider : null
         };
       }
     }
@@ -251,7 +250,7 @@ function resolvePrice(
     // fixed USD value, so folding it in would corrupt the sum — without
     // usd_price the node is reported but stays "unknown" (cost 0).
     const usd = kie.usd_price;
-    if (typeof usd === "number" && Number.isFinite(usd)) {
+    if (isFiniteNumber(usd)) {
       return {
         provider: "kie",
         model: kie.model_id ?? null,

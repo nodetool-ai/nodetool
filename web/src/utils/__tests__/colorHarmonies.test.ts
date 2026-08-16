@@ -112,9 +112,9 @@ describe("colorHarmonies", () => {
 
     it("each entry has type, name, and description", () => {
       for (const info of getHarmonyInfo()) {
-        expect(typeof info.type).toBe("string");
-        expect(typeof info.name).toBe("string");
-        expect(typeof info.description).toBe("string");
+        expect(info.type).toEqual(expect.any(String));
+        expect(info.name).toEqual(expect.any(String));
+        expect(info.description).toEqual(expect.any(String));
         expect(info.name.length).toBeGreaterThan(0);
         expect(info.description.length).toBeGreaterThan(0);
       }

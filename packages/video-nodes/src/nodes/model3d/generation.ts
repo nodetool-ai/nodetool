@@ -13,6 +13,7 @@ import {
 } from "./defaults.js";
 import { glbOutput } from "./base.js";
 import { imageRefToBytes } from "./utils.js";
+import { isFiniteNumber, isNonEmptyString } from "../../type-predicates.js";
 
 const SUPPORTED_OUTPUT_FORMATS = ["glb", "obj", "fbx", "usdz"] as const;
 
@@ -43,13 +44,13 @@ function nodeModelToProviderModel(raw: unknown): Model3D {
 
 /** Treat 0 (the field's "use provider default" sentinel) as undefined. */
 function normalizeTimeoutSeconds(v: unknown): number | null {
-  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+  if (!isFiniteNumber(v) || v <= 0) return null;
   return v;
 }
 
 /** -1 is the random-seed sentinel; convert to null so providers omit it. */
 function normalizeSeed(v: unknown): number | null {
-  if (typeof v !== "number" || !Number.isFinite(v) || v < 0) return null;
+  if (!isFiniteNumber(v) || v < 0) return null;
   return v;
 }
 
@@ -124,7 +125,7 @@ export class TextTo3DNode extends BaseNode {
         "TextTo3DNode requires a ProcessingContext to resolve the provider"
       );
     }
-    if (!this.prompt || typeof this.prompt !== "string") {
+    if (!isNonEmptyString(this.prompt)) {
       throw new Error("Prompt is required");
     }
     const model = nodeModelToProviderModel(this.model);

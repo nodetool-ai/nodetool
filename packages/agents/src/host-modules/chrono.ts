@@ -6,6 +6,11 @@
  */
 
 import { requireText, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 interface ChronoHit {
   text: string;
@@ -31,12 +36,12 @@ async function loadChrono(where: string): Promise<ChronoLike> {
     mod,
     where,
     "chrono-node",
-    (v) => typeof (v as ChronoLike | undefined)?.parseDate === "function"
+    (v) => isFunction((v as ChronoLike | undefined)?.parseDate)
   );
 }
 
 function refDate(value: unknown): Date | undefined {
-  if (typeof value === "string" || typeof value === "number") {
+  if (isString(value) || isNumber(value)) {
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
   }

@@ -58,6 +58,7 @@ import {
 } from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
 import type { ResolvedSandboxLimits } from "../js-sandbox.js";
+import { isFunction, isObjectLike } from "../utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // Engine types
@@ -847,7 +848,7 @@ export async function runInterpreter(
       // killing the process, but the run still fails.
       for (const [name, value] of Object.entries(globals)) {
         bridges[name] =
-          typeof value === "function"
+          isFunction(value)
             ? wrap(value as (...a: unknown[]) => Promise<unknown>)
             : value;
       }
@@ -1239,7 +1240,7 @@ export default true;`,
           )
           .join(", ")}};`;
         const syncResp = await evalCode(extractor, "sandbox-sync");
-        if (syncResp.ok && syncResp.data && typeof syncResp.data === "object") {
+        if (syncResp.ok && isObjectLike(syncResp.data)) {
           syncedGlobals = syncResp.data as Record<string, unknown>;
         }
       }

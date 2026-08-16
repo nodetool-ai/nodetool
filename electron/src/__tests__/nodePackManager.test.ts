@@ -1,6 +1,9 @@
 import { EventEmitter } from "events";
 import * as config from "../config";
 
+const isString = (value: unknown): value is string =>
+  typeof value === "string";
+
 jest.mock("child_process", () => ({
   spawn: jest.fn(),
   spawnSync: jest.fn()
@@ -109,7 +112,7 @@ function stubInstalledPackage(options: {
 /** A package.json for a `node_modules` listing, without the lockfile plumbing. */
 function stubListedPackage(dir: string, contents: unknown): void {
   files[`${ROOT}/node_modules/${dir}/package.json`] =
-    typeof contents === "string" ? contents : JSON.stringify(contents);
+    isString(contents) ? contents : JSON.stringify(contents);
 }
 
 describe("nodePackManager", () => {

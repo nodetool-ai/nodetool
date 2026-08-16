@@ -22,6 +22,13 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { composeShotPrompt } from "./director.js";
+import {
+  isCallable,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
 
 const execFile = promisify(execFileCb);
 
@@ -49,7 +56,7 @@ const DEFAULT_VIDEO_MODEL: VideoModelRef = {
 // ---------------------------------------------------------------------------
 
 function str(value: unknown): string {
-  return typeof value === "string" ? value : "";
+  return isString(value) ? value : "";
 }
 
 function optionalStr(value: unknown): string | undefined {
@@ -58,12 +65,12 @@ function optionalStr(value: unknown): string | undefined {
 }
 
 function optionalNumber(value: unknown): number | undefined {
-  const n = typeof value === "number" ? value : Number(value);
+  const n = isNumber(value) ? value : Number(value);
   return Number.isFinite(n) ? n : undefined;
 }
 
 function asImageRef(value: unknown): ImageRef | null {
-  return value && typeof value === "object" ? (value as ImageRef) : null;
+  return isObjectLike(value) ? (value as ImageRef) : null;
 }
 
 /** A generation-ready spec for one shot, produced by {@link toShotSpecs}. */
@@ -83,8 +90,7 @@ export interface ShotSpecOptions {
 
 /** Coerce a screenplay-shaped value (typed or plain dict) to a {@link Shot}. */
 function coerceShot(raw: unknown, index: number): Shot {
-  const obj =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const obj = isObjectLike(raw) ? (raw as Record<string, unknown>) : {};
   const shot: Shot = {
     type: "shot",
     id: str(obj.id) || `shot-${index}`,
@@ -92,7 +98,7 @@ function coerceShot(raw: unknown, index: number): Shot {
     action: str(obj.action),
     status: "planned"
   };
-  if (obj.camera && typeof obj.camera === "object") {
+  if (isObjectLike(obj.camera)) {
     shot.camera = obj.camera;
   }
   const motion = optionalStr(obj.motion);
@@ -112,10 +118,7 @@ function coerceShot(raw: unknown, index: number): Shot {
  */
 function coerceScreenplay(raw: unknown): Screenplay {
   if (isScreenplay(raw)) return raw;
-  const obj =
-    raw && typeof raw === "object" && !Array.isArray(raw)
-      ? (raw as Record<string, unknown>)
-      : {};
+  const obj = isRecord(raw) ? (raw as Record<string, unknown>) : {};
   const rawShots = Array.isArray(obj.shots) ? obj.shots : [];
   const screenplay: Screenplay = {
     type: "screenplay",
@@ -351,7 +354,7 @@ export class ShotChainNode extends BaseNode {
     const modelId = str(chosen?.id);
     if (
       !context ||
-      typeof context.runProviderPrediction !== "function" ||
+      !isCallable(context.runProviderPrediction) ||
       !providerId ||
       !modelId
     ) {
@@ -439,8 +442,7 @@ export class ShotChainNode extends BaseNode {
 
 /** Coerce a raw list[dict] item into a {@link ShotSpec}. */
 function coerceSpec(raw: unknown, index: number): ShotSpec {
-  const obj =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const obj = isObjectLike(raw) ? (raw as Record<string, unknown>) : {};
   return {
     index: optionalNumber(obj.index) ?? index,
     prompt: str(obj.prompt),

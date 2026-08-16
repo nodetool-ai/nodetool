@@ -62,6 +62,7 @@ import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
 import CodeAssistantDialog from "./code_assistant/CodeAssistantDialog";
 import CodeNodeScriptLink from "./CodeNodeScriptLink";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 export interface CodeBodyProps {
   id: string;
@@ -75,10 +76,9 @@ export interface CodeBodyProps {
 
 /** True when the node's `script` property pins a linked script version. */
 const readsScriptLink = (value: unknown): boolean =>
-  value !== null &&
-  typeof value === "object" &&
+  isObjectLike(value) &&
   !Array.isArray(value) &&
-  typeof (value as { id?: unknown }).id === "string" &&
+  isString((value as { id?: unknown }).id) &&
   (value as { id: string }).id !== "";
 
 const EDITOR_OPTIONS = {
@@ -199,7 +199,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
   }, [nodeMetadata.inline_fields, properties]);
 
   const storeCode =
-    typeof data.properties?.code === "string"
+    isString(data.properties?.code)
       ? data.properties.code
       : "";
 

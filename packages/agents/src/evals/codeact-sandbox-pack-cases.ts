@@ -27,6 +27,7 @@ import {
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 import type { CodeActEvalCase } from "./codeact-cases.js";
+import { isObjectLike } from "../utils/type-guards.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PACKS_ROOT = join(here, "..", "..", "..", "sandbox-packs");
@@ -106,8 +107,7 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
       // 120.00 + 240.25 + 45.25. Wrong parsing gives a different sum, and the
       // whole-file total (745.50) is the tell that the filter was skipped.
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         Math.abs(Number((r as { total?: unknown }).total) - 405.5) < 0.001,
       resultCheckLabel: "total=405.50 (EMEA only)",
       maxActions: 4
@@ -137,8 +137,7 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
       // guesses usually answers "@" or "$".
       requiredSessionTools: [SANDBOX_PACK_DOCS_TOOL],
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         String((r as { prefix?: unknown }).prefix).trim() === "@_",
       resultCheckLabel: 'prefix="@_"',
       maxActions: 4
@@ -171,7 +170,7 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
       requiredSessionTools: [SANDBOX_PACK_LIST_TOOL],
       resultCheck: (r) => {
         const installed =
-          typeof r === "object" && r !== null
+          isObjectLike(r)
             ? (r as { installed?: unknown }).installed
             : undefined;
         return (
@@ -212,8 +211,7 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
     },
     expect: {
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         (r as { available?: unknown }).available === false,
       resultCheckLabel: "available=false",
       maxActions: 5
@@ -237,8 +235,7 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
     outputSchema: TOTAL_SCHEMA,
     expect: {
       resultCheck: (r) =>
-        typeof r === "object" &&
-        r !== null &&
+        isObjectLike(r) &&
         Number((r as { total?: unknown }).total) === 6,
       resultCheckLabel: "total=6 rows",
       maxActions: 5

@@ -10,8 +10,8 @@ describe("useNumberInput", () => {
 
       expect(result.current.calculateStep).toBeDefined();
       expect(result.current.calculateDecimalPlaces).toBeDefined();
-      expect(typeof result.current.calculateStep).toBe("function");
-      expect(typeof result.current.calculateDecimalPlaces).toBe("function");
+      expect(result.current.calculateStep).toEqual(expect.any(Function));
+      expect(result.current.calculateDecimalPlaces).toEqual(expect.any(Function));
     });
 
     it("returns stable callbacks", () => {
@@ -97,8 +97,8 @@ describe("useNumberInput", () => {
 
       expect(result.current.handleMouseMove).toBeDefined();
       expect(result.current.handleMouseUp).toBeDefined();
-      expect(typeof result.current.handleMouseMove).toBe("function");
-      expect(typeof result.current.handleMouseUp).toBe("function");
+      expect(result.current.handleMouseMove).toEqual(expect.any(Function));
+      expect(result.current.handleMouseUp).toEqual(expect.any(Function));
     });
 
     it("does not drag when isDragging is false", () => {

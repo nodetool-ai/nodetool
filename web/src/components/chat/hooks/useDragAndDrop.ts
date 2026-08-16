@@ -9,6 +9,7 @@ import {
   resolveAssetsMultiple
 } from "../../../lib/dragdrop";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import { isString } from "../../../utils/typePredicates";
 
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -115,7 +116,7 @@ export const useDragAndDrop = (
                   typeof parsed === "object" &&
                   parsed !== null &&
                   "id" in parsed &&
-                  typeof parsed.id === "string"
+                  isString(parsed.id)
                 ) {
                   droppedFiles.push(assetToDroppedFile(parsed as Asset));
                 }

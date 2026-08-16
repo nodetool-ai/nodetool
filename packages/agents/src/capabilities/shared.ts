@@ -33,6 +33,7 @@ import {
   readSharedSpec,
   shareResultSpec
 } from "./shared.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 /** Maximum bytes of `description` returned per entry from list_shared. */
 const MAX_DESCRIPTION_CHARS = 240;
@@ -68,7 +69,7 @@ interface MemoryListEntry {
 
 function describeEntry(entry: MemoryEntry): MemoryListEntry {
   const serialized =
-    typeof entry.value === "string"
+    isString(entry.value)
       ? entry.value
       : (() => {
           try {
@@ -102,7 +103,7 @@ const listShared: CapabilityExport = {
       ? (params.kind as MemoryKind[])
       : undefined;
     const keyPrefix =
-      typeof params.key_prefix === "string"
+      isString(params.key_prefix)
         ? params.key_prefix
         : undefined;
     const sources = Array.isArray(params.sources)
@@ -172,9 +173,9 @@ const shareResult: CapabilityExport = {
       key: fullKey,
       kind: "shared",
       value: params.value,
-      title: typeof params.title === "string" ? params.title : suffix,
+      title: isString(params.title) ? params.title : suffix,
       description:
-        typeof params.description === "string" ? params.description : undefined,
+        isString(params.description) ? params.description : undefined,
       source: "share_result"
     });
     return {

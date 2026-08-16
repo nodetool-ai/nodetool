@@ -2,6 +2,12 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
+import {
+  isFunction,
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../type-predicates.js";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 // PreviewNode lives in its own browser-safe module so it can be registered in
 // the in-browser node registry (this file pulls in `audio-wav` → not browser-
@@ -80,7 +86,7 @@ async function persistMediaAsAsset(
   context: ProcessingContext,
   nodeId: string | null
 ): Promise<unknown> {
-  if (typeof context.createAsset !== "function") return value;
+  if (!isFunction(context.createAsset)) return value;
   if (
     (
       context
@@ -88,16 +94,16 @@ async function persistMediaAsAsset(
   ) {
     return value;
   }
-  if (!value || typeof value !== "object") return value;
+  if (!isObjectLike(value)) return value;
   const ref = value as Record<string, unknown>;
-  const kind = typeof ref.type === "string" ? ref.type : "";
+  const kind = isString(ref.type) ? ref.type : "";
   if (!(kind in MEDIA_EXTENSIONS)) return value;
-  if (typeof ref.asset_id === "string" && ref.asset_id) return value;
+  if (isNonEmptyString(ref.asset_id)) return value;
 
   const bytes = await audioBytesAsync(ref, context);
   if (bytes.length === 0) return value;
 
-  const uri = typeof ref.uri === "string" ? ref.uri : undefined;
+  const uri = isString(ref.uri) ? ref.uri : undefined;
   const contentType = inferMediaContentType(kind, bytes, uri);
   const ext = extensionFor(contentType, MEDIA_EXTENSIONS[kind]!);
   const name = `${kind}-${Date.now()}${ext}`;
@@ -109,7 +115,7 @@ async function persistMediaAsAsset(
     nodeId
   })) as Record<string, unknown> | null;
   const assetId =
-    asset && typeof asset.id === "string" ? asset.id : null;
+    asset && isString(asset.id) ? asset.id : null;
   if (!assetId) return value;
 
   return {
@@ -163,8 +169,7 @@ export class OutputNode extends BaseNode {
     value: unknown,
     context?: ProcessingContext
   ): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function")
-      return value;
+    if (!context || !isFunction(context.normalizeOutputValue)) return value;
     return context.normalizeOutputValue(value);
   }
 

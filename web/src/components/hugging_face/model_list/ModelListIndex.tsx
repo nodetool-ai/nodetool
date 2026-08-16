@@ -32,6 +32,7 @@ import {
   canCheckHfCache,
   getHfCacheKey
 } from "../../../utils/hfCache";
+import { isString } from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -430,7 +431,7 @@ const ModelListIndex: React.FC = () => {
     }
     const err = error as ApiErrorShape;
     const errorMessage =
-      typeof err?.detail === "string"
+      isString(err?.detail)
         ? err.detail
         : (err?.detail as Array<{ msg: string }>)?.[0]?.msg || err?.message || "Unknown error";
 

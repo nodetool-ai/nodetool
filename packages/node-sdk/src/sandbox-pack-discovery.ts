@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { parse } from "acorn";
+import { isString } from "./type-predicates.js";
 import {
   generateSandboxHostFacade,
   generateSandboxWasmFacade,
@@ -164,8 +165,7 @@ export function discoverSandboxPack(
     return undefined;
 
   const packageJson = readJson(packageJsonPath);
-  const packageName =
-    typeof packageJson.name === "string" ? packageJson.name : undefined;
+  const packageName = isString(packageJson.name) ? packageJson.name : undefined;
   const nodetool = isRecord(packageJson.nodetool)
     ? packageJson.nodetool
     : undefined;
@@ -399,8 +399,9 @@ export function discoverSandboxPack(
   }
   assertAcyclic(dependenciesById, packageName);
 
-  const version =
-    typeof packageJson.version === "string" ? packageJson.version : undefined;
+  const version = isString(packageJson.version)
+    ? packageJson.version
+    : undefined;
   const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(
     ({ declaration, ...module }) => {
       const artifact = npmArtifacts.get(module.id);
@@ -875,7 +876,7 @@ function inspectJavaScript(
     )
       return;
     const value = node.source?.value;
-    if (typeof value !== "string") return;
+    if (!isString(value)) return;
     if (!value.startsWith("."))
       throw new SandboxPackDiscoveryError(
         `${packageName}/${moduleId}: import outside the pack: ${value}`
@@ -959,8 +960,8 @@ function validateWasmModule(
       );
   }
   const exports = manifest.exports.map((exported) => {
-    const wasmName = typeof exported === "string" ? exported : exported.wasm;
-    const alias = typeof exported === "string" ? exported : exported.as;
+    const wasmName = isString(exported) ? exported : exported.wasm;
+    const alias = isString(exported) ? exported : exported.as;
     // The manifest schema already holds this, but discovery is its own
     // enforcement point: a binary export that is not an identifier must be
     // renamed with `{ "wasm": …, "as": … }`, and the alias must be one.
@@ -998,7 +999,7 @@ function walkAst(value: unknown, visit: (node: AstNode) => void): void {
     return;
   }
   if (!isRecord(value)) return;
-  if (typeof value.type === "string") visit(value as AstNode);
+  if (isString(value.type)) visit(value as AstNode);
   for (const child of Object.values(value)) walkAst(child, visit);
 }
 
@@ -1168,8 +1169,8 @@ function compareExportNames(
   left: string | { wasm: string; as: string },
   right: string | { wasm: string; as: string }
 ): number {
-  const leftName = typeof left === "string" ? left : left.wasm;
-  const rightName = typeof right === "string" ? right : right.wasm;
+  const leftName = isString(left) ? left : left.wasm;
+  const rightName = isString(right) ? right : right.wasm;
   return compareStrings(leftName, rightName);
 }
 function compareById<T extends { id: string }>(left: T, right: T): number {

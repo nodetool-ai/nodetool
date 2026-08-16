@@ -11,6 +11,7 @@
  */
 
 import { PorterStemmer } from "./porter-stemmer.js";
+import { isString } from "../../type-predicates.js";
 
 export interface Classification {
   label: string;
@@ -117,15 +118,15 @@ export class BayesClassifier {
   }
 
   addDocument(text: string | string[], classification: string): void {
-    if (typeof classification === "undefined") {
+    if (classification === undefined) {
       return;
     }
-    if (typeof classification === "string") {
+    if (isString(classification)) {
       classification = classification.trim();
     }
 
     let tokens: string[];
-    if (typeof text === "string") {
+    if (isString(text)) {
       tokens = this.stemmer.tokenizeAndStem(text, this.keepStops);
     } else {
       tokens = text;
@@ -147,7 +148,7 @@ export class BayesClassifier {
     const features: number[] = [];
 
     let tokens: string[];
-    if (typeof observation === "string") {
+    if (isString(observation)) {
       tokens = this.stemmer.tokenizeAndStem(observation, this.keepStops);
     } else {
       tokens = observation;

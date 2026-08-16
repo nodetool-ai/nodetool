@@ -44,6 +44,7 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { MOTION } from "./tokens";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 export interface CircularActionButtonProps {
   /**
@@ -189,14 +190,14 @@ const getThemeColor = (theme: Theme, colorKey: string): string => {
   if (parts.length === 2 && parts[0] in palette) {
     const [category, variant] = parts;
     const categoryPalette = palette[category];
-    if (categoryPalette && typeof categoryPalette === "object" && variant in (categoryPalette as Record<string, unknown>)) {
+    if (categoryPalette && isObjectLike(categoryPalette) && variant in (categoryPalette as Record<string, unknown>)) {
       const value = (categoryPalette as Record<string, string>)[variant];
       return value || colorKey;
     }
   }
   if (colorKey in palette) {
     const colorEntry = palette[colorKey];
-    if (colorEntry && typeof colorEntry === "object" && "main" in colorEntry) {
+    if (colorEntry && isObjectLike(colorEntry) && "main" in colorEntry) {
       return (colorEntry as { main: string }).main || colorKey;
     }
   }
@@ -301,7 +302,7 @@ export const CircularActionButton = memo(
         icon
       );
 
-      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : undefined);
+      const label = ariaLabel || (isString(tooltip) ? tooltip : undefined);
 
       const button = (
         <IconButton

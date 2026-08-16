@@ -21,6 +21,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
 import { assetIdFromLocator } from "../utils/mediaRef";
 import { resolveStaticMediaUri } from "../utils/resolveMediaUri";
+import { isString } from "../utils/typePredicates";
 
 /** Anything carrying a media locator: a bare URI or a `*Ref` with `asset_id`. */
 export type MediaLocator =
@@ -32,7 +33,7 @@ export type MediaLocator =
 const locatorParts = (
   source: MediaLocator
 ) => {
-  if (typeof source === "string") {
+  if (isString(source)) {
     return { uri: source || undefined, assetId: assetIdFromLocator(source) };
   }
   if (!source) {

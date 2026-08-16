@@ -36,6 +36,7 @@ import {
   type DiagnoseJob,
   type TraceSpanLite
 } from "../diagnose.js";
+import { isString } from "../predicates.js";
 
 const PROVIDER_ALIASES: Record<string, string> = {
   google: "gemini",
@@ -145,7 +146,7 @@ function traceEvent(msg: any, opts: TraceOptions): void {
         ? chalk.green("result★")
         : chalk.green("step✓ ");
       const preview =
-        typeof msg.result === "string"
+        isString(msg.result)
           ? shorten(msg.result, 200)
           : shorten(JSON.stringify(msg.result ?? null), 200);
       process.stderr.write(`${t} ${tag}  ${preview}\n`);
@@ -294,7 +295,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
         const sr = msg;
         if (sr.is_task_result) {
           finalText =
-            typeof sr.result === "string"
+            isString(sr.result)
               ? sr.result
               : JSON.stringify(sr.result, null, 2);
         }
@@ -310,7 +311,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
   if (finalText === null) {
     const r = agent.getResults();
     if (r != null) {
-      finalText = typeof r === "string" ? r : JSON.stringify(r, null, 2);
+      finalText = isString(r) ? r : JSON.stringify(r, null, 2);
     }
   }
 
@@ -397,17 +398,10 @@ async function fetchJob(
     });
     const data = await client.jobs.get.query({ id: jobId });
     return {
-      id: typeof data["id"] === "string" ? data["id"] : jobId,
-      status:
-        typeof data["status"] === "string"
-          ? data["status"]
-          : undefined,
-      error:
-        typeof data["error"] === "string" ? data["error"] : null,
-      workflowId:
-        typeof data["workflow_id"] === "string"
-          ? data["workflow_id"]
-          : null
+      id: isString(data["id"]) ? data["id"] : jobId,
+      status: isString(data["status"]) ? data["status"] : undefined,
+      error: isString(data["error"]) ? data["error"] : null,
+      workflowId: isString(data["workflow_id"]) ? data["workflow_id"] : null
     };
   } catch {
     // Server unreachable or job missing — diagnose degrades on a null job.

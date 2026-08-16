@@ -49,6 +49,7 @@ import {
 } from "./DialogActionButtons";
 import { CloseButton } from "./CloseButton";
 import PanelHeadline from "../ui/PanelHeadline";
+import { isString } from "../../utils/typePredicates";
 
 export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
   /**
@@ -188,7 +189,7 @@ export const Dialog = memo(
             {closeAction}
           </>
         ) : null;
-      const titleIsString = typeof title === "string";
+      const titleIsString = isString(title);
       const glass = theme.vars.palette.glass ?? {
         blur: "blur(12px)",
         backgroundDialog: theme.vars.palette.action.disabledBackground

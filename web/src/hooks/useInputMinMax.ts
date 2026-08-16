@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNodes } from "../contexts/NodeContext";
 import type { NodeStoreState } from "../stores/NodeStore";
+import { isNumber } from "../utils/typePredicates";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -36,8 +37,8 @@ export const useInputMinMax = ({
       lastNodes = state.nodes;
       const node = state.nodes.find((n) => n.id === nodeId);
       const props = node?.data?.properties;
-      const nodeMin = typeof props?.min === "number" ? props.min : undefined;
-      const nodeMax = typeof props?.max === "number" ? props.max : undefined;
+      const nodeMin = isNumber(props?.min) ? props.min : undefined;
+      const nodeMax = isNumber(props?.max) ? props.max : undefined;
       const next = nodeMin !== undefined || nodeMax !== undefined
         ? { min: nodeMin, max: nodeMax }
         : undefined;

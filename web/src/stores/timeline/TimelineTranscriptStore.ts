@@ -41,6 +41,7 @@ import {
   assetToClip,
   assetMediaType
 } from "../../components/timeline/dnd/assetToClipAdapter";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 // ── Generation config ────────────────────────────────────────────────────────
 
@@ -140,12 +141,12 @@ function parseCaptionWords(result: Record<string, unknown>): CaptionWord[] {
   const raw = Array.isArray(result.words) ? result.words : [];
   const words: CaptionWord[] = [];
   for (const entry of raw) {
-    if (typeof entry !== "object" || entry === null) continue;
+    if (!isObjectLike(entry)) continue;
     const w = entry as Record<string, unknown>;
     if (
-      typeof w.word === "string" &&
-      typeof w.startMs === "number" &&
-      typeof w.endMs === "number"
+      isString(w.word) &&
+      isNumber(w.startMs) &&
+      isNumber(w.endMs)
     ) {
       words.push({ word: w.word, startMs: w.startMs, endMs: w.endMs });
     }

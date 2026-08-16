@@ -43,11 +43,11 @@ describe("temporal middleware", () => {
     expect(t.pastStates).toEqual([]);
     expect(t.futureStates).toEqual([]);
     expect(t.isTracking).toBe(true);
-    expect(typeof t.undo).toBe("function");
-    expect(typeof t.redo).toBe("function");
-    expect(typeof t.clear).toBe("function");
-    expect(typeof t.pause).toBe("function");
-    expect(typeof t.resume).toBe("function");
+    expect(t.undo).toEqual(expect.any(Function));
+    expect(t.redo).toEqual(expect.any(Function));
+    expect(t.clear).toEqual(expect.any(Function));
+    expect(t.pause).toEqual(expect.any(Function));
+    expect(t.resume).toEqual(expect.any(Function));
   });
 
   it("pushes the pre-set snapshot onto pastStates", () => {

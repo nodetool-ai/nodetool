@@ -4,6 +4,7 @@ import fs from "fs";
 import * as yaml from "js-yaml";
 import { logMessage } from "./logger";
 import type { UpdateChannel } from "./types";
+import { isString } from "./typePredicates";
 
 /**
  * Settings record type with string keys and unknown values.
@@ -56,7 +57,7 @@ export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
  * @throws {Error} If filename is not provided or invalid
  */
 function getAppConfigPath(filename: string): string {
-  if (!filename || typeof filename !== "string") {
+  if (!filename || !isString(filename)) {
     throw new Error("Invalid filename provided");
   }
 
@@ -193,7 +194,7 @@ function writeSettings(settings: SettingsRecord): void {
  */
 function updateSetting(key: string, value: unknown) {
   try {
-    if (!key || typeof key !== "string") {
+    if (!key || !isString(key)) {
       throw new Error("Invalid setting key provided");
     }
 

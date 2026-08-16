@@ -32,6 +32,7 @@ import { authorGraph, type AuthorGraphOptions } from "../author-graph.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import { AGENT_NODE_TYPE } from "../graph-builder.js";
 import { GRAPH_PLANNER_EVAL_CASES } from "./graph-planner-cases.js";
+import { isRecord, isString } from "../utils/type-guards.js";
 
 export interface GraphPlannerEvalExpectations {
   /** Input-node `name` properties that must exist (one node per name). */
@@ -187,7 +188,7 @@ function totalToolCalls(byName: Record<string, number>): number {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
+  return isRecord(value)
     ? (value as Record<string, unknown>)
     : undefined;
 }
@@ -216,9 +217,9 @@ function codePackageSpecifiers(node: NodeDescriptor): string[] {
   const declared = node.properties?.["packages"];
   if (!Array.isArray(declared)) return [];
   return declared.map((entry) => {
-    if (typeof entry === "string") return entry;
+    if (isString(entry)) return entry;
     const specifier = asRecord(entry)?.["specifier"];
-    return typeof specifier === "string" ? specifier : String(entry);
+    return isString(specifier) ? specifier : String(entry);
   });
 }
 
@@ -296,7 +297,7 @@ export function checkExpectations(
     const re = new RegExp(pattern, "i");
     const found = graph.nodes.some((n) =>
       Object.values(n.properties ?? {}).some(
-        (v) => typeof v === "string" && re.test(v)
+        (v) => isString(v) && re.test(v)
       )
     );
     checks.push({

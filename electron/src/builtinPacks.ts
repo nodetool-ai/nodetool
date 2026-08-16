@@ -17,6 +17,7 @@ import {
   resolveBuiltinPackEnabled,
 } from "@nodetool-ai/protocol/builtin-packs";
 import type { BuiltinPackStatus } from "./types.d";
+import { isObjectLike } from "./typePredicates";
 
 /** Must match the path used by `@nodetool-ai/node-sdk`'s pack loader. */
 function packsConfigPath(): string {
@@ -31,9 +32,7 @@ function readPacksConfig(): Record<string, unknown> {
   if (!existsSync(path)) return {};
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return typeof parsed === "object" && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return isObjectLike(parsed) ? (parsed as Record<string, unknown>) : {};
   } catch {
     return {};
   }

@@ -12,7 +12,21 @@
   },
   "overrides": [
     {
-      "files": ["packages/protocol/src/**"],
+      "files": [
+        "electron/src/**",
+        "packages/app-runtime/src/**",
+        "packages/audio-nodes/src/**",
+        "packages/base-nodes/src/**",
+        "packages/cli/src/**",
+        "packages/image-nodes/src/**",
+        "packages/llm-nodes/src/**",
+        "packages/minimax-nodes/src/**",
+        "packages/node-sdk/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/protocol/src/**",
+        "packages/security/src/**",
+        "packages/text-nodes/src/**"
+      ],
       "rules": {
         "anti-slop/no-runtime-typeof": [
           "error",

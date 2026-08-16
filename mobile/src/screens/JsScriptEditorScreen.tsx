@@ -64,6 +64,7 @@ import {
   type JsScriptTestCase,
   type JsScriptTestReport,
 } from '../documents/jsScriptTypes';
+import { isString } from '../utils/typePredicates';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'JsScriptEditor'>;
@@ -86,7 +87,7 @@ const MONOSPACE = Platform.select({
 
 /** Pretty-print a value for one of the read-only result panes. */
 const asText = (value: unknown): string => {
-  if (typeof value === 'string') {
+  if (isString(value)) {
     return value;
   }
   try {

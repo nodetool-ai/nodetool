@@ -13,6 +13,7 @@
  * Pure functions, no I/O: the parser is the only dependency.
  */
 import * as acorn from "acorn";
+import { isNumber, isObjectLike, isString } from "./type-predicates.js";
 
 /** A top-level entry of a parsed body: a statement or an import/export. */
 export type CodeBodyStatement = acorn.Statement | acorn.ModuleDeclaration;
@@ -81,7 +82,7 @@ export function parseCodeBody(code: string): ParsedCodeBody | CodeParseError {
       const message =
         directError instanceof Error ? directError.message : String(directError);
       const line = (directError as { loc?: { line?: number } }).loc?.line;
-      return typeof line === "number" ? { error: message, line } : { error: message };
+      return isNumber(line) ? { error: message, line } : { error: message };
     }
   }
 }
@@ -112,7 +113,7 @@ export function staticImportSpecifiers(
   for (const statement of statements) {
     if (statement.type !== "ImportDeclaration") continue;
     const source = statement.source;
-    if (typeof source.value === "string") specifiers.push(source.value);
+    if (isString(source.value)) specifiers.push(source.value);
   }
   return specifiers;
 }
@@ -168,7 +169,7 @@ function objectKeys(expression: acorn.ObjectExpression): ReturnShape {
       keys.add(property.key.name);
     } else if (
       property.key.type === "Literal" &&
-      typeof property.key.value === "string"
+      isString(property.key.value)
     ) {
       keys.add(property.key.value);
     } else {
@@ -229,13 +230,13 @@ export interface CodeBodyFacts {
 }
 
 function collectReturns(node: unknown, out: acorn.ReturnStatement[]): void {
-  if (typeof node !== "object" || node === null) return;
+  if (!isObjectLike(node)) return;
   if (Array.isArray(node)) {
     for (const item of node) collectReturns(item, out);
     return;
   }
   const candidate = node as { type?: unknown };
-  if (typeof candidate.type !== "string") return;
+  if (!isString(candidate.type)) return;
   const astNode = node as acorn.AnyNode;
   // A `return` inside a helper function belongs to that helper, not the body.
   if (isFunctionLike(astNode)) return;
@@ -343,7 +344,7 @@ export function outputCallNames(
     if (node.callee.type !== "Identifier") return;
     if (!CODE_OUTPUT_CALLEES.includes(node.callee.name)) return;
     const first = node.arguments[0];
-    if (first?.type === "Literal" && typeof first.value === "string") {
+    if (first?.type === "Literal" && isString(first.value)) {
       names.add(first.value);
       return;
     }
@@ -414,7 +415,7 @@ export function streamCallNames(
   });
 
   function addStreamName(first: acorn.AnyNode | null | undefined): void {
-    if (first?.type === "Literal" && typeof first.value === "string") {
+    if (first?.type === "Literal" && isString(first.value)) {
       names.add(first.value);
       return;
     }
@@ -594,7 +595,7 @@ export function inputsMemberReads(statements: readonly CodeBodyStatement[]) {
         if (
           parent.computed &&
           parent.property.type === "Literal" &&
-          typeof parent.property.value === "string"
+          isString(parent.property.value)
         ) {
           names.add(parent.property.value);
           return;

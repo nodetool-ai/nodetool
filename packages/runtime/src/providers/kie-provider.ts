@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { isString } from "../type-predicates.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   EncodedAudioResult,
@@ -437,7 +438,7 @@ function coerceDuration(
  */
 function defaultForField(field: ModelInputField): unknown {
   const d = field.default;
-  if (d !== undefined && !(typeof d === "string" && d === "")) return d;
+  if (d !== undefined && !(isString(d) && d === "")) return d;
   if (field.enumValues && field.enumValues.length > 0) return field.enumValues[0];
   return undefined;
 }
@@ -815,7 +816,7 @@ export class KieProvider extends BaseProvider {
     this.trackUsage(args.model, responseUsage(response));
 
     const outputText =
-      typeof response.output_text === "string"
+      isString(response.output_text)
         ? response.output_text
         : extractResponsesText(response.output);
     const toolCalls = extractResponsesToolCalls(
@@ -1142,7 +1143,7 @@ export class KieProvider extends BaseProvider {
       const max = field.max;
       if (max === undefined || max <= 0) continue;
       const value = input[field.name];
-      if (typeof value !== "string" || value.length <= max) continue;
+      if (!isString(value) || value.length <= max) continue;
       const cut = value.slice(0, max);
       const lastSpace = cut.lastIndexOf(" ");
       input[field.name] = (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();

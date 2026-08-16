@@ -16,6 +16,7 @@ import type {
 } from "../stores/ApiTypes";
 import type { StepToolCall } from "../stores/GlobalChatStore";
 import { visibleToolArgs } from "../core/chat/toolCallFields";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 const EMPTY_ARGS: Record<string, unknown> = {};
 
@@ -129,10 +130,10 @@ function parseContent(msg: Message): NormalizedMessage {
   let content: unknown = msg.content;
   let eventType = msg.execution_event_type;
 
-  if (typeof content === "string") {
+  if (isString(content)) {
     try {
       content = JSON.parse(content);
-      if (typeof content === "string") {
+      if (isString(content)) {
         try {
           content = JSON.parse(content);
         } catch {
@@ -144,8 +145,8 @@ function parseContent(msg: Message): NormalizedMessage {
     }
   }
 
-  if (!eventType && content && typeof content === "object" && !Array.isArray(content) && "type" in content) {
-    eventType = typeof content.type === "string" ? content.type : undefined;
+  if (!eventType && content && isObjectLike(content) && !Array.isArray(content) && "type" in content) {
+    eventType = isString(content.type) ? content.type : undefined;
   }
 
   return { content, eventType };
@@ -187,7 +188,7 @@ export function buildExecutionTreeState(
       const lu = content as { node_id?: string; content?: string; severity?: string };
       state.logs.push({
         nodeId: lu.node_id ?? "",
-        content: typeof lu.content === "string" ? lu.content : JSON.stringify(lu.content),
+        content: isString(lu.content) ? lu.content : JSON.stringify(lu.content),
         severity: lu.severity ?? "info"
       });
       continue;
@@ -286,7 +287,7 @@ export function buildExecutionTreeState(
           const cleanArgs = visibleArgs(tc.args);
           const argsStr = Object.entries(cleanArgs)
             .map(([k, v]) => {
-              const val = typeof v === "string" ? v : JSON.stringify(v);
+              const val = isString(v) ? v : JSON.stringify(v);
               return `${k}: ${val.slice(0, 40)}`;
             })
             .join(", ");
@@ -327,14 +328,14 @@ export function buildExecutionTreeState(
         const stepIdx = task.steps.findIndex((s) => s.id === stepId);
         if (stepIdx !== -1) {
           const result =
-            typeof sr.result === "string"
+            isString(sr.result)
               ? sr.result
               : JSON.stringify(sr.result ?? "");
           const rawErr: unknown = sr.error;
           const errorText =
             rawErr == null
               ? undefined
-              : typeof rawErr === "string"
+              : isString(rawErr)
                 ? rawErr
                 : rawErr instanceof Error
                   ? rawErr.message

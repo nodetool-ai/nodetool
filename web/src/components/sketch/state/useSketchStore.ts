@@ -35,6 +35,7 @@ import type {
   RuntimeSlice
 } from "./slices";
 import { normalizeSketchDocument, type HistoryEntry, type Point, type SketchDocument, type SketchTool } from "../types";
+import { isNumber } from "../../../utils/typePredicates";
 
 export { SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX };
 
@@ -90,12 +91,12 @@ export function hydrateSketchStore(
     activeTool: state.activeTool ?? "select",
     transientMoveModifierHeld: false,
     zoom:
-      typeof state.zoom === "number"
+      isNumber(state.zoom)
         ? Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, state.zoom))
         : 1,
     pan: state.pan ?? { x: 0, y: 0 },
     history: state.history ?? [],
-    historyIndex: typeof state.historyIndex === "number" ? state.historyIndex : -1,
+    historyIndex: isNumber(state.historyIndex) ? state.historyIndex : -1,
     isDrawing: false,
     selectedLayerIds: [],
     layerShiftRangeAnchorId: null

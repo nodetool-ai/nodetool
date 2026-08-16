@@ -54,6 +54,11 @@ export function rawRgbaImageRef(
 /* -------------------------- base64 (Buffer-free) -------------------------- */
 
 import { base64ToBytes, bytesToBase64 } from "@nodetool-ai/nodes-utils";
+import {
+  isNonEmptyString,
+  isNumber,
+  isObjectLike
+} from "../type-predicates.js";
 export { base64ToBytes, bytesToBase64 };
 
 /** Strip a `data:...;base64,` prefix if present, returning the raw base64. */
@@ -128,7 +133,7 @@ export async function loadImageBytes(
   ref: unknown,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
-  if (!ref || typeof ref !== "object") return new Uint8Array();
+  if (!isObjectLike(ref)) return new Uint8Array();
   const r = ref as MediaRefValue;
 
   // Upstream GPU op left raw pixels — encode to PNG with the env-aware encoder
@@ -143,7 +148,7 @@ export async function loadImageBytes(
     return encodeRgbaToPng(rgba, width, height);
   }
   if (r.data instanceof Uint8Array && r.data.length > 0) return r.data;
-  if (typeof r.data === "string" && r.data.length > 0) {
+  if (isNonEmptyString(r.data)) {
     return base64ToBytes(stripDataUrlPrefix(r.data));
   }
 
@@ -277,14 +282,9 @@ export async function imageDimensions(
   ) {
     return { width: image.width, height: image.height };
   }
-  if (image && typeof image === "object") {
+  if (isObjectLike(image)) {
     const { width, height } = image as { width?: unknown; height?: unknown };
-    if (
-      typeof width === "number" &&
-      typeof height === "number" &&
-      width > 0 &&
-      height > 0
-    ) {
+    if (isNumber(width) && isNumber(height) && width > 0 && height > 0) {
       return { width, height };
     }
   }
@@ -418,7 +418,7 @@ export async function resolveImageRefForTransport(
   if (Array.isArray(value)) {
     return Promise.all(value.map((v) => resolveImageRefForTransport(v)));
   }
-  if (value && typeof value === "object" && !ArrayBuffer.isView(value)) {
+  if (isObjectLike(value) && !ArrayBuffer.isView(value)) {
     const entries = await Promise.all(
       Object.entries(value as Record<string, unknown>).map(
         async ([k, v]) => [k, await resolveImageRefForTransport(v)] as const
@@ -444,7 +444,7 @@ export function toBase64Ref(
   base?: unknown
 ) {
   const seed =
-    base && typeof base === "object" ? { ...(base as Record<string, unknown>) } : {};
+    isObjectLike(base) ? { ...(base as Record<string, unknown>) } : {};
   delete seed.mimeType;
   delete seed.width;
   delete seed.height;

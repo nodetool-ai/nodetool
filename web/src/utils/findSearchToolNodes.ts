@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { SEARCH_PROVIDER_TOOL_NAMES } from "./searchProviders";
+import { isString } from "./typePredicates";
 
 export interface SearchToolNode {
   nodeId: string;
@@ -19,7 +20,7 @@ const nodeUsesSearchTool = (node: Node<NodeData>): boolean => {
     if (!Array.isArray(value)) continue;
     for (const item of value) {
       const name = (item as { name?: unknown } | null)?.name;
-      if (typeof name === "string" && SEARCH_PROVIDER_TOOL_NAMES.has(name)) {
+      if (isString(name) && SEARCH_PROVIDER_TOOL_NAMES.has(name)) {
         return true;
       }
     }

@@ -37,6 +37,10 @@ import type {
   AppValidation,
   AppWidgetSpec
 } from "./types.js";
+import {
+  isNonEmptyString,
+  isString
+} from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -46,7 +50,7 @@ const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
+const str = (v: unknown): string | null => (isString(v) ? v : null);
 
 interface PuckNode {
   type: string;
@@ -175,7 +179,7 @@ export function parseAppDocument(appDoc: unknown) {
     };
   }
   let raw: unknown = appDoc;
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     try {
       raw = JSON.parse(raw);
     } catch {
@@ -199,7 +203,7 @@ export function parseAppDocument(appDoc: unknown) {
  * only user-scoped variables may persist, and the parser applies that silently.
  */
 function persistDowngrades(appDoc: unknown): string[] {
-  const raw = typeof appDoc === "string" ? safeParse(appDoc) : appDoc;
+  const raw = isString(appDoc) ? safeParse(appDoc) : appDoc;
   if (!isRecord(raw) || !Array.isArray(raw.variables)) return [];
   const names: string[] = [];
   for (const entry of raw.variables) {
@@ -387,7 +391,7 @@ const nodeProps = (node: Record<string, unknown>): Record<string, unknown> =>
 
 const nodeName = (node: Record<string, unknown>): string => {
   const name = nodeProps(node).name;
-  if (typeof name === "string" && name.length > 0) return name;
+  if (isNonEmptyString(name)) return name;
   return str(node.id) ?? "";
 };
 

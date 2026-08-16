@@ -7,6 +7,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -14,7 +15,7 @@ async function getGeminiApiKey(context?: ProcessingContext): Promise<string> {
   // Prefer the context's secretResolver (encrypted DB) over env vars so the
   // chat-cli + agent picks up keys configured via `nodetool secrets store`.
   const fromCtx =
-    typeof context?.getSecret === "function"
+    isFunction(context?.getSecret)
       ? await context.getSecret("GEMINI_API_KEY")
       : null;
   const key = fromCtx ?? process.env["GEMINI_API_KEY"];
@@ -31,7 +32,7 @@ export async function geminiSearchConfigured(
   context: ProcessingContext
 ): Promise<boolean> {
   const fromCtx =
-    typeof context?.getSecret === "function"
+    isFunction(context?.getSecret)
       ? await context.getSecret("GEMINI_API_KEY")
       : null;
   return Boolean(fromCtx ?? process.env["GEMINI_API_KEY"]);
@@ -49,7 +50,7 @@ export async function googleGroundedSearch(
   error?: string;
 }> {
   const query = params.query;
-  if (typeof query !== "string" || !query) {
+  if (!isString(query) || !query) {
     return { error: "Search query is required" };
   }
 
@@ -93,7 +94,7 @@ export async function googleGroundedSearch(
     const results: string[] = [];
     if (parts) {
       for (const part of parts) {
-        if (typeof part["text"] === "string") {
+        if (isString(part["text"])) {
           results.push(part["text"]);
         }
       }

@@ -1,6 +1,7 @@
 import { authHeader } from "./auth";
 import { isAuthRequired } from "./runtimeConfig";
 import { BASE_URL } from "../stores/BASE_URL";
+import { isString } from "../utils/typePredicates";
 
 export async function restFetch(
   input: RequestInfo | URL,
@@ -15,7 +16,7 @@ export async function restFetch(
     });
   }
 
-  const url = typeof input === "string" ? `${BASE_URL}${input}` : input;
+  const url = isString(input) ? `${BASE_URL}${input}` : input;
 
   return fetch(url, {
     ...init,

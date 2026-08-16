@@ -1,6 +1,7 @@
 import type { FalUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 import falNodeTypePricingBundle from "@nodetool/fal-node-type-pricing";
 import falUnitPricingCatalog from "@nodetool/fal-unit-pricing-catalog";
+import { isString } from "./typePredicates";
 
 function isFalUnitPricing(value: unknown): value is FalUnitPricing {
   if (value == null || typeof value !== "object") return false;
@@ -18,7 +19,7 @@ function readStringField(obj: unknown, key: string): string | undefined {
   }
   if (!(key in obj)) return undefined;
   const v = (obj as Record<string, unknown>)[key];
-  return typeof v === "string" && v.trim() !== "" ? v : undefined;
+  return isString(v) && v.trim() !== "" ? v : undefined;
 }
 
 /** `writtenAt` from codegen `fal-unit-pricing.json` (FAL /v1/models/pricing snapshot). */

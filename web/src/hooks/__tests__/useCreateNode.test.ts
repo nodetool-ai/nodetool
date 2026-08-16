@@ -5,6 +5,13 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === "function";
+
 const mockAddNode = jest.fn();
 const mockUpdateNodeData = jest.fn();
 const mockCreateNode = jest.fn().mockReturnValue({
@@ -35,7 +42,7 @@ jest.mock("../../stores/NodeMenuStore", () => ({
       clickPosition: mockClickPosition,
       closeNodeMenu: mockCloseNodeMenu,
     };
-    if (typeof selector === "function") {
+    if (mockIsFunction(selector)) {
       return selector(mockState);
     }
     return mockState;
@@ -46,7 +53,7 @@ const mockAddRecentNode = jest.fn();
 jest.mock("../../stores/RecentNodesStore", () => ({
   useRecentNodesStore: <T,>(selector: (state: { addRecentNode: typeof mockAddRecentNode }) => T) => {
     const mockState = { addRecentNode: mockAddRecentNode };
-    if (typeof selector === "function") {
+    if (mockIsFunction(selector)) {
       return selector(mockState);
     }
     return mockState;
@@ -85,7 +92,7 @@ describe("useCreateNode", () => {
 
   it("returns a callback function", () => {
     const { result } = renderHook(() => useCreateNode());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing when reactFlowInstance is null", () => {

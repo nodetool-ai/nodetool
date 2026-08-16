@@ -12,7 +12,7 @@ import { HarnessWsClient } from "./wsClient";
 import {
   isNonEmptyString,
   isNumber,
-  isRecord,
+  isObjectLike,
   isString
 } from "../utils/typePredicates";
 import type {
@@ -96,7 +96,7 @@ function extractArtifact(output: {
   value: unknown;
 }): CapturedArtifact | null {
   const v = output.value;
-  if (isRecord(v)) {
+  if (isObjectLike(v)) {
     const obj = v;
     const uri = isString(obj.uri) ? obj.uri : undefined;
     const data = isString(obj.data) ? obj.data : undefined;

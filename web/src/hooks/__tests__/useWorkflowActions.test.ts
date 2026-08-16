@@ -48,10 +48,10 @@ describe("useWorkflowActions", () => {
     const { result } = renderHook(() => useWorkflowActions());
 
     expect(result.current).toHaveProperty("loadingExampleId");
-    expect(typeof result.current.handleCreateNewWorkflow).toBe("function");
-    expect(typeof result.current.handleWorkflowClick).toBe("function");
-    expect(typeof result.current.handleExampleClick).toBe("function");
-    expect(typeof result.current.handleViewAllTemplates).toBe("function");
+    expect(result.current.handleCreateNewWorkflow).toEqual(expect.any(Function));
+    expect(result.current.handleWorkflowClick).toEqual(expect.any(Function));
+    expect(result.current.handleExampleClick).toEqual(expect.any(Function));
+    expect(result.current.handleViewAllTemplates).toEqual(expect.any(Function));
   });
 
   describe("handleCreateNewWorkflow", () => {

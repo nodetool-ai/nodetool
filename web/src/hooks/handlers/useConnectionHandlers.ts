@@ -30,6 +30,7 @@ import {
 } from "../../utils/dynamicSlots";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { shallow } from "zustand/shallow";
+import { isFunction } from "../../utils/typePredicates";
 
 const PREVIEW_VALUE_HANDLE = "value";
 const REROUTE_INPUT_HANDLE = "input_value";
@@ -301,7 +302,7 @@ export default function useConnectionHandlers() {
         "classList" in target &&
         "closest" in target &&
         typeof target.classList === "object" &&
-        typeof target.closest === "function";
+        isFunction(target.closest);
 
       if (!isHTMLElement && !hasTestProperties) {
         resetConnectingState();

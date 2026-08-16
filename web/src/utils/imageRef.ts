@@ -1,4 +1,5 @@
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
+import { isNumber, isObjectLike, isString } from "./typePredicates";
 
 export interface ImageRefLike {
   uri?: string;
@@ -10,18 +11,18 @@ export interface ImageRefLike {
 }
 
 export const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
+  if (!value || !isObjectLike(value)) return undefined;
   return {
-    uri: "uri" in value && typeof value.uri === "string" ? value.uri : undefined,
+    uri: "uri" in value && isString(value.uri) ? value.uri : undefined,
     asset_id:
-      "asset_id" in value && typeof value.asset_id === "string"
+      "asset_id" in value && isString(value.asset_id)
         ? value.asset_id
         : undefined,
-    width: "width" in value && typeof value.width === "number" ? value.width : undefined,
-    height: "height" in value && typeof value.height === "number" ? value.height : undefined,
+    width: "width" in value && isNumber(value.width) ? value.width : undefined,
+    height: "height" in value && isNumber(value.height) ? value.height : undefined,
     data: "data" in value ? value.data : undefined,
     mimeType:
-      "mimeType" in value && typeof value.mimeType === "string"
+      "mimeType" in value && isString(value.mimeType)
         ? value.mimeType
         : undefined
   };

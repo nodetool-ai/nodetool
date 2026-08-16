@@ -4,6 +4,7 @@ import {
   inferredCodeOutputNames
 } from "./code-analysis.js";
 import { isJsCodeNodeType } from "./code-node-validation.js";
+import { isNumber, isString } from "./type-predicates.js";
 import {
   typeMetaToString,
   typesIncompatible,
@@ -91,12 +92,12 @@ function normalizePosition(
 ) {
   if (
     isRecord(value) &&
-    typeof value.x === "number" &&
-    typeof value.y === "number"
+    isNumber(value.x) &&
+    isNumber(value.y)
   ) {
     return { x: value.x, y: value.y };
   }
-  if (typeof value === "string") {
+  if (isString(value)) {
     const trimmed = value.trim();
     if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
       try {
@@ -146,7 +147,7 @@ function nodeCode(node: GraphNode): string {
   const data = nodeData(node);
   const nested = isRecord(data.properties) ? data.properties.code : undefined;
   const code = nested ?? data.code;
-  return typeof code === "string" ? code : "";
+  return isString(code) ? code : "";
 }
 
 const ANY_TYPE: TypeMeta = { type: "any" };
@@ -189,7 +190,7 @@ function inputType(
   if (handle in dynamicInputs || handle in dynamicProperties) {
     const dynamic = dynamicInputs[handle] ?? dynamicProperties[handle];
     if (isRecord(dynamic) && isRecord(dynamic.type)) return dynamic.type;
-    if (isRecord(dynamic) && typeof dynamic.type === "string") return dynamic;
+    if (isRecord(dynamic) && isString(dynamic.type)) return dynamic;
     return ANY_TYPE;
   }
   if (
@@ -243,7 +244,7 @@ function projectGraph(
         dynamic_inputs: node.dynamic_inputs ?? {},
         dynamic_outputs: node.dynamic_outputs ?? {}
       };
-      if (typeof ui.title === "string") {
+      if (isString(ui.title)) {
         data.title = ui.title;
       }
       return {
@@ -473,7 +474,7 @@ export function applyWorkflowDocumentTool(
       uiPatch[key] = value;
     }
   }
-  if (typeof title === "string") uiPatch.title = title;
+  if (isString(title)) uiPatch.title = title;
   if (Object.keys(uiPatch).length > 0) {
     node.ui_properties = { ...nodeUi(node), ...uiPatch };
   }

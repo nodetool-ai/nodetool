@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isObjectLike } from "../predicates.js";
 
 /**
  * Shared table printer for the package command group. Duplicates the
@@ -70,7 +71,7 @@ export function findWorkspaceRoots(cwd: string = process.cwd()): string[] {
   const patterns = Array.isArray(pkg["workspaces"])
     ? (pkg["workspaces"] as string[])
     : pkg["workspaces"] &&
-        typeof pkg["workspaces"] === "object" &&
+        isObjectLike(pkg["workspaces"]) &&
         Array.isArray(
           (pkg["workspaces"] as Record<string, unknown>)["packages"]
         )

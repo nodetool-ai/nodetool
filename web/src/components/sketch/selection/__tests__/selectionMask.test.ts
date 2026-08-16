@@ -4,6 +4,9 @@
 
 import type { Selection } from "../../types";
 import type { Point } from "../../types";
+
+const isNumber = (value: unknown): value is number =>
+  typeof value === "number";
 import {
   createEmptyMask,
   cloneSelectionMask,
@@ -31,7 +34,7 @@ function makeSel(
   originY?: number
 ): Selection {
   const data = new Uint8ClampedArray(w * h);
-  if (typeof fill === "number") {
+  if (isNumber(fill)) {
     data.fill(fill);
   } else {
     for (let i = 0; i < fill.length && i < data.length; i++) {

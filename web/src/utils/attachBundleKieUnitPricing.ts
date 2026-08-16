@@ -1,6 +1,7 @@
 import type { KieUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 import kieNodeTypePricingBundle from "@nodetool/kie-node-type-pricing";
 import kieUnitPricingCatalog from "@nodetool/kie-unit-pricing-catalog";
+import { isString } from "./typePredicates";
 
 function isKieUnitPricing(value: unknown): value is KieUnitPricing {
   if (value == null || typeof value !== "object") return false;
@@ -18,7 +19,7 @@ function readStringField(obj: unknown, key: string): string | undefined {
   }
   if (!(key in obj)) return undefined;
   const v = (obj as Record<string, unknown>)[key];
-  return typeof v === "string" && v.trim() !== "" ? v : undefined;
+  return isString(v) && v.trim() !== "" ? v : undefined;
 }
 
 function pricingCatalogWrittenAt(): string | undefined {

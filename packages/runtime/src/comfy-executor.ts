@@ -4,6 +4,7 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import WebSocket from "ws";
+import { isNumber, isString } from "./type-predicates.js";
 
 const log = createLogger("runtime:comfy-executor");
 
@@ -403,8 +404,8 @@ function listenForCompletion(
         }
 
         case "progress": {
-          const value = typeof data.value === "number" ? data.value : 0;
-          const max = typeof data.max === "number" ? data.max : 1;
+          const value = isNumber(data.value) ? data.value : 0;
+          const max = isNumber(data.max) ? data.max : 1;
           onProgress?.({
             type: "progress",
             node: currentNode,
@@ -447,7 +448,7 @@ function listenForCompletion(
 
         case "execution_error": {
           const errMsg =
-            typeof data.exception_message === "string"
+            isString(data.exception_message)
               ? data.exception_message
               : "ComfyUI execution error";
           const nodeId = data.node != null ? String(data.node) : currentNode;

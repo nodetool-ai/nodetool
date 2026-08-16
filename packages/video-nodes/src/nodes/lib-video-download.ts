@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
+import { isString } from "../type-predicates.js";
 
 type ExecResult = {
   stdout: string;
@@ -373,7 +374,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
           );
         }
 
-        const mediaId = typeof parsedInfo.id === "string" ? parsedInfo.id : "";
+        const mediaId = isString(parsedInfo.id) ? parsedInfo.id : "";
         if (mode === "audio") {
           const audioFile = await findFileByExt(
             tempDir,

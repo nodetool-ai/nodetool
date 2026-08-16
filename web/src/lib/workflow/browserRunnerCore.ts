@@ -12,6 +12,7 @@
 
 import type { WorkflowGraph } from "../../stores/ApiTypes";
 import { Buffer } from "buffer";
+import { isFunction, isString } from "../../utils/typePredicates";
 
 const browserGlobal = globalThis;
 if (typeof browserGlobal.Buffer === "undefined") {
@@ -79,8 +80,8 @@ export interface BrowserGraphJobResult {
 /** A class is a node executor if it exposes a static `nodeType` string. */
 function isNodeClass(value: unknown): boolean {
   return (
-    typeof value === "function" &&
-    typeof (value as { nodeType?: unknown }).nodeType === "string"
+    isFunction(value) &&
+    isString((value as { nodeType?: unknown }).nodeType)
   );
 }
 
@@ -343,7 +344,7 @@ export function buildBrowserRunner(mods: LoadedModules): LoadedBrowserRunner {
       .filter(
         (c) =>
           c.requiresGpu === true &&
-          typeof c.nodeType === "string" &&
+          isString(c.nodeType) &&
           registry.has(c.nodeType)
       )
       .map((c) => c.nodeType as string)

@@ -12,6 +12,7 @@ import type {
   GraphData,
   DynamicSlotMeta
 } from "@nodetool-ai/protocol";
+import { isNonEmptyString, isString } from "./utils/type-guards.js";
 
 /** The node type used for LLM-driven steps in planned graphs. */
 export const AGENT_NODE_TYPE = "nodetool.agents.Agent";
@@ -66,11 +67,11 @@ export class GraphBuilder {
       errors.push("Graph has already been finalized.");
       return errors;
     }
-    if (!id || typeof id !== "string") {
+    if (!id || !isString(id)) {
       errors.push("Node id must be a non-empty string.");
       return errors;
     }
-    if (!type || typeof type !== "string") {
+    if (!type || !isString(type)) {
       errors.push("Node type must be a non-empty string.");
       return errors;
     }
@@ -357,7 +358,7 @@ export class GraphBuilder {
     for (const node of this._nodes.values()) {
       if (node.type !== AGENT_NODE_TYPE) continue;
       const literal = node.properties?.["prompt"];
-      const hasLiteral = typeof literal === "string" && literal.length > 0;
+      const hasLiteral = isNonEmptyString(literal);
       const hasEdge = this._edges.some(
         (e) => e.target === node.id && e.targetHandle === "prompt"
       );

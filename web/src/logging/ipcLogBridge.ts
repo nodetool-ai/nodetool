@@ -1,9 +1,10 @@
+import { isString } from "../utils/typePredicates";
 type FrontendLogLevel = "info" | "warn" | "error";
 
 let installed = false;
 
 const toStringSafe = (value: unknown): string => {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value;
   }
   if (value instanceof Error) {
@@ -29,7 +30,7 @@ const forward = (level: FrontendLogLevel, args: unknown[]) => {
     return;
   }
   const first = args[0];
-  if (typeof first === "string" && first.includes(STYLED_LOG_MARKER)) {
+  if (isString(first) && first.includes(STYLED_LOG_MARKER)) {
     return;
   }
   let message = args.map((arg) => toStringSafe(arg)).join(" ");

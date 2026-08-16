@@ -31,8 +31,8 @@ describe("useInputStream", () => {
 
       expect(result.current.send).toBeDefined();
       expect(result.current.end).toBeDefined();
-      expect(typeof result.current.send).toBe("function");
-      expect(typeof result.current.end).toBe("function");
+      expect(result.current.send).toEqual(expect.any(Function));
+      expect(result.current.end).toEqual(expect.any(Function));
     });
 
     it("calls streamInput with correct arguments when state is running", () => {

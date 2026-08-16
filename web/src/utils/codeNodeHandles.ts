@@ -11,6 +11,7 @@ import {
   inferInputKeysFromCode,
   inferOutputKeysFromCode
 } from "./codeOutputInference";
+import { isString } from "./typePredicates";
 
 export function isCodeNodeType(nodeType: string | undefined): boolean {
   return nodeType === CODE_NODE_TYPE;
@@ -18,7 +19,7 @@ export function isCodeNodeType(nodeType: string | undefined): boolean {
 
 function codePropertyFromData(data: NodeData | undefined): string {
   const code = data?.properties?.code;
-  return typeof code === "string" ? code : "";
+  return isString(code) ? code : "";
 }
 
 export function inferredCodeInputNames(

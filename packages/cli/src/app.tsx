@@ -46,6 +46,7 @@ import {
 import { saveSettings } from "./settings.js";
 import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
+import { isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -632,7 +633,7 @@ export function App({
               .map((msg) => {
                 const role = msg.role;
                 let content = "";
-                if (typeof msg.content === "string") {
+                if (isString(msg.content)) {
                   content = msg.content;
                 } else if (Array.isArray(msg.content)) {
                   content = msg.content
@@ -666,7 +667,7 @@ export function App({
               if (
                 "type" in item &&
                 item.type === "chunk" &&
-                typeof item.content === "string"
+                isString(item.content)
               ) {
                 summary += item.content;
               }
@@ -911,7 +912,7 @@ export function App({
             onToolResult: (tc: ToolCall, result: unknown) => {
               const display = isFormattedTool(tc.name)
                 ? formatToolResult(tc.name, tc.args, result)
-                : typeof result === "string"
+                : isString(result)
                   ? result
                   : JSON.stringify(result).slice(0, 100);
               finishLiveTool(tc.id, tc.name, tc.args, display);

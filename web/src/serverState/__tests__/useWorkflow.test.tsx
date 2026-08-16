@@ -106,7 +106,7 @@ describe("useWorkflow", () => {
       wrapper: createWrapper(),
     });
 
-    expect(typeof result.current.setWorkflowCache).toBe("function");
-    expect(typeof result.current.prefetchWorkflow).toBe("function");
+    expect(result.current.setWorkflowCache).toEqual(expect.any(Function));
+    expect(result.current.prefetchWorkflow).toEqual(expect.any(Function));
   });
 });

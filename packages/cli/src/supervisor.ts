@@ -21,6 +21,7 @@ import type { Intervention, ProcessingMessage } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Command } from "commander";
 import { parseNumericOption } from "./numeric-options.js";
+import { isNumber } from "./predicates.js";
 
 /**
  * Model used when `--supervise` is given without `--supervisor-model`.
@@ -235,7 +236,7 @@ export async function streamInterventionLines(
       verdict: message.verdict,
       decidedBy: message.decided_by
     };
-    if (typeof message.cost === "number") {
+    if (isNumber(message.cost)) {
       intervention.costUsd = message.cost;
     }
     write(formatInterventionLine(intervention));
@@ -273,7 +274,7 @@ export async function recordSupervisorCost(
   attribution: SupervisorCostAttribution
 ): Promise<number> {
   const billable = attribution.interventions.filter(
-    (i) => typeof i.costUsd === "number" && i.costUsd > 0
+    (i) => isNumber(i.costUsd) && i.costUsd > 0
   );
   if (billable.length === 0) return 0;
 

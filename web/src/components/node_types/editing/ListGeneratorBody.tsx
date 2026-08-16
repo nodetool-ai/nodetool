@@ -54,17 +54,18 @@ import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
 import { outputOf } from "../../../utils/nodeGenerations";
 import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 import type { BespokeBodyProps } from "./bespokeRegistry";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 export { LIST_GENERATOR_NODE_TYPE } from "./bespokeNodeTypes";
 
 /** Pull a display string out of one streamed/settled value, or undefined. */
 const pullString = (x: unknown): string | undefined => {
-  if (typeof x === "string") return x;
-  if (x && typeof x === "object") {
+  if (isString(x)) return x;
+  if (x && isObjectLike(x)) {
     const o = x as Record<string, unknown>;
-    if (typeof o.item === "string") return o.item;
-    if (typeof o.output === "string") return o.output;
-    if (o.type === "text" && typeof o.data === "string") return o.data;
+    if (isString(o.item)) return o.item;
+    if (isString(o.output)) return o.output;
+    if (o.type === "text" && isString(o.data)) return o.data;
   }
   return undefined;
 };

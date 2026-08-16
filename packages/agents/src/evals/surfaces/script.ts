@@ -39,6 +39,7 @@ import type {
   ToolLoopEvalCase,
   ToolLoopStatePredicate
 } from "../tool-loop-eval.js";
+import { isNumber } from "../../utils/type-guards.js";
 
 /** A TTS provider/model/voice selection, mirroring `VoiceBinding`. */
 export interface ScriptVoiceBinding {
@@ -371,7 +372,7 @@ export function createScriptToolBridge(
           currentTake: null
         };
         const insertAt =
-          typeof index === "number"
+          isNumber(index)
             ? Math.max(0, Math.min(index, lines.length))
             : lines.length;
         lines.splice(insertAt, 0, line);

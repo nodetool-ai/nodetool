@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { isObjectLike } from "./wire-values.js";
 
 const execFile = promisify(execFileCb);
 
@@ -24,11 +25,7 @@ export class MediaToolingMissingError extends Error {
 }
 
 function isEnoent(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    (err as { code?: unknown }).code === "ENOENT"
-  );
+  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
 }
 
 /**

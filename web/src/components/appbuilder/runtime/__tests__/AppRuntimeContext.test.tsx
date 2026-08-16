@@ -49,8 +49,8 @@ describe("useAppRuntimeContext", () => {
     const { result } = renderHook(() => useAppRuntimeContext(), { wrapper });
     expect(result.current.store).toBeDefined();
     expect(result.current.designMode).toBe(false);
-    expect(typeof result.current.dispatch).toBe("function");
-    expect(typeof result.current.write).toBe("function");
+    expect(result.current.dispatch).toEqual(expect.any(Function));
+    expect(result.current.write).toEqual(expect.any(Function));
   });
 
   it("reflects the designMode override", () => {

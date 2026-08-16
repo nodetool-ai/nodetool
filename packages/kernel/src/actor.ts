@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
+import { isBoolean, isNumber, isObjectValue, isString } from "./predicates.js";
 import type {
   CorrelationLineage,
   NodeDescriptor,
@@ -208,9 +209,9 @@ function scalarInputProperties(
   for (const [key, value] of Object.entries(inputs)) {
     if (key.startsWith("_")) continue;
     if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
+      isString(value) ||
+      isNumber(value) ||
+      isBoolean(value)
     ) {
       out[key] = value;
     }
@@ -1970,7 +1971,7 @@ export class NodeActor {
     };
     const tail = {
       properties:
-        this.node.properties && typeof this.node.properties === "object"
+        isObjectValue(this.node.properties)
           ? (this.node.properties as Record<string, unknown>)
           : null,
       provider_cost: this._executionContext?.getProviderCost?.() ?? null

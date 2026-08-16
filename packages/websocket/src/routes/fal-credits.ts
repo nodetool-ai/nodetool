@@ -1,5 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { Secret } from "@nodetool-ai/models";
+import {
+  isNonBlankString,
+  isNumber,
+  isObjectLike
+} from "../lib/wire-values.js";
 
 /** Platform API billing + credits (GET /v1/account was removed — returns 404). */
 const FAL_ACCOUNT_BILLING_URL =
@@ -19,7 +24,7 @@ function parseFalApiErrorMessage(body: string): string | undefined {
   try {
     const j = JSON.parse(body) as { error?: { message?: string } };
     const msg = j.error?.message;
-    if (typeof msg === "string" && msg.trim() !== "") {
+    if (isNonBlankString(msg)) {
       return msg.trim();
     }
   } catch {
@@ -30,13 +35,13 @@ function parseFalApiErrorMessage(body: string): string | undefined {
 
 /** UI expects `credit_balance: { amount, currency }` (see web `formatCredits`). */
 function normalizeFalCreditsBody(data: unknown) {
-  if (data == null || typeof data !== "object") {
+  if (!isObjectLike(data)) {
     return { credit_balance: null };
   }
   const d = data as FalBillingJson;
   if (
     d.credits != null &&
-    typeof d.credits.current_balance === "number"
+    isNumber(d.credits.current_balance)
   ) {
     return {
       credit_balance: {

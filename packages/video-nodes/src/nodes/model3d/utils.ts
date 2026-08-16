@@ -5,6 +5,7 @@ import type {
   JsonResources,
   Model3DRefLike
 } from "./types.js";
+import { isNonEmptyString, isObjectLike } from "../../type-predicates.js";
 
 export function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
@@ -13,7 +14,7 @@ export function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 }
 
 export function modelBytes(model: unknown): Uint8Array {
-  if (!model || typeof model !== "object") return new Uint8Array();
+  if (!isObjectLike(model)) return new Uint8Array();
   return toBytes((model as Model3DRefLike).data);
 }
 
@@ -25,7 +26,7 @@ export async function modelRefToBytes(
     } | null;
   }
 ): Promise<Uint8Array> {
-  if (!model || typeof model !== "object") return new Uint8Array();
+  if (!isObjectLike(model)) return new Uint8Array();
   const obj = model as Model3DRefLike;
 
   const inline = toBytes(obj.data);
@@ -71,7 +72,7 @@ export async function imageRefToBytes(
     } | null;
   }
 ): Promise<Uint8Array> {
-  if (!ref || typeof ref !== "object") {
+  if (!isObjectLike(ref)) {
     throw new Error("Image input is empty");
   }
   const obj = ref as { data?: unknown; uri?: string };
@@ -79,7 +80,7 @@ export async function imageRefToBytes(
   if (obj.data instanceof Uint8Array && obj.data.length > 0) {
     return new Uint8Array(obj.data);
   }
-  if (typeof obj.data === "string" && obj.data.length > 0) {
+  if (isNonEmptyString(obj.data)) {
     return Uint8Array.from(Buffer.from(obj.data, "base64"));
   }
 

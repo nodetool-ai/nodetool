@@ -11,6 +11,7 @@
 import type { Logger } from "@nodetool-ai/config";
 import type { OAuthTokens } from "./types.js";
 import type { SecureCredentialStore } from "./secure-credential-store.js";
+import { isNumber, isObjectLike, isString } from "../../type-predicates.js";
 
 /** Load / persist / clear a single account's OAuth token set. */
 export interface TokenStore {
@@ -30,16 +31,16 @@ function parseTokens(raw: string): OAuthTokens | null {
   } catch {
     return null;
   }
-  if (typeof value !== "object" || value === null) return null;
+  if (!isObjectLike(value)) return null;
   const v = value as Record<string, unknown>;
-  if (typeof v.accessToken !== "string") return null;
+  if (!isString(v.accessToken)) return null;
   return {
     accessToken: v.accessToken,
-    refreshToken: typeof v.refreshToken === "string" ? v.refreshToken : null,
-    tokenType: typeof v.tokenType === "string" ? v.tokenType : "Bearer",
-    scope: typeof v.scope === "string" ? v.scope : null,
-    expiresAt: typeof v.expiresAt === "number" ? v.expiresAt : null,
-    receivedAt: typeof v.receivedAt === "number" ? v.receivedAt : Date.now()
+    refreshToken: isString(v.refreshToken) ? v.refreshToken : null,
+    tokenType: isString(v.tokenType) ? v.tokenType : "Bearer",
+    scope: isString(v.scope) ? v.scope : null,
+    expiresAt: isNumber(v.expiresAt) ? v.expiresAt : null,
+    receivedAt: isNumber(v.receivedAt) ? v.receivedAt : Date.now()
   };
 }
 

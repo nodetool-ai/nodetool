@@ -4,6 +4,7 @@
 
 import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { BASE_URL } from "../stores/BASE_URL";
+import { isString } from "./typePredicates";
 
 export type ImageData = string | Uint8Array | number[];
 
@@ -82,7 +83,7 @@ export const createImageUrl = (
     return { url: "", blobUrl: null };
   }
 
-  if (typeof data === "string") {
+  if (isString(data)) {
     if (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||

@@ -3,6 +3,13 @@ import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore
 import { Viewport } from "@xyflow/react";
 import { useReactFlowEvents } from "../useReactFlowEvents";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === 'function';
+
 jest.mock("@xyflow/react");
 
 const mockSetViewport = jest.fn();
@@ -14,7 +21,7 @@ const { renderHook } = nodeStoreRenderers(
 jest.mock("../../../stores/NodeMenuStore", () => ({
   __esModule: true,
   default: jest.fn((selector) => {
-    if (typeof selector === 'function') {
+    if (mockIsFunction(selector)) {
       return selector({ closeNodeMenu: mockCloseNodeMenu });
     }
     return { closeNodeMenu: mockCloseNodeMenu };

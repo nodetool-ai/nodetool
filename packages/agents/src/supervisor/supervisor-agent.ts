@@ -31,6 +31,7 @@ import type { Step, Task } from "../types.js";
 import { buildSupervisorPrompt } from "./prompt.js";
 import { buildVerdictSchema } from "./verdict-schema.js";
 import { createSupervisorTools } from "./tools.js";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.supervisor");
 
@@ -236,14 +237,14 @@ export class SupervisorAgent implements SupervisorHandle {
  * off here and kept in memory rather than dropped.
  */
 function parseVerdict(result: unknown): Verdict | null {
-  if (result === null || typeof result !== "object") return null;
+  if (!isObjectLike(result)) return null;
   const { rationale: _rationale, ...rest } = result as Record<string, unknown>;
   const parsed = verdictSchema.safeParse(rest);
   return parsed.success ? parsed.data : null;
 }
 
 function readRationale(result: unknown): string {
-  if (result === null || typeof result !== "object") return "";
+  if (!isObjectLike(result)) return "";
   const value = (result as Record<string, unknown>)["rationale"];
-  return typeof value === "string" ? value : "";
+  return isString(value) ? value : "";
 }

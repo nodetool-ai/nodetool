@@ -11,6 +11,7 @@ import type {
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { isString } from "../../utils/typePredicates";
 
 interface MusicModelSelectProps {
   onChange: (value: MusicModelValue) => void;
@@ -34,7 +35,7 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
   });
 
   const modelId = useMemo(() => {
-    if (typeof value === "string") {
+    if (isString(value)) {
       return value;
     }
     return value?.id || "";

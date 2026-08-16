@@ -29,6 +29,7 @@ import {
   LocalhostProxyRequest,
   RuntimePackageId,
 } from "./types.d";
+import { isString } from "./typePredicates";
 
 // ============================================================================
 // Type Definitions
@@ -76,7 +77,7 @@ const menuEventUnsubscribers = new Map<
  * Validates that a path string is safe (no null bytes, reasonable length)
  */
 function validatePath(path: string): string {
-  if (typeof path !== "string") {
+  if (!isString(path)) {
     throw new Error("Path must be a string");
   }
   if (path.includes("\0")) {
@@ -92,7 +93,7 @@ function validatePath(path: string): string {
  * Validates that a URL string is safe
  */
 function validateUrl(url: string): string {
-  if (typeof url !== "string") {
+  if (!isString(url)) {
     throw new Error("URL must be a string");
   }
   if (url.length > 8192) {
@@ -114,7 +115,7 @@ function validateUrl(url: string): string {
  * Validates repository ID format (owner/repo)
  */
 function validateRepoId(repoId: string): string {
-  if (typeof repoId !== "string") {
+  if (!isString(repoId)) {
     throw new Error("Repository ID must be a string");
   }
   if (!/^[\w.-]+\/[\w.-]+$/.test(repoId)) {
@@ -125,7 +126,7 @@ function validateRepoId(repoId: string): string {
 
 /** Validate an npm package spec — name with optional scope and version. */
 function validateNpmSpec(spec: string): string {
-  if (typeof spec !== "string") {
+  if (!isString(spec)) {
     throw new Error("Pack spec must be a string");
   }
   if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.\-^~><=*]+)?$/i.test(spec)) {
@@ -136,7 +137,7 @@ function validateNpmSpec(spec: string): string {
 
 /** Validate a vault display name — non-empty after trimming, bounded length. */
 function validateVaultName(name: string): string {
-  if (typeof name !== "string") {
+  if (!isString(name)) {
     throw new Error("Vault name must be a string");
   }
   const trimmed = name.trim();
@@ -151,7 +152,7 @@ function validateVaultName(name: string): string {
 
 /** Validate a bare npm package name (no version). */
 function validateNpmName(name: string): string {
-  if (typeof name !== "string") {
+  if (!isString(name)) {
     throw new Error("Pack name must be a string");
   }
   if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i.test(name)) {

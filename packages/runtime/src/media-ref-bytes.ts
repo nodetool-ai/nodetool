@@ -2,6 +2,7 @@ import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
+import { isNonEmptyString } from "./type-predicates.js";
 
 const _nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
   "node:fs/promises"
@@ -137,7 +138,7 @@ export async function loadMediaRefBytes(
   }
 
   const data = value.data;
-  if (typeof data === "string" && data.length > 0) {
+  if (isNonEmptyString(data)) {
     return data.startsWith("data:") ? decodeDataUri(data) : decodeBase64(data);
   }
   if (data instanceof Uint8Array && data.length > 0) {

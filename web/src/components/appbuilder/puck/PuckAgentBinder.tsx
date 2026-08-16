@@ -38,6 +38,7 @@ import {
 } from "@nodetool-ai/app-runtime";
 import type { WorkflowState } from "../workflowState";
 import { useOperationScripts } from "../useOperationScripts";
+import { isString } from "../../../utils/typePredicates";
 
 interface PuckAgentBinderProps {
   config: Config;
@@ -278,7 +279,7 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
           resources: metaRef.current.resources,
           variables: metaRef.current.variables
         };
-        if (typeof themeId === "string" && themeId) {
+        if (isString(themeId) && themeId) {
           document.theme = { id: themeId };
         }
         return document;

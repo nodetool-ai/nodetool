@@ -3,6 +3,7 @@ import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import { SecretResponse } from "./ApiTypes";
 import { queryClient } from "../queryClient";
+import { isString } from "../utils/typePredicates";
 
 /**
  * What the server learned by probing a credential. `unverifiable` is its own
@@ -83,7 +84,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
         key,
         decrypt: true
       });
-      return typeof data.value === "string" ? data.value : null;
+      return isString(data.value) ? data.value : null;
     } catch {
       return null;
     }

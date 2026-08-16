@@ -20,6 +20,7 @@ import {
   SANDBOX_WASM_BRIDGE_BINDING,
   type InterpreterOutcome
 } from "./interpreter.js";
+import { isFunction } from "../utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // Bridge shape
@@ -81,7 +82,7 @@ function isMemberTable(value: unknown): value is Record<string, unknown> {
   if (Array.isArray(value)) return false;
   const entries = Object.entries(value as Record<string, unknown>);
   if (entries.length === 0) return false;
-  return entries.every(([, member]) => typeof member === "function");
+  return entries.every(([, member]) => isFunction(member));
 }
 
 /**
@@ -96,7 +97,7 @@ export function deriveBridgeShape(table: BridgeTable): BridgeShape {
   const values: Record<string, unknown> = {};
 
   for (const [name, value] of Object.entries(table.bridges)) {
-    if (typeof value === "function") {
+    if (isFunction(value)) {
       flat.push(name);
     } else if (isMemberTable(value)) {
       objects[name] = Object.keys(value).sort();
@@ -113,7 +114,7 @@ export function deriveBridgeShape(table: BridgeTable): BridgeShape {
   const globals: Record<string, GlobalShape> = {};
   for (const [name, value] of Object.entries(table.globals ?? {})) {
     globals[name] =
-      typeof value === "function" ? { kind: "fn" } : { kind: "value", value };
+      isFunction(value) ? { kind: "fn" } : { kind: "value", value };
   }
 
   return { flat: flat.sort(), objects, values, dispatchers, globals };
@@ -242,7 +243,7 @@ export function precheckCloneSafety(
   globals: Readonly<Record<string, unknown>>
 ): CloneSafetyVerdict {
   for (const [name, value] of Object.entries(globals)) {
-    if (typeof value === "function") continue;
+    if (isFunction(value)) continue;
     const reason = scan(value, `globals.${name}`, 0, new Set<object>());
     if (reason !== null) return { ok: false, reason };
   }

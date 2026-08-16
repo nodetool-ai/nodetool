@@ -9,6 +9,13 @@ import { useNodes } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSelect from "../../nodes/useSelect";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === 'function';
+
 /** A drag/click target that answers `classList.contains("react-flow__pane")`. */
 const paneTarget = (isPane: boolean): HTMLDivElement => {
   const el = document.createElement("div");
@@ -46,7 +53,7 @@ jest.mock("../../../stores/NodeMenuStore", () => {
         closeNodeMenu: mockCloseNodeMenu,
         isMenuOpen: mockIsMenuOpen
       };
-      if (typeof selector === 'function') {
+      if (mockIsFunction(selector)) {
         return selector(mockModule);
       }
       return mockModule;
@@ -84,7 +91,7 @@ describe("usePaneEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (mockIsFunction(selector)) {
         return selector({
           createNode: mockCreateNode,
           addNode: mockAddNode

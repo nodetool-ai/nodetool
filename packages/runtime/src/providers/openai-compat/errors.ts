@@ -6,6 +6,8 @@
  * matching on `String(error)` (BaseProvider.isRateLimitError looks for `429` /
  * "rate limit", isContextLengthError for "context length", …).
  */
+import { isNumber, isString } from "../../type-predicates.js";
+
 export class OpenAICompatError extends Error {
   /** HTTP status; `undefined` for mid-stream error events with no status. */
   readonly status: number | undefined;
@@ -48,7 +50,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
+  return isString(value) ? value : null;
 }
 
 /**
@@ -68,14 +70,13 @@ export function parseErrorBody(text: string): ParsedErrorBody {
   const err = isRecord(root.error) ? root.error : root;
   const message =
     stringOrNull(err.message) ??
-    (typeof root.error === "string" ? root.error : null) ??
+    (isString(root.error) ? root.error : null) ??
     text;
 
   return {
     message,
     code:
-      stringOrNull(err.code) ??
-      (typeof err.code === "number" ? String(err.code) : null),
+      stringOrNull(err.code) ?? (isNumber(err.code) ? String(err.code) : null),
     type: stringOrNull(err.type),
     param: stringOrNull(err.param),
     body: parsed
@@ -100,21 +101,19 @@ export function errorFromStreamEvent(
 ): OpenAICompatError | null {
   const err = event.error;
   if (err === undefined || err === null) return null;
-  if (typeof err === "string") {
+  if (isString(err)) {
     return new OpenAICompatError(undefined, err, { body: event });
   }
   if (!isRecord(err)) return null;
   const message = stringOrNull(err.message) ?? "stream error";
-  const status =
-    typeof err.status === "number"
-      ? err.status
-      : typeof err.http_status === "number"
-        ? err.http_status
-        : undefined;
+  const status = isNumber(err.status)
+    ? err.status
+    : isNumber(err.http_status)
+      ? err.http_status
+      : undefined;
   return new OpenAICompatError(status, message, {
     code:
-      stringOrNull(err.code) ??
-      (typeof err.code === "number" ? String(err.code) : null),
+      stringOrNull(err.code) ?? (isNumber(err.code) ? String(err.code) : null),
     type: stringOrNull(err.type),
     param: stringOrNull(err.param),
     body: event

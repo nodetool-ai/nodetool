@@ -24,6 +24,7 @@ import type { AppEvent } from "@nodetool-ai/app-runtime";
 import { useTheme } from "../../hooks/useTheme";
 import { useModelsForType } from "../../hooks/useModelsByProvider";
 import { useWidgetRuntime } from "./useWidgetRuntime";
+import { isString } from "../../utils/typePredicates";
 
 interface ModelSelectProps {
   id: string;
@@ -33,8 +34,7 @@ interface ModelSelectProps {
   props: Record<string, unknown>;
 }
 
-const str = (value: unknown): string =>
-  typeof value === "string" ? value : "";
+const str = (value: unknown): string => (isString(value) ? value : "");
 
 /** The six model kinds a workflow input can ask for. */
 const MODEL_KINDS = [

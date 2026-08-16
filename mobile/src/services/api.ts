@@ -14,6 +14,7 @@ import {
   saveApiHost as saveSharedApiHost,
   setCachedApiHost
 } from "./apiHost";
+import { isNonEmptyString } from "../utils/typePredicates";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -342,7 +343,7 @@ class ApiService {
         // Not JSON — fall through to the status message below.
       }
       throw new Error(
-        typeof detail === "string" && detail.length > 0
+        isNonEmptyString(detail)
           ? detail
           : `The script run failed (HTTP ${error.status}).`
       );

@@ -52,7 +52,7 @@ describe("rankSearchNodes", () => {
     const results = rankSearchNodes(nodes, "math");
     if (results.length > 0) {
       expect(results[0].searchInfo).toBeDefined();
-      expect(typeof results[0].searchInfo!.score).toBe("number");
+      expect(results[0].searchInfo!.score).toEqual(expect.any(Number));
     }
   });
 

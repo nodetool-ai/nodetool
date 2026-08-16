@@ -31,6 +31,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
+import { isString } from "../../utils/typePredicates";
 
 export interface AutocompleteTagInputProps {
   /** Label for the input */
@@ -69,7 +70,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
   const handleChange = useCallback(
     (_event: React.SyntheticEvent, newValue: (string | { inputValue?: string })[]) => {
       const tags = newValue.map((v) =>
-        typeof v === "string" ? v : (v.inputValue ?? "")
+        isString(v) ? v : (v.inputValue ?? "")
       );
       onChange(tags);
     },
@@ -92,7 +93,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
   );
 
   const getOptionLabel = useCallback((option: string | { inputValue?: string }) => {
-    return typeof option === "string" ? option : (option.inputValue ?? "");
+    return isString(option) ? option : (option.inputValue ?? "");
   }, []);
 
   const renderOption = useCallback(

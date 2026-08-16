@@ -35,6 +35,7 @@ import {
   KIND_SCHEMA,
   RESOURCES_SCHEMA
 } from "./memory.specs.js";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 export {
   KNOWN_RESOURCE_TYPES,
@@ -51,7 +52,7 @@ const VALID_KINDS: ReadonlySet<string> = new Set([
 ]);
 
 function coerceKind(value: unknown): ThreadMemoryKind {
-  if (typeof value !== "string") return "note";
+  if (!isString(value)) return "note";
   const lower = value.toLowerCase().trim();
   return (VALID_KINDS.has(lower) ? lower : "note") as ThreadMemoryKind;
 }
@@ -80,14 +81,14 @@ async function normalizeResources(
   const resources: ThreadMemoryResource[] = [];
   const dropped: ThreadMemoryResource[] = [];
   for (const value of raw) {
-    if (!value || typeof value !== "object") continue;
+    if (!isObjectLike(value)) continue;
     const obj = value as Record<string, unknown>;
-    const type = typeof obj.type === "string" ? obj.type.trim() : "";
-    const id = typeof obj.id === "string" ? obj.id.trim() : "";
+    const type = isString(obj.type) ? obj.type.trim() : "";
+    const id = isString(obj.id) ? obj.id.trim() : "";
     if (!type || !id) continue;
     const ref: ThreadMemoryResource = { type, id };
-    if (typeof obj.uri === "string" && obj.uri) ref.uri = obj.uri;
-    if (typeof obj.label === "string" && obj.label) ref.label = obj.label;
+    if (isString(obj.uri) && obj.uri) ref.uri = obj.uri;
+    if (isString(obj.label) && obj.label) ref.label = obj.label;
     if (type === "asset") {
       const asset = await Asset.find(userId, id);
       if (!asset) {
@@ -116,7 +117,7 @@ async function resolveResources(
   const { Asset } = await import("@nodetool-ai/models");
   const out: ThreadMemoryResource[] = [];
   for (const ref of resources) {
-    if (!ref || typeof ref !== "object") continue;
+    if (!isObjectLike(ref)) continue;
     if (ref.type === "asset") {
       const asset = await Asset.find(userId, ref.id);
       if (!asset) continue;
@@ -170,7 +171,7 @@ const threadMemorySave: CapabilityExport = {
     if ("error" in scope) return { success: false, error: scope.error };
 
     const content =
-      typeof params.content === "string" ? params.content.trim() : "";
+      isString(params.content) ? params.content.trim() : "";
     if (!content) {
       return {
         success: false,
@@ -188,7 +189,7 @@ const threadMemorySave: CapabilityExport = {
         user_id: scope.userId,
         thread_id: scope.threadId,
         kind: coerceKind(params.kind),
-        title: typeof params.title === "string" ? params.title.trim() : "",
+        title: isString(params.title) ? params.title.trim() : "",
         content,
         resources: resources.length > 0 ? resources : null
       });
@@ -264,7 +265,7 @@ const threadMemoryUpdate: CapabilityExport = {
     if ("error" in scope) return { success: false, error: scope.error };
 
     const memoryId =
-      typeof params.memory_id === "string" ? params.memory_id : "";
+      isString(params.memory_id) ? params.memory_id : "";
     if (!memoryId) {
       return { success: false, error: "memory_id is required" };
     }
@@ -277,9 +278,9 @@ const threadMemoryUpdate: CapabilityExport = {
       }
 
       let dropped: ThreadMemoryResource[] = [];
-      if (typeof params.content === "string")
+      if (isString(params.content))
         memory.content = params.content.trim();
-      if (typeof params.title === "string") memory.title = params.title.trim();
+      if (isString(params.title)) memory.title = params.title.trim();
       if (params.kind !== undefined) memory.kind = coerceKind(params.kind);
       if (params.resources !== undefined) {
         const normalized = await normalizeResources(
@@ -318,7 +319,7 @@ const threadMemoryDelete: CapabilityExport = {
     if ("error" in scope) return { success: false, error: scope.error };
 
     const memoryId =
-      typeof params.memory_id === "string" ? params.memory_id : "";
+      isString(params.memory_id) ? params.memory_id : "";
     if (!memoryId) {
       return { success: false, error: "memory_id is required" };
     }

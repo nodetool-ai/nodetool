@@ -19,6 +19,7 @@ import {
   WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
+import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 interface JobSubscriptionContext {
   clipId: string;
@@ -116,9 +117,9 @@ const forwardWorkflowMessage = (
   // Per-node status/error are scoped by the producing run's job_id so
   // concurrent same-workflow runs stay isolated. Skip the write if absent.
   const jobId =
-    typeof message.job_id === "string" ? message.job_id : undefined;
+    isString(message.job_id) ? message.job_id : undefined;
 
-  if (message.type === "prediction" && typeof message.node_id === "string") {
+  if (message.type === "prediction" && isString(message.node_id)) {
     if (message.status === "booting" && jobId) {
       useStatusStore
         .getState()
@@ -129,9 +130,9 @@ const forwardWorkflowMessage = (
 
   if (
     message.type === "node_progress" &&
-    typeof message.node_id === "string" &&
-    typeof message.progress === "number" &&
-    typeof message.total === "number"
+    isString(message.node_id) &&
+    isNumber(message.progress) &&
+    isNumber(message.total)
   ) {
     if (jobId) {
       useResultsStore.getState().setProgress(
@@ -140,12 +141,12 @@ const forwardWorkflowMessage = (
         message.node_id,
         message.progress,
         message.total,
-        typeof message.chunk === "string" ? message.chunk : undefined
+        isString(message.chunk) ? message.chunk : undefined
       );
     }
     const progressPercent =
       message.total > 0 ? (message.progress / message.total) * 100 : 0;
-    if (typeof message.job_id === "string") {
+    if (isString(message.job_id)) {
       useTimelineGenerationStore
         .getState()
         .updateJobProgress(message.job_id, progressPercent);
@@ -153,21 +154,21 @@ const forwardWorkflowMessage = (
     return;
   }
 
-  if (message.type === "node_update" && typeof message.node_id === "string") {
+  if (message.type === "node_update" && isString(message.node_id)) {
     if (!jobId) {
       return;
     }
     const nodeStatus =
-      typeof message.status === "string"
+      isString(message.status)
         ? message.status
-        : typeof message.status === "object" && message.status !== null
+        : isObjectLike(message.status)
           ? (message.status as Record<string, unknown>)
         : undefined;
     useStatusStore
       .getState()
       .setStatus(workflowId, jobId, message.node_id, nodeStatus);
     const nodeError =
-      typeof message.error === "string" && message.error.trim().length > 0
+      isString(message.error) && message.error.trim().length > 0
         ? message.error
         : null;
     useErrorStore
@@ -176,7 +177,7 @@ const forwardWorkflowMessage = (
     return;
   }
 
-  if (isOutputUpdate(message) && typeof message.node_id === "string" && jobId) {
+  if (isOutputUpdate(message) && isString(message.node_id) && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
@@ -252,7 +253,7 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
 
   if (status === "failed" || status === "timed_out") {
     const errorMessage =
-      typeof message.error === "string" && message.error.trim().length > 0
+      isString(message.error) && message.error.trim().length > 0
         ? message.error
         : `Job ${status}`;
 

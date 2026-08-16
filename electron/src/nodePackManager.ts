@@ -30,6 +30,7 @@ import { getProcessEnv, resolveNpmInvocation } from "./config";
 import type {
   NodePackInfo
 } from "./types";
+import { isString } from "./typePredicates";
 
 /** The directory `npm install` runs in (parent of `node_modules`). */
 export function getNodePackInstallRoot(): string {
@@ -68,13 +69,13 @@ type LockfilePackages = Record<string, z.infer<typeof lockfileEntrySchema>>;
 const LEDGER_FILE = "nodetool-packs.json";
 
 function assertValidSpec(spec: string): void {
-  if (typeof spec !== "string" || !SPEC_RE.test(spec)) {
+  if (!isString(spec) || !SPEC_RE.test(spec)) {
     throw new Error(`Invalid npm pack spec: ${String(spec)}`);
   }
 }
 
 function assertValidName(name: string): void {
-  if (typeof name !== "string" || !NAME_RE.test(name)) {
+  if (!isString(name) || !NAME_RE.test(name)) {
     throw new Error(`Invalid npm pack name: ${String(name)}`);
   }
 }

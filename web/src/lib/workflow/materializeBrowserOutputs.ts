@@ -25,6 +25,7 @@
  * {@link bitmapToPngDataUrl} or an async blob encode.
  */
 import { RAW_RGBA_MIME, isBitmapImage } from "@nodetool-ai/protocol";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 /**
  * Encode a raw-RGBA image ref (straight-alpha RGBA8 pixels, no container) to a
@@ -104,8 +105,8 @@ function materializeImageRef(
   if (
     ref.mimeType === RAW_RGBA_MIME &&
     ref.data instanceof Uint8Array &&
-    typeof ref.width === "number" &&
-    typeof ref.height === "number"
+    isNumber(ref.width) &&
+    isNumber(ref.height)
   ) {
     const url = rawRgbaToPngDataUrl(ref.data, ref.width, ref.height);
     if (!url) return ref;
@@ -114,7 +115,7 @@ function materializeImageRef(
 
   // Inline base64 (the encoded-PNG in-flight format) → data URL. `data` is the
   // authoritative new content, so it supersedes any stale carried-over uri.
-  if (typeof ref.data === "string" && ref.data.length > 0) {
+  if (isString(ref.data) && ref.data.length > 0) {
     const url = ref.data.startsWith("data:")
       ? ref.data
       : `data:image/png;base64,${ref.data}`;

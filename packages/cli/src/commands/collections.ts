@@ -19,6 +19,7 @@ import { Workflow } from "@nodetool-ai/models";
 
 import { asJson, printTable, printKv, confirm } from "./output.js";
 import { setupLocalDb } from "./local-db.js";
+import { isNonEmptyString } from "../predicates.js";
 
 function fail(e: unknown): never {
   if (e instanceof CollectionNotFoundError) {
@@ -33,7 +34,7 @@ function fail(e: unknown): never {
 async function workflowName(
   id: MetadataValue | undefined
 ): Promise<string | null> {
-  if (typeof id !== "string" || !id) {
+  if (!isNonEmptyString(id)) {
     return null;
   }
   try {

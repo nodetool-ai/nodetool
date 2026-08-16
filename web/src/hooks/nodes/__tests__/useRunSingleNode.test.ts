@@ -288,7 +288,7 @@ describe("useRunSingleNode", () => {
     const inputSignatures = mockRun.mock.calls[0][7];
     // One entry per submitted node, keyed by node id.
     expect(Object.keys(inputSignatures)).toEqual([nodeId]);
-    expect(typeof inputSignatures[nodeId]).toBe("string");
+    expect(inputSignatures[nodeId]).toEqual(expect.any(String));
     expect(inputSignatures[nodeId].length).toBeGreaterThan(0);
   });
 });

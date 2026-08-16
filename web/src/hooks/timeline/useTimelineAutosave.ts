@@ -39,6 +39,7 @@ import { trpcClient } from "../../trpc/client";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
+import { isString } from "../../utils/typePredicates";
 
 const DEFAULT_DEBOUNCE_MS = 750;
 
@@ -172,7 +173,7 @@ export function useTimelineAutosave(
         // Only roll the token forward while the store still holds the saved
         // sequence — otherwise we'd poison a newly loaded sequence's token.
         if (
-          typeof updatedAt === "string" &&
+          isString(updatedAt) &&
           store.getState().sequenceId === snapshot.sequenceId
         ) {
           store.getState().setBaseUpdatedAt(updatedAt);

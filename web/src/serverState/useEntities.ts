@@ -20,6 +20,7 @@ import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import type { Asset } from "../stores/ApiTypes";
 import { mediaRefFromAsset } from "../utils/mediaRef";
 import { trpcClient } from "../trpc/client";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 /** The Entity-without-images object stored on `metadata.nodetool_entity`. */
 export interface EntityMarker {
@@ -47,21 +48,21 @@ export function readEntityMarker(
   metadata: Record<string, unknown> | null | undefined
 ): EntityMarker | null {
   const raw = metadata?.[ENTITY_METADATA_KEY];
-  if (!raw || typeof raw !== "object") {
+  if (!raw || !isObjectLike(raw)) {
     return null;
   }
   const obj = raw as Record<string, unknown>;
-  const kind = typeof obj.kind === "string" ? obj.kind : "";
+  const kind = isString(obj.kind) ? obj.kind : "";
   if (!VALID_KINDS.has(kind)) {
     return null;
   }
   return {
     kind: kind as EntityKind,
-    name: typeof obj.name === "string" ? obj.name : "",
-    descriptor: typeof obj.descriptor === "string" ? obj.descriptor : "",
+    name: isString(obj.name) ? obj.name : "",
+    descriptor: isString(obj.descriptor) ? obj.descriptor : "",
     description:
-      typeof obj.description === "string" ? obj.description : undefined,
-    voice_id: typeof obj.voice_id === "string" ? obj.voice_id : undefined,
+      isString(obj.description) ? obj.description : undefined,
+    voice_id: isString(obj.voice_id) ? obj.voice_id : undefined,
     tags: Array.isArray(obj.tags)
       ? obj.tags.filter((t): t is string => typeof t === "string")
       : undefined,

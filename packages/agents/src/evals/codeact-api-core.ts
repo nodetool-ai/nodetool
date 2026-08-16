@@ -24,12 +24,18 @@ import {
   type CodeActEvalCase,
   type CodeActToolRecorder
 } from "./codeact-cases.js";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 const str = (value: unknown): string =>
   value === undefined || value === null ? "" : String(value);
 
 const record = (value: unknown): Record<string, unknown> =>
-  value && typeof value === "object" && !Array.isArray(value)
+  isRecord(value)
     ? (value as Record<string, unknown>)
     : {};
 
@@ -1133,7 +1139,7 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       },
       (params) => {
         const output =
-          typeof params["output_file"] === "string" && params["output_file"]
+          isString(params["output_file"]) && params["output_file"]
             ? params["output_file"]
             : "out.mp4";
         const asset = world.saveAsset(output, "ffmpeg", "video/mp4");
@@ -1152,7 +1158,7 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       (params) => {
         const url = str(params["url"]);
         const output =
-          typeof params["output_file"] === "string" && params["output_file"]
+          isString(params["output_file"]) && params["output_file"]
             ? params["output_file"]
             : "download.mp4";
         const asset = world.saveAsset(output, url, "video/mp4");
@@ -1322,10 +1328,10 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
 }
 
 const asObject = (value: unknown): Record<string, unknown> =>
-  value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  isObjectLike(value) ? (value as Record<string, unknown>) : {};
 
 const isAssetUri = (value: unknown): boolean =>
-  typeof value === "string" && value.startsWith("asset://");
+  isString(value) && value.startsWith("asset://");
 
 export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
   {
@@ -1449,7 +1455,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
         return (
           isAssetUri(result["asset_uri"]) &&
           result["verdict"] === "pass" &&
-          typeof result["score"] === "number" &&
+          isNumber(result["score"]) &&
           result["score"] >= 0.75
         );
       },
@@ -1592,7 +1598,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
         const result = asObject(r);
         return (
           result["content"] === "fox: ok" &&
-          typeof result["asset_id"] === "string" &&
+          isString(result["asset_id"]) &&
           result["asset_id"].startsWith("asset_")
         );
       },

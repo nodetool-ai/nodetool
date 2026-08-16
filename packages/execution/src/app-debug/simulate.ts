@@ -67,6 +67,11 @@ import type {
   ResolvedAppTarget,
   SeedResourceItem
 } from "./types.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -193,8 +198,8 @@ const BRANCHING_NODE_TYPES = new Set(["nodetool.control.If"]);
 function conditionalNodeIds(graph: DebugGraph): Set<string> {
   const downstream = new Map<string, string[]>();
   for (const edge of graph.edges) {
-    const source = typeof edge.source === "string" ? edge.source : null;
-    const target = typeof edge.target === "string" ? edge.target : null;
+    const source = isString(edge.source) ? edge.source : null;
+    const target = isString(edge.target) ? edge.target : null;
     if (!source || !target) continue;
     const list = downstream.get(source);
     if (list) list.push(target);
@@ -204,8 +209,8 @@ function conditionalNodeIds(graph: DebugGraph): Set<string> {
   const conditional = new Set<string>();
   const queue: string[] = [];
   for (const node of graph.nodes) {
-    const id = typeof node.id === "string" ? node.id : null;
-    const type = typeof node.type === "string" ? node.type : null;
+    const id = isString(node.id) ? node.id : null;
+    const type = isString(node.type) ? node.type : null;
     if (id && type && BRANCHING_NODE_TYPES.has(type)) queue.push(id);
   }
   while (queue.length > 0) {
@@ -248,10 +253,10 @@ export function withNodePropertyOverlays(
   return {
     nodes: graph.nodes.map((node) => {
       const overlay =
-        typeof node.id === "string" ? byNode.get(node.id) : undefined;
+        isString(node.id) ? byNode.get(node.id) : undefined;
       if (!overlay) return node;
       const properties =
-        typeof node.properties === "object" && node.properties !== null
+        isObjectLike(node.properties)
           ? (node.properties as Record<string, unknown>)
           : {};
       return { ...node, properties: { ...properties, ...overlay } };
@@ -267,7 +272,7 @@ export function withNodePropertyOverlays(
  */
 function isEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null) return true;
-  if (typeof value === "string") return value.length === 0;
+  if (isString(value)) return value.length === 0;
   if (Array.isArray(value)) return value.length === 0;
   return false;
 }
@@ -284,7 +289,7 @@ function isEmptyValue(value: unknown): boolean {
 const ERROR_VALUE = /^(?:[A-Z][A-Za-z]*)?Error:\s+\S/;
 
 function errorLikeValue(value: unknown): string | null {
-  if (typeof value !== "string" || !ERROR_VALUE.test(value)) return null;
+  if (!isString(value) || !ERROR_VALUE.test(value)) return null;
   return value.replace(/\s+/g, " ").slice(0, 200);
 }
 
@@ -292,13 +297,13 @@ function errorLikeValue(value: unknown): string | null {
 function nodeIdsByName(graph: DebugGraph): Map<string, string> {
   const byName = new Map<string, string>();
   for (const node of graph.nodes) {
-    const id = typeof node.id === "string" ? node.id : null;
+    const id = isString(node.id) ? node.id : null;
     // Runner shape carries node props under `properties`; editor JSON uses
     // `data`, and this runs against both.
     const props = (node.properties ?? node.data) as
       | Record<string, unknown>
       | undefined;
-    const name = typeof props?.name === "string" ? props.name : null;
+    const name = isString(props?.name) ? props.name : null;
     if (id && name && !byName.has(name)) byName.set(name, id);
   }
   return byName;
@@ -376,7 +381,7 @@ function buildAppVerdict(
     const byName = nodeIdsByName(graph);
     const nodeIds = new Set(
       graph.nodes
-        .map((n) => (typeof n.id === "string" ? n.id : ""))
+        .map((n) => (isString(n.id) ? n.id : ""))
         .filter(Boolean)
     );
     // Variables a widget writes rather than the graph — a chat composer's
@@ -938,7 +943,7 @@ export async function simulateApp(
       const seeds: SeedResourceItem[] = [];
       for (const item of items) {
         const seed = item as SeedResourceItem | null;
-        if (!seed || typeof seed.id !== "string" || seed.id.length === 0) {
+        if (!seed || !isNonEmptyString(seed.id)) {
           return `Resource seed for "${resourceBindingId}" has an item without an "id".`;
         }
         seeds.push(seed);
@@ -1041,7 +1046,7 @@ export async function simulateApp(
         spec,
         "click" in step ? step.click : step.change
       );
-      if (typeof found === "string") {
+      if (isString(found)) {
         record.error = found;
         continue;
       }

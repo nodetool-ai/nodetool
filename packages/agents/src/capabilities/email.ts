@@ -22,6 +22,7 @@ import {
   archiveEmailSpec,
   addLabelToEmailSpec
 } from "./email.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 function stripHtml(html: string): string {
   const text = html
@@ -175,7 +176,7 @@ const archiveEmail: CapabilityExport = {
 
       try {
         let messageIds = params.message_ids as string | string[];
-        if (typeof messageIds === "string") {
+        if (isString(messageIds)) {
           messageIds = [messageIds];
         }
 

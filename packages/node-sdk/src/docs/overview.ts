@@ -1,5 +1,6 @@
 import type { PackageMetadata, NodeMetadata } from "../metadata.js";
 import { slugifyNodeFilename } from "./nodes.js";
+import { isRecord, isString } from "../type-predicates.js";
 
 export interface OverviewOptions {
   compact?: boolean;
@@ -12,13 +13,13 @@ function shortDescription(text: string | undefined): string {
 }
 
 function exampleLabel(example: unknown): string {
-  if (!example || typeof example !== "object" || Array.isArray(example)) {
+  if (!isRecord(example)) {
     return String(example);
   }
-  const record = example as Record<string, unknown>;
+  const record = example;
   return (
-    (typeof record["name"] === "string" && record["name"]) ||
-    (typeof record["id"] === "string" && record["id"]) ||
+    (isString(record["name"]) && record["name"]) ||
+    (isString(record["id"]) && record["id"]) ||
     "example"
   );
 }

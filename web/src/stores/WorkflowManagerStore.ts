@@ -49,6 +49,7 @@ import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 import { setWorkflowResourceReloader } from "./resourceChangeHandler";
 import { shouldApplyWorkflowRefresh } from "./workflowRefreshPolicy";
+import { isString } from "../utils/typePredicates";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -59,7 +60,7 @@ const isWorkflowNotFoundError = (err: unknown): boolean => {
     if (err.data.code === "NOT_FOUND") return true;
     if (err.data.apiCode === "WORKFLOW_NOT_FOUND") return true;
   }
-  if (typeof err.message === "string") {
+  if (isString(err.message)) {
     return /not found/i.test(err.message);
   }
   return false;

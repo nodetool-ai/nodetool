@@ -4,6 +4,7 @@ import type {
   OutputSlotMetadata,
   TypeMetadata
 } from "../metadata.js";
+import { isObjectLike, isString } from "../type-predicates.js";
 
 export interface NodeDocOptions {
   /** Filter by package_name (matches NodeMetadata.namespace prefix). */
@@ -26,10 +27,10 @@ function escapeCell(value: string): string {
 function formatDefault(value: unknown): string {
   if (value === undefined) return "";
   if (value === null) return "null";
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value.length > 40 ? `"${value.slice(0, 37)}..."` : `"${value}"`;
   }
-  if (typeof value === "object") {
+  if (isObjectLike(value)) {
     try {
       const s = JSON.stringify(value);
       return s.length > 40 ? `${s.slice(0, 37)}...` : s;

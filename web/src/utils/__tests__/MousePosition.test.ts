@@ -38,8 +38,8 @@ describe("MousePosition", () => {
       const position = getMousePosition();
       expect(position).toHaveProperty("x");
       expect(position).toHaveProperty("y");
-      expect(typeof position.x).toBe("number");
-      expect(typeof position.y).toBe("number");
+      expect(position.x).toEqual(expect.any(Number));
+      expect(position.y).toEqual(expect.any(Number));
     });
   });
 

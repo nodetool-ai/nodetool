@@ -16,6 +16,8 @@
  * See docs/workflow-supervisor-design.md §5.2.
  */
 
+import { isBoolean, isNumber, isString } from "./predicates.js";
+
 /** Declared output types that carry a uri/asset id needing resolution. */
 const REFERENCE_TYPES = new Set([
   "image",
@@ -129,22 +131,22 @@ async function validateOne(
   switch (base) {
     case "str":
     case "string":
-      return typeof value === "string"
+      return isString(value)
         ? null
         : `output "${slot}" must be a string, got ${describe(value)}`;
     case "int":
     case "integer":
-      return typeof value === "number" && Number.isInteger(value)
+      return isNumber(value) && Number.isInteger(value)
         ? null
         : `output "${slot}" must be an integer, got ${describe(value)}`;
     case "float":
     case "number":
-      return typeof value === "number" && Number.isFinite(value)
+      return isNumber(value) && Number.isFinite(value)
         ? null
         : `output "${slot}" must be a finite number, got ${describe(value)}`;
     case "bool":
     case "boolean":
-      return typeof value === "boolean"
+      return isBoolean(value)
         ? null
         : `output "${slot}" must be a boolean, got ${describe(value)}`;
     case "list":
@@ -169,8 +171,8 @@ async function validateOne(
     if (ref.type !== base) {
       return `output "${slot}" must carry type "${base}", got ${describe(ref.type)}`;
     }
-    const uri = typeof ref.uri === "string" ? ref.uri : "";
-    const assetId = typeof ref.asset_id === "string" ? ref.asset_id : "";
+    const uri = isString(ref.uri) ? ref.uri : "";
+    const assetId = isString(ref.asset_id) ? ref.asset_id : "";
     if (!uri && !assetId) {
       return `output "${slot}" is a ${base} reference with neither uri nor asset_id`;
     }

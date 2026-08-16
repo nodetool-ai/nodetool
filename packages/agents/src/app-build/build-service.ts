@@ -50,6 +50,7 @@ import {
 import { parseBuildSpec } from "./spec.js";
 import { resolveJudgeModelSpec } from "./judge.js";
 import type { BuildReport, BuildSpec } from "./types.js";
+import { isNumber } from "../utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.app-build-service");
 
@@ -123,7 +124,7 @@ async function loadConfiguredProviders(
  */
 function positive(field: string, value: unknown): number | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+  if (!isNumber(value) || !Number.isFinite(value) || value <= 0) {
     throw new AppServiceError(
       "invalid_input",
       `${field} must be a positive number.`
@@ -135,7 +136,7 @@ function positive(field: string, value: unknown): number | undefined {
 /** A body number that is a non-negative integer. Present-but-invalid is an error. */
 function count(field: string, value: unknown): number | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+  if (!isNumber(value) || !Number.isInteger(value) || value < 0) {
     throw new AppServiceError(
       "invalid_input",
       `${field} must be a non-negative integer.`

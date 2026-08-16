@@ -43,6 +43,11 @@ import {
   CODE_FIELD,
   PACKAGES_FIELD
 } from "./code.specs.js";
+import {
+  isNonBlankString,
+  isObjectLike,
+  isRecord
+} from "../utils/type-guards.js";
 
 export {
   MAX_TIMEOUT_SECONDS,
@@ -293,7 +298,7 @@ function stringList(value: unknown): string[] {
  * not arrays are dropped: a handle with nothing behind it reads as ended.
  */
 function inputStreamBag(value: unknown): Record<string, unknown[]> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return undefined;
   }
   const staged: Record<string, unknown[]> = {};
@@ -306,7 +311,7 @@ function inputStreamBag(value: unknown): Record<string, unknown[]> | undefined {
 }
 
 function inputBag(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
+  if (isRecord(value)) {
     return value as Record<string, unknown>;
   }
   return {};
@@ -430,16 +435,16 @@ const testCode: CapabilityExport = {
 
     const cases: GradedCase[] = rawCases.map((entry, i) => {
       const raw =
-        entry && typeof entry === "object"
+        isObjectLike(entry)
           ? (entry as Record<string, unknown>)
           : {};
       const name =
-        typeof raw["name"] === "string" && raw["name"].trim() !== ""
+        isNonBlankString(raw["name"])
           ? raw["name"]
           : `case ${i + 1}`;
       const staged = inputStreamBag(raw["input_streams"]);
       const graded: GradedCase = { name, inputs: inputBag(raw["inputs"]) };
-      if (raw["expect"] && typeof raw["expect"] === "object") {
+      if (isObjectLike(raw["expect"])) {
         graded.expect = raw["expect"] as Record<string, unknown>;
       }
       if (Array.isArray(raw["expected_streamed"])) {

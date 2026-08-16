@@ -22,6 +22,7 @@ import type { JsScriptTestReport } from "../js-script-debug/harness.js";
 import { printCommandError } from "../command-errors.js";
 import { renderJsScriptValidation } from "./js-script-validation-output.js";
 import { registerJsScriptVersionsCommands } from "./js-script-versions.js";
+import { isRecord } from "../predicates.js";
 
 export { renderJsScriptValidation };
 
@@ -67,7 +68,7 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
   } catch (e) {
     throw new Error(`--inputs is not valid JSON: ${(e as Error).message}`);
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     throw new Error("--inputs must be a JSON object, e.g. '{\"a\":1}'");
   }
   return parsed as Record<string, unknown>;
@@ -88,7 +89,7 @@ export function parseInputStreamsOption(
       `--input-streams is not valid JSON: ${(e as Error).message}`
     );
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     throw new Error(
       "--input-streams must be a JSON object of arrays, e.g. '{\"nums\":[1,2,3]}'"
     );

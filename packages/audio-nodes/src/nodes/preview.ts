@@ -10,6 +10,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { isFunction } from "../type-predicates.js";
 
 export class PreviewNode extends BaseNode {
   static readonly nodeType = "nodetool.workflows.base_node.Preview";
@@ -28,8 +29,7 @@ export class PreviewNode extends BaseNode {
     value: unknown,
     context?: ProcessingContext
   ): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function")
-      return value;
+    if (!context || !isFunction(context.normalizeOutputValue)) return value;
     return context.normalizeOutputValue(value);
   }
 

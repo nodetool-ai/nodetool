@@ -62,6 +62,7 @@ import {
   RESOLVE_ESCALATION_SCHEMA,
   VALIDATE_WORKFLOW_SCHEMA
 } from "./workflows.specs.js";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 export {
   LIST_WORKFLOWS_SCHEMA,
@@ -174,7 +175,7 @@ const createWorkflow: CapabilityExport = {
       user_id: userIdOf(run.context),
       name: String(params["name"]),
       description:
-        typeof params["description"] === "string" ? params["description"] : "",
+        isString(params["description"]) ? params["description"] : "",
       tags: Array.isArray(params["tags"]) ? (params["tags"] as string[]) : [],
       access: params["access"] === "public" ? "public" : "private",
       graph: graph as WorkflowRow["graph"],
@@ -226,8 +227,7 @@ const debugWorkflow: CapabilityExport = {
     // failing node. Hand the escalation back for a verdict; the final report
     // arrives from resolve_workflow_escalation once the run settles.
     if (
-      result &&
-      typeof result === "object" &&
+      isObjectLike(result) &&
       (result as Record<string, unknown>)["status"] === "escalated"
     ) {
       return { workflow_id: workflowId, run: annotateEscalatedRun(result) };
@@ -239,7 +239,7 @@ const debugWorkflow: CapabilityExport = {
     };
 
     const jobId = (result as Record<string, unknown>)?.["job_id"];
-    if (typeof jobId === "string") {
+    if (isString(jobId)) {
       const job = await Job.find(userId, jobId);
       if (job) {
         const logLimit = Number(params["log_limit"] ?? 200);
@@ -270,12 +270,12 @@ const resolveWorkflowEscalation: CapabilityExport = {
     if (action === "substitute" && params["outputs"] !== undefined) {
       verdict["outputs"] = params["outputs"];
     }
-    if (action === "fail" && typeof params["reason"] === "string") {
+    if (action === "fail" && isString(params["reason"])) {
       verdict["reason"] = params["reason"];
     }
     if (
       (action === "skip" || action === "fail") &&
-      typeof params["apply_to"] === "string"
+      isString(params["apply_to"])
     ) {
       verdict["applyTo"] = params["apply_to"];
     }
@@ -296,7 +296,7 @@ const validateWorkflow: CapabilityExport = {
       | { nodes?: unknown[]; edges?: unknown[] }
       | undefined;
     const workflowId = params["workflow_id"] as string | undefined;
-    const code = typeof params["code"] === "string" ? params["code"] : "";
+    const code = isString(params["code"]) ? params["code"] : "";
 
     // A legacy graph program can be checked in the form it was authored in
     // rather than hand-translated to JSON first.

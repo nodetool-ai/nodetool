@@ -6,6 +6,7 @@ import {
   type SdkV1ProfileStatus,
   type SdkV1PythonBridgeStatus
 } from "./sdk-capabilities-service.js";
+import { isFunctionValue } from "../lib/wire-values.js";
 
 type Resolvable<T> = T | (() => T);
 
@@ -29,7 +30,7 @@ export interface CreateNodeToolSdkV1CapabilitiesProviderOptions {
 }
 
 function resolve<T>(value: Resolvable<T>): T {
-  return typeof value === "function" ? (value as () => T)() : value;
+  return isFunctionValue(value) ? (value as () => T)() : value;
 }
 
 /**

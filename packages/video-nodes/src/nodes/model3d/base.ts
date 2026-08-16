@@ -2,6 +2,7 @@ import { BaseNode } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Model3DRefLike } from "./types.js";
 import { modelRef, modelRefToBytes } from "./utils.js";
+import { isObjectLike } from "../../type-predicates.js";
 
 /** Output handles GlbTransformNode.process() emits. */
 type GlbTransformNodeOutputs = {
@@ -13,7 +14,7 @@ export abstract class GlbTransformNode extends BaseNode {
 
   protected getModel(): Model3DRefLike {
     const v = this.model;
-    return v && typeof v === "object" ? (v as Model3DRefLike) : {};
+    return isObjectLike(v) ? (v as Model3DRefLike) : {};
   }
 
   protected abstract transform(

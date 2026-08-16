@@ -7,6 +7,10 @@
 export const isString = (value: unknown): value is string =>
   typeof value === "string";
 
+/** A string with at least one character. */
+export const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0;
+
 export const isNumber = (value: unknown): value is number =>
   typeof value === "number";
 

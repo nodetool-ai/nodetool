@@ -10,6 +10,10 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
+const isFunction = (
+  value: unknown
+): value is (...args: never[]) => unknown => typeof value === "function";
+
 type Out = inferRouterOutputs<AppRouter>["applications"];
 type In = inferRouterInputs<AppRouter>["applications"];
 
@@ -34,7 +38,7 @@ describe("application document round-trip", () => {
   it("exposes read/write helpers whose types line up", () => {
     // The compile step above is the assertion; this keeps the file a suite and
     // pins the helpers so they are not tree-shaken out of the typecheck.
-    expect([duplicate, edit, restore].every((f) => typeof f === "function")).toBe(
+    expect([duplicate, edit, restore].every((f) => isFunction(f))).toBe(
       true
     );
   });

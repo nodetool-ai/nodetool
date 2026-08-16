@@ -21,6 +21,7 @@
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import { createLogger } from "@nodetool-ai/config";
 import type { TaskPlan } from "./types.js";
+import { isObjectLike } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.checkpoint-store");
 
@@ -37,7 +38,7 @@ const _nodeCrypto =
  * their order (caller sorts where order should not matter).
  */
 function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== "object") {
+  if (!isObjectLike(value)) {
     return JSON.stringify(value) ?? "null";
   }
   if (Array.isArray(value)) {

@@ -10,6 +10,7 @@ import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 import { activateOnKey } from "./keyboardActivation";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface CardProps extends BoxProps {
   /** Padding size variant */
@@ -72,7 +73,7 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
 }, ref) => {
   const theme = useTheme();
   
-  const paddingValue = typeof padding === "number" 
+  const paddingValue = isNumber(padding) 
     ? padding 
     : PADDING_VARIANTS[padding];
 

@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const RECORD_STYLE_PREFERENCE_SCHEMA: JsonSchema = {
   type: "object" as const,
@@ -77,7 +78,7 @@ export const recordStylePreferenceSpec: CapabilitySpec = {
   // its own diff, not in a port.
   category: "external",
   userMessage: (params) => {
-    const t = typeof params["takeaway"] === "string" ? params["takeaway"] : "";
+    const t = isString(params["takeaway"]) ? params["takeaway"] : "";
     return t
       ? `Remembering preference: ${t.slice(0, 60)}`
       : "Recording style preference";

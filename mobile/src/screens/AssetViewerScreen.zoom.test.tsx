@@ -13,6 +13,13 @@ import AssetViewerScreen, {
 } from './AssetViewerScreen';
 import type { Asset } from '../services/api';
 
+const isNumber = (value: unknown): value is number =>
+  typeof value === 'number';
+
+/** Anything `typeof` calls an object, `null` aside — an array passes. */
+const isObjectLike = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object';
+
 jest.mock('../utils/saveMedia', () => ({
   saveMediaToLibrary: jest.fn(),
   saveableMediaKind: () => 'image',
@@ -192,10 +199,10 @@ function transformOf() {
   const read = (key: string) => {
     const entry = transform.find((t) => key in t);
     const value = entry?.[key] as unknown;
-    if (value && typeof value === 'object' && '__getValue' in value) {
+    if (isObjectLike(value) && '__getValue' in value) {
       return (value as { __getValue: () => number }).__getValue();
     }
-    return typeof value === 'number' ? value : 0;
+    return isNumber(value) ? value : 0;
   };
   return {
     scale: read('scale'),

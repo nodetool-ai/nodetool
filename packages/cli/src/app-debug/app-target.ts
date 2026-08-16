@@ -34,6 +34,10 @@ import {
   type AppWorkflowRecord,
   type ResolvedAppTarget
 } from "@nodetool-ai/execution/app-debug";
+import {
+  isRecord,
+  isString
+} from "../predicates.js";
 
 export type { ResolvedAppTarget, AppApplicationRecord, AppWorkflowRecord };
 
@@ -43,9 +47,6 @@ export interface AppTargetDeps {
   /** Load an application by DB id. Omitted when the caller has no DB. */
   loadApplication?: (id: string) => Promise<AppApplicationRecord | null>;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const EMPTY_GRAPH: DebugGraph = { nodes: [], edges: [] };
 
@@ -103,8 +104,8 @@ function resolveWorkflow(
 ): ResolvedAppTarget {
   const record = isRecord(raw) ? raw : {};
   const workflowId =
-    (typeof record.workflow_id === "string" ? record.workflow_id : null) ??
-    (typeof record.id === "string" ? record.id : null);
+    (isString(record.workflow_id) ? record.workflow_id : null) ??
+    (isString(record.id) ? record.id : null);
   const rawGraph = graphOf(record.graph) ?? graphOf(record);
   if (!rawGraph) throw new Error("Invalid workflow: missing nodes or edges");
 

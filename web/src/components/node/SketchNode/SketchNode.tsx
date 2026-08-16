@@ -81,6 +81,7 @@ import {
   sketchNodeOutputImageListTypeMetadata,
   sketchNodeOutputImageTypeMetadata
 } from "./sketchNodeIO";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 const SKETCH_IMAGE_OUTPUT = {
   name: "image",
@@ -296,7 +297,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const getSketchRefId = (value: unknown): string | null =>
-  isRecord(value) && typeof value.id === "string" && value.id.length > 0
+  isRecord(value) && isString(value.id) && value.id.length > 0
     ? value.id
     : null;
 
@@ -366,11 +367,11 @@ function getSketchOutputImageUri(
   properties: Record<string, unknown> | undefined
 ): string | null {
   const img = properties?.image;
-  if (!img || typeof img !== "object") {
+  if (!img || !isObjectLike(img)) {
     return null;
   }
   const uri = (img as { uri?: unknown }).uri;
-  return typeof uri === "string" && uri.length > 0 ? uri : null;
+  return isString(uri) && uri.length > 0 ? uri : null;
 }
 
 /**
@@ -380,16 +381,16 @@ function getSketchOutputImageUri(
  *   - wrapped output       { output: { type: "image", uri: "..." } }
  */
 function extractImageUri(result: unknown): string | null {
-  if (!result || typeof result !== "object") {
+  if (!result || !isObjectLike(result)) {
     return null;
   }
   const r = result as Record<string, unknown>;
-  if (typeof r.uri === "string" && r.uri) {
+  if (isString(r.uri) && r.uri) {
     return r.uri;
   }
-  if (r.output && typeof r.output === "object") {
+  if (r.output && isObjectLike(r.output)) {
     const out = r.output as Record<string, unknown>;
-    if (typeof out.uri === "string" && out.uri) {
+    if (isString(out.uri) && out.uri) {
       return out.uri;
     }
   }
@@ -400,7 +401,7 @@ function resolveConnectedOutputValue(
   result: unknown,
   sourceHandle: string | null | undefined
 ): unknown {
-  if (!sourceHandle || !result || typeof result !== "object") {
+  if (!sourceHandle || !result || !isObjectLike(result)) {
     return result;
   }
 
@@ -410,7 +411,7 @@ function resolveConnectedOutputValue(
     return record[sourceHandle];
   }
 
-  if (record.output && typeof record.output === "object") {
+  if (record.output && isObjectLike(record.output)) {
     const outputRecord = record.output as Record<string, unknown>;
     if (sourceHandle in outputRecord) {
       return outputRecord[sourceHandle];
@@ -560,7 +561,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   // Parse sketch document from node properties or the persisted sketch ref.
   const sketchDoc = useMemo((): SketchDocument => {
     const sketchData = props.data.properties?.sketch_data;
-    if (typeof sketchData === "string" && sketchData) {
+    if (isString(sketchData) && sketchData) {
       const parsed = deserializeDocument(sketchData);
       if (parsed) {
         return parsed;
@@ -1179,7 +1180,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       ?.image_document_id;
     if (
       imageEditorOpenMode === "standalone" &&
-      typeof imageDocumentId === "string" &&
+      isString(imageDocumentId) &&
       imageDocumentId.length > 0
     ) {
       const workflowId = props.data.workflow_id;

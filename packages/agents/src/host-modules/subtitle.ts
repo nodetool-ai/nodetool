@@ -6,6 +6,7 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 interface Cue {
   start: number;
@@ -32,7 +33,7 @@ async function loadSubtitle(where: string): Promise<SubtitleLike> {
     mod,
     where,
     "subtitle",
-    (v) => typeof (v as SubtitleLike | undefined)?.parseSync === "function"
+    (v) => isFunction((v as SubtitleLike | undefined)?.parseSync)
   );
 }
 
@@ -56,7 +57,7 @@ export async function stringify(cues: unknown, options?: unknown): Promise<strin
   }
   const lib = await loadSubtitle(where);
   const opts = optionsOf(options);
-  const format = typeof opts.format === "string" ? opts.format : "SRT";
+  const format = isString(opts.format) ? opts.format : "SRT";
   return lib.stringifySync(
     cues.map((item) => {
       const cue = optionsOf(item);

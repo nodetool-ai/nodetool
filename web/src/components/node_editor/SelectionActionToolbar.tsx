@@ -30,6 +30,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { isString } from "../../utils/typePredicates";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -61,7 +62,7 @@ const ARRANGE_BUTTON_SX = { ...actionButtonSx, width: "auto", px: 0.5 } as const
 // so a tooltip never surfaces an internal slug like "runSelected".
 const tooltipFor = (slug: string, label: string): React.ReactNode => {
   const tooltip = getShortcutTooltip(slug, "both", "full", true);
-  return typeof tooltip === "string" && tooltip === slug ? label : tooltip;
+  return isString(tooltip) && tooltip === slug ? label : tooltip;
 };
 
 const ActionButton: React.FC<{

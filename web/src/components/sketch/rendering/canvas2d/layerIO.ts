@@ -8,6 +8,7 @@
 
 import type { LayerContentBounds } from "../../types";
 import { getCanvasRasterBounds } from "../../transform/geometry/layerGeometry";
+import { isString } from "../../../../utils/typePredicates";
 
 // ─── Constants & helper types ────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ export function deserializeLayerData(
       window.atob(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
     ) as Partial<SerializedLayerData>;
     return {
-      image: typeof payload.image === "string" ? payload.image : null,
+      image: isString(payload.image) ? payload.image : null,
       bounds: getDefaultRasterBounds({
         x: payload.bounds?.x ?? fallbackBounds.x,
         y: payload.bounds?.y ?? fallbackBounds.y,

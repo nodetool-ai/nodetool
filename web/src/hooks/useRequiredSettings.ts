@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import useMetadataStore from "../stores/MetadataStore";
 import useRemoteSettingsStore from "../stores/RemoteSettingStore";
+import { isString } from "../utils/typePredicates";
 
 export const useRequiredSettings = (nodeType: string): string[] => {
   const metadata = useMetadataStore((state) => state.getMetadata(nodeType));
@@ -25,7 +26,7 @@ export const useRequiredSettings = (nodeType: string): string[] => {
         !setting ||
         value === null ||
         value === undefined ||
-        (typeof value === "string" && value.trim() === "")
+        (isString(value) && value.trim() === "")
       );
     });
 

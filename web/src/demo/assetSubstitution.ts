@@ -16,15 +16,16 @@
  * and bare string values are all handled uniformly.
  */
 import { CAST_ASSET_SCHEME, type CastAsset, type CastEvent } from "./castTypes";
+import { isObjectLike, isString } from "../utils/typePredicates";
 
 /** Matches the nodetool storage URL for an asset, capturing the asset id. */
 const STORAGE_URL_RE = /\/api\/storage\/([A-Za-z0-9._-]+)/;
 
 /** Deep-clone `value`, passing every string through `replace`. */
 function mapStrings(value: unknown, replace: (s: string) => string): unknown {
-  if (typeof value === "string") return replace(value);
+  if (isString(value)) return replace(value);
   if (Array.isArray(value)) return value.map((v) => mapStrings(v, replace));
-  if (value && typeof value === "object") {
+  if (value && isObjectLike(value)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = mapStrings(v, replace);

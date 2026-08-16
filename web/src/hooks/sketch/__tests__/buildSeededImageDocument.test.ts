@@ -44,7 +44,7 @@ describe("buildSeededImageDocument", () => {
     const layer = result.sketch.layers[0] as Record<string, unknown>;
     expect(layer.name).toBe("photo.png");
     expect(layer.contentBounds).toEqual({ x: 0, y: 0, width: 10, height: 20 });
-    expect(typeof layer.data).toBe("string");
+    expect(layer.data).toEqual(expect.any(String));
     expect((layer.data as string).startsWith(SERIALIZED_PREFIX)).toBe(true);
 
     const decoded = JSON.parse(

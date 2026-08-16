@@ -9,6 +9,7 @@
 
 import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import type { ImageModel, MusicModel, TTSModel, VideoModel } from "./types.js";
+import { isNumber } from "../type-predicates.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
@@ -491,7 +492,7 @@ export function getModelInputFields(
       if (f.default !== undefined) {
         field.default = f.default;
       }
-      if (typeof f.max === "number") {
+      if (isNumber(f.max)) {
         field.max = f.max;
       }
       return field;

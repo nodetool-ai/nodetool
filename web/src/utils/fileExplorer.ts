@@ -1,4 +1,5 @@
 import { useNotificationStore } from "../stores/NotificationStore";
+import { isFunction } from "./typePredicates";
 
 type ModelDirectory = "huggingface" | "ollama";
 
@@ -30,7 +31,7 @@ const explorerUnavailableMessage =
 const LOG_PREFIX = "[fileExplorer]";
 
 function debugLog(message: string, extra?: unknown): void {
-  if (typeof console === "undefined" || typeof console.debug !== "function") {
+  if (typeof console === "undefined" || !isFunction(console.debug)) {
     return;
   }
   if (typeof extra === "undefined") {
@@ -45,8 +46,8 @@ function getExplorerBridge(): ExplorerBridge | null {
 
   if (
     !currentWindow ||
-    typeof currentWindow.api?.openModelDirectory !== "function" ||
-    typeof currentWindow.api?.openModelPath !== "function"
+    !isFunction(currentWindow.api?.openModelDirectory) ||
+    !isFunction(currentWindow.api?.openModelPath)
   ) {
     return null;
   }
@@ -204,7 +205,7 @@ export async function openOllamaPath(): Promise<void> {
  */
 export async function openInstallationPath(): Promise<void> {
   const explorer = getExplorerBridge();
-  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+  if (!explorer || !isFunction(explorer.openSystemDirectory)) {
     debugLog("openInstallationPath aborted because openSystemDirectory is unavailable");
     notify("warning", explorerUnavailableMessage);
     return;
@@ -227,7 +228,7 @@ export async function openInstallationPath(): Promise<void> {
  */
 export async function openLogsPath(): Promise<void> {
   const explorer = getExplorerBridge();
-  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+  if (!explorer || !isFunction(explorer.openSystemDirectory)) {
     debugLog("openLogsPath aborted because openSystemDirectory is unavailable");
     notify("warning", explorerUnavailableMessage);
     return;
@@ -250,7 +251,7 @@ export async function openLogsPath(): Promise<void> {
  */
 export async function openAssetsPath(): Promise<void> {
   const explorer = getExplorerBridge();
-  if (!explorer || typeof explorer.openSystemDirectory !== "function") {
+  if (!explorer || !isFunction(explorer.openSystemDirectory)) {
     debugLog("openAssetsPath aborted because openSystemDirectory is unavailable");
     notify("warning", explorerUnavailableMessage);
     return;
@@ -273,7 +274,7 @@ export async function openAssetsPath(): Promise<void> {
  */
 export function isSystemDirectoryAvailable(): boolean {
   const explorer = getExplorerBridge();
-  return explorer !== null && typeof explorer.openSystemDirectory === "function";
+  return explorer !== null && isFunction(explorer.openSystemDirectory);
 }
 
 export function isPathValid(path: string): boolean {

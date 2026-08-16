@@ -24,6 +24,7 @@ import {
   loadOfflineAudioContext,
   type OfflineAudioContextCtor
 } from "./audio-context.js";
+import { isNonEmptyString, isObjectLike, isString } from "../type-predicates.js";
 
 export interface WavData {
   samples: Float32Array;
@@ -41,13 +42,13 @@ type AudioRefLike = {
 export function toBytes(value: Uint8Array | string | undefined): Uint8Array {
   if (!value) return new Uint8Array();
   if (value instanceof Uint8Array) return value;
-  if (typeof value !== "string") throw new Error("Invalid audio data");
+  if (!isString(value)) throw new Error("Invalid audio data");
   return base64ToBytes(value);
 }
 
 /** Synchronously extract raw bytes from an AudioRef's inline `data` field. */
 export function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
+  if (!isObjectLike(audio)) return new Uint8Array();
   return toBytes((audio as AudioRefLike).data);
 }
 
@@ -59,10 +60,10 @@ export async function audioBytesAsync(
   audio: unknown,
   context?: ProcessingContext
 ): Promise<Uint8Array> {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
+  if (!isObjectLike(audio)) return new Uint8Array();
   const ref = audio as AudioRefLike;
   if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
+  if (isNonEmptyString(ref.uri)) {
     try {
       if (context?.storage) {
         const stored = await context.storage.retrieve(ref.uri);
@@ -97,7 +98,7 @@ export async function requireAudioBytes(
   const bytes = await audioBytesAsync(audio, context);
   if (bytes.length > 0) return bytes;
 
-  const ref = (audio && typeof audio === "object" ? audio : {}) as AudioRefLike;
+  const ref = (isObjectLike(audio) ? audio : {}) as AudioRefLike;
   if (!ref.uri && !ref.asset_id && !ref.data) {
     throw new Error(
       "No audio connected: this effect needs audio on its input, but none was provided."

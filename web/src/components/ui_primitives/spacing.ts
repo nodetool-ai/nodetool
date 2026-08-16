@@ -26,6 +26,7 @@
  */
 
 import { Theme } from "@mui/material/styles";
+import { isNumber } from "../../utils/typePredicates";
 
 /**
  * Canonical spacing scale in theme units (1 unit = 4px).
@@ -159,7 +160,7 @@ export type SpacingValue = number | keyof typeof SPACING;
  * Helper to resolve spacing value to number
  */
 export const resolveSpacing = (value: SpacingValue): number => {
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     return value;
   }
   return SPACING[value];

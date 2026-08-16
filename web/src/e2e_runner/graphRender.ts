@@ -20,6 +20,7 @@ import type {
   OutputSlot,
   Node as GraphNode
 } from "../stores/ApiTypes";
+import { isBoolean, isNumber, isString } from "../utils/typePredicates";
 
 export interface RawGraph {
   nodes: unknown[];
@@ -58,9 +59,9 @@ function inferMetadata(
   const props: Property[] = Object.entries(properties).map(([name, val]) =>
     makeProp(
       name,
-      typeof val === "number"
+      isNumber(val)
         ? "float"
-        : typeof val === "boolean"
+        : isBoolean(val)
           ? "bool"
           : Array.isArray(val)
             ? "list"
@@ -91,7 +92,7 @@ function inferMetadata(
 
 function toWorkflow(raw: RawGraph): Workflow {
   const str = (v: unknown, fallback: string): string =>
-    typeof v === "string" && v.length > 0 ? v : fallback;
+    isString(v) && v.length > 0 ? v : fallback;
   return {
     id: "e2e",
     name: "Workflow",

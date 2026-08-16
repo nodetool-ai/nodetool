@@ -8,6 +8,7 @@
 import React, { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 export interface StackProps extends Omit<BoxProps, 'display' | 'flexDirection'> {
   /** Spacing between children (theme spacing units) */
@@ -51,7 +52,7 @@ const getChildKey = (child: React.ReactNode, index: number): string | number => 
       return child.key;
     }
     const componentType = child.type as string | (React.FC & { displayName?: string });
-    const type = typeof componentType === "string" ? componentType : componentType?.displayName || componentType?.name || "component";
+    const type = isString(componentType) ? componentType : componentType?.displayName || componentType?.name || "component";
     return `${type}-${index}`;
   }
   return index;
@@ -76,7 +77,7 @@ export const Stack = forwardRef<HTMLDivElement, StackProps>(({
         display: "flex",
         flexDirection: "column",
         gap: divider ? 0 : theme.spacing(spacing),
-        padding: typeof padding === "number" ? theme.spacing(padding) : padding,
+        padding: isNumber(padding) ? theme.spacing(padding) : padding,
         width: fullWidth ? "100%" : undefined,
         ...sx
       }}

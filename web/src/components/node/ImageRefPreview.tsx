@@ -4,6 +4,7 @@ import ImageView from "./ImageView";
 import { asImageRef, isRawRgbaRef } from "../../utils/imageRef";
 import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
+import { isString } from "../../utils/typePredicates";
 
 interface ImageRefPreviewProps {
   /** A node output/input value in any of the shapes `asImageRef` understands. */
@@ -25,7 +26,7 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
   value,
   placeholder
 }) => {
-  const stringSource = typeof value === "string" && value ? value : undefined;
+  const stringSource = isString(value) && value ? value : undefined;
   const ref = asImageRef(value);
   // An `asset://` locator resolves to the asset's signed `get_url`; every other
   // scheme (data:, blob:, http:, package://, file://) comes back unchanged, and
@@ -54,7 +55,7 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
   if (ref?.uri) {
     return <ImageView source={resolvedUri} />;
   }
-  if (typeof ref?.data === "string" && ref.data) {
+  if (isString(ref?.data) && ref.data) {
     return <ImageView source={ref.data} />;
   }
   if (ref?.data instanceof Uint8Array) {

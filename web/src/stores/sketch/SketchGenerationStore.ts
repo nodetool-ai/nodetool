@@ -17,6 +17,7 @@
 import { create } from "zustand";
 import useResultsStore from "../ResultsStore";
 import { extractAssetId } from "../outputAssetId";
+import { isObjectLike } from "../../utils/typePredicates";
 
 export type LayerGenerationStatus =
   | "queued"
@@ -83,7 +84,7 @@ const loadPersistedLayerJobs = () => {
       return {};
     }
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return {};
+    if (!isObjectLike(parsed)) return {};
     const result: Record<string, LayerJobState> = {};
     for (const [key, value] of Object.entries(
       parsed as Record<string, unknown>

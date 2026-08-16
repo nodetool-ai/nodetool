@@ -1036,7 +1036,7 @@ describe("GlobalChatStore", () => {
           thread_id: store.getState().currentThreadId
         }
       });
-      expect(typeof store.getState().status).toBe("string");
+      expect(store.getState().status).toEqual(expect.any(String));
       expect(store.getState().progress).toEqual({ current: 0, total: 0 });
       expect(store.getState().statusMessage).toBeNull();
     });
@@ -1090,7 +1090,7 @@ describe("GlobalChatStore", () => {
       const state = store.getState() as any;
       expect(state.wsEventUnsubscribes.length).toBeGreaterThan(0);
       // Status is determined by globalWebSocketManager connection state
-      expect(typeof store.getState().status).toBe("string");
+      expect(store.getState().status).toEqual(expect.any(String));
     });
 
     it("includes auth context in connection error messages", async () => {
@@ -1188,7 +1188,7 @@ describe("GlobalChatStore", () => {
       simulateServerMessage(mockServer, { type: "unknown_type", data: "test" });
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(typeof store.getState().status).toBe("string");
+      expect(store.getState().status).toEqual(expect.any(String));
     });
 
     it("handles malformed message data", async () => {
@@ -1214,7 +1214,7 @@ describe("GlobalChatStore", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(typeof store.getState().status).toBe("string");
+      expect(store.getState().status).toEqual(expect.any(String));
     });
 
     it("handles WebSocket ready state changes during operations", async () => {

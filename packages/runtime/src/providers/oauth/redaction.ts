@@ -4,6 +4,8 @@
  * might carry token material is funnelled through here first.
  */
 
+import { isObjectLike } from "../../type-predicates.js";
+
 const REDACTED = "<redacted>";
 
 /** Keys whose values are always scrubbed, regardless of nesting depth. */
@@ -52,7 +54,7 @@ export function redactObject(
   input: unknown,
   seen = new WeakSet<object>()
 ): RedactedValue {
-  if (input === null || typeof input !== "object") {
+  if (!isObjectLike(input)) {
     // SAFETY: a non-object carries no fields to redact and goes to the logger
     // as it stands.
     return input as RedactedValue;

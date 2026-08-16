@@ -16,6 +16,7 @@ import {
   WorkflowInputKind
 } from "./inputKinds";
 import { parseNodeUIProperties } from "../../stores/nodeUiDefaults";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 export interface WorkflowInputIO {
   nodeId: string;
@@ -92,7 +93,7 @@ export const extractScriptIO = (
 const nodeName = (node: Node): string => {
   const data = (node.data ?? {}) as Record<string, unknown>;
   const name = data.name;
-  return typeof name === "string" && name.length > 0 ? name : node.id;
+  return isString(name) && name.length > 0 ? name : node.id;
 };
 
 const isOutputNode = (type: string): boolean =>
@@ -109,7 +110,7 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
     if (parseNodeUIProperties(node.ui_properties)?.bypassed) continue;
     const data = (node.data ?? {}) as Record<string, unknown>;
     const name = nodeName(node);
-    const label = typeof data.label === "string" && data.label ? data.label : name;
+    const label = isString(data.label) && data.label ? data.label : name;
 
     const kind = getWorkflowInputKind(node.type);
     if (kind) {
@@ -120,13 +121,13 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
         label,
         kind,
         description:
-          typeof data.description === "string" && data.description
+          isString(data.description) && data.description
             ? data.description
             : undefined,
-        min: typeof data.min === "number" ? data.min : undefined,
-        max: typeof data.max === "number" ? data.max : undefined,
+        min: isNumber(data.min) ? data.min : undefined,
+        max: isNumber(data.max) ? data.max : undefined,
         maxLength:
-          typeof data.max_length === "number" &&
+          isNumber(data.max_length) &&
           Number.isFinite(data.max_length)
             ? Math.max(0, Math.floor(data.max_length))
             : undefined,
@@ -140,7 +141,7 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
           ? (data.options as string[])
           : undefined,
         enumTypeName:
-          typeof data.enum_type_name === "string"
+          isString(data.enum_type_name)
             ? data.enum_type_name
             : undefined,
         defaultValue: data.value

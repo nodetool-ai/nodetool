@@ -1,5 +1,10 @@
 import { useMemo } from "react";
 import { rawRgbaToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 export interface ImageRefLike {
   uri?: string;
@@ -9,12 +14,12 @@ export interface ImageRefLike {
 }
 
 export const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
+  if (!value || !isObjectLike(value)) return undefined;
   const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
+    uri: isString(v.uri) ? v.uri : undefined,
+    width: isNumber(v.width) ? v.width : undefined,
+    height: isNumber(v.height) ? v.height : undefined,
     data: v.data
   };
 };
@@ -36,7 +41,7 @@ export const resolveImageUrl = (
 ): string | undefined => {
   if (!image) return undefined;
   if (image.uri) return image.uri;
-  if (typeof image.data === "string") {
+  if (isString(image.data)) {
     if (
       image.data.startsWith("data:") ||
       image.data.startsWith("blob:") ||

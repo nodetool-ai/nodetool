@@ -15,6 +15,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineDebugTarget } from "@nodetool-ai/execution/timeline-debug";
+import {
+  isBoolean,
+  isFiniteNumber,
+  isRecord,
+  isString
+} from "../predicates.js";
 
 /** A decoded JSON document, before anything validates its shape. */
 type JsonValue =
@@ -57,11 +63,8 @@ export interface ResolvedTimelineTarget {
   meta: TimelineSequenceSettings;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 const numberOr = (value: unknown): number | undefined =>
-  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  isFiniteNumber(value) ? value : undefined;
 
 /** Read fps/width/height off whatever wrapper carried the document. */
 function settingsOf(raw: unknown): TimelineSequenceSettings {
@@ -90,7 +93,7 @@ function documentOf(raw: unknown): JsonValue {
   // branch below carries decoded JSON.
   if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
-  if (typeof inner === "string") {
+  if (isString(inner)) {
     try {
       return JSON.parse(inner);
     } catch {
@@ -119,7 +122,7 @@ function asDocument(raw: JsonValue): TimelineDocument {
   if (Array.isArray(record.transcript)) {
     document.transcript = record.transcript as TimelineDocument["transcript"];
   }
-  if (typeof record.scriptEnabled === "boolean") {
+  if (isBoolean(record.scriptEnabled)) {
     document.scriptEnabled = record.scriptEnabled;
   }
   return document;
@@ -144,7 +147,7 @@ export async function resolveTimelineTarget(
       );
     }
     const name =
-      isRecord(parsed) && typeof parsed.name === "string"
+      isRecord(parsed) && isString(parsed.name)
         ? parsed.name
         : undefined;
     const target: TimelineDebugTarget = { kind: "file", ref };

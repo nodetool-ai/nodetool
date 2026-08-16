@@ -12,6 +12,11 @@
 
 import { toGuestBytes } from "../sandbox-bytes.js";
 import { requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /** Total uncompressed size `unzip` will inflate before refusing. */
 export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
@@ -27,7 +32,7 @@ async function loadFflate(where: string): Promise<FflateLike> {
     mod,
     where,
     "fflate",
-    (v) => typeof (v as FflateLike | undefined)?.unzipSync === "function"
+    (v) => isFunction((v as FflateLike | undefined)?.unzipSync)
   );
 }
 
@@ -60,7 +65,7 @@ export async function unzip(bytes: unknown): Promise<Record<string, unknown>> {
 /** Build a zip archive from named entries; string values are UTF-8 encoded. */
 export async function zip(files: unknown): Promise<Record<string, string>> {
   const where = "zip.zip";
-  if (files === null || typeof files !== "object" || Array.isArray(files)) {
+  if (!isObjectLike(files) || Array.isArray(files)) {
     throw new Error(
       `${where}: files must be an object mapping names to Uint8Array or string content`
     );
@@ -72,7 +77,7 @@ export async function zip(files: unknown): Promise<Record<string, string>> {
     const bytes =
       content instanceof Uint8Array
         ? content
-        : typeof content === "string"
+        : isString(content)
           ? new TextEncoder().encode(content)
           : null;
     if (bytes === null) {

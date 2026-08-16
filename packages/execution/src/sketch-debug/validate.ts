@@ -17,6 +17,14 @@ import {
   sketchLayerLike
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
+import {
+  isFiniteNumber,
+  isNonBlankString,
+  isNonEmptyString,
+  isPositiveFiniteNumber,
+  isString
+} from "../predicates.js";
+
 import type { SketchDebugIssue, SketchValidation } from "./types.js";
 
 /** Canvas settings the row carries beside the document. */
@@ -53,9 +61,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const asArray = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
-
-const positive = (value: unknown): boolean =>
-  typeof value === "number" && Number.isFinite(value) && value > 0;
 
 /**
  * A binding issue, with `layerId` left out when the binding names no layer.
@@ -175,7 +180,7 @@ function checkCanvas(
   }
 
   for (const axis of ["width", "height"] as const) {
-    if (!positive(canvas[axis])) {
+    if (!isPositiveFiniteNumber(canvas[axis])) {
       issues.push({
         severity: "error",
         code: "canvas_invalid",
@@ -187,7 +192,7 @@ function checkCanvas(
 
   if (
     canvas.backgroundColor !== undefined &&
-    typeof canvas.backgroundColor !== "string"
+    !isString(canvas.backgroundColor)
   ) {
     issues.push({
       severity: "error",
@@ -202,7 +207,11 @@ function checkCanvas(
   // another.
   for (const axis of ["width", "height"] as const) {
     const outer = meta?.[axis];
-    if (positive(outer) && positive(canvas[axis]) && outer !== canvas[axis]) {
+    if (
+      isPositiveFiniteNumber(outer) &&
+      isPositiveFiniteNumber(canvas[axis]) &&
+      outer !== canvas[axis]
+    ) {
       issues.push({
         severity: "warning",
         code: "canvas_size_mismatch",
@@ -249,17 +258,17 @@ function readLayers(sketch: Record<string, unknown>) {
           message: `Layer at index ${index}: ${field || "(root)"}: ${issue.message}`,
           path: field ? `${path}.${field}` : path
         };
-        if (typeof entry.id === "string") {
+        if (isString(entry.id)) {
           layerIssue.layerId = entry.id;
         }
         issues.push(layerIssue);
       }
-      if (typeof entry.id !== "string" || entry.id === "") return;
+      if (!isNonEmptyString(entry.id)) return;
     }
 
     const id = String(entry.id);
     const label =
-      typeof entry.name === "string" && entry.name ? entry.name : id;
+      isNonEmptyString(entry.name) ? entry.name : id;
     if (seen.has(id)) {
       issues.push({
         severity: "error",
@@ -273,7 +282,7 @@ function readLayers(sketch: Record<string, unknown>) {
     layers.push({
       id,
       label,
-      type: typeof entry.type === "string" ? entry.type : "raster",
+      type: isString(entry.type) ? entry.type : "raster",
       record: entry
     });
   });
@@ -291,8 +300,7 @@ function checkLayer(
   const { opacity } = record;
   if (opacity !== undefined) {
     if (
-      typeof opacity !== "number" ||
-      !Number.isFinite(opacity) ||
+      !isFiniteNumber(opacity) ||
       opacity < 0 ||
       opacity > 1
     ) {
@@ -330,7 +338,7 @@ function checkLayer(
     } else {
       for (const axis of ["width", "height"] as const) {
         const value = bounds[axis];
-        if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        if (!isFiniteNumber(value) || value < 0) {
           issues.push({
             severity: "error",
             code: "content_bounds_invalid",
@@ -344,7 +352,7 @@ function checkLayer(
   }
 
   const { parentId } = record;
-  if (typeof parentId === "string" && parentId !== "" && !ids.has(parentId)) {
+  if (isNonEmptyString(parentId) && !ids.has(parentId)) {
     issues.push({
       severity: "warning",
       code: "layer_parent_missing",
@@ -375,7 +383,7 @@ function checkSelection(
 
   const active = sketch.activeLayerId;
   if (layers.length > 0) {
-    if (typeof active !== "string" || active === "") {
+    if (!isNonEmptyString(active)) {
       issues.push({
         severity: "error",
         code: "active_layer_missing",
@@ -394,7 +402,7 @@ function checkSelection(
   }
 
   const mask = sketch.maskLayerId;
-  if (typeof mask === "string" && mask !== "" && !ids.has(mask)) {
+  if (isNonEmptyString(mask) && !ids.has(mask)) {
     issues.push({
       severity: "warning",
       code: "mask_layer_missing",
@@ -437,7 +445,7 @@ function checkBindings(
       return;
     }
 
-    const layerId = typeof entry.layerId === "string" ? entry.layerId : "";
+    const layerId = isString(entry.layerId) ? entry.layerId : "";
     if (layerId === "") {
       issues.push({
         severity: "error",
@@ -480,7 +488,7 @@ function checkBindings(
 
     if (kind === "workflow") {
       const workflowId = entry.workflowId;
-      if (typeof workflowId !== "string" || workflowId === "") {
+      if (!isNonEmptyString(workflowId)) {
         issues.push(
           bindingIssue(
             "error",
@@ -493,7 +501,7 @@ function checkBindings(
       }
     } else {
       const prompt = entry.prompt;
-      if (typeof prompt !== "string" || prompt.trim() === "") {
+      if (!isNonBlankString(prompt)) {
         issues.push(
           bindingIssue(
             "warning",
@@ -507,8 +515,7 @@ function checkBindings(
       const source = entry.sourceLayerId;
       if (
         (kind === "image-to-image" || kind === "inpaint") &&
-        typeof source === "string" &&
-        source !== "" &&
+        isNonEmptyString(source) &&
         !ids.has(source)
       ) {
         issues.push(
@@ -524,7 +531,7 @@ function checkBindings(
     }
 
     const status = entry.status;
-    if (typeof status !== "string" || !BINDING_STATUSES.has(status)) {
+    if (!isString(status) || !BINDING_STATUSES.has(status)) {
       issues.push(
         bindingIssue(
           "error",
@@ -552,7 +559,7 @@ function checkBindings(
       if (!isRecord(version)) return;
       const versionStatus = version.status;
       if (
-        typeof versionStatus !== "string" ||
+        !isString(versionStatus) ||
         !VERSION_STATUSES.has(versionStatus)
       ) {
         issues.push(

@@ -9,6 +9,11 @@
 import { WebSocketManager } from './WebSocketManager';
 import type { ConnectionState } from '../types/chat';
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsString = (value: unknown): value is string =>
+  typeof value === 'string';
+
 /**
  * The parts of a close/message event the manager reads. React Native's own
  * `WebSocketCloseEvent`/`WebSocketMessageEvent` are Event subclasses these
@@ -74,7 +79,7 @@ jest.mock('../hooks/useAppLifecycle', () => ({
 jest.mock('msgpackr', () => ({
   pack: jest.fn((data) => JSON.stringify(data)),
   unpack: jest.fn((data) => {
-    if (typeof data === 'string') {
+    if (mockIsString(data)) {
       return JSON.parse(data);
     }
     const str = new TextDecoder().decode(data);

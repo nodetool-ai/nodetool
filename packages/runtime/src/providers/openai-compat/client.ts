@@ -9,6 +9,7 @@ import type {
   ChatCompletionResponse,
   ChatCompletionsRequest
 } from "./types.js";
+import { isObjectLike } from "../../type-predicates.js";
 
 export interface OpenAICompatClientOptions {
   /** Endpoint root, e.g. `https://api.groq.com/openai/v1`. */
@@ -199,7 +200,7 @@ export class OpenAICompatClient {
           `could not parse stream event as JSON: ${data.slice(0, 200)}`
         );
       }
-      if (typeof parsed !== "object" || parsed === null) continue;
+      if (!isObjectLike(parsed)) continue;
       const event = parsed as Record<string, unknown>;
       const error = errorFromStreamEvent(event);
       if (error) throw error;

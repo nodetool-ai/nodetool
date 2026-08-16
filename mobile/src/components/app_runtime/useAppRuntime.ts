@@ -63,6 +63,7 @@ import {
   persistableVariableIds,
   savePersistedVariables
 } from "./variablePersistence";
+import { isString } from "../../utils/typePredicates";
 
 type RawMessage = Record<string, unknown>;
 
@@ -395,7 +396,7 @@ export const useAppRuntime = (
       // Only jobs this app minted an id for are folded. A message with no job
       // id, or one naming a run started elsewhere (the chain editor, another
       // app instance), belongs to nobody here.
-      if (typeof jobId !== "string") {
+      if (!isString(jobId)) {
         return;
       }
       if (!ownedRef.current.has(jobId)) {

@@ -6,6 +6,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -45,7 +46,7 @@ interface ValidationResult {
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
+  return isObjectLike(value) && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
@@ -62,7 +63,7 @@ function validateCodeNode(
 ): void {
   const properties = asRecord(node.data?.properties);
   const code = properties.code ?? node.data?.code;
-  if (typeof code !== "string" || code.trim() === "") {return;}
+  if (!isString(code) || code.trim() === "") {return;}
   if (connectedInputs.has(`${node.id}::code`)) {return;}
 
   if (!parsesAsCodeBody(code)) {
@@ -174,11 +175,11 @@ interface ReadEdge {
  */
 function storedNodeToReadNode(node: GraphNode): ReadNode {
   const ui =
-    node.ui_properties !== null && typeof node.ui_properties === "object"
+    isObjectLike(node.ui_properties)
       ? (node.ui_properties as Record<string, unknown>)
       : {};
   const position =
-    ui.position !== null && typeof ui.position === "object"
+    isObjectLike(ui.position)
       ? (ui.position as { x: number; y: number })
       : { x: 0, y: 0 };
   return {
@@ -190,7 +191,7 @@ function storedNodeToReadNode(node: GraphNode): ReadNode {
       dynamic_properties: node.dynamic_properties ?? {},
       dynamic_inputs: node.dynamic_inputs ?? {},
       dynamic_outputs: node.dynamic_outputs ?? {},
-      title: typeof ui.title === "string" ? ui.title : undefined
+      title: isString(ui.title) ? ui.title : undefined
     }
   };
 }

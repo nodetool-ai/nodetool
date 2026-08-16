@@ -39,6 +39,7 @@ import {
   RUN_SUBTASK_SCHEMA,
   RUN_SEARCH_SCHEMA
 } from "./agents.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 export {
   RUN_SUBTASK_DESCRIPTION,
@@ -87,7 +88,7 @@ async function runSubAgentTool(
     tool,
     run.context,
     args,
-    typeof toolCallId === "string" ? { toolCallId } : {}
+    isString(toolCallId) ? { toolCallId } : {}
   );
 }
 

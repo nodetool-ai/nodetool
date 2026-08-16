@@ -19,6 +19,11 @@
 import type { ProcessingContext, JsonSchema } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { SUBTASK_DEPTH_KEY } from "../tools/subtask-fields.js";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /** One recorded tool invocation, tagged with the depth it ran at. */
 export interface ToolInvocation {
@@ -88,8 +93,7 @@ class InstrumentedTool<TResult> extends Tool {
       result = { error: e instanceof Error ? e.message : String(e) };
     }
     if (
-      result !== null &&
-      typeof result === "object" &&
+      isObjectLike(result) &&
       "error" in (result as Record<string, unknown>)
     ) {
       isError = true;
@@ -113,11 +117,11 @@ class InstrumentedTool<TResult> extends Tool {
  */
 export function createInstrumentedTools(recorder: ToolRecorder): Tool[] {
   const num = (v: unknown): number => {
-    const n = typeof v === "number" ? v : Number(v);
+    const n = isNumber(v) ? v : Number(v);
     if (!Number.isFinite(n)) throw new Error(`not a number: ${String(v)}`);
     return n;
   };
-  const str = (v: unknown): string => (typeof v === "string" ? v : String(v));
+  const str = (v: unknown): string => (isString(v) ? v : String(v));
 
   const FACTS: Record<string, string> = {
     "capital of france": "Paris",

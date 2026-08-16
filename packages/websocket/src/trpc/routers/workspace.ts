@@ -30,6 +30,7 @@ import {
   type WorkspaceResponse,
   type FileEntry
 } from "@nodetool-ai/protocol/api-schemas/workspace.js";
+import { isObjectLike } from "../../lib/wire-values.js";
 
 function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
   return {
@@ -73,8 +74,7 @@ async function validateWorkspacePath(candidate: string): Promise<void> {
     }
   } catch (err) {
     if (
-      err &&
-      typeof err === "object" &&
+      isObjectLike(err) &&
       "name" in err &&
       (err as { name: string }).name === "TRPCError"
     ) {

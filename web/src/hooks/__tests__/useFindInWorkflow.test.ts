@@ -146,8 +146,8 @@ describe("useFindInWorkflow", () => {
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
-      expect(typeof result.current.openFind).toBe("function");
-      expect(typeof result.current.closeFind).toBe("function");
+      expect(result.current.openFind).toEqual(expect.any(Function));
+      expect(result.current.closeFind).toEqual(expect.any(Function));
     });
   });
 

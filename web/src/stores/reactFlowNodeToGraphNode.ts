@@ -9,6 +9,7 @@ import {
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE
 } from "../constants/nodeTypes";
+import { isNumber } from "../utils/typePredicates";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -39,7 +40,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   } else if (
     node.style &&
     "width" in node.style &&
-    typeof node.style.width === "number"
+    isNumber(node.style.width)
   ) {
     ui_properties.width = node.style.width;
   }
@@ -56,7 +57,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   } else if (
     node.style &&
     "height" in node.style &&
-    typeof node.style.height === "number"
+    isNumber(node.style.height)
   ) {
     ui_properties.height = node.style.height;
   }

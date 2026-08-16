@@ -8,6 +8,7 @@
 import { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { isNumber } from "../../utils/typePredicates";
 
 export interface FlexRowProps extends Omit<BoxProps, 'display'> {
   /** Gap spacing between children (theme spacing units, e.g., 1 = 4px, 2 = 8px) */
@@ -74,7 +75,7 @@ export const FlexRow = forwardRef<HTMLDivElement, FlexRowProps>(({
           flexDirection: "row",
           gap: theme.spacing(gap),
           padding:
-            typeof padding === "number" ? theme.spacing(padding) : padding,
+            isNumber(padding) ? theme.spacing(padding) : padding,
           alignItems: align,
           justifyContent: justify,
           flexWrap: wrap ? "wrap" : "nowrap",

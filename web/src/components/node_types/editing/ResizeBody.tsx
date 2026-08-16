@@ -27,6 +27,11 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { RESIZE_NODE_TYPE } from "../../../constants/nodeTypes";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -92,14 +97,14 @@ const styles = (theme: Theme) =>
 const extractDims = (
   value: unknown
 ) => {
-  if (!value || typeof value !== "object") {
+  if (!value || !isObjectLike(value)) {
     return {};
   }
   const v = value as Record<string, unknown>;
   return {
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
-    uri: typeof v.uri === "string" ? v.uri : undefined,
+    width: isNumber(v.width) ? v.width : undefined,
+    height: isNumber(v.height) ? v.height : undefined,
+    uri: isString(v.uri) ? v.uri : undefined,
     data: v.data
   };
 };

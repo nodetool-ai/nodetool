@@ -41,6 +41,7 @@ import {
   type LoadedBrowserRunner,
   type LoadedModules
 } from "./browserRunnerCore";
+import { isString } from "../../utils/typePredicates";
 
 export { collectNodeClasses };
 export type { BrowserGraphJobOptions, BrowserGraphJobResult };
@@ -224,7 +225,7 @@ export function canRunGraphInBrowserSync(
   }
   return nodes.every(
     (node) =>
-      typeof node.type === "string" && browserSupportsSync(node.type) === true
+      isString(node.type) && browserSupportsSync(node.type) === true
   );
 }
 
@@ -286,7 +287,7 @@ export async function reportBrowserEligibility(
 // -----------------------------------------------------------------------------
 
 const asString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+  isString(value) ? value : undefined;
 
 /**
  * Run a pure-browser sub-graph client-side. Uses the Web Worker in real

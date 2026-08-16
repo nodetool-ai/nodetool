@@ -222,17 +222,17 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.handlers).toBeDefined();
-      expect(typeof result.current.handlers.handleToggleComment).toBe("function");
-      expect(typeof result.current.handlers.handleRunFromHere).toBe("function");
-      expect(typeof result.current.handlers.handleToggleBypass).toBe("function");
-      expect(typeof result.current.handlers.handleCopyMetadataToClipboard).toBe("function");
-      expect(typeof result.current.handlers.handleFindTemplates).toBe("function");
-      expect(typeof result.current.handlers.handleSelectAllSameType).toBe("function");
-      expect(typeof result.current.handlers.handleDeleteNode).toBe("function");
-      expect(typeof result.current.handlers.handleConvertToInput).toBe("function");
-      expect(typeof result.current.handlers.handleConvertToConstant).toBe("function");
-      expect(typeof result.current.handlers.handleDuplicate).toBe("function");
-      expect(typeof result.current.handlers.handleDuplicateVertical).toBe("function");
+      expect(result.current.handlers.handleToggleComment).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleRunFromHere).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleToggleBypass).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleCopyMetadataToClipboard).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleFindTemplates).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleSelectAllSameType).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleDeleteNode).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleConvertToInput).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleConvertToConstant).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleDuplicate).toEqual(expect.any(Function));
+      expect(result.current.handlers.handleDuplicateVertical).toEqual(expect.any(Function));
     });
 
     it("returns all condition booleans", () => {

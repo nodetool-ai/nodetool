@@ -25,6 +25,7 @@ import type { PuckAgentHandler } from "../../../components/appbuilder/puck/puckA
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
 import { docUrl } from "./resourceLinks";
 import { restFetch } from "../../rest-fetch";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 const applicationIdParam = z
   .string()
@@ -116,7 +117,7 @@ FrontendToolRegistry.register({
     // ui_app_update_component addresses it. An editor that reports none is a
     // failure, not a success with a null payload — one agent read a batch of
     // those as "8 tool calls succeeded" and moved on.
-    if (typeof component?.id !== "string" || component.id === "") {
+    if (!isString(component?.id) || component.id === "") {
       throw new Error(
         `Added a ${type} widget but the app builder reported no widget id. ` +
           "Call ui_app_get_snapshot to see what is on the page."
@@ -269,7 +270,7 @@ function parseInputMappings(
     if (from === "widget") {
       out[nodeId] = { from: "widget" };
     } else if (from === "variable") {
-      if (typeof mapping.variableId !== "string") {
+      if (!isString(mapping.variableId)) {
         throw new Error(
           `${where}: {"from":"variable"} needs "variableId" (an id from ui_app_list_variables).`
         );
@@ -281,7 +282,7 @@ function parseInputMappings(
         value: (mapping as { value?: unknown }).value
       };
     } else if (from === "resource") {
-      if (typeof mapping.resourceBindingId !== "string") {
+      if (!isString(mapping.resourceBindingId)) {
         throw new Error(
           `${where}: {"from":"resource"} needs "resourceBindingId" (an id from ui_app_list_resources).`
         );
@@ -314,7 +315,7 @@ function parseOutputMappings(
     if (mapping?.to === "display") {
       out[nodeId] = { to: "display" };
     } else if (mapping?.to === "variable") {
-      if (typeof mapping.variableId !== "string") {
+      if (!isString(mapping.variableId)) {
         throw new Error(
           `${where}: {"to":"variable"} needs "variableId" (an id from ui_app_list_variables).`
         );
@@ -789,7 +790,7 @@ function widgetTargets(
     id: component.id,
     type: component.type,
     label:
-      typeof component.props?.label === "string" ? component.props.label : null
+      isString(component.props?.label) ? component.props.label : null
   }));
 }
 
@@ -833,19 +834,19 @@ function checkInteractions(
   steps.forEach((step, index) => {
     const stepNumber = index + 1;
     const record = step as Record<string, unknown>;
-    if (typeof record.click === "string") {
+    if (isString(record.click)) {
       assertWidgetRef(record.click, stepNumber, handler);
       return;
     }
-    if (typeof record.change === "string") {
+    if (isString(record.change)) {
       assertWidgetRef(record.change, stepNumber, handler);
       return;
     }
-    if (typeof record.run === "string" || typeof record.cancel === "string") {
+    if (isString(record.run) || isString(record.cancel)) {
       return;
     }
     const set = record.set as { key?: unknown } | undefined;
-    if (set !== undefined && typeof set?.key === "string") {
+    if (set !== undefined && isString(set?.key)) {
       return;
     }
     const seed = record.seedResource as
@@ -853,7 +854,7 @@ function checkInteractions(
       | undefined;
     if (
       seed !== undefined &&
-      typeof seed?.id === "string" &&
+      isString(seed?.id) &&
       Array.isArray(seed.items)
     ) {
       return;
@@ -930,7 +931,7 @@ FrontendToolRegistry.register({
     const report: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const detail =
-        report && typeof report === "object" && "detail" in report
+        report && isObjectLike(report) && "detail" in report
           ? String(report.detail)
           : `App debug failed (${response.status})`;
       return { ok: false, error: detail };

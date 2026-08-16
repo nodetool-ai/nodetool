@@ -18,6 +18,11 @@ export function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+/** A string field carrying content that is not only whitespace. */
+export function isNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
 /** A numeric field, `NaN` and infinities included. */
 export function isNumber(value: unknown): value is number {
   return typeof value === "number";

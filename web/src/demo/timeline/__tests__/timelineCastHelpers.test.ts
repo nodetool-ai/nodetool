@@ -29,7 +29,7 @@ describe("timelineCastHelpers", () => {
     it("creates a track with default values for missing fields", () => {
       const t = track({});
       expect(t.id).toBeDefined();
-      expect(typeof t.id).toBe("string");
+      expect(t.id).toEqual(expect.any(String));
     });
   });
 

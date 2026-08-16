@@ -12,6 +12,7 @@ import type {
   ProviderTool,
   TextToImageParams
 } from "./types.js";
+import { isString } from "../type-predicates.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.openrouter");
@@ -94,7 +95,7 @@ export class OpenRouterProvider extends OpenAICompatProvider {
         ? {
             ...msg,
             role: "user" as const,
-            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`
+            content: `Instructions: ${isString(msg.content) ? msg.content : ""}`
           }
         : msg
     );

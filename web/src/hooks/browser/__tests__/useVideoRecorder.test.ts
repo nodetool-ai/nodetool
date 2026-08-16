@@ -63,7 +63,7 @@ describe("useVideoRecorder", () => {
       useVideoRecorder({ onChange: mockOnChange })
     );
 
-    expect(typeof result.current.handleRecord).toBe("function");
+    expect(result.current.handleRecord).toEqual(expect.any(Function));
   });
 
   it("provides startPreview function", () => {
@@ -73,7 +73,7 @@ describe("useVideoRecorder", () => {
       useVideoRecorder({ onChange: mockOnChange })
     );
 
-    expect(typeof result.current.startPreview).toBe("function");
+    expect(result.current.startPreview).toEqual(expect.any(Function));
   });
 
   it("provides stopStream function", () => {
@@ -83,7 +83,7 @@ describe("useVideoRecorder", () => {
       useVideoRecorder({ onChange: mockOnChange })
     );
 
-    expect(typeof result.current.stopStream).toBe("function");
+    expect(result.current.stopStream).toEqual(expect.any(Function));
   });
 
   it("toggles device list visibility", () => {

@@ -163,7 +163,7 @@ function normalizePatterns(
   patterns: string | string[] | null | undefined
 ): string[] | null {
   if (patterns == null) return null;
-  if (typeof patterns === "string") return patterns ? [patterns] : null;
+  if (isString(patterns)) return patterns ? [patterns] : null;
   const cleaned = patterns.filter((p) => Boolean(p));
   return cleaned.length > 0 ? cleaned : null;
 }
@@ -350,6 +350,7 @@ function toOllamaModel(model: LanguageModel) {
 // ---------------------------------------------------------------------------
 
 import { PythonProvider, registerProvider } from "@nodetool-ai/runtime";
+import { isString } from "./lib/wire-values.js";
 
 /**
  * Register Python-only providers (HuggingFace Local, MLX) discovered
@@ -1073,7 +1074,7 @@ export async function handleModelsApiRequest(
     const body = await parseJsonBody<HFCacheCheckRequest>(request);
     if (
       !body ||
-      typeof body.repo_id !== "string" ||
+      !isString(body.repo_id) ||
       body.repo_id.length === 0
     ) {
       return errorResponse(400, "Invalid JSON body");

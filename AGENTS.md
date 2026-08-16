@@ -236,7 +236,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 18,453 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 15,993 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
   inside `npm run lint`, so they cannot come back.
@@ -254,26 +254,39 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. The rule is already enforced for `packages/protocol/src` via
-an override in the enforced config, with the decoder `typecheck.ts` exempt —
-in the package that owns the schemas, an inline `typeof` means someone bypassed
-the parse. One tradeoff: predicates take `value: unknown`, so consolidation
-moves a handful of findings into `no-unknown-parameters`.
+deleting guards. The rule is enforced for thirteen trees via an override in the
+enforced config — `electron/src`, `protocol`, `node-sdk`, `app-runtime`, `cli`,
+`base-nodes`, `nodes-utils`, `security`, `minimax-nodes`, and the audio, text,
+image and llm node packages — with the decoder `packages/protocol/src/typecheck.ts`
+exempt: in the package that owns the schemas, an inline `typeof` means someone
+bypassed the parse. One tradeoff: predicates take `value: unknown`, so
+consolidation moves findings into `no-unknown-parameters`, which is why that
+count rose while this one fell.
+
+Two shapes the rule does **not** flag, because no predicate can replace them.
+A `typeof` whose operand resolves to no variable in scope is a global-existence
+probe — reading the bare name throws `ReferenceError`, so passing it to a
+predicate is a crash, not a refactor. A `typeof` interpolated into a template
+literal or returned is a value, not a narrowing. Both stop exactly there: an
+operand that *does* resolve still reports, and `const kind = typeof value`
+still reports, because narrowing laundered through a local is still narrowing.
+`tools/oxlint/anti-slop/tests/` pins all of it.
 
 Remaining backlog, largest first:
 
 | rule | findings |
 |---|---:|
-| `require-safety-comment-for-type-assertion` | 6991 |
-| `no-unsafe-dictionary-type` | 4250 |
-| `no-runtime-typeof` | 3107 |
-| `no-unknown-parameters` | 1823 |
-| `no-module-mocking` | 1410 |
-| `no-known-value-widening` | 660 |
-| `no-unknown-returns` | 170 |
-| `no-chained-type-assertions` | 42 |
+| `require-safety-comment-for-type-assertion` | 7001 |
+| `no-unsafe-dictionary-type` | 4241 |
+| `no-unknown-parameters` | 1890 |
+| `no-module-mocking` | 1426 |
+| `no-known-value-widening` | 663 |
+| `no-runtime-typeof` | 537 |
+| `no-unknown-returns` | 191 |
+| `no-chained-type-assertions` | 44 |
 
-A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what
+A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
+predicate consolidation above put twenty back); what
 is left is one thing said many ways — a node output, an app-state slot, a
 stream item — for which NodeTool has no named type, plus the `Tool.process`
 contract that erases every tool's result to share one registry. Those sites

@@ -22,6 +22,7 @@
  */
 
 /** Marks an object as a handle into this run's media store. */
+import { isObjectLike, isString } from "./utils/type-guards.js";
 export const SANDBOX_MEDIA_HANDLE = "__nodetool_sandbox_media__";
 
 /** The scheme a handle's `uri` carries, so it reads as a locator in logs. */
@@ -90,9 +91,8 @@ export interface SandboxMediaStore {
 /** Whether a value carries the handle marker, whoever minted it. */
 export function isSandboxMediaHandle(value: unknown): boolean {
   return (
-    value !== null &&
-    typeof value === "object" &&
-    typeof (value as Record<string, unknown>)[SANDBOX_MEDIA_HANDLE] === "string"
+    isObjectLike(value) &&
+    isString((value as Record<string, unknown>)[SANDBOX_MEDIA_HANDLE])
   );
 }
 

@@ -10,6 +10,12 @@ import type { Message } from "../../../stores/ApiTypes";
  */
 const partialChatState = (state: unknown): GlobalChatState =>
   state as GlobalChatState;
+
+/** A zustand `set` argument given as an updater rather than a partial state. */
+const isStateUpdater = (
+  value: unknown
+): value is (state: GlobalChatState) => Partial<GlobalChatState> =>
+  typeof value === "function";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
@@ -68,7 +74,7 @@ describe("chatProtocol", () => {
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
-          ...(typeof updater === "function" ? updater(capturedState) : updater)
+          ...(isStateUpdater(updater) ? updater(capturedState) : updater)
         };
       });
 
@@ -92,7 +98,7 @@ describe("chatProtocol", () => {
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
-          ...(typeof updater === "function" ? updater(capturedState) : updater)
+          ...(isStateUpdater(updater) ? updater(capturedState) : updater)
         };
       });
 
@@ -152,7 +158,7 @@ describe("chatProtocol", () => {
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
-          ...(typeof updater === "function" ? updater(capturedState) : updater)
+          ...(isStateUpdater(updater) ? updater(capturedState) : updater)
         };
       });
       await handleChatWebSocketMessage(payload, set, () => capturedState);
@@ -223,7 +229,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -255,7 +261,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -289,7 +295,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -321,7 +327,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -353,7 +359,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -385,7 +391,7 @@ describe("chatProtocol", () => {
       });
 
       const set = jest.fn((updater) => {
-        capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
       });
 
       const get = () => capturedState;
@@ -447,7 +453,7 @@ describe("chatProtocol", () => {
     const set = jest.fn((updater) => {
       capturedState = {
         ...capturedState,
-        ...(typeof updater === "function" ? updater(capturedState) : updater)
+        ...(isStateUpdater(updater) ? updater(capturedState) : updater)
       };
     });
 
@@ -527,7 +533,7 @@ describe("chatProtocol", () => {
     const set = jest.fn((updater) => {
       capturedState = {
         ...capturedState,
-        ...(typeof updater === "function" ? updater(capturedState) : updater)
+        ...(isStateUpdater(updater) ? updater(capturedState) : updater)
       };
     });
 
@@ -596,7 +602,7 @@ describe("chatProtocol", () => {
     const set = jest.fn((updater) => {
       capturedState = {
         ...capturedState,
-        ...(typeof updater === "function" ? updater(capturedState) : updater)
+        ...(isStateUpdater(updater) ? updater(capturedState) : updater)
       };
     });
 
@@ -679,7 +685,7 @@ describe("chatProtocol", () => {
     const set = jest.fn((updater) => {
       capturedState = {
         ...capturedState,
-        ...(typeof updater === "function" ? updater(capturedState) : updater)
+        ...(isStateUpdater(updater) ? updater(capturedState) : updater)
       };
     });
     const get = () => capturedState;
@@ -745,7 +751,7 @@ describe("chatProtocol", () => {
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
-          ...(typeof updater === "function" ? updater(capturedState) : updater)
+          ...(isStateUpdater(updater) ? updater(capturedState) : updater)
         };
       });
       await handleChatWebSocketMessage(
@@ -1042,7 +1048,7 @@ describe("chatProtocol media predictions", () => {
     const set = jest.fn((updater) => {
       captured = {
         ...captured,
-        ...(typeof updater === "function" ? updater(captured) : updater)
+        ...(isStateUpdater(updater) ? updater(captured) : updater)
       };
     });
     await handleChatWebSocketMessage(

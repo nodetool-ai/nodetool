@@ -46,18 +46,18 @@ describe('Config', () => {
   describe('exported constants', () => {
     it('should export srcPath', () => {
       expect(srcPath).toBeDefined();
-      expect(typeof srcPath).toBe('string');
+      expect(srcPath).toEqual(expect.any(String));
     });
 
     it('should export PID_FILE_PATH', () => {
       expect(PID_FILE_PATH).toBeDefined();
-      expect(typeof PID_FILE_PATH).toBe('string');
+      expect(PID_FILE_PATH).toEqual(expect.any(String));
       expect(PID_FILE_PATH).toContain('server.pid');
     });
 
     it('should export webPath', () => {
       expect(webPath).toBeDefined();
-      expect(typeof webPath).toBe('string');
+      expect(webPath).toEqual(expect.any(String));
     });
 
   });
@@ -100,7 +100,7 @@ describe('Config', () => {
       const result = getCondaEnvPath();
 
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      expect(result).toEqual(expect.any(String));
       expect(result.length).toBeGreaterThan(0);
     });
 
@@ -110,7 +110,7 @@ describe('Config', () => {
       const result = getCondaEnvPath();
 
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      expect(result).toEqual(expect.any(String));
     });
 
     it('should return default path when readSettings throws error', () => {
@@ -121,7 +121,7 @@ describe('Config', () => {
       const result = getCondaEnvPath();
 
       expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      expect(result).toEqual(expect.any(String));
     });
 
     describe('default conda path - Windows', () => {
@@ -382,7 +382,7 @@ describe('Config', () => {
       const result = getProcessEnv();
 
       expect(result.HOME).toBeDefined();
-      expect(typeof result.HOME).toBe('string');
+      expect(result.HOME).toEqual(expect.any(String));
       expect(result.HOME.length).toBeGreaterThan(0);
     });
 

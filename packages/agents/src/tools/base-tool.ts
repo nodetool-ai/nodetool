@@ -13,6 +13,7 @@ import {
 } from "@nodetool-ai/runtime";
 import { z, type ZodType } from "zod";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
+import { isFunction, isRecord, isString } from "../utils/type-guards.js";
 
 /**
  * Reserved input-schema field the LLM populates with a short, user-facing
@@ -92,7 +93,7 @@ export abstract class Tool {
     options: { toolCallId?: string } = {}
   ): Promise<unknown> {
     const candidate = tool;
-    if (typeof candidate.execute === "function") {
+    if (isFunction(candidate.execute)) {
       return candidate.execute(context, params, options);
     }
 
@@ -140,7 +141,7 @@ export abstract class Tool {
   ): string | null {
     if (!params) return null;
     const raw = params[USER_MESSAGE_FIELD];
-    if (typeof raw !== "string") return null;
+    if (!isString(raw)) return null;
     const trimmed = raw.trim();
     return trimmed.length > 0 ? trimmed : null;
   }
@@ -184,7 +185,7 @@ export abstract class Tool {
 
     try {
       const parsed = parseWithTypeCoercion(this.schema, params);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if (isRecord(parsed)) {
         return { success: true, data: parsed as Record<string, unknown> };
       }
       return {

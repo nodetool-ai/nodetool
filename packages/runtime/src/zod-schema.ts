@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ZodType } from "zod";
+import { isNumber, isObjectLike, isString } from "./type-predicates.js";
 
 export type JsonSchema = Record<string, unknown>;
 export type ZodOrJsonSchema = ZodType | JsonSchema;
@@ -37,7 +38,7 @@ function cloneForMutation(value: JsonValue): JsonValue {
   if (Array.isArray(value)) {
     return value.map((item) => cloneForMutation(item));
   }
-  if (value && typeof value === "object") {
+  if (isObjectLike(value)) {
     const cloned: { [key: string]: JsonValue } = {};
     for (const [key, nested] of Object.entries(value)) {
       cloned[key] = cloneForMutation(nested);
@@ -65,14 +66,14 @@ function getValueAtPath(
 ): JsonValue | undefined {
   let cursor = value;
   for (const segment of path) {
-    if (Array.isArray(cursor) && typeof segment === "number") {
+    if (Array.isArray(cursor) && isNumber(segment)) {
       cursor = cursor[segment];
       continue;
     }
     if (PROTOTYPE_KEYS.has(segment)) {
       return undefined;
     }
-    if (cursor && typeof cursor === "object" && typeof segment === "string") {
+    if (isObjectLike(cursor) && isString(segment)) {
       // SAFETY: the check above proved `cursor` is an object; an array reached
       // by a string key reads as `undefined`, exactly as it did before.
       cursor = (cursor as { [key: string]: JsonValue })[segment];
@@ -94,14 +95,14 @@ function setValueAtPath(
   let cursor = value;
   for (let index = 0; index < path.length - 1; index++) {
     const segment = path[index];
-    if (Array.isArray(cursor) && typeof segment === "number") {
+    if (Array.isArray(cursor) && isNumber(segment)) {
       cursor = cursor[segment];
       continue;
     }
     if (PROTOTYPE_KEYS.has(segment)) {
       return false;
     }
-    if (cursor && typeof cursor === "object" && typeof segment === "string") {
+    if (isObjectLike(cursor) && isString(segment)) {
       // SAFETY: as in `getValueAtPath` — an object indexed by a string key.
       cursor = (cursor as { [key: string]: JsonValue })[segment];
       continue;
@@ -113,11 +114,11 @@ function setValueAtPath(
   if (PROTOTYPE_KEYS.has(last)) {
     return false;
   }
-  if (Array.isArray(cursor) && typeof last === "number") {
+  if (Array.isArray(cursor) && isNumber(last)) {
     cursor[last] = nextValue;
     return true;
   }
-  if (cursor && typeof cursor === "object" && typeof last === "string") {
+  if (isObjectLike(cursor) && isString(last)) {
     // SAFETY: as in `getValueAtPath` — an object indexed by a string key.
     (cursor as { [key: string]: JsonValue })[last] = nextValue;
     return true;
@@ -129,7 +130,7 @@ function coerceStringValueForExpectedType(
   value: JsonValue | undefined,
   expected: "boolean" | "number"
 ): JsonValue | undefined {
-  if (typeof value !== "string") {
+  if (!isString(value)) {
     return value;
   }
 

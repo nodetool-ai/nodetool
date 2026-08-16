@@ -44,6 +44,11 @@ import {
   buildWorkspaceExecutionContext,
   resolveWorkflowWorkspace
 } from "./workflow-workspace.js";
+import {
+  isFunctionValue,
+  isNumber,
+  isString
+} from "../predicates.js";
 
 const log = createLogger("nodetool.execution.workflow-run");
 
@@ -150,7 +155,7 @@ export function boundedRunOption(
   min: number,
   max: number
 ): number | undefined {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < min) {
+  if (!isNumber(value) || !Number.isInteger(value) || value < min) {
     return undefined;
   }
   return Math.min(value, max);
@@ -325,13 +330,13 @@ export async function runWorkflow(
   // workflow or a 400 on a bad model selection must not depend on (or be
   // masked by) a cold runtime bootstrap.
   const environment =
-    typeof options.environment === "function"
+    isFunctionValue(options.environment)
       ? await options.environment()
       : options.environment;
 
   const registry = environment.registry;
   const hasPythonNode = runnableGraph.nodes.some((node) => {
-    const nodeType = typeof node.type === "string" ? node.type : "";
+    const nodeType = isString(node.type) ? node.type : "";
     return (
       nodeType !== "" &&
       Boolean(registry.getMetadata(nodeType)) &&

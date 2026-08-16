@@ -8,6 +8,7 @@
  */
 
 import { requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 interface TextExtractor {
   extractText: (input: { type: "buffer"; input: Buffer }) => Promise<string>;
@@ -22,7 +23,7 @@ async function loadExtractor(where: string): Promise<TextExtractor> {
     mod,
     where,
     "office-text-extractor",
-    (v) => typeof (v as OfficeTextExtractorLike | undefined)?.getTextExtractor === "function"
+    (v) => isFunction((v as OfficeTextExtractorLike | undefined)?.getTextExtractor)
   );
   return lib.getTextExtractor();
 }

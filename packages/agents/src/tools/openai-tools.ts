@@ -7,6 +7,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 async function getOpenAIClient(context?: ProcessingContext) {
   // Dynamic import to avoid hard dependency
@@ -15,7 +16,7 @@ async function getOpenAIClient(context?: ProcessingContext) {
   // before env vars). Fall back to env directly for callers that don't
   // pass a context.
   const fromCtx =
-    typeof context?.getSecret === "function"
+    isFunction(context?.getSecret)
       ? await context.getSecret("OPENAI_API_KEY")
       : null;
   const apiKey = fromCtx ?? process.env["OPENAI_API_KEY"];
@@ -32,7 +33,7 @@ export async function openAiSearchConfigured(
   context: ProcessingContext
 ): Promise<boolean> {
   const fromCtx =
-    typeof context?.getSecret === "function"
+    isFunction(context?.getSecret)
       ? await context.getSecret("OPENAI_API_KEY")
       : null;
   return Boolean(fromCtx ?? process.env["OPENAI_API_KEY"]);
@@ -44,7 +45,7 @@ export async function openAiWebSearch(
   params: { query?: unknown }
 ): Promise<{ query?: string; results?: string; status?: string; error?: string }> {
   const query = params.query;
-  if (typeof query !== "string" || !query) {
+  if (!isString(query) || !query) {
     return { error: "Search query is required" };
   }
 

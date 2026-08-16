@@ -58,6 +58,7 @@ import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { edgesFrom, edgesTargeting } from "../hooks/nodes/edgeIndex";
+import { isFunction } from "../utils/typePredicates";
 
 // Preserve node object identity when the class doesn't actually change.
 // React Flow skips re-adopting a node whose object identity is unchanged
@@ -1228,7 +1229,7 @@ export const createNodeStore = (
               | Node<NodeData>[]
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ): void => {
-            if (typeof nodesOrCallback === "function") {
+            if (isFunction(nodesOrCallback)) {
               set((state) => {
                 const next = nodesOrCallback(state.nodes);
                 return {

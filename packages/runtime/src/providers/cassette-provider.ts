@@ -15,6 +15,7 @@
 
 import { getNodeBuiltinSync, importNodeBuiltin } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { isObjectLike } from "../type-predicates.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { createUsageSlot } from "../tracing-helpers.js";
 import type {
@@ -193,7 +194,7 @@ export function stableStringify(value: unknown): string {
   const seen = new WeakSet<object>();
 
   const encode = (v: unknown): StableValue => {
-    if (v === null || typeof v !== "object") {
+    if (!isObjectLike(v)) {
       // Normalize undefined (omitted by JSON.stringify) and functions to null
       // so two requests differing only in an unset optional hash identically.
       if (typeof v === "undefined" || typeof v === "function") return null;

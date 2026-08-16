@@ -8,6 +8,7 @@
  */
 import type { Node, Workflow } from "../../types/workflow";
 import { getWorkflowInputKind, WorkflowInputKind } from "./inputKinds";
+import { isNonEmptyString, isNumber, isRecord, isString } from "../../utils/typePredicates";
 
 /**
  * A value an input node carries: NodeTool's property types are scalars, media
@@ -57,15 +58,13 @@ const nodeData = (node: Node): Record<string, unknown> =>
 
 const nodeName = (node: Node): string => {
   const name = nodeData(node).name;
-  return typeof name === "string" && name.length > 0 ? name : node.id;
+  return isNonEmptyString(name) ? name : node.id;
 };
 
 const isBypassed = (node: Node): boolean => {
   const ui = node.ui_properties;
   return (
-    typeof ui === "object" &&
-    ui !== null &&
-    (ui as Record<string, unknown>).bypassed === true
+    isRecord(ui) && (ui as Record<string, unknown>).bypassed === true
   );
 };
 
@@ -84,7 +83,7 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
     const data = nodeData(node);
     const name = nodeName(node);
     const label =
-      typeof data.label === "string" && data.label ? data.label : name;
+      isNonEmptyString(data.label) ? data.label : name;
 
     const kind = getWorkflowInputKind(node.type);
     if (kind) {
@@ -95,11 +94,9 @@ export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
         label,
         kind,
         description:
-          typeof data.description === "string" && data.description
-            ? data.description
-            : undefined,
-        min: typeof data.min === "number" ? data.min : undefined,
-        max: typeof data.max === "number" ? data.max : undefined,
+          isNonEmptyString(data.description) ? data.description : undefined,
+        min: isNumber(data.min) ? data.min : undefined,
+        max: isNumber(data.max) ? data.max : undefined,
         multiline:
           data.line_mode === "multi_line" ||
           data.line_mode === "multiline" ||
@@ -134,8 +131,8 @@ export const extractVariableNames = (workflow?: Workflow | null): string[] => {
     const data = nodeData(node);
     const nested = (data.properties as Record<string, unknown> | undefined)
       ?.name;
-    const raw = typeof nested === "string" ? nested : data.name;
-    if (typeof raw === "string" && raw.trim()) {names.add(raw.trim());}
+    const raw = isString(nested) ? nested : data.name;
+    if (isString(raw) && raw.trim()) {names.add(raw.trim());}
   }
   return [...names].sort((a, b) => a.localeCompare(b));
 };

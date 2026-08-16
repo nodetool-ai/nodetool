@@ -5,6 +5,11 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { noNodeStoreError, resolveWorkflowId } from "./workflow";
 import { deriveCodeIOUpdates } from "../../../utils/codeOutputInference";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
+import {
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../../utils/typePredicates";
 
 const addNodeParametersSchema = z.object(uiAddNodeParams);
 
@@ -25,13 +30,13 @@ FrontendToolRegistry.register({
       input: unknown,
       fallbackIndex: number
     ) => {
-      if (typeof input === "object" && input !== null && "x" in input && "y" in input) {
-        if (typeof input.x === "number" && typeof input.y === "number") {
+      if (isObjectLike(input) && "x" in input && "y" in input) {
+        if (isNumber(input.x) && isNumber(input.y)) {
           return { x: input.x, y: input.y };
         }
       }
 
-      if (typeof input === "string") {
+      if (isString(input)) {
         const trimmed = input.trim();
 
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
@@ -112,7 +117,7 @@ FrontendToolRegistry.register({
       }
     }
     const inferredIO =
-      isCodeNodeType(type) && typeof resolvedProperties.code === "string"
+      isCodeNodeType(type) && isString(resolvedProperties.code)
         ? deriveCodeIOUpdates(resolvedProperties.code)
         : { dynamic_properties: {}, dynamic_outputs: {} };
 

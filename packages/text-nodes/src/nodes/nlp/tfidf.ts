@@ -8,6 +8,7 @@
 
 import { WordTokenizer } from "./tokenizers.js";
 import { STOPWORDS } from "./data/stopwords.js";
+import { isNumber, isPositiveNumber, isString } from "../../type-predicates.js";
 
 const tokenizer = new WordTokenizer();
 
@@ -23,7 +24,7 @@ function buildDocument(
   let tokens: string[];
   let stopOut: boolean;
 
-  if (typeof text === "string") {
+  if (isString(text)) {
     tokens = tokenizer.tokenize(text.toLowerCase());
     stopOut = true;
   } else if (Array.isArray(text)) {
@@ -37,7 +38,7 @@ function buildDocument(
     (document, term) => {
       if (!stopOut || STOPWORDS.indexOf(term) < 0) {
         const current = document[term];
-        document[term] = typeof current === "number" ? current + 1 : 1;
+        document[term] = isNumber(current) ? current + 1 : 1;
       }
       return document;
     },
@@ -47,7 +48,7 @@ function buildDocument(
 
 function documentHasTerm(term: string, document: TfIdfDocument): boolean {
   const value = document[term];
-  return typeof value === "number" && value > 0;
+  return isPositiveNumber(value);
 }
 
 export type TfIdfCallback = (
@@ -62,7 +63,7 @@ export class TfIdf {
 
   static tf(term: string, document: TfIdfDocument): number {
     const value = document[term];
-    return typeof value === "number" ? value : 0;
+    return isNumber(value) ? value : 0;
   }
 
   idf(term: string, force?: boolean): number {

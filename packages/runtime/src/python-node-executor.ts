@@ -6,6 +6,7 @@ import type {
   ProgressEvent
 } from "./python-bridge-types.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+import { isString } from "./type-predicates.js";
 import { createLogger, getNodeBuiltinSync } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
@@ -182,11 +183,11 @@ export class PythonNodeExecutor {
           key,
           type: ref.type,
           hasUri: Boolean(ref.uri),
-          uriLength: typeof ref.uri === "string" ? ref.uri.length : 0,
+          uriLength: isString(ref.uri) ? ref.uri.length : 0,
           hasData: ref.data !== null && ref.data !== undefined,
           dataType: typeof ref.data,
           dataLength:
-            typeof ref.data === "string"
+            isString(ref.data)
               ? ref.data.length
               : ref.data instanceof Uint8Array
                 ? ref.data.length

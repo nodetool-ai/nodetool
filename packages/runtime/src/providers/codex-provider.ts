@@ -26,6 +26,7 @@ import {
   type Chunk
 } from "@nodetool-ai/protocol";
 import { OpenAIProvider } from "./openai-provider.js";
+import { isString } from "../type-predicates.js";
 import { extractChatGptAccountId } from "./oauth/jwt-claims.js";
 import type {
   ImageModel,
@@ -260,7 +261,7 @@ export class CodexProvider extends OpenAIProvider {
           }
           if (
             event.type === "response.image_generation_call.partial_image" &&
-            typeof event.partial_image_b64 === "string"
+            isString(event.partial_image_b64)
           ) {
             lastPartial = event.partial_image_b64;
           }
@@ -268,7 +269,7 @@ export class CodexProvider extends OpenAIProvider {
             const item = event.item as Record<string, unknown> | undefined;
             if (
               item?.type === "image_generation_call" &&
-              typeof item.result === "string"
+              isString(item.result)
             ) {
               finalB64 = item.result;
             }
@@ -478,11 +479,11 @@ export class CodexProvider extends OpenAIProvider {
     pending: Map<string, PendingCall>,
     model: string
   ): Generator<Chunk | ToolCall> {
-    const type = typeof event.type === "string" ? event.type : "";
+    const type = isString(event.type) ? event.type : "";
 
     switch (type) {
       case "response.output_text.delta": {
-        const delta = typeof event.delta === "string" ? event.delta : "";
+        const delta = isString(event.delta) ? event.delta : "";
         if (delta) {
           yield { type: "chunk", content: delta, done: false };
         }
@@ -490,7 +491,7 @@ export class CodexProvider extends OpenAIProvider {
       }
       case "response.reasoning_summary_text.delta":
       case "response.reasoning_text.delta": {
-        const delta = typeof event.delta === "string" ? event.delta : "";
+        const delta = isString(event.delta) ? event.delta : "";
         if (delta) {
           yield {
             type: "chunk",
@@ -516,7 +517,7 @@ export class CodexProvider extends OpenAIProvider {
       case "response.function_call_arguments.delta": {
         const itemId = String(event.item_id ?? "");
         const call = pending.get(itemId);
-        if (call && typeof event.delta === "string") {
+        if (call && isString(event.delta)) {
           call.args += event.delta;
         }
         return;
@@ -555,7 +556,7 @@ export class CodexProvider extends OpenAIProvider {
             | Record<string, unknown>
             | undefined);
         const message =
-          (err && typeof err.message === "string" && err.message) ||
+          (err && isString(err.message) && err.message) ||
           "Codex response failed";
         throw new Error(message);
       }
@@ -588,7 +589,7 @@ export class CodexProvider extends OpenAIProvider {
         continue;
       if ("args" in item) {
         toolCalls.push(item);
-      } else if (!item.thinking && typeof item.content === "string") {
+      } else if (!item.thinking && isString(item.content)) {
         content += item.content;
       }
     }
@@ -603,7 +604,7 @@ export class CodexProvider extends OpenAIProvider {
 /** Flatten a message's content to plain text. */
 function textOf(content: Message["content"]): string {
   if (content == null) return "";
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   return content
     .filter(
       (c): c is Extract<MessageContent, { type: "text" }> => c.type === "text"

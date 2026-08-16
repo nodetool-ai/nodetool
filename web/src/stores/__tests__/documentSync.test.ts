@@ -42,7 +42,7 @@ describe("handleDocumentResourceChange", () => {
 
   afterEach(() => {
     // The store mock is shared; keep the type reference honest.
-    expect(typeof useNotificationStore.getState).toBe("function");
+    expect(useNotificationStore.getState).toEqual(expect.any(Function));
   });
 
   it("reloads a clean editor when the row changed elsewhere", () => {

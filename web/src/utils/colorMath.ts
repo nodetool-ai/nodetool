@@ -1,3 +1,4 @@
+import { isString } from "./typePredicates";
 /**
  * Self-contained color math, replacing the `chroma-js` operations used in the
  * app. Algorithms mirror chroma-js 3.x exactly so colors stay visually
@@ -169,7 +170,7 @@ export function parse(input: string): Color {
 
 /** Coerce a string or Color into a Color. */
 function toColor(color: string | Color): Color {
-  return typeof color === "string" ? parse(color) : color;
+  return isString(color) ? parse(color) : color;
 }
 
 // ---------------------------------------------------------------------------

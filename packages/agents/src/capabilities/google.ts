@@ -88,6 +88,7 @@ import {
   CALENDAR_CREATE_EVENT_SCHEMA,
   CALENDAR_DELETE_EVENT_SCHEMA
 } from "./google.specs.js";
+import { isFiniteNumber } from "../utils/type-guards.js";
 
 export {
   str,
@@ -141,7 +142,7 @@ const num = (
   fallback: number
 ): number => {
   const value = params[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return isFiniteNumber(value) ? value : fallback;
 };
 
 const rows = (params: Record<string, unknown>, key: string): unknown[][] => {

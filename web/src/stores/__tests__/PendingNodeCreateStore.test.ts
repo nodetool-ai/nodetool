@@ -18,7 +18,7 @@ describe("PendingNodeCreateStore", () => {
     usePendingNodeCreateStore.getState().requestCreate(fakeMeta("a"));
     const p = usePendingNodeCreateStore.getState().pending;
     expect(p?.metadata.node_type).toBe("a");
-    expect(typeof p?.requestedAt).toBe("number");
+    expect(p?.requestedAt).toEqual(expect.any(Number));
   });
 
   it("consume returns the metadata and clears pending", () => {

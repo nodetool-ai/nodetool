@@ -17,6 +17,10 @@ import {
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
 } from "../types";
 import { blendModeToComposite } from "../drawingUtils";
+import {
+  isNumber,
+  isString
+} from "../../../utils/typePredicates";
 
 const SERIALIZED_LAYER_DATA_PREFIX = "ntlayer:";
 
@@ -46,7 +50,7 @@ function getDefaultBounds(width: number, height: number): LayerRasterBounds {
 }
 
 function numberOr(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return isNumber(value) && Number.isFinite(value) ? value : fallback;
 }
 
 function getDataUrlByteLength(dataUrl: string): number {
@@ -103,7 +107,7 @@ export function deserializeLayerData(
     const payload = (decoded ?? {}) as Partial<SerializedLayerData>;
     const bounds = payload.bounds;
     return {
-      image: typeof payload.image === "string" ? payload.image : null,
+      image: isString(payload.image) ? payload.image : null,
       bounds: {
         x: numberOr(bounds?.x, fallbackBounds.x),
         y: numberOr(bounds?.y, fallbackBounds.y),
@@ -142,7 +146,7 @@ export function deserializeDocument(
       typeof parsed === "object" &&
       parsed !== null &&
       "version" in parsed &&
-      typeof parsed.version === "number" &&
+      isNumber(parsed.version) &&
       "layers" in parsed &&
       Array.isArray(parsed.layers)
     ) {

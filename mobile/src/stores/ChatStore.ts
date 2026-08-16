@@ -32,6 +32,7 @@ import {
   isToolCallMessage,
 } from '../documents/tools/executeToolCall';
 import '../documents/tools';
+import { isString } from '../utils/typePredicates';
 
 interface ChatState {
   // Connection state
@@ -157,7 +158,7 @@ function handleWebSocketMessage(
 
       // Audio chunks carry binary payloads (Float32Array or base64); only
       // text contributes to the assistant message.
-      const chunkText = typeof chunk.content === 'string' ? chunk.content : '';
+      const chunkText = isString(chunk.content) ? chunk.content : '';
 
       const messages = state.messageCache[threadId] || [];
       const lastMessage = messages[messages.length - 1];

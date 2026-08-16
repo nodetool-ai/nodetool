@@ -19,8 +19,8 @@ describe("useIsGroupable", () => {
   it("returns isGroupable and isGroup functions", () => {
     const { result } = renderHook(() => useIsGroupable());
 
-    expect(typeof result.current.isGroupable).toBe("function");
-    expect(typeof result.current.isGroup).toBe("function");
+    expect(result.current.isGroupable).toEqual(expect.any(Function));
+    expect(result.current.isGroup).toEqual(expect.any(Function));
   });
 
   describe("isGroupable", () => {

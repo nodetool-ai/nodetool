@@ -45,6 +45,7 @@ import {
 
 import { restFetch } from "../rest-fetch";
 import type { WorkflowGraph } from "../../stores/ApiTypes";
+import { isString } from "../../utils/typePredicates";
 
 const ROUTE_PREFIX = "/api/sandbox-modules/";
 
@@ -114,9 +115,9 @@ export function collectSandboxModuleDeclarations(
     if (!Array.isArray(declared)) continue;
     for (const entry of declared) {
       const specifier =
-        typeof entry === "string"
+        isString(entry)
           ? entry
-          : typeof asRecord(entry)?.["specifier"] === "string"
+          : isString(asRecord(entry)?.["specifier"])
             ? (asRecord(entry)!["specifier"] as string)
             : undefined;
       if (specifier === undefined || specifier.length === 0) continue;
@@ -125,10 +126,10 @@ export function collectSandboxModuleDeclarations(
       const packVersion = fields?.["resolvedPackVersion"];
       const contentDigest = fields?.["contentDigest"];
       const declaration: SandboxModuleDeclaration = { specifier };
-      if (typeof packVersion === "string") {
+      if (isString(packVersion)) {
         declaration.resolvedPackVersion = packVersion;
       }
-      if (typeof contentDigest === "string") {
+      if (isString(contentDigest)) {
         declaration.contentDigest = contentDigest;
       }
       bySpecifier.set(specifier, declaration);

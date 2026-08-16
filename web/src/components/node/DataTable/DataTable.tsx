@@ -28,6 +28,7 @@ import { format, isValid, parseISO } from "../../../utils/dateFormat";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "../../../utils/isEqual";
+import { isNumber, isString } from "../../../utils/typePredicates";
 
 /**
  * Union type for all possible cell values in a DataFrame column
@@ -72,7 +73,7 @@ type TabulatorFilterArray = TabulatorFilter[][];
  */
 const datetimeFormatter: Formatter = (cell) => {
   const value = cell.getValue();
-  const date = typeof value === "string" ? parseISO(value) : new Date(value);
+  const date = isString(value) ? parseISO(value) : new Date(value);
   if (isValid(date)) {
     return format(date, "PPpp");
   }
@@ -149,8 +150,8 @@ const DataTable: React.FC<DataTableProps> = ({
     if (tabulatorRef.current && isModalMode) {
       const undoSize = tabulatorRef.current.getHistoryUndoSize();
       const redoSize = tabulatorRef.current.getHistoryRedoSize();
-      setCanUndo(typeof undoSize === "number" && undoSize > 0);
-      setCanRedo(typeof redoSize === "number" && redoSize > 0);
+      setCanUndo(isNumber(undoSize) && undoSize > 0);
+      setCanRedo(isNumber(redoSize) && redoSize > 0);
     }
   }, [isModalMode]);
 

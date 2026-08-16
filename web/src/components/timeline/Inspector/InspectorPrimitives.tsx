@@ -38,6 +38,7 @@ import {
   type SelectOption
 } from "../../ui_primitives";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import { isFunction } from "../../../utils/typePredicates";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -405,7 +406,7 @@ export const InspectorPillInput = memo(function InspectorPillInput({
   const setRefs = useCallback(
     (node: HTMLInputElement | null) => {
       inputRef.current = node;
-      if (typeof ref === "function") {
+      if (isFunction(ref)) {
         ref(node);
       } else if (ref) {
         ref.current = node;

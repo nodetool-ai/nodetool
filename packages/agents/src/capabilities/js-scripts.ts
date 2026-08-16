@@ -53,6 +53,7 @@ import {
   MAX_JS_SCRIPT_DEPTH,
   MAX_JS_SCRIPT_TIMEOUT_SECONDS
 } from "./js-scripts.specs.js";
+import { isNonBlankString, isRecord } from "../utils/type-guards.js";
 
 export {
   MAX_JS_SCRIPT_DEPTH,
@@ -81,10 +82,10 @@ const isError = (value: unknown): value is ToolError =>
   typeof (value as ToolError).error === "string";
 
 const stringParam = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+  isNonBlankString(value) ? value.trim() : undefined;
 
 function inputBag(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
+  if (isRecord(value)) {
     return value as Record<string, unknown>;
   }
   return {};
@@ -233,7 +234,7 @@ export function resolveSecretScope(
  * the caller passed nothing usable. Entries that are not arrays are dropped.
  */
 function inputStreamBag(value: unknown): Record<string, unknown[]> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return undefined;
   }
   const staged: Record<string, unknown[]> = {};
@@ -369,7 +370,7 @@ const saveJsScript: CapabilityExport = {
     if (!userId) return { error: "No user is bound to this session." };
 
     const document = params["document"];
-    if (!document || typeof document !== "object" || Array.isArray(document)) {
+    if (!isRecord(document)) {
       return { error: "document is required and must be an object." };
     }
 

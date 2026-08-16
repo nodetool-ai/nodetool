@@ -7,6 +7,7 @@ import {
 import { useAudioQueue } from "../../stores/AudioQueueStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { subscribeRealtimeAudioChunks } from "../../lib/audio/realtimeAudioChunkBus";
+import { isFunction, isString } from "../../utils/typePredicates";
 
 interface UseRealtimeAudioPlaybackOptions {
   /**
@@ -196,7 +197,7 @@ export const useRealtimeAudioPlayback = ({
     setWorkletState("pending");
     (async () => {
       try {
-        if (typeof ctx.audioWorklet?.addModule !== "function") {
+        if (!isFunction(ctx.audioWorklet?.addModule)) {
           throw new Error("AudioWorklet unavailable");
         }
         const { getChunkPlayerWorkletUrl } = await import(
@@ -318,7 +319,7 @@ export const useRealtimeAudioPlayback = ({
       if (content instanceof Float32Array) {
         return content;
       }
-      if (typeof content !== "string" || !content) {
+      if (!isString(content) || !content) {
         return null;
       }
       const u8 = base64ToUint8Array(content);
@@ -428,7 +429,7 @@ export const useRealtimeAudioPlayback = ({
       if (content instanceof Float32Array) {
         return Math.floor(content.length / channels) / sampleRate;
       }
-      if (typeof content !== "string" || !content) {
+      if (!isString(content) || !content) {
         return 0;
       }
       let bytes = Math.floor((content.length * 3) / 4);
@@ -461,7 +462,7 @@ export const useRealtimeAudioPlayback = ({
     const pending = getChunks().filter(
       (c) =>
         c?.content_type === "audio" &&
-        (typeof c.content === "string" ||
+        (isString(c.content) ||
           c.content instanceof Float32Array) &&
         !scheduledChunksRef.current.has(c)
     );
@@ -553,7 +554,7 @@ export const useRealtimeAudioPlayback = ({
       if (!workletNode || scheduledChunksRef.current.has(chunk)) return;
       if (
         chunk.content_type !== "audio" ||
-        (typeof chunk.content !== "string" &&
+        (!isString(chunk.content) &&
           !(chunk.content instanceof Float32Array))
       ) {
         return;

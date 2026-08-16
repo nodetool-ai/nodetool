@@ -8,6 +8,7 @@
 import type { Message, TodoItem } from "../../stores/ApiTypes";
 import type { ChatCastEvent, ChatViewStatus } from "./chatCastTypes";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { isString } from "../../utils/typePredicates";
 
 export interface ChatReplayState {
   status: ChatViewStatus;
@@ -77,7 +78,7 @@ export function computeChatStateAt(
           ...state,
           messages: patchMessage(state.messages, payload.id, (m) => ({
             ...m,
-            content: `${typeof m.content === "string" ? m.content : ""}${payload.text}`,
+            content: `${isString(m.content) ? m.content : ""}${payload.text}`,
           })),
         };
         break;

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { isString } from "../utils/typePredicates";
 
 export type Log = {
   workflowId: string;
@@ -58,7 +59,7 @@ const useLogsStore = create<LogsStore>((set, get) => ({
     const safeLog: Log = {
       ...log,
       content:
-        typeof log.content === "string"
+        isString(log.content)
           ? truncateLogContent(log.content)
           : truncateLogContent(String(log.content))
     };

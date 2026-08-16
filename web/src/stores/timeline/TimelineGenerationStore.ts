@@ -23,6 +23,7 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 import { extractAssetId } from "../outputAssetId";
+import { isObjectLike } from "../../utils/typePredicates";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ const loadPersistedClipJobs = () => {
       return {};
     }
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return {};
+    if (!isObjectLike(parsed)) return {};
     const result: Record<string, ClipJobState> = {};
     for (const [key, value] of Object.entries(
       parsed as Record<string, unknown>

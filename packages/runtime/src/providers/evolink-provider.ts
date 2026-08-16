@@ -17,6 +17,7 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
+import { isString } from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.providers.evolink");
 
@@ -435,7 +436,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
       }
       if (data.status === "failed") {
         const message =
-          typeof data.error === "string"
+          isString(data.error)
             ? data.error
             : data.error?.message ?? "Unknown error";
         throw new Error(`Evolink task failed: ${message} (taskId: ${taskId})`);

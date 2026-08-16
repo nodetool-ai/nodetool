@@ -5,6 +5,7 @@ import {
   getWsConnectionHealthConfig,
   type WsConnectionHealthConfig
 } from "./lib/ws-connection-health.js";
+import { isNumber } from "./lib/wire-values.js";
 
 type WsFrame = {
   type: string;
@@ -213,7 +214,7 @@ export class WsAdapter implements WebSocketConnection {
 
   private bufferedAmount(): number {
     const buffered = this.socket.bufferedAmount;
-    return typeof buffered === "number" ? buffered : 0;
+    return isNumber(buffered) ? buffered : 0;
   }
 
   async close(code?: number, reason?: string): Promise<void> {

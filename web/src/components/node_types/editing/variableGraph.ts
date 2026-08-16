@@ -12,6 +12,7 @@
  */
 import { SET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
 import type { TypeMetadata } from "../../../stores/ApiTypes";
+import { isString } from "../../../utils/typePredicates";
 
 export interface VariableGraphNode {
   id: string;
@@ -44,7 +45,7 @@ export const readVariableName = (
   node: VariableGraphNode | undefined
 ): string => {
   const raw = node?.data?.properties?.name;
-  return typeof raw === "string" ? raw.trim() : "";
+  return isString(raw) ? raw.trim() : "";
 };
 
 /**

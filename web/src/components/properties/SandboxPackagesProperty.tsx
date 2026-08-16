@@ -31,6 +31,7 @@ import {
 import PropertyLabel from "../node/PropertyLabel";
 import type { PropertyProps } from "../node/PropertyInput.types";
 import { trpc } from "../../lib/trpc";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 /** What selecting a package means, in the trust model's own words. */
 export const SANDBOX_CONSENT_TEXT =
@@ -53,10 +54,10 @@ export interface Declaration {
 
 /** A saved value is a specifier string or a declaration object. */
 function declaredSpecifier(entry: unknown): string | null {
-  if (typeof entry === "string") return entry;
-  if (entry !== null && typeof entry === "object") {
+  if (isString(entry)) return entry;
+  if (isObjectLike(entry)) {
     const specifier = (entry as { specifier?: unknown }).specifier;
-    if (typeof specifier === "string") return specifier;
+    if (isString(specifier)) return specifier;
   }
   return null;
 }

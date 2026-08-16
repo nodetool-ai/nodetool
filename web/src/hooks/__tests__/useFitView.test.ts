@@ -89,7 +89,7 @@ describe("useFitView", () => {
 
   it("returns a function", () => {
     const { result } = renderHook(() => useFitView());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("fits all nodes when no nodes are selected", () => {

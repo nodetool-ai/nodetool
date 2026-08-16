@@ -35,6 +35,7 @@ import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspe
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useNodes } from "../../contexts/NodeContext";
 import { getCodeNodeLanguage, isCodeNode } from "../node/codeNodeUi";
+import { isString } from "../../utils/typePredicates";
 
 const EDITOR_OPTIONS = {
   minimap: { enabled: false },
@@ -69,7 +70,7 @@ const CodeProperty = ({
 }: PropertyProps) => {
   const theme = useTheme();
   const id = `code-${property.name}-${propertyIndex}`;
-  const storeValue = typeof value === "string" ? value : "";
+  const storeValue = isString(value) ? value : "";
   const language = getCodeNodeLanguage(nodeType);
   const showExpandEditor = !isCodeNode(nodeType);
 

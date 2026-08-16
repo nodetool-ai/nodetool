@@ -17,6 +17,7 @@ import type {
   DictTableRow,
   DataframeCellValue
 } from "./DataTable";
+import { isNumber, isString } from "../../../utils/typePredicates";
 
 /**
  * Union type for all possible table data formats
@@ -109,9 +110,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         // If we have existing data, try to match its type
         if (data.length > 0) {
           const firstItem = data[0];
-          if (typeof firstItem === "number") {
+          if (isNumber(firstItem)) {
             defaultValue = 0;
-          } else if (typeof firstItem === "string") {
+          } else if (isString(firstItem)) {
             defaultValue = "";
           } else {
             defaultValue = "";
@@ -327,7 +328,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               if (mappedDfIdx === dfIdx) {
                 value = row[pasteIdx] ?? "";
                 // Remove surrounding quotes
-                if (typeof value === "string") {
+                if (isString(value)) {
                   value = value.replace(/^"|"$/g, "");
                 }
                 break;

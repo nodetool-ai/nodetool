@@ -12,6 +12,14 @@ export function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+export function isNumber(value: unknown): value is number {
+  return typeof value === "number";
+}
+
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
 /**
  * An object or an array — anything `typeof` calls "object" except `null`.
  * Use {@link isRecord} when array payloads must be rejected.

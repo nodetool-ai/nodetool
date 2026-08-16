@@ -30,6 +30,7 @@ import {
   MAX_MESSAGES_PER_CALL,
   DEFAULT_MAX_CHARS
 } from "./threads.specs.js";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 type ToolError = { error: string };
 
@@ -62,20 +63,20 @@ function clamp(value: unknown, fallback: number, max: number): number {
  * that is only an image does not read as an empty one.
  */
 function messageText(content: unknown): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (Array.isArray(content)) {
     return content
       .map((part) => {
-        if (typeof part === "string") return part;
-        if (!part || typeof part !== "object") return "";
+        if (isString(part)) return part;
+        if (!isObjectLike(part)) return "";
         const typed = part as { type?: string; text?: string };
-        if (typeof typed.text === "string") return typed.text;
+        if (isString(typed.text)) return typed.text;
         return typed.type ? `[${typed.type}]` : "";
       })
       .filter((piece) => piece !== "")
       .join("\n");
   }
-  if (content && typeof content === "object") return JSON.stringify(content);
+  if (isObjectLike(content)) return JSON.stringify(content);
   return "";
 }
 
@@ -92,8 +93,8 @@ function toolCallNames(
   return toolCalls.map((call) => {
     const typed = (call ?? {}) as { id?: unknown; name?: unknown };
     return {
-      id: typeof typed.id === "string" ? typed.id : "",
-      name: typeof typed.name === "string" ? typed.name : ""
+      id: isString(typed.id) ? typed.id : "",
+      name: isString(typed.name) ? typed.name : ""
     };
   });
 }
@@ -170,8 +171,8 @@ const listThreads: CapabilityExport = {
     const [rows, next] = await Thread.paginate(userId, {
       limit,
       reverse: true,
-      workflowId: typeof workflowId === "string" ? workflowId : undefined,
-      startKey: typeof params["cursor"] === "string" ? params["cursor"] : undefined
+      workflowId: isString(workflowId) ? workflowId : undefined,
+      startKey: isString(params["cursor"]) ? params["cursor"] : undefined
     });
 
     const wantPreview = params["preview"] !== false;
@@ -203,7 +204,7 @@ const getThread: CapabilityExport = {
     const userId = userOf(run);
     if (isError(userId)) return userId;
     const threadId = params["thread_id"];
-    if (typeof threadId !== "string" || !threadId) {
+    if (!isString(threadId) || !threadId) {
       return { error: "thread_id is required (use list_threads to find one)." };
     }
     const { Message, Thread } = await import("@nodetool-ai/models");
@@ -218,7 +219,7 @@ const getThread: CapabilityExport = {
       limit,
       reverse: params["newest_first"] === true,
       startKey:
-        typeof params["cursor"] === "string" ? params["cursor"] : undefined
+        isString(params["cursor"]) ? params["cursor"] : undefined
     });
 
     return {
@@ -237,7 +238,7 @@ const getMessage: CapabilityExport = {
     const userId = userOf(run);
     if (isError(userId)) return userId;
     const messageId = params["message_id"];
-    if (typeof messageId !== "string" || !messageId) {
+    if (!isString(messageId) || !messageId) {
       return { error: "message_id is required (use get_thread to find one)." };
     }
     const { Message } = await import("@nodetool-ai/models");

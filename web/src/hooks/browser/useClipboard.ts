@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { copyAssetToClipboard } from "../../utils/clipboardUtils";
 import type {} from "../../window.d";
+import { isObjectLike } from "../../utils/typePredicates";
 
 interface UseClipboardResult {
   clipboardData: string | null;
@@ -35,7 +36,7 @@ export const useClipboard = (): UseClipboardResult => {
   const validateData = useCallback((data: string): boolean => {
     try {
       const parsedData: unknown = JSON.parse(data);
-      if (typeof parsedData !== "object" || parsedData === null) return false;
+      if (!isObjectLike(parsedData)) return false;
       const obj = parsedData as Record<string, unknown>;
       const hasNodes =
         "nodes" in obj &&

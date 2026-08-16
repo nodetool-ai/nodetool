@@ -36,6 +36,7 @@ import {
   pointerHasPaintContact
 } from "../pointerPen";
 import { cursorStyleForTool } from "../sketchCursorStyle";
+import { isFunction } from "../../../utils/typePredicates";
 
 
 /**
@@ -449,7 +450,7 @@ export function usePointerHandlers({
   const buildCoalescedEvents = (e: React.PointerEvent): ToolPointerEvent[] => {
     const nativePointerEvent = e.nativeEvent;
     const coalescedEvents =
-      typeof nativePointerEvent.getCoalescedEvents === "function"
+      isFunction(nativePointerEvent.getCoalescedEvents)
         ? nativePointerEvent.getCoalescedEvents()
         : [nativePointerEvent];
     return coalescedEvents.map((ep) => ({

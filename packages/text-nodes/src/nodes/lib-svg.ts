@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { importHidden } from "@nodetool-ai/config";
 import type { Platform } from "@nodetool-ai/protocol";
+import { isFunction, isObjectLike, isString } from "../type-predicates.js";
 
 // SVGToImage rasterizes via the native `sharp` addon, so that one node is
 // Node-only (its per-class override below wins over the list-level tagAsServer;
@@ -27,7 +28,9 @@ async function loadSharp(): Promise<SharpFn | null> {
     const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpModule | SharpFn>("sharp");
       if (!mod) return null;
-      if (typeof mod === "function") return mod;
+      // SAFETY: sharp's CJS export is either the callable itself or a
+      // namespace with `default`; a callable `mod` is the former.
+      if (isFunction(mod)) return mod as SharpFn;
       return mod.default ?? null;
     })();
     _sharpPromise = attempt;
@@ -46,8 +49,8 @@ type SvgElementLike = {
 };
 
 function asColor(value: unknown, fallback: string): string {
-  if (typeof value === "string") return value;
-  if (value && typeof value === "object" && "value" in value) {
+  if (isString(value)) return value;
+  if (isObjectLike(value) && "value" in value) {
     return String(value.value ?? fallback);
   }
   return fallback;
@@ -95,7 +98,7 @@ function normalizeContent(content: unknown): string {
   if (Array.isArray(content)) {
     return content.map((c) => normalizeContent(c)).join("\n");
   }
-  if (content && typeof content === "object" && "name" in content) {
+  if (isObjectLike(content) && "name" in content) {
     return elementToString(content as SvgElementLike);
   }
   return String(content ?? "");
@@ -1178,7 +1181,7 @@ export class TransformLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const content = { ...((this.content ?? {}) as SvgElementLike) };
-    if (!content || typeof content !== "object" || !("name" in content)) {
+    if (!isObjectLike(content) || !("name" in content)) {
       return { output: { name: "g", attributes: {}, children: [] } };
     }
     const transforms: string[] = [];

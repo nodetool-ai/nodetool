@@ -1,4 +1,5 @@
 import { TypeMetadata } from "../stores/ApiTypes";
+import { isBoolean, isNumber, isString } from "./typePredicates";
 
 /**
  * Human readable string representation of a type.
@@ -101,19 +102,19 @@ export const valueMatchesType = (
       case "null":
         return v === null;
       case "str":
-        return typeof v === "string";
+        return isString(v);
       case "number":
       case "int":
       case "float":
-        return typeof v === "number" && Number.isFinite(v);
+        return isNumber(v) && Number.isFinite(v);
       case "boolean":
       case "bool":
-        return typeof v === "boolean";
+        return isBoolean(v);
       case "enum":
         if (!t.values || t.values.length === 0) {
-          return typeof v === "string";
+          return isString(v);
         }
-        return typeof v === "string" && t.values.includes(v);
+        return isString(v) && t.values.includes(v);
       case "list": {
         if (!Array.isArray(v)) {return false;}
         const elementType = t.type_args && t.type_args[0];

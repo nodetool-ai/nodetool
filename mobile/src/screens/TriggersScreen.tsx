@@ -36,6 +36,7 @@ import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { formatRelative } from './JobsScreen';
+import { isFiniteNumber, isRecord, isString } from '../utils/typePredicates';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Triggers'>;
@@ -67,19 +68,19 @@ export interface TriggerRow {
 }
 
 function readString(source: unknown, key: string): string | null {
-  if (typeof source !== 'object' || source === null) {
+  if (!isRecord(source)) {
     return null;
   }
   const value = (source as Record<string, unknown>)[key];
-  return typeof value === 'string' ? value : null;
+  return isString(value) ? value : null;
 }
 
 function readNumber(source: unknown, key: string): number | null {
-  if (typeof source !== 'object' || source === null) {
+  if (!isRecord(source)) {
     return null;
   }
   const value = (source as Record<string, unknown>)[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  return isFiniteNumber(value) ? value : null;
 }
 
 /**
@@ -203,7 +204,7 @@ export function formatInterval(seconds: number | null | undefined): string | nul
 const rowsByPayload = new WeakMap<object, TriggerRow[]>();
 
 function rowsFromPayload(data: unknown): TriggerRow[] {
-  if (typeof data !== 'object' || data === null) {
+  if (!isRecord(data)) {
     return [];
   }
   const cached = rowsByPayload.get(data);

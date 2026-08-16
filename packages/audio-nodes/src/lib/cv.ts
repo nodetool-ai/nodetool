@@ -21,6 +21,11 @@
 import type { StreamingInputs } from "@nodetool-ai/node-sdk";
 import { base64ToBytes } from "@nodetool-ai/nodes-utils";
 import { pcm16ToFloat32 } from "./audio-wav.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isPositiveNumber
+} from "../type-predicates.js";
 
 export type SignalEncoding = "pcm16le" | "f32le";
 
@@ -57,7 +62,7 @@ export interface SignalChunk {
  * (including absent metadata) takes the legacy pcm16le path.
  */
 export function readSignalChunk(item: unknown): SignalChunk | null {
-  if (!item || typeof item !== "object") return null;
+  if (!isObjectLike(item)) return null;
   const c = item as {
     content?: unknown;
     content_type?: unknown;
@@ -71,16 +76,13 @@ export function readSignalChunk(item: unknown): SignalChunk | null {
     channels?: unknown;
   };
   const sampleRate =
-    typeof meta.sample_rate === "number" && meta.sample_rate > 0
-      ? meta.sample_rate
-      : SYNTH_SAMPLE_RATE;
-  const channels =
-    typeof meta.channels === "number" && meta.channels > 0 ? meta.channels : 1;
+    isPositiveNumber(meta.sample_rate) ? meta.sample_rate : SYNTH_SAMPLE_RATE;
+  const channels = isPositiveNumber(meta.channels) ? meta.channels : 1;
   let samples: Float32Array;
   if (c.content instanceof Float32Array) {
     // Native in-process payload — zero conversions.
     samples = c.content;
-  } else if (typeof c.content === "string" && c.content) {
+  } else if (isNonEmptyString(c.content)) {
     // Encoded payload (external sources, websocket wire format).
     const bytes = base64ToBytes(c.content);
     samples =

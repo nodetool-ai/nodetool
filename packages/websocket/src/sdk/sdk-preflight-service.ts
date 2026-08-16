@@ -25,6 +25,7 @@ import type { SdkV1ExecutionReadiness } from "./sdk-static-preflight-service.js"
 import type { SdkExecutionCapacitySnapshot } from "../unified-websocket-runner.js";
 import { getExistingDownloadManager } from "@nodetool-ai/huggingface";
 import { createNodeToolSdkV1HuggingFaceDownloadStateReader } from "./sdk-huggingface-download-state.js";
+import { isFunctionValue } from "../lib/wire-values.js";
 
 type RequirementResolverOptions = Omit<
   CreateNodeToolSdkV1RequirementResolverOptions,
@@ -106,11 +107,11 @@ export function createNodeToolSdkV1PreflightService(
   options: CreateNodeToolSdkV1PreflightServiceOptions
 ): NodeToolSdkV1PreflightService {
   const listRegistryPackageIds = (): readonly string[] =>
-    typeof options.registry.listNodePackageIds === "function"
+    isFunctionValue(options.registry.listNodePackageIds)
       ? options.registry.listNodePackageIds()
       : [];
   const resolveRegistryPackageId = (nodeType: string): string | null =>
-    typeof options.registry.getNodePackageId === "function"
+    isFunctionValue(options.registry.getNodePackageId)
       ? (options.registry.getNodePackageId(nodeType) ?? null)
       : null;
   const readHuggingFaceDownloadState =

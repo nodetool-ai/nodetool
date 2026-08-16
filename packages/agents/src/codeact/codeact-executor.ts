@@ -91,6 +91,13 @@ import {
   hasNodetoolApiTools,
   nodetoolApiCoveredToolNames
 } from "./nodetool-api.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.codeact");
 
@@ -153,7 +160,7 @@ function stringifiedEnvelope(value: string, path: string): boolean {
   } catch {
     return false;
   }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isObjectLike(parsed) || Array.isArray(parsed)) {
     return false;
   }
   const keys = Object.keys(parsed);
@@ -185,7 +192,7 @@ export function coercionArtifactPaths(
   depth = 0
 ): string[] {
   if (depth > 6) return [];
-  if (typeof value === "string") {
+  if (isString(value)) {
     if (value.includes("[object Object]")) return [path];
     return stringifiedEnvelope(value, path) ? [path] : [];
   }
@@ -194,7 +201,7 @@ export function coercionArtifactPaths(
       coercionArtifactPaths(entry, `${path}[${i}]`, depth + 1)
     );
   }
-  if (value !== null && typeof value === "object") {
+  if (isObjectLike(value)) {
     return Object.entries(value).flatMap(([key, entry]) =>
       coercionArtifactPaths(entry, `${path}.${key}`, depth + 1)
     );
@@ -203,7 +210,7 @@ export function coercionArtifactPaths(
 }
 
 export function executeCodeMessage(args: Record<string, unknown>): string {
-  const title = typeof args?.["title"] === "string" ? args["title"].trim() : "";
+  const title = isString(args?.["title"]) ? args["title"].trim() : "";
   return title || "Executing code action";
 }
 
@@ -588,7 +595,7 @@ export class CodeActExecutor {
       resultJson: unknown
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
       let payload: unknown = null;
-      if (typeof resultJson === "string") {
+      if (isString(resultJson)) {
         try {
           payload = JSON.parse(resultJson);
         } catch {
@@ -643,7 +650,7 @@ export class CodeActExecutor {
     > => {
       try {
         const limit =
-          typeof maxResults === "number" && Number.isFinite(maxResults)
+          isFiniteNumber(maxResults)
             ? Math.max(1, Math.min(25, Math.floor(maxResults)))
             : 5;
         const byName = new Map(this.tools.map((t) => [t.name, t]));
@@ -666,7 +673,7 @@ export class CodeActExecutor {
     const executeAction = async (
       args: Record<string, unknown>
     ): Promise<string | MessageContent[]> => {
-      const code = typeof args?.["code"] === "string" ? args["code"] : "";
+      const code = isString(args?.["code"]) ? args["code"] : "";
       if (!code.trim()) {
         return JSON.stringify({
           ok: false,
@@ -808,7 +815,7 @@ export class CodeActExecutor {
           continue;
         }
         if (isChunk(item)) {
-          if (typeof item.content === "string" && item.content.length > 0) {
+          if (isNonEmptyString(item.content)) {
             yield {
               type: "chunk",
               node_id: this.step.id,
@@ -823,7 +830,7 @@ export class CodeActExecutor {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
             lastAssistant =
-              typeof m.content === "string"
+              isString(m.content)
                 ? { ...m, content: removeThinkTags(m.content) }
                 : m;
           }
@@ -889,9 +896,7 @@ export class CodeActExecutor {
     try {
       const parsed = JSON.parse(this.step.outputSchema) as unknown;
       if (
-        parsed !== null &&
-        typeof parsed === "object" &&
-        !Array.isArray(parsed)
+        isRecord(parsed)
       ) {
         return parsed as Record<string, unknown>;
       }

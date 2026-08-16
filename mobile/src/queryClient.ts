@@ -1,6 +1,7 @@
 import { QueryClient, onlineManager } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import { isOnlineState } from './hooks/useNetworkStatus';
+import { isNumber, isRecord, isString } from './utils/typePredicates';
 
 /**
  * How long a persisted cache entry stays usable after a cold start. Queries
@@ -28,18 +29,17 @@ onlineManager.setEventListener((setOnline) =>
  * hard dependency on the tRPC error class and just read the shape structurally.
  */
 function httpStatusFromError(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null) {
+  if (!isRecord(error)) {
     return undefined;
   }
-  if ('status' in error && typeof error.status === 'number') {
+  if ('status' in error && isNumber(error.status)) {
     return error.status;
   }
   if (
     'data' in error &&
-    typeof error.data === 'object' &&
-    error.data !== null &&
+    isRecord(error.data) &&
     'httpStatus' in error.data &&
-    typeof error.data.httpStatus === 'number'
+    isNumber(error.data.httpStatus)
   ) {
     return error.data.httpStatus;
   }
@@ -97,11 +97,11 @@ const NON_PERSISTED_KEY_SEGMENTS = new Set(['secrets', 'secret']);
 function keySegments(queryKey: readonly unknown[]): string[] {
   const segments: string[] = [];
   for (const part of queryKey) {
-    if (typeof part === 'string') {
+    if (isString(part)) {
       segments.push(part);
     } else if (Array.isArray(part)) {
       for (const nested of part) {
-        if (typeof nested === 'string') {
+        if (isString(nested)) {
           segments.push(nested);
         }
       }

@@ -27,6 +27,7 @@
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 import { slotTypeToString, valueIncompatibleWithType } from "./type-compat.js";
+import { isNonEmptyString, isObjectLike, isString } from "./type-predicates.js";
 
 /** A single validation issue tied to a node property. */
 /**
@@ -104,20 +105,20 @@ function isAssetType(typeStr: string | undefined): boolean {
 
 function isUnsetAsset(value: unknown): boolean {
   if (value === null || value === undefined) return true;
-  if (typeof value !== "object") return false;
+  if (!isObjectLike(value)) return false;
   const v = value as Record<string, unknown>;
   const uri = v.uri;
   const assetId = v.asset_id;
   const tempId = v.temp_id;
   const data = v.data;
-  const hasUri = typeof uri === "string" && uri.length > 0;
-  const hasAssetId = typeof assetId === "string" && assetId.length > 0;
-  const hasTempId = typeof tempId === "string" && tempId.length > 0;
+  const hasUri = isNonEmptyString(uri);
+  const hasAssetId = isNonEmptyString(assetId);
+  const hasTempId = isNonEmptyString(tempId);
   const hasData =
     data !== null &&
     data !== undefined &&
     // Stryker disable next-line ConditionalExpression: forcing `typeof data === "string"` true is equivalent — for the only non-string with length 0 (an empty array) the next clause already drives hasData false.
-    !(typeof data === "string" && data.length === 0) &&
+    !(isString(data) && data.length === 0) &&
     !(Array.isArray(data) && data.length === 0);
   return !hasUri && !hasAssetId && !hasTempId && !hasData;
 }
@@ -125,7 +126,7 @@ function isUnsetAsset(value: unknown): boolean {
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   // Stryker disable next-line ConditionalExpression: forcing this branch is equivalent — `.length === 0` also holds for arrays (matching the next line) and is false (undefined === 0) for numbers/objects (matching the fallback).
-  if (typeof value === "string") return value.length === 0;
+  if (isString(value)) return value.length === 0;
   // Stryker disable next-line ConditionalExpression: forcing this branch true is equivalent — value.length === 0 matches the array check for arrays and is false (undefined === 0) for numbers/objects (matching the fallback).
   if (Array.isArray(value)) return value.length === 0;
   return false;
@@ -133,7 +134,7 @@ function isEmptyValue(value: unknown): boolean {
 
 function isUnsetModel(value: unknown): boolean {
   if (value === null || value === undefined) return true;
-  if (typeof value !== "object") return false;
+  if (!isObjectLike(value)) return false;
   const v = value as Record<string, unknown>;
   const provider = v.provider;
   const id = v.id;
@@ -141,9 +142,9 @@ function isUnsetModel(value: unknown): boolean {
   // is exactly the unselected default we want to flag.
   if (provider == null) return true;
   // Stryker disable next-line ConditionalExpression: forcing `typeof provider === "string"` true is equivalent — a non-string provider can never === the "empty" string sentinel, so the second operand decides the result either way.
-  if (typeof provider === "string" && provider === EMPTY_PROVIDER) return true;
+  if (isString(provider) && provider === EMPTY_PROVIDER) return true;
   if (id == null) return true;
-  if (typeof id === "string" && id.length === 0) return true;
+  if (isString(id) && id.length === 0) return true;
   return false;
 }
 

@@ -17,6 +17,7 @@
 
 import type { DynamicSlotMeta, NodeDescriptor } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
+import { isNonEmptyString, isObjectValue, isString } from "./predicates.js";
 
 /**
  * Render a slot declaration's type as a NodeTool type string
@@ -34,13 +35,13 @@ export function dynamicSlotTypeString(
 }
 
 function typeToString(type: unknown): string | undefined {
-  if (typeof type === "string") return type.length > 0 ? type : undefined;
+  if (isString(type)) return type.length > 0 ? type : undefined;
   if (type instanceof TypeMetadata) return type.toString();
-  if (!type || typeof type !== "object") return undefined;
+  if (!isObjectValue(type)) return undefined;
 
   const record = type as Record<string, unknown>;
   const base = record.type;
-  if (typeof base !== "string" || base.length === 0) return undefined;
+  if (!isNonEmptyString(base)) return undefined;
 
   const rawArgs = Array.isArray(record.type_args)
     ? record.type_args
@@ -114,7 +115,7 @@ function inferValueType(value: unknown): TypeMetadata | undefined {
 
   // Asset/model refs carry their NodeTool type inline (`{ type: "image", … }`).
   const tag = (value as Record<string, unknown>).type;
-  if (typeof tag === "string" && tag.length > 0) {
+  if (isNonEmptyString(tag)) {
     return TypeMetadata.fromString(tag);
   }
   return TypeMetadata.fromString("dict");

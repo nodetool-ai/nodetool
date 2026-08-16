@@ -45,6 +45,7 @@ import { extractWorkflowIO } from "../components/appbuilder/workflowIO";
 import { Workflow } from "../stores/ApiTypes";
 import { Box, BORDER_RADIUS } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
+import { isObjectLike } from "../utils/typePredicates";
 
 /** One workflow the app binds, carrying only its Input/Output nodes. */
 interface PreviewWorkflow {
@@ -65,7 +66,7 @@ interface PreviewBundle {
 }
 
 const isToken = (v: unknown, kind: string): boolean =>
-  typeof v === "object" && v !== null && (v as Record<string, unknown>).$demo === kind;
+  isObjectLike(v) && (v as Record<string, unknown>).$demo === kind;
 
 async function resolveDemoValues(bundle: PreviewBundle): Promise<Record<string, unknown>> {
   const resolved: Record<string, unknown> = {};

@@ -1,5 +1,6 @@
 import type { TypeMetadata } from "../../../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
+import { isObjectLike } from "../../../utils/typePredicates";
 
 /** Map input node types to TypeMetadata types */
 export const INPUT_TYPE_MAP: Record<string, string> = {
@@ -68,7 +69,7 @@ export function extractDynamicIO(workflow: DynamicIOSource): DynamicIO {
     // API workflow nodes store properties directly in node.data (e.g. node.data.name),
     // while ReactFlow nodes nest them under node.data.properties.
     const nested = nodeData.properties as Record<string, unknown> | undefined;
-    const properties = (nested && typeof nested === "object") ? nested : nodeData;
+    const properties = (nested && isObjectLike(nested)) ? nested : nodeData;
     const typeNameFallback = nodeType.split(".").pop() ?? "input";
     const inputName =
       (properties.name as string | undefined) ??

@@ -30,6 +30,12 @@ import { parseSandboxModuleDeclarations } from "./sandbox-module-declarations.js
 import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
 import {
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
+import {
   type TypeMetaLike,
   slotTypeToString,
   typeMetaToString,
@@ -185,10 +191,10 @@ function isReservedHandle(handle: string): boolean {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return undefined;
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 
 /**
@@ -209,7 +215,7 @@ function graphMembers<T>(
     severity: "error",
     code: "invalid_graph",
     message: `graph.${field} must be an array, not ${
-      typeof value === "object" ? "an object" : `a ${typeof value}`
+      isObjectLike(value) ? "an object" : `a ${typeof value}`
     }`
   });
   return [];
@@ -291,7 +297,7 @@ function isControlEdge(raw: GraphValidationEdge): boolean {
 
 function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
   return {
-    id: typeof raw.id === "string" ? raw.id : `edge-${index}`,
+    id: isString(raw.id) ? raw.id : `edge-${index}`,
     source: String(raw.source ?? ""),
     sourceHandle: String(raw.sourceHandle ?? raw.source_handle ?? ""),
     target: String(raw.target ?? ""),
@@ -351,7 +357,7 @@ function collectModelRefs(
     );
     return;
   }
-  if (value === null || typeof value !== "object") return;
+  if (!isObjectLike(value)) return;
   if (isModelRef(value)) {
     out.push({ path, ref: value });
     return;
@@ -369,7 +375,7 @@ function collectModelRefs(
  */
 function modelProviderOf(ref: Record<string, unknown>): string | undefined {
   const provider = ref.provider;
-  if (typeof provider !== "string" || provider === "") return undefined;
+  if (!isNonEmptyString(provider)) return undefined;
   return provider;
 }
 
@@ -454,7 +460,7 @@ function detectCycles(
  */
 function modelIdOf(ref: Record<string, unknown>): string | undefined {
   const id = ref.id;
-  if (typeof id !== "string" || id === "") return undefined;
+  if (!isNonEmptyString(id)) return undefined;
   return id;
 }
 

@@ -8,6 +8,7 @@ import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import { isControlEdge, TypeMetadata } from "@nodetool-ai/protocol";
 import { Graph } from "./graph.js";
 import { getDynamicSlotTypeString } from "./dynamic-slots.js";
+import { isObjectValue, isString } from "./predicates.js";
 
 /**
  * Find a node by ID or throw.
@@ -127,7 +128,7 @@ export function getDownstreamSubgraph(
 export function isNodeBypassed(node: NodeDescriptor): boolean {
   const ui = node.ui_properties;
   // Stryker disable next-line ConditionalExpression: the `typeof ui !== "object"` operand is equivalent to drop — a truthy non-object (string/number) never throws on `.bypassed` and still yields `=== true → false`
-  if (!ui || typeof ui !== "object") return false;
+  if (!isObjectValue(ui)) return false;
   return ui.bypassed === true;
 }
 
@@ -167,10 +168,10 @@ export function getInputTypeString(
   const props = node.properties;
   if (props) {
     const val = props[handle];
-    if (typeof val === "object" && val !== null && "type" in val) {
+    if (isObjectValue(val) && "type" in val) {
       const t = val.type;
       // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `t` vs undefined are indistinguishable downstream (typesCompatible treats both as compatible)
-      if (typeof t === "string") return t;
+      if (isString(t)) return t;
     }
   }
   return undefined;

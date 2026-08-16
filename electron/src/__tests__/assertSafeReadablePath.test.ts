@@ -44,7 +44,7 @@ describe("assertSafeReadablePath", () => {
 
     it("returns resolved path for paths in home directory", () => {
       const result = assertSafeReadablePath("/home/user/documents/file.txt");
-      expect(typeof result).toBe("string");
+      expect(result).toEqual(expect.any(String));
       expect(result).toContain("file.txt");
     });
   });

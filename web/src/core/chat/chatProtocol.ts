@@ -63,6 +63,7 @@ import {
   type ThreadRuntime
 } from "./threadRuntime";
 import { applyMediaPrediction } from "./mediaPrediction";
+import { isNumber, isString } from "../../utils/typePredicates";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -274,7 +275,7 @@ const generateTitleFromFirstUserMessage = (
   }
 
   let contentText = "";
-  if (typeof firstUserMessage.content === "string") {
+  if (isString(firstUserMessage.content)) {
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
     const firstText = firstUserMessage.content.find(
@@ -406,7 +407,7 @@ const applyChunk = (
 
   // Audio chunks carry binary payloads (native Float32Array or base64);
   // only text contributes to the assistant message stream.
-  const chunkText = typeof chunk.content === "string" ? chunk.content : "";
+  const chunkText = isString(chunk.content) ? chunk.content : "";
 
   let updatedMessages: Message[];
 
@@ -524,7 +525,7 @@ const applyOutputUpdate = (
     );
   }
 
-  if (update.output_type === "string" && typeof update.value === "string") {
+  if (update.output_type === "string" && isString(update.value)) {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
@@ -549,7 +550,7 @@ const applyOutputUpdate = (
               ]
             : [...existingContent, { type: "text", text: update.value }];
       } else if (
-        typeof existingContent === "string" ||
+        isString(existingContent) ||
         existingContent == null
       ) {
         nextContent = (existingContent ?? "") + update.value;
@@ -785,7 +786,7 @@ const normalizeTextForComparison = (text: string) =>
   text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
 const extractTextContent = (message: Message): string => {
-  if (typeof message.content === "string") {
+  if (isString(message.content)) {
     return message.content;
   }
   if (Array.isArray(message.content)) {
@@ -1337,7 +1338,7 @@ export async function handleChatWebSocketMessage(
   // increasing `chat_seq`. Track the high-water mark per thread so a
   // reconnect can ask the server to replay only what was missed.
   const chatSeq = (msg as Record<string, unknown>).chat_seq;
-  if (tid && typeof chatSeq === "number") {
+  if (tid && isNumber(chatSeq)) {
     set((state) => ({
       chatReplayCursors: { ...state.chatReplayCursors, [tid]: chatSeq }
     }));

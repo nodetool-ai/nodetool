@@ -10,6 +10,7 @@
 
 import { formatResourceUri } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
@@ -30,7 +31,7 @@ export const MIME_TO_EXT: Record<string, string> = {
 
 export function workspaceDir(context: ProcessingContext): string | null {
   const ws = context.workspaceDir;
-  return typeof ws === "string" && ws ? ws : null;
+  return isString(ws) && ws ? ws : null;
 }
 
 export function timestampedName(prefix: string, ext: string): string {
@@ -104,7 +105,7 @@ export async function persistOutput(
         contentType: opts.mime,
         content: bytes
       })) as { id?: string };
-      if (asset && typeof asset.id === "string") {
+      if (asset && isString(asset.id)) {
         result.asset_id = asset.id;
         result.asset_uri = `asset://${asset.id}.${ext}`;
         result.url = formatResourceUri({ kind: "asset", id: asset.id });

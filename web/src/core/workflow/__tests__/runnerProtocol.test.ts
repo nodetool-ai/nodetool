@@ -27,7 +27,7 @@ describe("createRunnerMessageHandler", () => {
 
   it("returns a function", () => {
     const handler = createRunnerMessageHandler(makeMockStore(), () => undefined);
-    expect(typeof handler).toBe("function");
+    expect(handler).toEqual(expect.any(Function));
   });
 
   it("delegates to handleUpdate with the correct arguments", () => {

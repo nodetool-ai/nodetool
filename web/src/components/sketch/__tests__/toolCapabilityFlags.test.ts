@@ -82,13 +82,13 @@ describe("Generic hover dispatch via onHoverMove", () => {
   it("TransformTool implements onHoverMove", () => {
     const handler = getToolHandler("transform");
     expect(handler).toBeInstanceOf(TransformTool);
-    expect(typeof handler.onHoverMove).toBe("function");
+    expect(handler.onHoverMove).toEqual(expect.any(Function));
   });
 
   it("SelectTool implements onHoverMove", () => {
     const handler = getToolHandler("select");
     expect(handler).toBeInstanceOf(SelectTool);
-    expect(typeof handler.onHoverMove).toBe("function");
+    expect(handler.onHoverMove).toEqual(expect.any(Function));
   });
 
   it("tools without hover behavior do not implement onHoverMove", () => {

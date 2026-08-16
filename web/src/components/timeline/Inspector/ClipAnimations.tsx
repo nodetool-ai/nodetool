@@ -32,6 +32,7 @@ import {
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
+import { isNumber } from "../../../utils/typePredicates";
 
 const ROLES: AnimationRole[] = ["in", "out", "emphasis", "loop"];
 const EASINGS: EasingId[] = [
@@ -118,7 +119,7 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
   }
 
   if (
-    typeof value === "number" &&
+    isNumber(value) &&
     spec.min !== undefined &&
     spec.max !== undefined
   ) {
@@ -135,7 +136,7 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
         min={spec.min}
         max={spec.max}
         step={step}
-        origin={typeof spec.default === "number" ? spec.default : undefined}
+        origin={isNumber(spec.default) ? spec.default : undefined}
         onChange={onChange}
       />
     );

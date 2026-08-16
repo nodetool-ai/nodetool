@@ -61,6 +61,7 @@ import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
   SANDBOX_PACKAGE_LIST_TOOL_NAME
 } from "./packs.specs.js";
+import { isNonEmptyString } from "../utils/type-guards.js";
 
 export {
   sandboxPackageDocsSpec,
@@ -144,7 +145,7 @@ export function sandboxPackageListImpl(
 ): CapabilityImpl {
   return async (_run, params) => {
     const specifier = params["specifier"];
-    if (typeof specifier === "string" && specifier !== "") {
+    if (isNonEmptyString(specifier)) {
       return exportsFor(specifier, allowed, catalog, withPlatformModules);
     }
     return listing(allowed, catalog, withPlatformModules);

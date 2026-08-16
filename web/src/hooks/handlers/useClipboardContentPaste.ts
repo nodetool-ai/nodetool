@@ -25,6 +25,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { isTextInputActive } from "../../utils/browser";
 import { shallow } from "zustand/shallow";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { isString } from "../../utils/typePredicates";
 
 /**
  * Supported image file extensions for clipboard file handling
@@ -510,7 +511,7 @@ export const useClipboardContentPaste = () => {
       case "html":
       case "rtf":
       case "text":
-        if (typeof content.data === "string") {
+        if (isString(content.data)) {
           createStringNode(content.data, position);
           return true;
         }

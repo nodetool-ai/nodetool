@@ -16,6 +16,7 @@
  */
 
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+import { isFunction } from "../utils/type-guards.js";
 
 export type GenericNodeCapability =
   | "text_to_image"
@@ -161,9 +162,9 @@ export function resolveAvailableGenericNodes(
   catalog: readonly GenericAINode[] = GENERIC_AI_NODES
 ): GenericNodeAvailability {
   const lookup =
-    typeof registry?.resolveMetadata === "function"
+    isFunction(registry?.resolveMetadata)
       ? (type: string) => registry.resolveMetadata!(type)
-      : typeof registry?.getMetadata === "function"
+      : isFunction(registry?.getMetadata)
         ? (type: string) => registry.getMetadata!(type)
         : null;
 

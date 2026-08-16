@@ -34,6 +34,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
+import { isString } from "../type-predicates.js";
 
 // ---------------------------------------------------------------------------
 // Script types
@@ -314,7 +315,7 @@ export function autoScript(opts: {
       let addedCount = 0;
       for (const m of messages) {
         if (m.role !== "tool") continue;
-        const content = typeof m.content === "string" ? m.content : "";
+        const content = isString(m.content) ? m.content : "";
         if (content.includes('"status":"task_added"')) addedCount++;
       }
 

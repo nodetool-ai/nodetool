@@ -16,6 +16,7 @@ import type {
 import { getDeclaredPropertiesForClass } from "./decorators.js";
 import type { TypeMetadata } from "./metadata.js";
 import { slotTypeToString } from "./type-compat.js";
+import { isObjectLike, isRecord, isString } from "./type-predicates.js";
 import {
   validateNodeProperties,
   type NodePropertyValidationIssue
@@ -47,7 +48,7 @@ export function coerceToDeclaredType<TValue>(
   // with a scheme convert, so a prompt or a caption is never mistaken for a
   // location.
   if (
-    typeof value === "string" &&
+    isString(value) &&
     ASSET_REF_TYPES.has(declaredType) &&
     URI_WITH_SCHEME.test(value)
   ) {
@@ -100,15 +101,15 @@ export function coerceToSlotType<TValue>(
 function parseDynamicSlots(
   raw: unknown
 ): Map<string, DynamicSlotMeta> | undefined {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+  if (!isRecord(raw)) {
     return undefined;
   }
   const slots = new Map<string, DynamicSlotMeta>();
   for (const [name, meta] of Object.entries(raw as Record<string, unknown>)) {
-    if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
+    if (!isRecord(meta)) {
       continue;
     }
-    slots.set(name, meta as DynamicSlotMeta);
+    slots.set(name, meta as unknown as DynamicSlotMeta);
   }
   return slots;
 }
@@ -526,7 +527,7 @@ export abstract class BaseNode {
         const def = options.default;
         (this as Record<string, unknown>)[name] =
           // Stryker disable next-line ConditionalExpression,LogicalOperator: the guard only matters for object defaults (covered by the deep-copy test); for scalars the JSON round-trip is identity, so every variant still deep-copies objects and passes scalars through (equivalent).
-          def !== null && typeof def === "object"
+          isObjectLike(def)
             ? JSON.parse(JSON.stringify(def))
             : def;
       }
@@ -666,7 +667,7 @@ export abstract class BaseNode {
     const ctor = this.constructor as typeof BaseNode;
     const declared = ctor.metadataOutputTypes ?? ctor.getDeclaredOutputs();
     const payload = event.payload;
-    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    if (!isRecord(payload)) {
       return;
     }
     for (const [key, value] of Object.entries(
