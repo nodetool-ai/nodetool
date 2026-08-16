@@ -33,7 +33,6 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { NodeData } from "../../stores/NodeData";
-import { isDevelopment } from "../../lib/env";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -242,15 +241,12 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           <ListItemText>Select All Same Type</ListItemText>
         </EditorMenuItem>
 
-        {isDevelopment && [
-          <Divider key="dev-divider" />,
-          <EditorMenuItem key="dev-copy-metadata" onClick={handlers.handleCopyMetadataToClipboard}>
-            <ListItemIcon>
-              <DataArrayIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Copy NodeData</ListItemText>
-          </EditorMenuItem>
-        ]}
+        <EditorMenuItem onClick={handlers.handleCopyMetadataToClipboard}>
+          <ListItemIcon>
+            <DataArrayIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Copy Node as JSON</ListItemText>
+        </EditorMenuItem>
 
         <Divider />
 
