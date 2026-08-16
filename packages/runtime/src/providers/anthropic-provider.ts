@@ -9,6 +9,12 @@ import type {
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../type-predicates.js";
 
 const log = createLogger("nodetool.runtime.providers.anthropic");
 import type {
@@ -94,12 +100,7 @@ function retryAfterMs(value: string | null): number | null {
 }
 
 function apiErrorStatus(error: unknown): number | undefined {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    typeof error.status === "number"
-  ) {
+  if (isObjectLike(error) && "status" in error && isNumber(error.status)) {
     return error.status;
   }
   return undefined;
@@ -107,8 +108,7 @@ function apiErrorStatus(error: unknown): number | undefined {
 
 function apiErrorRetryAfter(error: unknown): string | null {
   if (
-    typeof error === "object" &&
-    error !== null &&
+    isObjectLike(error) &&
     "headers" in error &&
     error.headers instanceof Headers
   ) {
@@ -174,7 +174,7 @@ function textContentFromRawBlocks(
   blocks: AnthropicRawBlock[]
 ): MessageTextContent[] {
   return blocks.flatMap((block) => {
-    if (block?.type !== "text" || typeof block.text !== "string") return [];
+    if (block?.type !== "text" || !isString(block.text)) return [];
     const citations = Array.isArray(block.citations)
       ? (block.citations as TextCitation[]).map(mapCitation)
       : undefined;
@@ -297,8 +297,7 @@ function mergeToolResultMessages(
     m.content.length > 0 &&
     m.content.every(
       (block) =>
-        typeof block === "object" &&
-        block !== null &&
+        isObjectLike(block) &&
         (block as { type?: unknown }).type === "tool_result"
     );
 
@@ -368,7 +367,7 @@ function isDocumentContent(
 
 function bytesToBase64(data: Uint8Array | string | undefined): string {
   if (!data) return "";
-  if (typeof data === "string") return data;
+  if (isString(data)) return data;
   return Buffer.from(data).toString("base64");
 }
 
@@ -567,7 +566,7 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   private prepareJsonSchema(schema: unknown): JsonSchemaNode {
-    if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    if (!isRecord(schema)) {
       // SAFETY: a schema node that is not an object is carried through as it
       // stands — a scalar, a list, or an absent schema.
       return schema as JsonSchemaNode;
@@ -583,11 +582,7 @@ export class AnthropicProvider extends BaseProvider {
       obj.additionalProperties = false;
     }
 
-    if (
-      obj.properties &&
-      typeof obj.properties === "object" &&
-      !Array.isArray(obj.properties)
-    ) {
+    if (isRecord(obj.properties)) {
       obj.properties = Object.fromEntries(
         Object.entries(obj.properties).map(([k, v]) => [
           k,
@@ -596,13 +591,13 @@ export class AnthropicProvider extends BaseProvider {
       );
     }
 
-    if (obj.items && typeof obj.items === "object") {
+    if (isObjectLike(obj.items)) {
       obj.items = this.prepareJsonSchema(obj.items);
     }
 
     for (const defsKey of ["definitions", "$defs"]) {
       const defs = obj[defsKey];
-      if (defs && typeof defs === "object" && !Array.isArray(defs)) {
+      if (isRecord(defs)) {
         obj[defsKey] = Object.fromEntries(
           Object.entries(defs).map(([k, v]) => [k, this.prepareJsonSchema(v)])
         );
@@ -713,7 +708,7 @@ export class AnthropicProvider extends BaseProvider {
 
     if (data !== undefined) {
       const parsed =
-        typeof data === "string" && data.startsWith("data:")
+        isString(data) && data.startsWith("data:")
           ? parseDataUri(data)
           : undefined;
       const effectiveMime = mimeType ?? parsed?.mime ?? "application/pdf";
@@ -725,7 +720,7 @@ export class AnthropicProvider extends BaseProvider {
       if (effectiveMime === "text/plain") {
         const text = parsed
           ? Buffer.from(parsed.base64, "base64").toString("utf8")
-          : typeof data === "string"
+          : isString(data)
             ? data
             : Buffer.from(data).toString("utf8");
         source = { type: "text", media_type: "text/plain", data: text };
@@ -798,7 +793,7 @@ export class AnthropicProvider extends BaseProvider {
       // screenshot) is converted to blocks so vision models can see it; plain
       // results stay stringified as before.
       let resultContent: unknown;
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         resultContent = message.content;
       } else if (Array.isArray(message.content)) {
         const blocks: Array<Record<string, unknown>> = [];
@@ -835,18 +830,17 @@ export class AnthropicProvider extends BaseProvider {
       // before conversion; if one still reaches here, fold it into a user
       // message rather than mislabeling it as assistant text (and avoid
       // String(array) producing "[object Object]").
-      const text =
-        typeof message.content === "string"
-          ? message.content
-          : (message.content ?? [])
-              .filter(isTextContent)
-              .map((c) => c.text)
-              .join("\n");
+      const text = isString(message.content)
+        ? message.content
+        : (message.content ?? [])
+            .filter(isTextContent)
+            .map((c) => c.text)
+            .join("\n");
       return { role: "user", content: text };
     }
 
     if (message.role === "user") {
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         return { role: "user", content: message.content };
       }
 
@@ -898,7 +892,7 @@ export class AnthropicProvider extends BaseProvider {
       const contentBlocks: Array<Record<string, unknown>> = [
         ...(message._anthropicThinkingBlocks ?? [])
       ];
-      if (typeof message.content === "string" && message.content.trim()) {
+      if (isString(message.content) && message.content.trim()) {
         contentBlocks.push({ type: "text", text: message.content });
       }
 
@@ -925,7 +919,7 @@ export class AnthropicProvider extends BaseProvider {
       };
     }
 
-    if (typeof message.content === "string") {
+    if (isString(message.content)) {
       return { role: "assistant", content: message.content };
     }
 
@@ -980,7 +974,7 @@ export class AnthropicProvider extends BaseProvider {
     }
     const sections = systemMessages
       .map((message) => {
-        if (typeof message.content === "string") return message.content;
+        if (isString(message.content)) return message.content;
         if (Array.isArray(message.content)) {
           return message.content
             .filter(isTextContent)
@@ -1253,7 +1247,7 @@ export class AnthropicProvider extends BaseProvider {
           const raw = contentBlocks[index] ?? {};
           contentBlocks[index] = raw;
           const delta = event.delta;
-          if ("thinking" in delta && typeof delta.thinking === "string") {
+          if ("thinking" in delta && isString(delta.thinking)) {
             const thinkingDelta = delta.thinking;
             raw.thinking = String(raw.thinking ?? "") + thinkingDelta;
             const thinking = thinkingBlocks.at(-1);
@@ -1265,24 +1259,18 @@ export class AnthropicProvider extends BaseProvider {
               done: false,
               thinking: true
             };
-          } else if (
-            "signature" in delta &&
-            typeof delta.signature === "string"
-          ) {
+          } else if ("signature" in delta && isString(delta.signature)) {
             const signatureDelta = delta.signature;
             raw.signature = String(raw.signature ?? "") + signatureDelta;
             const thinking = thinkingBlocks.at(-1);
             if (thinking?.type === "thinking")
               thinking.signature += signatureDelta;
-          } else if (
-            "partial_json" in delta &&
-            typeof delta.partial_json === "string"
-          ) {
+          } else if ("partial_json" in delta && isString(delta.partial_json)) {
             jsonByIndex.set(
               index,
               (jsonByIndex.get(index) ?? "") + delta.partial_json
             );
-          } else if ("text" in delta && typeof delta.text === "string") {
+          } else if ("text" in delta && isString(delta.text)) {
             const textDelta = delta.text;
             raw.text = String(raw.text ?? "") + textDelta;
             yield { type: "chunk", content: textDelta, done: false };
@@ -1305,7 +1293,7 @@ export class AnthropicProvider extends BaseProvider {
             raw.input = input;
             jsonByIndex.delete(event.index);
             if (raw.type === "tool_use") {
-              if (!input || typeof input !== "object" || Array.isArray(input)) {
+              if (!isRecord(input)) {
                 throw new Error("Anthropic returned non-object tool input");
               }
               const toolCall: AnthropicToolCall = {

@@ -12,6 +12,13 @@ import type {
 import { expandAssetReferences } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
+import {
+  isCallable,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
 
 type MessagePart = { type?: string; text?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
@@ -49,14 +56,14 @@ export type ToolLike = {
 };
 
 export function asText(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   if (typeof value === "number" || typeof value === "boolean")
     return String(value);
   if (!value) return "";
   if (Array.isArray(value)) return value.map(asText).join(" ");
-  if (typeof value === "object") {
+  if (isObjectLike(value)) {
     const msg = value as { content?: string | MessagePart[] };
-    if (typeof msg.content === "string") return msg.content;
+    if (isString(msg.content)) return msg.content;
     if (Array.isArray(msg.content)) {
       return msg.content
         .map((part) => (part && part.type === "text" ? (part.text ?? "") : ""))
@@ -70,19 +77,15 @@ export function asText(value: unknown): string {
 
 export function extractJson(text: string): Record<string, unknown> | null {
   try {
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
+    const parsed: unknown = JSON.parse(text);
+    return isRecord(parsed) ? parsed : null;
   } catch {
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
     if (start >= 0 && end > start) {
       try {
-        const parsed = JSON.parse(text.slice(start, end + 1));
-        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-          ? (parsed as Record<string, unknown>)
-          : null;
+        const parsed: unknown = JSON.parse(text.slice(start, end + 1));
+        return isRecord(parsed) ? parsed : null;
       } catch {
         return null;
       }
@@ -108,6 +111,18 @@ export function getModelConfig(props: Record<string, unknown>) {
   };
 }
 
+/**
+ * Whether this context can hand out a provider. False for the bare context a
+ * hermetic single-node run supplies, which carries no provider access.
+ */
+export function hasProviderAccess(
+  context: ProcessingContext | undefined
+): context is ProcessingContext & {
+  getProvider(providerId: string): Promise<BaseProvider>;
+} {
+  return !!context && typeof context.getProvider === "function";
+}
+
 export function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
@@ -115,12 +130,7 @@ export function hasProviderSupport(
 ): context is ProcessingContext & {
   getProvider(providerId: string): Promise<BaseProvider>;
 } {
-  return (
-    !!context &&
-    typeof context.getProvider === "function" &&
-    !!providerId &&
-    !!modelId
-  );
+  return hasProviderAccess(context) && !!providerId && !!modelId;
 }
 
 /**
@@ -140,7 +150,7 @@ export async function generateStructured(
   }
 ): Promise<Record<string, unknown> | null> {
   const call =
-    typeof provider.generateMessageTraced === "function"
+    isCallable(provider.generateMessageTraced)
       ? provider.generateMessageTraced.bind(provider)
       : provider.generateMessage.bind(provider);
   const result = await call({
@@ -168,8 +178,7 @@ export function normalizeProviderStreamItem(
   item: ProviderStreamItem
 ): ProviderStreamItem {
   if (
-    !item ||
-    typeof item !== "object" ||
+    !isObjectLike(item) ||
     !("type" in item) ||
     (item as Chunk).type !== "chunk"
   ) {
@@ -177,7 +186,7 @@ export function normalizeProviderStreamItem(
   }
 
   const chunk = item as Chunk;
-  if (typeof chunk.content_type === "string" && chunk.content_type.length > 0) {
+  if (isNonEmptyString(chunk.content_type)) {
     return chunk;
   }
 
@@ -222,13 +231,13 @@ export async function* streamProviderMessages(
     messages: [...args.messages],
     tools: args.tools ? [...args.tools] : undefined
   };
-  if (typeof provider.generateMessagesTraced === "function") {
+  if (isCallable(provider.generateMessagesTraced)) {
     for await (const item of provider.generateMessagesTraced(request)) {
       yield normalizeProviderStreamItem(item);
     }
     return;
   }
-  if (typeof provider.generateMessages === "function") {
+  if (isCallable(provider.generateMessages)) {
     for await (const item of provider.generateMessages(request)) {
       yield normalizeProviderStreamItem(item);
     }
@@ -257,8 +266,8 @@ export async function* streamProviderMessages(
  */
 export function parseCategory(raw: string, categories: string[]): string {
   const parsed = extractJson(raw);
-  const categoryValue =
-    typeof parsed?.category === "string" ? parsed.category : "";
+  const category = parsed?.category;
+  const categoryValue = isString(category) ? category : "";
   for (const category of categories) {
     if (categoryValue.trim().toLowerCase() === category.trim().toLowerCase()) {
       return category;
@@ -281,11 +290,11 @@ export function parseCategory(raw: string, categories: string[]): string {
 }
 
 export function messageContentText(content: Message["content"] | unknown): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!Array.isArray(content)) return asText(content);
   return content
     .map((part) => {
-      if (!part || typeof part !== "object") return asText(part);
+      if (!isObjectLike(part)) return asText(part);
       if ((part as { type?: string }).type === "text") {
         return String((part as { text?: unknown }).text ?? "");
       }
@@ -310,24 +319,22 @@ export function normalizeRole(role: unknown): Message["role"] | null {
 export function normalizeBinaryRef(
   value: unknown
 ): { uri?: string; data?: Uint8Array | string; mimeType?: string } | null {
-  if (!value || typeof value !== "object") return null;
+  if (!isObjectLike(value)) return null;
   const record = value as Record<string, unknown>;
   const out: { uri?: string; data?: Uint8Array | string; mimeType?: string } =
     {};
-  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string")
+  if (isNonEmptyString(record.uri)) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || isString(record.data))
     out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType)
-    out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type)
-    out.mimeType = record.mime_type;
+  if (isNonEmptyString(record.mimeType)) out.mimeType = record.mimeType;
+  if (isNonEmptyString(record.mime_type)) out.mimeType = record.mime_type;
   // A library-picked or freshly-generated ref carries only `asset_id` (with an
   // empty `uri`). Encode it as an `asset://<id>` URI so `buildUserMessage` keeps
   // the image/audio part and `ProcessingContext.resolveMessageMediaUris`
   // dereferences it to bytes before the provider call.
   if (!out.uri && !out.data) {
     const assetId = record.asset_id;
-    if (typeof assetId === "string" && assetId) {
+    if (isNonEmptyString(assetId)) {
       out.uri = `asset://${assetId}`;
     }
   }
@@ -335,17 +342,17 @@ export function normalizeBinaryRef(
 }
 
 export function normalizeMessageContent(value: unknown): Message["content"] {
-  if (value == null || typeof value === "string") return value ?? null;
+  if (value == null || isString(value)) return value ?? null;
   if (!Array.isArray(value)) return asText(value);
   const parts: MessageContent[] = [];
   for (const part of value) {
-    if (!part || typeof part !== "object") {
+    if (!isObjectLike(part)) {
       const text = asText(part);
       if (text) parts.push({ type: "text", text });
       continue;
     }
     const record = part as Record<string, unknown>;
-    const kind = typeof record.type === "string" ? record.type : "";
+    const kind = isString(record.type) ? record.type : "";
     if (kind === "text") {
       parts.push({ type: "text", text: asText(record.text ?? "") });
       continue;
@@ -378,20 +385,18 @@ export function normalizeToolCalls(value: unknown): ToolCall[] | null {
         !!item && typeof item === "object"
     )
     .map((item, index) => ({
-      id:
-        typeof item.id === "string" && item.id ? item.id : `tool_${index + 1}`,
-      name: typeof item.name === "string" ? item.name : "",
-      args:
-        item.args && typeof item.args === "object"
-          ? (item.args as Record<string, unknown>)
-          : {}
+      id: isNonEmptyString(item.id) ? item.id : `tool_${index + 1}`,
+      name: isString(item.name) ? item.name : "",
+      args: isObjectLike(item.args)
+        ? (item.args as Record<string, unknown>)
+        : {}
     }))
     .filter((item) => item.name.length > 0);
   return toolCalls.length > 0 ? toolCalls : null;
 }
 
 export function normalizeMessage(value: unknown): Message | null {
-  if (!value || typeof value !== "object") return null;
+  if (!isObjectLike(value)) return null;
   const record = value as Record<string, unknown>;
   const role = normalizeRole(record.role);
   if (!role) return null;
@@ -399,18 +404,16 @@ export function normalizeMessage(value: unknown): Message | null {
     role,
     content: normalizeMessageContent(record.content),
     toolCalls: normalizeToolCalls(record.toolCalls ?? record.tool_calls),
-    toolCallId:
-      typeof record.toolCallId === "string"
-        ? record.toolCallId
-        : typeof record.tool_call_id === "string"
-          ? record.tool_call_id
-          : null,
-    threadId:
-      typeof record.threadId === "string"
-        ? record.threadId
-        : typeof record.thread_id === "string"
-          ? record.thread_id
-          : null
+    toolCallId: isString(record.toolCallId)
+      ? record.toolCallId
+      : isString(record.tool_call_id)
+        ? record.tool_call_id
+        : null,
+    threadId: isString(record.threadId)
+      ? record.threadId
+      : isString(record.thread_id)
+        ? record.thread_id
+        : null
   };
 }
 
@@ -507,13 +510,12 @@ export async function* classifyProviderStream(
         yield { kind: "audio", chunk: item };
         continue;
       }
-      const delta = typeof item.content === "string" ? item.content : "";
+      const delta = isString(item.content) ? item.content : "";
       yield { kind: "text", chunk: item, delta };
       continue;
     }
     if (
-      item &&
-      typeof item === "object" &&
+      isObjectLike(item) &&
       "type" in item &&
       (item as { type?: string }).type === "message"
     ) {
@@ -566,7 +568,7 @@ export function toProviderTools(tools: ToolLike[]): Array<{
   inputSchema?: Record<string, unknown>;
 }> {
   return tools.map((tool) =>
-    typeof tool.toProviderTool === "function"
+    isCallable(tool.toProviderTool)
       ? tool.toProviderTool()
       : {
           name: tool.name,
@@ -593,7 +595,7 @@ export function serializeToolResult(value: unknown): SerializedToolResult {
   if (Array.isArray(value)) return value.map(serializeToolResult);
   // SAFETY: what is left here is neither null/undefined, an array, nor an
   // object — a primitive, which is already its own JSON rendering.
-  if (typeof value !== "object") return value as SerializedToolResult;
+  if (!isObjectLike(value)) return value as SerializedToolResult;
   if (value instanceof Uint8Array) {
     return Buffer.from(value).toString("base64");
   }
@@ -610,18 +612,13 @@ export function getStructuredOutputSchema(
   node: BaseNode
 ): Record<string, unknown> | null {
   const outputs = (node as { _dynamic_outputs?: unknown })._dynamic_outputs;
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs))
-    return null;
+  if (!isRecord(outputs)) return null;
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
-  for (const [name, spec] of Object.entries(
-    outputs as Record<string, unknown>
-  )) {
+  for (const [name, spec] of Object.entries(outputs)) {
     required.push(name);
-    const value =
-      spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared =
-      typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    const value = isRecord(spec) ? spec : {};
+    const declared = isString(value.type) ? value.type.toLowerCase() : "str";
     let type = "string";
     if (["int", "integer"].includes(declared)) type = "integer";
     else if (["float", "number"].includes(declared)) type = "number";

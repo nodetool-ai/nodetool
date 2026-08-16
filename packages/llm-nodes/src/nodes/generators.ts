@@ -10,6 +10,14 @@ import {
   toProviderTools,
   type ToolLike
 } from "./agents.js";
+import { hasProviderAccess } from "./agent-utils.js";
+import {
+  isCallable,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
 
 type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
@@ -28,7 +36,7 @@ type MessageContent =
   | MessageAudioContent;
 
 function asText(value: unknown): string {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   if (typeof value === "number" || typeof value === "boolean")
     return String(value);
   if (!value) return "";
@@ -52,29 +60,27 @@ function parseColumnSpecs(input: unknown): ColumnSpec[] {
   if (Array.isArray(input)) {
     return input
       .map((c) => {
-        if (c && typeof c === "object") {
+        if (isObjectLike(c)) {
           const record = c as {
             name?: unknown;
             data_type?: unknown;
             type?: unknown;
           };
-          const name =
-            typeof record.name === "string"
-              ? record.name
-              : String(record.name ?? "");
-          const dataType =
-            typeof record.data_type === "string"
-              ? record.data_type
-              : typeof record.type === "string"
-                ? record.type
-                : undefined;
+          const name = isString(record.name)
+            ? record.name
+            : String(record.name ?? "");
+          const dataType = isString(record.data_type)
+            ? record.data_type
+            : isString(record.type)
+              ? record.type
+              : undefined;
           return { name, data_type: dataType };
         }
         return { name: String(c) };
       })
       .filter((c) => c.name.length > 0);
   }
-  if (input && typeof input === "object") {
+  if (isObjectLike(input)) {
     const columns = (input as { columns?: unknown }).columns;
     if (Array.isArray(columns)) return parseColumnSpecs(columns);
   }
@@ -111,18 +117,13 @@ function makeRows(columns: string[], count: number, seedText: string): Row[] {
 function buildSchemaFromDynamicOutputs(
   outputs: unknown
 ): Record<string, unknown> | null {
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs))
-    return null;
+  if (!isRecord(outputs)) return null;
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
-  for (const [name, spec] of Object.entries(
-    outputs as Record<string, unknown>
-  )) {
+  for (const [name, spec] of Object.entries(outputs)) {
     required.push(name);
-    const value =
-      spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared =
-      typeof value.type === "string" ? value.type.toLowerCase() : "str";
+    const value = isRecord(spec) ? spec : {};
+    const declared = isString(value.type) ? value.type.toLowerCase() : "str";
     let type = "string";
     if (["int", "integer"].includes(declared)) type = "integer";
     else if (["float", "number"].includes(declared)) type = "number";
@@ -136,16 +137,14 @@ function buildSchemaFromDynamicOutputs(
 }
 
 function normalizeBinaryRef(value: unknown): BinaryRef | null {
-  if (!value || typeof value !== "object") return null;
+  if (!isObjectLike(value)) return null;
   const record = value as Record<string, unknown>;
   const out: BinaryRef = {};
-  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string")
+  if (isNonEmptyString(record.uri)) out.uri = record.uri;
+  if (record.data instanceof Uint8Array || isString(record.data))
     out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType)
-    out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type)
-    out.mimeType = record.mime_type;
+  if (isNonEmptyString(record.mimeType)) out.mimeType = record.mimeType;
+  if (isNonEmptyString(record.mime_type)) out.mimeType = record.mime_type;
   return out.uri || out.data ? out : null;
 }
 
@@ -298,7 +297,7 @@ async function* streamListItemsViaToolCalls(
 
     for (const toolCall of assistantToolCalls) {
       const result =
-        toolCall.name === "add_item" && typeof tool.process === "function"
+        toolCall.name === "add_item" && isCallable(tool.process)
           ? await tool.process(context, toolCall.args)
           : { error: `Unknown tool: ${toolCall.name}` };
       messages.push({
@@ -504,11 +503,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
           }
         }
       });
-      if (
-        result &&
-        typeof result === "object" &&
-        "content" in (result as Record<string, unknown>)
-      ) {
+      if (isObjectLike(result) && "content" in result) {
         const content = asText((result as { content?: unknown }).content ?? "");
         try {
           return JSON.parse(content) as Record<string, unknown>;
@@ -517,7 +512,7 @@ export class StructuredOutputGeneratorNode extends BaseNode {
         }
       }
     }
-    if (schema && typeof schema === "object" && !Array.isArray(schema)) {
+    if (isRecord(schema)) {
       const props =
         (schema as { properties?: Record<string, unknown> }).properties ?? {};
       const out: Record<string, unknown> = {};
@@ -733,7 +728,7 @@ export class ListGeneratorNode extends BaseNode {
     const items: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const item = (chunk as { item?: unknown }).item;
-      if (typeof item === "string") items.push(item);
+      if (isString(item)) items.push(item);
     }
     return { output: items };
   }
@@ -749,12 +744,7 @@ export class ListGeneratorNode extends BaseNode {
     // single `output` handle (drives the saved generation + reload).
     const items: string[] = [];
 
-    if (
-      context &&
-      typeof (context as { getProvider?: unknown }).getProvider === "function" &&
-      providerId &&
-      modelId
-    ) {
+    if (hasProviderAccess(context) && providerId && modelId) {
       let index = 0;
       const maxTokens = Number(this.max_tokens ?? 128);
       // Try the neutral prompt first. If the model answers in prose and emits no
