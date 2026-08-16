@@ -337,6 +337,92 @@ imported assets.
 nodetool workflows import-bundle my-pack.nodetool
 ```
 
+### `nodetool validate <workflow_id_or_file>`
+
+Check a workflow against the node registry **without running it**: unknown node
+types, missing required properties, dangling or mis-typed edges, model
+properties naming a provider or model id that does not exist, and
+`nodetool.code.Code` bodies that never return or leave an output unset. It
+finishes in well under a second, which makes it the cheap pre-flight before a
+run that costs money.
+
+The target is a workflow id, a workflow JSON file, or a TypeScript DSL file.
+File targets need no database.
+
+**Options:**
+
+- `--json` — print the full validation report as JSON.
+- `--warnings-as-errors` — exit non-zero on warnings, not just errors.
+
+**Examples:**
+
+```bash
+nodetool validate <workflow_id>
+nodetool validate workflow.json
+nodetool validate workflow.ts --json
+nodetool validate <workflow_id> --warnings-as-errors
+```
+
+A clean graph prints a one-line verdict and exits `0`:
+
+```
+✅ Workflow is valid — 3 node(s), 2 edge(s).
+```
+
+A broken one names the node and the rule it broke, then exits `1`:
+
+```
+❌ Workflow has 1 error(s).
+
+  error Unknown node type "nodetool.text.NoSuchNode" (not in the registry; Python-only nodes are not validated statically) [nodetool.text.NoSuchNode 1] (unknown_node)
+
+  Codes:
+    unknown_node — node type is not in the registry
+```
+
+### `nodetool debug <workflow_id_or_file>`
+
+Run a workflow end to end and collect everything it emitted into a
+self-contained bundle — every message, log line, node input/output, and error —
+then print a verdict. Reach for it when `validate` passes but the run still does
+the wrong thing.
+
+The headless server run is on by default. The expensive surfaces are opt-in:
+`--browser` starts Playwright and Chromium, `--trace` adds OpenTelemetry
+spans, and `--stages` screenshots the canvas at each run stage.
+
+**Options:**
+
+- `--no-server` — skip the headless server surface.
+- `--browser` — also run the workflow in a real browser (Playwright).
+- `--trace` — capture an OpenTelemetry trace of the server run (timing, tokens, cost).
+- `--stages` — screenshot the canvas at every browser run stage (implies `--browser`).
+- `--params <json>` — JSON params keyed by input-node name.
+- `--out <dir>` — bundle output directory (default `nodetool-debug/<id>-<timestamp>`).
+- `--timeout <ms>` — per-surface run timeout.
+- `--json` — print the full `DebugReport` as JSON to stdout.
+- `--watch` — re-run on file change and print a diff of the verdict (file targets only).
+- `--supervise` and its four bounds — see [Supervised runs](#supervised-runs) above.
+
+**Examples:**
+
+```bash
+# Server surface only
+nodetool debug <workflow_id>
+nodetool debug workflow.json --params '{"prompt":"hi"}'
+
+# Opt into the expensive surfaces
+nodetool debug <workflow_id> --trace
+nodetool debug <workflow_id> --browser --stages
+
+# Tight edit→verify loop on a file target
+nodetool debug workflow.json --watch
+```
+
+The bundle holds `report.json` and `report.md`, the resolved `workflow.json`,
+and `server/messages.jsonl`. `--trace` adds `server/trace.jsonl`; `--browser`
+adds `browser/record.json`, a canvas screenshot, and `browser/console-errors.log`.
+
 ## Mini App Management
 
 ### `nodetool apps`
@@ -449,6 +535,45 @@ nodetool assets list --query "landscape"
 nodetool assets get <asset_id>
 ```
 
+## Storage Maintenance
+
+### `nodetool storage migrate-keys`
+
+Move asset objects under their owner's prefix, so an object's key is
+`<userId>/<assetId>.<ext>` and the owner is the leading path segment — the
+boundary a Supabase RLS policy or an S3 bucket policy can enforce on the object
+itself.
+
+Run it once when upgrading an S3 or Supabase install that still holds objects
+written under the older flat layout. The local file backend needs no migration:
+it falls back to the flat key on a miss.
+
+**Options:**
+
+- `--dry-run` — report what would move without writing anything.
+- `--user-id <id>` — migrate only this user's objects.
+- `--json` — output the report as JSON.
+
+**Examples:**
+
+```bash
+# See what would move first
+nodetool storage migrate-keys --dry-run
+
+# Move them
+nodetool storage migrate-keys
+
+# One user, machine-readable
+nodetool storage migrate-keys --user-id 1 --json
+```
+
+A dry run reports the tally and writes nothing:
+
+```
+scanned 0, would move 0, already migrated 0, absent 0, failed 0
+Dry run — nothing was written. Re-run without --dry-run.
+```
+
 ## Vector Collections
 
 ### `nodetool collections`
@@ -487,6 +612,62 @@ nodetool collections delete my_docs --yes
 
 Re-indexing the same file replaces its chunks rather than adding a second copy,
 so an `index` run is safe to repeat after a document changes.
+
+## Spend Tracking
+
+### `nodetool costs`
+
+Report what NodeTool has spent on LLM and provider calls. Every call writes a
+row carrying its cost and token counts; these subcommands aggregate them
+straight from the local database, so no server has to be running.
+
+Reach for it to answer "what did that run cost" after the fact, or to find
+which model is eating a budget.
+
+**Subcommands:** `summary`, `list`, `by-provider`, `by-model`
+
+**Options:**
+
+- `--provider <name>` — filter by provider (for `list` and `by-model`).
+- `--model <id>` — filter by model (for `list`).
+- `--limit <n>` — max results (for `list`, default `50`).
+- `--json` — output as JSON. Available on every subcommand.
+
+**Examples:**
+
+```bash
+# Overall spend plus per-provider and per-model breakdowns
+nodetool costs summary
+
+# Recent calls, most recent first
+nodetool costs list --limit 20
+nodetool costs list --provider anthropic
+
+# Grouped totals
+nodetool costs by-provider
+nodetool costs by-model --provider openai
+```
+
+`summary` prints the overall total and both breakdowns:
+
+```
+Overall
+ key          │ value
+──────────────┼─────────
+ total_cost   │ $0.0000
+ total_tokens │ 0
+ calls        │ 0
+
+By provider
+(no results)
+
+By model
+(no results)
+```
+
+Supervised runs and `nodetool app build` write to the same ledger, tagged
+`supervisor` and `app-build` in `node_type`, so `costs list` shows what the
+harnesses spent alongside the workflow's own calls.
 
 ## Secrets Management
 
