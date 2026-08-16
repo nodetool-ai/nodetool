@@ -19,6 +19,7 @@ import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
+import { writeScriptStoryboardId } from "../../lib/scriptStoryboardBackpointer";
 import {
   boardLinkIssues,
   scaffoldShots,
@@ -57,7 +58,7 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
       if (!script) {
         throw new Error(`No script "${scriptId}".`);
       }
-      const existing = useScriptStore.getState().storyboardLinks[scriptId];
+      const existing = script.storyboardId;
       if (existing) {
         throw new Error(
           `This script already has storyboard ${existing}. Open it instead of deriving a second one.`
@@ -128,7 +129,19 @@ export const useDeriveStoryboard = (): UseDeriveStoryboardResult => {
         });
 
         useStoryboardStore.getState().loadBoard(boardId, board);
-        useScriptStore.getState().setStoryboardLink(scriptId, boardId);
+        // Stamped only now that the board row exists, so a failed second write
+        // leaves an unlinked-but-valid pair rather than a pointer at nothing.
+        try {
+          await writeScriptStoryboardId(scriptId, boardId);
+        } catch (writeError) {
+          throw new Error(
+            `Storyboard ${boardId} was created, but the script's back-pointer failed: ${
+              writeError instanceof Error
+                ? writeError.message
+                : String(writeError)
+            }`
+          );
+        }
         if (options.open !== false) {
           useWorkspaceTabsStore.getState().openTab({
             type: "storyboard",

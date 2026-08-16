@@ -32,7 +32,7 @@ const renderControl = () =>
 
 describe("StoryboardLinkControl", () => {
   beforeEach(() => {
-    useScriptStore.setState({ storyboardLinks: {} });
+    useScriptStore.setState({ scripts: {}, serverRevisions: {} });
     useScriptStore.getState().ensureScript(SCRIPT);
   });
 
@@ -57,5 +57,40 @@ describe("StoryboardLinkControl", () => {
     expect(
       screen.queryByRole("button", { name: /create storyboard/i })
     ).toBeNull();
+  });
+
+  it("still offers Open storyboard after a reload of a linked script", () => {
+    // What useScriptServerSync does on mount: the server copy replaces the
+    // local one, carrying the persisted `scripts.storyboard_id`.
+    useScriptStore.getState().loadScript(SCRIPT, {
+      title: "Reloaded",
+      cast: [],
+      sections: [],
+      timelineId: null,
+      storyboardId: "board-3"
+    });
+    renderControl();
+
+    expect(
+      screen.getByRole("button", { name: /open storyboard/i })
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: /create storyboard/i })
+    ).toBeNull();
+  });
+
+  it("falls back to Create storyboard when the reloaded script links none", () => {
+    useScriptStore.getState().loadScript(SCRIPT, {
+      title: "Reloaded",
+      cast: [],
+      sections: [],
+      timelineId: null,
+      storyboardId: null
+    });
+    renderControl();
+
+    expect(
+      screen.getByRole("button", { name: /create storyboard/i })
+    ).toBeEnabled();
   });
 });

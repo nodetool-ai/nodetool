@@ -28,6 +28,11 @@ type ObjectBox = {
   };
 };
 
+/** Output handles ObjectDetectionNode.process() emits. */
+type ObjectDetectionNodeOutputs = {
+  detections: ObjectBox[];
+};
+
 export class ObjectDetectionNode extends BaseNode {
   static readonly nodeType = "transformers.ObjectDetection";
   static readonly inlineFields: string[] = [];
@@ -98,7 +103,7 @@ export class ObjectDetectionNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ObjectDetectionNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
 
     const pipeline = await getPipeline<

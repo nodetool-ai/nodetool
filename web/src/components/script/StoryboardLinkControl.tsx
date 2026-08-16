@@ -7,8 +7,8 @@
  * Link problems on that board are shown here too, so the script side sees a
  * broken link without opening the board.
  *
- * The back-pointer is session-scoped until the `scripts.storyboard_id` column
- * lands — see {@link useScriptStoryboardLink}.
+ * The back-pointer is the persisted `scripts.storyboard_id`, so a reload still
+ * shows *Open storyboard* — see {@link useScriptStoryboardLink}.
  */
 
 import { memo, useCallback } from "react";

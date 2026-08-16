@@ -80,6 +80,12 @@ function tensorToVector(tensor: unknown): number[] {
   return [];
 }
 
+/** Output handles FeatureExtractionNode.process() emits. */
+type FeatureExtractionNodeOutputs = {
+  embedding: number[];
+  dim: number;
+};
+
 export class FeatureExtractionNode extends BaseNode {
   static readonly nodeType = "transformers.FeatureExtraction";
   static readonly inlineFields = ["text"];
@@ -148,7 +154,7 @@ export class FeatureExtractionNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FeatureExtractionNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

@@ -36,6 +36,11 @@ function wildcardToRegExp(pattern: string): RegExp {
   return new RegExp(`^${escaped.replaceAll("*", ".*")}$`);
 }
 
+/** Output handles LoadDocumentFileNode.process() emits. */
+type LoadDocumentFileNodeOutputs = {
+  output: { uri: string; data: string };
+};
+
 export class LoadDocumentFileNode extends BaseNode {
   static readonly nodeType = "nodetool.document.LoadDocumentFile";
   static readonly platforms = NODE_ONLY;
@@ -56,7 +61,7 @@ export class LoadDocumentFileNode extends BaseNode {
   })
   declare path: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LoadDocumentFileNodeOutputs> {
     const p = String(this.path ?? this.path ?? "");
     const full = toFilePath(p);
     const fs = await loadNodeFsPromises();
@@ -69,6 +74,11 @@ export class LoadDocumentFileNode extends BaseNode {
     };
   }
 }
+
+/** Output handles SaveDocumentFileNode.process() emits. */
+type SaveDocumentFileNodeOutputs = {
+  output: string;
+};
 
 export class SaveDocumentFileNode extends BaseNode {
   static readonly nodeType = "nodetool.document.SaveDocumentFile";
@@ -109,7 +119,7 @@ export class SaveDocumentFileNode extends BaseNode {
   })
   declare filename: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveDocumentFileNodeOutputs> {
     const document = (this.document ?? this.document ?? {}) as DocumentRefLike;
     const p = String((this as any).path ?? "");
     const full = toFilePath(p);

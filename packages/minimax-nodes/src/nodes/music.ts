@@ -12,6 +12,11 @@ import {
 
 const MUSIC_FORMATS = ["mp3", "wav"];
 
+/** Output handles MinimaxMusicNode.process() emits. */
+type MinimaxMusicNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class MinimaxMusicNode extends BaseNode {
   static readonly nodeType = "minimax.MusicGeneration";
   static readonly body = "content_card";
@@ -69,7 +74,7 @@ export class MinimaxMusicNode extends BaseNode {
   })
   declare format: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxMusicNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");

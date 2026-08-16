@@ -23,6 +23,11 @@ type TokenEntity = {
   end?: number;
 };
 
+/** Output handles TokenClassificationNode.process() emits. */
+type TokenClassificationNodeOutputs = {
+  entities: TokenEntity[];
+};
+
 export class TokenClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.TokenClassification";
   static readonly inlineFields = ["text"];
@@ -82,7 +87,7 @@ export class TokenClassificationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TokenClassificationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

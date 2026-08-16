@@ -17,6 +17,13 @@ const TJS_TYPE = "tjs.text_classification";
 
 type ClassificationResult = { label: string; score: number };
 
+/** Output handles TextClassificationNode.process() emits. */
+type TextClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  results: ClassificationResult[];
+};
+
 export class TextClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.TextClassification";
   static readonly inlineFields = ["text"];
@@ -79,7 +86,7 @@ export class TextClassificationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextClassificationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
     const topK = asNumber(this.top_k, 1);

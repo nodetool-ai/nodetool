@@ -20,12 +20,15 @@ async function configureMonacoLoader() {
   loaderConfigured = true;
 }
 
+/** Construction options accepted by the lazily-loaded Monaco editor. */
+export type MonacoEditorOptions = monaco.editor.IStandaloneEditorConstructionOptions;
+
 type MonacoComponent = (props: {
   value: string;
   onChange?: (val?: string) => void;
   language?: string;
   theme?: string;
-  options?: Record<string, unknown>;
+  options?: MonacoEditorOptions;
   width?: string | number;
   height?: string | number;
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import("monaco-editor")) => void;

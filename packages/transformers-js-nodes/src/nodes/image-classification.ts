@@ -19,6 +19,13 @@ const TJS_TYPE = "tjs.image_classification";
 
 type ImageClassificationResult = { label: string; score: number };
 
+/** Output handles ImageClassificationNode.process() emits. */
+type ImageClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  results: ImageClassificationResult[];
+};
+
 export class ImageClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ImageClassification";
   static readonly inlineFields: string[] = [];
@@ -83,7 +90,7 @@ export class ImageClassificationNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageClassificationNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
 
     const pipeline = await getPipeline<

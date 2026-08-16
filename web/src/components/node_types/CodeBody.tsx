@@ -45,7 +45,10 @@ import TextEditorModal from "../properties/TextEditorModal";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import {
+  useMonacoEditor,
+  type MonacoEditorOptions
+} from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { useNodes } from "../../contexts/NodeContext";
@@ -95,7 +98,7 @@ const EDITOR_OPTIONS = {
     verticalScrollbarSize: 8,
     horizontalScrollbarSize: 8
   }
-} satisfies Record<string, unknown>;
+} satisfies MonacoEditorOptions;
 
 const styles = (theme: Theme) =>
   css({

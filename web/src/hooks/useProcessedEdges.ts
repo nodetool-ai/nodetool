@@ -4,6 +4,7 @@ import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
+import type { StatusValue } from "../stores/StatusStore";
 import { forwardInputHandle, isForwardInput } from "../utils/forwardOutputs";
 import { nodeKey, edgeKey } from "../stores/nodeKey";
 import { MOTION } from "../components/ui_primitives";
@@ -21,7 +22,7 @@ interface ProcessedEdgesOptions {
    */
   focusedJobId?: string;
   edgeStatuses?: Record<string, { status: string; counter?: number }>;
-  nodeStatuses?: Record<string, string | Record<string, unknown> | null | undefined>;
+  nodeStatuses?: Record<string, StatusValue>;
   isSelecting?: boolean;
 }
 

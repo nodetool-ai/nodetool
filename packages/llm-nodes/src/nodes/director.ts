@@ -369,6 +369,14 @@ function buildDirectorPrompt(
 // Nodes
 // ---------------------------------------------------------------------------
 
+/** Output handles DirectorNode.process() emits. */
+type DirectorNodeOutputs = {
+  screenplay: Screenplay;
+  narration: string;
+  music_prompt: string;
+  title: string;
+};
+
 export class DirectorNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.Director";
   static readonly title = "Director";
@@ -439,7 +447,7 @@ export class DirectorNode extends BaseNode {
   })
   declare max_tokens: number;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<DirectorNodeOutputs> {
     const brief = asText(this.brief ?? "");
     const style = asText(this.style ?? "");
     const shotCount = clampShotCount(this.shot_count);
@@ -491,6 +499,19 @@ export class DirectorNode extends BaseNode {
   }
 }
 
+/** Output handles ScreenplayShotsNode.genProcess() emits. */
+type ScreenplayShotsNodeStreamOutputs = {
+  shot: Shot | null;
+  shot_prompt: string | null;
+  index: number | null;
+  output?: string[];
+};
+
+/** Output handles ScreenplayShotsNode.process() emits. */
+type ScreenplayShotsNodeOutputs = {
+  output: string[];
+};
+
 export class ScreenplayShotsNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.ScreenplayShots";
   static readonly title = "Screenplay Shots";
@@ -525,7 +546,7 @@ export class ScreenplayShotsNode extends BaseNode {
   })
   declare screenplay: Record<string, unknown>;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ScreenplayShotsNodeOutputs> {
     const prompts: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const prompt = (chunk as { shot_prompt?: unknown }).shot_prompt;
@@ -536,7 +557,7 @@ export class ScreenplayShotsNode extends BaseNode {
 
   async *genProcess(
     _context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ScreenplayShotsNodeStreamOutputs> {
     const screenplay = toScreenplay(this.screenplay);
     const prompts: string[] = [];
     for (const shot of screenplay.shots) {

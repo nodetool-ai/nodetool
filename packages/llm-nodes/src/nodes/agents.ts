@@ -123,6 +123,12 @@ const ENHANCE_PROMPT_GUIDANCE: Record<string, string> = {
 };
 const ENHANCE_PROMPT_MAX_TOKENS = 1024;
 
+/** Output handles SummarizerNode.process() emits. */
+type SummarizerNodeOutputs = {
+  text: string;
+  output: string;
+};
+
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
   static readonly body = "content_card";
@@ -289,7 +295,7 @@ export class SummarizerNode extends BaseNode {
     yield { chunk: null, text: summary, output: summary };
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SummarizerNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
       if (isString(item.text)) text = item.text;
@@ -297,6 +303,12 @@ export class SummarizerNode extends BaseNode {
     return { text, output: text };
   }
 }
+
+/** Output handles EnhancePromptNode.process() emits. */
+type EnhancePromptNodeOutputs = {
+  text: string;
+  output: string;
+};
 
 export class EnhancePromptNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.EnhancePrompt";
@@ -442,7 +454,7 @@ export class EnhancePromptNode extends BaseNode {
     yield { chunk: null, text: enhanced, output: enhanced };
   }
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<EnhancePromptNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
       if (isString(item.text)) text = item.text;
@@ -450,6 +462,11 @@ export class EnhancePromptNode extends BaseNode {
     return { text, output: text };
   }
 }
+
+/** Output handles CreateThreadNode.process() emits. */
+type CreateThreadNodeOutputs = {
+  thread_id: string;
+};
 
 export class CreateThreadNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.CreateThread";
@@ -479,7 +496,7 @@ export class CreateThreadNode extends BaseNode {
   })
   declare thread_id: string;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CreateThreadNodeOutputs> {
     const requested = String(this.thread_id ?? "").trim();
     const title = String(this.title ?? "Agent Conversation");
     const id = requested || makeThreadId();
@@ -616,6 +633,12 @@ export class ExtractorNode extends BaseNode {
   }
 }
 
+/** Output handles ClassifierNode.process() emits. */
+type ClassifierNodeOutputs = {
+  output: string;
+  category: string;
+};
+
 export class ClassifierNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Classifier";
   static readonly body = "content_card";
@@ -711,7 +734,7 @@ export class ClassifierNode extends BaseNode {
   })
   declare max_tokens: number;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ClassifierNodeOutputs> {
     const text = asText(this.text ?? "");
     const categories = getCategories(this.categories);
     if (categories.length < 2) {

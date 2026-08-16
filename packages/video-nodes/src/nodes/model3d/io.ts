@@ -37,6 +37,11 @@ async function writeWithSuffixWhenNeeded(
   );
 }
 
+/** Output handles LoadModel3DFileNode.process() emits. */
+type LoadModel3DFileNodeOutputs = {
+  output: { type: string; asset_id: null; metadata: null; data: string };
+};
+
 export class LoadModel3DFileNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.LoadModel3DFile";
   static readonly title = "Load Model 3D File";
@@ -56,7 +61,7 @@ export class LoadModel3DFileNode extends BaseNode {
   })
   declare path: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LoadModel3DFileNodeOutputs> {
     const p = filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     return {
@@ -64,6 +69,11 @@ export class LoadModel3DFileNode extends BaseNode {
     };
   }
 }
+
+/** Output handles SaveModel3DFileNode.process() emits. */
+type SaveModel3DFileNodeOutputs = {
+  output: { type: string; asset_id: null; metadata: null; data: string };
+};
 
 export class SaveModel3DFileNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.SaveModel3DFile";
@@ -110,7 +120,7 @@ export class SaveModel3DFileNode extends BaseNode {
   })
   declare overwrite: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SaveModel3DFileNodeOutputs> {
     const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.filename ?? "model.glb"));
     const overwrite = this.overwrite === true;
@@ -132,6 +142,11 @@ export class SaveModel3DFileNode extends BaseNode {
     };
   }
 }
+
+/** Output handles SaveModel3DNode.process() emits. */
+type SaveModel3DNodeOutputs = {
+  output: { type: string; asset_id: null; metadata: null; data: string };
+};
 
 export class SaveModel3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.SaveModel3D";
@@ -169,7 +184,7 @@ export class SaveModel3DNode extends BaseNode {
   })
   declare name: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SaveModel3DNodeOutputs> {
     const folder = String(this.folder ?? ".");
     const name = dateName(String(this.name ?? "model.glb"));
     const full = path.resolve(folder, name);

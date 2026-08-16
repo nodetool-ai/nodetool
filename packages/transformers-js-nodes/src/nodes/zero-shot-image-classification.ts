@@ -27,6 +27,13 @@ function parseLabels(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/** Output handles ZeroShotImageClassificationNode.process() emits. */
+type ZeroShotImageClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  results: ClassificationResult[];
+};
+
 export class ZeroShotImageClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ZeroShotImageClassification";
   static readonly inlineFields = ["candidate_labels"];
@@ -89,7 +96,7 @@ export class ZeroShotImageClassificationNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ZeroShotImageClassificationNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
     const labels = parseLabels(this.candidate_labels);
     if (labels.length === 0) {

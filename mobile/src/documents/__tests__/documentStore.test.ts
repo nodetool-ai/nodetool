@@ -16,7 +16,16 @@ interface Doc {
   shots: string[];
 }
 
-const detail = (overrides: Record<string, unknown> = {}) => ({
+interface DetailOverrides {
+  ref?: { kind: string; id: string; revision: number };
+  name?: string;
+  projectId?: string;
+  contentType?: string | null;
+  updatedAt?: string;
+  document?: Doc;
+}
+
+const detail = (overrides: DetailOverrides = {}) => ({
   ref: { kind: 'storyboard', id: 'sb1', revision: 3 },
   name: 'Chase scene',
   projectId: 'default',

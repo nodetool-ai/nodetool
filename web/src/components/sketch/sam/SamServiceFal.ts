@@ -64,6 +64,21 @@ interface FalBoxPrompt {
   height: number;
 }
 
+/** Request body posted to the FAL SAM 3.1 endpoint. */
+interface FalSamRequestBody {
+  image_url: string;
+  sync_mode: boolean;
+  output_format: string;
+  return_multiple_masks: boolean;
+  max_masks: number;
+  include_scores: boolean;
+  include_boxes: boolean;
+  apply_mask: boolean;
+  prompt?: string;
+  point_prompts?: FalPointPrompt[];
+  box_prompts?: FalBoxPrompt[];
+}
+
 interface FalQueueResponse {
   request_id: string;
   status: string;
@@ -568,7 +583,7 @@ export class SamServiceFal implements SamService {
       ? [this.buildFalBoxPrompt(request.boxPrompt, promptMapper, scale)]
       : [];
 
-    const falInput: Record<string, unknown> = {
+    const falInput: FalSamRequestBody = {
       image_url: imageUrl,
       sync_mode: true,
       output_format: "png",

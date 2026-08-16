@@ -94,6 +94,14 @@ const allLines = (doc: ScriptDocumentLike): ScriptLineLike[] =>
 
 // ── Nodes ────────────────────────────────────────────────────────────────────
 
+/** Output handles LoadScriptNode.process() emits. */
+type LoadScriptNodeOutputs = {
+  text: string;
+  lines: string[];
+  name: string;
+  line_count: number;
+};
+
 export class LoadScriptNode extends BaseNode {
   static readonly nodeType = "nodetool.script.LoadScript";
   static readonly title = "Load Script";
@@ -118,7 +126,7 @@ export class LoadScriptNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<LoadScriptNodeOutputs> {
     const script = await loadScript(this.script, context);
     const lines = allLines(script.document).map((line) => line.text);
     return {
@@ -129,6 +137,12 @@ export class LoadScriptNode extends BaseNode {
     };
   }
 }
+
+/** Output handles VoiceScriptNode.process() emits. */
+type VoiceScriptNodeOutputs = {
+  output: { type: string; id: string };
+  voiced_count: number;
+};
 
 export class VoiceScriptNode extends BaseNode {
   static readonly nodeType = "nodetool.script.VoiceScript";
@@ -163,7 +177,7 @@ export class VoiceScriptNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<VoiceScriptNodeOutputs> {
     if (!context) {
       throw new Error("VoiceScript requires a processing context");
     }
@@ -233,6 +247,11 @@ export class VoiceScriptNode extends BaseNode {
   }
 }
 
+/** Output handles ScriptToTimelineNode.process() emits. */
+type ScriptToTimelineNodeOutputs = {
+  output: { type: string; id: string };
+};
+
 export class ScriptToTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.script.ScriptToTimeline";
   static readonly title = "Script To Timeline";
@@ -254,7 +273,7 @@ export class ScriptToTimelineNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ScriptToTimelineNodeOutputs> {
     if (!context) {
       throw new Error("ScriptToTimeline requires a processing context");
     }
@@ -336,6 +355,12 @@ export class ScriptToTimelineNode extends BaseNode {
   }
 }
 
+/** Output handles ScriptToSubtitlesNode.process() emits. */
+type ScriptToSubtitlesNodeOutputs = {
+  subtitles: string;
+  cue_count: number;
+};
+
 export class ScriptToSubtitlesNode extends BaseNode {
   static readonly nodeType = "nodetool.script.ScriptToSubtitles";
   static readonly title = "Script To Subtitles";
@@ -377,7 +402,7 @@ export class ScriptToSubtitlesNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ScriptToSubtitlesNodeOutputs> {
     const script = await loadScript(this.script, context);
     const doc = script.document;
 

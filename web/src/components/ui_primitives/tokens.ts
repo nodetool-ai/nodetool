@@ -6,6 +6,7 @@
  */
 
 import { Theme } from "@mui/material/styles";
+import type { CSSObject } from "@emotion/react";
 
 /**
  * Typography System — Single Source of Truth
@@ -185,9 +186,7 @@ export const MOTION = {
  *   ...reducedMotion({ animation: "none", opacity: 0.6 }),
  * })
  */
-export const reducedMotion = (
-  overrides: Record<string, unknown>
-): Record<string, unknown> => ({
+export const reducedMotion = (overrides: CSSObject): CSSObject => ({
   "@media (prefers-reduced-motion: reduce)": overrides,
 });
 

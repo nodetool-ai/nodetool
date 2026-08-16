@@ -14,6 +14,11 @@ export class Passthrough extends BaseNode {
   }
 }
 
+/** Output handles Add.process() emits. */
+type AddOutputs = {
+  result: number;
+};
+
 export class Add extends BaseNode {
   static readonly nodeType = "nodetool.test.Add";
   static readonly title = "Add";
@@ -25,7 +30,7 @@ export class Add extends BaseNode {
   @prop({ type: "int", default: 0 })
   declare b: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<AddOutputs> {
     const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())];
     const sum = values.reduce((acc: number, value: unknown) => {
       return acc + Number(value ?? 0);
@@ -33,6 +38,11 @@ export class Add extends BaseNode {
     return { result: sum };
   }
 }
+
+/** Output handles Multiply.process() emits. */
+type MultiplyOutputs = {
+  result: number;
+};
 
 export class Multiply extends BaseNode {
   static readonly nodeType = "nodetool.test.Multiply";
@@ -44,7 +54,7 @@ export class Multiply extends BaseNode {
   @prop({ type: "int", default: 1 })
   declare b: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MultiplyOutputs> {
     const a = (this.a ?? 1) as number;
     const b = (this.b ?? 1) as number;
     return { result: a * b };
@@ -63,6 +73,11 @@ export class Constant extends BaseNode {
   }
 }
 
+/** Output handles StringConcat.process() emits. */
+type StringConcatOutputs = {
+  result: string;
+};
+
 export class StringConcat extends BaseNode {
   static readonly nodeType = "nodetool.test.StringConcat";
   static readonly title = "String Concat";
@@ -77,7 +92,7 @@ export class StringConcat extends BaseNode {
   @prop({ type: "str", default: "" })
   declare separator: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<StringConcatOutputs> {
     const sep = String(this.separator ?? "");
     const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
       (value) => String(value ?? "")
@@ -85,6 +100,11 @@ export class StringConcat extends BaseNode {
     return { result: values.join(sep) };
   }
 }
+
+/** Output handles FormatText.process() emits. */
+type FormatTextOutputs = {
+  result: string;
+};
 
 export class FormatText extends BaseNode {
   static readonly nodeType = "nodetool.test.FormatText";
@@ -97,12 +117,17 @@ export class FormatText extends BaseNode {
   @prop({ type: "str", default: "" })
   declare text: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FormatTextOutputs> {
     const template = String(this.template ?? "{{ text }}");
     const text = String(this.text ?? "");
     return { result: template.replace(/\{\{\s*text\s*\}\}/g, text) };
   }
 }
+
+/** Output handles ThresholdProcessor.process() emits. */
+type ThresholdProcessorOutputs = {
+  result: string;
+};
 
 export class ThresholdProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.ThresholdProcessor";
@@ -118,7 +143,7 @@ export class ThresholdProcessor extends BaseNode {
   @prop({ type: "str", default: "normal" })
   declare mode: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ThresholdProcessorOutputs> {
     const value = (this.value ?? 0) as number;
     const threshold = (this.threshold ?? 0.5) as number;
     const mode = String(this.mode ?? "normal");
@@ -141,6 +166,11 @@ export class ErrorNode extends BaseNode {
   }
 }
 
+/** Output handles SlowNode.process() emits. */
+type SlowNodeOutputs = {
+  result: string;
+};
+
 export class SlowNode extends BaseNode {
   static readonly nodeType = "nodetool.test.SlowNode";
   static readonly title = "Slow Node";
@@ -148,11 +178,16 @@ export class SlowNode extends BaseNode {
   @prop({ type: "int", default: 100 })
   declare delayMs: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SlowNodeOutputs> {
     await new Promise((r) => setTimeout(r, (this.delayMs as number) ?? 100));
     return { result: "completed" };
   }
 }
+
+/** Output handles StreamingCounter.genProcess() emits. */
+type StreamingCounterStreamOutputs = {
+  value: number;
+};
 
 export class StreamingCounter extends BaseNode {
   static readonly nodeType = "nodetool.test.StreamingCounter";
@@ -168,7 +203,7 @@ export class StreamingCounter extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<StreamingCounterStreamOutputs> {
     const count = (this.count as number) ?? 3;
     const start = (this.start as number) ?? 0;
     for (let i = 0; i < count; i++) {
@@ -176,6 +211,13 @@ export class StreamingCounter extends BaseNode {
     }
   }
 }
+
+/** Output handles IntAccumulator.process() emits. */
+type IntAccumulatorOutputs = {
+  count: number;
+  value: number;
+  values: number[];
+};
 
 export class IntAccumulator extends BaseNode {
   static readonly nodeType = "nodetool.test.IntAccumulator";
@@ -188,7 +230,7 @@ export class IntAccumulator extends BaseNode {
   @prop({ type: "int", default: 0 })
   declare value: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IntAccumulatorOutputs> {
     this._execCount++;
     const value = (this.value ?? 0) as number;
     this._accumulated.push(value);
@@ -272,6 +314,11 @@ export class MultiTriggerController extends BaseNode {
  * Source node that emits a StopEvent on its __control__ handle,
  * causing the controlled node to stop immediately.
  */
+/** Output handles StopEventController.genProcess() emits. */
+type StopEventControllerStreamOutputs = {
+  __control__: { event_type: string };
+};
+
 export class StopEventController extends BaseNode {
   static readonly nodeType = "nodetool.test.StopEventController";
   static readonly title = "Stop Event Controller";
@@ -281,7 +328,7 @@ export class StopEventController extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<StopEventControllerStreamOutputs> {
     yield { __control__: { event_type: "stop" } };
   }
 }
@@ -294,6 +341,11 @@ export class StopEventController extends BaseNode {
  * Node with is_streaming_input: true.
  * Called once with empty inputs by the actor.
  */
+/** Output handles StreamingInputProcessor.process() emits. */
+type StreamingInputProcessorOutputs = {
+  result: string;
+};
+
 export class StreamingInputProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.StreamingInputProcessor";
   static readonly title = "Streaming Input Processor";
@@ -301,7 +353,7 @@ export class StreamingInputProcessor extends BaseNode {
     "Streaming input node – called once with empty inputs";
   static readonly isStreamingInput = true;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<StreamingInputProcessorOutputs> {
     return { result: "processed" };
   }
 }
@@ -310,6 +362,16 @@ export class StreamingInputProcessor extends BaseNode {
  * Node with both is_streaming_input and is_streaming_output set.
  * Called once with empty inputs (streaming input takes priority in actor).
  */
+/** Output handles FullStreamingNode.genProcess() emits. */
+type FullStreamingNodeStreamOutputs = {
+  value: number;
+};
+
+/** Output handles FullStreamingNode.process() emits. */
+type FullStreamingNodeOutputs = {
+  result: string;
+};
+
 export class FullStreamingNode extends BaseNode {
   static readonly nodeType = "nodetool.test.FullStreamingNode";
   static readonly title = "Full Streaming Node";
@@ -318,11 +380,11 @@ export class FullStreamingNode extends BaseNode {
   @prop({ type: "int", default: 2 })
   declare count: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FullStreamingNodeOutputs> {
     return { result: "full-streaming" };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<FullStreamingNodeStreamOutputs> {
     const count = (this.count as number) ?? 2;
     for (let i = 0; i < count; i++) {
       yield { value: i };
@@ -334,6 +396,11 @@ export class FullStreamingNode extends BaseNode {
 // Data processing nodes
 // ---------------------------------------------------------------------------
 
+/** Output handles ListSumProcessor.process() emits. */
+type ListSumProcessorOutputs = {
+  sum: number;
+};
+
 export class ListSumProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.ListSumProcessor";
   static readonly title = "List Sum Processor";
@@ -342,7 +409,7 @@ export class ListSumProcessor extends BaseNode {
   @prop({ type: "list[int]", default: [] })
   declare values: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ListSumProcessorOutputs> {
     const values = (this.values ?? []) as number[];
     const sum = Array.isArray(values)
       ? values.reduce((a: number, b) => a + (b as number), 0)
@@ -350,6 +417,11 @@ export class ListSumProcessor extends BaseNode {
     return { sum };
   }
 }
+
+/** Output handles ConditionalErrorProcessor.process() emits. */
+type ConditionalErrorProcessorOutputs = {
+  result: string;
+};
 
 export class ConditionalErrorProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.ConditionalErrorProcessor";
@@ -361,7 +433,7 @@ export class ConditionalErrorProcessor extends BaseNode {
   @prop({ type: "str", default: "conditional error" })
   declare message: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConditionalErrorProcessorOutputs> {
     const shouldFail = (this.shouldFail ?? false) as boolean;
     if (shouldFail) {
       throw new Error(String(this.message ?? "conditional error"));

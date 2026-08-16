@@ -16,6 +16,14 @@ import {
   DoubleMetaphone
 } from "./nlp/index.js";
 
+/** Output handles SentimentAnalysisLibNode.process() emits. */
+type SentimentAnalysisLibNodeOutputs = {
+  score: number;
+  comparative: number;
+  positive_words: string[];
+  negative_words: string[];
+};
+
 export class SentimentAnalysisLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.SentimentAnalysis";
   static readonly retrySafe = true;
@@ -48,7 +56,7 @@ export class SentimentAnalysisLibNode extends BaseNode {
   })
   declare language: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SentimentAnalysisLibNodeOutputs> {
     const text = String(this.text ?? "");
     const language = String(this.language ?? "English");
 
@@ -102,6 +110,12 @@ export class SentimentAnalysisLibNode extends BaseNode {
   }
 }
 
+/** Output handles TokenizeLibNode.process() emits. */
+type TokenizeLibNodeOutputs = {
+  output: string[];
+  count: number;
+};
+
 export class TokenizeLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.Tokenize";
   static readonly retrySafe = true;
@@ -132,7 +146,7 @@ export class TokenizeLibNode extends BaseNode {
   })
   declare mode: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TokenizeLibNodeOutputs> {
     const text = String(this.text ?? "");
     const mode = String(this.mode ?? "word");
 
@@ -152,6 +166,12 @@ export class TokenizeLibNode extends BaseNode {
     return { output: tokens, count: tokens.length };
   }
 }
+
+/** Output handles StemLibNode.process() emits. */
+type StemLibNodeOutputs = {
+  output: string;
+  tokens: string[];
+};
 
 export class StemLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.Stem";
@@ -183,7 +203,7 @@ export class StemLibNode extends BaseNode {
   })
   declare algorithm: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<StemLibNodeOutputs> {
     const text = String(this.text ?? "");
     const algorithm = String(this.algorithm ?? "porter");
 
@@ -202,6 +222,11 @@ export class StemLibNode extends BaseNode {
     return { output, tokens: stemmedTokens };
   }
 }
+
+/** Output handles TfIdfLibNode.process() emits. */
+type TfIdfLibNodeOutputs = {
+  output: { document_index: number; score: number }[];
+};
 
 export class TfIdfLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.TfIdf";
@@ -231,7 +256,7 @@ export class TfIdfLibNode extends BaseNode {
   })
   declare query: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TfIdfLibNodeOutputs> {
     const documents = Array.isArray(this.documents) ? this.documents : [];
     const query = String(this.query ?? "");
 
@@ -252,6 +277,12 @@ export class TfIdfLibNode extends BaseNode {
     return { output: results };
   }
 }
+
+/** Output handles ClassifyTextLibNode.process() emits. */
+type ClassifyTextLibNodeOutputs = {
+  output: string;
+  classifications: { label: string; value: number }[];
+};
 
 export class ClassifyTextLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.ClassifyText";
@@ -282,7 +313,7 @@ export class ClassifyTextLibNode extends BaseNode {
   })
   declare training_data: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ClassifyTextLibNodeOutputs> {
     const text = String(this.text ?? "");
     const trainingData = Array.isArray(this.training_data)
       ? this.training_data
@@ -318,6 +349,16 @@ export class ClassifyTextLibNode extends BaseNode {
   }
 }
 
+/** Output handles ExtractEntitiesLibNode.process() emits. */
+type ExtractEntitiesLibNodeOutputs = {
+  people: string[];
+  places: string[];
+  organizations: string[];
+  numbers: string[];
+  nouns: string[];
+  verbs: string[];
+};
+
 export class ExtractEntitiesLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.ExtractEntities";
   static readonly retrySafe = true;
@@ -343,7 +384,7 @@ export class ExtractEntitiesLibNode extends BaseNode {
   })
   declare text: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ExtractEntitiesLibNodeOutputs> {
     const nlp = (await import("compromise")).default;
     const text = String(this.text ?? "");
 
@@ -378,6 +419,12 @@ export class ExtractEntitiesLibNode extends BaseNode {
   }
 }
 
+/** Output handles PhoneticMatchLibNode.process() emits. */
+type PhoneticMatchLibNodeOutputs = {
+  output: string;
+  tokens: { word: string; code: string | string[] }[];
+};
+
 export class PhoneticMatchLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.PhoneticMatch";
   static readonly retrySafe = true;
@@ -408,7 +455,7 @@ export class PhoneticMatchLibNode extends BaseNode {
   })
   declare algorithm: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<PhoneticMatchLibNodeOutputs> {
     const text = String(this.text ?? "");
     const algorithm = String(this.algorithm ?? "metaphone");
 

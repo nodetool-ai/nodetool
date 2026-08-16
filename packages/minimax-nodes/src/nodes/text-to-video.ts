@@ -10,6 +10,11 @@ import {
   videoRenderSettings
 } from "../minimax-base.js";
 
+/** Output handles MinimaxTextToVideoNode.process() emits. */
+type MinimaxTextToVideoNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class MinimaxTextToVideoNode extends BaseNode {
   static readonly nodeType = "minimax.TextToVideo";
   static readonly body = "content_card";
@@ -65,7 +70,7 @@ export class MinimaxTextToVideoNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxTextToVideoNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");

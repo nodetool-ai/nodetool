@@ -21,13 +21,18 @@ import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
+/** Props forwarded onto a rendered tree row. */
+export interface TreeViewItemSlotProps {
+  className?: string;
+}
+
 export interface TreeViewItem {
   id: string;
   label: string;
   className?: string;
   children?: TreeViewItem[];
-  itemProps?: Record<string, unknown>;
-  treeItemProps?: Record<string, unknown>;
+  itemProps?: TreeViewItemSlotProps;
+  treeItemProps?: TreeViewItemSlotProps;
   style?: Record<string, string>;
 }
 
