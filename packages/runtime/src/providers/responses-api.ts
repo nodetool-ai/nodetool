@@ -10,9 +10,9 @@ import type {
 } from "./types.js";
 import type { UsageInfo } from "./cost-calculator.js";
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+import { isRecord } from "../type-predicates.js";
+
+export { isRecord };
 
 export function stringifyContent(
   value: string | MessageContent[] | null | undefined

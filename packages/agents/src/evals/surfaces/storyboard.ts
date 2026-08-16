@@ -746,7 +746,7 @@ export const STORYBOARD_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<StoryboardBri
             detail: "a shot reached the board without its duration",
             test: (s) =>
               s.shots.length > 0 &&
-              s.shots.every((sh) => typeof sh.durationSeconds === "number")
+              s.shots.every((sh) => sh.durationSeconds != null)
           },
           {
             // The check the old bridge could not make: it minted the fields a

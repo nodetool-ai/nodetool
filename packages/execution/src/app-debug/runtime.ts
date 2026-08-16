@@ -355,7 +355,7 @@ export const effectiveTimeoutMs = (
   ceilingMs: number | null | undefined
 ): number | null => {
   const candidates = [operationTimeoutMs, ceilingMs].filter(
-    (value): value is number => typeof value === "number" && value > 0
+    (value): value is number => value != null && value > 0
   );
   return candidates.length > 0 ? Math.min(...candidates) : null;
 };

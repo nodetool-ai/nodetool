@@ -12,10 +12,10 @@ type ImageLike = {
 function inlineBytes(image: ImageLike | undefined): Uint8Array {
   if (!image) return new Uint8Array();
   if (image.data instanceof Uint8Array) return image.data;
-  if (typeof image.data === "string" && image.data.length > 0) {
+  if (image.data != null && image.data.length > 0) {
     return Uint8Array.from(Buffer.from(image.data, "base64"));
   }
-  if (typeof image.uri === "string" && image.uri.startsWith("data:")) {
+  if (image.uri != null && image.uri.startsWith("data:")) {
     const payload = image.uri.split(",", 2)[1] ?? "";
     return Uint8Array.from(Buffer.from(payload, "base64"));
   }
@@ -25,7 +25,7 @@ function inlineBytes(image: ImageLike | undefined): Uint8Array {
 /** Non-`data:` URI that identifies the ref (empty string when absent). */
 function refUri(image: ImageLike | undefined): string {
   const uri = image?.uri;
-  if (typeof uri === "string" && uri !== "" && !uri.startsWith("data:")) {
+  if (uri != null && uri !== "" && !uri.startsWith("data:")) {
     return uri;
   }
   return "";

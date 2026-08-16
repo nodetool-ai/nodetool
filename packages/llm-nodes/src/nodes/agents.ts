@@ -18,6 +18,13 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import type { ToolLike } from "./agent-utils.js";
 import {
+  isCallable,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./type-predicates.js";
+import {
   asText,
   makeThreadId,
   getCategories,
@@ -37,7 +44,8 @@ import {
   toolCallChunk,
   streamProviderMessages,
   getStructuredOutputSchema,
-  hasContentType
+  hasContentType,
+  hasProviderAccess
 } from "./agent-utils.js";
 import {
   seedFallbackThread,
@@ -231,7 +239,7 @@ export class SummarizerNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!hasProviderAccess(context)) {
       throw new Error("Processing context is required");
     }
 
@@ -265,7 +273,7 @@ export class SummarizerNode extends BaseNode {
       maxTokens: Math.max(64, maxSentences * 128)
     })) {
       if (isChunkItem(item) && !item.thinking) {
-        const piece = typeof item.content === "string" ? item.content : "";
+        const piece = isString(item.content) ? item.content : "";
         if (piece) {
           full += piece;
           for (const part of splitter.feed(piece)) {
@@ -290,7 +298,7 @@ export class SummarizerNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<SummarizerNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
-      if (typeof item.text === "string") text = item.text;
+      if (isString(item.text)) text = item.text;
     }
     return { text, output: text };
   }
@@ -367,7 +375,7 @@ export class EnhancePromptNode extends BaseNode {
   declare target: string;
 
   private _target(): string {
-    const raw = typeof this.target === "string" ? this.target.trim() : "";
+    const raw = isString(this.target) ? this.target.trim() : "";
     return raw in ENHANCE_PROMPT_GUIDANCE ? raw : "general";
   }
 
@@ -388,7 +396,7 @@ export class EnhancePromptNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!hasProviderAccess(context)) {
       throw new Error("Processing context is required");
     }
 
@@ -424,7 +432,7 @@ export class EnhancePromptNode extends BaseNode {
       maxTokens: ENHANCE_PROMPT_MAX_TOKENS
     })) {
       if (isChunkItem(item) && !item.thinking) {
-        const piece = typeof item.content === "string" ? item.content : "";
+        const piece = isString(item.content) ? item.content : "";
         if (piece) {
           full += piece;
           for (const part of splitter.feed(piece)) {
@@ -449,7 +457,7 @@ export class EnhancePromptNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<EnhancePromptNodeOutputs> {
     let text = "";
     for await (const item of this.genProcess(context)) {
-      if (typeof item.text === "string") text = item.text;
+      if (isString(item.text)) text = item.text;
     }
     return { text, output: text };
   }
@@ -592,7 +600,7 @@ export class ExtractorNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!hasProviderAccess(context)) {
       throw new Error("Processing context is required");
     }
 
@@ -737,7 +745,7 @@ export class ClassifierNode extends BaseNode {
     if (!providerId || !modelId) {
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!hasProviderAccess(context)) {
       throw new Error("Processing context is required");
     }
 
@@ -947,9 +955,7 @@ export class AgentNode extends BaseNode {
       providerId,
       modelId,
       hasContext: Boolean(context),
-      hasGetProvider: Boolean(
-        context && typeof context.getProvider === "function"
-      ),
+      hasGetProvider: hasProviderAccess(context),
       propKeys: Object.keys(this.serialize())
     });
     if (!providerId || !modelId) {
@@ -962,7 +968,7 @@ export class AgentNode extends BaseNode {
       });
       throw new Error("Select a model");
     }
-    if (!context || typeof context.getProvider !== "function") {
+    if (!hasProviderAccess(context)) {
       log.error("AgentNode missing processing context or provider access", {
         nodeId: this.__node_id ?? null,
         providerId,
@@ -1057,7 +1063,7 @@ export class AgentNode extends BaseNode {
     // URIs before the provider call. Resolution lives in the runtime layer so
     // it's shared across nodes and providers stay asset-agnostic. Saved to the
     // thread above first, so the stored message keeps the compact asset:// URI.
-    if (typeof context.resolveMessageMediaUris === "function") {
+    if (isCallable(context.resolveMessageMediaUris)) {
       const resolved = await context.resolveMessageMediaUris(messages);
       messages.splice(0, messages.length, ...resolved);
     }
@@ -1084,10 +1090,7 @@ export class AgentNode extends BaseNode {
                 args: Record<string, unknown>,
                 toolCallId?: string
               ): Promise<string | MessageContent[]> => {
-                if (
-                  typeof tool.execute !== "function" &&
-                  typeof tool.process !== "function"
-                ) {
+                if (!isCallable(tool.execute) && !isCallable(tool.process)) {
                   log.warn(
                     "AgentNode tool call had no matching executable tool",
                     {
@@ -1114,10 +1117,9 @@ export class AgentNode extends BaseNode {
                   // Forward the LLM's tool-call id: tools that spawn nested
                   // work (run_subtask, nested workflows) stamp it on their
                   // events as parent_tool_call_id.
-                  result =
-                    typeof tool.execute === "function"
-                      ? await tool.execute(context, args, { toolCallId })
-                      : await tool.process!(context, args);
+                  result = isCallable(tool.execute)
+                    ? await tool.execute(context, args, { toolCallId })
+                    : await tool.process!(context, args);
                 } catch (err) {
                   const message =
                     err instanceof Error ? err.message : String(err);
@@ -1262,7 +1264,7 @@ export class AgentNode extends BaseNode {
           const chunk = event.chunk;
           yield { chunk, thinking: null, text: null, audio: null };
           const audioBytes =
-            typeof chunk.content === "string" && chunk.content
+            isNonEmptyString(chunk.content)
               ? Buffer.from(chunk.content, "base64")
               : chunk.content instanceof Float32Array
                 ? Buffer.from(
@@ -1358,10 +1360,10 @@ export class AgentNode extends BaseNode {
         "text" in item ||
         "audio" in item
       ) {
-        if (typeof item.text === "string") {
+        if (isString(item.text)) {
           lastText = item.text;
         }
-        if (item.audio && typeof item.audio === "object") {
+        if (isObjectLike(item.audio)) {
           lastAudio = item.audio as Record<string, unknown>;
         }
       } else {
@@ -1497,8 +1499,9 @@ export class AgentNode extends BaseNode {
       } else if (pmsg.type === "step_result") {
         const result = (pmsg as any).result;
         if (result != null) {
-          const resultText =
-            typeof result === "string" ? result : JSON.stringify(result);
+          const resultText = isString(result)
+            ? result
+            : JSON.stringify(result);
           lastText = resultText;
         }
       } else if (pmsg.type === "log_update") {
@@ -1570,7 +1573,7 @@ export class AgentNode extends BaseNode {
     const resultText =
       lastText ||
       (finalResults != null
-        ? typeof finalResults === "string"
+        ? isString(finalResults)
           ? finalResults
           : JSON.stringify(finalResults)
         : "");
@@ -1581,13 +1584,8 @@ export class AgentNode extends BaseNode {
     // result as a bare object so process()/the kernel route it to those output
     // handles — mirroring loop mode's `yield structuredResult`. Without this,
     // plan mode only ever emits `text` and dynamic outputs stay empty.
-    if (
-      structuredSchema &&
-      finalResults &&
-      typeof finalResults === "object" &&
-      !Array.isArray(finalResults)
-    ) {
-      yield finalResults as Record<string, unknown>;
+    if (structuredSchema && isRecord(finalResults)) {
+      yield finalResults;
     }
   }
 }

@@ -22,13 +22,18 @@ import {
   extractResponsesImages,
   extractResponsesText,
   extractResponsesToolCalls,
-  isRecord,
   messagesToResponsesInput,
   responseToolChoice,
   responseTools,
   responseUsage,
   streamResponsesEvents
 } from "./responses-api.js";
+import {
+  isCallable,
+  isNumber,
+  isRecord,
+  isString
+} from "../type-predicates.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
@@ -98,7 +103,7 @@ function asUint8Array(data: unknown): Uint8Array {
   if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
     return new Uint8Array(data as number[]);
   }
-  if (typeof data === "string") {
+  if (isString(data)) {
     return Uint8Array.from(Buffer.from(data, "base64"));
   }
   if (data instanceof ArrayBuffer) {
@@ -175,7 +180,7 @@ function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   if (
     typeof value === "object" &&
     "toJSON" in value &&
-    typeof (value as { toJSON: unknown }).toJSON === "function"
+    isCallable((value as { toJSON: unknown }).toJSON)
   ) {
     // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
     // value and, by that contract, produces a JSON-representable result.
@@ -249,7 +254,7 @@ function isOpenAIResponsesModel(model: string): boolean {
 function responsesSystemPrompt(messages: Message[]): string {
   return messages
     .filter((m) => m.role === "system")
-    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .map((m) => (isString(m.content) ? m.content : ""))
     .filter(Boolean)
     .join("\n\n");
 }
@@ -267,13 +272,14 @@ function imageContentFromChunk(
     !isRecord(item) ||
     item.type !== "chunk" ||
     item.content_type !== "image" ||
-    typeof item.content !== "string"
+    !isString(item.content)
   ) {
     return null;
   }
   const metadata = isRecord(item.content_metadata) ? item.content_metadata : {};
-  const mimeType =
-    typeof metadata.mimeType === "string" ? metadata.mimeType : "image/png";
+  const mimeType = isString(metadata.mimeType)
+    ? metadata.mimeType
+    : "image/png";
   return { type: "image_url", image: { data: item.content, mimeType } };
 }
 
@@ -913,7 +919,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       let content = "";
-      if (typeof message.content === "string") {
+      if (isString(message.content)) {
         content = message.content;
       } else if (message.content != null) {
         content = JSON.stringify(message.content, defaultSerializer);
@@ -929,7 +935,7 @@ export class OpenAIProvider extends BaseProvider {
     if (message.role === "system") {
       return {
         role: "system",
-        content: typeof message.content === "string" ? message.content : ""
+        content: isString(message.content) ? message.content : ""
       };
     }
 
@@ -943,7 +949,7 @@ export class OpenAIProvider extends BaseProvider {
         }
       }));
 
-      if (typeof message.content === "string" || message.content == null) {
+      if (isString(message.content) || message.content == null) {
         type AssistantFields = {
           role: "assistant";
           content: string | null | undefined;
@@ -984,7 +990,7 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error(`Unsupported role: ${message.role}`);
     }
 
-    if (typeof message.content === "string") {
+    if (isString(message.content)) {
       return {
         role: "user",
         content: message.content
@@ -1044,7 +1050,7 @@ export class OpenAIProvider extends BaseProvider {
         ? {
             ...msg,
             role: "user",
-            content: `Instructions: ${typeof msg.content === "string" ? msg.content : ""}`
+            content: `Instructions: ${isString(msg.content) ? msg.content : ""}`
           }
         : msg
     );
@@ -1191,7 +1197,7 @@ export class OpenAIProvider extends BaseProvider {
         }
       }
     } finally {
-      if (typeof stream.close === "function") {
+      if (isCallable(stream.close)) {
         await stream.close();
       }
     }
@@ -1336,10 +1342,9 @@ export class OpenAIProvider extends BaseProvider {
     })) as Record<string, unknown>;
 
     this.trackUsage(args.model, responseUsage(response));
-    const outputText =
-      typeof response.output_text === "string"
-        ? response.output_text
-        : extractResponsesText(response.output);
+    const outputText = isString(response.output_text)
+      ? response.output_text
+      : extractResponsesText(response.output);
     const toolCalls = extractResponsesToolCalls(
       response.output,
       this.buildToolCall.bind(this)
@@ -1382,7 +1387,7 @@ export class OpenAIProvider extends BaseProvider {
       if (
         isRecord(item) &&
         item.type === "chunk" &&
-        typeof item.content === "string" &&
+        isString(item.content) &&
         !item.thinking
       ) {
         assistantText += item.content;
@@ -1756,7 +1761,7 @@ export class OpenAIProvider extends BaseProvider {
           state.emittedContent = true;
           continue;
         }
-        if (typeof item.content === "string" && !item.thinking) {
+        if (isString(item.content) && !item.thinking) {
           state.assistantText += item.content;
           if (item.content) state.emittedContent = true;
         }
@@ -1995,9 +2000,7 @@ export class OpenAIProvider extends BaseProvider {
     this.trackUsage(args.model, { inputCharacters: args.text.length });
 
     const bytes = asUint8Array(
-      typeof response.arrayBuffer === "function"
-        ? await response.arrayBuffer()
-        : response
+      isCallable(response.arrayBuffer) ? await response.arrayBuffer() : response
     );
     yield { samples: toInt16Samples(bytes) };
   }
@@ -2047,9 +2050,7 @@ export class OpenAIProvider extends BaseProvider {
     this.trackUsage(args.model, { inputCharacters: args.text.length });
 
     const bytes = asUint8Array(
-      typeof response.arrayBuffer === "function"
-        ? await response.arrayBuffer()
-        : response
+      isCallable(response.arrayBuffer) ? await response.arrayBuffer() : response
     );
     return { data: bytes, mimeType: formatToMime[fmt] };
   }
@@ -2118,12 +2119,11 @@ export class OpenAIProvider extends BaseProvider {
     // reported on the verbose/diarized formats (and as `usage.seconds` on the
     // newer transcribe models); skip accounting when it is absent rather than
     // guessing.
-    const durationSeconds =
-      typeof response.duration === "number"
-        ? response.duration
-        : typeof response.usage?.seconds === "number"
-          ? response.usage.seconds
-          : undefined;
+    const durationSeconds = isNumber(response.duration)
+      ? response.duration
+      : isNumber(response.usage?.seconds)
+        ? response.usage.seconds
+        : undefined;
     if (durationSeconds !== undefined) {
       this.trackUsage(args.model, { durationSeconds });
     }

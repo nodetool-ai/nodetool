@@ -40,6 +40,7 @@
  */
 
 import { z } from "zod";
+import { isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
 // Shared building blocks
@@ -314,7 +315,8 @@ export interface BridgeFrameValidationResult {
 export function validateBridgeFrame(
   frame: Record<string, unknown>
 ): BridgeFrameValidationResult {
-  const type = typeof frame["type"] === "string" ? frame["type"] : undefined;
+  const rawType = frame["type"];
+  const type = isString(rawType) ? rawType : undefined;
   const schema = getBridgeFrameSchema(type);
   if (!schema) {
     // Unrecognized/absent type: not this module's concern — the dispatcher

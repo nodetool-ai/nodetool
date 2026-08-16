@@ -15,6 +15,7 @@
 
 import { z } from "zod";
 import { SandboxModuleDeclarationSchema } from "../sandbox-package.js";
+import { isNumber, isRecord, isString } from "../predicates.js";
 
 /** The only document version that exists. */
 export const JS_SCRIPT_SCHEMA_VERSION = 1;
@@ -271,14 +272,14 @@ export interface JsScriptResolver {
  * not carry both. An empty object is how an unlinked node stores "no script".
  */
 export function parseJsScriptLink(value: unknown): JsScriptLink | null {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return null;
   }
-  const record = value as Record<string, unknown>;
+  const record = value;
   const id = record.id;
   const version = record.version;
-  if (typeof id !== "string" || id.trim() === "") return null;
-  if (typeof version !== "number" || !Number.isInteger(version)) return null;
+  if (!isString(id) || id.trim() === "") return null;
+  if (!isNumber(version) || !Number.isInteger(version)) return null;
   return { id: id.trim(), version };
 }
 

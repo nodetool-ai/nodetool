@@ -329,10 +329,7 @@ export class ExecutionSession {
       // The session's own run-timeout timer is the only timer it owns; it is
       // cleared when the run settles.
       pendingTimers: this.runTimeoutHandle === null ? 0 : 1,
-      pythonBridgePendingRequests:
-        typeof this.bridge?.pendingRequestCount === "number"
-          ? this.bridge.pendingRequestCount
-          : 0
+      pythonBridgePendingRequests: this.bridge?.pendingRequestCount ?? 0
     };
   }
 

@@ -1307,7 +1307,7 @@ if (!isProduction) {
         for (const item of value) {
           headers.append(key, item);
         }
-      } else if (typeof value === "string") {
+      } else if (value != null) {
         headers.set(key, value);
       }
     }

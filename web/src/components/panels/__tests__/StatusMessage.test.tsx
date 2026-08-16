@@ -23,6 +23,11 @@ import mockTheme from "../../../__mocks__/themeMock";
 const mockStatusMessage = "Running workflow...";
 const mockRunnerState = "running";
 
+/** Zustand hands the hook a selector, or nothing when the whole state is read. */
+type RunnerSelector = (state: unknown) => unknown;
+const mockIsSelector = (value: unknown): value is RunnerSelector =>
+  typeof value === "function";
+
 jest.mock("../../../stores/WorkflowRunner", () => ({
   useWebsocketRunner: jest.fn((selector) => {
     // Mock the selector function to return different values based on what's being selected
@@ -32,7 +37,7 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     };
 
     // Simulate Zustand's selector behavior
-    if (typeof selector === "function") {
+    if (mockIsSelector(selector)) {
       return selector(state);
     }
     return state;
@@ -61,7 +66,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return running state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Processing nodes..." };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -74,7 +79,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return idle state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "idle", statusMessage: "Ready" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -87,7 +92,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return error state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "error", statusMessage: "Error occurred" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -100,7 +105,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return connected state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "connected", statusMessage: "Connected to server" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -113,7 +118,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return paused state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "paused", statusMessage: "Workflow paused" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -126,7 +131,7 @@ describe("StatusMessage", () => {
       // Mock the hook to return cancelled state
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "cancelled", statusMessage: "Workflow cancelled" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -140,7 +145,7 @@ describe("StatusMessage", () => {
     it("displays the status message text when running", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Executing node 1 of 5" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -151,7 +156,7 @@ describe("StatusMessage", () => {
     it("displays empty string when statusMessage is null", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: null };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -164,7 +169,7 @@ describe("StatusMessage", () => {
     it("displays empty string when statusMessage is undefined", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: undefined };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -179,7 +184,7 @@ describe("StatusMessage", () => {
 
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: longMessage };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -192,7 +197,7 @@ describe("StatusMessage", () => {
 
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: specialMessage };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -203,7 +208,7 @@ describe("StatusMessage", () => {
     it("handles numeric status message converted to string", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "50%" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -216,7 +221,7 @@ describe("StatusMessage", () => {
     it("subscribes to state property only", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        const result = typeof selector === "function" ? selector(state) : state;
+        const result = mockIsSelector(selector) ? selector(state) : state;
         return result;
       });
 
@@ -232,7 +237,7 @@ describe("StatusMessage", () => {
     it("subscribes to statusMessage property only", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test message" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -244,7 +249,7 @@ describe("StatusMessage", () => {
     it("uses two separate selective subscriptions for performance", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -258,7 +263,7 @@ describe("StatusMessage", () => {
     it("renders with caption variant", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -270,7 +275,7 @@ describe("StatusMessage", () => {
     it("renders with inherit color", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -285,7 +290,7 @@ describe("StatusMessage", () => {
     it("has status-message class", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -297,7 +302,7 @@ describe("StatusMessage", () => {
     it("has animating class for CSS animations", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -309,7 +314,7 @@ describe("StatusMessage", () => {
     it("has both status-message and animating classes", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
@@ -323,7 +328,7 @@ describe("StatusMessage", () => {
     it("is memoized to prevent unnecessary re-renders", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Test" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { rerender } = renderWithTheme();
@@ -345,7 +350,7 @@ describe("StatusMessage", () => {
       // Start with running
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Step 1" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { unmount } = renderWithTheme();
@@ -355,7 +360,7 @@ describe("StatusMessage", () => {
       unmount();
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "idle", statusMessage: "Step 1" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -365,7 +370,7 @@ describe("StatusMessage", () => {
     it("handles status message with emoji", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Running with emoji" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       renderWithTheme();
@@ -376,7 +381,7 @@ describe("StatusMessage", () => {
     it("handles status message with newlines", () => {
       (useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
         const state = { state: "running", statusMessage: "Line 1\nLine 2" };
-        return typeof selector === "function" ? selector(state) : state;
+        return mockIsSelector(selector) ? selector(state) : state;
       });
 
       const { container } = renderWithTheme();
