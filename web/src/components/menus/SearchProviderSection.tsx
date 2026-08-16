@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import type React from "react";
 import { useMemo, useCallback, memo } from "react";
 
 import {
@@ -10,7 +11,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  type SelectChangeEvent
 } from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -46,9 +48,8 @@ const SearchProviderSection = memo(function SearchProviderSection({
   }, [config, settingValues]);
 
   const handleProviderChange = useCallback(
-    (e: unknown) => {
-      const target = e as { target: { value: string } };
-      onChange("SERP_PROVIDER", target.target.value);
+    (e: SelectChangeEvent<string>) => {
+      onChange("SERP_PROVIDER", e.target.value);
     },
     [onChange]
   );
@@ -146,9 +147,10 @@ const SearchProviderSection = memo(function SearchProviderSection({
                     id={`${field.toLowerCase()}-input`}
                     label={formatSettingLabel(field)}
                     value={value}
-                    onChange={(e: unknown) => {
-                      const target = e as { target: { value: string } };
-                      handleCredentialChange(field, target.target.value);
+                    onChange={(
+                      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                    ) => {
+                      handleCredentialChange(field, e.target.value);
                     }}
                     variant="standard"
                     size="small"

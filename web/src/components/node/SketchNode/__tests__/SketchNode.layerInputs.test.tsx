@@ -98,12 +98,13 @@ jest.mock("../../../../hooks/useDelayedVisibility", () => ({
   useDelayedVisibility: () => false
 }));
 jest.mock("../../../../stores/NodeFocusStore", () => ({
-  useNodeFocusStore: <T,>(selector: (s: unknown) => T) =>
+  useNodeFocusStore: <T,>(selector: (s: { focusedNodeId: string | null }) => T) =>
     selector({ focusedNodeId: null })
 }));
 jest.mock("../../../../stores/SettingsStore", () => ({
-  useSettingsStore: <T,>(selector: (s: unknown) => T) =>
-    selector({ settings: { imageEditorOpenMode: "modal" } })
+  useSettingsStore: <T,>(
+    selector: (s: { settings: { imageEditorOpenMode: string } }) => T
+  ) => selector({ settings: { imageEditorOpenMode: "modal" } })
 }));
 
 // ─── Sketch module: real-enough doc helpers, spy loader, inert render utils ──
@@ -184,7 +185,19 @@ describe("SketchNode layer inputs via generations", () => {
       Promise.resolve({ data: "layer-data", naturalWidth: 10, naturalHeight: 10 })
     );
 
-    mockUseNodes.mockImplementation(<T,>(selector: (s: unknown) => T) =>
+    mockUseNodes.mockImplementation(
+      <T,>(
+        selector: (s: {
+          edges: (typeof edge)[];
+          updateNodeProperties: jest.Mock;
+          updateNodeData: jest.Mock;
+          updateEdgeHandle: jest.Mock;
+          updateEdge: jest.Mock;
+          deleteEdges: jest.Mock;
+          findNode: (id: string) => typeof sourceNode | undefined;
+          getSelectedNodeCount: () => number;
+        }) => T
+      ) =>
       selector({
         edges: [edge],
         updateNodeProperties: jest.fn(),

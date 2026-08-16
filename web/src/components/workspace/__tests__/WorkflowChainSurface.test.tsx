@@ -17,8 +17,9 @@ const updateWorkflow = jest.fn();
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: <T,>(selector: (state: unknown) => T) =>
-    selector({ saveWorkflow, updateWorkflow })
+  useWorkflowManager: <T,>(
+    selector: (state: { saveWorkflow: jest.Mock; updateWorkflow: jest.Mock }) => T
+  ) => selector({ saveWorkflow, updateWorkflow })
 }));
 
 jest.mock("../../chain_editor/ChainEditor", () => ({

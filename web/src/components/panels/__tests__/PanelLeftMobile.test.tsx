@@ -40,8 +40,13 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
 }));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (state: unknown) => T) =>
-    selector({ tabs: [], activeTabId: null, openTab: jest.fn() })
+  useWorkspaceTabsStore: <T,>(
+    selector: (state: {
+      tabs: unknown[];
+      activeTabId: string | null;
+      openTab: jest.Mock;
+    }) => T
+  ) => selector({ tabs: [], activeTabId: null, openTab: jest.fn() })
 }));
 
 jest.mock("../../assets/AssetGrid", () => () => <div data-testid="asset-grid" />);

@@ -84,13 +84,15 @@ const { renderHook } = nodeStoreRenderers(
 );
 jest.mock("../../../stores/WorkflowAssetStore", () => ({
   __esModule: true,
-  useWorkflowAssetStore: <T,>(selector: (state: unknown) => T) =>
-    selector({ assetsByWorkflow: {} })
+  useWorkflowAssetStore: <T,>(
+    selector: (state: { assetsByWorkflow: object }) => T
+  ) => selector({ assetsByWorkflow: {} })
 }));
 
 jest.mock("../../../stores/ResultsStore", () => {
   const getState = () => ({ liveGenerations: mockLiveGenerations });
-  const hook = <T,>(selector: (state: unknown) => T) => selector(getState());
+  const hook = <T,>(selector: (state: ReturnType<typeof getState>) => T) =>
+    selector(getState());
   hook.getState = getState;
   return { __esModule: true, default: hook };
 });

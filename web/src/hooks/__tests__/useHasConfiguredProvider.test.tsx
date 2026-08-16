@@ -29,8 +29,9 @@ const oauthState = (isConnected: boolean): OAuthConnection => ({
 });
 
 const withSecrets = (secrets: SecretResponse[]): void => {
-  mockUseSecretsStore.mockImplementation(<T,>(selector: (s: unknown) => T) =>
-    selector({ secrets, fetchSecrets })
+  mockUseSecretsStore.mockImplementation(
+    <T,>(selector: (s: { secrets: typeof secrets; fetchSecrets: jest.Mock }) => T) =>
+      selector({ secrets, fetchSecrets })
   );
 };
 

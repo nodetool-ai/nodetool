@@ -35,14 +35,14 @@ export function createInstanceHook<S>(
     )) as UseBoundStoreWithEqualityFn<StoreApi<S>>;
   hook.getState = () => pickCurrent().getState();
   hook.getInitialState = () => pickCurrent().getInitialState();
-  hook.setState = ((partial: unknown, replace?: unknown) =>
-    (pickCurrent().setState as (p: unknown, r?: unknown) => void)(
+  type SetStateArgs = Parameters<StoreApi<S>["setState"]>;
+  type Listener = Parameters<StoreApi<S>["subscribe"]>[0];
+  hook.setState = ((partial: SetStateArgs[0], replace?: SetStateArgs[1]) =>
+    (pickCurrent().setState as (p: SetStateArgs[0], r?: SetStateArgs[1]) => void)(
       partial,
       replace
     )) as StoreApi<S>["setState"];
-  hook.subscribe = ((listener: unknown) =>
-    (pickCurrent().subscribe as (l: unknown) => () => void)(
-      listener
-    )) as StoreApi<S>["subscribe"];
+  hook.subscribe = ((listener: Listener) =>
+    pickCurrent().subscribe(listener)) as StoreApi<S>["subscribe"];
   return hook;
 }

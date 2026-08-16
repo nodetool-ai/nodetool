@@ -98,7 +98,7 @@ class MockWebSocket {
   onmessage: ((event: MessageEventLike) => void) | null = null;
   onerror: ((event: { message: string }) => void) | null = null;
 
-  constructor(url: string, _protocols?: unknown, options?: { headers?: Record<string, string> }) {
+  constructor(url: string, _protocols?: string | string[], options?: { headers?: Record<string, string> }) {
     this.url = url;
     this.options = options;
   }
@@ -129,7 +129,7 @@ let mockWebSocketInstance: MockWebSocket | null = null;
 
 // @ts-ignore
 global.WebSocket = class extends MockWebSocket {
-  constructor(url: string, protocols?: unknown, options?: { headers?: Record<string, string> }) {
+  constructor(url: string, protocols?: string | string[], options?: { headers?: Record<string, string> }) {
     super(url, protocols, options);
     // oxlint-disable-next-line no-this-alias
     mockWebSocketInstance = this;

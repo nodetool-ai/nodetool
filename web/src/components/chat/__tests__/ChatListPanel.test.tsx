@@ -30,7 +30,7 @@ const chatState = {
 };
 
 jest.mock("../../../stores/GlobalChatStore", () => {
-  const useStore = <T,>(selector: (state: unknown) => T) =>
+  const useStore = <T,>(selector: (state: typeof chatState) => T) =>
     selector(chatState);
   useStore.getState = () => chatState;
   return {
@@ -42,13 +42,14 @@ jest.mock("../../../stores/GlobalChatStore", () => {
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
-  useWorkspaceTabsStore: <T,>(selector: (state: unknown) => T) =>
-    selector({ openTab, activeTabId: "chat:thread-2" })
+  useWorkspaceTabsStore: <T,>(
+    selector: (state: { openTab: jest.Mock; activeTabId: string }) => T
+  ) => selector({ openTab, activeTabId: "chat:thread-2" })
 }));
 
 jest.mock("../../../stores/PanelStore", () => ({
   __esModule: true,
-  usePanelStore: <T,>(selector: (state: unknown) => T) =>
+  usePanelStore: <T,>(selector: (state: { setVisibility: jest.Mock }) => T) =>
     selector({ setVisibility })
 }));
 

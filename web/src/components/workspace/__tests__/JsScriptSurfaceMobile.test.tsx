@@ -41,7 +41,13 @@ jest.mock("../../jsScript/JsScriptAgentPanel", () => () => (
 
 jest.mock("../../../stores/jsScript/JsScriptStore", () => ({
   useJsScriptName: () => "My script",
-  useJsScriptStore: (selector: (state: unknown) => unknown) =>
+  useJsScriptStore: (
+    selector: (state: {
+      ensureScript: jest.Mock;
+      undo: jest.Mock;
+      redo: jest.Mock;
+    }) => unknown
+  ) =>
     selector({
       ensureScript: jest.fn(),
       undo: jest.fn(),
@@ -50,7 +56,7 @@ jest.mock("../../../stores/jsScript/JsScriptStore", () => ({
 }));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
+  useWorkspaceTabsStore: (selector: (state: { setTitle: jest.Mock }) => unknown) =>
     selector({ setTitle: jest.fn() })
 }));
 

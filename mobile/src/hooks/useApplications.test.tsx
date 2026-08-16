@@ -18,7 +18,7 @@ jest.mock('../services/api', () => ({
     getReleasedApplicationDocument: (...args: unknown[]) =>
       mockGetRelease(...args),
   },
-  normalizeWorkflow: (workflow: unknown) => workflow,
+  normalizeWorkflow: <T,>(workflow: T) => workflow,
 }));
 
 /** The live-workflow query, with the `enabled` the hook passed it. */

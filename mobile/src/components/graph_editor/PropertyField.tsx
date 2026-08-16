@@ -39,6 +39,42 @@ interface PropertyFieldProps {
 
 type ThemeColors = ReturnType<typeof useTheme>["colors"];
 
+/** A media/document property's value: NodeTool's `{type, uri, …}` ref object. */
+interface AssetRefValue {
+  type: string;
+  uri: string;
+  asset_id?: string;
+  name?: string;
+}
+
+/** A color property's value. */
+interface ColorValue {
+  type: "color";
+  value: string;
+}
+
+/** An image_size property's value. */
+interface ImageSizeValue {
+  width: number;
+  height: number;
+  preset?: string;
+}
+
+/** A json property's value: the raw text the editor holds. */
+interface JsonPropertyValue {
+  type: "json";
+  data: string;
+}
+
+/** A model property's value, as the model picker writes it. */
+interface ModelRefValue {
+  type: string;
+  id: string;
+  provider: string;
+  name: string;
+  path?: string;
+}
+
 // ── Type resolution ─────────────────────────────────────────────────
 
 type WidgetType =
@@ -186,7 +222,7 @@ function mapTypeString(t: string): WidgetType {
 const StringWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string) => void;
   colors: ThemeColors;
   multiline?: boolean;
 }> = ({ prop, value, onChange, colors, multiline }) => {
@@ -217,7 +253,7 @@ const StringWidget: React.FC<{
 const IntegerWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: number | string) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => (
   <View style={styles.numberRow}>
@@ -255,7 +291,7 @@ const IntegerWidget: React.FC<{
 const FloatWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: number | string) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const [localValue, setLocalValue] = useState(
@@ -315,7 +351,7 @@ const FloatWidget: React.FC<{
 // Boolean toggle
 const BoolWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: boolean) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => (
   <Switch
@@ -330,7 +366,7 @@ const BoolWidget: React.FC<{
 const EnumWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string | number) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const options =
@@ -424,7 +460,7 @@ function formatEnumLabel(s: string): string {
 const ImageWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = useExtractedUri(value);
@@ -524,7 +560,7 @@ const ImageWidget: React.FC<{
 const AudioWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = useExtractedUri(value);
@@ -604,7 +640,7 @@ const AudioWidget: React.FC<{
 const VideoWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const uri = useExtractedUri(value);
@@ -737,7 +773,7 @@ const PRESET_COLORS = [
 
 const ColorWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ColorValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const colorValue =
@@ -857,7 +893,7 @@ const IMAGE_SIZE_PRESETS = [
 
 const ImageSizeWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ImageSizeValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const safeValue = useMemo(() => {
@@ -1069,7 +1105,7 @@ const imageSizeStyles = StyleSheet.create({
 
 const JSONWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: JsonPropertyValue) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const dataStr =
@@ -1288,7 +1324,7 @@ const dictStyles = StyleSheet.create({
 
 const StringListWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string[]) => void;
   colors: ThemeColors;
 }> = ({ value, onChange, colors }) => {
   const items = useMemo(() => {
@@ -1412,7 +1448,7 @@ const stringListStyles = StyleSheet.create({
 const ListWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: unknown[]) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const items = useMemo(() => {
@@ -1518,7 +1554,7 @@ const ListWidget: React.FC<{
 
 const FilePathWidget: React.FC<{
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: string) => void;
   colors: ThemeColors;
   isFolder?: boolean;
 }> = ({ value, onChange, colors, isFolder }) => {
@@ -1622,7 +1658,7 @@ const MODEL_TYPE_LABELS: Record<string, string> = {
 const ModelWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: ModelRefValue) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const modelType = prop.type.type;
@@ -1787,7 +1823,7 @@ const modelStyles = StyleSheet.create({
 const AssetRefWidget: React.FC<{
   prop: Property;
   value: unknown;
-  onChange: (v: unknown) => void;
+  onChange: (v: AssetRefValue | null) => void;
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const typeLabel = prop.type.type;

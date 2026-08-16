@@ -64,11 +64,13 @@ beforeEach(() => {
     valid: true,
     message: "Anthropic accepted the key."
   });
-  mockUseSecretsStore.mockImplementation(<T,>(selector: (s: unknown) => T) =>
-    selector({ updateSecret, validateSecret })
+  mockUseSecretsStore.mockImplementation(
+    <T,>(selector: (s: { updateSecret: jest.Mock; validateSecret: jest.Mock }) => T) =>
+      selector({ updateSecret, validateSecret })
   );
   mockUseNotificationStore.mockImplementation(
-    <T,>(selector: (s: unknown) => T) => selector({ addNotification })
+    <T,>(selector: (s: { addNotification: jest.Mock }) => T) =>
+      selector({ addNotification })
   );
 });
 

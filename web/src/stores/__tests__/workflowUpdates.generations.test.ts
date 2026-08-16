@@ -7,7 +7,7 @@ import type {
 } from "../ApiTypes";
 import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import { markJobSilent, unmarkJobSilent } from "../previewJobs";
 import {
   assetToGeneration,
@@ -107,10 +107,10 @@ describe("handleUpdate live generations", () => {
   });
 });
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );

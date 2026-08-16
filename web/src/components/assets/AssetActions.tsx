@@ -234,13 +234,13 @@ const AssetActions = ({
     useShallow((state) => [state.viewMode, state.setViewMode] as const)
   );
 
-  const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
+  const handleOrderChange = useCallback((_event: SelectChangeEvent<string>, newOrder: "name" | "date" | "size" | null) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
   }, [setAssetsOrder]);
 
-  const handleSizeFilterChange = useCallback((_event: unknown, newSizeFilter: SizeFilterKey | null) => {
+  const handleSizeFilterChange = useCallback((_event: SelectChangeEvent<string>, newSizeFilter: SizeFilterKey | null) => {
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }

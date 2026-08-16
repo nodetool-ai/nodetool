@@ -35,7 +35,7 @@ import type { NodeMetadata, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { NodeData } from "../NodeData";
 import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import {
   recordRunSignatures,
   getRunSignature,
@@ -106,10 +106,10 @@ const mockRunnerStore = {
 };
 const mockWorkflow = { id: WF, name: "E2E" } as WorkflowAttributes;
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );
@@ -387,10 +387,10 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
         }
       })
     };
-    const dispatchWithStore = (data: unknown) =>
+    const dispatchWithStore = (data: MsgpackData) =>
       handleUpdate(
         mockWorkflow,
-        data as never,
+        data,
         mockRunnerStore as never,
         () => nodeStore as never
       );
@@ -409,6 +409,8 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
     dispatchWithStore({
       type: "generation_complete",
       node_id: "g",
+      node_name: "g",
+      node_type: "gen.Image",
       job_id: jobId,
       index: 0,
       outputs: { output: "NEW" }
@@ -473,10 +475,10 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
         })
       }
     };
-    const dispatchWithStore = (data: unknown) =>
+    const dispatchWithStore = (data: MsgpackData) =>
       handleUpdate(
         mockWorkflow,
-        data as never,
+        data,
         mockRunnerStore as never,
         () => nodeStore as never
       );

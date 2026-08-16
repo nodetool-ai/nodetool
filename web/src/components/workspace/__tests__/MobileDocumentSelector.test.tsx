@@ -16,8 +16,9 @@ jest.mock("../../../hooks/useWorkflowRunnerState", () => ({
   useIsWorkflowRunning: () => false
 }));
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: <T,>(selector: (s: unknown) => T) =>
-    selector({ settings: { instantUpdate: false } })
+  useSettingsStore: <T,>(
+    selector: (s: { settings: { instantUpdate: boolean } }) => T
+  ) => selector({ settings: { instantUpdate: false } })
 }));
 
 import MobileDocumentSelector from "../MobileDocumentSelector";

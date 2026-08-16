@@ -7,8 +7,8 @@ import { WebSocketManager } from '../WebSocketManager';
 import type { WebSocketConfig } from '../../types/chat';
 
 jest.mock('msgpackr', () => ({
-  pack: jest.fn((msg: unknown) => msg),
-  unpack: jest.fn((buf: unknown) => buf),
+  pack: jest.fn(<T,>(msg: T) => msg),
+  unpack: jest.fn(<T,>(buf: T) => buf),
 }));
 
 jest.mock('../../hooks/useAppLifecycle', () => ({
@@ -26,7 +26,7 @@ class FakeWebSocket {
   sent: Array<Record<string, unknown>> = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose: ((event: { code: number; reason: string }) => void) | null = null;
 
   constructor(public url: string) {
