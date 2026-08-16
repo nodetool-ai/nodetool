@@ -6,6 +6,15 @@ import {
   type ScriptTake
 } from "../../../stores/script/ScriptStore";
 
+// The gutter's storyboard link reads the board through trpc when it is not
+// open; this suite renders no query client and only reads the header button.
+jest.mock("../../../trpc/client", () => ({
+  trpc: {
+    storyboards: { get: { useQuery: jest.fn(() => ({ data: undefined })) } }
+  },
+  trpcClient: {}
+}));
+
 // The link control owns its own suite and its own trpc query.
 jest.mock("../StoryboardLinkControl", () => ({
   __esModule: true,
