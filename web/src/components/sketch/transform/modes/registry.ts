@@ -36,14 +36,18 @@ export const TRANSFORM_MODES: Record<TransformMode, TransformModeHandler> = {
  * Map legacy mode IDs persisted before the Affinity-parity consolidation
  * onto their current equivalents.
  */
-const LEGACY_MODE_ALIASES: Readonly<Record<string, TransformMode>> = {
+const LEGACY_MODE_ALIASES: Readonly<Partial<Record<string, TransformMode>>> = {
   warp: "distort",
   "perspective-distort": "perspective",
   "perspective-dual": "perspective"
 };
 
 export function getTransformMode(id: TransformMode | string): TransformModeHandler {
-  const direct = (TRANSFORM_MODES as Record<string, TransformModeHandler>)[id];
+  // Partial: `id` can be any string (including a stale persisted one), so the
+  // lookup really can miss — the fallbacks below depend on it.
+  const byId: Readonly<Partial<Record<string, TransformModeHandler>>> =
+    TRANSFORM_MODES;
+  const direct = byId[id];
   if (direct) {
     return direct;
   }
@@ -58,7 +62,5 @@ export function getTransformMode(id: TransformMode | string): TransformModeHandl
 
 /** Modes the user can pick from the toolbar (mesh-warp is hidden today). */
 export function getToolbarTransformModes(): readonly TransformModeHandler[] {
-  return (Object.values(TRANSFORM_MODES) as TransformModeHandler[]).filter(
-    (m) => m.visibleInToolbar
-  );
+  return Object.values(TRANSFORM_MODES).filter((m) => m.visibleInToolbar);
 }

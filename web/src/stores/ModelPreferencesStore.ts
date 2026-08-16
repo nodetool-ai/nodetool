@@ -10,6 +10,15 @@ type RecentEntry = {
   lastUsedAt: number;
 };
 
+/** The persisted projection of the store: `favorites` is an array on disk. */
+type PersistedModelPreferences = {
+  favorites: FavoriteKey[];
+  recents: RecentEntry[];
+  onlyAvailable: boolean;
+  enabledProviders: Record<string, boolean>;
+  defaults: Record<string, { provider: string; id: string; name: string }>;
+};
+
 type ModelPreferencesState = {
   favorites: Set<FavoriteKey>;
   recents: RecentEntry[];
@@ -94,27 +103,24 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
     {
       name: "model-preferences",
       version: 1,
-      partialize: (state) => ({
+      partialize: (state): PersistedModelPreferences => ({
         favorites: Array.from(state.favorites),
         recents: state.recents,
         onlyAvailable: state.onlyAvailable,
         enabledProviders: state.enabledProviders,
         defaults: state.defaults
       }),
-      migrate: (persistedState, _version) => {
+      migrate: (persistedState, _version): PersistedModelPreferences => {
         // Corrupt localStorage (string, null, etc.) must NOT be passed
         // through unchanged: it would rehydrate the store into an
         // invalid shape that breaks selectors expecting the partialized
         // keys. Always return an object with every required field.
-        const fallback = {
-          favorites: [] as FavoriteKey[],
-          recents: [] as RecentEntry[],
+        const fallback: PersistedModelPreferences = {
+          favorites: [],
+          recents: [],
           onlyAvailable: false,
-          enabledProviders: {} as Record<string, boolean>,
-          defaults: {} as Record<
-            string,
-            { provider: string; id: string; name: string }
-          >
+          enabledProviders: {},
+          defaults: {}
         };
         if (!persistedState || typeof persistedState !== "object") {
           return fallback;
@@ -122,10 +128,10 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         const state = persistedState as Record<string, unknown>;
         return {
           favorites: Array.isArray(state.favorites)
-            ? (state.favorites as FavoriteKey[])
+            ? state.favorites
             : fallback.favorites,
           recents: Array.isArray(state.recents)
-            ? (state.recents as RecentEntry[])
+            ? state.recents
             : fallback.recents,
           onlyAvailable:
             typeof state.onlyAvailable === "boolean"
@@ -134,14 +140,11 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
           enabledProviders:
             state.enabledProviders &&
             typeof state.enabledProviders === "object"
-              ? (state.enabledProviders as Record<string, boolean>)
+              ? (state.enabledProviders as PersistedModelPreferences["enabledProviders"])
               : fallback.enabledProviders,
           defaults:
             state.defaults && typeof state.defaults === "object"
-              ? (state.defaults as Record<
-                  string,
-                  { provider: string; id: string; name: string }
-                >)
+              ? (state.defaults as PersistedModelPreferences["defaults"])
               : fallback.defaults
         };
       },

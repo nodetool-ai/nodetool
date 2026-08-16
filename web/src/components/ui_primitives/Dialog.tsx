@@ -225,10 +225,7 @@ export const Dialog = memo(
           {title && (
             <DialogTitle className="dialog-title" id={titleId}>
               {titleIsString ? (
-                <PanelHeadline
-                  title={title as string}
-                  actions={headerActions}
-                />
+                <PanelHeadline title={title} actions={headerActions} />
               ) : (
                 title
               )}
