@@ -167,10 +167,7 @@ export function documentOperations(
 }
 
 /** Parse an app document (object or JSON string), or explain why it will not. */
-export function parseAppDocument(appDoc: unknown): {
-  document: ApplicationDocument | null;
-  issue: string | null;
-} {
+export function parseAppDocument(appDoc: unknown) {
   if (appDoc == null) {
     return {
       document: null,
@@ -248,7 +245,7 @@ export function parseAppSpec(
    * check needs to see.
    */
   preparsed?: { document: ApplicationDocument | null; issue: string | null }
-): { spec: AppSpec | null; issues: string[]; warnings: string[] } {
+) {
   const { document, issue } = preparsed ?? parseAppDocument(appDoc);
   if (!document) return { spec: null, issues: [issue ?? ""], warnings: [] };
 

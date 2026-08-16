@@ -52,11 +52,11 @@ export const VIDEO_RESOLUTIONS: VideoResolution[] = ['1080p', '1440p', '4K'];
 export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8];
 export const IMAGE_VARIATIONS: number[] = [1, 2, 4];
 
-const IMAGE_RESOLUTION_TO_PIXELS: Record<ImageResolution, number> = {
+const IMAGE_RESOLUTION_TO_PIXELS = {
   '1K': 1024,
   '2K': 2048,
   '4K': 4096,
-};
+} satisfies Record<ImageResolution, number>;
 
 export interface ImageGenerationParams {
   resolution: ImageResolution;
@@ -94,7 +94,7 @@ const DEFAULT_VIDEO_PARAMS: VideoGenerationParams = {
 export function resolveImageSize(
   resolution: ImageResolution,
   aspectRatio: string
-): { width: number; height: number } {
+) {
   const base = IMAGE_RESOLUTION_TO_PIXELS[resolution];
   const preset = IMAGE_ASPECT_RATIOS.find((a) => a.id === aspectRatio);
   if (!preset) {

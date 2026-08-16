@@ -443,7 +443,7 @@ function applyOp(
   state: SketchState,
   { op, args }: ParsedOp,
   blendModes: readonly string[]
-): unknown {
+) {
   const { layers } = state;
 
   switch (op) {

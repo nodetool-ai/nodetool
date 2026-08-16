@@ -52,12 +52,7 @@ function drawImageTriangle(
   ctx.restore();
 }
 
-export function getQuadExtents(quad: PerspectiveQuad): {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-} {
+export function getQuadExtents(quad: PerspectiveQuad) {
   const xs = quad.map((point) => point.x);
   const ys = quad.map((point) => point.y);
   return {

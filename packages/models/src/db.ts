@@ -236,7 +236,7 @@ export async function closeDb(): Promise<void> {
 /**
  * Expected columns per table, used for additive migration on existing SQLite DBs.
  */
-const TABLE_COLUMNS: Record<string, Record<string, string>> = {
+const TABLE_COLUMNS = {
   nodetool_workflows: {
     id: "text",
     user_id: "text",
@@ -603,7 +603,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     created_at: "text",
     settled_at: "text"
   }
-};
+} satisfies Record<string, Record<string, string>>;
 
 function addMissingColumns(sqlite: Database.Database): void {
   for (const [tableName, expectedCols] of Object.entries(TABLE_COLUMNS)) {

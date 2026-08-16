@@ -126,10 +126,7 @@ export function resetPremulDebugCache(): void {
 const pipelineByDevice = new WeakMap<GPUDevice, GPUComputePipeline>();
 const bindGroupLayoutByDevice = new WeakMap<GPUDevice, GPUBindGroupLayout>();
 
-function getValidatorPipeline(device: GPUDevice): {
-  pipeline: GPUComputePipeline;
-  bindGroupLayout: GPUBindGroupLayout;
-} {
+function getValidatorPipeline(device: GPUDevice) {
   let pipeline = pipelineByDevice.get(device);
   let bindGroupLayout = bindGroupLayoutByDevice.get(device);
   if (pipeline && bindGroupLayout) {

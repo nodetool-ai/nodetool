@@ -71,10 +71,7 @@ function deriveCachedWorkflowInterface(
 export function deriveWorkflowInterfaceSourceV1(args: {
   readonly workflow: Workflow;
   readonly registry: NodeRegistry;
-}): {
-  graph: Parameters<typeof deriveWorkflowInterfaceV1>[0]["graph"];
-  workflowInterface: WorkflowInterfaceV1Response;
-} {
+}) {
   const graph = graphSchema.safeParse(args.workflow.graph);
   if (!graph.success) {
     throw new WorkflowInterfaceServiceError(

@@ -8,7 +8,7 @@ export function isZodSchema(schema: unknown): schema is ZodType {
   return typeof schema === "object" && schema !== null && "_def" in schema;
 }
 
-export function zodToJsonSchema(schema: ZodType): JsonSchema {
+export function zodToJsonSchema(schema: ZodType) {
   try {
     const { $schema: _dialect, ...json } = z.toJSONSchema(schema, {
       target: "draft-2020-12",

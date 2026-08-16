@@ -149,7 +149,7 @@ export function detectGguf(paths: string[]): ArtifactDetection | null {
   };
 }
 
-function readGgufHeader(filePath: string): Record<string, string> {
+function readGgufHeader(filePath: string) {
   const fd = fs.openSync(filePath, "r");
   try {
     // Magic

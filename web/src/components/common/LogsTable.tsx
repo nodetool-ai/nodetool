@@ -30,7 +30,7 @@ export type LogsTableProps = {
   showTimestampColumn?: boolean;
 };
 
-const SEVERITY_COLORS = (theme: Theme): Record<Severity, { bg: string; text: string; border: string }> => ({
+const SEVERITY_COLORS = (theme: Theme) => ({
   error: { 
     bg: `${theme.vars.palette.error.main}1f`, 
     text: theme.vars.palette.error.main, 

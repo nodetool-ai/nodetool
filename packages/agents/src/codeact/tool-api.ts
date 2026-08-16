@@ -203,10 +203,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
  * offer changes is the *documented* path — the prompt catalog lists them as
  * direct tools, and the default way to reach one is a tool call.
  */
-export function splitCoreTools(tools: Tool[]): {
-  core: Tool[];
-  belt: Tool[];
-} {
+export function splitCoreTools(tools: Tool[]) {
   const core: Tool[] = [];
   const belt: Tool[] = [];
   for (const tool of tools) {

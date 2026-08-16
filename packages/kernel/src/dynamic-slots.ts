@@ -72,7 +72,7 @@ export function getDynamicSlotTypeString(
  */
 export function dynamicSlotPropertyTypes(
   slots: Record<string, DynamicSlotMeta> | undefined
-): Record<string, string> {
+) {
   const result: Record<string, string> = {};
   if (!slots) return result;
   for (const [name, meta] of Object.entries(slots)) {

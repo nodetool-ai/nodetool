@@ -158,13 +158,13 @@ type AgentTool = InstanceType<AgentsModule["Tool"]>;
  * the prelude builds zero wrappers, `nodetool.capabilities()` returns `{}`,
  * and every `nodetool.*` method throws naming its missing tool.
  */
-const NO_TOOLS_GLOBALS: Record<string, unknown> = {
+const NO_TOOLS_GLOBALS = {
   __toolNames: [] as string[],
   __callTool: async () => ({
     ok: false as const,
     error: "no tools in this environment"
   })
-};
+} satisfies Record<string, unknown>;
 
 let agentsModulePromise: Promise<AgentsModule | null> | null = null;
 
@@ -980,7 +980,7 @@ export class CodeNode extends BaseNode {
 /** Extract dynamic inputs, filtering reserved/invalid keys. */
 function extractDynamicInputs(
   inputs: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const reserved = new Set([
     "code",
     "script",
@@ -1032,7 +1032,7 @@ function jsonSafe(value: unknown): JsonSafeValue {
  */
 function deepCopyInputs(
   inputs: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     result[key] = jsonSafe(value);

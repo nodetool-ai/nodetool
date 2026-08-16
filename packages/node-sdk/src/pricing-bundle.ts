@@ -74,7 +74,7 @@ export function buildPricingBundles(
   specs: readonly PricingBundleSpec[],
   prices: Record<string, UnitPricing>,
   writtenAt: string
-): { byNodeType: NodeTypePricingBundle; catalog: UnitPricingCatalog } {
+) {
   const byNodeType: Record<string, UnitPricingEntry> = {};
   const catalog: Record<string, UnitPricing> = {};
 

@@ -180,10 +180,7 @@ describe("useRunSelectedNodes", () => {
   // Helper: a selected target fed by a single NON-selected external source.
   const setupExternal = (
     targetHandle = "prompt"
-  ): {
-    source: { id: string; type: string };
-    target: { id: string; type: string };
-  } => {
+  ) => {
     const source = {
       id: "src",
       type: "gen.Image",

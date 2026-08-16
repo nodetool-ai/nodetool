@@ -58,7 +58,7 @@ import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { SKETCH_SPACING } from "../sketchStyles";
 
 /** Most recent direct-gen binding's model, to seed the form's picker. */
-function seedModelFromBindings(): { model: string; provider: string } {
+function seedModelFromBindings() {
   const bindings = Object.values(useSketchSessionStore.getState().bindings);
   const last = bindings
     .filter((b) => b.kind === "text-to-image" || b.kind === "image-to-image")

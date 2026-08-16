@@ -119,7 +119,7 @@ const BLEND_MODES = SKETCH_BLEND_MODES;
  * two are spelled the same; `"normal"` is Canvas's default `"source-over"` and
  * `"add"` is its additive `"lighter"`.
  */
-const CANVAS_COMPOSITE_OP: Record<SketchBlendMode, string> = {
+const CANVAS_COMPOSITE_OP = {
   normal: "source-over",
   multiply: "multiply",
   screen: "screen",
@@ -133,7 +133,7 @@ const CANVAS_COMPOSITE_OP: Record<SketchBlendMode, string> = {
   difference: "difference",
   exclusion: "exclusion",
   add: "lighter"
-};
+} satisfies Record<SketchBlendMode, string>;
 
 const TOOLS = [
   "move",
@@ -354,7 +354,7 @@ function renderStroke(options: {
   size: number;
   hardness: number;
   closed: boolean;
-}): { buffer: Canvas; dirty: DirtyRectTracker } {
+}) {
   const { width, height, tool, color, size, hardness, closed } = options;
   const buffer = createCanvas(width, height);
   const ctx = paintContext(buffer);

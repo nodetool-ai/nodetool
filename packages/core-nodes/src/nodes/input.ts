@@ -1022,9 +1022,9 @@ export class RealtimeAudioInputNode extends BaseNode {
   // stream via runner.pushInputValue. Each chunk is a chunk of one logical
   // realtime stream, so kind: "chunk" preserves the repeats-per-key
   // semantics downstream rather than collapsing to one.
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     chunk: { kind: "chunk", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

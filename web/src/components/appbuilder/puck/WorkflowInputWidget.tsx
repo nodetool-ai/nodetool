@@ -288,7 +288,7 @@ export const MODEL_WIDGET_KINDS = [
 
 export type ModelWidgetKind = (typeof MODEL_WIDGET_KINDS)[number];
 
-const MODEL_KIND_NODE_TYPE: Record<ModelWidgetKind, string> = {
+const MODEL_KIND_NODE_TYPE = {
   language_model: "nodetool.input.LanguageModelInput",
   image_model: "nodetool.input.ImageModelInput",
   video_model: "nodetool.input.VideoModelInput",
@@ -296,7 +296,7 @@ const MODEL_KIND_NODE_TYPE: Record<ModelWidgetKind, string> = {
   asr_model: "nodetool.input.ASRModelInput",
   embedding_model: "nodetool.input.EmbeddingModelInput",
   huggingface_model: "nodetool.input.HuggingFaceModelInput"
-};
+} satisfies Record<ModelWidgetKind, string>;
 
 const isModelKind = (value: unknown): value is ModelWidgetKind =>
   MODEL_WIDGET_KINDS.includes(value as ModelWidgetKind);
@@ -364,7 +364,7 @@ export type FixedInputKind =
   | "audio_list"
   | "text_list";
 
-const FIXED_KIND_NODE_TYPE: Record<FixedInputKind, string> = {
+const FIXED_KIND_NODE_TYPE = {
   image: "nodetool.input.ImageInput",
   audio: "nodetool.input.AudioInput",
   video: "nodetool.input.VideoInput",
@@ -379,7 +379,7 @@ const FIXED_KIND_NODE_TYPE: Record<FixedInputKind, string> = {
   video_list: "nodetool.input.VideoListInput",
   audio_list: "nodetool.input.AudioListInput",
   text_list: "nodetool.input.TextListInput"
-};
+} satisfies Record<FixedInputKind, string>;
 
 export interface FixedInputWidgetProps {
   id: string;

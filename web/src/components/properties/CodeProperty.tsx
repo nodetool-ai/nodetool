@@ -33,7 +33,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useNodes } from "../../contexts/NodeContext";
 import { getCodeNodeLanguage, isCodeNode } from "../node/codeNodeUi";
 
-const EDITOR_OPTIONS: Record<string, unknown> = {
+const EDITOR_OPTIONS = {
   minimap: { enabled: false },
   automaticLayout: true,
   scrollBeyondLastLine: false,
@@ -50,7 +50,7 @@ const EDITOR_OPTIONS: Record<string, unknown> = {
     verticalScrollbarSize: 8,
     horizontalScrollbarSize: 8
   }
-};
+} satisfies Record<string, unknown>;
 
 const CodeProperty = ({
   property,

@@ -8,7 +8,7 @@
 
 import type { Escalation, VerdictAction } from "@nodetool-ai/protocol";
 
-const VERB_SEMANTICS: Record<VerdictAction, string> = {
+const VERB_SEMANTICS = {
   retry: "Run this invocation again, unchanged. Only useful when the failure was transient — a timeout, a rate limit, a 5xx. Offered only when the invocation spent nothing and wrote nothing, so it is never a way to pay twice.",
   substitute:
     "Replace the node's output with a corrected value you supply. For a node that produced something almost right — malformed JSON, a near-miss shape. The value is type-checked against the node's declared outputs before it enters the graph; a repair that fails the check is not a repair.",
@@ -16,7 +16,7 @@ const VERB_SEMANTICS: Record<VerdictAction, string> = {
   end_stream:
     "End this streaming node's output where it stopped. What it already emitted stands; nothing more comes. The only recovery available once a node has emitted.",
   fail: "Let the run fail, as it would without a supervisor. The right answer whenever recovery would be a guess."
-};
+} satisfies Record<VerdictAction, string>;
 
 export const SUPERVISOR_PROMPT_PREAMBLE = `# Role
 You supervise a running workflow. A node invocation has failed. Decide what happens to it.

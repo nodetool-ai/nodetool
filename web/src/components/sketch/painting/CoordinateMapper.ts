@@ -134,7 +134,7 @@ export class CoordinateMapper {
     minY: number;
     maxX: number;
     maxY: number;
-  }): { x: number; y: number; w: number; h: number } {
+  }) {
     if (this.matrix) {
       // Transform all four corners of the layer-space dirty rect through the
       // forward affine matrix, accounting for raster offset.

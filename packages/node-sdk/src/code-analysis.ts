@@ -568,10 +568,7 @@ export const CODE_INPUTS_GLOBAL = "inputs";
  * its own binding reports nothing — the reads are that binding's, not the
  * node's.
  */
-export function inputsMemberReads(statements: readonly CodeBodyStatement[]): {
-  names: string[];
-  opaque: boolean;
-} {
+export function inputsMemberReads(statements: readonly CodeBodyStatement[]) {
   if (collectBoundNamesFrom(statements).has(CODE_INPUTS_GLOBAL)) {
     return { names: [], opaque: false };
   }
@@ -733,7 +730,7 @@ export function freeIdentifiers(
 export function migrateCodeBodyToInputs(
   code: string,
   inputNames: readonly string[]
-): { code: string; changed: boolean; rewritten: string[] } {
+) {
   const unchanged = { code, changed: false, rewritten: [] as string[] };
   const targets = new Set(inputNames);
   if (targets.size === 0) return unchanged;

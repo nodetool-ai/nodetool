@@ -63,9 +63,9 @@ export class AudioToChunksNode extends BaseNode {
   static readonly metadataOutputTypes = {
     chunk: "chunk"
   };
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
 

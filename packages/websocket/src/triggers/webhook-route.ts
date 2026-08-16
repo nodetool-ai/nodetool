@@ -116,7 +116,7 @@ function idempotencyKey(
 /** Request headers minus the shared secret, which must not be persisted. */
 function sanitizeHeaders(
   headers: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = { ...headers };
   delete out[WEBHOOK_SECRET_HEADER];
   return out;

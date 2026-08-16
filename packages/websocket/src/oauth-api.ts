@@ -57,10 +57,7 @@ const STATE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ── PKCE Utilities ───────────────────────────────────────────────────
 
-export function generatePkcePair(): {
-  codeVerifier: string;
-  codeChallenge: string;
-} {
+export function generatePkcePair() {
   const codeVerifier = randomBytes(96).toString("base64url");
   const codeChallenge = createHash("sha256")
     .update(codeVerifier)
@@ -202,7 +199,7 @@ function oauthHtmlResponse(opts: {
 
 // ── Token metadata helper ────────────────────────────────────────────
 
-function toTokenMetadata(cred: OAuthCredential): Record<string, unknown> {
+function toTokenMetadata(cred: OAuthCredential) {
   return {
     id: cred.id,
     provider: cred.provider,

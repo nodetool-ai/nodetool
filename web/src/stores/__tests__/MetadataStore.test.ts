@@ -46,7 +46,7 @@ describe("MetadataStore", () => {
     });
 
     it("overwrites existing metadata", () => {
-      const initialMetadata: Record<string, NodeMetadata> = {
+      const initialMetadata = {
         "test-node": {
           description: "Initial description",
           node_type: "test-node",
@@ -61,9 +61,9 @@ describe("MetadataStore", () => {
           is_streaming_output: false,
             required_settings: []
         }
-      };
+      } satisfies Record<string, NodeMetadata>;
 
-      const updatedMetadata: Record<string, NodeMetadata> = {
+      const updatedMetadata = {
         "test-node": {
           description: "Updated description",
           node_type: "test-node",
@@ -78,7 +78,7 @@ describe("MetadataStore", () => {
           is_streaming_output: false,
             required_settings: []
         }
-      };
+      } satisfies Record<string, NodeMetadata>;
 
       act(() => {
         useMetadataStore.getState().setMetadata(initialMetadata);

@@ -475,7 +475,7 @@ function resolveAssetUri(
 function mapOutput(
   spec: FalManifestEntry,
   res: Record<string, unknown>
-): Record<string, unknown> {
+) {
   switch (spec.outputType) {
     case "video":
       return {

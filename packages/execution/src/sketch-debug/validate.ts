@@ -125,10 +125,7 @@ function checkFieldStripping(
   }));
 }
 
-function checkSchema(raw: unknown): {
-  issues: SketchDebugIssue[];
-  parsed: unknown;
-} {
+function checkSchema(raw: unknown) {
   const result = imageDocumentData.safeParse(raw);
   if (result.success) {
     return {
@@ -225,10 +222,7 @@ interface LayerRead {
   record: Record<string, unknown>;
 }
 
-function readLayers(sketch: Record<string, unknown>): {
-  layers: LayerRead[];
-  issues: SketchDebugIssue[];
-} {
+function readLayers(sketch: Record<string, unknown>) {
   const issues: SketchDebugIssue[] = [];
   const layers: LayerRead[] = [];
   const seen = new Set<string>();

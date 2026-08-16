@@ -53,7 +53,10 @@ interface ShotCardProps {
   isLast?: boolean;
 }
 
-const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse?: boolean }> = {
+const STATUS_META: Record<
+  ShotStatus,
+  { status: StatusType; label: string; pulse?: boolean }
+> = {
   planned: { status: "default", label: "Planned" },
   keyframe_generating: { status: "pending", label: "Generating still…", pulse: true },
   keyframe_ready: { status: "info", label: "Still ready" },

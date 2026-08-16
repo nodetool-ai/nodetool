@@ -48,18 +48,7 @@ interface DragState {
 
 /** Per-corner geometry: which way the pointer grows the box, whether the node's
  *  origin moves, the placement of the grip, its cursor, and the icon rotation. */
-const CORNERS: Record<
-  ResizeCorner,
-  {
-    signX: number;
-    signY: number;
-    movesX: boolean;
-    movesY: boolean;
-    placement: { left?: number; right?: number; top?: number; bottom?: number };
-    cursor: string;
-    rotate: number;
-  }
-> = {
+const CORNERS = {
   "bottom-right": {
     signX: 1,
     signY: 1,
@@ -96,7 +85,18 @@ const CORNERS: Record<
     cursor: "nwse-resize",
     rotate: 135
   }
-};
+} satisfies Record<
+  ResizeCorner,
+  {
+    signX: number;
+    signY: number;
+    movesX: boolean;
+    movesY: boolean;
+    placement: { left?: number; right?: number; top?: number; bottom?: number };
+    cursor: string;
+    rotate: number;
+  }
+>;
 
 const styles = (theme: Theme, corner: ResizeCorner) => {
   const { placement, cursor, rotate } = CORNERS[corner];

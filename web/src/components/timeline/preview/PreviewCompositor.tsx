@@ -479,7 +479,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   const sceneSignature = useCallback(
     (
       timeMs: number
-    ): { signature: string; nextChangeMs: number; layers: ActiveLayer[] } => {
+    ) => {
       const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
         tracks,
         clips,

@@ -86,7 +86,7 @@ const getEmptyStore = () => {
 const usesJsonField = (port: JsScriptPort, streaming: boolean): boolean =>
   streaming || isJsonScriptPortType(port.type);
 
-const fallbackForPort = (port: JsScriptPort): unknown => {
+const fallbackForPort = (port: JsScriptPort) => {
   const input = workflowInputForScriptPort(port);
   const property = createPropertyForInput(input);
   const resolved = resolveInputValue(input, property, undefined);

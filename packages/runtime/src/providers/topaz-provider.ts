@@ -149,7 +149,7 @@ export class TopazProvider extends BaseProvider {
     this.apiKey = (secrets["TOPAZ_API_KEY"] as string) ?? "";
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { TOPAZ_API_KEY: this.apiKey };
   }
 
@@ -160,7 +160,7 @@ export class TopazProvider extends BaseProvider {
     return this.apiKey;
   }
 
-  private headers(extra: Record<string, string> = {}): Record<string, string> {
+  private headers(extra: Record<string, string> = {}) {
     return { "X-API-Key": this.requireApiKey(), ...extra };
   }
 

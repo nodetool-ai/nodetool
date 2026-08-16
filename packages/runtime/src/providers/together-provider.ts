@@ -117,10 +117,7 @@ const TOGETHER_EMBEDDING_MODELS: EmbeddingModel[] = [
  * Handles non-standard chunk ordering by scanning for the "fmt " and "data"
  * chunks rather than assuming a fixed 44-byte header.
  */
-function parseWavPCM(bytes: Uint8Array): {
-  samples: Int16Array;
-  sampleRate: number;
-} {
+function parseWavPCM(bytes: Uint8Array) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let sampleRate = 24000; // Together's default sample rate for Orpheus/Kokoro (24 kHz)
   let offset = 12; // Skip "RIFF", file-size, "WAVE"
@@ -225,7 +222,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     this._togetherFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { TOGETHER_API_KEY: this.apiKey };
   }
 
@@ -572,7 +569,7 @@ export class TogetherProvider extends OpenAICompatProvider {
   private resolveVideoDimensions(
     aspectRatio?: string | null,
     resolution?: string | null
-  ): { width: number; height: number } {
+  ) {
     const ar = (aspectRatio ?? "16:9").replace(/\s/g, "");
     const res = (resolution ?? "720p").toLowerCase();
 

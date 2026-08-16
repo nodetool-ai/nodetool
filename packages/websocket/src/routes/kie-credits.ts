@@ -10,7 +10,7 @@ interface KieCreditsJson {
 }
 
 /** UI expects `credit_balance: { amount, currency }` (see web `formatKieCredits`). */
-function normalizeKieCreditsBody(data: unknown): Record<string, unknown> {
+function normalizeKieCreditsBody(data: unknown) {
   if (data == null || typeof data !== "object") {
     return { credit_balance: null };
   }

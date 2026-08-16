@@ -81,11 +81,7 @@ function cssAspectRatio(aspectRatio: string | null | undefined): string | undefi
 /** How many shimmering placeholder tiles to show, and their shape, for a
  * pending `media_generation` request — mirrors what the finished grid will
  * actually contain (one tile per variation for images, one for video/audio). */
-function pendingTiles(gen: MediaGenerationRequest | null): {
-  count: number;
-  aspectRatio: string | undefined;
-  kind: "image" | "video" | "audio";
-} {
+function pendingTiles(gen: MediaGenerationRequest | null) {
   if (gen?.mode === "image" || gen?.mode === "image_edit") {
     return {
       count: Math.max(1, gen.variations ?? 1),

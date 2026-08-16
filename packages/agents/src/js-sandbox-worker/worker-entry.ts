@@ -185,7 +185,7 @@ function proxyFor(
 function buildSandboxRecord(
   shape: BridgeShape,
   session: RunSession
-): Record<string, unknown> {
+) {
   const sandbox: Record<string, unknown> = {};
   for (const name of shape.flat) sandbox[name] = proxyFor(session, [name]);
   for (const [name, value] of Object.entries(shape.values))
@@ -217,7 +217,7 @@ function buildSandboxRecord(
 function buildGlobalsRecord(
   shape: BridgeShape,
   session: RunSession
-): Record<string, unknown> {
+) {
   const globals: Record<string, unknown> = {};
   for (const [name, global] of Object.entries(shape.globals)) {
     globals[name] =

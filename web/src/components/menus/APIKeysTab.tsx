@@ -659,7 +659,7 @@ const PROVIDER_ICON_GLYPH_PX = 28;
 const STATUS_DOT_PX = 6;
 
 const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
-const SECTION_TITLES: Record<string, string> = {
+const SECTION_TITLES = {
   popular: "Popular",
   language: "Language Models",
   media: "Media Generation",
@@ -667,7 +667,7 @@ const SECTION_TITLES: Record<string, string> = {
   search: "Web Search",
   compute: "Compute & Local",
   advanced: "Services & Advanced"
-};
+} satisfies Record<string, string>;
 
 /* ------------------------------------------------------------------ */
 //  Main content

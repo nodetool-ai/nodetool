@@ -331,7 +331,7 @@ function toUnifiedModel(
   };
 }
 
-function toOllamaModel(model: LanguageModel): Record<string, unknown> {
+function toOllamaModel(model: LanguageModel) {
   return {
     type: "llama_model",
     name: model.name,

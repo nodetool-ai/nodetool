@@ -144,7 +144,7 @@ function parsePositiveMinutes(
 function specFromFlags(opts: {
   gpu?: string;
   vcpu?: string;
-}): Record<string, unknown> {
+}) {
   const spec: Record<string, unknown> = {};
   if (opts.gpu) {
     spec.gpu = opts.gpu;

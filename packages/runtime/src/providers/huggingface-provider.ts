@@ -349,7 +349,7 @@ export class HuggingFaceProvider extends BaseProvider {
     return this._apiKey;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { HF_TOKEN: this._apiKey };
   }
 

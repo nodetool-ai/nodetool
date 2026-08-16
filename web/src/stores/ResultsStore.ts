@@ -224,7 +224,7 @@ const filterRecord = <K extends string, T>(
   record: Record<K, T>,
   workflowId: string,
   specificIds?: Set<string>
-): Record<K, T> => {
+) => {
   const prefix = `${workflowId}:`;
   if (specificIds) {
     const newRecord = { ...record };
@@ -281,7 +281,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const prefix = `${workflowId}:${jobId}:`;
     const dropJobKeys = <K extends string, T>(
       record: Record<K, T>
-    ): Record<K, T> => {
+    ) => {
       const next = { ...record };
       for (const key in next) {
         if (key.startsWith(prefix)) {

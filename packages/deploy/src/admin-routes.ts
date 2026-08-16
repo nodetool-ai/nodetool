@@ -155,14 +155,14 @@ export async function* encodeSSE(
 }
 
 /** Standard SSE response headers. */
-export const SSE_HEADERS: Record<string, string> = {
+export const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
   "Cache-Control": "no-cache",
   Connection: "keep-alive",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
-};
+} satisfies Record<string, string>;
 
 // ── Injectable adapters ────────────────────────────────────
 

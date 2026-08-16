@@ -60,14 +60,14 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
  * copy. Blanket-invalidating the `get` query instead would refetch under a
  * live editor and clobber unsaved edits.
  */
-const DOCUMENT_TRPC_ROUTER: Record<SyncedDocumentType, string> = {
+const DOCUMENT_TRPC_ROUTER = {
   timelinesequence: "timeline",
   imagedocument: "sketch",
   storyboard: "storyboards",
   script: "scripts",
   jsscript: "jsScripts",
   application: "applications"
-};
+} satisfies Record<SyncedDocumentType, string>;
 
 const isSyncedDocumentType = (value: string): value is SyncedDocumentType =>
   value in DOCUMENT_TRPC_ROUTER;

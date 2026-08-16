@@ -51,7 +51,7 @@ export const resolveUri = (uri: string): string => {
 export const createImageUrl = (
   source: ImageSource | ImageData | null | undefined,
   previousBlobUrl: string | null
-): { url: string; blobUrl: string | null } => {
+) => {
   if (previousBlobUrl) {
     URL.revokeObjectURL(previousBlobUrl);
   }

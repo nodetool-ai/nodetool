@@ -22,13 +22,13 @@ export interface MediaValue {
   asset_id?: string;
 }
 
-const DEFAULTS: Record<MediaKind, { ext: string; mime: string }> = {
+const DEFAULTS = {
   image: { ext: ".jpg", mime: "image/jpeg" },
   audio: { ext: ".wav", mime: "audio/wav" },
   video: { ext: ".mp4", mime: "video/mp4" },
   document: { ext: ".pdf", mime: "application/pdf" },
   model_3d: { ext: ".glb", mime: "model/gltf-binary" },
-};
+} satisfies Record<MediaKind, { ext: string; mime: string }>;
 
 const upload = async (
   kind: MediaKind,

@@ -130,7 +130,7 @@ export function settleTriggerOutcome(
 export function triggerRunParams(
   registration: TriggerRegistration,
   nowMs: number
-): Record<string, unknown> {
+) {
   return {
     last_fired_at: registration.last_fired_at,
     now: new Date(nowMs).toISOString(),

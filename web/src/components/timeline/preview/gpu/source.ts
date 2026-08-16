@@ -31,10 +31,7 @@ export function shouldPresentFrame(
 }
 
 /** Intrinsic pixel dimensions of a composite source. */
-export function sourceDimensions(source: CompositeSource): {
-  width: number;
-  height: number;
-} {
+export function sourceDimensions(source: CompositeSource) {
   if (source instanceof HTMLVideoElement) {
     return {
       width: source.videoWidth || 0,

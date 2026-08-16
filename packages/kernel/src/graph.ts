@@ -839,10 +839,7 @@ export class Graph {
     return this._buildSchema((n) => n.type.startsWith("nodetool.output."));
   }
 
-  private _buildSchema(filter: (n: NodeDescriptor) => boolean): {
-    properties: Record<string, unknown>;
-    required: string[];
-  } {
+  private _buildSchema(filter: (n: NodeDescriptor) => boolean) {
     const properties: Record<string, unknown> = {};
     const required: string[] = [];
 

@@ -15,16 +15,20 @@ export interface SkeletonProps extends MuiSkeletonProps {
   preset?: "text" | "avatar" | "thumbnail" | "card" | "button";
 }
 
-const PRESET_STYLES: Record<
-  NonNullable<SkeletonProps["preset"]>,
-  { variant: MuiSkeletonProps["variant"]; width: number | string; height: number | string }
-> = {
+const PRESET_STYLES = {
   text: { variant: "text", width: "100%", height: 20 },
   avatar: { variant: "circular", width: 40, height: 40 },
   thumbnail: { variant: "rectangular", width: 80, height: 80 },
   card: { variant: "rectangular", width: "100%", height: 160 },
   button: { variant: "rectangular", width: 100, height: 36 }
-};
+} satisfies Record<
+  NonNullable<SkeletonProps["preset"]>,
+  {
+    variant: MuiSkeletonProps["variant"];
+    width: number | string;
+    height: number | string;
+  }
+>;
 
 /**
  * Skeleton - Loading placeholder

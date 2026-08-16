@@ -148,7 +148,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
     this._evolinkFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { EVOLINK_API_KEY: this.apiKey };
   }
 
@@ -335,7 +335,7 @@ export class EvolinkProvider extends OpenAICompatProvider {
     return undefined;
   }
 
-  private mediaHeaders(): Record<string, string> {
+  private mediaHeaders() {
     return {
       Authorization: `Bearer ${this.apiKey}`,
       "Content-Type": "application/json"

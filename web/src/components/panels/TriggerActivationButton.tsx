@@ -87,7 +87,7 @@ const formatLastFired = (iso: string | null): string => {
 };
 
 /** Text on the workflow-level switch — honest about what we actually know. */
-const SWITCH_DESCRIPTIONS: Readonly<Record<ActivationState, string>> = {
+const SWITCH_DESCRIPTIONS = {
   loading: "Checking trigger status…",
   error: "Could not load trigger status. Check your connection and retry.",
   unregistered:
@@ -95,27 +95,27 @@ const SWITCH_DESCRIPTIONS: Readonly<Record<ActivationState, string>> = {
   inactive: "Listens for events and starts a run per event.",
   mixed: "Some triggers are armed. Turn this on to arm the rest.",
   active: "Listens for events and starts a run per event."
-};
+} satisfies Readonly<Record<ActivationState, string>>;
 
-const STATUS_LABELS: Readonly<Record<ActivationState, string>> = {
+const STATUS_LABELS = {
   loading: "Loading",
   error: "Unavailable",
   unregistered: "Not registered",
   inactive: "Inactive",
   mixed: "Partly active",
   active: "Active"
-};
+} satisfies Readonly<Record<ActivationState, string>>;
 
-const STATUS_KINDS: Readonly<
-  Record<ActivationState, "success" | "error" | "warning" | "pending" | "default">
-> = {
+const STATUS_KINDS = {
   loading: "pending",
   error: "error",
   unregistered: "default",
   inactive: "default",
   mixed: "warning",
   active: "success"
-};
+} satisfies Readonly<
+  Record<ActivationState, "success" | "error" | "warning" | "pending" | "default">
+>;
 
 interface WebhookDeliveryDetailsProps {
   webhookToken: string;

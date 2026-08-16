@@ -38,7 +38,7 @@ describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
       })
     ];
 
-    const toolCallsByStep: Record<string, StepToolCall[]> = {
+    const toolCallsByStep = {
       "step-1": [
         { id: "tc-a", name: "web_search", args: null, startedAt: 1000 },
         { id: "tc-b", name: "read_file", args: null, startedAt: 2000 }
@@ -46,7 +46,7 @@ describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
       "step-2": [
         { id: "tc-c", name: "write_file", args: null, startedAt: 3000 }
       ]
-    };
+    } satisfies Record<string, StepToolCall[]>;
 
     const state = buildExecutionTreeState(messages, toolCallsByStep);
     expect(state.tasks[0].steps[0].toolName).toBe("read_file");

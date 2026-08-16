@@ -20,7 +20,7 @@ import useTraceStore from "../../stores/TraceStore";
 import type { TraceEvent, TraceEventType } from "../../stores/TraceStore";
 
 
-const EVENT_ICONS: Record<TraceEventType, React.ReactNode> = {
+const EVENT_ICONS = {
   node_start: <PlayArrowIcon sx={{ fontSize: 14, color: "info.main" }} />,
   node_complete: <CheckCircleIcon sx={{ fontSize: 14, color: "success.main" }} />,
   node_error: <ErrorIcon sx={{ fontSize: 14, color: "error.main" }} />,
@@ -31,7 +31,7 @@ const EVENT_ICONS: Record<TraceEventType, React.ReactNode> = {
   todo_update: <ChecklistIcon sx={{ fontSize: 14, color: "info.light" }} />,
   edge_active: <CallSplitIcon sx={{ fontSize: 14, color: "text.disabled" }} />,
   output: <OutputIcon sx={{ fontSize: 14, color: "primary.main" }} />,
-};
+} satisfies Record<TraceEventType, React.ReactNode>;
 
 const styles = (theme: Theme) =>
   css({

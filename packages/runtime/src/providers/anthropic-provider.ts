@@ -189,7 +189,7 @@ function textContentFromRawBlocks(
   });
 }
 
-function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
+function toAnthropicCitation(citation: MessageCitation) {
   switch (citation.type) {
     case "char_location":
       return {
@@ -271,7 +271,7 @@ function sharedToolFields(tool: ProviderTool): AnthropicSharedToolFields {
   return fields;
 }
 
-function toAnthropicTextBlock(part: MessageTextContent): AnthropicRawBlock {
+function toAnthropicTextBlock(part: MessageTextContent) {
   const block: AnthropicRawBlock = {
     type: "text",
     text: part.text
@@ -393,7 +393,7 @@ function normalizeAnthropicImageMime(mime: string): string {
   return base;
 }
 
-function parseDataUri(uri: string): { mime: string; base64: string } {
+function parseDataUri(uri: string) {
   const idx = uri.indexOf(",");
   if (idx < 0) {
     throw new Error("Invalid data URI");
@@ -573,11 +573,11 @@ export class AnthropicProvider extends BaseProvider {
       return schema as JsonSchemaNode;
     }
 
-    const obj: { [key: string]: JsonSchemaNode } = {
+    const obj = {
       // SAFETY: the checks above proved `schema` is a plain object of schema
       // members.
       ...(schema as { [key: string]: JsonSchemaNode })
-    };
+    } satisfies { [key: string]: JsonSchemaNode };
 
     if (obj.type === "object" && obj.additionalProperties === undefined) {
       obj.additionalProperties = false;
@@ -1005,7 +1005,7 @@ export class AnthropicProvider extends BaseProvider {
     thinking?: ProviderThinkingConfig;
     effort?: ProviderEffort;
     thinkingBudget?: number;
-  }): Record<string, unknown> {
+  }) {
     const formattedTools =
       args.tools && args.tools.length > 0
         ? this.formatTools(args.tools)

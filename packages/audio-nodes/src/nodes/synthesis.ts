@@ -196,13 +196,7 @@ export class OscillatorNode extends BaseNode {
   }
 
   /** Current property values — read per chunk so live updates apply. */
-  private params(): {
-    waveform: Waveform;
-    baseFreq: number;
-    amplitude: number;
-    pulseWidth: number;
-    fmAmount: number;
-  } {
+  private params() {
     return {
       waveform: String(this.waveform ?? "sine") as Waveform,
       baseFreq: Number(this.frequency ?? 220),
@@ -357,12 +351,7 @@ export class LfoNode extends BaseNode {
   }
 
   /** Current property values — read per chunk so live updates apply. */
-  private params(): {
-    waveform: Waveform;
-    rateHz: number;
-    depth: number;
-    offset: number;
-  } {
+  private params() {
     return {
       waveform: String(this.waveform ?? "sine") as Waveform,
       rateHz: Number(this.rate_hz ?? 2),
@@ -1043,15 +1032,13 @@ export class MixerNode extends BaseNode {
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     // Read per emitted block — live updates apply.
-    const levels = (): Record<string, number> => ({
+    const levels = () => ({
       in1: Number(this.level1 ?? 1),
       in2: Number(this.level2 ?? 1),
       in3: Number(this.level3 ?? 1),
       in4: Number(this.level4 ?? 1)
     });
-    const connected: string[] = MIXER_HANDLES.filter((h) =>
-      inputs.hasStream(h)
-    );
+    const connected = MIXER_HANDLES.filter((h) => inputs.hasStream(h));
     const fifos = new Map<string, SampleFifo>(
       connected.map((h) => [h, new SampleFifo()])
     );

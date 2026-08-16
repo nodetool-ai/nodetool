@@ -64,7 +64,7 @@ function makeWorkflow(
   access: "private" | "public" = "private",
   graph: { nodes: unknown[]; edges: unknown[] } = { nodes: [], edges: [] },
   appDoc: Record<string, unknown> | null = null
-): Record<string, unknown> {
+) {
   return {
     id,
     user_id: USER_ID,
@@ -131,7 +131,7 @@ const MINI_APP_GRAPH = {
   ]
 };
 
-const MINI_APP_DOC: Record<string, unknown> = {
+const MINI_APP_DOC = {
   schemaVersion: 3,
   ui: {
     root: { props: { title: "Echo Mini App" } },
@@ -186,7 +186,7 @@ const MINI_APP_DOC: Record<string, unknown> = {
   ],
   resources: [],
   variables: []
-};
+} satisfies Record<string, unknown>;
 
 /**
  * The mini app as its own `applications` row.
@@ -676,7 +676,7 @@ function makeAsset(
   parentId: string | null,
   size: number,
   metadata: Record<string, unknown> | null = null
-): Record<string, unknown> {
+) {
   return {
     id,
     user_id: USER_ID,
@@ -885,7 +885,7 @@ function makeSketchLayer(
   id: string,
   name: string,
   overrides: Record<string, unknown> = {}
-): Record<string, unknown> {
+) {
   return {
     id,
     name,
@@ -946,7 +946,7 @@ function makeTimelineClip(
   durationMs: number,
   mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape",
   overrides: Record<string, unknown> = {}
-): Record<string, unknown> {
+) {
   return {
     id,
     trackId,
@@ -1317,7 +1317,7 @@ const storyboardShot = (
   action: string,
   motion: string,
   framing: string
-): Record<string, unknown> => ({
+) => ({
   type: "shot",
   id,
   index,

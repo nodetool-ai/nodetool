@@ -93,10 +93,7 @@ function validatePixelDimensions(
 function limitedTarget(
   maxBytes: number,
   where: string
-): {
-  readonly target: StreamTarget;
-  bytes(): Uint8Array;
-} {
+) {
   const chunks: { data: Uint8Array; position: number }[] = [];
   let byteLength = 0;
   const writable = new WritableStream<StreamTargetChunk>({

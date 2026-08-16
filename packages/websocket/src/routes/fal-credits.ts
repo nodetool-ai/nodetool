@@ -29,7 +29,7 @@ function parseFalApiErrorMessage(body: string): string | undefined {
 }
 
 /** UI expects `credit_balance: { amount, currency }` (see web `formatCredits`). */
-function normalizeFalCreditsBody(data: unknown): Record<string, unknown> {
+function normalizeFalCreditsBody(data: unknown) {
   if (data == null || typeof data !== "object") {
     return { credit_balance: null };
   }

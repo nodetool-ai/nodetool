@@ -101,7 +101,7 @@ const canonical = (value: unknown): string => {
 const omitKeys = (
   obj: Record<string, unknown>,
   keys: ReadonlySet<string>
-): Record<string, unknown> => {
+) => {
   if (keys.size === 0) return obj;
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(obj)) {
@@ -222,7 +222,7 @@ export const createNodeHasher = (ctx: HasherContext): NodeHasher => {
 export const computeInputSignatures = (
   nodeIds: Iterable<string>,
   ctx: HasherContext
-): Record<string, string> => {
+) => {
   const hasher = createNodeHasher(ctx);
   const signatures: Record<string, string> = {};
   for (const id of nodeIds) {

@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
 
 const extractImageRef = (
   value: unknown
-): { uri?: string; data?: unknown; width?: number; height?: number } => {
+) => {
   if (!value || typeof value !== "object") {
     return {};
   }

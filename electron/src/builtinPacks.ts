@@ -46,7 +46,7 @@ function idList(value: unknown): string[] {
 }
 
 /** Explicit user overrides keyed by pack id; absent packs keep their default. */
-function readOverrides(): Record<string, boolean> {
+function readOverrides() {
   const config = readPacksConfig();
   const overrides: Record<string, boolean> = {};
   for (const id of idList(config.disabledBuiltins)) overrides[id] = false;

@@ -92,7 +92,7 @@ export async function initNotifications(): Promise<void> {
   }
 }
 
-function describe(run: RunFinishedNotification): { title: string; body: string } {
+function describe(run: RunFinishedNotification) {
   const name = run.workflowName?.trim() || 'Workflow';
   switch (run.outcome) {
     case 'completed':

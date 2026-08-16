@@ -236,14 +236,18 @@ return __yielded;`
  * arrival order, so a body mixing `stream("a")` with `stream.any()` never sees
  * one item twice.
  */
-function stagedInputStreams(streams: Record<string, unknown[]>): {
+type StagedInputStreams = {
   onTakeInput: (
     handle: string | null
   ) => Promise<
     { done: true } | { done: false; handle: string; value: unknown }
   >;
   onStreamOpen: (handle: string) => boolean;
-} {
+};
+
+function stagedInputStreams(
+  streams: Record<string, unknown[]>
+): StagedInputStreams {
   const queues = new Map<string, unknown[]>(
     Object.entries(streams).map(([handle, values]) => [
       handle,

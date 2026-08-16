@@ -55,7 +55,7 @@ export function rgbaToCss({ r, g, b, a }: Rgba): string {
 }
 
 /** Parse a hex or rgb/rgba string to {r, g, b} (0-255). */
-export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+export function hexToRgb(hex: string) {
   const { r, g, b } = parseColorToRgba(hex);
   return { r, g, b };
 }
@@ -86,7 +86,7 @@ export function mergeRgbHexIntoColor(rgbHex6: string, currentColor: string): str
 }
 
 /** Convert {r, g, b} (0-255) to {h, s, l} (h: 0-360, s: 0-100, l: 0-100) */
-export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+export function rgbToHsl(r: number, g: number, b: number) {
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -116,7 +116,7 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
 }
 
 /** Convert {r, g, b} (0-255) to {h, s, v} (h: 0-360, s: 0-1, v: 0-1) */
-export function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
+export function rgbToHsv(r: number, g: number, b: number) {
   const rn = r / 255, gn = g / 255, bn = b / 255;
   const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
   const d = max - min;
@@ -134,7 +134,7 @@ export function rgbToHsv(r: number, g: number, b: number): { h: number; s: numbe
 }
 
 /** Convert {h, s, v} (h: 0-360, s: 0-1, v: 0-1) to {r, g, b} (0-255) */
-export function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: number } {
+export function hsvToRgb(h: number, s: number, v: number) {
   const hn = (h % 360) / 60;
   const i = Math.floor(hn);
   const f = hn - i;
@@ -154,7 +154,7 @@ export function hsvToRgb(h: number, s: number, v: number): { r: number; g: numbe
 }
 
 /** Convert {h, s, l} (h: 0-360, s: 0-100, l: 0-100) to {r, g, b} (0-255) */
-export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+export function hslToRgb(h: number, s: number, l: number) {
   const hn = h / 360;
   const sn = s / 100;
   const ln = l / 100;

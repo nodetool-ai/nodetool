@@ -441,7 +441,7 @@ function runGraph(
   graph: WorldGraph,
   params: Record<string, unknown>,
   skipNodeId?: string
-): Record<string, string> {
+) {
   const values = new Map<string, string>();
   const remaining = [...graph.nodes];
   const outputs: Record<string, string> = {};

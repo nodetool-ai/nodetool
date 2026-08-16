@@ -137,7 +137,7 @@ export class JobRunSession {
    * Stamp, buffer, and (when a connection is attached) deliver one frame.
    * Returns the stamped copy.
    */
-  emit(message: Record<string, unknown>): Record<string, unknown> {
+  emit(message: Record<string, unknown>) {
     this.seq += 1;
     const stamped = { ...message, job_seq: this.seq };
     this.buffer.push({ seq: this.seq, message: stamped });

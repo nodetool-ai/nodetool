@@ -152,7 +152,7 @@ function resolveOutputDims(
   module: ShaderModule | RecipeModule,
   source: UploadedSource | null,
   opts: RunShaderOptions
-): { width: number; height: number } {
+) {
   const declared = module.io.output.dimensions;
   if (declared === "host-specified" || declared === "derived") {
     const w = opts.outputWidth ?? source?.width;

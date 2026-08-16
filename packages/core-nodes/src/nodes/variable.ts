@@ -79,9 +79,9 @@ export class GetVariableNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["trigger"];
 
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "iteration", source: "__execution__", group: "channel" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

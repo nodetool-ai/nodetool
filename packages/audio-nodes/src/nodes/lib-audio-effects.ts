@@ -15,7 +15,7 @@ import {
 function processPerChannel(
   wav: WavData,
   fn: (channel: Float32Array, sampleRate: number) => Float32Array
-): { samples: Float32Array; sampleRate: number; numChannels: number } {
+) {
   const { samples, sampleRate, numChannels } = wav;
   const frameSamples = Math.floor(samples.length / numChannels);
 

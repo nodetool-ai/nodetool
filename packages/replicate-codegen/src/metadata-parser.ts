@@ -62,7 +62,7 @@ export interface PackageMetadata {
 /**
  * Map Python metadata type strings to propType / tsType pairs.
  */
-function mapType(typeStr: string): { tsType: string; propType: string } {
+function mapType(typeStr: string) {
   switch (typeStr) {
     case "str":
       return { tsType: "string", propType: "str" };

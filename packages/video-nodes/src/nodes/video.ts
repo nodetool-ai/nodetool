@@ -245,10 +245,7 @@ async function combineFramesToVideo(
   }
 }
 
-function modelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function modelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -717,12 +714,12 @@ export class LoadVideoAssetsNode extends BaseNode {
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     video: { kind: "iteration", source: "__execution__", group: "items" },
     name: { kind: "iteration", source: "__execution__", group: "items" },
     videos: { kind: "single", source: "__execution__" },
     names: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "folder",
@@ -860,11 +857,11 @@ export class ForEachFrameNode extends VideoTransformNode {
   static readonly inputFields: string[] = ["video"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     frame: { kind: "iteration", source: "video", group: "items" },
     index: { kind: "iteration", source: "video", group: "items" },
     fps: { kind: "single", source: "video" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "video",
@@ -1028,9 +1025,9 @@ export class FrameToVideoNode extends VideoTransformNode {
     "Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence";
   static readonly isStreamingInput = true;
   static readonly inputMode: InputMode = "stream";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "aggregate", source: "frame", collapse: "innermost" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   static readonly metadataOutputTypes = {
     output: "video"

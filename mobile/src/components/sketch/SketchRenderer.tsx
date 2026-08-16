@@ -313,7 +313,7 @@ export function resolveLayers(doc: SketchDocumentData): ResolvedLayer[] {
 
 // ── Status presentation ────────────────────────────────────────────────────
 
-export const STATUS_LABEL: Record<SketchLayerStatus, string> = {
+export const STATUS_LABEL = {
   draft: 'Draft',
   queued: 'Queued',
   generating: 'Generating',
@@ -322,7 +322,7 @@ export const STATUS_LABEL: Record<SketchLayerStatus, string> = {
   failed: 'Failed',
   locked: 'Locked',
   missing: 'Missing',
-};
+} satisfies Record<SketchLayerStatus, string>;
 
 export function statusColor(status: SketchLayerStatus, colors: ThemeColors): string {
   switch (status) {

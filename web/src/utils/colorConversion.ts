@@ -410,13 +410,7 @@ export function getContrastRatio(color1: RGB, color2: RGB): number {
 export function getWcagCompliance(
   foreground: RGB,
   background: RGB
-): {
-  ratio: number;
-  aa: boolean;
-  aaLarge: boolean;
-  aaa: boolean;
-  aaaLarge: boolean;
-} {
+) {
   const ratio = getContrastRatio(foreground, background);
 
   return {
@@ -440,7 +434,7 @@ export function simulateColorBlindness(
   const b = rgb.b / 255;
 
   type ColorBlindnessType = typeof type;
-  const matrices: Record<ColorBlindnessType, number[][]> = {
+  const matrices = {
     protanopia: [
       [0.567, 0.433, 0],
       [0.558, 0.442, 0],
@@ -456,7 +450,7 @@ export function simulateColorBlindness(
       [0, 0.433, 0.567],
       [0, 0.475, 0.525]
     ]
-  };
+  } satisfies Record<ColorBlindnessType, number[][]>;
 
   const matrix = matrices[type];
   const newR = matrix[0][0] * r + matrix[0][1] * g + matrix[0][2] * b;

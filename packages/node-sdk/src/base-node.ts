@@ -450,7 +450,7 @@ export abstract class BaseNode {
     return getDeclaredPropertiesForClass(this);
   }
 
-  static getDeclaredOutputs(): Record<string, string> {
+  static getDeclaredOutputs() {
     return { ...(this.outputTypes ?? {}) };
   }
 
@@ -558,7 +558,7 @@ export abstract class BaseNode {
     }
   }
 
-  serialize(): Record<string, unknown> {
+  serialize() {
     const ctor = this.constructor as typeof BaseNode;
     const result: Record<string, unknown> = {};
 

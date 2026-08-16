@@ -58,10 +58,7 @@ export async function runDslFile(
  * `WorkflowRunner`; supervision goes through the session facade instead
  * (docs/workflow-supervisor-design.md §7), so the mapping is needed here too.
  */
-export function dslWorkflowToGraph(wf: Workflow): {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-} {
+export function dslWorkflowToGraph(wf: Workflow) {
   return {
     nodes: wf.nodes.map((n) => ({
       id: n.id,

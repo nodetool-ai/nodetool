@@ -30,10 +30,10 @@ import {
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 /** Correlation shared by every node that emits one item plus the whole list. */
-const ITEM_AND_LIST: Record<string, OutputCorrelation> = {
+const ITEM_AND_LIST = {
   output: { kind: "iteration", source: "__execution__", group: "items" },
   outputs: { kind: "single", source: "__execution__" }
-};
+} satisfies Record<string, OutputCorrelation>;
 
 const str = (value: unknown, fallback = ""): string => {
   const trimmed = typeof value === "string" ? value.trim() : "";

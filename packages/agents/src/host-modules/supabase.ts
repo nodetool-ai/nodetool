@@ -28,7 +28,7 @@ function projectUrl(where: string, value: unknown): URL {
   }
 }
 
-function authHeaders(key: string): Record<string, string> {
+function authHeaders(key: string) {
   return { apikey: key, Authorization: `Bearer ${key}` };
 }
 

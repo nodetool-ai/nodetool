@@ -32,11 +32,11 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/mcp-config.js";
 
 const ALL_TARGETS: McpTarget[] = ["claude", "codex", "opencode"];
-const TARGET_LABELS: Record<McpTarget, string> = {
+const TARGET_LABELS = {
   claude: "Claude Code",
   codex: "Codex",
   opencode: "OpenCode"
-};
+} satisfies Record<McpTarget, string>;
 
 const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
 const NODETOOL_MCP_END = "# END NODETOOL MCP";

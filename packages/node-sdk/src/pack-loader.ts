@@ -289,10 +289,7 @@ export function resolvePackTrust(
  * ephemeral `NODETOOL_PACKS_ALLOWLIST` env override is never baked into the
  * config file for a field the caller didn't set.
  */
-export function readPackTrustFromFile(): {
-  allow?: string[];
-  allowUnlisted?: boolean;
-} {
+export function readPackTrustFromFile() {
   const f = readPacksConfigFile();
   return { allow: f.allow, allowUnlisted: f.allowUnlisted };
 }
@@ -345,7 +342,7 @@ function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile 
  * from the map keep their install default (`defaultEnabled` in the catalog).
  * The server applies this at bootstrap; changes take effect on restart.
  */
-export function readBuiltinPackOverrides(): Record<string, boolean> {
+export function readBuiltinPackOverrides() {
   const config = readPacksConfigFile();
   const overrides: Record<string, boolean> = {};
   for (const id of config.disabledBuiltins ?? []) overrides[id] = false;

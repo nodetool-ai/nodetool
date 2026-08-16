@@ -64,7 +64,7 @@ export function applyAltCenterDraw(
   end: Point,
   tool: ShapeToolType,
   altHeld: boolean
-): { start: Point; end: Point } {
+) {
   if (!altHeld) {
     return { start, end };
   }

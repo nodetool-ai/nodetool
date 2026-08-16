@@ -183,10 +183,7 @@ interface CollectionEntry {
  */
 const useResourceBinding = (
   resourceBindingId: string | undefined
-): {
-  binding: ResourceBinding | undefined;
-  kind: ResourceDocumentKind | null;
-} => {
+) => {
   const { resources } = useAppRuntimeContext();
   const binding = resources.find((entry) => entry.id === resourceBindingId);
   const kind = binding && binding.kind !== "asset" ? binding.kind : null;
@@ -436,14 +433,14 @@ const StoryboardSceneListWidget: React.FC<ResourceWidgetProps> = (widget) => {
   );
 };
 
-export const RESOURCE_RENDERERS: Record<
-  string,
-  React.FC<ResourceWidgetProps>
-> = {
+export const RESOURCE_RENDERERS = {
   ResourcePicker: ResourceListWidget,
   ResourceGallery: ResourceListWidget,
   StoryboardSceneList: StoryboardSceneListWidget,
-};
+} satisfies Record<
+  string,
+  React.FC<ResourceWidgetProps>
+>;
 
 const styles = StyleSheet.create({
   stack: {

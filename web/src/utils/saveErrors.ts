@@ -10,7 +10,7 @@
 /** tRPC hangs the error code and the HTTP status off `error.data`. */
 const errorStatus = (
   error: unknown
-): { code: string | null; httpStatus: number | null } => {
+) => {
   if (typeof error !== "object" || error === null || !("data" in error)) {
     return { code: null, httpStatus: null };
   }

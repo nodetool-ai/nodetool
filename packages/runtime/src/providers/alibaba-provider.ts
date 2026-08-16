@@ -96,7 +96,7 @@ export class AlibabaProvider extends OpenAICompatProvider {
     this._alibabaBaseURL = baseURL;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     const env: Record<string, string> = { DASHSCOPE_API_KEY: this.apiKey };
     if (this._alibabaBaseURL !== ALIBABA_DEFAULT_BASE_URL) {
       env["DASHSCOPE_BASE_URL"] = this._alibabaBaseURL;

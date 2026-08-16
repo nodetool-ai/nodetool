@@ -115,10 +115,7 @@ function computeNodesHash(nodes: NodeMetadata[]): string {
  * set. Hashing and `formatNodeDocumentation` parsing happen once per
  * rebuild — both indexes consume the same parsed extras.
  */
-function ensureIndexes(nodes: NodeMetadata[]): {
-  prefixTree: PrefixTreeSearch;
-  bm25: BM25Index;
-} {
+function ensureIndexes(nodes: NodeMetadata[]) {
   const nodesHash = computeNodesHash(nodes);
   if (
     globalPrefixTree &&

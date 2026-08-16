@@ -30,7 +30,7 @@ const START_DEG = -135;
 /** Vertical drag distance for a full min→max sweep. */
 const DRAG_RANGE_PX = 160;
 
-const polar = (deg: number, r: number): { x: number; y: number } => {
+const polar = (deg: number, r: number) => {
   const rad = ((deg - 90) * Math.PI) / 180;
   const c = KNOB_SIZE / 2;
   return { x: c + r * Math.cos(rad), y: c + r * Math.sin(rad) };

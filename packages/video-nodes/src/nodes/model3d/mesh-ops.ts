@@ -109,18 +109,7 @@ function applyAxisPreset(
   }
 }
 
-function computeBoundsAndCentroid(glb: NonNullable<ReturnType<typeof parseGlb>>): {
-  minX: number;
-  minY: number;
-  minZ: number;
-  maxX: number;
-  maxY: number;
-  maxZ: number;
-  centroidX: number;
-  centroidY: number;
-  centroidZ: number;
-  totalVerts: number;
-} {
+function computeBoundsAndCentroid(glb: NonNullable<ReturnType<typeof parseGlb>>) {
   let sumX = 0;
   let sumY = 0;
   let sumZ = 0;

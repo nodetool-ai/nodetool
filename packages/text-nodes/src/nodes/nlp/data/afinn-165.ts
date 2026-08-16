@@ -1,6 +1,6 @@
 // AFINN-165 English sentiment lexicon (word -> valence score).
 // Vendored from the `afinn-165` npm package (MIT) so we do not depend on `natural`.
-export const AFINN_165: Record<string, number> = {
+export const AFINN_165 = {
   "abandon": -2,
   "abandoned": -2,
   "abandons": -2,
@@ -3383,4 +3383,4 @@ export const AFINN_165: Record<string, number> = {
   "zealot": -2,
   "zealots": -2,
   "zealous": 2,
-};
+} satisfies Record<string, number>;

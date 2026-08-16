@@ -6,12 +6,12 @@ jest.mock("../../../utils/clipboardUtils", () => ({
   copyAssetToClipboard: jest.fn()
 }));
 
-const mockSessionState: Record<string, any> = {
+const mockSessionState = {
   clipboardData: null,
   isClipboardValid: false,
   setClipboardData: jest.fn(),
   setIsClipboardValid: jest.fn()
-};
+} satisfies Record<string, any>;
 
 jest.mock("../../../stores/SessionStateStore", () => {
   const store: any = (selector: any) => selector(mockSessionState);

@@ -13,7 +13,7 @@ export interface LayerStatusVisual {
   pulse: boolean;
 }
 
-export const LAYER_STATUS_MAP: Record<LayerStatus, LayerStatusVisual> = {
+export const LAYER_STATUS_MAP = {
   draft: { status: "default", label: "Draft", pulse: false },
   queued: { status: "pending", label: "Queued", pulse: false },
   generating: { status: "pending", label: "Generating", pulse: true },
@@ -22,4 +22,4 @@ export const LAYER_STATUS_MAP: Record<LayerStatus, LayerStatusVisual> = {
   failed: { status: "error", label: "Failed", pulse: false },
   locked: { status: "info", label: "Locked", pulse: false },
   missing: { status: "error", label: "Missing", pulse: false }
-};
+} satisfies Record<LayerStatus, LayerStatusVisual>;

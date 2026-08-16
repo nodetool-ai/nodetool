@@ -140,7 +140,7 @@ export function forwardClipMatrixToInverseAffine(
   const inv11 = a00 / det;
 
   // screen px → layer texel, evaluated at one point.
-  const texelAt = (X: number, Y: number): { x: number; y: number } => {
+  const texelAt = (X: number, Y: number) => {
     // screen px → clip
     const clipX = (X * 2) / canvasWidth - 1;
     const clipY = 1 - (Y * 2) / canvasHeight;

@@ -892,10 +892,7 @@ function overridableLimits(): SandboxLimitDoc[] {
     keyof typeof defaults,
     "allowPrivateNetwork" | "userAgent" | "filesystemAccess" | "secretScope"
   >;
-  const described: Record<
-    NumericLimitKey,
-    { description: string; unit: SandboxLimitDoc["unit"] }
-  > = {
+  const described = {
     maxFetchCalls: { description: "fetch calls per run", unit: "count" },
     maxResponseBodyBytes: {
       description: "response body read per fetch",
@@ -909,7 +906,10 @@ function overridableLimits(): SandboxLimitDoc[] {
       description: "media handles and transform work held host-side per run",
       unit: "bytes"
     }
-  };
+  } satisfies Record<
+    NumericLimitKey,
+    { description: string; unit: SandboxLimitDoc["unit"] }
+  >;
   return (Object.keys(described) as NumericLimitKey[]).map((key) => ({
     key,
     description: described[key].description,
@@ -1122,10 +1122,7 @@ const ABSENT_GLOBALS = [
  * it must be told is missing. Bridges and prelude helpers are documented
  * elsewhere in the manifest, so they drop out of both lists.
  */
-function partitionNativeGlobals(): {
-  native: string[];
-  blocked: string[];
-} {
+function partitionNativeGlobals() {
   const documentedElsewhere = new Set<string>([
     ...EXPOSED_BRIDGE_NAMES,
     ...GUEST_HELPER_NAMES

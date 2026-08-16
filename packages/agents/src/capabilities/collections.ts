@@ -54,7 +54,7 @@ interface CollectionSummary {
  * The six schemas carry no collection name — the collection was chosen by
  * whoever constructed the tool — so there is nothing to resolve from the args.
  */
-function noCollectionError(what: string): Record<string, string> {
+function noCollectionError(what: string) {
   return {
     error:
       `Cannot ${what}: no vector collection is bound to this run. Bind one ` +

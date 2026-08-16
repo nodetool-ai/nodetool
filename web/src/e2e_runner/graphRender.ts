@@ -161,10 +161,10 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
       );
     }
   }
-  const allMetadata: Record<string, NodeMetadata> = {
+  const allMetadata = {
     ...currentMetadata,
     ...newMetadata
-  };
+  } satisfies Record<string, NodeMetadata>;
   if (Object.keys(newMetadata).length > 0) {
     useMetadataStore.getState().setMetadata(allMetadata);
   }

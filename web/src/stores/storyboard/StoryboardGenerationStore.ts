@@ -122,7 +122,7 @@ const deriveMembership = (
     StoryboardGenerationStoreState,
     "generatingShotIds" | "failedShotIds"
   >
-): { generatingShotIds: string[]; failedShotIds: string[] } => {
+) => {
   const nextGenerating = deriveIds(shotJobs, isGenerating);
   const nextFailed = deriveIds(shotJobs, isFailed);
   return {

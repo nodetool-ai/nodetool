@@ -178,10 +178,7 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
   return "image/unknown";
 }
 
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function getModelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -213,7 +210,7 @@ const IMAGE_RESOLUTION_PX: Record<string, number> = {
 function resolveImageSize(
   resolution: string,
   aspectRatio: string
-): { width: number; height: number } {
+) {
   const base = IMAGE_RESOLUTION_PX[resolution] ?? 1024;
   const [aw, ah] = IMAGE_ASPECT_RATIOS[aspectRatio] ?? [1, 1];
   if (aw >= ah) {
@@ -309,11 +306,11 @@ export class LoadImageFolderNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     image: { kind: "iteration", source: "__execution__", group: "items" },
     path: { kind: "iteration", source: "__execution__", group: "items" },
     images: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly platforms = NODE_ONLY;
 
   @prop({
@@ -543,11 +540,11 @@ export class LoadImageAssetsNode extends BaseNode {
   static readonly inputFields = [];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     image: { kind: "iteration", source: "__execution__", group: "items" },
     name: { kind: "iteration", source: "__execution__", group: "items" },
     images: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly platforms = NODE_ONLY;
 
   @prop({
@@ -833,7 +830,7 @@ export class ImagesToListNode extends BaseNode {
 }
 
 abstract class TransformImageNode extends BaseNode {
-  protected transformMeta(): Record<string, unknown> {
+  protected transformMeta() {
     const image = ((this as any).image ?? {}) as ImageRefLike;
     return {
       width: Number((this as any).width ?? image.width ?? 0) || null,

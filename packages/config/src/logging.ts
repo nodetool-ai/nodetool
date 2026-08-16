@@ -34,12 +34,12 @@ export interface LoggingOptions {
 }
 
 const VALID_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
-const LEVEL_NUM: Record<LogLevel, number> = {
+const LEVEL_NUM = {
   debug: 0,
   info: 1,
   warn: 2,
   error: 3
-};
+} satisfies Record<LogLevel, number>;
 
 /** Maps Python-style log level names to their JS equivalents. */
 const LEVEL_ALIASES: Record<string, LogLevel> = {
@@ -108,12 +108,12 @@ const C = {
   cyan: USE_COLOR ? "\x1b[36m" : ""
 };
 
-const LEVEL_COLOR: Record<LogLevel, string> = {
+const LEVEL_COLOR = {
   debug: C.gray,
   info: C.green,
   warn: C.yellow,
   error: C.red
-};
+} satisfies Record<LogLevel, string>;
 
 function timestamp(): string {
   const d = new Date();

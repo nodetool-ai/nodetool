@@ -44,7 +44,7 @@ export function computePinchStep(
   rect: DomRectLike,
   zoomMin: number = SKETCH_ZOOM_MIN,
   zoomMax: number = SKETCH_ZOOM_MAX
-): { zoom: number; pan: Point } {
+) {
   let newPanX = curPan.x + (cur.mid.x - prev.mid.x);
   let newPanY = curPan.y + (cur.mid.y - prev.mid.y);
   let newZoom = curZoom;

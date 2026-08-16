@@ -808,7 +808,7 @@ function applyScriptOp(
   doc: ScriptDocument,
   { op, args }: ParsedScriptOp,
   scriptLines: (sections: ScriptDocument["sections"]) => ScriptLine[]
-): unknown {
+) {
   switch (op) {
     case "add_speaker": {
       const name = args["name"];

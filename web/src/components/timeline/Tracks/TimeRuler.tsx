@@ -211,10 +211,7 @@ const MarkerOverlay = memo(MarkerOverlayInner);
 MarkerOverlay.displayName = "MarkerOverlay";
 
 /** Returns the best major/minor tick interval (in ms) given the zoom level. */
-function computeTickIntervals(msPerPx: number): {
-  majorMs: number;
-  minorMs: number;
-} {
+function computeTickIntervals(msPerPx: number) {
   // How many ms fit in MIN_LABEL_GAP_PX?
   const minGapMs = MIN_LABEL_GAP_PX * msPerPx;
 

@@ -63,12 +63,12 @@ const aboutTabIndex = 3;
 
 // Section names are the public handle — `openSettingsTab("providers")` — so a
 // caller never depends on the tab order.
-const SECTION_TO_TAB: Record<SettingsSection, number> = {
+const SECTION_TO_TAB = {
   general: TAB_GENERAL,
   providers: TAB_API_KEYS,
   integrations: TAB_INTEGRATIONS,
   about: aboutTabIndex
-};
+} satisfies Record<SettingsSection, number>;
 const TAB_TO_SECTION: SettingsSection[] = [
   "general",
   "providers",

@@ -249,7 +249,7 @@ export const transcribeAudioDataSchema = z
  * only catches `data` not being an object at all — everything else is left
  * to `handleCommand`.
  */
-export const commandDataSchemas: Record<UnifiedCommandType, z.ZodTypeAny> = {
+export const commandDataSchemas = {
   run_job: runJobDataSchema,
   reconnect_job: reconnectJobDataSchema,
   resume_job: reconnectJobDataSchema,
@@ -279,7 +279,7 @@ export const commandDataSchemas: Record<UnifiedCommandType, z.ZodTypeAny> = {
   preflight_workflow: looseDataSchema,
   generate_media: looseDataSchema,
   transcribe_audio: looseDataSchema
-};
+} satisfies Record<UnifiedCommandType, z.ZodTypeAny>;
 
 /**
  * The envelope every streaming/RPC command frame arrives in. `data` defaults

@@ -100,10 +100,7 @@ export function getCategories(value: unknown): string[] {
   return value.map((v) => String(v)).filter((v) => v.trim().length > 0);
 }
 
-export function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+export function getModelConfig(props: Record<string, unknown>) {
   const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",

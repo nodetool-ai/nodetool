@@ -64,7 +64,7 @@ export class PlanBuilder {
     return { ok: true, task };
   }
 
-  removeTask(id: string): { ok: boolean; error?: string; warning?: string } {
+  removeTask(id: string) {
     const idx = this.tasks.findIndex((t) => t.id === id);
     if (idx === -1) {
       return { ok: false, error: `Task '${id}' is not in the plan.` };
@@ -387,7 +387,7 @@ export class AddTaskTool extends Tool {
     "Add one task to the plan being built. Validated immediately. " +
     "On validation failure the task is NOT added and errors are returned; " +
     "call add_task again with a corrected task.";
-  readonly jsonSchema: Record<string, unknown> = ADD_TASK_INPUT_SCHEMA;
+  readonly jsonSchema = ADD_TASK_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -440,7 +440,7 @@ export class RemoveTaskTool extends Tool {
   readonly description =
     "Remove a previously added task. Use to correct mistakes " +
     "(e.g. when finish_plan reports a cross-task cycle).";
-  readonly jsonSchema: Record<string, unknown> = REMOVE_TASK_INPUT_SCHEMA;
+  readonly jsonSchema = REMOVE_TASK_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -494,7 +494,7 @@ export class FinishPlanTool extends Tool {
     "Commit the plan after all tasks have been added. Runs full-plan " +
     "validation. On validation failure, call add_task or remove_task and then " +
     "call finish_plan again.";
-  readonly jsonSchema: Record<string, unknown> = FINISH_PLAN_INPUT_SCHEMA;
+  readonly jsonSchema = FINISH_PLAN_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   constructor(private readonly builder: PlanBuilder) {
     super();

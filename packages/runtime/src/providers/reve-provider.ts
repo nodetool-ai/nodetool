@@ -78,7 +78,7 @@ export class ReveProvider extends BaseProvider {
     this.apiKey = (secrets["REVE_API_KEY"] as string) ?? "";
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { REVE_API_KEY: this.apiKey };
   }
 

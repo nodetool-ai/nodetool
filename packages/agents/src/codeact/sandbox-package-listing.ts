@@ -80,11 +80,7 @@ export function allowlistCovers(
  * `export * from "./other"` — the names live in a file this scan does not walk
  * — and that is reported as an incomplete answer instead of a short one.
  */
-export function scanModuleExports(source: string): {
-  exports: string[] | null;
-  complete: boolean;
-  note?: string;
-} {
+export function scanModuleExports(source: string) {
   let program: acorn.Program;
   try {
     program = acorn.parse(source, {

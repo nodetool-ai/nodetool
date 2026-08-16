@@ -174,7 +174,7 @@ export class ComfyWorkflowNode extends BaseNode {
   private fileToRef(
     kind: "image" | "audio" | "video",
     file: ComfyFileOutput
-  ): Record<string, unknown> {
+  ) {
     return { type: kind, uri: "", data: file.data, mimeType: file.mimeType };
   }
 
@@ -350,10 +350,7 @@ export class ComfyWorkflowNode extends BaseNode {
 }
 
 /** Sniff a media kind + mime from the leading bytes of a ComfyUI output blob. */
-function sniffMedia(bytes: Uint8Array): {
-  kind: "image" | "audio" | "video";
-  mime: string;
-} {
+function sniffMedia(bytes: Uint8Array) {
   const b = bytes;
   // PNG
   if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
