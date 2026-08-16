@@ -11,7 +11,7 @@ import MuiPopover, {
 } from "@mui/material/Popover";
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
-import { isNumber, isObjectLike } from "../../utils/typePredicates";
+import { isNumber } from "../../utils/typePredicates";
 
 export type PopoverPlacement =
   | "bottom-left"
@@ -118,8 +118,10 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   // Only an object slot has props worth carrying; a function or callback slot
   // has nothing to spread.
   const paperSlotObject = typeof paperSlot === "object" ? paperSlot : undefined;
+  // `isObjectLike` would narrow to `Record<string, unknown>` and take `sx` down
+  // to `unknown` with it; the inline check keeps the slot's own type.
   const callerPaperSx =
-    paperSlot && isObjectLike(paperSlot) && "sx" in paperSlot
+    paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
       ? paperSlot.sx
       : undefined;
   const asArray = (s: SxProps<Theme> | undefined) =>
