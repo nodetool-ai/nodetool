@@ -138,7 +138,28 @@ export interface Shot {
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;
   notes?: string;
+  /**
+   * Ordered ids of the linked script's lines this shot covers. Only meaningful
+   * on a board whose {@link Screenplay.script_id} is set; a line belongs to at
+   * most one shot.
+   */
+  script_line_ids?: string[];
+  /**
+   * The linked line texts joined with "\n" as they were last projected into
+   * this shot. Compared against the live texts to detect drift — never read as
+   * content.
+   */
+  script_text_snapshot?: string;
+  /**
+   * Where {@link duration_seconds} comes from. `"audio"` (the default on a
+   * linked shot) derives it from the linked lines' takes; `"manual"` pins the
+   * user's own value and keeps audio from touching it.
+   */
+  duration_source?: ShotDurationSource;
 }
+
+/** Whether a shot's length follows its linked audio or a pinned user value. */
+export type ShotDurationSource = "audio" | "manual";
 
 /**
  * The direction artifact: a full screenplay a Director agent produces from a
@@ -162,6 +183,12 @@ export interface Screenplay {
   music_prompt?: string;
   /** Entities referenced anywhere in the screenplay. */
   entity_ids?: string[];
+  /**
+   * The script resource this board's words come from. The board references the
+   * script, never the reverse: line↔shot membership lives in the shots'
+   * {@link Shot.script_line_ids}.
+   */
+  script_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

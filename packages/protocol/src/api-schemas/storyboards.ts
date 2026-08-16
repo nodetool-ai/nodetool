@@ -25,7 +25,12 @@ export const storyboardShot = z
     motion: z.string().optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
-    clip: mediaRef.nullable().optional()
+    clip: mediaRef.nullable().optional(),
+    /** Ordered ids of the linked script's lines this shot covers. */
+    script_line_ids: z.array(z.string()).optional(),
+    /** Linked line texts as last projected, joined "\n" — drift only. */
+    script_text_snapshot: z.string().optional(),
+    duration_source: z.enum(["audio", "manual"]).optional()
   })
   .passthrough();
 export type StoryboardShot = z.infer<typeof storyboardShot>;
@@ -35,7 +40,9 @@ export const storyboardScreenplay = z
     type: z.literal("screenplay"),
     id: z.string(),
     title: z.string(),
-    shots: z.array(storyboardShot)
+    shots: z.array(storyboardShot),
+    /** The linked script resource, when this board's words come from one. */
+    script_id: z.string().nullable().optional()
   })
   .passthrough();
 export type StoryboardScreenplay = z.infer<typeof storyboardScreenplay>;
@@ -55,7 +62,10 @@ const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
   locationId: "location_id",
   keyframeVersions: "keyframe_versions",
   clipVersions: "clip_versions",
-  costEstimate: "cost_estimate"
+  costEstimate: "cost_estimate",
+  scriptLineIds: "script_line_ids",
+  scriptTextSnapshot: "script_text_snapshot",
+  durationSource: "duration_source"
 };
 
 /** Tool-surface screenplay key → wire key. `style` is the Director's alias. */
@@ -65,6 +75,7 @@ const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
   aspectRatio: "aspect_ratio",
   musicPrompt: "music_prompt",
   entityIds: "entity_ids",
+  scriptId: "script_id",
   createdAt: "created_at",
   updatedAt: "updated_at"
 };
