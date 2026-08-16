@@ -16,7 +16,7 @@ npm install @nodetool-ai/auth
 | --- | --- | --- |
 | `AuthProvider` | class | Base contract every auth provider implements |
 | `AuthResult` | type | Result of a token verification attempt |
-| `TokenType` | enum | Distinguishes access, refresh, and static tokens |
+| `TokenType` | enum | Distinguishes static and user tokens |
 | `LocalAuthProvider` | class | Single-user local auth (no external service) |
 | `StaticTokenProvider` | class | Shared static bearer token |
 | `MultiUserAuthProvider` | class | Multi-user auth backed by a user store |
@@ -42,14 +42,16 @@ import {
 } from "@nodetool-ai/auth";
 
 const authenticate = createAuthMiddleware({
-  staticProvider: new StaticTokenProvider(process.env.NODETOOL_TOKEN!),
+  // Omit the argument to read STATIC_AUTH_TOKEN / STATIC_AUTH_TOKENS from the
+  // environment, or pass a { token: userId } record directly.
+  staticProvider: new StaticTokenProvider({ [process.env.MY_TOKEN!]: "1" }),
   userProvider: new MultiUserAuthProvider({ /* ... */ }),
   enforceAuth: true
 });
 
 // In a request handler:
 const user = await authenticate(request);
-console.log(user.id);
+console.log(user.userId);
 ```
 
 ## Links
