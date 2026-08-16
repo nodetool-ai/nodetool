@@ -144,7 +144,7 @@ async function loadUserApplication(
 }
 
 /** A body number that is a finite positive value, or undefined. */
-function positive(value: unknown): number | undefined {
+function positive(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? value
     : undefined;

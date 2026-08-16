@@ -56,10 +56,10 @@ const SearchProviderSetupDialog: React.FC = () => {
   }, []);
 
   const handleCredentialChange = useCallback(
-    (field: string) => (e: unknown) => {
-      const target = e as { target: { value: string } };
-      setCredentials((prev) => ({ ...prev, [field]: target.target.value }));
-    },
+    (field: string) =>
+      (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setCredentials((prev) => ({ ...prev, [field]: e.target.value }));
+      },
     []
   );
 

@@ -54,7 +54,13 @@ const imageSourceMetadata = {
 
 const setupStore = (edges: Edge[]) => {
   asMock(useNodes).mockImplementation(
-    <T,>(selector: (s: unknown) => T) =>
+    <T,>(
+      selector: (s: {
+        edges: Edge[];
+        findNode: (id: string) => Node | undefined;
+        updateNodeData: jest.Mock;
+      }) => T
+    ) =>
       selector({
         edges,
         findNode: (id: string) => (id === "img-1" ? imageSourceNode : undefined),
@@ -62,7 +68,7 @@ const setupStore = (edges: Edge[]) => {
       })
   );
   asMock(useMetadataStore).mockImplementation(
-    <T,>(selector: (s: unknown) => T) =>
+    <T,>(selector: (s: { getMetadata: () => typeof imageSourceMetadata }) => T) =>
       selector({ getMetadata: () => imageSourceMetadata })
   );
 };

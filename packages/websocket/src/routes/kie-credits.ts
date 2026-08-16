@@ -10,15 +10,14 @@ interface KieCreditsJson {
 }
 
 /** UI expects `credit_balance: { amount, currency }` (see web `formatKieCredits`). */
-function normalizeKieCreditsBody(data: unknown) {
+function normalizeKieCreditsBody(data: KieCreditsJson | null) {
   if (data == null || typeof data !== "object") {
     return { credit_balance: null };
   }
-  const d = data as KieCreditsJson;
-  if (typeof d.data === "number" && Number.isFinite(d.data)) {
+  if (typeof data.data === "number" && Number.isFinite(data.data)) {
     return {
       credit_balance: {
-        amount: d.data,
+        amount: data.data,
         currency: "credits",
       },
     };

@@ -33,8 +33,9 @@ jest.mock("../../trpc/client", () => ({
 const mockAddNotification = jest.fn();
 jest.mock("../../stores/NotificationStore", () => ({
   __esModule: true,
-  useNotificationStore: <T,>(selector: (s: unknown) => T) =>
-    selector({ addNotification: mockAddNotification })
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: typeof mockAddNotification }) => T
+  ) => selector({ addNotification: mockAddNotification })
 }));
 
 // Default: no VITE_API_URL, i.e. local dev behind the Vite proxy.

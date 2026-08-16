@@ -905,7 +905,7 @@ function finalBlocks(
  *    `await tools.<name>({…})` and models turn that member expression into a
  *    top-level tool name. Without this the call reaches no tool at all.
  */
-function stripToolPrefix(name: unknown): string {
+function stripToolPrefix(name: string | undefined): string {
   let n = typeof name === "string" ? name : "";
   if (n.startsWith(TOOL_PREFIX)) n = n.slice(TOOL_PREFIX.length);
   if (n.startsWith(GUEST_TOOL_PREFIX)) n = n.slice(GUEST_TOOL_PREFIX.length);

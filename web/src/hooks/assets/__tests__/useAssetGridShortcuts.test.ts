@@ -24,7 +24,7 @@ jest.mock("../../../stores/KeyPressedStore", () => ({
 }));
 
 jest.mock("zustand/react/shallow", () => ({
-  useShallow: (selector: unknown) => selector
+  useShallow: <T,>(selector: T) => selector
 }));
 
 const storeState = {

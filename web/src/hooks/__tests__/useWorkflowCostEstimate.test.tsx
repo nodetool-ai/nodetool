@@ -27,8 +27,9 @@ const mockNodeStore = {
 };
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: <T,>(selector: (s: unknown) => T) =>
-    selector({ getNodeStore: () => mockNodeStore })
+  useWorkflowManager: <T,>(
+    selector: (s: { getNodeStore: () => typeof mockNodeStore }) => T
+  ) => selector({ getNodeStore: () => mockNodeStore })
 }));
 
 const mockMetadata: Record<string, unknown> = {

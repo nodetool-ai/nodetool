@@ -20,8 +20,9 @@ jest.mock("../../../hooks/useApplications", () => ({
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   tabId: (type: string, ref: string) => `${type}:${ref}`,
-  useWorkspaceTabsStore: <T,>(selector: (s: unknown) => T) =>
-    selector({ openTab, activeTabId: "application:app-1" })
+  useWorkspaceTabsStore: <T,>(
+    selector: (s: { openTab: jest.Mock; activeTabId: string }) => T
+  ) => selector({ openTab, activeTabId: "application:app-1" })
 }));
 
 import LinkedWorkflowsMenu from "../LinkedWorkflowsMenu";

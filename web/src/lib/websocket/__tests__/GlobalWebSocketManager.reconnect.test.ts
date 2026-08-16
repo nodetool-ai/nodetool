@@ -50,7 +50,7 @@ class FakeWebSocket {
   binaryType = "arraybuffer";
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose: ((event: FakeCloseEvent) => void) | null = null;
 
   constructor(public url: string) {

@@ -13,11 +13,13 @@ let mockNodeState: Record<string, unknown>;
 
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
-  default: <T,>(selector: (s: unknown) => T) => selector(mockMenuState)
+  default: <T,>(selector: (s: typeof mockMenuState) => T) =>
+    selector(mockMenuState)
 }));
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (s: unknown) => T) => selector(mockNodeState)
+  useNodes: <T,>(selector: (s: typeof mockNodeState) => T) =>
+    selector(mockNodeState)
 }));
 
 jest.mock("@xyflow/react", () => ({

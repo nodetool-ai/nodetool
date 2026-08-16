@@ -8,8 +8,8 @@ import { installGlobal } from "../../../test-utils/doubles";
 import type { WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
-  pack: jest.fn((msg: unknown) => msg),
-  unpack: jest.fn((buf: unknown) => buf)
+  pack: jest.fn(<T,>(msg: T) => msg),
+  unpack: jest.fn(<T,>(buf: T) => buf)
 }));
 
 interface FakeCloseEvent {
@@ -28,7 +28,7 @@ class FakeWebSocket {
   sent: unknown[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose: ((event: FakeCloseEvent) => void) | null = null;
 
   constructor(public url: string) {

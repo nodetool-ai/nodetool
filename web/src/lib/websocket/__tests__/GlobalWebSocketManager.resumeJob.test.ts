@@ -46,7 +46,7 @@ class FakeWebSocket {
   binaryType = "arraybuffer";
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: unknown }) => void) | null = null;
-  onerror: ((event: unknown) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
   onclose:
     | ((event: { code: number; reason: string; wasClean: boolean }) => void)
     | null = null;

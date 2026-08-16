@@ -20,7 +20,10 @@ import {
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
+import {
+  FileStorageAdapter,
+  type StorageAdapter
+} from "@nodetool-ai/storage";
 import {
   resourceEvents,
   type ResourceChangePayload
@@ -493,7 +496,10 @@ function getAssetStoragePath(): string {
  * `getPublicUrl` is adapter-specific, not part of the `StorageAdapter`
  * interface. Returns null when the adapter has no such method or it declines.
  */
-function getAdapterPublicUrl(adapter: unknown, uri: string): string | null {
+function getAdapterPublicUrl(
+  adapter: StorageAdapter,
+  uri: string
+): string | null {
   const fn = (adapter as { getPublicUrl?: (uri: string) => string | null })
     .getPublicUrl;
   if (typeof fn !== "function") return null;

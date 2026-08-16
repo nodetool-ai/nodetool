@@ -12,7 +12,8 @@ import type { Command } from "commander";
 import {
   getDefaultVectorProvider,
   splitDocument,
-  CollectionNotFoundError
+  CollectionNotFoundError,
+  type MetadataValue
 } from "@nodetool-ai/vectorstore";
 import { Workflow } from "@nodetool-ai/models";
 
@@ -29,7 +30,9 @@ function fail(e: unknown): never {
 }
 
 /** Resolve a workflow's name from an id, forgivingly (null on any failure). */
-async function workflowName(id: unknown): Promise<string | null> {
+async function workflowName(
+  id: MetadataValue | undefined
+): Promise<string | null> {
   if (typeof id !== "string" || !id) {
     return null;
   }

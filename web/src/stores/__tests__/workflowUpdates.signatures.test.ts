@@ -12,7 +12,7 @@ import type {
 } from "../ApiTypes";
 import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
-import { handleUpdate } from "../workflowUpdates";
+import { handleUpdate, type MsgpackData } from "../workflowUpdates";
 import {
   recordRunSignatures,
   getRunSignature,
@@ -56,10 +56,10 @@ beforeEach(() => {
   (clearRunSignatures as jest.Mock).mockClear();
 });
 
-const dispatch = (data: unknown) =>
+const dispatch = (data: MsgpackData) =>
   handleUpdate(
     mockWorkflow,
-    data as never,
+    data,
     mockRunnerStore as never,
     () => undefined
   );

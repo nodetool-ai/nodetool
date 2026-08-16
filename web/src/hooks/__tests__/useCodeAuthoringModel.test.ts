@@ -14,7 +14,8 @@ const mockCatalog: { models: LanguageModel[]; isLoading: boolean } = {
 
 jest.mock("../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: <T>(selector: (state: unknown) => T) => selector(mockChatState)
+  default: <T>(selector: (state: typeof mockChatState) => T) =>
+    selector(mockChatState)
 }));
 
 jest.mock("../useModelsByProvider", () => ({

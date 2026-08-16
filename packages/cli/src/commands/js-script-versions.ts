@@ -136,7 +136,7 @@ export function parseVersionDocument(raw: unknown): JsonValue {
 }
 
 /** Port and test counts of whatever a version stored. */
-export function documentCounts(document: unknown) {
+export function documentCounts(document: JsonValue | undefined) {
   const doc = (document ?? {}) as Record<string, unknown>;
   const count = (value: unknown): number =>
     Array.isArray(value) ? value.length : 0;

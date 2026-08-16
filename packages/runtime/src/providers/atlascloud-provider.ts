@@ -412,7 +412,7 @@ function resolveForField<T>(
 function setIfDeclared(
   input: Record<string, unknown>,
   info: ModelInfo,
-  value: unknown,
+  value: string | number | null | undefined,
   ...candidates: string[]
 ): void {
   if (value === undefined || value === null || value === "") return;
