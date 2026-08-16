@@ -2700,6 +2700,26 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_jsv_script");
       await db.execute("DROP TABLE IF EXISTS js_script_versions");
     }
+  },
+
+  // ── Link a script back to its storyboard ────────────────────────────
+  // The storyboard owns the link (it projects line text into shots); the
+  // script keeps a back-pointer so "open storyboard" works from the script
+  // editor, exactly like the existing timeline_id back-pointer.
+  {
+    version: "20260816_000000",
+    name: "add_storyboard_id_to_scripts",
+    createsTables: [],
+    modifiesTables: ["scripts"],
+    async up(db) {
+      if (!(await db.tableExists("scripts"))) return;
+      if (!(await db.columnExists("scripts", "storyboard_id"))) {
+        await db.execute("ALTER TABLE scripts ADD COLUMN storyboard_id TEXT");
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];
 
