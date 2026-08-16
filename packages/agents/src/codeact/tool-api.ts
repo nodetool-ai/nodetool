@@ -235,7 +235,7 @@ export function buildCoreProviderTools(options: {
   return options.tools.map((tool) => ({
     name: tool.name,
     description: tool.description,
-    inputSchema: tool.inputSchema as Record<string, unknown> | undefined,
+    inputSchema: tool.inputSchema,
     execute: async (
       args: Record<string, unknown>,
       toolCallId?: string

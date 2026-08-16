@@ -152,7 +152,7 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
   const size = Math.max(0, Math.min(100, Number(props.size ?? 0)));
   const rawType = String(props.blur_type ?? "gaussian");
   const blurType: BlurType = (BLUR_TYPES.find((t) => t.value === rawType)
-    ?.value ?? "gaussian") as BlurType;
+    ?.value ?? "gaussian");
 
   const previewValue = useNodeOutput(workflowId, id);
 

@@ -43,6 +43,6 @@ export function createInstanceHook<S>(
       replace
     )) as StoreApi<S>["setState"];
   hook.subscribe = ((listener: Listener) =>
-    pickCurrent().subscribe(listener)) as StoreApi<S>["subscribe"];
+    pickCurrent().subscribe(listener));
   return hook;
 }

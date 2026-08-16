@@ -860,7 +860,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
     const curDyn = {
       ...(props.data.dynamic_properties || {})
-    } as Record<string, unknown>;
+    };
     const curIn = { ...(props.data.dynamic_inputs || {}) };
     const curOut = { ...(props.data.dynamic_outputs || {}) };
 
@@ -1176,7 +1176,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
     // Standalone mode requires a persisted image_document id on the node.
     // Until the node is wired to a document (NOD-319), fall back to modal.
-    const imageDocumentId = (props.data.properties as Record<string, unknown>)
+    const imageDocumentId = props.data.properties
       ?.image_document_id;
     if (
       imageEditorOpenMode === "standalone" &&

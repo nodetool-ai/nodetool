@@ -209,7 +209,7 @@ function bufferToString(raw: Buffer | ArrayBuffer | Buffer[]): string {
   if (isString(raw)) return raw;
   if (Array.isArray(raw)) return Buffer.concat(raw).toString("utf8");
   if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString("utf8");
-  return (raw as Buffer).toString("utf8");
+  return raw.toString("utf8");
 }
 
 /** The process-wide extension bridge singleton. */

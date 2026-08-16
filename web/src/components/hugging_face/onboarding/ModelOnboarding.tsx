@@ -81,7 +81,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
 
   const groups = useMemo(() => {
     const caps =
-      filter === "all" ? availableCapabilities : [filter as OnboardingCapability];
+      filter === "all" ? availableCapabilities : [filter];
     return caps
       .map((capability) => {
         const entries = sortModelsByFit(

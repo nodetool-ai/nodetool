@@ -483,7 +483,7 @@ describe("gizmo viewport conversion", () => {
           x: 200,
           y: 100,
           toJSON: () => ({})
-        }) as DOMRect
+        })
     } as HTMLCanvasElement;
 
     const clientPt = { x: 340, y: 215 };

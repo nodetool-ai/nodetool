@@ -1443,7 +1443,7 @@ export const handleUpdate = (
             const raw = update.result;
             const outputs: Record<string, unknown> =
               isRecord(raw)
-                ? (raw as Record<string, unknown>)
+                ? raw
                 : raw !== undefined && raw !== null
                   ? { output: raw }
                   : {};

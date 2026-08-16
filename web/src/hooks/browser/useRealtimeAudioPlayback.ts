@@ -324,7 +324,7 @@ export const useRealtimeAudioPlayback = ({
       }
       const u8 = base64ToUint8Array(content);
       const encoding = (
-        chunk.content_metadata as { encoding?: unknown } | undefined
+        chunk.content_metadata
       )?.encoding;
       if (encoding === "f32le") {
         return new Float32Array(u8.buffer, u8.byteOffset, u8.byteLength / 4);
@@ -439,7 +439,7 @@ export const useRealtimeAudioPlayback = ({
         bytes -= 1;
       }
       const encoding = (
-        chunk.content_metadata as { encoding?: unknown } | undefined
+        chunk.content_metadata
       )?.encoding;
       const bytesPerSample = encoding === "f32le" ? 4 : 2;
       return Math.floor(bytes / bytesPerSample / channels) / sampleRate;

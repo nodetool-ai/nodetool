@@ -13,7 +13,6 @@ import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS, getSpacing
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
-import type { NodeData } from "../../stores/NodeData";
 
 const styles = (theme: Theme) =>
   css({
@@ -80,7 +79,7 @@ const AudioProperty = (props: PropertyProps) => {
   const findNode = useNodes((state) => state.findNode);
   const rfNode = findNode(props.nodeId);
   const inputNodeName =
-    ((rfNode?.data as NodeData | undefined)?.properties?.name as string) ||
+    (rfNode?.data?.properties?.name as string) ||
     props.nodeId;
   const [sampleRate, setSampleRate] = useState<number>(44100);
   const { isStreaming, toggle, stream, version } =

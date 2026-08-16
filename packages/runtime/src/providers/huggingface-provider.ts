@@ -443,9 +443,7 @@ export class HuggingFaceProvider extends BaseProvider {
       // usage on the terminal chunk. Record it, otherwise every streamed HF
       // call reports 0 tokens / $0 cost (the non-streaming path already tracks).
       const usage = (
-        chunk as {
-          usage?: { prompt_tokens?: number; completion_tokens?: number };
-        }
+        chunk
       )?.usage;
       if (usage) {
         this.trackUsage(args.model, {
@@ -559,7 +557,7 @@ export class HuggingFaceProvider extends BaseProvider {
     };
     const request: RequestFields = {
       model: params.model.id,
-      inputs: new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>])
+      inputs: new Blob([new Uint8Array(image)])
     };
     if (Object.keys(parameters).length > 0) {
       request.parameters = parameters;
@@ -622,7 +620,7 @@ export class HuggingFaceProvider extends BaseProvider {
     };
     const request: RequestFields3 = {
       model: args.model,
-      data: new Blob([new Uint8Array(args.audio) as Uint8Array<ArrayBuffer>])
+      data: new Blob([new Uint8Array(args.audio)])
     };
     if (args.word_timestamps) {
       request.parameters = { return_timestamps: true };

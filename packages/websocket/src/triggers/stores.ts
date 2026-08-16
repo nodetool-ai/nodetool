@@ -118,7 +118,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
       orderBy: (t, { asc }) => asc(t.created_at),
       limit
     });
-    return rows.map((r) => toTriggerInput(r as TriggerInputRow));
+    return rows.map((r) => toTriggerInput(r));
   }
 
   async markProcessed(inputId: string): Promise<void> {
@@ -144,7 +144,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
         )
     });
     for (const row of rows) {
-      await new TriggerInput(row as Record<string, unknown>).delete();
+      await new TriggerInput(row).delete();
     }
     return rows.length;
   }
@@ -161,7 +161,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
       where: (t, { eq }) => eq(t.run_id, runId)
     });
     for (const row of rows) {
-      await new TriggerInput(row as Record<string, unknown>).delete();
+      await new TriggerInput(row).delete();
     }
   }
 }
@@ -174,7 +174,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
     const row = await getDb().query.runInboxMessages.findFirst({
       where: (t, { eq }) => eq(t.message_id, messageId)
     });
-    return row ? new RunInboxMessage(row as Record<string, unknown>) : null;
+    return row ? new RunInboxMessage(row) : null;
   }
 
   async findByMessageId(messageId: string): Promise<DurableMessage | null> {
@@ -216,7 +216,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
       orderBy: (t, { asc }) => asc(t.msg_seq),
       limit
     });
-    return rows.map((r) => toDurableMessage(r as RunInboxMessageRow));
+    return rows.map((r) => toDurableMessage(r));
   }
 
   async getMaxSeq(
@@ -252,7 +252,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
         )
     });
     for (const row of rows) {
-      await new RunInboxMessage(row as Record<string, unknown>).delete();
+      await new RunInboxMessage(row).delete();
     }
     return rows.length;
   }

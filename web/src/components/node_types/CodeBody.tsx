@@ -200,7 +200,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
 
   const storeCode =
     isString(data.properties?.code)
-      ? (data.properties.code as string)
+      ? data.properties.code
       : "";
 
   const [value, setValue] = useState(storeCode);
@@ -308,7 +308,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         id,
         deriveCodeIOUpdates(
           code,
-          (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+          node?.data?.dynamic_properties || {},
           node?.data?.dynamic_outputs || {}
         )
       );
@@ -362,7 +362,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           id,
           deriveCodeIOUpdates(
             next,
-            (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+            node?.data?.dynamic_properties || {},
             node?.data?.dynamic_outputs || {}
           )
         );

@@ -275,7 +275,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           id,
           deriveCodeIOUpdates(
             value,
-            (node?.data?.dynamic_properties || {}) as Record<string, unknown>,
+            node?.data?.dynamic_properties || {},
             node?.data?.dynamic_outputs || {}
           )
         );
@@ -434,7 +434,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     handleUpdatePropertyType
   } = useDynamicProperty(
     id,
-    (data?.dynamic_properties as Record<string, unknown>) || {}
+    data?.dynamic_properties || {}
   );
 
   const handleNameSubmit = useCallback(

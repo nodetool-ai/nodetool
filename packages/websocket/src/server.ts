@@ -552,13 +552,7 @@ async function probeWorkerHealth(
 function logPythonBridgeDiagnostics(context: string): void {
   const loadErrors =
     (
-      localBridge as {
-        getLoadErrors?: () => Array<{
-          module: string;
-          phase: string;
-          error: string;
-        }>;
-      }
+      localBridge
     ).getLoadErrors?.() ?? [];
   if (loadErrors.length === 0) return;
   log.warn(`Python bridge ${context} with ${loadErrors.length} load error(s)`);
@@ -989,7 +983,7 @@ function listRegistryRecommendedModels(): UnifiedModel[] {
           provider:
             parsed.data.provider == null
               ? undefined
-              : (parsed.data.provider as UnifiedModel["provider"])
+              : parsed.data.provider
         });
       }
     }
@@ -1179,10 +1173,10 @@ await app.register(fastifyTRPCPlugin, {
       // Surface inner ZodError details (output validation failures) so callers
       // can diagnose the offending fields instead of seeing only "Output
       // validation failed".
-      const cause = (error as { cause?: unknown }).cause;
+      const cause = error.cause;
       if (isObjectLike(cause) && "issues" in cause) {
         log.error(
-          `tRPC error cause on ${path}: ${JSON.stringify((cause as { issues: unknown }).issues)}`
+          `tRPC error cause on ${path}: ${JSON.stringify(cause.issues)}`
         );
       }
     }
@@ -1224,17 +1218,7 @@ await app.register(websocketPlugin, {
       `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
     );
     (
-      pythonBridge as {
-        getWorkerStatus?: () => Promise<{
-          protocol_version: number;
-          node_count: number;
-          provider_count: number;
-          namespaces: string[];
-          transport: string;
-          max_frame_size: number;
-          load_errors: Array<unknown>;
-        }>;
-      }
+      pythonBridge
     )
       .getWorkerStatus?.()
       ?.then((status) => {
@@ -1336,7 +1320,7 @@ if (!isProduction) {
         : requestBody,
       // `duplex` is required by Node's fetch when streaming bodies but is
       // missing from some `@types/node`/`undici-types` versions of RequestInit.
-      ...({ duplex: "half" } as object)
+      ...({ duplex: "half" })
     } as RequestInit);
 
     // This mount is non-production only (see the isProduction guard above)
@@ -1559,17 +1543,7 @@ if (pythonBridge.isAvailable()) {
         `Python bridge connected [${startupMs()}] — ${mergeResult.total} Python nodes (${mergeResult.bridgeOnly} bridge-only, ${mergeResult.alreadyKnown} already registered)`
       );
       (
-        pythonBridge as {
-          getWorkerStatus?: () => Promise<{
-            protocol_version: number;
-            node_count: number;
-            provider_count: number;
-            namespaces: string[];
-            transport: string;
-            max_frame_size: number;
-            load_errors: Array<unknown>;
-          }>;
-        }
+        pythonBridge
       )
         .getWorkerStatus?.()
         ?.then((status) => {

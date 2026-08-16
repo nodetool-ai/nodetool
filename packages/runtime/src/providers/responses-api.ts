@@ -3,7 +3,6 @@ import type {
   Message,
   MessageContent,
   MessageImageContent,
-  MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
   ToolCall
@@ -34,11 +33,11 @@ export async function responseInputContent(
   resolveUri: (uri: string) => Promise<string>
 ): Promise<Record<string, unknown> | null> {
   if (content.type === "text") {
-    return { type: "input_text", text: (content as MessageTextContent).text };
+    return { type: "input_text", text: content.text };
   }
 
   if (content.type === "image_url") {
-    const image = (content as MessageImageContent).image;
+    const image = content.image;
     if (image.uri) {
       const resolved = await resolveUri(image.uri);
       return { type: "input_image", image_url: resolved };

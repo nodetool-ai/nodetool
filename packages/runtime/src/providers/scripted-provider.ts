@@ -15,7 +15,6 @@
  */
 
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -23,7 +22,7 @@ const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
 );
 const randomUUID = (): string => {
   if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
-  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  const g = globalThis;
   if (g.crypto?.randomUUID) return g.crypto.randomUUID();
   return `id_${Date.now().toString(36)}_${Math.random()
     .toString(36)
@@ -92,7 +91,7 @@ export class ScriptedProvider extends BaseProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if ("type" in item && (item as { type: string }).type === "chunk") {
+      if ("type" in item && item.type === "chunk") {
         content += (item as { content?: string }).content ?? "";
       } else if ("id" in item && "name" in item && "args" in item) {
         toolCalls.push(item);
@@ -127,7 +126,7 @@ export class ScriptedProvider extends BaseProvider {
           content: item.content,
           done: item.done ?? index === items.length - 1,
           content_type: "text"
-        } as Chunk;
+        };
       } else {
         // tool_call
         yield {

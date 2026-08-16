@@ -83,7 +83,7 @@ class SearchErrorBoundary extends Component<
   };
 
   render() {
-    const theme = this.context as Theme;
+    const theme = this.context;
     const boundaryStyles = searchErrorBoundaryStyles(theme);
 
     if (this.state.hasError) {

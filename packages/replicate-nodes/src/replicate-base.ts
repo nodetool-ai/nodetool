@@ -165,7 +165,7 @@ async function uploadBytesToReplicate(
   filename: string
 ): Promise<string> {
   const client = getClient(apiKey);
-  const blob = new Blob([bytes.slice().buffer as ArrayBuffer], {
+  const blob = new Blob([bytes.slice().buffer], {
     type: contentType
   });
   const file = await client.files.create(blob, { filename });
@@ -251,7 +251,7 @@ function extractUrlFromValue(value: unknown): string | null {
 
   // FileOutput: a `.url()` method or a `.url` string property.
   if ("url" in value) {
-    const u = (value as { url: unknown }).url;
+    const u = value.url;
     if (typeof u === "function") {
       // The Replicate SDK's FileOutput exposes `url()`, which returns a URL.
       const resolved = (u as () => URL | string).call(value);

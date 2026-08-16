@@ -45,7 +45,7 @@ import Logo from "../Logo";
 jest.spyOn(global.Math, "random").mockReturnValue(0);
 
 afterAll(() => {
-  (Math.random as jest.Mock).mockRestore();
+  jest.mocked(Math.random).mockRestore();
 });
 
 describe("Logo", () => {

@@ -97,7 +97,7 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
 
   const currentName =
     isString(data.properties?.name)
-      ? (data.properties.name as string)
+      ? data.properties.name
       : "";
 
   const graphVariableNames = useGraphVariableNames();

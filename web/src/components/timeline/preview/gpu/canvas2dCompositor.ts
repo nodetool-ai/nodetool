@@ -300,7 +300,7 @@ function clipRoundedRect(
  * rebuilding it per layer per frame. The outer WeakMap is keyed on the clip
  * effects array; the inner on the track effects array.
  */
-const FILTER_NONE_KEY = Object.freeze([]) as readonly never[];
+const FILTER_NONE_KEY = Object.freeze([]);
 const filterCache = new WeakMap<
   object,
   WeakMap<object, string>

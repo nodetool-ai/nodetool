@@ -68,7 +68,7 @@ export class TriggerRegistration extends DBModel {
       )
       .orderBy(asc(triggerRegistrations.created_at));
     return rows.map(
-      (r) => new TriggerRegistration(r as Record<string, unknown>)
+      (r) => new TriggerRegistration(r)
     );
   }
 
@@ -82,7 +82,7 @@ export class TriggerRegistration extends DBModel {
       .where(eq(triggerRegistrations.workflow_id, workflowId))
       .orderBy(asc(triggerRegistrations.created_at));
     return rows.map(
-      (r) => new TriggerRegistration(r as Record<string, unknown>)
+      (r) => new TriggerRegistration(r)
     );
   }
 
@@ -94,7 +94,7 @@ export class TriggerRegistration extends DBModel {
       .where(eq(triggerRegistrations.user_id, userId))
       .orderBy(asc(triggerRegistrations.created_at));
     return rows.map(
-      (r) => new TriggerRegistration(r as Record<string, unknown>)
+      (r) => new TriggerRegistration(r)
     );
   }
 }

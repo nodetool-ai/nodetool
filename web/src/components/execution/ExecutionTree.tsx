@@ -474,7 +474,7 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = ({ call }) => {
   const args = call.args;
   const codeArg =
     call.name === "execute_code" && isString(args?.["code"])
-      ? formatJavaScriptForDisplay(args["code"] as string)
+      ? formatJavaScriptForDisplay(args["code"])
       : null;
   const argsText = useMemo(
     () =>

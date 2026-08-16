@@ -25,7 +25,7 @@ function readNumericField(
     return direct;
   }
   if (meta && typeof meta[field] === "number" && Number.isFinite(meta[field])) {
-    return meta[field] as number;
+    return meta[field];
   }
   return undefined;
 }

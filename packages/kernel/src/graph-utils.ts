@@ -129,7 +129,7 @@ export function isNodeBypassed(node: NodeDescriptor): boolean {
   const ui = node.ui_properties;
   // Stryker disable next-line ConditionalExpression: the `typeof ui !== "object"` operand is equivalent to drop — a truthy non-object (string/number) never throws on `.bypassed` and still yields `=== true → false`
   if (!isObjectValue(ui)) return false;
-  return (ui as Record<string, unknown>).bypassed === true;
+  return ui.bypassed === true;
 }
 
 /**
@@ -165,11 +165,11 @@ export function getInputTypeString(
   // typesCompatible() keeps treating it as `any`.
   const fromSlot = getDynamicSlotTypeString(node, handle);
   if (fromSlot) return fromSlot;
-  const props = node.properties as Record<string, unknown> | undefined;
+  const props = node.properties;
   if (props) {
     const val = props[handle];
     if (isObjectValue(val) && "type" in val) {
-      const t = (val as { type: unknown }).type;
+      const t = val.type;
       // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `t` vs undefined are indistinguishable downstream (typesCompatible treats both as compatible)
       if (isString(t)) return t;
     }

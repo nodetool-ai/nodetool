@@ -167,7 +167,7 @@ export async function* runSubAgent(
     for await (const msg of executor.execute()) {
       yield msg;
       if (msg.type === "step_result") {
-        const settled = settleStepResult(msg as StepResult, {
+        const settled = settleStepResult(msg, {
           hasOutputSchema: Boolean(opts.outputSchema)
         });
         if (settled) outcome = settled;
@@ -452,7 +452,7 @@ export abstract class SubAgentTool extends Tool {
 
     const parentToolCallId =
       isString(params[TOOL_CALL_ID_FIELD])
-        ? (params[TOOL_CALL_ID_FIELD] as string)
+        ? params[TOOL_CALL_ID_FIELD]
         : null;
 
     const gen = runSubAgent({

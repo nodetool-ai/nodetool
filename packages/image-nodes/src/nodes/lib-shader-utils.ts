@@ -301,7 +301,7 @@ export async function runShaderNode(
     device.queue.submit([encoder.finish()]);
 
     if (keepOnGpu) {
-      trackRunTexture(runId as string, output);
+      trackRunTexture(runId, output);
       handedOff = true;
       return gpuTextureImageRef(output, dims.width, dims.height);
     }
@@ -402,7 +402,7 @@ export async function runRecipeNode(
     device.queue.submit([encoder.finish()]);
 
     if (keepOnGpu) {
-      trackRunTexture(runId as string, output);
+      trackRunTexture(runId, output);
       handedOff = true;
       return gpuTextureImageRef(output, dims.width, dims.height);
     }

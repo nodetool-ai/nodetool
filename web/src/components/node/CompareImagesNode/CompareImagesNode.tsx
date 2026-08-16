@@ -141,7 +141,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
         return null;
       }
       const record = value as Record<string, unknown>;
-      if ((record as { type?: string }).type === "image_comparison") {
+      if (record.type === "image_comparison") {
         // SAFETY: the `type === "image_comparison"` tag above is what the
         // CompareImages node stamps on this record; its two image refs and
         // labels are all optional here, so nothing else is being assumed.

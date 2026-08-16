@@ -52,7 +52,7 @@ import ChatView from "../chat/containers/ChatView";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
-import type { LanguageModel, Message } from "../../stores/ApiTypes";
+import type { Message } from "../../stores/ApiTypes";
 import { useEditorMode } from "../../hooks/editor/useEditorMode";
 import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
 import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
@@ -1165,7 +1165,7 @@ const TextEditorModal = ({
 
   const breadcrumbItems = useMemo(() => {
     const nodeLabel = humanizeNodeType(nodeType);
-    return [nodeLabel, "inputs", propertyName].filter(Boolean) as string[];
+    return [nodeLabel, "inputs", propertyName].filter(Boolean);
   }, [nodeType, propertyName]);
 
   const typeLabel = propertyType
@@ -1615,7 +1615,7 @@ const TextEditorModal = ({
                       sendMessage={sendMessage}
                       progressMessage={runtime.statusMessage}
                       model={
-                        (selectedModel as LanguageModel) || {
+                        selectedModel || {
                           type: "language_model",
                           provider: "empty",
                           id: DEFAULT_MODEL,

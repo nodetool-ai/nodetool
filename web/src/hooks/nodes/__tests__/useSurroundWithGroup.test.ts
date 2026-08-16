@@ -77,12 +77,12 @@ describe("useSurroundWithGroup", () => {
       height: 200
     } as any);
 
-    (useNodes as jest.Mock).mockReturnValue({
+    jest.mocked(useNodes).mockReturnValue({
       createNode: mockCreateNode,
       setNodes: mockSetNodes
     });
 
-    (useTemporalNodes as jest.Mock).mockReturnValue({
+    jest.mocked(useTemporalNodes).mockReturnValue({
       pause: mockPause,
       resume: mockResume
     });

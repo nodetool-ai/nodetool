@@ -39,7 +39,7 @@ export const LIST_ASSETS_SCHEMA: JsonSchema = {
       default: 100
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const SAVE_ASSET_SCHEMA: JsonSchema = {
@@ -66,7 +66,7 @@ export const SAVE_ASSET_SCHEMA: JsonSchema = {
         "MIME type (e.g. 'text/markdown', 'application/json', 'image/png'). Defaults to text/plain for text and application/octet-stream for binary."
     }
   },
-  required: ["name"] as string[]
+  required: ["name"]
 };
 
 export const ASSET_SEARCH_SCHEMA: JsonSchema = {
@@ -87,7 +87,7 @@ export const ASSET_SEARCH_SCHEMA: JsonSchema = {
       description: `Maximum results (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).`
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const ASSET_LIST_SCHEMA: JsonSchema = {
@@ -104,7 +104,7 @@ export const ASSET_LIST_SCHEMA: JsonSchema = {
       description: `Maximum results (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).`
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const LIST_IMAGES_SCHEMA = z
@@ -215,7 +215,7 @@ export const readAssetSpec: CapabilitySpec = {
           "What to read: an asset:// URI, an asset id, a /api/storage/ key, or a stored file name."
       }
     },
-    required: ["name"] as string[]
+    required: ["name"]
   },
   category: "read",
   userMessage: (params) => {

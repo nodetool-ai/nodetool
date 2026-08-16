@@ -59,7 +59,7 @@ function altResizeFromCenterModifier(e: React.PointerEvent): boolean {
   if (isFunction(e.getModifierState) && e.getModifierState("Alt")) {
     return true;
   }
-  const ne = e.nativeEvent as PointerEvent;
+  const ne = e.nativeEvent;
   if (isFunction(ne.getModifierState) && ne.getModifierState("Alt")) {
     return true;
   }

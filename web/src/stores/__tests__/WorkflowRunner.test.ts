@@ -198,7 +198,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("transitions to error state on connection failure", async () => {
-      (globalWebSocketManager.ensureConnection as jest.Mock).mockRejectedValueOnce(
+      jest.mocked(globalWebSocketManager.ensureConnection).mockRejectedValueOnce(
         new Error("Connection failed")
       );
 
@@ -413,7 +413,7 @@ describe("WorkflowRunner", () => {
 
     it("submits both the active and the queued run when called consecutively", async () => {
       let resolveConnection!: () => void;
-      (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementationOnce(
+      jest.mocked(globalWebSocketManager.ensureConnection).mockImplementationOnce(
         () =>
           new Promise<void>((resolve) => {
             resolveConnection = resolve;
@@ -454,7 +454,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("does not treat a live in-browser run as stuck when the socket is closed", async () => {
-      (globalWebSocketManager.isConnectionOpen as jest.Mock).mockReturnValueOnce(
+      jest.mocked(globalWebSocketManager.isConnectionOpen).mockReturnValueOnce(
         false
       );
       store.setState({
@@ -472,7 +472,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("recovers a stuck server run when the socket is closed", async () => {
-      (globalWebSocketManager.isConnectionOpen as jest.Mock).mockReturnValueOnce(
+      jest.mocked(globalWebSocketManager.isConnectionOpen).mockReturnValueOnce(
         false
       );
       store.setState({

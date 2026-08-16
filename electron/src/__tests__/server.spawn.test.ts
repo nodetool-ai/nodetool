@@ -67,7 +67,7 @@ describe("backend utilityProcess spawn contract", () => {
   });
 
   beforeEach(() => {
-    (electronMock.utilityProcess.fork as jest.Mock).mockClear();
+    jest.mocked(electronMock.utilityProcess.fork).mockClear();
   });
 
   test("Watchdog accepts the env shape server.ts builds for the backend", async () => {

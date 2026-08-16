@@ -74,7 +74,7 @@ class OffsetNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformOffsetV1,
       {
@@ -107,7 +107,7 @@ class PadNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const src = await imageDims(props.image, context);
     let opts: RunShaderOptions = {};
     if (src) {
@@ -152,7 +152,7 @@ class TileNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformTileV1,
       {
@@ -187,7 +187,7 @@ class AffineNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const w = num(props.target_width, 0);
     const h = num(props.target_height, 0);
     // Resolve each dimension independently so a single specified target
@@ -242,7 +242,7 @@ class CornerPinNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformCornerPinV1,
       {
@@ -277,7 +277,7 @@ class PolarRemapNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformPolarRemapV1,
       { mode: num(props.mode, 0) },
@@ -300,7 +300,7 @@ class DisplaceNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformDisplaceV1,
       {
@@ -340,7 +340,7 @@ class SpherizeNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       transformSpherizeV1,
       { amount: num(props.amount, 0.5) },

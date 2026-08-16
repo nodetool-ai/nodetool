@@ -28,8 +28,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type {
   BaseProvider,
-  Message,
-  MessageContent
+  Message
 } from "@nodetool-ai/runtime";
 import { extractJSON } from "./utils/json-parser.js";
 import type { PermissionCategory } from "./tools/tool-permissions.js";
@@ -124,13 +123,13 @@ function extractText(content: Message["content"]): string {
   if (isString(content)) return content;
   if (Array.isArray(content)) {
     const parts: string[] = [];
-    for (const part of content as MessageContent[]) {
+    for (const part of content) {
       if (
         isObjectLike(part) &&
         "text" in part &&
-        isString((part as { text?: unknown }).text)
+        isString(part.text)
       ) {
-        parts.push((part as { text: string }).text);
+        parts.push(part.text);
       }
     }
     return parts.join("");
@@ -233,7 +232,7 @@ export function parseVerdict(text: string): SecurityVerdict | null {
   const scanned = findVerdictObject(trimmed);
   const parsed = scanned ?? extractJSON(trimmed);
   if (isRecord(parsed)) {
-    const obj = parsed as Record<string, unknown>;
+    const obj = parsed;
     if ("block" in obj || "tier" in obj) {
       const tier = coerceTier(obj["tier"]);
       // Fail safe: block when `block` is truthy OR the tier is non-"none". A

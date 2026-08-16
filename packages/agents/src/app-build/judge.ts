@@ -265,7 +265,7 @@ function extractText(content: Message["content"]): string {
   return content
     .map((part) =>
       isObjectLike(part) && "text" in part
-        ? String((part as { text: unknown }).text ?? "")
+        ? String(part.text ?? "")
         : ""
     )
     .join("");
@@ -322,7 +322,7 @@ export async function judgeInteraction(
             role: "user",
             content: renderJudgePrompt(opts.spec, opts.input, opts.prompt)
           }
-        ] as Message[],
+        ],
         model: opts.model,
         tools: [],
         maxTokens: JUDGE_MAX_TOKENS,

@@ -40,13 +40,13 @@ function filterIO(
 }
 
 function slotName(node: WorkflowNode): string {
-  const props = (node.properties ?? node.data ?? {}) as Record<string, unknown>;
+  const props = node.properties ?? node.data ?? {};
   if (isNonEmptyString(props["name"])) return props["name"];
   return node.id ?? (node.type ?? "unknown");
 }
 
 function slotDescription(node: WorkflowNode): string {
-  const props = (node.properties ?? node.data ?? {}) as Record<string, unknown>;
+  const props = node.properties ?? node.data ?? {};
   if (isString(props["description"])) return props["description"];
   return "";
 }

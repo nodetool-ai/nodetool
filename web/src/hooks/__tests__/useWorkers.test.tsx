@@ -30,14 +30,14 @@ import { trpcClient } from "../../trpc/client";
 import { useWorkers } from "../useWorkers";
 import type { WorkerInstance, WorkerProfile } from "../useWorkers";
 
-const mockProfilesList = trpcClient.worker.profiles.list.query as jest.Mock;
-const mockProfilesCreate = trpcClient.worker.profiles.create.mutate as jest.Mock;
-const mockProfilesDelete = trpcClient.worker.profiles.delete.mutate as jest.Mock;
-const mockInstancesList = trpcClient.worker.instances.list.query as jest.Mock;
-const mockProvision = trpcClient.worker.provision.mutate as jest.Mock;
-const mockStop = trpcClient.worker.stop.mutate as jest.Mock;
-const mockAttach = trpcClient.worker.attach.mutate as jest.Mock;
-const mockDetach = trpcClient.worker.detach.mutate as jest.Mock;
+const mockProfilesList = jest.mocked(trpcClient.worker.profiles.list.query);
+const mockProfilesCreate = jest.mocked(trpcClient.worker.profiles.create.mutate);
+const mockProfilesDelete = jest.mocked(trpcClient.worker.profiles.delete.mutate);
+const mockInstancesList = jest.mocked(trpcClient.worker.instances.list.query);
+const mockProvision = jest.mocked(trpcClient.worker.provision.mutate);
+const mockStop = jest.mocked(trpcClient.worker.stop.mutate);
+const mockAttach = jest.mocked(trpcClient.worker.attach.mutate);
+const mockDetach = jest.mocked(trpcClient.worker.detach.mutate);
 
 const makeProfile = (overrides: Partial<WorkerProfile> = {}) => ({
   id: "p-1",

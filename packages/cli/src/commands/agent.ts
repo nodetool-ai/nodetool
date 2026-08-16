@@ -292,7 +292,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
     for await (const msg of agent.execute(ctx)) {
       traceEvent(msg, traceOpts);
       if (msg.type === "step_result") {
-        const sr = msg as { result: unknown; is_task_result?: boolean };
+        const sr = msg;
         if (sr.is_task_result) {
           finalText =
             isString(sr.result)
@@ -396,18 +396,12 @@ async function fetchJob(
       // large batches stay under reverse-proxy URL-length limits. See #3979.
       links: [httpBatchLink({ url: `${apiUrl}/trpc`, methodOverride: "POST" })]
     });
-    const data = (await client.jobs.get.query({ id: jobId })) as Record<
-      string,
-      unknown
-    >;
+    const data = await client.jobs.get.query({ id: jobId });
     return {
       id: isString(data["id"]) ? data["id"] : jobId,
-      status:
-        isString(data["status"]) ? data["status"] : undefined,
-      error:
-        isString(data["error"]) ? data["error"] : null,
-      workflowId:
-        isString(data["workflow_id"]) ? data["workflow_id"] : null
+      status: isString(data["status"]) ? data["status"] : undefined,
+      error: isString(data["error"]) ? data["error"] : null,
+      workflowId: isString(data["workflow_id"]) ? data["workflow_id"] : null
     };
   } catch {
     // Server unreachable or job missing — diagnose degrades on a null job.

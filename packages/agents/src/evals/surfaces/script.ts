@@ -28,6 +28,7 @@ import { deriveShotScaffold, joinLineTexts } from "@nodetool-ai/protocol";
 import {
   assembleSubtitleCues,
   formatSubtitles,
+  type ScriptAssemblyInput,
   type SubtitleEntry,
   type SubtitleFormat,
   type SubtitleGranularity
@@ -59,6 +60,9 @@ interface ScriptTakeWord {
 
 /** A recorded voicing of a line. */
 interface ScriptTake {
+  id: string;
+  /** Stands in for the stored audio asset; assembly refuses a take without one. */
+  assetId: string;
   durationMs: number;
   words: ScriptTakeWord[];
 }
@@ -112,10 +116,23 @@ export interface ScriptBridgeFinalState {
     status: "draft" | "voiced" | "stale";
     takeCount: number;
   }[];
+  /**
+   * The script in the shape the pure assemblers take, so a host can hand this
+   * bridge's state straight to `buildScriptTimeline` / `buildLinkedTimeline`.
+   * The reduced `lines` above are what predicates read; this carries the takes
+   * and word timings they drop. The creative-pipeline bridge assembles from it.
+   */
+  assembly: ScriptAssemblyInput;
 }
 
 const MIN_TAKE_DURATION_MS = 500;
 const MS_PER_WORD = 350;
+
+/**
+ * Timestamp stamped on every simulated take. Fixed rather than `now()` so two
+ * runs of the same script produce byte-identical assembly input.
+ */
+const TAKE_CREATED_AT = "2026-01-01T00:00:00.000Z";
 
 function tool<TResult>(
   name: string,
@@ -269,10 +286,15 @@ export function createScriptToolBridge(
       startMs: Math.round(i * perWordMs),
       endMs: Math.round((i + 1) * perWordMs)
     }));
-    line.currentTake = { durationMs, words: timedWords };
+    takeSeq += 1;
+    line.currentTake = {
+      id: `take_${takeSeq}`,
+      assetId: `asset_${takeSeq}`,
+      durationMs,
+      words: timedWords
+    };
     line.status = "voiced";
     line.takeCount += 1;
-    takeSeq += 1;
   };
 
   const canVoice = (line: InternalLine): boolean =>
@@ -570,7 +592,42 @@ export function createScriptToolBridge(
         text: l.text,
         status: l.status,
         takeCount: l.takeCount
-      }))
+      })),
+      assembly: {
+        scriptId: "script_1",
+        cast: cast.map((s) => ({
+          id: s.id,
+          name: s.name,
+          voice: s.voice
+        })),
+        sections: [
+          {
+            id: "section_1",
+            title,
+            lines: lines.map((l) => ({
+              id: l.id,
+              speakerId: l.speakerId,
+              text: l.text,
+              direction: l.direction,
+              pauseAfterMs: l.pauseAfterMs,
+              currentTakeId: l.currentTake?.id ?? null,
+              takes: l.currentTake
+                ? [
+                    {
+                      id: l.currentTake.id,
+                      assetId: l.currentTake.assetId,
+                      durationMs: l.currentTake.durationMs,
+                      words: l.currentTake.words,
+                      textSnapshot: l.text,
+                      voiceSnapshot: effectiveVoice(l),
+                      createdAt: TAKE_CREATED_AT
+                    }
+                  ]
+                : []
+            }))
+          }
+        ]
+      }
     })
   };
 }

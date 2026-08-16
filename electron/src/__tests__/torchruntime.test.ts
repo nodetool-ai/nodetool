@@ -9,10 +9,10 @@ jest.mock("../events");
 // The real config module; only the interpreter path is stubbed.
 const mockGetPythonPath = jest.spyOn(config, "getPythonPath");
 
-// SAFETY: `child_process` is jest-mocked in this file, so `spawn` is a
-// `jest.fn()`; the tests hand it stub processes with only the stdout/stderr/
-// exit listeners `detectTorchPlatform` subscribes to.
-const mockSpawn = spawn as jest.Mock;
+// `child_process` is jest-mocked in this file. The tests hand `spawn` stub
+// processes carrying only the stdout/stderr/exit listeners
+// `detectTorchPlatform` subscribes to.
+const mockSpawn = jest.mocked(spawn);
 
 describe("torchruntime", () => {
   beforeEach(() => {

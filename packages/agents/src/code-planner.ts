@@ -14,8 +14,7 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  Message,
-  ToolCall
+  Message
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
@@ -203,7 +202,7 @@ export class CodePlanner {
       roundsSpent++;
       const result = await Tool.executeTool(
         tool,
-        (context ?? ({} as ProcessingContext)) as ProcessingContext,
+        (context ?? ({} as ProcessingContext)),
         args ?? {}
       );
       const resultStr = JSON.stringify(result);
@@ -244,8 +243,8 @@ export class CodePlanner {
       for await (const item of stream) {
         while (pending.length > 0) yield pending.shift()!;
         if ("id" in item && "name" in item && "args" in item) {
-          const call = item as ToolCall;
-          const args = (call.args as Record<string, unknown>) ?? {};
+          const call = item;
+          const args = call.args ?? {};
           yield {
             type: "tool_call_update",
             node_id: NODE_ID,
@@ -256,7 +255,7 @@ export class CodePlanner {
           } satisfies ToolCallUpdate;
           continue;
         }
-        if ("type" in item && (item as { type?: string }).type === "chunk") {
+        if ("type" in item && item.type === "chunk") {
           const chunk = item as { content?: string; done?: boolean };
           if (chunk.content && !chunk.done) {
             yield {

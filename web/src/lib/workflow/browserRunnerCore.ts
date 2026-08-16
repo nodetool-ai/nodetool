@@ -14,9 +14,7 @@ import type { WorkflowGraph } from "../../stores/ApiTypes";
 import { Buffer } from "buffer";
 import { isFunction, isString } from "../../utils/typePredicates";
 
-const browserGlobal = globalThis as typeof globalThis & {
-  Buffer?: typeof Buffer;
-};
+const browserGlobal = globalThis;
 if (typeof browserGlobal.Buffer === "undefined") {
   browserGlobal.Buffer = Buffer;
 }
@@ -254,7 +252,7 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
   const wfImport = await importOptional(
     () => import("@nodetool-ai/workflow-runner/browser")
   );
-  const wf = wfImport.mod as WorkflowRunnerModule | null;
+  const wf = wfImport.mod;
   if (!wf) {
     throw new Error(
       `workflow-runner browser module failed to load: ${String(wfImport.error)}`

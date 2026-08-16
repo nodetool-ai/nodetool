@@ -280,7 +280,7 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
 ): void {
   try {
     // Ensure idempotent registration to avoid "Attempted to register a second handler" errors
-    ipcMain.removeHandler(channel as string);
+    ipcMain.removeHandler(channel);
   } catch (error) {
     // Best-effort cleanup; continue with handler registration
     logMessage(

@@ -469,7 +469,7 @@ export function applyWorkflowDocumentTool(
   const uiPatch: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rest)) {
     if (DYNAMIC_NODE_DATA_FIELDS.has(key)) {
-      (node as Record<string, unknown>)[key] = value;
+      node[key] = value;
     } else if (UI_NODE_DATA_FIELDS.has(key)) {
       uiPatch[key] = value;
     }

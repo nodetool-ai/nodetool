@@ -18,13 +18,13 @@ jest.mock("../logger", () => ({
 
 import { getMcpBundlePath, installMcpBundle } from "../mcpBundle";
 
-const mockedShell = shell as jest.Mocked<typeof shell>;
+const mockedShell = jest.mocked(shell);
 /** The one `app` member these tests flip; Electron declares it readonly. */
 type MutablePackagedFlag = { isPackaged: boolean };
 // SAFETY: `app` is the object literal from this file's electron mock, so
 // `isPackaged` is a plain writable property on it.
 const mockedApp = app as MutablePackagedFlag;
-const mockedExistsSync = fs.existsSync as jest.Mock;
+const mockedExistsSync = jest.mocked(fs.existsSync);
 
 describe("getMcpBundlePath", () => {
   const originalResourcesPath = process.resourcesPath;

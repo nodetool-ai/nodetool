@@ -207,13 +207,13 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       bytes = new Uint8Array(audio.data);
     } else if (isNonEmptyString(audio.uri)) {
       if (context?.storage) {
-        const stored = await context.storage.retrieve(audio.uri as string);
+        const stored = await context.storage.retrieve(audio.uri);
         if (stored !== null) bytes = new Uint8Array(stored);
       }
-      if (bytes.length === 0 && (audio.uri as string).startsWith("file://")) {
+      if (bytes.length === 0 && audio.uri.startsWith("file://")) {
         const fs = await loadNodeFsPromises();
         bytes = new Uint8Array(
-          await fs.readFile((audio.uri as string).slice("file://".length))
+          await fs.readFile(audio.uri.slice("file://".length))
         );
       }
     }

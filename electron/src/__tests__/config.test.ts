@@ -23,7 +23,7 @@ const originalPlatform = process.platform;
 const originalEnv = process.env;
 
 describe('Config', () => {
-  const mockReadSettings = readSettings as jest.MockedFunction<typeof readSettings>;
+  const mockReadSettings = jest.mocked(readSettings);
 
   beforeEach(() => {
     jest.clearAllMocks();

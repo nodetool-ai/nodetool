@@ -4,7 +4,6 @@ import { isObjectLike, isString } from "../type-predicates.js";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { sniffAudioMime } from "./audio-mime.js";
-import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -196,7 +195,7 @@ export class ReplicateProvider extends BaseProvider {
           content: String(event.data),
           done: false,
           content_type: "text"
-        } as Chunk;
+        };
       } else if (event.event === "error") {
         throw new Error(`Replicate stream error: ${String(event.data)}`);
       } else if (event.event === "done") {
@@ -205,7 +204,7 @@ export class ReplicateProvider extends BaseProvider {
           content: "",
           done: true,
           content_type: "text"
-        } as Chunk;
+        };
         return;
       }
     }
@@ -216,7 +215,7 @@ export class ReplicateProvider extends BaseProvider {
       content: "",
       done: true,
       content_type: "text"
-    } as Chunk;
+    };
   }
 
   // ---------------------------------------------------------------------------

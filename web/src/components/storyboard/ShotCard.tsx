@@ -36,9 +36,11 @@ import {
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
 import ShotTakesGallery from "./ShotTakesGallery";
+import ShotScriptPanel from "./ShotScriptPanel";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useShotDuration } from "../../hooks/storyboard/useShotDuration";
 import { useEntities } from "../../serverState/useEntities";
 import { ENTITY_KIND_COLOR } from "../entities/entityKind";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
@@ -114,6 +116,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   isLast
 }) => {
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
+  const updateShot = useStoryboardStore((state) => state.updateShot);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const boardEntityIds = useStoryboardStore(
@@ -169,6 +172,20 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const handleMoveDown = useCallback(() => {
     moveShot(boardId, shot.id, "down");
   }, [moveShot, boardId, shot.id]);
+
+  // A shot covering script lines is timed by the takes under it unless the
+  // user pins it; the chip says which, and clicking it switches.
+  const duration = useShotDuration(boardId, shot);
+  const linksLines = (shot.script_line_ids?.length ?? 0) > 0;
+  const durationLabel =
+    duration.seconds != null
+      ? `${duration.seconds}s · ${duration.source === "audio" ? "from takes" : "manual"}`
+      : "model default";
+  const handleToggleDurationSource = useCallback(() => {
+    updateShot(boardId, shot.id, {
+      duration_source: shot.duration_source === "manual" ? "audio" : "manual"
+    });
+  }, [updateShot, boardId, shot.id, shot.duration_source]);
 
   const handleDelete = useCallback(() => {
     removeShot(boardId, shot.id);
@@ -234,6 +251,21 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 compact
                 color="info"
                 label={`~$${shot.cost_estimate.toFixed(2)}`}
+              />
+            )}
+            {linksLines && (
+              <Chip
+                compact
+                color={duration.source === "audio" ? "info" : "default"}
+                variant={duration.source === "audio" ? "filled" : "outlined"}
+                label={durationLabel}
+                sx={{ borderRadius: BORDER_RADIUS.sm }}
+                title={
+                  duration.source === "audio"
+                    ? "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own duration."
+                    : "Length is pinned to the shot's own duration. Click to take it from the lines this shot covers."
+                }
+                onClick={readOnly ? undefined : handleToggleDurationSource}
               />
             )}
             <StatusIndicator
@@ -317,6 +349,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         )}
 
         <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
+
+        <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
 
         {!readOnly && (
           <FlexRow gap={SPACING.micro} wrap>

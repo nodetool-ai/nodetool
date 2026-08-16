@@ -183,7 +183,7 @@ async function defaultStore(): Promise<SketchVersionStore> {
 
   return {
     loadDocument: async (id) =>
-      (await ImageDocument.findById(id)) as ImageDocumentRow | null,
+      (await ImageDocument.findById(id)),
     listVersions: async (imageDocumentId, opts) =>
       (await ImageDocumentVersion.listForDocument(
         imageDocumentId,
@@ -202,7 +202,7 @@ async function defaultStore(): Promise<SketchVersionStore> {
         width: version.width,
         height: version.height,
         background_color: version.background_color
-      })) as ImageDocumentRow | null,
+      })),
     deleteVersion: async (imageDocumentId, version) => {
       const row = await ImageDocumentVersion.findByVersion(
         imageDocumentId,

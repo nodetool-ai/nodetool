@@ -268,7 +268,7 @@ const NodeInputsImpl: React.FC<NodeInputsProps> = ({
               ...defaultDynamicInputType,
               type_args: defaultDynamicInputType.type_args ?? [],
               optional: defaultDynamicInputType.optional ?? false
-            } as TypeMetadata)
+            })
           : ({
               type: "any",
               type_args: [],

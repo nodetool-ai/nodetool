@@ -271,7 +271,7 @@ export class CompilerAgent {
     const finishStepExecute = async (
       args: Record<string, unknown>
     ): Promise<string> => {
-      const rawResult = args?.["result"] as unknown;
+      const rawResult = args?.["result"];
       // Fall back to the whole args object when `result` is absent, but strip
       // the injected `_message` protocol field so it can't leak into the result.
       let resultPayload: unknown =
@@ -384,7 +384,7 @@ export class CompilerAgent {
         continue;
       }
       // Track each assistant turn's text so prose mode can return the last one.
-      if ("type" in item && (item as { type?: string }).type === "message") {
+      if ("type" in item && item.type === "message") {
         const m = (
           item as {
             message?: {

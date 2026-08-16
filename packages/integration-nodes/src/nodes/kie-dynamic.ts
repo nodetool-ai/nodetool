@@ -180,7 +180,7 @@ function extractOpenApiModelId(text: string): string | null {
 function extractOpenApi(text: string): JsonRecord | null {
   const match = text.match(/```ya?ml\s*([\s\S]*?)```/i);
   if (!match) return null;
-  const parsed = yaml.load(match[1]) as unknown;
+  const parsed = yaml.load(match[1]);
   return asRecord(parsed) ?? null;
 }
 

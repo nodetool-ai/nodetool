@@ -12,8 +12,6 @@
 
 import type {
   DeploymentConfig,
-  DockerDeployment,
-  SSHConfig,
   AnyDeployment
 } from "./deployment-config.js";
 import type { StateManager } from "./state.js";
@@ -93,10 +91,7 @@ export class DeploymentManager {
   async listDeployments(): Promise<DeploymentInfo[]> {
     const deployments: DeploymentInfo[] = [];
 
-    const entries = Object.entries(this.config.deployments) as [
-      string,
-      AnyDeployment
-    ][];
+    const entries = Object.entries(this.config.deployments);
 
     for (const [name, deployment] of entries) {
       const state = await this.stateManager.readState(name);
@@ -111,7 +106,7 @@ export class DeploymentManager {
       };
 
       if (deployment.type === "docker") {
-        const d = deployment as DockerDeployment;
+        const d = deployment;
         info.host = d.host;
         info.container = d.container.name;
       }
@@ -128,9 +123,7 @@ export class DeploymentManager {
    * @throws Error if deployment not found
    */
   getDeployment(name: string): AnyDeployment {
-    const deployment = this.config.deployments[name] as
-      | AnyDeployment
-      | undefined;
+    const deployment = this.config.deployments[name];
     if (!deployment) {
       throw new Error(`Deployment '${name}' not found`);
     }
@@ -214,8 +207,8 @@ export class DeploymentManager {
         const deployment = this.getDeployment(deploymentName);
 
         if (deployment.type === "docker") {
-          const d = deployment as DockerDeployment;
-          const sshConfig = (d as { ssh?: SSHConfig }).ssh;
+          const d = deployment;
+          const sshConfig = d.ssh;
           if (sshConfig && !sshConfig.key_path && !sshConfig.password) {
             results.warnings.push(
               `${deploymentName}: No SSH authentication method configured`

@@ -61,14 +61,23 @@ export interface DragPayloadMap {
   "chat-media": ChatMediaDragPayload;
 }
 
-/**
- * Structured drag data with compile-time type safety
- */
-export interface DragData<T extends DragDataType = DragDataType> {
+interface DragDataFor<T extends DragDataType> {
   type: T;
   payload: DragPayloadMap[T];
   metadata?: DragMetadata;
 }
+
+/**
+ * Structured drag data with compile-time type safety.
+ *
+ * Written as a union over the accepted types rather than one interface
+ * parameterised by them, so that `type` discriminates `payload`: a consumer
+ * that checks `data.type === "asset"` gets an `Asset` payload without an
+ * assertion.
+ */
+export type DragData<T extends DragDataType = DragDataType> = {
+  [K in T]: DragDataFor<K>;
+}[T];
 
 export interface DragMetadata {
   sourceId?: string;

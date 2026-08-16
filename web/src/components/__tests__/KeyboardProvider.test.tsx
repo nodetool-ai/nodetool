@@ -19,7 +19,7 @@ describe('KeyboardProvider', () => {
   });
 
   it('does not initialize listeners when inactive', () => {
-    (initKeyListeners as jest.Mock).mockClear();
+    jest.mocked(initKeyListeners).mockClear();
     render(
       <KeyboardProvider active={false}>
         <div data-testid="child" />

@@ -213,7 +213,7 @@ export class WsAdapter implements WebSocketConnection {
   }
 
   private bufferedAmount(): number {
-    const buffered = (this.socket as { bufferedAmount?: number }).bufferedAmount;
+    const buffered = this.socket.bufferedAmount;
     return isNumber(buffered) ? buffered : 0;
   }
 

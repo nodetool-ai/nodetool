@@ -239,7 +239,7 @@ export async function* executeAgentGraph(
 
   const nodeErrors = (result.messages ?? []).filter(
     (m: ProcessingMessage): m is NodeUpdate =>
-      m.type === "node_update" && (m as NodeUpdate).status === "error"
+      m.type === "node_update" && m.status === "error"
   );
   if (nodeErrors.length > 0) {
     log.error("Node execution errors", {

@@ -88,7 +88,7 @@ export const downloadPreviewAssets = async ({
   const zipContent = zipped.buffer.slice(
     zipped.byteOffset,
     zipped.byteOffset + zipped.byteLength
-  ) as ArrayBuffer;
+  );
   const zipName = `preview_${nodeId}.zip`;
 
   const blob = new Blob([zipContent], { type: "application/zip" });

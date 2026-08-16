@@ -45,8 +45,7 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type {
   NodeMetadata,
-  Property,
-  TypeMetadata
+  Property
 } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
@@ -246,7 +245,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   });
 
   const dynamicProperties = useMemo(
-    () => (data.dynamic_properties ?? {}) as Record<string, unknown>,
+    () => data.dynamic_properties ?? {},
     [data.dynamic_properties]
   );
   const variableNames = useMemo(
@@ -263,7 +262,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     id,
     variableNames,
     data.dynamic_inputs ?? {},
-    (data.dynamic_outputs ?? {}) as Record<string, TypeMetadata>
+    data.dynamic_outputs ?? {}
   );
 
   // Variables defined by Set Variable nodes anywhere in the workflow. They
@@ -307,7 +306,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   // Capture the initial prompt once — the editor owns the value after mount.
   const initialPromptRef = useRef<string>(
     isString(data.properties?.prompt)
-      ? (data.properties.prompt as string)
+      ? data.properties.prompt
       : ""
   );
   const lastWrittenRef = useRef<string>(initialPromptRef.current);

@@ -849,7 +849,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // unified LLM-with-tools loop, and the agent decides for itself
         // whether to escalate via `run_subtask`. `agent_mode` and
         // `agent_planner` are no longer sent on the wire.
-        const outgoing = message as ChatOutgoingMessage;
+        const outgoing = message;
         const mediaGeneration = outgoing.media_generation ?? null;
         const isMediaGeneration =
           !!mediaGeneration && mediaGeneration.mode !== "chat";
@@ -1693,10 +1693,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // that read `threads`/`permissionMode` would otherwise see
         // `undefined` and crash.
         const fallback = {
-          threads: {} as Record<string, Thread>,
+          threads: {},
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
-          permissionMode: {} as Record<string, PermissionMode>
+          permissionMode: {}
         };
         if (!persistedState || !isObjectLike(persistedState)) {
           return fallback;

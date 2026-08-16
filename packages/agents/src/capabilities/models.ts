@@ -14,17 +14,10 @@
  */
 
 import type {
-  ASRModel,
   BaseProvider,
-  EmbeddingModel,
-  ImageModel,
   JsonSchema,
-  LanguageModel,
-  MusicModel,
   ProviderCapability,
-  RecommendedUnifiedModel,
-  TTSModel,
-  VideoModel
+  RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
 import type {
@@ -156,7 +149,7 @@ function getRecommendedSet(capability: SupportedCapability): Set<string> {
   const wantedTasks = capabilityToRecommendedTasks(capability);
   const wantedModalities = capabilityToRecommendedModalities(capability);
   const ids = new Set<string>();
-  for (const m of RECOMMENDED_MODELS as RecommendedUnifiedModel[]) {
+  for (const m of RECOMMENDED_MODELS) {
     const taskMatch = !wantedTasks || (m.task && wantedTasks.has(m.task));
     const modalityMatch = wantedModalities.has(m.modality);
     if (modalityMatch && taskMatch && m.provider) {
@@ -218,20 +211,20 @@ async function fetchModelsForCapability(
   switch (capability) {
     case "text_to_image":
     case "image_to_image":
-      return (await provider.getAvailableImageModels()) as ImageModel[];
+      return await provider.getAvailableImageModels();
     case "text_to_video":
     case "image_to_video":
-      return (await provider.getAvailableVideoModels()) as VideoModel[];
+      return await provider.getAvailableVideoModels();
     case "text_to_speech":
-      return (await provider.getAvailableTTSModels()) as TTSModel[];
+      return await provider.getAvailableTTSModels();
     case "text_to_music":
-      return (await provider.getAvailableMusicModels()) as MusicModel[];
+      return await provider.getAvailableMusicModels();
     case "automatic_speech_recognition":
-      return (await provider.getAvailableASRModels()) as ASRModel[];
+      return await provider.getAvailableASRModels();
     case "generate_embedding":
-      return (await provider.getAvailableEmbeddingModels()) as EmbeddingModel[];
+      return await provider.getAvailableEmbeddingModels();
     case "generate_message":
-      return (await provider.getAvailableLanguageModels()) as LanguageModel[];
+      return await provider.getAvailableLanguageModels();
   }
 }
 
@@ -290,28 +283,28 @@ const findModel: CapabilityExport = {
 
     const task =
       isString(params["task"])
-        ? (params["task"] as string)
+        ? params["task"]
         : undefined;
     const query =
       isString(params["query"])
-        ? (params["query"] as string)
+        ? params["query"]
         : undefined;
     const providerHint =
       isString(params["provider_hint"])
-        ? (params["provider_hint"] as string)
+        ? params["provider_hint"]
         : undefined;
     const modelHintRaw = params["model_hint"];
     const modelHints: Set<string> = new Set(
       isString(modelHintRaw)
         ? [modelHintRaw]
         : Array.isArray(modelHintRaw)
-          ? (modelHintRaw.filter((x) => isString(x)) as string[])
+          ? modelHintRaw.filter((x) => isString(x))
           : []
     );
     const preferLocal = params["prefer_local"] === true;
     const limit =
       isNumber(params["limit"]) && params["limit"] > 0
-        ? Math.floor(params["limit"] as number)
+        ? Math.floor(params["limit"])
         : 5;
 
     const providerEntries = Object.entries(providersOf(run));
@@ -333,7 +326,7 @@ const findModel: CapabilityExport = {
       try {
         supports = instance
           .getCapabilities()
-          .includes(capability as ProviderCapability);
+          .includes(capability);
       } catch {
         continue;
       }
@@ -525,19 +518,19 @@ async function fetchModelsOfType(
 ): Promise<ListedModelSource[]> {
   switch (type) {
     case "language":
-      return (await provider.getAvailableLanguageModels()) as LanguageModel[];
+      return await provider.getAvailableLanguageModels();
     case "image":
-      return (await provider.getAvailableImageModels()) as ImageModel[];
+      return await provider.getAvailableImageModels();
     case "video":
-      return (await provider.getAvailableVideoModels()) as VideoModel[];
+      return await provider.getAvailableVideoModels();
     case "tts":
-      return (await provider.getAvailableTTSModels()) as TTSModel[];
+      return await provider.getAvailableTTSModels();
     case "music":
-      return (await provider.getAvailableMusicModels()) as MusicModel[];
+      return await provider.getAvailableMusicModels();
     case "asr":
-      return (await provider.getAvailableASRModels()) as ASRModel[];
+      return await provider.getAvailableASRModels();
     case "embedding":
-      return (await provider.getAvailableEmbeddingModels()) as EmbeddingModel[];
+      return await provider.getAvailableEmbeddingModels();
   }
 }
 
@@ -571,7 +564,7 @@ const listModels: CapabilityExport = {
     const downloadedOnly = params["downloaded_only"] === true;
     const limit =
       isNumber(params["limit"]) && params["limit"] > 0
-        ? Math.floor(params["limit"] as number)
+        ? Math.floor(params["limit"])
         : 50;
 
     const entries = Object.entries(providers).filter(

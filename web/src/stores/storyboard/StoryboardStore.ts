@@ -40,8 +40,10 @@ import type {
 } from "../ApiTypes";
 import {
   linkedShots,
+  reprojectedShots,
   unlinkedScreenplay,
-  unlinkedShots
+  unlinkedShots,
+  type ScriptProjectionSource
 } from "../../lib/scriptStoryboardLink";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -130,6 +132,18 @@ interface StoryboardStoreState {
     scriptId: string,
     lineIdsByShotId: Record<string, string[]>,
     textByLineId: Map<string, string>
+  ) => void;
+  /**
+   * Re-project the linked script's words onto the board: every drifted shot's
+   * `dialogue`/`narration` and `script_text_snapshot` are re-read from the
+   * lines it covers, in one document update. `shotIds` names the shots to pass
+   * over instead of the drifted ones. The script text wins — this is the
+   * direction that carries a writer's edit onto the board.
+   */
+  reprojectShots: (
+    boardId: string,
+    source: ScriptProjectionSource,
+    shotIds?: string[]
   ) => void;
   /**
    * Drop the script link, keeping the projected words: with the script gone
@@ -530,6 +544,23 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         // A link is a handoff between two documents, not an authoring edit.
         false
       )
+    ),
+
+  reprojectShots: (boardId, source, shotIds) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const shots = reprojectedShots(b.shots, source, shotIds);
+        if (shots === b.shots) {
+          return null;
+        }
+        // Both fields land in one board write, so the autosave sends one CAS
+        // update — never a snapshot without the text it snapshots.
+        return {
+          ...b,
+          screenplay: b.screenplay ? { ...b.screenplay, shots } : b.screenplay,
+          shots
+        };
+      })
     ),
 
   clearScriptLink: (boardId) =>

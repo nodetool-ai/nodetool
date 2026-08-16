@@ -121,7 +121,7 @@ export async function transformMediaRefs(
   graph: WorkflowGraphLike,
   visit: (ref: Record<string, unknown>) => Promise<void> | void
 ): Promise<WorkflowGraphLike> {
-  const clone = structuredClone(graph) as WorkflowGraphLike;
+  const clone = structuredClone(graph);
 
   const walk = async (value: unknown): Promise<void> => {
     if (Array.isArray(value)) {

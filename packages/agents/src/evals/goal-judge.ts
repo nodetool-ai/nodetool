@@ -133,7 +133,7 @@ function extractText(content: Message["content"]): string {
   return content
     .map((part) =>
       isObjectLike(part) && "text" in part
-        ? String((part as { text: unknown }).text ?? "")
+        ? String(part.text ?? "")
         : ""
     )
     .join("");

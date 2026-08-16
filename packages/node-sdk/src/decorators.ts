@@ -71,7 +71,7 @@ export function getDeclaredPropertiesForClass(
 
 export function prop(options: PropOptions): PropertyDecorator {
   return (target, propertyKey): void => {
-    const ctor = (target as { constructor: Function }).constructor;
+    const ctor = target.constructor;
     registerDeclaredProperty(ctor, String(propertyKey), options);
   };
 }

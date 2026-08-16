@@ -95,7 +95,7 @@ export function buildControlTools(controlContext: unknown): ControlTool[] {
     const inputSchema = {
       type: "object",
       properties,
-      required: [] as string[],
+      required: [],
       additionalProperties: false
     };
 

@@ -224,7 +224,7 @@ function scanMessages(
   let jobError: string | null = null;
 
   for (const raw of messages) {
-    const msg = raw as Record<string, unknown>;
+    const msg = raw;
     switch (msg.type) {
       case "node_update": {
         const status = str(msg.status);

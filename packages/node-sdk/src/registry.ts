@@ -196,7 +196,7 @@ export class NodeRegistry {
     const NodeClass = this._classes.get(descriptor.type);
     if (!NodeClass) return [];
     const properties =
-      (descriptor.properties as Record<string, unknown> | undefined) ?? {};
+      descriptor.properties ?? {};
     return NodeClass.validateProperties(properties, {
       connectedHandles,
       nodeId: descriptor.id,
@@ -300,7 +300,7 @@ export class NodeRegistry {
       throw new Error(`Unknown node type: ${descriptor.type}`);
     }
     const properties =
-      (descriptor.properties as Record<string, unknown> | undefined) ?? {};
+      descriptor.properties ?? {};
     // Slot declarations must be visible to `assign()` before it stores the
     // dynamic values, so they can be coerced against their declared type.
     const instance = new NodeClass(

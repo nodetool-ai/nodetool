@@ -390,7 +390,7 @@ export class Graph {
       const resolvedPropertyTypes = resolved.propertyTypes ?? {};
       const allowedProperties = new Set(Object.keys(resolvedPropertyTypes));
       const mergedProperties = {
-        ...((node.properties as Record<string, unknown> | undefined) ?? {})
+        ...(node.properties ?? {})
       };
 
       const effectiveAllowUndefined =

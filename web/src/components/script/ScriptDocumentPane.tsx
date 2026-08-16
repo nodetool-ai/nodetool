@@ -32,6 +32,7 @@ import {
   useScript,
   useScriptCast,
   useScriptStore,
+  useScriptStoryboardLink,
   useScriptCanUndo,
   useScriptCanRedo,
   type ScriptLine,
@@ -43,6 +44,7 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
+import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
@@ -218,6 +220,10 @@ const SectionLine = memo(function SectionLine({
     [onDragStart, line.id]
   );
 
+  // The storyboard side of the link: which shot covers this line, or that none
+  // does. Nothing when the script links no board.
+  const { shotLink, orphaned } = useScriptLineShotLink(scriptId, line.id);
+
   return (
     <div>
       {!readOnly && (
@@ -236,6 +242,8 @@ const SectionLine = memo(function SectionLine({
         highlighted={highlighted}
         readOnly={readOnly}
         mobile={mobile}
+        shotLink={shotLink}
+        orphaned={orphaned}
         onKeyNav={onKeyNav}
         isDragging={isDragging}
         onDragStart={readOnly ? undefined : handleDragStart}
@@ -416,6 +424,9 @@ const ScriptDocumentPane = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { sections, timelineId } = useScript(scriptId);
+  // A linked board means the cut carries picture as well as voice, so the
+  // button stops promising a voiceover track and offers the whole video.
+  const storyboardId = useScriptStoryboardLink(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
@@ -666,15 +677,19 @@ const ScriptDocumentPane = ({
             disabled={assembling || !hasVoicedLine}
             title={
               hasVoicedLine
-                ? undefined
+                ? storyboardId
+                  ? "Cut the linked storyboard's shots and these takes into one timeline"
+                  : undefined
                 : "Voice at least one line to send it to a timeline"
             }
           >
             {assembling
               ? "Assembling…"
-              : timelineId
-                ? "Update timeline"
-                : "Send to timeline"}
+              : storyboardId
+                ? "Assemble video"
+                : timelineId
+                  ? "Update timeline"
+                  : "Send to timeline"}
           </EditorButton>
         )}
         {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}

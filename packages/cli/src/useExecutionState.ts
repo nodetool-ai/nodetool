@@ -114,7 +114,7 @@ export function useExecutionState() {
               const steps: StepState[] = (tu.task.steps ?? []).map((s) => ({
                 id: s.id ?? "",
                 name: s.instructions?.slice(0, 60) ?? s.id ?? "",
-                status: "waiting" as StepStatus,
+                status: "waiting",
                 output: "",
               }));
               const plannedTask: TaskState = {
@@ -148,7 +148,7 @@ export function useExecutionState() {
                 const steps: StepState[] = (tu.task.steps ?? []).map((s) => ({
                   id: s.id ?? "",
                   name: s.instructions?.slice(0, 60) ?? s.id ?? "",
-                  status: "waiting" as StepStatus,
+                  status: "waiting",
                   output: "",
                 }));
                 tasks.push({

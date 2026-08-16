@@ -237,7 +237,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
         const droppedTexts: TextItem[] = [];
 
         if (dragData.type === "assets-multiple") {
-          const selectedIds = dragData.payload as string[];
+          const selectedIds = dragData.payload;
           const uniqueAssets = resolveAssetsMultiple(
             selectedIds,
             dragData.metadata?.assets,
@@ -252,7 +252,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
         }
 
         if (droppedTexts.length === 0 && dragData.type === "asset") {
-          const asset = dragData.payload as Asset;
+          const asset = dragData.payload;
           if (asset.id && isTextAsset(asset.content_type)) {
             droppedTexts.push(mediaRefFromAsset(asset, "text"));
           }

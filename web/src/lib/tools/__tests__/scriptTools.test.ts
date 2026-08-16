@@ -225,6 +225,7 @@ describe("ui_script_* tools", () => {
       sequenceId: "seq-1",
       clipCount: 3,
       skippedLineIds: ["line-9"],
+      skippedShotIds: [],
       reassembled: false
     });
     setScriptAgentHandler(SCRIPT_ID, handler);

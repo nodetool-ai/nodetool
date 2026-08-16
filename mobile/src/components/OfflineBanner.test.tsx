@@ -27,7 +27,7 @@ describe('OfflineBanner', () => {
     listener = undefined;
     addEventListener.mockReset();
     addEventListener.mockImplementation((cb) => {
-      listener = cb as Listener;
+      listener = cb;
       return jest.fn();
     });
   });

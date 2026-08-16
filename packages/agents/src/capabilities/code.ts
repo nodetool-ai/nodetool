@@ -168,7 +168,7 @@ return __yielded;`
 
   const globals: Record<string, unknown> = {
     inputs: params.inputs,
-    state: {} as Record<string, unknown>
+    state: {}
   };
   let source = body;
   if (params.withToolbelt) {

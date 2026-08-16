@@ -112,7 +112,7 @@ function collectTriggerNodes(workflow: WorkflowModel): TriggerNodeEntry[] {
   const nodes = workflow.graph?.nodes ?? [];
   const entries: TriggerNodeEntry[] = [];
   for (const rawNode of nodes) {
-    const node = rawNode as Record<string, unknown>;
+    const node = rawNode;
     const nodeId = isString(node.id) ? node.id : undefined;
     const nodeType = isString(node.type) ? node.type : undefined;
     if (!nodeId || !nodeType) continue;

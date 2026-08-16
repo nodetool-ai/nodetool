@@ -156,7 +156,13 @@ The storyboard's assemble move, for audio:
   transcript document (`buildTranscriptDoc`) into a new script resource. Cheap
   to build because the projection already exists, and it closes the loop for
   recorded/imported media: transcribe a recording in the timeline, extract the
-  script, re-voice it with a cast.
+  script, re-voice it with a cast. A storyboard is the second source the same
+  action reads from: *Extract script* on a board projects every shot's dialogue
+  and narration into a linked script and keeps the shot→line ids
+  (`extractScriptFromScreenplay`, [script-storyboard-link/design.md](script-storyboard-link/design.md)
+  §2.1). Timeline and board differ in what they carry back — the transcript
+  brings word timings off real media, the board brings the shot the words
+  belong to — so they stay two projections into one script shape.
 
 ### Relation to the in-timeline transcript
 
@@ -208,12 +214,16 @@ existing editor is a rewrite, not a feature.
    gallery, play-through. The document pane is a plain per-line editor rather
    than the Lexical transcript editor — that reuse is deferred to a later pass.
 2. **To timeline** *(implemented)* — assemble the current takes into a
-   voiceover sequence with `scriptId`/`scriptLineId` linkage keys
-   (`assembleScriptTimeline`, `useAssembleScriptTimeline`, "Send to timeline"),
-   per-line back-sync on re-voice / take switch (`stores/script/timelineSync`),
-   re-assemble in place on structural drift (preserving foreign tracks), and
-   extract-as-script from a timeline transcript (`extractScript`,
-   `useExtractScript`, the transcript panel's "Extract as script").
+   voiceover sequence with `scriptId`/`scriptLineId` linkage keys. The mapping
+   is a pure function in `@nodetool-ai/timeline` (`buildScriptTimeline`) with
+   three callers: the editor button ("Send to timeline",
+   `useAssembleScriptTimeline`), the headless `assemble_script_timeline` tool,
+   and the `ScriptToTimeline` node. Plus per-line back-sync on re-voice / take
+   switch (`stores/script/timelineSync`), re-assemble in place on structural
+   drift (preserving foreign tracks), and extract-as-script from a timeline
+   transcript (`extractScript`, `useExtractScript`, the transcript panel's
+   "Extract as script"). A script that links a storyboard assembles through a
+   different builder — phase 5.
 3. **Automation** *(implemented)* — `ui_script_*` agent tools
    (`scriptAgentBridge`, `useScriptAgentBridge`, `builtin/script`:
    `get_state`, `add_speaker`, `set_speaker_voice`, `add_line`, `set_line_text`,
@@ -232,6 +242,35 @@ existing editor is a rewrite, not a feature.
    surface (`exportScriptSubtitles`). Still open: dialogue-mode rendering,
    provider-native timestamps, audio-only mixdown, and `.nodetool` bundle
    support.
+5. **Storyboard link** — one script and one storyboard describing the same
+   video, keyed to each other, per
+   [script-storyboard-link/prd.md](script-storyboard-link/prd.md). Status by
+   sub-phase:
+   - Link schema + extract *(implemented)* — `script_id` on the screenplay,
+     `script_line_ids` / `script_text_snapshot` / `duration_source` on a shot,
+     the `storyboard_id` back-pointer on the script row, the pure projection
+     (`extractScriptFromScreenplay`, `validateScriptLink` in
+     `@nodetool-ai/protocol` `script-link.ts`), the
+     `extract_script_from_storyboard` tool and `ui_storyboard_extract_script`,
+     *Extract script* / *Open script* / *Open storyboard* in both headers, and
+     the deletion downgrade in both directions.
+   - Derive board from script *(implemented)* — `deriveShotScaffold` pins
+     linkage, order and projected text; the director pass fills in shot
+     content and is refused and retried when it drops or reassigns
+     `script_line_ids`. Exposed as `derive_storyboard_from_script`,
+     `ui_script_derive_storyboard`, and *Create storyboard*.
+   - Audio-led shot timing *(in progress)* — `linkedShotDurationMs` is in
+     `@nodetool-ai/timeline`; the editor and render tools do not read it yet
+     and there is no `duration_source` toggle.
+   - Joint assemble *(in progress)* — `buildLinkedTimeline` is in
+     `@nodetool-ai/timeline` `linked.ts` with tests, including fixtures that
+     pin unlinked `buildStoryboardTimeline` / `buildScriptTimeline` output
+     unchanged. The assemble buttons and headless tools still call the
+     unlinked builders.
+   - Drift, badges, Studio *(not started as UI)* — `shotDialogueDrifted` and
+     `orphanedLineIds` exist and `get_storyboard` / `get_script` report link
+     state, drift and orphans; no badges, no re-project action, no linked
+     Studio flow.
 
 Phase 1 is deliberately shippable alone: a script you can write, cast, voice,
 and listen to is already the ElevenLabs-Studio use case, before any timeline

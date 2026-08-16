@@ -50,8 +50,8 @@ type SvgElementLike = {
 
 function asColor(value: unknown, fallback: string): string {
   if (isString(value)) return value;
-  if (isObjectLike(value) && "value" in (value as object)) {
-    return String((value as { value?: unknown }).value ?? fallback);
+  if (isObjectLike(value) && "value" in value) {
+    return String(value.value ?? fallback);
   }
   return fallback;
 }
@@ -98,7 +98,7 @@ function normalizeContent(content: unknown): string {
   if (Array.isArray(content)) {
     return content.map((c) => normalizeContent(c)).join("\n");
   }
-  if (isObjectLike(content) && "name" in (content as object)) {
+  if (isObjectLike(content) && "name" in content) {
     return elementToString(content as SvgElementLike);
   }
   return String(content ?? "");

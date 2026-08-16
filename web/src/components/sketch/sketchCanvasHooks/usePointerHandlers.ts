@@ -448,7 +448,7 @@ export function usePointerHandlers({
   });
 
   const buildCoalescedEvents = (e: React.PointerEvent): ToolPointerEvent[] => {
-    const nativePointerEvent = e.nativeEvent as PointerEvent;
+    const nativePointerEvent = e.nativeEvent;
     const coalescedEvents =
       isFunction(nativePointerEvent.getCoalescedEvents)
         ? nativePointerEvent.getCoalescedEvents()

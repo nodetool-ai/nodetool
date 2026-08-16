@@ -33,7 +33,6 @@ import { Progress } from "../feedback/Progress";
 import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
-import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import ToolApprovalCard from "../message/ToolApprovalCard";
 import PlanApprovalCard from "../message/PlanApprovalCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
@@ -381,7 +380,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       const msg = messages[i];
       if (msg.role !== "user") continue;
       const gen = (
-        msg as Message & { media_generation?: MediaGenerationRequest | null }
+        msg
       ).media_generation;
       return gen && gen.mode !== "chat" ? msg : null;
     }

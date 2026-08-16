@@ -95,7 +95,7 @@ export class ForEachNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const values = (this.input_list ?? []) as unknown[];
+    const values = this.input_list ?? [];
     const list = Array.isArray(values) ? values : [values];
     const rawLimit = Number(this.limit ?? -1);
     const cap =
@@ -142,7 +142,7 @@ export class AssetCollectionNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const values = (this.items ?? []) as unknown[];
+    const values = this.items ?? [];
     const list = Array.isArray(values) ? values : [values];
     for (const [index, item] of list.entries()) {
       yield { output: item, index };

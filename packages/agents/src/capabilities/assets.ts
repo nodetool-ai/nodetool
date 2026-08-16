@@ -112,7 +112,7 @@ function assetUri(asset: AssetRow): string {
 
 /** The lightweight handle the library capabilities return — no bytes. */
 function toHandle(asset: AssetRow) {
-  const metadata = (asset.metadata ?? {}) as Record<string, unknown>;
+  const metadata = asset.metadata ?? {};
   return {
     asset_id: asset.id,
     name: asset.name,
@@ -294,7 +294,7 @@ const saveAsset: CapabilityExport = {
       }
 
       const data = hasBinary
-        ? new Uint8Array(Buffer.from(contentBase64 as string, "base64"))
+        ? new Uint8Array(Buffer.from(contentBase64, "base64"))
         : new TextEncoder().encode(content as string);
       const mime =
         isString(contentTypeArg) && contentTypeArg
@@ -568,7 +568,7 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
       )
       .slice(0, limit)
       .map((a) => {
-        const metadata = (a.metadata ?? {}) as Record<string, unknown>;
+        const metadata = a.metadata ?? {};
         return {
           image_id: a.id,
           name: a.name,

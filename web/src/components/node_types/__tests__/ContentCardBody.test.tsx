@@ -497,7 +497,7 @@ describe("ContentCardBody dynamic inputs", () => {
             {
               ...nodeData,
               dynamic_properties: dynamicProperties
-            } as NodeData
+            }
           }
           workflowId={workflowId}
           isOutputNode={true}

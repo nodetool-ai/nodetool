@@ -44,7 +44,7 @@ function makeLayer(overrides: Partial<Layer> = {}): Layer {
     contentBounds: { x: 0, y: 0, width: 64, height: 64 },
     effects: [],
     ...overrides
-  } as Layer;
+  };
 }
 
 function makeDoc(overrides: Partial<SketchDocument> = {}): SketchDocument {
@@ -60,7 +60,7 @@ function makeDoc(overrides: Partial<SketchDocument> = {}): SketchDocument {
       updatedAt: new Date().toISOString()
     },
     ...overrides
-  } as SketchDocument;
+  };
 }
 
 function makeCanvas(w: number, h: number): HTMLCanvasElement {
@@ -831,7 +831,7 @@ describe("Phase 1.6 – active stroke buffer compositing", () => {
 
     // Now simulate commit: composite stroke buffer onto layer canvas
     layerCtx.globalAlpha = activeStroke.opacity;
-    layerCtx.globalCompositeOperation = activeStroke.compositeOp as GlobalCompositeOperation;
+    layerCtx.globalCompositeOperation = activeStroke.compositeOp;
     layerCtx.drawImage(strokeBuffer, 0, 0);
     layerCtx.globalAlpha = 1;
     layerCtx.globalCompositeOperation = "source-over";

@@ -105,7 +105,7 @@ export async function migrateCodeInputs(
     // SAFETY: a stored graph's nodes and edges are the editor's own node and
     // edge records; the Array guard rejects a row whose graph was never one.
     const nodes = Array.isArray(graph?.nodes) ? (graph.nodes as GraphNode[]) : [];
-    const edges = Array.isArray(graph?.edges) ? (graph.edges as GraphEdge[]) : [];
+    const edges = Array.isArray(graph?.edges) ? graph.edges : [];
     let touched = false;
 
     for (const node of nodes) {

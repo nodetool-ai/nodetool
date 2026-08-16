@@ -469,7 +469,7 @@ export class CodexProvider extends OpenAIProvider {
     // the server drops the stream early). Consumers rely on a terminal
     // `done: true` chunk to know the turn is over, so synthesize one.
     if (!sawTerminal) {
-      yield { type: "chunk", content: "", done: true } as Chunk;
+      yield { type: "chunk", content: "", done: true };
     }
   }
 
@@ -485,7 +485,7 @@ export class CodexProvider extends OpenAIProvider {
       case "response.output_text.delta": {
         const delta = isString(event.delta) ? event.delta : "";
         if (delta) {
-          yield { type: "chunk", content: delta, done: false } as Chunk;
+          yield { type: "chunk", content: delta, done: false };
         }
         return;
       }
@@ -498,7 +498,7 @@ export class CodexProvider extends OpenAIProvider {
             content: delta,
             done: false,
             thinking: true
-          } as Chunk;
+          };
         }
         return;
       }
@@ -545,7 +545,7 @@ export class CodexProvider extends OpenAIProvider {
             )
           });
         }
-        yield { type: "chunk", content: "", done: true } as Chunk;
+        yield { type: "chunk", content: "", done: true };
         return;
       }
       case "response.failed":

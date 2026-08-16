@@ -310,7 +310,7 @@ const normalizeOutput = (
   );
   if (Array.isArray(output)) {
     if (output.length > 0 && output.every((item) => isChunk(item))) {
-      const chunks = output as Chunk[];
+      const chunks = output;
       const textChunks = chunks.filter(
         (chunk) => chunk.content_type === "text"
       );

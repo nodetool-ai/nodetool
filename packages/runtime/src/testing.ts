@@ -192,7 +192,7 @@ export function stubGlobalFetch(
         ? input
         : input instanceof URL
           ? input.toString()
-          : (input as Request).url;
+          : input.url;
     if (responder) {
       return responder(url, init);
     }
@@ -202,7 +202,7 @@ export function stubGlobalFetch(
       headers: { "content-type": "text/plain" }
     });
   };
-  globalThis.fetch = stub as typeof fetch;
+  globalThis.fetch = stub;
   return () => {
     globalThis.fetch = original;
   };

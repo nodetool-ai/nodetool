@@ -47,7 +47,7 @@ export class TriggerInput extends DBModel {
       .where(eq(triggerInputs.processed, 0))
       .orderBy(asc(triggerInputs.created_at))
       .limit(limit);
-    return rows.map((r) => new TriggerInput(r as Record<string, unknown>));
+    return rows.map((r) => new TriggerInput(r));
   }
 
   static async findByInputId(inputId: string): Promise<TriggerInput | null> {
@@ -59,7 +59,7 @@ export class TriggerInput extends DBModel {
       .limit(1);
     const row = rows[0];
     if (!row) return null;
-    return new TriggerInput(row as Record<string, unknown>);
+    return new TriggerInput(row);
   }
 
   static async markProcessed(inputId: string): Promise<TriggerInput | null> {

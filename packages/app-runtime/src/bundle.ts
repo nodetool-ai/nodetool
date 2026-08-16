@@ -389,7 +389,7 @@ const parseScriptDocument = (value: unknown): BundleJsScriptDocument | null => {
   // contract in `@nodetool-ai/protocol` is what checks the rest, wherever the
   // document is actually run.
   return {
-    ...(value as Record<string, unknown>),
+    ...value,
     schemaVersion: isNumber(value.schemaVersion) ? value.schemaVersion : 1,
     code: value.code,
     inputs: value.inputs,

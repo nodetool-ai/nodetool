@@ -115,7 +115,7 @@ export class TextToSpeechNode extends BaseNode {
       const tts = await getKokoro(repoId!, dtype, device);
       const voice = asString(this.voice) || "af_heart";
       const result = await tts.generate(text, { voice: voice as never });
-      samples = result.audio as Float32Array;
+      samples = result.audio;
       samplingRate = result.sampling_rate ?? samplingRate;
     } else {
       const pipeline = await getPipeline<

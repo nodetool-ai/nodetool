@@ -194,7 +194,7 @@ const listTimelineVersions: CapabilityExport = {
     );
     const saveType =
       isString(params["save_type"])
-        ? (params["save_type"] as string)
+        ? params["save_type"]
         : undefined;
     const versions = await TimelineSequenceVersion.listForTimeline(seq.id, {
       limit,
@@ -245,7 +245,7 @@ const createTimelineVersion: CapabilityExport = {
     const { TimelineSequenceVersion } = await import("@nodetool-ai/models");
     const name =
       isString(params["name"]) && params["name"]
-        ? (params["name"] as string)
+        ? params["name"]
         : null;
     const version = await TimelineSequenceVersion.snapshot(seq, {
       saveType: "manual",

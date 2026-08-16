@@ -126,9 +126,9 @@ export async function runInnerGraph(
     const nodeType = String(n.type ?? "");
     if (!OUTPUT_TYPE_PREFIXES.some((p) => nodeType.startsWith(p))) continue;
     const nodeId = String(n.id ?? "");
-    const nodeName = n.name as string | undefined;
+    const nodeName = n.name;
     const runnerKey = nodeName ?? nodeId;
-    const props = (n.properties ?? {}) as Record<string, unknown>;
+    const props = n.properties ?? {};
     const outputName =
       typeof props.name === "string" && props.name.trim()
         ? props.name.trim()
@@ -163,7 +163,7 @@ export async function runInnerGraph(
   const output: Record<string, unknown> = {};
   for (const [runnerKey, vals] of Object.entries(result.outputs)) {
     const outputName = outputKeyMap.get(runnerKey) ?? runnerKey;
-    const arr = vals as unknown[];
+    const arr = vals;
     if (arr.length === 1) {
       output[outputName] = arr[0];
     } else if (arr.length > 1) {

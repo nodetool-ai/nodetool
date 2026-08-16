@@ -167,7 +167,7 @@ async function validateOne(
     if (!isPlainObject(value)) {
       return `output "${slot}" must be a ${base} reference, got ${describe(value)}`;
     }
-    const ref = value as { type?: unknown; uri?: unknown; asset_id?: unknown };
+    const ref = value;
     if (ref.type !== base) {
       return `output "${slot}" must carry type "${base}", got ${describe(ref.type)}`;
     }

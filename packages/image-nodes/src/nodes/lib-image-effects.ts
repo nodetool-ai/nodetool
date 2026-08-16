@@ -42,7 +42,7 @@ class ColorOverlayNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       mixerColorOverlayV1,
       {
@@ -69,7 +69,7 @@ class OutlineNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       mixerOutlineV1,
       {
@@ -98,7 +98,7 @@ class DropShadowNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runRecipeNode(
       mixerDropShadowV1,
       {
@@ -147,7 +147,7 @@ class GlowNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runRecipeNode(
       filtersGlowV1,
       {
@@ -178,7 +178,7 @@ class AddBlendNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       mixerAddV1,
       { gain: num(props.gain, 1) },

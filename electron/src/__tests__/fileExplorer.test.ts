@@ -38,7 +38,7 @@ import { getCondaEnvPath } from "../config";
 const isString = (value: unknown): value is string =>
   typeof value === "string";
 
-const mockShell = shell as jest.Mocked<typeof shell>;
+const mockShell = jest.mocked(shell);
 
 describe("fileExplorer", () => {
   const originalEnv = { ...process.env };
@@ -318,7 +318,7 @@ describe("fileExplorer", () => {
   describe("getInstallationDir", () => {
     it("should return conda env path when it exists", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "conda-test-"));
-      (getCondaEnvPath as jest.Mock).mockReturnValue(tmpDir);
+      jest.mocked(getCondaEnvPath).mockReturnValue(tmpDir);
 
       const result = await getInstallationDir();
 
@@ -329,7 +329,7 @@ describe("fileExplorer", () => {
     });
 
     it("should return undefined when conda env path does not exist", async () => {
-      (getCondaEnvPath as jest.Mock).mockReturnValue("/nonexistent/conda/env");
+      jest.mocked(getCondaEnvPath).mockReturnValue("/nonexistent/conda/env");
 
       const result = await getInstallationDir();
 
@@ -337,7 +337,7 @@ describe("fileExplorer", () => {
     });
 
     it("should log error and return undefined on exception", async () => {
-      (getCondaEnvPath as jest.Mock).mockImplementation(() => {
+      jest.mocked(getCondaEnvPath).mockImplementation(() => {
         throw new Error("Config error");
       });
 
@@ -365,7 +365,7 @@ describe("fileExplorer", () => {
   describe("openSystemDirectory", () => {
     it("should open installation directory", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "conda-test-"));
-      (getCondaEnvPath as jest.Mock).mockReturnValue(tmpDir);
+      jest.mocked(getCondaEnvPath).mockReturnValue(tmpDir);
       mockShell.openPath.mockResolvedValueOnce("");
 
       const result = await openSystemDirectory("installation");
@@ -385,7 +385,7 @@ describe("fileExplorer", () => {
     });
 
     it("should return error when installation directory is unavailable", async () => {
-      (getCondaEnvPath as jest.Mock).mockReturnValue(null);
+      jest.mocked(getCondaEnvPath).mockReturnValue(null);
 
       const result = await openSystemDirectory("installation");
 
@@ -403,7 +403,7 @@ describe("fileExplorer", () => {
 
     it("should handle shell.openPath errors", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "conda-test-"));
-      (getCondaEnvPath as jest.Mock).mockReturnValue(tmpDir);
+      jest.mocked(getCondaEnvPath).mockReturnValue(tmpDir);
       mockShell.openPath.mockResolvedValueOnce("Failed to open");
 
       const result = await openSystemDirectory("installation");
@@ -417,7 +417,7 @@ describe("fileExplorer", () => {
 
     it("should handle shell.openPath exceptions", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "conda-test-"));
-      (getCondaEnvPath as jest.Mock).mockReturnValue(tmpDir);
+      jest.mocked(getCondaEnvPath).mockReturnValue(tmpDir);
       mockShell.openPath.mockRejectedValueOnce(new Error("System error"));
 
       const result = await openSystemDirectory("installation");

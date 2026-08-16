@@ -25,7 +25,7 @@
 import { randomUUID } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { EvalCheck } from "./graph-planner-eval.js";
 import { CodeActExecutor } from "../codeact/codeact-executor.js";
 import { RunSubtaskTool } from "../tools/run-subtask-tool.js";
@@ -335,11 +335,11 @@ async function runCase(
     for await (const item of executor.execute()) {
       if (opts.signal?.aborted) break;
       if (item.type === "step_result") {
-        const sr = item as StepResult;
+        const sr = item;
         const nestedError =
           isRecord(sr.result) &&
           "error" in sr.result
-            ? (sr.result as { error?: unknown }).error
+            ? sr.result.error
             : undefined;
         if (sr.error) {
           error = sr.error;

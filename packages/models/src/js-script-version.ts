@@ -100,7 +100,7 @@ export class JsScriptVersion extends DBModel {
         )
       )
       .limit(1);
-    return row ? new JsScriptVersion(row as Record<string, unknown>) : null;
+    return row ? new JsScriptVersion(row) : null;
   }
 
   /** The next version number for a script (max existing + 1). */
@@ -177,7 +177,7 @@ export class JsScriptVersion extends DBModel {
     const excess = rows.length - Math.max(0, maxAutosaves);
     if (excess <= 0) return;
 
-    for (const row of rows.slice(0, excess) as { id: string }[]) {
+    for (const row of rows.slice(0, excess)) {
       await db
         .delete(jsScriptVersions)
         .where(eq(jsScriptVersions.id, row.id));

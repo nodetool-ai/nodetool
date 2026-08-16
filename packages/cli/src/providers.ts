@@ -27,7 +27,7 @@ import {
   RECOMMENDED_MODELS
 } from "@nodetool-ai/runtime";
 import { readCachedHfModels } from "@nodetool-ai/huggingface";
-import type { Chunk, UnifiedModel } from "@nodetool-ai/protocol";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
@@ -348,7 +348,7 @@ export async function listAllModels(): Promise<UnifiedModel[]> {
         }));
       } catch {
         // Provider unavailable — skip it.
-        return [] as UnifiedModel[];
+        return [];
       }
     })
   );
@@ -421,7 +421,7 @@ export class WebSocketProvider extends BaseProviderClass {
     private readonly providerId: string
   ) {
     // ProviderId = "openai" | "anthropic" | ... | string, which collapses to string
-    super(providerId as string);
+    super(providerId);
   }
 
   async generateMessage(args: {
@@ -433,7 +433,7 @@ export class WebSocketProvider extends BaseProviderClass {
     let content = "";
     for await (const item of this.generateMessages(args)) {
       if ("type" in item && item.type === "chunk") {
-        content += (item as Chunk).content ?? "";
+        content += item.content ?? "";
       }
     }
     return { role: "assistant", content };
@@ -452,7 +452,7 @@ export class WebSocketProvider extends BaseProviderClass {
       args.tools
     )) {
       if (event.type === "chunk") {
-        yield { type: "chunk", content: event.content } as Chunk;
+        yield { type: "chunk", content: event.content };
       } else if (event.type === "tool_call") {
         yield { id: event.id, name: event.name, args: event.args };
       } else if (event.type === "error") {

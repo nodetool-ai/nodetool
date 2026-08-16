@@ -14,7 +14,7 @@ import { useCombo } from "../../../stores/KeyPressedStore";
 
 describe("useEditorKeyboardShortcuts", () => {
   test("registers all expected combos", () => {
-    (useCombo as jest.Mock).mockClear();
+    jest.mocked(useCombo).mockClear();
     const onToggleFullscreen = jest.fn();
     const onToggleAssistant = jest.fn();
     const onToggleEditorMode = jest.fn();
@@ -28,8 +28,8 @@ describe("useEditorKeyboardShortcuts", () => {
     );
 
     // Expect six registrations (ctrl/meta x f/a/e)
-    expect((useCombo as jest.Mock).mock.calls.length).toBe(6);
-    const calls = (useCombo as jest.Mock).mock.calls;
+    expect(jest.mocked(useCombo).mock.calls.length).toBe(6);
+    const calls = jest.mocked(useCombo).mock.calls;
     const combos = calls.map((c: any[]) => c[0].join("+").toLowerCase());
     expect(combos).toEqual(
       expect.arrayContaining([

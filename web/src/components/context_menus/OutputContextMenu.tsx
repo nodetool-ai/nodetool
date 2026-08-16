@@ -196,7 +196,7 @@ const OutputContextMenu: React.FC = () => {
 
       const extendedMetadata = metadata as NodeMetadata & { style?: unknown };
       if (extendedMetadata.style) {
-        newNode.style = extendedMetadata.style as React.CSSProperties;
+        newNode.style = extendedMetadata.style;
       }
 
       newNode.data.size = {

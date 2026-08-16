@@ -43,7 +43,7 @@ class ExecuteCodeTool extends Tool {
     super();
     this.name = session.providerTool.name;
     this.description = session.providerTool.description;
-    this.jsonSchema = session.providerTool.inputSchema as JsonSchema;
+    this.jsonSchema = session.providerTool.inputSchema;
   }
 
   // HOLDOUT (anti-slop/no-unknown-returns): a CodeAct action answers with

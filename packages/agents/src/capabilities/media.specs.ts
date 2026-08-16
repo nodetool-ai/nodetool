@@ -329,7 +329,7 @@ export const READ_MEDIA_BYTES_SCHEMA = {
         "The media to read: an asset:// URI (what generate_image returns as asset_uri), a bare asset id, a /api/storage/ key, a package:// URI, a data: URI, or an http(s) URL."
     }
   },
-  required: ["uri"] as string[]
+  required: ["uri"]
 } as const;
 
 export const readMediaBytesSpec: CapabilitySpec = {

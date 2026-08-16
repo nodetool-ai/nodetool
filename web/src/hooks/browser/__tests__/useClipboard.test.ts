@@ -73,7 +73,7 @@ describe("useClipboard", () => {
 
   describe("readClipboard", () => {
     it("reads from navigator.clipboard and validates", async () => {
-      (navigator.clipboard.readText as jest.Mock).mockResolvedValue(
+      jest.mocked(navigator.clipboard.readText).mockResolvedValue(
         validClipboardData
       );
 
@@ -93,7 +93,7 @@ describe("useClipboard", () => {
     });
 
     it("returns invalid for non-node clipboard data", async () => {
-      (navigator.clipboard.readText as jest.Mock).mockResolvedValue(
+      jest.mocked(navigator.clipboard.readText).mockResolvedValue(
         "just some text"
       );
 
@@ -109,7 +109,7 @@ describe("useClipboard", () => {
     });
 
     it("returns invalid when nodes array is empty", async () => {
-      (navigator.clipboard.readText as jest.Mock).mockResolvedValue(
+      jest.mocked(navigator.clipboard.readText).mockResolvedValue(
         invalidClipboardData
       );
 
@@ -174,7 +174,7 @@ describe("useClipboard", () => {
         await result.current.writeClipboard(compact, true, true);
       });
 
-      const written = (navigator.clipboard.writeText as jest.Mock).mock
+      const written = jest.mocked(navigator.clipboard.writeText).mock
         .calls[0][0];
       expect(written).toBe(JSON.stringify(JSON.parse(compact), null, 2));
     });

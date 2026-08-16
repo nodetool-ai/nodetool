@@ -48,7 +48,7 @@ export class WorkflowVersion extends DBModel {
       .where(eq(workflowVersions.workflow_id, workflowId))
       .orderBy(desc(workflowVersions.version))
       .limit(limit);
-    return rows.map((r: Record<string, unknown>) => new WorkflowVersion(r as Record<string, unknown>));
+    return rows.map((r: Record<string, unknown>) => new WorkflowVersion(r));
   }
 
   /** Get a specific version by workflow_id + version number. */
@@ -67,7 +67,7 @@ export class WorkflowVersion extends DBModel {
         )
       )
       .limit(1);
-    return row ? new WorkflowVersion(row as Record<string, unknown>) : null;
+    return row ? new WorkflowVersion(row) : null;
   }
 
   /** Get the next version number for a workflow (max existing + 1). */

@@ -19,7 +19,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tempDir, { recursive: true, force: true });
-  (os.homedir as jest.Mock).mockRestore();
+  jest.mocked(os.homedir).mockRestore();
   setPlatform(originalPlatform as NodeJS.Platform);
 });
 

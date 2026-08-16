@@ -541,7 +541,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
     const question = String(this.question ?? "");
     if (!question) throw new Error("Question cannot be empty");
 
-    const rawTable = (this.table ?? {}) as Record<string, unknown>;
+    const rawTable = this.table ?? {};
     // The API requires every cell to be a string.
     const table: Record<string, string[]> = {};
     for (const [col, values] of Object.entries(rawTable)) {
@@ -680,7 +680,7 @@ export class TextClassificationNode extends BaseNode {
 
     // The API may return a flat list or a list-of-lists (one per input).
     const scores = Array.isArray(result[0])
-      ? (result[0] as Array<{ label?: string; score?: number }>)
+      ? result[0]
       : (result as Array<{ label?: string; score?: number }>);
     return {
       output: String(scores[0]?.label ?? ""),

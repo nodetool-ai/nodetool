@@ -137,7 +137,7 @@ export function collectExecutionSummary(
   const num = (v: unknown): number | null => (isNumber(v) ? v : null);
 
   for (const raw of messages) {
-    const msg = raw as Record<string, unknown>;
+    const msg = raw;
     switch (msg.type) {
       case "job_update": {
         status = str(msg.status) ?? status;

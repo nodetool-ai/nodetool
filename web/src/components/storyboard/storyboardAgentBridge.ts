@@ -17,6 +17,7 @@
 import type {
   CameraDirection,
   Screenplay,
+  ShotDurationSource,
   ShotStatus
 } from "@nodetool-ai/protocol";
 
@@ -29,6 +30,8 @@ export interface StoryboardShotNode {
   camera?: CameraDirection;
   motion?: string;
   durationSeconds?: number;
+  /** Where `durationSeconds` comes from; absent on an unlinked board. */
+  durationSource?: ShotDurationSource;
   status: ShotStatus;
   /** Whether the shot has a rendered keyframe still. */
   hasKeyframe: boolean;
@@ -63,6 +66,15 @@ export interface StoryboardScriptLink {
   created: boolean;
 }
 
+/** What a re-projection rewrote on the board. */
+export interface StoryboardReprojection {
+  scriptId: string;
+  /** Shots whose dialogue/narration and snapshot were rewritten. */
+  reprojectedShotIds: string[];
+  /** Shots that carried drift before the pass ran. */
+  driftedShotIds: string[];
+}
+
 /** Fields the agent can supply when adding a shot. */
 export interface StoryboardAddShotInput {
   action: string;
@@ -79,6 +91,11 @@ export interface StoryboardUpdateShotPatch {
   camera?: CameraDirection;
   motion?: string;
   status?: ShotStatus;
+  /**
+   * Where the shot's length comes from: `"audio"` derives it from the takes of
+   * the script lines the shot covers, `"manual"` pins `durationSeconds`.
+   */
+  durationSource?: ShotDurationSource;
 }
 
 /**
@@ -114,14 +131,23 @@ export interface StoryboardAgentHandler {
     relink?: boolean;
   }) => Promise<StoryboardScriptLink>;
   /**
+   * Re-read the linked script's words onto the board: each named shot's
+   * dialogue, narration and snapshot come from the lines it covers. Without
+   * `targets`, every drifted shot. Throws on a board that links no script.
+   */
+  reprojectShots: (targets?: string[]) => Promise<StoryboardReprojection>;
+  /**
    * Assemble the board's rendered shots into a persisted timeline sequence
-   * (plus draft narration/music clips) and open its tab. Throws when no shot
-   * has a rendered, persisted clip.
+   * (plus draft narration/music clips) and open its tab. A board linked to a
+   * script cuts the voiced lines in too, and reports the ones it could not.
+   * Throws when no shot has a rendered, persisted clip.
    */
   assembleTimeline: () => Promise<{
     sequenceId: string;
     clipCount: number;
     skippedShotIds: string[];
+    skippedLineIds: string[];
+    reassembled: boolean;
   }>;
 }
 

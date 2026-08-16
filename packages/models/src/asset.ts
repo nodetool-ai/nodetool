@@ -90,7 +90,7 @@ export class Asset extends DBModel {
     const rows = await (userId
       ? query.where(eq(assets.user_id, userId))
       : query);
-    return rows.map((row) => new Asset(row as Partial<Asset>));
+    return rows.map((row) => new Asset(row));
   }
 
   /** List assets in a folder. */
@@ -169,7 +169,7 @@ export class Asset extends DBModel {
       .orderBy(desc(assets.created_at))
       .limit(limit + 1)
 
-    const items = rows.map((r: Record<string, unknown>) => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Asset(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -226,7 +226,7 @@ export class Asset extends DBModel {
       .orderBy(desc(assets.created_at))
       .limit(limit + 1)
 
-    const items = rows.map((r: Record<string, unknown>) => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Asset(r));
     let cursor = "";
     if (items.length > limit) {
       items.pop();
@@ -278,7 +278,7 @@ export class Asset extends DBModel {
         .where(and(eq(assets.user_id, userId), inArray(assets.id, chunk)));
 
       for (const r of rows) {
-        assetMap.set(r.id as string, new Asset(r as Record<string, unknown>));
+        assetMap.set(r.id, new Asset(r));
       }
     }
 

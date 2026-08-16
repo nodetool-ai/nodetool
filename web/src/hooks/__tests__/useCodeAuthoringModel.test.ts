@@ -30,7 +30,7 @@ const model = (
 ): LanguageModel => {
   const built: LanguageModel = {
     type: "language_model",
-    provider: provider as LanguageModel["provider"],
+    provider: provider,
     id,
     name: id.toUpperCase()
   };
@@ -62,7 +62,7 @@ const setDefaults = (defaults: Record<string, LanguageModel>) => {
     defaults: Object.fromEntries(
       Object.entries(defaults).map(([key, m]) => [
         key,
-        { provider: m.provider as string, id: m.id, name: m.name }
+        { provider: m.provider, id: m.id, name: m.name }
       ])
     )
   });

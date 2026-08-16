@@ -59,7 +59,7 @@ export const DEBUG_APP_SCHEMA: JsonSchema = {
         "for it (default false)"
     }
   },
-  required: [] as string[]
+  required: []
 };
 
 export const debugAppSpec: CapabilitySpec = {

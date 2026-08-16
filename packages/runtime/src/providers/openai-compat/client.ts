@@ -204,7 +204,7 @@ export class OpenAICompatClient {
       const event = parsed as Record<string, unknown>;
       const error = errorFromStreamEvent(event);
       if (error) throw error;
-      yield event as ChatCompletionChunk;
+      yield event;
     }
   }
 }

@@ -110,7 +110,7 @@ function parseSceneSpec(where: string, spec: unknown): FabricSceneSpec {
       );
     }
   }
-  return optionsOf(spec) as FabricSceneSpec;
+  return optionsOf(spec);
 }
 
 function normalizeDimension(

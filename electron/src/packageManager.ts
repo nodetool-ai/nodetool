@@ -969,7 +969,7 @@ async function listPythonInstalledPackages(): Promise<PackageModel[]> {
         nodes: [],
         examples: [],
         assets: [],
-      } as PackageModel));
+      }));
   } catch (error: unknown) {
     logMessage(`Failed to list installed Python packages: ${errorMsg(error)}`, "error");
     return [];

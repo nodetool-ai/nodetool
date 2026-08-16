@@ -1,7 +1,7 @@
 import { applyDefaultModels } from "../applyDefaultModels";
 
 jest.mock("../../stores/ModelPreferencesStore", () => {
-  let state = { defaults: {} as Record<string, { provider: string; id: string; name: string }> };
+  let state = { defaults: {} };
   const store: any = {
     getState: () => state,
     _setState: (s: typeof state) => { state = s; }

@@ -403,7 +403,7 @@ async function runCase(
     const gen = authorGraph(evalCase.objective, authorOptions);
     let res = await gen.next();
     while (!res.done) {
-      const m = res.value as { type?: string } & Record<string, unknown>;
+      const m = res.value;
       if (m.type === "tool_call_update") {
         const name = String(m.name ?? "unknown");
         toolCalls[name] = (toolCalls[name] ?? 0) + 1;

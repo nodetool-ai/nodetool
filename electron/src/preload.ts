@@ -51,11 +51,11 @@ function createEventSubscription<T extends keyof IpcEvents>(
   return (callback: (data: IpcEvents[T]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: IpcEvents[T]) =>
       callback(data);
-    ipcRenderer.on(channel as string, listener);
+    ipcRenderer.on(channel, listener);
 
     // Return unsubscribe function
     return () => {
-      ipcRenderer.removeListener(channel as string, listener);
+      ipcRenderer.removeListener(channel, listener);
     };
   };
 }

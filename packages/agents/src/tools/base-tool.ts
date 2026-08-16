@@ -92,13 +92,7 @@ export abstract class Tool {
     params: Record<string, unknown> | null | undefined,
     options: { toolCallId?: string } = {}
   ): Promise<unknown> {
-    const candidate = tool as Tool & {
-      execute?: (
-        context: ProcessingContext,
-        params: Record<string, unknown> | null | undefined,
-        options?: { toolCallId?: string }
-      ) => Promise<unknown>;
-    };
+    const candidate = tool;
     if (isFunction(candidate.execute)) {
       return candidate.execute(context, params, options);
     }

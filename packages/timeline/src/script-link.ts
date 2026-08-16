@@ -74,3 +74,33 @@ export function linkedShotDurationMs(
   }
   return totalMs;
 }
+
+/** Where a shot's effective length came from. */
+export type EffectiveDurationSource = "audio" | "manual";
+
+export interface EffectiveShotDuration {
+  /** Seconds to render, or `undefined` to let the model's default decide. */
+  seconds: number | undefined;
+  source: EffectiveDurationSource;
+}
+
+/**
+ * The length a render should ask a video model for, and where it came from.
+ * Audio wins whenever {@link linkedShotDurationMs} has an answer; otherwise the
+ * shot's own `duration_seconds` does, which is also what an unlinked board and
+ * a `duration_source: "manual"` shot get.
+ *
+ * Seconds are rounded **up**: a clip that runs a fraction short of its takes
+ * leaves black under the voiceover, while an overlong one is trimmed by the
+ * timeline slot `buildLinkedTimeline` gives it.
+ */
+export function effectiveShotDuration(
+  shot: Shot,
+  linesById: Map<string, ScriptLine>
+): EffectiveShotDuration {
+  const audioMs = linkedShotDurationMs(shot, linesById);
+  if (audioMs !== null && audioMs > 0) {
+    return { seconds: Math.ceil(audioMs / 1000), source: "audio" };
+  }
+  return { seconds: shot.duration_seconds, source: "manual" };
+}

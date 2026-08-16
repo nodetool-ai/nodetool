@@ -318,7 +318,7 @@ describe("MoveTool", () => {
     doc.layers = [doc.layers[0], layer2];
     const ctx = makeToolContext({ doc });
     tool.onActivate!(ctx);
-    (ctx.clearGizmo as jest.Mock).mockClear();
+    jest.mocked(ctx.clearGizmo).mockClear();
 
     tool.syncActiveLayer({
       ...ctx,
@@ -331,7 +331,7 @@ describe("MoveTool", () => {
     const tool = new MoveTool();
     const ctx = makeToolContext();
     tool.onDown(ctx, makePointerEvent());
-    (ctx.clearGizmo as jest.Mock).mockClear();
+    jest.mocked(ctx.clearGizmo).mockClear();
     tool.syncActiveLayer(ctx);
     expect(ctx.clearGizmo).not.toHaveBeenCalled();
   });

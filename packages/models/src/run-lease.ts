@@ -82,7 +82,7 @@ export class RunLease extends DBModel {
           worker_id: workerId,
           acquired_at: nowIso,
           expires_at: expiresIso
-        } as Record<string, unknown>);
+        });
       });
     }
 
@@ -127,7 +127,7 @@ export class RunLease extends DBModel {
         worker_id: workerId,
         acquired_at: nowIso,
         expires_at: expiresIso
-      } as Record<string, unknown>);
+      });
     });
   }
 
@@ -161,7 +161,7 @@ export class RunLease extends DBModel {
       .where(lt(runLeases.expires_at, now));
 
     for (const row of expired) {
-      const lease = new RunLease(row as Record<string, unknown>);
+      const lease = new RunLease(row);
       await lease.delete();
     }
 

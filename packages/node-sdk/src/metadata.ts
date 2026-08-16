@@ -223,11 +223,7 @@ function walkForMetadataFiles(
 
   let entries: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
   try {
-    entries = fs.readdirSync(root, { withFileTypes: true }) as Array<{
-      name: string;
-      isDirectory: () => boolean;
-      isFile: () => boolean;
-    }>;
+    entries = fs.readdirSync(root, { withFileTypes: true });
   } catch (error) {
     warnings.push(`Failed to read directory ${root}: ${String(error)}`);
     return;

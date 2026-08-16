@@ -60,10 +60,10 @@ describe("RuntimeRegistry", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    (mockPkg.status as jest.Mock).mockResolvedValue({ installed: true });
-    (mockPkg.resolve as jest.Mock).mockResolvedValue({ binPaths: ["/bin"] });
-    (mockPkg.uninstall as jest.Mock).mockResolvedValue(undefined);
-    (mockPkgWithDep.status as jest.Mock).mockResolvedValue({ installed: false });
+    jest.mocked(mockPkg.status).mockResolvedValue({ installed: true });
+    jest.mocked(mockPkg.resolve).mockResolvedValue({ binPaths: ["/bin"] });
+    jest.mocked(mockPkg.uninstall).mockResolvedValue(undefined);
+    jest.mocked(mockPkgWithDep.status).mockResolvedValue({ installed: false });
 
     const mod = await import("../registry");
     registry = mod.runtimeRegistry;
@@ -169,7 +169,7 @@ describe("RuntimeRegistry", () => {
     });
 
     it("yields error when a dependency is not installed", async () => {
-      (mockPkg.status as jest.Mock).mockResolvedValue({ installed: false });
+      jest.mocked(mockPkg.status).mockResolvedValue({ installed: false });
 
       const events: RuntimeProgress[] = [];
       for await (const ev of registry.runLifecycle(
@@ -192,7 +192,7 @@ describe("RuntimeRegistry", () => {
         yield { type: "percent", value: 50 };
         yield { type: "done" };
       }
-      (mockPkg.install as jest.Mock).mockReturnValue(fakeInstall());
+      jest.mocked(mockPkg.install).mockReturnValue(fakeInstall());
 
       const events: RuntimeProgress[] = [];
       for await (const ev of registry.runLifecycle(

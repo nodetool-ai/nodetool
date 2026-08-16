@@ -761,10 +761,10 @@ export abstract class BaseProvider {
     log.info("LLM call", {
       provider: this.provider,
       model: args.model,
-      toolCount: (args as Record<string, unknown>).tools
-        ? ((args as Record<string, unknown>).tools as unknown[]).length
+      toolCount: args.tools
+        ? (args.tools as unknown[]).length
         : 0,
-      hasOnToolCall: !!(args as Record<string, unknown>).onToolCall
+      hasOnToolCall: !!args.onToolCall
     });
 
     let fullResponse = "";
@@ -792,12 +792,12 @@ export abstract class BaseProvider {
           break;
         }
         const item = result.value;
-        if ("type" in item && (item as { type: string }).type === "chunk") {
+        if ("type" in item && item.type === "chunk") {
           const chunk = item as { content?: string };
           if (chunk.content) fullResponse += chunk.content;
         }
         if ("id" in item && "name" in item && "args" in item) {
-          const tc = item as { id: string; name: string; args: unknown };
+          const tc = item;
           collectedToolCalls.push({
             id: tc.id,
             name: tc.name,
@@ -823,7 +823,7 @@ export abstract class BaseProvider {
         nodetoolArgs: {
           model: args.model,
           messages: args.messages,
-          tools: (args as Record<string, unknown>).tools
+          tools: args.tools
         },
         error: err
       });
@@ -1029,12 +1029,7 @@ export abstract class BaseProvider {
             yield item;
             continue;
           }
-          const chunk = item as {
-            content?: unknown;
-            content_type?: string;
-            thinking?: boolean;
-            done?: boolean;
-          };
+          const chunk = item;
           // Only text belongs in the assistant message. Audio/image chunks carry
           // base64 in the same `content` field; concatenating those produced
           // assistant messages full of binary garbage.
@@ -1560,7 +1555,7 @@ export abstract class BaseProvider {
       assertContained(requestedPath);
       const realPath = await fsP.realpath(requestedPath);
       assertContained(realPath);
-      return (await fsP.readFile(realPath)) as Uint8Array;
+      return await fsP.readFile(realPath);
     };
 
     if (uri.startsWith("file://")) {

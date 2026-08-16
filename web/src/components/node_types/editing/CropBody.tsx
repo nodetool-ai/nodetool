@@ -531,7 +531,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   // ── Aspect / W / H / Reset handlers ───────────────────────────────
   const handleAspectChange = useCallback(
     (event: SelectChangeEvent<AspectKey>) => {
-      const key = event.target.value as AspectKey;
+      const key = event.target.value;
       setAspect(key);
       const ratio = parseAspect(key);
       if (!ratio || !imgDims) return;

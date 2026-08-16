@@ -191,7 +191,7 @@ export function failureSignature(err: unknown): string | undefined {
     : isNumber(e.statusCode)
       ? e.statusCode
       : isNumber((e.response as { status?: unknown } | undefined)?.status)
-        ? ((e.response as { status: number }).status as number)
+        ? (e.response as { status: number }).status
         : undefined;
   if (status !== undefined) return `http:${status}`;
 

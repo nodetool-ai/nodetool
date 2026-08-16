@@ -265,17 +265,17 @@ function itemFromRecord(
     text: document ?? "",
     kind: coerceKind(m["kind"]),
     importance: clampImportance(m["importance"]),
-    source: isString(m["source"]) ? (m["source"] as string) : "",
+    source: isString(m["source"]) ? m["source"] : "",
     createdAt:
       isNumber(m["created_at_ms"])
-        ? (m["created_at_ms"] as number)
+        ? m["created_at_ms"]
         : 0,
     lastAccessedAt:
       isNumber(m["last_accessed_at_ms"])
-        ? (m["last_accessed_at_ms"] as number)
+        ? m["last_accessed_at_ms"]
         : 0,
     accessCount:
-      isNumber(m["access_count"]) ? (m["access_count"] as number) : 0
+      isNumber(m["access_count"]) ? m["access_count"] : 0
   };
 }
 
@@ -304,7 +304,7 @@ function renderConversationForExtraction(messages: Message[]): string {
           if (
             isObjectLike(part) &&
             "type" in part &&
-            (part as { type: string }).type === "text"
+            part.type === "text"
           ) {
             return (part as { text?: string }).text ?? "";
           }
@@ -595,11 +595,11 @@ export class LongTermMemory {
     try {
       const response = await this.extractionProvider.generateMessageTraced({
         messages: [
-          { role: "system", content: EXTRACTION_SYSTEM_PROMPT } as Message,
+          { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
           {
             role: "user",
             content: extractionUserPrompt(conversation)
-          } as Message
+          }
         ],
         model: this.extractionModel,
         tools: [],
@@ -739,11 +739,11 @@ export class LongTermMemory {
           {
             role: "system",
             content: MEMORY_SYNTHESIS_SYSTEM_PROMPT
-          } as Message,
+          },
           {
             role: "user",
             content: buildMemorySynthesisUserPrompt(query, items)
-          } as Message
+          }
         ],
         model: this.synthesisModel!,
         tools: [],

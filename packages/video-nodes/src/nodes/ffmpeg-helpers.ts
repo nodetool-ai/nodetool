@@ -238,8 +238,7 @@ export function coerceProviderBytes(
       : Array.isArray(value)
         ? "array"
         : isObjectLike(value)
-          ? ((value as { constructor?: { name?: string } }).constructor?.name ??
-            "object")
+          ? (value.constructor?.name ?? "object")
           : typeof value;
   throw new Error(
     `${nodeName}: provider returned ${received}, expected video bytes ` +

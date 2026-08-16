@@ -56,7 +56,7 @@ export async function runHostBinary(
       if (killTimer) clearTimeout(killTimer);
       const code =
         isObjectLike(err) && "code" in err
-          ? String((err as { code?: unknown }).code)
+          ? String(err.code)
           : "";
       if (code === "ENOENT") {
         reject(new HostBinaryMissingError(cmd));

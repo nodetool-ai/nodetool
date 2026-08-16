@@ -43,7 +43,7 @@ describe('useNetworkStatus', () => {
     unsubscribe.mockClear();
     addEventListener.mockReset();
     addEventListener.mockImplementation((cb) => {
-      listener = cb as Listener;
+      listener = cb;
       return unsubscribe;
     });
   });

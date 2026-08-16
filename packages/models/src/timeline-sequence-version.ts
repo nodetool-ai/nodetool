@@ -114,7 +114,7 @@ export class TimelineSequenceVersion extends DBModel {
       )
       .limit(1);
     return row
-      ? new TimelineSequenceVersion(row as Record<string, unknown>)
+      ? new TimelineSequenceVersion(row)
       : null;
   }
 
@@ -196,7 +196,7 @@ export class TimelineSequenceVersion extends DBModel {
     const excess = rows.length - Math.max(0, maxAutosaves);
     if (excess <= 0) return;
 
-    for (const row of rows.slice(0, excess) as { id: string }[]) {
+    for (const row of rows.slice(0, excess)) {
       await db
         .delete(timelineSequenceVersions)
         .where(eq(timelineSequenceVersions.id, row.id));

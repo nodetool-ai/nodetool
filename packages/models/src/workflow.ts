@@ -145,7 +145,7 @@ export class Workflow extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new Workflow(row);
@@ -240,7 +240,7 @@ export class Workflow extends DBModel {
       .limit(tag ? 10_000 : limit + 1);
 
     let items = rows.map(
-      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+      (r: Record<string, unknown>) => new Workflow(r)
     );
 
     // Filter by tag in-memory (JSON array field)
@@ -340,7 +340,7 @@ export class Workflow extends DBModel {
       .where(inArray(workflows.id, [...workflowIds]));
     const result = new Map<string, Workflow>();
     for (const row of rows) {
-      const workflow = new Workflow(row as Record<string, unknown>);
+      const workflow = new Workflow(row);
       result.set(workflow.id, workflow);
     }
     return result;
@@ -366,7 +366,7 @@ export class Workflow extends DBModel {
       .limit(limit + 1);
 
     const items = rows.map(
-      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+      (r: Record<string, unknown>) => new Workflow(r)
     );
     if (items.length <= limit) return [items, ""];
     items.pop();
@@ -398,7 +398,7 @@ export class Workflow extends DBModel {
       .limit(limit + 1);
 
     const items: Workflow[] = rows.map(
-      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+      (r: Record<string, unknown>) => new Workflow(r)
     );
     if (items.length <= limit) {
       const tools = items.filter((w: Workflow) => w.hasToolName());
@@ -452,6 +452,6 @@ export class Workflow extends DBModel {
         )
       )
       .limit(1);
-    return row ? new Workflow(row as Record<string, unknown>) : null;
+    return row ? new Workflow(row) : null;
   }
 }

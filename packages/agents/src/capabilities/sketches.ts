@@ -193,7 +193,7 @@ const listSketchVersions: CapabilityExport = {
     );
     const saveType =
       isString(params["save_type"])
-        ? (params["save_type"] as string)
+        ? params["save_type"]
         : undefined;
     const versions = await ImageDocumentVersion.listForDocument(doc.id, {
       limit,
@@ -244,7 +244,7 @@ const createSketchVersion: CapabilityExport = {
     const { ImageDocumentVersion } = await import("@nodetool-ai/models");
     const name =
       isString(params["name"]) && params["name"]
-        ? (params["name"] as string)
+        ? params["name"]
         : null;
     const version = await ImageDocumentVersion.snapshot(doc, {
       saveType: "manual",
@@ -745,7 +745,7 @@ const validateSketch: CapabilityExport = {
       height: numberParam(params["height"]),
       backgroundColor:
         isString(params["background_color"])
-          ? (params["background_color"] as string)
+          ? params["background_color"]
           : undefined
     };
     let name: string | undefined;

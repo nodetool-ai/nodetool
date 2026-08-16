@@ -6,7 +6,7 @@
  * Token counts come from js-tiktoken (see `./token-counter.ts`).
  */
 
-import type { Message, MessageContent } from "./providers/types.js";
+import type { Message } from "./providers/types.js";
 import { countTokens, truncateToTokens } from "./token-counter.js";
 import { isString } from "./type-predicates.js";
 
@@ -20,7 +20,7 @@ function estimateMessageTokens(msg: Message): number {
   } else if (isString(msg.content)) {
     tokens = countTokens(msg.content);
   } else {
-    for (const part of msg.content as MessageContent[]) {
+    for (const part of msg.content) {
       tokens +=
         part.type === "text" ? countTokens(part.text) : NON_TEXT_BLOCK_TOKENS;
     }

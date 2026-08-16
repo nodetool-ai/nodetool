@@ -168,39 +168,37 @@ const Channels = {
   DIALOG_OPEN_FOLDER: 'dialog-open-folder',
 };
 
-const ipcMainMock = ipcMain as jest.Mocked<typeof ipcMain>;
-const browserWindowMock = BrowserWindow as jest.Mocked<typeof BrowserWindow>;
-const dialogMock = dialog as jest.Mocked<typeof dialog>;
-const clipboardMock = clipboard as jest.Mocked<typeof clipboard>;
-const globalShortcutMock = globalShortcut as jest.Mocked<typeof globalShortcut>;
+const ipcMainMock = jest.mocked(ipcMain);
+const browserWindowMock = jest.mocked(BrowserWindow);
+const dialogMock = jest.mocked(dialog);
+const clipboardMock = jest.mocked(clipboard);
+const globalShortcutMock = jest.mocked(globalShortcut);
 
 const serverMock = {
-  getServerState: getServerState as jest.MockedFunction<typeof getServerState>,
-  openLogFile: openLogFile as jest.MockedFunction<typeof openLogFile>,
-  runApp: runApp as jest.MockedFunction<typeof runApp>,
-  showItemInFolder: showItemInFolder as jest.MockedFunction<typeof showItemInFolder>,
-  initializeBackendServer: initializeBackendServer as jest.MockedFunction<typeof initializeBackendServer>,
-  stopServer: stopServer as jest.MockedFunction<typeof stopServer>,
+  getServerState: jest.mocked(getServerState),
+  openLogFile: jest.mocked(openLogFile),
+  runApp: jest.mocked(runApp),
+  showItemInFolder: jest.mocked(showItemInFolder),
+  initializeBackendServer: jest.mocked(initializeBackendServer),
+  stopServer: jest.mocked(stopServer),
 };
 
 const packageManagerMock = {
-  fetchAvailablePackages: fetchAvailablePackages as jest.MockedFunction<typeof fetchAvailablePackages>,
-  listInstalledPackages: listInstalledPackages as jest.MockedFunction<typeof listInstalledPackages>,
-  installPackage: installPackage as jest.MockedFunction<typeof installPackage>,
-  uninstallPackage: uninstallPackage as jest.MockedFunction<typeof uninstallPackage>,
-  updatePackage: updatePackage as jest.MockedFunction<typeof updatePackage>,
-  validateRepoId: validateRepoId as jest.MockedFunction<typeof validateRepoId>,
-  searchNodes: searchNodes as jest.MockedFunction<typeof searchNodes>,
-  checkForPackageUpdates: checkForPackageUpdates as jest.MockedFunction<
-    typeof checkForPackageUpdates
-  >,
+  fetchAvailablePackages: jest.mocked(fetchAvailablePackages),
+  listInstalledPackages: jest.mocked(listInstalledPackages),
+  installPackage: jest.mocked(installPackage),
+  uninstallPackage: jest.mocked(uninstallPackage),
+  updatePackage: jest.mocked(updatePackage),
+  validateRepoId: jest.mocked(validateRepoId),
+  searchNodes: jest.mocked(searchNodes),
+  checkForPackageUpdates: jest.mocked(checkForPackageUpdates),
 };
 
-const loggerMock = logMessage as jest.MockedFunction<typeof logMessage>;
-const registerWorkflowShortcutMock = registerWorkflowShortcut as jest.MockedFunction<typeof registerWorkflowShortcut>;
-const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction<typeof setupWorkflowShortcuts>;
-const emitWorkflowsChangedMock = emitWorkflowsChanged as jest.MockedFunction<typeof emitWorkflowsChanged>;
-const shellMock = shell as jest.Mocked<typeof shell>;
+const loggerMock = jest.mocked(logMessage);
+const registerWorkflowShortcutMock = jest.mocked(registerWorkflowShortcut);
+const setupWorkflowShortcutsMock = jest.mocked(setupWorkflowShortcuts);
+const emitWorkflowsChangedMock = jest.mocked(emitWorkflowsChanged);
+const shellMock = jest.mocked(shell);
 
 /**
  * The callbacks `initializeIpcHandlers` registered, read back off the mocked
@@ -335,7 +333,7 @@ describe('initializeIpcHandlers', () => {
     // SAFETY: `getFocusedWindow` is a `jest.fn()` in this file's electron
     // mock; the window handlers only call close/minimize/maximize/unmaximize/
     // isMaximized, all of which this stub provides.
-    (BrowserWindow.getFocusedWindow as jest.Mock).mockReturnValue(mockWindow);
+    jest.mocked(BrowserWindow.getFocusedWindow).mockReturnValue(mockWindow);
 
     closeHandler({});
     expect(mockWindow.close).toHaveBeenCalled();

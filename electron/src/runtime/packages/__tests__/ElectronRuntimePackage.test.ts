@@ -6,7 +6,7 @@ import { ElectronRuntimePackage } from "../ElectronRuntimePackage";
 import type { RuntimeContext } from "../types";
 import { fileExists } from "../../../utils";
 
-const mockFileExists = fileExists as jest.MockedFunction<typeof fileExists>;
+const mockFileExists = jest.mocked(fileExists);
 
 const ctx: RuntimeContext = {
   condaEnvPath: "/mock/conda",

@@ -195,7 +195,7 @@ describe("useNodeEditorShortcuts", () => {
   it("registers space shortcut when editor is active", () => {
     renderHook(() => useNodeEditorShortcuts(true));
 
-    const calls = (registerComboCallback as jest.Mock).mock.calls as Array<
+    const calls = jest.mocked(registerComboCallback).mock.calls as Array<
       [string]
     >;
     const hasSpaceShortcut = calls.some(([combo]) => combo === " ");

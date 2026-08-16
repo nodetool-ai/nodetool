@@ -140,7 +140,7 @@ export class ClaudeCodeOAuthClient {
     this.tokenEndpoint = options.tokenEndpoint ?? CLAUDE_CODE_OAUTH_TOKEN_URL;
     this.profileEndpoint =
       options.profileEndpoint ?? CLAUDE_CODE_OAUTH_PROFILE_URL;
-    this.fetchFn = options.fetchFn ?? (globalThis.fetch as JsonFetchLike);
+    this.fetchFn = options.fetchFn ?? globalThis.fetch;
     this.clock = options.clock ?? systemClock;
     this.logger =
       options.logger ?? createLogger("nodetool.runtime.oauth.claude-code");

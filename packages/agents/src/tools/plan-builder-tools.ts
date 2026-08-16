@@ -104,11 +104,11 @@ export class PlanBuilder {
   private buildTask(data: Record<string, unknown>): Task {
     const taskId =
       isNonEmptyString(data["id"])
-        ? (data["id"] as string)
+        ? data["id"]
         : randomUUID();
     const taskTitle =
       isString(data["title"])
-        ? (data["title"] as string)
+        ? data["title"]
         : "Untitled Task";
     const taskDependsOn = Array.isArray(data["depends_on"])
       ? (data["depends_on"] as string[])

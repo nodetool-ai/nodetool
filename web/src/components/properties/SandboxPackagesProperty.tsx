@@ -89,13 +89,7 @@ const SandboxPackagesProperty = (
     queryFn: async () =>
       (await trpc.packs.sandboxPackageDocs.query({
         packName: openPack as string
-      })) as {
-        packName: string;
-        trusted: boolean;
-        name: string;
-        description: string;
-        body: string;
-      } | null
+      }))
   });
 
   const modules = useMemo(

@@ -59,9 +59,7 @@ export function resetDefaultVectorProvider(): void {
 export function createVectorProviderFromEnv(
   env: Record<string, string | undefined> = process.env
 ): VectorProvider {
-  const kind = (env.NODETOOL_VECTOR_PROVIDER ?? "sqlite-vec") as
-    | VectorProviderKind
-    | string;
+  const kind = env.NODETOOL_VECTOR_PROVIDER ?? "sqlite-vec";
 
   switch (kind) {
     case "sqlite-vec":

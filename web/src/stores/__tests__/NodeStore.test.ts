@@ -168,7 +168,7 @@ describe("NodeStore node management", () => {
     store.getState().addNode(a);
     store.getState().addNode(b);
     const edge = makeEdge("a", "b");
-    store.getState().addEdge(edge as Edge);
+    store.getState().addEdge(edge);
     store.getState().deleteNode("a");
     expect(store.getState().findNode("a")).toBeUndefined();
     expect(store.getState().edges).toHaveLength(0);

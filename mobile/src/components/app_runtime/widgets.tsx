@@ -758,7 +758,7 @@ const Model3DWidget: React.FC<WidgetProps> = (widget) => {
 
 /** What a bound plot value amounts to, for the card that cannot draw it. */
 const chartSummary = (value: unknown): string | null => {
-  if (isRow(value) && Array.isArray((value as { data?: unknown[] }).data)) {
+  if (isRow(value) && Array.isArray(value.data)) {
     const frame = value as { data?: unknown[]; columns?: unknown };
     const columns = Array.isArray(frame.columns) ? frame.columns.length : 0;
     const rows = frame.data?.length ?? 0;

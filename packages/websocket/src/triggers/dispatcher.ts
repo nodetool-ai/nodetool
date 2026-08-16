@@ -227,7 +227,7 @@ async function listEnabledRegistrations(): Promise<TriggerRegistration[]> {
     where: (t, { eq }) => eq(t.enabled, 1),
     orderBy: (t, { asc }) => asc(t.created_at)
   });
-  return rows.map((r) => new TriggerRegistration(r as Record<string, unknown>));
+  return rows.map((r) => new TriggerRegistration(r));
 }
 
 /**

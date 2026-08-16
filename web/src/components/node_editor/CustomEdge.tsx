@@ -94,7 +94,7 @@ export function CustomEdge({
         strokeDasharray: "14 10",
         animation: `edgeFlow ${MOTION.spin} infinite`
       })
-    } as React.CSSProperties;
+    };
   }, [style, isActive, selected]);
 
   return (

@@ -20,7 +20,6 @@ import {
   Message,
   MessageContent,
   Thread,
-  Chunk,
   ChatMessageRequest,
   WebSocketMessageData,
   LanguageModel,
@@ -120,7 +119,7 @@ function handleWebSocketMessage(
 
   switch (data.type) {
     case 'message': {
-      const msg = data as Message;
+      const msg = data;
       const msgThreadId = msg.thread_id ?? threadId;
       if (!msgThreadId) {break;}
 
@@ -154,7 +153,7 @@ function handleWebSocketMessage(
     }
 
     case 'chunk': {
-      const chunk = data as Chunk;
+      const chunk = data;
       if (!threadId) {break;}
 
       // Audio chunks carry binary payloads (Float32Array or base64); only

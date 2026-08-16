@@ -145,12 +145,7 @@ const searchNodes: CapabilityExport = {
     };
     // Prefer the registry's memoized index; fall back to a one-shot rank for
     // structural mocks that only implement `listMetadata`.
-    const indexed = registry as {
-      searchMetadata?: (
-        terms: readonly string[],
-        options?: ScoreOptions
-      ) => ScoredNode[];
-    };
+    const indexed = registry;
     let ranked: ScoredNode[];
     if (isFunction(indexed.searchMetadata)) {
       ranked = indexed.searchMetadata(queryArr, scoreOptions);

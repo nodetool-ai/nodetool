@@ -49,7 +49,7 @@ const { promises: fs } = require("fs");
 import { getSystemInfo } from "../systemInfo";
 
 function mockExec(map: Record<string, string | Error>): void {
-  (exec as jest.Mock).mockImplementation(
+  jest.mocked(exec).mockImplementation(
     (
       cmd: string,
       _opts: unknown,
@@ -73,12 +73,12 @@ function mockExec(map: Record<string, string | Error>): void {
 
 describe("systemInfo.getSystemInfo()", () => {
   beforeEach(() => {
-    (fs.access as jest.Mock).mockReset();
-    (exec as jest.Mock).mockReset();
+    jest.mocked(fs.access).mockReset();
+    jest.mocked(exec).mockReset();
   });
 
   test("returns the documented SystemInfo shape (all keys present)", async () => {
-    (fs.access as jest.Mock).mockResolvedValue(undefined);
+    jest.mocked(fs.access).mockResolvedValue(undefined);
     mockExec({ python: "Python 3.11.7", "nvidia-smi": "" });
 
     const info = await getSystemInfo();
@@ -106,7 +106,7 @@ describe("systemInfo.getSystemInfo()", () => {
   });
 
   test("reads electronVersion / nodeVersion / chromeVersion from process.versions", async () => {
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+    jest.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
     mockExec({});
 
     const info = await getSystemInfo();
@@ -121,7 +121,7 @@ describe("systemInfo.getSystemInfo()", () => {
 
   test("getOsName maps process.platform → user-friendly label", async () => {
     const original = Object.getOwnPropertyDescriptor(process, "platform");
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+    jest.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
     mockExec({});
 
     Object.defineProperty(process, "platform", { value: "darwin" });
@@ -137,7 +137,7 @@ describe("systemInfo.getSystemInfo()", () => {
   });
 
   test("pythonVersion is parsed out of 'Python X.Y.Z' output", async () => {
-    (fs.access as jest.Mock).mockResolvedValue(undefined);
+    jest.mocked(fs.access).mockResolvedValue(undefined);
     mockExec({
       python: "Python 3.12.4",
       "nvidia-smi": new Error("no nvidia"),
@@ -148,7 +148,7 @@ describe("systemInfo.getSystemInfo()", () => {
   });
 
   test("pythonVersion is null when the python invocation fails", async () => {
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+    jest.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
     mockExec({});
 
     const info = await getSystemInfo();
@@ -156,7 +156,7 @@ describe("systemInfo.getSystemInfo()", () => {
   });
 
   test("CUDA detection parses 'CUDA Version: X.Y' from nvidia-smi", async () => {
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+    jest.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
     mockExec({
       "nvidia-smi": "+-------+\n| NVIDIA-SMI 535.54  Driver Version: 535.54  CUDA Version: 12.2 |\n",
     });
@@ -170,7 +170,7 @@ describe("systemInfo.getSystemInfo()", () => {
     const original = Object.getOwnPropertyDescriptor(process, "platform");
     Object.defineProperty(process, "platform", { value: "win32" });
 
-    (fs.access as jest.Mock).mockRejectedValue(new Error("ENOENT"));
+    jest.mocked(fs.access).mockRejectedValue(new Error("ENOENT"));
     mockExec({});
 
     const info = await getSystemInfo();

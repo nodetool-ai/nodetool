@@ -103,7 +103,7 @@ export class ThreadMemory extends DBModel {
       .orderBy(desc(threadMemories.created_at), desc(threadMemories.id))
       .limit(limit);
     return rows.map(
-      (r: Record<string, unknown>) => new ThreadMemory(r as Record<string, unknown>)
+      (r: Record<string, unknown>) => new ThreadMemory(r)
     );
   }
 

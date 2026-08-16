@@ -549,7 +549,7 @@ workflows
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
         const data = await client.workflows.list.query({ limit });
-        rows = data.workflows as Record<string, unknown>[];
+        rows = data.workflows;
       } else {
         ensureDb();
         const [items] = await Workflow.paginate(LOCAL_USER_ID, { limit });
@@ -754,7 +754,7 @@ addSupervisorOptions(
       const assetOutputMode = (opts.assetOutputMode ??
         "native") as AssetOutputMode;
       if (
-        !(ASSET_OUTPUT_MODES as readonly string[]).includes(assetOutputMode)
+        !ASSET_OUTPUT_MODES.includes(assetOutputMode)
       ) {
         throw new Error(
           `Unknown --asset-output-mode "${assetOutputMode}". ` +
@@ -1015,7 +1015,7 @@ workflows
           const client = createApiClient(opts.apiUrl);
           const wf = (await client.workflows.get.query({
             id: idOrFile
-          })) as Record<string, unknown>;
+          }));
           name = isString(wf.name) ? wf.name : "workflow";
           description =
             isString(wf.description) ? wf.description : "";
@@ -1182,7 +1182,7 @@ workflows
           } else if (useServer) {
             raw = (await createApiClient(apiUrl).workflows.get.query({
               id: idOrFile
-            })) as Record<string, unknown>;
+            }));
           } else {
             const found = await Workflow.find(LOCAL_USER_ID, idOrFile);
             if (!found) throw new Error(`Workflow not found: ${idOrFile}`);
@@ -1329,7 +1329,7 @@ jobs
           query.workflow_id = opts.workflowId;
         }
         const data = await client.jobs.list.query(query);
-        rows = data.jobs as Record<string, unknown>[];
+        rows = data.jobs;
       } else {
         ensureDb();
         const page: Parameters<typeof Job.paginate>[1] = { limit };
@@ -1432,7 +1432,7 @@ assets
           query.content_type = opts.contentType;
         }
         const data = await client.assets.list.query(query);
-        rows = data.assets as Record<string, unknown>[];
+        rows = data.assets;
       } else {
         ensureDb();
         const page: Parameters<typeof Asset.paginate>[1] = { limit };

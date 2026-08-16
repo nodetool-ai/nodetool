@@ -35,7 +35,7 @@ function makeNode(overrides: Partial<NodeMetadata>): NodeMetadata {
     recommended_models: [],
     required_settings: [],
     ...overrides,
-  } as NodeMetadata;
+  };
 }
 
 describe("typeTreeContains", () => {

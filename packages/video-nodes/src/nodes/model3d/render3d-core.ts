@@ -158,10 +158,7 @@ function disposeScene(scene: THREE.Scene): void {
   scene.traverse((object) => {
     const mesh = object as THREE.Mesh;
     if (mesh.geometry) mesh.geometry.dispose();
-    const material = mesh.material as
-      | THREE.Material
-      | THREE.Material[]
-      | undefined;
+    const material = mesh.material;
     if (Array.isArray(material)) {
       material.forEach(disposeMaterial);
     } else if (material) {

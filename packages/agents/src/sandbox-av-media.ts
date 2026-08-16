@@ -22,7 +22,6 @@ import {
   type ConversionOptions,
   type ConversionVideoOptions,
   type InputVideoTrack,
-  type Rotation,
   type StreamTargetChunk
 } from "mediabunny";
 
@@ -759,7 +758,7 @@ export function createVideoBridge(
       return videoConvert(
         bytes,
         {
-          video: { rotate: rawDegrees as Rotation }
+          video: { rotate: rawDegrees }
         },
         signal,
         maxBytes

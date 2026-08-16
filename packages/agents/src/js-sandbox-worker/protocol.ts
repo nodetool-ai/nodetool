@@ -152,7 +152,7 @@ const CLONEABLE_TAGS = new Set([
 function describe(value: unknown): string {
   if (value === null) return "null";
   if (typeof value !== "object") return typeof value;
-  const name = (value as object).constructor?.name;
+  const name = value.constructor?.name;
   return name && name !== "Object" ? name : "object";
 }
 

@@ -36,7 +36,7 @@ class InvertNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorInvertV1,
       { amount: num(props.amount, 1) },
@@ -60,7 +60,7 @@ class BrightnessContrastNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorBrightnessContrastV1,
       {
@@ -96,7 +96,7 @@ class HSBNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorHsbV1,
       {
@@ -126,7 +126,7 @@ class ExposureNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorExposureV1,
       { stops: num(props.stops, 0) },
@@ -150,7 +150,7 @@ class PosterizeNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorPosterizeV1,
       { levels: num(props.levels, 4) },
@@ -174,7 +174,7 @@ class GradeNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorGradeV1,
       {
@@ -221,7 +221,7 @@ class ChannelSplitNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const output = await runShaderNode(
       colorChannelSplitV1,
       { mode: num(props.mode, 0) },
