@@ -95,6 +95,11 @@ const getIcon = (variant: InfoTooltipProps["iconVariant"], fontSize: "small" | "
   }
 };
 
+type TooltipOrigin = {
+  vertical: "top" | "bottom";
+  horizontal: "left" | "center" | "right";
+};
+
 export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
   content,
   title,
@@ -161,7 +166,9 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
   }
   
   // Popover mode - parse placement for anchor and transform origins
-  const getPopoverOrigins = (placement: string) => {
+  const getPopoverOrigins = (
+    placement: string
+  ): { anchor: TooltipOrigin; transform: TooltipOrigin } => {
     const vertical: "top" | "bottom" = placement.includes("top") ? "top" : "bottom";
     let horizontal: "left" | "center" | "right" = "center";
     if (placement.includes("start") || placement === "left") {
@@ -174,7 +181,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
     return {
       anchor: { vertical, horizontal },
       transform: { 
-        vertical: (vertical === "top" ? "bottom" : "top") as "top" | "bottom", 
+        vertical: vertical === "top" ? "bottom" : "top",
         horizontal 
       }
     };

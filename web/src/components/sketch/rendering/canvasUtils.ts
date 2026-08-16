@@ -31,7 +31,7 @@ export interface BlurTempCanvases {
 export function blendModeToComposite(
   mode: BlendMode
 ): GlobalCompositeOperation {
-  return blendModeToCanvasOp(mode) as GlobalCompositeOperation;
+  return blendModeToCanvasOp(mode);
 }
 
 // ─── Checkerboard ────────────────────────────────────────────────────────────
