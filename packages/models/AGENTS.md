@@ -95,9 +95,9 @@ If your query filters on a boolean-like column, pick the right literal for the s
 
 ## Migrations
 
-Migrations live in `src/migrations/versions.ts` as an ordered list of `MigrationDef` objects. Each migration has a `version` integer, `description`, and `up` SQL string (plus optional `down`).
+Migrations live in `src/migrations/versions.ts` as an ordered list of `MigrationDef` objects. Each migration has a `version` string, a `name`, the `createsTables` / `modifiesTables` it touches, and `up` / `down` functions that take a `MigrationDBAdapter`.
 
-The `MigrationRunner` applies pending migrations in order and records them in `_migration_history`. It works on both dialects via the `MigrationDBAdapter` interface:
+The `MigrationRunner` applies pending migrations in order and records them in `_nodetool_migrations` (`MIGRATION_TRACKING_TABLE` in `src/migrations/state.ts`). It works on both dialects via the `MigrationDBAdapter` interface:
 
 - `SQLiteMigrationAdapter` — uses `better-sqlite3` synchronous API
 - `PostgresMigrationAdapter` — uses `pg` (node-postgres) pool
