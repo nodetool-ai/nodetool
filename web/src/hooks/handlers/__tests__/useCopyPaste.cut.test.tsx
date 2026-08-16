@@ -6,6 +6,7 @@ import useSessionStateStore from "../../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { isTextInputActive } from "../../../utils/browser";
 import type { NodeData } from "../../../stores/NodeData";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({ screenToFlowPosition: jest.fn() }))
@@ -46,7 +47,7 @@ describe("useCopyPaste handleCut", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+    asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
         nodes: [group, child],
         edges: [],
@@ -56,14 +57,14 @@ describe("useCopyPaste handleCut", () => {
         setEdges
       })
     });
-    (useSessionStateStore as unknown as jest.Mock).mockImplementation(
+    asMock(useSessionStateStore).mockImplementation(
       <T,>(selector: (state: unknown) => T) =>
         selector({
           setClipboardData: jest.fn(),
           setIsClipboardValid: jest.fn()
         })
     );
-    (useClipboardContentPaste as unknown as jest.Mock).mockReturnValue({
+    asMock(useClipboardContentPaste).mockReturnValue({
       handleContentPaste: jest.fn(),
       readClipboardContent: jest.fn(),
       readClipboardText: jest.fn()
@@ -91,7 +92,7 @@ describe("useCopyPaste handleCut", () => {
   });
 
   it("does nothing when nothing is selected", async () => {
-    (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+    asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
         nodes: [group, child],
         edges: [],

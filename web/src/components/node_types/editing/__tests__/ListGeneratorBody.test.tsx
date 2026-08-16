@@ -8,6 +8,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
 import type { NodeData } from "../../../../stores/NodeData";
 import ListGeneratorBody from "../ListGeneratorBody";
+import { stub } from "../../../../test-utils/doubles";
 
 const workflowId = "wf-1";
 const nodeId = "node-1";
@@ -44,7 +45,7 @@ jest.mock("../../../../utils/MarkdownRenderer", () => ({
   )
 }));
 
-const nodeMetadata = {
+const nodeMetadata = stub<NodeMetadata>({
   node_type: "nodetool.generators.ListGenerator",
   title: "List Generator",
   namespace: "nodetool.generators",
@@ -53,13 +54,13 @@ const nodeMetadata = {
   properties: [],
   outputs: [{ name: "output", type: { type: "str" } }],
   supports_dynamic_inputs: false
-} as unknown as NodeMetadata;
+});
 
-const nodeData = {
+const nodeData = stub<NodeData>({
   workflow_id: workflowId,
   properties: {},
   dynamic_properties: {}
-} as unknown as NodeData;
+});
 
 const renderBody = (status?: string) =>
   render(

@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 import { createCompositor } from "../createCompositor";
+import { stub } from "../../../../../test-utils/doubles";
 
 /**
  * Minimal fake canvas: vends a stub 2D context and refuses WebGPU, so the
@@ -24,11 +25,11 @@ function fakeCanvas(): HTMLCanvasElement {
     globalAlpha: 1,
     globalCompositeOperation: "source-over"
   };
-  return {
+  return stub<HTMLCanvasElement>({
     width: 320,
     height: 180,
     getContext: (type: string) => (type === "2d" ? ctx2d : null)
-  } as unknown as HTMLCanvasElement;
+  });
 }
 
 describe("createCompositor", () => {
@@ -59,11 +60,11 @@ describe("createCompositor", () => {
   });
 
   it("reports failure when neither backend can initialise", async () => {
-    const blankCanvas = {
+    const blankCanvas = stub<HTMLCanvasElement>({
       width: 10,
       height: 10,
       getContext: () => null
-    } as unknown as HTMLCanvasElement;
+    });
     const { backend, init } = await createCompositor(blankCanvas);
     expect(backend).toBe("canvas2d");
     expect(init.ok).toBe(false);

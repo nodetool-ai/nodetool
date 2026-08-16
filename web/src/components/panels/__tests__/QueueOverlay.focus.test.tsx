@@ -6,6 +6,7 @@ import QueueOverlay from "../QueueOverlay";
 import { Job } from "../../../stores/ApiTypes";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()
@@ -31,7 +32,7 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
     selector({ currentWorkflowId: mockCurrentWorkflowId.value })
 }));
 
-const mockUseRunningJobs = useRunningJobs as unknown as jest.Mock;
+const mockUseRunningJobs = asMock(useRunningJobs);
 
 const job = (id: string, status: string, workflowId = "wf"): Job =>
   ({

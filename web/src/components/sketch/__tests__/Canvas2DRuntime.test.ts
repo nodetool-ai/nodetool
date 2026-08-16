@@ -19,6 +19,7 @@ import {
   getLayerGeometry,
   setCanvasRasterBounds
 } from "../transform/geometry/layerGeometry";
+import { stub } from "../../../test-utils/doubles";
 
 function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
   const base = createDefaultDocument(64, 64);
@@ -26,7 +27,7 @@ function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
 }
 
 function mockCanvas2DContext() {
-  const fakeContext = {
+  const fakeContext = stub<CanvasRenderingContext2D>({
     clearRect: jest.fn(),
     drawImage: jest.fn(),
     fillRect: jest.fn(),
@@ -60,7 +61,7 @@ function mockCanvas2DContext() {
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     fillStyle: "#000"
-  } as unknown as CanvasRenderingContext2D;
+  });
 
   const getContextSpy = jest
     .spyOn(HTMLCanvasElement.prototype, "getContext")
@@ -600,7 +601,7 @@ describe("Canvas2DRuntime", () => {
       const clip = jest.fn();
       const strokeRect = jest.fn();
 
-      const fakeContext = {
+      const fakeContext = stub<CanvasRenderingContext2D>({
         drawImage,
         fillRect,
         createPattern,
@@ -614,7 +615,7 @@ describe("Canvas2DRuntime", () => {
         globalAlpha: 1,
         globalCompositeOperation: "source-over",
         fillStyle: "#000"
-      } as unknown as CanvasRenderingContext2D;
+      });
 
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")

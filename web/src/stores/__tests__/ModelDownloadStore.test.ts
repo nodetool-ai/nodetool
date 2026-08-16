@@ -16,6 +16,7 @@ jest.mock("../../lib/trpc", () => ({
 }));
 
 import { useModelDownloadStore } from "../ModelDownloadStore";
+import { stub } from "../../test-utils/doubles";
 
 const originalDownloadState = useModelDownloadStore.getState();
 
@@ -126,10 +127,10 @@ describe("ModelDownloadStore", () => {
 
   test("startDownload for huggingface model sends websocket message", async () => {
     const sendMock = jest.fn();
-    const mockWs = {
+    const mockWs = stub<WebSocket>({
       send: sendMock,
       readyState: WebSocket.OPEN
-    } as unknown as WebSocket;
+    });
     const connectMock = jest.fn().mockResolvedValue(mockWs);
 
     useModelDownloadStore.setState({ connectWebSocket: connectMock }, false);

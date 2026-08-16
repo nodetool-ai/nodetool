@@ -87,7 +87,7 @@ function renderScreen() {
 
 /** Pull a button out of the last Alert.alert call by its label. */
 function alertButton(callIndex: number, text: string): AlertButton {
-  const spy = Alert.alert as unknown as jest.Mock;
+  const spy = jest.mocked(Alert.alert);
   const buttons = spy.mock.calls[callIndex][2] as AlertButton[];
   const button = buttons.find((candidate) => candidate.text === text);
   if (!button) {
@@ -174,7 +174,7 @@ describe('DocumentsScreen', () => {
 
     // The action menu only opens the confirmation; nothing is deleted yet.
     expect(deleteMutate).not.toHaveBeenCalled();
-    expect((Alert.alert as unknown as jest.Mock).mock.calls[1][0]).toBe(
+    expect(jest.mocked(Alert.alert).mock.calls[1][0]).toBe(
       'Delete document?'
     );
 

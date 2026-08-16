@@ -98,9 +98,11 @@ export async function migrateCodeInputs(
 
   for (const workflow of items) {
     report.workflowsScanned++;
-    const graph = asRecord(workflow.graph);
-    const nodes = Array.isArray(graph.nodes) ? (graph.nodes as GraphNode[]) : [];
-    const edges = Array.isArray(graph.edges) ? (graph.edges as GraphEdge[]) : [];
+    const graph = workflow.graph;
+    // SAFETY: a stored graph's nodes and edges are the editor's own node and
+    // edge records; the Array guard rejects a row whose graph was never one.
+    const nodes = Array.isArray(graph?.nodes) ? (graph.nodes as GraphNode[]) : [];
+    const edges = Array.isArray(graph?.edges) ? (graph.edges as GraphEdge[]) : [];
     let touched = false;
 
     for (const node of nodes) {
@@ -140,7 +142,7 @@ export async function migrateCodeInputs(
     if (touched) {
       report.workflowsUpdated++;
       if (!options.dryRun) {
-        workflow.graph = graph as unknown as typeof workflow.graph;
+        workflow.graph = graph;
         await workflow.save();
       }
     }

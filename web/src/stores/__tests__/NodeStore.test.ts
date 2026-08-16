@@ -8,6 +8,7 @@ import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
 import { CONTROL_HANDLE_ID } from "../graphEdgeToReactFlowEdge";
 import { NodeMetadata } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 const makeNode = (
   id: string,
@@ -416,7 +417,7 @@ describe("Edge Validation", () => {
         ...useMetadataStore.getState(),
         metadata: {
           ...mockMetadata,
-          img_source: {
+          img_source: stub<NodeMetadata>({
             node_type: "img_source",
             title: "Img",
             description: "",
@@ -429,8 +430,8 @@ describe("Edge Validation", () => {
             recommended_models: [],
             is_streaming_output: false,
             required_settings: []
-          } as unknown as NodeMetadata,
-          fal_test: {
+          }),
+          fal_test: stub<NodeMetadata>({
             node_type: "fal_test",
             title: "Fal",
             description: "",
@@ -453,7 +454,7 @@ describe("Edge Validation", () => {
             recommended_models: [],
             is_streaming_output: false,
             required_settings: []
-          } as unknown as NodeMetadata
+          })
         }
       },
       true

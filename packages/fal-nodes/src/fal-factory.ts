@@ -188,14 +188,20 @@ function computeFieldClassification(
  * empty image/audio/video inputs (and strip the mentions from the text).
  * Shared with KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
  */
+/**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ */
+function propertyOf(instance: BaseNode, name: string): NodeValue {
+  return Reflect.get(instance, name);
+}
+
 async function promptAssetOverrides(
   instance: BaseNode,
   spec: FalManifestEntry,
   context?: ProcessingContext
 ): Promise<Record<string, NodeValue>> {
-  // SAFETY: a node's own properties hold node property values, and NodeTool
-  // restricts those to its property types — the shapes `NodeValue` names.
-  const values = instance as unknown as Record<string, NodeValue>;
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.inputFields) {
@@ -203,7 +209,7 @@ async function promptAssetOverrides(
     const kind = assetKind(field.propType);
     if (kind === "image" || kind === "audio" || kind === "video") {
       const list = isListAsset(field.propType);
-      const value = values[field.name];
+      const value = propertyOf(instance, field.name);
       const hasSource = list
         ? Array.isArray(value) && value.some(isRefSet)
         : isRefSet(value);
@@ -217,7 +223,7 @@ async function promptAssetOverrides(
     } else if (field.propType.toLowerCase() === "str") {
       textFields.push({
         name: field.name,
-        value: String(values[field.name] ?? "")
+        value: String(propertyOf(instance, field.name) ?? "")
       });
     }
   }
@@ -234,29 +240,27 @@ function resolveFieldValue(
   apiParamName?: string,
   propType?: string
 ): NodeValue {
-  // SAFETY: a node's own properties hold node property values, and NodeTool
-  // restricts those to its property types — the shapes `NodeValue` names.
-  const record = instance as unknown as Record<string, NodeValue>;
-  const primary = fieldName in record ? record[fieldName] : undefined;
+  const primary =
+    fieldName in instance ? propertyOf(instance, fieldName) : undefined;
   const kind = propType ? assetKind(propType) : "none";
 
   if (
     apiParamName &&
-    apiParamName in record &&
-    record[apiParamName] !== undefined &&
+    apiParamName in instance &&
+    propertyOf(instance, apiParamName) !== undefined &&
     (primary === undefined || (kind !== "none" && !isRefSet(primary)))
   ) {
-    return record[apiParamName];
+    return propertyOf(instance, apiParamName);
   }
   if (primary !== undefined) {
     return primary;
   }
   if (
     fieldName === "mask" &&
-    record.mask_url !== undefined &&
+    propertyOf(instance, "mask_url") !== undefined &&
     (primary === undefined || (kind !== "none" && !isRefSet(primary)))
   ) {
-    return record.mask_url;
+    return propertyOf(instance, "mask_url");
   }
   return undefined;
 }
@@ -364,11 +368,7 @@ async function buildArgs(
               (subField) => subField.parentField === field.name
             );
             for (const subField of subFields) {
-              // SAFETY: a node's own properties hold node property values, and
-              // NodeTool restricts those to its property types.
-              const subValue = (
-                instance as unknown as Record<string, NodeValue>
-              )[subField.name];
+              const subValue = propertyOf(instance, subField.name);
               nested[subField.name] = castValue(subValue, subField.propType);
             }
             args[apiName] = nested;
@@ -710,7 +710,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     registerDeclaredProperty(FalNodeClass, field.name, propOptions);
   }
 
-  return FalNodeClass as unknown as NodeClass;
+  return FalNodeClass;
 }
 
 export function loadFalNodesFromManifest(

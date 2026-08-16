@@ -15,13 +15,14 @@ import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { Point, SketchDocument } from "../types";
 import { createDefaultDocument } from "../types";
 import { ellipseSelectionMask } from "../selection";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function makeNativeEvent(
   overrides: Partial<React.PointerEvent> = {}
 ): React.PointerEvent {
-  return {
+  return stub<React.PointerEvent>({
     clientX: 100,
     clientY: 100,
     ctrlKey: false,
@@ -29,7 +30,7 @@ function makeNativeEvent(
     altKey: false,
     shiftKey: false,
     ...overrides
-  } as unknown as React.PointerEvent;
+  });
 }
 
 function makeToolPointerEvent(

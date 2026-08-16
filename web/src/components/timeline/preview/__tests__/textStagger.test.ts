@@ -13,6 +13,7 @@ import {
   resolveTextStaggerContext,
   type ActiveLayer
 } from "@nodetool-ai/timeline/render";
+import { stub } from "../../../../test-utils/doubles";
 
 const CANVAS = { width: 1920, height: 1080 };
 
@@ -125,7 +126,7 @@ describe("TextRasterizer stagger", () => {
 
       transferToImageBitmap() {
         bitmapCount += 1;
-        return { close: jest.fn() } as unknown as ImageBitmap;
+        return stub<ImageBitmap>({ close: jest.fn() });
       }
     }
     globalThis.OffscreenCanvas =

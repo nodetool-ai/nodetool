@@ -1,5 +1,6 @@
 import { getSelectionRect, getNodesWithinSelection } from "../selectionBounds";
 import type { XYPosition, ReactFlowInstance, Node, Edge } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 
 describe("selectionBounds", () => {
   describe("getSelectionRect", () => {
@@ -144,9 +145,9 @@ describe("selectionBounds", () => {
     let mockInstance: ReactFlowInstance<Node, Edge>;
 
     beforeEach(() => {
-      mockInstance = {
+      mockInstance = stub<ReactFlowInstance<Node, Edge>>({
         getNodes: jest.fn()
-      } as unknown as ReactFlowInstance<Node, Edge>;
+      });
       jest.clearAllMocks();
     });
 

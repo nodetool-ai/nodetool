@@ -4,7 +4,8 @@ import {
   normalizeInputValue,
   resolveInputValue
 } from "../inputProperty";
-import { Workflow } from "../../../stores/ApiTypes";
+import { Node, Workflow } from "../../../stores/ApiTypes";
+import { PartialMembers, stub } from "../../../test-utils/doubles";
 
 const makeInput = (over: Partial<WorkflowInputIO>): WorkflowInputIO => ({
   nodeId: "n1",
@@ -15,13 +16,13 @@ const makeInput = (over: Partial<WorkflowInputIO>): WorkflowInputIO => ({
   ...over
 });
 
-const makeWorkflow = (nodes: unknown[]): Workflow =>
-  ({
+const makeWorkflow = (nodes: PartialMembers<Node>[]): Workflow =>
+  stub<Workflow>({
     id: "wf1",
     name: "Test",
     access: "private",
     graph: { nodes, edges: [] }
-  }) as unknown as Workflow;
+  });
 
 describe("extractWorkflowIO extras", () => {
   it("carries description, max_length, line_mode, and enum_type_name", () => {

@@ -27,9 +27,10 @@ jest.mock("../useGenerationToCanvas", () => ({
 }));
 
 import { useAutoAddGeneratedMediaToCanvas } from "../useAutoAddGeneratedMediaToCanvas";
+import { stub } from "../../../test-utils/doubles";
 
 const mediaMessage = (assetId: string): Message =>
-  ({
+  stub<Message>({
     role: "assistant",
     content: [
       {
@@ -37,7 +38,7 @@ const mediaMessage = (assetId: string): Message =>
         image: { type: "image", asset_id: assetId, uri: `http://x/${assetId}.png` }
       }
     ]
-  }) as unknown as Message;
+  });
 
 beforeEach(() => {
   addBlocksToCanvas.mockClear();

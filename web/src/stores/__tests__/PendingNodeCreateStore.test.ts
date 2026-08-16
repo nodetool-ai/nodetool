@@ -1,8 +1,9 @@
 import usePendingNodeCreateStore from "../PendingNodeCreateStore";
 import type { NodeMetadata } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 const fakeMeta = (node_type: string): NodeMetadata =>
-  ({ node_type, title: node_type, namespace: "x", outputs: [] }) as unknown as NodeMetadata;
+  stub<NodeMetadata>({ node_type, title: node_type, namespace: "x", outputs: [] });
 
 describe("PendingNodeCreateStore", () => {
   beforeEach(() => {

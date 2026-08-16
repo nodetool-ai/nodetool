@@ -22,6 +22,7 @@ import type { NodeStore, NodeStoreState } from "../../stores/NodeStore";
 import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
 import type { NodeMenuStore } from "../../stores/NodeMenuStore";
 import { defaultSettings } from "../../stores/SettingsStore";
+import { stub } from "../../test-utils/doubles";
 
 type SettingsState = ReturnType<typeof useSettingsStore.getState>;
 type BottomPanelState = ReturnType<typeof useBottomPanelStore.getState>;
@@ -29,7 +30,7 @@ type MiniMapState = ReturnType<typeof useMiniMapStore.getState>;
 
 /** A node-store ref whose `getState()` answers from a declared slice. */
 const nodeStoreRef = (state: Partial<NodeStoreState>): NodeStore =>
-  ({ getState: () => state }) as unknown as NodeStore;
+  stub<NodeStore>({ getState: () => state });
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(() => jest.fn()),

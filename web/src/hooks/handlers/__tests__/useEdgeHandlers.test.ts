@@ -5,6 +5,7 @@ import useEdgeHandlers from "../useEdgeHandlers";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import useConnectionStore from "../../../stores/ConnectionStore";
+import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/ContextMenuStore");
@@ -18,10 +19,10 @@ describe("useEdgeHandlers", () => {
   const mockOpenContextMenu = jest.fn();
   const mockSetIsReconnecting = jest.fn();
 
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
-  const mockedUseNodeStoreRef = useNodeStoreRef as unknown as jest.Mock;
-  const mockedUseContextMenuStore = useContextMenuStore as unknown as jest.Mock;
-  const mockedUseConnectionStore = useConnectionStore as unknown as jest.Mock;
+  const mockedUseNodes = asMock(useNodes);
+  const mockedUseNodeStoreRef = asMock(useNodeStoreRef);
+  const mockedUseContextMenuStore = asMock(useContextMenuStore);
+  const mockedUseConnectionStore = asMock(useConnectionStore);
 
   // onEdgeUpdateEnd reads edgeUpdateSuccessful fresh from the store (not the
   // subscribed selector value), so the store ref drives that flag.
@@ -65,11 +66,11 @@ describe("useEdgeHandlers", () => {
       const stopPropagation = jest.fn();
 
       result.current.onEdgeClick(
-        {
+        stub<ReactMouseEvent>({
           button: 1,
           preventDefault,
           stopPropagation
-        } as unknown as ReactMouseEvent,
+        }),
         edge
       );
 
@@ -83,11 +84,11 @@ describe("useEdgeHandlers", () => {
       const edge = { id: "edge-2" } as Edge;
 
       result.current.onEdgeClick(
-        {
+        stub<ReactMouseEvent>({
           button: 0,
           preventDefault: jest.fn(),
           stopPropagation: jest.fn()
-        } as unknown as ReactMouseEvent,
+        }),
         edge
       );
 
@@ -241,11 +242,11 @@ describe("useEdgeHandlers", () => {
       const preventDefault = jest.fn();
 
       result.current.onEdgeContextMenu(
-        {
+        stub<ReactMouseEvent>({
           clientX: 100,
           clientY: 200,
           preventDefault
-        } as unknown as ReactMouseEvent,
+        }),
         edge
       );
 

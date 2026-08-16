@@ -1,13 +1,14 @@
 import { hasAssetDrag, readAssetDrag } from "../assetDrag";
 import { DRAG_DATA_MIME } from "../../../../../lib/dragdrop/serialization";
+import { stub } from "../../../../../test-utils/doubles";
 
 /** Minimal DataTransfer stand-in: a key/value map + a `types` list. */
 const fakeDataTransfer = (entries: Record<string, string>): DataTransfer =>
-  ({
+  stub<DataTransfer>({
     types: Object.keys(entries),
     files: [] as unknown as FileList,
     getData: (key: string) => entries[key] ?? ""
-  }) as unknown as DataTransfer;
+  });
 
 describe("assetDrag", () => {
   it("reads a single full asset from a drop", () => {

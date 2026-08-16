@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { ChannelsBody } from "../ChannelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -59,13 +60,13 @@ const renderWithTheme = (ui: React.ReactElement) => {
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.image.Channels",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof ChannelsBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.image.Channels",
     properties: [{ name: "image", type: "image" }],
     outputs: [],
     is_streaming_output: false
-  } as unknown as Parameters<typeof ChannelsBody>[0]["nodeMetadata"],
-  data: { properties: {} } as unknown as Parameters<typeof ChannelsBody>[0]["data"],
+  }),
+  data: stub<Parameters<typeof ChannelsBody>[0]["data"]>({ properties: {} }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

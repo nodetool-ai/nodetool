@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import LevelsBody from "../LevelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { ContextMenuProvider } from "../../../../providers/ContextMenuProvider";
+import { stub } from "../../../../test-utils/doubles";
 
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered
@@ -62,14 +63,14 @@ jest.mock("../../../../utils/histogram/histogramAsync", () => ({
 const defaultProps = {
   id: "node-1",
   nodeType: "nodetool.image.Levels",
-  nodeMetadata: {
+  nodeMetadata: stub<import("../../../../stores/ApiTypes").NodeMetadata>({
     node_type: "nodetool.image.Levels",
     properties: [
       { name: "image", type: { type: "image", type_args: [] } }
     ],
     outputs: [{ name: "output", type: { type: "image", type_args: [] } }],
     is_streaming_output: false
-  } as unknown as import("../../../../stores/ApiTypes").NodeMetadata,
+  }),
   data: { properties: {} } as import("../../../../stores/NodeData").NodeData,
   workflowId: "wf-1",
   status: "completed",

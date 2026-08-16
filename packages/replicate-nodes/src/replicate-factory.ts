@@ -205,12 +205,20 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
  * empty image/audio/video inputs (and strip the mentions from the text).
  * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
  */
+/**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ */
+function propertyOf(instance: BaseNode, name: string): unknown {
+  return Reflect.get(instance, name);
+}
+
 async function promptAssetOverrides(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
-  const values = instance as unknown as Record<string, unknown>;
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.inputFields) {
@@ -219,7 +227,7 @@ async function promptAssetOverrides(
     const kind = assetKind(field.propType);
     if (kind === "image" || kind === "audio" || kind === "video") {
       const list = isListAsset(field.propType);
-      const value = values[field.name];
+      const value = propertyOf(instance, field.name);
       const hasSource = list
         ? Array.isArray(value) && value.some(isRefSet)
         : isRefSet(value);
@@ -233,7 +241,7 @@ async function promptAssetOverrides(
     } else if (field.propType.toLowerCase() === "str") {
       textFields.push({
         name: field.name,
-        value: String(values[field.name] ?? "")
+        value: String(propertyOf(instance, field.name) ?? "")
       });
     }
   }
@@ -266,7 +274,7 @@ async function buildArgs(
     const value = (
       field.name in overrides
         ? overrides[field.name]
-        : (instance as unknown as Record<string, unknown>)[field.name]
+        : propertyOf(instance, field.name)
     ) as NodeValue;
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
@@ -440,7 +448,7 @@ export function createReplicateNodeClass(
     registerDeclaredProperty(ReplicateNodeClass, field.name, propOptions);
   }
 
-  return ReplicateNodeClass as unknown as NodeClass;
+  return ReplicateNodeClass;
 }
 
 export function loadReplicateNodesFromManifest(

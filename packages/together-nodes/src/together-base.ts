@@ -365,7 +365,10 @@ export async function togetherTranscribe(
   }
 
   const form = new FormData();
-  const blob = new Blob([params.audio as unknown as BlobPart], {
+  // SAFETY: a Uint8Array is a BlobPart at runtime; the lib types disagree only
+  // over whether its buffer could be a SharedArrayBuffer, which this one — read
+  // from a node property — never is.
+  const blob = new Blob([params.audio as BlobPart], {
     type: "application/octet-stream"
   });
   form.append("file", blob, params.filename ?? "audio.wav");

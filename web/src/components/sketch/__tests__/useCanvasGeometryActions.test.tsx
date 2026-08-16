@@ -6,11 +6,12 @@ import { act, renderHook } from "@testing-library/react";
 import { useCanvasGeometryActions } from "../hooks/useCanvasGeometryActions";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state/useSketchStore";
+import { stub } from "../../../test-utils/doubles";
 
 function makeParams() {
   const store = useSketchStore.getState();
   return {
-    canvasRef: {
+    canvasRef: stub<RefObject<SketchCanvasRef | null>>({
       current: {
         cropCanvas: jest.fn(),
         getLayerData: jest.fn((layerId: string) => {
@@ -20,7 +21,7 @@ function makeParams() {
           return layer?.data ?? null;
         })
       }
-    } as unknown as RefObject<SketchCanvasRef | null>,
+    }),
     document: store.document,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,

@@ -7,6 +7,7 @@ import { useCodeNodeScriptLink } from "../useCodeNodeScriptLink";
 import { useNodes } from "../../../contexts/NodeContext";
 import { trpc } from "../../../trpc/client";
 import type { NodeData } from "../../../stores/NodeData";
+import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn()
@@ -64,14 +65,14 @@ describe("useCodeNodeScriptLink", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     nodeData = { properties: {} };
-    (useNodes as unknown as jest.Mock).mockImplementation(
+    asMock(useNodes).mockImplementation(
       <T,>(selector: (s: unknown) => T) =>
         selector({
           findNode: mockFindNode,
           updateNodeData: mockUpdateNodeData
         })
     );
-    (trpc.useUtils as unknown as jest.Mock).mockReturnValue({
+    asMock(trpc.useUtils).mockReturnValue({
       jsScripts: {
         get: { fetch: scriptGet },
         list: { invalidate: jest.fn() },
@@ -81,15 +82,13 @@ describe("useCodeNodeScriptLink", () => {
         }
       }
     });
-    (trpc.jsScripts.get.useQuery as unknown as jest.Mock).mockReturnValue({
+    asMock(trpc.jsScripts.get.useQuery).mockReturnValue({
       data: { name: "Shout" }
     });
-    (trpc.jsScripts.create.useMutation as unknown as jest.Mock).mockReturnValue({
+    asMock(trpc.jsScripts.create.useMutation).mockReturnValue({
       mutateAsync: createScript
     });
-    (
-      trpc.jsScripts.documentVersions.create.useMutation as unknown as jest.Mock
-    ).mockReturnValue({ mutateAsync: createVersion });
+    asMock(trpc.jsScripts.documentVersions.create.useMutation).mockReturnValue({ mutateAsync: createVersion });
   });
 
   it("reads no link from an empty script property", () => {
@@ -176,7 +175,7 @@ describe("useCodeNodeScriptLink", () => {
   });
 
   it("extracts the node's body and ports into a new script, then links it", async () => {
-    nodeData = {
+    nodeData = stub<Partial<NodeData>>({
       properties: {
         code: "await output('out', 1);",
         secrets: ["TOKEN"],
@@ -184,7 +183,7 @@ describe("useCodeNodeScriptLink", () => {
       },
       dynamic_inputs: { text: { type: { type: "str" } } },
       dynamic_outputs: { out: { type: "int" } }
-    } as unknown as Partial<NodeData>;
+    });
     const { result } = renderHook(() =>
       useCodeNodeScriptLink("node-1", data())
     );

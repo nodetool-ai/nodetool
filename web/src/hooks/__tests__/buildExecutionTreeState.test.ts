@@ -3,16 +3,17 @@
  */
 import { buildExecutionTreeState } from "../useExecutionTreeState";
 import type { Message } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 function makeMessage(
   eventType: string,
   content: Record<string, unknown>
 ): Message {
-  return {
+  return stub<Message>({
     role: "agent_execution",
     execution_event_type: eventType,
     content: content
-  } as unknown as Message;
+  });
 }
 
 describe("buildExecutionTreeState", () => {
@@ -27,8 +28,8 @@ describe("buildExecutionTreeState", () => {
 
     it("ignores non-agent_execution messages", () => {
       const messages: Message[] = [
-        { role: "user", content: "hello" } as unknown as Message,
-        { role: "assistant", content: "hi" } as unknown as Message
+        stub<Message>({ role: "user", content: "hello" }),
+        stub<Message>({ role: "assistant", content: "hi" })
       ];
       const state = buildExecutionTreeState(messages);
       expect(state.phase).toBe("idle");
@@ -384,7 +385,7 @@ describe("buildExecutionTreeState", () => {
   describe("message content normalization", () => {
     it("parses JSON string content", () => {
       const messages: Message[] = [
-        {
+        stub<Message>({
           role: "agent_execution",
           execution_event_type: undefined,
           content: JSON.stringify({
@@ -393,7 +394,7 @@ describe("buildExecutionTreeState", () => {
             status: "Running",
             content: "From JSON"
           })
-        } as unknown as Message
+        })
       ];
       const state = buildExecutionTreeState(messages);
       expect(state.phase).toBe("planning");

@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import BitmapCanvas from "../BitmapCanvas";
+import { stub } from "../../../test-utils/doubles";
 
 describe("BitmapCanvas", () => {
   const mockGetContext = (drawImage: jest.Mock) =>
@@ -14,7 +15,7 @@ describe("BitmapCanvas", () => {
     const drawImage = jest.fn();
     const getContext = mockGetContext(drawImage);
 
-    const bitmap = { width: 4, height: 2 } as unknown as ImageBitmap;
+    const bitmap = stub<ImageBitmap>({ width: 4, height: 2 });
     render(<BitmapCanvas bitmap={bitmap} aria-label="preview" />);
 
     const canvas = screen.getByRole("img", { name: "preview" });
@@ -30,8 +31,8 @@ describe("BitmapCanvas", () => {
     const drawImage = jest.fn();
     const getContext = mockGetContext(drawImage);
 
-    const first = { width: 2, height: 2 } as unknown as ImageBitmap;
-    const second = { width: 8, height: 4 } as unknown as ImageBitmap;
+    const first = stub<ImageBitmap>({ width: 2, height: 2 });
+    const second = stub<ImageBitmap>({ width: 8, height: 4 });
     const { rerender } = render(<BitmapCanvas bitmap={first} />);
     rerender(<BitmapCanvas bitmap={second} />);
 

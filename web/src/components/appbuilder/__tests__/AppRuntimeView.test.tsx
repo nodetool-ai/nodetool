@@ -16,8 +16,9 @@ import {
   getAppRuntimeStore,
   workflowInstanceId
 } from "../runtime/appRuntimeStore";
+import { stub } from "../../../test-utils/doubles";
 
-const workflow = {
+const workflow = stub<Workflow>({
   id: "wf-puck-runtime",
   name: "Runtime Test",
   access: "private",
@@ -31,7 +32,7 @@ const workflow = {
     ],
     edges: []
   }
-} as unknown as Workflow;
+});
 
 const data: Data = {
   root: { props: { title: "Reactive App" } },
@@ -101,7 +102,7 @@ describe("AppRuntimeView (Puck Render)", () => {
     renderView();
 
     act(() => {
-      globalWebSocketManager.deliverLocal({
+      globalWebSocketManager.deliverLocal(stub<Parameters<typeof globalWebSocketManager.deliverLocal>[0]>({
         type: "output_update",
         workflow_id: workflow.id,
         job_id: "someone-elses-job",
@@ -110,7 +111,7 @@ describe("AppRuntimeView (Puck Render)", () => {
         output_name: "result",
         output_type: "string",
         value: "Contamination from another tab"
-      } as unknown as Parameters<typeof globalWebSocketManager.deliverLocal>[0]);
+      }));
     });
 
     await waitFor(() =>

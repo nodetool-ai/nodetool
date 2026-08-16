@@ -22,9 +22,10 @@ import SimpleFilterBody from "./SimpleFilterBody";
 import SynthModuleBody from "../synth/SynthModuleBody";
 import { SYNTH_NODE_TYPES } from "../synth/synthModules";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 const meta = (node_type: string): NodeMetadata =>
-  ({ node_type, outputs: [] }) as unknown as NodeMetadata;
+  stub<NodeMetadata>({ node_type, outputs: [] });
 
 describe("bespokeRegistry", () => {
   it("returns undefined for undefined metadata", () => {

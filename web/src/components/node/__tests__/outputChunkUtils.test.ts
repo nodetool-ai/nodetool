@@ -1,5 +1,7 @@
 import { isTextLikeChunk, isAudioChunkLike } from "../outputChunkUtils";
+import type { ReceivedChunk } from "../outputChunkUtils";
 import type { Chunk } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 describe("outputChunkUtils", () => {
   describe("isTextLikeChunk", () => {
@@ -8,13 +10,13 @@ describe("outputChunkUtils", () => {
     });
 
     it("returns true when content_type is null", () => {
-      expect(isTextLikeChunk({ content_type: null } as unknown as Chunk)).toBe(
+      expect(isTextLikeChunk(stub<ReceivedChunk>({ content_type: null }))).toBe(
         true
       );
     });
 
     it('returns true when content_type is empty string', () => {
-      expect(isTextLikeChunk({ content_type: "" } as unknown as Chunk)).toBe(true);
+      expect(isTextLikeChunk(stub<ReceivedChunk>({ content_type: "" }))).toBe(true);
     });
 
     it('returns true when content_type is "text"', () => {

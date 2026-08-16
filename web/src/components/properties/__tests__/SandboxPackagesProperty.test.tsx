@@ -13,11 +13,12 @@ import SandboxPackagesProperty, {
   SANDBOX_CONSENT_TEXT,
   type Declaration
 } from "../SandboxPackagesProperty";
+import { asMock } from "../../../test-utils/doubles";
 
-const modulesQuery = trpcClient.packs.sandboxModules
-  .query as unknown as jest.Mock;
-const docsQuery = trpcClient.packs.sandboxPackageDocs
-  .query as unknown as jest.Mock;
+const modulesQuery = asMock(trpcClient.packs.sandboxModules
+  .query);
+const docsQuery = asMock(trpcClient.packs.sandboxPackageDocs
+  .query);
 
 const MODULE = {
   specifier: "@acme/geo",

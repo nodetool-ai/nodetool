@@ -6,6 +6,7 @@ import { PromptComposerBody } from "../PromptComposerBody";
 import { useGraphVariableNames } from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
+import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperties = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -74,16 +75,16 @@ const renderWithTheme = (ui: React.ReactElement) => {
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
   nodeType: "nodetool.text.Prompt",
-  nodeMetadata: {
+  nodeMetadata: stub<Parameters<typeof PromptComposerBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.text.Prompt",
     properties: [],
     outputs: [{ name: "output", type: { type: "str" } }],
     supports_dynamic_inputs: true
-  } as unknown as Parameters<typeof PromptComposerBody>[0]["nodeMetadata"],
-  data: {
+  }),
+  data: stub<Parameters<typeof PromptComposerBody>[0]["data"]>({
     properties: { prompt: "Describe {{ subject }} in detail" },
     dynamic_properties: { subject: "" }
-  } as unknown as Parameters<typeof PromptComposerBody>[0]["data"],
+  }),
   workflowId: "wf-1",
   isOutputNode: false,
   ...overrides

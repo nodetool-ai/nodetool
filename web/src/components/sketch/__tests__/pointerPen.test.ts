@@ -3,6 +3,7 @@ import {
   normalizePointerPressure,
   pointerHasPaintContact
 } from "../pointerPen";
+import { stub } from "../../../test-utils/doubles";
 
 describe("pointerPen", () => {
   describe("normalizePointerPressure", () => {
@@ -20,10 +21,10 @@ describe("pointerPen", () => {
 
     it("uses 0.5 default for mouse when pressure is undefined", () => {
       expect(
-        normalizePointerPressure({
+        normalizePointerPressure(stub<PointerEvent>({
           pointerType: "mouse",
           pressure: undefined
-        } as unknown as PointerEvent)
+        }))
       ).toBe(0.5);
     });
 

@@ -1,11 +1,12 @@
 import { getDynamicInputLabel, isContentCardNode } from "./contentCardRegistry";
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 const mediaOutput = (kind: string): OutputSlot =>
-  ({
+  stub<OutputSlot>({
     name: "output",
     type: { type: kind }
-  }) as unknown as OutputSlot;
+  });
 
 type MetaFixture = {
   node_type: string;
@@ -89,7 +90,7 @@ describe("isContentCardNode", () => {
   });
 
   it("returns false for metadata missing node_type", () => {
-    expect(isContentCardNode({} as unknown as NodeMetadata)).toBe(false);
+    expect(isContentCardNode(stub<NodeMetadata>({}))).toBe(false);
   });
 });
 

@@ -16,8 +16,9 @@ import {
   useSketchSessionStore
 } from "../SketchSessionStore";
 import { getActiveSketchInstance } from "../SketchInstance";
+import { asMock, stub } from "../../../test-utils/doubles";
 
-const updateMutate = trpcClient.sketch.update.mutate as unknown as jest.Mock;
+const updateMutate = asMock(trpcClient.sketch.update.mutate);
 type StandaloneResponse = NonNullable<
   Parameters<typeof useStandaloneSketchDocument>[0]
 >;
@@ -64,13 +65,13 @@ function buildResponse(): StandaloneResponse {
     height: 32,
     backgroundColor: "#ffffff",
     document: {
-      sketch: {
+      sketch: stub<StandaloneResponse["document"]["sketch"]>({
         ...doc,
         activeTool: "brush",
         viewport: { zoom: 1, pan: { x: 0, y: 0 } },
         history: [],
         historyIndex: -1
-      } as unknown as StandaloneResponse["document"]["sketch"],
+      }),
       layerBindings: []
     },
     createdAt: "2026-01-01T00:00:00Z",
@@ -193,7 +194,7 @@ describe("useStandaloneSketchDocument", () => {
 
     await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
 
-    const createAsset = useAssetStore.getState().createAsset as unknown as jest.Mock;
+    const createAsset = asMock(useAssetStore.getState().createAsset);
     expect(createAsset).toHaveBeenCalledTimes(1);
 
     const input = updateMutate.mock.calls[0][0] as {

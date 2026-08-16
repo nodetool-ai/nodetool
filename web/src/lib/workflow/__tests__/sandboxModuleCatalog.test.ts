@@ -14,6 +14,7 @@ import {
   type SandboxModuleRecord
 } from "../sandboxModuleCatalog";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 const DIGEST = "a".repeat(64);
 const OTHER_DIGEST = "e".repeat(64);
@@ -41,12 +42,12 @@ function fakeResponse(
   const lookup = new Map(
     Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
   );
-  return {
+  return stub<Response>({
     ok: status >= 200 && status < 300,
     status,
     headers: { get: (name: string) => lookup.get(name.toLowerCase()) ?? null },
     arrayBuffer: async () => new TextEncoder().encode(body).buffer
-  } as unknown as Response;
+  });
 }
 
 async function jsResponse(
@@ -117,10 +118,10 @@ afterEach(() => {
 
 describe("collectSandboxModuleDeclarations", () => {
   const graphWith = (properties: unknown): WorkflowGraph =>
-    ({
+    stub<WorkflowGraph>({
       nodes: [{ id: "code_1", type: "nodetool.code.Code", data: properties }],
       edges: []
-    }) as unknown as WorkflowGraph;
+    });
 
   it("reads string and object declarations, deduped by specifier", () => {
     expect(
@@ -143,7 +144,7 @@ describe("collectSandboxModuleDeclarations", () => {
 
   it("reads a flattened graph shape and ignores non-Code nodes", () => {
     expect(
-      collectSandboxModuleDeclarations({
+      collectSandboxModuleDeclarations(stub<WorkflowGraph>({
         nodes: [
           { id: "n", type: "browser.Const", data: { packages: ["@x/y"] } },
           {
@@ -153,7 +154,7 @@ describe("collectSandboxModuleDeclarations", () => {
           }
         ],
         edges: []
-      } as unknown as WorkflowGraph)
+      }))
     ).toEqual([{ specifier: "@acme/geo" }]);
   });
 

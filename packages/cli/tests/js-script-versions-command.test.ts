@@ -33,6 +33,7 @@ const document = JSON.stringify({
 
 const scriptRow = (): JsScriptRow => ({
   id: "js-1",
+  user_id: "1",
   name: "Adder",
   updated_at: "2026-08-01T10:00:00.000Z",
   document

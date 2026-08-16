@@ -165,15 +165,24 @@ function refHasSource(value: unknown): boolean {
  * image/audio/video inputs (and strip the mentions from the text). Shared with
  * the FAL / KIE / Replicate / AtlasCloud factories via `mapPromptAssetsToInputs`.
  */
+/**
+ * Read one declared property off a node instance. Declared properties are
+ * plain instance fields, and a manifest-built node looks them up by the name
+ * the manifest gave — reflection, not dictionary access.
+ */
+function propertyOf(instance: BaseNode, name: string): unknown {
+  return Reflect.get(instance, name);
+}
+
 function promptAssetOverrides(
-  instance: Record<string, unknown>,
+  instance: BaseNode,
   spec: TogetherManifestEntry,
   context: ProcessContext | undefined
 ): Promise<Record<string, unknown>> {
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.fields) {
-    const value = instance[field.name];
+    const value = propertyOf(instance, field.name);
     if (ASSET_TYPES.has(field.type)) {
       assetFields.push({
         name: field.name,
@@ -240,16 +249,13 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
     async process(context?: ProcessContext): Promise<Record<string, unknown>> {
       const apiKey = getApiKey(this._secrets);
 
-      const overrides = await promptAssetOverrides(
-        this as unknown as Record<string, unknown>,
-        spec,
-        context
-      );
-      const self = this as unknown as Record<string, unknown>;
+      const overrides = await promptAssetOverrides(this, spec, context);
       // SAFETY: both sources hold node property values, and NodeTool restricts
       // those to its own property types — the shapes `NodeValue` names.
       const read = (name: string): NodeValue =>
-        (name in overrides ? overrides[name] : self[name]) as NodeValue;
+        (name in overrides
+          ? overrides[name]
+          : propertyOf(this, name)) as NodeValue;
 
       // Collect scalar field values; resolve asset fields to raw bytes.
       const scalars: Record<string, unknown> = {};
@@ -401,7 +407,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
     registerDeclaredProperty(TogetherNodeClass, field.name, propOptions);
   }
 
-  return TogetherNodeClass as unknown as NodeClass;
+  return TogetherNodeClass;
 }
 
 export function loadTogetherNodesFromManifest(

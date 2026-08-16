@@ -10,6 +10,7 @@ import {
   __resetGenerateClipSubscriptionsForTests,
   useGenerateClip
 } from "../useGenerateClip";
+import { asMock } from "../../../test-utils/doubles";
 
 const subscribeMock = jest.fn();
 const ensureConnectionMock = jest.fn(async () => {});
@@ -32,7 +33,7 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 describe("useGenerateClip", () => {
   const jobHandlers = new Map<string, (message: Record<string, unknown>) => void>();
   const cancelMutate =
-    trpcClient.jobs.cancel.mutate as unknown as jest.Mock;
+    asMock(trpcClient.jobs.cancel.mutate);
 
   beforeEach(() => {
     __resetGenerateClipSubscriptionsForTests();

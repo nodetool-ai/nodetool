@@ -41,6 +41,7 @@ import useCodeGenDialogStore from "../../../stores/CodeGenDialogStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { NodeData } from "../../../stores/NodeData";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
+import { stub } from "../../../test-utils/doubles";
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
@@ -58,7 +59,7 @@ const metadata = (
   properties: { name: string; type: string }[],
   outputs: { name: string; type: string }[]
 ): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     node_type: nodeType,
     title: nodeType,
     description: "",
@@ -78,7 +79,7 @@ const metadata = (
     supports_dynamic_outputs: true,
     is_streaming_output: false,
     required_settings: []
-  }) as unknown as NodeMetadata;
+  });
 
 const makeNode = (id: string, nodeType: string): Node<NodeData> => ({
   id,

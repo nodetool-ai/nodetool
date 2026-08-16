@@ -16,6 +16,15 @@ import type { ImageDocument } from "./image-document.js";
 export type ImageDocumentSaveType = "manual" | "autosave" | "restore";
 
 /**
+ * The fields {@link ImageDocumentVersion.snapshot} copies off a document, so a
+ * caller holding only a row can pass it without faking a model instance.
+ */
+export type ImageDocumentSnapshotSource = Pick<
+  ImageDocument,
+  "id" | "user_id" | "width" | "height" | "background_color" | "document"
+>;
+
+/**
  * Whether an insert lost the race for a version number. SQLite and both
  * PostgreSQL drivers word it differently; all three mean the unique index on
  * (image_document_id, version) rejected the row.
@@ -125,7 +134,7 @@ export class ImageDocumentVersion extends DBModel {
    * once more before giving up.
    */
   static async snapshot(
-    doc: ImageDocument,
+    doc: ImageDocumentSnapshotSource,
     opts: {
       saveType: ImageDocumentSaveType;
       name?: string | null;

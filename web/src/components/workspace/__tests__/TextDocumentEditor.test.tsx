@@ -53,6 +53,7 @@ jest.mock("../../node/DataTable/DataTable", () => ({
 }));
 
 import TextDocumentEditor from "../TextDocumentEditor";
+import { stub } from "../../../test-utils/doubles";
 
 const renderEditor = (asset: Asset) => {
   const queryClient = new QueryClient({
@@ -68,12 +69,12 @@ const renderEditor = (asset: Asset) => {
 };
 
 const csvAsset = (name: string): Asset =>
-  ({
+  stub<Asset>({
     id: "asset-1",
     name,
     content_type: "text/csv",
     get_url: `http://localhost/${name}`
-  }) as unknown as Asset;
+  });
 
 describe("TextDocumentEditor — CSV add row", () => {
   beforeEach(() => {

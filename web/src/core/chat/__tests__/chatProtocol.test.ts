@@ -10,6 +10,7 @@ const partialChatState = (state: unknown): GlobalChatState =>
   state as GlobalChatState;
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -71,13 +72,13 @@ describe("chatProtocol", () => {
       });
 
       await handleChatWebSocketMessage(
-        {
+        stub<WebSocketMessage>({
           type: "message",
           role: "assistant",
           thread_id: "thread-1",
           content: null,
           tool_calls: [{ id: "c1", name: "ui_sketch_get_state", args: {} }]
-        } as unknown as WebSocketMessage,
+        }),
         set,
         () => capturedState
       );
@@ -95,12 +96,12 @@ describe("chatProtocol", () => {
       });
 
       await handleChatWebSocketMessage(
-        {
+        stub<WebSocketMessage>({
           type: "message",
           role: "assistant",
           thread_id: "thread-1",
           content: "All done."
-        } as unknown as WebSocketMessage,
+        }),
         set,
         () => capturedState
       );
@@ -227,7 +228,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi there!", done: true }),
         set,
         get
       );
@@ -259,7 +260,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi there!", done: true }),
         set,
         get
       );
@@ -293,7 +294,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Second answer", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Second answer", done: true }),
         set,
         get
       );
@@ -325,7 +326,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -357,7 +358,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -389,7 +390,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi!", done: true }),
         set,
         get
       );
@@ -404,11 +405,11 @@ describe("chatProtocol", () => {
   it("ignores non-critical messages while stopping", async () => {
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "stopping"
-      }) as unknown as GlobalChatState;
+      });
 
-    await handleChatWebSocketMessage({ type: "chunk", content: "hi" } as unknown as WebSocketMessage, set, get);
+    await handleChatWebSocketMessage(stub<WebSocketMessage>({ type: "chunk", content: "hi" }), set, get);
 
     expect(set).not.toHaveBeenCalled();
   });
@@ -452,12 +453,12 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "chunk",
         thread_id: "thread-stream",
         content: "Hi from stream",
         done: true
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -532,12 +533,12 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         role: "assistant",
         thread_id: "thread-1",
         content: "Hi there!"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -601,7 +602,7 @@ describe("chatProtocol", () => {
     const get = () => capturedState;
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         id: "server-msg-1",
         role: "assistant",
@@ -609,7 +610,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Let me search for that.",
         tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -684,7 +685,7 @@ describe("chatProtocol", () => {
 
     // Server finalizes tool round 2 with "Searching" — must replace local-stream-200-bbb
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "message",
         id: "server-msg-2",
         role: "assistant",
@@ -692,7 +693,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Searching",
         tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -718,24 +719,23 @@ describe("chatProtocol", () => {
 
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "connected",
-        wsManager: { send: jest.fn() },
         currentThreadId: null,
         threads: {},
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as unknown as GlobalChatState;
+      });
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "tool_call",
         tool_call_id: "tc1",
         name: "unknown_tool",
         args: {},
         thread_id: "thread-1"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );
@@ -754,9 +754,8 @@ describe("chatProtocol", () => {
 
     const set = jest.fn();
     const get = () =>
-      ({
+      stub<GlobalChatState>({
         status: "connected",
-        wsManager: { send: jest.fn() },
         workflowId: null,
         threadWorkflowId: {},
         currentThreadId: null,
@@ -764,16 +763,16 @@ describe("chatProtocol", () => {
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as unknown as GlobalChatState;
+      });
 
     await handleChatWebSocketMessage(
-      {
+      stub<WebSocketMessage>({
         type: "tool_call",
         tool_call_id: "tc_fail",
         name: "ui_fail",
         args: {},
         thread_id: "thread-1"
-      } as unknown as WebSocketMessage,
+      }),
       set,
       get
     );

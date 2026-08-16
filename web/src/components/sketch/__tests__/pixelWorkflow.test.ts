@@ -11,13 +11,19 @@ import {
   PIXEL_GRID_MIN_ZOOM
 } from "../drawingUtils";
 import { PencilEngine } from "../painting/PencilEngine";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── drawPixelGrid tests ────────────────────────────────────────────────────
 
+/** A 2D context double that also records the drawing calls made through it. */
+type RecordingContext2D = CanvasRenderingContext2D & {
+  _calls: { method: string; args: unknown[] }[];
+};
+
 describe("drawPixelGrid", () => {
-  function createMockCtx(): CanvasRenderingContext2D {
+  function createMockCtx(): RecordingContext2D {
     const calls: { method: string; args: unknown[] }[] = [];
-    return {
+    return stub<RecordingContext2D>({
       save: jest.fn(() => calls.push({ method: "save", args: [] })),
       restore: jest.fn(() => calls.push({ method: "restore", args: [] })),
       beginPath: jest.fn(() => calls.push({ method: "beginPath", args: [] })),
@@ -31,7 +37,7 @@ describe("drawPixelGrid", () => {
       set strokeStyle(_v: string) {},
       set lineWidth(_v: number) {},
       _calls: calls
-    } as unknown as CanvasRenderingContext2D;
+    });
   }
 
   it("does nothing below the minimum zoom threshold", () => {
@@ -53,7 +59,7 @@ describe("drawPixelGrid", () => {
 
   it("uses non-zero light-gray stroke alpha at grid threshold", () => {
     let strokeStyle = "";
-    const ctx = {
+    const ctx = stub<CanvasRenderingContext2D>({
       save: jest.fn(),
       restore: jest.fn(),
       beginPath: jest.fn(),
@@ -63,7 +69,7 @@ describe("drawPixelGrid", () => {
       set strokeStyle(v: string) {
         strokeStyle = v;
       }
-    } as unknown as CanvasRenderingContext2D;
+    });
     drawPixelGrid(ctx, 4, 4, PIXEL_GRID_MIN_ZOOM);
     const m = strokeStyle.match(
       /rgba\(\s*200\s*,\s*200\s*,\s*200\s*,\s*([\d.]+)\s*\)/
@@ -110,7 +116,7 @@ describe("PencilEngine snap-to-pixel", () => {
 
     // Create a mock context to verify snapped coordinates (pencil uses fillRect dabs)
     const fillCalls: { x: number; y: number }[] = [];
-    const ctx = {
+    const ctx = stub<CanvasRenderingContext2D>({
       save: jest.fn(),
       restore: jest.fn(),
       beginPath: jest.fn(),
@@ -126,7 +132,7 @@ describe("PencilEngine snap-to-pixel", () => {
       globalCompositeOperation: "source-over",
       fillStyle: "",
       imageSmoothingEnabled: true
-    } as unknown as CanvasRenderingContext2D;
+    });
 
     // Draw a line with fractional coordinates
     engine.evaluate(

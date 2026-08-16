@@ -13,8 +13,9 @@ import {
 } from "../useTimelineAutosave";
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { asMock } from "../../../test-utils/doubles";
 
-const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock;
+const updateMutate = asMock(trpcClient.timeline.update.mutate);
 
 const seedSequence = (id = "seq-1") => {
   useTimelineStore.getState().loadSequence({

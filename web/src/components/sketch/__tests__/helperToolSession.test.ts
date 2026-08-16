@@ -18,6 +18,7 @@ import { CloneStampTool } from "../tools/CloneStampTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import { createDefaultDocument, makeAffineTransform } from "../types";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -99,14 +100,14 @@ function makePointerEvent(
   return {
     point: { x, y },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: x,
       clientY: y,
       pointerId: 1,
       pointerType: "mouse"
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }

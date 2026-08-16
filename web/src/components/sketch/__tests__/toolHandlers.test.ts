@@ -32,6 +32,7 @@ import { aff } from "./_transformFixtures";
 import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     clearGizmo: jest.fn(),
     drawGizmo: jest.fn((cb) => {
       // Provide a mock 2D context to the callback
-      const mockGc = {
+      const mockGc = stub<CanvasRenderingContext2D>({
         save: jest.fn(),
         restore: jest.fn(),
         translate: jest.fn(),
@@ -101,7 +102,7 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
         set fillStyle(_: string) { /* noop */ },
         set lineWidth(_: number) { /* noop */ },
         set lineDashOffset(_: number) { /* noop */ },
-      } as unknown as CanvasRenderingContext2D;
+      });
       cb(mockGc, 1, 800, 600);
     }),
     onZoomChange: jest.fn(),
@@ -134,13 +135,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }
@@ -153,7 +154,7 @@ function makeMock2dContext(
   canvas: HTMLCanvasElement
 ): CanvasRenderingContext2D {
   const gradient = { addColorStop: jest.fn() };
-  return {
+  return stub<CanvasRenderingContext2D>({
     canvas,
     getImageData: jest.fn(() => ({
       data: new Uint8ClampedArray(canvas.width * canvas.height * 4),
@@ -173,7 +174,7 @@ function makeMock2dContext(
     drawImage: jest.fn(),
     createLinearGradient: jest.fn(() => gradient),
     createRadialGradient: jest.fn(() => gradient)
-  } as unknown as CanvasRenderingContext2D;
+  });
 }
 
 function makeImageData(
@@ -1112,7 +1113,7 @@ describe("ShapeTool", () => {
       })
     });
 
-    const fakeCtx = {
+    const fakeCtx = stub<CanvasRenderingContext2D>({
       drawImage: jest.fn(),
       save: jest.fn(),
       restore: jest.fn(),
@@ -1124,7 +1125,7 @@ describe("ShapeTool", () => {
       fillRect: jest.fn(),
       fill: jest.fn(),
       ellipse: jest.fn()
-    } as unknown as CanvasRenderingContext2D;
+    });
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
@@ -1179,9 +1180,9 @@ describe("GradientTool", () => {
 
   it("routes selection-constrained gradients through the runtime mask helper", () => {
     const tool = new GradientTool();
-    const runtime = {
+    const runtime = stub<ToolRuntime>({
       applyLayerSourceBySelectionMask: jest.fn()
-    } as unknown as ToolRuntime;
+    });
     const ctx = makeToolContext({
       activeTool: "gradient",
       selection: rectSelectionMask(64, 64, 0, 0, 64, 64),
@@ -1241,9 +1242,9 @@ describe("FillTool", () => {
 
   it("routes selection-constrained fills through the runtime mask helper", () => {
     const tool = new FillTool();
-    const runtime = {
+    const runtime = stub<ToolRuntime>({
       applyLayerSourceBySelectionMask: jest.fn()
-    } as unknown as ToolRuntime;
+    });
     const ctx = makeToolContext({
       activeTool: "fill",
       foregroundColor: "#ff0000",
@@ -1311,11 +1312,11 @@ describe("EraserTool", () => {
   it("creates destination-out stroke buffer on pointer down", () => {
     const tool = new EraserTool();
     const ctx = makeToolContext({ activeTool: "eraser" });
-    const fakeCtx = {
+    const fakeCtx = stub<CanvasRenderingContext2D>({
       clearRect: jest.fn(),
       drawImage: jest.fn(),
       restore: jest.fn()
-    } as unknown as CanvasRenderingContext2D;
+    });
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
@@ -1358,14 +1359,14 @@ describe("BlurTool", () => {
       }
     }
     const originalImageData = globalThis.ImageData;
-    const fakeCtx = {
+    const fakeCtx = stub<CanvasRenderingContext2D>({
       getImageData: jest.fn((x: number, y: number, width: number, height: number) =>
         new MockImageData(Math.max(1, width), Math.max(1, height))
       ),
       putImageData: jest.fn(),
       drawImage: jest.fn(),
       restore: jest.fn()
-    } as unknown as CanvasRenderingContext2D;
+    });
     globalThis.ImageData = MockImageData as unknown as typeof ImageData;
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")

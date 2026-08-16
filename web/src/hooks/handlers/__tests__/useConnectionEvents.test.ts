@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { Edge } from "@xyflow/react";
 import { useConnectionEvents } from "../useConnectionEvents";
 import { useNodes } from "../../../contexts/NodeContext";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext");
 
@@ -11,7 +12,7 @@ describe("useConnectionEvents", () => {
     { id: "edge-2", source: "node-2", target: "node-3" }
   ] as Edge[];
 
-  const mockedUseNodes = useNodes as unknown as jest.Mock;
+  const mockedUseNodes = asMock(useNodes);
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -14,6 +14,7 @@ import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
 import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/ProviderOnboardingStore");
 jest.mock("../../../hooks/useSecrets");
@@ -23,14 +24,14 @@ jest.mock("../../../stores/SecretsStore");
 jest.mock("../../../stores/NotificationStore");
 
 const mockUseProviderOnboardingStore =
-  useProviderOnboardingStore as unknown as jest.Mock;
+  asMock(useProviderOnboardingStore);
 const mockUseSecrets = useSecrets as jest.MockedFunction<typeof useSecrets>;
 const mockNavigateTo = navigateTo as jest.MockedFunction<typeof navigateTo>;
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
-const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
-const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockUseSecretsStore = asMock(useSecretsStore);
+const mockUseNotificationStore = asMock(useNotificationStore);
 
 const dismiss = jest.fn();
 
@@ -47,12 +48,12 @@ beforeEach(() => {
   mockUseProviderOnboardingStore.mockImplementation(
     <T,>(selector: (s: unknown) => T) => selector(storeState)
   );
-  mockUseSecrets.mockReturnValue({
+  mockUseSecrets.mockReturnValue(stub<ReturnType<typeof useSecrets>>({
     secrets: [],
     isLoading: false,
     isSuccess: true,
     isApiKeySet: () => false
-  } as unknown as ReturnType<typeof useSecrets>);
+  }));
   mockUseOAuthConnection.mockReturnValue({
     label: "",
     isConnected: false,

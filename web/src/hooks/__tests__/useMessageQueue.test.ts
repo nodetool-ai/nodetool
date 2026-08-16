@@ -1,15 +1,16 @@
 import { renderHook, act } from "@testing-library/react";
 import { useMessageQueue } from "../useMessageQueue";
 import { MessageContent } from "../../stores/ApiTypes";
+import { stub } from "../../test-utils/doubles";
 
 describe("useMessageQueue", () => {
   const mockOnSendMessage = jest.fn();
   const mockOnStop = jest.fn();
   const mockTextareaRef = {
-    current: {
+    current: stub<HTMLTextAreaElement>({
       focus: jest.fn(),
       blur: jest.fn()
-    } as unknown as HTMLTextAreaElement
+    })
   };
 
   const mockPointer = (coarse: boolean) => {

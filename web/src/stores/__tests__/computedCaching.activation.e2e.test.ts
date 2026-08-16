@@ -44,6 +44,7 @@ import { computeRunSignatures } from "../../utils/computeRunSignatures";
 import { createNodeHasher } from "../../utils/nodeHash";
 import { getNodeGenerations } from "../nodeGenerationAccessor";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
+import { stub } from "../../test-utils/doubles";
 
 const WF = "wf-e2e";
 const NOW = 1_700_000_000_000;
@@ -81,12 +82,12 @@ const edge = (
 ): Edge => ({ id, source, target, sourceHandle, targetHandle, type: "default" });
 
 const getMetadata = (type: string): NodeMetadata =>
-  ({
+  stub<NodeMetadata>({
     auto_save_asset: type.startsWith("gen."),
     cache_ttl: type.startsWith("pure.") ? "forever" : undefined,
     title: type,
     properties: []
-  }) as unknown as NodeMetadata;
+  });
 
 // -------------------------------------------------------------------------
 // handleUpdate plumbing (mirrors workflowUpdates.signatures.test.ts).
@@ -119,7 +120,7 @@ const nodeUpdate = (
   nodeId: string,
   extra: Record<string, unknown> = {}
 ): NodeUpdate =>
-  ({
+  stub<NodeUpdate>({
     type: "node_update",
     node_id: nodeId,
     node_name: nodeId,
@@ -127,7 +128,7 @@ const nodeUpdate = (
     status,
     job_id: jobId,
     ...extra
-  }) as unknown as NodeUpdate;
+  });
 
 // The real merged-timeline accessor the run path uses (WorkflowAssetStore is
 // empty in this test → it returns exactly the live generations handleUpdate

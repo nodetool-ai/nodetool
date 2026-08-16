@@ -28,6 +28,7 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
 }));
 
 import { PlaybackClock } from "../PlaybackClock";
+import { stub } from "../../../../test-utils/doubles";
 
 function flushRAF() {
   if (rafCallback) {
@@ -123,10 +124,10 @@ describe("PlaybackClock", () => {
   });
 
   it("uses AudioContext.currentTime when provided and running", () => {
-    const fakeCtx = {
+    const fakeCtx = stub<AudioContext>({
       currentTime: 5,
       state: "running"
-    } as unknown as AudioContext;
+    });
 
     clock.start(0, 1, fakeCtx);
 
@@ -141,10 +142,10 @@ describe("PlaybackClock", () => {
   });
 
   it("falls back to wall clock when AudioContext is suspended", () => {
-    const fakeCtx = {
+    const fakeCtx = stub<AudioContext>({
       currentTime: 5,
       state: "suspended"
-    } as unknown as AudioContext;
+    });
 
     clock.start(0, 1, fakeCtx);
     nowSpy.mockReturnValue(2000); // 2s wall elapsed (start was at 0)

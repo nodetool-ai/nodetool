@@ -31,14 +31,15 @@ jest.mock("../useModels", () => ({
 }));
 
 import DeleteModelDialog from "../DeleteModelDialog";
+import { stub } from "../../../../test-utils/doubles";
 
-const HF_MODEL: UnifiedModel = {
+const HF_MODEL: UnifiedModel = stub<UnifiedModel>({
   id: "org/m",
   name: "org/m",
   repo_id: "org/m",
   type: "hf.model",
   path: null
-} as unknown as UnifiedModel;
+});
 
 const renderDialog = (scope: "local" | "worker") => {
   const qc = new QueryClient();

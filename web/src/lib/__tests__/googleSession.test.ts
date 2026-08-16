@@ -19,11 +19,12 @@ jest.mock("../runtimeConfig", () => ({
 }));
 
 import { syncGoogleProviderToken } from "../googleSession";
+import { stub } from "../../test-utils/doubles";
 
 const googleSession = (
   overrides: Partial<Session> = {}
 ): Session =>
-  ({
+  stub<Session>({
     provider_token: "ya29.provider",
     provider_refresh_token: "refresh-1",
     user: {
@@ -31,7 +32,7 @@ const googleSession = (
       app_metadata: { provider: "google" }
     },
     ...overrides
-  }) as unknown as Session;
+  });
 
 describe("syncGoogleProviderToken", () => {
   beforeEach(() => {

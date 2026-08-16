@@ -14,6 +14,15 @@ import type { JsScript } from "./js-script.js";
 export type JsScriptSaveType = "manual" | "autosave" | "restore";
 
 /**
+ * The fields {@link JsScriptVersion.snapshot} copies off a script, so a caller
+ * holding only a row can pass it without faking a model instance.
+ */
+export type JsScriptSnapshotSource = Pick<
+  JsScript,
+  "id" | "user_id" | "document"
+>;
+
+/**
  * Whether an insert lost the race for a version number. SQLite and both
  * PostgreSQL drivers word it differently; all three mean the unique index on
  * (js_script_id, version) rejected the row.
@@ -113,7 +122,7 @@ export class JsScriptVersion extends DBModel {
    * more before giving up.
    */
   static async snapshot(
-    script: JsScript,
+    script: JsScriptSnapshotSource,
     opts: {
       saveType: JsScriptSaveType;
       name?: string | null;

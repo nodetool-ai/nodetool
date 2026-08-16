@@ -42,7 +42,7 @@ interface DynamicIO {
  * Nodes stay `unknown`: an API node keeps its properties on `data` while a
  * ReactFlow node nests them under `data.properties`, and the loop narrows both.
  */
-interface DynamicIOSource {
+export interface DynamicIOSource {
   graph?: {
     nodes?: readonly unknown[] | Record<string, unknown> | null;
   } | null;

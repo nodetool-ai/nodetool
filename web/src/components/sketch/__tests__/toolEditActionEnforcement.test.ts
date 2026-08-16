@@ -21,6 +21,7 @@ import { CloneStampTool } from "../tools/CloneStampTool";
 import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
 import { AdjustTool } from "../tools/AdjustTool";
+import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -92,13 +93,13 @@ function makePointerEvent(
   return {
     point: { x: 10, y: 10 },
     pressure: 0.5,
-    nativeEvent: {
+    nativeEvent: stub<React.PointerEvent>({
       altKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
       pointerId: 1
-    } as unknown as React.PointerEvent,
+    }),
     ...overrides
   };
 }

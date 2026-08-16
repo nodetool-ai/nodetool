@@ -20,6 +20,7 @@ import {
 import type { Selection, LayerTransform } from "../types";
 import { makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
+import { stub } from "../../../test-utils/doubles";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // modifierIntent
@@ -244,7 +245,7 @@ describe("selectionFinalization", () => {
 
 describe("previewSession", () => {
   function makeMockCtx(overrides: Partial<ToolContext> = {}): ToolContext {
-    return {
+    return stub<ToolContext>({
       doc: {
         id: "test-doc",
         canvas: { width: 100, height: 100 },
@@ -295,7 +296,7 @@ describe("previewSession", () => {
       setLayerTransformPreview: jest.fn(),
       clearLayerTransformPreview: jest.fn(),
       ...overrides
-    } as unknown as ToolContext;
+    });
   }
 
   let session: PreviewSession;

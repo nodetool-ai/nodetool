@@ -13,6 +13,21 @@ import { isEditorOnlyType } from "@nodetool-ai/node-sdk";
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import type { RawGraphInput } from "./types.js";
 
+/**
+ * Present an already-typed graph as the facade's raw input.
+ *
+ * `RawGraphInput` describes saved-graph JSON, so its elements are indexable
+ * records; `NodeDescriptor` and `Edge` are not. A shallow copy per element
+ * bridges the two without asserting one is the other — the normalizer copies
+ * every element anyway, so nothing is paid twice.
+ */
+export function toRawGraphInput(graph: GraphData): RawGraphInput {
+  return {
+    nodes: graph.nodes.map((n) => Object.fromEntries(Object.entries(n))),
+    edges: graph.edges.map((e) => Object.fromEntries(Object.entries(e)))
+  };
+}
+
 export function normalizeGraph(graph: RawGraphInput): GraphData {
   // `RawGraphInput` declares two arrays; the stored row or file behind it has
   // never been checked against that, and a non-array used to reach `.filter()`.
@@ -29,9 +44,14 @@ export function normalizeGraph(graph: RawGraphInput): GraphData {
     const record = { ...n };
     if (record["properties"] === undefined && record["data"] !== undefined) {
       const { data, ...rest } = record;
-      return { ...rest, properties: data } as unknown as NodeDescriptor;
+      // SAFETY: the editor stores a node's inputs under `data` and the kernel
+      // reads them under `properties`; renaming that one key is the only
+      // difference between a saved node and a NodeDescriptor.
+      return { ...rest, properties: data } as NodeDescriptor;
     }
-    return record as unknown as NodeDescriptor;
+    // SAFETY: a saved node that already carries `properties` is a
+    // NodeDescriptor as stored — `id` and `type` are written on every save.
+    return record as NodeDescriptor;
   });
 
   const edges: Edge[] = graph.edges
@@ -45,7 +65,10 @@ export function normalizeGraph(graph: RawGraphInput): GraphData {
       const rawEdgeType = record["edge_type"] ?? record["type"];
       const edge_type = rawEdgeType === "control" ? "control" : "data";
       const { type: _type, ...rest } = record;
-      return { ...rest, edge_type } as unknown as Edge;
+      // SAFETY: `keep` above already proved this edge's source and target are
+      // strings naming retained nodes; `edge_type` is normalized just above,
+      // and Edge carries an index signature for whatever else was saved.
+      return { ...rest, edge_type } as Edge;
     });
 
   return { nodes, edges };

@@ -67,7 +67,7 @@ describe('ChatStore agent tool wiring', () => {
       }),
       getState: jest.fn().mockReturnValue('connected'),
     };
-    (WebSocketManager as unknown as jest.Mock).mockImplementation(() => socket);
+    jest.mocked(WebSocketManager).mockImplementation(() => socket);
   });
 
   afterEach(() => {

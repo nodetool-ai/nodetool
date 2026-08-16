@@ -331,14 +331,18 @@ interface DiagnoseOptions {
 }
 
 /** Parse a JSONL file into one parsed object per non-blank line. */
-async function readJsonl(file: string): Promise<Record<string, unknown>[]> {
+async function readJsonl<Line extends object = Record<string, unknown>>(
+  file: string
+): Promise<Line[]> {
   const text = await fsp.readFile(file, "utf-8");
-  const out: Record<string, unknown>[] = [];
+  const out: Line[] = [];
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      out.push(JSON.parse(trimmed) as Record<string, unknown>);
+      // SAFETY: each caller names the record shape its own bundle file was
+      // written with — this reader only splits lines and parses JSON.
+      out.push(JSON.parse(trimmed) as Line);
     } catch {
       // Skip partial/corrupt lines (e.g. a crash mid-write).
     }
@@ -453,7 +457,7 @@ async function diagnoseCommand(
   );
   if (tracePath) {
     try {
-      inputs.spans = (await readJsonl(tracePath)) as unknown as TraceSpanLite[];
+      inputs.spans = await readJsonl<TraceSpanLite>(tracePath);
     } catch {
       // Unreadable — report flags trace as missing.
     }

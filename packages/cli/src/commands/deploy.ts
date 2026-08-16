@@ -172,7 +172,7 @@ function registerList(deploy: Command): void {
           console.log("(no deployments configured)");
           return;
         }
-        printTable(rows as unknown as Record<string, unknown>[], [
+        printTable(rows, [
           "name",
           "type",
           "status",

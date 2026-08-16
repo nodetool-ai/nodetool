@@ -507,7 +507,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
   ): Promise<void>;
 
   abstract plan(): Promise<DeployPlan>;
-  abstract apply(opts?: { dryRun?: boolean }): Promise<DeployResult>;
+  abstract apply(opts?: { dryRun?: boolean }): Promise<DeployResult | DeployPlan>;
   abstract destroy(): Promise<DeployResult>;
   abstract status(): Promise<DeployStatus>;
   abstract logs(opts?: {
@@ -571,9 +571,10 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     return plan;
   }
 
-  async apply(opts?: { dryRun?: boolean }): Promise<DeployResult> {
+  async apply(opts?: { dryRun?: boolean }): Promise<DeployResult | DeployPlan> {
+    // A dry run reports the plan itself rather than a deployment result.
     if (opts?.dryRun) {
-      return (await this.plan()) as unknown as DeployResult;
+      return await this.plan();
     }
 
     const results: DeployResult = {
