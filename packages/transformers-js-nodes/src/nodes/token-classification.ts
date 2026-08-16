@@ -86,15 +86,17 @@ export class TokenClassificationNode extends BaseNode {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<TokenEntity | TokenEntity[]>
+    >({
       task: "token-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<TokenEntity | TokenEntity[]>;
+    });
 
     const opts: Record<string, unknown> = {};
     const aggregation = asString(this.aggregation_strategy, "simple");

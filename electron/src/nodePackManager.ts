@@ -483,7 +483,16 @@ async function writeLedger(ledger: NodePackLedger): Promise<void> {
   await fsp.rename(temp, target);
 }
 
-function parseJson(value: string): unknown {
+/** A JSON value decoded from an on-disk manifest, lockfile or ledger. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+function parseJson(value: string): JsonValue | undefined {
   try {
     return JSON.parse(value);
   } catch {

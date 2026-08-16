@@ -87,15 +87,17 @@ export class FillMaskNode extends BaseNode {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        opts?: Record<string, unknown>
+      ) => Promise<FillMaskResult | FillMaskResult[]>
+    >({
       task: "fill-mask",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      opts?: Record<string, unknown>
-    ) => Promise<FillMaskResult | FillMaskResult[]>;
+    });
 
     const raw = await pipeline(text, { top_k: asNumber(this.top_k, 5) });
     const results = ensureArray<FillMaskResult>(raw);

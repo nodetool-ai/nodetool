@@ -100,16 +100,18 @@ export class QuestionAnsweringNode extends BaseNode {
     if (!question) throw new Error("Question is required");
     if (!context) throw new Error("Context is required");
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        question: string,
+        context: string,
+        opts?: Record<string, unknown>
+      ) => Promise<QAResult | QAResult[]>
+    >({
       task: "question-answering",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      question: string,
-      context: string,
-      opts?: Record<string, unknown>
-    ) => Promise<QAResult | QAResult[]>;
+    });
 
     const topK = asNumber(this.top_k, 1);
     const raw = await pipeline(question, context, { top_k: topK });

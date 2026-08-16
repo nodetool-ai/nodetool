@@ -199,8 +199,16 @@ async function uploadToReplicate(
 // Submit via SDK
 // ---------------------------------------------------------------------------
 
+/**
+ * What a Replicate model resolves to. The SDK types `run()` as `object`, but a
+ * text model resolves to a bare string and a number of models resolve to a
+ * number or boolean, so the union covers every JSON value a model can produce
+ * — including the SDK's own `FileOutput` (an object carrying `url`).
+ */
+export type ReplicateOutput = string | number | boolean | null | object;
+
 export interface ReplicateResult {
-  output: unknown;
+  output: ReplicateOutput;
 }
 
 /**
@@ -247,7 +255,8 @@ function extractUrlFromValue(value: unknown): string | null {
   if ("url" in value) {
     const u = (value as { url: unknown }).url;
     if (typeof u === "function") {
-      const resolved = (u as () => unknown).call(value);
+      // The Replicate SDK's FileOutput exposes `url()`, which returns a URL.
+      const resolved = (u as () => URL | string).call(value);
       if (resolved) return String(resolved);
     } else if (u) {
       return String(u);

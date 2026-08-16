@@ -69,7 +69,7 @@ const useChatStoreMock = useChatStore as unknown as jest.Mock;
 /** Point the mocked store hook at a state object, selector-aware. */
 const mockStoreState = (state: MockChatStore): void => {
   useChatStoreMock.mockImplementation(
-    (selector?: (chatState: MockChatStore) => unknown) =>
+    <T,>(selector?: (chatState: MockChatStore) => T) =>
       selector ? selector(state) : state
   );
 };

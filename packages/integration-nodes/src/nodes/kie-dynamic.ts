@@ -20,12 +20,24 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 type JsonRecord = Record<string, unknown>;
 
+/**
+ * A value a KIE parameter can carry: the JSON literal its documentation names,
+ * or the raw text when that text is not JSON.
+ */
+type ParamValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ParamValue[]
+  | { [key: string]: ParamValue };
+
 interface KieParamInfo {
   name: string;
   type: string;
   required: boolean;
   description: string;
-  default?: unknown;
+  default?: ParamValue;
   options?: string[];
   minVal?: number;
   maxVal?: number;
@@ -265,7 +277,7 @@ function parseInputParams(text: string): KieParamInfo[] {
     );
     const description = descMatch ? descMatch[1].trim() : "";
 
-    let defaultVal: unknown = undefined;
+    let defaultVal: ParamValue | undefined = undefined;
     const defMatch = trimmed.match(/\*\*Default Value\*\*:\s*`([^`]*)`/);
     if (defMatch) defaultVal = coerceDefault(defMatch[1], paramType);
 
@@ -356,7 +368,11 @@ function openApiPropertyToParam(
   let paramType = schemaType;
   if (isArray) paramType = "array";
 
-  let defaultVal: unknown = schema.default;
+  // SAFETY: `schema` is a JSON-decoded OpenAPI schema, so its `default` is a
+  // JSON value.
+  let defaultVal: ParamValue | undefined = schema.default as
+    | ParamValue
+    | undefined;
   if (defaultVal === undefined && enumValues?.length) {
     defaultVal = enumValues[0];
   }
@@ -513,7 +529,7 @@ function mergeKieParams(
   return [...merged.values()];
 }
 
-function coerceDefault(raw: string, paramType: string): unknown {
+function coerceDefault(raw: string, paramType: string): ParamValue {
   if (paramType === "integer") {
     const n = parseInt(raw, 10);
     return isNaN(n) ? raw : n;
@@ -640,7 +656,21 @@ function mapParamType(param: KieParamInfo): TypeMetadata {
   }
 }
 
-function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+function defaultRefForKind(kind: "image" | "audio" | "video"): EmptyMediaRef {
   if (kind === "audio") {
     return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
   }
@@ -658,7 +688,7 @@ function defaultRefForKind(kind: "image" | "audio" | "video"): unknown {
   return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
 }
 
-function defaultDynamicValue(param: KieParamInfo): unknown {
+function defaultDynamicValue(param: KieParamInfo): ParamValue {
   if (param.isVideoClipList || param.isFileUrlArray) {
     return [];
   }

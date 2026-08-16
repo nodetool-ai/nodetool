@@ -45,7 +45,8 @@ interface RuntimeEvaluateResult {
 
 interface CdpClient {
   Runtime: {
-    enable(): Promise<unknown>;
+    /** CDP commands with no return parameters resolve to an empty object. */
+    enable(): Promise<object>;
     evaluate(params: {
       expression: string;
       awaitPromise?: boolean;

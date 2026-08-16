@@ -30,7 +30,8 @@ let mockState: MockState;
 
 jest.mock('../../documents/documentStore', () => ({
   documentStore: () => {
-    const useStore = (selector: (state: MockState) => unknown) => selector(mockState);
+    const useStore = <T,>(selector: (state: MockState) => T) =>
+      selector(mockState);
     useStore.getState = () => mockState;
     return useStore;
   },

@@ -134,7 +134,10 @@ function normalizeStringList(value: unknown): string[] {
   return [];
 }
 
-function castValue(value: unknown, type: string): unknown {
+/** A scalar as the KIE API takes it, after coercion from the stored value. */
+type CoercedScalar = string | number | boolean | null | undefined;
+
+function castValue(value: unknown, type: string): CoercedScalar {
   if (value === null || value === undefined) return value;
   switch (type) {
     case "int":
@@ -162,7 +165,38 @@ function computeFieldClassification(fields: KieFieldDef[]) {
   return base;
 }
 
-function defaultForType(type: string): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
+
+function defaultForType(type: string): FieldDefault {
   switch (type) {
     case "bool":
       return false;
@@ -273,10 +307,12 @@ async function buildParams(
     spec.uploads?.filter((u) => u.isVideoClip).map((u) => u.field) ?? []
   );
   const overrides = await promptAssetOverrides(instance, spec, context);
-  const readValue = (name: string): unknown =>
-    name in overrides
+  // SAFETY: both sources hold node property values, and NodeTool restricts
+  // those to its own property types — the shapes `NodeValue` names.
+  const readValue = (name: string): NodeValue =>
+    (name in overrides
       ? overrides[name]
-      : (instance as unknown as Record<string, unknown>)[name];
+      : (instance as unknown as Record<string, unknown>)[name]) as NodeValue;
 
   // Scalar and list[str] fields
   for (const field of spec.fields) {

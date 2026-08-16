@@ -193,12 +193,7 @@ function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
   modelId: string
-): context is ProcessingContext & {
-  runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  streamProviderPrediction: (
-    req: Record<string, unknown>
-  ) => AsyncGenerator<unknown>;
-} {
+): context is ProcessingContext {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&
@@ -257,11 +252,7 @@ async function* streamListItemsViaToolCalls(
   maxTokens: number,
   systemPrompt: string = LIST_GENERATOR_SYSTEM_PROMPT
 ): AsyncGenerator<string> {
-  const provider = await (
-    context as ProcessingContext & {
-      getProvider: (id: string) => Promise<unknown>;
-    }
-  ).getProvider(providerId);
+  const provider = await context.getProvider(providerId);
   const tool = makeAddItemTool();
   const providerTools = toProviderTools([tool]);
 
@@ -275,15 +266,12 @@ async function* streamListItemsViaToolCalls(
     const assistantToolCalls: ToolCall[] = [];
     let assistantText = "";
 
-    for await (const item of streamProviderMessages(
-      provider as Parameters<typeof streamProviderMessages>[0],
-      {
-        messages,
-        model: modelId,
-        tools: providerTools,
-        maxTokens
-      }
-    )) {
+    for await (const item of streamProviderMessages(provider, {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens
+    })) {
       if (isToolCallItem(item)) {
         assistantToolCalls.push(item);
         if (item.name === "add_item") {
@@ -372,9 +360,7 @@ function parseCsv(text: string, specs: ColumnSpec[]): Row[] {
 }
 
 async function generateDataframeFromCsv(
-  context: ProcessingContext & {
-    runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  },
+  context: ProcessingContext,
   providerId: string,
   modelId: string,
   prompt: string,
