@@ -387,7 +387,7 @@ describe("useRunSelectedNodes", () => {
     // stamps never match a later resolve() reuse lookup.
     expect(inputSignatures).toBeDefined();
     for (const id of selectedNodeIds) {
-      expect(typeof inputSignatures[id]).toBe("string");
+      expect(inputSignatures[id]).toEqual(expect.any(String));
     }
   });
 

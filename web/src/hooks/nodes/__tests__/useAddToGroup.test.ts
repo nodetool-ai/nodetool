@@ -73,7 +73,7 @@ describe("useAddToGroup", () => {
 
   it("returns a function", () => {
     const { result } = renderHook(() => useAddToGroup());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing when nodesToAdd is undefined", () => {

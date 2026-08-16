@@ -224,7 +224,7 @@ describe("preload contract", () => {
 
     const unsub = api.server.onLog(() => {});
     expect(electronMock.ipcRenderer.on).toHaveBeenCalledTimes(1);
-    expect(typeof unsub).toBe("function");
+    expect(unsub).toEqual(expect.any(Function));
 
     unsub();
     expect(electronMock.ipcRenderer.removeListener).toHaveBeenCalledTimes(1);
@@ -247,7 +247,7 @@ describe("preload contract", () => {
   });
 
   test("platform is the static process.platform string, not a function", () => {
-    expect(typeof api.platform).toBe("string");
+    expect(api.platform).toEqual(expect.any(String));
     expect(api.platform).toBe(process.platform);
   });
 });

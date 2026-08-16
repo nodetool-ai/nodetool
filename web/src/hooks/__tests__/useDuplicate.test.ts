@@ -3,6 +3,13 @@ import { useDuplicateNodes } from "../useDuplicate";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === "function";
+
 jest.mock("@xyflow/react");
 jest.mock("../../contexts/NodeContext");
 jest.mock("../../config/constants", () => ({
@@ -36,7 +43,7 @@ describe("useDuplicateNodes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useNodes as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector(mockUseNodesReturn);
       }
       return mockUseNodesReturn;
@@ -53,7 +60,7 @@ describe("useDuplicateNodes", () => {
 
   it("returns a callback function", () => {
     const { result } = renderHook(() => useDuplicateNodes(false));
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing when no nodes are selected", () => {

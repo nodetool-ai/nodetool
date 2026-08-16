@@ -56,8 +56,8 @@ describe("fitViewport", () => {
     const vp = fitViewport(nodes);
     expect(vp.zoom).toBeGreaterThan(0);
     expect(vp.zoom).toBeLessThanOrEqual(1.1);
-    expect(typeof vp.x).toBe("number");
-    expect(typeof vp.y).toBe("number");
+    expect(vp.x).toEqual(expect.any(Number));
+    expect(vp.y).toEqual(expect.any(Number));
   });
 
   it("decreases zoom for widely spaced nodes", () => {

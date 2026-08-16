@@ -7,9 +7,9 @@ describe("useNumberInput", () => {
       const { result } = renderHook(() => useValueCalculation());
 
       expect(result.current.calculateStep).toBeDefined();
-      expect(typeof result.current.calculateStep).toBe("function");
+      expect(result.current.calculateStep).toEqual(expect.any(Function));
       expect(result.current.calculateDecimalPlaces).toBeDefined();
-      expect(typeof result.current.calculateDecimalPlaces).toBe("function");
+      expect(result.current.calculateDecimalPlaces).toEqual(expect.any(Function));
     });
 
     it("calculateStep returns correct step for unbounded int", () => {
@@ -154,9 +154,9 @@ describe("useNumberInput", () => {
       );
 
       expect(result.current.handleMouseMove).toBeDefined();
-      expect(typeof result.current.handleMouseMove).toBe("function");
+      expect(result.current.handleMouseMove).toEqual(expect.any(Function));
       expect(result.current.handleMouseUp).toBeDefined();
-      expect(typeof result.current.handleMouseUp).toBe("function");
+      expect(result.current.handleMouseUp).toEqual(expect.any(Function));
     });
 
     it("handleMouseMove does nothing when not dragging", () => {

@@ -34,6 +34,9 @@ import { rectSelectionMask } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
 
+const isNumber = (value: unknown): value is number =>
+  typeof value === "number";
+
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
 function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
@@ -260,9 +263,9 @@ describe("tool handler interface compliance", () => {
     it(`${ToolClass.name} implements ToolHandler`, () => {
       const handler = new ToolClass();
       expect(handler.toolId).toBeDefined();
-      expect(typeof handler.toolId).toBe("string");
+      expect(handler.toolId).toEqual(expect.any(String));
       // At least onDown should exist for all tools
-      expect(typeof handler.onDown).toBe("function");
+      expect(handler.onDown).toEqual(expect.any(Function));
     });
   }
 });
@@ -1368,7 +1371,7 @@ describe("BlurTool", () => {
         width?: number,
         height?: number
       ) {
-        if (typeof dataOrWidth === "number") {
+        if (isNumber(dataOrWidth)) {
           this.width = dataOrWidth;
           this.height = width ?? 0;
           this.data = new Uint8ClampedArray(this.width * this.height * 4);

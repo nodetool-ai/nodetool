@@ -2,6 +2,9 @@
  * @jest-environment node
  */
 
+const isString = (value: unknown): value is string =>
+  typeof value === "string";
+
 describe("withApiBase", () => {
   let withApiBase: <T extends string | null | undefined>(url: T) => T;
 
@@ -18,7 +21,7 @@ describe("withApiBase", () => {
           withApiBase: <T extends string | null | undefined>(url: T): T => {
             if (!baseUrl) return url;
             if (!url) return url;
-            if (typeof url !== "string") return url;
+            if (!isString(url)) return url;
             if (!url.startsWith("/")) return url;
             return `${baseUrl}${url}` as T;
           }
@@ -86,7 +89,7 @@ describe("withApiBase", () => {
           withApiBase: <T extends string | null | undefined>(url: T): T => {
             if (!baseUrl) return url;
             if (!url) return url;
-            if (typeof url !== "string") return url;
+            if (!isString(url)) return url;
             if (!url.startsWith("/")) return url;
             return `${baseUrl}${url}` as T;
           }

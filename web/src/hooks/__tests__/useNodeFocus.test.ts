@@ -3,6 +3,13 @@ import { useNodeFocus } from "../useNodeFocus";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === "function";
+
 jest.mock("../../contexts/NodeContext");
 jest.mock("../../stores/NodeFocusStore");
 
@@ -33,7 +40,7 @@ describe("useNodeFocus", () => {
     mockFocusStore.isNavigationMode = false;
     mockFocusStore.focusHistory = [];
     (useNodes as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({
           nodes: mockNodes,
           setSelectedNodes: mockSetSelectedNodes,
@@ -45,7 +52,7 @@ describe("useNodeFocus", () => {
       getState: () => ({ nodes: mockNodes }),
     });
     (useNodeFocusStore as any).mockImplementation((selector: any) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector(mockFocusStore);
       }
       return mockFocusStore;

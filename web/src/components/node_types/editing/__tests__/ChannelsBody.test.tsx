@@ -6,6 +6,11 @@ import { ChannelsBody } from "../ChannelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsString = (value: unknown): value is string =>
+  typeof value === "string";
+
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
@@ -39,7 +44,7 @@ jest.mock("../../../node/HandleColumn", () => ({
 jest.mock("../../../node/ImageView", () => ({
   __esModule: true,
   default: ({ source }: { source?: string | Uint8Array }) => (
-    <div data-testid="image-view">{typeof source === "string" ? source : "binary"}</div>
+    <div data-testid="image-view">{mockIsString(source) ? source : "binary"}</div>
   )
 }));
 

@@ -115,7 +115,7 @@ describe("data_types utility functions", () => {
     it("has namespace/name/slug populated for all types", () => {
       for (const dt of DATA_TYPES) {
         expect(dt.slug).toBeDefined();
-        expect(typeof dt.slug).toBe("string");
+        expect(dt.slug).toEqual(expect.any(String));
       }
     });
 
@@ -128,7 +128,7 @@ describe("data_types utility functions", () => {
     it("has a textColor for every type", () => {
       for (const dt of DATA_TYPES) {
         expect(dt.textColor).toBeDefined();
-        expect(typeof dt.textColor).toBe("string");
+        expect(dt.textColor).toEqual(expect.any(String));
       }
     });
 

@@ -62,7 +62,7 @@ describe('Stop Command Basic Tests', () => {
             ];
             
             messageTypes.forEach(type => {
-                expect(typeof type).toBe('string');
+                expect(type).toEqual(expect.any(String));
                 expect(type.length).toBeGreaterThan(0);
             });
         });
@@ -110,17 +110,17 @@ describe('Stop Command Basic Tests', () => {
             const states = ['ready', 'generating', 'connected', 'disconnected', 'error'];
             
             states.forEach(state => {
-                expect(typeof state).toBe('string');
+                expect(state).toEqual(expect.any(String));
                 expect(state.length).toBeGreaterThan(0);
             });
         });
         
         test('should handle boolean flags', () => {
             const isGenerating = true;
-            expect(typeof isGenerating).toBe('boolean');
+            expect(isGenerating).toEqual(expect.any(Boolean));
             
             const isConnected = false;
-            expect(typeof isConnected).toBe('boolean');
+            expect(isConnected).toEqual(expect.any(Boolean));
         });
         
         test('should handle progress tracking', () => {

@@ -205,7 +205,7 @@ describe("TimelineInspector section headers", () => {
         .getState()
         .clips.find((item) => item.id === clip.id)?.animations?.[0].params
         ?.overshoot;
-      expect(typeof overshoot).toBe("number");
+      expect(overshoot).toEqual(expect.any(Number));
       expect(overshoot as number).toBeGreaterThan(1.08);
     });
   });

@@ -3,10 +3,15 @@
  */
 import { normalizeAssetUrls, normalizeAssetList } from "../normalizeAsset";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsString = (value: unknown): value is string =>
+  typeof value === "string";
+
 jest.mock("../../stores/BASE_URL", () => ({
   withApiBase: (url: string | null | undefined) => {
     if (!url) return url;
-    if (typeof url !== "string") return url;
+    if (!mockIsString(url)) return url;
     if (!url.startsWith("/")) return url;
     return `http://localhost:7777${url}`;
   }

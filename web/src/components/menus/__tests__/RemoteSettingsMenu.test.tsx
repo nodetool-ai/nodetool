@@ -7,6 +7,13 @@ import RemoteSettingsMenuComponent from "../RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === "function";
+
 jest.mock("../../../stores/RemoteSettingStore");
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../common/ExternalLink", () => {
@@ -93,7 +100,7 @@ describe("RemoteSettingsMenu", () => {
 
     // Mock useRemoteSettingsStore to handle both selector and non-selector calls
     mockUseRemoteSettingsStore.mockImplementation((selector?) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         // Handle selector calls
         const storeState = {
           ...mockRemoteSettingsStore,
@@ -109,7 +116,7 @@ describe("RemoteSettingsMenu", () => {
     });
 
     mockUseNotificationStore.mockImplementation(<T,>(selector?: (state: any) => T) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector(mockNotificationStore);
       }
       return mockNotificationStore as any;

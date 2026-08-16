@@ -84,7 +84,7 @@ jest.mock("../../utils/modelUnitPricing", () => ({
       // Stands in for a per-video-second catalog entry: the calculator returns
       // the already-multiplied figure, so the duration has to reach it.
       const seconds =
-        typeof (params as { seconds?: number } | undefined)?.seconds === "number"
+        mockIsNumber((params as { seconds?: number } | undefined)?.seconds)
           ? (params as { seconds: number }).seconds
           : 1;
       return {
@@ -108,6 +108,11 @@ jest.mock("../../stores/MetadataStore", () => ({
 }));
 
 import { useWorkflowCostEstimate } from "../useWorkflowCostEstimate";
+
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsNumber = (value: unknown): value is number =>
+  typeof value === "number";
 
 describe("useWorkflowCostEstimate", () => {
   beforeEach(() => {

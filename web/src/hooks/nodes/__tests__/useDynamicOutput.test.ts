@@ -17,9 +17,9 @@ describe("useDynamicOutput", () => {
   it("returns handleDeleteOutput, handleAddOutput, and handleRenameOutput functions", () => {
     const { result } = renderHook(() => useDynamicOutput("node-1", {}));
 
-    expect(typeof result.current.handleDeleteOutput).toBe("function");
-    expect(typeof result.current.handleAddOutput).toBe("function");
-    expect(typeof result.current.handleRenameOutput).toBe("function");
+    expect(result.current.handleDeleteOutput).toEqual(expect.any(Function));
+    expect(result.current.handleAddOutput).toEqual(expect.any(Function));
+    expect(result.current.handleRenameOutput).toEqual(expect.any(Function));
   });
 
   describe("handleDeleteOutput", () => {

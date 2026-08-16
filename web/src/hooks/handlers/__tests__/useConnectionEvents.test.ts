@@ -4,6 +4,13 @@ import { Edge } from "@xyflow/react";
 import { useConnectionEvents } from "../useConnectionEvents";
 import { useNodes } from "../../../contexts/NodeContext";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === 'function';
+
 jest.mock("../../../contexts/NodeContext");
 
 describe("useConnectionEvents", () => {
@@ -17,7 +24,7 @@ describe("useConnectionEvents", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (mockIsFunction(selector)) {
         return selector({
           edges: mockEdges
         });

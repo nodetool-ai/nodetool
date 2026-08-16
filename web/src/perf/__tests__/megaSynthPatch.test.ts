@@ -50,8 +50,8 @@ describe("buildMegaSynthPatch", () => {
     it("every node has position data", () => {
       for (const node of patch.nodes) {
         expect(node.ui_properties).toBeDefined();
-        expect(typeof node.ui_properties.position.x).toBe("number");
-        expect(typeof node.ui_properties.position.y).toBe("number");
+        expect(node.ui_properties.position.x).toEqual(expect.any(Number));
+        expect(node.ui_properties.position.y).toEqual(expect.any(Number));
       }
     });
 

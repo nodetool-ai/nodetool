@@ -350,7 +350,7 @@ describe("useRunFromHere (Run Node)", () => {
     const opts = mockRunInline.mock.calls[0][0];
     // One entry per submitted node, keyed by node id.
     expect(Object.keys(opts.inputSignatures)).toEqual(["node-a"]);
-    expect(typeof opts.inputSignatures["node-a"]).toBe("string");
+    expect(opts.inputSignatures["node-a"]).toEqual(expect.any(String));
     expect(opts.inputSignatures["node-a"].length).toBeGreaterThan(0);
   });
 
@@ -371,7 +371,7 @@ describe("useRunFromHere (Run Node)", () => {
       [...submittedIds].sort()
     );
     for (const id of submittedIds) {
-      expect(typeof opts.inputSignatures[id]).toBe("string");
+      expect(opts.inputSignatures[id]).toEqual(expect.any(String));
       expect(opts.inputSignatures[id].length).toBeGreaterThan(0);
     }
   });

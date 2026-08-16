@@ -12,6 +12,13 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import * as MousePosition from "../../../utils/MousePosition";
 import * as Browser from "../../../utils/browser";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === "function";
+
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn()
@@ -66,7 +73,7 @@ describe("useClipboardContentPaste", () => {
       data: { properties: {} }
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({
           createNode: mockCreateNode,
           addNode: mockAddNode,
@@ -87,7 +94,7 @@ describe("useClipboardContentPaste", () => {
 
     // Mock useAssetGridStore
     mockedUseAssetGridStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({ currentFolderId: "folder-123" });
       }
       return { currentFolderId: "folder-123" };
@@ -95,7 +102,7 @@ describe("useClipboardContentPaste", () => {
 
     // Mock useAuth
     mockedUseAuth.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({ user: { id: "user-123" } });
       }
       return { user: { id: "user-123" } };
@@ -109,14 +116,14 @@ describe("useClipboardContentPaste", () => {
       properties: []
     });
     mockedUseMetadataStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({ getMetadata: mockGetMetadata });
       }
       return { getMetadata: mockGetMetadata };
     });
 
     mockedUseNotificationStore.mockImplementation((selector) => {
-      if (typeof selector === "function") {
+      if (mockIsFunction(selector)) {
         return selector({ addNotification: jest.fn() });
       }
       return { addNotification: jest.fn() };

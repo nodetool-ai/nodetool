@@ -61,8 +61,8 @@ describe("useFileDrop", () => {
       useFileDrop({ type: "image" })
     );
 
-    expect(typeof result.current.onDragOver).toBe("function");
-    expect(typeof result.current.onDrop).toBe("function");
+    expect(result.current.onDragOver).toEqual(expect.any(Function));
+    expect(result.current.onDrop).toEqual(expect.any(Function));
     expect(result.current.filename).toBe("");
     expect(result.current.uploading).toBe(false);
   });

@@ -7,6 +7,9 @@ import TimelineViewerScreen from '../TimelineViewerScreen';
 import type { RootStackParamList } from '../../navigation/types';
 import { resetDocumentStores } from '../../documents/documentStore';
 import { getDocumentHandler, resetDocumentHandlers } from '../../documents/agentBridge';
+
+const isNumber = (value: unknown): value is number =>
+  typeof value === 'number';
 import type {
   TimelineAgentHandler,
   TimelineDocument,
@@ -126,7 +129,7 @@ const renderScreen = () =>
 
 const widthOf = (label: string): number | undefined => {
   const style = StyleSheet.flatten(screen.getByLabelText(label).props.style);
-  return typeof style.width === 'number' ? style.width : undefined;
+  return isNumber(style.width) ? style.width : undefined;
 };
 
 /**

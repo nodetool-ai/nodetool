@@ -66,8 +66,8 @@ describe("useClipboard", () => {
   it("returns clipboard functions and state", () => {
     const { result } = renderHook(() => useClipboard());
 
-    expect(typeof result.current.readClipboard).toBe("function");
-    expect(typeof result.current.writeClipboard).toBe("function");
+    expect(result.current.readClipboard).toEqual(expect.any(Function));
+    expect(result.current.writeClipboard).toEqual(expect.any(Function));
     expect(result.current.clipboardData).toBeNull();
   });
 

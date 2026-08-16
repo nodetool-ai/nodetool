@@ -1,9 +1,13 @@
 import { isSupportedDataframeFile, parseDataframeFile } from "./dataframeParsers";
 
+const isFunction = (
+  value: unknown
+): value is (...args: never[]) => unknown => typeof value === "function";
+
 function makeFile(name: string, content: string): File {
   const blob = new Blob([content], { type: "text/csv" });
   const file = new File([blob], name, { type: "text/csv" });
-  if (typeof file.text !== "function") {
+  if (!isFunction(file.text)) {
     file.text = () => Promise.resolve(content);
   }
   return file;

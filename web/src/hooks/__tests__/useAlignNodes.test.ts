@@ -63,7 +63,7 @@ describe("useAlignNodes", () => {
 
   it("returns a function", () => {
     const { result } = renderHook(() => useAlignNodes());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing with less than 2 selected nodes", () => {

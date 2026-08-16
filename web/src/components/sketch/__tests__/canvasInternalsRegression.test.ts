@@ -150,7 +150,7 @@ describe("Phase 1.3 – drainPendingStrokeCommit contract", () => {
     // getLayerData should return serialized data that includes the painted pixels
     const data = runtime.getLayerData("layer-1");
     expect(data).toBeTruthy();
-    expect(typeof data).toBe("string");
+    expect(data).toEqual(expect.any(String));
 
     // Verify the layer canvas still has the painted pixels
     const pixel = readPixel(layerCanvas, 15, 15);
@@ -1251,7 +1251,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     expect(originalData).not.toBeNull();
     // After undo, the store would restore the original layer data and transform
     // Verify that original data is a valid string that can be restored
-    expect(typeof originalData).toBe("string");
+    expect(originalData).toEqual(expect.any(String));
   });
 
   it("getLayerData before and after reconcile produces different serialized data", () => {
@@ -1394,7 +1394,7 @@ describe("Phase 1.7 – transform undo restores canvas data AND transform", () =
     const result = runtime.reconcileLayerToDocumentSpace("layer-1", doc);
 
     expect(result).not.toBeNull();
-    expect(typeof result).toBe("string");
+    expect(result).toEqual(expect.any(String));
     expect(result!.length).toBeGreaterThan(10);
   });
 

@@ -120,7 +120,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("initializes a message handler", () => {
-      expect(typeof store.getState().messageHandler).toBe("function");
+      expect(store.getState().messageHandler).toEqual(expect.any(Function));
     });
   });
 

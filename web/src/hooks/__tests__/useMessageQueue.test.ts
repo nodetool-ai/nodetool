@@ -63,9 +63,9 @@ describe("useMessageQueue", () => {
         })
       );
 
-      expect(typeof result.current.sendMessage).toBe("function");
-      expect(typeof result.current.cancelQueued).toBe("function");
-      expect(typeof result.current.sendQueuedNow).toBe("function");
+      expect(result.current.sendMessage).toEqual(expect.any(Function));
+      expect(result.current.cancelQueued).toEqual(expect.any(Function));
+      expect(result.current.sendQueuedNow).toEqual(expect.any(Function));
     });
   });
 

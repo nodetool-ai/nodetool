@@ -156,7 +156,7 @@ describe("assetToGeneration", () => {
     // string, not a { type: "text", … } display wrapper.
     expect(g.outputs).toEqual({ output: "hello world" });
     expect(outputOf(g)).toBe("hello world");
-    expect(typeof outputOf(g)).toBe("string");
+    expect(outputOf(g)).toEqual(expect.any(String));
   });
 
   it("reloads a text generation with no inline text as an empty string", () => {

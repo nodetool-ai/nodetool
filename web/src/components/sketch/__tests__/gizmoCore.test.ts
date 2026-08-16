@@ -262,7 +262,7 @@ describe("gizmo hover cursor behavior", () => {
   it("returns resize cursors for scale handles at 0 rotation", () => {
     const cursor = cursorForHandle("right", 0);
     expect(cursor).toBeTruthy();
-    expect(typeof cursor).toBe("string");
+    expect(cursor).toEqual(expect.any(String));
   });
 
   it("rotates cursor with layer rotation", () => {

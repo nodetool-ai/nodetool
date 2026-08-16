@@ -23,6 +23,6 @@ describe('queryClient', () => {
   });
 
   it('wires connectivity into the online manager', () => {
-    expect(typeof onlineManager.isOnline()).toBe('boolean');
+    expect(onlineManager.isOnline()).toEqual(expect.any(Boolean));
   });
 });

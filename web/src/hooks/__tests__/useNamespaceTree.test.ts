@@ -164,7 +164,7 @@ describe("useNamespaceTree", () => {
     });
 
     it("checks isProduction flag", () => {
-      expect(typeof isProduction).toBe("boolean");
+      expect(isProduction).toEqual(expect.any(Boolean));
     });
   });
 

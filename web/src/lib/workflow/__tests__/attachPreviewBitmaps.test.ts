@@ -41,7 +41,7 @@ describe("attachPreviewBitmaps", () => {
     expect(out.output.bitmap).toBe(fakeBitmap);
     expect(out.output.mimeType).toBe(BITMAP_IMAGE_MIME);
     expect(out.output.data).toBeUndefined();
-    expect(typeof out.output.bitmapVersion).toBe("number");
+    expect(out.output.bitmapVersion).toEqual(expect.any(Number));
     expect(transfer).toEqual([fakeBitmap]);
   });
 

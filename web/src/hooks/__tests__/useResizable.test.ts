@@ -16,7 +16,7 @@ describe("useResizable", () => {
     const { result } = renderHook(() =>
       useResizable(ref, { minWidth: 100, minHeight: 100 })
     );
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("returns a stable reference when options change but ref stays the same", () => {
@@ -46,7 +46,7 @@ describe("useResizable", () => {
     const ref = createMockRef(null);
     const { result } = renderHook(() => useResizable(ref, {}));
     const handler = result.current("right");
-    expect(typeof handler).toBe("function");
+    expect(handler).toEqual(expect.any(Function));
   });
 
   describe("pointer-down handler", () => {

@@ -35,7 +35,7 @@ describe("useRemoveFromGroup", () => {
 
   it("returns a function", () => {
     const { result } = renderHook(() => useRemoveFromGroup());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing when nodesToRemove is undefined", () => {

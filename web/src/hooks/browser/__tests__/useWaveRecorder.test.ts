@@ -234,7 +234,7 @@ describe("useWaveRecorder", () => {
       const { result } = renderHook(() => useWaveRecorder({ onChange: mockOnChange }));
 
       expect(result.current.handleRecord).toBeDefined();
-      expect(typeof result.current.handleRecord).toBe("function");
+      expect(result.current.handleRecord).toEqual(expect.any(Function));
     });
 
     it("should not crash when handleRecord is called without WaveSurfer initialized", () => {

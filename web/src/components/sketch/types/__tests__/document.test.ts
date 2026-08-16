@@ -42,7 +42,7 @@ function makeLayer(
 describe("generateLayerId", () => {
   it("returns a non-empty string", () => {
     const id = generateLayerId();
-    expect(typeof id).toBe("string");
+    expect(id).toEqual(expect.any(String));
     expect(id.length).toBeGreaterThan(0);
   });
 

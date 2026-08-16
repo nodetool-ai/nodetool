@@ -35,7 +35,7 @@ describe("Sketch Serialization", () => {
     it("serializes a document to a JSON string", () => {
       const doc = createDefaultDocument();
       const json = serializeDocument(doc);
-      expect(typeof json).toBe("string");
+      expect(json).toEqual(expect.any(String));
       const parsed = JSON.parse(json);
       expect(parsed.version).toBe(doc.version);
       expect(parsed.canvas.width).toBe(doc.canvas.width);

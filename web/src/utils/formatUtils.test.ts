@@ -66,8 +66,8 @@ describe("formatUtils", () => {
 
     it("all filters have min and max defined", () => {
       SIZE_FILTERS.forEach(filter => {
-        expect(typeof filter.min).toBe("number");
-        expect(typeof filter.max).toBe("number");
+        expect(filter.min).toEqual(expect.any(Number));
+        expect(filter.max).toEqual(expect.any(Number));
       });
     });
   });

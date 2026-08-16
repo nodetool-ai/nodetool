@@ -45,10 +45,10 @@ describe('useFileHandling', () => {
 
     it('provides all expected functions', () => {
       const { result } = renderHook(() => useFileHandling());
-      expect(typeof result.current.addDroppedFiles).toBe('function');
-      expect(typeof result.current.removeFile).toBe('function');
-      expect(typeof result.current.clearFiles).toBe('function');
-      expect(typeof result.current.getFileContents).toBe('function');
+      expect(result.current.addDroppedFiles).toEqual(expect.any(Function));
+      expect(result.current.removeFile).toEqual(expect.any(Function));
+      expect(result.current.clearFiles).toEqual(expect.any(Function));
+      expect(result.current.getFileContents).toEqual(expect.any(Function));
     });
   });
 

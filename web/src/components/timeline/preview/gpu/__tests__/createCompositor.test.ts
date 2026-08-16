@@ -55,7 +55,7 @@ describe("createCompositor", () => {
     expect(backend).toBe("canvas2d");
     expect(init.ok).toBe(true);
     // The fallback compositor honours the shared interface.
-    expect(typeof compositor.render).toBe("function");
+    expect(compositor.render).toEqual(expect.any(Function));
     compositor.dispose();
   });
 

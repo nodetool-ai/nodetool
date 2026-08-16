@@ -46,12 +46,18 @@ const makeState = (threadRuntimeStatus: string) => ({
   updateThreadTitle: jest.fn()
 });
 
+/** A zustand `set` argument given as an updater rather than a partial state. */
+const isStateUpdater = (
+  value: unknown
+): value is (state: unknown) => Record<string, unknown> =>
+  typeof value === "function";
+
 const makeHarness = (threadRuntimeStatus = "streaming") => {
   let state: any = makeState(threadRuntimeStatus);
   const set = jest.fn((updater) => {
     state = {
       ...state,
-      ...(typeof updater === "function" ? updater(state) : updater)
+      ...(isStateUpdater(updater) ? updater(state) : updater)
     };
   });
   return { set, get: () => state, state: () => state };

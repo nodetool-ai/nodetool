@@ -209,7 +209,7 @@ describe("Sketch Types", () => {
       expect(DEFAULT_SHAPE_SETTINGS.strokeWidth).toBeGreaterThan(0);
       expect(DEFAULT_SHAPE_SETTINGS.strokeColor).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(DEFAULT_SHAPE_SETTINGS.fillColor).toMatch(/^#[0-9a-fA-F]{6}$/);
-      expect(typeof DEFAULT_SHAPE_SETTINGS.filled).toBe("boolean");
+      expect(DEFAULT_SHAPE_SETTINGS.filled).toEqual(expect.any(Boolean));
     });
 
     it("has valid fill defaults", () => {

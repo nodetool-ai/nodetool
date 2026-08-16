@@ -11,8 +11,12 @@ jest.mock("../../trpc/client", () => ({
 import { trpcClient } from "../../trpc/client";
 const assetGetQuery = trpcClient.assets.get.query as jest.Mock;
 
+const isFunction = (
+  value: unknown
+): value is (...args: never[]) => unknown => typeof value === "function";
+
 const readFileAsText = async (file: File): Promise<string> => {
-  if (typeof file.text === "function") {
+  if (isFunction(file.text)) {
     return file.text();
   }
   const reader = new FileReader();

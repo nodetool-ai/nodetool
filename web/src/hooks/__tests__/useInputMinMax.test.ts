@@ -224,8 +224,8 @@ describe("useInputMinMax", () => {
 
       expect(result.current).toHaveProperty("min");
       expect(result.current).toHaveProperty("max");
-      expect(typeof result.current.min).toBe("number");
-      expect(typeof result.current.max).toBe("number");
+      expect(result.current.min).toEqual(expect.any(Number));
+      expect(result.current.max).toEqual(expect.any(Number));
     });
   });
 });

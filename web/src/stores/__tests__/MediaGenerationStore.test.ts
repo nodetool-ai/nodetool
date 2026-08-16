@@ -258,7 +258,7 @@ describe("MediaGenerationStore constants", () => {
 
   it("DEFAULT_TTS_VOICES has entries", () => {
     expect(DEFAULT_TTS_VOICES.length).toBeGreaterThan(0);
-    DEFAULT_TTS_VOICES.forEach((v) => expect(typeof v).toBe("string"));
+    DEFAULT_TTS_VOICES.forEach((v) => expect(v).toEqual(expect.any(String)));
   });
 
   it("AUDIO_SPEEDS are positive", () => {

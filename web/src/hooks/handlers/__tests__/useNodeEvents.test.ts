@@ -8,6 +8,13 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../nodes/useSelect";
 
+// jest hoists `jest.mock` above the imports, so a factory may only reach
+// out-of-scope names that begin with `mock`.
+const mockIsFunction = <T,>(
+  value: T
+): value is Extract<T, (...args: never[]) => unknown> =>
+  typeof value === 'function';
+
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../nodes/useSelect");
@@ -27,7 +34,7 @@ describe("useNodeEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     mockedUseNodes.mockImplementation((selector) => {
-      if (typeof selector === 'function') {
+      if (mockIsFunction(selector)) {
         return selector({
           onNodesChange: mockOnNodesChange
         });

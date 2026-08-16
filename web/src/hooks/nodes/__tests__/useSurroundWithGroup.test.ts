@@ -90,7 +90,7 @@ describe("useSurroundWithGroup", () => {
 
   it("returns a function", () => {
     const { result } = renderHook(() => useSurroundWithGroup());
-    expect(typeof result.current).toBe("function");
+    expect(result.current).toEqual(expect.any(Function));
   });
 
   it("does nothing when no nodes are selected", () => {
