@@ -373,7 +373,12 @@ class TerminalStreamer {
       sessionName,
       `cat >> ${shQuote(pipeFile)}`
     );
-    const streamer = new TerminalStreamer(context, nodeId, sessionName, pipeFile);
+    const streamer = new TerminalStreamer(
+      context,
+      nodeId,
+      sessionName,
+      pipeFile
+    );
     streamer.offset = await stat(pipeFile)
       .then((s) => s.size)
       .catch(() => 0);
@@ -382,14 +387,25 @@ class TerminalStreamer {
   }
 
   private post(content: string, reset: boolean): void {
-    this.context.postMessage({
+    type MessageFields = {
+      type: "terminal_update";
+      node_id: string;
+      content: string;
+      cols: number;
+      rows: number;
+      reset?: boolean;
+    };
+    const message: MessageFields = {
       type: "terminal_update",
       node_id: this.nodeId,
       content,
       cols: TMUX_COLS,
-      rows: TMUX_ROWS,
-      ...(reset ? { reset: true } : {})
-    });
+      rows: TMUX_ROWS
+    };
+    if (reset) {
+      message.reset = true;
+    }
+    this.context.postMessage(message);
   }
 
   /** Send the current screen (escapes preserved), replacing client state. */
@@ -510,7 +526,8 @@ export class ClaudeCodeAgentNode extends BaseNode {
     type: "str",
     default: "",
     title: "Model",
-    description: "Optional model override passed as --model (e.g. opus, sonnet)."
+    description:
+      "Optional model override passed as --model (e.g. opus, sonnet)."
   })
   declare model: any;
 
@@ -611,7 +628,8 @@ export class ClaudeCodeAgentNode extends BaseNode {
         command,
         sessionId,
         model: String(this.model ?? "").trim() || undefined,
-        appendSystemPrompt: String(this.system_prompt ?? "").trim() || undefined,
+        appendSystemPrompt:
+          String(this.system_prompt ?? "").trim() || undefined,
         extraArgs: String(this.extra_args ?? "").trim() || undefined
       });
       log.info("Starting Claude Code in tmux", {

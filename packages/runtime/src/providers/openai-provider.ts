@@ -942,11 +942,19 @@ export class OpenAIProvider extends BaseProvider {
       }));
 
       if (typeof message.content === "string" || message.content == null) {
-        return {
-          role: "assistant",
-          content: message.content,
-          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
+        type AssistantFields = {
+          role: "assistant";
+          content: string | null | undefined;
+          tool_calls?: typeof toolCalls;
         };
+        const assistant: AssistantFields = {
+          role: "assistant",
+          content: message.content
+        };
+        if (toolCalls.length > 0) {
+          assistant.tool_calls = toolCalls;
+        }
+        return assistant;
       }
 
       const parts = await Promise.all(
@@ -955,11 +963,19 @@ export class OpenAIProvider extends BaseProvider {
         )
       );
 
-      return {
-        role: "assistant",
-        content: parts,
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
+      type AssistantFields2 = {
+        role: "assistant";
+        content: typeof parts;
+        tool_calls?: typeof toolCalls;
       };
+      const assistant: AssistantFields2 = {
+        role: "assistant",
+        content: parts
+      };
+      if (toolCalls.length > 0) {
+        assistant.tool_calls = toolCalls;
+      }
+      return assistant;
     }
 
     if (message.role !== "user") {
@@ -2311,11 +2327,16 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("text must not be empty");
     }
 
-    const response = await this.getClient().embeddings.create({
-      model: args.model,
-      input,
-      ...(args.dimensions ? { dimensions: args.dimensions } : {})
-    });
+    type RequestFields = {
+      model: string;
+      input: string[];
+      dimensions?: number;
+    };
+    const request: RequestFields = { model: args.model, input };
+    if (args.dimensions) {
+      request.dimensions = args.dimensions;
+    }
+    const response = await this.getClient().embeddings.create(request);
 
     return response.data.map((row) => row.embedding as number[]);
   }

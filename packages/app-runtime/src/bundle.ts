@@ -1,3 +1,4 @@
+import type { Mutable } from "./mutable.js";
 /**
  * The ApplicationBundle: one JSON document carrying an application together
  * with the full graphs of every workflow its operations bind, so an app
@@ -226,19 +227,21 @@ export const bundleFromApplication = (
     seen.add(workflow.workflowId);
     const key = keys.get(workflow.workflowId);
     if (key === undefined) continue;
-    bundled.push({
+    type EntryFields = Mutable<BundledWorkflow>;
+    const entry: EntryFields = {
       key,
       name: workflow.name,
-      ...(workflow.description === undefined
-        ? {}
-        : { description: workflow.description }),
-      ...(workflow.sourceId === undefined
-        ? {}
-        : { sourceId: workflow.sourceId }),
       graph: workflow.graph,
       version: workflow.version ?? null,
       graphHash: workflow.graphHash ?? null
-    });
+    };
+    if (workflow.description !== undefined) {
+      entry.description = workflow.description;
+    }
+    if (workflow.sourceId !== undefined) {
+      entry.sourceId = workflow.sourceId;
+    }
+    bundled.push(entry);
   }
   const seenScripts = new Set<string>();
   const bundledScripts: BundledJsScript[] = [];
@@ -247,13 +250,17 @@ export const bundleFromApplication = (
     seenScripts.add(script.scriptId);
     const key = scriptKeys.get(script.scriptId);
     if (key === undefined) continue;
-    bundledScripts.push({
+    type EntryFields2 = Mutable<BundledJsScript>;
+    const entry: EntryFields2 = {
       key,
       name: script.name,
       document: script.document,
-      ...(script.sourceId === undefined ? {} : { sourceId: script.sourceId }),
       version: script.version ?? null
-    });
+    };
+    if (script.sourceId !== undefined) {
+      entry.sourceId = script.sourceId;
+    }
+    bundledScripts.push(entry);
   }
   return {
     schemaVersion: APPLICATION_BUNDLE_SCHEMA_VERSION,
@@ -342,7 +349,9 @@ export const applyBundle = (
   };
 };
 
-const isPortList = (value: unknown): value is BundleJsScriptDocument["inputs"] =>
+const isPortList = (
+  value: unknown
+): value is BundleJsScriptDocument["inputs"] =>
   Array.isArray(value) &&
   value.every(
     (port) =>
@@ -371,9 +380,7 @@ export const pinScriptVersions = (
   })
 });
 
-const parseScriptDocument = (
-  value: unknown
-): BundleJsScriptDocument | null => {
+const parseScriptDocument = (value: unknown): BundleJsScriptDocument | null => {
   if (!isRecord(value)) return null;
   if (typeof value.code !== "string") return null;
   if (!isPortList(value.inputs) || !isPortList(value.outputs)) return null;
@@ -396,15 +403,17 @@ const parseScript = (value: unknown): BundledJsScript | null => {
   if (typeof key !== "string" || key.length === 0) return null;
   const document = parseScriptDocument(value.document);
   if (!document) return null;
-  return {
+  type ParsedFields = Mutable<BundledJsScript>;
+  const parsed: ParsedFields = {
     key,
     name: typeof name === "string" ? name : key,
     document,
-    ...(typeof value.sourceId === "string" && value.sourceId.length > 0
-      ? { sourceId: value.sourceId }
-      : {}),
     version: typeof value.version === "number" ? value.version : null
   };
+  if (typeof value.sourceId === "string" && value.sourceId.length > 0) {
+    parsed.sourceId = value.sourceId;
+  }
+  return parsed;
 };
 
 const parseWorkflow = (value: unknown): BundledWorkflow | null => {
@@ -412,19 +421,21 @@ const parseWorkflow = (value: unknown): BundledWorkflow | null => {
   const { key, name, graph } = value;
   if (typeof key !== "string" || key.length === 0) return null;
   if (!isGraph(graph)) return null;
-  return {
+  type ParsedFields2 = Mutable<BundledWorkflow>;
+  const parsed: ParsedFields2 = {
     key,
     name: typeof name === "string" ? name : key,
-    ...(typeof value.description === "string"
-      ? { description: value.description }
-      : {}),
-    ...(typeof value.sourceId === "string" && value.sourceId.length > 0
-      ? { sourceId: value.sourceId }
-      : {}),
     graph,
     version: typeof value.version === "number" ? value.version : null,
     graphHash: typeof value.graphHash === "string" ? value.graphHash : null
   };
+  if (typeof value.description === "string") {
+    parsed.description = value.description;
+  }
+  if (typeof value.sourceId === "string" && value.sourceId.length > 0) {
+    parsed.sourceId = value.sourceId;
+  }
+  return parsed;
 };
 
 /**

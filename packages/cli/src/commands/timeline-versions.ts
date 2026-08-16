@@ -19,9 +19,7 @@
  * registration stays light and the actions are unit-testable.
  */
 import type { Command } from "commander";
-import type {
-  TimelineValidation
-} from "@nodetool-ai/execution/timeline-debug";
+import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import { printCommandError } from "../command-errors.js";
 import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
@@ -35,7 +33,6 @@ type JsonValue =
   | null
   | JsonValue[]
   | { [key: string]: JsonValue };
-
 
 /** A `timeline_sequences` row as these commands need it. */
 export interface TimelineSequenceRow {
@@ -177,9 +174,8 @@ export function documentCounts(document: unknown): {
 }
 
 async function defaultStore(): Promise<TimelineVersionStore> {
-  const { initDb, TimelineSequence, TimelineSequenceVersion } = await import(
-    "@nodetool-ai/models"
-  );
+  const { initDb, TimelineSequence, TimelineSequenceVersion } =
+    await import("@nodetool-ai/models");
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
@@ -225,9 +221,8 @@ async function defaultValidate(
   raw: unknown,
   meta: { fps?: number; width?: number; height?: number }
 ): Promise<TimelineValidation> {
-  const { validateTimelineSequence } = await import(
-    "@nodetool-ai/execution/timeline-debug"
-  );
+  const { validateTimelineSequence } =
+    await import("@nodetool-ai/execution/timeline-debug");
   return await validateTimelineSequence(raw, meta);
 }
 
@@ -292,10 +287,14 @@ export function registerTimelineVersionsCommands(
       try {
         const store = await openStore();
         await requireSequence(store, timelineId);
-        const rows = await store.listVersions(timelineId, {
-          ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-          ...(opts.saveType ? { saveType: opts.saveType } : {})
-        });
+        const query: Parameters<typeof store.listVersions>[1] = {};
+        if (opts.limit !== undefined) {
+          query.limit = opts.limit;
+        }
+        if (opts.saveType) {
+          query.saveType = opts.saveType;
+        }
+        const rows = await store.listVersions(timelineId, query);
         const items = rows.map(toVersionListItem);
 
         if (opts.json) {
@@ -313,40 +312,38 @@ export function registerTimelineVersionsCommands(
     .command("show <timeline_id> <version>")
     .description("Print one version's metadata and the document it stored")
     .option("--json", "Print the metadata and the full document as JSON")
-    .action(
-      async (timelineId: string, version: string, opts: JsonOption) => {
-        try {
-          const number = parseVersionNumber(version);
-          const store = await openStore();
-          await requireSequence(store, timelineId);
-          const row = await requireVersion(store, timelineId, number);
-          const item = toVersionListItem(row);
-          const document = parseVersionDocument(row.document);
+    .action(async (timelineId: string, version: string, opts: JsonOption) => {
+      try {
+        const number = parseVersionNumber(version);
+        const store = await openStore();
+        await requireSequence(store, timelineId);
+        const row = await requireVersion(store, timelineId, number);
+        const item = toVersionListItem(row);
+        const document = parseVersionDocument(row.document);
 
-          if (opts.json) {
-            asJson({ ...item, document });
-            return;
-          }
-          const counts = documentCounts(document);
-          printTable([
-            {
-              version: item.version,
-              saveType: item.saveType,
-              name: item.name ?? "",
-              createdAt: item.createdAt,
-              fps: item.fps,
-              resolution: `${item.width}x${item.height}`
-            }
-          ]);
-          console.log(
-            `\n  ${counts.tracks} track(s), ${counts.clips} clip(s), ${counts.markers} marker(s), ${item.durationMs}ms`
-          );
-        } catch (e) {
-          printCommandError(e, opts.json);
-          process.exit(1);
+        if (opts.json) {
+          asJson({ ...item, document });
+          return;
         }
+        const counts = documentCounts(document);
+        printTable([
+          {
+            version: item.version,
+            saveType: item.saveType,
+            name: item.name ?? "",
+            createdAt: item.createdAt,
+            fps: item.fps,
+            resolution: `${item.width}x${item.height}`
+          }
+        ]);
+        console.log(
+          `\n  ${counts.tracks} track(s), ${counts.clips} clip(s), ${counts.markers} marker(s), ${item.durationMs}ms`
+        );
+      } catch (e) {
+        printCommandError(e, opts.json);
+        process.exit(1);
       }
-    );
+    });
 
   versions
     .command("create <timeline_id>")
@@ -384,69 +381,67 @@ export function registerTimelineVersionsCommands(
       "Restore a version onto the sequence. The pre-restore state is snapshotted first, and the restored document is validated against the current schema — a restore whose document no longer validates exits non-zero"
     )
     .option("--json", "Print the restore result and validation as JSON")
-    .action(
-      async (timelineId: string, version: string, opts: JsonOption) => {
-        // The verdict leaves the try block in a variable: `process.exit`
-        // throws under test, and an exit inside the try would be caught here
-        // as a command failure.
-        let restoredOk = false;
-        try {
-          const number = parseVersionNumber(version);
-          const store = await openStore();
-          const seq = await requireSequence(store, timelineId);
-          const target = await requireVersion(store, timelineId, number);
+    .action(async (timelineId: string, version: string, opts: JsonOption) => {
+      // The verdict leaves the try block in a variable: `process.exit`
+      // throws under test, and an exit inside the try would be caught here
+      // as a command failure.
+      let restoredOk = false;
+      try {
+        const number = parseVersionNumber(version);
+        const store = await openStore();
+        const seq = await requireSequence(store, timelineId);
+        const target = await requireVersion(store, timelineId, number);
 
-          // Snapshot what is about to be overwritten first, so the restore is
-          // itself undoable — same order the tRPC router uses.
-          const backup = await store.snapshot(seq, {
-            saveType: "restore",
-            name: `Before restore to v${number}`
-          });
+        // Snapshot what is about to be overwritten first, so the restore is
+        // itself undoable — same order the tRPC router uses.
+        const backup = await store.snapshot(seq, {
+          saveType: "restore",
+          name: `Before restore to v${number}`
+        });
 
-          const updated = await store.restore(seq, target);
-          if (!updated) {
-            throw new Error("Timeline has been modified since last load");
-          }
-
-          const document = parseVersionDocument(target.document);
-          const validation = await validate(document, {
-            fps: target.fps,
-            width: target.width,
-            height: target.height
-          });
-
-          if (opts.json) {
-            asJson({
-              timelineId,
-              restored: toVersionListItem(target),
-              snapshot: toVersionListItem(backup),
-              sequence: {
-                id: updated.id,
-                fps: updated.fps,
-                width: updated.width,
-                height: updated.height,
-                durationMs: updated.duration_ms
-              },
-              validation
-            });
-          } else {
-            const counts = documentCounts(document);
-            console.log(
-              `✅ Restored v${number} onto ${timelineId}: ${counts.tracks} track(s), ${counts.clips} clip(s), ${target.duration_ms}ms @ ${target.fps}fps ${target.width}x${target.height}`
-            );
-            console.log(
-              `  pre-restore state saved as v${backup.version} (${backup.save_type})`
-            );
-            console.log(renderTimelineValidation(validation).join("\n"));
-          }
-          restoredOk = validation.ok;
-        } catch (e) {
-          printCommandError(e, opts.json);
-          process.exit(1);
+        const updated = await store.restore(seq, target);
+        if (!updated) {
+          throw new Error("Timeline has been modified since last load");
         }
-        process.exit(restoredOk ? 0 : 1);
+
+        const document = parseVersionDocument(target.document);
+        const validation = await validate(document, {
+          fps: target.fps,
+          width: target.width,
+          height: target.height
+        });
+
+        if (opts.json) {
+          asJson({
+            timelineId,
+            restored: toVersionListItem(target),
+            snapshot: toVersionListItem(backup),
+            sequence: {
+              id: updated.id,
+              fps: updated.fps,
+              width: updated.width,
+              height: updated.height,
+              durationMs: updated.duration_ms
+            },
+            validation
+          });
+        } else {
+          const counts = documentCounts(document);
+          console.log(
+            `✅ Restored v${number} onto ${timelineId}: ${counts.tracks} track(s), ${counts.clips} clip(s), ${target.duration_ms}ms @ ${target.fps}fps ${target.width}x${target.height}`
+          );
+          console.log(
+            `  pre-restore state saved as v${backup.version} (${backup.save_type})`
+          );
+          console.log(renderTimelineValidation(validation).join("\n"));
+        }
+        restoredOk = validation.ok;
+      } catch (e) {
+        printCommandError(e, opts.json);
+        process.exit(1);
       }
-    );
+      process.exit(restoredOk ? 0 : 1);
+    });
 
   versions
     .command("delete <timeline_id> <version>")

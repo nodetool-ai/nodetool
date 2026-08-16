@@ -7,7 +7,6 @@ import {
   type MediaRef
 } from "../huggingface-base.js";
 
-
 const EMPTY_AUDIO = {
   type: "audio",
   uri: "",
@@ -15,6 +14,20 @@ const EMPTY_AUDIO = {
   data: null,
   metadata: null
 };
+
+type AsrBody = {
+  inputs: string;
+  parameters?: { return_timestamps: boolean };
+};
+
+/** The ASR request body, with `parameters` present only when timestamps are asked for. */
+function asrBody(inputs: string, returnTimestamps: boolean): AsrBody {
+  const body: AsrBody = { inputs };
+  if (returnTimestamps) {
+    body.parameters = { return_timestamps: true };
+  }
+  return body;
+}
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "huggingface.AutomaticSpeechRecognition";
@@ -69,12 +82,11 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const result = await hfPipelineJson<{
       text?: string;
       chunks?: Array<{ text?: string; timestamp?: number[] }>;
-    }>(token, String(this.model ?? "openai/whisper-large-v3"), {
-      inputs: base64,
-      ...(returnTimestamps
-        ? { parameters: { return_timestamps: true } }
-        : {})
-    });
+    }>(
+      token,
+      String(this.model ?? "openai/whisper-large-v3"),
+      asrBody(base64, returnTimestamps)
+    );
 
     return {
       output: String(result?.text ?? ""),

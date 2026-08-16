@@ -1,4 +1,10 @@
-import { S3Client, type S3Api } from "./s3/client.js";
+import {
+  S3Client,
+  type S3Api,
+  type S3ClientOptions,
+  type S3ListObjectsV2Input,
+  type S3PutObjectInput
+} from "./s3/client.js";
 import type {
   StorageAdapter,
   StorageEntry,
@@ -44,12 +50,12 @@ export class S3StorageAdapter implements StorageAdapter {
 
   private getClient(): S3Api {
     if (this.client) return this.client;
-    this.client = new S3Client({
-      region: this.region,
-      ...(this.endpoint
-        ? { endpoint: this.endpoint, forcePathStyle: true }
-        : {})
-    });
+    const options: S3ClientOptions = { region: this.region };
+    if (this.endpoint) {
+      options.endpoint = this.endpoint;
+      options.forcePathStyle = true;
+    }
+    this.client = new S3Client(options);
     return this.client;
   }
 
@@ -90,12 +96,15 @@ export class S3StorageAdapter implements StorageAdapter {
     const objectKey = joinStorageKey(this.prefix ?? undefined, key);
     // Transient-failure retries live in S3Client; no second retry layer here.
     try {
-      await this.getClient().putObject({
+      const put: S3PutObjectInput = {
         bucket: this.bucket,
         key: objectKey,
-        body: data,
-        ...(contentType ? { contentType } : {})
-      });
+        body: data
+      };
+      if (contentType) {
+        put.contentType = contentType;
+      }
+      await this.getClient().putObject(put);
     } catch (err) {
       throw new Error(
         `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
@@ -149,21 +158,27 @@ export class S3StorageAdapter implements StorageAdapter {
     // Always end the prefix with `/` when hierarchical, so S3 lists children
     // not the directory marker itself.
     const s3Prefix = joinStorageKey(this.prefix ?? undefined, normalizedPrefix);
-    const s3PrefixWithSlash = delimiter && s3Prefix && !s3Prefix.endsWith("/")
-      ? `${s3Prefix}/`
-      : s3Prefix;
+    const s3PrefixWithSlash =
+      delimiter && s3Prefix && !s3Prefix.endsWith("/")
+        ? `${s3Prefix}/`
+        : s3Prefix;
 
     const entries: StorageEntry[] = [];
     const commonPrefixes: string[] = [];
 
     let continuationToken: string | undefined = undefined;
     for (;;) {
-      const response = await this.getClient().listObjectsV2({
-        bucket: this.bucket,
-        ...(s3PrefixWithSlash ? { prefix: s3PrefixWithSlash } : {}),
-        ...(delimiter ? { delimiter } : {}),
-        ...(continuationToken ? { continuationToken } : {})
-      });
+      const listInput: S3ListObjectsV2Input = { bucket: this.bucket };
+      if (s3PrefixWithSlash) {
+        listInput.prefix = s3PrefixWithSlash;
+      }
+      if (delimiter) {
+        listInput.delimiter = delimiter;
+      }
+      if (continuationToken) {
+        listInput.continuationToken = continuationToken;
+      }
+      const response = await this.getClient().listObjectsV2(listInput);
       for (const obj of response.contents) {
         if (!obj.key) continue;
         // Strip the bucket-side prefix so callers see keys relative to the
@@ -222,12 +237,15 @@ export class S3StorageAdapter implements StorageAdapter {
         bucket: parsed.bucket,
         key: parsed.key
       });
-      return {
+      const stat: StorageStat = {
         key: this.stripPrefix(parsed.key),
         size: response.contentLength,
-        modifiedAt: response.lastModified?.getTime() ?? 0,
-        ...(response.contentType ? { contentType: response.contentType } : {})
+        modifiedAt: response.lastModified?.getTime() ?? 0
       };
+      if (response.contentType) {
+        stat.contentType = response.contentType;
+      }
+      return stat;
     } catch {
       return null;
     }

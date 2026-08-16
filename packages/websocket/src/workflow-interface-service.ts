@@ -200,9 +200,15 @@ export async function listWorkflowSummariesV1(args: {
   readonly cursor?: string;
 }): Promise<{ workflows: WorkflowSummary[]; next: string | null }> {
   requireFeature();
-  const [workflows, cursor] = await Workflow.paginateSummaries(args.userId, {
-    limit: args.limit,
-    ...(args.cursor ? { startKey: args.cursor } : {})
-  });
+  const page: Parameters<typeof Workflow.paginateSummaries>[1] = {
+    limit: args.limit
+  };
+  if (args.cursor) {
+    page.startKey = args.cursor;
+  }
+  const [workflows, cursor] = await Workflow.paginateSummaries(
+    args.userId,
+    page
+  );
   return { workflows, next: cursor || null };
 }

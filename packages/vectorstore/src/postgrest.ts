@@ -45,8 +45,7 @@ export interface PostgrestUpsertOptions {
 }
 
 /** The fluent builder surface used by SupabaseProvider. */
-export interface PostgrestFilterBuilder
-  extends PromiseLike<PostgrestRowsResult> {
+export interface PostgrestFilterBuilder extends PromiseLike<PostgrestRowsResult> {
   eq(column: string, value: unknown): this;
   in(column: string, values: readonly unknown[]): this;
   is(column: string, value: null | boolean): this;
@@ -223,9 +222,7 @@ class FilterBuilder implements PostgrestFilterBuilder {
     if (!response.ok) {
       return { data: null, error: await readErrorBody(response), count: null };
     }
-    const count = parseContentRangeCount(
-      response.headers.get("content-range")
-    );
+    const count = parseContentRangeCount(response.headers.get("content-range"));
     if (this.state.method === "HEAD") {
       return { data: null, error: null, count };
     }
@@ -378,10 +375,10 @@ export class PostgrestClient implements PostgrestClientApi {
         headers["Content-Profile"] = this.schema;
       }
     }
-    return fetch(url, {
-      method: state.method,
-      headers,
-      ...(state.body !== undefined ? { body: state.body } : {})
-    });
+    const init: RequestInit = { method: state.method, headers };
+    if (state.body !== undefined) {
+      init.body = state.body;
+    }
+    return fetch(url, init);
   }
 }

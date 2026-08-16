@@ -123,7 +123,8 @@ class BinaryCursor {
       const byte = this.readByte();
       value += (byte & 0x7f) * 2 ** shift;
       if ((byte & 0x80) === 0) {
-        if (value > 0xffffffff) throw new WasmBinaryError("invalid WASM integer");
+        if (value > 0xffffffff)
+          throw new WasmBinaryError("invalid WASM integer");
         return value;
       }
       shift += 7;
@@ -136,7 +137,9 @@ class BinaryCursor {
   string(): string {
     const bytes = this.readBytes(this.u32());
     try {
-      return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+      return new TextDecoder("utf-8", { fatal: true }).decode(
+        new Uint8Array(bytes)
+      );
     } catch (error) {
       throw new WasmBinaryError("invalid WASM name", { cause: error });
     }
@@ -177,7 +180,11 @@ export function parseWasmBinary(bytes: Uint8Array): ParsedWasmBinary {
     const section = cursor.section();
     const sectionCursor = new BinaryCursor(section.payload);
     if (section.id === 1) {
-      for (let index = 0, count = sectionCursor.vectorLength(); index < count; index += 1) {
+      for (
+        let index = 0, count = sectionCursor.vectorLength();
+        index < count;
+        index += 1
+      ) {
         if (sectionCursor.readByte() !== 0x60) {
           throw new WasmBinaryError("invalid WASM function type");
         }
@@ -189,11 +196,19 @@ export function parseWasmBinary(bytes: Uint8Array): ParsedWasmBinary {
       importCount = sectionCursor.vectorLength();
       sectionCursor.skipRemaining();
     } else if (section.id === 3) {
-      for (let index = 0, count = sectionCursor.vectorLength(); index < count; index += 1) {
+      for (
+        let index = 0, count = sectionCursor.vectorLength();
+        index < count;
+        index += 1
+      ) {
         functionTypeIndexes.push(sectionCursor.u32());
       }
     } else if (section.id === 5) {
-      for (let index = 0, count = sectionCursor.vectorLength(); index < count; index += 1) {
+      for (
+        let index = 0, count = sectionCursor.vectorLength();
+        index < count;
+        index += 1
+      ) {
         const flags = sectionCursor.u32();
         const minimum = sectionCursor.u32();
         const hasMaximum = flags === 1 || flags === 3;
@@ -201,14 +216,26 @@ export function parseWasmBinary(bytes: Uint8Array): ParsedWasmBinary {
         if (flags !== 0 && flags !== 1 && flags !== 2 && flags !== 3) {
           throw new WasmBinaryError("invalid WASM memory limits");
         }
-        memories.push({
+        type MemoryFields = {
+          minimum: number;
+          maximum?: number;
+          shared: boolean;
+        };
+        const memory: MemoryFields = {
           minimum,
-          ...(hasMaximum ? { maximum: sectionCursor.u32() } : {}),
           shared
-        });
+        };
+        if (hasMaximum) {
+          memory.maximum = sectionCursor.u32();
+        }
+        memories.push(memory);
       }
     } else if (section.id === 7) {
-      for (let index = 0, count = sectionCursor.vectorLength(); index < count; index += 1) {
+      for (
+        let index = 0, count = sectionCursor.vectorLength();
+        index < count;
+        index += 1
+      ) {
         const name = sectionCursor.string();
         const kind = sectionCursor.readByte();
         const entryIndex = sectionCursor.u32();
@@ -220,7 +247,8 @@ export function parseWasmBinary(bytes: Uint8Array): ParsedWasmBinary {
     } else {
       sectionCursor.skipRemaining();
     }
-    if (!sectionCursor.done) throw new WasmBinaryError("malformed WASM section");
+    if (!sectionCursor.done)
+      throw new WasmBinaryError("malformed WASM section");
   }
   const functions = functionTypeIndexes.map((typeIndex) => {
     const signature = types[typeIndex];

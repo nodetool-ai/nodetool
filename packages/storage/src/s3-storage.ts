@@ -3,7 +3,11 @@
  * in-house SigV4 client in ./s3/.
  */
 
-import { S3Client } from "./s3/client.js";
+import {
+  S3Client,
+  type S3ClientOptions,
+  type S3PutObjectInput
+} from "./s3/client.js";
 import type { AbstractStorage } from "./abstract-storage.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
@@ -18,12 +22,12 @@ export class S3Storage implements AbstractStorage {
 
   private getClient(): S3Client {
     if (this.client) return this.client;
-    this.client = new S3Client({
-      region: this.region,
-      ...(this.endpointUrl
-        ? { endpoint: this.endpointUrl, forcePathStyle: true }
-        : {})
-    });
+    const options: S3ClientOptions = { region: this.region };
+    if (this.endpointUrl) {
+      options.endpoint = this.endpointUrl;
+      options.forcePathStyle = true;
+    }
+    this.client = new S3Client(options);
     return this.client;
   }
 
@@ -33,12 +37,11 @@ export class S3Storage implements AbstractStorage {
     contentType?: string
   ): Promise<void> {
     assertUploadWithinLimit(key, data.byteLength);
-    await this.getClient().putObject({
-      bucket: this.bucketName,
-      key,
-      body: data,
-      ...(contentType ? { contentType } : {})
-    });
+    const put: S3PutObjectInput = { bucket: this.bucketName, key, body: data };
+    if (contentType) {
+      put.contentType = contentType;
+    }
+    await this.getClient().putObject(put);
   }
 
   async download(key: string): Promise<Buffer> {

@@ -14,8 +14,14 @@ import {
   withExplicitNodeFlags,
   type RunResult
 } from "@nodetool-ai/kernel";
-import { ProcessingContext, connectPythonBridgeForGraph } from "@nodetool-ai/runtime";
-import type { HydratedGraphData, ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  ProcessingContext,
+  connectPythonBridgeForGraph
+} from "@nodetool-ai/runtime";
+import type {
+  HydratedGraphData,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { createExecutorResolver } from "./executor-resolver.js";
 import { buildWorkspaceExecutionContext } from "./service/workflow-workspace.js";
 import { normalizeGraph } from "./normalize-graph.js";
@@ -70,27 +76,31 @@ export class ExecutionSession {
       }, init.runTimeoutMs);
     }
 
-    this.resultPromise = init.runner
-      .run(
-        {
-          job_id: init.jobId,
-          workflow_id: init.workflowId ?? undefined,
-          params: init.params,
-          ...(init.triggerEvent ? { trigger_event: init.triggerEvent } : {})
-        },
-        init.graph
-      )
-      .finally(() => {
-        if (this.runTimeoutHandle) {
-          clearTimeout(this.runTimeoutHandle);
-          this.runTimeoutHandle = null;
-        }
-        init.closeBridge();
-        // The terminal message was emitted synchronously before run()
-        // resolved (ProcessingContext.emit() calls listeners inline), so the
-        // stream can close now without dropping it.
-        this.stream?.close();
-      });
+    type RunRequestFields = {
+      job_id: string;
+      workflow_id: string | undefined;
+      params: typeof init.params;
+      trigger_event?: NonNullable<typeof init.triggerEvent>;
+    };
+    const runRequest: RunRequestFields = {
+      job_id: init.jobId,
+      workflow_id: init.workflowId ?? undefined,
+      params: init.params
+    };
+    if (init.triggerEvent) {
+      runRequest.trigger_event = init.triggerEvent;
+    }
+    this.resultPromise = init.runner.run(runRequest, init.graph).finally(() => {
+      if (this.runTimeoutHandle) {
+        clearTimeout(this.runTimeoutHandle);
+        this.runTimeoutHandle = null;
+      }
+      init.closeBridge();
+      // The terminal message was emitted synchronously before run()
+      // resolved (ProcessingContext.emit() calls listeners inline), so the
+      // stream can close now without dropping it.
+      this.stream?.close();
+    });
 
     this.resultPromise
       .then((result) => this.persistence?.onTerminal?.(result))
@@ -134,7 +144,9 @@ export class ExecutionSession {
     // bridge instance to close on its behalf).
     const bridgeFactory =
       options.bridgeFactory ??
-      (options.resolveExecutor ? async () => null : connectPythonBridgeForGraph);
+      (options.resolveExecutor
+        ? async () => null
+        : connectPythonBridgeForGraph);
     const bridge = await bridgeFactory(normalized.nodes, (t) =>
       registry ? registry.has(t) : false
     );
@@ -195,14 +207,17 @@ export class ExecutionSession {
     const resolveExecutor =
       options.resolveExecutor ?? createExecutorResolver(registry!, bridge);
 
-    const runner = new WorkflowRunner(jobId, {
+    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
       resolveExecutor,
       executionContext: context,
       validateNode: options.validateNode,
       bufferLimit: options.limits?.bufferLimit ?? null,
-      strict: options.strict,
-      ...(options.supervisor ? { supervisor: options.supervisor } : {})
-    });
+      strict: options.strict
+    };
+    if (options.supervisor) {
+      runnerOptions.supervisor = options.supervisor;
+    }
+    const runner = new WorkflowRunner(jobId, runnerOptions);
 
     try {
       await options.persistence?.onAccepted?.(jobId);

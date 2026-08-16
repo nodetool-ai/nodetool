@@ -166,19 +166,28 @@ export function registerDbCommands(program: Command): void {
     db
       .command("migrate")
       .description("Apply pending PostgreSQL/Supabase migrations")
-      .option("--target <version>", "Stop after applying this migration version")
+      .option(
+        "--target <version>",
+        "Stop after applying this migration version"
+      )
       .option("--dry-run", "Print pending migrations without applying them")
       .option("--skip-checksums", "Skip checksum validation")
       .option("--json", "Output as JSON")
   ).action(async (opts: MigrateOptions) => {
     await runCliAction(async () => {
       const databaseUrl = resolveDatabaseUrl(opts);
-      const versions = await withPostgresMigrationRunner(databaseUrl, (runner) =>
-        runner.migrate({
-          ...(opts.target ? { target: opts.target } : {}),
-          dryRun: opts.dryRun ?? false,
-          validateChecksums: !(opts.skipChecksums ?? false)
-        })
+      const versions = await withPostgresMigrationRunner(
+        databaseUrl,
+        (runner) => {
+          const migrateOptions: Parameters<typeof runner.migrate>[0] = {
+            dryRun: opts.dryRun ?? false,
+            validateChecksums: !(opts.skipChecksums ?? false)
+          };
+          if (opts.target) {
+            migrateOptions.target = opts.target;
+          }
+          return runner.migrate(migrateOptions);
+        }
       );
 
       if (opts.json) {
@@ -208,8 +217,9 @@ export function registerDbCommands(program: Command): void {
   ).action(async (opts: BaselineOptions) => {
     await runCliAction(async () => {
       const databaseUrl = resolveDatabaseUrl(opts);
-      const baselined = await withPostgresMigrationRunner(databaseUrl, (runner) =>
-        runner.baseline(opts.force ?? false)
+      const baselined = await withPostgresMigrationRunner(
+        databaseUrl,
+        (runner) => runner.baseline(opts.force ?? false)
       );
 
       if (opts.json) {
@@ -235,8 +245,9 @@ export function registerDbCommands(program: Command): void {
       }
 
       const databaseUrl = resolveDatabaseUrl(opts);
-      const rolledBack = await withPostgresMigrationRunner(databaseUrl, (runner) =>
-        runner.rollback(steps)
+      const rolledBack = await withPostgresMigrationRunner(
+        databaseUrl,
+        (runner) => runner.rollback(steps)
       );
 
       if (opts.json) {

@@ -15,7 +15,10 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
-import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
+import {
+  NodeRegistry,
+  createGraphNodeTypeResolver
+} from "@nodetool-ai/node-sdk";
 import {
   registerBuiltInNodes,
   applyProductionNodePolicy
@@ -31,7 +34,9 @@ import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
 
-loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
+loadEnvironment(
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")
+);
 
 const log = createLogger("nodetool.websocket.server");
 const DEMO_IMAGE_PNG = Buffer.from(
@@ -1267,11 +1272,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
-    registry,
-    // Pass the resolved examples directory so handleWorkflowExamples can serve
-    // examples directly from the filesystem without requiring Python metadata.
-    ...(examplesDir ? { examplesDir } : {})
+    registry
   };
+  // Pass the resolved examples directory so handleWorkflowExamples can serve
+  // examples directly from the filesystem without requiring Python metadata.
+  if (examplesDir) {
+    resolvedApiOptions.examplesDir = examplesDir;
+  }
   const baseGraphNodeTypeResolver = createGraphNodeTypeResolver(registry);
   // When `passthroughUnknownNodes` is set, unknown node types (e.g. the
   // `test.Input` placeholder used by CLI fixtures) resolve to a permissive
@@ -1410,9 +1417,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
         return;
       }
     }
-    if (
-      url.pathname.startsWith("/trpc")
-    ) {
+    if (url.pathname.startsWith("/trpc")) {
       const originalUrl = req.url;
       req.url = (req.url ?? "/").replace(/^\/trpc/, "") || "/";
       void trpcHandler(req, res);

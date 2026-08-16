@@ -15,17 +15,17 @@
  * `status: 'conflict'` for the screen to offer a reload.
  */
 
-import { create, type StoreApi, type UseBoundStore } from 'zustand';
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 
-import { documentBackend } from './backends';
-import type { DocumentKind } from './kinds';
+import { documentBackend } from "./backends";
+import type { DocumentKind } from "./kinds";
 
 export type DocumentStatus =
-  | 'idle'
-  | 'loading'
-  | 'saving'
-  | 'conflict'
-  | 'error';
+  | "idle"
+  | "loading"
+  | "saving"
+  | "conflict"
+  | "error";
 
 export interface DocumentState<Doc> {
   kind: DocumentKind;
@@ -62,7 +62,7 @@ const stores = new Map<string, DocumentStore<unknown>>();
 const storeKey = (kind: DocumentKind, id: string): string => `${kind}:${id}`;
 
 const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : 'Unknown error';
+  error instanceof Error ? error.message : "Unknown error";
 
 /**
  * A stale-write rejection. Both routers raise `ALREADY_EXISTS` with a message
@@ -72,9 +72,9 @@ const errorMessage = (error: unknown): string =>
 const isConflict = (error: unknown): boolean => {
   const message = errorMessage(error).toLowerCase();
   return (
-    message.includes('optimistic concurrency') ||
-    message.includes('modified since') ||
-    message.includes('modified concurrently')
+    message.includes("optimistic concurrency") ||
+    message.includes("modified since") ||
+    message.includes("modified concurrently")
   );
 };
 
@@ -99,15 +99,15 @@ function createDocumentStore<Doc>(
     kind,
     id,
     doc: null,
-    name: '',
+    name: "",
     token: undefined,
     updatedAt: null,
     dirty: false,
-    status: 'idle',
+    status: "idle",
     error: null,
 
     load: async () => {
-      set({ status: 'loading', error: null });
+      set({ status: "loading", error: null });
       try {
         const loaded = await backend.read(id);
         set({
@@ -116,11 +116,11 @@ function createDocumentStore<Doc>(
           token: loaded.token,
           updatedAt: loaded.updatedAt,
           dirty: false,
-          status: 'idle',
-          error: null,
+          status: "idle",
+          error: null
         });
       } catch (error) {
-        set({ status: 'error', error: errorMessage(error) });
+        set({ status: "error", error: errorMessage(error) });
       }
     },
 
@@ -148,7 +148,7 @@ function createDocumentStore<Doc>(
         throw new Error(`${kind} documents are read-only`);
       }
 
-      set({ status: 'saving', error: null });
+      set({ status: "saving", error: null });
       const write = (async () => {
         try {
           const saved = await backend.save(id, { doc, name, token });
@@ -157,18 +157,29 @@ function createDocumentStore<Doc>(
           // in flight. An agent edit landing mid-save would otherwise be marked
           // saved, disabling the Save button and losing the edit on reload.
           const settled = after.doc === doc && after.name === name;
-          set({
+          type NextFields = {
+            token: typeof saved.token;
+            updatedAt: typeof saved.updatedAt;
+            status: "idle";
+            name?: string;
+            dirty?: boolean;
+          };
+          const next: NextFields = {
             // Adopt the server's token either way, so the follow-up save is
             // checked against the row we just wrote.
             token: saved.token,
             updatedAt: saved.updatedAt,
-            status: 'idle',
-            ...(settled ? { name: saved.name, dirty: false } : {}),
-          });
+            status: "idle"
+          };
+          if (settled) {
+            next.name = saved.name;
+            next.dirty = false;
+          }
+          set(next);
         } catch (error) {
           set({
-            status: isConflict(error) ? 'conflict' : 'error',
-            error: errorMessage(error),
+            status: isConflict(error) ? "conflict" : "error",
+            error: errorMessage(error)
           });
         }
       })();
@@ -181,7 +192,7 @@ function createDocumentStore<Doc>(
 
     revert: async () => {
       await get().load();
-    },
+    }
   }));
 }
 

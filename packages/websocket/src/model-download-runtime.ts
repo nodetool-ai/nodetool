@@ -24,7 +24,7 @@ export async function runTransformersJsModelDownload(
       downloadedBytes += value.loaded;
       totalBytes += value.total;
     }
-    onProgress({
+    const update: Parameters<typeof onProgress>[0] = {
       status,
       repo_id: repoId,
       path: null,
@@ -35,9 +35,12 @@ export async function runTransformersJsModelDownload(
       current_files: Array.from(fileTotals.keys()).filter(
         (file) => !completedFiles.has(file)
       ),
-      total_files: fileTotals.size,
-      ...(error ? { error } : {})
-    });
+      total_files: fileTotals.size
+    };
+    if (error) {
+      update.error = error;
+    }
+    onProgress(update);
   };
 
   emit("start");

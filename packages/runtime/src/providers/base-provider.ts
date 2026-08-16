@@ -1138,9 +1138,11 @@ export abstract class BaseProvider {
         const toolMsg: Message = {
           role: "tool",
           toolCallId: tc.id,
-          content: toolContent,
-          ...(isError ? { isError: true } : {})
+          content: toolContent
         };
+        if (isError) {
+          toolMsg.isError = true;
+        }
         messages.push(toolMsg);
         yield { type: "message", message: toolMsg };
         if (imageMessage) {

@@ -7,6 +7,30 @@ import {
   hfPipelineJson
 } from "../huggingface-base.js";
 
+type EmbedBody = { inputs: string; normalize?: boolean };
+type NerBody = {
+  inputs: string;
+  parameters?: { aggregation_strategy: string };
+};
+
+/** The embedding request body, with `normalize` sent only when it is on. */
+function embedBody(inputs: string, normalize: boolean): EmbedBody {
+  const body: EmbedBody = { inputs };
+  if (normalize) {
+    body.normalize = true;
+  }
+  return body;
+}
+
+/** The NER request body; `"none"` means send no aggregation strategy at all. */
+function nerBody(inputs: string, strategy: string): NerBody {
+  const body: NerBody = { inputs };
+  if (strategy !== "none") {
+    body.parameters = { aggregation_strategy: strategy };
+  }
+  return body;
+}
+
 export class ChatCompletionNode extends BaseNode {
   static readonly nodeType = "huggingface.ChatCompletion";
   static readonly title = "Chat Completion";
@@ -553,10 +577,7 @@ export class FeatureExtractionNode extends BaseNode {
     const result = await hfPipelineJson<number[] | number[][]>(
       token,
       String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
-      {
-        inputs: text,
-        ...(this.normalize ? { normalize: true } : {})
-      }
+      embedBody(text, Boolean(this.normalize))
     );
 
     return { output: result };
@@ -599,7 +620,8 @@ export class TextClassificationNode extends BaseNode {
     if (!text) throw new Error("Text cannot be empty");
 
     const result = await hfPipelineJson<
-      Array<{ label?: string; score?: number }> | Array<Array<{ label?: string; score?: number }>>
+      | Array<{ label?: string; score?: number }>
+      | Array<Array<{ label?: string; score?: number }>>
     >(
       token,
       String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
@@ -607,7 +629,9 @@ export class TextClassificationNode extends BaseNode {
     );
 
     // The API may return a flat list or a list-of-lists (one per input).
-    const scores = Array.isArray(result[0]) ? (result[0] as Array<{ label?: string; score?: number }>) : (result as Array<{ label?: string; score?: number }>);
+    const scores = Array.isArray(result[0])
+      ? (result[0] as Array<{ label?: string; score?: number }>)
+      : (result as Array<{ label?: string; score?: number }>);
     return {
       output: String(scores[0]?.label ?? ""),
       scores
@@ -660,14 +684,11 @@ export class TokenClassificationNode extends BaseNode {
     if (!text) throw new Error("Text cannot be empty");
 
     const strategy = String(this.aggregation_strategy ?? "simple");
-    const result = await hfPipelineJson<
-      Array<Record<string, unknown>>
-    >(token, String(this.model ?? "dslim/bert-base-NER"), {
-      inputs: text,
-      ...(strategy !== "none"
-        ? { parameters: { aggregation_strategy: strategy } }
-        : {})
-    });
+    const result = await hfPipelineJson<Array<Record<string, unknown>>>(
+      token,
+      String(this.model ?? "dslim/bert-base-NER"),
+      nerBody(text, strategy)
+    );
 
     return { output: Array.isArray(result) ? result : [] };
   }

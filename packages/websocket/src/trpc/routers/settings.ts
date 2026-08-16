@@ -8,6 +8,7 @@
  * populates the registry at module load time).
  */
 
+import { z } from "zod";
 import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -56,7 +57,7 @@ async function toSecretResponse(
     isUnreadable = true;
   }
   const safe = secret.toSafeObject();
-  return {
+  const response: z.infer<typeof secretResponse> = {
     id: safe.id as string | undefined,
     user_id: safe.user_id as string | undefined,
     key: safe.key as string,
@@ -64,9 +65,12 @@ async function toSecretResponse(
     created_at: safe.created_at as string | undefined,
     updated_at: safe.updated_at as string | undefined,
     is_configured: true,
-    is_unreadable: isUnreadable,
-    ...(value !== undefined ? { value } : {})
+    is_unreadable: isUnreadable
   };
+  if (value !== undefined) {
+    response.value = value;
+  }
+  return response;
 }
 
 // ── Secrets sub-router ─────────────────────────────────────────────
@@ -119,14 +123,15 @@ const secretsRouter = router({
     .input(secretUpsertInput)
     .output(secretResponse)
     .mutation(async ({ ctx, input }) => {
-      const secret = await Secret.upsert({
+      const upsertInput: Parameters<typeof Secret.upsert>[0] = {
         userId: ctx.userId,
         key: input.key,
-        value: input.value,
-        ...(input.description !== undefined
-          ? { description: input.description }
-          : {})
-      });
+        value: input.value
+      };
+      if (input.description !== undefined) {
+        upsertInput.description = input.description;
+      }
+      const secret = await Secret.upsert(upsertInput);
       clearSecretCache(ctx.userId, input.key);
       clearProviderCache();
       return toSecretResponse(secret);
@@ -214,8 +219,7 @@ export const settingsRouter = router({
         group: def.group,
         description: def.description,
         enum: def.enum ?? null,
-        value:
-          settingsMap.get(def.envVar) ?? process.env[def.envVar] ?? null,
+        value: settingsMap.get(def.envVar) ?? process.env[def.envVar] ?? null,
         is_secret: false
       });
     }

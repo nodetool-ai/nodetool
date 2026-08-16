@@ -125,11 +125,14 @@ function buildModelMap(): Map<string, ModelInfo> {
       ATLASCLOUD_MANIFEST_PATH,
       id
     )) {
-      fields.set(f.name, {
-        type: f.type,
-        ...(f.enumValues ? { values: f.enumValues } : {}),
-        ...(f.default !== undefined ? { default: f.default } : {})
-      });
+      const field: FieldInfo = { type: f.type };
+      if (f.enumValues) {
+        field.values = f.enumValues;
+      }
+      if (f.default !== undefined) {
+        field.default = f.default;
+      }
+      fields.set(f.name, field);
     }
     const meta = getManifestNodeMeta(
       ATLASCLOUD_MANIFEST_PKG,
@@ -177,6 +180,26 @@ async function fetchWithRetry(
   return last as Response;
 }
 
+type RunJobOptions = { timeoutSeconds?: number | null; signal?: AbortSignal };
+
+/**
+ * The `runJob` options a generation call carries, with each one the caller left
+ * unset omitted.
+ */
+function runJobOptions(params: {
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
+}): RunJobOptions {
+  const opts: RunJobOptions = {};
+  if (params.timeoutSeconds) {
+    opts.timeoutSeconds = params.timeoutSeconds;
+  }
+  if (params.signal) {
+    opts.signal = params.signal;
+  }
+  return opts;
+}
+
 async function atlasSubmit(
   apiKey: string,
   modality: "image" | "video",
@@ -186,12 +209,15 @@ async function atlasSubmit(
 ): Promise<string> {
   const path = modality === "image" ? SUBMIT_IMAGE : SUBMIT_VIDEO;
   // Submit POST is not idempotent — never retry.
-  const res = await fetch(`${ATLAS_BASE}${path}`, {
+  const init: RequestInit = {
     method: "POST",
     headers: authHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, ...input }),
-    ...(signal ? { signal } : {})
-  });
+    body: JSON.stringify({ model: modelId, ...input })
+  };
+  if (signal) {
+    init.signal = signal;
+  }
+  const res = await fetch(`${ATLAS_BASE}${path}`, init);
   const text = await res.text();
   let data: { data?: { id?: string }; message?: string } | null;
   try {
@@ -240,10 +266,11 @@ async function atlasPoll(
 ): Promise<AtlasPollResult> {
   const url = `${ATLAS_BASE}/api/v1/model/prediction/${predictionId}`;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetchWithRetry(url, {
-      headers: authHeaders(apiKey),
-      ...(signal ? { signal } : {})
-    });
+    const init: RequestInit = { headers: authHeaders(apiKey) };
+    if (signal) {
+      init.signal = signal;
+    }
+    const res = await fetchWithRetry(url, init);
     const text = await res.text();
     let data: { data?: AtlasPollResult; message?: string } | null;
     try {
@@ -642,7 +669,10 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return this.modelMap;
   }
 
-  private resolveModel(modelId: string, expected: "image" | "video"): ModelInfo {
+  private resolveModel(
+    modelId: string,
+    expected: "image" | "video"
+  ): ModelInfo {
     const info = this.getModelMap().get(modelId);
     if (!info) {
       throw new Error(`Unknown AtlasCloud model: ${modelId}`);
@@ -698,9 +728,13 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "image");
     const input = mapImageParams(info, params);
-    return this.runJob("image", params.model.id, info, input, {
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "image",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async imageToImage(
@@ -729,19 +763,26 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${params.model.id} does not declare an input image field`
       );
     }
-    return this.runJob("image", params.model.id, info, input, {
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "image",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
     if (!params.prompt) throw new Error("Prompt is required");
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    return this.runJob("video", params.model.id, info, input, {
-      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "video",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 
   override async imageToVideo(
@@ -771,9 +812,12 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${params.model.id} does not accept an input image (try the Seedance image-to-video variant)`
       );
     }
-    return this.runJob("video", params.model.id, info, input, {
-      ...(params.timeoutSeconds ? { timeoutSeconds: params.timeoutSeconds } : {}),
-      ...(params.signal ? { signal: params.signal } : {})
-    });
+    return this.runJob(
+      "video",
+      params.model.id,
+      info,
+      input,
+      runJobOptions(params)
+    );
   }
 }

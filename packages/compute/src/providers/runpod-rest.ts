@@ -260,20 +260,20 @@ export async function deployWorkerPod(
       opts.vcpuCount ??
       (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
     gpuTypeIds: opts.gpuTypeIds,
-    // GPU pods must request an explicit gpuCount; without it RunPod may allocate
-    // zero GPUs while still reporting the pod as running.
-    ...(isGpu ? { gpuCount: opts.gpuCount ?? DEFAULT_GPU_COUNT } : {}),
     ports: [`${internalPort}/${exposure}`],
     env,
-    containerDiskInGb: opts.containerDiskInGb ?? 20,
-    // Persistent volume — survives stop/resume, holds the HF model cache.
-    ...(opts.volumeInGb
-      ? {
-          volumeInGb: opts.volumeInGb,
-          volumeMountPath: opts.volumeMountPath ?? "/workspace"
-        }
-      : {})
+    containerDiskInGb: opts.containerDiskInGb ?? 20
   };
+  // GPU pods must request an explicit gpuCount; without it RunPod may allocate
+  // zero GPUs while still reporting the pod as running.
+  if (isGpu) {
+    spec.gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
+  }
+  // Persistent volume — survives stop/resume, holds the HF model cache.
+  if (opts.volumeInGb) {
+    spec.volumeInGb = opts.volumeInGb;
+    spec.volumeMountPath = opts.volumeMountPath ?? "/workspace";
+  }
 
   const created = await createPod(apiKey, spec);
   try {

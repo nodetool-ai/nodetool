@@ -43,11 +43,11 @@ function fromEnv(
   const secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
   if (!accessKeyId || !secretAccessKey) return null;
   const sessionToken = env.AWS_SESSION_TOKEN;
-  return {
-    accessKeyId,
-    secretAccessKey,
-    ...(sessionToken ? { sessionToken } : {})
-  };
+  const credentials: ResolvedCredentials = { accessKeyId, secretAccessKey };
+  if (sessionToken) {
+    credentials.sessionToken = sessionToken;
+  }
+  return credentials;
 }
 
 /**
@@ -95,11 +95,11 @@ async function fromSharedCredentialsFile(
   const secretAccessKey = profile.aws_secret_access_key;
   if (!accessKeyId || !secretAccessKey) return null;
   const sessionToken = profile.aws_session_token;
-  return {
-    accessKeyId,
-    secretAccessKey,
-    ...(sessionToken ? { sessionToken } : {})
-  };
+  const credentials: ResolvedCredentials = { accessKeyId, secretAccessKey };
+  if (sessionToken) {
+    credentials.sessionToken = sessionToken;
+  }
+  return credentials;
 }
 
 /**
@@ -116,7 +116,11 @@ export function createDefaultCredentialProvider(
     const env = options.env ?? process.env;
     const envCreds = fromEnv(env);
     if (envCreds) return envCreds;
-    const fileCreds = await fromSharedCredentialsFile(env, readFileFn, homedirFn);
+    const fileCreds = await fromSharedCredentialsFile(
+      env,
+      readFileFn,
+      homedirFn
+    );
     if (fileCreds) return fileCreds;
     throw new Error(
       "AWS credentials not found: set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (and optionally AWS_SESSION_TOKEN), configure a shared credentials file profile, or pass credentials to S3Client."

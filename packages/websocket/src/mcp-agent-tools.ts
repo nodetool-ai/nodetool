@@ -266,13 +266,13 @@ function toToolResponse(result: unknown) {
   const isObject =
     result !== null && typeof result === "object" && !Array.isArray(result);
   const isError = isErrorResult(result);
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }],
-    ...(isError ? { isError: true as const } : {}),
-    ...(isObject && !isError
-      ? { structuredContent: result as Record<string, unknown> }
-      : {})
+  const base = {
+    content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }]
   };
+  const withError = isError ? { ...base, isError: true as const } : base;
+  return isObject && !isError
+    ? { ...withError, structuredContent: result as Record<string, unknown> }
+    : withError;
 }
 
 function errorResponse(err: unknown) {
@@ -907,7 +907,10 @@ export function registerAgentMcpTools(
   log.info("Registered agent MCP tools", {
     userId: scope.userId,
     source: scope.source,
-    registered: [session.providerTool.name, ...(viewImage ? ["view_image"] : [])],
+    registered: [
+      session.providerTool.name,
+      ...(viewImage ? ["view_image"] : [])
+    ],
     beltSize: belt.length
   });
 

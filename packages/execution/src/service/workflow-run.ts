@@ -167,8 +167,7 @@ export function modelSelectionErrors(
   return collectModelSelectionIssues({ nodes: nodes as never[] }, catalogs)
     .filter((issue) => issue.severity === "error")
     .map(
-      (issue) =>
-        `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
+      (issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`
     );
 }
 
@@ -378,22 +377,27 @@ export async function runWorkflow(
         MAX_INTERACTIVE_RETRIES_PER_NODE
       );
       interactiveHandle = new InteractiveEscalationHandle();
-      supervisorHandle = new BoundedHandle(interactiveHandle, {
-        ...(maxDecisions !== undefined ? { maxDecisions } : {}),
-        ...(maxRetriesPerNode !== undefined ? { maxRetriesPerNode } : {}),
+      const bounds: ConstructorParameters<typeof BoundedHandle>[1] = {
         decisionTimeoutMs:
           boundedRunOption(
             options.decisionTimeoutMs,
             1,
             MAX_INTERACTIVE_DECISION_TIMEOUT_MS
           ) ?? INTERACTIVE_DECISION_TIMEOUT_MS
-      });
+      };
+      if (maxDecisions !== undefined) {
+        bounds.maxDecisions = maxDecisions;
+      }
+      if (maxRetriesPerNode !== undefined) {
+        bounds.maxRetriesPerNode = maxRetriesPerNode;
+      }
+      supervisorHandle = new BoundedHandle(interactiveHandle, bounds);
     }
     const resolveExecutor =
       environment.resolveExecutor ??
       ((node: { id: string; type: string; [key: string]: unknown }) =>
         registry.resolve(node));
-    runner = new WorkflowRunner(job.id, {
+    const runnerOptions: ConstructorParameters<typeof WorkflowRunner>[1] = {
       resolveExecutor: (node) =>
         resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
@@ -409,9 +413,12 @@ export async function runWorkflow(
         // without them an Output node that stores an image fails the run.
         environment.configureContext?.(executionContext);
         return executionContext;
-      })(),
-      ...(supervisorHandle ? { supervisor: supervisorHandle } : {})
-    });
+      })()
+    };
+    if (supervisorHandle) {
+      runnerOptions.supervisor = supervisorHandle;
+    }
+    runner = new WorkflowRunner(job.id, runnerOptions);
     hydratedGraph = hydrateGraphNodeFlags(
       runnableGraph as unknown as GraphData,
       registry

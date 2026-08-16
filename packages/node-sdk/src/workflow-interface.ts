@@ -78,7 +78,9 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function nodeProperties(node: WorkflowInterfaceGraphNode): Record<string, unknown> {
+function nodeProperties(
+  node: WorkflowInterfaceGraphNode
+): Record<string, unknown> {
   return {
     ...(record(node.properties) ?? record(node.data) ?? {}),
     ...(record(node.dynamic_properties) ?? {})
@@ -86,13 +88,16 @@ function nodeProperties(node: WorkflowInterfaceGraphNode): Record<string, unknow
 }
 
 function cloneType(type: TypeMetadata): TypeMetadata {
-  return {
+  const cloned: TypeMetadata = {
     type: type.type,
     optional: type.optional ?? false,
-    ...(type.values !== undefined ? { values: [...type.values] } : {}),
     type_args: (type.type_args ?? []).map(cloneType),
     type_name: type.type_name ?? null
   };
+  if (type.values !== undefined) {
+    cloned.values = [...type.values];
+  }
+  return cloned;
 }
 
 function anyType(): TypeMetadata {
@@ -228,7 +233,9 @@ function outputTypeForNode(
   const nodeType = typeof node.type === "string" ? node.type : "";
   const metadata = registry.resolveMetadata(nodeType);
   const slot = metadata?.outputs.find((output) => output.name === handle);
-  return slot ? { type: cloneType(slot.type), stream: slot.stream ?? false } : null;
+  return slot
+    ? { type: cloneType(slot.type), stream: slot.stream ?? false }
+    : null;
 }
 
 export function deriveWorkflowInterfaceV1(args: {
@@ -290,8 +297,10 @@ export function deriveWorkflowInterfaceV1(args: {
     const type = resolved?.type ?? anyType();
     if (nodeType === "nodetool.input.SelectInput") {
       const options = Array.isArray(props.options)
-        ? props.options.filter((value): value is string | number =>
-            typeof value === "string" || typeof value === "number")
+        ? props.options.filter(
+            (value): value is string | number =>
+              typeof value === "string" || typeof value === "number"
+          )
         : [];
       if (options.length > 0) type.values = options;
       const enumName = pinText(props.enum_type_name);
@@ -306,8 +315,10 @@ export function deriveWorkflowInterfaceV1(args: {
       default: safeDefault(props.value, nodeId, name, diagnostics),
       type
     };
-    if (typeof props.min === "number" && Number.isFinite(props.min)) input.min = props.min;
-    if (typeof props.max === "number" && Number.isFinite(props.max)) input.max = props.max;
+    if (typeof props.min === "number" && Number.isFinite(props.min))
+      input.min = props.min;
+    if (typeof props.max === "number" && Number.isFinite(props.max))
+      input.max = props.max;
     inputs.push(input);
   }
 
@@ -344,12 +355,17 @@ export function deriveWorkflowInterfaceV1(args: {
       : null;
     let incoming: WorkflowInterfaceGraphEdge[] = [];
     if (!dedicatedType) {
-      incoming = edges.filter((edge) =>
-        edge.target === nodeId &&
-        String(edge.targetHandle ?? edge.target_handle ?? "") === "value");
+      incoming = edges.filter(
+        (edge) =>
+          edge.target === nodeId &&
+          String(edge.targetHandle ?? edge.target_handle ?? "") === "value"
+      );
       if (incoming.length === 1) {
         const edge = incoming[0]!;
-        const source = typeof edge.source === "string" ? nodesById.get(edge.source) : undefined;
+        const source =
+          typeof edge.source === "string"
+            ? nodesById.get(edge.source)
+            : undefined;
         const handle = String(edge.sourceHandle ?? edge.source_handle ?? "");
         if (!source) {
           diagnostics.push({
@@ -372,16 +388,19 @@ export function deriveWorkflowInterfaceV1(args: {
           if (!resolved) {
             const dynamic = record(source.dynamic_outputs);
             const hasDynamicHandle = record(dynamic?.[handle]) !== null;
-            const sourceType = typeof source.type === "string" ? source.type : "";
+            const sourceType =
+              typeof source.type === "string" ? source.type : "";
             const sourceMetadata = args.registry.resolveMetadata(sourceType);
             diagnostics.push({
               severity: "error",
-              code: !hasDynamicHandle && !sourceMetadata
-                ? "missing_node_metadata"
-                : "missing_output_handle",
-              message: !hasDynamicHandle && !sourceMetadata
-                ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
-                : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
+              code:
+                !hasDynamicHandle && !sourceMetadata
+                  ? "missing_node_metadata"
+                  : "missing_output_handle",
+              message:
+                !hasDynamicHandle && !sourceMetadata
+                  ? `Node metadata for workflow output source '${sourceType}' is unavailable. The node pack may be disabled or not loaded.`
+                  : `Source handle '${handle}' is not declared by node '${sourceType}'.`,
               node_id: typeof source.id === "string" ? source.id : nodeId,
               pin_name: handle
             });
@@ -392,7 +411,10 @@ export function deriveWorkflowInterfaceV1(args: {
     if (!resolved) {
       diagnostics.push({
         severity: "error",
-        code: incoming.length > 1 ? "ambiguous_output_source" : "unresolved_output_type",
+        code:
+          incoming.length > 1
+            ? "ambiguous_output_source"
+            : "unresolved_output_type",
         message: `Cannot resolve a unique source type for workflow output '${name}'.`,
         node_id: nodeId,
         pin_name: name

@@ -25,7 +25,6 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-
 /** A `timeline_sequences` row as the harness needs it. */
 export interface TimelineSequenceRecord {
   id: string;
@@ -106,7 +105,7 @@ function documentOf(raw: unknown): JsonValue {
 /** Read a document as tracks + clips + markers, defaulting what is missing. */
 function asDocument(raw: unknown): TimelineDocument {
   const record = isRecord(raw) ? raw : {};
-  return {
+  const document: TimelineDocument = {
     tracks: Array.isArray(record.tracks)
       ? (record.tracks as TimelineDocument["tracks"])
       : [],
@@ -115,14 +114,15 @@ function asDocument(raw: unknown): TimelineDocument {
       : [],
     markers: Array.isArray(record.markers)
       ? (record.markers as TimelineDocument["markers"])
-      : [],
-    ...(Array.isArray(record.transcript)
-      ? { transcript: record.transcript as TimelineDocument["transcript"] }
-      : {}),
-    ...(typeof record.scriptEnabled === "boolean"
-      ? { scriptEnabled: record.scriptEnabled }
-      : {})
+      : []
   };
+  if (Array.isArray(record.transcript)) {
+    document.transcript = record.transcript as TimelineDocument["transcript"];
+  }
+  if (typeof record.scriptEnabled === "boolean") {
+    document.scriptEnabled = record.scriptEnabled;
+  }
+  return document;
 }
 
 /** Resolve a timeline target: a JSON file path or a sequence row id. */
@@ -143,9 +143,16 @@ export async function resolveTimelineTarget(
         `${ref} is not a timeline document (no \`tracks\`/\`clips\` arrays, and no \`document\` field carrying them).`
       );
     }
-    const name = isRecord(parsed) && typeof parsed.name === "string" ? parsed.name : undefined;
+    const name =
+      isRecord(parsed) && typeof parsed.name === "string"
+        ? parsed.name
+        : undefined;
+    const target: TimelineDebugTarget = { kind: "file", ref };
+    if (name) {
+      target.name = name;
+    }
     return {
-      target: { kind: "file", ref, ...(name ? { name } : {}) },
+      target,
       raw,
       document: asDocument(raw),
       meta: { ...settingsOf(parsed), ...settingsOf(raw) }
@@ -157,12 +164,12 @@ export async function resolveTimelineTarget(
     throw new Error(`Timeline sequence not found: ${ref}`);
   }
   const raw = documentOf(record);
+  const target: TimelineDebugTarget = { kind: "id", ref };
+  if (record.name) {
+    target.name = record.name;
+  }
   return {
-    target: {
-      kind: "id",
-      ref,
-      ...(record.name ? { name: record.name } : {})
-    },
+    target,
     raw,
     document: asDocument(raw),
     meta: settingsOf(record)

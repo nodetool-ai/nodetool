@@ -23,6 +23,9 @@ import type {
 } from "@nodetool-ai/protocol";
 import type { UnitPricing } from "./pricing-bundle.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 /** FAL list price as attached to `NodeMetadata.fal_unit_pricing`. */
 export interface FalUnitPricingLike extends UnitPricing {
   endpoint_id?: string;
@@ -161,7 +164,9 @@ function positiveQuantity(value: number | undefined): number {
     : 1;
 }
 
-function confidenceFromSource(source: "live" | "bundle" | undefined): CostConfidence {
+function confidenceFromSource(
+  source: "live" | "bundle" | undefined
+): CostConfidence {
   return source === "live" ? "exact" : "estimate";
 }
 
@@ -297,7 +302,9 @@ function resolvePrice(
   return null;
 }
 
-export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEstimate {
+export function estimateWorkflowCost(
+  input: CostEstimateInput
+): WorkflowCostEstimate {
   const currency = input.currency ?? DEFAULT_CURRENCY;
   const quantities = input.quantities ?? {};
 
@@ -318,23 +325,28 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
     );
 
     if (!price || price.confidence === "unknown") {
-      items.push({
+      type UnknownItemFields = Mutable<NodeCostEstimate>;
+      const unknownItem: UnknownItemFields = {
         node_id: node.id,
         node_type: node.type,
         provider: price?.provider ?? null,
         model: price?.model ?? null,
         quantity,
         estimated_cost: 0,
-        confidence: "unknown",
-        ...(price?.assumptions ? { assumptions: price.assumptions } : {})
-      });
+        confidence: "unknown"
+      };
+      if (price?.assumptions) {
+        unknownItem.assumptions = price.assumptions;
+      }
+      items.push(unknownItem);
       unknownCount += 1;
       continue;
     }
 
     const estimatedCost = price.unitPrice * quantity;
     total += estimatedCost;
-    items.push({
+    type ItemFields = Mutable<NodeCostEstimate>;
+    const item: ItemFields = {
       node_id: node.id,
       node_type: node.type,
       provider: price.provider,
@@ -343,11 +355,18 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
       billing_unit: price.billingUnit,
       quantity,
       estimated_cost: estimatedCost,
-      confidence: price.confidence,
-      ...(price.breakdown ? { breakdown: price.breakdown } : {}),
-      ...(price.assumptions ? { assumptions: price.assumptions } : {}),
-      ...(price.warnings ? { warnings: price.warnings } : {})
-    });
+      confidence: price.confidence
+    };
+    if (price.breakdown) {
+      item.breakdown = price.breakdown;
+    }
+    if (price.assumptions) {
+      item.assumptions = price.assumptions;
+    }
+    if (price.warnings) {
+      item.warnings = price.warnings;
+    }
+    items.push(item);
   }
 
   return { currency, total, items, unknown_count: unknownCount };

@@ -2458,15 +2458,29 @@ export class WorkflowRunner {
           const meta = targetNode.propertyMeta?.[propName] as
             | { description?: string; min?: number; max?: number }
             | undefined;
-          properties[propName] = {
+          type DescribedFields = {
+            value: unknown;
+            type: string;
+            description?: string;
+            min?: number;
+            max?: number;
+          };
+          const described: DescribedFields = {
             value: propValue,
             type:
               (propTypes as Record<string, string>)[propName] ??
-              typeof propValue,
-            ...(meta?.description ? { description: meta.description } : {}),
-            ...(meta?.min != null ? { min: meta.min } : {}),
-            ...(meta?.max != null ? { max: meta.max } : {})
+              typeof propValue
           };
+          if (meta?.description) {
+            described.description = meta.description;
+          }
+          if (meta?.min != null) {
+            described.min = meta.min;
+          }
+          if (meta?.max != null) {
+            described.max = meta.max;
+          }
+          properties[propName] = described;
         }
       }
 
@@ -2538,15 +2552,29 @@ export class WorkflowRunner {
       const meta = (node.propertyMeta?.[name] ?? slot) as
         | { description?: string; min?: number; max?: number }
         | undefined;
-      result[name] = {
+      type SchemaFields = {
+        type: string;
+        description: string;
+        default?: unknown;
+        minimum?: number;
+        maximum?: number;
+      };
+      const schema: SchemaFields = {
         type: jsonType,
         description:
           meta?.description ??
-          `Property '${name}' (${declaredType ?? jsonType})`,
-        ...(value !== undefined ? { default: value } : {}),
-        ...(meta?.min != null ? { minimum: meta.min } : {}),
-        ...(meta?.max != null ? { maximum: meta.max } : {})
+          `Property '${name}' (${declaredType ?? jsonType})`
       };
+      if (value !== undefined) {
+        schema.default = value;
+      }
+      if (meta?.min != null) {
+        schema.minimum = meta.min;
+      }
+      if (meta?.max != null) {
+        schema.maximum = meta.max;
+      }
+      result[name] = schema;
     }
 
     return result;

@@ -19,10 +19,14 @@ export function attachChatPredictionForwarder(
     if (msg.type !== "prediction") {
       return;
     }
-    send({
+    const forwarded = {
       ...(msg as unknown as Record<string, unknown>),
-      thread_id: ids.threadId,
-      ...(ids.workflowId != null ? { workflow_id: ids.workflowId } : {})
-    });
+      thread_id: ids.threadId
+    };
+    send(
+      ids.workflowId == null
+        ? forwarded
+        : { ...forwarded, workflow_id: ids.workflowId }
+    );
   });
 }

@@ -58,10 +58,10 @@ export interface ActiveModelSelection {
   model: string;
 }
 
-const nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
-const nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
-  "node:fs/promises"
-);
+const nodeCrypto =
+  getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
+const nodeFsP =
+  getNodeBuiltinSync<typeof import("node:fs/promises")>("node:fs/promises");
 const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
 const nodeUrl = getNodeBuiltinSync<typeof import("node:url")>("node:url");
 
@@ -351,8 +351,7 @@ export type ProviderPredictionResult = Awaited<
       | "lipSync"
       | "textToMusic"
       | "automaticSpeechRecognition"
-      | "generateEmbedding"
-    ]
+      | "generateEmbedding"]
   >
 >;
 
@@ -765,13 +764,16 @@ export class InMemoryStorageAdapter implements StorageAdapter {
             continue;
           }
         }
-        entries.push({
+        const listed: StorageEntry = {
           key,
           uri: `memory://${key}`,
           size: entry.data.byteLength,
-          modifiedAt: entry.modifiedAt,
-          ...(entry.contentType ? { contentType: entry.contentType } : {})
-        });
+          modifiedAt: entry.modifiedAt
+        };
+        if (entry.contentType) {
+          listed.contentType = entry.contentType;
+        }
+        entries.push(listed);
       }
     }
     return {
@@ -790,12 +792,15 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const key = uri.slice("memory://".length);
     const entry = this._store.get(key);
     if (!entry) return null;
-    return {
+    const stat: StorageStat = {
       key,
       size: entry.data.byteLength,
-      modifiedAt: entry.modifiedAt,
-      ...(entry.contentType ? { contentType: entry.contentType } : {})
+      modifiedAt: entry.modifiedAt
     };
+    if (entry.contentType) {
+      stat.contentType = entry.contentType;
+    }
+    return stat;
   }
 }
 
@@ -2329,9 +2334,7 @@ export class ProcessingContext {
   }
 
   /** Load a persisted timeline sequence owned by the current user. */
-  async getTimelineSequence(
-    id: string
-  ): Promise<PersistedRecordLike | null> {
+  async getTimelineSequence(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getTimelineSequence");
     return fn({ userId: this.userId, id });
   }

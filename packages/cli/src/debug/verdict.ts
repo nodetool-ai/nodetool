@@ -44,7 +44,9 @@ export function buildVerdict(
       }
       issues.push(...describeErrors("Browser node", browser.summary.errors));
       for (const err of browser.consoleErrors.slice(0, 5)) {
-        issues.push(`Browser console error: ${err.replace(/\s+/g, " ").slice(0, 200)}`);
+        issues.push(
+          `Browser console error: ${err.replace(/\s+/g, " ").slice(0, 200)}`
+        );
       }
     }
   }
@@ -70,7 +72,10 @@ export function buildVerdict(
 
   let headline: string;
   if (ok) {
-    const surfaces = [server && "server", browser && !browser.unavailableReason && "browser"]
+    const surfaces = [
+      server && "server",
+      browser && !browser.unavailableReason && "browser"
+    ]
       .filter(Boolean)
       .join(" + ");
     headline = `Workflow ran clean on ${surfaces}.`;
@@ -86,10 +91,13 @@ export function buildVerdict(
     ? collectInterventionWarnings("Server", server.summary)
     : [];
 
-  return {
+  const verdict: DebugVerdict = {
     ok,
     headline: ok && warnings.length > 0 ? `${headline} (supervised)` : headline,
-    issues,
-    ...(warnings.length > 0 ? { warnings } : {})
+    issues
   };
+  if (warnings.length > 0) {
+    verdict.warnings = warnings;
+  }
+  return verdict;
 }

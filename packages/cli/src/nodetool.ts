@@ -32,7 +32,10 @@ import {
   TimelineSequence,
   getSecret
 } from "@nodetool-ai/models";
-import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
+import {
+  readCachedHfModels,
+  searchCachedHfModels
+} from "@nodetool-ai/huggingface";
 import { initMasterKey } from "@nodetool-ai/security";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
@@ -187,7 +190,9 @@ function makeAssetFetcher(
         if (meta.ok) {
           const j = (await meta.json()) as { get_url?: string };
           if (j.get_url) {
-            url = j.get_url.startsWith("/") ? `${apiUrl}${j.get_url}` : j.get_url;
+            url = j.get_url.startsWith("/")
+              ? `${apiUrl}${j.get_url}`
+              : j.get_url;
           }
         }
       } catch {
@@ -305,7 +310,8 @@ program
     // first would win the one-shot init and drop that file sink, so skip it.
     // Without `--trace`, fall through so the global --trace-file/--trace-stdout
     // flags still work for a debug run.
-    if (actionCommand?.name() === "debug" && actionCommand.opts()["trace"]) return;
+    if (actionCommand?.name() === "debug" && actionCommand.opts()["trace"])
+      return;
     const opts = thisCommand.opts<{
       traceFile?: string;
       traceStdout?: string | boolean;
@@ -325,7 +331,8 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
     const lower = v.toLowerCase();
     if (lower === "false" || lower === "0" || lower === "no") return false;
     if (lower === "json") return "json";
-    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+    if (lower === "pretty" || lower === "true" || lower === "1")
+      return "pretty";
   }
   throw new Error(
     `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
@@ -341,8 +348,8 @@ addSupervisorOptions(
     .command("run <dsl-file>")
     .description("Run a TypeScript/JavaScript DSL workflow file")
     .option("--json", "Output results as JSON (default: pretty-print)")
-)
-  .action(async (dslFile: string, opts: { json?: boolean } & SupervisorCliOptions) => {
+).action(
+  async (dslFile: string, opts: { json?: boolean } & SupervisorCliOptions) => {
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
@@ -359,9 +366,8 @@ addSupervisorOptions(
         // The supervisor's provider key comes from the secret store, and its
         // spend is written to the local ledger — both need the DB.
         await setupDb();
-        const { runDslFileSupervised } = await import(
-          "./run-dsl-supervised.js"
-        );
+        const { runDslFileSupervised } =
+          await import("./run-dsl-supervised.js");
         const run = await runDslFileSupervised(
           absolutePath,
           supervisorConfig,
@@ -395,7 +401,8 @@ addSupervisorOptions(
       console.error(String(e));
       process.exit(1);
     }
-  });
+  }
+);
 
 program
   .command("info")
@@ -509,7 +516,9 @@ const workflows = program
 
 workflows
   .command("list")
-  .description("List workflows (reads the local database; --api-url for remote)")
+  .description(
+    "List workflows (reads the local database; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local database",
@@ -549,7 +558,9 @@ workflows
 
 workflows
   .command("get <workflow_id>")
-  .description("Get a workflow by ID (reads the local database; --api-url for remote)")
+  .description(
+    "Get a workflow by ID (reads the local database; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local database",
@@ -611,254 +622,255 @@ addSupervisorOptions(
         "emit and the run stalls until its timeout — so this is the only way " +
         "to exercise a trigger-driven workflow from the CLI."
     )
-)
-  .action(
-    async (
-      idOrFile: string,
-      opts: {
-        params?: string;
-        json?: boolean;
-        assetOutputMode?: string;
-        workspace?: string;
-        triggerEvent?: string;
-      } & SupervisorCliOptions
-    ) => {
-      try {
-        const supervisorConfig = parseSupervisorFlags(opts);
-        await setupDb();
-        let graph: { nodes: any[]; edges: any[] };
-        let workflowId: string | null = null;
-        const params = opts.params
-          ? (JSON.parse(opts.params) as Record<string, unknown>)
-          : {};
+).action(
+  async (
+    idOrFile: string,
+    opts: {
+      params?: string;
+      json?: boolean;
+      assetOutputMode?: string;
+      workspace?: string;
+      triggerEvent?: string;
+    } & SupervisorCliOptions
+  ) => {
+    try {
+      const supervisorConfig = parseSupervisorFlags(opts);
+      await setupDb();
+      let graph: { nodes: any[]; edges: any[] };
+      let workflowId: string | null = null;
+      const params = opts.params
+        ? (JSON.parse(opts.params) as Record<string, unknown>)
+        : {};
 
-        // A trigger node emits from `emitTriggerEvent`, not `genProcess`, and
-        // only when the run carries an event addressed to it. The kernel has
-        // always accepted one (`RunJobRequest.trigger_event`); nothing on the
-        // CLI could supply it, so a webhook or file-watch workflow could be
-        // validated but never executed. `input_id` defaults because every
-        // caller would otherwise invent the same throwaway id.
-        const triggerEvent = opts.triggerEvent
-          ? (() => {
-              const parsed = JSON.parse(opts.triggerEvent) as {
-                node_id?: string;
-                payload?: unknown;
-                input_id?: string;
-              };
-              if (!parsed.node_id) {
-                throw new Error(
-                  '--trigger-event needs a "node_id" naming the trigger node to wake.'
-                );
-              }
-              return {
-                node_id: parsed.node_id,
-                payload: parsed.payload ?? {},
-                input_id: parsed.input_id ?? `cli-${Date.now()}`
-              };
-            })()
-          : null;
+      // A trigger node emits from `emitTriggerEvent`, not `genProcess`, and
+      // only when the run carries an event addressed to it. The kernel has
+      // always accepted one (`RunJobRequest.trigger_event`); nothing on the
+      // CLI could supply it, so a webhook or file-watch workflow could be
+      // validated but never executed. `input_id` defaults because every
+      // caller would otherwise invent the same throwaway id.
+      const triggerEvent = opts.triggerEvent
+        ? (() => {
+            const parsed = JSON.parse(opts.triggerEvent) as {
+              node_id?: string;
+              payload?: unknown;
+              input_id?: string;
+            };
+            if (!parsed.node_id) {
+              throw new Error(
+                '--trigger-event needs a "node_id" naming the trigger node to wake.'
+              );
+            }
+            return {
+              node_id: parsed.node_id,
+              payload: parsed.payload ?? {},
+              input_id: parsed.input_id ?? `cli-${Date.now()}`
+            };
+          })()
+        : null;
 
-        // Determine if argument is a file path or workflow ID
-        if (
-          idOrFile.endsWith(".json") ||
-          idOrFile.endsWith(".ts") ||
-          idOrFile.endsWith(".tsx") ||
-          idOrFile.includes("/") ||
-          idOrFile.includes("\\")
-        ) {
-          let raw: any;
-          if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
-            // Execute DSL file via tsx and capture JSON output
-            const { execFileSync } = await import("node:child_process");
-            const output = execFileSync("npx", ["tsx", resolve(idOrFile)], {
-              encoding: "utf8",
-              cwd: dirname(resolve(idOrFile)),
-              timeout: 30000
-            });
-            raw = JSON.parse(output.trim());
-          } else {
-            const { readFileSync } = await import("node:fs");
-            raw = JSON.parse(readFileSync(idOrFile, "utf8"));
-          }
-          graph = raw.graph ?? raw;
-          workflowId = raw.workflow_id ?? raw.id ?? null;
-          if (raw.params) Object.assign(params, raw.params);
+      // Determine if argument is a file path or workflow ID
+      if (
+        idOrFile.endsWith(".json") ||
+        idOrFile.endsWith(".ts") ||
+        idOrFile.endsWith(".tsx") ||
+        idOrFile.includes("/") ||
+        idOrFile.includes("\\")
+      ) {
+        let raw: any;
+        if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
+          // Execute DSL file via tsx and capture JSON output
+          const { execFileSync } = await import("node:child_process");
+          const output = execFileSync("npx", ["tsx", resolve(idOrFile)], {
+            encoding: "utf8",
+            cwd: dirname(resolve(idOrFile)),
+            timeout: 30000
+          });
+          raw = JSON.parse(output.trim());
         } else {
-          const wf = await Workflow.get(idOrFile);
-          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
-          graph = (wf as any).graph;
-          workflowId = idOrFile;
+          const { readFileSync } = await import("node:fs");
+          raw = JSON.parse(readFileSync(idOrFile, "utf8"));
         }
+        graph = raw.graph ?? raw;
+        workflowId = raw.workflow_id ?? raw.id ?? null;
+        if (raw.params) Object.assign(params, raw.params);
+      } else {
+        const wf = await Workflow.get(idOrFile);
+        if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+        graph = (wf as any).graph;
+        workflowId = idOrFile;
+      }
 
-        if (!graph?.nodes || !graph?.edges) {
-          throw new Error("Invalid workflow: missing nodes or edges");
-        }
+      if (!graph?.nodes || !graph?.edges) {
+        throw new Error("Invalid workflow: missing nodes or edges");
+      }
 
-        // Editor-only nodes (Comment, Group, Reroute) and the data→properties
-        // rename are handled by `ExecutionSession.create` below, which runs
-        // the graph through `normalizeGraph` (@nodetool-ai/execution) — no
-        // need to duplicate that here.
+      // Editor-only nodes (Comment, Group, Reroute) and the data→properties
+      // rename are handled by `ExecutionSession.create` below, which runs
+      // the graph through `normalizeGraph` (@nodetool-ai/execution) — no
+      // need to duplicate that here.
 
-        const registry = new NodeRegistry();
-        registerBaseNodes(registry);
-        registerElevenLabsNodes(registry);
-        registerMinimaxNodes(registry);
-        registerTransformersJsNodes(registry);
-        registerFalNodes(registry);
-        registerReplicateNodes(registry);
-        registerReveNodes(registry);
-        registerHuggingFaceNodes(registry);
+      const registry = new NodeRegistry();
+      registerBaseNodes(registry);
+      registerElevenLabsNodes(registry);
+      registerMinimaxNodes(registry);
+      registerTransformersJsNodes(registry);
+      registerFalNodes(registry);
+      registerReplicateNodes(registry);
+      registerReveNodes(registry);
+      registerHuggingFaceNodes(registry);
 
-        const jobId = `job-${Date.now()}`;
-        // Resolve asset URIs (e.g. /api/storage/<key>) against the local
-        // assets directory, so workflows referencing stored assets run the
-        // same decode path the server does.
-        // Apply the workflow's assigned workspace (if any) so file ops and
-        // workspace-driving nodes land in the same directory as a server run.
-        const { resolveWorkflowWorkspace } = await import(
-          "@nodetool-ai/websocket"
+      const jobId = `job-${Date.now()}`;
+      // Resolve asset URIs (e.g. /api/storage/<key>) against the local
+      // assets directory, so workflows referencing stored assets run the
+      // same decode path the server does.
+      // Apply the workflow's assigned workspace (if any) so file ops and
+      // workspace-driving nodes land in the same directory as a server run.
+      const { resolveWorkflowWorkspace } =
+        await import("@nodetool-ai/websocket");
+      const workspaceDir = workflowId
+        ? await resolveWorkflowWorkspace(workflowId, "1")
+        : null;
+      const ASSET_OUTPUT_MODES = [
+        "native",
+        "raw",
+        "data_uri",
+        "workspace",
+        "storage_url",
+        "temp_url"
+      ] as const;
+      const assetOutputMode = (opts.assetOutputMode ??
+        "native") as AssetOutputMode;
+      if (
+        !(ASSET_OUTPUT_MODES as readonly string[]).includes(assetOutputMode)
+      ) {
+        throw new Error(
+          `Unknown --asset-output-mode "${assetOutputMode}". ` +
+            `Expected one of: ${ASSET_OUTPUT_MODES.join(", ")}`
         );
-        const workspaceDir = workflowId
-          ? await resolveWorkflowWorkspace(workflowId, "1")
-          : null;
-        const ASSET_OUTPUT_MODES = [
-          "native",
-          "raw",
-          "data_uri",
-          "workspace",
-          "storage_url",
-          "temp_url"
-        ] as const;
-        const assetOutputMode = (opts.assetOutputMode ??
-          "native") as AssetOutputMode;
-        if (
-          !(ASSET_OUTPUT_MODES as readonly string[]).includes(assetOutputMode)
-        ) {
-          throw new Error(
-            `Unknown --asset-output-mode "${assetOutputMode}". ` +
-              `Expected one of: ${ASSET_OUTPUT_MODES.join(", ")}`
-          );
-        }
+      }
 
-        // `workspace` mode writes each output into <workspace>/assets, so it
-        // needs a directory even when the run has no saved workflow (a JSON or
-        // DSL file target). Fall back to ./nodetool-output so a bare
-        // `workflows run file.json --asset-output-mode workspace` produces
-        // files in the current directory rather than failing.
-        const effectiveWorkspaceDir =
-          opts.workspace ??
-          workspaceDir ??
-          (assetOutputMode === "workspace"
-            ? resolve(process.cwd(), "nodetool-output")
-            : null);
-        if (effectiveWorkspaceDir) {
-          mkdirSync(effectiveWorkspaceDir, { recursive: true });
-        }
+      // `workspace` mode writes each output into <workspace>/assets, so it
+      // needs a directory even when the run has no saved workflow (a JSON or
+      // DSL file target). Fall back to ./nodetool-output so a bare
+      // `workflows run file.json --asset-output-mode workspace` produces
+      // files in the current directory rather than failing.
+      const effectiveWorkspaceDir =
+        opts.workspace ??
+        workspaceDir ??
+        (assetOutputMode === "workspace"
+          ? resolve(process.cwd(), "nodetool-output")
+          : null);
+      if (effectiveWorkspaceDir) {
+        mkdirSync(effectiveWorkspaceDir, { recursive: true });
+      }
 
-        const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
-        const context = new ProcessingContext({
+      const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
+      const context = new ProcessingContext({
+        jobId,
+        workflowId,
+        userId: "1",
+        secretResolver: getSecret,
+        storage: assetStorage,
+        assetOutputMode,
+        workspaceDir: effectiveWorkspaceDir,
+        workspaceStorage: effectiveWorkspaceDir
+          ? new FileStorageAdapter(effectiveWorkspaceDir)
+          : null
+      });
+
+      const supervisor = supervisorConfig
+        ? await createSupervisorHandle({
+            config: supervisorConfig,
+            context
+          })
+        : null;
+
+      console.error(
+        `Running workflow${workflowId ? ` ${workflowId}` : ""}` +
+          (supervisor
+            ? ` supervised by ${supervisor.providerId}/${supervisor.model}`
+            : "") +
+          "..."
+      );
+
+      // ExecutionSession owns graph hydration, Python-bridge connection
+      // (NODETOOL_WORKER_URL/NODETOOL_WORKER_TOKEN → remote worker; unset →
+      // local stdio worker; pure-TS graphs get none), and executor
+      // resolution (registry → Python bridge → throw).
+      const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
+        graph,
+        registry,
+        // Registry alone hydrates node flags but not `propertyTypes`, and
+        // correlation analysis reads list-ness only from that map — so a
+        // saved workflow (which never carries it) had every list handle
+        // read as non-list, and legal fan-in into one was rejected before
+        // any node ran. The resolver fills it from node metadata.
+        resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
+        jobId,
+        workflowId,
+        params,
+        context
+      };
+      if (triggerEvent) {
+        sessionOptions.triggerEvent = triggerEvent;
+      }
+      // Message capture is retention, so it stays off unless a supervised
+      // run needs the stream to print its `⛨` lines as they happen.
+      if (supervisor) {
+        sessionOptions.supervisor = supervisor.handle;
+        sessionOptions.captureMessages = true;
+      }
+      const session = await ExecutionSession.create(sessionOptions);
+
+      const interventionLines = supervisor
+        ? streamInterventionLines(session.messages)
+        : Promise.resolve();
+
+      const result = await session.result;
+      await interventionLines;
+      supervisor?.handle.close();
+
+      const interventions = result.interventions ?? [];
+      if (supervisor && interventions.length > 0) {
+        await recordSupervisorCost({
+          interventions,
           jobId,
           workflowId,
           userId: "1",
-          secretResolver: getSecret,
-          storage: assetStorage,
-          assetOutputMode,
-          workspaceDir: effectiveWorkspaceDir,
-          workspaceStorage: effectiveWorkspaceDir
-            ? new FileStorageAdapter(effectiveWorkspaceDir)
-            : null
+          providerId: supervisor.providerId,
+          model: supervisor.model
         });
+      }
 
-
-        const supervisor = supervisorConfig
-          ? await createSupervisorHandle({
-              config: supervisorConfig,
-              context
-            })
-          : null;
-
-        console.error(
-          `Running workflow${workflowId ? ` ${workflowId}` : ""}` +
-            (supervisor
-              ? ` supervised by ${supervisor.providerId}/${supervisor.model}`
-              : "") +
-            "..."
-        );
-
-        // ExecutionSession owns graph hydration, Python-bridge connection
-        // (NODETOOL_WORKER_URL/NODETOOL_WORKER_TOKEN → remote worker; unset →
-        // local stdio worker; pure-TS graphs get none), and executor
-        // resolution (registry → Python bridge → throw).
-        const session = await ExecutionSession.create({
-          graph,
-          registry,
-          // Registry alone hydrates node flags but not `propertyTypes`, and
-          // correlation analysis reads list-ness only from that map — so a
-          // saved workflow (which never carries it) had every list handle
-          // read as non-list, and legal fan-in into one was rejected before
-          // any node ran. The resolver fills it from node metadata.
-          resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
-          jobId,
-          workflowId,
-          params,
-          context,
-          ...(triggerEvent ? { triggerEvent } : {}),
-          // Message capture is retention, so it stays off unless a supervised
-          // run needs the stream to print its `⛨` lines as they happen.
-          ...(supervisor
-            ? { supervisor: supervisor.handle, captureMessages: true }
-            : {})
-        });
-
-        const interventionLines = supervisor
-          ? streamInterventionLines(session.messages)
-          : Promise.resolve();
-
-        const result = await session.result;
-        await interventionLines;
-        supervisor?.handle.close();
-
-        const interventions = result.interventions ?? [];
-        if (supervisor && interventions.length > 0) {
-          await recordSupervisorCost({
-            interventions,
-            jobId,
-            workflowId,
-            userId: "1",
-            providerId: supervisor.providerId,
-            model: supervisor.model
-          });
-        }
-
-        if (opts.json) {
-          console.log(JSON.stringify(result, null, 2));
-        } else {
-          console.log(`Status: ${result.status}`);
-          if (result.error) console.error(`Error: ${result.error}`);
-          for (const [nodeId, outputs] of Object.entries(
-            result.outputs ?? {}
-          )) {
-            if (Array.isArray(outputs) && outputs.length > 0) {
-              console.log(`\nNode ${nodeId}:`);
-              for (const out of outputs) {
-                console.log(`  ${JSON.stringify(out).slice(0, 200)}`);
-              }
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(`Status: ${result.status}`);
+        if (result.error) console.error(`Error: ${result.error}`);
+        for (const [nodeId, outputs] of Object.entries(result.outputs ?? {})) {
+          if (Array.isArray(outputs) && outputs.length > 0) {
+            console.log(`\nNode ${nodeId}:`);
+            for (const out of outputs) {
+              console.log(`  ${JSON.stringify(out).slice(0, 200)}`);
             }
           }
-          printSupervisedSummary(interventions);
         }
-
-        process.exit(result.status === "completed" ? 0 : 1);
-      } catch (e) {
-        console.error(String(e));
-        process.exit(1);
+        printSupervisedSummary(interventions);
       }
+
+      process.exit(result.status === "completed" ? 0 : 1);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
     }
-  );
+  }
+);
 
 workflows
   .command("export-dsl <workflow_id_or_file>")
-  .description("Export a workflow as TypeScript DSL code (local DB by id; --api-url for remote)")
+  .description(
+    "Export a workflow as TypeScript DSL code (local DB by id; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Fetch the workflow from a remote server instead of the local database",
@@ -961,14 +973,16 @@ workflows
         const { readFileSync } = await import("node:fs");
         const { mkdir, writeFile } = await import("node:fs/promises");
         const { join } = await import("node:path");
-        const { materializeWorkflowConstantAssets } = await import(
-          "@nodetool-ai/websocket"
-        );
+        const { materializeWorkflowConstantAssets } =
+          await import("@nodetool-ai/websocket");
 
         let name = "";
         let description = "";
         let tags: string[] = [];
-        let graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+        let graph: {
+          nodes: Record<string, unknown>[];
+          edges: Record<string, unknown>[];
+        };
 
         const isFile =
           idOrFile.endsWith(".json") ||
@@ -981,7 +995,8 @@ workflows
             unknown
           >;
           name = typeof raw.name === "string" ? raw.name : "workflow";
-          description = typeof raw.description === "string" ? raw.description : "";
+          description =
+            typeof raw.description === "string" ? raw.description : "";
           tags = Array.isArray(raw.tags)
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -992,7 +1007,8 @@ workflows
             id: idOrFile
           })) as Record<string, unknown>;
           name = typeof wf.name === "string" ? wf.name : "workflow";
-          description = typeof wf.description === "string" ? wf.description : "";
+          description =
+            typeof wf.description === "string" ? wf.description : "";
           tags = Array.isArray(wf.tags)
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -1002,7 +1018,8 @@ workflows
           const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
           name = typeof wf.name === "string" ? wf.name : "workflow";
-          description = typeof wf.description === "string" ? wf.description : "";
+          description =
+            typeof wf.description === "string" ? wf.description : "";
           tags = Array.isArray(wf.tags)
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
@@ -1027,12 +1044,20 @@ workflows
           ? makeAssetFetcher(opts.apiUrl.replace(/\/+$/, ""))
           : await makeLocalAssetFetcher();
 
-        const result = await materializeWorkflowConstantAssets(graph, {
+        const materializeOptions: Parameters<
+          typeof materializeWorkflowConstantAssets
+        >[1] = {
           packageName: opts.package,
           assetsRoot,
-          fetchAssetBytes,
-          ...(opts.includeRemote ? { includeRemote: true } : {})
-        });
+          fetchAssetBytes
+        };
+        if (opts.includeRemote) {
+          materializeOptions.includeRemote = true;
+        }
+        const result = await materializeWorkflowConstantAssets(
+          graph,
+          materializeOptions
+        );
 
         const slug = name
           .toLowerCase()
@@ -1054,9 +1079,14 @@ workflows
           name.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") ||
           "workflow";
         const outPath =
-          opts.output ?? join(examplesDir, opts.package, `${safeFileName}.json`);
+          opts.output ??
+          join(examplesDir, opts.package, `${safeFileName}.json`);
         await mkdir(dirname(outPath), { recursive: true });
-        await writeFile(outPath, JSON.stringify(example, null, 2) + "\n", "utf8");
+        await writeFile(
+          outPath,
+          JSON.stringify(example, null, 2) + "\n",
+          "utf8"
+        );
 
         for (const a of result.exported) {
           console.error(
@@ -1106,12 +1136,16 @@ workflows
           tags?: string[];
           run_mode?: string | null;
           settings?: Record<string, unknown> | null;
-          graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+          graph: {
+            nodes: Record<string, unknown>[];
+            edges: Record<string, unknown>[];
+          };
         };
 
         const toBundleWf = (raw: Record<string, unknown>): BundleWf => ({
           name: typeof raw.name === "string" ? raw.name : "workflow",
-          description: typeof raw.description === "string" ? raw.description : "",
+          description:
+            typeof raw.description === "string" ? raw.description : "",
           tags: Array.isArray(raw.tags)
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [],
@@ -1151,14 +1185,18 @@ workflows
           workflowsToPack.push(wf);
         }
 
-        const { bytes, manifest, skipped } = await packWorkflowsBundle({
+        const packOptions: Parameters<typeof packWorkflowsBundle>[0] = {
           workflows: workflowsToPack,
           fetchAssetBytes: useServer
             ? makeAssetFetcher(apiUrl)
             : await makeLocalAssetFetcher(),
-          nodetoolVersion: cliVersion(),
-          ...(opts.includeRemote ? { includeRemote: true } : {})
-        });
+          nodetoolVersion: cliVersion()
+        };
+        if (opts.includeRemote) {
+          packOptions.includeRemote = true;
+        }
+        const { bytes, manifest, skipped } =
+          await packWorkflowsBundle(packOptions);
 
         const defaultBase =
           workflowsToPack.length === 1
@@ -1228,7 +1266,9 @@ workflows
       }
 
       for (const s of result.missing) {
-        console.error(`  warning: bundle asset ${s} was missing from the archive`);
+        console.error(
+          `  warning: bundle asset ${s} was missing from the archive`
+        );
       }
       for (const m of result.checksumMismatches) {
         console.error(`  warning: ${m}`);
@@ -1273,17 +1313,20 @@ jobs
       let rows: Record<string, unknown>[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        const data = await client.jobs.list.query({
-          limit,
-          ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
-        });
+        type QueryFields = { limit: number; workflow_id?: string };
+        const query: QueryFields = { limit };
+        if (opts.workflowId) {
+          query.workflow_id = opts.workflowId;
+        }
+        const data = await client.jobs.list.query(query);
         rows = data.jobs as Record<string, unknown>[];
       } else {
         ensureDb();
-        const [items] = await Job.paginate(LOCAL_USER_ID, {
-          limit,
-          ...(opts.workflowId ? { workflowId: opts.workflowId } : {})
-        });
+        const page: Parameters<typeof Job.paginate>[1] = { limit };
+        if (opts.workflowId) {
+          page.workflowId = opts.workflowId;
+        }
+        const [items] = await Job.paginate(LOCAL_USER_ID, page);
         rows = items.map((j) => ({ ...j }));
       }
       if (opts.json) {
@@ -1307,7 +1350,9 @@ jobs
 
 jobs
   .command("get <job_id>")
-  .description("Get a job by ID (reads the local database; --api-url for remote)")
+  .description(
+    "Get a job by ID (reads the local database; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local database",
@@ -1372,17 +1417,22 @@ assets
       let rows: Record<string, unknown>[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        const data = await client.assets.list.query({
-          page_size: limit,
-          ...(opts.contentType ? { content_type: opts.contentType } : {})
-        });
+        type QueryFields2 = { page_size: number; content_type?: string };
+        const query: QueryFields2 = {
+          page_size: limit
+        };
+        if (opts.contentType) {
+          query.content_type = opts.contentType;
+        }
+        const data = await client.assets.list.query(query);
         rows = data.assets as Record<string, unknown>[];
       } else {
         ensureDb();
-        const [items] = await Asset.paginate(LOCAL_USER_ID, {
-          limit,
-          ...(opts.contentType ? { contentType: opts.contentType } : {})
-        });
+        const page: Parameters<typeof Asset.paginate>[1] = { limit };
+        if (opts.contentType) {
+          page.contentType = opts.contentType;
+        }
+        const [items] = await Asset.paginate(LOCAL_USER_ID, page);
         rows = items.map((a) => ({ ...a }));
       }
       // --query has no server-side search; filter by name in memory (matches
@@ -1390,7 +1440,9 @@ assets
       if (opts.query) {
         const q = String(opts.query).toLowerCase();
         rows = rows.filter((r) =>
-          String(r["name"] ?? "").toLowerCase().includes(q)
+          String(r["name"] ?? "")
+            .toLowerCase()
+            .includes(q)
         );
       }
       if (opts.json) {
@@ -1413,7 +1465,9 @@ assets
 
 assets
   .command("get <asset_id>")
-  .description("Get an asset by ID (reads the local database; --api-url for remote)")
+  .description(
+    "Get an asset by ID (reads the local database; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local database",
@@ -1460,7 +1514,14 @@ assets
 
 const models = program.command("models").description("Model management");
 
-const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
+const modelKinds = [
+  "llm",
+  "image",
+  "tts",
+  "asr",
+  "video",
+  "embedding"
+] as const;
 
 function modelRow(m: {
   id?: unknown;
@@ -1542,7 +1603,9 @@ registerHfCommands(models);
 
 models
   .command("ollama")
-  .description("List Ollama models (queries the local daemon; --api-url for remote)")
+  .description(
+    "List Ollama models (queries the local daemon; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local Ollama daemon",
@@ -1578,7 +1641,9 @@ models
 
 models
   .command("huggingface")
-  .description("List HuggingFace cached models (scans the local cache; --api-url for remote)")
+  .description(
+    "List HuggingFace cached models (scans the local cache; --api-url for remote)"
+  )
   .option(
     "--api-url <url>",
     "Query a remote server instead of the local HuggingFace cache",
@@ -1592,16 +1657,25 @@ models
       let rows: Record<string, unknown>[];
       if (opts.apiUrl) {
         const client = createApiClient(opts.apiUrl);
-        rows =
-          opts.query || opts.type
-            ? ((await client.models.huggingfaceSearch.query({
-                ...(opts.query ? { query: String(opts.query) } : {}),
-                ...(opts.type ? { type: String(opts.type) } : {})
-              })) as unknown as Record<string, unknown>[])
-            : ((await client.models.huggingfaceList.query()) as unknown as Record<
-                string,
-                unknown
-              >[]);
+        if (opts.query || opts.type) {
+          type SearchFields = { query?: string; type?: string };
+          const search: SearchFields = {};
+          if (opts.query) {
+            search.query = String(opts.query);
+          }
+          if (opts.type) {
+            search.type = String(opts.type);
+          }
+          rows = (await client.models.huggingfaceSearch.query(
+            search
+          )) as unknown as Record<string, unknown>[];
+        } else {
+          rows =
+            (await client.models.huggingfaceList.query()) as unknown as Record<
+              string,
+              unknown
+            >[];
+        }
       } else if (opts.query || opts.type) {
         // Wrap a bare query in wildcards so it matches as a substring, the same
         // normalization the server's huggingfaceSearch applies.
@@ -1676,14 +1750,16 @@ storage
   .option("--json", "Output the report as JSON")
   .action(async (opts) => {
     await setupDb();
-    const { migrateStorageKeys, formatMigrateKeysReport } = await import(
-      "./commands/storage.js"
-    );
+    const { migrateStorageKeys, formatMigrateKeysReport } =
+      await import("./commands/storage.js");
     try {
-      const report = await migrateStorageKeys({
-        dryRun: Boolean(opts.dryRun),
-        ...(opts.userId ? { userId: opts.userId } : {})
-      });
+      const migrateOptions: Parameters<typeof migrateStorageKeys>[0] = {
+        dryRun: Boolean(opts.dryRun)
+      };
+      if (opts.userId) {
+        migrateOptions.userId = opts.userId;
+      }
+      const report = await migrateStorageKeys(migrateOptions);
       if (opts.json) {
         console.log(JSON.stringify(report, null, 2));
       } else {
@@ -1706,14 +1782,16 @@ workflows
   .option("--json", "Output the report as JSON")
   .action(async (opts) => {
     await setupDb();
-    const { migrateCodeInputs, formatMigrateCodeInputsReport } = await import(
-      "./commands/migrate-code-inputs.js"
-    );
+    const { migrateCodeInputs, formatMigrateCodeInputsReport } =
+      await import("./commands/migrate-code-inputs.js");
     try {
-      const report = await migrateCodeInputs({
-        dryRun: Boolean(opts.dryRun),
-        ...(opts.userId ? { userId: opts.userId } : {})
-      });
+      const migrateOptions: Parameters<typeof migrateCodeInputs>[0] = {
+        dryRun: Boolean(opts.dryRun)
+      };
+      if (opts.userId) {
+        migrateOptions.userId = opts.userId;
+      }
+      const report = await migrateCodeInputs(migrateOptions);
       if (opts.json) {
         console.log(JSON.stringify(report, null, 2));
       } else {
@@ -1923,8 +2001,14 @@ mcp
           projects[home] = globalProject;
           config["projects"] = projects;
 
-          writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + "\n");
-          results.push({ target: "Claude Code", status: `Installed → ${claudeConfigPath}` });
+          writeFileSync(
+            claudeConfigPath,
+            JSON.stringify(config, null, 2) + "\n"
+          );
+          results.push({
+            target: "Claude Code",
+            status: `Installed → ${claudeConfigPath}`
+          });
         } catch (e) {
           results.push({ target: "Claude Code", status: `Error: ${e}` });
         }
@@ -1967,7 +2051,10 @@ mcp
           }
 
           writeFileSync(codexConfigPath, content);
-          results.push({ target: "Codex", status: `Installed → ${codexConfigPath}` });
+          results.push({
+            target: "Codex",
+            status: `Installed → ${codexConfigPath}`
+          });
         } catch (e) {
           results.push({ target: "Codex", status: `Error: ${e}` });
         }
@@ -1996,7 +2083,10 @@ mcp
             opencodeConfigPath,
             JSON.stringify(config, null, 2) + "\n"
           );
-          results.push({ target: "OpenCode", status: `Installed → ${opencodeConfigPath}` });
+          results.push({
+            target: "OpenCode",
+            status: `Installed → ${opencodeConfigPath}`
+          });
         } catch (e) {
           results.push({ target: "OpenCode", status: `Error: ${e}` });
         }
@@ -2012,15 +2102,16 @@ mcp
 
 mcp
   .command("uninstall")
-  .description("Remove NodeTool MCP server config from all AI coding assistants")
+  .description(
+    "Remove NodeTool MCP server config from all AI coding assistants"
+  )
   .option("--claude", "Uninstall from Claude Code only")
   .option("--codex", "Uninstall from Codex only")
   .option("--opencode", "Uninstall from OpenCode only")
   .action(
     async (opts: { claude?: boolean; codex?: boolean; opencode?: boolean }) => {
-      const { readFileSync, writeFileSync, existsSync } = await import(
-        "node:fs"
-      );
+      const { readFileSync, writeFileSync, existsSync } =
+        await import("node:fs");
       const { join } = await import("node:path");
       const { homedir } = await import("node:os");
 
@@ -2042,7 +2133,10 @@ mcp
               globalProject["mcpServers"] = mcpServers;
               projects[home] = globalProject;
               config["projects"] = projects;
-              writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + "\n");
+              writeFileSync(
+                claudeConfigPath,
+                JSON.stringify(config, null, 2) + "\n"
+              );
               results.push({ target: "Claude Code", status: "Removed" });
             } else {
               results.push({ target: "Claude Code", status: "Not installed" });
@@ -2116,7 +2210,9 @@ mcp
 
 mcp
   .command("status")
-  .description("Show NodeTool MCP installation status for all AI coding assistants")
+  .description(
+    "Show NodeTool MCP installation status for all AI coding assistants"
+  )
   .action(async () => {
     const { readFileSync, existsSync } = await import("node:fs");
     const { join } = await import("node:path");
@@ -2130,8 +2226,7 @@ mcp
       const claudeConfigPath = join(home, ".claude.json");
       if (existsSync(claudeConfigPath)) {
         const config = JSON.parse(readFileSync(claudeConfigPath, "utf8"));
-        const mcpServers =
-          config?.projects?.[home]?.mcpServers ?? {};
+        const mcpServers = config?.projects?.[home]?.mcpServers ?? {};
         if (mcpServers["nodetool"]) {
           results.push({
             target: "Claude Code",
@@ -2139,13 +2234,21 @@ mcp
             url: mcpServers["nodetool"].url ?? ""
           });
         } else {
-          results.push({ target: "Claude Code", status: "Not installed", url: "" });
+          results.push({
+            target: "Claude Code",
+            status: "Not installed",
+            url: ""
+          });
         }
       } else {
         results.push({ target: "Claude Code", status: "No config", url: "" });
       }
     } catch {
-      results.push({ target: "Claude Code", status: "Error reading config", url: "" });
+      results.push({
+        target: "Claude Code",
+        status: "Error reading config",
+        url: ""
+      });
     }
 
     // Codex
@@ -2169,7 +2272,11 @@ mcp
         results.push({ target: "Codex", status: "No config", url: "" });
       }
     } catch {
-      results.push({ target: "Codex", status: "Error reading config", url: "" });
+      results.push({
+        target: "Codex",
+        status: "Error reading config",
+        url: ""
+      });
     }
 
     // OpenCode
@@ -2189,13 +2296,21 @@ mcp
             url: config.mcp.nodetool.url ?? ""
           });
         } else {
-          results.push({ target: "OpenCode", status: "Not installed", url: "" });
+          results.push({
+            target: "OpenCode",
+            status: "Not installed",
+            url: ""
+          });
         }
       } else {
         results.push({ target: "OpenCode", status: "No config", url: "" });
       }
     } catch {
-      results.push({ target: "OpenCode", status: "Error reading config", url: "" });
+      results.push({
+        target: "OpenCode",
+        status: "Error reading config",
+        url: ""
+      });
     }
 
     console.log("\nNodeTool MCP Integration Status\n");
@@ -2226,9 +2341,8 @@ mcp
       registerReveNodes(registry);
       registerHuggingFaceNodes(registry);
 
-      const { createMcpServer, createMcpStdioTransport } = await import(
-        "@nodetool-ai/websocket"
-      );
+      const { createMcpServer, createMcpStdioTransport } =
+        await import("@nodetool-ai/websocket");
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({
         registry,

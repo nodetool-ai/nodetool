@@ -155,8 +155,7 @@ export async function startHeadlessJob(
 
   // Create the Job row before running so the run is visible in the jobs list
   // (UI, tRPC `jobs.list`) while it's in flight.
-  const job = (await Job.create({
-    ...(options.jobId !== undefined ? { id: options.jobId } : {}),
+  const jobFields: Parameters<typeof Job.create>[0] = {
     workflow_id: workflowId,
     user_id: userId,
     status: "running",
@@ -164,7 +163,11 @@ export async function startHeadlessJob(
     started_at: new Date().toISOString(),
     params,
     graph: graph as unknown as Record<string, unknown>
-  })) as Job;
+  };
+  if (options.jobId !== undefined) {
+    jobFields.id = options.jobId;
+  }
+  const job = (await Job.create(jobFields)) as Job;
 
   // The run is accepted from here on: everything above could still reject and
   // leave the caller free to redeliver, everything below is an executing run.
@@ -206,7 +209,7 @@ export async function startHeadlessJob(
     context
   });
 
-  const session = await ExecutionSession.create({
+  const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
     graph: graph as unknown as RawGraphInput,
     registry,
     // `normalizeGraph` fixes shape, not types: it never fills `propertyTypes`,
@@ -220,9 +223,12 @@ export async function startHeadlessJob(
     workflowId,
     params,
     triggerEvent: options.triggerEvent ?? null,
-    context,
-    ...(supervisor ? { supervisor } : {})
-  });
+    context
+  };
+  if (supervisor) {
+    sessionOptions.supervisor = supervisor;
+  }
+  const session = await ExecutionSession.create(sessionOptions);
 
   const result = await session.result;
 

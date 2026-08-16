@@ -108,7 +108,9 @@ function unavailable(reason: string): BrowserRunReport {
   };
 }
 
-export async function runInBrowser(input: BrowserRunInput): Promise<BrowserRunReport> {
+export async function runInBrowser(
+  input: BrowserRunInput
+): Promise<BrowserRunReport> {
   const webDir = findWebDir();
   if (!webDir) return unavailable("could not locate the web workspace");
 
@@ -127,12 +129,16 @@ export async function runInBrowser(input: BrowserRunInput): Promise<BrowserRunRe
     ...process.env,
     NODETOOL_DEBUG_GRAPH: graphPath,
     NODETOOL_DEBUG_OUT: input.outDir,
-    NODETOOL_DEBUG_PARAMS: JSON.stringify(input.params ?? {}),
-    ...(input.captureStages ? { NODETOOL_DEBUG_STAGES: "1" } : {}),
-    // Read by debug.spec.ts to arm the in-page run's own timeout, so the
-    // Playwright spec doesn't fall back to its internal RUN_TIMEOUT_MS cap.
-    ...(input.timeoutMs ? { NODETOOL_DEBUG_TIMEOUT: String(input.timeoutMs) } : {})
+    NODETOOL_DEBUG_PARAMS: JSON.stringify(input.params ?? {})
   };
+  if (input.captureStages) {
+    env.NODETOOL_DEBUG_STAGES = "1";
+  }
+  // Read by debug.spec.ts to arm the in-page run's own timeout, so the
+  // Playwright spec doesn't fall back to its internal RUN_TIMEOUT_MS cap.
+  if (input.timeoutMs) {
+    env.NODETOOL_DEBUG_TIMEOUT = String(input.timeoutMs);
+  }
 
   // The child-kill timer below is the outer backstop; it must stay comfortably
   // above the in-page timeout the spec applies, or the child gets killed
@@ -198,7 +204,9 @@ export async function buildBrowserReport(
   }
 
   const consoleErrors = existsSync(join(outDir, "console-errors.log"))
-    ? (await readFile(join(outDir, "console-errors.log"), "utf8")).split("\n").filter(Boolean)
+    ? (await readFile(join(outDir, "console-errors.log"), "utf8"))
+        .split("\n")
+        .filter(Boolean)
     : [];
 
   const summary = collectExecutionSummary(record.events ?? []);
@@ -220,7 +228,9 @@ export async function buildBrowserReport(
 
   if (existsSync(join(outDir, "stages.json"))) {
     try {
-      const stages = JSON.parse(await readFile(join(outDir, "stages.json"), "utf8")) as StageEntry[];
+      const stages = JSON.parse(
+        await readFile(join(outDir, "stages.json"), "utf8")
+      ) as StageEntry[];
       report.stages = stages.map((s) => ({
         index: s.index,
         status: s.status,

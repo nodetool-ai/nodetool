@@ -1,3 +1,4 @@
+import type { Mutable } from "./mutable.js";
 /**
  * The application document: a UI layout plus typed bindings to workflow
  * operations, resources, and app state. Nothing here computes — every
@@ -84,18 +85,23 @@ export interface OperationBinding {
 
 /** What a binding runs, normalized — the one place the union is derived. */
 export const operationTarget = (
-  binding: Pick<
-    OperationBinding,
-    "workflowId" | "workflowVersion" | "target"
-  >
-): OperationTarget =>
-  binding.target ?? {
+  binding: Pick<OperationBinding, "workflowId" | "workflowVersion" | "target">
+): OperationTarget => binding.target ?? workflowTarget(binding);
+
+/** The implicit workflow target of a binding that names no explicit one. */
+const workflowTarget = (
+  binding: Pick<OperationBinding, "workflowId" | "workflowVersion">
+): OperationTarget => {
+  type TargetFields = Mutable<Extract<OperationTarget, { kind: "workflow" }>>;
+  const target: TargetFields = {
     kind: "workflow",
-    workflowId: binding.workflowId,
-    ...(binding.workflowVersion === undefined
-      ? {}
-      : { workflowVersion: binding.workflowVersion })
+    workflowId: binding.workflowId
   };
+  if (binding.workflowVersion !== undefined) {
+    target.workflowVersion = binding.workflowVersion;
+  }
+  return target;
+};
 
 /** True when the operation runs a JS script rather than a workflow. */
 export const isScriptOperation = (
@@ -289,7 +295,8 @@ const parseOperation = (
       ? value.workflowId
       : targetWorkflowId(value.target);
   if (!script && workflowId === null) return null;
-  return {
+  type BindingFields = Mutable<OperationBinding>;
+  const binding: BindingFields = {
     id,
     name: typeof name === "string" ? name : id,
     // A document that ships without a workflow — a template, which has no id
@@ -297,14 +304,18 @@ const parseOperation = (
     // operation binds no workflow at all.
     workflowId: script ? "" : workflowId || hostWorkflowId || "",
     workflowVersion:
-      typeof value.workflowVersion === "number" ? value.workflowVersion : undefined,
-    ...(script ? { target: script } : {}),
+      typeof value.workflowVersion === "number"
+        ? value.workflowVersion
+        : undefined,
     inputs: parseMappings(value.inputs, parseInputMapping),
     outputs: parseMappings(value.outputs, parseOutputMapping),
-    policy:
-      policy === "parallel" || policy === "queue" ? policy : "replace",
+    policy: policy === "parallel" || policy === "queue" ? policy : "replace",
     timeoutMs: typeof value.timeoutMs === "number" ? value.timeoutMs : undefined
   };
+  if (script) {
+    binding.target = script;
+  }
+  return binding;
 };
 
 const parseVariable = (value: unknown): VariableDeclaration | null => {
@@ -315,9 +326,10 @@ const parseVariable = (value: unknown): VariableDeclaration | null => {
   return {
     id,
     name: typeof value.name === "string" ? value.name : id,
-    type: isRecord(value.type) && typeof value.type.type === "string"
-      ? { type: value.type.type, optional: value.type.optional === true }
-      : null,
+    type:
+      isRecord(value.type) && typeof value.type.type === "string"
+        ? { type: value.type.type, optional: value.type.optional === true }
+        : null,
     default: value.default,
     scope,
     // Only user-scoped variables may persist, whatever the document claims.
@@ -495,5 +507,7 @@ export const liftLegacyAppDoc = (
 };
 
 /** True when the document has at least one placed component. */
-export const isRenderableUi = (ui: PuckData | null | undefined): ui is PuckData =>
+export const isRenderableUi = (
+  ui: PuckData | null | undefined
+): ui is PuckData =>
   Boolean(ui && Array.isArray(ui.content) && ui.content.length > 0);

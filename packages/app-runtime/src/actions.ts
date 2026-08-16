@@ -1,3 +1,4 @@
+import type { Mutable } from "./mutable.js";
 /**
  * The action vocabulary. Six actions, all referencing bindings by ID.
  *
@@ -101,14 +102,19 @@ export const eventToAction = (
       return variableId ? { kind: "toggleVariable", variableId } : null;
     }
     case "cancel":
-      return {
+      type CancelFields = Mutable<Extract<AppAction, { kind: "cancel" }>>;
+      const cancel: CancelFields = {
         kind: "cancel",
-        operationId: event.operationId ?? ctx.defaultOperationId,
-        ...(event.invocationId ? { invocationId: event.invocationId } : {})
+        operationId: event.operationId ?? ctx.defaultOperationId
       };
+      if (event.invocationId) {
+        cancel.invocationId = event.invocationId;
+      }
+      return cancel;
     case "resourceCommand": {
       const command = event.command ?? "";
-      if (!event.resourceBindingId || !RESOURCE_COMMANDS.has(command)) return null;
+      if (!event.resourceBindingId || !RESOURCE_COMMANDS.has(command))
+        return null;
       return {
         kind: "resourceCommand",
         resourceBindingId: event.resourceBindingId,

@@ -14,9 +14,8 @@ import { getNodeBuiltinSync } from "@nodetool-ai/config";
 // Trace-exporter file/stream APIs require Node — lazy-load so this
 // module loads on non-Node runtimes (where file exporters are unused).
 const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
-const nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
-  "node:fs/promises"
-);
+const nodeFsP =
+  getNodeBuiltinSync<typeof import("node:fs/promises")>("node:fs/promises");
 const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
 
 type WriteStream = ReturnType<typeof import("node:fs").createWriteStream>;
@@ -52,10 +51,7 @@ function dirname(p: string): string {
   // Stryker restore all
   return nodePath.dirname(p);
 }
-import type {
-  ReadableSpan,
-  SpanExporter
-} from "@opentelemetry/sdk-trace-base";
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import { ExportResultCode, type ExportResult } from "@opentelemetry/core";
 
 /**
@@ -102,6 +98,10 @@ export function spanToRecord(span: ReadableSpan): TraceRecord {
   const ctx = span.spanContext();
   const startMs = hrTimeToMs(span.startTime);
   const endMs = hrTimeToMs(span.endTime);
+  const statusCode = { code: STATUS_CODES[span.status.code] ?? "UNSET" };
+  const status = span.status.message
+    ? { ...statusCode, message: span.status.message }
+    : statusCode;
   return {
     trace_id: ctx.traceId,
     span_id: ctx.spanId,
@@ -111,16 +111,14 @@ export function spanToRecord(span: ReadableSpan): TraceRecord {
     start_time_ms: startMs,
     end_time_ms: endMs,
     duration_ms: endMs - startMs,
-    status: {
-      code: STATUS_CODES[span.status.code] ?? "UNSET",
-      ...(span.status.message ? { message: span.status.message } : {})
-    },
+    status,
     attributes: { ...span.attributes },
-    events: span.events.map((e) => ({
-      name: e.name,
-      time_ms: hrTimeToMs(e.time),
-      ...(e.attributes ? { attributes: { ...e.attributes } } : {})
-    })),
+    events: span.events.map((e) => {
+      const event = { name: e.name, time_ms: hrTimeToMs(e.time) };
+      return e.attributes
+        ? { ...event, attributes: { ...e.attributes } }
+        : event;
+    }),
     resource: { ...span.resource.attributes }
   };
 }
@@ -157,7 +155,10 @@ export class JsonlFileSpanExporter implements SpanExporter {
         // Stryker disable next-line ConditionalExpression,StringLiteral
         if (!this.stream) throw new Error("trace stream not initialized");
         for (const span of spans) {
-          await writeLine(this.stream, JSON.stringify(spanToRecord(span)) + "\n");
+          await writeLine(
+            this.stream,
+            JSON.stringify(spanToRecord(span)) + "\n"
+          );
         }
         resultCallback({ code: ExportResultCode.SUCCESS });
       })
@@ -302,7 +303,10 @@ function formatPretty(r: TraceRecord): string {
   }
   const status =
     r.status.code === "ERROR"
-      ? colorize(`[${r.status.code}${r.status.message ? `: ${r.status.message}` : ""}]`, "red")
+      ? colorize(
+          `[${r.status.code}${r.status.message ? `: ${r.status.message}` : ""}]`,
+          "red"
+        )
       : "";
   return `${colorize(r.name, "cyan")} ${colorize(dur, "yellow")} ${tags.join(" ")} ${status}`.trimEnd();
 }

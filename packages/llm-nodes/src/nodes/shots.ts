@@ -140,7 +140,8 @@ export function toShotSpecs(
   opts: ShotSpecOptions = {}
 ): ShotSpec[] {
   const sp = coerceScreenplay(screenplay);
-  const aspectRatio = optionalStr(opts.aspectRatio) ?? sp.aspect_ratio ?? "16:9";
+  const aspectRatio =
+    optionalStr(opts.aspectRatio) ?? sp.aspect_ratio ?? "16:9";
   const defaultDuration =
     optionalNumber(opts.defaultDuration) !== undefined
       ? (opts.defaultDuration as number)
@@ -203,7 +204,8 @@ export class ShotBatchNode extends BaseNode {
     type: "str",
     default: "16:9",
     title: "Aspect Ratio",
-    description: "Aspect ratio applied to every shot spec (e.g. 16:9, 9:16, 1:1)."
+    description:
+      "Aspect ratio applied to every shot spec (e.g. 16:9, 9:16, 1:1)."
   })
   declare aspect_ratio: string;
 
@@ -353,17 +355,19 @@ export class ShotChainNode extends BaseNode {
     // and gemini/veo silently produced an unseeded clip, which is why the
     // mismatch survived. Route the unseeded shot to `text_to_video` — the
     // capability it actually is — and keep continuity on every later shot.
+    const shotSettings = {
+      prompt: spec.prompt,
+      aspect_ratio: str(this.aspect_ratio ?? "").trim() || spec.aspect_ratio,
+      resolution: str(this.resolution ?? "").trim() || "720p",
+      duration_seconds: Number(spec.duration_seconds) || undefined
+    };
     const output = await context.runProviderPrediction({
       provider: providerId,
       capability: seeded ? "image_to_video" : "text_to_video",
       model: modelId,
-      params: {
-        ...(seeded ? { images } : {}),
-        prompt: spec.prompt,
-        aspect_ratio: str(this.aspect_ratio ?? "").trim() || spec.aspect_ratio,
-        resolution: str(this.resolution ?? "").trim() || "720p",
-        duration_seconds: Number(spec.duration_seconds) || undefined
-      }
+      // An unseeded shot sends no `images` key at all, which is what routes
+      // it to `text_to_video` above.
+      params: seeded ? { images, ...shotSettings } : shotSettings
     });
     const bytes = coerceProviderBytes(output);
     return {
