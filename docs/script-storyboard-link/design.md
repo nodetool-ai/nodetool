@@ -1,8 +1,6 @@
 # Script ↔ Storyboard Link — Technical Design
 
-> Status: Phase 1 shipped · Phase 2 shipped except audio-led timing (§2.3) ·
-> Phase 3 has `buildLinkedTimeline` (§2.4), not the assemble switch ·
-> Phase 4 has the drift helpers (§2.5) and the tool summaries (§3.2), no UI.
+> Status: all four phases shipped, with two deviations noted below (§4, §2.4).
 > Companion: [prd.md](prd.md), [tasks.md](tasks.md).
 
 The design links the two documents with keys and derives everything else. No
@@ -166,6 +164,15 @@ buildLinkedTimeline(input: {
 assembly is a third function, so unlinked behavior is provably unchanged
 (regression tests assert identical output on existing fixtures).
 
+**Deviation found in implementation.** The claim above that both back-sync
+paths patch a joint cut "with no changes" held for `stores/script/timelineSync`
+and failed for `stores/storyboard/timelineSync`: it matched on the shot keys
+alone, which the voiceover clips also carry, so re-rendering a shot handed its
+video asset to a line's audio clip. The fix restricts that match to video
+clips. A second gap stands open: a re-voiced line shifts later voiceover clips
+but never the shot clips, so picture and audio drift apart until someone
+re-assembles.
+
 ### 2.5 Drift
 
 Derived helpers next to `needsVoicing` (same "derived, never stored" rule):
@@ -242,6 +249,14 @@ Extend the storyboard/script tool files
   one project card (script + board + timeline); the prompt-first flow runs
   derive right after the director drafts, so the user lands linked. Curated
   models stamp as today.
+  **Deviation found in implementation.** The shipped flow runs the other
+  direction — prompt becomes a board brief, the director drafts, then
+  `extract_script_from_storyboard` — because no script-drafting path is
+  callable from the web client: scripts are authored by hand or through the
+  chat assistant, and the one-shot drafting lives agent-side with no route.
+  Same outcome (one prompt, one pass, a linked pair) with no new backend
+  surface. Script-first needs either a `nodetool.script.*` node the client can
+  run like the Director node, or a route over the agent capability.
 - **Deletion**: deleting a linked script downgrades the board to unlinked
   (link fields cleared, projected text kept — it is ordinary shot text);
   deleting a board clears the script's `storyboard_id`. Both are
