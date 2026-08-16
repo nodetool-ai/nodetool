@@ -243,9 +243,12 @@ export const assembleStoryboardTimelineSpec: CapabilitySpec = {
     "Lay a storyboard's rendered clips end to end into a timeline sequence and " +
     "save it, without building a workflow. Clips keep their link to the shot " +
     "they came from, and the screenplay's narration and music become draft " +
-    "audio clips the timeline can generate on demand. Shots with no rendered " +
-    "clip are skipped and listed. Re-running rebuilds the same sequence in " +
-    "place. Validate the result with validate_timeline before rendering.",
+    "audio clips the timeline can generate on demand. When the board links a " +
+    "script, each shot is instead as long as the takes it covers and every " +
+    "voiced line gets its own voiceover clip. Shots with no rendered clip, " +
+    "and lines with no take, are skipped and listed. Re-running rebuilds the " +
+    "same sequence in place, keeping tracks the board does not own. Validate " +
+    "the result with validate_timeline before rendering.",
   inputSchema: ASSEMBLE_STORYBOARD_TIMELINE_SCHEMA,
   category: "write",
   userMessage: (params) =>

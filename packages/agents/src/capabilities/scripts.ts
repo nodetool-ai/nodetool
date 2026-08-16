@@ -704,7 +704,8 @@ const assembleScriptTimeline: CapabilityExport = {
     const { row, doc } = handle;
 
     const { Script, TimelineSequence } = await import("@nodetool-ai/models");
-    const { buildScriptTimeline } = await import("@nodetool-ai/timeline");
+    const { buildScriptTimeline, foreignTimelineParts } =
+      await import("@nodetool-ai/timeline");
 
     const assembled = buildScriptTimeline({
       scriptId: row.id,
@@ -738,19 +739,12 @@ const assembleScriptTimeline: CapabilityExport = {
     if (reuse) {
       // Re-assembling replaces this script's voiceover track and clips, and
       // leaves everything another surface put in the sequence alone.
-      const previous = reuse.toDocument();
-      const foreignClips = previous.clips.filter((c) => c.scriptId !== row.id);
-      const scriptTrackIds = new Set(
-        previous.clips
-          .filter((c) => c.scriptId === row.id)
-          .map((c) => c.trackId)
+      const foreign = foreignTimelineParts(
+        reuse.toDocument(),
+        (clip) => clip.scriptId === row.id
       );
-      const foreignTrackIds = new Set(foreignClips.map((c) => c.trackId));
-      const foreignTracks = previous.tracks.filter(
-        (t) => foreignTrackIds.has(t.id) || !scriptTrackIds.has(t.id)
-      );
-      tracks = [...assembled.tracks, ...foreignTracks];
-      clips = [...assembled.clips, ...foreignClips];
+      tracks = [...assembled.tracks, ...foreign.tracks];
+      clips = [...assembled.clips, ...foreign.clips];
       durationMs = clips.reduce(
         (end, c) => Math.max(end, c.startMs + c.durationMs),
         0
