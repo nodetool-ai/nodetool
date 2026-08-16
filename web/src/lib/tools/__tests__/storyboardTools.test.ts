@@ -49,7 +49,8 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   reviseShot: jest.fn(),
   selectShot: jest.fn(),
   assembleTimeline: jest.fn(),
-  extractScript: jest.fn()
+  extractScript: jest.fn(),
+  reprojectShots: jest.fn()
 });
 
 // The storyboard tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -79,6 +80,7 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_assemble_timeline",
         "ui_storyboard_extract_script",
         "ui_storyboard_relink_script",
+        "ui_storyboard_reproject_shots",
         "ui_storyboard_set_duration_source",
         "ui_storyboard_select_shot"
       ])
@@ -549,6 +551,68 @@ describe("ui_storyboard_* tools", () => {
         )
       ).rejects.toThrow(/links no script/i);
       expect(handler.extractScript).not.toHaveBeenCalled();
+    });
+
+    it("re-projects every drifted shot when no target is named", async () => {
+      const handler = createMockHandler();
+      handler.reprojectShots.mockResolvedValue({
+        scriptId: "script-9",
+        reprojectedShotIds: ["shot-1"],
+        driftedShotIds: ["shot-1"]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      const result = (await FrontendToolRegistry.call(
+        "ui_storyboard_reproject_shots",
+        { storyboard_id: BOARD_ID },
+        "tc-reproject",
+        ctx
+      )) as { ok: boolean; reprojectedShotIds: string[] };
+
+      expect(handler.reprojectShots).toHaveBeenCalledWith(undefined);
+      expect(result.reprojectedShotIds).toEqual(["shot-1"]);
+    });
+
+    it("re-projects only the named shots", async () => {
+      const handler = createMockHandler();
+      handler.reprojectShots.mockResolvedValue({
+        scriptId: "script-9",
+        reprojectedShotIds: ["shot-1"],
+        driftedShotIds: ["shot-1", "shot-2"]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+
+      await FrontendToolRegistry.call(
+        "ui_storyboard_reproject_shots",
+        { storyboard_id: BOARD_ID, targets: ["shot-1"] },
+        "tc-reproject-2",
+        ctx
+      );
+
+      expect(handler.reprojectShots).toHaveBeenCalledWith(["shot-1"]);
+    });
+
+    it("fails the re-projection when the board save does not persist", async () => {
+      const handler = createMockHandler();
+      handler.reprojectShots.mockResolvedValue({
+        scriptId: "script-9",
+        reprojectedShotIds: ["shot-1"],
+        driftedShotIds: ["shot-1"]
+      });
+      setStoryboardAgentHandler(BOARD_ID, handler);
+      registerStoryboardSaver(BOARD_ID, async () => ({
+        ok: false,
+        error: "409 revision conflict"
+      }));
+
+      await expect(
+        FrontendToolRegistry.call(
+          "ui_storyboard_reproject_shots",
+          { storyboard_id: BOARD_ID },
+          "tc-reproject-3",
+          ctx
+        )
+      ).rejects.toThrow("409 revision conflict");
     });
   });
 });

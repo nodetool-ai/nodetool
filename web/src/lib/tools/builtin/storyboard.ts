@@ -342,6 +342,32 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_storyboard_reproject_shots",
+  description:
+    "Re-read the linked script's words onto the specified storyboard: each shot's dialogue, narration, and snapshot come from the script lines it covers, so a line edited in the script reaches the board. Every drifted shot unless `targets` names shots. The opposite direction from ui_storyboard_relink_script, which re-reads the script from the board. Rendered stills and clips are untouched — regenerate them explicitly. Fails when the board links no script.",
+  parameters: z.object({
+    storyboard_id: storyboardIdParam,
+    targets: z
+      .array(targetParam)
+      .optional()
+      .describe(
+        "Shots to re-project. Omit to re-project every shot whose linked lines have drifted from its snapshot."
+      )
+  }),
+  async execute({ storyboard_id, targets }) {
+    const result =
+      await getStoryboardAgentHandler(storyboard_id).reprojectShots(targets);
+    const persisted = await persistBoard(storyboard_id, "The re-projection");
+    return {
+      ok: true,
+      ...result,
+      ...persisted,
+      url: docUrl("storyboard", storyboard_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_storyboard_set_duration_source",
   description:
     'Choose where the named shots get their length. "audio" times each shot from the takes of the script lines it covers, so the clip is long enough to hold its voiceover (a shot with an unvoiced line keeps its own duration until the line is voiced). "manual" pins the shot to its own durationSeconds and audio never touches it. Only meaningful on a board linked to a script.',

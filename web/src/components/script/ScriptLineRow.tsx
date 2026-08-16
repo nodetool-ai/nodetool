@@ -37,10 +37,11 @@ import {
   type ScriptSpeaker
 } from "../../stores/script/ScriptStore";
 import { voiceLine } from "../../stores/script/scriptVoicing";
-import { useAssetStore } from "../../stores/AssetStore";
-import { getAssetUrl } from "../../utils/assetHelpers";
+import { playTake } from "../../stores/script/playTake";
 import { getErrorMessage } from "../../utils/errorHandling";
 import ScriptTakeGallery from "./ScriptTakeGallery";
+import ScriptShotChip from "./ScriptShotChip";
+import type { ScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 
 /**
  * A keyboard intent bubbled up from a line's text field. The pane owns the
@@ -71,6 +72,13 @@ interface ScriptLineRowProps {
    * above the text and the action bar always visible.
    */
   mobile?: boolean;
+  /**
+   * The storyboard shot covering this line, when the script links a board.
+   * Its keyframe rides in the gutter as a click-through to the board.
+   */
+  shotLink?: ScriptLineShotLink | null;
+  /** True when the linked board carries no shot for this line (design section 4). */
+  orphaned?: boolean;
   onKeyNav?: (lineId: string, nav: LineKeyNav) => void;
   onDragStart?: (e: DragEvent<HTMLElement>) => void;
   onDragEnd?: (e: DragEvent<HTMLElement>) => void;
@@ -118,6 +126,8 @@ const ScriptLineRow = ({
   readOnly,
   isDragging = false,
   mobile = false,
+  shotLink = null,
+  orphaned = false,
   onKeyNav,
   onDragStart,
   onDragEnd,
@@ -201,15 +211,9 @@ const ScriptLineRow = ({
   }, [scriptId, line.id]);
 
   const playCurrent = useCallback(async () => {
-    if (typeof Audio === "undefined") return;
     const take = line.takes.find((t) => t.id === line.currentTakeId);
-    if (!take) return;
-    try {
-      const asset = await useAssetStore.getState().get(take.assetId);
-      const url = getAssetUrl(asset);
-      if (url) void new Audio(url).play().catch(() => undefined);
-    } catch {
-      // Asset unavailable.
+    if (take) {
+      await playTake(take.assetId);
     }
   }, [line.takes, line.currentTakeId]);
 
@@ -280,6 +284,42 @@ const ScriptLineRow = ({
         </Box>
       </Box>
     </Tooltip>
+  );
+
+  // Gutter link block: the covering shot's still (click through to the board),
+  // or the badge saying the linked board covers this line with no shot at all.
+  const shotGutter =
+    shotLink || orphaned ? (
+      <FlexRow
+        align="center"
+        justify={mobile ? "flex-start" : "flex-end"}
+        gap={SPACING.xs}
+        sx={{ flexShrink: 0, width: mobile ? "auto" : GUTTER }}
+      >
+        {shotLink && (
+          <ScriptShotChip shot={shotLink.shot} onOpen={shotLink.open} />
+        )}
+        {orphaned && (
+          <Tooltip title="No storyboard shot covers this line">
+            <Text size="smaller" color="warning">
+              No shot
+            </Text>
+          </Tooltip>
+        )}
+      </FlexRow>
+    ) : null;
+
+  const gutter = shotGutter ? (
+    <FlexColumn
+      gap={SPACING.micro}
+      align={mobile ? "flex-start" : "flex-end"}
+      sx={{ flexShrink: 0, width: mobile ? "auto" : GUTTER }}
+    >
+      {speakerButton}
+      {shotGutter}
+    </FlexColumn>
+  ) : (
+    speakerButton
   );
 
   const textColumn = (
@@ -450,7 +490,7 @@ const ScriptLineRow = ({
         }}
       >
         <FlexRow align="center" gap={SPACING.sm} fullWidth>
-          {speakerButton}
+          {gutter}
           <Box sx={{ flex: 1 }} />
           {statusIndicator}
           {actions}
@@ -521,7 +561,7 @@ const ScriptLineRow = ({
         <Box sx={{ flexShrink: 0, width: DRAG_RAIL }} />
       )}
 
-      {speakerButton}
+      {gutter}
 
       {textColumn}
 

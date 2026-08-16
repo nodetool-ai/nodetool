@@ -66,6 +66,15 @@ export interface StoryboardScriptLink {
   created: boolean;
 }
 
+/** What a re-projection rewrote on the board. */
+export interface StoryboardReprojection {
+  scriptId: string;
+  /** Shots whose dialogue/narration and snapshot were rewritten. */
+  reprojectedShotIds: string[];
+  /** Shots that carried drift before the pass ran. */
+  driftedShotIds: string[];
+}
+
 /** Fields the agent can supply when adding a shot. */
 export interface StoryboardAddShotInput {
   action: string;
@@ -121,6 +130,12 @@ export interface StoryboardAgentHandler {
   extractScript: (options?: {
     relink?: boolean;
   }) => Promise<StoryboardScriptLink>;
+  /**
+   * Re-read the linked script's words onto the board: each named shot's
+   * dialogue, narration and snapshot come from the lines it covers. Without
+   * `targets`, every drifted shot. Throws on a board that links no script.
+   */
+  reprojectShots: (targets?: string[]) => Promise<StoryboardReprojection>;
   /**
    * Assemble the board's rendered shots into a persisted timeline sequence
    * (plus draft narration/music clips) and open its tab. Throws when no shot
