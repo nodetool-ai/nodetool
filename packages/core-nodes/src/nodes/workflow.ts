@@ -20,9 +20,9 @@ export class WorkflowNode extends BaseNode {
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
   static readonly inlineFields = ["workflow_id"];
   static readonly inputFields = [];
 

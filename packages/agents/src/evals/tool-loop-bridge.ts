@@ -130,7 +130,7 @@ function syncStateFromGraph(state: ToolLoopState, graph: Graph): void {
 function searchNodes(
   state: ToolLoopState,
   args: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const query = String(args.query ?? "").toLowerCase();
   const limit = typeof args.limit === "number" ? args.limit : 10;
   const results = Object.values(state.nodeMetadata)

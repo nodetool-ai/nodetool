@@ -70,7 +70,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     if (this._keyResolved) return this._apiKey;
     this._keyResolved = true;
 
-    const envKeyMap: Record<EmbeddingProvider, string> = {
+    const envKeyMap = {
       openai: "OPENAI_API_KEY",
       ollama: "OLLAMA_API_URL",
       gemini: "GEMINI_API_KEY",
@@ -78,7 +78,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       cohere: "COHERE_API_KEY",
       voyage: "VOYAGE_API_KEY",
       jina: "JINA_API_KEY"
-    };
+    } satisfies Record<EmbeddingProvider, string>;
 
     const envKey = envKeyMap[this.provider];
     // Per-user secret first; fall back to env. Do NOT fall back to a

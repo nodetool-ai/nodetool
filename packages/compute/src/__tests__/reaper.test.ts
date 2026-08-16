@@ -58,11 +58,7 @@ function makeInstance(
 function makeDeps(
   instances: WorkerInstance[],
   profiles: Record<string, WorkerProfile>
-): {
-  deps: ReaperDeps;
-  stop: ReturnType<typeof vi.fn>;
-  terminate: ReturnType<typeof vi.fn>;
-} {
+) {
   const stop = vi.fn(async (_id: string) => {});
   const terminate = vi.fn(async (_id: string) => {});
   const deps: ReaperDeps = {

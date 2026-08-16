@@ -223,7 +223,7 @@ describe('documentStore', () => {
     await store.getState().load();
     store.getState().edit(() => ({ shots: ['a', 'b'] }));
 
-    const gate: { release?: () => void } = {};
+    const gate = {} satisfies { release?: () => void };
     mockUpdate.mockImplementationOnce(async () => {
       await new Promise<void>((resolve) => {
         gate.release = resolve;

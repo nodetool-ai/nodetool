@@ -313,7 +313,7 @@ export class ClaudeCodeLogin {
 export function parsePastedCode(
   input: string,
   expectedState: string
-): { code: string; state: string } {
+) {
   const trimmed = input.trim();
   if (!trimmed) {
     throw new OAuthError(

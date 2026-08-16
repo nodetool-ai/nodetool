@@ -10,7 +10,7 @@ export const KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY =
   "keychainExplanationAcknowledged";
 
 /** Platform-specific wording for the keychain prompt explanation. */
-function getKeychainExplanation(): { title: string; detail: string } {
+function getKeychainExplanation() {
   if (process.platform === "darwin") {
     return {
       title: "Keychain Access",

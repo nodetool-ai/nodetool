@@ -250,7 +250,7 @@ export class OAuthCredential extends DBModel {
   }
 
   /** Return a safe dictionary representation without encrypted tokens. */
-  toSafeObject(): Record<string, unknown> {
+  toSafeObject() {
     return {
       id: this.id,
       user_id: this.user_id,

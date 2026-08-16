@@ -426,7 +426,7 @@ export class IntervalTriggerNode extends BaseNode {
   private _createEvent(
     tick: number,
     startTime: number
-  ): Record<string, unknown> {
+  ) {
     return {
       tick,
       elapsed_seconds: (Date.now() - startTime) / 1000,

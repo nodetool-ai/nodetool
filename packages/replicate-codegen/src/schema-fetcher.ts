@@ -55,7 +55,7 @@ export class SchemaFetcher {
     return join(this.cacheDir, `${this.cacheKey(modelId)}.json`);
   }
 
-  private authHeaders(): Record<string, string> {
+  private authHeaders() {
     if (!this.apiToken) {
       throw new Error(
         "REPLICATE_API_TOKEN is not set. Pass it to the constructor or set the environment variable."

@@ -79,7 +79,7 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
  */
 export function parseInputStreamsOption(
   raw: string
-): Record<string, unknown[]> {
+) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

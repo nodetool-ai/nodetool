@@ -69,7 +69,7 @@ interface PendingCall {
 function codexDefaultHeaders(
   originator: string,
   accountId: string | null | undefined
-): Record<string, string> {
+) {
   const headers: Record<string, string> = { originator };
   if (accountId) {
     headers["chatgpt-account-id"] = accountId;
@@ -116,7 +116,7 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /** The OAuth bearer is short-lived — never leak it into a container env. */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 
@@ -288,7 +288,7 @@ export class CodexProvider extends OpenAIProvider {
 
   // --- Responses API transport -------------------------------------------
 
-  private buildHeaders(accept = "text/event-stream"): Record<string, string> {
+  private buildHeaders(accept = "text/event-stream") {
     const version = codexClientVersion();
     const headers: Record<string, string> = {
       authorization: `Bearer ${this.accessToken}`,
@@ -312,7 +312,7 @@ export class CodexProvider extends OpenAIProvider {
     model: string;
     tools?: ProviderTool[];
     toolChoice?: string | "any";
-  }): Record<string, unknown> {
+  }) {
     const instructions = args.messages
       .filter((m) => m.role === "system")
       .map((m) => textOf(m.content))

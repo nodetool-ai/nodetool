@@ -247,13 +247,13 @@ function jsScriptsBackend(): DocumentBackend {
   };
 }
 
-const backends: Record<DocumentKind, DocumentBackend> = {
+const backends = {
   timeline: resourcesBackend('timeline'),
   storyboard: resourcesBackend('storyboard'),
   sketch: resourcesBackend('sketch'),
   script: scriptsBackend(),
   jsscript: jsScriptsBackend(),
-};
+} satisfies Record<DocumentKind, DocumentBackend>;
 
 export function documentBackend<Doc>(kind: DocumentKind): DocumentBackend<Doc> {
   return backends[kind] as DocumentBackend<Doc>;

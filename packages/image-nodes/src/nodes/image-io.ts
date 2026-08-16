@@ -442,7 +442,7 @@ export async function resolveImageRefForTransport(
 export function toBase64Ref(
   png: Uint8Array,
   base?: unknown
-): Record<string, unknown> {
+) {
   const seed =
     base && typeof base === "object" ? { ...(base as Record<string, unknown>) } : {};
   delete seed.mimeType;

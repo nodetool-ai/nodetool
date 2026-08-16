@@ -144,10 +144,7 @@ function count(field: string, value: unknown): number | undefined {
   return value;
 }
 
-function resolveModel(body: AppBuildRequest): {
-  provider: string;
-  model: string;
-} {
+function resolveModel(body: AppBuildRequest) {
   const provider = body.provider ?? process.env["NODETOOL_APP_BUILD_PROVIDER"];
   const model = body.model ?? process.env["NODETOOL_APP_BUILD_MODEL"];
   if (!provider || !model) {
@@ -171,7 +168,7 @@ function resolveJudge(init: {
   builderModel: string;
   explicit?: string;
   providers: Record<string, BaseProvider>;
-}): { provider: BaseProvider; model: string } {
+}) {
   const spec: Parameters<typeof resolveJudgeModelSpec>[0] = {
     builderProviderId: init.builder.provider,
     builderModel: init.builderModel,
@@ -220,7 +217,7 @@ function resolveSpec(body: AppBuildRequest): BuildSpec | null {
 function runningPayload(
   session: DebugSession,
   buildId: string
-): Record<string, unknown> {
+) {
   return {
     status: "running",
     session_id: session.id,
@@ -352,7 +349,7 @@ function buildPayload(
   report: BuildReport,
   buildId: string,
   logLines: string[]
-): Record<string, unknown> {
+) {
   return {
     build_id: buildId,
     status: report.verdict.ok ? "completed" : "failed",

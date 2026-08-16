@@ -38,7 +38,7 @@ export interface SkillDocument {
 }
 
 /** Parse minimal YAML frontmatter (key: value pairs). */
-export function parseFrontmatter(frontmatter: string): Record<string, string> {
+export function parseFrontmatter(frontmatter: string) {
   const parsed: Record<string, string> = {};
   for (const rawLine of frontmatter.split("\n")) {
     const line = rawLine.trim();
@@ -105,7 +105,7 @@ export function parseSkillDocument(source: string): SkillDocument | null {
  * name, or by whatever the author wrote all land on the same entry. Text
  * before the first heading belongs to no section and is only part of the body.
  */
-export function skillSections(instructions: string): Record<string, string> {
+export function skillSections(instructions: string) {
   const sections: Record<string, string> = {};
   let heading: string | undefined;
   let lines: string[] = [];

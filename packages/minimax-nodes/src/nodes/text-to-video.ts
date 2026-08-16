@@ -72,7 +72,7 @@ export class MinimaxTextToVideoNode extends BaseNode {
     if (!prompt) throw new Error("Prompt is required");
 
     const model = String(this.model ?? "MiniMax-Hailuo-02");
-    const body: Record<string, unknown> = {
+    const body = {
       model,
       prompt,
       ...videoRenderSettings(
@@ -80,7 +80,7 @@ export class MinimaxTextToVideoNode extends BaseNode {
         Number(this.duration ?? 6),
         String(this.resolution ?? "768P")
       )
-    };
+    } satisfies Record<string, unknown>;
 
     const bytes = await generateVideo(apiKey, body);
     return { output: videoRefFromBytes(bytes) };

@@ -254,7 +254,7 @@ export interface FalImageResult {
   content_type?: string;
 }
 
-export function falImageToRef(img: FalImageResult): Record<string, unknown> {
+export function falImageToRef(img: FalImageResult) {
   return {
     type: "image",
     uri: img.url,

@@ -233,7 +233,7 @@ export function deleteVault(id: string): Vault[] {
  * backend's environment. Empty for the default vault (the backend then uses its
  * own default paths, preserving the original behaviour).
  */
-export function getActiveVaultEnv(): Record<string, string> {
+export function getActiveVaultEnv() {
   const vault = getActiveVault();
   const env: Record<string, string> = {};
   if (vault.dbPath) {

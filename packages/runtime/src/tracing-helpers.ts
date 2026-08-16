@@ -164,11 +164,7 @@ export function withModalityCapture<T>(
  * After the generator finishes, `getUsage()` returns whatever the deepest
  * `setLastUsage()` call wrote.
  */
-export function createUsageSlot(): {
-  runInSlot: <T>(fn: () => Promise<T>) => Promise<T>;
-  getUsage: () => LlmUsage | null;
-  getRequest: () => RecordedRequestPayload;
-} {
+export function createUsageSlot() {
   const slot: CallSlot = { usage: null, request: null };
   return {
     runInSlot: <T>(fn: () => Promise<T>) => usageStore.run(slot, fn),

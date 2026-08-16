@@ -114,7 +114,7 @@ export function getApiKey(secrets: Record<string, string>): string {
 function authHeaders(
   apiKey: string,
   extra: Record<string, string> = {}
-): Record<string, string> {
+) {
   return { "X-API-Key": apiKey, ...extra };
 }
 
@@ -494,20 +494,20 @@ function num(value: unknown): number | undefined {
 
 function buildUpscaleFilter(
   fields: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const filter: Record<string, unknown> = { model: String(fields.model) };
   if (fields.video_type) filter.videoType = String(fields.video_type);
   if (fields.auto) filter.auto = String(fields.auto);
   // Manual-mode tuning. The API ignores out-of-range or unsupported values
   // for a given model — the swagger says these are the documented controls.
-  const numericMap: Record<string, string> = {
+  const numericMap = {
     compression: "compression",
     details: "details",
     noise: "noise",
     halo: "halo",
     blur: "blur",
     recover_original_detail: "recoverOriginalDetailValue"
-  };
+  } satisfies Record<string, string>;
   for (const [src, dst] of Object.entries(numericMap)) {
     const v = num(fields[src]);
     if (v !== undefined && v !== 0) filter[dst] = v;
@@ -517,7 +517,7 @@ function buildUpscaleFilter(
 
 function buildInterpolationFilter(
   fields: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const filter: Record<string, unknown> = { model: String(fields.model) };
   const slowmo = num(fields.slowmo);
   if (slowmo !== undefined && slowmo !== 1) filter.slowmo = slowmo;
@@ -550,7 +550,7 @@ function buildVideoFilters(
 function buildVideoOutput(
   fields: Record<string, unknown>,
   sourceMeta: TopazVideoMetadata
-): Record<string, unknown> {
+) {
   const audioMode = String(fields.audio_mode ?? "copy").toLowerCase();
   const audio = AUDIO_MODE_MAP[audioMode] ?? AUDIO_MODE_MAP.copy;
 

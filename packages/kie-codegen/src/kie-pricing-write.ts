@@ -47,7 +47,7 @@ export function buildKiePricingBundles(
   manifest: readonly KieManifestPricingEntry[],
   catalog: Record<string, KieModelPricingSummary>,
   writtenAt: string,
-): { byNodeType: KieNodeTypePricingBundle; catalog: KieUnitPricingCatalog } {
+) {
   const byNodeType: Record<string, KieUnitPricingEntry> = {};
 
   for (const entry of manifest) {

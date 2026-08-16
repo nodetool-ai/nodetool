@@ -282,19 +282,19 @@ function urlFromAny(value: unknown): string | null {
   return extractUrlFromValue(value);
 }
 
-export function outputToImageRef(output: unknown): Record<string, unknown> {
+export function outputToImageRef(output: unknown) {
   const url = extractUrl(output);
   if (!url) return { type: "image" };
   return { type: "image", uri: url };
 }
 
-export function outputToVideoRef(output: unknown): Record<string, unknown> {
+export function outputToVideoRef(output: unknown) {
   const url = extractUrl(output);
   if (!url) return { type: "video" };
   return { type: "video", uri: url };
 }
 
-export function outputToAudioRef(output: unknown): Record<string, unknown> {
+export function outputToAudioRef(output: unknown) {
   const url = extractUrl(output);
   if (!url) return { type: "audio" };
   return { type: "audio", uri: url };

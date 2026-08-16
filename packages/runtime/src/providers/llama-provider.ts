@@ -51,7 +51,7 @@ export class LlamaProvider extends OpenAICompatProvider {
     this._llamaFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 

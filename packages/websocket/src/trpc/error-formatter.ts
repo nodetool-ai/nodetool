@@ -54,7 +54,7 @@ interface ThrowApiErrorCause extends Error {
   apiCode: ApiErrorCode;
 }
 
-const TRPC_CODE_BY_API_CODE: Record<ApiErrorCode, TRPCError["code"]> = {
+const TRPC_CODE_BY_API_CODE = {
   [ApiErrorCode.NOT_FOUND]: "NOT_FOUND",
   [ApiErrorCode.WORKFLOW_NOT_FOUND]: "NOT_FOUND",
   [ApiErrorCode.ASSET_NOT_FOUND]: "NOT_FOUND",
@@ -73,7 +73,7 @@ const TRPC_CODE_BY_API_CODE: Record<ApiErrorCode, TRPCError["code"]> = {
   // A budget refusal is the caller asking for more than the app is allowed to
   // spend, not a server fault.
   [ApiErrorCode.BUDGET_EXCEEDED]: "FORBIDDEN"
-};
+} satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 export function throwApiError(
   apiCode: ApiErrorCode,

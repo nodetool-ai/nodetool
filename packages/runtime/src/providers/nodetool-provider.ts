@@ -74,10 +74,7 @@ export class NodetoolProvider extends BaseProvider {
   private delegateFor(
     modelId: string,
     task?: string
-  ): {
-    provider: BaseProvider;
-    model: string;
-  } {
+  ) {
     const def = nodetoolModelById(modelId);
     if (!def) {
       throw new Error(`Unknown NodeTool model "${modelId}".`);

@@ -46,7 +46,7 @@ interface TensorMeta {
  * Read the JSON header from a .safetensors file.
  * Format: 8-byte little-endian uint64 header length, then UTF-8 JSON blob.
  */
-function readSafetensorsHeader(filePath: string): Record<string, TensorMeta> {
+function readSafetensorsHeader(filePath: string) {
   const fd = fs.openSync(filePath, "r");
   try {
     const lenBuf = Buffer.alloc(8);
@@ -268,7 +268,7 @@ function inferComponent(index: Index): string {
 function commonDetails(
   index: Index,
   sample: number = 10
-): Record<string, unknown> {
+) {
   const keys = Array.from(index.keyToFile.keys()).sort();
   return {
     num_files: index.files.length,

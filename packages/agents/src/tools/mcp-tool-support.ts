@@ -53,7 +53,7 @@ export async function resolveRunEnvironment(
  * a unit test) cannot resolve a node type, so a run would fail late and
  * cryptically instead of here.
  */
-export function noRegistryError(what: string): Record<string, unknown> {
+export function noRegistryError(what: string) {
   return {
     error:
       `Cannot ${what}: no node registry is available in this process. Call ` +
@@ -70,7 +70,7 @@ export function outcomeResult(outcome: RunWorkflowOutcome): unknown {
 }
 
 /** A stored workflow as the tools report it — the same fields the API returns. */
-export function workflowRecord(workflow: Workflow): Record<string, unknown> {
+export function workflowRecord(workflow: Workflow) {
   return {
     id: workflow.id,
     access: workflow.access,
@@ -94,7 +94,7 @@ export function workflowRecord(workflow: Workflow): Record<string, unknown> {
 }
 
 /** A job row as the tools report it — the same fields `/api/jobs` returns. */
-export function jobRecord(job: Job): Record<string, unknown> {
+export function jobRecord(job: Job) {
   return {
     id: job.id,
     user_id: job.user_id,
@@ -218,7 +218,7 @@ function withAutoLayout(nodes: unknown, edges: unknown): unknown {
  * the only tool that persists a graph, so it maps `properties` → `data` and
  * always auto-lays-out the result.
  */
-export function normalizeWorkflowGraph(graph: unknown): unknown {
+export function normalizeWorkflowGraph(graph: unknown) {
   if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
   const record = graph as Record<string, unknown>;
   const rawNodes = record["nodes"];
@@ -283,7 +283,7 @@ type LightWorkflowSummary = {
 };
 
 /** Project a workflow record to a light summary — never the full graph. */
-function lightWorkflow(w: unknown): unknown {
+function lightWorkflow(w: unknown) {
   if (!w || typeof w !== "object") return w;
   const r = w as Record<string, unknown>;
   const summary: LightWorkflowSummary = {
@@ -300,7 +300,7 @@ function lightWorkflow(w: unknown): unknown {
 }
 
 /** Strip embedded graphs from a workflow list, keeping pagination intact. */
-export function lightWorkflowList(resp: unknown): unknown {
+export function lightWorkflowList(resp: unknown) {
   if (Array.isArray(resp)) return resp.map(lightWorkflow);
   if (resp && typeof resp === "object") {
     const r = resp as Record<string, unknown>;
@@ -389,7 +389,7 @@ export async function modelSelectionError(
  * Escalated run payloads name the follow-up tool, so the model driving the
  * loop knows how to answer without reading endpoint docs.
  */
-export function annotateEscalatedRun(run: unknown): unknown {
+export function annotateEscalatedRun(run: unknown) {
   if (!run || typeof run !== "object") return run;
   const record = run as Record<string, unknown>;
   if (record["status"] !== "escalated") return run;
@@ -403,7 +403,7 @@ export function annotateEscalatedRun(run: unknown): unknown {
 }
 
 /** Distill a workflow API record down to a graph overview for a debug report. */
-export function summarizeWorkflowGraph(workflow: unknown): unknown {
+export function summarizeWorkflowGraph(workflow: unknown) {
   if (!workflow || typeof workflow !== "object") return workflow;
   const wf = workflow as Record<string, unknown>;
   const graph = (wf.graph ?? wf) as Record<string, unknown>;

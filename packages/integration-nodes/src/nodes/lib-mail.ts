@@ -65,7 +65,7 @@ export class GmailSearchLibNode extends BaseNode {
   ];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     email: { kind: "iteration", source: "__execution__", group: "items" },
     message_id: { kind: "iteration", source: "__execution__", group: "items" },
     subject: { kind: "iteration", source: "__execution__", group: "items" },
@@ -74,7 +74,7 @@ export class GmailSearchLibNode extends BaseNode {
     body: { kind: "iteration", source: "__execution__", group: "items" },
     emails: { kind: "single", source: "__execution__" },
     message_ids: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

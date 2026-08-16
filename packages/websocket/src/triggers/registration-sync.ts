@@ -46,7 +46,7 @@ export interface SyncRegistrationsOptions {
  */
 function extractNodeProps(
   node: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const properties = node.properties;
   if (properties && typeof properties === "object") {
     return { ...(properties as Record<string, unknown>) };
@@ -79,7 +79,7 @@ function generateWebhookSecret(): string {
 
 function stripWebhookBookkeeping(
   config: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const rest = { ...config };
   for (const key of WEBHOOK_BOOKKEEPING_KEYS) {
     delete rest[key];

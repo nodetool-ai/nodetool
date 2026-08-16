@@ -520,10 +520,7 @@ function inputSchema(schema: JsonRecord): JsonRecord | null {
  * the requiredness of the first branch that declares it, so the node's primary
  * input mode — the first documented branch — stays a complete set of inputs.
  */
-function flattenProperties(schema: JsonRecord): {
-  properties: JsonRecord;
-  required: Set<string>;
-} {
+function flattenProperties(schema: JsonRecord) {
   const properties: JsonRecord = { ...(asRecord(schema.properties) ?? {}) };
   const required = new Set(asStringArray(schema.required) ?? []);
   for (const key of ["oneOf", "anyOf"] as const) {

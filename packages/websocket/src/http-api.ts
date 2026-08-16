@@ -621,7 +621,7 @@ async function parseJsonBody<T>(request: Request): Promise<T | null> {
   }
 }
 
-export function toWorkflowResponse(workflow: Workflow): JsonObject {
+export function toWorkflowResponse(workflow: Workflow) {
   return {
     id: workflow.id,
     access: workflow.access,
@@ -1748,7 +1748,7 @@ export async function handleWorkflowImportBundle(
 
 // ── Workflow versions ──────────────────────────────────────────────────
 
-function toVersionResponse(v: WorkflowVersion): JsonObject {
+function toVersionResponse(v: WorkflowVersion) {
   return {
     id: v.id,
     workflow_id: v.workflow_id,
@@ -2219,7 +2219,7 @@ export async function handleWorkflowById(
 // ── Job types & helpers ───────────────────────────────────────────
 
 /** Full job response, shared by the REST routes that serve job metadata. */
-export function toJobResponse(job: Job): JsonObject {
+export function toJobResponse(job: Job) {
   return {
     id: job.id,
     user_id: job.user_id,

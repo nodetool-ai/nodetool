@@ -179,7 +179,7 @@ export class Secret extends DBModel {
   }
 
   /** Return a safe dictionary representation without the encrypted value. */
-  toSafeObject(): Record<string, unknown> {
+  toSafeObject() {
     return {
       id: this.id,
       user_id: this.user_id,

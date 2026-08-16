@@ -56,7 +56,7 @@ function fromEnv(
  */
 export function parseIniProfiles(
   text: string
-): Record<string, Record<string, string>> {
+) {
   const profiles: Record<string, Record<string, string>> = {};
   let current: Record<string, string> | null = null;
   for (const rawLine of text.split(/\r?\n/)) {

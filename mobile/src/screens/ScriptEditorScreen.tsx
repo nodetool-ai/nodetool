@@ -84,11 +84,11 @@ type Props = {
   route: RouteProp<RootStackParamList, 'ScriptEditor'>;
 };
 
-const STATUS_LABELS: Record<ScriptLineStatus, string> = {
+const STATUS_LABELS = {
   draft: 'Draft',
   voiced: 'Voiced',
   stale: 'Stale',
-};
+} satisfies Record<ScriptLineStatus, string>;
 
 /** 18pt icon + 10pt padding = 38pt; the slop lifts it to the 46pt touch target. */
 const ICON_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 };

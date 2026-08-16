@@ -777,7 +777,7 @@ export async function runInterpreter(
       bridges[SANDBOX_STREAM_OPEN_BINDING] =
         sandbox[SANDBOX_STREAM_OPEN_BINDING];
       // Object bridges whose members are all async: wrap each member.
-      const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
+      const wrapAllMembers = (bridge: unknown) => {
         const out: Record<string, unknown> = {};
         const members = bridge as Record<
           string,

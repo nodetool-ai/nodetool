@@ -148,7 +148,7 @@ export function redactValue(
 export function redactRecord(
   record: Record<string, unknown>,
   secrets: ReadonlySet<string>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
     if (key.startsWith("_")) continue; // actor-internal, e.g. _control_context

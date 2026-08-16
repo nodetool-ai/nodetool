@@ -14,7 +14,7 @@ function getWebhookBaseUrl(): string | undefined {
   return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
 }
 
-function headers(apiKey: string): Record<string, string> {
+function headers(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"

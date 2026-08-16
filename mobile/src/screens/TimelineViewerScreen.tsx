@@ -89,12 +89,12 @@ const TICK_STEPS_MS = [
   600_000,
 ];
 
-const TRACK_ICONS: Record<TimelineTrackType, keyof typeof Ionicons.glyphMap> = {
+const TRACK_ICONS = {
   video: 'videocam-outline',
   audio: 'musical-notes-outline',
   overlay: 'layers-outline',
   subtitle: 'text-outline',
-};
+} satisfies Record<TimelineTrackType, keyof typeof Ionicons.glyphMap>;
 
 function formatTime(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));

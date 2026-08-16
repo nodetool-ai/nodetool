@@ -238,11 +238,11 @@ function buildUserPrompt(evalCase: {
  * call budget — the two are not comparable, so they should not be weighed
  * alike.
  */
-const SEVERITY_WEIGHT: Record<NonNullable<EvalCheck["severity"]>, number> = {
+const SEVERITY_WEIGHT = {
   critical: 3,
   standard: 2,
   advisory: 1
-};
+} satisfies Record<NonNullable<EvalCheck["severity"]>, number>;
 
 /**
  * Ceiling on a run that failed a `critical` check. Without it, a case with many

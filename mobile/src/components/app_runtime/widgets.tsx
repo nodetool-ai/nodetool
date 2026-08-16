@@ -1271,13 +1271,13 @@ const ColorInputWidget: React.FC<WidgetProps> = (widget) => {
 };
 
 /** Wording for the picker button — `model_3d` reads badly as a noun. */
-const MEDIA_LABEL: Record<MediaKind, string> = {
+const MEDIA_LABEL = {
   image: "image",
   audio: "audio",
   video: "video",
   document: "document",
   model_3d: "3D model",
-};
+} satisfies Record<MediaKind, string>;
 
 const MediaInputWidget: React.FC<WidgetProps & { kind: MediaKind }> = ({
   kind,

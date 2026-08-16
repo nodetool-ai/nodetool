@@ -76,7 +76,7 @@ async function getChatPipeline(model: string): Promise<ChatPipelineFn> {
   })) as ChatPipelineFn;
 }
 
-function buildPipelineOpts(args: ChatArgs): Record<string, unknown> {
+function buildPipelineOpts(args: ChatArgs) {
   const opts: Record<string, unknown> = {
     max_new_tokens: args.maxTokens ?? 512,
     do_sample: (args.temperature ?? 0) > 0

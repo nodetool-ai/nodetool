@@ -122,10 +122,10 @@ export class WebSocketChatClient {
 
     // Treat command-level errors (no type field but has error field) as error content events
     if (!type && typeof msg.error === "string") {
-      const errorEvent: Record<string, unknown> = {
+      const errorEvent = {
         type: "error",
         message: msg.error
-      };
+      } satisfies Record<string, unknown>;
       const waiter = this.contentWaiters.shift();
       if (waiter) {
         waiter(errorEvent);

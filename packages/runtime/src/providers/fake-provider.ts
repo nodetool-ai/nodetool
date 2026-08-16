@@ -149,7 +149,7 @@ export interface FakeProviderOptions {
 function defaultToolArgs(
   toolName: string,
   index: number
-): Record<string, unknown> {
+) {
   switch (toolName) {
     case "add_item":
       return { item: `fake item ${index + 1}` };

@@ -47,7 +47,7 @@ function baseSpec(overrides: Partial<WorkerSpec> = {}): WorkerSpec {
 /** A ready instance object as returned by GET /instances/{id}/. */
 function readyInstance(
   overrides: Record<string, unknown> = {}
-): Record<string, unknown> {
+) {
   return {
     id: 9001,
     actual_status: "running",

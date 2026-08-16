@@ -49,11 +49,11 @@ const SVG_MIME = "image/svg+xml";
  * Extra headers for SVG responses. `<img>` and CSS backgrounds never run
  * script; these apply when the URL is navigated to or framed.
  */
-const SVG_SAFE_HEADERS: Record<string, string> = {
+const SVG_SAFE_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy":
     "default-src 'none'; style-src 'unsafe-inline'; sandbox"
-};
+} satisfies Record<string, string>;
 
 function extraHeadersFor(contentType: string): Record<string, string> {
   return contentType === SVG_MIME ? SVG_SAFE_HEADERS : {};
@@ -79,14 +79,14 @@ function getMimeType(filePath: string): string {
 // headers are attached here, in addition to the global `fastifyCors`
 // plugin, so they ride every binary response through the Web API → Fastify
 // bridge.
-const BASE_CORS_HEADERS: Record<string, string> = {
+const BASE_CORS_HEADERS = {
   "Cross-Origin-Resource-Policy": "cross-origin",
   "Access-Control-Expose-Headers":
     "Content-Length, Content-Range, Content-Type, Accept-Ranges, Last-Modified",
   Vary: "Origin"
-};
+} satisfies Record<string, string>;
 
-export function corsHeaders(request: Request): Record<string, string> {
+export function corsHeaders(request: Request) {
   const headers: Record<string, string> = { ...BASE_CORS_HEADERS };
   const allowed = resolveAllowedOrigin(request.headers.get("Origin"));
   if (allowed) {

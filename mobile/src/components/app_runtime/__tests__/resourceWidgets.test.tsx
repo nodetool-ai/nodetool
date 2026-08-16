@@ -64,7 +64,7 @@ interface WidgetNode {
 const appDoc = (
   content: WidgetNode[],
   resources: unknown[]
-): Record<string, unknown> => ({
+) => ({
   schemaVersion: 3,
   ui: { root: { props: { title: "Board" } }, content, zones: {} },
   operations: [

@@ -180,7 +180,7 @@ function surface() {
 }
 
 /** Current transform of the image, read off the rendered Animated style. */
-function transformOf(): { scale: number; translateX: number; translateY: number } {
+function transformOf() {
   const style = screen.getByLabelText(imageAsset.name).props.style as
     | Record<string, unknown>
     | Record<string, unknown>[];

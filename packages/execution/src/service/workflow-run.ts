@@ -203,7 +203,7 @@ export function buildWorkflowRunPayload(
   result: WorkflowRunResult,
   debug: boolean,
   extras: { background: boolean }
-): Record<string, unknown> {
+) {
   if (debug) {
     // The debug surface reports what actually happened — per-node status and
     // errors, logs, edges, LLM calls, outputs — plus the same verdict the CLI
@@ -252,7 +252,7 @@ export function buildWorkflowRunPayload(
 export function debugSessionEventPayload(
   session: DebugSession,
   event: DebugSessionEvent
-): Record<string, unknown> {
+) {
   switch (event.kind) {
     case "done":
       return { ...event.report, session_id: session.id };

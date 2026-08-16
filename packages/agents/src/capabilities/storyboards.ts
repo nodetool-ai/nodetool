@@ -740,7 +740,7 @@ const reviseStoryboardClip: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /** Render size for an aspect ratio, at a 1080px short edge. */
-function frameSize(aspectRatio: string): { width: number; height: number } {
+function frameSize(aspectRatio: string) {
   const [w, h] = aspectRatio.split(":").map((part) => Number(part));
   if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
     return { width: 1920, height: 1080 };
@@ -939,7 +939,7 @@ interface BoardOpRecord {
 function applyBoardOp(
   doc: StoryboardDocument,
   { op, args }: ParsedBoardOp
-): unknown {
+) {
   switch (op) {
     case "add_shot": {
       if (typeof args["action"] !== "string" || args["action"].trim() === "") {

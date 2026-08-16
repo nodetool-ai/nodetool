@@ -197,7 +197,7 @@ describe('MobileToolRegistry', () => {
   });
 
   it('aborts in-flight calls', async () => {
-    const observed: { signal?: AbortSignal } = {};
+    const observed = {} satisfies { signal?: AbortSignal };
     MobileToolRegistry.register({
       name: 'ui_slow',
       description: 'test',

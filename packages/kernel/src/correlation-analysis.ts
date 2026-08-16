@@ -145,7 +145,7 @@ const EMPTY_SET: ReadonlySet<string> = new Set<string>();
 function topoSort(
   nodes: ReadonlyArray<NodeDescriptor>,
   edges: ReadonlyArray<Edge>
-): { order: NodeDescriptor[]; cycle: string[] | null } {
+) {
   const byId = new Map<string, NodeDescriptor>();
   for (const n of nodes) byId.set(n.id, n);
 
@@ -222,7 +222,7 @@ function applyOutputKind(
   nodeId: string,
   handle: string,
   base: { scope: Scope; repeats: boolean; possibleChildRoots: ReadonlySet<string> }
-): { scope: Scope; repeats: boolean; possibleChildRoots: ReadonlySet<string> } {
+) {
   switch (kind) {
     case "single":
     case "forward":

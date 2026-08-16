@@ -450,7 +450,7 @@ async function instantiateProvider(
  * Run `fn`, log and return `fallback` on error. Unmasks silent provider
  * failures so the server log shows why a `*ByProvider` query came back empty.
  */
-function summarizeError(error: unknown): Record<string, unknown> {
+function summarizeError(error: unknown) {
   if (!(error instanceof Error)) {
     return { message: String(error) };
   }
@@ -844,7 +844,7 @@ const availableForKindInput = z.object({
 
 type ModelSearchKind = (typeof MODEL_SEARCH_KINDS)[number];
 
-const KIND_TO_MODALITY: Record<ModelSearchKind, RecommendedUnifiedModel["modality"]> = {
+const KIND_TO_MODALITY = {
   text_generation: "language",
   embedding: "language",
   text_to_image: "image",
@@ -854,7 +854,7 @@ const KIND_TO_MODALITY: Record<ModelSearchKind, RecommendedUnifiedModel["modalit
   speech_to_text: "asr",
   text_to_video: "video",
   image_to_video: "video"
-};
+} satisfies Record<ModelSearchKind, RecommendedUnifiedModel["modality"]>;
 
 async function collectProviderModelsForKind(
   userId: string,

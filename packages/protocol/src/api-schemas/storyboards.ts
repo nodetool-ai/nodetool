@@ -79,7 +79,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 function applyAliases(
   source: Record<string, unknown>,
   aliases: Readonly<Record<string, string>>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(source)) {
     const wireKey = aliases[key] ?? key;

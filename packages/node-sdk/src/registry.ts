@@ -595,7 +595,7 @@ function deriveNamespace(nodeType: string): string {
 export function createGraphNodeTypeResolver(
   registry: NodeRegistry,
   options: RegistryGraphResolverOptions = {}
-): { resolveNodeType: (nodeType: string) => Promise<ResolvedNodeType | null> } {
+) {
   return {
     resolveNodeType: async (
       nodeType: string

@@ -218,7 +218,7 @@ function primitiveSchemaType(value: unknown): string | undefined {
 function resolveJsonPointer(
   root: unknown,
   pointer: string
-): { found: boolean; value: unknown } {
+) {
   if (pointer === "#" || pointer === "") return { found: true, value: root };
   if (!pointer.startsWith("#/")) return { found: false, value: undefined };
   let cursor: unknown = root;
@@ -556,7 +556,7 @@ export class GeminiProvider extends BaseProvider {
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return { GEMINI_API_KEY: this.apiKey };
   }
 
@@ -871,13 +871,7 @@ export class GeminiProvider extends BaseProvider {
     return { contents, systemInstruction };
   }
 
-  formatTools(tools: ProviderTool[]): {
-    geminiTools: Array<{
-      functionDeclarations: Array<Record<string, unknown>>;
-    }>;
-    nameMap: Map<string, string>;
-    reverseMap: Map<string, string>;
-  } {
+  formatTools(tools: ProviderTool[]) {
     const nameMap = new Map<string, string>();
     const reverseMap = new Map<string, string>();
     const usedNames = new Set<string>();
@@ -1825,7 +1819,7 @@ export class GeminiProvider extends BaseProvider {
 
   private buildVideoParameters(
     params: TextToVideoParams | ImageToVideoParams
-  ): Record<string, unknown> {
+  ) {
     const parameters: Record<string, unknown> = {};
     if (params.negativePrompt) {
       parameters.negativePrompt = params.negativePrompt;

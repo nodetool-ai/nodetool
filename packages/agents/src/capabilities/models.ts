@@ -125,7 +125,7 @@ interface ModelRef {
  * live session lost three rounds to exactly that — so every result carries
  * the assignable form too.
  */
-const CAPABILITY_REF_TYPE: Record<SupportedCapability, string> = {
+const CAPABILITY_REF_TYPE = {
   generate_message: "language_model",
   text_to_image: "image_model",
   image_to_image: "image_model",
@@ -135,7 +135,7 @@ const CAPABILITY_REF_TYPE: Record<SupportedCapability, string> = {
   text_to_music: "tts_model",
   automatic_speech_recognition: "asr_model",
   generate_embedding: "embedding_model"
-};
+} satisfies Record<SupportedCapability, string>;
 
 function modelRef(
   capability: SupportedCapability,
@@ -503,7 +503,7 @@ interface ListedModel {
 }
 
 /** The capability a provider must report before we ask it for this type. */
-const TYPE_CAPABILITY: Record<ModelType, ProviderCapability> = {
+const TYPE_CAPABILITY = {
   language: "generate_message",
   image: "text_to_image",
   video: "text_to_video",
@@ -511,7 +511,7 @@ const TYPE_CAPABILITY: Record<ModelType, ProviderCapability> = {
   music: "text_to_music",
   asr: "automatic_speech_recognition",
   embedding: "generate_embedding"
-};
+} satisfies Record<ModelType, ProviderCapability>;
 
 async function fetchModelsOfType(
   provider: BaseProvider,
