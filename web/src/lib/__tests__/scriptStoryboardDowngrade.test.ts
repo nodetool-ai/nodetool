@@ -8,6 +8,11 @@ jest.mock("../../trpc/client", () => ({
       list: { query: jest.fn() },
       get: { query: jest.fn() },
       update: { mutate: jest.fn() }
+    },
+    scripts: {
+      list: { query: jest.fn() },
+      get: { query: jest.fn() },
+      update: { mutate: jest.fn() }
     }
   }
 }));
@@ -23,6 +28,9 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 const list = trpcClient.storyboards.list.query as jest.Mock;
 const get = trpcClient.storyboards.get.query as jest.Mock;
 const update = trpcClient.storyboards.update.mutate as jest.Mock;
+const scriptList = trpcClient.scripts.list.query as jest.Mock;
+const scriptGet = trpcClient.scripts.get.query as jest.Mock;
+const scriptUpdate = trpcClient.scripts.update.mutate as jest.Mock;
 
 const screenplayFor = (id: string, scriptId: string | null) => {
   const screenplay: Record<string, unknown> = {
@@ -120,19 +128,62 @@ describe("downgradeBoardsLinkedToScript", () => {
 });
 
 describe("downgradeScriptsLinkedToBoard", () => {
-  beforeEach(() => {
-    useScriptStore.setState({ storyboardLinks: {} });
+  const scriptResponse = (id: string, storyboardId: string | null) => ({
+    id,
+    name: id,
+    document: { cast: [], sections: [] },
+    storyboardId: storyboardId ?? undefined,
+    createdAt: "2026-08-16T00:00:00.000Z",
+    updatedAt: `rev-${id}`
   });
 
-  it("drops the back-pointer of every script naming the deleted board", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    useScriptStore.setState({ scripts: {}, serverRevisions: {}, history: {} });
+    scriptUpdate.mockImplementation(async ({ id }: { id: string }) => ({
+      ...scriptResponse(id, null),
+      updatedAt: `rev-${id}-next`
+    }));
+  });
+
+  it("clears the back-pointer of every script naming the deleted board", async () => {
     const store = useScriptStore.getState();
+    store.ensureScript("script-1");
+    store.ensureScript("script-2");
     store.setStoryboardLink("script-1", "board-1");
     store.setStoryboardLink("script-2", "board-2");
+    scriptList.mockResolvedValue([{ id: "script-1" }, { id: "script-2" }]);
+    scriptGet.mockImplementation(async ({ id }: { id: string }) =>
+      scriptResponse(id, id === "script-1" ? "board-1" : "board-2")
+    );
 
-    downgradeScriptsLinkedToBoard("board-1");
+    expect(await downgradeScriptsLinkedToBoard("board-1")).toEqual(["script-1"]);
 
-    const links = useScriptStore.getState().storyboardLinks;
-    expect(links["script-1"]).toBeUndefined();
-    expect(links["script-2"]).toBe("board-2");
+    const scripts = useScriptStore.getState().scripts;
+    expect(scripts["script-1"]?.storyboardId).toBeNull();
+    expect(scripts["script-2"]?.storyboardId).toBe("board-2");
+    // Persisted, so a reload does not resurrect the pointer.
+    expect(scriptUpdate).toHaveBeenCalledTimes(1);
+    expect(scriptUpdate).toHaveBeenCalledWith({
+      id: "script-1",
+      baseUpdatedAt: "rev-script-1",
+      storyboardId: null
+    });
+  });
+
+  it("never throws when a script cannot be cleared", async () => {
+    scriptList.mockResolvedValue([{ id: "script-1" }]);
+    scriptGet.mockResolvedValue(scriptResponse("script-1", "board-1"));
+    scriptUpdate.mockRejectedValue(new Error("409 revision conflict"));
+
+    await expect(downgradeScriptsLinkedToBoard("board-1")).resolves.toEqual([]);
+  });
+
+  it("never throws when the scripts cannot be listed", async () => {
+    scriptList.mockRejectedValue(new Error("offline"));
+
+    await expect(downgradeScriptsLinkedToBoard("board-1")).resolves.toEqual([]);
+    expect(scriptGet).not.toHaveBeenCalled();
   });
 });

@@ -38,6 +38,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
 import { UNGATED, createCapabilityRun } from "./invoke.js";
+import { stampScriptStoryboardId } from "./script-link.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -324,58 +325,73 @@ const EMPTY_LINK: StoryboardLinkSummary = {
 };
 
 /**
- * The board that links this script, and what its link looks like now.
+ * The board this script points at, and what its link looks like now.
  *
- * The link lives on the board (design §1.1), so finding it from this side is a
- * scan of the caller's boards. It is bounded by the same list the tools use;
- * the `scripts.storyboard_id` back-pointer replaces the scan once it lands.
+ * The board owns the link (design §1.1) and `scripts.storyboard_id` is the
+ * back-pointer (design §1.2), so this is one read by id. A pointer at a board
+ * that is gone, or at one that no longer names this script, is reported as an
+ * issue rather than silently dropped — the script still works, only the link
+ * affordances do not.
  */
 async function storyboardLinkFor(
   userId: string | undefined,
+  storyboardId: string | null,
   scriptId: string,
   doc: ScriptDocument
 ): Promise<StoryboardLinkSummary> {
-  if (!userId) return EMPTY_LINK;
+  if (!userId || !storyboardId) return EMPTY_LINK;
   const { Storyboard } = await import("@nodetool-ai/models");
   const { orphanedLineIds, shotDialogueDrifted, validateScriptLink } =
     await import("@nodetool-ai/protocol");
 
-  const boards = await Storyboard.listByUser(userId, 100);
-  for (const board of boards) {
-    const boardDoc = board.toDocument();
-    if (boardDoc.screenplay?.script_id !== scriptId) continue;
+  const stale = (message: string): StoryboardLinkSummary => ({
+    ...EMPTY_LINK,
+    storyboard_id: storyboardId,
+    issues: [message]
+  });
 
-    const screenplay: Screenplay = {
-      ...boardDoc.screenplay,
-      shots: boardDoc.shots
-    };
-    const scriptDoc: ScriptLinkDocument = { sections: doc.sections };
-    const linesById = new Map(
-      doc.sections.flatMap((section) =>
-        section.lines.map((line) => [line.id, line] as const)
-      )
+  const board = await Storyboard.findById(storyboardId);
+  if (!board || board.user_id !== userId) {
+    return stale(
+      `Storyboard ${storyboardId} is no longer available, so the script's back-pointer is stale.`
     );
-    const shotIdByLineId: Record<string, string> = {};
-    for (const shot of screenplay.shots) {
-      for (const lineId of shot.script_line_ids ?? []) {
-        shotIdByLineId[lineId] = shot.id;
-      }
-    }
-    const validation = validateScriptLink(screenplay, scriptDoc);
-    return {
-      linked: true,
-      storyboard_id: board.id,
-      orphan_line_ids: orphanedLineIds(screenplay, scriptDoc),
-      drifted_shot_ids: screenplay.shots
-        .filter((shot) => shotDialogueDrifted(shot, linesById))
-        .map((shot) => shot.id),
-      shot_id_by_line_id: shotIdByLineId,
-      issues: [...validation.errors, ...validation.warnings].map(
-        (issue) => issue.message
-      )
-    };
   }
-  return EMPTY_LINK;
+  const boardDoc = board.toDocument();
+  if (boardDoc.screenplay?.script_id !== scriptId) {
+    return stale(
+      `Storyboard ${storyboardId} does not link this script back, so the back-pointer is stale.`
+    );
+  }
+
+  const screenplay: Screenplay = {
+    ...boardDoc.screenplay,
+    shots: boardDoc.shots
+  };
+  const scriptDoc: ScriptLinkDocument = { sections: doc.sections };
+  const linesById = new Map(
+    doc.sections.flatMap((section) =>
+      section.lines.map((line) => [line.id, line] as const)
+    )
+  );
+  const shotIdByLineId: Record<string, string> = {};
+  for (const shot of screenplay.shots) {
+    for (const lineId of shot.script_line_ids ?? []) {
+      shotIdByLineId[lineId] = shot.id;
+    }
+  }
+  const validation = validateScriptLink(screenplay, scriptDoc);
+  return {
+    linked: true,
+    storyboard_id: board.id,
+    orphan_line_ids: orphanedLineIds(screenplay, scriptDoc),
+    drifted_shot_ids: screenplay.shots
+      .filter((shot) => shotDialogueDrifted(shot, linesById))
+      .map((shot) => shot.id),
+    shot_id_by_line_id: shotIdByLineId,
+    issues: [...validation.errors, ...validation.warnings].map(
+      (issue) => issue.message
+    )
+  };
 }
 
 const listScripts: CapabilityExport = {
@@ -420,7 +436,12 @@ const getScript: CapabilityExport = {
     const { row, doc } = handle;
     const { currentTake, effectiveVoice, needsVoicing, scriptLines } =
       await import("@nodetool-ai/timeline");
-    const link = await storyboardLinkFor(run.context.userId, row.id, doc);
+    const link = await storyboardLinkFor(
+      run.context.userId,
+      row.storyboard_id ?? null,
+      row.id,
+      doc
+    );
     const orphans = new Set(link.orphan_line_ids);
     return {
       id: row.id,
@@ -1413,8 +1434,11 @@ const deriveStoryboardFromScript: CapabilityExport = {
       };
     }
 
-    // One write, so there is no half-linked state to recover from: the board is
-    // created already carrying `script_id` and every shot's line references.
+    // The board is created already carrying `script_id` and every shot's line
+    // references, so the forward link needs no second write. The script's
+    // back-pointer does, and it is stamped after — a board that exists without
+    // the pointer is consistent and navigable from the board side, while a
+    // pointer written first could name a board that was never created.
     // Bound as a namespace so the `Storyboard` row type imported at the top of
     // this file stays visible here.
     const models = await import("@nodetool-ai/models");
@@ -1440,6 +1464,19 @@ const deriveStoryboardFromScript: CapabilityExport = {
         videoModel: null
       })
     });
+
+    const stamped = await stampScriptStoryboardId(
+      row.id,
+      board.id,
+      context.userId
+    );
+    if (isError(stamped)) {
+      return {
+        error: `Storyboard ${board.id} was created and links script ${row.id}, but the script's back-pointer could not be written: ${stamped.error} The board is valid; the script reads as unlinked until this is retried.`,
+        storyboard_id: board.id,
+        script_id: row.id
+      };
+    }
 
     return {
       ok: true,

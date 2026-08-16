@@ -139,7 +139,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         ),
         hasTimeline: script.timelineId !== null,
         timelineId: script.timelineId,
-        storyboardId: store().storyboardLinks[scriptId] ?? null
+        storyboardId: script.storyboardId
       };
     };
 

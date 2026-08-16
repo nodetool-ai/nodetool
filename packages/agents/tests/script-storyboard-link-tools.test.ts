@@ -422,4 +422,113 @@ describe("derive_storyboard_from_script", () => {
     expect(result.error).toContain("nothing to storyboard");
     expect(await Storyboard.listByUser("u1")).toHaveLength(0);
   });
+
+  it("stamps the script's storyboard_id back-pointer", async () => {
+    const script = await writtenScript();
+    const result = (await run(plainContext()).invoke(
+      "derive_storyboard_from_script",
+      { script_id: script.id }
+    )) as { ok: boolean; storyboard_id: string };
+
+    expect(result.ok).toBe(true);
+    expect((await Script.findById(script.id))!.storyboard_id).toBe(
+      result.storyboard_id
+    );
+  });
+
+  it("reports a failed back-pointer write and leaves the script unlinked", async () => {
+    const script = await writtenScript();
+    // The board is created first; the second write is the one that fails.
+    const stamp = vi
+      .spyOn(Script, "updateFieldsIfUnchanged")
+      .mockResolvedValue(null);
+
+    const result = (await run(plainContext()).invoke(
+      "derive_storyboard_from_script",
+      { script_id: script.id }
+    )) as { error: string; storyboard_id: string };
+
+    expect(stamp).toHaveBeenCalled();
+    stamp.mockRestore();
+    expect(result.error).toContain("back-pointer");
+    // Consistent, not half-linked: the board carries the forward link and the
+    // script simply reads as unlinked.
+    const board = await Storyboard.findById(result.storyboard_id);
+    expect(board!.toDocument().screenplay?.script_id).toBe(script.id);
+    expect((await Script.findById(script.id))!.storyboard_id).toBeNull();
+  });
+});
+
+describe("the script's storyboard back-pointer", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  const spokenBoard = () =>
+    makeBoard([
+      shot({ id: "s1", index: 0, dialogue: "The light goes out tonight." })
+    ]);
+
+  it("is written by extract and read by get_script without scanning boards", async () => {
+    const board = await spokenBoard();
+    const context = plainContext();
+    const extracted = (await run(context).invoke(
+      "extract_script_from_storyboard",
+      { storyboard_id: board.id }
+    )) as { ok: boolean; script_id: string };
+    expect(extracted.ok).toBe(true);
+    expect((await Script.findById(extracted.script_id))!.storyboard_id).toBe(
+      board.id
+    );
+
+    const listByUser = vi.spyOn(Storyboard, "listByUser");
+    const read = (await run(context).invoke("get_script", {
+      script_id: extracted.script_id
+    })) as { storyboard_id: string | null; storyboard_link: { linked: boolean } };
+
+    expect(read.storyboard_id).toBe(board.id);
+    expect(read.storyboard_link.linked).toBe(true);
+    expect(listByUser).not.toHaveBeenCalled();
+    listByUser.mockRestore();
+  });
+
+  it("leaves the board unlinked when extract cannot write it", async () => {
+    const board = await spokenBoard();
+    const context = plainContext();
+    // The script row is created with `create`, so only the back-pointer write
+    // goes through `updateFieldsIfUnchanged` on a first extraction.
+    const stamp = vi
+      .spyOn(Script, "updateFieldsIfUnchanged")
+      .mockResolvedValue(null);
+
+    const result = (await run(context).invoke(
+      "extract_script_from_storyboard",
+      { storyboard_id: board.id }
+    )) as { error: string; script_id: string };
+
+    stamp.mockRestore();
+    expect(result.error).toContain("back-pointer");
+    expect((await Script.findById(result.script_id))!.storyboard_id).toBeNull();
+    const saved = await Storyboard.findById(board.id);
+    expect(saved!.toDocument().screenplay?.script_id).toBe(result.script_id);
+  });
+
+  it("reports a pointer at a board that is gone instead of claiming a link", async () => {
+    const board = await spokenBoard();
+    const context = plainContext();
+    const extracted = (await run(context).invoke(
+      "extract_script_from_storyboard",
+      { storyboard_id: board.id }
+    )) as { script_id: string };
+    await (await Storyboard.findById(board.id))!.delete();
+
+    const read = (await run(context).invoke("get_script", {
+      script_id: extracted.script_id
+    })) as {
+      storyboard_id: string | null;
+      storyboard_link: { linked: boolean; issues: string[] };
+    };
+    expect(read.storyboard_link.linked).toBe(false);
+    expect(read.storyboard_id).toBe(board.id);
+    expect(read.storyboard_link.issues[0]).toContain("no longer available");
+  });
 });

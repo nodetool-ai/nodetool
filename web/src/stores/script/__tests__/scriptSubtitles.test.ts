@@ -46,6 +46,7 @@ const draft = (lines: ScriptLine[]): ScriptDraft => ({
   cast: [],
   sections: [{ id: "sec-1", lines }],
   timelineId: null,
+  storyboardId: null,
   updatedAt: 0
 });
 
