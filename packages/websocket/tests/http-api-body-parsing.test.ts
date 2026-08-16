@@ -10,7 +10,12 @@
  */
 import os from "node:os";
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, Workflow, WorkflowVersion, Asset } from "@nodetool-ai/models";
+import {
+  initTestDb,
+  Workflow,
+  WorkflowVersion,
+  Asset
+} from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 vi.mock("../src/lib/workflow-workspace.js", async () => {
@@ -265,7 +270,11 @@ describe("PUT /api/workflows/:id — body leniency", () => {
       new Request("http://localhost/x", {
         method: "PUT",
         headers: { "x-user-id": "user-1", "content-type": "application/json" },
-        body: JSON.stringify({ name: { a: 1 }, access: "private", graph: GRAPH })
+        body: JSON.stringify({
+          name: { a: 1 },
+          access: "private",
+          graph: GRAPH
+        })
       }),
       wf.id,
       {}
@@ -344,7 +353,9 @@ describe("POST /api/assets — body leniency", () => {
 
   it("400s when name is missing", async () => {
     const res = await handleAssetsRoot(
-      jsonRequest(JSON.stringify({ content_type: "text/plain", parent_id: "1" })),
+      jsonRequest(
+        JSON.stringify({ content_type: "text/plain", parent_id: "1" })
+      ),
       {}
     );
     expect(res.status).toBe(400);
