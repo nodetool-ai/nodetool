@@ -69,7 +69,7 @@ export function createEvalGraphRunner(): GraphRunner {
       signal?.removeEventListener("abort", abort);
     }
 
-    const messages = (result.messages ?? []) as ProcessingMessage[];
+    const messages = result.messages ?? [];
     const outputs = collectOutputs(messages, result.outputs);
     const timedOut = session.cancelReason === "timeout";
 
@@ -107,8 +107,7 @@ function collectOutputs(
   for (const msg of messages) {
     if (msg.type !== "output_update") continue;
     const name = String(msg.output_name ?? msg.node_name ?? "output");
-    const nodeId =
-      typeof msg.node_id === "string" ? msg.node_id : undefined;
+    const nodeId = msg.node_id;
     const previous = byName.get(name);
     const value =
       previous &&
@@ -143,10 +142,10 @@ function collectNodeErrors(
       (msg.status === "error" || msg.status === "failed")
     ) {
       errors.push({
-        nodeId: typeof msg.node_id === "string" ? msg.node_id : null,
-        message: typeof msg.error === "string" ? msg.error : String(msg.status)
+        nodeId: msg.node_id,
+        message: msg.error ?? String(msg.status)
       });
-    } else if (msg.type === "error" && typeof msg.message === "string") {
+    } else if (msg.type === "error") {
       errors.push({ nodeId: null, message: msg.message });
     }
   }
