@@ -91,6 +91,9 @@ export const initSupabaseFromConfig = (config: RuntimeConfig): void => {
   innerClient = current.client;
 };
 
+// SAFETY: the proxy target is never read — every access is forwarded to
+// `innerClient`, which is a real SupabaseClient — so the empty object only has
+// to satisfy the type, and `prop` can only be a key callers reached through it.
 export const supabase = new Proxy({} as SupabaseClient, {
-  get: (_target, prop) => Reflect.get(innerClient, prop)
+  get: (_target, prop) => innerClient[prop as keyof SupabaseClient]
 });
