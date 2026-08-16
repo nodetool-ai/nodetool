@@ -7,6 +7,12 @@ import {
   applyWorkflowDocumentTool,
   type WorkflowDocumentToolName
 } from "@nodetool-ai/node-sdk";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export interface HeadlessNode {
   id: string;
@@ -98,19 +104,19 @@ function toGraph(state: ToolLoopState): Graph {
 function syncStateFromGraph(state: ToolLoopState, graph: Graph): void {
   state.nodes = graph.nodes.map((node) => {
     const data =
-      node.data && typeof node.data === "object" && !Array.isArray(node.data)
+      isRecord(node.data)
         ? (node.data as Record<string, unknown>)
         : {};
     const ui =
-      node.ui_properties && typeof node.ui_properties === "object"
+      isObjectLike(node.ui_properties)
         ? (node.ui_properties as Record<string, unknown>)
         : {};
     const position =
-      ui.position && typeof ui.position === "object"
+      isObjectLike(ui.position)
         ? (ui.position as { x: number; y: number })
         : { x: 0, y: 0 };
     const nodeData: HeadlessNode["data"] = { properties: { ...data } };
-    if (typeof ui.title === "string") nodeData.title = ui.title;
+    if (isString(ui.title)) nodeData.title = ui.title;
     return {
       id: node.id,
       type: node.type,
@@ -132,7 +138,7 @@ function searchNodes(
   args: Record<string, unknown>
 ) {
   const query = String(args.query ?? "").toLowerCase();
-  const limit = typeof args.limit === "number" ? args.limit : 10;
+  const limit = isNumber(args.limit) ? args.limit : 10;
   const results = Object.values(state.nodeMetadata)
     .filter(
       (metadata) =>

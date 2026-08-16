@@ -43,6 +43,12 @@ import {
   httpRequestSpec,
   WEB_SEARCH_SCHEMA
 } from "./web.specs.js";
+import {
+  isFunction,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 export { WEB_SEARCH_SCHEMA } from "./web.specs.js";
 
@@ -88,7 +94,7 @@ export async function serpApiConfigured(
   context: ProcessingContext
 ): Promise<boolean> {
   const fromCtx =
-    typeof context?.getSecret === "function"
+    isFunction(context?.getSecret)
       ? await context.getSecret("SERPAPI_API_KEY")
       : null;
   return Boolean(fromCtx ?? process.env.SERPAPI_API_KEY);
@@ -158,9 +164,9 @@ async function runFirstConfiguredBackend(
  * failure and must fail the call, not fall through.
  */
 function unwrapBackendResult(result: unknown): Record<string, unknown> {
-  if (result !== null && typeof result === "object") {
+  if (isObjectLike(result)) {
     const record = result as Record<string, unknown>;
-    if (typeof record.error === "string") throw new Error(record.error);
+    if (isString(record.error)) throw new Error(record.error);
     return record;
   }
   throw new Error(`Unexpected search backend result: ${String(result)}`);
@@ -751,21 +757,21 @@ const downloadFile: CapabilityExport = {
       const url = params["url"];
       const outputFile = params["output_file"];
 
-      if (typeof url !== "string" || !url) {
+      if (!isString(url) || !url) {
         return { error: "URL is required" };
       }
-      if (typeof outputFile !== "string" || !outputFile) {
+      if (!isString(outputFile) || !outputFile) {
         return { error: "Output file is required" };
       }
 
       const customHeaders =
-        params["headers"] && typeof params["headers"] === "object"
+        isObjectLike(params["headers"])
           ? (params["headers"] as Record<string, string>)
           : {};
       const mergedHeaders = { ...DEFAULT_HEADERS, ...customHeaders };
 
       const timeoutMs =
-        typeof params["timeout"] === "number"
+        isNumber(params["timeout"])
           ? params["timeout"] * 1000
           : 60_000;
 
@@ -824,25 +830,25 @@ const httpRequest: CapabilityExport = {
     const context = run.context;
     try {
       const url = params["url"];
-      if (typeof url !== "string" || !url) {
+      if (!isString(url) || !url) {
         return { error: "URL is required" };
       }
 
       const method = (
-        typeof params["method"] === "string" ? params["method"] : "GET"
+        isString(params["method"]) ? params["method"] : "GET"
       ).toUpperCase();
 
       const customHeaders =
-        params["headers"] && typeof params["headers"] === "object"
+        isObjectLike(params["headers"])
           ? (params["headers"] as Record<string, string>)
           : {};
       const mergedHeaders = { ...DEFAULT_HEADERS, ...customHeaders };
 
       const body =
-        typeof params["body"] === "string" ? params["body"] : undefined;
+        isString(params["body"]) ? params["body"] : undefined;
 
       const timeoutMs =
-        typeof params["timeout"] === "number"
+        isNumber(params["timeout"])
           ? params["timeout"] * 1000
           : 60_000;
 

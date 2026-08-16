@@ -41,6 +41,12 @@ import {
   MODEL_TYPES,
   LIST_MODELS_SCHEMA
 } from "./models.specs.js";
+import {
+  isFunction,
+  isNonBlankString,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   SUPPORTED_CAPABILITIES,
@@ -86,7 +92,7 @@ async function unavailableReasonOf(
   // Guarded rather than called outright: a provider from an older build has no
   // such method, and hiding every provider over that would be a far worse
   // failure than the one this prevents.
-  if (typeof provider.unavailableReason !== "function") return null;
+  if (!isFunction(provider.unavailableReason)) return null;
   try {
     return await provider.unavailableReason();
   } catch (e) {
@@ -283,28 +289,28 @@ const findModel: CapabilityExport = {
     }
 
     const task =
-      typeof params["task"] === "string"
+      isString(params["task"])
         ? (params["task"] as string)
         : undefined;
     const query =
-      typeof params["query"] === "string"
+      isString(params["query"])
         ? (params["query"] as string)
         : undefined;
     const providerHint =
-      typeof params["provider_hint"] === "string"
+      isString(params["provider_hint"])
         ? (params["provider_hint"] as string)
         : undefined;
     const modelHintRaw = params["model_hint"];
     const modelHints: Set<string> = new Set(
-      typeof modelHintRaw === "string"
+      isString(modelHintRaw)
         ? [modelHintRaw]
         : Array.isArray(modelHintRaw)
-          ? (modelHintRaw.filter((x) => typeof x === "string") as string[])
+          ? (modelHintRaw.filter((x) => isString(x)) as string[])
           : []
     );
     const preferLocal = params["prefer_local"] === true;
     const limit =
-      typeof params["limit"] === "number" && params["limit"] > 0
+      isNumber(params["limit"]) && params["limit"] > 0
         ? Math.floor(params["limit"] as number)
         : 5;
 
@@ -537,7 +543,7 @@ async function fetchModelsOfType(
 
 function normalizeModelType(raw: unknown): ModelType | null | "invalid" {
   if (raw === undefined || raw === null || raw === "") return null;
-  if (typeof raw !== "string") return "invalid";
+  if (!isString(raw)) return "invalid";
   const key = raw.trim().toLowerCase();
   if ((MODEL_TYPES as readonly string[]).includes(key)) return key as ModelType;
   return MODEL_TYPE_ALIASES[key] ?? "invalid";
@@ -558,14 +564,13 @@ const listModels: CapabilityExport = {
 
     const providerFilterRaw = params["provider"];
     const providerFilter =
-      typeof providerFilterRaw === "string" &&
-      providerFilterRaw.trim() !== "" &&
+      isNonBlankString(providerFilterRaw) &&
       providerFilterRaw.trim().toLowerCase() !== "all"
         ? providerFilterRaw.trim()
         : undefined;
     const downloadedOnly = params["downloaded_only"] === true;
     const limit =
-      typeof params["limit"] === "number" && params["limit"] > 0
+      isNumber(params["limit"]) && params["limit"] > 0
         ? Math.floor(params["limit"] as number)
         : 50;
 
@@ -659,7 +664,7 @@ const listProviderModels: CapabilityExport = {
   spec: listProviderModelsSpec,
   impl: async (run, params) => {
     const providerId = params["provider"];
-    if (typeof providerId !== "string") {
+    if (!isString(providerId)) {
       return { success: false, error: "provider must be a string" };
     }
 
@@ -668,7 +673,7 @@ const listProviderModels: CapabilityExport = {
       return { success: false, error: `Unknown provider: ${providerId}` };
     }
 
-    if (typeof provider.getAvailableLanguageModels !== "function") {
+    if (!isFunction(provider.getAvailableLanguageModels)) {
       return {
         success: false,
         error: `Provider ${providerId} does not support model listing`

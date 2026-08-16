@@ -48,6 +48,7 @@ import {
   TOOL_CALL_ID_FIELD
 } from "./tools/subtask-fields.js";
 import type { Step, Task } from "./types.js";
+import { isString } from "./utils/type-guards.js";
 
 /** Forwards child agent events upward (typically to the websocket sender). */
 export type ForwardMessage = (msg: ProcessingMessage) => Promise<void> | void;
@@ -108,7 +109,7 @@ export function settleStepResult(
   if (result === null || result === undefined) return null;
   if (typeof result === "object" && !Array.isArray(result)) {
     const record = result as Record<string, unknown>;
-    if (typeof record.error === "string" && !opts.hasOutputSchema) {
+    if (isString(record.error) && !opts.hasOutputSchema) {
       return { ok: false, error: record.error };
     }
   }
@@ -450,7 +451,7 @@ export abstract class SubAgentTool extends Tool {
     if ("error" in run) return run;
 
     const parentToolCallId =
-      typeof params[TOOL_CALL_ID_FIELD] === "string"
+      isString(params[TOOL_CALL_ID_FIELD])
         ? (params[TOOL_CALL_ID_FIELD] as string)
         : null;
 

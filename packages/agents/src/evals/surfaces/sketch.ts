@@ -68,6 +68,7 @@ import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
+import { isString } from "../../utils/type-guards.js";
 
 /**
  * Point the paint core at skia. Idempotent and process-wide: the engine only
@@ -611,7 +612,7 @@ export function createSketchToolBridge(
           (layerName as string | undefined) ?? `Layer ${layerSeq}`,
           (type as "raster" | "mask" | undefined) ?? "raster"
         );
-        if (typeof fillColor === "string" && fillColor) {
+        if (isString(fillColor) && fillColor) {
           layer.fillColor = fillColor;
           // A fill is pixels, not a label — lay them down now.
           ensureRaster(layer);

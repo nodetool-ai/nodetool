@@ -50,6 +50,7 @@ import {
   EDIT_TIMELINE_SCHEMA,
   VALIDATE_TIMELINE_SCHEMA
 } from "./timelines.specs.js";
+import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 export {
   DEFAULT_VERSION_LIMIT,
@@ -75,7 +76,7 @@ async function loadTimeline(
   run: CapabilityRun,
   timelineId: unknown
 ): Promise<TimelineSequence | ToolError> {
-  if (typeof timelineId !== "string" || !timelineId) {
+  if (!isString(timelineId) || !timelineId) {
     return {
       error: "timeline_id is required (use list_timelines to find one)."
     };
@@ -111,7 +112,7 @@ function toVersionListItem(version: TimelineSequenceVersion) {
  * so beats handing back a string the caller will treat as a document.
  */
 function parseVersionDocument(raw: unknown): unknown | ToolError {
-  if (typeof raw !== "string") return raw;
+  if (!isString(raw)) return raw;
   try {
     return JSON.parse(raw) as unknown;
   } catch {
@@ -153,7 +154,7 @@ const listTimelines: CapabilityExport = {
     const { TimelineSequence } = await import("@nodetool-ai/models");
     const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
     const query =
-      typeof params["query"] === "string"
+      isString(params["query"])
         ? params["query"].trim().toLowerCase()
         : "";
     // Filter after the read: the name filter is not indexed, and the per-user
@@ -192,7 +193,7 @@ const listTimelineVersions: CapabilityExport = {
       )
     );
     const saveType =
-      typeof params["save_type"] === "string"
+      isString(params["save_type"])
         ? (params["save_type"] as string)
         : undefined;
     const versions = await TimelineSequenceVersion.listForTimeline(seq.id, {
@@ -243,7 +244,7 @@ const createTimelineVersion: CapabilityExport = {
 
     const { TimelineSequenceVersion } = await import("@nodetool-ai/models");
     const name =
-      typeof params["name"] === "string" && params["name"]
+      isString(params["name"]) && params["name"]
         ? (params["name"] as string)
         : null;
     const version = await TimelineSequenceVersion.snapshot(seq, {
@@ -387,11 +388,11 @@ function parseOps(raw: unknown): ParsedOp[] | ToolError {
   }
   const parsed: ParsedOp[] = [];
   for (const [index, entry] of raw.entries()) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isRecord(entry)) {
       return { error: `ops[${index}] must be an object.` };
     }
     const { op, ...input } = entry as Record<string, unknown>;
-    if (typeof op !== "string" || op.trim() === "") {
+    if (!isString(op) || op.trim() === "") {
       return { error: `ops[${index}] has no \`op\` name.` };
     }
     parsed.push({ op: normalizeOpName(op), input });
@@ -472,7 +473,7 @@ const editTimeline: CapabilityExport = {
   spec: editTimelineSpec,
   impl: async (run, params) => {
     const timelineId = params["timeline_id"];
-    if (typeof timelineId !== "string" || !timelineId) {
+    if (!isString(timelineId) || !timelineId) {
       return {
         error: "timeline_id is required (use list_timelines to find one)."
       };
@@ -537,14 +538,14 @@ const editTimeline: CapabilityExport = {
 
 /** A positive finite number from a tool param, or undefined. */
 function numberParam(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
+  return isFiniteNumber(value) && value > 0
     ? value
     : undefined;
 }
 
 /** Unwrap a stored document that may still be JSON text. */
 function parseStoredDocument(document: unknown): unknown {
-  if (typeof document !== "string") return document;
+  if (!isString(document)) return document;
   try {
     return JSON.parse(document);
   } catch {

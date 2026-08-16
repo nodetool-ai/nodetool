@@ -6,6 +6,7 @@
  */
 
 import { optionsOf, unwrapLibrary } from "./limits.js";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 interface IcsResult {
   error?: Error | null;
@@ -23,7 +24,7 @@ async function loadIcs(where: string): Promise<IcsLike> {
     mod,
     where,
     "ics",
-    (v) => typeof (v as IcsLike | undefined)?.createEvent === "function"
+    (v) => isFunction((v as IcsLike | undefined)?.createEvent)
   );
 }
 
@@ -31,7 +32,7 @@ function unwrap(where: string, result: IcsResult): string {
   if (result.error) {
     throw new Error(`${where}: ${result.error.message}`);
   }
-  if (typeof result.value !== "string") {
+  if (!isString(result.value)) {
     throw new Error(`${where}: no calendar text was produced`);
   }
   return result.value;

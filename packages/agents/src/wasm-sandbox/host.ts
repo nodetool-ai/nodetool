@@ -39,6 +39,7 @@ import {
   type WasmCallWorker,
   type WasmWorkerFactory
 } from "./workers.js";
+import { isNumber, isString } from "../utils/type-guards.js";
 
 const INT32_MIN = -2147483648;
 const INT32_MAX = 2147483647;
@@ -369,14 +370,14 @@ export function createSandboxWasmDispatcher(
     async call(moduleKey, exportName, args) {
       const signal = options.signal;
       if (isAborted(signal)) throw cancelled();
-      const runModule = typeof moduleKey === "string" ? byKey.get(moduleKey) : undefined;
+      const runModule = isString(moduleKey) ? byKey.get(moduleKey) : undefined;
       if (runModule === undefined) {
         throw new SandboxWasmError(
           `${describe(moduleKey)} is not a WASM sandbox module declared by this node`
         );
       }
       const exported =
-        typeof exportName === "string" ? runModule.exports.get(exportName) : undefined;
+        isString(exportName) ? runModule.exports.get(exportName) : undefined;
       if (exported === undefined) {
         throw new SandboxWasmError(
           `${runModule.specifier} has no export named ${describe(exportName)}`
@@ -453,7 +454,7 @@ export function createSandboxWasmDispatcher(
 }
 
 function describe(value: unknown): string {
-  if (typeof value === "string") return JSON.stringify(value);
+  if (isString(value)) return JSON.stringify(value);
   return `a ${value === null ? "null" : typeof value} value`;
 }
 
@@ -495,7 +496,7 @@ function convertArgument(
   value: unknown
 ): number {
   const where = `${specifier}: ${exportName} argument ${position} expects ${wasmValueTypeName(type)}`;
-  if (typeof value !== "number") {
+  if (!isNumber(value)) {
     throw new SandboxWasmError(`${where}, received ${describeValue(value)}`);
   }
   if (type === WASM_VALUE_TYPE.F32 || type === WASM_VALUE_TYPE.F64) return value;
@@ -517,7 +518,7 @@ function convertArgument(
 
 function describeValue(value: unknown): string {
   if (typeof value === "bigint") return `the bigint ${value}`;
-  if (typeof value === "number") {
+  if (isNumber(value)) {
     if (Number.isNaN(value)) return "NaN";
     if (!Number.isFinite(value)) return String(value);
     return `the non-integer ${value}`;

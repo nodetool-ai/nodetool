@@ -57,6 +57,12 @@ import {
   REGION_SCHEMA,
   VIEW_IMAGE_SCHEMA
 } from "./assets.specs.js";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   DEFAULT_LIMIT,
@@ -114,8 +120,8 @@ function toHandle(asset: AssetRow) {
     uri: assetUri(asset),
     size: asset.size ?? null,
     duration: asset.duration ?? null,
-    width: typeof metadata.width === "number" ? metadata.width : null,
-    height: typeof metadata.height === "number" ? metadata.height : null,
+    width: isNumber(metadata.width) ? metadata.width : null,
+    height: isNumber(metadata.height) ? metadata.height : null,
     created_at: asset.created_at
   };
 }
@@ -156,7 +162,7 @@ function withZodValidation(
         issues
       };
     }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (!isRecord(parsed)) {
       return {
         error: "invalid_tool_arguments",
         message: `Invalid arguments for ${name}: expected an object`,
@@ -271,14 +277,14 @@ const saveAsset: CapabilityExport = {
       const contentBase64 = params.content_base64;
       const contentTypeArg = params.content_type;
 
-      if (typeof name !== "string" || !name) {
+      if (!isString(name) || !name) {
         return {
           success: false,
           error: "name is required and must be a string"
         };
       }
-      const hasText = typeof content === "string";
-      const hasBinary = typeof contentBase64 === "string" && contentBase64;
+      const hasText = isString(content);
+      const hasBinary = isString(contentBase64) && contentBase64;
       if (!hasText && !hasBinary) {
         return {
           success: false,
@@ -291,7 +297,7 @@ const saveAsset: CapabilityExport = {
         ? new Uint8Array(Buffer.from(contentBase64 as string, "base64"))
         : new TextEncoder().encode(content as string);
       const mime =
-        typeof contentTypeArg === "string" && contentTypeArg
+        isString(contentTypeArg) && contentTypeArg
           ? contentTypeArg
           : hasBinary
             ? "application/octet-stream"
@@ -309,7 +315,7 @@ const saveAsset: CapabilityExport = {
           contentType: mime,
           content: data
         })) as { id?: string };
-        if (asset && typeof asset.id === "string") {
+        if (asset && isString(asset.id)) {
           // createAsset persists under a DB-generated id, so a name-keyed
           // read_asset("<name>") would never find it. Mirror the bytes under
           // the `assets/<name>` storage key too (best-effort) so the reader's
@@ -369,7 +375,7 @@ const readAsset: CapabilityExport = {
     try {
       const name = params.name;
 
-      if (typeof name !== "string" || !name) {
+      if (!isString(name) || !name) {
         return {
           success: false,
           error: "name is required and must be a string"
@@ -470,9 +476,9 @@ const assetSearch: CapabilityExport = {
       };
     }
 
-    const query = typeof params.query === "string" ? params.query.trim() : "";
+    const query = isString(params.query) ? params.query.trim() : "";
     const contentType =
-      typeof params.content_type === "string" && params.content_type.trim()
+      isString(params.content_type) && params.content_type.trim()
         ? params.content_type.trim()
         : undefined;
     const limit = resolveLimit(params.limit);
@@ -504,7 +510,7 @@ const assetList: CapabilityExport = {
     }
 
     const contentType =
-      typeof params.content_type === "string" && params.content_type.trim()
+      isString(params.content_type) && params.content_type.trim()
         ? params.content_type.trim()
         : undefined;
     const limit = resolveLimit(params.limit);
@@ -543,7 +549,7 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
       ? Math.min(Math.floor(limitParam), 100)
       : DEFAULT_LIST_LIMIT;
   const query =
-    typeof params["query"] === "string" ? params["query"].trim() : "";
+    isString(params["query"]) ? params["query"].trim() : "";
 
   try {
     // searchAssetsGlobal does a content_type prefix match, so "image/"
@@ -557,7 +563,7 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
     const images = rows
       .filter(
         (a) =>
-          typeof a.content_type === "string" &&
+          isString(a.content_type) &&
           a.content_type.startsWith("image/")
       )
       .slice(0, limit)
@@ -569,9 +575,9 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
           content_type: a.content_type,
           size: a.size ?? null,
           width:
-            typeof metadata["width"] === "number" ? metadata["width"] : null,
+            isNumber(metadata["width"]) ? metadata["width"] : null,
           height:
-            typeof metadata["height"] === "number" ? metadata["height"] : null
+            isNumber(metadata["height"]) ? metadata["height"] : null
         };
       });
 
@@ -645,7 +651,7 @@ function parseDataUri(
 const LOW_DETAIL_MAX_SIDE = 768;
 
 function parseRegion(value: unknown): ImageRegion | undefined {
-  if (!value || typeof value !== "object") return undefined;
+  if (!isObjectLike(value)) return undefined;
   const r = value as Record<string, unknown>;
   const x = Number(r["x"]);
   const y = Number(r["y"]);
@@ -761,7 +767,7 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
   }
 
   const question =
-    typeof params["question"] === "string" ? params["question"].trim() : "";
+    isString(params["question"]) ? params["question"].trim() : "";
   const dims = width && height ? ` (${width}×${height})` : "";
   const regionNote = region
     ? ` region ${region.x},${region.y} ${region.width}×${region.height}`

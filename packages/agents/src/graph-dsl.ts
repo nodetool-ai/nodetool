@@ -13,6 +13,7 @@
 import type { GraphData, NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { runInSandbox } from "./js-sandbox.js";
 import { GRAPH_DSL_CORE_PRELUDE } from "./graph-dsl-core.js";
+import { isRecord, isString } from "./utils/type-guards.js";
 
 /** Wall-clock budget for a graph program. Pure graph building is fast. */
 export const GRAPH_DSL_TIMEOUT_MS = 10_000;
@@ -54,7 +55,7 @@ export interface GraphDslResult {
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
+  return isRecord(value)
     ? (value as Record<string, unknown>)
     : null;
 }
@@ -82,7 +83,7 @@ function toGraphData(result: unknown) {
   const nodes: NodeDescriptor[] = [];
   for (const raw of record.nodes) {
     const n = asRecord(raw);
-    if (!n || typeof n.id !== "string" || typeof n.type !== "string") {
+    if (!n || !isString(n.id) || !isString(n.type)) {
       return { error: "Malformed node in graph() result." };
     }
     nodes.push({
@@ -98,10 +99,10 @@ function toGraphData(result: unknown) {
     const e = asRecord(raw);
     if (
       !e ||
-      typeof e.source !== "string" ||
-      typeof e.sourceHandle !== "string" ||
-      typeof e.target !== "string" ||
-      typeof e.targetHandle !== "string"
+      !isString(e.source) ||
+      !isString(e.sourceHandle) ||
+      !isString(e.target) ||
+      !isString(e.targetHandle)
     ) {
       return { error: "Malformed edge in graph() result." };
     }

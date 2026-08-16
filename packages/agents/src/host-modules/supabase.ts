@@ -16,6 +16,7 @@ import {
   withQuery,
   type PreparedRequest
 } from "./prepared-request.js";
+import { isObjectLike } from "../utils/type-guards.js";
 
 function projectUrl(where: string, value: unknown): URL {
   const raw = requireString(where, value, "url");
@@ -40,7 +41,7 @@ function authHeaders(key: string) {
  * (`{age: {gte: 18}}`).
  */
 function applyFilters(url: URL, filters: unknown): void {
-  if (filters === null || typeof filters !== "object") return;
+  if (!isObjectLike(filters)) return;
   for (const [column, value] of Object.entries(
     filters as Record<string, unknown>
   )) {

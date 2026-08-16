@@ -10,10 +10,11 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const str = (params: Record<string, unknown>, key: string): string => {
   const value = params[key];
-  return typeof value === "string" ? value.trim() : "";
+  return isString(value) ? value.trim() : "";
 };
 
 export const DRIVE_SEARCH_SCHEMA: JsonSchema = {

@@ -47,6 +47,13 @@ import {
   EDIT_SKETCH_SCHEMA,
   VALIDATE_SKETCH_SCHEMA
 } from "./sketches.specs.js";
+import {
+  isFiniteNumber,
+  isNonBlankString,
+  isNumber,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   DEFAULT_VERSION_LIMIT,
@@ -72,7 +79,7 @@ async function loadSketch(
   run: CapabilityRun,
   sketchId: unknown
 ): Promise<ImageDocument | ToolError> {
-  if (typeof sketchId !== "string" || !sketchId) {
+  if (!isString(sketchId) || !sketchId) {
     return {
       error: "image_document_id is required (use list_sketches to find one)."
     };
@@ -107,7 +114,7 @@ function toVersionListItem(version: ImageDocumentVersion) {
  * so beats handing back a string the caller will treat as a document.
  */
 function parseVersionDocument(raw: unknown): unknown | ToolError {
-  if (typeof raw !== "string") return raw;
+  if (!isString(raw)) return raw;
   try {
     return JSON.parse(raw) as unknown;
   } catch {
@@ -149,7 +156,7 @@ const listSketches: CapabilityExport = {
     const { ImageDocument } = await import("@nodetool-ai/models");
     const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
     const query =
-      typeof params["query"] === "string"
+      isString(params["query"])
         ? params["query"].trim().toLowerCase()
         : "";
     // Filter after the read: the name filter is not indexed, and the per-user
@@ -185,7 +192,7 @@ const listSketchVersions: CapabilityExport = {
       )
     );
     const saveType =
-      typeof params["save_type"] === "string"
+      isString(params["save_type"])
         ? (params["save_type"] as string)
         : undefined;
     const versions = await ImageDocumentVersion.listForDocument(doc.id, {
@@ -236,7 +243,7 @@ const createSketchVersion: CapabilityExport = {
 
     const { ImageDocumentVersion } = await import("@nodetool-ai/models");
     const name =
-      typeof params["name"] === "string" && params["name"]
+      isString(params["name"]) && params["name"]
         ? (params["name"] as string)
         : null;
     const version = await ImageDocumentVersion.snapshot(doc, {
@@ -370,11 +377,11 @@ function parseOps(raw: unknown): ParsedOp[] | ToolError {
   }
   const parsed: ParsedOp[] = [];
   for (const [index, entry] of raw.entries()) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isRecord(entry)) {
       return { error: `ops[${index}] must be an object.` };
     }
     const { op, ...args } = entry as Record<string, unknown>;
-    if (typeof op !== "string" || !isOpName(op.trim())) {
+    if (!isString(op) || !isOpName(op.trim())) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${OPS.join(", ")}.`
       };
@@ -390,7 +397,7 @@ function findLayerIndex(
   activeLayerId: string,
   target: unknown
 ): number {
-  const raw = typeof target === "string" ? target.trim() : "";
+  const raw = isString(target) ? target.trim() : "";
   if (raw === "" || raw === "active") {
     return layers.findIndex((layer) => layer.id === activeLayerId);
   }
@@ -449,7 +456,7 @@ function applyOp(
   switch (op) {
     case "add_layer": {
       const name =
-        typeof args["name"] === "string" && args["name"].trim() !== ""
+        isNonBlankString(args["name"])
           ? args["name"].trim()
           : `Layer ${layers.length + 1}`;
       const type = args["type"] === "mask" ? "mask" : "raster";
@@ -463,7 +470,7 @@ function applyOp(
       // Layers are ordered bottom-to-top, so a new one goes on top unless the
       // caller pins an index.
       const at =
-        typeof args["index"] === "number"
+        isNumber(args["index"])
           ? Math.max(0, Math.min(Math.trunc(args["index"]), layers.length))
           : layers.length;
       layers.splice(at, 0, layer);
@@ -493,7 +500,7 @@ function applyOp(
       if (index < 0)
         throw new Error(`No layer matches "${String(args["target"])}".`);
       const name = args["name"];
-      if (typeof name !== "string" || name.trim() === "") {
+      if (!isString(name) || name.trim() === "") {
         throw new Error("rename_layer needs a non-empty `name`.");
       }
       layers[index] = { ...layers[index], name: name.trim() };
@@ -604,7 +611,7 @@ const editSketch: CapabilityExport = {
   spec: editSketchSpec,
   impl: async (run, params) => {
     const sketchId = params["image_document_id"];
-    if (typeof sketchId !== "string" || !sketchId) {
+    if (!isString(sketchId) || !sketchId) {
       return {
         error: "image_document_id is required (use list_sketches to find one)."
       };
@@ -702,14 +709,14 @@ const editSketch: CapabilityExport = {
 
 /** A positive finite number from a tool param, or undefined. */
 function numberParam(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
+  return isFiniteNumber(value) && value > 0
     ? value
     : undefined;
 }
 
 /** Unwrap a stored document that may still be JSON text. */
 function parseStoredDocument(document: unknown): unknown {
-  if (typeof document !== "string") return document;
+  if (!isString(document)) return document;
   try {
     return JSON.parse(document);
   } catch {
@@ -737,7 +744,7 @@ const validateSketch: CapabilityExport = {
       width: numberParam(params["width"]),
       height: numberParam(params["height"]),
       backgroundColor:
-        typeof params["background_color"] === "string"
+        isString(params["background_color"])
           ? (params["background_color"] as string)
           : undefined
     };

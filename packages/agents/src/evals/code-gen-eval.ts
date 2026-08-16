@@ -27,6 +27,7 @@ import {
 } from "../code-gen/analyze.js";
 import { unknownApiReferences } from "../code-gen/sandbox-prompt.js";
 import { CODE_GEN_EVAL_CASES } from "./code-gen-cases.js";
+import { isString } from "../utils/type-guards.js";
 
 export interface CodeGenEvalExpectations {
   /** Output names that must be declared (exact names the instruction implies). */
@@ -126,7 +127,7 @@ function totalToolCalls(byName: Record<string, number>): number {
 }
 
 function typeOf(port: { type: { type?: unknown } }): string {
-  return typeof port.type.type === "string" ? port.type.type : "unknown";
+  return isString(port.type.type) ? port.type.type : "unknown";
 }
 
 /**

@@ -7,6 +7,7 @@
 
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { isNumber, isObjectLike } from "./utils/type-guards.js";
 
 export type HostBinaryResult = {
   stdout: string;
@@ -54,7 +55,7 @@ export async function runHostBinary(
       clearTimeout(timer);
       if (killTimer) clearTimeout(killTimer);
       const code =
-        err && typeof err === "object" && "code" in err
+        isObjectLike(err) && "code" in err
           ? String((err as { code?: unknown }).code)
           : "";
       if (code === "ENOENT") {
@@ -107,7 +108,7 @@ export function clampTimeoutSeconds(
   fallback: number,
   max: number
 ): number {
-  const n = typeof raw === "number" ? raw : fallback;
+  const n = isNumber(raw) ? raw : fallback;
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.min(Math.floor(n), max);
 }

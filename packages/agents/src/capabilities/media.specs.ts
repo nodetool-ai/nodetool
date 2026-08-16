@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const MAX_COMPARE_IMAGES = 8;
 
@@ -431,7 +432,7 @@ export const ffmpegSpec: CapabilitySpec = {
   category: "execute",
   userMessage: (params) => {
     const out =
-      typeof params["output_file"] === "string" ? params["output_file"] : "";
+      isString(params["output_file"]) ? params["output_file"] : "";
     return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
   }
 };
@@ -470,7 +471,7 @@ export const ytDlpSpec: CapabilitySpec = {
   inputSchema: YT_DLP_SCHEMA,
   category: "external",
   userMessage: (params) => {
-    const url = typeof params["url"] === "string" ? params["url"] : "a URL";
+    const url = isString(params["url"]) ? params["url"] : "a URL";
     const msg = `Downloading video from ${url}`;
     return msg.length > 160 ? "Downloading a video" : msg;
   }

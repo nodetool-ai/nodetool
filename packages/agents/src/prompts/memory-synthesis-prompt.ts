@@ -17,6 +17,7 @@
  */
 
 import type { LongTermMemoryItem } from "../long-term-memory.js";
+import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
 
 /** Hard cap on the number of synthesized facts returned per call. */
 export const MAX_SYNTHESIZED_FACTS = 7;
@@ -112,7 +113,7 @@ export function buildMemorySynthesisUserPrompt(
 }
 
 function coerceUtility(value: unknown): FactUtility {
-  const s = typeof value === "string" ? value.toLowerCase().trim() : "";
+  const s = isString(value) ? value.toLowerCase().trim() : "";
   return (VALID_UTILITIES.has(s) ? s : DEFAULT_UTILITY) as FactUtility;
 }
 
@@ -157,13 +158,13 @@ export function parseSynthesisPayload(
 
   const out: SynthesizedFact[] = [];
   for (const entry of parsed) {
-    if (!entry || typeof entry !== "object") continue;
+    if (!isObjectLike(entry)) continue;
     const obj = entry as Record<string, unknown>;
-    const fact = typeof obj.fact === "string" ? obj.fact.trim() : "";
+    const fact = isString(obj.fact) ? obj.fact.trim() : "";
     if (!fact) continue;
     const rawSources = Array.isArray(obj.sources) ? obj.sources : [];
     const sources = rawSources
-      .map((s) => (typeof s === "number" ? s : Number(s)))
+      .map((s) => (isNumber(s) ? s : Number(s)))
       .filter(
         (s) => Number.isInteger(s) && s >= 0 && s < candidateCount
       );

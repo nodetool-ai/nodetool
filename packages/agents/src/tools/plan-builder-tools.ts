@@ -12,6 +12,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { Step, Task, TaskPlan } from "../types.js";
 import { randomUUID } from "node:crypto";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // Shared state
@@ -98,11 +103,11 @@ export class PlanBuilder {
 
   private buildTask(data: Record<string, unknown>): Task {
     const taskId =
-      typeof data["id"] === "string" && data["id"].length > 0
+      isNonEmptyString(data["id"])
         ? (data["id"] as string)
         : randomUUID();
     const taskTitle =
-      typeof data["title"] === "string"
+      isString(data["title"])
         ? (data["title"] as string)
         : "Untitled Task";
     const taskDependsOn = Array.isArray(data["depends_on"])
@@ -115,9 +120,9 @@ export class PlanBuilder {
     const steps: Step[] = rawSteps.map((s: unknown) => {
       const raw = s as Record<string, unknown>;
       return {
-        id: typeof raw["id"] === "string" ? raw["id"] : randomUUID(),
+        id: isString(raw["id"]) ? raw["id"] : randomUUID(),
         instructions:
-          typeof raw["instructions"] === "string" ? raw["instructions"] : "",
+          isString(raw["instructions"]) ? raw["instructions"] : "",
         completed: false,
         dependsOn: Array.isArray(raw["depends_on"])
           ? (raw["depends_on"] as string[])
@@ -125,9 +130,9 @@ export class PlanBuilder {
             ? (raw["dependsOn"] as string[])
             : [],
         outputSchema:
-          typeof raw["output_schema"] === "string"
+          isString(raw["output_schema"])
             ? raw["output_schema"]
-            : typeof raw["outputSchema"] === "string"
+            : isString(raw["outputSchema"])
               ? raw["outputSchema"]
               : undefined,
         tools: Array.isArray(raw["tools"])
@@ -305,10 +310,10 @@ function applySchemaOverrides(steps: Step[]): string[] {
     if (!step.outputSchema) continue;
     try {
       const parsed =
-        typeof step.outputSchema === "string"
+        isString(step.outputSchema)
           ? JSON.parse(step.outputSchema)
           : step.outputSchema;
-      if (typeof parsed === "object" && parsed !== null) {
+      if (isObjectLike(parsed)) {
         if (!("type" in parsed)) {
           (parsed as Record<string, unknown>)["type"] = "object";
           step.outputSchema = JSON.stringify(parsed);
@@ -412,7 +417,7 @@ export class AddTaskTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const title =
-      typeof params["title"] === "string" ? params["title"] : "task";
+      isString(params["title"]) ? params["title"] : "task";
     return `Adding task: ${title}`;
   }
 }
@@ -450,7 +455,7 @@ export class RemoveTaskTool extends Tool {
     _context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<RemoveTaskResult> {
-    const id = typeof params["id"] === "string" ? params["id"] : "";
+    const id = isString(params["id"]) ? params["id"] : "";
     const result = this.builder.removeTask(id);
     if (!result.ok) {
       return { status: "error", error: result.error };
@@ -465,7 +470,7 @@ export class RemoveTaskTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const id = typeof params["id"] === "string" ? params["id"] : "";
+    const id = isString(params["id"]) ? params["id"] : "";
     return `Removing task: ${id}`;
   }
 }
@@ -505,7 +510,7 @@ export class FinishPlanTool extends Tool {
     params: Record<string, unknown>
   ): Promise<FinishPlanResult> {
     const title =
-      typeof params["title"] === "string" ? params["title"] : "Untitled Plan";
+      isString(params["title"]) ? params["title"] : "Untitled Plan";
     const result = this.builder.finish(title);
     if (!result.ok) {
       return { status: "validation_failed", errors: result.errors };
@@ -520,7 +525,7 @@ export class FinishPlanTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const title =
-      typeof params["title"] === "string" ? params["title"] : "plan";
+      isString(params["title"]) ? params["title"] : "plan";
     return `Finalizing plan: ${title}`;
   }
 }

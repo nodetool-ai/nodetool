@@ -26,6 +26,14 @@ import type { JsonValue } from "../utils/json-parser.js";
 import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
 import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
 import { TOOLS_PRELUDE } from "./tools-prelude.js";
+import {
+  isBoolean,
+  isNonEmptyString,
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export { TOOLS_PRELUDE } from "./tools-prelude.js";
 
@@ -68,9 +76,9 @@ export interface ToolBridge {
 export function toTransferable(value: unknown): JsonValue {
   if (value === null || value === undefined) return null;
   if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value)
   ) {
     return value;
   }
@@ -86,13 +94,13 @@ export function toTransferable(value: unknown): JsonValue {
  * thrown exception, not as a value to compute on.
  */
 export function extractErrorPayload(result: unknown): string | null {
-  if (result === null || typeof result !== "object" || Array.isArray(result)) {
+  if (!isObjectLike(result) || Array.isArray(result)) {
     return null;
   }
   const record = result as Record<string, unknown>;
-  if (typeof record["error"] !== "string") return null;
+  if (!isString(record["error"])) return null;
   const message = record["message"];
-  return typeof message === "string" && message.length > 0
+  return isNonEmptyString(message)
     ? message
     : record["error"];
 }
@@ -111,7 +119,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
     argsJson: unknown
   ): Promise<BridgeResult> => {
     try {
-      if (typeof name !== "string" || !byName.has(name)) {
+      if (!isString(name) || !byName.has(name)) {
         return {
           ok: false,
           error: `Unknown tool "${String(name)}". Available: ${[...byName.keys()].join(", ")}`
@@ -126,10 +134,10 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       calls++;
 
       let args: Record<string, unknown> = {};
-      if (typeof argsJson === "string" && argsJson.length > 0) {
+      if (isNonEmptyString(argsJson)) {
         try {
           const parsed = JSON.parse(argsJson) as unknown;
-          if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+          if (isRecord(parsed)) {
             args = parsed as Record<string, unknown>;
           } else if (parsed !== null) {
             return {
@@ -302,7 +310,7 @@ export interface ToolSignatureSource {
 }
 
 function schemaTypeLabel(schema: unknown, depth = 0): string {
-  if (schema === null || typeof schema !== "object") return "unknown";
+  if (!isObjectLike(schema)) return "unknown";
   const s = schema as Record<string, unknown>;
   if (Array.isArray(s["enum"])) {
     return (s["enum"] as unknown[])
@@ -329,7 +337,7 @@ function schemaTypeLabel(schema: unknown, depth = 0): string {
     return `{${fields}}`;
   }
   if (type === "integer") return "number";
-  if (typeof type === "string") return type;
+  if (isString(type)) return type;
   if (Array.isArray(type)) return type.join(" | ");
   return "unknown";
 }

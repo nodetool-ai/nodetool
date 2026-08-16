@@ -6,6 +6,7 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 /**
  * What a formula evaluates to. expr-eval computes over numbers, strings and
@@ -34,7 +35,7 @@ async function loadExpr(where: string): Promise<ExprEvalLike> {
     mod,
     where,
     "expr-eval",
-    (v) => typeof (v as ExprEvalLike | undefined)?.Parser === "function"
+    (v) => isFunction((v as ExprEvalLike | undefined)?.Parser)
   );
 }
 

@@ -10,6 +10,7 @@
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 type Alignment = "LEFT" | "CENTER" | "RIGHT" | "JUSTIFY";
 
@@ -98,7 +99,7 @@ async function loadDocx(where: string): Promise<DocxLike> {
     mod,
     where,
     "docx",
-    (v) => typeof (v as DocxLike | undefined)?.Document === "function"
+    (v) => isFunction((v as DocxLike | undefined)?.Document)
   );
 }
 

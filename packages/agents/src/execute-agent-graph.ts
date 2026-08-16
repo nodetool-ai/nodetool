@@ -24,6 +24,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { AGENT_NODE_TYPE } from "./graph-builder.js";
 import type { Tool } from "./tools/base-tool.js";
 import { randomUUID } from "node:crypto";
+import { isString } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.workflow-runner");
 
@@ -78,7 +79,7 @@ export function applyRunPolicy(
 
       // The run's system prompt carries the merged skill/memory instructions.
       const system = properties["system"];
-      if (systemPrompt && (typeof system !== "string" || system.length === 0)) {
+      if (systemPrompt && (!isString(system) || system.length === 0)) {
         properties["system"] = systemPrompt;
       }
 

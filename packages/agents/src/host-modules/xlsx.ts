@@ -7,6 +7,11 @@
  */
 
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /** Sheets one `write` call may produce. */
 export const MAX_WRITE_SHEETS = 64;
@@ -66,7 +71,7 @@ async function loadExcelJs(where: string): Promise<ExcelJsLike> {
     mod,
     where,
     "exceljs",
-    (v) => typeof (v as ExcelJsLike | undefined)?.Workbook === "function"
+    (v) => isFunction((v as ExcelJsLike | undefined)?.Workbook)
   );
 }
 
@@ -98,7 +103,7 @@ export async function parse(
       // exceljs rich values: formulas carry `result`, rich text `richText`,
       // hyperlinks `text`.
       if (rec.result !== undefined) return rec.result;
-      if (typeof rec.text === "string") return rec.text;
+      if (isString(rec.text)) return rec.text;
       if (Array.isArray(rec.richText)) {
         return (rec.richText as Array<{ text?: unknown }>)
           .map((part) => String(part.text ?? ""))
@@ -180,7 +185,7 @@ interface CellRange {
 
 /** `A1`, `A1:C20` — a rectangle in 1-based row/column numbers. */
 function parseRange(where: string, range: unknown): CellRange {
-  if (typeof range !== "string" || !range.trim()) {
+  if (!isString(range) || !range.trim()) {
     throw new Error(`${where}: a style needs a range like "A1:C20"`);
   }
   const cells = range.split(":");
@@ -223,7 +228,7 @@ function asRecordArray(
     throw new Error(`${where}: ${label} must be an array`);
   }
   return value.map((entry) => {
-    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isObjectLike(entry) || Array.isArray(entry)) {
       throw new Error(`${where}: every ${label} entry must be an object`);
     }
     return entry as Record<string, unknown>;
@@ -240,7 +245,7 @@ function readSheetSpecs(
   const entries: Array<[string, Record<string, unknown> | readonly unknown[]]> = [];
   if (Array.isArray(sheets)) {
     for (const [index, entry] of sheets.entries()) {
-      if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+      if (!isObjectLike(entry) || Array.isArray(entry)) {
         throw new Error(`${where}: sheet ${index} must be an object with a name`);
       }
       const sheet = entry as Record<string, unknown>;
@@ -248,7 +253,7 @@ function readSheetSpecs(
       if (!name) throw new Error(`${where}: sheet ${index} has no name`);
       entries.push([name, sheet]);
     }
-  } else if (sheets !== null && typeof sheets === "object") {
+  } else if (isObjectLike(sheets)) {
     for (const [name, rows] of Object.entries(sheets as Record<string, unknown>)) {
       if (!Array.isArray(rows)) {
         throw new Error(`${where}: sheet "${name}" must hold an array of rows`);
@@ -300,7 +305,7 @@ function readSheetSpecs(
 /** What exceljs should store for one guest value. */
 function writeValue(value: unknown) {
   if (value === undefined) return null;
-  if (value === null || typeof value !== "object") return value;
+  if (!isObjectLike(value)) return value;
   if (value instanceof Uint8Array) {
     throw new Error("xlsx.write: a cell cannot hold bytes");
   }
@@ -346,7 +351,7 @@ export async function write(sheets: unknown, options?: unknown): Promise<Uint8Ar
       const keys = spec.columns ? [...spec.columns] : [];
       if (keys.length === 0) {
         for (const row of spec.rows) {
-          if (row === null || typeof row !== "object" || Array.isArray(row)) {
+          if (!isObjectLike(row) || Array.isArray(row)) {
             throw new Error(
               `${where}: sheet "${spec.name}" rows must be objects (pass header: false for arrays)`
             );

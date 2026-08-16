@@ -27,6 +27,12 @@ import {
   CANVAS_METHODS,
   CANVAS_PROPERTIES
 } from "./sandbox-canvas-api.js";
+import {
+  isFiniteNumber,
+  isFunction,
+  isObjectLike,
+  isString
+} from "./utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -275,12 +281,11 @@ export async function getMediaBackend(): Promise<MediaBackend> {
       const mod = await importHidden<NapiCanvasModule>("@napi-rs/canvas").catch(
         () => null
       );
-      if (mod && typeof mod.createCanvas === "function") {
+      if (mod && isFunction(mod.createCanvas)) {
         return createNodeBackend(mod);
       }
       if (
-        typeof (globalThis as { OffscreenCanvas?: unknown }).OffscreenCanvas ===
-        "function"
+        isFunction((globalThis as { OffscreenCanvas?: unknown }).OffscreenCanvas)
       ) {
         return createBrowserBackend();
       }
@@ -319,7 +324,7 @@ export function asImageBytes(value: unknown, label: string): Uint8Array {
     return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
   }
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (value && typeof value === "object") {
+  if (isObjectLike(value)) {
     const record = value as Record<string, unknown>;
     const length = Number(record.length ?? -1);
     if (Number.isInteger(length) && length >= 0) {
@@ -339,7 +344,7 @@ export function asImageBytes(value: unknown, label: string): Uint8Array {
  */
 function invoke(ctx: MediaContext2D, name: string, ...args: unknown[]): void {
   const fn = ctx[name];
-  if (typeof fn !== "function") {
+  if (!isFunction(fn)) {
     throw new Error(`canvas: "${name}" is not available in this runtime`);
   }
   (fn as (...a: unknown[]) => void).apply(ctx, args);
@@ -1128,7 +1133,7 @@ function buildGradients(
 export async function renderCanvas(
   spec: CanvasRenderSpec
 ): Promise<Uint8Array> {
-  if (!spec || typeof spec !== "object") {
+  if (!isObjectLike(spec)) {
     throw new Error("canvas.render: spec must be an object");
   }
   const width = Math.round(Number(spec.width));
@@ -1166,9 +1171,9 @@ export async function renderCanvas(
   const ctx = surface.ctx;
   const gradients = buildGradients(ctx, spec.gradients);
   const resolveStyle = (value: unknown): unknown => {
-    if (value && typeof value === "object") {
+    if (isObjectLike(value)) {
       const id = (value as Record<string, unknown>)[CANVAS_GRADIENT_MARKER];
-      if (typeof id === "string") {
+      if (isString(id)) {
         const gradient = gradients.get(id);
         if (!gradient) {
           throw new Error("canvas.render: unknown gradient reference");
@@ -1221,7 +1226,7 @@ export async function measureCanvasText(
   text: unknown,
   font: unknown
 ): Promise<Record<string, number>> {
-  if (typeof text !== "string") {
+  if (!isString(text)) {
     throw new Error("canvas.measureText: text must be a string");
   }
   const backend = await getMediaBackend();
@@ -1232,7 +1237,7 @@ export async function measureCanvasText(
   const metrics = surface.ctx.measureText(text);
   const pick = (key: string): number => {
     const value = (metrics as Record<string, unknown>)[key];
-    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+    return isFiniteNumber(value) ? value : 0;
   };
   return {
     width: pick("width"),

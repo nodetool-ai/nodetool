@@ -38,6 +38,7 @@ import {
 import { applyRunPolicy } from "../execute-agent-graph.js";
 import { judgeGoalAchievement, type GoalJudgeVerdict } from "./goal-judge.js";
 import { GRAPH_E2E_EVAL_CASES } from "./graph-e2e-cases.js";
+import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
 
 /** One value the run surfaced through an output node. */
 export interface GraphRunOutput {
@@ -212,14 +213,14 @@ const MAX_OUTPUT_PREVIEW_CHARS = 4000;
 
 /** Collapse an output value to something a JSON report can carry. */
 export function previewOutputValue(value: unknown): unknown {
-  if (typeof value === "string") {
+  if (isString(value)) {
     return value.length > MAX_OUTPUT_PREVIEW_CHARS
       ? `${value.slice(0, MAX_OUTPUT_PREVIEW_CHARS)}…[${value.length} chars]`
       : value;
   }
   if (value instanceof Uint8Array) return `<binary ${value.byteLength} bytes>`;
   if (Array.isArray(value)) return value.map(previewOutputValue);
-  if (value && typeof value === "object") {
+  if (isObjectLike(value)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       out[k] = previewOutputValue(v);
@@ -232,7 +233,7 @@ export function previewOutputValue(value: unknown): unknown {
 /** Render an output for regex matching and emptiness checks. */
 function outputText(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   if (value instanceof Uint8Array) return `<binary ${value.byteLength} bytes>`;
   try {
     return JSON.stringify(value) ?? "";
@@ -248,7 +249,7 @@ function outputText(value: unknown): string {
  * text. Strings are compared exactly — case and punctuation included.
  */
 function matchesExactly(actual: unknown, expected: unknown): boolean {
-  if (typeof expected === "number" && typeof actual === "string") {
+  if (isNumber(expected) && isString(actual)) {
     return actual.trim() !== "" && Number(actual) === expected;
   }
   return outputText(actual) === outputText(expected);

@@ -51,6 +51,7 @@ import {
   resolveAvailableGenericNodes
 } from "./prompts/workflow-authoring-knowledge.js";
 import { runSubAgent } from "./subagent.js";
+import { isObjectLike } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.author-graph");
 
@@ -364,7 +365,7 @@ function formatTools(tools: Tool[]): string {
     .map((tool) => {
       const schema = tool.inputSchema;
       let args = "";
-      if (schema && typeof schema === "object" && "properties" in schema) {
+      if (isObjectLike(schema) && "properties" in schema) {
         const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required)
           ? (schema.required as string[])
@@ -382,8 +383,8 @@ function formatTools(tools: Tool[]): string {
 
 /** Narrow a finished result to a graph, or null when it is not one. */
 function asGraphData(result: unknown): GraphData | null {
-  if (result === null || typeof result !== "object") return null;
+  if (!isObjectLike(result)) return null;
   const record = result as { nodes?: unknown; edges?: unknown };
   if (!Array.isArray(record.nodes) || !Array.isArray(record.edges)) return null;
-  return result as GraphData;
+  return record as GraphData;
 }

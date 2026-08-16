@@ -25,6 +25,7 @@ import type {
   ToolLoopEvalCase,
   ToolLoopStatePredicate
 } from "../tool-loop-eval.js";
+import { isString } from "../../utils/type-guards.js";
 
 const EVAL_USER = "eval-user";
 const EVAL_THREAD = "eval-thread";
@@ -118,7 +119,7 @@ export function createThreadMemoryToolBridge(
       }),
       execute: async (args) => {
         await ready;
-        const prompt = typeof args.prompt === "string" ? args.prompt : "image";
+        const prompt = isString(args.prompt) ? args.prompt : "image";
         const asset = await Asset.create<Asset>({
           user_id: EVAL_USER,
           name: `${slug(prompt)}.png`,
@@ -192,7 +193,7 @@ const memoryReferencesAnAsset: ToolLoopStatePredicate<ThreadMemoryBridgeFinalSta
         m.resources.some(
           (r) =>
             r.type === "asset" &&
-            typeof r.id === "string" &&
+            isString(r.id) &&
             s.assets.some((a) => a.id === r.id)
         )
       ),

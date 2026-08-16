@@ -19,6 +19,7 @@ import {
   type SubAgentToolRun,
   type SubAgentToolRuntime
 } from "../subagent.js";
+import { isString } from "../utils/type-guards.js";
 
 export { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 export type { ForwardMessage } from "../subagent.js";
@@ -73,7 +74,7 @@ export class RunSubtaskTool extends SubAgentTool {
 
   userMessage(params: Record<string, unknown>): string {
     const desc =
-      typeof params.description === "string" ? params.description.trim() : "";
+      isString(params.description) ? params.description.trim() : "";
     return desc ? `Running subtask: ${desc}` : "Running subtask";
   }
 
@@ -81,9 +82,9 @@ export class RunSubtaskTool extends SubAgentTool {
     params: Record<string, unknown>
   ): SubAgentToolRun | { error: string; message: string } {
     const description =
-      typeof params.description === "string" ? params.description.trim() : "";
+      isString(params.description) ? params.description.trim() : "";
     const prompt =
-      typeof params.prompt === "string" ? params.prompt.trim() : "";
+      isString(params.prompt) ? params.prompt.trim() : "";
     if (!prompt) {
       return {
         error: "missing_prompt",

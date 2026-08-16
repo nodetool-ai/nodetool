@@ -14,6 +14,7 @@
  */
 
 import { optionsOf } from "./limits.js";
+import { isNonEmptyString, isString } from "../utils/type-guards.js";
 
 /** Largest body the signer will hash, in bytes. */
 const MAX_SIGNED_BODY_BYTES = 10 * 1024 * 1024;
@@ -53,7 +54,7 @@ const encoder = new TextEncoder();
 type Bytes = Uint8Array<ArrayBuffer>;
 
 function toBytes(value: string | Bytes): Bytes {
-  return typeof value === "string" ? encoder.encode(value) : value;
+  return isString(value) ? encoder.encode(value) : value;
 }
 
 function toHex(bytes: Uint8Array): string {
@@ -171,7 +172,7 @@ function readCredentials(
     );
   }
   const sessionToken = opts.sessionToken;
-  if (typeof sessionToken === "string" && sessionToken !== "") {
+  if (isNonEmptyString(sessionToken)) {
     return { accessKeyId, secretAccessKey, sessionToken };
   }
   return { accessKeyId, secretAccessKey };
@@ -205,7 +206,7 @@ function readBody(
   value: unknown
 ): string | Bytes | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value === "string") {
+  if (isString(value)) {
     if (encoder.encode(value).length > MAX_SIGNED_BODY_BYTES) {
       throw new Error(
         `${where}: body exceeds the ${MAX_SIGNED_BODY_BYTES} byte signing limit`
@@ -277,7 +278,7 @@ export async function sigv4(request?: unknown): Promise<SignedRequest> {
   const { stamp, date } = amzDate(new Date());
 
   const payloadHash =
-    typeof opts.payloadHash === "string" && opts.payloadHash !== ""
+    isNonEmptyString(opts.payloadHash)
       ? opts.payloadHash
       : body === undefined
         ? EMPTY_SHA256

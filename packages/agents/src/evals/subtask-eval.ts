@@ -39,6 +39,7 @@ import {
   type SubtaskEvalExpectations,
   type ToolRecorder
 } from "./subtask-cases.js";
+import { isObjectLike, isRecord, isString } from "../utils/type-guards.js";
 
 const DEFAULT_MAX_ITERATIONS = 16;
 
@@ -145,8 +146,7 @@ class RecordingSubtaskTool extends RunSubtaskTool {
   ): Promise<unknown> {
     const result = await super.process(context, params);
     const errorCode =
-      result !== null &&
-      typeof result === "object" &&
+      isObjectLike(result) &&
       "error" in (result as Record<string, unknown>)
         ? String((result as { error: unknown }).error)
         : null;
@@ -154,9 +154,9 @@ class RecordingSubtaskTool extends RunSubtaskTool {
     // not count it as a spawned subtask.
     if (errorCode && NON_SPAWN_ERROR_CODES.has(errorCode)) return result;
     const description =
-      typeof params.description === "string" ? params.description : "";
+      isString(params.description) ? params.description : "";
     const resultText =
-      typeof result === "string" ? result : JSON.stringify(result ?? "");
+      isString(result) ? result : JSON.stringify(result ?? "");
     this.spawns.push({
       description,
       failed: errorCode !== null,
@@ -269,7 +269,7 @@ export function checkSubtaskExpectations(
 
 /** Coerce a step result into the parent's final answer text. */
 function answerText(result: unknown): string {
-  if (typeof result === "string") return result;
+  if (isString(result)) return result;
   if (result === null || result === undefined) return "";
   return JSON.stringify(result);
 }
@@ -337,15 +337,13 @@ async function runCase(
       if (item.type === "step_result") {
         const sr = item as StepResult;
         const nestedError =
-          sr.result &&
-          typeof sr.result === "object" &&
-          !Array.isArray(sr.result) &&
+          isRecord(sr.result) &&
           "error" in sr.result
             ? (sr.result as { error?: unknown }).error
             : undefined;
         if (sr.error) {
           error = sr.error;
-        } else if (typeof nestedError === "string") {
+        } else if (isString(nestedError)) {
           error = nestedError;
         } else {
           answer = answerText(sr.result);

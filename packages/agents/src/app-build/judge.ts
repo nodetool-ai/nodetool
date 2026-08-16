@@ -31,6 +31,12 @@ import type {
   JudgeRecord,
   StageRecord
 } from "./types.js";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /** Ceiling on one judgement's answer. Two sentences of reasoning, no essays. */
 const JUDGE_MAX_TOKENS = 600;
@@ -234,16 +240,16 @@ export function parseJudgeAnswer(
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!isObjectLike(parsed)) return null;
   const obj = parsed as Record<string, unknown>;
-  if (typeof obj.achieved !== "boolean") return null;
-  const raw = typeof obj.confidence === "number" ? obj.confidence : NaN;
+  if (!isBoolean(obj.achieved)) return null;
+  const raw = isNumber(obj.confidence) ? obj.confidence : NaN;
   const confidence = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
   const reasons = Array.isArray(obj.reasons)
     ? obj.reasons
         .map((reason) => String(reason))
         .filter((reason) => reason.length > 0)
-    : typeof obj.reasons === "string"
+    : isString(obj.reasons)
       ? [obj.reasons]
       : [];
   return {
@@ -254,11 +260,11 @@ export function parseJudgeAnswer(
 }
 
 function extractText(content: Message["content"]): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!Array.isArray(content)) return "";
   return content
     .map((part) =>
-      part && typeof part === "object" && "text" in part
+      isObjectLike(part) && "text" in part
         ? String((part as { text: unknown }).text ?? "")
         : ""
     )

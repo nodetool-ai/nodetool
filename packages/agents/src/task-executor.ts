@@ -31,6 +31,7 @@ import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
+import { isObjectLike, isRecord } from "./utils/type-guards.js";
 
 const DEFAULT_MAX_STEPS = 50;
 const DEFAULT_MAX_STEP_ITERATIONS = 10;
@@ -293,7 +294,7 @@ export class TaskExecutor {
    */
   private shortHash(value: unknown): string {
     const data = JSON.stringify(value, (_key, val) => {
-      if (val != null && typeof val === "object" && !Array.isArray(val)) {
+      if (isRecord(val)) {
         const sorted: Record<string, unknown> = {};
         for (const k of Object.keys(val).sort()) {
           sorted[k] = val[k];
@@ -383,13 +384,13 @@ export class TaskExecutor {
 
     const ephemeralSteps: Step[] = items.map((item, index) => {
       let instructions = template;
-      if (typeof item === "object" && item !== null) {
+      if (isObjectLike(item)) {
         for (const [key, value] of Object.entries(
           item as Record<string, unknown>
         )) {
           const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const strValue =
-            typeof value === "object" && value !== null
+            isObjectLike(value)
               ? JSON.stringify(value)
               : String(value);
           instructions = instructions.replace(

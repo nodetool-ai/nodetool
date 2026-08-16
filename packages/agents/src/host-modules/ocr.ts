@@ -8,6 +8,7 @@
  */
 
 import { importOptionalLibrary, optionsOf, requireBytes } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 /** Words one call reports. A dense page is a few thousand. */
 export const MAX_OCR_WORDS = 20_000;
@@ -35,10 +36,10 @@ async function loadRecognize(where: string): Promise<Recognize> {
     "tesseract.js"
   );
   const candidate =
-    typeof mod.recognize === "function"
+    isFunction(mod.recognize)
       ? mod.recognize
       : (mod.default as Record<string, unknown> | undefined)?.recognize;
-  if (typeof candidate !== "function") {
+  if (!isFunction(candidate)) {
     throw new Error(
       `${where}: the "tesseract.js" library is not available in this runtime`
     );

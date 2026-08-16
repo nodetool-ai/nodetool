@@ -36,6 +36,7 @@ import {
   SEARCH_NODES_INPUT_SCHEMA,
   GET_NODE_INFO_INPUT_SCHEMA
 } from "./nodes.specs.js";
+import { isFunction, isNumber } from "../utils/type-guards.js";
 
 export {
   LIST_NODES_INPUT_SCHEMA,
@@ -89,7 +90,7 @@ const listNodes: CapabilityExport = {
     if (!registry) return noRegistryError("list node types");
 
     const namespace = params["namespace"] as string | undefined;
-    const limit = typeof params["limit"] === "number" ? params["limit"] : 50;
+    const limit = isNumber(params["limit"]) ? params["limit"] : 50;
 
     let allMetadata = registry.listMetadata();
 
@@ -128,7 +129,7 @@ const searchNodes: CapabilityExport = {
 
     const queryArr = (params["query"] as string[]) ?? [];
     const maxResults =
-      typeof params["n_results"] === "number" ? params["n_results"] : 10;
+      isNumber(params["n_results"]) ? params["n_results"] : 10;
     const inputType = params["input_type"] as string | undefined;
     const outputType = params["output_type"] as string | undefined;
     const namespace = params["namespace"] as string | undefined;
@@ -151,7 +152,7 @@ const searchNodes: CapabilityExport = {
       ) => ScoredNode[];
     };
     let ranked: ScoredNode[];
-    if (typeof indexed.searchMetadata === "function") {
+    if (isFunction(indexed.searchMetadata)) {
       ranked = indexed.searchMetadata(queryArr, scoreOptions);
     } else {
       const { rankNodeMetadata } = await import("@nodetool-ai/node-sdk");

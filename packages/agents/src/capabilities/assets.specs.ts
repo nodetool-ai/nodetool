@@ -11,6 +11,7 @@
 import type { CapabilitySpec } from "./types.js";
 import { z } from "zod";
 import { zodToJsonSchema, type JsonSchema } from "@nodetool-ai/runtime";
+import { isString } from "../utils/type-guards.js";
 
 export const DEFAULT_LIMIT = 25;
 
@@ -193,7 +194,7 @@ export const saveAssetSpec: CapabilitySpec = {
   category: "write",
   userMessage: (params) => {
     const name = params.name;
-    if (typeof name === "string" && name) {
+    if (isString(name) && name) {
       const msg = `Saving asset as ${name}...`;
       return msg.length > 80 ? "Saving asset..." : msg;
     }
@@ -219,7 +220,7 @@ export const readAssetSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const name = params.name;
-    if (typeof name === "string" && name) {
+    if (isString(name) && name) {
       const msg = `Reading asset ${name}...`;
       return msg.length > 80 ? "Reading an asset..." : msg;
     }
@@ -238,7 +239,7 @@ export const assetSearchSpec: CapabilitySpec = {
   inputSchema: ASSET_SEARCH_SCHEMA,
   category: "read",
   userMessage: (params) => {
-    const q = typeof params.query === "string" ? params.query : "";
+    const q = isString(params.query) ? params.query : "";
     return q ? `Searching assets: ${q.slice(0, 50)}` : "Searching assets";
   }
 };
@@ -253,7 +254,7 @@ export const assetListSpec: CapabilitySpec = {
   category: "read",
   userMessage: (params) => {
     const ct =
-      typeof params.content_type === "string" ? params.content_type : "";
+      isString(params.content_type) ? params.content_type : "";
     return ct ? `Listing ${ct} assets` : "Listing recent assets";
   }
 };

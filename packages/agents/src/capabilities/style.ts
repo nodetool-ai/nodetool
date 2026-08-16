@@ -29,6 +29,11 @@ import {
   RECORD_STYLE_PREFERENCE_SCHEMA,
   GET_STYLE_PROFILE_SCHEMA
 } from "./style.specs.js";
+import {
+  isFiniteNumber,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   RECORD_STYLE_PREFERENCE_SCHEMA,
@@ -51,15 +56,15 @@ const recordStylePreference: CapabilityExport = {
       return { stored: false, note: "Long-term memory is not configured." };
     }
     const takeaway =
-      typeof params["takeaway"] === "string" ? params["takeaway"].trim() : "";
+      isString(params["takeaway"]) ? params["takeaway"].trim() : "";
     if (!takeaway) return { stored: false, note: "takeaway is required" };
 
     const details: string[] = [];
-    if (typeof params["chosen"] === "string" && params["chosen"].trim())
+    if (isString(params["chosen"]) && params["chosen"].trim())
       details.push(`chose: ${params["chosen"].trim()}`);
-    if (typeof params["rejected"] === "string" && params["rejected"].trim())
+    if (isString(params["rejected"]) && params["rejected"].trim())
       details.push(`over: ${params["rejected"].trim()}`);
-    if (typeof params["brief"] === "string" && params["brief"].trim())
+    if (isString(params["brief"]) && params["brief"].trim())
       details.push(`brief: ${params["brief"].trim()}`);
     const text = details.length
       ? `${takeaway} (${details.join("; ")})`
@@ -68,7 +73,7 @@ const recordStylePreference: CapabilityExport = {
     const stored = await memory.remember(text, {
       kind: "preference",
       importance:
-        typeof params["importance"] === "number" ? params["importance"] : 0.6,
+        isNumber(params["importance"]) ? params["importance"] : 0.6,
       source: "style_preference"
     });
     if (!stored) {
@@ -93,11 +98,11 @@ const getStyleProfile: CapabilityExport = {
       };
     }
     const query =
-      typeof params["query"] === "string" && params["query"].trim()
+      isString(params["query"]) && params["query"].trim()
         ? params["query"].trim()
         : "visual style aesthetic preference taste";
     const k =
-      typeof params["k"] === "number" && Number.isFinite(params["k"])
+      isFiniteNumber(params["k"])
         ? Math.max(1, Math.min(20, Math.trunc(params["k"])))
         : 10;
 

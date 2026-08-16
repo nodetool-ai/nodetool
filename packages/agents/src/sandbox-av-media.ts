@@ -27,6 +27,7 @@ import {
 } from "mediabunny";
 
 import { encodePixels } from "./sandbox-media.js";
+import { isFiniteNumber, isNumber } from "./utils/type-guards.js";
 
 interface MediabunnyServerModule {
   registerMediabunnyServer(): void;
@@ -384,7 +385,7 @@ function numberOption(
 ): number {
   const value = options?.[name];
   if (value === undefined) return fallback;
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  if (!isNumber(value) || !Number.isFinite(value)) {
     throw new Error(`${name} must be a finite number`);
   }
   return value;
@@ -876,7 +877,7 @@ export function createVideoBridge(
       const time =
         rawTime === undefined
           ? 0
-          : typeof rawTime === "number" && Number.isFinite(rawTime)
+          : isFiniteNumber(rawTime)
             ? Math.max(0, rawTime)
             : NaN;
       if (!Number.isFinite(time)) {

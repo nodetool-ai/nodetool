@@ -46,6 +46,7 @@ import {
   buildCodeGenSystemPrompt,
   buildCodeGenUserPrompt
 } from "./code-gen/prompt.js";
+import { isFunction } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.code-planner");
 
@@ -338,7 +339,7 @@ export class CodePlanner {
   private async providerSupportsTools(): Promise<boolean> {
     // Providers that don't implement the probe are assumed capable; a real
     // refusal then surfaces as a loop error rather than a false negative.
-    if (typeof this.provider.hasToolSupport !== "function") return true;
+    if (!isFunction(this.provider.hasToolSupport)) return true;
     try {
       return await this.provider.hasToolSupport(this.model);
     } catch {

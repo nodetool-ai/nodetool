@@ -9,6 +9,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 /**
  * An EPUB's OPF metadata, mirroring the fields epub2 parses out of the package
@@ -71,7 +72,7 @@ async function loadEpub2(where: string): Promise<Epub2Like> {
     mod,
     where,
     "epub2",
-    (v) => typeof (v as Epub2Like | undefined)?.EPub?.createAsync === "function"
+    (v) => isFunction((v as Epub2Like | undefined)?.EPub?.createAsync)
   );
 }
 
@@ -134,7 +135,7 @@ export async function tableOfContents(bytes: unknown): Promise<EpubTocItem[]> {
 export async function extractText(bytes: unknown, options?: unknown): Promise<string> {
   const opts = optionsOf(options);
   const separator =
-    typeof opts.chapterSeparator === "string" ? opts.chapterSeparator : "\n\n";
+    isString(opts.chapterSeparator) ? opts.chapterSeparator : "\n\n";
   return withEpub("epub.extractText", bytes, async (epub) => {
     const parts: string[] = [];
     for (const item of epub.flow ?? []) {
@@ -152,7 +153,7 @@ export async function extractChapters(bytes: unknown): Promise<EpubChapter[]> {
   return withEpub("epub.extractChapters", bytes, async (epub) => {
     const titleById = new Map<string, string>();
     for (const entry of epub.toc ?? []) {
-      if (typeof entry.id === "string" && typeof entry.title === "string") {
+      if (isString(entry.id) && isString(entry.title)) {
         titleById.set(entry.id, entry.title);
       }
     }

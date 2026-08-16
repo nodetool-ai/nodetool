@@ -9,6 +9,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { Step, Task } from "../types.js";
 import { randomUUID } from "node:crypto";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 const CREATE_TASK_INPUT_SCHEMA = {
   type: "object",
@@ -85,21 +86,21 @@ export class CreateTaskPlanTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const title =
-      typeof params["title"] === "string" ? params["title"] : "task";
+      isString(params["title"]) ? params["title"] : "task";
     return `Creating task: ${title}`;
   }
 
   private buildTask(data: Record<string, unknown>): Task {
     const title =
-      typeof data["title"] === "string" ? data["title"] : "Untitled Task";
+      isString(data["title"]) ? data["title"] : "Untitled Task";
     const rawSteps = Array.isArray(data["steps"]) ? data["steps"] : [];
 
     const steps: Step[] = rawSteps.map((s: unknown) => {
       const raw = s as Record<string, unknown>;
       return {
-        id: typeof raw["id"] === "string" ? raw["id"] : randomUUID(),
+        id: isString(raw["id"]) ? raw["id"] : randomUUID(),
         instructions:
-          typeof raw["instructions"] === "string" ? raw["instructions"] : "",
+          isString(raw["instructions"]) ? raw["instructions"] : "",
         completed: false,
         dependsOn: Array.isArray(raw["depends_on"])
           ? (raw["depends_on"] as string[])
@@ -107,9 +108,9 @@ export class CreateTaskPlanTool extends Tool {
             ? (raw["dependsOn"] as string[])
             : [],
         outputSchema:
-          typeof raw["output_schema"] === "string"
+          isString(raw["output_schema"])
             ? raw["output_schema"]
-            : typeof raw["outputSchema"] === "string"
+            : isString(raw["outputSchema"])
               ? raw["outputSchema"]
               : undefined,
         tools: Array.isArray(raw["tools"])
@@ -191,10 +192,10 @@ export class CreateTaskPlanTool extends Tool {
       if (!step.outputSchema) continue;
       try {
         const parsed =
-          typeof step.outputSchema === "string"
+          isString(step.outputSchema)
             ? JSON.parse(step.outputSchema)
             : step.outputSchema;
-        if (typeof parsed === "object" && parsed !== null) {
+        if (isObjectLike(parsed)) {
           if (!("type" in parsed)) {
             (parsed as Record<string, unknown>)["type"] = "object";
             step.outputSchema = JSON.stringify(parsed);

@@ -22,6 +22,7 @@ import {
   LIST_JOBS_SCHEMA,
   GET_JOB_LOGS_SCHEMA
 } from "./jobs.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 export { LIST_JOBS_SCHEMA, GET_JOB_LOGS_SCHEMA } from "./jobs.specs.js";
 
@@ -39,7 +40,7 @@ const listJobs: CapabilityExport = {
     const page: JobPageOptions = {
       limit: Number(params["limit"] ?? 100)
     };
-    if (typeof workflowId === "string" && workflowId) {
+    if (isString(workflowId) && workflowId) {
       page.workflowId = workflowId;
     }
     const [jobs, next] = await Job.paginate(userIdOf(run.context), page);

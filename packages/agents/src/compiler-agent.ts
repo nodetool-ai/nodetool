@@ -38,6 +38,7 @@ import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
 import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
 import { truncateToolResult } from "./constants.js";
+import { isRecord, isString } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.compiler-agent");
 
@@ -283,9 +284,7 @@ export class CompilerAgent {
       // with an `items` key is not misinterpreted.
       if (
         this.outputSchema?.["type"] === "array" &&
-        resultPayload !== null &&
-        typeof resultPayload === "object" &&
-        !Array.isArray(resultPayload) &&
+        isRecord(resultPayload) &&
         Array.isArray((resultPayload as Record<string, unknown>)["items"])
       ) {
         resultPayload = (resultPayload as Record<string, unknown>)["items"];
@@ -319,7 +318,7 @@ export class CompilerAgent {
       try {
         const result = await Tool.executeTool(tool, this.context, args);
         const serialized =
-          typeof result === "string" ? result : JSON.stringify(result);
+          isString(result) ? result : JSON.stringify(result);
         return truncateToolResult(serialized);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
@@ -399,7 +398,7 @@ export class CompilerAgent {
           endedWithCleanMessage = !(
             Array.isArray(m.toolCalls) && m.toolCalls.length > 0
           );
-          if (typeof m.content === "string") {
+          if (isString(m.content)) {
             lastAssistantText = m.content;
           }
         }

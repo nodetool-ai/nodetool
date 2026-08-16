@@ -6,6 +6,7 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 /**
  * A parsed XML document. Elements become objects, repeated elements become
@@ -25,7 +26,7 @@ async function loadFastXmlParser(where: string): Promise<FxpLike> {
     mod,
     where,
     "fast-xml-parser",
-    (v) => typeof (v as FxpLike | undefined)?.XMLParser === "function"
+    (v) => isFunction((v as FxpLike | undefined)?.XMLParser)
   );
 }
 

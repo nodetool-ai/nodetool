@@ -45,6 +45,11 @@ import {
   type BuildJudgeOptions
 } from "../app-build/build.js";
 import type { BuildReport, BuildSpec } from "../app-build/types.js";
+import {
+  isNonEmptyString,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 /**
  * The medium-complexity traits from the PRD (§4). A case declares the ones it
@@ -267,13 +272,13 @@ interface DocWidget {
 }
 
 const asWidget = (value: unknown): DocWidget | null => {
-  if (typeof value !== "object" || value === null) return null;
+  if (!isObjectLike(value)) return null;
   const { type, props } = value as { type?: unknown; props?: unknown };
-  if (typeof type !== "string") return null;
+  if (!isString(type)) return null;
   return {
     type,
     props:
-      typeof props === "object" && props !== null
+      isObjectLike(props)
         ? (props as Record<string, unknown>)
         : {}
   };
@@ -308,9 +313,9 @@ const hasNesting = (content: readonly unknown[]): boolean =>
 function hasCondition(node: DocWidget): boolean {
   return (["visibleWhen", "disabledWhen"] as const).some((prop) => {
     const value = node.props[prop];
-    if (typeof value !== "object" || value === null) return false;
+    if (!isObjectLike(value)) return false;
     const binding = (value as { binding?: unknown }).binding;
-    return typeof binding === "string" && binding !== "";
+    return isNonEmptyString(binding);
   });
 }
 

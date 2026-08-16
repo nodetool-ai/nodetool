@@ -19,19 +19,25 @@ import {
   type CodeActEvalCase,
   type CodeActToolRecorder
 } from "./codeact-cases.js";
+import {
+  isFiniteNumber,
+  isNumber,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 // ---------------------------------------------------------------------------
 // param coercion
 // ---------------------------------------------------------------------------
 
 const str = (value: unknown, fallback = ""): string =>
-  typeof value === "string" ? value : fallback;
+  isString(value) ? value : fallback;
 
 const num = (value: unknown, fallback: number): number =>
-  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  isFiniteNumber(value) ? value : fallback;
 
 const rec = (value: unknown): Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
+  isRecord(value)
     ? (value as Record<string, unknown>)
     : {};
 
@@ -39,7 +45,7 @@ const recList = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value) ? value.map(rec) : [];
 
 const strList = (value: unknown): string[] => {
-  if (typeof value === "string") return [value];
+  if (isString(value)) return [value];
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is string => typeof entry === "string");
 };
@@ -891,7 +897,7 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
   const wanted = Array.isArray(targets) ? targets : [];
   if (wanted.length === 0) return [];
   return wanted.map((entry) => {
-    if (typeof entry === "number") {
+    if (isNumber(entry)) {
       const shot = doc.shots[entry];
       if (!shot) throw new Error(`no shot at index ${entry}`);
       return shot;
@@ -2140,10 +2146,10 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
 const field = (result: unknown, key: string): unknown => rec(result)[key];
 
 const asNumber = (value: unknown): number =>
-  typeof value === "number" ? value : Number.NaN;
+  isNumber(value) ? value : Number.NaN;
 
 const asString = (value: unknown): string =>
-  typeof value === "string" ? value : "";
+  isString(value) ? value : "";
 
 export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
   {

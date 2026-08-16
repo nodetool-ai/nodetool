@@ -9,6 +9,7 @@
  */
 
 /** A request ready for `fetch(prepared.url, prepared)`. */
+import { isObjectLike, isString } from "../utils/type-guards.js";
 export interface PreparedRequest {
   readonly url: string;
   readonly method: string;
@@ -26,7 +27,7 @@ export function requireString(
   value: unknown,
   label: string
 ): string {
-  if (typeof value !== "string" || value === "") {
+  if (!isString(value) || value === "") {
     throw new Error(`${where}: ${label} is required`);
   }
   return value;
@@ -58,7 +59,7 @@ export function jsonBody(where: string, value: unknown): string {
  * repeats the key.
  */
 export function withQuery(url: URL, query: unknown): URL {
-  if (query === null || typeof query !== "object") return url;
+  if (!isObjectLike(query)) return url;
   for (const [key, value] of Object.entries(query as Record<string, unknown>)) {
     if (value === undefined || value === null) continue;
     if (Array.isArray(value)) {
@@ -76,7 +77,7 @@ export function withQuery(url: URL, query: unknown): URL {
 /** Form-encode a parameter bag, dropping absent entries and repeating arrays. */
 export function formBody(where: string, params: unknown): string {
   const encoded = new URLSearchParams();
-  if (params !== null && typeof params === "object") {
+  if (isObjectLike(params)) {
     for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
       if (value === undefined || value === null) continue;
       if (Array.isArray(value)) {

@@ -18,6 +18,7 @@
  * pixels from other tools into temp-asset handles before they reach the model.
  */
 import type { MessageImageContent } from "@nodetool-ai/runtime";
+import { isObjectLike, isRecord, isString } from "../utils/type-guards.js";
 
 /** Result field carrying a single viewable image. */
 export const IMAGE_CONTENT_FIELD = "image_content";
@@ -38,14 +39,14 @@ export interface ExtractedImages {
 }
 
 function toImageContent(value: unknown): MessageImageContent | null {
-  if (!value || typeof value !== "object") return null;
+  if (!isObjectLike(value)) return null;
   const img = value as InjectableImage;
   const image: MessageImageContent["image"] = {};
-  if (typeof img.uri === "string" && img.uri) image.uri = img.uri;
-  if (typeof img.data === "string" && img.data) image.data = img.data;
+  if (isString(img.uri) && img.uri) image.uri = img.uri;
+  if (isString(img.data) && img.data) image.data = img.data;
   else if (img.data instanceof Uint8Array) image.data = img.data;
   if (!image.uri && image.data == null) return null;
-  image.mimeType = typeof img.mimeType === "string" ? img.mimeType : "image/png";
+  image.mimeType = isString(img.mimeType) ? img.mimeType : "image/png";
   return { type: "image_url", image };
 }
 
@@ -54,7 +55,7 @@ function toImageContent(value: unknown): MessageImageContent | null {
  * results, which continue to be serialized as JSON.
  */
 export function extractInjectableImages(result: unknown): ExtractedImages | null {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return null;
+  if (!isRecord(result)) return null;
   const record = result as Record<string, unknown>;
 
   const images: MessageImageContent[] = [];
@@ -70,9 +71,9 @@ export function extractInjectableImages(result: unknown): ExtractedImages | null
   if (images.length === 0) return null;
 
   const text =
-    typeof record["note"] === "string"
+    isString(record["note"])
       ? (record["note"] as string)
-      : typeof record["question"] === "string"
+      : isString(record["question"])
         ? (record["question"] as string)
         : "Here is the requested image:";
   return { text, images };
@@ -84,7 +85,7 @@ export function extractInjectableImages(result: unknown): ExtractedImages | null
  * separate injected user message instead — never the persisted history.
  */
 export function stripImagePayload(result: unknown) {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return result;
+  if (!isRecord(result)) return result;
   const record = result as Record<string, unknown>;
   if (!(IMAGE_CONTENT_FIELD in record) && !(IMAGE_CONTENTS_FIELD in record)) {
     return result;
@@ -92,7 +93,7 @@ export function stripImagePayload(result: unknown) {
   const clone: Record<string, unknown> = { ...record };
   delete clone[IMAGE_CONTENT_FIELD];
   delete clone[IMAGE_CONTENTS_FIELD];
-  if (typeof clone["note"] !== "string") {
+  if (!isString(clone["note"])) {
     clone["note"] = "Image loaded into view for this turn.";
   }
   return clone;

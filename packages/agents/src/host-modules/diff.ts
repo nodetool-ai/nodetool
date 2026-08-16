@@ -6,6 +6,7 @@
  */
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 interface DiffLike {
   createTwoFilesPatch: (
@@ -25,7 +26,7 @@ async function loadDiff(where: string): Promise<DiffLike> {
     mod,
     where,
     "diff",
-    (v) => typeof (v as DiffLike | undefined)?.createTwoFilesPatch === "function"
+    (v) => isFunction((v as DiffLike | undefined)?.createTwoFilesPatch)
   );
 }
 

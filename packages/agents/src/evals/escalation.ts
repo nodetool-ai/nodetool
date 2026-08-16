@@ -16,6 +16,7 @@
 import { z } from "zod";
 import type { EvalCheck } from "./graph-planner-eval.js";
 import type { HeadlessTool } from "./tool-loop-bridge.js";
+import { isString } from "../utils/type-guards.js";
 
 /** Default name of the escalation tool exposed to the model. */
 export const DEFAULT_ESCALATION_TOOL_NAME = "ask_user";
@@ -88,7 +89,7 @@ const escalationParameters = z.object({
 function matchText(args: Record<string, unknown>): string {
   const parts = [String(args.question ?? "")];
   if (Array.isArray(args.options)) parts.push(args.options.join(" "));
-  if (typeof args.context === "string") parts.push(args.context);
+  if (isString(args.context)) parts.push(args.context);
   return parts.join(" ");
 }
 

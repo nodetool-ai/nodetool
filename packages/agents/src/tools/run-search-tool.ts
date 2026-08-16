@@ -34,6 +34,7 @@ import {
   READ_ONLY_SEARCH_DESCRIPTION,
   type SearchBreadth
 } from "../prompts/read-only-search-prompt.js";
+import { isString } from "../utils/type-guards.js";
 
 const DEFAULT_MAX_ITERATIONS = 20;
 
@@ -105,14 +106,14 @@ export class RunSearchTool extends SubAgentTool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const query = typeof params.query === "string" ? params.query.trim() : "";
+    const query = isString(params.query) ? params.query.trim() : "";
     return query ? `Searching: ${query}` : "Searching workspace";
   }
 
   protected buildRun(
     params: Record<string, unknown>
   ): SubAgentToolRun | { error: string; message: string } {
-    const query = typeof params.query === "string" ? params.query.trim() : "";
+    const query = isString(params.query) ? params.query.trim() : "";
     if (!query) {
       return {
         error: "missing_query",

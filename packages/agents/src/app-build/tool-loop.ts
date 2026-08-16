@@ -15,6 +15,7 @@
 import type { BaseProvider, Message, TurnBudget } from "@nodetool-ai/runtime";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { HeadlessTool } from "../evals/tool-loop-bridge.js";
+import { isString } from "../utils/type-guards.js";
 
 /** Turn cap when the caller names none. */
 export const DEFAULT_MAX_ITERATIONS = 12;
@@ -111,7 +112,7 @@ export async function runToolLoop(
       calls.push(record);
       opts.onToolCall?.(record);
       if (opts.stopOn?.(record)) stop.abort();
-      return typeof result === "string" ? result : JSON.stringify(result);
+      return isString(result) ? result : JSON.stringify(result);
     }
   }));
 

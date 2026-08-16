@@ -8,6 +8,11 @@
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 const MAX_PAGE = 8192;
 const MAX_PAGES = 200;
@@ -62,7 +67,7 @@ async function loadPdfLib(where: string): Promise<PdfLibLike> {
     mod,
     where,
     "pdf-lib",
-    (v) => typeof (v as PdfLibLike | undefined)?.PDFDocument?.create === "function"
+    (v) => isFunction((v as PdfLibLike | undefined)?.PDFDocument?.create)
   );
 }
 
@@ -82,7 +87,7 @@ function parseRgb(
   lib: PdfLibLike,
   color: unknown
 ): ReturnType<PdfLibLike["rgb"]> {
-  if (typeof color !== "string" || !color.trim()) {
+  if (!isString(color) || !color.trim()) {
     return lib.rgb(0, 0, 0);
   }
   let hex = color.trim().replace(/^#/, "");
@@ -114,7 +119,7 @@ async function drawItems(
   const { height } = page.getSize();
   for (let i = 0; i < items.length; i += 1) {
     const raw = items[i];
-    if (raw === null || typeof raw !== "object") {
+    if (!isObjectLike(raw)) {
       throw new Error(`${where}: items[${i}] must be an object`);
     }
     const item = raw as Record<string, unknown>;
@@ -168,7 +173,7 @@ export async function build(spec: unknown): Promise<GuestBytes> {
   const doc = await lib.PDFDocument.create();
   for (let i = 0; i < pages.length; i += 1) {
     const raw = pages[i];
-    if (raw === null || typeof raw !== "object") {
+    if (!isObjectLike(raw)) {
       throw new Error(`${where}: pages[${i}] must be an object`);
     }
     const pageSpec = raw as Record<string, unknown>;

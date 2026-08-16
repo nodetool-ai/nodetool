@@ -16,6 +16,7 @@ import {
   withQuery,
   type PreparedRequest
 } from "./prepared-request.js";
+import { isObjectLike, isString } from "../utils/type-guards.js";
 
 /** The API version this helper signs requests with unless told otherwise. */
 const DEFAULT_NOTION_VERSION = "2022-06-28";
@@ -77,14 +78,15 @@ interface RichTextEntry {
  * and reading one back out is the first thing every Notion script does.
  */
 export async function plainText(value?: unknown): Promise<string> {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   if (!Array.isArray(value)) return "";
   return value
     .map((entry: RichTextEntry) => {
-      if (entry === null || typeof entry !== "object") return "";
-      if (typeof entry.plain_text === "string") return entry.plain_text;
-      const content = entry.text?.content;
-      return typeof content === "string" ? content : "";
+      if (!isObjectLike(entry)) return "";
+      const span = entry as RichTextEntry;
+      if (isString(span.plain_text)) return span.plain_text;
+      const content = span.text?.content;
+      return isString(content) ? content : "";
     })
     .join("");
 }
@@ -113,8 +115,8 @@ export async function toMarkdown(blocks?: unknown): Promise<string> {
   if (!Array.isArray(blocks)) return "";
   const lines: string[] = [];
   for (const block of blocks as NotionBlock[]) {
-    if (block === null || typeof block !== "object") continue;
-    const type = typeof block.type === "string" ? block.type : "";
+    if (!isObjectLike(block)) continue;
+    const type = isString(block.type) ? block.type : "";
     const payload = optionsOf(block[type]);
     const text = await plainText(payload.rich_text);
 

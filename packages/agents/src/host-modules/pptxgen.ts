@@ -8,6 +8,11 @@
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
 import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  isFunction,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 const MAX_SLIDES = 200;
 
@@ -36,7 +41,7 @@ async function loadPptxGen(where: string): Promise<PptxGenCtor> {
     mod,
     where,
     "pptxgenjs",
-    (v) => typeof v === "function"
+    (v) => isFunction(v)
   );
   return ctor;
 }
@@ -62,30 +67,30 @@ export async function build(spec: unknown): Promise<GuestBytes> {
   }
   const PptxGen = await loadPptxGen(where);
   const pres = new PptxGen();
-  if (typeof input.title === "string") {
+  if (isString(input.title)) {
     pres.title = input.title;
   }
-  if (typeof input.author === "string") {
+  if (isString(input.author)) {
     pres.author = input.author;
   }
-  if (typeof input.subject === "string") {
+  if (isString(input.subject)) {
     pres.subject = input.subject;
   }
 
   for (let i = 0; i < slides.length; i += 1) {
     const raw = slides[i];
-    if (raw === null || typeof raw !== "object") {
+    if (!isObjectLike(raw)) {
       throw new Error(`${where}: slides[${i}] must be an object`);
     }
     const slideSpec = raw as Record<string, unknown>;
     const slide = pres.addSlide();
-    if (typeof slideSpec.background === "string") {
+    if (isString(slideSpec.background)) {
       slide.background = { color: slideSpec.background.replace(/^#/, "") };
     }
     const items = Array.isArray(slideSpec.items) ? slideSpec.items : [];
     for (let j = 0; j < items.length; j += 1) {
       const itemRaw = items[j];
-      if (itemRaw === null || typeof itemRaw !== "object") {
+      if (!isObjectLike(itemRaw)) {
         throw new Error(`${where}: slides[${i}].items[${j}] must be an object`);
       }
       const item = itemRaw as Record<string, unknown>;

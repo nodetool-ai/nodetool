@@ -11,6 +11,12 @@
  */
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 
 export interface GoalJudgeVerdict {
   /** The run produced what the goal asked for. */
@@ -67,7 +73,7 @@ export function renderValueForJudge(
   if (value === null || value === undefined) return String(value);
   if (value instanceof Uint8Array) return `<binary ${value.byteLength} bytes>`;
   const text =
-    typeof value === "string" ? value : safeStringify(value);
+    isString(value) ? value : safeStringify(value);
   return text.length > maxChars
     ? `${text.slice(0, maxChars)}…[${text.length} chars]`
     : text;
@@ -104,10 +110,10 @@ export function parseJudgeVerdict(text: string): GoalJudgeVerdict | null {
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!isObjectLike(parsed)) return null;
   const obj = parsed as Record<string, unknown>;
-  if (typeof obj.achieved !== "boolean") return null;
-  const rawScore = typeof obj.score === "number" ? obj.score : NaN;
+  if (!isBoolean(obj.achieved)) return null;
+  const rawScore = isNumber(obj.score) ? obj.score : NaN;
   const score = Number.isFinite(rawScore)
     ? Math.min(1, Math.max(0, rawScore))
     : obj.achieved
@@ -117,16 +123,16 @@ export function parseJudgeVerdict(text: string): GoalJudgeVerdict | null {
     achieved: obj.achieved,
     score,
     reasoning:
-      typeof obj.reasoning === "string" ? obj.reasoning : "(no reasoning given)"
+      isString(obj.reasoning) ? obj.reasoning : "(no reasoning given)"
   };
 }
 
 function extractText(content: Message["content"]): string {
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (!Array.isArray(content)) return "";
   return content
     .map((part) =>
-      part && typeof part === "object" && "text" in part
+      isObjectLike(part) && "text" in part
         ? String((part as { text: unknown }).text ?? "")
         : ""
     )

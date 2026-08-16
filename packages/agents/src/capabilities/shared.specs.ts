@@ -12,6 +12,7 @@
  */
 
 import type { CapabilitySpec } from "./types.js";
+import { isString } from "../utils/type-guards.js";
 
 export const listSharedSpec: CapabilitySpec = {
   name: "list_shared",
@@ -132,7 +133,7 @@ export const shareResultSpec: CapabilitySpec = {
   },
   category: "read",
   userMessage: (params) => {
-    const key = typeof params.key === "string" ? params.key : "(no key)";
+    const key = isString(params.key) ? params.key : "(no key)";
     return `Publishing to memory: shared:${key}`;
   }
 };

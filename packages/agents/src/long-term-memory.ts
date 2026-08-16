@@ -46,6 +46,7 @@ import {
   formatSynthesizedMemoryForPrompt,
   type SynthesizedFact
 } from "./prompts/memory-synthesis-prompt.js";
+import { isNumber, isObjectLike, isString } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.long-term-memory");
 
@@ -230,13 +231,13 @@ function looksLikeSecret(text: string): boolean {
 }
 
 function clampImportance(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value);
+  const n = isNumber(value) ? value : Number(value);
   if (!Number.isFinite(n)) return 0.5;
   return Math.max(0, Math.min(1, n));
 }
 
 function coerceKind(value: unknown): MemoryKind {
-  const s = typeof value === "string" ? value.toLowerCase().trim() : "";
+  const s = isString(value) ? value.toLowerCase().trim() : "";
   return (VALID_KINDS.has(s) ? s : "fact") as MemoryKind;
 }
 
@@ -264,17 +265,17 @@ function itemFromRecord(
     text: document ?? "",
     kind: coerceKind(m["kind"]),
     importance: clampImportance(m["importance"]),
-    source: typeof m["source"] === "string" ? (m["source"] as string) : "",
+    source: isString(m["source"]) ? (m["source"] as string) : "",
     createdAt:
-      typeof m["created_at_ms"] === "number"
+      isNumber(m["created_at_ms"])
         ? (m["created_at_ms"] as number)
         : 0,
     lastAccessedAt:
-      typeof m["last_accessed_at_ms"] === "number"
+      isNumber(m["last_accessed_at_ms"])
         ? (m["last_accessed_at_ms"] as number)
         : 0,
     accessCount:
-      typeof m["access_count"] === "number" ? (m["access_count"] as number) : 0
+      isNumber(m["access_count"]) ? (m["access_count"] as number) : 0
   };
 }
 
@@ -295,14 +296,13 @@ function renderConversationForExtraction(messages: Message[]): string {
     if (m.role !== "user" && m.role !== "assistant") continue;
     const role = m.role.toUpperCase();
     let body: string;
-    if (typeof m.content === "string") {
+    if (isString(m.content)) {
       body = m.content;
     } else if (Array.isArray(m.content)) {
       body = m.content
         .map((part) => {
           if (
-            part &&
-            typeof part === "object" &&
+            isObjectLike(part) &&
             "type" in part &&
             (part as { type: string }).type === "text"
           ) {
@@ -376,9 +376,9 @@ function parseExtractionPayload(raw: string): ExtractedMemory[] {
 
   const out: ExtractedMemory[] = [];
   for (const entry of parsed) {
-    if (!entry || typeof entry !== "object") continue;
+    if (!isObjectLike(entry)) continue;
     const obj = entry as Record<string, unknown>;
-    const text = typeof obj.text === "string" ? obj.text.trim() : "";
+    const text = isString(obj.text) ? obj.text.trim() : "";
     if (!text) continue;
     out.push({
       text,
@@ -605,7 +605,7 @@ export class LongTermMemory {
         tools: [],
         maxTokens: 800
       });
-      const raw = typeof response.content === "string" ? response.content : "";
+      const raw = isString(response.content) ? response.content : "";
       extracted = parseExtractionPayload(raw);
     } catch (err) {
       log.warn("LTM extraction failed", {
@@ -749,7 +749,7 @@ export class LongTermMemory {
         tools: [],
         maxTokens: 700
       });
-      const raw = typeof response.content === "string" ? response.content : "";
+      const raw = isString(response.content) ? response.content : "";
       return parseSynthesisPayload(raw, items.length);
     } catch (err) {
       log.warn("LTM synthesis failed", {

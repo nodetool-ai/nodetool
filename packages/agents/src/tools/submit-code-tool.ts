@@ -31,6 +31,7 @@ import {
   formatPortType,
   portTypesCompatible
 } from "../code-gen/port-types.js";
+import { isString } from "../utils/type-guards.js";
 
 const PORT_TYPE_SCHEMA = {
   type: "object" as const,
@@ -225,7 +226,7 @@ export class SubmitCodeTool extends Tool {
   ): Promise<SubmitCodeResult> {
     this.rounds++;
     this.lastCode =
-      typeof params["code"] === "string" ? (params["code"] as string) : null;
+      isString(params["code"]) ? (params["code"] as string) : null;
     this.lastErrors = [];
 
     const parsed = codeGenSubmission.safeParse(params);

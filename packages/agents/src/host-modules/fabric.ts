@@ -15,6 +15,11 @@ import {
   requireText,
   unwrapLibrary
 } from "./limits.js";
+import {
+  isFunction,
+  isNumber,
+  isString
+} from "../utils/type-guards.js";
 
 /** Max canvas dimensions to prevent excessive resource consumption. */
 export const MAX_FABRIC_DIMENSION = 8192;
@@ -91,12 +96,12 @@ async function loadFabric(where: string): Promise<FabricLike> {
     mod,
     where,
     "fabric",
-    (v) => typeof (v as FabricLike | undefined)?.StaticCanvas === "function"
+    (v) => isFunction((v as FabricLike | undefined)?.StaticCanvas)
   );
 }
 
 function parseSceneSpec(where: string, spec: unknown): FabricSceneSpec {
-  if (typeof spec === "string") {
+  if (isString(spec)) {
     try {
       spec = JSON.parse(spec);
     } catch (e) {
@@ -174,11 +179,11 @@ export async function render(
 
     const format = String(opts.format ?? "png").toLowerCase();
     const multiplier =
-      typeof opts.multiplier === "number" && opts.multiplier > 0
+      isNumber(opts.multiplier) && opts.multiplier > 0
         ? Math.min(opts.multiplier, 4)
         : 1;
     const quality =
-      typeof opts.quality === "number" && opts.quality >= 0 && opts.quality <= 1
+      isNumber(opts.quality) && opts.quality >= 0 && opts.quality <= 1
         ? opts.quality
         : 1;
 
@@ -193,7 +198,7 @@ export async function render(
     const buffer = Buffer.from(base64, "base64");
     return toGuestBytes(buffer);
   } finally {
-    if (typeof canvas.dispose === "function") {
+    if (isFunction(canvas.dispose)) {
       canvas.dispose();
     }
   }
@@ -236,7 +241,7 @@ export async function renderSVG(
     canvas.renderAll();
     return canvas.toSVG(opts);
   } finally {
-    if (typeof canvas.dispose === "function") {
+    if (isFunction(canvas.dispose)) {
       canvas.dispose();
     }
   }
@@ -280,11 +285,11 @@ export async function toDataURL(
 
     const format = String(opts.format ?? "png").toLowerCase();
     const multiplier =
-      typeof opts.multiplier === "number" && opts.multiplier > 0
+      isNumber(opts.multiplier) && opts.multiplier > 0
         ? Math.min(opts.multiplier, 4)
         : 1;
     const quality =
-      typeof opts.quality === "number" && opts.quality >= 0 && opts.quality <= 1
+      isNumber(opts.quality) && opts.quality >= 0 && opts.quality <= 1
         ? opts.quality
         : 1;
 
@@ -294,7 +299,7 @@ export async function toDataURL(
       quality
     });
   } finally {
-    if (typeof canvas.dispose === "function") {
+    if (isFunction(canvas.dispose)) {
       canvas.dispose();
     }
   }
@@ -316,7 +321,7 @@ export async function loadSVG(svg: unknown): Promise<FabricSvgScene> {
 
   const parseFn =
     fabricLib.loadSVGFromString ?? fabricLib.util?.loadSVGFromString;
-  if (typeof parseFn !== "function") {
+  if (!isFunction(parseFn)) {
     throw new Error(
       `${where}: SVG parsing is not supported by this Fabric version`
     );

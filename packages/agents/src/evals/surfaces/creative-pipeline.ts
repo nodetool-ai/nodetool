@@ -57,6 +57,7 @@ import {
   createTimelineToolBridge,
   type TimelineBridgeFinalState
 } from "./timeline.js";
+import { isNumber } from "../../utils/type-guards.js";
 
 /**
  * How much longer a rendered clip comes back than the shot requested. Video
@@ -573,7 +574,7 @@ export function createCreativePipelineBridge(
         const shot = (result as { shot?: { id?: string } })?.shot;
         const seconds = (args as { durationSeconds?: unknown })
           ?.durationSeconds;
-        if (shot?.id && typeof seconds === "number") {
+        if (shot?.id && isNumber(seconds)) {
           shotSeconds.set(shot.id, seconds);
         }
       }

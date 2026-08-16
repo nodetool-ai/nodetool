@@ -23,6 +23,7 @@ import { capabilitySpec, loadCapabilityImpl } from "./registry.js";
 import { ungatedCapabilityRun } from "./invoke.js";
 import type { CapabilityRunSource } from "./adapters.js";
 import type { CapabilitySpec } from "./types.js";
+import { isFunction } from "../utils/type-guards.js";
 
 class LazyCapabilityTool extends Tool {
   readonly name: string;
@@ -63,7 +64,7 @@ class LazyCapabilityTool extends Tool {
   ): Promise<unknown> {
     const impl = await loadCapabilityImpl(this.spec.name);
     const run =
-      typeof this.runSource === "function"
+      isFunction(this.runSource)
         ? this.runSource(context)
         : this.runSource;
     return impl(run, params);

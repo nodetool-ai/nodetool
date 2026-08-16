@@ -81,6 +81,13 @@ import {
   hasNodetoolApiTools,
   nodetoolApiCoveredToolNames
 } from "./nodetool-api.js";
+import {
+  isFiniteNumber,
+  isNonEmptyString,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export interface ChatCodeActToolCall {
   id: string;
@@ -178,7 +185,7 @@ interface ActionObservation {
  * `MessageContent[]` to their text.
  */
 function normalizeToolResult(raw: unknown): unknown {
-  if (typeof raw === "string") {
+  if (isString(raw)) {
     const trimmed = raw.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
@@ -194,9 +201,8 @@ function normalizeToolResult(raw: unknown): unknown {
     raw.length > 0 &&
     raw.every(
       (block) =>
-        block !== null &&
-        typeof block === "object" &&
-        typeof (block as { type?: unknown }).type === "string"
+        isObjectLike(block) &&
+        isString((block as { type?: unknown }).type)
     )
   ) {
     const texts = raw
@@ -277,7 +283,7 @@ export function createChatCodeActSession(
     argsJson: unknown
   ): Promise<{ ok: true; result: unknown } | { ok: false; error: string }> => {
     try {
-      if (typeof name !== "string" || !byName.has(name)) {
+      if (!isString(name) || !byName.has(name)) {
         return {
           ok: false,
           error: `Unknown tool "${String(name)}". Use nodetool.searchTools() to discover tools.`
@@ -295,13 +301,11 @@ export function createChatCodeActSession(
       totalCalls++;
 
       let args: Record<string, unknown> = {};
-      if (typeof argsJson === "string" && argsJson.length > 0) {
+      if (isNonEmptyString(argsJson)) {
         try {
           const parsed = JSON.parse(argsJson) as unknown;
           if (
-            parsed !== null &&
-            typeof parsed === "object" &&
-            !Array.isArray(parsed)
+            isRecord(parsed)
           ) {
             args = parsed as Record<string, unknown>;
           } else if (parsed !== null) {
@@ -365,7 +369,7 @@ export function createChatCodeActSession(
   > => {
     try {
       const limit =
-        typeof maxResults === "number" && Number.isFinite(maxResults)
+        isFiniteNumber(maxResults)
           ? Math.max(1, Math.min(25, Math.floor(maxResults)))
           : 5;
       const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
@@ -447,7 +451,7 @@ export function createChatCodeActSession(
   const executeAction = async (
     args: Record<string, unknown>
   ): Promise<string> => {
-    const code = typeof args?.["code"] === "string" ? args["code"] : "";
+    const code = isString(args?.["code"]) ? args["code"] : "";
     if (!code.trim()) {
       return JSON.stringify({
         ok: false,
@@ -498,7 +502,7 @@ export function createChatCodeActSession(
           opts?: Record<string, unknown>
         ) => {
           const mime =
-            typeof opts?.mimeType === "string" && opts.mimeType
+            isString(opts?.mimeType) && opts.mimeType
               ? opts.mimeType
               : type === "image"
                 ? inferImageMime(bytes)
@@ -506,9 +510,9 @@ export function createChatCodeActSession(
                   ? "audio/wav"
                   : "video/mp4";
           const filename =
-            typeof opts?.filename === "string"
+            isString(opts?.filename)
               ? opts.filename
-              : typeof opts?.name === "string"
+              : isString(opts?.name)
                 ? opts.name
                 : undefined;
           const persistOptions: Parameters<typeof persistOutput>[2] = {

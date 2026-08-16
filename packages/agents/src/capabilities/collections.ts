@@ -40,6 +40,7 @@ import {
   vectorBatchIndexSpec,
   QUERY_COLLECTION_SCHEMA
 } from "./collections.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 export { QUERY_COLLECTION_SCHEMA } from "./collections.specs.js";
 
@@ -267,7 +268,7 @@ const vectorRecursiveSplitAndIndex: CapabilityExport = {
     const chunkSize = (params["chunk_size"] as number) ?? 1000;
     const chunkOverlap = (params["chunk_overlap"] as number) ?? 200;
     let separators = (params["separators"] as string[]) ?? ["\n\n", "\n", "."];
-    if (typeof separators === "string") separators = [separators];
+    if (isString(separators)) separators = [separators];
 
     if (!text.trim()) return { error: "The text cannot be empty" };
     if (!documentId.trim()) return { error: "The document ID cannot be empty" };
@@ -388,7 +389,7 @@ const vectorBatchIndex: CapabilityExport = {
     // as a single chunk with no `source_id`, which the filter below drops —
     // the same outcome as before, without pretending a string is a chunk.
     const chunks: BatchChunk[] =
-      typeof rawChunks === "string"
+      isString(rawChunks)
         ? [{ text: rawChunks }]
         : (rawChunks as BatchChunk[]);
     const baseMetadata =

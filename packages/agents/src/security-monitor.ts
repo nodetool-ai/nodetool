@@ -37,6 +37,12 @@ import {
   SECURITY_MONITOR_SYSTEM_PROMPT,
   buildSecurityMonitorUserPrompt
 } from "./prompts/security-monitor-prompt.js";
+import {
+  isBoolean,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.security-monitor");
 
@@ -115,15 +121,14 @@ function truncate(text: string, max: number): string {
 /** Extract a plain string from a message's content (string | parts | other). */
 function extractText(content: Message["content"]): string {
   if (content === null || content === undefined) return "";
-  if (typeof content === "string") return content;
+  if (isString(content)) return content;
   if (Array.isArray(content)) {
     const parts: string[] = [];
     for (const part of content as MessageContent[]) {
       if (
-        typeof part === "object" &&
-        part !== null &&
+        isObjectLike(part) &&
         "text" in part &&
-        typeof (part as { text?: unknown }).text === "string"
+        isString((part as { text?: unknown }).text)
       ) {
         parts.push((part as { text: string }).text);
       }
@@ -135,7 +140,7 @@ function extractText(content: Message["content"]): string {
 
 /** Coerce an unknown into a {@link SecuritySeverity}, defaulting to "low". */
 function coerceSeverity(value: unknown): SecuritySeverity {
-  if (typeof value === "string" && SEVERITIES.has(value)) {
+  if (isString(value) && SEVERITIES.has(value)) {
     return value as SecuritySeverity;
   }
   return "low";
@@ -143,7 +148,7 @@ function coerceSeverity(value: unknown): SecuritySeverity {
 
 /** Coerce an unknown into a {@link SecurityTier}, defaulting to "none". */
 function coerceTier(value: unknown): SecurityTier {
-  if (typeof value === "string" && TIERS.has(value)) {
+  if (isString(value) && TIERS.has(value)) {
     return value as SecurityTier;
   }
   return "none";
@@ -151,8 +156,8 @@ function coerceTier(value: unknown): SecurityTier {
 
 /** Interpret a loose boolean-ish value ("yes"/"true"/true) as a block flag. */
 function coerceBlock(value: unknown): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
+  if (isBoolean(value)) return value;
+  if (isString(value)) {
     const lowered = value.trim().toLowerCase();
     return lowered === "true" || lowered === "yes" || lowered === "1";
   }
@@ -203,9 +208,7 @@ function findVerdictObject(text: string): Record<string, unknown> | null {
           try {
             const obj = JSON.parse(candidate);
             if (
-              obj &&
-              typeof obj === "object" &&
-              !Array.isArray(obj) &&
+              isRecord(obj) &&
               ("block" in obj || "tier" in obj)
             ) {
               return obj as Record<string, unknown>;
@@ -229,7 +232,7 @@ export function parseVerdict(text: string): SecurityVerdict | null {
   // block/tier), falling back to extractJSON's fence/brace recovery.
   const scanned = findVerdictObject(trimmed);
   const parsed = scanned ?? extractJSON(trimmed);
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+  if (isRecord(parsed)) {
     const obj = parsed as Record<string, unknown>;
     if ("block" in obj || "tier" in obj) {
       const tier = coerceTier(obj["tier"]);
@@ -242,7 +245,7 @@ export function parseVerdict(text: string): SecurityVerdict | null {
         block,
         tier,
         severity: coerceSeverity(obj["severity"]),
-        reason: typeof obj["reason"] === "string" ? obj["reason"] : ""
+        reason: isString(obj["reason"]) ? obj["reason"] : ""
       };
     }
   }

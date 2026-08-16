@@ -10,6 +10,7 @@
  */
 
 import { requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 interface PageTextResult {
   num: number;
@@ -34,7 +35,7 @@ async function loadPdfParse(where: string): Promise<PdfParseLike> {
     mod,
     where,
     "pdf-parse",
-    (v) => typeof (v as PdfParseLike | undefined)?.PDFParse === "function"
+    (v) => isFunction((v as PdfParseLike | undefined)?.PDFParse)
   );
 }
 

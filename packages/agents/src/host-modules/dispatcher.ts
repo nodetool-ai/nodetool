@@ -25,6 +25,7 @@ import {
 
 import { toGuestBytesDeep } from "../sandbox-bytes.js";
 import { loadSandboxHostModule } from "./registry.js";
+import { isFunction, isString } from "../utils/type-guards.js";
 
 /** Raised when a call breaks the host module contract. */
 export class SandboxHostModuleError extends Error {
@@ -102,13 +103,13 @@ export function createSandboxHostDispatcher(
       if (options.signal?.aborted === true) {
         throw new SandboxHostModuleError("the run was cancelled");
       }
-      const runModule = typeof moduleKey === "string" ? byKey.get(moduleKey) : undefined;
+      const runModule = isString(moduleKey) ? byKey.get(moduleKey) : undefined;
       if (runModule === undefined) {
         throw new SandboxHostModuleError(
           `${describe(moduleKey)} is not a host sandbox module declared by this node`
         );
       }
-      if (typeof exportName !== "string" || !runModule.exports.has(exportName)) {
+      if (!isString(exportName) || !runModule.exports.has(exportName)) {
         throw new SandboxHostModuleError(
           `${runModule.specifier} has no export named ${describe(exportName)}`
         );
@@ -122,7 +123,7 @@ export function createSandboxHostDispatcher(
       const fn = Object.hasOwn(implementation, exportName)
         ? implementation[exportName]
         : undefined;
-      if (typeof fn !== "function") {
+      if (!isFunction(fn)) {
         throw new SandboxHostModuleError(
           `${runModule.specifier}: ${exportName} has no implementation in this runtime`
         );
@@ -135,6 +136,6 @@ export function createSandboxHostDispatcher(
 }
 
 function describe(value: unknown): string {
-  if (typeof value === "string") return JSON.stringify(value);
+  if (isString(value)) return JSON.stringify(value);
   return `a ${value === null ? "null" : typeof value} value`;
 }

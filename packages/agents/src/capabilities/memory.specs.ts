@@ -9,6 +9,7 @@
  */
 
 import type { CapabilitySpec } from "./types.js";
+import { isString } from "../utils/type-guards.js";
 
 export const KNOWN_RESOURCE_TYPES = [
   "asset",
@@ -95,7 +96,7 @@ export const threadMemorySaveSpec: CapabilitySpec = {
   },
   category: "write",
   userMessage: (params) => {
-    const title = typeof params.title === "string" ? params.title : "";
+    const title = isString(params.title) ? params.title : "";
     return title ? `Remembering: ${title.slice(0, 60)}` : "Saving to memory";
   }
 };

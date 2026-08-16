@@ -60,6 +60,12 @@ import {
   EDIT_STORYBOARD_SCHEMA,
   EXTRACT_SCRIPT_SCHEMA
 } from "./storyboards.specs.js";
+import {
+  isNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "../utils/type-guards.js";
 
 export {
   DEFAULT_CONCURRENCY,
@@ -103,7 +109,7 @@ async function loadBoard(
   run: CapabilityRun,
   storyboardId: unknown
 ): Promise<BoardHandle | ToolError> {
-  if (typeof storyboardId !== "string" || !storyboardId) {
+  if (!isString(storyboardId) || !storyboardId) {
     return {
       error: "storyboard_id is required (use list_storyboards to find one)."
     };
@@ -299,17 +305,17 @@ function entityFromAsset(
 ): Entity | null {
   const metadata = asset.metadata as Record<string, unknown> | null | undefined;
   const raw = metadata?.[ENTITY_METADATA_KEY];
-  if (!raw || typeof raw !== "object") return null;
+  if (!isObjectLike(raw)) return null;
   const marker = raw as Record<string, unknown>;
-  const kind = typeof marker.kind === "string" ? marker.kind : "";
+  const kind = isString(marker.kind) ? marker.kind : "";
   if (!ENTITY_KINDS.has(kind)) return null;
   const ext = mimeToExt[asset.content_type] ?? "png";
   return {
     type: "entity",
     id: asset.id,
     kind: kind as EntityKind,
-    name: typeof marker.name === "string" ? marker.name : "",
-    descriptor: typeof marker.descriptor === "string" ? marker.descriptor : "",
+    name: isString(marker.name) ? marker.name : "",
+    descriptor: isString(marker.descriptor) ? marker.descriptor : "",
     reference_images: [
       { type: "image", asset_id: asset.id, uri: `asset://${asset.id}.${ext}` }
     ]
@@ -375,15 +381,15 @@ function resolveModel(
   kind: string
 ): ModelChoice | ToolError {
   const provider =
-    typeof params["provider"] === "string" && params["provider"]
+    isString(params["provider"]) && params["provider"]
       ? (params["provider"] as string)
-      : typeof boardModel?.provider === "string"
+      : isString(boardModel?.provider)
         ? boardModel.provider
         : "";
   const model =
-    typeof params["model"] === "string" && params["model"]
+    isString(params["model"]) && params["model"]
       ? (params["model"] as string)
-      : typeof boardModel?.id === "string"
+      : isString(boardModel?.id)
         ? boardModel.id
         : "";
   if (!provider || !model) {
@@ -530,7 +536,7 @@ const renderStoryboardStills: CapabilityExport = {
     const { entitiesForShot } = await import("@nodetool-ai/protocol");
     const { inferImageMime } = await import("../tools/asset-persist.js");
     const style =
-      typeof params["style"] === "string"
+      isString(params["style"])
         ? (params["style"] as string)
         : doc.style;
     const entities = await loadBoardEntities(context, doc);
@@ -645,7 +651,7 @@ const renderStoryboardClips: CapabilityExport = {
     const entities = await loadBoardEntities(context, doc);
     const aspectRatio = doc.aspectRatio || "16:9";
     const resolution =
-      typeof params["resolution"] === "string"
+      isString(params["resolution"])
         ? (params["resolution"] as string)
         : undefined;
 
@@ -871,7 +877,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const { width, height } = frameSize(doc.aspectRatio || "16:9");
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
-      typeof params["name"] === "string" && params["name"]
+      isString(params["name"]) && params["name"]
         ? (params["name"] as string)
         : row.name;
 
@@ -961,11 +967,11 @@ function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
   }
   const parsed: ParsedBoardOp[] = [];
   for (const [index, entry] of raw.entries()) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    if (!isRecord(entry)) {
       return { error: `ops[${index}] must be an object.` };
     }
     const { op, ...args } = entry as Record<string, unknown>;
-    if (typeof op !== "string" || !isBoardOpName(op.trim())) {
+    if (!isString(op) || !isBoardOpName(op.trim())) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${BOARD_OPS.join(", ")}.`
       };
@@ -983,7 +989,7 @@ function renumberShots(shots: Shot[]): Shot[] {
 }
 
 const optionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+  isString(value) ? value : undefined;
 
 /** The shot fields an edit may set. Media and status stay the render tools'. */
 function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
@@ -1027,7 +1033,7 @@ function applyBoardOp(
 ) {
   switch (op) {
     case "add_shot": {
-      if (typeof args["action"] !== "string" || args["action"].trim() === "") {
+      if (!isString(args["action"]) || args["action"].trim() === "") {
         throw new Error(
           "add_shot needs a non-empty `action` describing the shot."
         );
@@ -1043,7 +1049,7 @@ function applyBoardOp(
         args
       );
       const at =
-        typeof args["index"] === "number"
+        isNumber(args["index"])
           ? Math.max(0, Math.min(Math.trunc(args["index"]), doc.shots.length))
           : doc.shots.length;
       const shots = [...doc.shots];
@@ -1257,7 +1263,7 @@ const extractScriptFromStoryboard: CapabilityExport = {
       reused = true;
     } else {
       const name =
-        typeof params["name"] === "string" && params["name"]
+        isString(params["name"]) && params["name"]
           ? (params["name"] as string)
           : `${row.name} script`;
       const created = await models.Script.create<Script>({

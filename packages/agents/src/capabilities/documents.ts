@@ -26,6 +26,7 @@ import {
   convertMarkdownToPdfSpec,
   convertDocumentSpec
 } from "./documents.specs.js";
+import { isString } from "../utils/type-guards.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -304,7 +305,7 @@ const convertDocument: CapabilityExport = {
       const fromFormat = (params["from_format"] as string) ?? "markdown";
       const toFormat = (params["to_format"] as string) ?? "pdf";
       let extraArgs = (params["extra_args"] as string[]) ?? [];
-      if (typeof extraArgs === "string") {
+      if (isString(extraArgs)) {
         extraArgs = [extraArgs];
       }
 

@@ -31,6 +31,7 @@ import {
 import { extractErrorPayload, toTransferable } from "../codeact/tool-api.js";
 import { listCapabilityModules, loadCapabilityModule } from "./registry.js";
 import type { CapabilityRun } from "./types.js";
+import { isRecord, isString } from "../utils/type-guards.js";
 
 /** Raised when a call breaks the capability module contract. */
 export class SandboxCapabilityError extends Error {
@@ -85,7 +86,7 @@ export function createCapabilityDispatcher(
         throw new SandboxCapabilityError("the run was cancelled");
       }
       const module =
-        typeof moduleKey === "string" ? bySpecifier.get(moduleKey) : undefined;
+        isString(moduleKey) ? bySpecifier.get(moduleKey) : undefined;
       if (module === undefined) {
         throw new SandboxCapabilityError(
           `${describe(moduleKey)} is not a capability module mounted for this session`
@@ -93,7 +94,7 @@ export function createCapabilityDispatcher(
       }
       const loaded = await loadCapabilityModule(module);
       const found =
-        typeof exportName === "string"
+        isString(exportName)
           ? loaded.exports.find((entry) => entry.spec.name === exportName)
           : undefined;
       if (found === undefined) {
@@ -107,7 +108,7 @@ export function createCapabilityDispatcher(
         );
       }
       const first = (args as unknown[])[0] ?? {};
-      if (typeof first !== "object" || first === null || Array.isArray(first)) {
+      if (!isRecord(first)) {
         throw new SandboxCapabilityError(
           `${moduleKey}: ${found.spec.name} takes one arguments object`
         );
@@ -149,6 +150,6 @@ export async function capabilityModuleSpecs(
 }
 
 function describe(value: unknown): string {
-  if (typeof value === "string") return JSON.stringify(value);
+  if (isString(value)) return JSON.stringify(value);
   return `a ${value === null ? "null" : typeof value} value`;
 }

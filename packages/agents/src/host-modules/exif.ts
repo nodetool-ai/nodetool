@@ -6,6 +6,7 @@
  */
 
 import { requireBytes, unwrapLibrary } from "./limits.js";
+import { isFunction } from "../utils/type-guards.js";
 
 interface ExifrLike {
   parse: (input: Uint8Array, opts?: unknown) => Promise<Record<string, unknown> | undefined>;
@@ -17,7 +18,7 @@ async function loadExifr(where: string): Promise<ExifrLike> {
     mod,
     where,
     "exifr",
-    (v) => typeof (v as ExifrLike | undefined)?.parse === "function"
+    (v) => isFunction((v as ExifrLike | undefined)?.parse)
   );
 }
 
