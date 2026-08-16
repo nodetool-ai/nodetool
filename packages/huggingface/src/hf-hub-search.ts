@@ -180,16 +180,32 @@ export async function searchHfHub(
 
   const out: HfHubModel[] = [];
   try {
-    for await (const m of listModels({
-      search: {
-        ...(params.query ? { query: params.query } : {}),
-        ...(params.task ? { task: params.task } : {}),
-        ...(params.tags ? { tags: params.tags } : {})
-      },
-      ...(options.limit && !libraryFilter ? { limit: options.limit } : {}),
-      additionalFields: ["tags", "library_name"],
-      ...(token ? { accessToken: token } : {})
-    })) {
+    type SearchFields = {
+      query?: string;
+      task?: PipelineType;
+      tags?: string[];
+    };
+    const search: SearchFields = {};
+    if (params.query) {
+      search.query = params.query;
+    }
+    if (params.task) {
+      search.task = params.task;
+    }
+    if (params.tags) {
+      search.tags = params.tags;
+    }
+    const listArgs: Parameters<typeof listModels>[0] & object = {
+      search,
+      additionalFields: ["tags", "library_name"]
+    };
+    if (options.limit && !libraryFilter) {
+      listArgs.limit = options.limit;
+    }
+    if (token) {
+      listArgs.accessToken = token;
+    }
+    for await (const m of listModels(listArgs)) {
       if (libraryFilter && m.library_name?.toLowerCase() !== libraryFilter) {
         continue;
       }
@@ -197,7 +213,7 @@ export async function searchHfHub(
         m.updatedAt && !Number.isNaN(m.updatedAt.getTime())
           ? m.updatedAt.toISOString()
           : undefined;
-      out.push({
+      const model: HfHubModel = {
         id: m.name,
         pipeline_tag: m.task ?? null,
         tags: m.tags ?? [],
@@ -206,10 +222,13 @@ export async function searchHfHub(
         gated: m.gated,
         private: m.private,
         library_name: m.library_name ?? null,
-        ...(lastModified ? { last_modified: lastModified } : {}),
         model_type: options.modelType,
         repo_id: m.name
-      });
+      };
+      if (lastModified) {
+        model.last_modified = lastModified;
+      }
+      out.push(model);
       if (options.limit && out.length >= options.limit) break;
     }
   } catch (err) {
@@ -239,11 +258,14 @@ export async function listAllHfModels(
   for (const modelType of SUPPORTED_MODEL_TYPES) {
     if (GENERIC_HF_TYPES.has(modelType.toLowerCase())) continue;
     try {
-      const results = await searchHfHub({
-        modelType,
-        ...(perTypeLimit ? { limit: perTypeLimit } : {}),
-        ...(token !== undefined ? { token } : {})
-      });
+      const searchOptions: Parameters<typeof searchHfHub>[0] = { modelType };
+      if (perTypeLimit) {
+        searchOptions.limit = perTypeLimit;
+      }
+      if (token !== undefined) {
+        searchOptions.token = token;
+      }
+      const results = await searchHfHub(searchOptions);
       for (const m of results) {
         if (!m.id || seen.has(m.id)) continue;
         seen.add(m.id);

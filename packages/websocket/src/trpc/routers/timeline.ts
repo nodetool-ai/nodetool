@@ -257,24 +257,29 @@ export const timelineRouter = router({
         const existing = await TimelineSequence.findById(input.id);
         if (existing) {
           if (existing.user_id !== ctx.userId) {
-            throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
+            throwApiError(
+              ApiErrorCode.NOT_FOUND,
+              "Timeline sequence not found"
+            );
           }
           return existing.toTimelineSequence();
         }
       }
 
-      const seq = new TimelineSequence({
-        // Spread rather than `id: input.id` so no `id` key exists when the
-        // client didn't supply one — the model only defaults an id it doesn't
-        // already own as a property.
-        ...(input.id ? { id: input.id } : {}),
+      const fields: ConstructorParameters<typeof TimelineSequence>[0] = {
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,
         fps: input.fps,
         width: input.width,
         height: input.height
-      });
+      };
+      // Set only when the client supplied one — the model defaults an id it
+      // does not already own as a property.
+      if (input.id) {
+        fields.id = input.id;
+      }
+      const seq = new TimelineSequence(fields);
       await seq.save();
       return seq.toTimelineSequence();
     }),
@@ -351,7 +356,10 @@ export const timelineRouter = router({
         try {
           const now = Date.now();
           const last = lastAutosaveVersionTime.get(input.id);
-          if (last === undefined || now - last >= AUTOSAVE_VERSION_INTERVAL_MS) {
+          if (
+            last === undefined ||
+            now - last >= AUTOSAVE_VERSION_INTERVAL_MS
+          ) {
             recordAutosaveVersion(input.id, now);
             await TimelineSequenceVersion.snapshot(updated, {
               saveType: "autosave"

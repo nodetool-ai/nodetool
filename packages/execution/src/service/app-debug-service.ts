@@ -116,9 +116,7 @@ async function loadUserJsScript(
     { id: scriptId, version: scriptVersion },
     userId
   );
-  return resolved
-    ? { name: resolved.name, document: resolved.document }
-    : null;
+  return resolved ? { name: resolved.name, document: resolved.document } : null;
 }
 
 /** A workflow the user can read, in the shape the simulator wants. */
@@ -247,25 +245,32 @@ export async function runApplicationDebug(
   // the session parked forever with no report to hand back.
   const simulation: Promise<Record<string, unknown>> = (async () => {
     try {
-      const report = await simulateApp(
-        resolved,
-        {
-          ...(body.params ? { params: body.params } : {}),
-          ...(body.interact ? { interact: body.interact } : {}),
-          ...(body.run !== undefined ? { run: body.run } : {}),
-          ...(timeoutMs !== undefined ? { timeoutMs } : {})
-        },
-        {
-          loadFromDb: (id: string) =>
-            (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
-          runOnServer: createAppServerRunner(userId, registry, {
-            jobPrefix: "app-debug-run"
-          }),
-          loadScript: (scriptId: string, scriptVersion: number) =>
-            loadUserJsScript(userId, scriptId, scriptVersion),
-          ...(deps.runScript ? { runScript: deps.runScript } : {})
-        }
-      );
+      const simulateOptions: Parameters<typeof simulateApp>[1] = {};
+      if (body.params) {
+        simulateOptions.params = body.params;
+      }
+      if (body.interact) {
+        simulateOptions.interact = body.interact;
+      }
+      if (body.run !== undefined) {
+        simulateOptions.run = body.run;
+      }
+      if (timeoutMs !== undefined) {
+        simulateOptions.timeoutMs = timeoutMs;
+      }
+      const simulateDeps: Parameters<typeof simulateApp>[2] = {
+        loadFromDb: (id: string) =>
+          (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
+        runOnServer: createAppServerRunner(userId, registry, {
+          jobPrefix: "app-debug-run"
+        }),
+        loadScript: (scriptId: string, scriptVersion: number) =>
+          loadUserJsScript(userId, scriptId, scriptVersion)
+      };
+      if (deps.runScript) {
+        simulateDeps.runScript = deps.runScript;
+      }
+      const report = await simulateApp(resolved, simulateOptions, simulateDeps);
       return debugPayload(report, debugId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -274,7 +279,12 @@ export async function runApplicationDebug(
         debug_id: debugId,
         status: "failed",
         error: message,
-        verdict: { ok: false, headline: message, issues: [message], warnings: [] }
+        verdict: {
+          ok: false,
+          headline: message,
+          issues: [message],
+          warnings: []
+        }
       };
     }
   })();

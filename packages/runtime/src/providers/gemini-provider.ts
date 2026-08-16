@@ -277,7 +277,11 @@ function inlineGeminiRefs(
     const { found, value } = resolveJsonPointer(root, $ref);
     if (!found || !isPlainObject(value)) return { type: "object", ...rest };
     // SAFETY: both inputs are objects, so both results are objects too.
-    const resolved = inlineGeminiRefs(value, root, new Set([...seen, $ref])) as {
+    const resolved = inlineGeminiRefs(
+      value,
+      root,
+      new Set([...seen, $ref])
+    ) as {
       [key: string]: SchemaNode;
     };
     // SAFETY: as above.
@@ -968,10 +972,17 @@ export class GeminiProvider extends BaseProvider {
         toolChoice === "any"
           ? undefined
           : (nameMap.get(toolChoice) ?? sanitizeToolName(toolChoice));
-      toolConfig.functionCallingConfig = {
-        mode: "ANY",
-        ...(selected ? { allowedFunctionNames: [selected] } : {})
+      type FunctionCallingConfigFields = {
+        mode: "ANY";
+        allowedFunctionNames?: string[];
       };
+      const functionCallingConfig: FunctionCallingConfigFields = {
+        mode: "ANY"
+      };
+      if (selected) {
+        functionCallingConfig.allowedFunctionNames = [selected];
+      }
+      toolConfig.functionCallingConfig = functionCallingConfig;
     }
 
     if (Object.keys(toolConfig).length > 0) {
@@ -1500,12 +1511,19 @@ export class GeminiProvider extends BaseProvider {
       const imageConfig: Record<string, unknown> = {};
       if (params.aspectRatio) imageConfig.aspectRatio = params.aspectRatio;
       if (params.resolution) imageConfig.imageSize = params.resolution;
+      type GenerationConfigFields = {
+        responseModalities: string[];
+        imageConfig?: typeof imageConfig;
+      };
+      const generationConfig: GenerationConfigFields = {
+        responseModalities: ["IMAGE", "TEXT"]
+      };
+      if (Object.keys(imageConfig).length > 0) {
+        generationConfig.imageConfig = imageConfig;
+      }
       const body = {
         contents: [{ role: "user" as const, parts: [{ text: params.prompt }] }],
-        generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"],
-          ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {})
-        }
+        generationConfig
       };
 
       const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;
@@ -1607,6 +1625,16 @@ export class GeminiProvider extends BaseProvider {
     const imageConfig: Record<string, unknown> = {};
     if (params.aspectRatio) imageConfig.aspectRatio = params.aspectRatio;
     if (params.resolution) imageConfig.imageSize = params.resolution;
+    type GenerationConfigFields2 = {
+      responseModalities: string[];
+      imageConfig?: typeof imageConfig;
+    };
+    const generationConfig: GenerationConfigFields2 = {
+      responseModalities: ["IMAGE", "TEXT"]
+    };
+    if (Object.keys(imageConfig).length > 0) {
+      generationConfig.imageConfig = imageConfig;
+    }
     const body = {
       contents: [
         {
@@ -1614,10 +1642,7 @@ export class GeminiProvider extends BaseProvider {
           parts: [{ text: params.prompt }, ...imageParts]
         }
       ],
-      generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"],
-        ...(Object.keys(imageConfig).length > 0 ? { imageConfig } : {})
-      }
+      generationConfig
     };
 
     const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;

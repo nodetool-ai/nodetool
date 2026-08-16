@@ -470,11 +470,19 @@ export const workflowsRouter = router({
     .output(sdkWorkflowSummariesOutput)
     .query(async ({ ctx, input }) => {
       try {
-        const result = await listWorkflowSummariesV1({
+        type ListInputFields = {
+          userId: string;
+          limit: number;
+          cursor?: string;
+        };
+        const listInput: ListInputFields = {
           userId: ctx.userId,
-          limit: input.limit,
-          ...(input.cursor ? { cursor: input.cursor } : {})
-        });
+          limit: input.limit
+        };
+        if (input.cursor) {
+          listInput.cursor = input.cursor;
+        }
+        const result = await listWorkflowSummariesV1(listInput);
         return {
           workflows: result.workflows.map((workflow) => ({
             id: workflow.id,

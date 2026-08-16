@@ -45,25 +45,32 @@ export interface SupabaseBucketApi {
   ): Promise<{ error: SupabaseError | null }>;
   download(
     key: string
-  ): Promise<{ data: SupabaseDownloadData | null; error: SupabaseError | null }>;
+  ): Promise<{
+    data: SupabaseDownloadData | null;
+    error: SupabaseError | null;
+  }>;
   remove(keys: string[]): Promise<{ error: SupabaseError | null }>;
   list(
     dir: string,
     options?: SupabaseListOptions
-  ): Promise<{ data: SupabaseObjectEntry[] | null; error: SupabaseError | null }>;
+  ): Promise<{
+    data: SupabaseObjectEntry[] | null;
+    error: SupabaseError | null;
+  }>;
   createSignedUrl(
     key: string,
     expiresIn: number
-  ): Promise<{ data: { signedUrl: string } | null; error: SupabaseError | null }>;
+  ): Promise<{
+    data: { signedUrl: string } | null;
+    error: SupabaseError | null;
+  }>;
   /**
    * Mint a one-shot upload URL for `key`. The caller (typically a browser)
    * PUTs the bytes straight to the returned URL, so object bytes never pass
    * through this process. The token is scoped to this exact key — it cannot
    * be redirected at another object.
    */
-  createSignedUploadUrl(
-    key: string
-  ): Promise<{
+  createSignedUploadUrl(key: string): Promise<{
     data: { signedUrl: string; token: string } | null;
     error: SupabaseError | null;
   }>;
@@ -99,7 +106,8 @@ async function readError(response: Response): Promise<SupabaseError> {
   }
   return {
     message:
-      message || `Supabase Storage request failed with status ${response.status}`
+      message ||
+      `Supabase Storage request failed with status ${response.status}`
   };
 }
 
@@ -174,18 +182,28 @@ export function createSupabaseStorageClient(
           },
 
           async list(dir, options = {}) {
+            type ListBodyFields = {
+              prefix: string;
+              limit: number;
+              offset: number;
+              sortBy: { column: string; order: string };
+              search?: string;
+            };
+            const listBody: ListBodyFields = {
+              prefix: dir,
+              limit: options.limit ?? 100,
+              offset: options.offset ?? 0,
+              sortBy: { column: "name", order: "asc" }
+            };
+            if (options.search) {
+              listBody.search = options.search;
+            }
             const response = await fetch(
               `${base}/storage/v1/object/list/${bucket}`,
               {
                 method: "POST",
                 headers: { ...authHeaders, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  prefix: dir,
-                  limit: options.limit ?? 100,
-                  offset: options.offset ?? 0,
-                  sortBy: { column: "name", order: "asc" },
-                  ...(options.search ? { search: options.search } : {})
-                })
+                body: JSON.stringify(listBody)
               }
             );
             if (!response.ok) {
@@ -237,8 +255,7 @@ export function createSupabaseStorageClient(
             }
             // `url` comes back relative (`/object/upload/sign/<bucket>/<key>?token=…`).
             const signedUrl = `${base}/storage/v1${body.url}`;
-            const token =
-              new URL(signedUrl).searchParams.get("token") ?? "";
+            const token = new URL(signedUrl).searchParams.get("token") ?? "";
             if (!token) {
               return {
                 data: null,

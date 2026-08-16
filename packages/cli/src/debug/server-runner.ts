@@ -44,7 +44,9 @@ export interface ServerRunOutcome {
   rawMessages: ProcessingMessage[];
 }
 
-export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutcome> {
+export async function runOnServer(
+  input: ServerRunInput
+): Promise<ServerRunOutcome> {
   const { graph, workflowId, params } = input;
   const startedAt = Date.now();
 
@@ -83,7 +85,7 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     ? await createSupervisorHandle({ config: input.supervisor, context })
     : null;
 
-  const session = await ExecutionSession.create({
+  const sessionOptions: Parameters<typeof ExecutionSession.create>[0] = {
     graph,
     registry,
     // Registry alone hydrates node flags but not `propertyTypes`, and
@@ -99,13 +101,15 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     workflowId,
     params,
     context,
-    limits: { runTimeoutMs: input.timeoutMs },
-    // Capture is retention, so it stays off unless a supervised run needs the
-    // stream to print its `⛨` lines as they happen.
-    ...(supervisor
-      ? { supervisor: supervisor.handle, captureMessages: true }
-      : {})
-  });
+    limits: { runTimeoutMs: input.timeoutMs }
+  };
+  // Capture is retention, so it stays off unless a supervised run needs the
+  // stream to print its `⛨` lines as they happen.
+  if (supervisor) {
+    sessionOptions.supervisor = supervisor.handle;
+    sessionOptions.captureMessages = true;
+  }
+  const session = await ExecutionSession.create(sessionOptions);
 
   const interventionLines = supervisor
     ? streamInterventionLines(
@@ -161,17 +165,15 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     error: error ?? summary.error,
     durationMs: Date.now() - startedAt,
     summary,
-    trace,
-    ...(supervisor
-      ? {
-          supervised: {
-            provider: supervisor.providerId,
-            model: supervisor.model,
-            summary: summarizeInterventions(interventions)
-          }
-        }
-      : {})
+    trace
   };
+  if (supervisor) {
+    report.supervised = {
+      provider: supervisor.providerId,
+      model: supervisor.model,
+      summary: summarizeInterventions(interventions)
+    };
+  }
 
   return { report, rawMessages: messages };
 }

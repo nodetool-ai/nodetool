@@ -27,9 +27,7 @@ import {
 } from "./node-registry-setup.js";
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
-import {
-  isPublicAuthExemptRoute
-} from "./lib/public-routes.js";
+import { isPublicAuthExemptRoute } from "./lib/public-routes.js";
 import { isWebSocketUpgrade, denyUnauthorized } from "./lib/ws-upgrade.js";
 import { replayUpgradeToOwner } from "./lib/fly-replay.js";
 import { startJobCancelPoller } from "./job-control.js";
@@ -65,10 +63,7 @@ import {
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
-import {
-  registerPythonProviders,
-  relayWorkerDownload
-} from "./models-api.js";
+import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
@@ -144,7 +139,10 @@ import kieWebhookRoute from "./routes/kie-webhook.js";
 // the heuristic back to Node mode so NodeBinaryDataFactory / fs-based asset
 // loading is selected. No-op outside Electron.
 {
-  const proc = process as unknown as { type?: string; versions: { electron?: string } };
+  const proc = process as unknown as {
+    type?: string;
+    versions: { electron?: string };
+  };
   if (proc.versions?.electron && proc.type && proc.type !== "browser") {
     try {
       Object.defineProperty(process, "type", {
@@ -542,19 +540,18 @@ async function probeWorkerHealth(
 }
 
 function logPythonBridgeDiagnostics(context: string): void {
-  const loadErrors = (
-    localBridge as {
-      getLoadErrors?: () => Array<{
-        module: string;
-        phase: string;
-        error: string;
-      }>;
-    }
-  ).getLoadErrors?.() ?? [];
+  const loadErrors =
+    (
+      localBridge as {
+        getLoadErrors?: () => Array<{
+          module: string;
+          phase: string;
+          error: string;
+        }>;
+      }
+    ).getLoadErrors?.() ?? [];
   if (loadErrors.length === 0) return;
-  log.warn(
-    `Python bridge ${context} with ${loadErrors.length} load error(s)`
-  );
+  log.warn(`Python bridge ${context} with ${loadErrors.length} load error(s)`);
   for (const entry of loadErrors.slice(0, 10)) {
     log.warn(
       `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
@@ -657,8 +654,7 @@ const trustedProxies = parseTrustedProxies(
 // Fastify app
 // ---------------------------------------------------------------------------
 
-const app: FastifyInstance = (Fastify as (...args: unknown[]) => FastifyInstance)({
-  ...(httpsOptions ? { https: httpsOptions } : {}),
+const serverOptions = {
   // Only trust X-Forwarded-For from explicitly configured proxies. With no
   // proxies configured this is `false`, so req.ip is the unspoofable socket
   // peer address.
@@ -678,7 +674,11 @@ const app: FastifyInstance = (Fastify as (...args: unknown[]) => FastifyInstance
   }) => {
     return (req.headers["x-request-id"] as string) || crypto.randomUUID();
   }
-});
+};
+
+const app: FastifyInstance = (
+  Fastify as (...args: unknown[]) => FastifyInstance
+)(httpsOptions ? { https: httpsOptions, ...serverOptions } : serverOptions);
 
 // ---------------------------------------------------------------------------
 // Request ID correlation
@@ -807,7 +807,7 @@ if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
 } else if (trustLocalNetworks.length > 0) {
   log.warn(
     `Local mode: trusting connections from ${trustLocalNetworks.join(", ")} ` +
-      "as user \"1\" without authentication. Only expose this instance to " +
+      'as user "1" without authentication. Only expose this instance to ' +
       "networks you trust."
   );
 }
@@ -953,7 +953,9 @@ const _resolvedExamplesDir =
 if (_resolvedExamplesDir) {
   log.info(`Examples directory resolved: ${_resolvedExamplesDir}`);
 } else {
-  log.warn("Examples directory not found — template workflows will be unavailable");
+  log.warn(
+    "Examples directory not found — template workflows will be unavailable"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -989,8 +991,7 @@ const sdkModelDownloadService = createSdkV1ModelDownloadService({
   startWorkerDownload: (request, operationId, onProgress) =>
     relayWorkerDownload(
       {
-        send: (data) =>
-          onProgress(JSON.parse(data) as ModelDownloadUpdate)
+        send: (data) => onProgress(JSON.parse(data) as ModelDownloadUpdate)
       },
       pythonBridge,
       workerManager,
@@ -1227,18 +1228,15 @@ await app.register(websocketPlugin, {
     )
       .getWorkerStatus?.()
       ?.then((status) => {
-        log.info(
-          `Python bridge status [${startupMs()}]`,
-          {
-            protocol_version: status.protocol_version,
-            node_count: status.node_count,
-            provider_count: status.provider_count,
-            namespaces: status.namespaces,
-            transport: status.transport,
-            max_frame_size: status.max_frame_size,
-            load_error_count: status.load_errors.length
-          }
-        );
+        log.info(`Python bridge status [${startupMs()}]`, {
+          protocol_version: status.protocol_version,
+          node_count: status.node_count,
+          provider_count: status.provider_count,
+          namespaces: status.namespaces,
+          transport: status.transport,
+          max_frame_size: status.max_frame_size,
+          load_error_count: status.load_errors.length
+        });
       })
       .catch((err: unknown) => {
         log.warn(
@@ -1565,18 +1563,15 @@ if (pythonBridge.isAvailable()) {
       )
         .getWorkerStatus?.()
         ?.then((status) => {
-          log.info(
-            `Python bridge status [${startupMs()}]`,
-            {
-              protocol_version: status.protocol_version,
-              node_count: status.node_count,
-              provider_count: status.provider_count,
-              namespaces: status.namespaces,
-              transport: status.transport,
-              max_frame_size: status.max_frame_size,
-              load_error_count: status.load_errors.length
-            }
-          );
+          log.info(`Python bridge status [${startupMs()}]`, {
+            protocol_version: status.protocol_version,
+            node_count: status.node_count,
+            provider_count: status.provider_count,
+            namespaces: status.namespaces,
+            transport: status.transport,
+            max_frame_size: status.max_frame_size,
+            load_error_count: status.load_errors.length
+          });
         })
         .catch((err: unknown) => {
           log.warn(

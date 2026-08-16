@@ -70,7 +70,11 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const commonPrefixes = new Set<string>();
 
     for (const [key, entry] of this._store.entries()) {
-      if (matchPrefix && !key.startsWith(matchPrefix) && key !== normalizedPrefix) {
+      if (
+        matchPrefix &&
+        !key.startsWith(matchPrefix) &&
+        key !== normalizedPrefix
+      ) {
         continue;
       }
       if (matchPrefix === "" || key.startsWith(matchPrefix)) {
@@ -82,13 +86,16 @@ export class InMemoryStorageAdapter implements StorageAdapter {
             continue;
           }
         }
-        entries.push({
+        const listed: StorageEntry = {
           key,
           uri: `memory://${key}`,
           size: entry.data.byteLength,
-          modifiedAt: entry.modifiedAt,
-          ...(entry.contentType ? { contentType: entry.contentType } : {})
-        });
+          modifiedAt: entry.modifiedAt
+        };
+        if (entry.contentType) {
+          listed.contentType = entry.contentType;
+        }
+        entries.push(listed);
       }
     }
 
@@ -109,11 +116,14 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const key = uri.slice("memory://".length);
     const entry = this._store.get(key);
     if (!entry) return null;
-    return {
+    const stat: StorageStat = {
       key,
       size: entry.data.byteLength,
-      modifiedAt: entry.modifiedAt,
-      ...(entry.contentType ? { contentType: entry.contentType } : {})
+      modifiedAt: entry.modifiedAt
     };
+    if (entry.contentType) {
+      stat.contentType = entry.contentType;
+    }
+    return stat;
   }
 }

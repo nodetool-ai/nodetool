@@ -95,7 +95,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     mode: "read",
     fields: { binding: "custom", height: "number", placeholder: "text" }
   },
-  Json: { label: "JSON", mode: "read", format: true, fields: { binding: "custom" } },
+  Json: {
+    label: "JSON",
+    mode: "read",
+    format: true,
+    fields: { binding: "custom" }
+  },
   // Composites the layers of a bound sketch document — what a run that emits a
   // SketchRef needs, since the raw ref renders as an opaque `{type, id}`.
   Sketch: {
@@ -395,7 +400,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     mode: "write",
     trigger: "change",
     commits: true,
-    fields: { binding: "custom", label: "text", maxHeight: "number", events: "array" }
+    fields: {
+      binding: "custom",
+      label: "text",
+      maxHeight: "number",
+      events: "array"
+    }
   },
   // Local filesystem paths, for apps driving a workflow that reads off disk.
   FilePathInput: {
@@ -602,12 +612,12 @@ export const widgetFields = (
   const descriptor = WIDGET_CATALOG[type];
   if (!descriptor) return {};
   if (descriptor.mode === "layout") return descriptor.fields;
-  return {
+  const fields = {
     ...descriptor.fields,
-    visibleWhen: "custom",
-    disabledWhen: "custom",
-    ...(descriptor.format ? { format: "text" as const } : {})
+    visibleWhen: "custom" as const,
+    disabledWhen: "custom" as const
   };
+  return descriptor.format ? { ...fields, format: "text" as const } : fields;
 };
 
 /**

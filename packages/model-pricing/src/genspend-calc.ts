@@ -33,6 +33,9 @@ import type {
 } from "./genspend-catalog.js";
 import { GENSPEND_CURRENCY } from "./genspend-catalog.js";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 /**
  * A price computed from stated parameters, with the reasoning that produced it.
  * `unit_price` is the whole per-run figure — a per-second class comes back
@@ -102,7 +105,9 @@ export function normalizeResolution(value: unknown): string | null {
 const PER_SECOND_CLASSES = new Set(["per-video-second", "per-audio-second"]);
 
 const money = (usd: number): string =>
-  usd >= 0.01 ? `$${usd.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}` : `$${usd}`;
+  usd >= 0.01
+    ? `$${usd.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}`
+    : `$${usd}`;
 
 /** The shortest duration the model is receipted for, or 1 s when unbounded. */
 function shortestClipSecond(clip: GenspendPrice["clip_seconds"]): number {
@@ -111,7 +116,11 @@ function shortestClipSecond(clip: GenspendPrice["clip_seconds"]): number {
     const legal = clip.set.filter((s) => Number.isFinite(s) && s > 0);
     if (legal.length > 0) return Math.min(...legal);
   }
-  if (typeof clip.min === "number" && Number.isFinite(clip.min) && clip.min > 1) {
+  if (
+    typeof clip.min === "number" &&
+    Number.isFinite(clip.min) &&
+    clip.min > 1
+  ) {
     return clip.min;
   }
   return 1;
@@ -126,10 +135,18 @@ function outsideEnvelope(
   if (Array.isArray(clip.set) && !clip.set.includes(seconds)) {
     return `no published price at ${seconds}s`;
   }
-  if (typeof clip.min === "number" && Number.isFinite(clip.min) && seconds < clip.min) {
+  if (
+    typeof clip.min === "number" &&
+    Number.isFinite(clip.min) &&
+    seconds < clip.min
+  ) {
     return `below the receipted clip envelope (${clip.min}s minimum)`;
   }
-  if (typeof clip.max === "number" && Number.isFinite(clip.max) && seconds > clip.max) {
+  if (
+    typeof clip.max === "number" &&
+    Number.isFinite(clip.max) &&
+    seconds > clip.max
+  ) {
     return `above the receipted clip envelope (${clip.max}s maximum)`;
   }
   return null;
@@ -169,14 +186,18 @@ function selectRow(
         return { declined: `no published price at ${resolution}` };
       }
     } else if (baseRow?.resolution) {
-      candidates = laddered.filter((row) => row.resolution === baseRow.resolution);
+      candidates = laddered.filter(
+        (row) => row.resolution === baseRow.resolution
+      );
       assumptions.push(
         `resolution not set on the node — priced at the base spec ${baseRow.resolution}`
       );
     }
   }
 
-  const timed = candidates.filter((row) => Number.isFinite(row.duration_seconds));
+  const timed = candidates.filter((row) =>
+    Number.isFinite(row.duration_seconds)
+  );
   if (timed.length > 0) {
     if (seconds !== null) {
       candidates = timed.filter((row) => row.duration_seconds === seconds);
@@ -247,7 +268,8 @@ export function priceGenspendEntry(
 
   const clip = "clip_seconds" in entry ? entry.clip_seconds : undefined;
   if (statedSeconds !== null && clip !== undefined) {
-    if (clip === null) return declined("no receipted clip length for this model");
+    if (clip === null)
+      return declined("no receipted clip length for this model");
     const outside = outsideEnvelope(clip, statedSeconds);
     if (outside) return declined(outside);
   }
@@ -277,7 +299,8 @@ export function priceGenspendEntry(
 
   if (PER_SECOND_CLASSES.has(unitClass)) {
     if (seconds === null) {
-      if (clip === null) return declined("no receipted clip length for this model");
+      if (clip === null)
+        return declined("no receipted clip length for this model");
       seconds = shortestClipSecond(clip);
       assumptions.push(
         `duration not set on the node — priced at ${seconds} s${
@@ -306,7 +329,9 @@ export function priceGenspendEntry(
     const rates = surcharges.filter((s) => s.kind === "input_video_second");
     const rate =
       rates.find((s) => !s.spec) ??
-      rates.find((s) => resolution && normalizeResolution(s.spec) === resolution) ??
+      rates.find(
+        (s) => resolution && normalizeResolution(s.spec) === resolution
+      ) ??
       null;
     if (rate) {
       const outSeconds = seconds ?? 1;
@@ -359,13 +384,19 @@ export function priceGenspendEntry(
     );
   }
 
-  return {
+  type PriceFields = Mutable<ModelParamPrice>;
+  const price: PriceFields = {
     unit_price: cost,
     billing_unit: entry.billing_unit,
     currency: GENSPEND_CURRENCY,
     source: "bundle",
-    breakdown,
-    ...(assumptions.length > 0 ? { assumptions } : {}),
-    ...(warnings.length > 0 ? { warnings } : {})
+    breakdown
   };
+  if (assumptions.length > 0) {
+    price.assumptions = assumptions;
+  }
+  if (warnings.length > 0) {
+    price.warnings = warnings;
+  }
+  return price;
 }

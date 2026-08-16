@@ -83,7 +83,7 @@ export async function createRunSupervisor(
     return null;
   }
 
-  const agent = new SupervisorAgent({
+  const agentOptions: ConstructorParameters<typeof SupervisorAgent>[0] = {
     provider,
     model: selection.model,
     // The supervisor shares the run's memory (its `supervisor:` keys belong to
@@ -93,21 +93,22 @@ export async function createRunSupervisor(
     context: options.context.copy({
       shareMemory: true,
       inheritMessageListeners: false
-    }),
-    ...(options.supervisor?.cost_cap_usd !== undefined
-      ? { maxCostUsd: options.supervisor.cost_cap_usd }
-      : {})
-  });
+    })
+  };
+  if (options.supervisor?.cost_cap_usd !== undefined) {
+    agentOptions.maxCostUsd = options.supervisor.cost_cap_usd;
+  }
+  const agent = new SupervisorAgent(agentOptions);
 
-  return new BoundedHandle(agent, {
-    ...(options.supervisor?.max_decisions !== undefined
-      ? { maxDecisions: options.supervisor.max_decisions }
-      : {}),
-    ...(options.supervisor?.max_retries_per_node !== undefined
-      ? { maxRetriesPerNode: options.supervisor.max_retries_per_node }
-      : {}),
-    ...(options.supervisor?.decision_timeout_ms !== undefined
-      ? { decisionTimeoutMs: options.supervisor.decision_timeout_ms }
-      : {})
-  });
+  const bounds: ConstructorParameters<typeof BoundedHandle>[1] = {};
+  if (options.supervisor?.max_decisions !== undefined) {
+    bounds.maxDecisions = options.supervisor.max_decisions;
+  }
+  if (options.supervisor?.max_retries_per_node !== undefined) {
+    bounds.maxRetriesPerNode = options.supervisor.max_retries_per_node;
+  }
+  if (options.supervisor?.decision_timeout_ms !== undefined) {
+    bounds.decisionTimeoutMs = options.supervisor.decision_timeout_ms;
+  }
+  return new BoundedHandle(agent, bounds);
 }

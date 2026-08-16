@@ -25,7 +25,6 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-
 /** An `image_documents` row as the harness needs it. */
 export interface ImageDocumentRecord {
   id: string;
@@ -102,7 +101,9 @@ function settingsOf(raw: unknown): SketchCanvasSettings {
 
 /** A document is anything with a `sketch` object and a `layerBindings` array. */
 const looksLikeDocument = (value: unknown): boolean =>
-  isRecord(value) && isRecord(value.sketch) && Array.isArray(value.layerBindings);
+  isRecord(value) &&
+  isRecord(value.sketch) &&
+  Array.isArray(value.layerBindings);
 
 /**
  * The document a target carries, unwrapping a `document` field (string or
@@ -148,7 +149,8 @@ function asDocument(raw: unknown): SketchDocumentView {
     layers,
     activeLayerId:
       typeof sketch.activeLayerId === "string" ? sketch.activeLayerId : "",
-    maskLayerId: typeof sketch.maskLayerId === "string" ? sketch.maskLayerId : null
+    maskLayerId:
+      typeof sketch.maskLayerId === "string" ? sketch.maskLayerId : null
   };
 }
 
@@ -171,10 +173,16 @@ export async function resolveSketchTarget(
       );
     }
     const name =
-      isRecord(parsed) && typeof parsed.name === "string" ? parsed.name : undefined;
+      isRecord(parsed) && typeof parsed.name === "string"
+        ? parsed.name
+        : undefined;
     const document = asDocument(raw);
+    const target: SketchDebugTarget = { kind: "file", ref };
+    if (name) {
+      target.name = name;
+    }
     return {
-      target: { kind: "file", ref, ...(name ? { name } : {}) },
+      target,
       raw,
       document,
       // The wrapper's own width/height, never the canvas's: the validator
@@ -189,12 +197,12 @@ export async function resolveSketchTarget(
   }
   const raw = documentOf(record);
   const document = asDocument(raw);
+  const target: SketchDebugTarget = { kind: "id", ref };
+  if (record.name) {
+    target.name = record.name;
+  }
   return {
-    target: {
-      kind: "id",
-      ref,
-      ...(record.name ? { name: record.name } : {})
-    },
+    target,
     raw,
     document,
     meta: settingsOf(record)

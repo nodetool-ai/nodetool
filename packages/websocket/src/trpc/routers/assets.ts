@@ -371,11 +371,7 @@ export const assetsRouter = router({
         size: null
       })) as AssetModel;
 
-      const key = getAssetStorageKey(
-        ctx.userId,
-        asset.id,
-        asset.content_type
-      );
+      const key = getAssetStorageKey(ctx.userId, asset.id, asset.content_type);
       const target = await adapter.createUploadUrl(key, {
         contentType
       });
@@ -551,14 +547,19 @@ export const assetsRouter = router({
       // previous implementation paginated the first `page_size` assets and then
       // filtered those in memory, so anything past the first page (e.g. a "Cat"
       // asset in a 500-item library) was never found.
+      const searchOptions: Parameters<typeof Asset.searchAssetsGlobal>[2] = {
+        limit: input.page_size
+      };
+      if (input.content_type) {
+        searchOptions.contentType = input.content_type;
+      }
+      if (input.cursor) {
+        searchOptions.cursor = input.cursor;
+      }
       const [matched, nextCursor] = await Asset.searchAssetsGlobal(
         ctx.userId,
         input.query,
-        {
-          ...(input.content_type ? { contentType: input.content_type } : {}),
-          ...(input.cursor ? { cursor: input.cursor } : {}),
-          limit: input.page_size
-        }
+        searchOptions
       );
       return {
         assets: await Promise.all(matched.map((a) => toAssetResponse(a))),

@@ -1962,24 +1962,30 @@ export class NodeActor {
     error?: string,
     errorDetail?: NodeErrorDetail
   ): void {
-    this._emitMessage({
-      type: "node_update",
+    const head = {
+      type: "node_update" as const,
       node_id: this.node.id,
       node_name: this.node.name ?? this.node.type,
       node_type: this.node.type,
       status,
       result: result ?? null,
-      error: error ?? null,
-      // Omitted (not null) when absent: every consumer treats a missing
-      // detail as "no structured cause", and the reliability goldens pin
-      // the node_update wire shape for ordinary runs.
-      ...(errorDetail ? { error_detail: errorDetail } : {}),
+      error: error ?? null
+    };
+    const tail = {
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)
           : null,
       provider_cost: this._executionContext?.getProviderCost?.() ?? null
-    });
+    };
+    // Omitted (not null) when absent: every consumer treats a missing
+    // detail as "no structured cause", and the reliability goldens pin
+    // the node_update wire shape for ordinary runs.
+    this._emitMessage(
+      errorDetail
+        ? { ...head, error_detail: errorDetail, ...tail }
+        : { ...head, ...tail }
+    );
   }
 
   /**

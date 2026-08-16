@@ -296,11 +296,14 @@ export class DownloadManager {
 
       // List remote files via @huggingface/hub
       const treeEntries: HfTreeEntry[] = [];
-      for await (const entry of listFiles({
+      const listArgs: Parameters<typeof listFiles>[0] = {
         repo: { name: repoId, type: "model" },
-        recursive: true,
-        ...(token ? { accessToken: token } : {})
-      })) {
+        recursive: true
+      };
+      if (token) {
+        listArgs.accessToken = token;
+      }
+      for await (const entry of listFiles(listArgs)) {
         treeEntries.push({
           type: entry.type,
           path: entry.path,
@@ -470,7 +473,7 @@ export class DownloadManager {
   }
 
   private toUpdate(state: DownloadState): DownloadUpdate {
-    return {
+    const update: DownloadUpdate = {
       status: state.status,
       repo_id: state.repoId,
       path: state.path,
@@ -479,9 +482,12 @@ export class DownloadManager {
       total_bytes: state.totalBytes,
       downloaded_files: state.downloadedFiles.length,
       current_files: [...state.currentFiles],
-      total_files: state.totalFiles,
-      ...(state.errorMessage ? { error: state.errorMessage } : {})
+      total_files: state.totalFiles
     };
+    if (state.errorMessage) {
+      update.error = state.errorMessage;
+    }
+    return update;
   }
 
   private emitUpdate(state: DownloadState): void {

@@ -596,17 +596,23 @@ export class ClaudeAgentProvider extends BaseProvider {
       disallowedTools: plan.config.toolsOffered
         ? ["ToolSearch"]
         : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
-      // Anchor the path-scoped built-ins to the run's workspace, which is where
-      // the NodeTool tools they replace were contained.
-      ...(plan.config.cwd ? { cwd: plan.config.cwd } : {}),
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
       env: buildChildEnv(),
-      abortController,
-      ...(plan.config.mcp ? { mcpServers: plan.config.mcp.mcpServers } : {}),
-      ...(plan.resume ? { resume: plan.resume } : {})
+      abortController
     };
+    // Anchor the path-scoped built-ins to the run's workspace, which is where
+    // the NodeTool tools they replace were contained.
+    if (plan.config.cwd) {
+      options.cwd = plan.config.cwd;
+    }
+    if (plan.config.mcp) {
+      options.mcpServers = plan.config.mcp.mcpServers;
+    }
+    if (plan.resume) {
+      options.resume = plan.resume;
+    }
 
     // Log the exact wire body (sans the non-serializable AbortController, MCP
     // server instances, and the full env, which can carry secrets) so the

@@ -88,14 +88,15 @@ export const threadsRouter = router({
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
-      const [threads, cursor] = await Thread.paginate(ctx.userId, {
+      const page: Parameters<typeof Thread.paginate>[1] = {
         limit: input.limit,
         startKey: input.cursor,
-        reverse: input.reverse,
-        ...(input.workflow_id !== undefined
-          ? { workflowId: input.workflow_id }
-          : {})
-      });
+        reverse: input.reverse
+      };
+      if (input.workflow_id !== undefined) {
+        page.workflowId = input.workflow_id;
+      }
+      const [threads, cursor] = await Thread.paginate(ctx.userId, page);
       return {
         threads: threads.map((t) => toThreadResponse(t)),
         next: cursor || null

@@ -19,6 +19,9 @@ import { probeBundle } from "./probe.js";
 import { scanBundle, type ScanFinding } from "./scan.js";
 import type { SandboxNpmCompileOutcome } from "@nodetool-ai/node-sdk/sandbox-pack-discovery";
 
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
 export interface CompileNpmModuleRequest {
   readonly packDir: string;
   readonly npmName: string;
@@ -43,7 +46,10 @@ export async function compileNpmModule(
   const { packDir, npmName } = request;
   const bundled = await bundleNpmModule(packDir, npmName);
   if (bundled.status === "failed") {
-    return { outcome: { status: "skipped", ...bundled.failure }, cached: false };
+    return {
+      outcome: { status: "skipped", ...bundled.failure },
+      cached: false
+    };
   }
   const bundle = bundled.result;
 
@@ -64,7 +70,10 @@ export async function compileNpmModule(
     inputDigests: bundle.inputDigests,
     resolutionDigests: bundle.resolutionDigests
   });
-  const cache = request.noCache === true ? undefined : request.cache ?? new CompiledModuleCache();
+  const cache =
+    request.noCache === true
+      ? undefined
+      : (request.cache ?? new CompiledModuleCache());
   const hit = cache?.read(key);
   if (hit !== undefined) {
     // Re-point even on a hit: a pack whose dependency was updated back to a
@@ -130,26 +139,34 @@ export async function compileNpmModule(
   return { outcome: outcomeFor(npmName, entry), cached: false, key };
 }
 
-function outcomeFor(npmName: string, entry: CachedCompilation): SandboxNpmCompileOutcome {
+function outcomeFor(
+  npmName: string,
+  entry: CachedCompilation
+): SandboxNpmCompileOutcome {
   const warnings = entry.scanWarnings.map(
     (finding) =>
       `${npmName} feature-detects ${finding.name} at ${finding.line}:${finding.column}; the guest has no such global, so that branch never runs`
   );
-  return {
+  type OutcomeFields = Mutable<SandboxNpmCompileOutcome>;
+  const outcome: OutcomeFields = {
     status: "compiled",
     artifact: {
       source: entry.source,
       compilerVersion: entry.compilerVersion,
       optionsDigest: entry.optionsDigest,
       inputsDigest: entry.inputsDigest
-    },
-    ...(warnings.length === 0 ? {} : { warnings })
+    }
   };
+  if (warnings.length > 0) {
+    outcome.warnings = warnings;
+  }
+  return outcome;
 }
 
 function describeFindings(findings: readonly ScanFinding[]): string {
   const names = [...new Set(findings.map((finding) => finding.name))].sort();
   const first = findings[0];
-  const where = first === undefined ? "" : ` (first at ${first.line}:${first.column})`;
+  const where =
+    first === undefined ? "" : ` (first at ${first.line}:${first.column})`;
   return `${names.join(", ")}${where}`;
 }

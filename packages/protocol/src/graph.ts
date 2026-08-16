@@ -835,27 +835,21 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
         next.properties = {};
       }
       if (Object.keys(moved).length > 0) {
-        next.dynamic_properties = {
-          ...(isPlainObject(next.dynamic_properties)
-            ? next.dynamic_properties
-            : {}),
-          ...moved
-        };
+        const existing = isPlainObject(next.dynamic_properties)
+          ? next.dynamic_properties
+          : {};
+        next.dynamic_properties = { ...existing, ...moved };
       }
     }
 
     if (migration.setProperties) {
       if (isPlainObject(next.data) || "data" in next) {
-        next.data = {
-          ...(isPlainObject(next.data) ? next.data : {}),
-          ...migration.setProperties
-        };
+        const existing = isPlainObject(next.data) ? next.data : {};
+        next.data = { ...existing, ...migration.setProperties };
       }
       if (isPlainObject(next.properties) || "properties" in next) {
-        next.properties = {
-          ...(isPlainObject(next.properties) ? next.properties : {}),
-          ...migration.setProperties
-        };
+        const existing = isPlainObject(next.properties) ? next.properties : {};
+        next.properties = { ...existing, ...migration.setProperties };
       }
       if (!("data" in next) && !("properties" in next)) {
         next.properties = { ...migration.setProperties };

@@ -263,7 +263,7 @@ export function createSdkV1ModelDownloadService(
             await startHuggingFaceDownload(userId, request, update);
           }
         } catch (error) {
-          update({
+          const failure: Parameters<typeof update>[0] = {
             status: run.abortController.signal.aborted ? "cancelled" : "error",
             repo_id: request.repo_id,
             path: request.path ?? null,
@@ -272,13 +272,13 @@ export function createSdkV1ModelDownloadService(
             total_bytes: run.state.total_bytes,
             downloaded_files: run.state.downloaded_files,
             current_files: run.state.current_files,
-            total_files: run.state.total_files,
-            ...(run.abortController.signal.aborted
-              ? {}
-              : {
-                  error: error instanceof Error ? error.message : String(error)
-                })
-          });
+            total_files: run.state.total_files
+          };
+          if (!run.abortController.signal.aborted) {
+            failure.error =
+              error instanceof Error ? error.message : String(error);
+          }
+          update(failure);
         }
       };
       void execute();

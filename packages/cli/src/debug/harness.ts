@@ -14,11 +14,7 @@ import { runInBrowser } from "./browser-runner.js";
 import { buildVerdict } from "./verdict.js";
 import { renderReportMarkdown } from "./markdown.js";
 import { resolveTarget } from "./target.js";
-import type {
-  DebugGraph,
-  DebugOptions,
-  DebugReport
-} from "./types.js";
+import type { DebugGraph, DebugOptions, DebugReport } from "./types.js";
 
 export interface DebugHarnessDeps {
   /** Load a workflow graph by DB id (injected to keep models out of light paths). */
@@ -28,7 +24,11 @@ export interface DebugHarnessDeps {
 }
 
 function defaultOutDir(ref: string): string {
-  const slug = ref.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "workflow";
+  const slug =
+    ref
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "workflow";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   return resolve(`nodetool-debug/${slug}-${stamp}`);
 }
@@ -58,7 +58,11 @@ export async function runDebug(
 
   const outDir = options.outDir ? resolve(options.outDir) : defaultOutDir(ref);
   await mkdir(outDir, { recursive: true });
-  await writeFile(join(outDir, "workflow.json"), JSON.stringify(resolved.graph, null, 2), "utf8");
+  await writeFile(
+    join(outDir, "workflow.json"),
+    JSON.stringify(resolved.graph, null, 2),
+    "utf8"
+  );
 
   const report: DebugReport = {
     generatedAt: new Date().toISOString(),
@@ -84,15 +88,18 @@ export async function runDebug(
       await initTelemetry({ traceFile: tracePath, silent: true });
     }
 
-    const outcome = await runOnServer({
+    const runInput: Parameters<typeof runOnServer>[0] = {
       graph: resolved.graph,
       workflowId: resolved.info.workflowId,
       params,
       tracePath,
       timeoutMs: options.timeoutMs,
-      ...(options.supervisor ? { supervisor: options.supervisor } : {}),
       onInterventionLine: log
-    });
+    };
+    if (options.supervisor) {
+      runInput.supervisor = options.supervisor;
+    }
+    const outcome = await runOnServer(runInput);
 
     const messagesPath = join(serverDir, "messages.jsonl");
     await writeFile(
@@ -128,8 +135,16 @@ export async function runDebug(
 
   report.verdict = buildVerdict(report.server, report.browser);
 
-  await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2), "utf8");
-  await writeFile(join(outDir, "report.md"), renderReportMarkdown(report), "utf8");
+  await writeFile(
+    join(outDir, "report.json"),
+    JSON.stringify(report, null, 2),
+    "utf8"
+  );
+  await writeFile(
+    join(outDir, "report.md"),
+    renderReportMarkdown(report),
+    "utf8"
+  );
 
   return report;
 }

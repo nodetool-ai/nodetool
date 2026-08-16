@@ -14,9 +14,19 @@ import type {
   SketchInteractionRecord,
   SketchValidation
 } from "./types.js";
-import { validateSketchDocument, type SketchValidationMeta } from "./validate.js";
+import {
+  validateSketchDocument,
+  type SketchValidationMeta
+} from "./validate.js";
 
-const DEFAULTS = { width: 1024, height: 1024, backgroundColor: "#ffffff" } as const;
+/** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+const DEFAULTS = {
+  width: 1024,
+  height: 1024,
+  backgroundColor: "#ffffff"
+} as const;
 
 /**
  * What a headless sketch run cannot answer. Fixed, because the boundary is a
@@ -34,7 +44,8 @@ const NOT_SIMULATED: ReadonlyArray<string> = [
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const count = (value: unknown): number => (Array.isArray(value) ? value.length : 0);
+const count = (value: unknown): number =>
+  Array.isArray(value) ? value.length : 0;
 
 function describeDocument(
   document: unknown,
@@ -44,7 +55,9 @@ function describeDocument(
   const sketch = isRecord(record.sketch) ? record.sketch : {};
   const canvas = isRecord(sketch.canvas) ? sketch.canvas : {};
   const pick = (value: unknown, fallback: number): number =>
-    typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+    typeof value === "number" && Number.isFinite(value) && value > 0
+      ? value
+      : fallback;
   const background =
     typeof canvas.backgroundColor === "string"
       ? canvas.backgroundColor
@@ -75,13 +88,18 @@ function buildSketchVerdict(
   const issues: string[] = [
     ...validation.errors.map(describe),
     ...failedSteps.map(
-      (step) => `Interaction \`${step.tool}\` failed${step.error ? `: ${step.error}` : ""}`
+      (step) =>
+        `Interaction \`${step.tool}\` failed${step.error ? `: ${step.error}` : ""}`
     ),
-    ...(finalValidation?.errors ?? []).map((issue) => `After edits — ${describe(issue)}`)
+    ...(finalValidation?.errors ?? []).map(
+      (issue) => `After edits — ${describe(issue)}`
+    )
   ];
   const warnings: string[] = [
     ...validation.warnings.map(describe),
-    ...(finalValidation?.warnings ?? []).map((issue) => `After edits — ${describe(issue)}`)
+    ...(finalValidation?.warnings ?? []).map(
+      (issue) => `After edits — ${describe(issue)}`
+    )
   ];
 
   const ok = issues.length === 0;
@@ -91,11 +109,15 @@ function buildSketchVerdict(
       (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
       "."
     : `Sketch has ${issues.length} problem(s)` +
-      (failedSteps.length > 0 ? `, ${failedSteps.length} failed interaction(s)` : "") +
+      (failedSteps.length > 0
+        ? `, ${failedSteps.length} failed interaction(s)`
+        : "") +
       (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
       ` — ${issues[0]}`;
 
-  return warningCount > 0 ? { ok, headline, issues, warnings } : { ok, headline, issues };
+  return warningCount > 0
+    ? { ok, headline, issues, warnings }
+    : { ok, headline, issues };
 }
 
 export interface SketchDebugReportInput {
@@ -124,16 +146,25 @@ export function buildSketchDebugReport(
 
   // The final document is what the session left behind, so it — not the input
   // — describes the sketch the report is about.
-  const meta = describeDocument(input.finalDocument ?? input.document, input.meta);
+  const meta = describeDocument(
+    input.finalDocument ?? input.document,
+    input.meta
+  );
 
-  return {
+  type ReportFields = Mutable<SketchDebugReport>;
+  const report: ReportFields = {
     target: input.target,
     meta,
     validation,
     interactions,
-    ...(input.finalState !== undefined ? { finalState: input.finalState } : {}),
-    ...(finalValidation ? { finalValidation } : {}),
     notSimulated: [...NOT_SIMULATED],
     verdict: buildSketchVerdict(validation, interactions, finalValidation)
   };
+  if (input.finalState !== undefined) {
+    report.finalState = input.finalState;
+  }
+  if (finalValidation) {
+    report.finalValidation = finalValidation;
+  }
+  return report;
 }

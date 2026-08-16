@@ -34,7 +34,6 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-
 /** A `js_scripts` row as these commands need it. */
 export interface JsScriptRow {
   id: string;
@@ -152,16 +151,14 @@ export function documentCounts(document: unknown): {
 }
 
 async function defaultValidate(document: unknown): Promise<JsScriptValidation> {
-  const { validateJsScriptDoc } = await import(
-    "@nodetool-ai/execution/js-script-debug"
-  );
+  const { validateJsScriptDoc } =
+    await import("@nodetool-ai/execution/js-script-debug");
   return validateJsScriptDoc(document);
 }
 
 async function defaultStore(): Promise<JsScriptVersionStore> {
-  const { initDb, JsScript, JsScriptVersion } = await import(
-    "@nodetool-ai/models"
-  );
+  const { initDb, JsScript, JsScriptVersion } =
+    await import("@nodetool-ai/models");
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
   initDb(getDefaultDbPath());
 
@@ -257,10 +254,14 @@ export function registerJsScriptVersionsCommands(
       try {
         const store = await openStore();
         await requireScript(store, scriptId);
-        const rows = await store.listVersions(scriptId, {
-          ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
-          ...(opts.saveType ? { saveType: opts.saveType } : {})
-        });
+        const query: Parameters<typeof store.listVersions>[1] = {};
+        if (opts.limit !== undefined) {
+          query.limit = opts.limit;
+        }
+        if (opts.saveType) {
+          query.saveType = opts.saveType;
+        }
+        const rows = await store.listVersions(scriptId, query);
         const items = rows.map(toVersionListItem);
 
         if (opts.json) {

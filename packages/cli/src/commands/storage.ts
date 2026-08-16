@@ -105,13 +105,16 @@ export async function migrateStorageKeys(
       // A thumbnail that was never generated is the common "missing" case and
       // is not worth a line of output.
       if (status !== "missing") {
-        report.entries.push({
+        const entry: (typeof report.entries)[number] = {
           assetId: asset.id,
           from: fileName,
           to,
-          status,
-          ...(error ? { error } : {})
-        });
+          status
+        };
+        if (error) {
+          entry.error = error;
+        }
+        report.entries.push(entry);
       }
     }
   }
@@ -128,7 +131,9 @@ export function formatMigrateKeysReport(
     if (entry.status === "failed") {
       lines.push(`FAILED  ${entry.from} -> ${entry.to}: ${entry.error ?? ""}`);
     } else if (entry.status === "moved") {
-      lines.push(`${dryRun ? "would move" : "moved"}  ${entry.from} -> ${entry.to}`);
+      lines.push(
+        `${dryRun ? "would move" : "moved"}  ${entry.from} -> ${entry.to}`
+      );
     }
   }
   lines.push("");

@@ -114,12 +114,16 @@ export function scriptRunMessages(
       done: true
     });
   }
-  messages.push({
+  const jobUpdate = {
     ...job,
     type: "job_update",
-    status: result.ok ? "completed" : "failed",
-    ...(result.error === undefined ? {} : { error: result.error })
-  });
+    status: result.ok ? "completed" : "failed"
+  };
+  messages.push(
+    result.error === undefined
+      ? jobUpdate
+      : { ...jobUpdate, error: result.error }
+  );
   return messages;
 }
 

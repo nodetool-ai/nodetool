@@ -9,10 +9,7 @@ import {
   referencedVariables,
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
-import {
-  loadNodeFsPromises,
-  loadNodePath
-} from "@nodetool-ai/nodes-utils";
+import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -69,6 +66,17 @@ function modelConfig(props: Record<string, unknown>): {
     providerId: typeof model.provider === "string" ? model.provider : "",
     modelId: typeof model.id === "string" ? model.id : ""
   };
+}
+
+type EmbeddingParams = { text: string; dimensions?: number };
+
+/** Embedding params; `dimensions` travels only when the model declares one. */
+function embeddingParams(text: string, dimensions: number): EmbeddingParams {
+  const params: EmbeddingParams = { text };
+  if (dimensions > 0) {
+    params.dimensions = dimensions;
+  }
+  return params;
 }
 
 export class CountTokensNode extends BaseNode {
@@ -232,7 +240,7 @@ export class EmbeddingTextNode extends BaseNode {
     output: "list"
   };
   static readonly inlineFields = [];
-  static readonly inputFields  = ["input"];
+  static readonly inputFields = ["input"];
 
   @prop({
     type: "embedding_model",
@@ -274,10 +282,14 @@ export class EmbeddingTextNode extends BaseNode {
     }
     const { providerId, modelId } = modelConfig(this.serialize());
     if (!context || typeof context.runProviderPrediction !== "function") {
-      throw new Error("Embedding requires a processing context with provider access");
+      throw new Error(
+        "Embedding requires a processing context with provider access"
+      );
     }
     if (!providerId || !modelId) {
-      throw new Error("Embedding requires an embedding model with provider and id");
+      throw new Error(
+        "Embedding requires an embedding model with provider and id"
+      );
     }
     const model = (this.model ?? {}) as Record<string, unknown>;
     const dimensions = Number(model.dimensions ?? 0);
@@ -285,10 +297,7 @@ export class EmbeddingTextNode extends BaseNode {
       provider: providerId,
       capability: "generate_embedding",
       model: modelId,
-      params: {
-        text,
-        ...(dimensions > 0 ? { dimensions } : {})
-      }
+      params: embeddingParams(text, dimensions)
     })) as number[][];
     return { output: vectors[0] ?? [] };
   }
@@ -462,13 +471,9 @@ export class LoadTextFolderNode extends BaseNode {
     path: string;
   }> {
     const folder = String(this.folder ?? "");
-    const includeSubdirs = Boolean(
-      this.include_subdirectories ?? false
-    );
+    const includeSubdirs = Boolean(this.include_subdirectories ?? false);
     const extensions = Array.isArray(this.extensions)
-      ? ((this.extensions) as unknown[]).map((v) =>
-          String(v).toLowerCase()
-        )
+      ? (this.extensions as unknown[]).map((v) => String(v).toLowerCase())
       : [".txt"];
 
     if (!folder) {
@@ -805,7 +810,12 @@ export class JoinTextNode extends BaseNode {
   })
   declare strings: any;
 
-  @prop({ type: "str", default: "", title: "Separator", description: "Separator between items." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Separator",
+    description: "Separator between items."
+  })
   declare separator: any;
 
   async process(): Promise<Record<string, unknown>> {
@@ -826,10 +836,20 @@ export class CollectTextNode extends BaseNode {
 
   private _items: string[] = [];
 
-  @prop({ type: "str", default: "", title: "Input Item", description: "Text to collect." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Input Item",
+    description: "Text to collect."
+  })
   declare input_item: any;
 
-  @prop({ type: "str", default: "", title: "Separator", description: "Separator between collected items." })
+  @prop({
+    type: "str",
+    default: "",
+    title: "Separator",
+    description: "Separator between collected items."
+  })
   declare separator: any;
 
   async initialize(): Promise<void> {
@@ -869,14 +889,11 @@ export class PromptNode extends BaseNode {
     type: "str",
     default: "",
     title: "Prompt",
-    description:
-      "Prompt text. Reference variables with {{ name }} or {name}."
+    description: "Prompt text. Reference variables with {{ name }} or {name}."
   })
   declare prompt: any;
 
-  async process(
-    context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const template = String(this.prompt ?? "");
     const props: Record<string, unknown> = Object.fromEntries(
       this.dynamicProps
@@ -927,15 +944,14 @@ export class TemplateTextNode extends BaseNode {
     type: "str",
     default: "",
     title: "String",
-    description: "Template string with {{ variable }} or {variable} placeholders."
+    description:
+      "Template string with {{ variable }} or {variable} placeholders."
   })
   declare string: any;
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.string ?? "");
-    const props = tokenizeAssetVars(
-      Object.fromEntries(this.dynamicProps)
-    );
+    const props = tokenizeAssetVars(Object.fromEntries(this.dynamicProps));
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");

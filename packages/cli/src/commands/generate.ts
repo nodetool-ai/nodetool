@@ -13,7 +13,11 @@
  * Heavy deps (runtime providers, DB) load lazily inside the action.
  */
 import type { Command } from "commander";
-import type { ImageModel, TextToImageParams } from "@nodetool-ai/runtime";
+import type {
+  ImageModel,
+  ImageToImageParams,
+  TextToImageParams
+} from "@nodetool-ai/runtime";
 
 interface GenerateCliOptions {
   output?: string;
@@ -41,7 +45,8 @@ const PROVIDER_ALIASES: Record<string, string> = {
   "llama-cpp": "llama_cpp"
 };
 
-const normKey = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const normKey = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 function pickExtension(bytes: Uint8Array): string {
   if (bytes.length >= 2 && bytes[0] === 0x89 && bytes[1] === 0x50) return "png";
@@ -64,7 +69,10 @@ function resolveProviderId(input: string, registered: string[]): string | null {
   const underscore = lower.replace(/[-\s]+/g, "_");
   for (const candidate of [lower, underscore]) {
     if (registered.includes(candidate)) return candidate;
-    if (PROVIDER_ALIASES[candidate] && registered.includes(PROVIDER_ALIASES[candidate]))
+    if (
+      PROVIDER_ALIASES[candidate] &&
+      registered.includes(PROVIDER_ALIASES[candidate])
+    )
       return PROVIDER_ALIASES[candidate];
   }
   return null;
@@ -78,7 +86,11 @@ function resolveImageModel(
 ): ImageModel {
   if (models.length === 0) {
     // No manifest available — trust the raw id (works for FAL endpoint ids).
-    return { id: input, name: input, provider: provider as ImageModel["provider"] };
+    return {
+      id: input,
+      name: input,
+      provider: provider as ImageModel["provider"]
+    };
   }
   const want = normKey(input);
   const exact = models.find((m) => m.id === input);
@@ -96,14 +108,21 @@ function resolveImageModel(
   );
   if (partial.length === 1) return partial[0];
   if (partial.length > 1) {
-    const list = partial.slice(0, 10).map((m) => `  ${m.id}`).join("\n");
+    const list = partial
+      .slice(0, 10)
+      .map((m) => `  ${m.id}`)
+      .join("\n");
     throw new Error(
       `Model "${input}" is ambiguous for ${provider}. Candidates:\n${list}\n` +
         `Pass a full model id.`
     );
   }
   if (input.includes("/")) {
-    return { id: input, name: input, provider: provider as ImageModel["provider"] };
+    return {
+      id: input,
+      name: input,
+      provider: provider as ImageModel["provider"]
+    };
   }
   throw new Error(
     `Model "${input}" not found for ${provider}. ` +
@@ -132,7 +151,7 @@ export function registerGenerateCommand(program: Command): void {
   program
     .command("generate [provider] [model] [prompt...]")
     .description(
-      "Generate an image from any provider (e.g. `generate fal-ai flux-schnell \"a fox\"`)"
+      'Generate an image from any provider (e.g. `generate fal-ai flux-schnell "a fox"`)'
     )
     .option("-o, --output <path>", "Output file or directory")
     .option("--width <n>", "Image width in pixels")
@@ -144,10 +163,7 @@ export function registerGenerateCommand(program: Command): void {
     .option("--steps <n>", "Inference steps")
     .option("--guidance <n>", "Guidance scale")
     .option("--strength <n>", "Image-to-image strength (with --image)")
-    .option(
-      "--image <path...>",
-      "Input image(s) — switches to image-to-image"
-    )
+    .option("--image <path...>", "Input image(s) — switches to image-to-image")
     .option("--list-models", "List the provider's image models and exit")
     .option("--json", "Print the result as JSON")
     .action(
@@ -204,13 +220,17 @@ async function run(
     provider = await createProvider(providerId);
   } catch (e) {
     const key = providerSecretKey(providerId);
-    const hint = key ? ` Set ${key} (env var or \`nodetool secrets store ${key}\`).` : "";
+    const hint = key
+      ? ` Set ${key} (env var or \`nodetool secrets store ${key}\`).`
+      : "";
     throw new Error(
       `Could not initialize provider "${providerId}": ${e instanceof Error ? e.message : String(e)}.${hint}`
     );
   }
 
-  const models = await provider.getAvailableImageModels().catch(() => [] as ImageModel[]);
+  const models = await provider
+    .getAvailableImageModels()
+    .catch(() => [] as ImageModel[]);
 
   if (opts.listModels) {
     if (opts.json) {
@@ -219,12 +239,18 @@ async function run(
       console.log(`No image models listed for ${providerId}.`);
     } else {
       console.log(`\nImage models for ${providerId} (${models.length}):\n`);
-      for (const m of models) console.log(`  ${m.id}${m.name && m.name !== m.id ? `  — ${m.name}` : ""}`);
+      for (const m of models)
+        console.log(
+          `  ${m.id}${m.name && m.name !== m.id ? `  — ${m.name}` : ""}`
+        );
     }
     return;
   }
 
-  if (!modelArg) throw new Error("Model is required. Run with --list-models to see options.");
+  if (!modelArg)
+    throw new Error(
+      "Model is required. Run with --list-models to see options."
+    );
   const prompt = promptParts.join(" ").trim();
   if (!prompt) throw new Error("Prompt is required.");
 
@@ -235,13 +261,23 @@ async function run(
     model,
     prompt,
     negativePrompt: opts.negativePrompt ?? null,
-    ...(opts.width ? { width: parseInt(opts.width, 10) } : {}),
-    ...(opts.height ? { height: parseInt(opts.height, 10) } : {}),
-    aspectRatio: opts.aspectRatio ?? null,
-    ...(opts.seed ? { seed: parseInt(opts.seed, 10) } : {}),
-    ...(opts.steps ? { numInferenceSteps: parseInt(opts.steps, 10) } : {}),
-    ...(opts.guidance ? { guidanceScale: parseFloat(opts.guidance) } : {})
+    aspectRatio: opts.aspectRatio ?? null
   };
+  if (opts.width) {
+    params.width = parseInt(opts.width, 10);
+  }
+  if (opts.height) {
+    params.height = parseInt(opts.height, 10);
+  }
+  if (opts.seed) {
+    params.seed = parseInt(opts.seed, 10);
+  }
+  if (opts.steps) {
+    params.numInferenceSteps = parseInt(opts.steps, 10);
+  }
+  if (opts.guidance) {
+    params.guidanceScale = parseFloat(opts.guidance);
+  }
 
   if (!opts.json) {
     console.error(
@@ -255,10 +291,10 @@ async function run(
     const inputs = await Promise.all(
       opts.image.map(async (p) => new Uint8Array(await readFile(p)))
     );
-    const i2iParams = {
-      ...params,
-      ...(opts.strength ? { strength: parseFloat(opts.strength) } : {})
-    };
+    const i2iParams: ImageToImageParams = { ...params };
+    if (opts.strength) {
+      i2iParams.strength = parseFloat(opts.strength);
+    }
     images =
       numImages > 1
         ? await provider.imageToImages(inputs, i2iParams, numImages)
@@ -311,7 +347,9 @@ async function writeImages(
     const isDir =
       output.endsWith("/") ||
       output.endsWith(path.sep) ||
-      (await stat(output).then((s) => s.isDirectory()).catch(() => false));
+      (await stat(output)
+        .then((s) => s.isDirectory())
+        .catch(() => false));
     if (isDir) {
       dir = output;
     } else {

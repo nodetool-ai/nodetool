@@ -1,3 +1,4 @@
+import type { Mutable } from "./mutable.js";
 /**
  * The streaming fold: one place that turns a run's processing messages into
  * state events.
@@ -70,7 +71,8 @@ const valueEvents = (
   done: boolean
 ): AppStateEvent[] => {
   const key = ctx.outputKey(invocation.operationId, nodeId);
-  const variableId = ctx.outputVariable?.(invocation.operationId, nodeId) ?? null;
+  const variableId =
+    ctx.outputVariable?.(invocation.operationId, nodeId) ?? null;
   const events: AppStateEvent[] = [];
   if (key) {
     events.push({
@@ -194,17 +196,13 @@ export const messageToEvents = (
     case "node_update": {
       const error = errorText(message.error);
       if (!error) return [];
-      return [
-        { type: "invocationError", invocationId: invocation.id, error }
-      ];
+      return [{ type: "invocationError", invocationId: invocation.id, error }];
     }
 
     case "error": {
       const error = errorText(message.message) || errorText(message.error);
       if (!error) return [];
-      return [
-        { type: "invocationError", invocationId: invocation.id, error }
-      ];
+      return [{ type: "invocationError", invocationId: invocation.id, error }];
     }
 
     case "tool_call_update":
@@ -232,14 +230,18 @@ export const messageToEvents = (
           : [];
       }
       const error = errorText(message.error);
-      return [
-        {
-          type: "invocationStatus",
-          invocationId: invocation.id,
-          status: mapped,
-          ...(error ? { error } : {})
-        }
-      ];
+      type StatusEffectFields = Mutable<
+        Extract<AppStateEvent, { type: "invocationStatus" }>
+      >;
+      const statusEffect: StatusEffectFields = {
+        type: "invocationStatus",
+        invocationId: invocation.id,
+        status: mapped
+      };
+      if (error) {
+        statusEffect.error = error;
+      }
+      return [statusEffect];
     }
 
     default:
@@ -250,4 +252,5 @@ export const messageToEvents = (
 export const messagesToEvents = (
   messages: ReadonlyArray<Record<string, unknown>>,
   ctx: FoldContext
-): AppStateEvent[] => messages.flatMap((message) => messageToEvents(message, ctx));
+): AppStateEvent[] =>
+  messages.flatMap((message) => messageToEvents(message, ctx));

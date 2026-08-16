@@ -76,7 +76,8 @@ export function registerTimelineCommands(program: Command): void {
     )
     .action(async (ref: string, opts: TimelineValidateCliOptions) => {
       try {
-        const { runTimelineValidate } = await import("../timeline-debug/index.js");
+        const { runTimelineValidate } =
+          await import("../timeline-debug/index.js");
         const { target, validation } = await runTimelineValidate(ref, {
           loadSequence: await sequenceLoader()
         });
@@ -113,19 +114,22 @@ export function registerTimelineCommands(program: Command): void {
     .option("--json", "Print the full TimelineDebugReport as JSON to stdout")
     .action(async (ref: string, opts: TimelineDebugCliOptions) => {
       try {
-        const { parseInteractionScript, runTimelineDebug } = await import(
-          "../timeline-debug/index.js"
-        );
+        const { parseInteractionScript, runTimelineDebug } =
+          await import("../timeline-debug/index.js");
         const interact = opts.interact
           ? parseInteractionScript(opts.interact)
           : undefined;
 
+        const debugOptions: Parameters<typeof runTimelineDebug>[1] = {};
+        if (interact) {
+          debugOptions.interact = interact;
+        }
+        if (opts.out) {
+          debugOptions.outDir = opts.out;
+        }
         const { report, bundleDir } = await runTimelineDebug(
           ref,
-          {
-            ...(interact ? { interact } : {}),
-            ...(opts.out ? { outDir: opts.out } : {})
-          },
+          debugOptions,
           {
             loadSequence: await sequenceLoader(),
             onLog: (line) => console.error(line)
@@ -168,7 +172,8 @@ function printTimelineSummary(
   }
   if (report.verdict.warnings && report.verdict.warnings.length > 0) {
     console.log("\nWarnings:");
-    for (const warning of report.verdict.warnings) console.log(`  - ${warning}`);
+    for (const warning of report.verdict.warnings)
+      console.log(`  - ${warning}`);
   }
   console.log(`\nDebug bundle: ${bundleDir}`);
   console.log("  report.md / report.json · timeline.json");
