@@ -10,8 +10,18 @@ import { fromPersistedSketchEditorState } from "../../stores/sketch/persistence"
 import type { SketchDocument } from "../sketch/types";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+import { isRecord } from "../../utils/typePredicates";
+
+export { isRecord };
+
+/**
+ * A URI that resolves to stored bytes. `memory://` refs are in-memory only and
+ * can never be fetched, so they do not count.
+ */
+export const isStoredUri = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value !== "" &&
+  !value.startsWith("memory://");
 
 export const getSketchId = (value: unknown): string | null => {
   if (!isRecord(value)) {

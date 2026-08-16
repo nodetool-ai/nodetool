@@ -19,6 +19,14 @@ import { useTheme } from "../../hooks/useTheme";
 import type { ThemeColors } from "../../utils/theme";
 import { apiService } from "../../services/api";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
+import {
+  isBoolean,
+  isNonEmptyString,
+  isNumber,
+  isRecord,
+  isString,
+  isStoredUri
+} from "../../utils/typePredicates";
 
 interface TypedValue {
   type: string;
@@ -46,8 +54,8 @@ type OutputRendererProps = {
 const typeFor = (value: unknown): string => {
   if (value === undefined || value === null) {return "null";}
   if (Array.isArray(value)) {return "array";}
-  if (typeof value === "boolean") {return "boolean";}
-  if (typeof value === "object" && value !== null && "type" in value) {
+  if (isBoolean(value)) {return "boolean";}
+  if (isRecord(value) && "type" in value) {
     return (value as { type: string }).type;
   }
   return typeof value;
@@ -58,9 +66,7 @@ const typeFor = (value: unknown): string => {
  * and a data URI is already its own source.
  */
 const mediaLocator = (uri: unknown): string | undefined =>
-  typeof uri === "string" && uri && !uri.startsWith("memory://")
-    ? uri
-    : undefined;
+  isStoredUri(uri) ? uri : undefined;
 
 /**
  * One explicit width per column so the header row and the body rows share a
@@ -129,9 +135,9 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
   if (
     value === undefined ||
     value === null ||
-    (typeof value === "string" && value.trim() === "") ||
+    (isString(value) && value.trim() === "") ||
     (Array.isArray(value) && value.length === 0) ||
-    (typeof value === "object" &&
+    (isRecord(value) &&
       !Array.isArray(value) &&
       Object.keys(value).length === 0)
   ) {
@@ -163,7 +169,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
 
     case "text": {
       const textVal = v.text ?? "";
-      if (typeof textVal !== "string" || !textVal) {return null;}
+      if (!isNonEmptyString(textVal)) {return null;}
       return <MarkdownRenderer content={textVal} />;
     }
 
@@ -192,7 +198,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
         );
       }
 
-      if (typeof imgSource === "string") {
+      if (isString(imgSource)) {
         const imageUri = imgSource.startsWith("data:")
           ? imgSource
           : (resolvedUri ??
@@ -313,7 +319,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
               </Text>
             )}
           </View>
-          {typeof v.body === "string" && <MarkdownRenderer content={v.body} />}
+          {isString(v.body) && <MarkdownRenderer content={v.body} />}
         </View>
       );
 
@@ -325,7 +331,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
               {String(v.title)}
             </Text>
           )}
-          {typeof v.description === "string" && (
+          {isString(v.description) && (
             <MarkdownRenderer content={v.description} />
           )}
           {Array.isArray(v.steps) && v.steps.length > 0 && (
@@ -338,7 +344,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
                     {i + 1}.
                   </Text>
                   <Text style={[styles.taskStepText, { color: colors.text }]}>
-                    {typeof s === "string" ? s : s?.description || s?.title || JSON.stringify(s)}
+                    {isString(s) ? s : s?.description || s?.title || JSON.stringify(s)}
                   </Text>
                 </View>
                 );
@@ -390,7 +396,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
               📍 {String(v.location)}
             </Text>
           )}
-          {typeof v.notes === "string" && <MarkdownRenderer content={v.notes} />}
+          {isString(v.notes) && <MarkdownRenderer content={v.notes} />}
         </View>
       );
 
@@ -407,7 +413,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       if (contentType === "audio") {
         return <OutputRenderer value={{ type: "audio", uri: v.content }} />;
       }
-      const chunkText = typeof v.content === "string" ? v.content : "";
+      const chunkText = isString(v.content) ? v.content : "";
       if (!chunkText) {return null;}
       return <MarkdownRenderer content={chunkText} />;
     }
@@ -416,7 +422,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     case "classification_result":
       return (
         <Text style={[styles.text, { color: colors.text }]}>
-          {String(v.label)}: {typeof v.score === "number" ? v.score.toFixed(4) : String(v.score)}
+          {String(v.label)}: {isNumber(v.score) ? v.score.toFixed(4) : String(v.score)}
         </Text>
       );
 
@@ -446,7 +452,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       }
       const headers = columns.map((col) => {
         const c = col as string | DataframeColumn;
-        return typeof c === "object" && c !== null ? String(c.name) : String(c);
+        return isRecord(c) ? String(c.name) : String(c);
       });
       const bodyRows = data.slice(0, 50).map((rawRow) => {
         const row = rawRow as unknown[] | Record<string, unknown>;
@@ -576,7 +582,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       const firstItem = arr[0];
 
       // Array of strings → list
-      if (typeof firstItem === "string" && arr.every((item) => typeof item === "string")) {
+      if (isString(firstItem) && arr.every(isString)) {
         return (
           <View style={styles.container}>
             {(arr as string[]).map((item: string, i: number) => (
@@ -592,7 +598,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       }
 
       // Array of numbers → compact display
-      if (typeof firstItem === "number") {
+      if (isNumber(firstItem)) {
         return (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Text
@@ -612,7 +618,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       }
 
       // Array of typed objects
-      if (typeof firstItem === "object" && firstItem !== null) {
+      if (isRecord(firstItem)) {
         const first = firstItem as Record<string, unknown>;
         // Chunks
         if (first.type === "chunk") {
@@ -624,7 +630,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
           );
           if (allText) {
             const text = (arr as TypedValue[])
-              .map((c) => (typeof c.content === "string" ? c.content : ""))
+              .map((c) => (isString(c.content) ? c.content : ""))
               .join("");
             return <MarkdownRenderer content={text} />;
           }
@@ -650,7 +656,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
         }
 
         // Array of other typed objects (audio, video, etc.)
-        if (typeof first.type === "string" && ["audio", "video", "html", "task"].includes(first.type)) {
+        if (isString(first.type) && ["audio", "video", "html", "task"].includes(first.type)) {
           return (
             <View style={styles.container}>
               {arr.map((item: unknown, i: number) => (
@@ -769,12 +775,12 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
 
     // ── Fallback ─────────────────────────────────────────────────
     default:
-      if (value !== null && typeof value === "object") {
+      if (isRecord(value)) {
         return renderJSON(value, codeTheme, colors, mode, monoFont);
       }
       return (
         <Text style={[styles.text, { color: colors.text }]}>
-          {typeof value === "string" ? value : String(value ?? "")}
+          {isString(value) ? value : String(value ?? "")}
         </Text>
       );
   }

@@ -46,8 +46,16 @@ import {
   getSketchId,
   resolveSketchDocument,
   getTimelineId,
-  resolveTimelineSequence
+  resolveTimelineSequence,
+  isRecord,
+  isStoredUri
 } from "./outputValueResolvers";
+import {
+  isBoolean,
+  isNonEmptyString,
+  isNumber,
+  isString
+} from "../../utils/typePredicates";
 import SketchRenderer from "../sketch/SketchRenderer";
 
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
@@ -199,10 +207,10 @@ const stableKeyForOutputValue = (v: unknown): string => {
   if (v === undefined) {
     return "undefined";
   }
-  if (typeof v === "string") {
+  if (isString(v)) {
     return `str:${hashStringBounded(v)}`;
   }
-  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") {
+  if (isNumber(v) || isBoolean(v) || typeof v === "bigint") {
     return `${typeof v}:${String(v)}`;
   }
   if (v instanceof Uint8Array) {
@@ -211,22 +219,22 @@ const stableKeyForOutputValue = (v: unknown): string => {
   if (Array.isArray(v)) {
     return `arr:${hashBytesBounded(v)}`;
   }
-  if (typeof v === "object") {
-    const obj = v as Record<string, unknown>;
+  if (isRecord(v)) {
+    const obj = v;
     const id = obj.id;
-    if (typeof id === "string" || typeof id === "number") {
+    if (isString(id) || isNumber(id)) {
       return `id:${String(id)}`;
     }
     const uri = obj.uri;
-    if (typeof uri === "string" && uri) {
+    if (isNonEmptyString(uri)) {
       return `uri:${uri}`;
     }
     const type = obj.type;
     const name = obj.name;
-    if (typeof type === "string" && typeof name === "string") {
+    if (isString(type) && isString(name)) {
       return `type-name:${type}:${name}`;
     }
-    if (typeof type === "string") {
+    if (isString(type)) {
       return `type:${type}:${hashStringBounded(
         JSON.stringify(Object.keys(obj).slice(0, 50))
       )}`;
@@ -251,7 +259,7 @@ const concatTextChunksSafely = (
     if (!c) {
       continue;
     }
-    const piece = typeof c.content === "string" ? c.content : "";
+    const piece = isString(c.content) ? c.content : "";
     if (!piece) {
       used++;
       continue;
@@ -382,9 +390,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const shouldRender = !(
     value === undefined ||
     value === null ||
-    (typeof value === "string" && value.trim() === "") ||
+    (isString(value) && value.trim() === "") ||
     (Array.isArray(value) && value.length === 0) ||
-    (typeof value === "object" &&
+    (isRecord(value) &&
       !Array.isArray(value) &&
       Object.keys(value).length === 0)
   );
@@ -453,9 +461,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes = data;
     } else if (Array.isArray(data)) {
       bytes = new Uint8Array(data);
-    } else if (data && typeof data === "object") {
+    } else if (isRecord(data)) {
       const numericEntries = Object.entries(data)
-        .filter(([k, v]) => /^\d+$/.test(k) && typeof v === "number")
+        .filter(([k, v]) => /^\d+$/.test(k) && isNumber(v))
         .sort((a, b) => Number(a[0]) - Number(b[0]));
       if (numericEntries.length > 0) {
         bytes = new Uint8Array(numericEntries.map(([, v]) => Number(v)));
@@ -512,9 +520,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   // Extract the primary URI from the current value for signing.
   // memory:// URIs are excluded — they're in-memory only and never stored.
   const valueUri = useMemo(() => {
-    if (!value || typeof value !== "object") return undefined;
-    const v = value as Record<string, unknown>;
-    if (typeof v.uri === "string" && v.uri && !v.uri.startsWith("memory://")) return v.uri;
+    if (!isRecord(value)) return undefined;
+    const v = value;
+    if (isStoredUri(v.uri)) return v.uri;
     return undefined;
   }, [value]);
   const signedValueUrl = useSignedUrl(valueUri);
@@ -548,8 +556,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (
             v.mimeType === RAW_RGBA_MIME &&
             v.data instanceof Uint8Array &&
-            typeof v.width === "number" &&
-            typeof v.height === "number"
+            isNumber(v.width) &&
+            isNumber(v.height)
           ) {
             // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
             imageSource = rawRgbaToPngDataUrl(
@@ -557,13 +565,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               v.width,
               v.height
             );
-          } else if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
+          } else if (isStoredUri(v.uri)) {
             imageSource = signedValueUrl;
           } else if (v.data instanceof Uint8Array) {
             imageSource = v.data;
           } else if (Array.isArray(v.data)) {
             imageSource = new Uint8Array(v.data as number[]);
-          } else if (typeof v.data === "string") {
+          } else if (isString(v.data)) {
             imageSource = v.data;
           } else {
             imageSource = "";
@@ -573,13 +581,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "audio": {
         let audioSource: string | Uint8Array;
 
-        if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
+        if (isStoredUri(v.uri)) {
           audioSource = signedValueUrl;
         } else if (Array.isArray(v.data)) {
           audioSource = new Uint8Array(v.data as number[]);
         } else if (v.data instanceof Uint8Array) {
           audioSource = v.data;
-        } else if (typeof v.data === "string") {
+        } else if (isString(v.data)) {
           audioSource = v.data;
         } else {
           audioSource = "";
@@ -605,10 +613,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         );
       }
       case "html": {
-        const uri =
-          typeof v.uri === "string" && v.uri && !v.uri.startsWith("memory://")
-            ? signedValueUrl
-            : "";
+        const uri = isStoredUri(v.uri) ? signedValueUrl : "";
         if (uri) {
           return (
             <iframe
@@ -621,7 +626,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         let html = "";
-        if (typeof v.data === "string") {
+        if (isString(v.data)) {
           html = v.data;
         } else if (v.data instanceof Uint8Array) {
           html = new TextDecoder("utf-8").decode(v.data);
@@ -643,8 +648,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         );
       }
       case "document": {
-        const rawUri =
-          typeof v.uri === "string" ? v.uri : "";
+        const rawUri = isString(v.uri) ? v.uri : "";
         const uriFromRef =
           rawUri && !rawUri.startsWith("memory://") ? signedValueUrl : "";
         const uri = uriFromRef || documentDataPreview.url;
@@ -690,15 +694,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           />
         );
       case "model_3d": {
-        const rawUri: string =
-          typeof v.uri === "string" ? v.uri : "";
+        const rawUri: string = isString(v.uri) ? v.uri : "";
 
         if (!rawUri) {
           return <JSONRenderer value={v} showActions={showTextActions} />;
         }
 
         const url = signedValueUrl;
-        const format = typeof v.format === "string" ? v.format : undefined;
+        const format = isString(v.format) ? v.format : undefined;
         const contentType = getMimeTypeFromUri(url) ||
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
@@ -792,12 +795,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         if (keys.length === 1) {
           const singleValue = vals[0];
-          if (typeof singleValue === "string") {
+          if (isString(singleValue)) {
             return (
               <TextRenderer text={singleValue} showActions={showTextActions} />
             );
           }
-          if (typeof singleValue === "number") {
+          if (isNumber(singleValue)) {
             return (
               <TextRenderer
                 text={String(singleValue)}
@@ -805,7 +808,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               />
             );
           }
-          if (typeof singleValue === "boolean") {
+          if (isBoolean(singleValue)) {
             return <BooleanRenderer value={singleValue} />;
           }
           return (
@@ -835,7 +838,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (arr[0] === undefined || arr[0] === null) {
             return null;
           }
-          if (typeof arr[0] === "string" && arr.every((item: unknown) => typeof item === "string")) {
+          if (isString(arr[0]) && arr.every(isString)) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -865,12 +868,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               </div>
             );
           }
-          if (typeof arr[0] === "number") {
+          if (isNumber(arr[0])) {
             return (
               <ListTable data={arr as number[]} data_type="float" editable={false} />
             );
           }
-          if (typeof arr[0] === "object") {
+          if (isRecord(arr[0])) {
             if (arr.every(isAudioChunkLike)) {
               const seen = new Map<string, number>();
               return (
@@ -972,7 +975,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                         key={withOccurrenceSuffix(
                           `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
                           }:${hashStringBounded(
-                            typeof c.content === "string" ? c.content : ""
+                            isString(c.content) ? c.content : ""
                           )}`,
                           seen
                         )}
@@ -996,7 +999,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               );
             }
             if (
-              typeof first.type === "string" &&
+              isString(first.type) &&
               ["audio", "video", "html", "sketch"].includes(first.type)
             ) {
               const seen = new Map<string, number>();
@@ -1018,10 +1021,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             const columnType = (
               cell: unknown
             ): "string" | "float" | "int" | "datetime" | "object" => {
-              if (typeof cell === "string") {
+              if (isString(cell)) {
                 return "string";
               }
-              if (typeof cell === "number") {
+              if (isNumber(cell)) {
                 return "float";
               }
               return "object";
@@ -1090,12 +1093,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "json":
         return <JSONRenderer value={v} showActions={showTextActions} />;
       default:
-        if (value !== null && typeof value === "object") {
+        if (isRecord(value)) {
           return <JSONRenderer value={value} showActions={showTextActions} />;
         }
         return (
           <TextRenderer
-            text={typeof value === "string" ? value : String(value ?? "")}
+            text={isString(value) ? value : String(value ?? "")}
             showActions={showTextActions}
           />
         );
