@@ -314,12 +314,17 @@ export function deriveShotScaffold(
       const narration = group
         .filter((line) => isNarrationLine(line, script.cast))
         .map((line) => line.text.trim());
-      scaffolds.push({
+      const scaffold: ShotScaffold = {
         index: scaffolds.length,
-        script_line_ids: group.map((line) => line.id),
-        ...(dialogue.length > 0 ? { dialogue: joinLineTexts(dialogue) } : {}),
-        ...(narration.length > 0 ? { narration: joinLineTexts(narration) } : {})
-      });
+        script_line_ids: group.map((line) => line.id)
+      };
+      if (dialogue.length > 0) {
+        scaffold.dialogue = joinLineTexts(dialogue);
+      }
+      if (narration.length > 0) {
+        scaffold.narration = joinLineTexts(narration);
+      }
+      scaffolds.push(scaffold);
     }
   }
   return scaffolds;
