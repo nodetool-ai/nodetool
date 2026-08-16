@@ -9,6 +9,7 @@
  * user can't currently use is harmless — it fails naming the open ids.
  */
 
+import './jsScriptTools';
 import './scriptTools';
 import './storyboardTools';
 import './timelineTools';

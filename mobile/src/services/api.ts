@@ -7,6 +7,7 @@ import type {
 import type {
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
+import type { JsScriptRunOutcome } from '../documents/jsScriptTypes';
 import { useAuthStore } from '../stores/AuthStore';
 import { createMobileTRPCClient } from '../trpc/client';
 import {
@@ -283,6 +284,55 @@ class ApiService {
     return this.request<ApplicationReleaseResponse | null>(
       `/api/applications/${encodeURIComponent(id)}/released-document`
     );
+  }
+
+  /**
+   * Execute a saved JS script in the server's QuickJS sandbox —
+   * `POST /api/js-scripts/:id/run`, the one non-tRPC door onto a script, shared
+   * with the web run console and the CLI harness. Nothing runs on the phone,
+   * and the endpoint runs the *saved* document, so callers save first.
+   *
+   * The timeout leaves room for the document's own ceiling
+   * (`JS_SCRIPT_MAX_TIMEOUT_SECONDS`, 120s) plus the round trip; the 30s
+   * default would abort a long run the server was still honoring.
+   */
+  async runJsScript(
+    scriptId: string,
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ): Promise<JsScriptRunOutcome> {
+    try {
+      return await this.request<JsScriptRunOutcome>(
+        `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            inputs,
+            ...(inputStreams ? { input_streams: inputStreams } : {}),
+          }),
+        },
+        130_000
+      );
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        throw error;
+      }
+      // The endpoint answers failures as `{detail}`; `ApiError.message` is the
+      // raw body. Unwrap it so the user (and the agent) reads the reason
+      // instead of a JSON blob.
+      let detail: unknown;
+      try {
+        detail = (JSON.parse(error.message) as { detail?: unknown }).detail;
+      } catch {
+        // Not JSON — fall through to the status message below.
+      }
+      throw new Error(
+        typeof detail === 'string' && detail.length > 0
+          ? detail
+          : `The script run failed (HTTP ${error.status}).`
+      );
+    }
   }
 
   async saveWorkflow(workflow: {
