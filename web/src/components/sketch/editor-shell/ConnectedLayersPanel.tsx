@@ -4,7 +4,7 @@
  * isolatedLayerId, panelsHidden, foregroundColor, and activeTool.
  * Does NOT re-render on toolSettings, viewport, or selection changes.
  */
-import React, { memo } from "react";
+import { memo } from "react";
 import SketchLayersPanel from "../SketchLayersPanel";
 import { useSketchStore } from "../state";
 import { useColorIntentRouter } from "../hooks";
