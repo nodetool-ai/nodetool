@@ -236,7 +236,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 28,689 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 27,955 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
   inside `npm run lint`, so they cannot come back.
@@ -249,18 +249,24 @@ skips those trees. Remaining backlog, largest first:
 
 | rule | findings |
 |---|---:|
-| `require-safety-comment-for-type-assertion` | 10300 |
-| `no-unsafe-dictionary-type` | 5174 |
-| `no-runtime-typeof` | 4421 |
-| `no-known-value-widening` | 1946 |
-| `no-unknown-parameters` | 1944 |
+| `require-safety-comment-for-type-assertion` | 10266 |
+| `no-unsafe-dictionary-type` | 5132 |
+| `no-runtime-typeof` | 4419 |
+| `no-unknown-parameters` | 1904 |
+| `no-known-value-widening` | 1761 |
 | `no-module-mocking` | 1545 |
 | `no-chained-type-assertions` | 1053 |
 | `no-shape-in-symbol-names` | 921 |
 | `no-conditional-empty-object-spread` | 772 |
-| `no-unknown-returns` | 604 |
-| `no-object-parameters` | 8 |
-| `no-reflect-get` | 1 |
+| `no-unknown-returns` | 182 |
+
+A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what
+is left is one thing said many ways — a node output, an app-state slot, a
+stream item — for which NodeTool has no named type, plus the `Tool.process`
+contract that erases every tool's result to share one registry. Those sites
+carry a `HOLDOUT (anti-slop/no-unknown-returns)` comment saying so. Naming that
+value domain is a modelling change, not an annotation, and until someone makes
+it the rule stays in the backlog.
 
 See [tools/oxlint/anti-slop/README.md](tools/oxlint/anti-slop/README.md).
 
