@@ -367,7 +367,7 @@ describe("useNodeContextMenu", () => {
       expect(mockAddNotification).toHaveBeenCalledWith({
         type: "info",
         alert: true,
-        content: "Copied Node Data to Clipboard!"
+        content: "Copied node data to the clipboard"
       });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
