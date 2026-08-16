@@ -14,15 +14,15 @@ import type { ResourceKind } from '@nodetool-ai/app-runtime';
  * The kinds mobile opens as documents.
  *
  * Not the same set as the server's `ResourceKind`: `asset` is a library entry
- * with its own screen rather than a document, and `script` is a document the
- * `resources` envelope cannot carry (its table has no `revision` column), so it
- * travels over `scripts.*` instead. `backends.ts` maps each kind to its
- * transport.
+ * with its own screen rather than a document, and `script` and `jsscript` are
+ * documents the `resources` envelope cannot carry (neither table has a
+ * `revision` column), so they travel over `scripts.*` and `jsScripts.*`
+ * instead. `backends.ts` maps each kind to its transport.
  */
-export type DocumentKind = Exclude<ResourceKind, 'asset'> | 'script';
+export type DocumentKind = Exclude<ResourceKind, 'asset'> | 'script' | 'jsscript';
 
 /** The kinds the `resources.*` envelope can list and write. */
-export type ResourceDocumentKind = Exclude<DocumentKind, 'script'>;
+export type ResourceDocumentKind = Exclude<DocumentKind, 'script' | 'jsscript'>;
 
 /**
  * How much the surface lets a person do directly.
@@ -48,6 +48,7 @@ export interface DocumentKindInfo {
     | 'StoryboardEditor'
     | 'TimelineViewer'
     | 'ScriptEditor'
+    | 'JsScriptEditor'
     | 'SketchViewer'
     | 'DocumentViewer';
   /** Whether the browser offers a "new document" action for this kind. */
@@ -78,6 +79,16 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
     icon: 'document-text-outline',
     surface: 'editor',
     route: 'ScriptEditor',
+    creatable: true,
+    agentEditable: true,
+  },
+  {
+    kind: 'jsscript',
+    label: 'JS Script',
+    plural: 'JS Scripts',
+    icon: 'code-slash-outline',
+    surface: 'editor',
+    route: 'JsScriptEditor',
     creatable: true,
     agentEditable: true,
   },
@@ -132,6 +143,8 @@ export function uiSurfaceForKind(kind: DocumentKind): string | null {
       return 'timeline';
     case 'script':
       return 'script';
+    case 'jsscript':
+      return 'jsscript';
     case 'sketch':
       return 'sketch';
     default:
