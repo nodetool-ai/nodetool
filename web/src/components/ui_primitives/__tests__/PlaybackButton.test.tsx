@@ -4,38 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { PlaybackButton } from "../PlaybackButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/PlayArrow", () => ({
-  __esModule: true,
-  default: () => <span data-testid="play-icon" />
-}));
-
-jest.mock("@mui/icons-material/Pause", () => ({
-  __esModule: true,
-  default: () => <span data-testid="pause-icon" />
-}));
-
-jest.mock("@mui/icons-material/Stop", () => ({
-  __esModule: true,
-  default: () => <span data-testid="stop-icon" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button disabled={disabled} onClick={onClick} className={className} {...rest}>
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-}));
-
 describe("PlaybackButton", () => {
   const mockOnPlay = jest.fn();
   const mockOnPause = jest.fn();
@@ -56,7 +24,7 @@ describe("PlaybackButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("play-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("PlayArrowIcon")).toBeInTheDocument();
   });
 
   it("renders pause icon when playing and in toggle mode", () => {
@@ -70,7 +38,7 @@ describe("PlaybackButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("pause-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("PauseIcon")).toBeInTheDocument();
   });
 
   it("calls onPlay when clicked while stopped", () => {
@@ -114,7 +82,7 @@ describe("PlaybackButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("stop-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("StopIcon")).toBeInTheDocument();
   });
 
   it("calls onStop when playbackAction is stop and clicked", () => {

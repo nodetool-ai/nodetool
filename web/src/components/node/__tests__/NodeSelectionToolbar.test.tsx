@@ -1,20 +1,18 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 /**
  * Visibility rules for the toolbar shared by BaseNode and every custom node
  * type (SketchNode, SubgraphNode, WorkflowNode, the Dynamic*SchemaNodes).
  */
 import type React from "react";
-import { render, screen, act } from "@testing-library/react";
+import { screen, act } from "@testing-library/react";
 import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import useSelect from "../../../hooks/nodes/useSelect";
 
 let mockSelectedNodeCount = 1;
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(
-    selector: (state: { getSelectedNodeCount: () => number }) => T
-  ) => selector({ getSelectedNodeCount: () => mockSelectedNodeCount })
-}));
-
+const { render } = nodeStoreRenderers(
+  makeNodeStore({ getSelectedNodeCount: () => mockSelectedNodeCount })
+);
 jest.mock("../NodeToolButtons", () => ({
   __esModule: true,
   default: ({ nodeId }: { nodeId: string }) => (

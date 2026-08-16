@@ -4,23 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { SelectionControls } from "../SelectionControls";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock MUI Button
-jest.mock("@mui/material/Button", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, startIcon, ...rest }: any) => (
-    <button disabled={disabled} onClick={onClick} {...rest}>
-      {startIcon}
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-}));
-
 describe("SelectionControls", () => {
   const mockOnSelectAll = jest.fn();
   const mockOnClear = jest.fn();

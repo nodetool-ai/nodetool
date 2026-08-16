@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
-
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodeStoreRef: jest.fn()
-}));
+import {
+  makeNodeStore,
+  nodeStoreWrapper
+} from "../../../test-utils/nodeStore";
 
 jest.mock("../../../stores/collapseNodeLayout", () => ({
   getCollapseTogglePatches: jest.fn((_node: unknown, collapsed: boolean) => ({
@@ -12,7 +12,6 @@ jest.mock("../../../stores/collapseNodeLayout", () => ({
 }));
 
 import { useToggleCollapse } from "../useToggleCollapse";
-import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { getCollapseTogglePatches } from "../../../stores/collapseNodeLayout";
 
 const mockUpdateNodeData = jest.fn();
@@ -26,23 +25,26 @@ const makeNode = (id: string, collapsed = false) => ({
   position: { x: 0, y: 0 }
 });
 
+const renderToggleCollapse = () =>
+  renderHook(() => useToggleCollapse(), {
+    wrapper: nodeStoreWrapper(
+      makeNodeStore({
+        getSelectedNodes: mockGetSelectedNodes,
+        findNode: mockFindNode,
+        updateNodeData: mockUpdateNodeData,
+        updateNode: mockUpdateNode
+      })
+    )
+  });
+
 describe("useToggleCollapse", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const state = {
-      getSelectedNodes: mockGetSelectedNodes,
-      findNode: mockFindNode,
-      updateNodeData: mockUpdateNodeData,
-      updateNode: mockUpdateNode
-    };
-    (useNodeStoreRef as jest.Mock).mockReturnValue({
-      getState: () => state
-    });
     mockFindNode.mockImplementation((id: string) => makeNode(id, false));
   });
 
   it("collapses the given node ids", () => {
-    const { result } = renderHook(() => useToggleCollapse());
+    const { result } = renderToggleCollapse();
     result.current(["a"]);
 
     expect(getCollapseTogglePatches).toHaveBeenCalledWith(
@@ -58,7 +60,7 @@ describe("useToggleCollapse", () => {
     mockFindNode.mockImplementation((id: string) =>
       makeNode(id, id === "b")
     );
-    const { result } = renderHook(() => useToggleCollapse());
+    const { result } = renderToggleCollapse();
     result.current(["a", "b"]);
 
     expect(mockUpdateNodeData).toHaveBeenCalledTimes(2);
@@ -72,7 +74,7 @@ describe("useToggleCollapse", () => {
 
   it("falls back to the current selection when no ids are passed", () => {
     mockGetSelectedNodes.mockReturnValue([makeNode("sel", true)]);
-    const { result } = renderHook(() => useToggleCollapse());
+    const { result } = renderToggleCollapse();
     result.current();
 
     // Selected node is collapsed -> expands (next = false).
@@ -81,7 +83,7 @@ describe("useToggleCollapse", () => {
 
   it("does nothing when there are no target nodes", () => {
     mockGetSelectedNodes.mockReturnValue([]);
-    const { result } = renderHook(() => useToggleCollapse());
+    const { result } = renderToggleCollapse();
     result.current();
     result.current([]);
 
@@ -91,7 +93,7 @@ describe("useToggleCollapse", () => {
 
   it("ignores unknown ids that findNode cannot resolve", () => {
     mockFindNode.mockReturnValue(undefined);
-    const { result } = renderHook(() => useToggleCollapse());
+    const { result } = renderToggleCollapse();
     result.current(["missing"]);
 
     expect(mockUpdateNodeData).not.toHaveBeenCalled();

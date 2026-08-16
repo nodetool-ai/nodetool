@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { CircularActionButton } from "../CircularActionButton";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -11,37 +11,6 @@ const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
   LoadingSpinner: ({ size }: any) => <span data-testid="loading-spinner" data-size={size}>Loading</span>
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, sx, ...rest }: any) => {
-    // Filter out non-DOM props
-    const { disableRipple, ...domProps } = rest;
-    return (
-      <button
-        disabled={disabled}
-        onClick={onClick}
-        className={className}
-        data-testid="icon-button"
-        style={sx}
-        {...domProps}
-      >
-        {children}
-      </button>
-    );
-  }
-}));
-
-// Mock Tooltip
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: React.ReactNode }) => (
-    <div data-tooltip={typeof title === "string" ? title : "tooltip"}>
-      {children}
-    </div>
-  )
 }));
 
 describe("CircularActionButton", () => {
@@ -83,9 +52,9 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByTestId("icon-button");
-    expect(button.style.width).toBe("32px");
-    expect(button.style.height).toBe("32px");
+    const button = screen.getByRole("button");
+    expect(button).toHaveStyle({ width: "32px" });
+    expect(button).toHaveStyle({ height: "32px" });
   });
 
   it("uses custom size when provided", () => {
@@ -99,9 +68,9 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByTestId("icon-button");
-    expect(button.style.width).toBe("48px");
-    expect(button.style.height).toBe("48px");
+    const button = screen.getByRole("button");
+    expect(button).toHaveStyle({ width: "48px" });
+    expect(button).toHaveStyle({ height: "48px" });
   });
 
   it("calculates loading size correctly based on button size", () => {
@@ -142,7 +111,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).toHaveBeenCalledTimes(1);
   });
 
@@ -157,7 +126,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).not.toHaveBeenCalled();
   });
 
@@ -172,7 +141,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).not.toHaveBeenCalled();
   });
 
@@ -187,7 +156,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeDisabled();
+    expect(screen.getByRole("button")).toBeDisabled();
   });
 
   it("is disabled when disabled prop is true", () => {
@@ -201,7 +170,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeDisabled();
+    expect(screen.getByRole("button")).toBeDisabled();
   });
 
   it("applies nodrag class by default", () => {
@@ -211,7 +180,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("nodrag");
+    expect(screen.getByRole("button")).toHaveClass("nodrag");
   });
 
   it("does not apply nodrag class when nodrag is false", () => {
@@ -225,7 +194,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).not.toHaveClass("nodrag");
+    expect(screen.getByRole("button")).not.toHaveClass("nodrag");
   });
 
   it("applies disabled class when disabled", () => {
@@ -239,7 +208,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("disabled");
+    expect(screen.getByRole("button")).toHaveClass("disabled");
   });
 
   it("applies disabled class when isLoading", () => {
@@ -253,7 +222,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("disabled");
+    expect(screen.getByRole("button")).toHaveClass("disabled");
   });
 
   it("applies custom className", () => {
@@ -267,10 +236,10 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("custom-class");
+    expect(screen.getByRole("button")).toHaveClass("custom-class");
   });
 
-  it("renders with tooltip when tooltip prop is provided", () => {
+  it("renders with tooltip when tooltip prop is provided", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <CircularActionButton
@@ -281,10 +250,8 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeInTheDocument();
-    // The button is wrapped in a span, which is wrapped in tooltip div
-    const wrapper = screen.getByTestId("icon-button").parentElement?.parentElement;
-    expect(wrapper).toHaveAttribute("data-tooltip", "Test tooltip");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Test tooltip");
   });
 
   it("sets aria-label from ariaLabel prop", () => {
@@ -298,19 +265,20 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Explicit Label");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-label", "Explicit Label");
   });
 
-  it("renders without tooltip wrapper when tooltip is not provided", () => {
-    const { container } = render(
+  it("renders without tooltip wrapper when tooltip is not provided", async () => {
+    render(
       <ThemeProvider theme={mockTheme}>
         <CircularActionButton icon={<MockIcon />} onClick={mockOnClick} />
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeInTheDocument();
-    // Should not have tooltip attribute anywhere in the tree
-    expect(container.querySelector('[data-tooltip]')).not.toBeInTheDocument();
+    fireEvent.mouseOver(screen.getByRole("button"));
+    await waitFor(() => {
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
   });
 
   it("applies position styles", () => {
@@ -328,12 +296,12 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByTestId("icon-button");
-    expect(button.style.position).toBe("fixed");
-    expect(button.style.top).toBe("20px");
-    expect(button.style.left).toBe("50%");
-    expect(button.style.transform).toBe("translateX(-50%)");
-    expect(button.style.zIndex).toBe("1000");
+    const button = screen.getByRole("button");
+    expect(button).toHaveStyle({ position: "fixed" });
+    expect(button).toHaveStyle({ top: "20px" });
+    expect(button).toHaveStyle({ left: "50%" });
+    expect(button).toHaveStyle({ transform: "translateX(-50%)" });
+    expect(button).toHaveStyle({ zIndex: "1000" });
   });
 
   it("controls visibility with isVisible prop", () => {
@@ -347,9 +315,9 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    let button = screen.getByTestId("icon-button");
-    expect(button.style.opacity).toBe("1");
-    expect(button.style.pointerEvents).toBe("auto");
+    let button = screen.getByRole("button");
+    expect(button).toHaveStyle({ opacity: "1" });
+    expect(button).toHaveStyle({ pointerEvents: "auto" });
 
     rerender(
       <ThemeProvider theme={mockTheme}>
@@ -361,9 +329,9 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    button = screen.getByTestId("icon-button");
-    expect(button.style.opacity).toBe("0");
-    expect(button.style.pointerEvents).toBe("none");
+    button = screen.getByRole("button");
+    expect(button).toHaveStyle({ opacity: "0" });
+    expect(button).toHaveStyle({ pointerEvents: "none" });
   });
 
   it("uses custom opacity when provided", () => {
@@ -377,8 +345,8 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByTestId("icon-button");
-    expect(button.style.opacity).toBe("0.7");
+    const button = screen.getByRole("button");
+    expect(button).toHaveStyle({ opacity: "0.7" });
   });
 
   it("applies borderRadius of 50% for circular shape", () => {
@@ -388,7 +356,7 @@ describe("CircularActionButton", () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByTestId("icon-button");
-    expect(button.style.borderRadius).toBe("50%");
+    const button = screen.getByRole("button");
+    expect(button).toHaveStyle({ borderRadius: "50%" });
   });
 });

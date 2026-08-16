@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { StateIconButton } from "../StateIconButton";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -12,32 +12,6 @@ const MockActiveIcon = () => <span data-testid="mock-active-icon">Active Icon</s
 jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
   LoadingSpinner: ({ size }: any) => <span data-testid="loading-spinner" data-size={size}>Loading</span>
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: React.ReactNode }) => (
-    <div data-tooltip={typeof title === "string" ? title : "tooltip"}>
-      {children}
-    </div>
-  )
 }));
 
 describe("StateIconButton", () => {
@@ -165,7 +139,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).toHaveBeenCalledTimes(1);
   });
 
@@ -180,7 +154,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).not.toHaveBeenCalled();
   });
 
@@ -195,7 +169,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).not.toHaveBeenCalled();
   });
 
@@ -210,7 +184,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeDisabled();
+    expect(screen.getByRole("button")).toBeDisabled();
   });
 
   it("is disabled when disabled prop is true", () => {
@@ -224,7 +198,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeDisabled();
+    expect(screen.getByRole("button")).toBeDisabled();
   });
 
   it("applies nodrag class by default", () => {
@@ -234,7 +208,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("nodrag");
+    expect(screen.getByRole("button")).toHaveClass("nodrag");
   });
 
   it("does not apply nodrag class when nodrag is false", () => {
@@ -248,7 +222,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).not.toHaveClass("nodrag");
+    expect(screen.getByRole("button")).not.toHaveClass("nodrag");
   });
 
   it("applies active class when isActive is true", () => {
@@ -262,7 +236,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("active");
+    expect(screen.getByRole("button")).toHaveClass("active");
   });
 
   it("applies loading class when isLoading is true", () => {
@@ -276,7 +250,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("loading");
+    expect(screen.getByRole("button")).toHaveClass("loading");
   });
 
   it("applies custom className", () => {
@@ -290,10 +264,10 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveClass("custom-class");
+    expect(screen.getByRole("button")).toHaveClass("custom-class");
   });
 
-  it("renders with tooltip when tooltip prop is provided", () => {
+  it("renders with tooltip when tooltip prop is provided", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <StateIconButton
@@ -304,22 +278,21 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeInTheDocument();
-    // The button is wrapped in a span, which is wrapped in tooltip div
-    const wrapper = screen.getByTestId("icon-button").parentElement?.parentElement;
-    expect(wrapper).toHaveAttribute("data-tooltip", "Test tooltip");
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Test tooltip");
   });
 
-  it("renders without tooltip wrapper when tooltip is not provided", () => {
-    const { container } = render(
+  it("renders without tooltip wrapper when tooltip is not provided", async () => {
+    render(
       <ThemeProvider theme={mockTheme}>
         <StateIconButton icon={<MockIcon />} onClick={mockOnClick} />
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toBeInTheDocument();
-    // Should not have tooltip attribute anywhere in the tree
-    expect(container.querySelector('[data-tooltip]')).not.toBeInTheDocument();
+    fireEvent.mouseOver(screen.getByRole("button"));
+    await waitFor(() => {
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
   });
 
   it("stops event propagation on click", () => {
@@ -332,7 +305,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId("icon-button"));
+    fireEvent.click(screen.getByRole("button"));
     expect(mockOnClick).toHaveBeenCalledTimes(1);
     // Event should be stopped, so parent should not receive it
     // Note: In real implementation, stopPropagation is called, 
@@ -346,7 +319,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("tabIndex", "0");
+    expect(screen.getByRole("button")).toHaveAttribute("tabIndex", "0");
   });
 
   it("allows overriding tabIndex", () => {
@@ -360,7 +333,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("tabIndex", "-1");
+    expect(screen.getByRole("button")).toHaveAttribute("tabIndex", "-1");
   });
 
   it("sets aria-label from tooltip string", () => {
@@ -374,7 +347,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Accessible Label");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-label", "Accessible Label");
   });
 
   it("sets aria-label from ariaLabel prop", () => {
@@ -389,7 +362,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Explicit Label");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-label", "Explicit Label");
   });
 
   it("sets aria-pressed when isActive is true", () => {
@@ -403,7 +376,7 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "true");
 
     rerender(
       <ThemeProvider theme={mockTheme}>
@@ -415,6 +388,6 @@ describe("StateIconButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
   });
 });

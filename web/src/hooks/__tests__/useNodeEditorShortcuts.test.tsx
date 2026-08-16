@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../test-utils/nodeStore";
+
 import { useNodeEditorShortcuts } from "../useNodeEditorShortcuts";
 import {
   registerComboCallback,
@@ -26,36 +27,19 @@ jest.mock("../../utils/MousePosition", () => ({
   getMousePosition: () => ({ x: 10, y: 20 })
 }));
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useTemporalNodes: <T,>(selector: (state: { undo: () => void; redo: () => void }) => T) =>
-    selector({
-      undo: jest.fn(),
-      redo: jest.fn()
-    }),
-  useNodes: <T,>(
-    selector: (state: {
-      getSelectedNodeCount: () => number;
-      selectAllNodes: () => void;
-      setNodes: () => void;
-      toggleBypassSelected: () => void;
-      edges: Array<{ selected?: boolean }>;
-    }) => T
-  ) =>
-    selector({
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore(
+    {
       getSelectedNodeCount: () => 0,
       selectAllNodes: jest.fn(),
       setNodes: jest.fn(),
       toggleBypassSelected: jest.fn(),
-      edges: []
-    }),
-  useNodeStoreRef: () => ({
-    getState: () => ({
-      getSelectedNodes: () => [],
-      getSelectedNodeCount: () => 0
-    })
-  })
-}));
-
+      edges: [],
+      getSelectedNodes: () => []
+    },
+    { undo: jest.fn(), redo: jest.fn() }
+  )
+);
 jest.mock("../../stores/NodeMenuStore", () => ({
   __esModule: true,
   default: <T,>(selector: (state: { openNodeMenu: () => void }) => T) =>

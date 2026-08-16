@@ -1,7 +1,8 @@
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { stub } from "../../../test-utils/doubles";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -42,23 +43,15 @@ jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
 // `findNode`; the body also calls `updateNodeData`. Provide both. No selection
 // is persisted, so `findNode` returns a bare node and selection defaults to the
 // latest generation.
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(
-    selector: (state: {
-      updateNodeData: () => void;
-      findNode: (id: string) => { id: string; data: Partial<NodeData> };
-      edges: unknown[];
-    }) => T
-  ) =>
-    selector({
+const { render } = nodeStoreRenderers(
+  makeNodeStore({
       updateNodeData: jest.fn(),
       findNode: (id: string) => ({ id, data: {} }),
       // NodeHistoryViewer (rendered by ContentCardBody) subscribes to outgoing
       // edges to detect a downstream list consumer; none here.
       edges: []
     })
-}));
-
+);
 jest.mock("../../node/OutputRenderer", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown }) =>

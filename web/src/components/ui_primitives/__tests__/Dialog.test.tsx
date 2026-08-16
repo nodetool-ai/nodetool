@@ -19,42 +19,6 @@ jest.mock("../DialogActionButtons", () => ({
   )
 }));
 
-// Mock MUI Dialog
-jest.mock("@mui/material/Dialog", () => ({
-  __esModule: true,
-  default: ({ open, children, onClose, className, ...rest }: any) =>
-    open ? (
-      <div
-        data-testid="dialog"
-        className={className}
-        onClick={() => onClose?.({}, "backdropClick")}
-        {...rest}
-      >
-        {children}
-      </div>
-    ) : null
-}));
-
-// Mock DialogTitle
-jest.mock("@mui/material/DialogTitle", () => ({
-  __esModule: true,
-  default: ({ children, className, ...rest }: any) => (
-    <div data-testid="dialog-title" className={className} {...rest}>
-      {children}
-    </div>
-  )
-}));
-
-// Mock DialogContent
-jest.mock("@mui/material/DialogContent", () => ({
-  __esModule: true,
-  default: ({ children, className, ...rest }: any) => (
-    <div data-testid="dialog-content" className={className} {...rest}>
-      {children}
-    </div>
-  )
-}));
-
 describe("Dialog", () => {
   const mockOnClose = jest.fn();
   const mockOnConfirm = jest.fn();
@@ -73,7 +37,7 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("does not render when open is false", () => {
@@ -85,7 +49,7 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.queryByTestId("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders title when provided", () => {
@@ -97,7 +61,7 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("dialog-title")).toBeInTheDocument();
+    expect(document.querySelector(".MuiDialogTitle-root")).toBeInTheDocument();
     expect(screen.getByText("My Dialog Title")).toBeInTheDocument();
   });
 
@@ -110,7 +74,7 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.queryByTestId("dialog-title")).not.toBeInTheDocument();
+    expect(document.querySelector(".MuiDialogTitle-root")).not.toBeInTheDocument();
   });
 
   it("renders content from content prop", () => {
@@ -291,7 +255,7 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("dialog")).toHaveClass("dialog");
+    expect(document.querySelector(".MuiDialog-root")).toHaveClass("dialog");
   });
 
   it("applies custom className", () => {
@@ -308,11 +272,14 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("dialog")).toHaveClass("dialog", "custom-class");
+    expect(document.querySelector(".MuiDialog-root")).toHaveClass(
+      "dialog",
+      "custom-class"
+    );
   });
 
   it("passes additional dialog props to MUI Dialog", () => {
-    const { container } = render(
+    render(
       <ThemeProvider theme={mockTheme}>
         <Dialog
           open={true}
@@ -326,8 +293,8 @@ describe("Dialog", () => {
       </ThemeProvider>
     );
 
-    // Just verify the dialog renders - the mock doesn't preserve all MUI props
-    expect(screen.getByTestId("dialog")).toBeInTheDocument();
-    expect(container).toBeTruthy();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(document.querySelector(".MuiDialog-paperFullWidth")).toBeInTheDocument();
+    expect(document.querySelector(".MuiDialog-paperWidthMd")).toBeInTheDocument();
   });
 });

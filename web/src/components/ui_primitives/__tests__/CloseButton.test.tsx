@@ -4,42 +4,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { CloseButton } from "../CloseButton";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock icons
-jest.mock("@mui/icons-material/Close", () => ({
-  __esModule: true,
-  default: () => <span data-testid="close-icon" />
-}));
-
-jest.mock("@mui/icons-material/Clear", () => ({
-  __esModule: true,
-  default: () => <span data-testid="clear-icon" />
-}));
-
-// Mock MUI IconButton
-jest.mock("@mui/material/IconButton", () => ({
-  __esModule: true,
-  default: ({ children, disabled, onClick, className, size, ...rest }: any) => (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-      data-size={size}
-      data-testid="icon-button"
-      {...rest}
-    >
-      {children}
-    </button>
-  )
-}));
-
-// Mock Tooltip to just render children with tooltip data attribute
-jest.mock("@mui/material/Tooltip", () => ({
-  __esModule: true,
-  default: ({ children, title }: { children: React.ReactNode; title?: string }) => (
-    <div data-tooltip={title}>{children}</div>
-  )
-}));
-
 describe("CloseButton", () => {
   const mockOnClick = jest.fn();
 
@@ -54,7 +18,7 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("close-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("CloseIcon")).toBeInTheDocument();
   });
 
   it("renders with clear icon when iconVariant is 'clear'", () => {
@@ -64,8 +28,8 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("clear-icon")).toBeInTheDocument();
-    expect(screen.queryByTestId("close-icon")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ClearIcon")).toBeInTheDocument();
+    expect(screen.queryByTestId("CloseIcon")).not.toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {
@@ -202,7 +166,7 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button")).toHaveAttribute("data-size", "small");
+    expect(screen.getByRole("button")).toHaveClass("MuiIconButton-sizeSmall");
   });
 
   it("renders with medium buttonSize", () => {
@@ -212,7 +176,7 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button")).toHaveAttribute("data-size", "medium");
+    expect(screen.getByRole("button")).toHaveClass("MuiIconButton-sizeMedium");
   });
 
   it("renders with large buttonSize", () => {
@@ -222,28 +186,28 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button")).toHaveAttribute("data-size", "large");
+    expect(screen.getByRole("button")).toHaveClass("MuiIconButton-sizeLarge");
   });
 
-  it("renders with default tooltip placement (bottom)", () => {
-    const { container } = render(
+  it("shows the default tooltip on hover", async () => {
+    render(
       <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} />
       </ThemeProvider>
     );
 
-    const tooltipWrapper = container.querySelector('[data-tooltip]');
-    expect(tooltipWrapper).toBeInTheDocument();
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Close");
   });
 
-  it("renders custom tooltip text", () => {
-    const { container } = render(
+  it("renders custom tooltip text", async () => {
+    render(
       <ThemeProvider theme={mockTheme}>
         <CloseButton onClick={mockOnClick} tooltip="Cancel" />
       </ThemeProvider>
     );
 
-    const tooltipWrapper = container.querySelector('[data-tooltip="Cancel"]');
-    expect(tooltipWrapper).toBeInTheDocument();
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Cancel");
   });
 });

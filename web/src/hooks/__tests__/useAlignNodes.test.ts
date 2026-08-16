@@ -1,12 +1,13 @@
-import { renderHook, act } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../test-utils/nodeStore";
+import { act } from "@testing-library/react";
 import useAlignNodes from "../useAlignNodes";
 import { Node, Position } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
-import { useNodes } from "../../contexts/NodeContext";
 
 // Store the setNodes mock so we can capture calls to it
 let mockSetNodes: jest.Mock;
 let mockNodes: Node<NodeData>[] = [];
+let mockSelectedNodes: Node<NodeData>[] = [];
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(),
@@ -18,22 +19,18 @@ jest.mock("@xyflow/react", () => ({
   }
 }));
 
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    const mockState = {
-      nodes: mockNodes,
-      setNodes: mockSetNodes,
-      getSelectedNodes: jest.fn(() => [])
-    };
-    return selector(mockState);
-  }),
-  useNodeStoreRef: jest.fn(() => ({
-    getState: () => ({
-      nodes: mockNodes
-    })
-  }))
-}));
-
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
+    // Getters, so each render reads whatever the current test assigned.
+    get nodes() {
+      return mockNodes;
+    },
+    get setNodes() {
+      return mockSetNodes;
+    },
+    getSelectedNodes: () => mockSelectedNodes
+  })
+);
 const createMockNode = (
   id: string,
   x: number,
@@ -56,11 +53,11 @@ const createMockNode = (
 });
 
 describe("useAlignNodes", () => {
-  const mockUseNodes = jest.mocked(useNodes);
 
   beforeEach(() => {
     mockSetNodes = jest.fn();
     mockNodes = [];
+    mockSelectedNodes = [];
     jest.clearAllMocks();
   });
 
@@ -72,13 +69,7 @@ describe("useAlignNodes", () => {
   it("does nothing with less than 2 selected nodes", () => {
     const singleNode = createMockNode("node1", 0, 0);
     mockNodes = [singleNode];
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => [singleNode])
-      } as any);
-    });
+    mockSelectedNodes = [singleNode];
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -96,13 +87,7 @@ describe("useAlignNodes", () => {
       createMockNode("node3", 50, 200)
     ];
     mockNodes = selectedNodes;
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -124,13 +109,7 @@ describe("useAlignNodes", () => {
       createMockNode("node3", 200, 50)
     ];
     mockNodes = selectedNodes;
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -152,13 +131,7 @@ describe("useAlignNodes", () => {
       createMockNode("node3", 50, 400, 100, 50)
     ];
     mockNodes = selectedNodes;
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -178,13 +151,7 @@ describe("useAlignNodes", () => {
       createMockNode("node2", 100, 0)
     ];
     mockNodes = selectedNodes;
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -205,13 +172,7 @@ describe("useAlignNodes", () => {
     ];
     const unrelatedNode = createMockNode("unrelated", 500, 500);
     mockNodes = [...selectedNodes, unrelatedNode];
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 
@@ -231,13 +192,7 @@ describe("useAlignNodes", () => {
       createMockNode("node2", 100, 0)
     ];
     mockNodes = selectedNodes;
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        nodes: mockNodes,
-        setNodes: mockSetNodes,
-        getSelectedNodes: jest.fn(() => selectedNodes)
-      } as any);
-    });
+    mockSelectedNodes = selectedNodes;
 
     const { result } = renderHook(() => useAlignNodes());
 

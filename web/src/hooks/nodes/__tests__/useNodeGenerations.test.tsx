@@ -1,16 +1,15 @@
-import { renderHook } from "@testing-library/react";
+import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
+
 import { useNodeGenerations } from "../useNodeGenerations";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (state: unknown) => T) =>
-    selector({
+const { renderHook } = nodeStoreRenderers(
+  makeNodeStore({
       findNode: () => undefined,
       updateNodeData: () => undefined
     })
-}));
-
+);
 beforeEach(() => {
   useResultsStore.setState({ liveGenerations: {} } as never);
   useWorkflowAssetStore.setState({ assetsByWorkflow: {} } as never);
