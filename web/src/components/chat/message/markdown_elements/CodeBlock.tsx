@@ -22,14 +22,12 @@ import {
 } from "./codeBlockColors";
 import isEqual from "../../../../utils/isEqual";
 
-interface CodeBlockProps {
+export interface CodeBlockProps
+  extends React.ComponentPropsWithoutRef<"code"> {
   node?: unknown;
   inline?: boolean;
-  className?: string;
-  children?: React.ReactNode;
   _isFromPre?: boolean;
   onInsert?: (text: string, language?: string) => void;
-  [key: string]: unknown;
 }
 
 const cssStyles = css({

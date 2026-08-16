@@ -8,7 +8,7 @@ import {
 import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
-const makeNode = (overrides: Record<string, unknown>): NodeMetadata =>
+const makeNode = (overrides: Partial<NodeMetadata>): NodeMetadata =>
   stub<NodeMetadata>({
     description: "",
     properties: [],

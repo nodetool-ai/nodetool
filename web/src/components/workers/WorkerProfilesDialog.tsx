@@ -16,6 +16,7 @@ import {
 } from "../ui_primitives";
 import type {
   CreateWorkerProfileInput,
+  WorkerSpec,
   WorkerProfile,
   WorkerTarget,
   TokenPolicy
@@ -210,7 +211,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       image: image.trim(),
       token_policy: tokenPolicy
     };
-    const spec: Record<string, unknown> = {};
+    const spec: WorkerSpec = {};
     if (resolvedGpu) {
       spec.gpu = resolvedGpu;
     }

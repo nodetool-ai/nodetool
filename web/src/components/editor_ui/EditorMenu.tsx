@@ -12,7 +12,11 @@ import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/materia
 import { editorUiClasses } from "../../constants/editorUiClasses";
 import { cn } from "./editorUtils";
 
-type SlotPropsWithSx = { sx?: SxProps<Theme> } & Record<string, unknown>;
+/** The subset of a MUI slot's props this menu reads back before merging. */
+interface SlotPropsWithSx {
+  sx?: SxProps<Theme>;
+  className?: string;
+}
 
 export interface EditorMenuProps extends Omit<MenuProps, "slotProps"> {
   /**

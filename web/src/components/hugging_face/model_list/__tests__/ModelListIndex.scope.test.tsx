@@ -40,6 +40,7 @@ jest.mock("../../onboarding/ModelOnboarding", () => ({
 
 import ModelListIndex from "../ModelListIndex";
 import { useModelManagerStore } from "../../../../stores/ModelManagerStore";
+import type { WorkerInstance } from "../../../../hooks/useWorkers";
 
 const EMPTY_MODELS: UseModelsResult = {
   modelTypes: ["All"],
@@ -54,7 +55,7 @@ const EMPTY_MODELS: UseModelsResult = {
   handleShowInExplorer: async () => undefined
 };
 
-const makeInstance = (overrides: Record<string, unknown> = {}) => ({
+const makeInstance = (overrides: Partial<WorkerInstance> = {}) => ({
   id: "i-1",
   profile_name: "pod-a",
   target: "runpod",
