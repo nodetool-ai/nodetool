@@ -1,6 +1,6 @@
 import { createStore } from "zustand";
-import { temporal, WithTemporal, TemporalOptions } from "./temporal";
-import type { StoreApi } from "zustand";
+import type { StateCreator } from "zustand";
+import { temporal, TemporalOptions } from "./temporal";
 
 interface CounterState {
   count: number;
@@ -9,22 +9,30 @@ interface CounterState {
   setLabel: (label: string) => void;
 }
 
-function makeStore(
-  options: TemporalOptions<CounterState, Partial<CounterState>> = {}
+type CountSlice = Pick<CounterState, "count">;
+
+const counterConfig: StateCreator<CounterState, [], []> = (set) => ({
+  count: 0,
+  label: "init",
+  inc: () => set((s) => ({ count: s.count + 1 })),
+  setLabel: (label: string) => set({ label }),
+});
+
+/** Tracks the whole state (no `partialize`). */
+function makeStore(options: TemporalOptions<CounterState, CounterState> = {}) {
+  return createStore<CounterState>()(temporal(counterConfig, options));
+}
+
+/** Tracks only `count`. */
+function makeCountStore(
+  options: Omit<TemporalOptions<CounterState, CountSlice>, "partialize"> = {}
 ) {
-  const store = createStore<CounterState>()(
-    temporal<CounterState, Partial<CounterState>>(
-      (set) => ({
-        count: 0,
-        label: "init",
-        inc: () => set((s) => ({ count: s.count + 1 })),
-        setLabel: (label: string) => set({ label }),
-      }),
-      options
-    )
+  return createStore<CounterState>()(
+    temporal(counterConfig, {
+      ...options,
+      partialize: (state): CountSlice => ({ count: state.count }),
+    })
   );
-  return store as typeof store &
-    WithTemporal<StoreApi<CounterState>, unknown>;
 }
 
 describe("temporal middleware", () => {
@@ -82,9 +90,7 @@ describe("temporal middleware", () => {
   });
 
   it("partialize tracks only the selected slice", () => {
-    const store = makeStore({
-      partialize: (state: CounterState) => ({ count: state.count }),
-    });
+    const store = makeCountStore();
     store.getState().setLabel("new-label");
     const past = store.temporal.getState().pastStates;
     expect(past).toHaveLength(1);
@@ -92,10 +98,8 @@ describe("temporal middleware", () => {
   });
 
   it("equality skips duplicate snapshots", () => {
-    const store = makeStore({
-      partialize: (state: CounterState) => ({ count: state.count }),
-      equality: (a, b) =>
-        (a as { count: number }).count === (b as { count: number }).count,
+    const store = makeCountStore({
+      equality: (a, b) => a.count === b.count,
     });
     store.getState().setLabel("a");
     store.getState().setLabel("b");

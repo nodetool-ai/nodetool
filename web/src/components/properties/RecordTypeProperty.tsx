@@ -95,8 +95,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
       <ColumnsManager
         columns={value.columns || []}
         onChange={onChangeColumns}
-        allData={value.data || []}
-      />
+              />
     </div>
   );
 };

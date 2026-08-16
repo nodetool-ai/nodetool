@@ -39,12 +39,12 @@ function createMockDragEvent(
     stopPropagation: jest.fn(),
     clientX: 100,
     clientY: 200,
-    dataTransfer: {
-      dropEffect: "",
+    dataTransfer: stub<DataTransfer>({
+      dropEffect: "none",
       getData: jest.fn(() => ""),
       items: [],
       files: { length: 0 }
-    } as unknown as DataTransfer,
+    }),
     ...overrides
   });
 }

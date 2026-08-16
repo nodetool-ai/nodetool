@@ -44,7 +44,14 @@ type StoryboardResponse = Awaited<
 >;
 type StoryboardWireDocument = StoryboardResponse["document"];
 
-/** The saved payload: the board minus identity and transient UI state. */
+/**
+ * The saved payload: the board minus identity and transient UI state.
+ *
+ * SAFETY: the wire document's `screenplay`/`shots` are the passthrough zod
+ * mirrors of `Screenplay`/`Shot` (`api-schemas/storyboards.ts`) — the same
+ * payload described twice, once structurally and once nominally — so the
+ * board's values are exactly what the schema accepts.
+ */
 const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
   ({
     screenplay: board.screenplay,
@@ -56,15 +63,19 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     directorModel: board.directorModel,
     imageModel: board.imageModel,
     videoModel: board.videoModel
-  }) as unknown as StoryboardWireDocument;
+  }) as StoryboardWireDocument;
 
 const responseToBoard = (
   res: StoryboardResponse
 ): Omit<StoryboardBoard, "id" | "updatedAt"> => {
   const doc = res.document;
+  // SAFETY: `storyboardResponse` parsed this document server-side, and its
+  // `screenplay`/`shots` schemas are the passthrough mirrors of `Screenplay`
+  // and `Shot` — the structural type carries an index signature the nominal
+  // one does not, which is the whole of the difference.
   return {
-    screenplay: doc.screenplay as unknown as Screenplay | null,
-    shots: doc.shots as unknown as Shot[],
+    screenplay: doc.screenplay as Screenplay | null,
+    shots: doc.shots as Shot[],
     title: res.name === "Untitled storyboard" ? "" : res.name,
     brief: doc.brief,
     style: doc.style,

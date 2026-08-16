@@ -18,6 +18,8 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import type { TimelineCastAsset, TimelineCastEvent, TimelineDemoCast } from "./timelineCastTypes";
 
 const assetOverrides = new Map<string, { asset: TimelineCastAsset; url: string }>();
+/** Fixed so a replayed asset is byte-identical across renders. */
+const DEMO_ASSET_CREATED_AT = "1970-01-01T00:00:00.000Z";
 let assetStorePatched = false;
 
 /**
@@ -48,11 +50,15 @@ export function seedTimelineCastAssets(
       if (preset) {
         return {
           id: preset.asset.key,
+          user_id: "demo",
+          parent_id: null,
           name: preset.asset.key,
           content_type: preset.asset.contentType,
+          workflow_id: null,
+          created_at: DEMO_ASSET_CREATED_AT,
           get_url: preset.url,
           thumb_url: preset.url
-        } as unknown as Asset;
+        };
       }
       return original(id);
     }

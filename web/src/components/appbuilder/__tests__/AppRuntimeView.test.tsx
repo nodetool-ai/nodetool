@@ -124,7 +124,7 @@ describe("AppRuntimeView (Puck Render)", () => {
   it("applies the theme the document selects", () => {
     renderView({
       schemaVersion: 3,
-      ui: data as unknown as ApplicationDocument["ui"],
+      ui: data,
       operations: [],
       resources: [],
       variables: [],

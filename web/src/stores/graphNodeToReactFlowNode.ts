@@ -42,7 +42,8 @@ type DynamicSlotDeclarationOrType =
   | PropertyTypeMetadata;
 
 export function graphNodeToReactFlowNode(
-  workflow: Workflow,
+  /** Only the id is read — it stamps `workflow_id` onto the node's data. */
+  workflow: Pick<Workflow, "id">,
   node: IncomingGraphNode
 ): Node<NodeData> {
   const ui_properties = parseNodeUIProperties(node.ui_properties);

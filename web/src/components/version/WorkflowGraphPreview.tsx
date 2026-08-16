@@ -26,14 +26,13 @@ import {
   useReactFlow,
   useNodesInitialized
 } from "@xyflow/react";
-import { create } from "zustand";
 import { Box, BORDER_RADIUS } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeData } from "../../stores/NodeData";
+import { createReadOnlyNodeStore } from "../../stores/readOnlyNodeStore";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { NodeContext } from "../../contexts/NodeContext";
-import type { NodeStore } from "../../stores/NodeStore";
 import type { Graph, Workflow } from "../../stores/ApiTypes";
 import GroupNode from "../node/GroupNode";
 import CommentNode from "../node/CommentNode";
@@ -49,56 +48,6 @@ interface WorkflowGraphPreviewProps {
   width?: number | string;
   height?: number | string;
 }
-
-// Minimal NodeStore so BaseNode's useNodes() selectors work in a
-// read-only context. Only the fields node components actually read
-// are provided; all mutators are no-ops.
-interface MinimalNodeStore {
-  nodes: Node<NodeData>[];
-  edges: Edge[];
-  workflow: Workflow;
-  viewport: null;
-  shouldFitToScreen: boolean;
-  setShouldFitToScreen: () => void;
-  onNodesChange: () => void;
-  onEdgesChange: () => void;
-  onEdgeUpdate: () => void;
-  deleteEdge: () => void;
-  setEdgeSelectionState: () => void;
-  updateNode: () => void;
-  updateNodeData: () => void;
-  getSelectedNodeCount: () => number;
-  findNode: (id: string) => Node<NodeData> | undefined;
-  getNodesByType: () => never[];
-}
-
-const createMinimalNodeStore = (
-  nodes: Node<NodeData>[],
-  edges: Edge[],
-  workflow: Workflow
-) => {
-  // Every previewed node component calls findNode, so a scan per call makes
-  // rendering the preview O(N^2).
-  const nodesById = new Map(nodes.map((n) => [n.id, n]));
-  return create<MinimalNodeStore>(() => ({
-    nodes,
-    edges,
-    workflow,
-    viewport: null,
-    shouldFitToScreen: false,
-    setShouldFitToScreen: () => {},
-    onNodesChange: () => {},
-    onEdgesChange: () => {},
-    onEdgeUpdate: () => {},
-    deleteEdge: () => {},
-    setEdgeSelectionState: () => {},
-    updateNode: () => {},
-    updateNodeData: () => {},
-    getSelectedNodeCount: () => 0,
-    findNode: (id: string) => nodesById.get(id),
-    getNodesByType: () => []
-  }));
-};
 
 const edgeTypes = { default: CustomEdge, control: ControlEdge };
 
@@ -181,7 +130,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
       graphNodeToReactFlowNode(workflow, n)
     );
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
-    const store = createMinimalNodeStore(nodes, edges, workflow);
+    const store = createReadOnlyNodeStore(nodes, edges, workflow);
     return { nodes, edges, store };
   }, [graph, workflowId]);
 
@@ -224,7 +173,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
           node/handle/edge colors resolve identically in the preview. The
           .node-editor rules force 100% sizing, hence the sized Box above. */}
       <div className="node-editor" css={generateCSS}>
-        <NodeContext.Provider value={data.store as unknown as NodeStore}>
+        <NodeContext.Provider value={data.store}>
           <ReactFlowProvider>
             <GraphPreviewInner nodes={data.nodes} edges={data.edges} />
           </ReactFlowProvider>

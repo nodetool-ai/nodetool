@@ -401,9 +401,7 @@ async function runBrowserGraphJobLocal(
   );
 
   const runOptions: Parameters<LoadedBrowserRunner["runBrowserWorkflow"]>[0] = {
-    graph: normalizeGraphForKernel(graph) as unknown as Parameters<
-      LoadedBrowserRunner["runBrowserWorkflow"]
-    >[0]["graph"],
+    graph: normalizeGraphForKernel(graph),
     registry: runner.registry,
     params,
     jobId,
