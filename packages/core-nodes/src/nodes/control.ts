@@ -150,6 +150,12 @@ export class AssetCollectionNode extends BaseNode {
   }
 }
 
+/** Output handles RepeatCountNode.genProcess() emits. */
+type RepeatCountNodeStreamOutputs = {
+  output: number;
+  index: number;
+};
+
 export class RepeatCountNode extends BaseNode {
   static readonly nodeType = "nodetool.control.RepeatCount";
   static readonly retrySafe = true;
@@ -182,7 +188,7 @@ export class RepeatCountNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<RepeatCountNodeStreamOutputs> {
     const total = Math.max(0, Math.floor(Number(this.count ?? 0)));
     for (let index = 0; index < total; index++) {
       yield { output: index, index };
@@ -778,6 +784,11 @@ export class LastNode extends BaseNode {
   }
 }
 
+/** Output handles CountStreamNode.process() emits. */
+type CountStreamNodeOutputs = {
+  output: number;
+};
+
 export class CountStreamNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Count";
   static readonly retrySafe = true;
@@ -804,7 +815,7 @@ export class CountStreamNode extends BaseNode {
   })
   declare input_item: unknown;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CountStreamNodeOutputs> {
     return { output: 0 };
   }
 

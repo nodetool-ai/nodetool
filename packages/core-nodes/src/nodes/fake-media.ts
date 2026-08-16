@@ -116,6 +116,11 @@ const renderGradientPng = async (
   return `data:image/png;base64,${bytesToBase64(bytes)}`;
 };
 
+/** Output handles FakeGenerateImageNode.process() emits. */
+type FakeGenerateImageNodeOutputs = {
+  output: ImageRef;
+};
+
 export class FakeGenerateImageNode extends BaseNode {
   static readonly nodeType = "nodetool.fake.GenerateImage";
   static readonly retrySafe = true;
@@ -144,7 +149,7 @@ export class FakeGenerateImageNode extends BaseNode {
   @prop({ type: "int", default: 512, title: "Height", min: 16, max: 2048 })
   declare height: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FakeGenerateImageNodeOutputs> {
     const width = clampDim(this.width, 512);
     const height = clampDim(this.height, 512);
     const prompt = String(this.prompt ?? "");

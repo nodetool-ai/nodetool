@@ -22,6 +22,12 @@ type FillMaskResult = {
   token_str?: string;
 };
 
+/** Output handles FillMaskNode.process() emits. */
+type FillMaskNodeOutputs = {
+  top: string;
+  results: FillMaskResult[];
+};
+
 export class FillMaskNode extends BaseNode {
   static readonly nodeType = "transformers.FillMask";
   static readonly inlineFields = ["text"];
@@ -83,7 +89,7 @@ export class FillMaskNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<FillMaskNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

@@ -2,6 +2,11 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { DEFAULT_VOICE, MINIMAX_VOICES } from "../minimax-base.js";
 
+/** Output handles MinimaxVoiceNode.process() emits. */
+type MinimaxVoiceNodeOutputs = {
+  voice_id: string;
+};
+
 export class MinimaxVoiceNode extends BaseNode {
   static readonly nodeType = "minimax.Voice";
   static readonly body = "small";
@@ -26,7 +31,7 @@ export class MinimaxVoiceNode extends BaseNode {
   })
   declare voice: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxVoiceNodeOutputs> {
     const voice = String(this.voice ?? DEFAULT_VOICE);
     return { voice_id: voice };
   }

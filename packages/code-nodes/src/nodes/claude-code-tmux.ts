@@ -459,6 +459,14 @@ const POLL_MS = 750;
 const DIALOG_RETRY_MS = 2000;
 const READY_TIMEOUT_MS = 90_000;
 
+/** Output handles ClaudeCodeAgentNode.genProcess() emits. */
+type ClaudeCodeAgentNodeStreamOutputs = {
+  chunk: { type: string; content: string; content_type: string; done: boolean };
+  text: null | string;
+  transcript?: string;
+  session_id?: string;
+};
+
 export class ClaudeCodeAgentNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.ClaudeCodeAgent";
   static readonly title = "Claude Code Agent";
@@ -587,7 +595,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ClaudeCodeAgentNodeStreamOutputs> {
     const promptText = combinePrompt(
       String(this.prompt ?? ""),
       String(this.input ?? "")

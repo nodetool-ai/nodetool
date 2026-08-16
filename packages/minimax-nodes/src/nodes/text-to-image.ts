@@ -9,6 +9,11 @@ import {
   minimaxHeaders
 } from "../minimax-base.js";
 
+/** Output handles MinimaxTextToImageNode.process() emits. */
+type MinimaxTextToImageNodeOutputs = {
+  output: { type: string; data: string; mimeType: string };
+};
+
 export class MinimaxTextToImageNode extends BaseNode {
   static readonly nodeType = "minimax.TextToImage";
   static readonly body = "content_card";
@@ -68,7 +73,7 @@ export class MinimaxTextToImageNode extends BaseNode {
   })
   declare prompt_optimizer: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxTextToImageNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const basePrompt = String(this.prompt ?? "");

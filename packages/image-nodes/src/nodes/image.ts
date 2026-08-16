@@ -256,6 +256,11 @@ async function metadataFor(
   }
 }
 
+/** Output handles LoadImageFileNode.process() emits. */
+type LoadImageFileNodeOutputs = {
+  output: ImageRef;
+};
+
 export class LoadImageFileNode extends BaseNode {
   static readonly nodeType = "nodetool.image.LoadImageFile";
   static readonly title = "Load Image File";
@@ -276,7 +281,7 @@ export class LoadImageFileNode extends BaseNode {
   })
   declare path: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LoadImageFileNodeOutputs> {
     const fs = await loadNodeFsPromises();
     const p = await filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
@@ -435,6 +440,12 @@ export class LoadImageFolderNode extends BaseNode {
   }
 }
 
+/** Output handles SaveImageFileImageNode.process() emits. */
+type SaveImageFileImageNodeOutputs = {
+  output: ImageRef;
+  path: string;
+};
+
 export class SaveImageFileImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.SaveImageFile";
   static readonly title = "Save Image File";
@@ -488,7 +499,7 @@ export class SaveImageFileImageNode extends BaseNode {
   })
   declare overwrite: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SaveImageFileImageNodeOutputs> {
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const folder = String(this.folder ?? ".");
@@ -577,6 +588,11 @@ export class LoadImageAssetsNode extends BaseNode {
   }
 }
 
+/** Output handles SaveImageNode.process() emits. */
+type SaveImageNodeOutputs = {
+  output: ImageRef;
+};
+
 export class SaveImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.SaveImage";
   static readonly title = "Save Image Asset";
@@ -626,7 +642,7 @@ export class SaveImageNode extends BaseNode {
   })
   declare name: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SaveImageNodeOutputs> {
     const bytes = await imageBytesAsync(this.image, context);
     if (bytes.length === 0) throw new Error("The input image is not connected.");
 
@@ -679,6 +695,15 @@ export class SaveImageNode extends BaseNode {
   }
 }
 
+/** Output handles GetMetadataNode.process() emits. */
+type GetMetadataNodeOutputs = {
+  format: string;
+  mode: string;
+  width: number;
+  height: number;
+  channels: number;
+};
+
 export class GetMetadataNode extends BaseNode {
   static readonly nodeType = "nodetool.image.GetMetadata";
   static readonly title = "Get Metadata";
@@ -709,7 +734,7 @@ export class GetMetadataNode extends BaseNode {
   })
   declare image: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GetMetadataNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     try {
@@ -839,6 +864,11 @@ abstract class TransformImageNode extends BaseNode {
   }
 }
 
+/** Output handles PasteNode.process() emits. */
+type PasteNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
+
 export class PasteNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Paste";
   static readonly title = "Paste";
@@ -898,7 +928,7 @@ export class PasteNode extends TransformImageNode {
   })
   declare top: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PasteNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const paste = (this.paste ?? {}) as ImageRefLike;
     const left = Math.max(0, Number(this.left ?? 0));
@@ -944,6 +974,11 @@ const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
 function deprecatedResizeDescription(body: string): string {
   return `Deprecated — use Resize Image (${RESIZE_IMAGE_NODE_TYPE}) instead.\n${body}`;
 }
+
+/** Output handles ResizeImageNode.process() emits. */
+type ResizeImageNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
 
 export class ResizeImageNode extends TransformImageNode {
   static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
@@ -1012,7 +1047,7 @@ export class ResizeImageNode extends TransformImageNode {
   })
   declare height: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ResizeImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
@@ -1061,6 +1096,11 @@ export class ResizeImageNode extends TransformImageNode {
   }
 }
 
+/** Output handles ScaleNode.process() emits. */
+type ScaleNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
+
 export class ScaleNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Scale";
   static readonly title = "Scale";
@@ -1099,7 +1139,7 @@ export class ScaleNode extends TransformImageNode {
   })
   declare scale: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ScaleNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const requestedScale = Number(this.scale ?? 0);
     const scale = requestedScale > 0 ? requestedScale : 1;
@@ -1118,6 +1158,11 @@ export class ScaleNode extends TransformImageNode {
     return { output };
   }
 }
+
+/** Output handles ResizeNode.process() emits. */
+type ResizeNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
 
 export class ResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Resize";
@@ -1167,7 +1212,7 @@ export class ResizeNode extends TransformImageNode {
   })
   declare height: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ResizeNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
@@ -1211,6 +1256,11 @@ function anchorOffset(
   else y = Math.floor((canvasH - srcH) / 2);
   return [x, y];
 }
+
+/** Output handles CanvasResizeNode.process() emits. */
+type CanvasResizeNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
 
 export class CanvasResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.CanvasResize";
@@ -1365,7 +1415,7 @@ export class CanvasResizeNode extends TransformImageNode {
   })
   declare color: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CanvasResizeNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
@@ -1471,6 +1521,11 @@ export class CanvasResizeNode extends TransformImageNode {
   }
 }
 
+/** Output handles CropNode.process() emits. */
+type CropNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
+
 export class CropNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Crop";
   static readonly title = "Crop";
@@ -1536,7 +1591,7 @@ export class CropNode extends TransformImageNode {
   })
   declare bottom: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CropNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     // Crop is defined in pixels; the GPU crop shader samples a normalized-UV
     // sub-rectangle, so resolve source dims first to convert px → UV.
@@ -1563,6 +1618,11 @@ export class CropNode extends TransformImageNode {
     return { output };
   }
 }
+
+/** Output handles FitNode.process() emits. */
+type FitNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
 
 export class FitNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Fit";
@@ -1612,7 +1672,7 @@ export class FitNode extends TransformImageNode {
   })
   declare height: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<FitNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const targetW = Math.max(1, Number(this.width ?? 512));
     const targetH = Math.max(1, Number(this.height ?? 512));
@@ -1634,6 +1694,11 @@ export class FitNode extends TransformImageNode {
     return { output };
   }
 }
+
+/** Output handles TextToImageNode.process() emits. */
+type TextToImageNodeOutputs = {
+  output: ImageRef;
+};
 
 export class TextToImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.TextToImage";
@@ -1708,7 +1773,7 @@ export class TextToImageNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<TextToImageNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
     const resolution = String(this.resolution ?? "1K");
@@ -1741,6 +1806,11 @@ export class TextToImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles ImageToImageNode.process() emits. */
+type ImageToImageNodeOutputs = {
+  output: ImageRef;
+};
 
 export class ImageToImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.ImageToImage";
@@ -1843,7 +1913,7 @@ export class ImageToImageNode extends BaseNode {
   })
   declare scheduler: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ImageToImageNodeOutputs> {
     let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
 
@@ -2044,6 +2114,11 @@ export class RotateAndFlipNode extends TransformImageNode {
   }
 }
 
+/** Output handles ChannelsNode.process() emits. */
+type ChannelsNodeOutputs = {
+  output: ImageRef | ImageRef | ImageRefLike;
+};
+
 export class ChannelsNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Channels";
   static readonly title = "Channels";
@@ -2080,7 +2155,7 @@ export class ChannelsNode extends TransformImageNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ChannelsNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const channel = String(this.channel ?? "luminance");
 
@@ -2112,6 +2187,11 @@ export class ChannelsNode extends TransformImageNode {
     return { output };
   }
 }
+
+/** Output handles BlurNode.process() emits. */
+type BlurNodeOutputs = {
+  output: ImageRef | ImageRefLike | ImageRef;
+};
 
 export class BlurNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Blur";
@@ -2159,7 +2239,7 @@ export class BlurNode extends TransformImageNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<BlurNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const size = Math.max(0, Math.min(100, Math.round(Number(this.size ?? 0))));
     const blurType = String(this.blur_type ?? "gaussian");
@@ -2197,6 +2277,11 @@ export class BlurNode extends TransformImageNode {
     return { output };
   }
 }
+
+/** Output handles LevelsNode.process() emits. */
+type LevelsNodeOutputs = {
+  output: ImageRefLike | ImageRef;
+};
 
 export class LevelsNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Levels";
@@ -2315,7 +2400,7 @@ export class LevelsNode extends TransformImageNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<LevelsNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const clamp255 = (n: number): number =>
       Math.max(0, Math.min(255, Math.round(n)));
@@ -2420,6 +2505,11 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
  * to straight-alpha RGBA on the way in, encode the composite to PNG on the
  * way out.
  */
+/** Output handles CompositorNode.process() emits. */
+type CompositorNodeOutputs = {
+  output: ImageRef;
+};
+
 export class CompositorNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Compositor";
   static readonly title = "Compositor";
@@ -2461,7 +2551,7 @@ export class CompositorNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CompositorNodeOutputs> {
     type LayerInput = {
       index: number;
       image: ImageRefLike;
@@ -2589,6 +2679,12 @@ export class CompositorNode extends BaseNode {
  * Plan §9.E9 / §12. Standalone (not an extension of the sketch node) so
  * the bespoke body stays focused on the paint-on-image workflow.
  */
+/** Output handles PainterNode.process() emits. */
+type PainterNodeOutputs = {
+  mask: ImageRef;
+  image: ImageRef | { uri?: string; data?: Uint8Array | string; mimeType?: string; width?: number; height?: number };
+};
+
 export class PainterNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Painter";
   static readonly title = "Painter";
@@ -2646,7 +2742,7 @@ export class PainterNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<PainterNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
 
     // Pass the source image through (resolved bytes if available) so
@@ -2735,6 +2831,11 @@ export class PainterNode extends BaseNode {
   }
 }
 
+/** Output handles UpscaleImageNode.process() emits. */
+type UpscaleImageNodeOutputs = {
+  output: ImageRef;
+};
+
 export class UpscaleImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Upscale";
   static readonly body = "content_card";
@@ -2786,7 +2887,7 @@ export class UpscaleImageNode extends BaseNode {
   })
   declare prompt: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<UpscaleImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
@@ -2814,6 +2915,11 @@ export class UpscaleImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles RemoveBackgroundNode.process() emits. */
+type RemoveBackgroundNodeOutputs = {
+  output: ImageRef;
+};
 
 export class RemoveBackgroundNode extends BaseNode {
   static readonly nodeType = "nodetool.image.RemoveBackground";
@@ -2849,7 +2955,7 @@ export class RemoveBackgroundNode extends BaseNode {
   })
   declare image: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<RemoveBackgroundNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
@@ -2873,6 +2979,11 @@ export class RemoveBackgroundNode extends BaseNode {
     };
   }
 }
+
+/** Output handles RelightImageNode.process() emits. */
+type RelightImageNodeOutputs = {
+  output: ImageRef;
+};
 
 export class RelightImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Relight";
@@ -2924,7 +3035,7 @@ export class RelightImageNode extends BaseNode {
   })
   declare negative_prompt: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<RelightImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");
@@ -2952,6 +3063,11 @@ export class RelightImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles VectorizeImageNode.process() emits. */
+type VectorizeImageNodeOutputs = {
+  output: { content: string };
+};
 
 export class VectorizeImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Vectorize";
@@ -2986,7 +3102,7 @@ export class VectorizeImageNode extends BaseNode {
   })
   declare image: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<VectorizeImageNodeOutputs> {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) throw new Error("The input image is empty.");

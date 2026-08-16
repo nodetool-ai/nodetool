@@ -656,6 +656,18 @@ export class DataGeneratorNode extends BaseNode {
   }
 }
 
+/** Output handles ListGeneratorNode.genProcess() emits. */
+type ListGeneratorNodeStreamOutputs = {
+  item?: string;
+  index?: number;
+  output?: string[];
+};
+
+/** Output handles ListGeneratorNode.process() emits. */
+type ListGeneratorNodeOutputs = {
+  output: string[];
+};
+
 export class ListGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.ListGenerator";
   static readonly title = "List Generator";
@@ -729,7 +741,7 @@ export class ListGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ListGeneratorNodeOutputs> {
     const items: string[] = [];
     for await (const chunk of this.genProcess(context)) {
       const item = (chunk as { item?: unknown }).item;
@@ -740,7 +752,7 @@ export class ListGeneratorNode extends BaseNode {
 
   async *genProcess(
     context?: ProcessingContext
-  ): AsyncGenerator<Record<string, unknown>> {
+  ): AsyncGenerator<ListGeneratorNodeStreamOutputs> {
     const prompt = asText(this.prompt ?? "");
     const inputText = asText(this.input_text ?? "");
     const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
@@ -1037,6 +1049,11 @@ Set a descriptive title, axis labels, and legend settings.`;
   }
 }
 
+/** Output handles SVGGeneratorNode.process() emits. */
+type SVGGeneratorNodeOutputs = {
+  output: { content: string }[];
+};
+
 export class SVGGeneratorNode extends BaseNode {
   static readonly nodeType = "nodetool.generators.SVGGenerator";
   static readonly title = "SVGGenerator";
@@ -1103,7 +1120,7 @@ export class SVGGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<SVGGeneratorNodeOutputs> {
     const prompt = asText(this.prompt ?? "");
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;

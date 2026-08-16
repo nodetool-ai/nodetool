@@ -22,6 +22,12 @@ type AsrResult = {
 
 const WHISPER_SAMPLING_RATE = 16000;
 
+/** Output handles AutomaticSpeechRecognitionNode.process() emits. */
+type AutomaticSpeechRecognitionNodeOutputs = {
+  text: string;
+  chunks: { text?: string; timestamp?: [number, number] }[];
+};
+
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "transformers.AutomaticSpeechRecognition";
   static readonly inlineFields: string[] = [];
@@ -101,7 +107,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const samples = await loadAudioSamples(
       this.audio,
       WHISPER_SAMPLING_RATE,

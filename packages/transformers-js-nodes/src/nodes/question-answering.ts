@@ -22,6 +22,15 @@ type QAResult = {
   end?: number;
 };
 
+/** Output handles QuestionAnsweringNode.process() emits. */
+type QuestionAnsweringNodeOutputs = {
+  answer: string;
+  score: number;
+  start: number;
+  end: number;
+  results: QAResult[];
+};
+
 export class QuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "transformers.QuestionAnswering";
   static readonly inlineFields = ["question", "context"];
@@ -94,7 +103,7 @@ export class QuestionAnsweringNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<QuestionAnsweringNodeOutputs> {
     const question = asString(this.question);
     const context = asString(this.context);
     if (!question) throw new Error("Question is required");

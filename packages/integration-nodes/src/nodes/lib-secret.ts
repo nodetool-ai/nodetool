@@ -2,6 +2,11 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
+/** Output handles GetSecretLibNode.process() emits. */
+type GetSecretLibNodeOutputs = {
+  output: string;
+};
+
 export class GetSecretLibNode extends BaseNode {
   static readonly nodeType = "lib.secret.GetSecret";
   static readonly title = "Get Secret";
@@ -29,7 +34,7 @@ export class GetSecretLibNode extends BaseNode {
   })
   declare default: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GetSecretLibNodeOutputs> {
     const name = String(this.name ?? "");
     const defaultValue = String(this.default ?? "");
     if (!name) {

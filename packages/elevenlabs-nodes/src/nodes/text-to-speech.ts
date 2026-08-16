@@ -2,6 +2,11 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { getElevenLabsApiKey, VOICE_ID_MAP } from "../elevenlabs-base.js";
 
+/** Output handles TextToSpeechNode.process() emits. */
+type TextToSpeechNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.TextToSpeech";
   static readonly body = "content_card";
@@ -168,7 +173,7 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare text_normalization: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToSpeechNodeOutputs> {
     const apiKey = getElevenLabsApiKey(this._secrets);
 
     const voiceId = String(this.voice_id ?? VOICE_ID_MAP.Aria);

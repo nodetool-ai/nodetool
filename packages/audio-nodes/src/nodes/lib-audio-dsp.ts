@@ -99,6 +99,11 @@ export async function applyFilter(
   );
 }
 
+/** Output handles GainNode_.process() emits. */
+type GainNode_Outputs = {
+  output: AudioRef;
+};
+
 export class GainNode_ extends BaseNode {
   static readonly nodeType = "lib.audio.Gain";
   static readonly title = "Gain";
@@ -135,7 +140,7 @@ export class GainNode_ extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GainNode_Outputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const gainDb = Number(this.gain_db ?? 0);
 
@@ -156,6 +161,11 @@ export class GainNode_ extends BaseNode {
     };
   }
 }
+
+/** Output handles DelayNode_.process() emits. */
+type DelayNode_Outputs = {
+  output: AudioRef;
+};
 
 export class DelayNode_ extends BaseNode {
   static readonly nodeType = "lib.audio.Delay";
@@ -212,7 +222,7 @@ export class DelayNode_ extends BaseNode {
   })
   declare mix: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<DelayNode_Outputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const delaySec = Number(this.delay_seconds ?? 0.5);
     const feedback = Number(this.feedback ?? 0.3);
@@ -258,6 +268,11 @@ export class DelayNode_ extends BaseNode {
   }
 }
 
+/** Output handles HighPassFilterNode.process() emits. */
+type HighPassFilterNodeOutputs = {
+  output: AudioRef;
+};
+
 export class HighPassFilterNode extends BaseNode {
   static readonly nodeType = "lib.audio.HighPassFilter";
   static readonly title = "High Pass Filter";
@@ -293,7 +308,7 @@ export class HighPassFilterNode extends BaseNode {
   })
   declare cutoff_frequency_hz: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<HighPassFilterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 80);
 
@@ -307,6 +322,11 @@ export class HighPassFilterNode extends BaseNode {
     return { output };
   }
 }
+
+/** Output handles LowPassFilterNode.process() emits. */
+type LowPassFilterNodeOutputs = {
+  output: AudioRef;
+};
 
 export class LowPassFilterNode extends BaseNode {
   static readonly nodeType = "lib.audio.LowPassFilter";
@@ -343,7 +363,7 @@ export class LowPassFilterNode extends BaseNode {
   })
   declare cutoff_frequency_hz: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<LowPassFilterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
 
@@ -357,6 +377,11 @@ export class LowPassFilterNode extends BaseNode {
     return { output };
   }
 }
+
+/** Output handles HighShelfFilterNode.process() emits. */
+type HighShelfFilterNodeOutputs = {
+  output: AudioRef;
+};
 
 export class HighShelfFilterNode extends BaseNode {
   static readonly nodeType = "lib.audio.HighShelfFilter";
@@ -404,7 +429,7 @@ export class HighShelfFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<HighShelfFilterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
     const gainDb = Number(this.gain_db ?? 0);
@@ -420,6 +445,11 @@ export class HighShelfFilterNode extends BaseNode {
     return { output };
   }
 }
+
+/** Output handles LowShelfFilterNode.process() emits. */
+type LowShelfFilterNodeOutputs = {
+  output: AudioRef;
+};
 
 export class LowShelfFilterNode extends BaseNode {
   static readonly nodeType = "lib.audio.LowShelfFilter";
@@ -467,7 +497,7 @@ export class LowShelfFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<LowShelfFilterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 200);
     const gainDb = Number(this.gain_db ?? 0);
@@ -483,6 +513,11 @@ export class LowShelfFilterNode extends BaseNode {
     return { output };
   }
 }
+
+/** Output handles PeakFilterNode.process() emits. */
+type PeakFilterNodeOutputs = {
+  output: AudioRef;
+};
 
 export class PeakFilterNode extends BaseNode {
   static readonly nodeType = "lib.audio.PeakFilter";
@@ -541,7 +576,7 @@ export class PeakFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PeakFilterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 1000);
     const q = Number(this.q_factor ?? 1.0);

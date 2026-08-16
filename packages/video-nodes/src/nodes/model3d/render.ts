@@ -70,6 +70,11 @@ async function resolveModelBytes(
   return new Uint8Array();
 }
 
+/** Output handles RenderToImageNode.process() emits. */
+type RenderToImageNodeOutputs = {
+  output: { type: string; uri: string; asset_id: null; data: string };
+};
+
 export class RenderToImageNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.RenderToImage";
   static readonly title = "Render 3D To Image";
@@ -126,7 +131,7 @@ export class RenderToImageNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Transparent", description: "Render on a transparent background (PNG alpha)" })
   declare transparent: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<RenderToImageNodeOutputs> {
     const model = (this.model ?? {}) as Model3DRefLike;
     const format = String(model.format ?? "").toLowerCase();
     if (!RENDERABLE_FORMATS.has(format)) {

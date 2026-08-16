@@ -3,6 +3,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Model3DRefLike } from "./types.js";
 import { modelRef, modelRefToBytes } from "./utils.js";
 
+/** Output handles GlbTransformNode.process() emits. */
+type GlbTransformNodeOutputs = {
+  output: { type: string; asset_id: null; metadata: null; data: string };
+};
+
 export abstract class GlbTransformNode extends BaseNode {
   declare model: any;
 
@@ -15,7 +20,7 @@ export abstract class GlbTransformNode extends BaseNode {
     bytes: Uint8Array
   ): Uint8Array | null | Promise<Uint8Array | null>;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<GlbTransformNodeOutputs> {
     const model = this.getModel();
     const bytes = await modelRefToBytes(model, context);
     const out = await this.transform(bytes);

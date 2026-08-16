@@ -29,6 +29,14 @@ function parseLabels(value: unknown): string[] {
     .filter(Boolean);
 }
 
+/** Output handles ZeroShotClassificationNode.process() emits. */
+type ZeroShotClassificationNodeOutputs = {
+  label: string;
+  score: number;
+  labels: string[];
+  scores: number[];
+};
+
 export class ZeroShotClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ZeroShotClassification";
   static readonly inlineFields = ["text", "candidate_labels"];
@@ -106,7 +114,7 @@ export class ZeroShotClassificationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ZeroShotClassificationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
     const labels = parseLabels(this.candidate_labels);
