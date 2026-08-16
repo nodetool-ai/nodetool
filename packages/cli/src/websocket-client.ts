@@ -44,6 +44,65 @@ export type JobEvent =
   | { type: "error"; message: string }
   | { type: "done" };
 
+/** `chat_message` payload — one user turn on a saved thread. */
+interface ChatMessageCommandData {
+  role: "user";
+  content: string;
+  thread_id: string;
+  model: string;
+  provider: string;
+  tools: unknown[];
+}
+
+/** `inference` payload — a stateless turn, history supplied by the caller. */
+interface InferenceCommandData {
+  messages: unknown[];
+  model: string;
+  provider: string;
+  tools: unknown[];
+}
+
+/** What `runJob` takes: a saved workflow id or an inline graph, plus params. */
+export interface RunJobOptions {
+  workflowId?: string;
+  graph?: {
+    nodes: Array<Record<string, unknown>>;
+    edges: Array<Record<string, unknown>>;
+  };
+  params?: Record<string, unknown>;
+  jobId?: string;
+}
+
+/** `run_job` payload — the same graph and params, under the wire's names. */
+interface RunJobCommandData {
+  workflow_id?: string;
+  graph?: RunJobOptions["graph"];
+  params: NonNullable<RunJobOptions["params"]>;
+  job_id?: string;
+}
+
+/** `reconnect_job` / `resume_job` payload. */
+interface JobStreamCommandData {
+  job_id: string;
+  workflow_id?: string;
+}
+
+/** `stop` payload — a thread id for chat, empty for inference. */
+interface StopCommandData {
+  thread_id?: string;
+}
+
+/** Every frame this client writes to the socket. */
+type OutboundFrame =
+  | { type: "pong"; ts: number }
+  | { command: "chat_message"; data: ChatMessageCommandData }
+  | { command: "inference"; data: InferenceCommandData }
+  | { command: "run_job"; data: RunJobCommandData }
+  | { command: "reconnect_job" | "resume_job"; data: JobStreamCommandData }
+  | { command: "cancel_job"; data: { job_id: string } }
+  | { command: "get_status"; data: { job_id?: string } }
+  | { command: "stop"; data: StopCommandData };
+
 export class WebSocketChatClient {
   private ws: WebSocket | null = null;
   private contentQueue: Array<Record<string, unknown>> = [];
@@ -122,10 +181,10 @@ export class WebSocketChatClient {
 
     // Treat command-level errors (no type field but has error field) as error content events
     if (!type && typeof msg.error === "string") {
-      const errorEvent: Record<string, unknown> = {
+      const errorEvent = {
         type: "error",
         message: msg.error
-      };
+      } satisfies Record<string, unknown>;
       const waiter = this.contentWaiters.shift();
       if (waiter) {
         waiter(errorEvent);
@@ -162,7 +221,7 @@ export class WebSocketChatClient {
     );
   }
 
-  private send(data: unknown): void {
+  private send(data: OutboundFrame): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }
@@ -319,15 +378,7 @@ export class WebSocketChatClient {
    * Run a workflow job. Streams job_update, node_update, output_update events.
    * Terminates when a terminal job_update is received (completed/failed/cancelled).
    */
-  async *runJob(opts: {
-    workflowId?: string;
-    graph?: {
-      nodes: Array<Record<string, unknown>>;
-      edges: Array<Record<string, unknown>>;
-    };
-    params?: Record<string, unknown>;
-    jobId?: string;
-  }): AsyncGenerator<JobEvent> {
+  async *runJob(opts: RunJobOptions): AsyncGenerator<JobEvent> {
     this.contentQueue.length = 0;
     this.send({
       command: "run_job",
@@ -445,8 +496,8 @@ export class WebSocketChatClient {
 
   /** Stop in-progress generation. Pass threadId for chat, omit for inference. */
   stop(threadId?: string): void {
-    const data: Record<string, unknown> = {};
-    if (threadId) data["thread_id"] = threadId;
+    const data: StopCommandData = {};
+    if (threadId) data.thread_id = threadId;
     this.send({ command: "stop", data });
   }
 

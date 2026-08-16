@@ -43,6 +43,7 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
+import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
 interface ScriptDocumentPaneProps {
@@ -676,6 +677,7 @@ const ScriptDocumentPane = ({
                 : "Send to timeline"}
           </EditorButton>
         )}
+        {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
         {!readOnly && (
           <EditorButton
             size="small"

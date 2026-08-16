@@ -119,11 +119,7 @@ function useStructurallyProcessedEdges({
     const anyType = dataTypeBySlug.get("any");
     const defaultColor = anyType?.color || "#888";
 
-    function typeInfoFromTypeString(typeString: string | undefined): {
-      slug: string;
-      color: string;
-      label: string;
-    } {
+    function typeInfoFromTypeString(typeString: string | undefined) {
       if (!typeString) {
         return {
           slug: anyType?.slug || "any",

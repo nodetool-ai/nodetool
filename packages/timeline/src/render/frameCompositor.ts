@@ -31,12 +31,12 @@ import {
 } from "./transform.js";
 
 /** Shader edge codes (see `BLEND_COMPOSITE_FRAGMENT` params2). */
-const WIPE_EDGE: Record<WipeDirection, 1 | 2 | 3 | 4> = {
+const WIPE_EDGE = {
   left: 1,
   right: 2,
   up: 3, // reveal from the layer's top edge
   down: 4 // reveal from the layer's bottom edge
-};
+} satisfies Record<WipeDirection, 1 | 2 | 3 | 4>;
 
 function wipeParams(
   mask: AnimationSampleMask | undefined

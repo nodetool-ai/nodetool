@@ -91,7 +91,7 @@ function barycentric(
   ax: number, ay: number,
   bx: number, by: number,
   cx: number, cy: number
-): { u: number; v: number; w: number } {
+) {
   const d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
   const u = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / d;
   const v = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / d;
@@ -100,7 +100,7 @@ function barycentric(
 }
 
 /** Clamp barycentric coordinates to the triangle (all ≥ 0). */
-function clampBarycentric(u: number, v: number, w: number): { u: number; v: number; w: number } {
+function clampBarycentric(u: number, v: number, w: number) {
   let cu = Math.max(0, u);
   let cv = Math.max(0, v);
   let cw = Math.max(0, w);
@@ -113,14 +113,14 @@ function clampBarycentric(u: number, v: number, w: number): { u: number; v: numb
 }
 
 /** Convert barycentric (u=hue, v=white, w=black) → HSV saturation & value. */
-function baryToSV(u: number, v: number, _w: number): { s: number; val: number } {
+function baryToSV(u: number, v: number, _w: number) {
   const val = Math.max(0, Math.min(1, u + v));   // V = 1 - black
   const s = val > 0 ? Math.max(0, Math.min(1, u / val)) : 0;
   return { s, val };
 }
 
 /** Inverse: given S, V → barycentric (u, v, w). */
-function svToBary(s: number, val: number): { u: number; v: number; w: number } {
+function svToBary(s: number, val: number) {
   const u = s * val;
   const v = (1 - s) * val;
   const w = 1 - val;
@@ -405,7 +405,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     return angle % 360;
   }, []);
 
-  const pointerToSV = useCallback((clientX: number, clientY: number): { s: number; val: number } => {
+  const pointerToSV = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) { return { s: hsv.s, val: hsv.v }; }
     const rect = canvas.getBoundingClientRect();

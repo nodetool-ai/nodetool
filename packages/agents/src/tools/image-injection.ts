@@ -83,7 +83,7 @@ export function extractInjectableImages(result: unknown): ExtractedImages | null
  * safe to serialize into the (light) tool-result message. The pixels ride the
  * separate injected user message instead — never the persisted history.
  */
-export function stripImagePayload(result: unknown): unknown {
+export function stripImagePayload(result: unknown) {
   if (!result || typeof result !== "object" || Array.isArray(result)) return result;
   const record = result as Record<string, unknown>;
   if (!(IMAGE_CONTENT_FIELD in record) && !(IMAGE_CONTENTS_FIELD in record)) {

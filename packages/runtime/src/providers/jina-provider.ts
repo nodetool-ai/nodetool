@@ -92,7 +92,7 @@ export class JinaProvider extends BaseProvider {
     }
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { JINA_API_KEY: this.apiKey };
   }
 

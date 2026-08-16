@@ -62,7 +62,7 @@ export class MetaProvider extends OpenAICompatProvider {
     this._metaFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { META_API_KEY: this.apiKey };
   }
 

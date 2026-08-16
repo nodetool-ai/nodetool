@@ -459,7 +459,7 @@ export abstract class PythonBridgeBase
    */
   protected _identityPayload(
     identity: ExecuteIdentity | undefined
-  ): Record<string, unknown> {
+  ) {
     if (!identity) return {};
     const payload: Record<string, unknown> = {};
     if (identity.nodeId) payload.node_id = identity.nodeId;

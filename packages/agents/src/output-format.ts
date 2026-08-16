@@ -7,14 +7,14 @@
 
 export type AgentOutputFormat = "structured" | "markdown" | "text" | "html";
 
-export const OUTPUT_FORMAT_DIRECTIVES: Record<
-  Exclude<AgentOutputFormat, "structured">,
-  string
-> = {
+export const OUTPUT_FORMAT_DIRECTIVES = {
   markdown: "Final result: markdown prose.",
   text: "Final result: plain text.",
   html: "Final result: HTML fragment."
-};
+} satisfies Record<
+  Exclude<AgentOutputFormat, "structured">,
+  string
+>;
 
 export function outputFormatDirective(
   format: AgentOutputFormat

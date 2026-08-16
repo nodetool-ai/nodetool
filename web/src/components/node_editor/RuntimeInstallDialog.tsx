@@ -82,12 +82,12 @@ async function installAll(
   return allInstalled;
 }
 
-const STATUS_LABEL: Record<RuntimeStatus, string> = {
+const STATUS_LABEL = {
   pending: "Required",
   installing: "Installing…",
   installed: "Installed",
   failed: "Failed",
-};
+} satisfies Record<RuntimeStatus, string>;
 
 const STATUS_COLOR: Record<
   RuntimeStatus,

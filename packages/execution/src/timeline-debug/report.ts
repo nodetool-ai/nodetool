@@ -42,7 +42,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const countAndDuration = (
   document: unknown
-): { trackCount: number; clipCount: number; durationMs: number } => {
+) => {
   if (!isRecord(document))
     return { trackCount: 0, clipCount: 0, durationMs: 0 };
   const tracks = Array.isArray(document.tracks) ? document.tracks : [];

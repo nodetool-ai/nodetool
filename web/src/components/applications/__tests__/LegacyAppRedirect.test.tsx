@@ -19,7 +19,7 @@ jest.mock("../../../trpc/client", () => ({
 
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (state: unknown) => T) =>
+  useWorkspaceTabsStore: <T,>(selector: (state: { openTab: jest.Mock }) => T) =>
     selector({ openTab })
 }));
 

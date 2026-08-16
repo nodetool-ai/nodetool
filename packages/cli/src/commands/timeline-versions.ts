@@ -159,11 +159,7 @@ export function parseVersionDocument(raw: unknown): JsonValue {
 }
 
 /** Track / clip / marker counts of whatever a version stored. */
-export function documentCounts(document: unknown): {
-  tracks: number;
-  clips: number;
-  markers: number;
-} {
+export function documentCounts(document: JsonValue | undefined) {
   const doc = (document ?? {}) as Record<string, unknown>;
   const count = (value: unknown): number =>
     Array.isArray(value) ? value.length : 0;

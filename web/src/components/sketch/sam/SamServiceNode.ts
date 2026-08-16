@@ -362,7 +362,7 @@ export class SamServiceNode implements SamService {
     boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
     sourceMetadata: SegmentationRequest["sourceMetadata"],
     scale: number
-  ): { x: number; y: number; width: number; height: number } {
+  ) {
     const promptMapper = this.createPromptMapper(sourceMetadata);
     // Map all four corners before taking min/max so rotated or affine-transformed
     // source layers still produce a correct axis-aligned box in source-image space.
@@ -501,7 +501,7 @@ export class SamServiceNode implements SamService {
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  ) {
     const falPrompts = request.pointPrompts.map((point) => ({
       x: Math.round(point.x * scale),
       y: Math.round(point.y * scale),

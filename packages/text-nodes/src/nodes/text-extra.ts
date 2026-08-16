@@ -22,7 +22,7 @@ const NODE_ONLY: readonly Platform[] = ["node"];
  */
 function tokenizeAssetVars(
   vars: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(vars)) {
     out[key] = assetRefToPromptToken(value) ?? value;
@@ -57,10 +57,7 @@ function folderPath(value: unknown): string {
   return "";
 }
 
-function modelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
+function modelConfig(props: Record<string, unknown>) {
   const model = (props.model ?? {}) as Record<string, unknown>;
   return {
     providerId: typeof model.provider === "string" ? model.provider : "",
@@ -600,9 +597,9 @@ export class FilterStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   private _filterType: FilterStringType = "contains";
   private _criteria = "";
@@ -700,9 +697,9 @@ export class FilterRegexStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   private _pattern = "";
   private _fullMatch = false;

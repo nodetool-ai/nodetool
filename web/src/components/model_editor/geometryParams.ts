@@ -25,10 +25,7 @@ export interface GeometryParamSpec {
 
 const TAU = Math.PI * 2;
 
-export const GEOMETRY_PARAM_SPECS: Record<
-  EditableGeometryType,
-  readonly GeometryParamSpec[]
-> = {
+export const GEOMETRY_PARAM_SPECS = {
   BoxGeometry: [
     { key: "width", label: "Width", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
@@ -68,7 +65,7 @@ export const GEOMETRY_PARAM_SPECS: Record<
     { key: "tubularSegments", label: "Tubular Segs", kind: "int", min: 3 },
     { key: "arc", label: "Arc", kind: "angle" }
   ]
-};
+} satisfies Record<EditableGeometryType, readonly GeometryParamSpec[]>;
 
 export type GeometryParams = Record<string, number | boolean>;
 

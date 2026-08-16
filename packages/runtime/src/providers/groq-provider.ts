@@ -34,7 +34,7 @@ export class GroqProvider extends OpenAICompatProvider {
     this._groqFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { GROQ_API_KEY: this.apiKey };
   }
 

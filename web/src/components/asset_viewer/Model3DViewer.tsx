@@ -301,10 +301,8 @@ class ModelErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown): void {
-    const message =
-      error instanceof Error ? error.message : String(error ?? "Unknown error");
-    this.props.onError(new Error(message));
+  componentDidCatch(error: Error): void {
+    this.props.onError(new Error(error.message));
   }
 
   render(): React.ReactNode {

@@ -114,12 +114,12 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
 
     const handleApply = useCallback(() => {
       if (!schema) return;
-      const dynamic_inputs: Record<string, ComfyDynInput> = {
+      const dynamic_inputs = {
         ...schema.dynamic_inputs
-      };
-      const dynamic_properties: Record<string, unknown> = {
+      } satisfies Record<string, ComfyDynInput>;
+      const dynamic_properties = {
         ...schema.dynamic_properties
-      };
+      } satisfies Record<string, unknown>;
       for (const param of schema.availableParams) {
         if (!selected.has(param.handle)) continue;
         dynamic_inputs[param.handle] = paramToDynInput(param);

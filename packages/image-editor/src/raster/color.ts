@@ -6,12 +6,7 @@ export function rgbaToHex({ r, g, b }: Rgba): string {
   return `#${clamp(r).toString(16).padStart(2, "0")}${clamp(g).toString(16).padStart(2, "0")}${clamp(b).toString(16).padStart(2, "0")}`;
 }
 
-export function rgbaBytes(color: string): {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-} {
+export function rgbaBytes(color: string) {
   const parsed = parseColorToRgba(color);
   return {
     r: parsed.r,

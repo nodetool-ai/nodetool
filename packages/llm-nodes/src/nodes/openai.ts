@@ -14,7 +14,7 @@ function getApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -542,12 +542,12 @@ export class ImageVariationNode extends BaseNode {
  * asset-saving path (`decodeAssetBytes`) and downstream providers decode the
  * field directly, so a `data:` prefix would corrupt the bytes.
  */
-function imageRefFromB64(b64: string): Record<string, unknown> {
+function imageRefFromB64(b64: string) {
   return { type: "image", data: b64, content_type: "image/png" };
 }
 
 /** Build an audio ref from raw base64 with an explicit mime type. */
-function audioRefFromB64(b64: string, contentType: string): Record<string, unknown> {
+function audioRefFromB64(b64: string, contentType: string) {
   return { type: "audio", data: b64, content_type: contentType };
 }
 

@@ -5,11 +5,7 @@ interface UseEditorModeOptions {
   onCodeEnabled?: () => void;
 }
 
-export function useEditorMode(options: UseEditorModeOptions = {}): Readonly<{
-  isCodeEditor: boolean;
-  setIsCodeEditor: Dispatch<SetStateAction<boolean>>;
-  toggleEditorMode: () => void;
-}> {
+export function useEditorMode(options: UseEditorModeOptions = {}) {
   const { defaultEnabled = false, onCodeEnabled } = options;
 
   const [isCodeEditor, setIsCodeEditor] = useState<boolean>(defaultEnabled);

@@ -134,11 +134,11 @@ export const INFERENCE_STEPS: number[] = [10, 20, 30, 40, 50];
  * Base short edge in pixels for each named resolution.
  * Used with aspect ratio to derive width/height for provider calls.
  */
-export const IMAGE_RESOLUTION_TO_PIXELS: Record<ImageResolution, number> = {
+export const IMAGE_RESOLUTION_TO_PIXELS = {
   "1K": 1024,
   "2K": 2048,
   "4K": 4096
-};
+} satisfies Record<ImageResolution, number>;
 
 interface ImageGenerationParams {
   model: ImageModelValue | null;
@@ -308,7 +308,7 @@ function parseAspectRatioId(
 export function resolveImageSize(
   resolution: ImageResolution,
   aspectRatio: string
-): { width: number; height: number } {
+) {
   const base = IMAGE_RESOLUTION_TO_PIXELS[resolution];
   const preset = IMAGE_ASPECT_RATIOS.find((a) => a.id === aspectRatio);
   // A model may report a ratio outside the static preset list (e.g. a
@@ -343,7 +343,7 @@ export function resolveImageSize(
 export function deriveImageSizePreset(
   width: number,
   height: number
-): { aspectRatio: string; resolution: ImageResolution } {
+) {
   const logRatio = Math.log(width / height);
   // A zero, negative or non-finite edge has no shape to be near, and `?? 1024`
   // at the call sites only covers null/undefined.

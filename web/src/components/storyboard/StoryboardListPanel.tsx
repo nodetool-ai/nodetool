@@ -31,6 +31,7 @@ import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { downgradeScriptsLinkedToBoard } from "../../lib/scriptStoryboardDowngrade";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -390,9 +391,13 @@ const StoryboardListPanel = () => {
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (itemToDelete) {
-      deleteStoryboard.mutate({ id: itemToDelete.id });
+    if (!itemToDelete) {
+      return;
     }
+    const { id } = itemToDelete;
+    deleteStoryboard.mutate({ id });
+    // The script keeps its words; only its pointer at this board goes.
+    downgradeScriptsLinkedToBoard(id);
   }, [itemToDelete, deleteStoryboard]);
 
   useEffect(() => {

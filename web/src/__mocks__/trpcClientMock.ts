@@ -39,7 +39,7 @@ export const mockSketchVersionsAppend = jest.fn();
 // Minimal `useUtils` shim so hooks that touch the query cache after a
 // mutation (`utils.sketch.get.setData`, `utils.something.invalidate`) don't
 // blow up in tests. New procedures get a passthrough proxy on demand.
-const makeProcedureUtils = (): Record<string, unknown> => ({
+const makeProcedureUtils = () => ({
   setData: jest.fn(),
   setInfiniteData: jest.fn(),
   invalidate: jest.fn(async () => undefined),
@@ -51,7 +51,7 @@ const makeProcedureUtils = (): Record<string, unknown> => ({
   getData: jest.fn(() => undefined)
 });
 
-const makeUtilsProxy = (): object =>
+const makeUtilsProxy = () =>
   new Proxy(
     {},
     {

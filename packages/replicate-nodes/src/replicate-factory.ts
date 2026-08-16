@@ -323,7 +323,7 @@ async function buildArgs(
 function mapOutput(
   spec: ReplicateManifestEntry,
   output: unknown
-): Record<string, unknown> {
+) {
   switch (spec.outputType) {
     case "image":
       return { output: outputToImageRef(output) };

@@ -112,7 +112,7 @@ function toInt16Samples(bytes: Uint8Array): Int16Array {
   return new Int16Array(copy.buffer);
 }
 
-function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
+function parseDataUri(uri: string) {
   const idx = uri.indexOf(",");
   if (idx < 0) {
     throw new Error("Invalid data URI");
@@ -184,13 +184,13 @@ function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
   return value;
 }
 
-const RESPONSE_WEB_SEARCH_TOOL: Record<string, unknown> = {
+const RESPONSE_WEB_SEARCH_TOOL = {
   type: "web_search"
-};
+} satisfies Record<string, unknown>;
 
-const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
+const RESPONSE_IMAGE_GENERATION_TOOL = {
   type: "image_generation"
-};
+} satisfies Record<string, unknown>;
 
 const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
   [WEB_SEARCH_TOOL_NAME]: "web_search",
@@ -260,7 +260,9 @@ function responsesSystemPrompt(messages: Message[]): string {
  * null for any other stream item. The multi-megabyte base64 blob must be
  * absorbed here, never yielded onward as a chunk.
  */
-function imageContentFromChunk(item: unknown): MessageImageContent | null {
+function imageContentFromChunk(
+  item: ProviderStreamItem
+): MessageImageContent | null {
   if (
     !isRecord(item) ||
     item.type !== "chunk" ||

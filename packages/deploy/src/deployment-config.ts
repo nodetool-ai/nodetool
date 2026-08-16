@@ -418,7 +418,7 @@ export async function initDeploymentConfig(): Promise<DeploymentConfig> {
 export function mergeDefaultsWithEnv(
   defaults: DefaultsConfig,
   deploymentEnv?: Record<string, string>
-): Record<string, string> {
+) {
   const env: Record<string, string> = {};
 
   env["CHAT_PROVIDER"] = defaults.chat_provider;

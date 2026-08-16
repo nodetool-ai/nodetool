@@ -77,7 +77,7 @@ function settingsOf(raw: unknown): TimelineSequenceSettings {
 }
 
 /** A document is anything with `tracks` and `clips` arrays. */
-const looksLikeDocument = (value: unknown): boolean =>
+const looksLikeDocument = (value: JsonValue): boolean =>
   isRecord(value) && Array.isArray(value.tracks) && Array.isArray(value.clips);
 
 /**
@@ -103,7 +103,7 @@ function documentOf(raw: unknown): JsonValue {
 }
 
 /** Read a document as tracks + clips + markers, defaulting what is missing. */
-function asDocument(raw: unknown): TimelineDocument {
+function asDocument(raw: JsonValue): TimelineDocument {
   const record = isRecord(raw) ? raw : {};
   const document: TimelineDocument = {
     tracks: Array.isArray(record.tracks)

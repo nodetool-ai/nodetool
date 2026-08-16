@@ -130,6 +130,10 @@ export function peekLastUsage(): LlmUsage | null {
 export function setLastRequest(request: unknown): void {
   const slot = usageStore.getStore();
   // SAFETY: every provider records its SDK's request-params object here.
+  // HOLDOUT (anti-slop/no-unknown-parameters): the honest type is
+  // `RecordedRequestPayload` (`object | null`), which the enforced
+  // `no-object-parameters` rule refuses; no named union covers every
+  // provider SDK's request-params type.
   if (slot) slot.request = request as RecordedRequestPayload;
 }
 
@@ -164,11 +168,7 @@ export function withModalityCapture<T>(
  * After the generator finishes, `getUsage()` returns whatever the deepest
  * `setLastUsage()` call wrote.
  */
-export function createUsageSlot(): {
-  runInSlot: <T>(fn: () => Promise<T>) => Promise<T>;
-  getUsage: () => LlmUsage | null;
-  getRequest: () => RecordedRequestPayload;
-} {
+export function createUsageSlot() {
   const slot: CallSlot = { usage: null, request: null };
   return {
     runInSlot: <T>(fn: () => Promise<T>) => usageStore.run(slot, fn),

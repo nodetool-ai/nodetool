@@ -201,7 +201,7 @@ export class SubmitCodeTool extends Tool {
     "Submit the finished Code node: title, summary, code, and typed input and " +
     "output slots. Returns the validation errors to fix (resubmit the full " +
     "corrected node), or accepts the submission.";
-  readonly jsonSchema: Record<string, unknown> = SUBMIT_CODE_INPUT_SCHEMA;
+  readonly jsonSchema = SUBMIT_CODE_INPUT_SCHEMA satisfies Record<string, unknown>;
 
   private _submission: CodeGenSubmission | null = null;
   /** Code of the last submission, accepted or not — used in the retry prompt. */

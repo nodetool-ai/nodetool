@@ -119,7 +119,7 @@ function isClipJobEntry(value: unknown): value is ClipJobState {
   );
 }
 
-const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
+const loadPersistedClipJobs = () => {
   if (!canUseSessionStorage()) {
     return {};
   }
@@ -204,7 +204,7 @@ function deriveMembership(
     TimelineGenerationStoreState,
     "generatingClipIds" | "failedClipIds"
   >
-): { generatingClipIds: string[]; failedClipIds: string[] } {
+) {
   const nextGenerating = deriveIds(clipJobs, isGenerating);
   const nextFailed = deriveIds(clipJobs, isFailed);
   return {

@@ -27,7 +27,7 @@ export function evaluateLayerEffectsCPU(
   effects: LayerEffect[] | null,
   fxCache: Map<string, { key: string; canvas: HTMLCanvasElement }>,
   fxTempCanvas: HTMLCanvasElement | null
-): { result: ResolvedLayerBitmap; fxTempCanvas: HTMLCanvasElement | null } {
+) {
   if (!effects || effects.length === 0 || effects.every((e) => !e.enabled)) {
     fxCache.delete(layerId);
     return { result: { surface: source, ...SDR_SRGB }, fxTempCanvas };

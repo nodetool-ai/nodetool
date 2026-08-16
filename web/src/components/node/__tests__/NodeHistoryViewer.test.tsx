@@ -32,12 +32,14 @@ jest.mock("../../../hooks/nodes/useNodeGenerations", () => ({
 // a downstream consumer exists). The single-select tests have no outgoing edge,
 // so a store with no edges suffices — the multi-select modifiers stay inert.
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: <T,>(selector: (s: unknown) => T) => selector(mockNodeStoreState())
+  useNodes: <T,>(selector: (s: ReturnType<typeof mockNodeStoreState>) => T) =>
+    selector(mockNodeStoreState())
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWebsocketRunner: <T,>(selector: (s: unknown) => T) =>
-    selector(mockUseWebsocketRunner())
+  useWebsocketRunner: <T,>(
+    selector: (s: ReturnType<typeof mockUseWebsocketRunner>) => T
+  ) => selector(mockUseWebsocketRunner())
 }));
 
 jest.mock("../../assets/AssetViewer", () => ({

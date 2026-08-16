@@ -5,7 +5,7 @@ import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
-export function useSaveSketchDocument(): { save: () => Promise<void>; saving: boolean } {
+export function useSaveSketchDocument() {
   const utils = trpc.useUtils();
   const instance = useSketchInstance();
   const [saving, setSaving] = useState(false);

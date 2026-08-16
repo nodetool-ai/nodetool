@@ -9,7 +9,7 @@ export type PrimitiveKind =
   | "directionalLight"
   | "pointLight";
 
-export const PRIMITIVE_LABELS: Record<PrimitiveKind, string> = {
+export const PRIMITIVE_LABELS = {
   box: "Box",
   sphere: "Sphere",
   plane: "Plane",
@@ -17,7 +17,7 @@ export const PRIMITIVE_LABELS: Record<PrimitiveKind, string> = {
   torus: "Torus",
   directionalLight: "Directional Light",
   pointLight: "Point Light"
-};
+} satisfies Record<PrimitiveKind, string>;
 
 // MeshPhysicalMaterial (extends MeshStandardMaterial) so the Properties panel
 // can expose the full PBR set — clearcoat, transmission, sheen, iridescence, …

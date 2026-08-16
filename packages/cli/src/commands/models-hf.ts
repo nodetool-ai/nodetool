@@ -35,11 +35,11 @@ function formatBytes(n: number | null | undefined): string {
   return `${value.toFixed(1)} ${units[i]}`;
 }
 
-function parseLimit(raw: unknown): number | undefined {
-  if (raw === undefined || raw === null || raw === "") return undefined;
-  const parsed = Number.parseInt(String(raw), 10);
+function parseLimit(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw === "") return undefined;
+  const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    console.error(`Invalid --limit value: ${String(raw)}`);
+    console.error(`Invalid --limit value: ${raw}`);
     process.exit(1);
   }
   return parsed;

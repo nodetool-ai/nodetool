@@ -285,7 +285,7 @@ function scanDirectorySnapshot(
   watchPath: string,
   recursive: boolean,
   filter: FileWatchFilter
-): { snapshot: FileWatchSnapshot; truncated: boolean } {
+) {
   const entries: Record<string, number> = {};
   let truncated = false;
   const dirs: string[] = [watchPath];

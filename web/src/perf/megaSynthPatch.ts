@@ -66,10 +66,7 @@ const T = {
   out: "nodetool.audio.realtime.AudioOutput"
 } as const;
 
-export function buildMegaSynthPatch(layers: number): {
-  nodes: MegaNode[];
-  edges: MegaEdge[];
-} {
+export function buildMegaSynthPatch(layers: number) {
   const L = Math.max(1, Math.floor(layers));
   const nodes: MegaNode[] = [];
   const edges: MegaEdge[] = [];

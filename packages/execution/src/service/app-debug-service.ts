@@ -144,7 +144,7 @@ async function loadUserApplication(
 }
 
 /** A body number that is a finite positive value, or undefined. */
-function positive(value: unknown): number | undefined {
+function positive(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? value
     : undefined;
@@ -154,7 +154,7 @@ function positive(value: unknown): number | undefined {
 function runningPayload(
   session: DebugSession,
   debugId: string
-): Record<string, unknown> {
+) {
   return {
     status: "running",
     session_id: session.id,
@@ -172,7 +172,7 @@ function runningPayload(
 function debugPayload(
   report: AppDebugReport,
   debugId: string
-): Record<string, unknown> {
+) {
   return {
     debug_id: debugId,
     status: report.verdict.ok ? "completed" : "failed",

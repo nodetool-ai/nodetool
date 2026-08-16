@@ -221,7 +221,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /** The subscription token is the SDK's business — never hand it to a sandbox. */
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return {};
   }
 
@@ -840,7 +840,7 @@ const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
  * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
  * token-based auth survives on headless hosts.
  */
-function buildChildEnv(): Record<string, string> {
+function buildChildEnv() {
   const env: Record<string, string> = {};
   const source = typeof process !== "undefined" ? process.env : {};
   for (const [key, value] of Object.entries(source)) {
@@ -905,7 +905,7 @@ function finalBlocks(
  *    `await tools.<name>({…})` and models turn that member expression into a
  *    top-level tool name. Without this the call reaches no tool at all.
  */
-function stripToolPrefix(name: unknown): string {
+function stripToolPrefix(name: string | undefined): string {
   let n = typeof name === "string" ? name : "";
   if (n.startsWith(TOOL_PREFIX)) n = n.slice(TOOL_PREFIX.length);
   if (n.startsWith(GUEST_TOOL_PREFIX)) n = n.slice(GUEST_TOOL_PREFIX.length);
@@ -913,10 +913,7 @@ function stripToolPrefix(name: unknown): string {
 }
 
 /** Split a final assistant message into its text and its tool calls. */
-function assistantParts(msg: SDKAssistantMessage): {
-  text: string;
-  toolCalls: ToolCall[];
-} {
+function assistantParts(msg: SDKAssistantMessage) {
   const content = msg.message?.content;
   let text = "";
   const toolCalls: ToolCall[] = [];
@@ -1082,7 +1079,7 @@ export function toolResultToMcpContent(
 /** Convert a JSON-Schema object's properties to a Zod raw shape. */
 function jsonSchemaToZodShape(
   schema: Record<string, unknown> | undefined
-): Record<string, ZodTypeAny> {
+) {
   const props = (schema?.properties as Record<string, unknown>) ?? {};
   const required = new Set((schema?.required as string[]) ?? []);
   const shape: Record<string, ZodTypeAny> = {};

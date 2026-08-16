@@ -88,7 +88,7 @@ describe("backend utilityProcess spawn contract", () => {
     // local-only server features (Python bridge, file browser, vector nodes)
     // that the desktop app depends on. Pack trust comes from the dedicated
     // NODETOOL_PACKS_REQUIRE_ALLOWLIST flag instead.
-    const backendEnv: Record<string, string> = {
+    const backendEnv = {
       PORT: "7777",
       HOST: "127.0.0.1",
       STATIC_FOLDER: "/mock/web",
@@ -97,7 +97,7 @@ describe("backend utilityProcess spawn contract", () => {
       NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
       NODE_OPTIONS: "--conditions=nodetool-dev",
       NODE_PATH: "/mock/backend/node_modules",
-    };
+    } satisfies Record<string, string>;
 
     for (const key of requiredEnvKeys) {
       expect(backendEnv).toHaveProperty(key);

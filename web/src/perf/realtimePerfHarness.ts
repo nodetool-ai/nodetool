@@ -125,7 +125,7 @@ interface GraphEdge {
 }
 
 /** V independent voices: Oscillator → StreamingLowPass → StreamingGain → AudioOutput. */
-function buildPatch(voices: number): { nodes: GraphNode[]; edges: GraphEdge[] } {
+function buildPatch(voices: number) {
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
   for (let i = 0; i < voices; i++) {
@@ -184,10 +184,7 @@ function buildPatch(voices: number): { nodes: GraphNode[]; edges: GraphEdge[] } 
  * independent clock domains, so the kernel's sample-FIFO hold-last paths get
  * exercised alongside the clocked, sample-aligned ones.
  */
-function buildComplexPatch(voices: number): {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-} {
+function buildComplexPatch(voices: number) {
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
   let edgeSeq = 0;

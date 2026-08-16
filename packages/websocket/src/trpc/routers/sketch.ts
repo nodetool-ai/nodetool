@@ -231,11 +231,11 @@ async function mutateOwnedDocumentData<T>(
   }
 }
 
-const IMAGE_OUTPUT_TYPES: Record<string, true> = {
+const IMAGE_OUTPUT_TYPES = {
   "nodetool.output.ImageOutput": true,
   "nodetool.output.MaskOutput": true,
   "nodetool.output.Output": true
-};
+} satisfies Record<string, true>;
 
 function isImageOutputNode(nodeType: string): boolean {
   return nodeType in IMAGE_OUTPUT_TYPES;

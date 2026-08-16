@@ -23,14 +23,14 @@ export type OnboardingCapability =
   | "text-to-speech"
   | "embedding";
 
-export const CAPABILITY_LABELS: Record<OnboardingCapability, string> = {
+export const CAPABILITY_LABELS = {
   chat: "Chat & Reasoning",
   vision: "Vision (image understanding)",
   image: "Image Generation",
   "speech-to-text": "Speech to Text",
   "text-to-speech": "Text to Speech",
   embedding: "Embeddings & Search"
-};
+} satisfies Record<OnboardingCapability, string>;
 
 /** A local inference engine the user can run models on. */
 export interface OnboardingEngine {
@@ -442,19 +442,19 @@ export const classifyFit = (
   return "over";
 };
 
-export const FIT_LABELS: Record<FitLevel, string> = {
+export const FIT_LABELS = {
   fits: "Fits your machine",
   tight: "Tight fit",
   over: "Needs more memory",
   unknown: "Set your memory to check"
-};
+} satisfies Record<FitLevel, string>;
 
-const FIT_ORDER: Record<FitLevel, number> = {
+const FIT_ORDER = {
   fits: 0,
   tight: 1,
   unknown: 2,
   over: 3
-};
+} satisfies Record<FitLevel, number>;
 
 /**
  * Sort models best-fit-first for a given budget: models that fit come first

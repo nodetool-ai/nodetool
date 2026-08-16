@@ -46,7 +46,7 @@ type OllamaChatMessage = {
   tool_calls?: OllamaToolCall[];
 };
 
-function parseDataUri(uri: string): { mime: string; base64: string } {
+function parseDataUri(uri: string) {
   const idx = uri.indexOf(",");
   if (idx < 0) {
     throw new Error("Invalid data URI");
@@ -121,7 +121,7 @@ export class OllamaProvider extends BaseProvider {
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return { OLLAMA_API_URL: this.apiUrl };
   }
 

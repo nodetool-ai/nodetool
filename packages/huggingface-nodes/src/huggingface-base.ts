@@ -127,7 +127,7 @@ export async function refToBase64(
 export function imageRefFromBytes(
   bytes: Uint8Array,
   mimeType = "image/png"
-): Record<string, unknown> {
+) {
   return {
     type: "image",
     data: Buffer.from(bytes).toString("base64"),
@@ -139,7 +139,7 @@ export function imageRefFromBytes(
 export function videoRefFromBytes(
   bytes: Uint8Array,
   mimeType = "video/mp4"
-): Record<string, unknown> {
+) {
   return {
     type: "video",
     data: Buffer.from(bytes).toString("base64"),
@@ -152,14 +152,14 @@ export function videoRefFromBytes(
 export function imageRefFromBase64(
   base64: string,
   mimeType = "image/png"
-): Record<string, unknown> {
+) {
   const clean = base64.startsWith("data:")
     ? base64.slice(base64.indexOf(",") + 1)
     : base64;
   return { type: "image", data: clean, content_type: mimeType };
 }
 
-function authHeaders(token: string): Record<string, string> {
+function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -310,7 +310,7 @@ export async function hfChatCompletion(
 /** Build a `parameters` object, dropping null/undefined entries. */
 export function cleanParams(
   params: Record<string, unknown>
-): Record<string, unknown> {
+) {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
     if (value !== null && value !== undefined && value !== "") {

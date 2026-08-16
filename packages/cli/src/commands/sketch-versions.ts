@@ -154,10 +154,7 @@ export function parseVersionDocument(raw: unknown): JsonValue {
 }
 
 /** Layer and binding counts of whatever a version stored. */
-export function documentCounts(document: unknown): {
-  layers: number;
-  bindings: number;
-} {
+export function documentCounts(document: JsonValue | undefined) {
   const doc = (document ?? {}) as Record<string, unknown>;
   const sketch = (doc.sketch ?? {}) as Record<string, unknown>;
   const count = (value: unknown): number =>

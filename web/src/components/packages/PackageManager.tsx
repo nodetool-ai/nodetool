@@ -35,16 +35,16 @@ import {
   type PMRow
 } from "./usePackageManager";
 
-const DEFAULT_CAT: Record<PMTab, string> = {
+const DEFAULT_CAT = {
   software: "all",
   packs: "included"
-};
+} satisfies Record<PMTab, string>;
 
 /** Persist the active tab + category so reopening the Package Manager lands
  *  where the user left off. */
 const STORAGE_KEY = "nodetool.packageManager.location";
 
-const loadLocation = (): { tab: PMTab; cat: string } => {
+const loadLocation = () => {
   const fallback = { tab: "packs" as PMTab, cat: "included" };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

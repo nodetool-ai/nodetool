@@ -133,9 +133,9 @@ export class OutputNode extends BaseNode {
   static readonly inputFields = ["value"];
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "str",

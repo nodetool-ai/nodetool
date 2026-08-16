@@ -418,7 +418,7 @@ function resolveJudge(init: {
   explicit?: string;
   providers: Record<string, BaseProvider>;
   resolveSpec: typeof resolveJudgeModelSpec;
-}): { provider: BaseProvider; model: string } {
+}) {
   const resolution = init.resolveSpec({
     explicit: init.explicit,
     builderProviderId: init.builder.provider,

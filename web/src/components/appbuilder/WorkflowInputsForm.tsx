@@ -25,10 +25,7 @@ interface WorkflowInputsFormProps {
   onError?: (message: string | null) => void;
 }
 
-const KIND_TO_PROPERTY_TYPE: Record<
-  WorkflowInputKind,
-  Property["type"]["type"]
-> = {
+const KIND_TO_PROPERTY_TYPE = {
   string: "str",
   integer: "int",
   float: "float",
@@ -56,7 +53,7 @@ const KIND_TO_PROPERTY_TYPE: Record<
   model3d: "model_3d",
   image_size: "image_size",
   huggingface_model: "hf.model"
-};
+} satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const createPropertyFromDefinition = (
   definition: WorkflowInputDefinition
@@ -147,7 +144,7 @@ const resolveInputValue = (
   definition: WorkflowInputDefinition,
   property: Property,
   values: WorkflowInputFormValues
-): unknown => {
+) => {
   const storedValue = values[definition.data.name];
   if (storedValue !== undefined) {
     return storedValue;

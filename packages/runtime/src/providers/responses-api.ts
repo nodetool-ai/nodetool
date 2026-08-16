@@ -14,7 +14,9 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function stringifyContent(value: unknown): string {
+export function stringifyContent(
+  value: string | MessageContent[] | null | undefined
+): string {
   if (typeof value === "string") return value;
   if (value == null) return "";
   return JSON.stringify(value);

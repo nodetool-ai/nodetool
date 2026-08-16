@@ -37,7 +37,7 @@ export class DeepSeekProvider extends OpenAICompatProvider {
     this._deepseekFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { DEEPSEEK_API_KEY: this.apiKey };
   }
 

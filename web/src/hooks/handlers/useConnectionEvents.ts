@@ -4,9 +4,7 @@ import { wouldCreateCycle } from "../../utils/graphCycle";
 import { useNodes } from "../../contexts/NodeContext";
 
 /** Validates node connections, rejecting any that would create a cycle. */
-export function useConnectionEvents(): {
-  isConnectionValid: IsValidConnection<Edge>;
-} {
+export function useConnectionEvents() {
   const edges = useNodes((state) => state.edges);
 
   const isConnectionValid = useCallback<IsValidConnection<Edge>>(

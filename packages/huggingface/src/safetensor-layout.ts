@@ -42,7 +42,7 @@ interface TensorHeaderEntry {
  * Read the JSON header from a .safetensors file.
  * Format: 8-byte LE uint64 header length, then UTF-8 JSON.
  */
-function readHeader(filePath: string): Record<string, TensorHeaderEntry> {
+function readHeader(filePath: string) {
   const fd = fs.openSync(filePath, "r");
   try {
     const lenBuf = Buffer.alloc(8);

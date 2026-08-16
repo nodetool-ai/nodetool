@@ -16,7 +16,7 @@ function getOutputNodes(workflow: Workflow): Node[] {
   );
 }
 
-function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
+function tryReadClipboardImage(workflow: Workflow) {
   const params: Record<string, unknown> = {};
   const image = clipboard.readImage();
 
@@ -40,7 +40,7 @@ function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
   return params;
 }
 
-function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
+function tryReadClipboardText(workflow: Workflow) {
   const params: Record<string, unknown> = {};
   const clipboardText = clipboard.readText();
 

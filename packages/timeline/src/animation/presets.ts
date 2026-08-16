@@ -398,7 +398,7 @@ export function getAnimationPreset(id: string): AnimationPreset | undefined {
 export function resolvePresetParams(
   preset: AnimationPreset,
   raw: ResolvedParams | undefined
-): ResolvedParams {
+) {
   const resolved: ResolvedParams = {};
   for (const spec of preset.params) {
     const provided = raw?.[spec.name];

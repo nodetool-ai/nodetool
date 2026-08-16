@@ -25,7 +25,7 @@ const isPlainObject = (
 ): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-export const normalizeOutputUpdateValue = (update: OutputUpdate): unknown => {
+export const normalizeOutputUpdateValue = (update: OutputUpdate) => {
   if (!RICH_OUTPUT_TYPES.has(update.output_type)) {
     return update.value;
   }

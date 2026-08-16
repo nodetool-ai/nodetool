@@ -938,7 +938,7 @@ function convertTypedArraysDeep(
 export function serializeResult(
   result: unknown,
   maxOutputSize: number = MAX_OUTPUT_SIZE
-): unknown {
+) {
   if (result === undefined) return null;
   if (result === null) return null;
   if (
@@ -1158,7 +1158,7 @@ export function buildSandbox(
       } else {
         const dropContentHeaders = (
           h: Record<string, string>
-        ): Record<string, string> => {
+        ) => {
           const out: Record<string, string> = {};
           for (const [k, v] of Object.entries(h)) {
             const lk = k.toLowerCase();
@@ -1173,7 +1173,7 @@ export function buildSandbox(
         // redirect to an attacker origin would otherwise exfiltrate them.
         const dropSensitiveHeaders = (
           h: Record<string, string>
-        ): Record<string, string> => {
+        ) => {
           const out: Record<string, string> = {};
           for (const [k, v] of Object.entries(h)) {
             const lk = k.toLowerCase();
@@ -2378,7 +2378,7 @@ export function buildSandbox(
     toVideo: promoteTypedHandle("toVideo", video.toAsset)
   } as typeof mediaRefBridge;
 
-  const sandbox: Record<string, unknown> = {
+  const sandbox = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
     // (tests, debug tooling) see the expected references.
@@ -2453,7 +2453,7 @@ export function buildSandbox(
     // The run's declared secret scope, so `nodetool.secrets.list()` can answer
     // without a host call. Reading it is not the check — `getSecret` is.
     __secretScope: secretScope === null ? null : [...secretScope]
-  };
+  } satisfies Record<string, unknown>;
 
   return {
     sandbox,

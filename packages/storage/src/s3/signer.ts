@@ -50,7 +50,7 @@ export function encodeS3Path(path: string): string {
 }
 
 /** ISO8601 basic timestamps: `20130524T000000Z` and its date part. */
-export function toAmzDate(date: Date): { amzDate: string; dateStamp: string } {
+export function toAmzDate(date: Date) {
   const iso = date.toISOString(); // 2013-05-24T00:00:00.000Z
   const amzDate = `${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}T${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z`;
   return { amzDate, dateStamp: amzDate.slice(0, 8) };

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 
+import type React from "react";
 import { useMemo, useState, useCallback, useEffect, memo, Fragment } from "react";
 
 import {
@@ -10,7 +11,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  type SelectChangeEvent
 } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
@@ -255,10 +257,16 @@ const SettingItem = memo(function SettingItem({
   value,
   onChange
 }: SettingItemProps) {
-  const handleChange = useCallback((e: unknown) => {
-    const target = e as { target: { value: string } };
-    onChange(setting.env_var, target.target.value);
-  }, [setting.env_var, onChange]);
+  const handleChange = useCallback(
+    (
+      e:
+        | SelectChangeEvent<string>
+        | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      onChange(setting.env_var, e.target.value);
+    },
+    [setting.env_var, onChange]
+  );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     e.stopPropagation();

@@ -4,11 +4,7 @@ interface UseFullscreenModeOptions {
   storageKey?: string;
 }
 
-export function useFullscreenMode(options: UseFullscreenModeOptions = {}): Readonly<{
-  isFullscreen: boolean;
-  setIsFullscreen: Dispatch<SetStateAction<boolean>>;
-  toggleFullscreen: () => void;
-}> {
+export function useFullscreenMode(options: UseFullscreenModeOptions = {}) {
   const { storageKey = "textEditorModal_fullscreen" } = options;
 
   const getInitialFullscreen = useCallback(() => {

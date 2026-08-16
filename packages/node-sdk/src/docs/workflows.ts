@@ -18,7 +18,7 @@ interface WorkflowNode {
 
 function asGraph(
   data: Record<string, unknown>
-): { nodes: WorkflowNode[]; edges: unknown[] } {
+) {
   const graph = (data["graph"] ?? data) as Record<string, unknown>;
   const nodes = Array.isArray(graph["nodes"])
     ? (graph["nodes"] as WorkflowNode[])

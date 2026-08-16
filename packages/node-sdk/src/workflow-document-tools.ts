@@ -88,7 +88,7 @@ function findNode(graph: Graph, id: string): GraphNode {
 function normalizePosition(
   value: unknown,
   fallbackIndex: number
-): { x: number; y: number } {
+) {
   if (
     isRecord(value) &&
     typeof value.x === "number" &&
@@ -224,7 +224,7 @@ function applyInferredCodeHandles(node: GraphNode): void {
 function projectGraph(
   graph: Graph,
   workflowId: string
-): Record<string, unknown> {
+) {
   return {
     ok: true,
     workflow_id: workflowId,

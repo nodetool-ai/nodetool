@@ -24,6 +24,6 @@ export abstract class GlbTransformNode extends BaseNode {
   }
 }
 
-export const glbOutput = (bytes: Uint8Array, uri = ""): Record<string, unknown> => ({
+export const glbOutput = (bytes: Uint8Array, uri = "") => ({
   output: modelRef(bytes, { uri, format: "glb" })
 });

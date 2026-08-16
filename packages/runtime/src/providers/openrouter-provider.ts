@@ -65,7 +65,7 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     this._routerFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { OPENROUTER_API_KEY: this.apiKey };
   }
 

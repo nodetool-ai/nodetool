@@ -22,7 +22,7 @@ const makeSample = (channels: number[][], sampleRate = 4): AudioSample => ({
 /** Decode a 16-bit PCM WAV produced by encodeWav back into channels. */
 const decodeWav = (
   buffer: ArrayBuffer
-): { sampleRate: number; channels: Float32Array[] } => {
+) => {
   const view = new DataView(buffer);
   const channelCount = view.getUint16(22, true);
   const sampleRate = view.getUint32(24, true);

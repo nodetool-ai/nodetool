@@ -155,14 +155,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
   );
   const headerPenPressureOn = penPressure.pressureSensitivity !== false;
 
-  const symmetryLabels: Record<SymmetryMode, string> = {
+  const symmetryLabels = {
     off: "Off",
     horizontal: "Horizontal",
     vertical: "Vertical",
     dual: "Dual Axis",
     radial: `Radial (${symmetryRays})`,
     mandala: `Mandala (${symmetryRays})`
-  };
+  } satisfies Record<SymmetryMode, string>;
   const symmetryLabel = symmetryLabels[symmetryMode] || "Off";
   const symmetryActive = symmetryMode !== "off";
 

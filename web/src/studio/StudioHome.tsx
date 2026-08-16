@@ -36,17 +36,17 @@ interface RecentProject {
   updatedAt: string;
 }
 
-const KIND_LABEL: Record<ProjectKind, string> = {
+const KIND_LABEL = {
   storyboard: "Storyboard",
   script: "Script",
   timeline: "Video"
-};
+} satisfies Record<ProjectKind, string>;
 
-const KIND_ICON: Record<ProjectKind, React.ReactNode> = {
+const KIND_ICON = {
   storyboard: <TheatersRoundedIcon fontSize="small" />,
   script: <RecordVoiceOverRoundedIcon fontSize="small" />,
   timeline: <MovieRoundedIcon fontSize="small" />
-};
+} satisfies Record<ProjectKind, React.ReactNode>;
 
 const projectRoute = (p: RecentProject) => `/studio/${p.kind}/${p.id}`;
 

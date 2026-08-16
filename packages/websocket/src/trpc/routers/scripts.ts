@@ -126,6 +126,8 @@ export const scriptsRouter = router({
         fields.document = JSON.stringify(input.document);
       if (input.timelineId !== undefined)
         fields.timeline_id = input.timelineId;
+      if (input.storyboardId !== undefined)
+        fields.storyboard_id = input.storyboardId;
 
       const updated = await Script.updateFieldsIfUnchanged(
         input.id,

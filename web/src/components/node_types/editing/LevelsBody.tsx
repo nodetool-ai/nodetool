@@ -247,12 +247,12 @@ function drawHistogram(
   }
 }
 
-const HIST_COLORS: Record<HistogramView, string> = {
+const HIST_COLORS = {
   r: "rgba(244, 67, 54, 0.85)",
   g: "rgba(76, 175, 80, 0.85)",
   b: "rgba(33, 150, 243, 0.85)",
   luminance: "rgba(255, 255, 255, 0.85)"
-};
+} satisfies Record<HistogramView, string>;
 
 export interface LevelsBodyProps {
   id: string;

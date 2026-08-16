@@ -241,7 +241,7 @@ export function composeShotPrompt(shot: Shot, screenplay: Screenplay): string {
 export function injectEntities(
   text: string,
   entities: unknown[]
-): { prompt: string; reference_images: ImageRef[] } {
+) {
   const base = str(text);
   const lower = base.toLowerCase();
   const empty = base.trim().length === 0;
@@ -305,7 +305,7 @@ function clampShotCount(value: unknown): number {
   return Math.max(1, Math.min(20, n));
 }
 
-function buildScreenplaySchema(shotCount: number): Record<string, unknown> {
+function buildScreenplaySchema(shotCount: number) {
   return {
     type: "object",
     additionalProperties: false,
@@ -510,12 +510,12 @@ export class ScreenplayShotsNode extends BaseNode {
   static readonly alwaysEmitOutputUpdates = true;
 
   static readonly inputMode: InputMode = "buffered";
-  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  static readonly outputCorrelation = {
     shot: { kind: "iteration", source: "__execution__", group: "items" },
     shot_prompt: { kind: "iteration", source: "__execution__", group: "items" },
     index: { kind: "iteration", source: "__execution__", group: "items" },
     output: { kind: "single", source: "__execution__" }
-  };
+  } satisfies Record<string, OutputCorrelation>;
 
   @prop({
     type: "dict",

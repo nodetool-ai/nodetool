@@ -565,7 +565,7 @@ function oneLine(description: string): string {
 function buildCapabilityCatalog(
   belt: Tool[],
   directToolNames: string[]
-): Record<string, unknown> {
+) {
   const available = new Set(belt.map((tool) => tool.name));
   const modules = Object.entries(NODETOOL_API_NAMESPACE_TOOLS)
     .map(([namespace, names]) => ({

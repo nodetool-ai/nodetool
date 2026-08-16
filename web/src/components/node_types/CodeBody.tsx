@@ -78,7 +78,7 @@ const readsScriptLink = (value: unknown): boolean =>
   typeof (value as { id?: unknown }).id === "string" &&
   (value as { id: string }).id !== "";
 
-const EDITOR_OPTIONS: Record<string, unknown> = {
+const EDITOR_OPTIONS = {
   minimap: { enabled: false },
   automaticLayout: true,
   scrollBeyondLastLine: false,
@@ -95,7 +95,7 @@ const EDITOR_OPTIONS: Record<string, unknown> = {
     verticalScrollbarSize: 8,
     horizontalScrollbarSize: 8
   }
-};
+} satisfies Record<string, unknown>;
 
 const styles = (theme: Theme) =>
   css({

@@ -27,7 +27,7 @@ const visibleArgsCache = new WeakMap<object, Record<string, unknown>>();
 
 const visibleArgs = (
   args: Record<string, unknown> | null | undefined
-): Record<string, unknown> => {
+) => {
   if (!args) {
     return EMPTY_ARGS;
   }

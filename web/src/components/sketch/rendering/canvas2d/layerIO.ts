@@ -47,10 +47,7 @@ export function serializeLayerData(
 export function deserializeLayerData(
   data: string | null,
   fallbackBounds: LayerContentBounds
-): {
-  image: string | null;
-  bounds: LayerContentBounds;
-} {
+) {
   if (!data) {
     return { image: null, bounds: getDefaultRasterBounds(fallbackBounds) };
   }

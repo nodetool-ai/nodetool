@@ -26,7 +26,7 @@ const chatState = {
 };
 
 jest.mock("../../../stores/GlobalChatStore", () => {
-  const useStore = <T,>(selector: (state: unknown) => T) =>
+  const useStore = <T,>(selector: (state: typeof chatState) => T) =>
     selector(chatState);
   useStore.getState = () => chatState;
   return { __esModule: true, default: useStore };
@@ -34,7 +34,7 @@ jest.mock("../../../stores/GlobalChatStore", () => {
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
-  useWorkspaceTabsStore: <T,>(selector: (state: unknown) => T) =>
+  useWorkspaceTabsStore: <T,>(selector: (state: { openTab: jest.Mock }) => T) =>
     selector({ openTab })
 }));
 
@@ -44,7 +44,7 @@ const createNew = jest
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: <T,>(selector: (state: unknown) => T) =>
+  useWorkflowManager: <T,>(selector: (state: { createNew: jest.Mock }) => T) =>
     selector({ createNew })
 }));
 
@@ -52,7 +52,7 @@ const fetchSecrets = jest.fn().mockResolvedValue([]);
 const secretsState = { fetchSecrets, secrets: [] as unknown[] };
 
 jest.mock("../../../stores/SecretsStore", () => {
-  const useStore = <T,>(selector: (state: unknown) => T) =>
+  const useStore = <T,>(selector: (state: typeof secretsState) => T) =>
     selector(secretsState);
   useStore.getState = () => secretsState;
   return { __esModule: true, default: useStore };

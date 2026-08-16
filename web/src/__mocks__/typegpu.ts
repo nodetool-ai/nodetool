@@ -10,18 +10,18 @@
 
 type Stub = Record<string, unknown>;
 
-const makeBuffer = (): Stub => {
-  const buffer: Stub = {
+const makeBuffer = () => {
+  const buffer = {
     buffer: {},
     $usage: () => buffer,
     $name: () => buffer,
     write: () => undefined,
     destroy: () => undefined
-  };
+  } satisfies Stub;
   return buffer;
 };
 
-const makeRoot = (): Stub => ({
+const makeRoot = () => ({
   device: {},
   unwrap: () => ({}),
   createBuffer: () => makeBuffer(),
@@ -29,7 +29,7 @@ const makeRoot = (): Stub => ({
 });
 
 const tgpu = {
-  bindGroupLayout: (entries: Record<string, unknown>): Stub => ({
+  bindGroupLayout: (entries: Record<string, unknown>) => ({
     entries,
     bound: {},
     value: {},

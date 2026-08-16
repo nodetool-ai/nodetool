@@ -50,6 +50,6 @@ export function codeGenPaletteMetadata(): NodeMetadata {
 }
 
 /** Keyed by node type, for merging into the metadata store. */
-export function generateCodeGenPaletteMetadata(): Record<string, NodeMetadata> {
+export function generateCodeGenPaletteMetadata() {
   return { [CODE_GEN_PALETTE_NODE_TYPE]: codeGenPaletteMetadata() };
 }

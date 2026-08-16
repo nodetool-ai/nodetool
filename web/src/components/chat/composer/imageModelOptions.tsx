@@ -31,10 +31,7 @@ export { buildAspectOptions, clampToAllowed };
  *  Resolutions are narrowed to the app's ImageResolution vocabulary (1K/2K/4K)
  *  so callers can clamp the current value against them safely — a model may
  *  declare provider-specific values (480p, 1MP, …) the composer can't resolve. */
-export function imageModelConstraints(model: ImageModel): {
-  aspectRatios?: string[];
-  resolutions?: ImageResolution[];
-} {
+export function imageModelConstraints(model: ImageModel) {
   const aspectRatios = model.aspect_ratios ?? undefined;
   const resolutions = (model.resolutions ?? []).filter(
     (r): r is ImageResolution => (IMAGE_RESOLUTIONS as string[]).includes(r)
@@ -55,10 +52,7 @@ export function buildImageModelOptions(
     | { aspectRatios?: string[]; resolutions?: string[] }
     | null
     | undefined
-): {
-  aspectOptions: AspectRatioOption[];
-  resolutionOptions: MediaOption<ImageResolution>[];
-} {
+) {
   const aspectOptions =
     model?.aspectRatios && model.aspectRatios.length > 0
       ? buildAspectOptions(model.aspectRatios, IMAGE_ASPECT_RATIOS)
@@ -81,10 +75,7 @@ export function buildImageModelOptions(
  * Menu options for the image-to-image edit controls (strength + inference
  * steps), shared by the media chat composer and the editor prompt panels.
  */
-export function buildImageEditOptions(): {
-  strengthOptions: MediaOption<number>[];
-  stepsOptions: MediaOption<number>[];
-} {
+export function buildImageEditOptions() {
   return {
     strengthOptions: IMAGE_EDIT_STRENGTHS.map((s) => ({
       id: s,

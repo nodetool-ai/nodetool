@@ -311,7 +311,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
         : undefined;
   }
 
-  getContainerEnv(): Record<string, string> {
+  getContainerEnv() {
     return {};
   }
 
@@ -367,11 +367,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
    * rejoined with its `tool` result messages into one model turn carrying
    * native `functionCall` items, so a resumed conversation replays prior calls
    * in the model's own syntax. */
-  private buildChat(messages: Message[]): {
-    systemPrompt: string;
-    history: ChatHistoryItem[];
-    lastUserText: string;
-  } {
+  private buildChat(messages: Message[]) {
     const systemParts: string[] = [];
     const results = new Map<string, string>();
     for (const msg of messages) {

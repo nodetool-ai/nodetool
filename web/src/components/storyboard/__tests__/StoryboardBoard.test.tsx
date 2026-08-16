@@ -18,7 +18,19 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     videoModel: null,
     shots: mockShots
   }),
-  useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
+  useStoryboardStore: <T,>(
+    selector: (s: {
+      setTitle: jest.Mock;
+      setBrief: jest.Mock;
+      setStyle: jest.Mock;
+      setAspectRatio: jest.Mock;
+      setDirectorModel: jest.Mock;
+      setImageModel: jest.Mock;
+      setVideoModel: jest.Mock;
+      undo: jest.Mock;
+      redo: jest.Mock;
+    }) => T
+  ) =>
     selector({
       setTitle: jest.fn(),
       setBrief: jest.fn(),
@@ -32,6 +44,13 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     }),
   useStoryboardCanUndo: () => false,
   useStoryboardCanRedo: () => false
+}));
+
+// The script-link control reads the real store and a trpc query; it has its
+// own suite (ScriptLinkControl.test.tsx).
+jest.mock("../ScriptLinkControl", () => ({
+  __esModule: true,
+  default: () => null
 }));
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({

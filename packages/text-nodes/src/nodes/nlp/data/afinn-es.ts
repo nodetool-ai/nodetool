@@ -1,6 +1,6 @@
 // AFINN short Spanish sentiment lexicon (word -> valence score).
 // Vendored from `natural` (MIT).
-export const AFINN_ES: Record<string, number> = {
+export const AFINN_ES = {
   "😂": 1,
   "❤": 3,
   "♥": 3,
@@ -1654,4 +1654,4 @@ export const AFINN_ES: Record<string, number> = {
   "espantado": -2,
   "infracción": -2,
   "veneno": -2,
-};
+} satisfies Record<string, number>;

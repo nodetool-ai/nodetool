@@ -154,7 +154,7 @@ function buildModelMap(): Map<string, ModelInfo> {
 // runtime free of node-pack code dependencies — mirrors topaz-provider).
 // ---------------------------------------------------------------------------
 
-function authHeaders(apiKey: string): Record<string, string> {
+function authHeaders(apiKey: string) {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
@@ -412,7 +412,7 @@ function resolveForField<T>(
 function setIfDeclared(
   input: Record<string, unknown>,
   info: ModelInfo,
-  value: unknown,
+  value: string | number | null | undefined,
   ...candidates: string[]
 ): void {
   if (value === undefined || value === null || value === "") return;
@@ -483,7 +483,7 @@ function renderSize(field: FieldInfo, w: number, h: number): string | null {
 function mapImageParams(
   info: ModelInfo,
   params: TextToImageParams | ImageToImageParams
-): Record<string, unknown> {
+) {
   const input: Record<string, unknown> = { prompt: params.prompt };
   setIfDeclared(input, info, params.aspectRatio, "aspect_ratio", "ratio");
   // Wan expresses resolution as a `size` enum (`1K`/`2K`/`4K`); the membership
@@ -513,7 +513,7 @@ function mapImageParams(
 function mapVideoParams(
   info: ModelInfo,
   params: TextToVideoParams | ImageToVideoParams
-): Record<string, unknown> {
+) {
   const input: Record<string, unknown> = {};
   if (params.prompt) input.prompt = params.prompt;
   setIfDeclared(input, info, params.aspectRatio, "ratio", "aspect_ratio");
@@ -568,7 +568,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     this.atlasFetch = fetchFn;
   }
 
-  override getContainerEnv(): Record<string, string> {
+  override getContainerEnv() {
     return { ATLASCLOUD_API_KEY: this.apiKey };
   }
 

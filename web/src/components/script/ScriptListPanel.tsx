@@ -28,6 +28,7 @@ import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { downgradeBoardsLinkedToScript } from "../../lib/scriptStoryboardDowngrade";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import {
@@ -387,10 +388,19 @@ const ScriptListPanel = () => {
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (itemToDelete) {
-      deleteScript.mutate({ id: itemToDelete.id });
+    if (!itemToDelete) {
+      return;
     }
-  }, [itemToDelete, deleteScript]);
+    const { id } = itemToDelete;
+    deleteScript.mutate({ id });
+    // Downgrade every board that linked this script to unlinked, keeping the
+    // words it projected. Never blocks the delete (design §4).
+    void downgradeBoardsLinkedToScript(id).then((boardIds) => {
+      if (boardIds.length > 0) {
+        void utils.storyboards.list.invalidate();
+      }
+    });
+  }, [itemToDelete, deleteScript, utils]);
 
   useEffect(() => {
     setActions({

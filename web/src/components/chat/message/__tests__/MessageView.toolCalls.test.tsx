@@ -237,7 +237,7 @@ describe("MessageView CodeAct actions", () => {
         }
       }
     };
-    store.mockImplementation(<T,>(selector: (s: unknown) => T) =>
+    store.mockImplementation(<T,>(selector: (s: typeof state) => T) =>
       selector(state)
     );
 

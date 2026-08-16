@@ -14,7 +14,7 @@ import type { SvgIconProps } from "@mui/material/SvgIcon";
 
 import type { NodeCategory } from "./costsData";
 
-const ICONS: Record<NodeCategory, React.ComponentType<SvgIconProps>> = {
+const ICONS = {
   text: SubjectIcon,
   audio: GraphicEqIcon,
   image: ImageIcon,
@@ -22,7 +22,7 @@ const ICONS: Record<NodeCategory, React.ComponentType<SvgIconProps>> = {
   background: ContentCutIcon,
   llm: ChatBubbleOutlineIcon,
   embedding: ScatterPlotIcon
-};
+} satisfies Record<NodeCategory, React.ComponentType<SvgIconProps>>;
 
 export const CostNodeIcon: React.FC<
   { category: NodeCategory } & SvgIconProps

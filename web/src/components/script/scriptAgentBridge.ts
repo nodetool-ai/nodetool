@@ -58,6 +58,8 @@ export interface ScriptSnapshot {
   /** True once the script has been assembled into a timeline sequence. */
   hasTimeline: boolean;
   timelineId: string | null;
+  /** Storyboard derived from this script in this session, if any. */
+  storyboardId: string | null;
 }
 
 /** Fields the agent can supply when adding a line. */
@@ -98,6 +100,12 @@ export interface ScriptAgentHandler {
     skippedLineIds: string[];
     reassembled: boolean;
   }>;
+  /**
+   * Derive a storyboard from the script: one shot per line, linked and with the
+   * words projected into it. The shots carry no camera or motion direction —
+   * that is the Director's pass. Throws when a board is already linked.
+   */
+  deriveStoryboard: () => Promise<{ boardId: string; shotCount: number }>;
   /**
    * Render the script's current takes as SRT or WebVTT subtitles (from the take
    * word timings) and trigger a download. Throws when no line is voiced.

@@ -42,7 +42,7 @@ describe("useOAuthConnection", () => {
     jest.clearAllMocks();
     jest.spyOn(window, "open").mockReturnValue(fakeAuthWindow());
     asMock(useNotificationStore).mockImplementation(
-      <T,>(selector: (state: unknown) => T) =>
+      <T,>(selector: (state: { addNotification: typeof mockAddNotification }) => T) =>
         selector({ addNotification: mockAddNotification })
     );
     mockRestFetch.mockImplementation(async (input) => {

@@ -788,11 +788,7 @@ function getLuminance({
   return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
 }
 
-function getNames(value: string): {
-  namespace: string;
-  name: string;
-  slug: string;
-} {
+function getNames(value: string) {
   const lastIndex = value.lastIndexOf(".");
   const namespace = lastIndex === -1 ? "" : value.substring(0, lastIndex);
   const name = lastIndex === -1 ? value : value.substring(lastIndex + 1);
