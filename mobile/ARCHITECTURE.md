@@ -210,9 +210,9 @@ The shared package is compiled from source rather than from `dist`: see
 
 ## Documents (`src/documents/`)
 
-Storyboards, scripts, timelines, and sketches are documents on the server.
-Mobile browses them all in `DocumentsScreen` and opens each in its own pushed
-screen.
+Storyboards, scripts, JS scripts, timelines, and sketches are documents on the
+server. Mobile browses them all in `DocumentsScreen` and opens each in its own
+pushed screen.
 
 **No tabs.** Web keys its whole document UX off `WorkspaceTabType` and keeps
 every tab mounted at once. On a phone the navigation stack *is* the tab model:
@@ -229,14 +229,15 @@ documentStore.ts  # one Zustand store per open document (cached by kind+id)
 agentBridge.ts    # handler registry keyed by kind+id, plus the focus claim
 uiContext.ts      # the open/focused/selection block sent with each chat turn
 timelineEdits.ts  # pure, link-aware edits over {tracks, clips, markers}
+jsScriptTypes.ts  # JS script document shape, its checks, and the case grader
 tools/            # the ui_* tools: registry, manifest, tool_call dispatch
 ```
 
 **Two transports, one interface.** Three kinds ride the `resources.*` envelope,
-whose concurrency token is a numeric `revision`. Scripts cannot: the `scripts`
-table has no `revision` column, so the provider's conflict check would compare
-`undefined` to `undefined`, pass, and silently clobber concurrent writes. Their
-own router does the same job with `baseUpdatedAt`. Rather than migrate two
+whose concurrency token is a numeric `revision`. Scripts and JS scripts cannot:
+neither table has a `revision` column, so the provider's conflict check would
+compare `undefined` to `undefined`, pass, and silently clobber concurrent
+writes. Their own routers do the same job with `baseUpdatedAt`. Rather than migrate two
 schemas — which would also make `{kind:"script"}` a legal resource binding in
 every app document — `backends.ts` makes the token **opaque**: a backend hands
 one out on read and echoes it back on write, and only it knows the shape.
@@ -279,7 +280,10 @@ browser stays on desktop, where its progress can actually be supervised. So
 storyboards get shot and board editing but not generation or timeline assembly;
 scripts get cast, section, and line editing but not TTS voicing, subtitle
 export, or send-to-timeline; timelines get the full set of structural edits but
-not clip generation or frame extraction. Each tool's description says which side
+not clip generation or frame extraction. JS scripts are the one surface whose
+tools also *execute*: the body runs in the server's QuickJS sandbox, so
+`ui_jsscript_run` and `ui_jsscript_test` are a request the phone waits on, not a
+job it supervises — they save first, because the endpoint runs the saved row. Each tool's description says which side
 of that line it is on, so the agent does not promise what it cannot do.
 
 **Timeline edits are link-aware** (`timelineEdits.ts`, pure functions over

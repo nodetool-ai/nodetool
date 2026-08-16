@@ -6,6 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
@@ -17,9 +18,68 @@ interface JSONValue {
   data: string;
 }
 
+const rootStyles = (theme: Theme) =>
+  css({
+    ".property-row": {
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.xs)
+    },
+    ".value-container": {
+      width: "100%",
+      position: "relative"
+    },
+    ".json-action-buttons": {
+      position: "absolute",
+      right: 0,
+      top: "-3px",
+      opacity: 0.8,
+      zIndex: Z_INDEX.dropdown
+    },
+    ".json-action-buttons .MuiIconButton-root": {
+      margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
+      padding: 0
+    },
+    ".json-action-buttons .MuiIconButton-root svg": {
+      fontSize: "var(--fontSizeSmall)"
+    },
+    ".editor-wrapper": {
+      height: "120px",
+      overflow: "hidden",
+      backgroundColor: "var(--palette-grey-600)",
+      border: "1px solid var(--palette-grey-500)",
+      borderRadius: BORDER_RADIUS.sm
+    },
+    ".editor-wrapper:focus-within": {
+      borderColor: "var(--palette-grey-400)"
+    },
+    ".editor-loading, .editor-error, .editor-placeholder": {
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "var(--fontSizeSmaller)",
+      color: "var(--palette-text-secondary)"
+    },
+    ".editor-placeholder": {
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
+      fontFamily: "monospace",
+      whiteSpace: "pre-wrap",
+      overflow: "hidden",
+      alignItems: "flex-start",
+      paddingTop: getSpacingPx(SPACING.sm),
+      cursor: "text"
+    },
+    ".error-message": {
+      fontSize: "var(--fontSizeSmaller)",
+      color: "var(--palette-error-main)"
+    }
+  });
+
 const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
   const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
+  const rootCss = useMemo(() => rootStyles(theme), [theme]);
   const inspectorToolbarActionSx = useMemo(
     () => ({
       color: theme.vars.palette.common.white,
@@ -146,65 +206,7 @@ const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
   );
 
   return (
-    <div
-      className="json-property"
-      css={css({
-        ".property-row": {
-          display: "flex",
-          flexDirection: "column",
-          gap: getSpacingPx(SPACING.xs)
-        },
-        ".value-container": {
-          width: "100%",
-          position: "relative"
-        },
-        ".json-action-buttons": {
-          position: "absolute",
-          right: 0,
-          top: "-3px",
-          opacity: 0.8,
-          zIndex: Z_INDEX.dropdown
-        },
-        ".json-action-buttons .MuiIconButton-root": {
-          margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
-          padding: 0
-        },
-        ".json-action-buttons .MuiIconButton-root svg": {
-          fontSize: "var(--fontSizeSmall)"
-        },
-        ".editor-wrapper": {
-          height: "120px",
-          overflow: "hidden",
-          backgroundColor: "var(--palette-grey-600)",
-          border: "1px solid var(--palette-grey-500)",
-          borderRadius: BORDER_RADIUS.sm
-        },
-        ".editor-wrapper:focus-within": {
-          borderColor: "var(--palette-grey-400)"
-        },
-        ".editor-loading, .editor-error, .editor-placeholder": {
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "var(--fontSizeSmaller)",
-          color: "var(--palette-text-secondary)"
-        },
-        ".editor-placeholder": {
-          padding: `0 ${getSpacingPx(SPACING.md)}`,
-          fontFamily: "monospace",
-          whiteSpace: "pre-wrap",
-          overflow: "hidden",
-          alignItems: "flex-start",
-          paddingTop: getSpacingPx(SPACING.sm),
-          cursor: "text"
-        },
-        ".error-message": {
-          fontSize: "var(--fontSizeSmaller)",
-          color: "var(--palette-error-main)"
-        }
-      })}
-    >
+    <div className="json-property" css={rootCss}>
       <div
         className="property-row"
         onMouseEnter={() => {

@@ -47,6 +47,18 @@ function cloneForMutation(value: JsonValue): JsonValue {
   return value;
 }
 
+/**
+ * Keys that reach `Object.prototype` instead of the object itself. A coercion
+ * path is built from a Zod issue, and a record schema puts the *caller's* own
+ * keys in that path, so a payload naming `__proto__` must not be walked or
+ * written through.
+ */
+const PROTOTYPE_KEYS: ReadonlySet<string | number> = new Set([
+  "__proto__",
+  "constructor",
+  "prototype"
+]);
+
 function getValueAtPath(
   value: JsonValue,
   path: Array<string | number>
@@ -56,6 +68,9 @@ function getValueAtPath(
     if (Array.isArray(cursor) && typeof segment === "number") {
       cursor = cursor[segment];
       continue;
+    }
+    if (PROTOTYPE_KEYS.has(segment)) {
+      return undefined;
     }
     if (cursor && typeof cursor === "object" && typeof segment === "string") {
       // SAFETY: the check above proved `cursor` is an object; an array reached
@@ -83,6 +98,9 @@ function setValueAtPath(
       cursor = cursor[segment];
       continue;
     }
+    if (PROTOTYPE_KEYS.has(segment)) {
+      return false;
+    }
     if (cursor && typeof cursor === "object" && typeof segment === "string") {
       // SAFETY: as in `getValueAtPath` — an object indexed by a string key.
       cursor = (cursor as { [key: string]: JsonValue })[segment];
@@ -92,6 +110,9 @@ function setValueAtPath(
   }
 
   const last = path[path.length - 1];
+  if (PROTOTYPE_KEYS.has(last)) {
+    return false;
+  }
   if (Array.isArray(cursor) && typeof last === "number") {
     cursor[last] = nextValue;
     return true;

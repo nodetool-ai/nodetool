@@ -286,20 +286,24 @@ function validateRequiredAssetArgs(
       field.propType
     );
     const suffix =
-      field.name === "mask" ? " and match image dimensions" : "";
+      field.name === "mask" ? " (it must match the image dimensions)" : "";
+    // The node is reachable outside a graph — `run_node`, the single-node
+    // harness, a CodeAct script — so the message names both ways to supply
+    // the asset instead of assuming an incoming edge.
+    const message =
+      `${nodeTitle}: ${fieldLabel(field)} is not set — connect an input or ` +
+      `set the property to ${kind === "video" ? "a" : "an"} ${kind} with a ` +
+      `uri, asset_id, or inline data` +
+      suffix;
     if (isListAsset(field.propType)) {
       const list = value as Record<string, unknown>[] | undefined;
       if (!list?.some((ref) => isRefSet(ref))) {
-        throw new Error(
-          `${nodeTitle}: ${fieldLabel(field)} must be connected${suffix}`
-        );
+        throw new Error(message);
       }
       continue;
     }
     if (!isRefSet(value)) {
-      throw new Error(
-        `${nodeTitle}: ${fieldLabel(field)} must be connected${suffix}`
-      );
+      throw new Error(message);
     }
   }
 }
@@ -702,6 +706,15 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       type: field.propType,
       default: manifestDefault ?? defaultForPropType(field.propType)
     };
+    // A required asset input left empty fails inside process() with no way to
+    // see it coming. Declaring it required puts it in front of the static
+    // validators (`validate_workflow`, the runner's pre-flight), which report
+    // it before the run starts — and before an agent pays for the upstream
+    // half of a graph. Only asset fields: the non-asset ones carry manifest
+    // defaults that already satisfy the requirement.
+    if (field.required && isAssetPropType(field.propType)) {
+      propOptions.required = true;
+    }
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length) propOptions.values = field.enumValues;
     if (field.min !== undefined) propOptions.min = field.min;

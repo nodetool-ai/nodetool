@@ -2,7 +2,7 @@
  * ConnectedToolbar — subscribes to activeTool, select mode, and colors only.
  * Does NOT re-render on document, toolSettings, selection, or viewport changes.
  */
-import React, { memo } from "react";
+import { memo } from "react";
 import SketchToolbar from "../SketchToolbar";
 import { useSketchStore } from "../state";
 import { useColorIntentRouter } from "../hooks";

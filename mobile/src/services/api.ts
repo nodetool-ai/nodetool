@@ -5,6 +5,7 @@ import type {
   ApplicationResponse
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import type { Workflow as AppWorkflow } from "../types/ApiTypes";
+import type { JsScriptRunOutcome } from "../documents/jsScriptTypes";
 import { useAuthStore } from "../stores/AuthStore";
 import { createMobileTRPCClient } from "../trpc/client";
 import {
@@ -285,6 +286,54 @@ class ApiService {
     );
   }
 
+  /**
+   * Execute a saved JS script in the server's QuickJS sandbox —
+   * `POST /api/js-scripts/:id/run`, the one non-tRPC door onto a script, shared
+   * with the web run console and the CLI harness. Nothing runs on the phone,
+   * and the endpoint runs the *saved* document, so callers save first.
+   *
+   * The timeout leaves room for the document's own ceiling
+   * (`JS_SCRIPT_MAX_TIMEOUT_SECONDS`, 120s) plus the round trip; the 30s
+   * default would abort a long run the server was still honoring.
+   */
+  async runJsScript(
+    scriptId: string,
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ): Promise<JsScriptRunOutcome> {
+    try {
+      return await this.request<JsScriptRunOutcome>(
+        `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(
+            inputStreams ? { inputs, input_streams: inputStreams } : { inputs }
+          )
+        },
+        130_000
+      );
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        throw error;
+      }
+      // The endpoint answers failures as `{detail}`; `ApiError.message` is the
+      // raw body. Unwrap it so the user (and the agent) reads the reason
+      // instead of a JSON blob.
+      let detail: unknown;
+      try {
+        detail = (JSON.parse(error.message) as { detail?: unknown }).detail;
+      } catch {
+        // Not JSON — fall through to the status message below.
+      }
+      throw new Error(
+        typeof detail === "string" && detail.length > 0
+          ? detail
+          : `The script run failed (HTTP ${error.status}).`
+      );
+    }
+  }
+
   async saveWorkflow(workflow: {
     id: string;
     name: string;
@@ -293,14 +342,7 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    type UpdateFields = {
-      id: string;
-      name: string;
-      description: string;
-      graph: WorkflowGraphInput;
-      access?: string;
-    };
-    const update: UpdateFields = {
+    const update: Parameters<typeof trpc.workflows.update.mutate>[0] = {
       id: workflow.id,
       name: workflow.name,
       description: workflow.description,
@@ -319,13 +361,7 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    type CreateFields = {
-      name: string;
-      description: string;
-      graph: WorkflowGraphInput;
-      access?: string;
-    };
-    const create: CreateFields = {
+    const create: Parameters<typeof trpc.workflows.create.mutate>[0] = {
       name: workflow.name,
       description: workflow.description,
       graph: workflow.graph

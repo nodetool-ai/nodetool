@@ -41,6 +41,10 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
 | Examples  | `/api/workflows/examples/search`  | `GET`             | none                                           | no                          | Same list filtered by `?query=` over name, description, tags |
 | Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
+| Examples  | `/api/workflows/examples/{package}/{example}` | `GET`  | none                                           | no                          | One example with its full `graph`, unlike the list; `404` when the package has no example by that name |
+| Triggers  | `/api/webhooks/{token}`           | `POST`            | `x-webhook-secret` header (no session)         | no                          | Deliver an event to a `webhook` trigger registration; wakes the workflow without waiting for the next poll |
+| Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
+| Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Assets    | `/api/assets/packages`            | `GET`             | none                                           | no                          | Stub — always `{"assets": [], "next": null}`; there is no package listing |
@@ -248,6 +252,59 @@ tools with `interactive: true`, answering with `resolve_workflow_escalation`.
 See [Workflow Debugging](workflow-debugging.md) and the
 [supervisor design](workflow-supervisor-design.md) for the verdict vocabulary.
 
+### Triggering a Workflow by Webhook
+
+A workflow whose graph carries a `WebhookTrigger` node gets a registration with
+its own path token and shared secret. `POST /api/webhooks/{token}` is where an
+outside system delivers the event, and the route sits on the public allowlist —
+there is no session, so the `x-webhook-secret` header is the only thing standing
+between the caller and the run.
+
+```bash
+curl -X POST "http://localhost:7777/api/webhooks/YOUR_TOKEN" \
+  -H "x-webhook-secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"order_id": 41, "status": "paid"}'
+```
+
+```json
+{
+  "status": "accepted",
+  "input_id": "webhook:YOUR_TOKEN:9f2c…",
+  "duplicate": false
+}
+```
+
+The trigger node receives `{body, headers, query, method}`. `headers` has the
+shared secret stripped out before anything is stored. A body that is not JSON is
+passed through as the raw string, so form posts and plain text work without a
+content type the server has to recognize.
+
+Send `x-webhook-id` to make retries safe: it becomes the delivery's idempotency
+key, and a repeat answers `200` with `"duplicate": true` having stored nothing.
+Without that header the key is a hash of token, body, and the current minute — an
+identical body resent within the same minute is one event, the same body an hour
+later is two.
+
+The failures are distinct on purpose:
+
+| Status | Meaning |
+|--------|---------|
+| `404`  | No registration carries this token. Checked before the secret, so a wrong token never reveals whether a secret would have matched |
+| `401`  | `x-webhook-secret` missing or wrong; compared in constant time against the stored sha256 |
+| `410`  | The registration exists but is disabled |
+| `413`  | Body over 1 MiB |
+| `429`  | Over the route's own limit of 120 deliveries per minute |
+
+```bash
+curl -X POST "http://localhost:7777/api/webhooks/nosuchtoken" \
+  -H "Content-Type: application/json" -d '{"hello":1}'
+```
+
+```json
+{ "error": "Unknown webhook token" }
+```
+
 ### Chat API (OpenAI-Compatible)
 
 NodeTool exposes OpenAI-compatible endpoints, so you can use standard OpenAI clients:
@@ -338,6 +395,70 @@ Response:
   ]
 }
 ```
+
+### Node Metadata
+
+`GET /api/nodes/metadata` is the node registry — every node type the server can
+run, with its properties, inputs, and outputs. The editor fetches it at boot,
+before anyone has signed in, so the route takes no token. Reach for it when you
+are building a client, a palette, or a graph by hand and need to know what a
+node type is called and what it accepts.
+
+The default response is a slim summary, because the full registry is large:
+
+```bash
+curl "http://localhost:7777/api/nodes/metadata?limit=2"
+```
+
+```json
+[
+  {
+    "node_type": "fal.3d_to_3d.Hunyuan3dV31Part",
+    "title": "Hunyuan 3d V31Part",
+    "description": "Split 3D models into parts with Hunyuan 3D\nprocessing, 3d-to-3d, 3d, mesh, hunyuan, part",
+    "namespace": "fal.3d_to_3d"
+  },
+  {
+    "node_type": "fal.3d_to_3d.Hunyuan3dV31SmartTopology",
+    "title": "Hunyuan 3d V31Smart Topology",
+    "description": "Optimize 3D mesh topology with Hunyuan 3D Smart Topology.\nprocessing, 3d-to-3d, 3d, mesh, hunyuan, smart, topology",
+    "namespace": "fal.3d_to_3d"
+  }
+]
+```
+
+Five query parameters narrow it:
+
+| Parameter | Effect |
+|-----------|--------|
+| `node_type` | Exact lookup. Returns that one node's **full** metadata — `properties`, `outputs`, `recommended_models`, layout — or `404` |
+| `namespace` | Keep nodes whose namespace starts with this prefix |
+| `query` | Comma-separated terms scored against title, description, node type, and namespace; unmatched nodes drop out and the best matches come first |
+| `fields` | `summary` (default) or `full` to get complete metadata for every node in the result |
+| `limit` | Truncate the result |
+
+```bash
+curl "http://localhost:7777/api/nodes/metadata?node_type=nodetool.text.Concat"
+```
+
+```json
+{
+  "title": "Concat",
+  "description": "Concatenates text inputs into a single output. …",
+  "namespace": "nodetool.text",
+  "node_type": "nodetool.text.Concat",
+  "layout": "default",
+  "body": "content_card",
+  "properties": [],
+  "outputs": [{"name": "output", "type": {"type": "str", "type_args": []}}],
+  "recommended_models": []
+}
+```
+
+Google Workspace nodes are filtered out unless the integration is enabled — they
+sign in with the token a Google login returns, so a server with no login never
+lists them. See `NODETOOL_GOOGLE_WORKSPACE` in
+[Configuration](configuration.md).
 
 ### List Workflows
 
@@ -430,6 +551,44 @@ A bundle that cannot be unpacked, or a graph the workflow API rejects, is a
 `400` (`{"detail": "Invalid bundle: …"}`). The import is not transactional, so a
 bundle that fails partway can leave the workflows created before the failure
 behind.
+
+### Fetching a Shipped Example's Graph
+
+`GET /api/workflows/examples` lists the shipped templates, but every entry comes
+back with `"graph": {"nodes": [], "edges": []}` — the list is metadata, kept
+small because it ships hundreds of workflows.
+`GET /api/workflows/examples/{package}/{example}` is how you get one example's
+actual graph. Both are unauthenticated: the templates ship with the install and
+belong to nobody.
+
+The two path segments are the package name and the example name, URL-encoded —
+the same `package_name` and `name` the list returned.
+
+```bash
+curl "http://localhost:7777/api/workflows/examples/nodetool-base/Sharpen%20Footage"
+```
+
+```json
+{
+  "id": "",
+  "access": "private",
+  "name": "Sharpen Footage",
+  "description": "Add apparent detail back after a denoise or a downscale. …",
+  "tags": ["video", "utility", "example"],
+  "package_name": "nodetool-base",
+  "graph": { "nodes": [ … ], "edges": [ … ] },
+  "input_schema": { … },
+  "output_schema": { … }
+}
+```
+
+The `id` is empty because an example is a template, not a row — POST the graph
+to `/api/workflows` to make it yours. A name the package does not ship is a
+`404`:
+
+```json
+{ "detail": "Example 'Nope' not found in package 'nodetool-base'" }
+```
 
 ### Uploading an Asset
 
@@ -537,6 +696,41 @@ curl -X POST "http://localhost:7777/api/assets/download" \
 
 The status does not depend on the body — an unknown asset id returns the same
 `501`. Download assets one at a time through their `get_url` instead.
+
+### Downloading a Workspace File
+
+A workspace is a directory on the server's filesystem that agents and file tools
+read and write. Listing and CRUD moved to the tRPC `workspace` router;
+`GET /api/workspaces/{id}/download/{path}` stayed on REST because it returns
+bytes rather than JSON.
+
+`path` is relative to the workspace root and may be nested. The response is an
+attachment, with a content type guessed from the extension:
+
+```bash
+curl "http://localhost:7777/api/workspaces/ws_abc123/download/notes/report.md" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o report.md
+```
+
+Workspaces browse the local filesystem, so the whole surface is off in
+production — every path answers `403` with
+`{"detail": "Workspaces are disabled in production"}` when
+`NODETOOL_ENV=production`. Otherwise:
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `path` is absolute |
+| `403`  | `path` resolves outside the workspace root |
+| `404`  | No such workspace for this caller, or no such file inside it |
+
+```bash
+curl "http://localhost:7777/api/workspaces/nosuchws/download/a.txt"
+```
+
+```json
+{ "detail": "Workspace not found" }
+```
 
 ### Provider Credits
 

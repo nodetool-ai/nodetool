@@ -2,7 +2,7 @@
  * ConnectedCanvasSizePanel — document canvas dimensions + resize-handle preference;
  * delegates actions to session props. Hidden when `panelsHidden`.
  */
-import React, { memo } from "react";
+import { memo } from "react";
 import SketchCanvasSizePanel from "../SketchCanvasSizePanel";
 import { useSketchStore } from "../state";
 

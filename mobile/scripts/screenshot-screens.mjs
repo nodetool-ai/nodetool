@@ -67,6 +67,7 @@ const ROUTES = [
   { name: 'model-selection', path: 'settings/models' },
   { name: 'graph-editor', path: (v) => `workflow/${v}`, needs: 'workflowId' },
   { name: 'script-editor', path: (v) => `document/script/${v}`, needs: 'scriptId' },
+  { name: 'jsscript-editor', path: (v) => `document/jsscript/${v}`, needs: 'jsScriptId' },
   { name: 'storyboard-editor', path: (v) => `document/storyboard/${v}`, needs: 'storyboardId' },
   { name: 'timeline-viewer', path: (v) => `document/timeline/${v}`, needs: 'timelineId' },
   { name: 'sketch-viewer', path: (v) => `document/sketch/${v}`, needs: 'sketchId' },

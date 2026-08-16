@@ -191,6 +191,9 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
         case 'ScriptEditor':
           navigation.navigate('ScriptEditor', { id: entry.id, name: entry.name });
           break;
+        case 'JsScriptEditor':
+          navigation.navigate('JsScriptEditor', { id: entry.id, name: entry.name });
+          break;
         case 'TimelineViewer':
           navigation.navigate('TimelineViewer', { id: entry.id, name: entry.name });
           break;

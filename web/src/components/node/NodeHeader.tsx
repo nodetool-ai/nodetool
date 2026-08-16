@@ -37,6 +37,96 @@ export interface NodeHeaderProps {
 
 const ICON_BACKGROUND_STYLE = { background: "transparent" };
 
+const headerCss = css({
+  width: "100%",
+  minHeight: "24px",
+  backgroundColor: "transparent",
+  color: "var(--palette-text-secondary)",
+  margin: 0,
+  padding: 0,
+  borderRadius: `calc(${BORDER_RADIUS.lg} - 1px) calc(${BORDER_RADIUS.lg} - 1px) 0 0`,
+  borderBottom: "none",
+  transition: `background-color ${MOTION.normal}, opacity ${MOTION.fast}`,
+  ".header-left": {
+    padding: 0,
+    flex: 1,
+    minWidth: 0
+  },
+  ".header-right": {
+    display: "flex",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.xs),
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.micro)}`,
+    flexShrink: 0
+  },
+  ".node-icon": {
+    width: "20px",
+    minWidth: "20px",
+    height: "20px",
+    borderRadius: BORDER_RADIUS.sm,
+    display: "grid",
+    placeItems: "center",
+    marginRight: getSpacingPx(SPACING.xs),
+    flexShrink: 0,
+    opacity: 0.65,
+    // Hit target must be this div (not nested SVG), otherwise React Flow / d3-drag may not
+    // treat the gesture as starting on `.node-drag-handle` in some browsers.
+    "& *": {
+      pointerEvents: "none"
+    },
+    "& svg": {
+      transform: "scale(0.8)"
+    }
+  },
+  ".node-title": {
+    display: "inline-flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.sm),
+    flexGrow: 1,
+    minWidth: 0,
+    textAlign: "left",
+    wordWrap: "break-word",
+    lineHeight: "1.2em",
+    fontSize: "var(--fontSizeSmall)",
+    fontWeight: 400,
+    letterSpacing: "0.01em",
+    padding: `${getSpacingPx(SPACING.micro)} 0`,
+    color: "var(--palette-text-secondary)"
+  },
+  ".node-title-text": {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+  ".code-badge": {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "16px",
+    height: "16px",
+    borderRadius: BORDER_RADIUS.pill,
+    fontSize: "var(--fontSizeSmaller)",
+    fontWeight: 600,
+    letterSpacing: "0.02em",
+    color: "var(--palette-text-primary)",
+    backgroundColor: "var(--palette-c_overlay_strong)",
+    border: "1px solid var(--palette-c_overlay_strong)",
+    flexShrink: 0
+  },
+  ".node-title-input": {
+    width: "100%",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: "inherit",
+    font: "inherit",
+    padding: 0,
+    margin: 0
+  }
+});
+
 const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
@@ -82,100 +172,6 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
       setDraftTitle(title ?? metadataTitle);
     }
   }, [isEditingTitle, metadataTitle, title]);
-
-  const headerCss = useMemo(
-    () =>
-      css({
-        width: "100%",
-        minHeight: "24px",
-        backgroundColor: "transparent",
-        color: "var(--palette-text-secondary)",
-        margin: 0,
-        padding: 0,
-        borderRadius: `calc(${BORDER_RADIUS.lg} - 1px) calc(${BORDER_RADIUS.lg} - 1px) 0 0`,
-        borderBottom: "none",
-        transition: `background-color ${MOTION.normal}, opacity ${MOTION.fast}`,
-        ".header-left": {
-          padding: 0,
-          flex: 1,
-          minWidth: 0
-        },
-        ".header-right": {
-          display: "flex",
-          alignItems: "center",
-          gap: getSpacingPx(SPACING.xs),
-          padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.micro)}`,
-          flexShrink: 0
-        },
-        ".node-icon": {
-          width: "20px",
-          minWidth: "20px",
-          height: "20px",
-          borderRadius: BORDER_RADIUS.sm,
-          display: "grid",
-          placeItems: "center",
-          marginRight: getSpacingPx(SPACING.xs),
-          flexShrink: 0,
-          opacity: 0.65,
-          // Hit target must be this div (not nested SVG), otherwise React Flow / d3-drag may not
-          // treat the gesture as starting on `.node-drag-handle` in some browsers.
-          "& *": {
-            pointerEvents: "none"
-          },
-          "& svg": {
-            transform: "scale(0.8)"
-          }
-        },
-        ".node-title": {
-          display: "inline-flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: getSpacingPx(SPACING.sm),
-          flexGrow: 1,
-          minWidth: 0,
-          textAlign: "left",
-          wordWrap: "break-word",
-          lineHeight: "1.2em",
-          fontSize: "var(--fontSizeSmall)",
-          fontWeight: 400,
-          letterSpacing: "0.01em",
-          padding: `${getSpacingPx(SPACING.micro)} 0`,
-          color: "var(--palette-text-secondary)"
-        },
-        ".node-title-text": {
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
-        },
-        ".code-badge": {
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "16px",
-          height: "16px",
-          borderRadius: BORDER_RADIUS.pill,
-          fontSize: "var(--fontSizeSmaller)",
-          fontWeight: 600,
-          letterSpacing: "0.02em",
-          color: "var(--palette-text-primary)",
-          backgroundColor: "var(--palette-c_overlay_strong)",
-          border: "1px solid var(--palette-c_overlay_strong)",
-          flexShrink: 0
-        },
-        ".node-title-input": {
-          width: "100%",
-          background: "transparent",
-          border: "none",
-          outline: "none",
-          color: "inherit",
-          font: "inherit",
-          padding: 0,
-          margin: 0
-        }
-      }),
-    []
-  );
 
   const handleHeaderContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {

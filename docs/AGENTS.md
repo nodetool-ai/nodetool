@@ -309,11 +309,11 @@ const allTools = getAllTools(); // returns all registered tools
 There is a **separate** registry for tools that workflow tool-agent nodes
 expose via `runAgentLoop` (in `@nodetool-ai/llm-nodes`) — distinct from the
 `@nodetool-ai/agents` `registerTool`/`resolveTool` registry above. Builtin
-node tools (e.g. the `browser_*` CDP tools) are registered into it at module
-load via `registerBuiltinAgentToolClasses` or, for lazily-built sets,
+node tools are registered into it at module load via
+`registerBuiltinAgentToolClasses` or, for lazily-built sets,
 `registerBuiltinAgentToolFactory` (which is what
-`code-nodes/src/nodes/sandbox.ts` uses), and resolved with
-`resolveBuiltinAgentTool(name)`.
+`packages/base-nodes/src/index.ts` uses to register the `browser_*` CDP tools),
+and resolved with `resolveBuiltinAgentTool(name)`.
 
 **Hydration contract:** a tool may be passed as a fully-formed `ToolLike` (has
 `process` + `inputSchema`) or a bare name-stub (`{ name }`). `runAgentLoop`
