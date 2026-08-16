@@ -17,6 +17,11 @@ const TJS_TYPE = "tjs.translation";
 
 type TranslationResult = { translation_text: string };
 
+/** Output handles TranslationNode.process() emits. */
+type TranslationNodeOutputs = {
+  translation: string;
+};
+
 export class TranslationNode extends BaseNode {
   static readonly nodeType = "transformers.Translation";
   static readonly inlineFields = ["text", "src_lang", "tgt_lang"];
@@ -92,7 +97,7 @@ export class TranslationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TranslationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

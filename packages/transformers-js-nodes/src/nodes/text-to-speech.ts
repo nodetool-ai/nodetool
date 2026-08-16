@@ -25,6 +25,11 @@ type TtsResult = {
   sampling_rate?: number;
 };
 
+/** Output handles TextToSpeechNode.process() emits. */
+type TextToSpeechNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "transformers.TextToSpeech";
   static readonly inlineFields = ["text"];
@@ -95,7 +100,7 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToSpeechNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

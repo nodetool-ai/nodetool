@@ -1,3 +1,4 @@
+import type { AudioRef } from "@nodetool-ai/protocol";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -40,6 +41,11 @@ function processPerChannel(
 }
 
 // ── Bitcrush ──────────────────────────────────────────────────────
+
+/** Output handles BitcrushNode.process() emits. */
+type BitcrushNodeOutputs = {
+  output: AudioRef;
+};
 
 export class BitcrushNode extends BaseNode {
   static readonly nodeType = "lib.audio.Bitcrush";
@@ -88,7 +94,7 @@ export class BitcrushNode extends BaseNode {
   })
   declare sample_rate_reduction: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<BitcrushNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const bitDepth = Number(this.bit_depth ?? 8);
     const srrFactor = Number(this.sample_rate_reduction ?? 1);
@@ -119,6 +125,11 @@ export class BitcrushNode extends BaseNode {
 }
 
 // ── Compress ──────────────────────────────────────────────────────
+
+/** Output handles CompressNode.process() emits. */
+type CompressNodeOutputs = {
+  output: AudioRef;
+};
 
 export class CompressNode extends BaseNode {
   static readonly nodeType = "lib.audio.Compress";
@@ -194,7 +205,7 @@ export class CompressNode extends BaseNode {
   })
   declare auto_gain: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<CompressNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold ?? -20);
     const ratio = Number(this.ratio ?? 4);
@@ -249,6 +260,11 @@ export class CompressNode extends BaseNode {
 
 // ── Distortion ────────────────────────────────────────────────────
 
+/** Output handles DistortionNode.process() emits. */
+type DistortionNodeOutputs = {
+  output: AudioRef;
+};
+
 export class DistortionNode extends BaseNode {
   static readonly nodeType = "lib.audio.Distortion";
   static readonly title = "Distortion";
@@ -284,7 +300,7 @@ export class DistortionNode extends BaseNode {
   })
   declare drive_db: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<DistortionNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const driveDb = Number(this.drive_db ?? 25);
 
@@ -310,6 +326,11 @@ export class DistortionNode extends BaseNode {
 }
 
 // ── Limiter ───────────────────────────────────────────────────────
+
+/** Output handles LimiterNode.process() emits. */
+type LimiterNodeOutputs = {
+  output: AudioRef;
+};
 
 export class LimiterNode extends BaseNode {
   static readonly nodeType = "lib.audio.Limiter";
@@ -365,7 +386,7 @@ export class LimiterNode extends BaseNode {
   })
   declare auto_gain: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<LimiterNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold_db ?? -2);
     const releaseMs = Number(this.release_ms ?? 250);
@@ -409,6 +430,11 @@ export class LimiterNode extends BaseNode {
 }
 
 // ── Reverb (Schroeder) ───────────────────────────────────────────
+
+/** Output handles ReverbNode.process() emits. */
+type ReverbNodeOutputs = {
+  output: AudioRef;
+};
 
 export class ReverbNode extends BaseNode {
   static readonly nodeType = "lib.audio.Reverb";
@@ -477,7 +503,7 @@ export class ReverbNode extends BaseNode {
   })
   declare dry_level: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ReverbNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const roomScale = Number(this.room_scale ?? 0.5);
     const damping = Number(this.damping ?? 0.5);
@@ -856,6 +882,11 @@ export class TimeStretchNode extends BaseNode {
 
 // ── NoiseGate ─────────────────────────────────────────────────────
 
+/** Output handles NoiseGateNode.process() emits. */
+type NoiseGateNodeOutputs = {
+  output: AudioRef;
+};
+
 export class NoiseGateNode extends BaseNode {
   static readonly nodeType = "lib.audio.NoiseGate";
   static readonly title = "Noise Gate";
@@ -911,7 +942,7 @@ export class NoiseGateNode extends BaseNode {
   })
   declare release_ms: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<NoiseGateNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold_db ?? -50);
     const attackMs = Math.max(0.1, Number(this.attack_ms ?? 1));
@@ -957,6 +988,11 @@ export class NoiseGateNode extends BaseNode {
 }
 
 // ── Phaser ────────────────────────────────────────────────────────
+
+/** Output handles PhaserNode.process() emits. */
+type PhaserNodeOutputs = {
+  output: AudioRef;
+};
 
 export class PhaserNode extends BaseNode {
   static readonly nodeType = "lib.audio.Phaser";
@@ -1034,7 +1070,7 @@ export class PhaserNode extends BaseNode {
   })
   declare mix: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<PhaserNodeOutputs> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const rateHz = Number(this.rate_hz ?? 1);
     const depth = Number(this.depth ?? 0.5);

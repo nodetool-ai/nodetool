@@ -35,6 +35,11 @@ interface ImageSizeValue {
   height?: number;
 }
 
+/** Output handles ConstantBaseNode.process() emits. */
+type ConstantBaseNodeOutputs = {
+  output: null;
+};
+
 export class ConstantBaseNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Constant";
   static readonly retrySafe = true;
@@ -42,10 +47,15 @@ export class ConstantBaseNode extends BaseNode {
   static readonly description =
     "Base class for fixed-value nodes.\n    constant, parameter, default\n\n    Use cases:\n    - Provide static inputs to a workflow\n    - Hold configuration values\n    - Simplify testing with deterministic outputs";
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantBaseNodeOutputs> {
     return { output: null };
   }
 }
+
+/** Output handles ConstantBoolNode.process() emits. */
+type ConstantBoolNodeOutputs = {
+  output: boolean;
+};
 
 export class ConstantBoolNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Bool";
@@ -62,10 +72,15 @@ export class ConstantBoolNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Value" })
   declare value: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantBoolNodeOutputs> {
     return { output: this.value ?? false };
   }
 }
+
+/** Output handles ConstantIntegerNode.process() emits. */
+type ConstantIntegerNodeOutputs = {
+  output: number;
+};
 
 export class ConstantIntegerNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Integer";
@@ -82,10 +97,15 @@ export class ConstantIntegerNode extends BaseNode {
   @prop({ type: "int", default: 0, title: "Value" })
   declare value: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantIntegerNodeOutputs> {
     return { output: this.value ?? 0 };
   }
 }
+
+/** Output handles ConstantFloatNode.process() emits. */
+type ConstantFloatNodeOutputs = {
+  output: number;
+};
 
 export class ConstantFloatNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Float";
@@ -102,10 +122,15 @@ export class ConstantFloatNode extends BaseNode {
   @prop({ type: "float", default: 0, title: "Value" })
   declare value: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantFloatNodeOutputs> {
     return { output: this.value ?? 0.0 };
   }
 }
+
+/** Output handles ConstantStringNode.process() emits. */
+type ConstantStringNodeOutputs = {
+  output: string;
+};
 
 export class ConstantStringNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.String";
@@ -122,7 +147,7 @@ export class ConstantStringNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Value" })
   declare value: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantStringNodeOutputs> {
     return { output: this.value ?? "" };
   }
 }
@@ -147,6 +172,11 @@ export class ConstantListNode extends BaseNode {
   }
 }
 
+/** Output handles ConstantTextListNode.process() emits. */
+type ConstantTextListNodeOutputs = {
+  output: string[];
+};
+
 export class ConstantTextListNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.TextList";
   static readonly retrySafe = true;
@@ -168,7 +198,7 @@ export class ConstantTextListNode extends BaseNode {
   })
   declare value: string[] | null;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantTextListNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
@@ -361,6 +391,11 @@ export class ConstantSketchNode extends BaseNode {
   }
 }
 
+/** Output handles ConstantTimelineNode.process() emits. */
+type ConstantTimelineNodeOutputs = {
+  output: TimelineRef;
+};
+
 export class ConstantTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Timeline";
   static readonly retrySafe = true;
@@ -380,10 +415,15 @@ export class ConstantTimelineNode extends BaseNode {
   })
   declare value: TimelineRef;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantTimelineNodeOutputs> {
     return { output: this.value ?? {} };
   }
 }
+
+/** Output handles ConstantScriptNode.process() emits. */
+type ConstantScriptNodeOutputs = {
+  output: ScriptRef;
+};
 
 export class ConstantScriptNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Script";
@@ -404,7 +444,7 @@ export class ConstantScriptNode extends BaseNode {
   })
   declare value: ScriptRef;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantScriptNodeOutputs> {
     return { output: this.value ?? {} };
   }
 }
@@ -481,6 +521,11 @@ export class ConstantDataFrameNode extends BaseNode {
   }
 }
 
+/** Output handles ConstantAudioListNode.process() emits. */
+type ConstantAudioListNodeOutputs = {
+  output: AudioRef[];
+};
+
 export class ConstantAudioListNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.AudioList";
   static readonly retrySafe = true;
@@ -502,10 +547,15 @@ export class ConstantAudioListNode extends BaseNode {
   })
   declare value: AudioRef[] | null;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantAudioListNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles ConstantImageListNode.process() emits. */
+type ConstantImageListNodeOutputs = {
+  output: ImageRef[];
+};
 
 export class ConstantImageListNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.ImageList";
@@ -528,10 +578,15 @@ export class ConstantImageListNode extends BaseNode {
   })
   declare value: ImageRef[] | null;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantImageListNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles ConstantVideoListNode.process() emits. */
+type ConstantVideoListNodeOutputs = {
+  output: VideoRef[];
+};
 
 export class ConstantVideoListNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.VideoList";
@@ -554,10 +609,15 @@ export class ConstantVideoListNode extends BaseNode {
   })
   declare value: VideoRef[] | null;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantVideoListNodeOutputs> {
     return { output: this.value ?? [] };
   }
 }
+
+/** Output handles ConstantSelectNode.process() emits. */
+type ConstantSelectNodeOutputs = {
+  output: string;
+};
 
 export class ConstantSelectNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Select";
@@ -599,7 +659,7 @@ export class ConstantSelectNode extends BaseNode {
   })
   declare enum_type_name: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantSelectNodeOutputs> {
     const value = this.value ?? "";
     const options = Array.isArray(this.options) ? this.options : [];
     if (value !== "" && options.length > 0 && !options.includes(value)) {
@@ -610,6 +670,13 @@ export class ConstantSelectNode extends BaseNode {
     return { output: value };
   }
 }
+
+/** Output handles ConstantImageSizeNode.process() emits. */
+type ConstantImageSizeNodeOutputs = {
+  image_size: { width?: number; height?: number };
+  width: number;
+  height: number;
+};
 
 export class ConstantImageSizeNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.ImageSize";
@@ -628,7 +695,7 @@ export class ConstantImageSizeNode extends BaseNode {
   @prop({ type: "image_size", default: null, title: "Value", required: true })
   declare value: ImageSizeValue | null;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantImageSizeNodeOutputs> {
     const value = (this.value ?? { width: 1024, height: 1024 }) as {
       width?: number;
       height?: number;
@@ -638,6 +705,11 @@ export class ConstantImageSizeNode extends BaseNode {
     return { image_size: value, width, height };
   }
 }
+
+/** Output handles ConstantDateNode.process() emits. */
+type ConstantDateNodeOutputs = {
+  output: { year: number; month: number; day: number };
+};
 
 export class ConstantDateNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Date";
@@ -681,7 +753,7 @@ export class ConstantDateNode extends BaseNode {
   })
   declare day: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ConstantDateNodeOutputs> {
     const year = Number(this.year ?? 1900);
     const month = Number(this.month ?? 1);
     const day = Number(this.day ?? 1);

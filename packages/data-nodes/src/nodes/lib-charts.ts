@@ -1,6 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { asRows } from "./data.js";
 
+/** Output handles ChartRendererLibNode.process() emits. */
+type ChartRendererLibNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
   static readonly retrySafe = true;
@@ -117,7 +122,7 @@ export class ChartRendererLibNode extends BaseNode {
   })
   declare trim_margins: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ChartRendererLibNodeOutputs> {
     const config = (this.chart_config ?? {}) as Record<string, unknown>;
     const width = Number(this.width ?? 640);
     const height = Number(this.height ?? 480);

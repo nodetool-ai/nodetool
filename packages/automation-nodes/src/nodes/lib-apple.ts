@@ -163,6 +163,11 @@ function parseRecords(stdout: string): string[][] {
 // Calendar
 // ---------------------------------------------------------------------------
 
+/** Output handles CreateCalendarEventAppleNode.process() emits. */
+type CreateCalendarEventAppleNodeOutputs = {
+  output: boolean;
+};
+
 export class CreateCalendarEventAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.CreateCalendarEvent";
   static readonly title = "Create Calendar Event";
@@ -196,7 +201,7 @@ export class CreateCalendarEventAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Description", description: "Notes for the event" })
   declare description_text: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateCalendarEventAppleNodeOutputs> {
     const title = String(this.event_title ?? "");
     if (!title) throw new Error("title cannot be empty");
     const start = parseDateInput(this.start_date);
@@ -224,6 +229,11 @@ return "ok"
   }
 }
 
+/** Output handles ListCalendarEventsAppleNode.process() emits. */
+type ListCalendarEventsAppleNodeOutputs = {
+  events: { title: string; start_date: string; end_date: string; location: string; notes: string; calendar: string }[];
+};
+
 export class ListCalendarEventsAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.ListCalendarEvents";
   static readonly title = "List Calendar Events";
@@ -243,7 +253,7 @@ export class ListCalendarEventsAppleNode extends BaseNode {
   @prop({ type: "str", default: "Calendar", title: "Calendar Name", description: "Calendar to query" })
   declare calendar_name: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ListCalendarEventsAppleNodeOutputs> {
     const back = Math.max(0, Number(this.days_back ?? 0));
     const fwd = Math.max(0, Number(this.days_forward ?? 7));
     const calName = String(this.calendar_name ?? "Calendar");
@@ -299,6 +309,11 @@ return output
 // Notes
 // ---------------------------------------------------------------------------
 
+/** Output handles CreateNoteAppleNode.process() emits. */
+type CreateNoteAppleNodeOutputs = {
+  output: boolean;
+};
+
 export class CreateNoteAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.CreateNote";
   static readonly title = "Create Note";
@@ -318,7 +333,7 @@ export class CreateNoteAppleNode extends BaseNode {
   @prop({ type: "str", default: "Notes", title: "Folder", description: "Folder to save the note in" })
   declare folder: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateNoteAppleNodeOutputs> {
     const title = String(this.title ?? "");
     const body = String(this.body ?? "");
     const folder = String(this.folder ?? "Notes");
@@ -345,6 +360,11 @@ return "ok"
   }
 }
 
+/** Output handles ListNotesAppleNode.process() emits. */
+type ListNotesAppleNodeOutputs = {
+  notes: { title: string; content: string; folder: string }[];
+};
+
 export class ListNotesAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.ListNotes";
   static readonly title = "List Notes";
@@ -360,7 +380,7 @@ export class ListNotesAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Folder", description: "Optional folder name; empty = all folders" })
   declare folder: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ListNotesAppleNodeOutputs> {
     const limit = Math.max(1, Number(this.limit ?? 25));
     const folder = String(this.folder ?? "");
 
@@ -402,6 +422,11 @@ return output
 // Reminders
 // ---------------------------------------------------------------------------
 
+/** Output handles CreateReminderAppleNode.process() emits. */
+type CreateReminderAppleNodeOutputs = {
+  output: boolean;
+};
+
 export class CreateReminderAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.CreateReminder";
   static readonly title = "Create Reminder";
@@ -424,7 +449,7 @@ export class CreateReminderAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Notes", description: "Additional notes" })
   declare notes: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateReminderAppleNodeOutputs> {
     const title = String(this.title ?? "");
     if (!title) throw new Error("title cannot be empty");
     const listName = String(this.list_name ?? "Reminders");
@@ -459,6 +484,11 @@ return "ok"
   }
 }
 
+/** Output handles ListRemindersAppleNode.process() emits. */
+type ListRemindersAppleNodeOutputs = {
+  reminders: { title: string; notes: string; completed: boolean; due_date: string; list: string }[];
+};
+
 export class ListRemindersAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.ListReminders";
   static readonly title = "List Reminders";
@@ -474,7 +504,7 @@ export class ListRemindersAppleNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Include Completed", description: "Include completed reminders" })
   declare include_completed: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ListRemindersAppleNodeOutputs> {
     const listName = String(this.list_name ?? "Reminders");
     const includeCompleted = Boolean(this.include_completed ?? false);
 
@@ -519,6 +549,11 @@ return output
 // Messages
 // ---------------------------------------------------------------------------
 
+/** Output handles SendMessageAppleNode.process() emits. */
+type SendMessageAppleNodeOutputs = {
+  output: boolean;
+};
+
 export class SendMessageAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SendMessage";
   static readonly title = "Send iMessage";
@@ -535,7 +570,7 @@ export class SendMessageAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Text", description: "Message body" })
   declare text: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SendMessageAppleNodeOutputs> {
     const recipient = String(this.recipient ?? "");
     const text = String(this.text ?? "");
     if (!recipient) throw new Error("recipient cannot be empty");
@@ -557,6 +592,11 @@ return "ok"
 // ---------------------------------------------------------------------------
 // Mail
 // ---------------------------------------------------------------------------
+
+/** Output handles SendMailAppleNode.process() emits. */
+type SendMailAppleNodeOutputs = {
+  output: boolean;
+};
 
 export class SendMailAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SendMail";
@@ -583,7 +623,7 @@ export class SendMailAppleNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Visible", description: "Show the message in the UI rather than sending silently" })
   declare visible: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SendMailAppleNodeOutputs> {
     const to = String(this.to_address ?? "");
     if (!to) throw new Error("to_address cannot be empty");
     const cc = String(this.cc_address ?? "");
@@ -621,6 +661,11 @@ return "ok"
 // Contacts
 // ---------------------------------------------------------------------------
 
+/** Output handles SearchContactsAppleNode.process() emits. */
+type SearchContactsAppleNodeOutputs = {
+  contacts: { identifier: string; full_name: string; given_name: string; family_name: string; emails: string[]; phones: string[] }[];
+};
+
 export class SearchContactsAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SearchContacts";
   static readonly title = "Search Contacts";
@@ -637,7 +682,7 @@ export class SearchContactsAppleNode extends BaseNode {
   @prop({ type: "int", default: 10, min: 1, max: 200, title: "Limit", description: "Maximum results" })
   declare limit: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SearchContactsAppleNodeOutputs> {
     const query = String(this.query ?? "");
     const limit = Math.max(1, Number(this.limit ?? 10));
 
@@ -702,6 +747,12 @@ return output
 // Safari
 // ---------------------------------------------------------------------------
 
+/** Output handles GetFrontSafariTabAppleNode.process() emits. */
+type GetFrontSafariTabAppleNodeOutputs = {
+  url: string;
+  title: string;
+};
+
 export class GetFrontSafariTabAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.GetFrontSafariTab";
   static readonly title = "Get Front Safari Tab";
@@ -712,7 +763,7 @@ export class GetFrontSafariTabAppleNode extends BaseNode {
     title: "str"
   };
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GetFrontSafariTabAppleNodeOutputs> {
     const script = `
 tell application "Safari"
     set u to URL of current tab of front window
@@ -725,6 +776,11 @@ return u & "${FIELD_SEP}" & t
     return { url, title };
   }
 }
+
+/** Output handles OpenSafariURLAppleNode.process() emits. */
+type OpenSafariURLAppleNodeOutputs = {
+  output: boolean;
+};
 
 export class OpenSafariURLAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.OpenSafariURL";
@@ -742,7 +798,7 @@ export class OpenSafariURLAppleNode extends BaseNode {
   @prop({ type: "bool", default: true, title: "Activate", description: "Bring Safari to the foreground" })
   declare activate: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<OpenSafariURLAppleNodeOutputs> {
     const url = String(this.url ?? "");
     if (!url) throw new Error("url cannot be empty");
     const activate = Boolean(this.activate ?? true);
@@ -759,6 +815,11 @@ return "ok"
   }
 }
 
+/** Output handles SafariSelectionTextAppleNode.process() emits. */
+type SafariSelectionTextAppleNodeOutputs = {
+  output: string;
+};
+
 export class SafariSelectionTextAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SafariSelectionText";
   static readonly title = "Safari Selection Text";
@@ -768,7 +829,7 @@ export class SafariSelectionTextAppleNode extends BaseNode {
     output: "str"
   };
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SafariSelectionTextAppleNodeOutputs> {
     const script = `
 tell application "Safari"
     set selText to do JavaScript "window.getSelection().toString()" in front document
@@ -779,6 +840,11 @@ return selText
     return { output: out.replace(/\n+$/g, "") };
   }
 }
+
+/** Output handles SafariPageTextAppleNode.process() emits. */
+type SafariPageTextAppleNodeOutputs = {
+  output: string;
+};
 
 export class SafariPageTextAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SafariPageText";
@@ -795,7 +861,7 @@ export class SafariPageTextAppleNode extends BaseNode {
   @prop({ type: "bool", default: true, title: "Prefer Article", description: "Use <article> innerText when present" })
   declare prefer_article: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SafariPageTextAppleNodeOutputs> {
     const maxChars = Math.max(100, Number(this.max_chars ?? 50_000));
     const preferArticle = Boolean(this.prefer_article ?? true);
 
@@ -818,6 +884,11 @@ return pageText
 // Clipboard
 // ---------------------------------------------------------------------------
 
+/** Output handles GetClipboardTextAppleNode.process() emits. */
+type GetClipboardTextAppleNodeOutputs = {
+  output: string;
+};
+
 export class GetClipboardTextAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.GetClipboardText";
   static readonly title = "Get Clipboard Text";
@@ -827,11 +898,16 @@ export class GetClipboardTextAppleNode extends BaseNode {
     output: "str"
   };
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GetClipboardTextAppleNodeOutputs> {
     const out = await runOsascript(`return (the clipboard as text)`);
     return { output: out.replace(/\n+$/g, "") };
   }
 }
+
+/** Output handles SetClipboardTextAppleNode.process() emits. */
+type SetClipboardTextAppleNodeOutputs = {
+  output: boolean;
+};
 
 export class SetClipboardTextAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SetClipboardText";
@@ -845,7 +921,7 @@ export class SetClipboardTextAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Text", description: "Text to put on the clipboard" })
   declare text: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SetClipboardTextAppleNodeOutputs> {
     const text = String(this.text ?? "");
     await runOsascript(`set the clipboard to "${escAS(text)}"\nreturn "ok"`);
     return { output: true };
@@ -855,6 +931,11 @@ export class SetClipboardTextAppleNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // Speech
 // ---------------------------------------------------------------------------
+
+/** Output handles SayTextAppleNode.process() emits. */
+type SayTextAppleNodeOutputs = {
+  output: boolean;
+};
 
 export class SayTextAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.SayText";
@@ -878,7 +959,7 @@ export class SayTextAppleNode extends BaseNode {
   @prop({ type: "bool", default: true, title: "Wait", description: "Wait for speech to finish before returning" })
   declare wait: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SayTextAppleNodeOutputs> {
     const text = String(this.text ?? "");
     if (!text) throw new Error("text cannot be empty");
     const voice = String(this.voice ?? "");
@@ -900,6 +981,11 @@ export class SayTextAppleNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
+
+/** Output handles PostNotificationAppleNode.process() emits. */
+type PostNotificationAppleNodeOutputs = {
+  output: boolean;
+};
 
 export class PostNotificationAppleNode extends BaseNode {
   static readonly nodeType = "lib.apple.PostNotification";
@@ -923,7 +1009,7 @@ export class PostNotificationAppleNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Sound", description: "Optional sound name (e.g. 'Glass'); empty = silent" })
   declare sound_name: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<PostNotificationAppleNodeOutputs> {
     const title = String(this.title ?? "Nodetool");
     const subtitle = String(this.subtitle ?? "");
     const message = String(this.message ?? "");

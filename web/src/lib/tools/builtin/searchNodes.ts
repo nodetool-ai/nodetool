@@ -19,6 +19,33 @@ const booleanLikeOptional = z.preprocess((value) => {
   return value;
 }, z.boolean().optional());
 
+/** Handle descriptor as reported for a matched node. */
+interface NodeHandleSummary {
+  name: string;
+  type: unknown;
+}
+
+/** Property descriptor as reported for a matched node. */
+interface NodePropertySummary extends NodeHandleSummary {
+  required?: boolean;
+}
+
+/** Output descriptor as reported for a matched node. */
+interface NodeOutputSummary extends NodeHandleSummary {
+  stream?: boolean;
+}
+
+/** One entry of the `search_nodes` result list. */
+interface NodeSearchResult {
+  node_type: string;
+  title?: string;
+  namespace?: string;
+  properties?: NodePropertySummary[];
+  input_handles?: NodeHandleSummary[];
+  outputs?: NodeOutputSummary[];
+  output_handles?: NodeHandleSummary[];
+}
+
 type SearchNodesArgs = {
   query: string;
   input_type?: string;
@@ -76,7 +103,7 @@ FrontendToolRegistry.register({
       .map((entry) => entry.node);
 
     const results = preferred.slice(0, limit).map((node) => {
-      const base: Record<string, unknown> = {
+      const base: NodeSearchResult = {
         node_type: node.node_type,
         title: node.title,
         namespace: node.namespace,

@@ -181,6 +181,11 @@ export function planShotChain(specs: ShotSpec[]): ChainStep[] {
 // Nodes
 // ---------------------------------------------------------------------------
 
+/** Output handles ShotBatchNode.process() emits. */
+type ShotBatchNodeOutputs = {
+  shots: ShotSpec[];
+};
+
 export class ShotBatchNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.ShotBatch";
   static readonly title = "Shot Batch";
@@ -219,7 +224,7 @@ export class ShotBatchNode extends BaseNode {
   })
   declare default_duration: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ShotBatchNodeOutputs> {
     const shots = toShotSpecs(this.screenplay, {
       aspectRatio: str(this.aspect_ratio ?? "").trim() || "16:9",
       defaultDuration: Number(this.default_duration ?? 4)
@@ -227,6 +232,11 @@ export class ShotBatchNode extends BaseNode {
     return { shots };
   }
 }
+
+/** Output handles ShotChainNode.process() emits. */
+type ShotChainNodeOutputs = {
+  videos: VideoRef[];
+};
 
 export class ShotChainNode extends BaseNode {
   static readonly nodeType = "nodetool.creative.ShotChain";
@@ -282,7 +292,7 @@ export class ShotChainNode extends BaseNode {
   })
   declare resolution: string;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<ShotChainNodeOutputs> {
     const specs = (Array.isArray(this.shots) ? this.shots : []).map((raw, i) =>
       coerceSpec(raw, i)
     );

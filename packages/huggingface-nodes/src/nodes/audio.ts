@@ -29,6 +29,12 @@ function asrBody(inputs: string, returnTimestamps: boolean): AsrBody {
   return body;
 }
 
+/** Output handles AutomaticSpeechRecognitionNode.process() emits. */
+type AutomaticSpeechRecognitionNodeOutputs = {
+  output: string;
+  chunks: { text?: string; timestamp?: number[] }[];
+};
+
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "huggingface.AutomaticSpeechRecognition";
   static readonly title = "Automatic Speech Recognition";
@@ -69,7 +75,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {
@@ -94,6 +100,12 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     };
   }
 }
+
+/** Output handles AudioClassificationNode.process() emits. */
+type AudioClassificationNodeOutputs = {
+  output: string;
+  scores: { label?: string; score?: number }[];
+};
 
 export class AudioClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.AudioClassification";
@@ -137,7 +149,7 @@ export class AudioClassificationNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<AudioClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {

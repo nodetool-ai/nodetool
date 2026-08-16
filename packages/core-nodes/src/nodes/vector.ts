@@ -82,6 +82,11 @@ function keywordFilter(
   return { $document: { $contains: queryTokens[0] } };
 }
 
+/** Output handles CollectionNode.process() emits. */
+type CollectionNodeOutputs = {
+  output: { type: string; name: string };
+};
+
 export class CollectionNode extends BaseNode {
   static readonly nodeType = "vector.Collection";
   static readonly title = "Collection";
@@ -118,7 +123,7 @@ export class CollectionNode extends BaseNode {
   })
   declare embedding_model: unknown;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CollectionNodeOutputs> {
     const name = String(this.name ?? "");
     const embeddingModel = (this.embedding_model ?? { repo_id: "" }) as {
       repo_id: string;
@@ -137,6 +142,11 @@ export class CollectionNode extends BaseNode {
     return { output: { type: "collection", name } };
   }
 }
+
+/** Output handles CountNode.process() emits. */
+type CountNodeOutputs = {
+  output: number;
+};
 
 export class CountNode extends BaseNode {
   static readonly nodeType = "vector.Count";
@@ -160,7 +170,7 @@ export class CountNode extends BaseNode {
   })
   declare collection: unknown;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CountNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -170,6 +180,11 @@ export class CountNode extends BaseNode {
     return { output: count };
   }
 }
+
+/** Output handles GetDocumentsNode.process() emits. */
+type GetDocumentsNodeOutputs = {
+  output: (string | null)[];
+};
 
 export class GetDocumentsNode extends BaseNode {
   static readonly nodeType = "vector.GetDocuments";
@@ -214,7 +229,7 @@ export class GetDocumentsNode extends BaseNode {
   })
   declare offset: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GetDocumentsNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -235,6 +250,11 @@ export class GetDocumentsNode extends BaseNode {
     return { output: records.map((r: VectorRecord) => r.document ?? null) };
   }
 }
+
+/** Output handles PeekNode.process() emits. */
+type PeekNodeOutputs = {
+  output: (string | null)[];
+};
 
 export class PeekNode extends BaseNode {
   static readonly nodeType = "vector.Peek";
@@ -263,7 +283,7 @@ export class PeekNode extends BaseNode {
   })
   declare limit: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<PeekNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -275,6 +295,11 @@ export class PeekNode extends BaseNode {
     return { output: records.map((r: VectorRecord) => r.document ?? null) };
   }
 }
+
+/** Output handles IndexImageNode.process() emits. */
+type IndexImageNodeOutputs = {
+  output: null;
+};
 
 export class IndexImageNode extends BaseNode {
   static readonly nodeType = "vector.IndexImage";
@@ -331,7 +356,7 @@ export class IndexImageNode extends BaseNode {
   })
   declare upsert: boolean;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IndexImageNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -367,6 +392,11 @@ export class IndexImageNode extends BaseNode {
     return { output: null };
   }
 }
+
+/** Output handles IndexEmbeddingNode.process() emits. */
+type IndexEmbeddingNodeOutputs = {
+  output: null;
+};
 
 export class IndexEmbeddingNode extends BaseNode {
   static readonly nodeType = "vector.IndexEmbedding";
@@ -408,7 +438,7 @@ export class IndexEmbeddingNode extends BaseNode {
   })
   declare metadata: Record<string, unknown> | Record<string, unknown>[];
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IndexEmbeddingNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -492,6 +522,11 @@ export class IndexEmbeddingNode extends BaseNode {
   }
 }
 
+/** Output handles IndexTextChunkNode.process() emits. */
+type IndexTextChunkNodeOutputs = {
+  output: null;
+};
+
 export class IndexTextChunkNode extends BaseNode {
   static readonly nodeType = "vector.IndexTextChunk";
   static readonly title = "Index Text Chunk";
@@ -532,7 +567,7 @@ export class IndexTextChunkNode extends BaseNode {
   })
   declare metadata: Record<string, unknown>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IndexTextChunkNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -553,6 +588,11 @@ export class IndexTextChunkNode extends BaseNode {
 }
 
 type AggregationMethod = "mean" | "max" | "min" | "sum";
+
+/** Output handles IndexAggregatedTextNode.process() emits. */
+type IndexAggregatedTextNodeOutputs = {
+  output: null;
+};
 
 export class IndexAggregatedTextNode extends BaseNode {
   static readonly nodeType = "vector.IndexAggregatedText";
@@ -611,7 +651,7 @@ export class IndexAggregatedTextNode extends BaseNode {
   })
   declare aggregation: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IndexAggregatedTextNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -689,6 +729,11 @@ export class IndexAggregatedTextNode extends BaseNode {
   }
 }
 
+/** Output handles IndexStringNode.process() emits. */
+type IndexStringNodeOutputs = {
+  output: null;
+};
+
 export class IndexStringNode extends BaseNode {
   static readonly nodeType = "vector.IndexString";
   static readonly title = "Index String";
@@ -729,7 +774,7 @@ export class IndexStringNode extends BaseNode {
   })
   declare metadata: Record<string, unknown>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<IndexStringNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -745,6 +790,14 @@ export class IndexStringNode extends BaseNode {
     return { output: null };
   }
 }
+
+/** Output handles QueryImageNode.process() emits. */
+type QueryImageNodeOutputs = {
+  ids: string[];
+  documents: string[];
+  metadatas: RecordMetadata[];
+  distances: number[];
+};
 
 export class QueryImageNode extends BaseNode {
   static readonly nodeType = "vector.QueryImage";
@@ -790,7 +843,7 @@ export class QueryImageNode extends BaseNode {
   })
   declare n_results: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<QueryImageNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -814,6 +867,14 @@ export class QueryImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles QueryTextNode.process() emits. */
+type QueryTextNodeOutputs = {
+  ids: string[];
+  documents: string[];
+  metadatas: RecordMetadata[];
+  distances: number[];
+};
 
 export class QueryTextNode extends BaseNode {
   static readonly nodeType = "vector.QueryText";
@@ -853,7 +914,7 @@ export class QueryTextNode extends BaseNode {
   })
   declare n_results: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<QueryTextNodeOutputs> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
     if (!name.trim()) throw new Error("Collection name cannot be empty");
@@ -874,6 +935,11 @@ export class QueryTextNode extends BaseNode {
     };
   }
 }
+
+/** Output handles RemoveOverlapNode.process() emits. */
+type RemoveOverlapNodeOutputs = {
+  documents: string[];
+};
 
 export class RemoveOverlapNode extends BaseNode {
   static readonly nodeType = "vector.RemoveOverlap";
@@ -902,7 +968,7 @@ export class RemoveOverlapNode extends BaseNode {
   })
   declare min_overlap_words: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<RemoveOverlapNodeOutputs> {
     const documents = (this.documents ?? []) as string[];
     const minOverlapWords = Number(this.min_overlap_words ?? 2);
 

@@ -172,7 +172,7 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
   // Only fill in types with no registered component yet — never override one
   // that's already there.
   const currentNodeTypes = useMetadataStore.getState().nodeTypes;
-  const newNodeTypes: Record<string, unknown> = {};
+  const newNodeTypes: Record<string, typeof BaseNode> = {};
   for (const node of graphNodes) {
     const nodeType = node.type;
     if (!currentNodeTypes[nodeType] && !newNodeTypes[nodeType]) {

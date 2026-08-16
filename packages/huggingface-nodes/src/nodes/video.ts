@@ -7,6 +7,11 @@ import {
   videoRefFromBytes
 } from "../huggingface-base.js";
 
+/** Output handles TextToVideoNode.process() emits. */
+type TextToVideoNodeOutputs = {
+  output: { type: string; data: string; content_type: string; format: string };
+};
+
 export class TextToVideoNode extends BaseNode {
   static readonly nodeType = "huggingface.TextToVideo";
   static readonly body = "content_card";
@@ -87,7 +92,7 @@ export class TextToVideoNode extends BaseNode {
   })
   declare seed: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToVideoNodeOutputs> {
     const token = getHfToken(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");

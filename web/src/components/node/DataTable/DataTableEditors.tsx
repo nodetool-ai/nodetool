@@ -1,5 +1,6 @@
 import {
   Editor,
+  EditorParams,
   CellComponent,
   EmptyCallback,
   ValueBooleanCallback,
@@ -14,7 +15,7 @@ export const integerEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  _editorParams: Record<string, unknown>
+  _editorParams: EditorParams
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -59,7 +60,7 @@ export const floatEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  _editorParams: Record<string, unknown>
+  _editorParams: EditorParams
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -106,7 +107,7 @@ export const datetimeEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  _editorParams: Record<string, unknown>
+  _editorParams: EditorParams
 ) => {
   const editor = document.createElement("div");
   editor.style.width = "100%";

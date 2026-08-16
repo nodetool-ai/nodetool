@@ -47,11 +47,21 @@ export interface WorkerInstance
   status: WorkerStatus;
 }
 
+/** Machine sizing a worker profile asks its target for. */
+export type WorkerSpec = {
+  /** Provider GPU id (RunPod), when the profile asks for a GPU machine. */
+  gpu?: string;
+  /** vCPU count, for a CPU-only machine. */
+  vcpu?: number;
+  /** Container disk size in GB. */
+  disk?: number;
+};
+
 export interface CreateWorkerProfileInput {
   name: string;
   target: WorkerTarget;
   image: string;
-  spec?: Record<string, unknown>;
+  spec?: WorkerSpec;
   token_policy: TokenPolicy;
   idle_timeout_minutes?: number | null;
   max_lifetime_minutes?: number | null;

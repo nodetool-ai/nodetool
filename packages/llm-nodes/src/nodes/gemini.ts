@@ -38,6 +38,13 @@ function isRefSet(ref: unknown): boolean {
 
 // ── Text nodes ──────────────────────────────────────────────────────────────
 
+/** Output handles GroundedSearchNode.process() emits. */
+type GroundedSearchNodeOutputs = {
+  results: string[];
+  sources: { title: string; url: string }[];
+  text: string;
+};
+
 export class GroundedSearchNode extends BaseNode {
   static readonly nodeType = "gemini.text.GroundedSearch";
   static readonly title = "Grounded Search";
@@ -76,7 +83,7 @@ export class GroundedSearchNode extends BaseNode {
   })
   declare model: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GroundedSearchNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const query = String(this.query ?? "");
     const model = String(this.model ?? "gemini-3.5-flash");
@@ -219,6 +226,11 @@ export class EmbeddingNode extends BaseNode {
 
 // ── Image nodes ─────────────────────────────────────────────────────────────
 
+/** Output handles ImageGenerationNode.process() emits. */
+type ImageGenerationNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class ImageGenerationNode extends BaseNode {
   static readonly nodeType = "gemini.image.ImageGeneration";
   static readonly body = "content_card";
@@ -302,7 +314,7 @@ export class ImageGenerationNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageGenerationNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     const model = String(this.model ?? "gemini-3.1-flash-image");
@@ -431,6 +443,11 @@ export class ImageGenerationNode extends BaseNode {
 
 // ── Video nodes ─────────────────────────────────────────────────────────────
 
+/** Output handles TextToVideoGeminiNode.process() emits. */
+type TextToVideoGeminiNodeOutputs = {
+  output: { type: string; data: string };
+};
+
 export class TextToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.TextToVideo";
   static readonly body = "content_card";
@@ -492,7 +509,7 @@ export class TextToVideoGeminiNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     const model = String(this.model ?? "veo-3.1-generate-preview");
@@ -529,6 +546,11 @@ export class TextToVideoGeminiNode extends BaseNode {
     return { output: { type: "video", data: videoData } };
   }
 }
+
+/** Output handles ImageToVideoGeminiNode.process() emits. */
+type ImageToVideoGeminiNodeOutputs = {
+  output: { type: string; data: string };
+};
 
 export class ImageToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.ImageToVideo";
@@ -605,7 +627,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
   })
   declare resolution: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageToVideoGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const image = (this.image ?? {}) as Record<string, unknown>;
     const prompt = String(this.prompt ?? "Animate this image");
@@ -743,6 +765,11 @@ async function extractVideoFromResponse(
 
 // ── Audio nodes ─────────────────────────────────────────────────────────────
 
+/** Output handles TextToSpeechGeminiNode.process() emits. */
+type TextToSpeechGeminiNodeOutputs = {
+  output: { type: string; uri: string; data: string };
+};
+
 export class TextToSpeechGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.TextToSpeech";
   static readonly body = "content_card";
@@ -827,7 +854,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
   })
   declare style_prompt: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToSpeechGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const text = String(this.text ?? "");
     const model = String(this.model ?? "gemini-3.1-flash-tts-preview");
@@ -917,6 +944,11 @@ export class TextToSpeechGeminiNode extends BaseNode {
   }
 }
 
+/** Output handles TranscribeGeminiNode.process() emits. */
+type TranscribeGeminiNodeOutputs = {
+  output: string;
+};
+
 export class TranscribeGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.Transcribe";
   static readonly body = "content_card";
@@ -963,7 +995,7 @@ export class TranscribeGeminiNode extends BaseNode {
   })
   declare prompt: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TranscribeGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const model = String(this.model ?? "gemini-3.5-flash");

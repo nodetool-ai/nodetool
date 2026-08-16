@@ -19,6 +19,11 @@ const TJS_TYPE = "tjs.image_to_text";
 
 type CaptionResult = { generated_text: string };
 
+/** Output handles ImageToTextNode.process() emits. */
+type ImageToTextNodeOutputs = {
+  text: string;
+};
+
 export class ImageToTextNode extends BaseNode {
   static readonly nodeType = "transformers.ImageToText";
   static readonly inlineFields: string[] = [];
@@ -79,7 +84,7 @@ export class ImageToTextNode extends BaseNode {
 
   async process(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageToTextNodeOutputs> {
     const rawImage = await loadRawImage(this.image, context);
 
     const pipeline = await getPipeline<

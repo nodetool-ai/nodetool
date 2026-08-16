@@ -78,6 +78,12 @@ function parseCsv(csv: string): Row[] {
   );
 }
 
+/** Output handles ForEachRowNode.genProcess() emits. */
+type ForEachRowNodeStreamOutputs = {
+  row: Row;
+  index: number;
+};
+
 export class ForEachRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ForEachRow";
   static readonly retrySafe = true;
@@ -116,7 +122,7 @@ export class ForEachRowNode extends BaseNode {
     return {};
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  async *genProcess(): AsyncGenerator<ForEachRowNodeStreamOutputs> {
     const rows = asRows(this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { row, index };

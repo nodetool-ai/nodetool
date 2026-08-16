@@ -173,6 +173,21 @@ export class RectLibNode extends BaseNode {
   }
 }
 
+/** Output handles CircleLibNode.process() emits. */
+type CircleLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: {
+      cx: string;
+      cy: string;
+      r: string;
+      fill: string;
+      stroke: string;
+      "stroke-width": string;
+    };
+  };
+};
+
 export class CircleLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Circle";
   static readonly retrySafe = true;
@@ -234,7 +249,7 @@ export class CircleLibNode extends BaseNode {
   })
   declare stroke_width: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CircleLibNodeOutputs> {
     return {
       output: {
         name: "circle",
@@ -250,6 +265,22 @@ export class CircleLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles EllipseLibNode.process() emits. */
+type EllipseLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: {
+      cx: string;
+      cy: string;
+      rx: string;
+      ry: string;
+      fill: string;
+      stroke: string;
+      "stroke-width": string;
+    };
+  };
+};
 
 export class EllipseLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Ellipse";
@@ -315,7 +346,7 @@ export class EllipseLibNode extends BaseNode {
   })
   declare stroke_width: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<EllipseLibNodeOutputs> {
     return {
       output: {
         name: "ellipse",
@@ -332,6 +363,21 @@ export class EllipseLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles LineLibNode.process() emits. */
+type LineLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: {
+      x1: string;
+      y1: string;
+      x2: string;
+      y2: string;
+      stroke: string;
+      "stroke-width": string;
+    };
+  };
+};
 
 export class LineLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Line";
@@ -396,7 +442,7 @@ export class LineLibNode extends BaseNode {
   })
   declare stroke_width: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<LineLibNodeOutputs> {
     return {
       output: {
         name: "line",
@@ -412,6 +458,19 @@ export class LineLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles PolygonLibNode.process() emits. */
+type PolygonLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: {
+      points: string;
+      fill: string;
+      stroke: string;
+      "stroke-width": string;
+    };
+  };
+};
 
 export class PolygonLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Polygon";
@@ -463,7 +522,7 @@ export class PolygonLibNode extends BaseNode {
   })
   declare stroke_width: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<PolygonLibNodeOutputs> {
     return {
       output: {
         name: "polygon",
@@ -477,6 +536,19 @@ export class PolygonLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles PathLibNode.process() emits. */
+type PathLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: {
+      d: string;
+      fill: string;
+      stroke: string;
+      "stroke-width": string;
+    };
+  };
+};
 
 export class PathLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Path";
@@ -528,7 +600,7 @@ export class PathLibNode extends BaseNode {
   })
   declare stroke_width: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<PathLibNodeOutputs> {
     return {
       output: {
         name: "path",
@@ -623,6 +695,15 @@ export class TextLibNode extends BaseNode {
   }
 }
 
+/** Output handles GaussianBlurLibNode.process() emits. */
+type GaussianBlurLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: { id: string };
+    children: { name: string; attributes: { stdDeviation: string } }[];
+  };
+};
+
 export class GaussianBlurLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.GaussianBlur";
   static readonly retrySafe = true;
@@ -643,7 +724,7 @@ export class GaussianBlurLibNode extends BaseNode {
   })
   declare std_deviation: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GaussianBlurLibNodeOutputs> {
     return {
       output: {
         name: "filter",
@@ -744,6 +825,11 @@ export class DropShadowLibNode extends BaseNode {
   }
 }
 
+/** Output handles DocumentLibNode.process() emits. */
+type DocumentLibNodeOutputs = {
+  output: { data: string };
+};
+
 export class DocumentLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Document";
   static readonly retrySafe = true;
@@ -792,7 +878,7 @@ export class DocumentLibNode extends BaseNode {
   })
   declare viewBox: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<DocumentLibNodeOutputs> {
     const content = normalizeContent(this.elements ?? []);
     const width = Number(this.width ?? 800);
     const height = Number(this.height ?? 600);
@@ -801,6 +887,17 @@ export class DocumentLibNode extends BaseNode {
     return { output: { data: Buffer.from(doc, "utf-8").toString("base64") } };
   }
 }
+
+/** Output handles SVGToImageLibNode.process() emits. */
+type SVGToImageLibNodeOutputs = {
+  output: {
+    type: string;
+    data: string;
+    mimeType: string;
+    width: number;
+    height: number;
+  };
+};
 
 export class SVGToImageLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.SVGToImage";
@@ -863,7 +960,7 @@ export class SVGToImageLibNode extends BaseNode {
   })
   declare scale: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SVGToImageLibNodeOutputs> {
     const sharp = await loadSharp();
     if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
     const content = normalizeContent(this.elements ?? []);
@@ -888,6 +985,15 @@ export class SVGToImageLibNode extends BaseNode {
     };
   }
 }
+
+/** Output handles GradientLibNode.process() emits. */
+type GradientLibNodeOutputs = {
+  output: {
+    name: string;
+    attributes: Record<string, string>;
+    children: { name: string; attributes: { offset: string; style: string } }[];
+  };
+};
 
 export class GradientLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Gradient";
@@ -964,7 +1070,7 @@ export class GradientLibNode extends BaseNode {
   })
   declare color2: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<GradientLibNodeOutputs> {
     const gradientType = String(this.gradient_type ?? "linearGradient");
     const attrs: Record<string, string> = {
       id: nextSvgId(`gradient_${gradientType}`)

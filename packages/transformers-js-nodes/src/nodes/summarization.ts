@@ -17,6 +17,11 @@ const TJS_TYPE = "tjs.summarization";
 
 type SummaryResult = { summary_text: string };
 
+/** Output handles SummarizationNode.process() emits. */
+type SummarizationNodeOutputs = {
+  summary: string;
+};
+
 export class SummarizationNode extends BaseNode {
   static readonly nodeType = "transformers.Summarization";
   static readonly inlineFields = ["text"];
@@ -93,7 +98,7 @@ export class SummarizationNode extends BaseNode {
   })
   declare device: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<SummarizationNodeOutputs> {
     const text = asString(this.text);
     if (!text) throw new Error("Text is required");
 

@@ -42,6 +42,11 @@ async function mistralPost(
 
 // ── Chat Completion ─────────────────────────────────────────────────────────
 
+/** Output handles ChatComplete.process() emits. */
+type ChatCompleteOutputs = {
+  output: string;
+};
+
 export class ChatComplete extends BaseNode {
   static readonly nodeType = "mistral.text.ChatComplete";
   static readonly body = "content_card";
@@ -108,7 +113,7 @@ export class ChatComplete extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ChatCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -140,6 +145,11 @@ export class ChatComplete extends BaseNode {
 }
 
 // ── Code Completion ─────────────────────────────────────────────────────────
+
+/** Output handles CodeComplete.process() emits. */
+type CodeCompleteOutputs = {
+  output: string;
+};
 
 export class CodeComplete extends BaseNode {
   static readonly nodeType = "mistral.text.CodeComplete";
@@ -189,7 +199,7 @@ export class CodeComplete extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CodeCompleteOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -230,6 +240,11 @@ export class CodeComplete extends BaseNode {
 
 // ── Embeddings ──────────────────────────────────────────────────────────────
 
+/** Output handles Embedding.process() emits. */
+type EmbeddingOutputs = {
+  output: { data: number[]; shape: number[]; dtype: string };
+};
+
 export class Embedding extends BaseNode {
   static readonly nodeType = "mistral.embeddings.Embedding";
   static readonly title = "Embedding";
@@ -269,7 +284,7 @@ export class Embedding extends BaseNode {
   })
   declare chunk_size: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<EmbeddingOutputs> {
     const apiKey = getApiKey(this._secrets);
     const input = String(this.input ?? "");
     if (!input) throw new Error("Input text cannot be empty");
@@ -310,6 +325,11 @@ export class Embedding extends BaseNode {
 }
 
 // ── Image to Text ───────────────────────────────────────────────────────────
+
+/** Output handles ImageToText.process() emits. */
+type ImageToTextOutputs = {
+  output: string;
+};
 
 export class ImageToText extends BaseNode {
   static readonly nodeType = "mistral.vision.ImageToText";
@@ -374,7 +394,7 @@ export class ImageToText extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<ImageToTextOutputs> {
     const apiKey = getApiKey(this._secrets);
     const image = (this.image ?? {}) as ImageRefLike;
     if (!image.data && !image.uri) throw new Error("Image is required");
@@ -415,6 +435,11 @@ export class ImageToText extends BaseNode {
 
 // ── OCR ─────────────────────────────────────────────────────────────────────
 
+/** Output handles OCR.process() emits. */
+type OCROutputs = {
+  output: string;
+};
+
 export class OCR extends BaseNode {
   static readonly nodeType = "mistral.vision.OCR";
   static readonly title = "OCR";
@@ -450,7 +475,7 @@ export class OCR extends BaseNode {
   })
   declare model: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<OCROutputs> {
     const apiKey = getApiKey(this._secrets);
     const image = (this.image ?? {}) as ImageRefLike;
     if (!image.data && !image.uri) throw new Error("Image is required");

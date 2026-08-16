@@ -16,6 +16,11 @@ import {
 
 const TTS_FORMATS = ["mp3", "wav", "flac"];
 
+/** Output handles MinimaxTextToSpeechNode.process() emits. */
+type MinimaxTextToSpeechNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class MinimaxTextToSpeechNode extends BaseNode {
   static readonly nodeType = "minimax.TextToSpeech";
   static readonly body = "content_card";
@@ -122,7 +127,7 @@ export class MinimaxTextToSpeechNode extends BaseNode {
   })
   declare format: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<MinimaxTextToSpeechNodeOutputs> {
     const apiKey = getMinimaxApiKey(this._secrets);
 
     const text = String(this.text ?? "");

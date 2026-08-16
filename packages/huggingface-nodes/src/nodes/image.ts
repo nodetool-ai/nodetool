@@ -20,6 +20,11 @@ const EMPTY_IMAGE = {
   metadata: null
 };
 
+/** Output handles TextToImageNode.process() emits. */
+type TextToImageNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
+
 export class TextToImageNode extends BaseNode {
   static readonly nodeType = "huggingface.TextToImage";
   static readonly body = "content_card";
@@ -111,7 +116,7 @@ export class TextToImageNode extends BaseNode {
   })
   declare seed: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<TextToImageNodeOutputs> {
     const token = getHfToken(this._secrets);
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
@@ -143,6 +148,11 @@ export class TextToImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles ImageToImageNode.process() emits. */
+type ImageToImageNodeOutputs = {
+  output: { type: string; data: string; content_type: string };
+};
 
 export class ImageToImageNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageToImage";
@@ -215,7 +225,7 @@ export class ImageToImageNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageToImageNodeOutputs> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
@@ -245,6 +255,12 @@ export class ImageToImageNode extends BaseNode {
     };
   }
 }
+
+/** Output handles ImageClassificationNode.process() emits. */
+type ImageClassificationNodeOutputs = {
+  output: string;
+  scores: { label?: string; score?: number }[];
+};
 
 export class ImageClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageClassification";
@@ -288,7 +304,7 @@ export class ImageClassificationNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
@@ -307,6 +323,11 @@ export class ImageClassificationNode extends BaseNode {
     return { output: String(scores[0]?.label ?? ""), scores };
   }
 }
+
+/** Output handles ImageSegmentationNode.process() emits. */
+type ImageSegmentationNodeOutputs = {
+  output: { label: string; score: number | null; mask: { type: string; data: string; content_type: string } | null }[];
+};
 
 export class ImageSegmentationNode extends BaseNode {
   static readonly nodeType = "huggingface.ImageSegmentation";
@@ -340,7 +361,7 @@ export class ImageSegmentationNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ImageSegmentationNodeOutputs> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
@@ -364,6 +385,11 @@ export class ImageSegmentationNode extends BaseNode {
     return { output: segments };
   }
 }
+
+/** Output handles ObjectDetectionNode.process() emits. */
+type ObjectDetectionNodeOutputs = {
+  output: { label?: string; score?: number; box?: { xmin: number; ymin: number; xmax: number; ymax: number } }[];
+};
 
 export class ObjectDetectionNode extends BaseNode {
   static readonly nodeType = "huggingface.ObjectDetection";
@@ -407,7 +433,7 @@ export class ObjectDetectionNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ObjectDetectionNodeOutputs> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
