@@ -33,6 +33,7 @@ import type {
   Shot,
   VideoRef
 } from "@nodetool-ai/protocol";
+import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -145,6 +146,27 @@ async function loadLinkedScript(
   const row = await Script.findById(scriptId);
   if (!row || row.user_id !== userId) return null;
   return row.toDocument();
+}
+
+/**
+ * The linked script as the joint assembler wants it, or `null` when nothing
+ * links, the script is gone, or reading it failed. Never throws: a broken link
+ * downgrades the assemble to the unlinked path with a warning (design §1.3).
+ */
+async function loadLinkedAssemblyScript(
+  scriptId: string,
+  userId: string | undefined
+): Promise<ScriptAssemblyInput | null> {
+  try {
+    const { Script } = await import("@nodetool-ai/models");
+    const row = await Script.findById(scriptId);
+    if (!row || row.user_id !== userId) return null;
+    const doc = row.toDocument();
+    return { scriptId, cast: doc.cast, sections: doc.sections };
+  } catch {
+    // A link that cannot be read is a link that is not there.
+    return null;
+  }
 }
 
 /**
@@ -847,27 +869,51 @@ const assembleStoryboardTimeline: CapabilityExport = {
 
     const { Storyboard, TimelineSequence } =
       await import("@nodetool-ai/models");
-    const { buildStoryboardTimeline } = await import("@nodetool-ai/timeline");
+    const {
+      buildLinkedTimeline,
+      buildStoryboardTimeline,
+      foreignTimelineParts
+    } = await import("@nodetool-ai/timeline");
 
-    const assembled = buildStoryboardTimeline({
-      boardId: row.id,
-      shots: doc.shots,
-      narration: doc.screenplay?.narration,
-      musicPrompt: doc.screenplay?.music_prompt
-    });
+    // A board that links a script is cut against the words: shot lengths come
+    // from the takes and every voiced line gets its own clip. A link pointing
+    // at a script that is gone is a warning, not a failure — the board still
+    // assembles on its own (design §1.3).
+    const scriptId = doc.screenplay?.script_id ?? null;
+    const script = scriptId
+      ? await loadLinkedAssemblyScript(scriptId, context.userId)
+      : null;
+    const warnings: string[] = [];
+    if (scriptId && !script) {
+      warnings.push(
+        `Script ${scriptId} is linked but could not be loaded, so the board was assembled on its own.`
+      );
+    }
+
+    const assembled = script
+      ? buildLinkedTimeline({
+          boardId: row.id,
+          shots: doc.shots,
+          musicPrompt: doc.screenplay?.music_prompt,
+          script
+        })
+      : buildStoryboardTimeline({
+          boardId: row.id,
+          shots: doc.shots,
+          narration: doc.screenplay?.narration,
+          musicPrompt: doc.screenplay?.music_prompt
+        });
+    const skippedLineIds =
+      "skippedLineIds" in assembled ? assembled.skippedLineIds : [];
     if (assembled.clips.length === 0) {
       return {
         error:
           "No shot has a rendered clip, so there is nothing to assemble. Run render_storyboard_stills, then render_storyboard_clips.",
-        skipped_shot_ids: assembled.skippedShotIds
+        skipped_shot_ids: assembled.skippedShotIds,
+        skipped_line_ids: skippedLineIds
       };
     }
 
-    const document = {
-      tracks: assembled.tracks,
-      clips: assembled.clips,
-      markers: []
-    };
     const { width, height } = frameSize(doc.aspectRatio || "16:9");
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
@@ -876,24 +922,51 @@ const assembleStoryboardTimeline: CapabilityExport = {
         : row.name;
 
     // Re-assembling replaces the board's existing cut rather than leaving a
-    // trail of orphan sequences behind it.
+    // trail of orphan sequences behind it — and rewrites only what this board
+    // (and, when linked, this script) owns.
     const existing = row.timeline_id
       ? await TimelineSequence.findById(row.timeline_id)
       : null;
+    const reuse =
+      existing && existing.user_id === context.userId ? existing : null;
+
+    let tracks = assembled.tracks;
+    let clips = assembled.clips;
+    let durationMs = assembled.durationMs;
+    const previous = reuse?.toDocument();
+    if (previous) {
+      const foreign = foreignTimelineParts(
+        previous,
+        (clip) =>
+          clip.storyboardBoardId === row.id ||
+          (!!scriptId && clip.scriptId === scriptId)
+      );
+      tracks = [...assembled.tracks, ...foreign.tracks];
+      clips = [...assembled.clips, ...foreign.clips];
+      durationMs = clips.reduce(
+        (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+        0
+      );
+    }
+
     const sequence =
-      existing && existing.user_id === context.userId
-        ? existing
-        : new TimelineSequence({
-            user_id: context.userId,
-            project_id: row.project_id,
-            name
-          });
+      reuse ??
+      new TimelineSequence({
+        user_id: context.userId,
+        project_id: row.project_id,
+        name
+      });
     sequence.name = name;
     sequence.fps = fps;
     sequence.width = width;
     sequence.height = height;
-    sequence.duration_ms = assembled.durationMs;
-    sequence.fromDocument(document);
+    sequence.duration_ms = durationMs;
+    sequence.fromDocument({
+      ...previous,
+      tracks,
+      clips,
+      markers: previous ? previous.markers : []
+    });
     await sequence.save();
 
     if (row.timeline_id !== sequence.id) {
@@ -902,18 +975,24 @@ const assembleStoryboardTimeline: CapabilityExport = {
       });
     }
 
-    return {
+    const result: Record<string, unknown> = {
       ok: true,
       timeline_id: sequence.id,
       name: sequence.name,
       fps,
       width,
       height,
-      duration_ms: assembled.durationMs,
-      clip_count: assembled.clips.length,
-      track_count: assembled.tracks.length,
-      skipped_shot_ids: assembled.skippedShotIds
+      duration_ms: durationMs,
+      clip_count: clips.length,
+      track_count: tracks.length,
+      script_id: script ? scriptId : null,
+      skipped_shot_ids: assembled.skippedShotIds,
+      skipped_line_ids: skippedLineIds
     };
+    if (warnings.length) {
+      result.warnings = warnings;
+    }
+    return result;
   }
 };
 
