@@ -116,15 +116,23 @@ export class PythonNodeExecutor {
    * boundary that releases it.
    */
   private identity(context?: ProcessingContext): ExecuteIdentity {
-    return {
-      ...(this.nodeId ? { nodeId: this.nodeId } : {}),
-      ...(context?.jobId ? { jobId: context.jobId } : {}),
-      ...(context?.workflowId ? { workflowId: context.workflowId } : {}),
-      ...(context?.userId ? { userId: context.userId } : {}),
-      ...(typeof this.requiresVramGb === "number"
-        ? { requiresVramGb: this.requiresVramGb }
-        : {})
-    };
+    const identity: ExecuteIdentity = {};
+    if (this.nodeId) {
+      identity.nodeId = this.nodeId;
+    }
+    if (context?.jobId) {
+      identity.jobId = context.jobId;
+    }
+    if (context?.workflowId) {
+      identity.workflowId = context.workflowId;
+    }
+    if (context?.userId) {
+      identity.userId = context.userId;
+    }
+    if (typeof this.requiresVramGb === "number") {
+      identity.requiresVramGb = this.requiresVramGb;
+    }
+    return identity;
   }
 
   /**
