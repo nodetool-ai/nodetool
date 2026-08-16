@@ -46,7 +46,7 @@
       `packages/agents/src/capabilities/scripts.ts`; no-provider mode emits
       the deterministic scaffold. Eval case in
       `packages/agents/src/evals/surfaces/script.ts`.
-- [ ] **Timing.** `linkedShotDurationMs` in
+- [x] **Timing.** `linkedShotDurationMs` in
       `packages/timeline/src/script-link.ts` (design §2.3); storyboard
       editor and render tools read it when `duration_source !== "manual"`;
       `ui_storyboard_set_duration_source` toggle + inspector control.
@@ -63,28 +63,28 @@
       fixtures proving unlinked `buildStoryboardTimeline` /
       `buildScriptTimeline` output is unchanged. Feed the built document to
       the timeline validator in tests.
-- [ ] **Assemble switch.** `assemble_storyboard_timeline` (headless) and
+- [x] **Assemble switch.** `assemble_storyboard_timeline` (headless) and
       `ui_storyboard_assemble_timeline` / `ui_script_send_to_timeline` (web)
       call `buildLinkedTimeline` when linked; script-side button relabels to
       *Assemble video*. Re-assemble in place preserves foreign tracks (reuse
       the script re-assemble pattern).
-- [ ] **Back-sync verification.** Jest tests that a re-voiced line and a
+- [x] **Back-sync verification.** Jest tests that a re-voiced line and a
       revised shot both patch the same jointly-assembled sequence through
       the existing `timelineSync` modules, unmodified.
-- [ ] **Creative-pipeline eval.** Case: script → derive → render (stubbed
+- [x] **Creative-pipeline eval.** Case: script → derive → render (stubbed
       assets) → joint assemble → `validate_timeline` green, in
       `packages/agents/src/evals/surfaces/creative-pipeline.ts`.
 
 ## Phase 4 — Drift, Studio, polish
 
-- [ ] **Drift helpers.** `shotDialogueDrifted`, `orphanedLineIds` (design
+- [x] **Drift helpers.** `shotDialogueDrifted`, `orphanedLineIds` (design
       §2.5) with tests; *Re-project* action updating snapshot + projected
       text in one CAS save.
-- [ ] **Badges.** Drift badge + Re-project in the shot inspector; orphan
+- [x] **Badges.** Drift badge + Re-project in the shot inspector; orphan
       badge in the script gutter; linked-line panel (speaker chip, voice
       status, play, voice-from-board) in the shot inspector; keyframe
       thumbnail chips in the script gutter.
-- [ ] **Studio.** Prompt-first flow derives script + board linked in one
+- [x] **Studio.** Prompt-first flow derives script + board linked in one
       pass; home groups linked documents into one project card
       (`web/src/studio/`).
 - [x] **Tool/summary surface.** `get_storyboard` / `get_script` report link
