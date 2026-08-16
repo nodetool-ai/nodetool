@@ -241,8 +241,8 @@ describe("preload contract", () => {
     });
 
     test("openExternal rejects non-string URLs", () => {
-      expect(() => api.openExternal(undefined as unknown as string)).toThrow();
-      expect(() => api.openExternal(null as unknown as string)).toThrow();
+      expect(() => api.openExternal(undefined)).toThrow();
+      expect(() => api.openExternal(null)).toThrow();
     });
   });
 

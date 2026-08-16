@@ -1574,7 +1574,7 @@ async function loadBundledWorkflow(
     tags: workflow.tags ?? [],
     run_mode: workflow.run_mode ?? null,
     settings: workflow.settings ?? null,
-    graph: workflow.graph as unknown as BundledWorkflow["graph"]
+    graph: workflow.graph
   };
 }
 
@@ -1719,7 +1719,7 @@ export async function handleWorkflowImportBundle(
           description: wf.description ?? "",
           tags: wf.tags ?? [],
           access: "private",
-          graph: wf.graph as unknown as WorkflowRequestBody["graph"],
+          graph: wf.graph,
           settings: wf.settings ?? null,
           run_mode: wf.run_mode ?? "workflow"
         },

@@ -70,6 +70,11 @@ export function toListItem(app: Application): ApplicationListItem {
   };
 }
 
+/** The `app_doc` JSON column, which the `Workflow` model does not declare. */
+interface AppDocColumn {
+  app_doc?: unknown;
+}
+
 export async function loadOwnedApplication(
   userId: string | null,
   id: string
@@ -96,7 +101,8 @@ async function documentFromWorkflow(
   if (!workflow) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Workflow not found");
   }
-  const raw = (workflow as unknown as { app_doc?: unknown }).app_doc;
+  // SAFETY: `app_doc` is a JSON column the `Workflow` model does not declare.
+  const raw: unknown = (workflow as AppDocColumn).app_doc;
   const parsed = raw
     ? parseApplicationDocument(
         typeof raw === "string" ? JSON.parse(raw) : raw,

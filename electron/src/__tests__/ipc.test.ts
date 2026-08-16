@@ -214,17 +214,29 @@ type IpcInvokeHandler<R> = (
 type IpcListener = (event: unknown, ...args: unknown[]) => void;
 
 /** Pass the channel's `IpcResponse` type when the test reads the result. */
-const invokeHandlerFor = <R = unknown>(
-  channel: string
-): IpcInvokeHandler<R> =>
-  ipcMainMock.handle.mock.calls.find(
+const invokeHandlerFor = <R = unknown>(channel: string): IpcInvokeHandler<R> => {
+  const registration = ipcMainMock.handle.mock.calls.find(
     ([registered]) => registered === channel
-  )?.[1] as unknown as IpcInvokeHandler<R>;
+  );
+  if (!registration) {
+    throw new Error(`no invoke handler registered for channel ${channel}`);
+  }
+  // SAFETY: the recorded callback is the channel's real handler; `R` is the
+  // response type of the one channel this call names, which the test picks.
+  return registration[1] as IpcInvokeHandler<R>;
+};
 
-const listenerFor = (channel: string): IpcListener =>
-  ipcMainMock.on.mock.calls.find(
+const listenerFor = (channel: string): IpcListener => {
+  const registration = ipcMainMock.on.mock.calls.find(
     ([registered]) => registered === channel
-  )?.[1] as unknown as IpcListener;
+  );
+  if (!registration) {
+    throw new Error(`no listener registered for channel ${channel}`);
+  }
+  // SAFETY: the recorded callback is the channel's real listener; the tests
+  // drive it with hand-built payloads instead of a real `IpcMainEvent`.
+  return registration[1] as IpcListener;
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -248,11 +260,15 @@ describe('IPC utilities', () => {
 describe('initializeIpcHandlers', () => {
   it('registers handlers and triggers clipboard functions', async () => {
     clipboardMock.readText.mockReturnValue('clipboard');
-    // The handler returns whatever getServerState gave it, verbatim — this
-    // stub stands in for a full ServerState only to be compared by identity.
-    serverMock.getServerState.mockReturnValue({
-      running: true,
-    } as unknown as ServerState);
+    // The handler returns whatever getServerState gave it, verbatim.
+    const stubState: ServerState = {
+      isStarted: true,
+      status: "started",
+      bootMsg: "",
+      initialURL: "http://127.0.0.1:7777",
+      logs: [],
+    };
+    serverMock.getServerState.mockReturnValue(stubState);
 
     initializeIpcHandlers();
 
@@ -270,7 +286,7 @@ describe('initializeIpcHandlers', () => {
 
     const state = await stateHandler({});
     expect(serverMock.getServerState).toHaveBeenCalled();
-    expect(state).toEqual({ running: true });
+    expect(state).toBe(stubState);
 
     await logHandler({});
     expect(serverMock.openLogFile).toHaveBeenCalled();
@@ -316,9 +332,10 @@ describe('initializeIpcHandlers', () => {
       unmaximize: jest.fn(),
       isMaximized: jest.fn().mockReturnValue(false),
     };
-    browserWindowMock.getFocusedWindow.mockReturnValue(
-      mockWindow as unknown as BrowserWindow
-    );
+    // SAFETY: `getFocusedWindow` is a `jest.fn()` in this file's electron
+    // mock; the window handlers only call close/minimize/maximize/unmaximize/
+    // isMaximized, all of which this stub provides.
+    (BrowserWindow.getFocusedWindow as jest.Mock).mockReturnValue(mockWindow);
 
     closeHandler({});
     expect(mockWindow.close).toHaveBeenCalled();

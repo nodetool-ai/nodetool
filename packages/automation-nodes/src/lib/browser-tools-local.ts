@@ -221,6 +221,9 @@ async function ensureState(): Promise<BrowserState> {
       throw err;
     }
     attachConsoleBuffer(handle.page, consoleMessages);
+    // SAFETY: the extension client types every CDP domain as a dynamic
+    // `DomainNamespace`, which declares none of the three `Network.*` members
+    // `CaptureCdpClient` names, though the live client answers all three.
     const captureClient = handle.client as unknown as CaptureCdpClient;
     state = {
       page: handle.page,
@@ -247,6 +250,8 @@ async function ensureState(): Promise<BrowserState> {
 
   attachConsoleBuffer(page, consoleMessages);
 
+  // SAFETY: as above — a dynamically typed CDP domain namespace that answers
+  // the three `Network.*` members at runtime.
   const captureClient = session.client as unknown as CaptureCdpClient;
   state = {
     page,

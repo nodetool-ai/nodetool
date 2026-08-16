@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { z } from "zod";
 
 import type { ASRResult } from "./providers/types.js";
 
@@ -547,3 +548,45 @@ export interface PythonBridge extends EventEmitter {
   getRecentStderrSummary(limit?: number): string | null;
   close(): void;
 }
+
+// ---------------------------------------------------------------------------
+// Wire readers
+// ---------------------------------------------------------------------------
+//
+// The bridge decodes msgpack, so a worker reply arrives as an untyped record.
+// These readers turn one into the declared shape. Every field carries its own
+// `.catch`, so a reply is never rejected: a field the worker omits or sends in
+// the wrong type falls back to the value below instead of riding on mistyped.
+// That is the one behavior change from the assertions these replaced — before,
+// a malformed field reached callers as if it were valid.
+
+export const comfyStatusInfoSchema = z
+  .object({
+    enabled: z.boolean().catch(false),
+    url: z.string().optional().catch(undefined),
+    reachable: z.boolean().optional().catch(undefined),
+    system_stats: z.record(z.string(), z.unknown()).optional().catch(undefined),
+    queue_remaining: z.number().optional().catch(undefined),
+    error: z.string().optional().catch(undefined)
+  })
+  .loose();
+
+/**
+ * Load errors are forwarded verbatim: the entry shape varies by worker version
+ * (older workers key them by `node_type`), and every consumer only displays
+ * them, so narrowing here would drop fields rather than protect anyone.
+ */
+const workerLoadErrorSchema = z.custom<PythonWorkerLoadError>();
+
+export const workerStatusSchema = z
+  .object({
+    protocol_version: z.number().catch(0),
+    node_count: z.number().catch(0),
+    provider_count: z.number().catch(0),
+    namespaces: z.array(z.string()).catch([]),
+    load_errors: z.array(workerLoadErrorSchema).catch([]),
+    transport: z.string().catch(""),
+    max_frame_size: z.number().catch(0),
+    comfy: comfyStatusInfoSchema.optional().catch(undefined)
+  })
+  .loose();

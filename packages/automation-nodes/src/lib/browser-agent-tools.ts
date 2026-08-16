@@ -468,10 +468,7 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
       try {
         const callParams =
           spec.key === "upload_asset"
-            ? ((await resolveUploadParams(ctx, params ?? {})) as unknown as Record<
-                string,
-                unknown
-              >)
+            ? await resolveUploadParams(ctx, params ?? {})
             : (params ?? {});
         const out = await spec.local(callParams);
         if (spec.key === "view") {

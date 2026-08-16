@@ -91,7 +91,7 @@ const connect = async (mgr: WebSocketManager): Promise<void> => {
 describe('mobile WebSocketManager liveness watchdog', () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    Reflect.set(globalThis, 'WebSocket', FakeWebSocket);
     jest.useFakeTimers();
   });
 

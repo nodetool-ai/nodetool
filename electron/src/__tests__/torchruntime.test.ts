@@ -1,14 +1,16 @@
 import { detectTorchPlatform } from "../torchruntime";
 import { getPythonPath } from "../config";
 import { spawn } from "child_process";
-import type { ChildProcessWithoutNullStreams } from "child_process";
 
 jest.mock("child_process");
 jest.mock("../config");
 jest.mock("../logger");
 jest.mock("../events");
 
-const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
+// SAFETY: `child_process` is jest-mocked in this file, so `spawn` is a
+// `jest.fn()`; the tests hand it stub processes with only the stdout/stderr/
+// exit listeners `detectTorchPlatform` subscribes to.
+const mockSpawn = spawn as jest.Mock;
 const mockGetPythonPath = getPythonPath as jest.MockedFunction<typeof getPythonPath>;
 
 describe("torchruntime", () => {
@@ -35,7 +37,7 @@ describe("torchruntime", () => {
             handler(0);
           }
         }),
-      } as unknown as ChildProcessWithoutNullStreams;
+      };
 
       mockSpawn.mockReturnValue(mockProcess);
 
@@ -63,7 +65,7 @@ describe("torchruntime", () => {
             handler(0);
           }
         }),
-      } as unknown as ChildProcessWithoutNullStreams;
+      };
 
       mockSpawn.mockReturnValue(mockProcess);
 
@@ -90,7 +92,7 @@ describe("torchruntime", () => {
             handler(0);
           }
         }),
-      } as unknown as ChildProcessWithoutNullStreams;
+      };
 
       mockSpawn.mockReturnValue(mockProcess);
 
@@ -116,7 +118,7 @@ describe("torchruntime", () => {
             handler(new Error("Process failed"));
           }
         }),
-      } as unknown as ChildProcessWithoutNullStreams;
+      };
 
       mockSpawn.mockReturnValue(mockProcess);
 
@@ -144,7 +146,7 @@ describe("torchruntime", () => {
             handler(0);
           }
         }),
-      } as unknown as ChildProcessWithoutNullStreams;
+      };
 
       mockSpawn.mockReturnValue(mockProcess);
 

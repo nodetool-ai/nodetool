@@ -1529,15 +1529,30 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       obj({ timeline_id: S, document: obj({}) }),
       (params) => {
         const id = str(params["timeline_id"]);
-        const doc = id
+        const inline = rec(params["document"]);
+        const doc: TimelineDoc = id
           ? needTimeline(world, id)
-          : (rec(params["document"]) as unknown as TimelineDoc);
-        const issues = timelineIssues({
-          id: str((doc as TimelineDoc).id, "inline"),
-          name: str((doc as TimelineDoc).name, "inline"),
-          tracks: (doc as TimelineDoc).tracks ?? [],
-          clips: (doc as TimelineDoc).clips ?? []
-        });
+          : {
+              id: str(inline["id"], "inline"),
+              name: str(inline["name"], "inline"),
+              tracks: recList(inline["tracks"]).map((track) => ({
+                id: str(track["id"]),
+                type: str(track["type"]),
+                name: str(track["name"])
+              })),
+              clips: recList(inline["clips"]).map((clip) => ({
+                id: str(clip["id"]),
+                trackId: str(clip["trackId"]),
+                name: str(clip["name"]),
+                startMs: num(clip["startMs"], 0),
+                durationMs: num(clip["durationMs"], 0),
+                animations: recList(clip["animations"]).map((animation) => ({
+                  role: str(animation["role"]),
+                  preset: str(animation["preset"])
+                }))
+              }))
+            };
+        const issues = timelineIssues(doc);
         return { ok: issues.length === 0, issues, warnings: [] };
       }
     ),
@@ -1662,15 +1677,22 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       obj({ image_document_id: S, document: obj({}) }),
       (params) => {
         const id = str(params["image_document_id"]);
-        const raw = id
+        const inline = rec(params["document"]);
+        const raw: SketchDoc = id
           ? needSketch(world, id)
-          : (rec(params["document"]) as unknown as SketchDoc);
-        const issues = sketchIssues({
-          id: str(raw.id, "inline"),
-          name: str(raw.name, "inline"),
-          layers: raw.layers ?? [],
-          activeLayerId: str(raw.activeLayerId)
-        });
+          : {
+              id: str(inline["id"], "inline"),
+              name: str(inline["name"], "inline"),
+              layers: recList(inline["layers"]).map((layer) => ({
+                id: str(layer["id"]),
+                name: str(layer["name"]),
+                opacity: num(layer["opacity"], 1),
+                blendMode: str(layer["blendMode"], "normal"),
+                visible: layer["visible"] !== false
+              })),
+              activeLayerId: str(inline["activeLayerId"])
+            };
+        const issues = sketchIssues(raw);
         return { ok: issues.length === 0, issues, warnings: [] };
       }
     ),

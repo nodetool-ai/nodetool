@@ -34,12 +34,14 @@ interface MockResponseInit {
 }
 
 function mockResponse({ ok, status, json, text }: MockResponseInit): Response {
-  return {
+  const partial: Pick<Response, 'ok' | 'status' | 'json' | 'text'> = {
     ok,
     status,
     json: jest.fn().mockResolvedValue(json ?? {}),
     text: jest.fn().mockResolvedValue(text ?? ''),
-  } as unknown as Response;
+  };
+  // SAFETY: `ApiService` reads only ok/status/json/text off a response.
+  return partial as Response;
 }
 
 const mockFetch = jest.fn();
@@ -47,7 +49,7 @@ const mockFetch = jest.fn();
 describe('ApiService request (via getNodeMetadata)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
   });
 
   it('returns parsed JSON on success', async () => {
@@ -123,7 +125,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
 describe('ApiService.uploadAsset', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
   });
 
   it('does NOT set a Content-Type header (preserves the multipart boundary)', async () => {

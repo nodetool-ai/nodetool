@@ -40,10 +40,16 @@ interface WebSocketManagerInternals {
   handleConnectionError(error: Error): void;
 }
 
+// SAFETY: every member above is one of `WebSocketManager`'s own `private`
+// fields and methods, named here so the tests that drive them stay checked.
 const internals = (
   manager: WebSocketManager | null
-): WebSocketManagerInternals =>
-  manager as unknown as WebSocketManagerInternals;
+): WebSocketManagerInternals => {
+  if (!manager) {
+    throw new Error('no manager under test');
+  }
+  return manager as WebSocketManager & WebSocketManagerInternals;
+};
 
 // Controllable stand-in for the AppState-backed lifecycle module, so tests can
 // drive foreground/background transitions deterministically.

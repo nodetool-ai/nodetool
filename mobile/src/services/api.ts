@@ -145,11 +145,26 @@ export function normalizeModels<T extends { id: string; name: string }>(
   models: ReadonlyArray<TRPCModelResponse>,
   provider: string
 ): T[] {
+  // SAFETY: the wire row carries no `type` guarantee and `provider` is a bare
+  // string, while callers pick `T`s that require a non-null `type` and a
+  // `ProviderId`. Narrowing this honestly means widening those two types.
   return models.map((model) => ({
     ...model,
     provider,
     type: model.type ?? null
   })) as unknown as T[];
+}
+
+/** The file descriptor React Native's `FormData` accepts in place of a Blob. */
+interface ReactNativeFile {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+/** React Native's `FormData.append`, which also takes {@link ReactNativeFile}. */
+interface ReactNativeFormData {
+  append(name: string, value: string | Blob | ReactNativeFile): void;
 }
 
 class ApiService {
@@ -379,11 +394,14 @@ class ApiService {
     parentId: string;
   }): Promise<Asset> {
     const formData = new FormData();
-    formData.append("file", {
+    // React Native's FormData accepts a file descriptor object that the DOM
+    // `Blob` parameter type cannot express.
+    const form: ReactNativeFormData = formData;
+    form.append("file", {
       uri: params.uri,
       name: params.name,
       type: params.contentType
-    } as unknown as Blob);
+    });
     formData.append(
       "json",
       JSON.stringify({

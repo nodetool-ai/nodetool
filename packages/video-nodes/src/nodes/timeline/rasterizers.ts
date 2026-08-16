@@ -112,7 +112,9 @@ export class NodeRasterizer {
     }
     const canvas = createCanvas(this.width, this.height);
     const ctx = canvas.getContext("2d");
-    draw(ctx as unknown as RasterContext2D);
+    // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the
+    // drawing helpers use, and a skia canvas context provides all of it.
+    draw(ctx as RasterContext2D);
     const result: RasterResult = {
       rgba: new Uint8Array(
         ctx.getImageData(0, 0, this.width, this.height).data

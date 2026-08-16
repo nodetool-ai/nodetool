@@ -179,6 +179,9 @@ export function mergePythonBridgeMetadata(
     registry.loadMetadata(
       nodeMeta.node_type,
       {
+        // SAFETY: the Python wire's property/output type metadata omits
+        // `type_args`, which the registry's `TypeMetadata` declares required;
+        // filling it in here would change what the registry stores.
         ...(nodeMeta as unknown as NodeMetadata),
         namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
         layout: "default",

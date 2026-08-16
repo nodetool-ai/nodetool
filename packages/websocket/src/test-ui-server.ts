@@ -1340,10 +1340,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     // empty behind a "threads.list" error.
     allowMethodOverride: true,
     createContext: ({ req }) => {
-      (req as IncomingMessage & { userId?: string }).userId = "1";
-      return trpcContextFactory({
-        req: req as unknown as Parameters<typeof trpcContextFactory>[0]["req"]
-      });
+      // SAFETY: the test-UI server has no auth plugin, so it attaches the
+      // single-user id the context reads directly onto the request.
+      const authedReq = req as IncomingMessage & { userId?: string };
+      authedReq.userId = "1";
+      return trpcContextFactory({ req: authedReq });
     }
   });
 

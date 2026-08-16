@@ -473,7 +473,7 @@ export class FalProvider extends BaseProvider {
     const { createFalClient } = await import("@fal-ai/client");
     this._client = createFalClient({
       credentials: this.apiKey
-    }) as unknown as FalClient;
+    });
     return this._client;
   }
 

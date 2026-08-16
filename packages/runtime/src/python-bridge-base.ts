@@ -39,6 +39,10 @@ class FallbackEmitter {
     notOnNode("node:events.EventEmitter");
   }
 }
+// SAFETY: off-Node the fallback stands in for `EventEmitter` and throws from
+// every member. It cannot implement the full class (`once`, `off`,
+// `listenerCount`, the static helpers), which `PythonBridge extends
+// EventEmitter` puts in the package's public contract.
 const EventEmitter = (nodeEvents?.EventEmitter ??
   FallbackEmitter) as unknown as typeof import("node:events").EventEmitter;
 
@@ -101,6 +105,10 @@ import type {
   ComfyModelDownloadUpdate,
   ComfyModelInfo,
   PythonBridge
+} from "./python-bridge-types.js";
+import {
+  comfyStatusInfoSchema,
+  workerStatusSchema
 } from "./python-bridge-types.js";
 
 interface PendingRequest {
@@ -675,8 +683,13 @@ export abstract class PythonBridgeBase
         }
       }
     );
-    this._workerStatus = result as unknown as PythonWorkerStatus;
-    this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
+    this._workerStatus = workerStatusSchema.parse(result);
+    // A status reply that carries no `load_errors` leaves the ones `discover`
+    // reported in place; only a reply that names the field replaces them.
+    this._loadErrors =
+      result["load_errors"] == null
+        ? this._loadErrors
+        : this._workerStatus.load_errors;
     return this._workerStatus;
   }
 
@@ -732,8 +745,12 @@ export abstract class PythonBridgeBase
 
     try {
       const result = await Promise.race([statusPromise, timeoutPromise]);
-      this._workerStatus = result as unknown as PythonWorkerStatus;
-      this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
+      this._workerStatus = workerStatusSchema.parse(result);
+      // See getWorkerStatus: absence keeps the discover-reported errors.
+      this._loadErrors =
+        result["load_errors"] == null
+          ? this._loadErrors
+          : this._workerStatus.load_errors;
       return this._workerStatus;
     } finally {
       if (timer) {
@@ -1053,6 +1070,9 @@ export abstract class PythonBridgeBase
     return this._streamingDownload(
       "models.download",
       { ...req },
+      // SAFETY: the worker's `models.download` progress frame carries exactly
+      // these fields; unlike the comfy update shapes, `ModelDownloadUpdate`
+      // declares no index signature, so the frame record does not overlap it.
       (u) => onProgress(u as unknown as ModelDownloadUpdate),
       requestId
     );
@@ -1190,10 +1210,7 @@ export abstract class PythonBridgeBase
     if (!this.supportsJobLifecycle()) {
       return { evicted: [] };
     }
-    const result = await this._providerCall(
-      "models.evict",
-      req as unknown as Record<string, unknown>
-    );
+    const result = await this._providerCall("models.evict", { ...req });
     const evictResult: ModelEvictResult = {
       // SAFETY: the worker answers `models.evict` with a list of model ids; a
       // reply that is not an array is treated as evicting nothing.
@@ -1415,8 +1432,9 @@ export abstract class PythonBridgeBase
   }
 
   async comfyStatus(): Promise<ComfyStatusInfo> {
-    const result = await this._providerCall("comfy.status", {});
-    return result as unknown as ComfyStatusInfo;
+    return comfyStatusInfoSchema.parse(
+      await this._providerCall("comfy.status", {})
+    );
   }
 
   async comfyFree(options: Record<string, unknown> = {}): Promise<void> {

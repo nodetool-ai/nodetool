@@ -45,12 +45,15 @@ const mockWs = webSocketService as jest.Mocked<typeof webSocketService>;
 
 const WORKFLOW_ID = 'wf-1';
 
-const makeWorkflow = (): Workflow =>
-  ({
-    id: WORKFLOW_ID,
-    name: 'Test',
-    graph: { nodes: [], edges: [] },
-  } as unknown as Workflow);
+const makeWorkflow = (): Workflow => ({
+  id: WORKFLOW_ID,
+  name: 'Test',
+  description: '',
+  graph: { nodes: [], edges: [] },
+  access: 'private',
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+});
 
 /**
  * Boots a store through `run()` and returns the store plus the message handler
@@ -126,21 +129,38 @@ describe('WorkflowRunner', () => {
     it('filters out bypassed nodes and their edges', async () => {
       const store = createWorkflowRunnerStore('bypass-test');
       mockWs.subscribe.mockImplementation(() => () => {});
-      const workflow = {
+      const workflow: Workflow = {
+        ...makeWorkflow(),
         id: 'bypass-test',
         name: 'Bypass',
         graph: {
           nodes: [
-            { id: 'a', data: {} },
-            { id: 'b', data: { bypassed: true } },
-            { id: 'c', data: {} },
+            { id: 'a', type: 'nodetool.text.Concat', data: {} },
+            {
+              id: 'b',
+              type: 'nodetool.text.Concat',
+              data: { bypassed: true },
+            },
+            { id: 'c', type: 'nodetool.text.Concat', data: {} },
           ],
           edges: [
-            { source: 'a', target: 'b' },
-            { source: 'a', target: 'c' },
+            {
+              id: 'e1',
+              source: 'a',
+              sourceHandle: 'output',
+              target: 'b',
+              targetHandle: 'input',
+            },
+            {
+              id: 'e2',
+              source: 'a',
+              sourceHandle: 'output',
+              target: 'c',
+              targetHandle: 'input',
+            },
           ],
         },
-      } as unknown as Workflow;
+      };
       await store.getState().run({}, workflow);
       const sent = mockWs.send.mock.calls[0][0] as {
         data: { graph: { nodes: unknown[]; edges: unknown[] } };

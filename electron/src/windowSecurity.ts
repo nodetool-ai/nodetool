@@ -9,7 +9,7 @@
  *   https://www.electronjs.org/docs/latest/tutorial/security
  */
 
-import { WebContents, shell } from "electron";
+import { shell } from "electron";
 import { serverState } from "./state";
 import { logMessage } from "./logger";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
@@ -70,13 +70,37 @@ export function isTrustedInAppUrl(rawUrl: string): boolean {
   return false;
 }
 
+/** The cancellable event a navigation listener receives. */
+interface CancellableEvent {
+  preventDefault(): void;
+}
+
+/**
+ * The slice of `WebContents` this module drives. Narrow on purpose: every
+ * real `WebContents` satisfies it, and a test can stand one up without
+ * standing up the whole Electron object.
+ */
+export interface HardenableWebContents {
+  on(
+    event: "will-navigate" | "will-redirect",
+    listener: (event: CancellableEvent, url: string) => void
+  ): void;
+  on(
+    event: "will-attach-webview",
+    listener: (event: CancellableEvent) => void
+  ): void;
+  setWindowOpenHandler(
+    handler: (details: { url: string }) => { action: "deny" }
+  ): void;
+}
+
 /**
  * Hardens a WebContents against untrusted navigation and popups.
  *   - Intercepts `will-navigate` / `will-redirect` and blocks off-origin loads
  *   - Routes `setWindowOpenHandler` external links through the OS browser
  *   - Disables `<webview>` attachment entirely (we don't use it)
  */
-export function hardenWebContents(contents: WebContents): void {
+export function hardenWebContents(contents: HardenableWebContents): void {
   contents.on("will-navigate", (event, url) => {
     if (!isTrustedInAppUrl(url)) {
       logMessage(`Blocking will-navigate to untrusted URL: ${url}`, "warn");

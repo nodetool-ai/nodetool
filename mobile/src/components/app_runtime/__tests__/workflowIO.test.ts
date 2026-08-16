@@ -1,17 +1,20 @@
-import type { Workflow } from "../../../types/workflow";
+import type { Node, Workflow } from "../../../types/workflow";
 import {
   extractVariableNames,
   extractWorkflowIO,
   seedInputValue,
 } from "../workflowIO";
 
-const workflow = (nodes: unknown[]): Workflow =>
+const workflow = (nodes: Node[]): Workflow =>
   ({
     id: "wf1",
     name: "Test",
     description: "",
     graph: { nodes, edges: [] },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 describe("extractWorkflowIO", () => {
   it("collects input nodes with their kind and metadata", () => {

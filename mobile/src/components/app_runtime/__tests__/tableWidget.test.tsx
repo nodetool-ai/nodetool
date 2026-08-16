@@ -92,8 +92,11 @@ const makeWorkflow = (id: string): Workflow =>
     id,
     name: "Report",
     description: "",
-    graph: { nodes: [], edges: [] }
-  }) as unknown as Workflow;
+    graph: { nodes: [], edges: [] },
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 const renderApp = (id: string, doc: unknown) =>
   render(

@@ -74,8 +74,10 @@ import type {
  * uses it to allocate its brush-stamp scratch bitmaps, so every bridge in this
  * process shares one factory.
  */
-setPaintSurfaceFactory(
-  createCanvas as unknown as (w: number, h: number) => PaintSurface
+setPaintSurfaceFactory((w: number, h: number) =>
+  // SAFETY: the engine only draws brush stamps on the surface, and a skia
+  // canvas provides every member `PaintSurface` names for that.
+  createCanvas(w, h) as PaintSurface
 );
 
 export type SketchBlendMode =

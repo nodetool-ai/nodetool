@@ -225,9 +225,8 @@ export class ComfyWorkflowNode extends BaseNode {
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
 
     const nodeCount = Object.keys(prompt).length;
-    const self = this as unknown as Record<string, unknown>;
-    const nodeId = String(self.__node_id ?? "");
-    const nodeName = String(self.__node_name ?? "Run ComfyUI Workflow");
+    const nodeId = this.__node_id;
+    const nodeName = this.__node_name ?? "Run ComfyUI Workflow";
     const logLine = (
       content: string,
       severity: "info" | "warning" | "error" = "info"
@@ -548,9 +547,8 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       }
     }
 
-    const self = this as unknown as Record<string, unknown>;
-    const nodeId = String(self.__node_id ?? "");
-    const nodeName = String(self.__node_name ?? "Run ComfyUI Workflow (Worker)");
+    const nodeId = this.__node_id;
+    const nodeName = this.__node_name ?? "Run ComfyUI Workflow (Worker)";
     const logLine = (
       content: string,
       severity: "info" | "warning" | "error" = "info"
@@ -612,7 +610,7 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       const nodeCount = Object.keys(prompt).length;
       logLine(`Running ComfyUI workflow (${nodeCount} nodes) on ${url}`);
       result = await bridge.comfyExecute(
-        prompt as unknown as Record<string, unknown>,
+        prompt,
         {
           blobs: Object.keys(blobs).length > 0 ? blobs : undefined,
           previews: Boolean(this.previews),

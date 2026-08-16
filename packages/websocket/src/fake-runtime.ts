@@ -134,7 +134,7 @@ export function fakeAllProviders(): void {
 
 /** A `resolveProvider` implementation that always hands back a fake. */
 export const resolveFakeProvider = async (): Promise<BaseProvider> =>
-  new FakeProvider() as unknown as BaseProvider;
+  new FakeProvider();
 
 // ── Executor faking ─────────────────────────────────────────────────────────
 

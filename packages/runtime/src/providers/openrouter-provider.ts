@@ -160,6 +160,8 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
     log.debug("OpenRouter textToImage", { model: params.model.id });
 
+    // SAFETY: a dictionary request against the OpenAI SDK's closed image
+    // params; OpenRouter is driven through the same client.
     const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams
     )) as OpenAI.Images.ImagesResponse;

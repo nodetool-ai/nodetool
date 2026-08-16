@@ -1159,7 +1159,9 @@ export const modelsRouter = router({
     .query(async ({ ctx, input }) => {
       if (input.scope === "worker") {
         const bridge = await requireWorkerBridge(ctx);
-        // The worker sends full UnifiedModel JSON; the bridge types it loosely.
+        // SAFETY: the worker sends full `UnifiedModel` JSON, but the bridge
+        // types the reply as `UnifiedModelLike`, which declares neither `type`
+        // nor `path` — the two fields this filter reads.
         const cached = (await bridge.listCachedModels()) as unknown as Parameters<
           typeof filterModelsByHfType
         >[0];

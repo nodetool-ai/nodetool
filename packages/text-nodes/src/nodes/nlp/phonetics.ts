@@ -469,8 +469,9 @@ export class DoubleMetaphone {
         add("K");
         if (
           token[pos + 1] === " " &&
-          // Preserve natural's truthy index check (intentional quirk).
-          (["C", "Q", "G"].indexOf(token[pos + 2]) as unknown as boolean)
+          // Preserve natural's truthy index check (intentional quirk): the
+          // index is used as a boolean, so only index 0 is falsy.
+          Boolean(["C", "Q", "G"].indexOf(token[pos + 2]))
         ) {
           pos += 2;
         } else if (
@@ -618,8 +619,9 @@ export class DoubleMetaphone {
           pos === token.length - 3 &&
           (subMatch(-1, 3, ["ILLO", "ILLA", "ALLE"]) ||
             (token.substring(pos - 1, pos + 3) === "ALLE" &&
-              // Preserve natural's `> -1` on a boolean (intentional quirk).
-              ((subMatch(-2, -1, ["AS", "OS"]) as unknown as number) > -1 ||
+              // Preserve natural's `> -1` on a boolean (intentional quirk):
+              // both `0 > -1` and `1 > -1` hold, so this half always passes.
+              (Number(subMatch(-2, -1, ["AS", "OS"])) > -1 ||
                 ["A", "O"].indexOf(token[token.length - 1]) > -1)))
         ) {
           addSecondary("L", "");

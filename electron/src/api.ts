@@ -28,8 +28,10 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
     const data = await createApiClient().workflows.list.query({ limit: 100 });
     const count = data.workflows.length;
     logMessage(`Successfully fetched ${count} workflows`);
-    // Still asserted: the wire makes `graph` nullable and a node's `data`
-    // optional, which `getInputNodes` dereferences unconditionally.
+    // SAFETY: the server always sends a graph whose nodes carry `data`, but
+    // the wire schema declares `graph` nullable and lets `data` ride in on a
+    // catchall, so the row type and this module's `Workflow` do not overlap.
+    // `getInputNodes` dereferences both unconditionally.
     return data.workflows as unknown as Workflow[];
   } catch (error) {
     if (error instanceof Error) {

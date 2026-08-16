@@ -42,6 +42,23 @@ jest.mock("fs", () => {
   };
 });
 
+type WatchdogInstance = import("../watchdog").Watchdog;
+
+/** `Watchdog#forkUtilityProcess`, which is `private` on the class. */
+interface WatchdogFork {
+  forkUtilityProcess(): Promise<void>;
+}
+
+/**
+ * Fork without going through the full async start (which depends on TCP probe
+ * loops).
+ */
+const forkUtilityProcess = (wd: WatchdogInstance): Promise<void> => {
+  // SAFETY: `forkUtilityProcess` is the watchdog's own private method.
+  const fork: WatchdogFork = wd as WatchdogInstance & WatchdogFork;
+  return fork.forkUtilityProcess();
+};
+
 describe("backend utilityProcess spawn contract", () => {
   let Watchdog: typeof import("../watchdog").Watchdog;
 
@@ -99,9 +116,7 @@ describe("backend utilityProcess spawn contract", () => {
 
     // Trigger the fork without going through the full async start (which
     // depends on TCP probe loops). Spawn directly via the private path.
-    await (watchdog as unknown as {
-      forkUtilityProcess: () => Promise<void>;
-    }).forkUtilityProcess();
+    await forkUtilityProcess(watchdog);
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/backend/server.mjs",
@@ -144,9 +159,7 @@ describe("backend utilityProcess spawn contract", () => {
       logOutput: false,
     });
 
-    await (watchdog as unknown as {
-      forkUtilityProcess: () => Promise<void>;
-    }).forkUtilityProcess();
+    await forkUtilityProcess(watchdog);
 
     expect(electronMock.utilityProcess.fork).toHaveBeenCalledWith(
       "/mock/electron/dev-server-runner.cjs",

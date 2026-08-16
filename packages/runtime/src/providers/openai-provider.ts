@@ -1105,6 +1105,9 @@ export class OpenAIProvider extends BaseProvider {
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
+    // SAFETY: the request is assembled field by field as a dictionary, which
+    // the SDK's closed param interface does not overlap; `stream: true` on it
+    // selects the streaming overload.
     const stream = (await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
       { signal: args.signal }
@@ -1241,6 +1244,8 @@ export class OpenAIProvider extends BaseProvider {
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
+    // SAFETY: as above — a dictionary request against the SDK's closed
+    // non-streaming param interface.
     const completion = await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
       { signal: args.signal }
@@ -1319,6 +1324,9 @@ export class OpenAIProvider extends BaseProvider {
     const client = this.getClient();
 
     this.recordRequestPayload(request);
+    // SAFETY: the SDK's `create` is overloaded over a closed param interface,
+    // while this request is assembled field by field; `stream: false` is set
+    // on it, so the SDK resolves a response object, not an async iterable.
     const response = (await (
       client.responses.create as unknown as ResponsesCreate
     ).call(client.responses, request, {
@@ -1508,6 +1516,9 @@ export class OpenAIProvider extends BaseProvider {
   ): AsyncGenerator<ProviderStreamItem> {
     const client = this.getClient();
     this.recordRequestPayload(request);
+    // SAFETY: as in `generateMessageResponses` — an overloaded SDK method over
+    // a closed param interface, given a request assembled field by field. The
+    // caller set `stream: true`, so the SDK resolves an async iterable.
     const stream = (await (
       client.responses.create as unknown as ResponsesCreate
     ).call(client.responses, request, {
@@ -1775,6 +1786,7 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
+    // SAFETY: a dictionary request against the SDK's closed image params.
     const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams,
       { signal: params.signal }
@@ -1895,6 +1907,7 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
+    // SAFETY: a dictionary request against the SDK's closed edit params.
     const response = (await this.getClient().images.edit(
       request as unknown as OpenAI.Images.ImageEditParams,
       { signal: params.signal }
@@ -2166,6 +2179,7 @@ export class OpenAIProvider extends BaseProvider {
       seconds: String(seconds)
     };
 
+    // SAFETY: a dictionary request against the SDK's closed video params.
     const video = await this.getClient().videos.create(
       request as unknown as OpenAI.Videos.VideoCreateParams,
       { signal: params.signal }

@@ -16,16 +16,34 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
+import type {
+  PermissionResponse,
+  PermissionStatus,
+} from 'expo-modules-core';
 import { ChatComposer } from './ChatComposer';
 import { ChatStatus } from '../../types';
 
-const speech = ExpoSpeechRecognitionModule as unknown as {
-  isRecognitionAvailable: jest.Mock;
-  getPermissionsAsync: jest.Mock;
-  requestPermissionsAsync: jest.Mock;
-  start: jest.Mock;
-  stop: jest.Mock;
-  abort: jest.Mock;
+const speech = jest.mocked(ExpoSpeechRecognitionModule);
+
+/**
+ * `PermissionStatus` is a string enum in `expo-modules-core`, but importing it
+ * as a value loads Expo's native EventEmitter, which has no host under Jest.
+ */
+// SAFETY: these are the enum's own member values.
+const GRANTED_STATUS = 'granted' as PermissionStatus;
+const DENIED_STATUS = 'denied' as PermissionStatus;
+
+const GRANTED: PermissionResponse = {
+  status: GRANTED_STATUS,
+  granted: true,
+  canAskAgain: true,
+  expires: 'never',
+};
+const DENIED: PermissionResponse = {
+  status: DENIED_STATUS,
+  granted: false,
+  canAskAgain: false,
+  expires: 'never',
 };
 const eventHook = jest.mocked(useSpeechRecognitionEvent);
 
@@ -71,8 +89,8 @@ describe('ChatComposer', () => {
       speechListeners[name] = (event) => listener(event as never);
     });
     speech.isRecognitionAvailable.mockReturnValue(true);
-    speech.getPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
-    speech.requestPermissionsAsync.mockResolvedValue({ status: 'granted', granted: true });
+    speech.getPermissionsAsync.mockResolvedValue(GRANTED);
+    speech.requestPermissionsAsync.mockResolvedValue(GRANTED);
   });
 
   describe('Rendering', () => {
@@ -409,8 +427,8 @@ describe('ChatComposer', () => {
     });
 
     it('surfaces a denied permission instead of recording', async () => {
-      speech.getPermissionsAsync.mockResolvedValue({ status: 'denied', granted: false });
-      speech.requestPermissionsAsync.mockResolvedValue({ status: 'denied', granted: false });
+      speech.getPermissionsAsync.mockResolvedValue(DENIED);
+      speech.requestPermissionsAsync.mockResolvedValue(DENIED);
       renderComposer();
 
       fireEvent.press(screen.getByTestId('mic-button'));
