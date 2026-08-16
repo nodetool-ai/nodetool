@@ -765,6 +765,13 @@ const extractTextContent = (message: Message): string => {
   return "";
 };
 
+const isLocalStreamId = (id: string | null | undefined): boolean =>
+  id?.startsWith("local-stream-") ?? false;
+
+/** Finalized by the server: it stamped a timestamp, or an id we did not mint. */
+const isServerAuthored = (msg: Message): boolean =>
+  !!msg.created_at || (!!msg.id && !isLocalStreamId(msg.id));
+
 /**
  * Locate the trailing local streaming placeholder (the `local-stream-*`
  * assistant message that applyChunk builds from streamed text) that an incoming
@@ -775,75 +782,53 @@ const extractTextContent = (message: Message): string => {
  * reconciliation the placeholder and the finalized message both render, so the
  * same text appears twice. Returns -1 when the incoming message is genuinely new.
  *
- * Matching is anchored to the most-recently-appended local-stream-* placeholder.
- * We never scan past it: in multi-tool turns there can be several un-finalized
- * placeholders, and a short finalized message must not overwrite an older longer
- * one by matching via the reverse startsWith direction.
+ * Only the last un-finalized placeholder is considered. In multi-tool turns
+ * there can be several, and a short finalized message must not overwrite an
+ * older longer one by matching via the reverse startsWith direction.
  */
 const findStreamPlaceholderIndex = (
   messages: Message[],
   msg: Message,
   status: GlobalChatState["status"]
 ): number => {
-  const incomingText = extractTextContent(msg);
-  const incomingNormalized = normalizeTextForComparison(incomingText);
-
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const candidate = messages[i];
-    if (candidate?.role !== "assistant") {
-      continue;
-    }
-    if (candidate.type !== "message") {
-      continue;
-    }
-
-    const candidateId = candidate.id ?? null;
-    const isLocalStream =
-      typeof candidateId === "string" &&
-      candidateId.startsWith("local-stream-");
-    const isServerAuthored =
-      !!candidate.created_at || (!!candidateId && !isLocalStream);
-
-    if (isServerAuthored) {
-      continue;
-    }
-
-    // This is the most-recently-appended local-stream-* placeholder.
-    // Evaluate it and stop — never scan past it to older placeholders.
-    const candidateText = extractTextContent(candidate);
-    const candidateNormalized = normalizeTextForComparison(candidateText);
-    if (!candidateNormalized || !incomingNormalized) {
-      return -1;
-    }
-
-    if (
-      candidateNormalized === incomingNormalized ||
-      incomingNormalized.startsWith(candidateNormalized)
-    ) {
-      return i;
-    }
-
-    // Prefer replacing the trailing local placeholder even if trailing
-    // whitespace differs (streaming may not have flushed the final space).
-    if (
-      (status === "streaming" || isLocalStream) &&
-      candidateText &&
-      incomingText
-    ) {
-      const candidateTrimmed = candidateText.trimEnd();
-      const incomingTrimmed = incomingText.trimEnd();
-      if (
-        candidateTrimmed === incomingTrimmed ||
-        incomingTrimmed.startsWith(candidateTrimmed)
-      ) {
-        return i;
-      }
-    }
-
-    // No match at the trailing placeholder — the incoming is a new message.
+  const index = messages.findLastIndex(
+    (candidate) =>
+      candidate?.role === "assistant" &&
+      candidate.type === "message" &&
+      !isServerAuthored(candidate)
+  );
+  if (index < 0) {
     return -1;
   }
-  return -1;
+  const candidate = messages[index];
+
+  const candidateText = extractTextContent(candidate);
+  const incomingText = extractTextContent(msg);
+  const candidateNormalized = normalizeTextForComparison(candidateText);
+  const incomingNormalized = normalizeTextForComparison(incomingText);
+  if (!candidateNormalized || !incomingNormalized) {
+    return -1;
+  }
+  if (
+    candidateNormalized === incomingNormalized ||
+    incomingNormalized.startsWith(candidateNormalized)
+  ) {
+    return index;
+  }
+
+  // Prefer replacing the trailing local placeholder even if trailing
+  // whitespace differs (streaming may not have flushed the final space).
+  const allowLooseMatch =
+    status === "streaming" || isLocalStreamId(candidate.id);
+  if (!allowLooseMatch || !candidateText || !incomingText) {
+    return -1;
+  }
+  const candidateTrimmed = candidateText.trimEnd();
+  const incomingTrimmed = incomingText.trimEnd();
+  const looselyMatches =
+    candidateTrimmed === incomingTrimmed ||
+    incomingTrimmed.startsWith(candidateTrimmed);
+  return looselyMatches ? index : -1;
 };
 
 /**
