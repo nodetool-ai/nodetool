@@ -76,7 +76,7 @@ async function runpodRest(
   apiKey: string,
   endpoint: string,
   method: HttpMethod = "GET",
-  data?: object
+  data?: RunpodPodSpec
 ): Promise<Record<string, unknown>> {
   if (!apiKey) throw new Error("RunPod API key is required");
   const init: RequestInit = {

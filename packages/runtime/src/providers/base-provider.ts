@@ -319,12 +319,10 @@ export abstract class BaseProvider {
    */
   private installModalityFailureLogging(): void {
     for (const name of MODALITY_PROMISE_METHODS) {
-      const fn = Reflect.get(this, name);
-      if (
-        typeof fn !== "function" ||
-        fn === Reflect.get(BaseProvider.prototype, name)
-      )
+      const fn = this[name];
+      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
         continue;
+      }
       // SAFETY: `name` comes from MODALITY_PROMISE_METHODS and the check above
       // proved this instance overrides it, so `fn` is that modality method.
       const original = fn as (...args: unknown[]) => Promise<ModalityResult>;
@@ -356,12 +354,10 @@ export abstract class BaseProvider {
     }
 
     for (const name of MODALITY_GENERATOR_METHODS) {
-      const fn = Reflect.get(this, name);
-      if (
-        typeof fn !== "function" ||
-        fn === Reflect.get(BaseProvider.prototype, name)
-      )
+      const fn = this[name];
+      if (typeof fn !== "function" || fn === BaseProvider.prototype[name]) {
         continue;
+      }
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
       Reflect.set(this, name, (...args: unknown[]): AsyncGenerator<unknown> =>
         wrapModalityGenerator(this, original, args)

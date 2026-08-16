@@ -157,14 +157,10 @@ function createNodeBackend(mod: NapiCanvasModule): MediaBackend {
     createSurface(width, height) {
       const canvas = mod.createCanvas(width, height);
       const ctx = canvas.getContext("2d");
-      return {
-        width,
-        height,
-        ctx,
-        // Kept off the public interface — `encode` reaches it through the
-        // closure below rather than widening MediaSurface with a backend type.
-        ...({ __canvas: canvas } as Record<string, unknown>)
-      } as MediaSurface;
+      // `__canvas` is this backend's own extension of the surface, kept off
+      // the public MediaSurface so callers cannot reach the backing canvas.
+      const surface: NapiSurface = { width, height, ctx, __canvas: canvas };
+      return surface;
     },
     async decode(bytes) {
       const img = await mod.loadImage(bytes);
@@ -183,9 +179,9 @@ function createNodeBackend(mod: NapiCanvasModule): MediaBackend {
       return { width, height, handle: canvas };
     },
     async encode(surface, format, quality) {
-      // SAFETY: `createSurface` above stashes the backing canvas under
-      // `__canvas`, and only this backend's own surfaces reach its `encode`.
-      const canvas = Reflect.get(surface, "__canvas") as NapiSurfaceCanvas;
+      // SAFETY: `createSurface` above is the only maker of this backend's
+      // surfaces and always sets `__canvas`; no other surface reaches here.
+      const canvas = (surface as NapiSurface).__canvas;
       const q = napiQuality(format, quality);
       const out =
         q === undefined
@@ -198,6 +194,9 @@ function createNodeBackend(mod: NapiCanvasModule): MediaBackend {
 
 type NapiSurfaceCanvas = ReturnType<NapiCanvasModule["createCanvas"]>;
 
+/** A surface made by the napi backend, carrying the canvas `encode` needs. */
+type NapiSurface = MediaSurface & { readonly __canvas: NapiSurfaceCanvas };
+
 interface OffscreenCanvasLike {
   width: number;
   height: number;
@@ -208,30 +207,35 @@ interface OffscreenCanvasLike {
   }) => Promise<{ arrayBuffer: () => Promise<ArrayBuffer> }>;
 }
 
+/**
+ * The browser canvas globals this backend runs on, typed as it uses them: the
+ * DOM lib's own signatures are narrower than the structural surface here.
+ */
+interface CanvasGlobals {
+  readonly OffscreenCanvas: new (w: number, h: number) => OffscreenCanvasLike;
+  readonly createImageBitmap: (
+    source: unknown
+  ) => Promise<{ width: number; height: number }>;
+}
+
+/** A surface made by the browser backend, carrying the canvas `encode` needs. */
+type BrowserSurface = MediaSurface & { readonly __canvas: OffscreenCanvasLike };
+
 function createBrowserBackend(): MediaBackend {
   // SAFETY: this backend is chosen only on a host that has the browser
   // canvas globals; `createBrowserBackend` is never reached otherwise.
-  const OffscreenCanvasCtor = Reflect.get(
-    globalThis,
-    "OffscreenCanvas"
-  ) as new (w: number, h: number) => OffscreenCanvasLike;
+  const globals = globalThis as CanvasGlobals;
   const make = (w: number, h: number): OffscreenCanvasLike =>
-    new OffscreenCanvasCtor(w, h);
-  const createBitmap = Reflect.get(globalThis, "createImageBitmap") as (
-    source: unknown
-  ) => Promise<{ width: number; height: number }>;
+    new globals.OffscreenCanvas(w, h);
+  const createBitmap = globals.createImageBitmap;
 
   return {
     createSurface(width, height) {
       const canvas = make(width, height);
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("2d canvas context unavailable");
-      return {
-        width,
-        height,
-        ctx,
-        ...({ __canvas: canvas } as Record<string, unknown>)
-      } as MediaSurface;
+      const surface: BrowserSurface = { width, height, ctx, __canvas: canvas };
+      return surface;
     },
     async decode(bytes) {
       const blob = new Blob([bytes as BlobPart]);
@@ -250,9 +254,9 @@ function createBrowserBackend(): MediaBackend {
       return { width, height, handle: bitmap };
     },
     async encode(surface, format, quality) {
-      // SAFETY: `createSurface` above stashes the backing canvas under
-      // `__canvas`, and only this backend's own surfaces reach its `encode`.
-      const canvas = Reflect.get(surface, "__canvas") as OffscreenCanvasLike;
+      // SAFETY: `createSurface` above is the only maker of this backend's
+      // surfaces and always sets `__canvas`; no other surface reaches here.
+      const canvas = (surface as BrowserSurface).__canvas;
       const blob = await canvas.convertToBlob({
         type: `image/${format}`,
         quality

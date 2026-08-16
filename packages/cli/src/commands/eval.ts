@@ -17,6 +17,7 @@
 import type { Command } from "commander";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { ToolLoopEvalCase } from "@nodetool-ai/agents";
 import { parseNumericOption } from "../numeric-options.js";
 
 interface EvalCliOptions {
@@ -498,16 +499,8 @@ const appBuildSuite: EvalSuite = {
   }
 };
 
-/**
- * The runner's own case type, recovered from its signature. A suite reads its
- * cases off a dynamically-named module export, so nothing carries the type
- * across that lookup — naming it here is what lets the array reach the runner.
- */
-type ToolLoopCaseLike = NonNullable<
-  Parameters<
-    typeof import("@nodetool-ai/agents").runToolLoopEval
-  >[0]["cases"]
->[number];
+/** The lazily-imported suite module every tool-loop suite reads its cases from. */
+type AgentsModule = typeof import("@nodetool-ai/agents");
 
 /**
  * Build a tool-loop suite (multi-turn `ui_*` tool calling) from a named export
@@ -515,23 +508,24 @@ type ToolLoopCaseLike = NonNullable<
  * suites (script/sketch/timeline/storyboard/3D) all share the generic runner
  * and report shape — only the case array differs — so each is data, not code.
  */
-function makeToolLoopSuite(
+function makeToolLoopSuite<TFinal>(
   id: string,
   description: string,
-  casesExport: string
+  casesOf: (mod: AgentsModule) => readonly ToolLoopEvalCase<TFinal>[]
 ): EvalSuite {
-  const pickCases = (mod: object): readonly ToolLoopCaseLike[] => {
-    const picked: unknown = Reflect.get(mod, casesExport);
+  const pickCases = (mod: AgentsModule): readonly ToolLoopEvalCase<TFinal>[] => {
+    // The declaration says this is an array; a stale packages/*/dist can still
+    // hand back nothing, so say which suite lost its cases rather than failing
+    // later on `.map` of undefined.
+    const picked: readonly ToolLoopEvalCase<TFinal>[] | undefined = casesOf(mod);
     if (!Array.isArray(picked)) {
       throw new Error(
-        `Eval suite "${id}" expected an array export "${casesExport}" from ` +
-          `@nodetool-ai/agents, but got ${picked === undefined ? "undefined" : typeof picked}.`
+        `Eval suite "${id}" found no case array in @nodetool-ai/agents. ` +
+          `A stale packages/*/dist is the usual cause — rebuild with ` +
+          `npm run build:packages.`
       );
     }
-    // SAFETY: every `casesExport` name this file passes points at a
-    // tool-loop case array in @nodetool-ai/agents, and the Array.isArray guard
-    // above rejects an export that is not an array at all.
-    return picked as readonly ToolLoopCaseLike[];
+    return picked;
   };
 
   return {
@@ -583,57 +577,57 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
   makeToolLoopSuite(
     "tool-loop",
     "Run the frontend graph-editor tool-loop eval suite (ui_* graph tools) against a provider/model and report metrics",
-    "TOOL_LOOP_EVAL_CASES"
+    (mod) => mod.TOOL_LOOP_EVAL_CASES
   ),
   makeToolLoopSuite(
     "workflow-escalation",
     "Run the workflow-tool escalation eval suite (ui_* graph tools plus an ask_user channel to a scripted user) against a provider/model",
-    "WORKFLOW_ESCALATION_TOOL_LOOP_CASES"
+    (mod) => mod.WORKFLOW_ESCALATION_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "script-tools",
     "Run the Script surface tool-loop eval suite (ui_script_* tools) against a provider/model",
-    "SCRIPT_TOOL_LOOP_CASES"
+    (mod) => mod.SCRIPT_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "jsscript-tools",
     "Run the JS-script surface tool-loop eval suite (ui_jsscript_* tools, real sandbox execution) against a provider/model",
-    "JS_SCRIPT_TOOL_LOOP_CASES"
+    (mod) => mod.JS_SCRIPT_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "sketch-tools",
     "Run the Sketch/image-editor surface tool-loop eval suite (ui_sketch_* tools) against a provider/model",
-    "SKETCH_TOOL_LOOP_CASES"
+    (mod) => mod.SKETCH_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "timeline-tools",
     "Run the Timeline/video-editor surface tool-loop eval suite (ui_timeline_* tools) against a provider/model",
-    "TIMELINE_TOOL_LOOP_CASES"
+    (mod) => mod.TIMELINE_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "storyboard-tools",
     "Run the Storyboard surface tool-loop eval suite (ui_storyboard_* tools) against a provider/model",
-    "STORYBOARD_TOOL_LOOP_CASES"
+    (mod) => mod.STORYBOARD_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "model3d-tools",
     "Run the 3D model-editor surface tool-loop eval suite (ui_3d_* tools) against a provider/model",
-    "MODEL3D_TOOL_LOOP_CASES"
+    (mod) => mod.MODEL3D_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "app-tools",
     "Run the App Builder surface tool-loop eval suite (ui_app_* tools) against a provider/model",
-    "APP_TOOL_LOOP_CASES"
+    (mod) => mod.APP_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "thread-memory-tools",
     "Run the thread-memory tool-loop eval suite (thread_memory_*/asset tools, real DB) against a provider/model",
-    "THREAD_MEMORY_TOOL_LOOP_CASES"
+    (mod) => mod.THREAD_MEMORY_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
     "creative-pipeline",
     "Run the long-horizon creative eval: one commission carried through brief, ideation, sketch, storyboard, cut and review across the composed ui_sketch_*/ui_storyboard_*/ui_timeline_* surfaces",
-    "CREATIVE_PIPELINE_TOOL_LOOP_CASES"
+    (mod) => mod.CREATIVE_PIPELINE_TOOL_LOOP_CASES
   )
 ];
 

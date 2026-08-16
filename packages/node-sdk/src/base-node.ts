@@ -472,8 +472,7 @@ export abstract class BaseNode {
     properties: Record<string, unknown>,
     options: NodeValidationOptions = {}
   ): NodePropertyValidationIssue[] {
-    const cls = this;
-    const declared = cls.getDeclaredProperties();
+    const declared = this.getDeclaredProperties();
     const dynamicSlots = options.dynamicSlots;
     let dynamicValues = options.dynamicValues;
     if (dynamicSlots && !dynamicValues) {
@@ -489,7 +488,7 @@ export abstract class BaseNode {
     return validateNodeProperties(declared, properties, {
       connectedHandles: options.connectedHandles,
       nodeId: options.nodeId,
-      nodeType: cls.nodeType,
+      nodeType: this.nodeType,
       dynamicSlots,
       dynamicValues
     });
@@ -799,29 +798,27 @@ export abstract class BaseNode {
   }
 
   static toDescriptor(id?: string): NodeDescriptor {
-    const cls = this;
     const propertyTypes = Object.fromEntries(
-      cls
-        .getDeclaredProperties()
+      this.getDeclaredProperties()
         .map((entry) => [entry.name, entry.options.type])
     );
     const desc: NodeDescriptor = {
-      id: id ?? cls.nodeType,
-      type: cls.nodeType,
-      name: cls.title,
-      is_streaming_input: cls.isStreamingInput,
-      is_streaming_output: hasStreamingOutput(cls),
-      input_mode: cls.inputMode,
-      output_correlation: cls.outputCorrelation,
-      is_controlled: cls.isControlled,
-      is_join_node: cls.isJoinNode || undefined,
-      is_trigger: cls.isTrigger || undefined,
-      retry_safe: cls.retrySafe || undefined
+      id: id ?? this.nodeType,
+      type: this.nodeType,
+      name: this.title,
+      is_streaming_input: this.isStreamingInput,
+      is_streaming_output: hasStreamingOutput(this),
+      input_mode: this.inputMode,
+      output_correlation: this.outputCorrelation,
+      is_controlled: this.isControlled,
+      is_join_node: this.isJoinNode || undefined,
+      is_trigger: this.isTrigger || undefined,
+      retry_safe: this.retrySafe || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;
     }
-    const outputs = cls.getDeclaredOutputs();
+    const outputs = this.getDeclaredOutputs();
     if (Object.keys(outputs).length > 0) {
       desc.outputs = outputs;
     }

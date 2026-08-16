@@ -44,11 +44,10 @@ async function toMessageResponse(
     workflow_target: msg.workflow_target ?? null,
     media_generation: msg.media_generation ?? null,
     created_at: msg.created_at,
-    // SAFETY: the messages table has an `updated_at` column the row type
-    // does not declare; a row written before it existed falls back to
-    // `created_at`, which is what the `??` below covers.
-    updated_at:
-      (Reflect.get(msg, "updated_at") as string | undefined) ?? msg.created_at
+    // A message is never edited, and `nodetool_messages` has carried no
+    // `updated_at` column since it was created, so the response reports the
+    // creation time as the last-modified time.
+    updated_at: msg.created_at
   };
 }
 

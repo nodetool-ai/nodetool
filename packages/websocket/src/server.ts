@@ -131,6 +131,9 @@ import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import kieWebhookRoute from "./routes/kie-webhook.js";
 
+/** The Node `process` as Electron extends it. `type` is absent elsewhere. */
+type ElectronProcess = typeof process & { readonly type?: string };
+
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
 // causing it to take browser-only code paths that reference the global `document`
@@ -141,8 +144,10 @@ import kieWebhookRoute from "./routes/kie-webhook.js";
 {
   // Electron adds these two to the Node `process`; on plain Node both reads
   // come back undefined and the check below fails, as it should.
-  const electronVersion = Reflect.get(process.versions, "electron");
-  const processType = Reflect.get(process, "type");
+  const electronVersion = process.versions["electron"];
+  // SAFETY: `type` is Electron's addition to the Node `process`, so it is
+  // declared optional here and reads undefined everywhere else.
+  const processType = (process as ElectronProcess).type;
   if (electronVersion && processType && processType !== "browser") {
     try {
       Object.defineProperty(process, "type", {

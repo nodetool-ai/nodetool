@@ -78,6 +78,11 @@ interface SSH2Client {
   ): void;
   sftp(callback: (err: Error | undefined, sftp: SSH2SFTPWrapper) => void): void;
   end(): void;
+  /**
+   * ssh2 keeps the transport on this undocumented field. Optional because a
+   * build that renames it must degrade to "not connected", not throw.
+   */
+  readonly _sock?: SshUnderlyingSocket;
 }
 
 export interface SSH2ClientConstructor {
@@ -278,11 +283,7 @@ export class SSHConnection {
   isConnected(): boolean {
     if (!this.client) return false;
     // Heuristic: check whether the underlying socket is writable.
-    const sock: SshUnderlyingSocket | undefined = Reflect.get(
-      this.client,
-      "_sock"
-    );
-    return sock?.writable === true;
+    return this.client._sock?.writable === true;
   }
 
   /** Ensure connection is active, reconnect if necessary. */

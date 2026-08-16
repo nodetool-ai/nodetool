@@ -189,12 +189,22 @@ function computeFieldClassification(
  * Shared with KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
  */
 /**
- * Read one declared property off a node instance. Declared properties are
- * plain instance fields, and a manifest-built node looks them up by the name
- * the manifest gave — reflection, not dictionary access.
+ * A manifest-built node seen through its declared properties. Each manifest
+ * field is registered as a plain instance property, so the manifest's field
+ * name indexes the instance directly.
+ */
+type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
+
+/**
+ * Read one declared property off a node instance, by the name the manifest
+ * gave it.
  */
 function propertyOf(instance: BaseNode, name: string): NodeValue {
-  return Reflect.get(instance, name);
+  // SAFETY: every declared property is registered from a manifest field, whose
+  // declared types are exactly the scalars, media refs, and lists or dicts of
+  // those that `NodeValue` names.
+  const properties = instance as ManifestNodeProperties;
+  return properties[name];
 }
 
 async function promptAssetOverrides(
