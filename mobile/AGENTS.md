@@ -61,13 +61,13 @@ read the comment at the top of `metro.config.js` before changing any of it.
   `/api/applications/*` by `hooks/useApplications.ts`) with native widgets on
   top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`
   harness use. See [ARCHITECTURE.md § Mini apps](ARCHITECTURE.md#mini-apps-srccomponentsapp_runtime).
-- **Documents**: `documents/` + the document screens open storyboards, scripts, timelines,
-  and sketches. No tabs — one document per pushed screen. Edits are expected to come from
+- **Documents**: `documents/` + the document screens open storyboards, scripts, JS scripts,
+  timelines, and sketches. No tabs — one document per pushed screen. Edits are expected to come from
   the chat agent through the `ui_*` tools registered there, so `kinds.ts` tracks
   `agentEditable` separately from `surface`: the timeline has no touch editor but the agent
   writes it. Each kind's transport lives in `backends.ts` (scripts are not a
-  `resources.*` kind — their table has no `revision`), which is why the store's
-  concurrency token is opaque.
+  `resources.*` kind — neither their table nor the JS scripts table has a
+  `revision`), which is why the store's concurrency token is opaque.
   See [ARCHITECTURE.md § Documents](ARCHITECTURE.md#documents-srcdocuments).
 
 ## Testing
@@ -101,7 +101,7 @@ Two things to know:
   login wall. Restore it afterwards.
 - **Parameterized routes** (a document, an asset, a job) need real ids; pass them
   with `--ids ids.json` (keys: `workflowId`, `threadId`, `applicationId`,
-  `assetId`, `jobId`, `scriptId`, `storyboardId`, `timelineId`, `sketchId`,
+  `assetId`, `jobId`, `scriptId`, `jsScriptId`, `storyboardId`, `timelineId`, `sketchId`,
   `noteId`). Routes whose id is missing are skipped, so a partial seed still runs.
 
 The emitted `report.json` flags any screen whose document scrolls horizontally —

@@ -348,9 +348,84 @@ describe("FAL factory argument building", () => {
     });
 
     await expect(new NodeClass({}).process()).rejects.toThrow(
-      "Flux Pro Fill: Mask must be connected and match image dimensions"
+      "Flux Pro Fill: Mask is not set — connect an input or set the property to an image with a uri, asset_id, or inline data (it must match the image dimensions)"
     );
     expect(falSubmit).not.toHaveBeenCalled();
+  });
+
+  it("declares required asset inputs as required so validation catches them", () => {
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/bria/background/remove",
+      className: "BriaBackgroundRemove",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "image",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "image_url"
+        },
+        {
+          name: "sync_mode",
+          propType: "bool",
+          tsType: "boolean",
+          default: false,
+          description: "",
+          fieldType: "input",
+          required: false
+        }
+      ]
+    });
+
+    const declared = new Map(
+      (
+        NodeClass as unknown as {
+          getDeclaredProperties(): Array<{
+            name: string;
+            options: { required?: boolean };
+          }>;
+        }
+      )
+        .getDeclaredProperties()
+        .map((entry) => [entry.name, entry.options.required])
+    );
+    expect(declared.get("image")).toBe(true);
+    // Non-asset fields keep their manifest default, so they stay optional.
+    expect(declared.get("sync_mode")).toBeUndefined();
+
+    const issues = (
+      NodeClass as unknown as {
+        validateProperties(
+          properties: Record<string, unknown>
+        ): Array<{ property: string; code: string; message: string }>;
+      }
+    ).validateProperties({ image: { type: "image" } });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.property).toBe("image");
+    expect(issues[0]?.code).toBe("required");
+
+    // A ref carrying a uri validates.
+    expect(
+      (
+        NodeClass as unknown as {
+          validateProperties(
+            properties: Record<string, unknown>
+          ): unknown[];
+        }
+      ).validateProperties({
+        image: { type: "image", uri: "https://example.com/a.png" }
+      })
+    ).toEqual([]);
   });
 
   const makeNode = (overrides: Partial<Parameters<typeof createFalNodeClass>[0]>) =>

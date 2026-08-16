@@ -23,10 +23,19 @@ const mockScripts = {
   delete: { mutate: jest.fn() },
 };
 
+const mockJsScripts = {
+  get: { query: jest.fn() },
+  update: { mutate: jest.fn() },
+  list: { query: jest.fn() },
+  create: { mutate: jest.fn() },
+  delete: { mutate: jest.fn() },
+};
+
 jest.mock('../../trpc/client', () => ({
   createMobileTRPCClient: () => ({
     resources: mockResources,
     scripts: mockScripts,
+    jsScripts: mockJsScripts,
   }),
 }));
 
@@ -218,9 +227,108 @@ describe('scripts backend', () => {
   });
 });
 
+describe('js scripts backend', () => {
+  const response = {
+    id: 'js1',
+    projectId: 'default',
+    name: 'Sum numbers',
+    document: { schemaVersion: 1, code: 'await output("total", 3);' },
+    createdAt: '2026-08-01T00:00:00Z',
+    updatedAt: '2026-08-02T00:00:00Z',
+  };
+
+  it('reads updatedAt out as the token', async () => {
+    mockJsScripts.get.query.mockResolvedValue(response);
+
+    const loaded = await documentBackend('jsscript').read('js1');
+
+    expect(mockJsScripts.get.query).toHaveBeenCalledWith({ id: 'js1' });
+    expect(loaded).toEqual({
+      doc: response.document,
+      name: 'Sum numbers',
+      token: '2026-08-02T00:00:00Z',
+      updatedAt: '2026-08-02T00:00:00Z',
+    });
+  });
+
+  it('echoes a string token back as baseUpdatedAt', async () => {
+    mockJsScripts.update.mutate.mockResolvedValue(response);
+
+    await documentBackend('jsscript').save('js1', {
+      doc: response.document,
+      name: 'Sum numbers',
+      token: '2026-08-01T00:00:00Z',
+    });
+
+    expect(mockJsScripts.update.mutate).toHaveBeenCalledWith({
+      id: 'js1',
+      name: 'Sum numbers',
+      document: response.document,
+      baseUpdatedAt: '2026-08-01T00:00:00Z',
+    });
+  });
+
+  it('omits baseUpdatedAt when the token is not a string', async () => {
+    mockJsScripts.update.mutate.mockResolvedValue(response);
+
+    await documentBackend('jsscript').save('js1', {
+      doc: {},
+      name: 'x',
+      token: 5,
+    });
+
+    expect(mockJsScripts.update.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUpdatedAt: undefined })
+    );
+  });
+
+  it('surfaces the declared port counts as the row detail', async () => {
+    mockJsScripts.list.query.mockResolvedValue([
+      {
+        id: 'js1',
+        projectId: 'p',
+        name: 'Sum numbers',
+        description: '',
+        inputs: [{ name: 'numbers', type: 'list[int]' }],
+        outputs: [{ name: 'total', type: 'int' }],
+        updatedAt: 'x',
+      },
+    ]);
+
+    const rows = await documentBackend('jsscript').list(50);
+
+    expect(rows).toEqual([
+      { id: 'js1', name: 'Sum numbers', updatedAt: 'x', detail: '1 in · 1 out' },
+    ]);
+  });
+
+  it('creates and deletes through the jsScripts router, never the others', async () => {
+    mockJsScripts.create.mutate.mockResolvedValue(response);
+    mockJsScripts.delete.mutate.mockResolvedValue({ ok: true });
+
+    const created = await documentBackend('jsscript').create('Sum numbers');
+    await documentBackend('jsscript').remove('js1');
+
+    expect(created).toEqual({
+      id: 'js1',
+      name: 'Sum numbers',
+      updatedAt: '2026-08-02T00:00:00Z',
+    });
+    expect(mockJsScripts.delete.mutate).toHaveBeenCalledWith({ id: 'js1' });
+    expect(mockScripts.create.mutate).not.toHaveBeenCalled();
+    expect(mockResources.create.mutate).not.toHaveBeenCalled();
+  });
+});
+
 describe('every document kind', () => {
   it('is writable', () => {
-    for (const kind of ['storyboard', 'script', 'timeline', 'sketch'] as const) {
+    for (const kind of [
+      'storyboard',
+      'script',
+      'jsscript',
+      'timeline',
+      'sketch',
+    ] as const) {
       expect(documentBackend(kind).writable).toBe(true);
     }
   });
