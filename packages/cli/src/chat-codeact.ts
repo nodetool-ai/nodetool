@@ -45,6 +45,9 @@ class ExecuteCodeTool extends Tool {
     this.jsonSchema = session.providerTool.inputSchema as JsonSchema;
   }
 
+  // HOLDOUT (anti-slop/no-unknown-returns): a CodeAct action answers with
+  // whatever its body returned, and the base `Tool.process` contract in
+  // `@nodetool-ai/agents` declares `Promise<unknown>`.
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>

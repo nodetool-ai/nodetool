@@ -10,6 +10,11 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "@nodetool-ai/agents";
 
+/**
+ * HOLDOUT (anti-slop/no-unknown-returns): a node's output is an arbitrary
+ * workflow value (or an `{ error }` bag when the run failed) — the open domain
+ * NodeTool has no named union for.
+ */
 export type RunNodeFn = (
   nodeType: string,
   inputs: Record<string, unknown>
@@ -48,6 +53,9 @@ export class RunNodeTool extends Tool {
     this.runNode = runNode;
   }
 
+  // HOLDOUT (anti-slop/no-unknown-returns): the base `Tool.process` contract
+  // in `@nodetool-ai/agents` returns `Promise<unknown>`, and the value here is
+  // the node's own output.
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>

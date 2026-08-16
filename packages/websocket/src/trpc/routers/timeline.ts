@@ -50,6 +50,15 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 
+/** A decoded JSON value: what a stored document or graph carries. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 // ── input shapes specific to this router ────────────────────────────────────
 
 const listInput = z.object({
@@ -178,8 +187,9 @@ function inputNodeName(node: Record<string, unknown>): string | null {
 }
 
 /** Extract the default value for an input node from its `data`. */
-function inputNodeDefault(node: Record<string, unknown>): unknown {
-  const data = node.data as Record<string, unknown> | undefined;
+function inputNodeDefault(node: Record<string, unknown>): JsonValue {
+  // SAFETY: the graph is stored as JSON, so a node's `data` holds JSON members.
+  const data = node.data as { [key: string]: JsonValue } | undefined;
   return data?.value ?? null;
 }
 

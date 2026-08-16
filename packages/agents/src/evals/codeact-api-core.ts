@@ -526,11 +526,11 @@ const EXAMPLE_WORKFLOWS: readonly WorldWorkflow[] = [
 export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = new CoreWorld();
 
-  const tool = (
+  const tool = <TResult,>(
     name: string,
     description: string,
     properties: Record<string, unknown>,
-    impl: (params: Record<string, unknown>) => unknown
+    impl: (params: Record<string, unknown>) => TResult
   ): Tool =>
     new RecordingTool(
       name,

@@ -12,6 +12,10 @@ export function packWebSocketMessage(value: unknown): Buffer {
   return websocketPackr.pack(value);
 }
 
-export function unpackWebSocketMessage(value: Uint8Array): unknown {
+/**
+ * Decode a binary WebSocket frame. The caller names the frame type it expects
+ * — only it knows which command or event the socket is carrying.
+ */
+export function unpackWebSocketMessage<TFrame>(value: Uint8Array): TFrame {
   return unpack(value);
 }

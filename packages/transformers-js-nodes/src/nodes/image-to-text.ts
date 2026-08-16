@@ -82,15 +82,17 @@ export class ImageToTextNode extends BaseNode {
   ): Promise<Record<string, unknown>> {
     const rawImage = await loadRawImage(this.image, context);
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: unknown,
+        opts?: Record<string, unknown>
+      ) => Promise<CaptionResult | CaptionResult[]>
+    >({
       task: "image-to-text",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: unknown,
-      opts?: Record<string, unknown>
-    ) => Promise<CaptionResult | CaptionResult[]>;
+    });
 
     const raw = await pipeline(rawImage, {
       max_new_tokens: asNumber(this.max_new_tokens, 50)

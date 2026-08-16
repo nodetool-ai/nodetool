@@ -47,6 +47,11 @@ export interface SketchDebugCore {
 /** The bridge surface this host drives — one tool per `ui_sketch_*` name. */
 export interface SketchBridgeTool {
   name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_sketch_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
@@ -150,10 +155,31 @@ export async function runSketchValidate(
  * records a layer's prompt/provider/model, not the persisted binding record.
  * The report's `notSimulated` says so.
  */
+/** The `{ sketch, layerBindings }` document a session leaves behind. */
+interface ReconstructedSketchDocument {
+  sketch: {
+    version: number;
+    canvas: { width: number; height: number; backgroundColor?: string };
+    layers: Array<{
+      id: string;
+      name: string;
+      type: SketchBridgeLayer["type"];
+      visible: boolean;
+      locked: boolean;
+      opacity: number | undefined;
+      blendMode: string | undefined;
+      data: null;
+    }>;
+    activeLayerId: string;
+    maskLayerId: string | null;
+  };
+  layerBindings: never[];
+}
+
 function reconstructDocument(
   snapshot: SketchBridgeSnapshot,
   resolved: ResolvedSketchTarget
-): unknown {
+): ReconstructedSketchDocument {
   const layers = (snapshot.layers ?? []).map((layer) => ({
     id: layer.id,
     name: layer.name,

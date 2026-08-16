@@ -21,6 +21,7 @@ import type {
   JsScriptInteractionRecord,
   JsScriptValidation
 } from "@nodetool-ai/execution/js-script-debug";
+import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptInteractionStep } from "./interactions.js";
 import {
@@ -83,13 +84,18 @@ export type JsScriptExecutor = (
 /** The bridge surface this host drives — one tool per `ui_jsscript_*` name. */
 export interface JsScriptBridgeTool {
   name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_jsscript_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
 export interface JsScriptBridge {
   tools: JsScriptBridgeTool[];
   document: () => JsScriptDocument;
-  finalState: () => unknown;
+  finalState: () => JsScriptBridgeFinalState;
 }
 
 export type CreateJsScriptBridge = (initial: {

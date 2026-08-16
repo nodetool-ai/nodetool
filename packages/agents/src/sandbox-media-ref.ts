@@ -17,7 +17,7 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 import { loadMediaRefBytes, type MediaRefValue } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import { toGuestBytes } from "./sandbox-bytes.js";
+import { toGuestBytes, type GuestBytes } from "./sandbox-bytes.js";
 
 /**
  * Largest payload `media.*` moves in either direction.
@@ -55,7 +55,7 @@ export interface MediaRefInfo {
 
 /** The host side of the guest's `media` namespace. */
 export interface MediaRefBridge {
-  bytes(ref: unknown): Promise<unknown>;
+  bytes(ref: unknown): Promise<GuestBytes>;
   text(ref: unknown, options?: unknown): Promise<string>;
   info(ref: unknown): Promise<MediaRefInfo>;
   toDocument(
@@ -514,7 +514,7 @@ export function createMediaRefBridge(
   }
 
   return {
-    bytes: async (ref: unknown): Promise<unknown> => {
+    bytes: async (ref: unknown): Promise<GuestBytes> => {
       const where = "media.bytes";
       return toGuestBytes(
         await resolveRefBytes(

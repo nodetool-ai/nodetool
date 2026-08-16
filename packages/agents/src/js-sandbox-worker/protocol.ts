@@ -155,7 +155,16 @@ function describe(value: unknown): string {
   return name && name !== "Object" ? name : "object";
 }
 
-function isPlainObject(value: object): boolean {
+/**
+ * What the scan holds once arrays, Maps, Sets, buffer views and the
+ * clone-tagged built-ins are behind it: either a plain object literal or a
+ * class instance, told apart by the prototype its constructor came from.
+ */
+interface ScannedObject {
+  readonly constructor?: Function;
+}
+
+function isPlainObject(value: ScannedObject): boolean {
   const proto = Object.getPrototypeOf(value) as object | null;
   return proto === null || proto === Object.prototype;
 }

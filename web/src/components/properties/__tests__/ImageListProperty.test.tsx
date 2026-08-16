@@ -11,7 +11,7 @@ jest.mock("../../../contexts/NodeContext", () => {
   const actual = jest.requireActual("../../../contexts/NodeContext");
   return {
     ...actual,
-    useNodes: (selector: (state: Record<string, unknown>) => unknown) =>
+    useNodes: <T,>(selector: (state: Record<string, unknown>) => T) =>
       selector({ nodes: [], edges: [], findNode: () => undefined })
   };
 });

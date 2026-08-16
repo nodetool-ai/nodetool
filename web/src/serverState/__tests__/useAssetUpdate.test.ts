@@ -11,7 +11,7 @@ const mockInvalidateQueries = jest.fn();
 
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
-  useAssetStore: jest.fn((selector: (s: Record<string, unknown>) => unknown) =>
+  useAssetStore: jest.fn(<T,>(selector: (s: Record<string, unknown>) => T) =>
     selector({ update: mockUpdateAsset })
   )
 }));
@@ -19,7 +19,7 @@ jest.mock("../../stores/AssetStore", () => ({
 jest.mock("../../stores/NotificationStore", () => ({
   __esModule: true,
   useNotificationStore: jest.fn(
-    (selector: (s: Record<string, unknown>) => unknown) =>
+    <T,>(selector: (s: Record<string, unknown>) => T) =>
       selector({ addNotification: mockAddNotification })
   )
 }));
@@ -37,7 +37,8 @@ jest.mock("../../stores/AssetGridStore", () => ({
 jest.mock("@tanstack/react-query", () => ({
   __esModule: true,
   useMutation: jest.fn((config: Record<string, unknown>) => ({
-    mutateAsync: config.mutationFn as (...args: unknown[]) => Promise<unknown>,
+    // The test awaits the call; it never reads the resolved value.
+    mutateAsync: config.mutationFn as (...args: unknown[]) => Promise<void>,
     mutate: mockMutate,
     reset: mockReset,
     isPending: false,

@@ -31,7 +31,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
     ...actual,
     // Serve the actions the card reads via selectors; keep sameMediaRef and the
     // other real exports (the nested takes gallery uses them).
-    useStoryboardStore: (selector: (s: unknown) => unknown) =>
+    useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
       selector({
         toggleShotEntity: jest.fn(),
         moveShot: moveShotMock,

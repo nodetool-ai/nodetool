@@ -3,7 +3,18 @@ import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../stores/ApiTypes";
 import { importVideoWithAudio } from "../useVideoAudioImport";
 
-const restFetchMock = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+/** The slice of `Response` the video-audio import path reads back. */
+type AudioExtractionResponse = {
+  ok: boolean;
+  status?: number;
+  json?: () => Promise<{
+    has_audio: boolean;
+    asset?: { id: string; duration?: number; content_type?: string };
+  }>;
+};
+
+const restFetchMock =
+  jest.fn<(...args: unknown[]) => Promise<AudioExtractionResponse>>();
 jest.mock("../../../lib/rest-fetch", () => ({
   restFetch: (...args: unknown[]) => restFetchMock(...args)
 }));
@@ -38,7 +49,7 @@ describe("importVideoWithAudio", () => {
   });
 
   it("adds a video clip and a linked placeholder audio clip immediately", async () => {
-    restFetchMock.mockReturnValue(new Promise(() => {})); // never resolves
+    restFetchMock.mockReturnValue(new Promise<AudioExtractionResponse>(() => {})); // never resolves
     const store = createTimelineStore();
     store.getState().addTrack("video", "Video 1");
     const videoTrackId = store.getState().tracks[0].id;
@@ -109,7 +120,7 @@ describe("importVideoWithAudio", () => {
   });
 
   it("passes an abort signal to restFetch so the request can time out", async () => {
-    restFetchMock.mockReturnValue(new Promise(() => {})); // never resolves
+    restFetchMock.mockReturnValue(new Promise<AudioExtractionResponse>(() => {})); // never resolves
     const store = createTimelineStore();
     store.getState().addTrack("video", "Video 1");
     const videoTrackId = store.getState().tracks[0].id;

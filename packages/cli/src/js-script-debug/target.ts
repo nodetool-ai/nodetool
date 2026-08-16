@@ -15,6 +15,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { JsScriptDebugTarget } from "@nodetool-ai/execution/js-script-debug";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+
 /** A `js_scripts` row as the harness needs it. */
 export interface JsScriptRecord {
   id: string;
@@ -42,8 +52,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * object) when there is one. Never throws — an unreadable document is a
  * validation finding, not a crash.
  */
-function documentOf(raw: unknown): unknown {
-  if (!isRecord(raw)) return raw;
+function documentOf(raw: unknown): JsonValue {
+  // SAFETY: a target is read from a JSON file or a json column, so every
+  // branch below carries decoded JSON.
+  if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
   if (typeof inner === "string") {
     try {
@@ -52,8 +64,9 @@ function documentOf(raw: unknown): unknown {
       return inner;
     }
   }
-  if (inner !== undefined) return inner;
-  return raw;
+  // SAFETY: same JSON provenance as the branch above.
+  if (inner !== undefined) return inner as JsonValue;
+  return raw as JsonValue;
 }
 
 /** A document is anything carrying a `code` string and a `schemaVersion`. */

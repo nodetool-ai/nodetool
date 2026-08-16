@@ -125,7 +125,7 @@ export class ControlNodeTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<string> {
     const event = this.createControlEvent(params);
     const nodeTitle = this.nodeInfo.node_title || this.targetNodeId;
     return `Created ${event.event_type} event for ${nodeTitle} with properties: ${Object.keys(params).join(", ")}`;

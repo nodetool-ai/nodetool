@@ -166,11 +166,11 @@ export interface StoryboardBridgeFinalState {
   saveIssues: string[];
 }
 
-function tool(
+function tool<TResult>(
   name: string,
   description: string,
   parameters: z.ZodTypeAny,
-  impl: (args: Record<string, unknown>) => Promise<unknown>
+  impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
   return {
     name,

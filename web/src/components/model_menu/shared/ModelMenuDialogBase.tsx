@@ -68,7 +68,8 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
     providerErrors?: Array<{ provider: string; error: unknown }>;
     loadingProgress?: { total: number; loaded: number; loading: number };
     providers?: string[];
-    refetch?: () => Promise<unknown> | unknown;
+    /** Re-runs the model query; the menu never reads the result. */
+    refetch?: () => void;
   };
   onModelChange?: (model: TModel) => void;
   title?: string;

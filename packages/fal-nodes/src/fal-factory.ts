@@ -85,7 +85,47 @@ function assetKind(
   return "none";
 }
 
-function defaultForPropType(propType: string): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/** A value in a FAL endpoint's JSON response body. */
+type FalResponseValue =
+  | string
+  | number
+  | boolean
+  | null
+  | FalResponseValue[]
+  | { [key: string]: FalResponseValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
+
+function defaultForPropType(propType: string): FieldDefault {
   switch (propType) {
     case "bool":
       return false;
@@ -104,7 +144,7 @@ function defaultForPropType(propType: string): unknown {
   }
 }
 
-function castValue(value: unknown, propType: string): unknown {
+function castValue(value: NodeValue, propType: string): NodeValue {
   if (value === null || value === undefined) return value;
   if (propType.startsWith("list[") || propType.startsWith("dict[")) {
     return value; // pass through structured types as-is
@@ -152,8 +192,10 @@ async function promptAssetOverrides(
   instance: BaseNode,
   spec: FalManifestEntry,
   context?: ProcessingContext
-): Promise<Record<string, unknown>> {
-  const values = instance as unknown as Record<string, unknown>;
+): Promise<Record<string, NodeValue>> {
+  // SAFETY: a node's own properties hold node property values, and NodeTool
+  // restricts those to its property types — the shapes `NodeValue` names.
+  const values = instance as unknown as Record<string, NodeValue>;
   const textFields: PromptAssetTextField[] = [];
   const assetFields: PromptAssetInputField[] = [];
   for (const field of spec.inputFields) {
@@ -179,7 +221,11 @@ async function promptAssetOverrides(
       });
     }
   }
-  return mapPromptAssetsToInputs(textFields, assetFields, context);
+  // SAFETY: the overrides are asset refs this call injected from `asset://`
+  // mentions, so they are node property values like the ones they replace.
+  return mapPromptAssetsToInputs(textFields, assetFields, context) as Promise<
+    Record<string, NodeValue>
+  >;
 }
 
 function resolveFieldValue(
@@ -187,8 +233,10 @@ function resolveFieldValue(
   fieldName: string,
   apiParamName?: string,
   propType?: string
-): unknown {
-  const record = instance as unknown as Record<string, unknown>;
+): NodeValue {
+  // SAFETY: a node's own properties hold node property values, and NodeTool
+  // restricts those to its property types — the shapes `NodeValue` names.
+  const record = instance as unknown as Record<string, NodeValue>;
   const primary = fieldName in record ? record[fieldName] : undefined;
   const kind = propType ? assetKind(propType) : "none";
 
@@ -320,9 +368,11 @@ async function buildArgs(
               (subField) => subField.parentField === field.name
             );
             for (const subField of subFields) {
-              const subValue = (instance as unknown as Record<string, unknown>)[
-                subField.name
-              ];
+              // SAFETY: a node's own properties hold node property values, and
+              // NodeTool restricts those to its property types.
+              const subValue = (
+                instance as unknown as Record<string, NodeValue>
+              )[subField.name];
               nested[subField.name] = castValue(subValue, subField.propType);
             }
             args[apiName] = nested;
@@ -349,11 +399,11 @@ async function buildArgs(
 }
 
 function coerceAssetRef(
-  value: unknown,
+  value: FalResponseValue,
   propType: string
-): unknown {
+): FalResponseValue {
   if (!value || typeof value !== "object") return value;
-  const obj = value as Record<string, unknown>;
+  const obj = value as Record<string, FalResponseValue>;
   const kind = assetKind(propType);
   if (obj.url) {
     return { type: kind !== "none" ? kind : propType, uri: obj.url, width: obj.width, height: obj.height };
@@ -469,7 +519,9 @@ function mapOutput(
         for (const [key, value] of Object.entries(res)) {
           const propType = fieldMap.get(key);
           if (propType && isAssetPropType(propType)) {
-            out[key] = coerceAssetRef(value, propType);
+            // SAFETY: `res` is the endpoint's JSON response body, so every
+            // value in it is a JSON value.
+            out[key] = coerceAssetRef(value as FalResponseValue, propType);
           } else {
             out[key] = value;
           }

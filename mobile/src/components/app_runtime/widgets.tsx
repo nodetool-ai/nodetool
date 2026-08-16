@@ -1648,7 +1648,13 @@ const readGrid = (value: unknown): Grid => {
   return { frame: false, columns: [], rows: [] };
 };
 
-const writeGrid = (value: unknown, grid: Grid): unknown => {
+/**
+ * What the DataFrame widget writes back: the `DataframeRef` it read with its
+ * rows replaced, or a plain array of rows.
+ */
+type DataframeValue = { columns?: unknown; data: unknown[][] } | unknown[];
+
+const writeGrid = (value: unknown, grid: Grid): DataframeValue => {
   if (grid.frame && isRow(value)) {return { ...value, data: grid.rows };}
   if (grid.columns.length === 1 && grid.columns[0] === "value") {
     return grid.rows.map((row) => row[0]);
@@ -1659,7 +1665,7 @@ const writeGrid = (value: unknown, grid: Grid): unknown => {
 };
 
 /** A cell keeps its type: a numeric column stays numeric while it parses. */
-const coerceCell = (previous: unknown, text: string): unknown => {
+const coerceCell = (previous: unknown, text: string): string | number => {
   if (typeof previous !== "number") {return text;}
   const parsed = Number(text);
   return text !== "" && !Number.isNaN(parsed) ? parsed : text;

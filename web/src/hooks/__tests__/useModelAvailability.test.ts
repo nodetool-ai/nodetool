@@ -6,7 +6,7 @@ const mockIsApiKeySet = jest.fn();
 jest.mock("../../stores/ModelPreferencesStore", () => ({
   __esModule: true,
   default: jest.fn(
-    (selector: (s: Record<string, unknown>) => unknown) =>
+    <T,>(selector: (s: Record<string, unknown>) => T) =>
       selector({ enabledProviders: mockEnabledProviders })
   )
 }));

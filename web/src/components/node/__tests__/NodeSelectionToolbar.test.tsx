@@ -10,8 +10,8 @@ import useSelect from "../../../hooks/nodes/useSelect";
 let mockSelectedNodeCount = 1;
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (
-    selector: (state: { getSelectedNodeCount: () => number }) => unknown
+  useNodes: <T,>(
+    selector: (state: { getSelectedNodeCount: () => number }) => T
   ) => selector({ getSelectedNodeCount: () => mockSelectedNodeCount })
 }));
 

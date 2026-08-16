@@ -260,9 +260,7 @@ function canUseProvider(
   context: ProcessingContext | undefined,
   providerId: string,
   modelId: string
-): context is ProcessingContext & {
-  runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-} {
+): context is ProcessingContext {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&

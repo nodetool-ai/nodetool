@@ -203,7 +203,16 @@ function persistDowngrades(appDoc: unknown): string[] {
   return names;
 }
 
-const safeParse = (value: string): unknown => {
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+const safeParse = (value: string): JsonValue => {
   try {
     return JSON.parse(value);
   } catch {

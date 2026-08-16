@@ -324,8 +324,10 @@ export abstract class BaseProvider {
     for (const name of MODALITY_PROMISE_METHODS) {
       const fn = self[name];
       if (typeof fn !== "function" || fn === proto[name]) continue;
-      const original = fn as (...args: unknown[]) => Promise<unknown>;
-      self[name] = (...rawArgs: unknown[]): Promise<unknown> =>
+      // SAFETY: `name` comes from MODALITY_PROMISE_METHODS and the check above
+      // proved this instance overrides it, so `fn` is that modality method.
+      const original = fn as (...args: unknown[]) => Promise<ModalityResult>;
+      self[name] = (...rawArgs: unknown[]): Promise<ModalityResult> =>
         withModalityCapture(async (alreadyActive) => {
           // Central entity expansion: descriptors into the prompt, reference
           // images onto the source list, before the concrete provider runs.
@@ -1590,6 +1592,15 @@ export abstract class BaseProvider {
  * logging. Batch helpers are included; nested delegation to their singular
  * method is logged once (see {@link withModalityCapture}).
  */
+/**
+ * What any of the wrapped modality methods resolves to — bytes for the image
+ * and video tasks, an encoded audio result for speech and music, a transcript
+ * for ASR, vectors for embeddings.
+ */
+type ModalityResult = Awaited<
+  ReturnType<BaseProvider[(typeof MODALITY_PROMISE_METHODS)[number]]>
+>;
+
 const MODALITY_PROMISE_METHODS = [
   "textToImage",
   "textToImages",

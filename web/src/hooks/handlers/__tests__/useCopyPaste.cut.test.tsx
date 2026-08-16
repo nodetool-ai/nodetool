@@ -57,7 +57,7 @@ describe("useCopyPaste handleCut", () => {
       })
     });
     (useSessionStateStore as unknown as jest.Mock).mockImplementation(
-      (selector: (state: unknown) => unknown) =>
+      <T,>(selector: (state: unknown) => T) =>
         selector({
           setClipboardData: jest.fn(),
           setIsClipboardValid: jest.fn()

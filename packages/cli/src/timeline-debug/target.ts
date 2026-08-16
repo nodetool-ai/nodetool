@@ -16,6 +16,16 @@ import { existsSync, readFileSync } from "node:fs";
 import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineDebugTarget } from "@nodetool-ai/execution/timeline-debug";
 
+/** A decoded JSON document, before anything validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+
 /** A `timeline_sequences` row as the harness needs it. */
 export interface TimelineSequenceRecord {
   id: string;
@@ -76,8 +86,10 @@ const looksLikeDocument = (value: unknown): boolean =>
  * object) when there is one. Never throws — an unreadable document is a
  * validation finding, not a crash.
  */
-function documentOf(raw: unknown): unknown {
-  if (!isRecord(raw)) return raw;
+function documentOf(raw: unknown): JsonValue {
+  // SAFETY: a target is read from a JSON file or a json column, so every
+  // branch below carries decoded JSON.
+  if (!isRecord(raw)) return raw as JsonValue;
   const inner = raw.document;
   if (typeof inner === "string") {
     try {
@@ -86,8 +98,9 @@ function documentOf(raw: unknown): unknown {
       return inner;
     }
   }
-  if (inner !== undefined) return inner;
-  return raw;
+  // SAFETY: same JSON provenance as the branch above.
+  if (inner !== undefined) return inner as JsonValue;
+  return raw as JsonValue;
 }
 
 /** Read a document as tracks + clips + markers, defaulting what is missing. */

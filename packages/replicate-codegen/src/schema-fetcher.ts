@@ -11,6 +11,15 @@ import { join } from "node:path";
 
 const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
+/** A JSON value decoded from a Replicate API response. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export interface ReplicateSchema {
   modelId: string; // "owner/name"
   owner: string;
@@ -149,7 +158,7 @@ export class SchemaFetcher {
     };
   }
 
-  private async _fetch(url: string): Promise<unknown> {
+  private async _fetch(url: string): Promise<JsonValue> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30_000);
     let response: Response;

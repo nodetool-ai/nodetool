@@ -46,7 +46,7 @@ const mockUpdateNodeData = jest.fn();
 let mockNode: Record<string, unknown> | undefined;
 
 jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: unknown) => unknown) =>
+  useNodes: <T,>(selector: (state: unknown) => T) =>
     selector({
       findNode: () => mockNode,
       updateNodeData: mockUpdateNodeData

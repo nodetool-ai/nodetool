@@ -114,16 +114,18 @@ export class ZeroShotClassificationNode extends BaseNode {
       throw new Error("At least one candidate label is required");
     }
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: string,
+        labels: string[],
+        opts?: Record<string, unknown>
+      ) => Promise<ZeroShotResult | ZeroShotResult[]>
+    >({
       task: "zero-shot-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: string,
-      labels: string[],
-      opts?: Record<string, unknown>
-    ) => Promise<ZeroShotResult | ZeroShotResult[]>;
+    });
 
     const opts: Record<string, unknown> = {
       multi_label: Boolean(this.multi_label)

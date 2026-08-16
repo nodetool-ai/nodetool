@@ -65,7 +65,7 @@ describe("useCodeNodeScriptLink", () => {
     jest.clearAllMocks();
     nodeData = { properties: {} };
     (useNodes as unknown as jest.Mock).mockImplementation(
-      (selector: (s: unknown) => unknown) =>
+      <T,>(selector: (s: unknown) => T) =>
         selector({
           findNode: mockFindNode,
           updateNodeData: mockUpdateNodeData

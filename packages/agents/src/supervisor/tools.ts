@@ -19,6 +19,7 @@ import type { Escalation } from "@nodetool-ai/protocol";
 import {
   MAX_ESCALATION_VALUE_CHARS,
   redactRecord,
+  type RunStateDigest,
   type RunStateReader
 } from "@nodetool-ai/kernel";
 import { Tool } from "../tools/base-tool.js";
@@ -52,10 +53,19 @@ export class GetRunStateTool extends Tool {
     return z.object({});
   }
 
-  async process(): Promise<unknown> {
+  async process(): Promise<RunStateDigest> {
     return this._reader.digest();
   }
 }
+
+/** What {@link ReadNodeOutputTool} answers: the branch's output, or why not. */
+export type NodeOutputReadResult =
+  | { error: "not_available"; message: string }
+  | {
+      nodeId: string;
+      lineage: readonly string[];
+      outputs: ReturnType<typeof redactRecord>;
+    };
 
 export class ReadNodeOutputTool extends Tool {
   readonly name = "read_node_output";
@@ -89,7 +99,7 @@ export class ReadNodeOutputTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<NodeOutputReadResult> {
     const nodeId = String(params["node_id"] ?? "");
     const read = this._reader.readOutput(
       nodeId,

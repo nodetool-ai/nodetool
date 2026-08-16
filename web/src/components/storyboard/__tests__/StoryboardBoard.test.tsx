@@ -18,7 +18,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
     videoModel: null,
     shots: mockShots
   }),
-  useStoryboardStore: (selector: (s: unknown) => unknown) =>
+  useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
     selector({
       setTitle: jest.fn(),
       setBrief: jest.fn(),

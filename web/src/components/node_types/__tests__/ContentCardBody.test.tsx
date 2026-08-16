@@ -42,12 +42,12 @@ jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
 // is persisted, so `findNode` returns a bare node and selection defaults to the
 // latest generation.
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (
+  useNodes: <T,>(
     selector: (state: {
       updateNodeData: () => void;
-      findNode: (id: string) => unknown;
+      findNode: (id: string) => { id: string; data: Partial<NodeData> };
       edges: unknown[];
-    }) => unknown
+    }) => T
   ) =>
     selector({
       updateNodeData: jest.fn(),
@@ -86,7 +86,7 @@ jest.mock("../../assets/AssetViewer", () => ({
 
 let mockRunnerState: "idle" | "running" = "idle";
 jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWebsocketRunner: (selector: (s: { state: string }) => unknown) =>
+  useWebsocketRunner: <T,>(selector: (s: { state: string }) => T) =>
     selector({ state: mockRunnerState })
 }));
 
@@ -101,14 +101,14 @@ jest.mock("../../../hooks/nodes/useMediaSrc", () => ({
 // VideoPreview's "save to assets" / "download" actions delegate to these.
 const mockCreateAsset = jest.fn().mockResolvedValue({});
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (s: { createAsset: unknown }) => unknown) =>
+  useAssetStore: <T,>(selector: (s: { createAsset: unknown }) => T) =>
     selector({ createAsset: mockCreateAsset })
 }));
 
 const mockAddNotification = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (
-    selector: (s: { addNotification: unknown }) => unknown
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: unknown }) => T
   ) => selector({ addNotification: mockAddNotification })
 }));
 

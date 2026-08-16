@@ -133,7 +133,7 @@ export class ApifyProvider implements SerpProvider {
   async searchRaw(
     query: string,
     options?: SearchOptions
-  ): Promise<unknown> {
+  ): Promise<SearchResult[] | { error: string }> {
     const numResults = options?.numResults ?? 10;
     return apifyRequest(this.apiKey, query, numResults);
   }

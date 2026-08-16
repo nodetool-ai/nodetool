@@ -129,7 +129,15 @@ function timestamp(): string {
 // (`message`, `stack`, `name`) are non-enumerable, so the default serializer
 // produces "{}". Without this, nested errors like `{ provider, error }` lose
 // all diagnostic information in the log output.
-function jsonReplacer(_key: string, value: unknown): unknown {
+/** An `Error` flattened into its own enumerable fields for JSON output. */
+interface SerializedError {
+  name: string;
+  message: string;
+  stack?: string;
+  cause?: unknown;
+}
+
+function jsonReplacer<T>(_key: string, value: T): T | SerializedError {
   if (value instanceof Error) {
     return {
       name: value.name,

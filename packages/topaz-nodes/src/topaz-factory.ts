@@ -64,7 +64,10 @@ function isAssetType(type: string): boolean {
   return type === "image" || type === "video";
 }
 
-function castValue(value: unknown, type: string): unknown {
+/** A scalar as the Topaz API takes it, after coercion from the stored value. */
+type CoercedScalar = string | number | boolean | null | undefined;
+
+function castValue(value: unknown, type: string): CoercedScalar {
   if (value === null || value === undefined) return value;
   switch (type) {
     case "int":
@@ -77,7 +80,24 @@ function castValue(value: unknown, type: string): unknown {
   }
 }
 
-function defaultForType(type: string): unknown {
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | EmptyMediaRef;
+
+function defaultForType(type: string): FieldDefault {
   switch (type) {
     case "bool":
       return false;

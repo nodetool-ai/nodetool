@@ -12,8 +12,8 @@ import type { AppDocument } from "../appData";
 const setCurrentWorkflowId = jest.fn();
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (
-    selector: (state: { setCurrentWorkflowId: unknown }) => unknown
+  useWorkflowManager: <T,>(
+    selector: (state: { setCurrentWorkflowId: unknown }) => T
   ) => selector({ setCurrentWorkflowId })
 }));
 

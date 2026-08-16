@@ -220,7 +220,9 @@ export class ExtensionCdpClient {
         if (typeof prop !== "string") return undefined;
         const member = prop;
         // One synthetic member services both shapes; the runtime arg decides.
-        const fn = (arg?: unknown): unknown => {
+        const fn = (
+          arg?: unknown
+        ): Promise<Record<string, unknown>> | (() => void) => {
           if (typeof arg === "function") {
             return this.subscribe(
               `${domain}.${member}`,

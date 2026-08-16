@@ -45,7 +45,16 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-async function readJsonBody(request: Request): Promise<unknown> {
+/** A decoded JSON request body, before a schema validates its shape. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+async function readJsonBody(request: Request): Promise<JsonValue> {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) return {};
   try {

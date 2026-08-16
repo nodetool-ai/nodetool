@@ -16,7 +16,7 @@ jest.mock("../../../hooks/useWorkflowRunnerState", () => ({
   useIsWorkflowRunning: () => false
 }));
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (s: unknown) => unknown) =>
+  useSettingsStore: <T,>(selector: (s: unknown) => T) =>
     selector({ settings: { instantUpdate: false } })
 }));
 

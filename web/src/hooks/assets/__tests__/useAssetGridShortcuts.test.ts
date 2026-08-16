@@ -39,7 +39,7 @@ const storeState = {
 };
 
 jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: (state: typeof storeState) => unknown) =>
+  useAssetGridStore: <T,>(selector: (state: typeof storeState) => T) =>
     selector(storeState)
 }));
 

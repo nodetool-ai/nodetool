@@ -1001,13 +1001,23 @@ function extractDynamicInputs(
   return result;
 }
 
+/** A value that survived the JSON round trip: plain data, nested as it was. */
+type JsonSafeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonSafeValue[]
+  | { [key: string]: JsonSafeValue };
+
 /**
  * One value, deep-copied into JSON-safe form for the guest. The marshal rule
  * for a streamed item is the buffered one: plain data crosses, anything that
  * cannot be serialized becomes `null`. Media inputs are refs — plain objects —
  * so they survive and stay readable through `media.*`.
  */
-function jsonSafe(value: unknown): unknown {
+function jsonSafe(value: unknown): JsonSafeValue {
   if (value === null || value === undefined) return value;
   try {
     return JSON.parse(JSON.stringify(value));

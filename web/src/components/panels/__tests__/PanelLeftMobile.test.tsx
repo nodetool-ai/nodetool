@@ -40,7 +40,7 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
 }));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
+  useWorkspaceTabsStore: <T,>(selector: (state: unknown) => T) =>
     selector({ tabs: [], activeTabId: null, openTab: jest.fn() })
 }));
 

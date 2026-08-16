@@ -369,7 +369,7 @@ const WorkersPanel: React.FC = () => {
 
   /** Run a lifecycle action, surfacing failures in the error banner. */
   const runAction = useCallback(
-    async (action: () => Promise<unknown>): Promise<boolean> => {
+    async <T,>(action: () => Promise<T>): Promise<boolean> => {
       try {
         await action();
         setError(null);

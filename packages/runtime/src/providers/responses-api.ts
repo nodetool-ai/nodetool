@@ -158,9 +158,14 @@ export function responseTools(
   }));
 }
 
+/** The Responses API's `tool_choice`: forced, or a named function. */
+export type ResponseToolChoice =
+  | "required"
+  | { type: "function"; name: string };
+
 export function responseToolChoice(
   toolChoice: string | "any" | undefined
-): unknown {
+): ResponseToolChoice | undefined {
   if (!toolChoice) return undefined;
   // "any" is the cross-provider sentinel for "the model MUST call a tool". The
   // Responses API forcing value is "required"; "auto" (the previous mapping) is

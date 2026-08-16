@@ -51,7 +51,7 @@ const makeProcedureUtils = (): Record<string, unknown> => ({
   getData: jest.fn(() => undefined)
 });
 
-const makeUtilsProxy = (): unknown =>
+const makeUtilsProxy = (): object =>
   new Proxy(
     {},
     {

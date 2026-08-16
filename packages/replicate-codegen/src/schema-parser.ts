@@ -274,7 +274,7 @@ export class SchemaParser {
     prop: AnyRecord,
     propType: string,
     required: boolean
-  ): unknown {
+  ): string | number | boolean | null | never[] {
     // Asset refs default to null
     if (propType === "image" || propType === "video" || propType === "audio") {
       return null;

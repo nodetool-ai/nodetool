@@ -28,7 +28,7 @@ async function loadExtractor(where: string): Promise<TextExtractor> {
 }
 
 /** A PowerPoint file's text, all slides concatenated. */
-export async function extractText(bytes: unknown): Promise<unknown> {
+export async function extractText(bytes: unknown): Promise<string> {
   const where = "pptx.extractText";
   const buffer = Buffer.from(requireBytes(where, bytes));
   const extractor = await loadExtractor(where);
@@ -53,8 +53,15 @@ function decodeSlideText(xml: string): string {
   return parts.join("\n").trim();
 }
 
+/** One slide of a presentation, as `extractSlides` reports it. */
+export interface PptxSlide {
+  index: number;
+  slideNumber: number;
+  text: string;
+}
+
 /** Each slide's text as its own item, in slide order. */
-export async function extractSlides(bytes: unknown): Promise<unknown> {
+export async function extractSlides(bytes: unknown): Promise<PptxSlide[]> {
   const where = "pptx.extractSlides";
   const archive = requireBytes(where, bytes);
   const { unzipSync, strFromU8 } = await import("fflate");
@@ -67,7 +74,7 @@ export async function extractSlides(bytes: unknown): Promise<unknown> {
       return na - nb;
     });
 
-  const slides: Array<Record<string, unknown>> = [];
+  const slides: PptxSlide[] = [];
   for (let i = 0; i < slidePaths.length; i++) {
     const raw = entries[slidePaths[i]];
     if (!raw) continue;

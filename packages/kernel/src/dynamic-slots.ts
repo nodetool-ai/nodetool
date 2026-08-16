@@ -130,7 +130,10 @@ function inferValueType(value: unknown): TypeMetadata | undefined {
  *
  * Anything else is returned untouched.
  */
-function coerceToSlotType(value: unknown, declared: TypeMetadata): unknown {
+function coerceToSlotType<TValue>(
+  value: TValue,
+  declared: TypeMetadata
+): TValue | TValue[] {
   if (
     declared.isListType() &&
     value !== null &&

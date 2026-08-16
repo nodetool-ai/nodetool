@@ -82,13 +82,22 @@ interface FalResultImage {
   content_type?: string;
 }
 
+/**
+ * A bounding box as FAL reports it: `[cx, cy, w, h]` in normalized units, or an
+ * `{x, y, width, height}` object in mask pixels. The members stay unparsed
+ * until `normalizeFalMetadataBox` checks each one is finite.
+ */
+type FalBoxCandidate =
+  | unknown[]
+  | { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+
 interface FalMaskMetadata {
   label?: string;
   name?: string;
   score?: number;
-  box?: unknown;
-  bbox?: unknown;
-  bounds?: unknown;
+  box?: FalBoxCandidate;
+  bbox?: FalBoxCandidate;
+  bounds?: FalBoxCandidate;
 }
 
 interface FalSam3Result {
@@ -273,7 +282,9 @@ function normalizeFalRle(value: unknown): string | string[] | null {
   return null;
 }
 
-function getFalMetadataBoxCandidate(metadata: FalMaskMetadata | undefined): unknown {
+function getFalMetadataBoxCandidate(
+  metadata: FalMaskMetadata | undefined
+): FalBoxCandidate | undefined {
   return metadata?.box ?? metadata?.bbox ?? metadata?.bounds;
 }
 

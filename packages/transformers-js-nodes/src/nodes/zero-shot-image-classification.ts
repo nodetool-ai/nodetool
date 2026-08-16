@@ -96,16 +96,18 @@ export class ZeroShotImageClassificationNode extends BaseNode {
       throw new Error("At least one candidate label is required");
     }
 
-    const pipeline = (await getPipeline({
+    const pipeline = await getPipeline<
+      (
+        input: unknown,
+        labels: string[],
+        opts?: Record<string, unknown>
+      ) => Promise<ClassificationResult | ClassificationResult[]>
+    >({
       task: "zero-shot-image-classification",
       model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
-    })) as (
-      input: unknown,
-      labels: string[],
-      opts?: Record<string, unknown>
-    ) => Promise<ClassificationResult | ClassificationResult[]>;
+    });
 
     const raw = await pipeline(rawImage, labels);
     const results = ensureArray<ClassificationResult>(raw);

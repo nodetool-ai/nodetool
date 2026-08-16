@@ -51,7 +51,11 @@ import {
   CANVAS_METHODS,
   CANVAS_PROPERTIES
 } from "../sandbox-canvas-api.js";
-import { BASE64_ALPHABET, SANDBOX_BYTES_MARKER } from "../sandbox-bytes.js";
+import {
+  BASE64_ALPHABET,
+  SANDBOX_BYTES_MARKER,
+  type GuestBytes
+} from "../sandbox-bytes.js";
 import { MEDIA_REF_MEMBERS } from "../sandbox-media-ref.js";
 import type { ResolvedSandboxLimits } from "../js-sandbox.js";
 
@@ -794,8 +798,8 @@ export async function runInterpreter(
       const hostCrypto = bridges.crypto as {
         randomUUID: () => string;
         getRandomValues: (n: number) => Record<string, string>;
-        digest: (...a: never[]) => Promise<unknown>;
-        hmac: (...a: never[]) => Promise<unknown>;
+        digest: (...a: never[]) => Promise<GuestBytes>;
+        hmac: (...a: never[]) => Promise<GuestBytes>;
       };
       bridges.crypto = {
         // randomUUID/getRandomValues are synchronous and never throw, so they

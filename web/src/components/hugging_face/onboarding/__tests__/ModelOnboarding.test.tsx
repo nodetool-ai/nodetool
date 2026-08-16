@@ -16,7 +16,7 @@ jest.mock("../EngineGuide", () => ({
 
 // Avoid the HF cache network scan; report nothing installed.
 jest.mock("../../../../stores/HfCacheStatusStore", () => ({
-  useHfCacheStatusStore: (selector: (s: unknown) => unknown) =>
+  useHfCacheStatusStore: <T,>(selector: (s: unknown) => T) =>
     selector({
       statuses: {},
       version: 0,

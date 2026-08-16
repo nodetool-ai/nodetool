@@ -7,8 +7,15 @@
 
 import { optionsOf, requireText, unwrapLibrary } from "./limits.js";
 
+/**
+ * A parsed XML document. Elements become objects, repeated elements become
+ * arrays, and every leaf is a string — the parser is constructed below with
+ * `parseTagValue`/`parseAttributeValue` off, so nothing is coerced to a number.
+ */
+export type XmlValue = string | XmlValue[] | { [key: string]: XmlValue };
+
 interface FxpLike {
-  XMLParser: new (opts?: Record<string, unknown>) => { parse: (xml: string) => unknown };
+  XMLParser: new (opts?: Record<string, unknown>) => { parse: (xml: string) => XmlValue };
   XMLValidator: { validate: (xml: string) => true | { err: { msg: string } } };
 }
 
@@ -29,7 +36,7 @@ async function loadFastXmlParser(where: string): Promise<FxpLike> {
  * keys, and text values stay text — a numeric-looking id must not change shape.
  * Invalid XML throws with the parser's own reason.
  */
-export async function parse(text: unknown, options?: unknown): Promise<unknown> {
+export async function parse(text: unknown, options?: unknown): Promise<XmlValue> {
   const where = "xml.parse";
   const source = requireText(where, text);
   const opts = optionsOf(options);

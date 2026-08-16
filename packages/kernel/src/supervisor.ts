@@ -102,14 +102,27 @@ function truncate(text: string): string {
  * arrays; anything else is stringified, because a class instance's `toString`
  * is not a place to gamble on what it prints.
  */
+/** A value with secrets masked and size capped — safe to put in a report. */
+export type RedactedValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | RedactedValue[]
+  | { [key: string]: RedactedValue };
+
 export function redactValue(
   value: unknown,
   secrets: ReadonlySet<string>,
   depth = 0
-): unknown {
+): RedactedValue {
   if (value === null || value === undefined) return value;
   if (typeof value === "string") return truncate(maskSecrets(value, secrets));
-  if (typeof value === "number" || typeof value === "boolean") return value;
+  // SAFETY: the `typeof` above proved which of the two it is.
+  if (typeof value === "number" || typeof value === "boolean") {
+    return value as number | boolean;
+  }
   if (depth >= 6) return MASK;
   if (Array.isArray(value)) {
     return value
@@ -119,7 +132,7 @@ export function redactValue(
   if (typeof value === "object") {
     const proto = Object.getPrototypeOf(value);
     if (proto === Object.prototype || proto === null) {
-      const out: Record<string, unknown> = {};
+      const out: { [key: string]: RedactedValue } = {};
       for (const [key, item] of Object.entries(value)) {
         out[key] = SENSITIVE_NAME_PATTERN.test(key)
           ? MASK

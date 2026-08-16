@@ -46,8 +46,17 @@ export interface JsScriptRunDialogProps {
   onRun: (request: JsScriptRunRequest) => void;
 }
 
+/** A value round-trippable through `JSON.parse`/`JSON.stringify`. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** JSON when it parses, the raw string otherwise. An empty field is `null`. */
-export const parseInputValue = (raw: string): unknown => {
+export const parseInputValue = (raw: string): JsonValue => {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   try {

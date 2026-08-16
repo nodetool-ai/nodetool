@@ -25,8 +25,22 @@ export interface OpenDocument {
   title: string;
 }
 
-/** Marker every per-kind handler interface extends. */
-export type DocumentAgentHandler = object;
+/** What every kind's snapshot carries; each kind adds its own fields on top. */
+export interface DocumentSnapshot {
+  title: string;
+}
+
+/**
+ * Marker every per-kind handler interface extends.
+ *
+ * The bridge stores and returns handlers without calling them, so the one
+ * member it can name across kinds is the snapshot reader every tool layer
+ * starts from. It stays optional because a caller that only needs a document
+ * listed (or a test that only needs a registration) registers no operations.
+ */
+export interface DocumentAgentHandler {
+  getSnapshot?: () => DocumentSnapshot;
+}
 
 interface Entry {
   kind: DocumentKind;

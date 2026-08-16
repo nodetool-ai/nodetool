@@ -125,16 +125,7 @@ function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
   modelId: string
-): context is ProcessingContext & {
-  runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  streamProviderPrediction: (
-    req: Record<string, unknown>
-  ) => AsyncGenerator<unknown>;
-  providerSupportsStreamingTTS: (providerId: string) => Promise<boolean>;
-  textToSpeechEncoded: (
-    req: Record<string, unknown>
-  ) => Promise<{ data: Uint8Array; mimeType: string } | null>;
-} {
+): context is ProcessingContext {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&

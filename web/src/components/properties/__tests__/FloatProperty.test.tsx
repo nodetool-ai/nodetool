@@ -9,9 +9,9 @@ jest.mock("../../../contexts/NodeContext", () => {
   const actual = jest.requireActual("../../../contexts/NodeContext");
   return {
     ...actual,
-    useNodes: (selector: (state: { nodes: never[] }) => unknown) =>
+    useNodes: <T,>(selector: (state: { nodes: never[] }) => T) =>
       selector({ nodes: [] }),
-    useTemporalNodes: (selector: (state: { pause: () => void; resume: () => void }) => unknown) =>
+    useTemporalNodes: <T,>(selector: (state: { pause: () => void; resume: () => void }) => T) =>
       selector({ pause: jest.fn(), resume: jest.fn() })
   };
 });

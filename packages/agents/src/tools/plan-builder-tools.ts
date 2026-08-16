@@ -368,6 +368,17 @@ const ADD_TASK_INPUT_SCHEMA = {
   required: ["id", "title", "depends_on", "steps"]
 };
 
+/** What {@link AddTaskTool} answers: the task it appended, or why not. */
+export type AddTaskResult =
+  | { status: "validation_failed"; errors: string[] }
+  | {
+      status: "task_added";
+      id: string;
+      title: string;
+      steps: number;
+      tasksSoFar: number;
+    };
+
 export class AddTaskTool extends Tool {
   readonly name = "add_task";
   readonly description =
@@ -383,7 +394,7 @@ export class AddTaskTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<AddTaskResult> {
     const result = this.builder.addTask(params);
     if (!result.ok) {
       return { status: "validation_failed", errors: result.errors };
@@ -411,6 +422,16 @@ const REMOVE_TASK_INPUT_SCHEMA = {
   required: ["id"]
 };
 
+/** What {@link RemoveTaskTool} answers: the task it dropped, or why not. */
+export type RemoveTaskResult =
+  | { status: "error"; error: string | undefined }
+  | {
+      status: "task_removed";
+      id: string;
+      tasksSoFar: number;
+      warning?: string;
+    };
+
 export class RemoveTaskTool extends Tool {
   readonly name = "remove_task";
   readonly description =
@@ -425,7 +446,7 @@ export class RemoveTaskTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<RemoveTaskResult> {
     const id = typeof params["id"] === "string" ? params["id"] : "";
     const result = this.builder.removeTask(id);
     if (!result.ok) {
@@ -453,6 +474,16 @@ const FINISH_PLAN_INPUT_SCHEMA = {
   required: ["title"]
 };
 
+/** What {@link FinishPlanTool} answers: the committed plan, or why not. */
+export type FinishPlanResult =
+  | { status: "validation_failed"; errors: string[] }
+  | {
+      status: "plan_finished";
+      title: string;
+      tasks: number;
+      totalSteps: number;
+    };
+
 export class FinishPlanTool extends Tool {
   readonly name = "finish_plan";
   readonly description =
@@ -468,7 +499,7 @@ export class FinishPlanTool extends Tool {
   async process(
     _context: ProcessingContext,
     params: Record<string, unknown>
-  ): Promise<unknown> {
+  ): Promise<FinishPlanResult> {
     const title =
       typeof params["title"] === "string" ? params["title"] : "Untitled Plan";
     const result = this.builder.finish(title);

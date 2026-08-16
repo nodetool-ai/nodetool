@@ -30,6 +30,7 @@ import {
   outputToAudioRef,
   outputToString
 } from "./replicate-base.js";
+import type { ReplicateOutput } from "./replicate-base.js";
 
 // ---------------------------------------------------------------------------
 // Manifest types — mirrors replicate-codegen types.ts NodeSpec
@@ -93,7 +94,38 @@ function isListAsset(propType: string): boolean {
   return propType.startsWith("list[") && isAssetPropType(propType);
 }
 
-function defaultForPropType(propType: string): unknown {
+/**
+ * A value held by a node property or by a prompt-asset override: NodeTool's
+ * property types are scalars, media refs, and lists or dicts of those.
+ */
+type NodeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Uint8Array
+  | NodeValue[]
+  | { [key: string]: NodeValue };
+
+/**
+ * The empty media ref a media property starts at before the user picks an
+ * asset. `duration` and `format` are carried by video only.
+ */
+type EmptyMediaRef = {
+  type: "image" | "video" | "audio";
+  uri: string;
+  asset_id: null;
+  data: null;
+  metadata: null;
+  duration?: null;
+  format?: null;
+};
+
+/** What a property starts at when the manifest names no default. */
+type FieldDefault = boolean | number | string | null | never[] | EmptyMediaRef;
+
+function defaultForPropType(propType: string): FieldDefault {
   switch (propType) {
     case "bool":
       return false;
@@ -128,10 +160,10 @@ function isNumericEnum(enumValues?: string[]): boolean {
 }
 
 function castValue(
-  value: unknown,
+  value: NodeValue,
   propType: string,
   enumValues?: string[]
-): unknown {
+): NodeValue {
   if (value === null || value === undefined) return value;
   if (propType.startsWith("list[") || propType.startsWith("dict[")) {
     return value;
@@ -229,10 +261,13 @@ async function buildArgs(
       continue;
     }
 
-    const value =
+    // SAFETY: both sources hold node property values, and NodeTool restricts
+    // those to its own property types — the shapes `NodeValue` names.
+    const value = (
       field.name in overrides
         ? overrides[field.name]
-        : (instance as unknown as Record<string, unknown>)[field.name];
+        : (instance as unknown as Record<string, unknown>)[field.name]
+    ) as NodeValue;
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -308,7 +343,7 @@ export function createReplicateNodeClass(
   const executePrediction = async (
     instance: BaseNode,
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<unknown> => {
+  ): Promise<ReplicateOutput> => {
     const apiKey = getReplicateApiKey(instance._secrets);
     const args = await buildArgs(instance, specRef, apiKey, context);
     const res = await replicateSubmit(apiKey, specRef.endpointId, args);

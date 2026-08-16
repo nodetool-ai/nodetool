@@ -113,15 +113,14 @@ export class TextToSpeechNode extends BaseNode {
       samples = result.audio as Float32Array;
       samplingRate = result.sampling_rate ?? samplingRate;
     } else {
-      const pipeline = (await getPipeline({
+      const pipeline = await getPipeline<
+        (input: string, opts?: Record<string, unknown>) => Promise<TtsResult>
+      >({
         task: "text-to-speech",
         model: repoId,
         dtype,
         device
-      })) as (
-        input: string,
-        opts?: Record<string, unknown>
-      ) => Promise<TtsResult>;
+      });
 
       const opts: Record<string, unknown> = {};
       if (isSpeechT5Repo(repoId)) {

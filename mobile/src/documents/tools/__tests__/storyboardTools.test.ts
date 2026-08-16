@@ -8,6 +8,7 @@
  */
 
 import { MobileToolRegistry } from '../registry';
+import type { MobileToolResult } from '../registry';
 import '../storyboardTools';
 import {
   registerDocumentHandler,
@@ -56,7 +57,10 @@ const makeHandler = (): MockHandler => ({
   save: jest.fn(async () => ({ ok: true, updatedAt: '2026-07-26T00:00:00Z' })),
 });
 
-const call = (name: string, args: Record<string, unknown>): Promise<unknown> =>
+const call = (
+  name: string,
+  args: Record<string, unknown>
+): Promise<MobileToolResult> =>
   MobileToolRegistry.call(name, args, `${name}-call`);
 
 describe('storyboard tools', () => {

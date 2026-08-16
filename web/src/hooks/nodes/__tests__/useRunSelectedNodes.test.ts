@@ -143,14 +143,14 @@ describe("useRunSelectedNodes", () => {
     });
 
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { run: mockRun, state: "idle" };
         return selector(state);
       }
     );
 
     mockUseNotificationStore.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { addNotification: mockAddNotification };
         return selector(state);
       }
@@ -273,7 +273,7 @@ describe("useRunSelectedNodes", () => {
 
   it("does not run when workflow is already running", async () => {
     mockUseWebsocketRunner.mockImplementation(
-      (selector: (state: Record<string, unknown>) => unknown) => {
+      <T,>(selector: (state: Record<string, unknown>) => T) => {
         const state = { run: mockRun, state: "running" };
         return selector(state);
       }

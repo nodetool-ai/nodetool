@@ -17,7 +17,7 @@ import { shallow } from "zustand/shallow";
 import type { jsScripts } from "@nodetool-ai/protocol/api-schemas";
 
 import { useNodes } from "../../contexts/NodeContext";
-import { trpc } from "../../trpc/client";
+import { trpc, type RouterOutputs } from "../../trpc/client";
 import type { TypeMetadata } from "../../stores/ApiTypes";
 import type {
   DynamicSlotDeclaration,
@@ -25,6 +25,12 @@ import type {
 } from "../../stores/NodeData";
 
 type JsScriptPort = jsScripts.JsScriptPort;
+
+/**
+ * A stored script's document as the tRPC client hands it back — the schema's
+ * output type, which is what every caller of `pinCurrentVersion` passes.
+ */
+type StoredJsScriptDocument = RouterOutputs["jsScripts"]["get"]["document"];
 
 /** What the node stores while linked. */
 export interface JsScriptLink {
@@ -140,7 +146,10 @@ export function useCodeNodeScriptLink(
    * version whose document is not what the user just looked at.
    */
   const pinCurrentVersion = useCallback(
-    async (scriptId: string, document: object): Promise<number> => {
+    async (
+      scriptId: string,
+      document: StoredJsScriptDocument
+    ): Promise<number> => {
       const versions = await utils.jsScripts.documentVersions.list.fetch({
         id: scriptId,
         limit: 1
