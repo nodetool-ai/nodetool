@@ -41,7 +41,7 @@ describe('HandleTooltip', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+    mockUseConnectionStore.mockImplementation(<T,>(selector: (state: { connecting: boolean; isReconnecting: boolean }) => T) =>
       selector({ connecting: false, isReconnecting: false })
     );
   });
@@ -230,7 +230,7 @@ describe('HandleTooltip', () => {
 
     it('should not show tooltip while a connection drag is active', () => {
       jest.useFakeTimers();
-      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+      mockUseConnectionStore.mockImplementation(<T,>(selector: (state: { connecting: boolean; isReconnecting: boolean }) => T) =>
         selector({ connecting: true, isReconnecting: false })
       );
 
@@ -311,7 +311,7 @@ describe('HandleTooltip', () => {
 
   describe('Connect-time label', () => {
     it('shows the name (no type) on compatible handles while connecting', () => {
-      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+      mockUseConnectionStore.mockImplementation(<T,>(selector: (state: { connecting: boolean; isReconnecting: boolean }) => T) =>
         selector({ connecting: true, isReconnecting: false })
       );
 
@@ -325,7 +325,7 @@ describe('HandleTooltip', () => {
     });
 
     it('does not show a tooltip on incompatible handles while connecting', () => {
-      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+      mockUseConnectionStore.mockImplementation(<T,>(selector: (state: { connecting: boolean; isReconnecting: boolean }) => T) =>
         selector({ connecting: true, isReconnecting: false })
       );
 

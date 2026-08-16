@@ -7,7 +7,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 const updateNodeData = jest.fn();
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { updateNodeData: jest.Mock }) => unknown) =>
+  useNodes: <T,>(selector: (state: { updateNodeData: jest.Mock }) => T) =>
     selector({ updateNodeData })
 }));
 

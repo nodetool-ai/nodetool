@@ -17,7 +17,7 @@ jest.mock("../../../hooks/useWorkflowDirty", () => ({
   useWorkflowDirty: () => false
 }));
 jest.mock("../../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: (state: unknown) => unknown) =>
+  useSettingsStore: <T,>(selector: (state: unknown) => T) =>
     selector({ settings: { instantUpdate: false } })
 }));
 

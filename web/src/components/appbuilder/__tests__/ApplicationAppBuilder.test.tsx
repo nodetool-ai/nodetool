@@ -62,13 +62,13 @@ jest.mock("../../../trpc/client", () => ({
 }));
 
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (
-    selector: (s: { addNotification: unknown }) => unknown
+  useNotificationStore: <T,>(
+    selector: (s: { addNotification: unknown }) => T
   ) => selector({ addNotification })
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: { fetchWorkflow: unknown }) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: { fetchWorkflow: unknown }) => T) =>
     selector({ fetchWorkflow })
 }));
 

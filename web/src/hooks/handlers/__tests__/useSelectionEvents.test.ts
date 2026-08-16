@@ -45,7 +45,7 @@ describe("useSelectionEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     // Use mockImplementation to properly call the selector function
-    mockedUseNodes.mockImplementation((selector: (state: Record<string, unknown>) => unknown) =>
+    mockedUseNodes.mockImplementation(<T,>(selector: (state: Record<string, unknown>) => T) =>
       selector({
         updateNode: mockUpdateNode,
         setEdgeSelectionState: mockSetEdgeSelectionState

@@ -36,7 +36,7 @@ jest.mock("../../../components/node_types/PlaceholderNode", () => ({
 }));
 
 jest.mock("../../../utils/lodashAlternatives", () => ({
-  debounce: (fn: (...args: unknown[]) => unknown) => fn
+  debounce: <F,>(fn: F) => fn
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({

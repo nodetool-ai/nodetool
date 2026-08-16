@@ -32,7 +32,7 @@ describe("useDynamicProperty", () => {
     jest.clearAllMocks();
     nodeSlots = undefined;
     (useNodes as jest.Mock).mockImplementation(
-      (selector: (s: unknown) => unknown) =>
+      <T,>(selector: (s: unknown) => T) =>
         selector({
           updateNodeData: mockUpdateNodeData,
           updateEdgeHandle: mockUpdateEdgeHandle,

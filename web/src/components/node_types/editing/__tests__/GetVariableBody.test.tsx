@@ -23,7 +23,7 @@ const mockUseGraphVariableTypes =
   useGraphVariableTypes as jest.MockedFunction<typeof useGraphVariableTypes>;
 
 jest.mock("../../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { updateNodeData: jest.Mock }) => unknown) =>
+  useNodes: <T,>(selector: (state: { updateNodeData: jest.Mock }) => T) =>
     selector({ updateNodeData: mockUpdateNodeData })
 }));
 

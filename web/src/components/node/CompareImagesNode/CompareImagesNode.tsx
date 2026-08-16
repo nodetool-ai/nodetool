@@ -102,6 +102,15 @@ const imageTypeMetadata = {
   optional: false
 };
 
+/** The `image_comparison` record the CompareImages node emits. */
+interface ImageComparison {
+  type?: string;
+  image_a?: { uri?: string; data?: ImageData; type?: string };
+  image_b?: { uri?: string; data?: ImageData; type?: string };
+  label_a?: string;
+  label_b?: string;
+}
+
 interface CompareImagesNodeProps extends NodeProps {
   data: NodeData;
   id: string;
@@ -121,7 +130,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const result = _result ?? _output;
 
   const comparisonData = useMemo(() => {
-    const pickComparison = (value: unknown): unknown => {
+    const pickComparison = (value: unknown): ImageComparison | null => {
       if (!value || typeof value !== "object") return null;
       if (Array.isArray(value)) {
         for (const item of value) {
@@ -132,7 +141,10 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
       }
       const record = value as Record<string, unknown>;
       if ((record as { type?: string }).type === "image_comparison") {
-        return record;
+        // SAFETY: the `type === "image_comparison"` tag above is what the
+        // CompareImages node stamps on this record; its two image refs and
+        // labels are all optional here, so nothing else is being assumed.
+        return record as ImageComparison;
       }
       if (record.comparison) {
         return pickComparison(record.comparison);
@@ -140,15 +152,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
       return null;
     };
 
-    const snapshot = pickComparison(result);
-    if (!snapshot) return null;
-    return snapshot as {
-      type: string;
-      image_a: { uri?: string; data?: ImageData; type?: string };
-      image_b: { uri?: string; data?: ImageData; type?: string };
-      label_a?: string;
-      label_b?: string;
-    };
+    return pickComparison(result);
   }, [result]);
 
   // Track blob URLs for cleanup

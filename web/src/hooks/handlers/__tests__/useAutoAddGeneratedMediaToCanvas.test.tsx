@@ -18,7 +18,7 @@ let isCanvasAvailable = true;
 
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: (selector: (s: MockChatState) => unknown) => selector(mockState)
+  default: <T,>(selector: (s: MockChatState) => T) => selector(mockState)
 }));
 
 jest.mock("../useGenerationToCanvas", () => ({

@@ -122,7 +122,10 @@ describe("collectCachedValuesForSubgraph", () => {
       mkEdge("ext1", "node1", { sourceHandle: "output", targetHandle: "prompt" }),
       mkEdge("ext2", "node1", { sourceHandle: "output", targetHandle: "seed" })
     ];
-    const getResult = (_wfId: string, nodeId: string): unknown => {
+    const getResult = (
+      _wfId: string,
+      nodeId: string
+    ): { output: string | number } | undefined => {
       if (nodeId === "ext1") return { output: "hello" };
       if (nodeId === "ext2") return { output: 42 };
       return undefined;
@@ -147,7 +150,10 @@ describe("collectCachedValuesForSubgraph", () => {
       mkEdge("const1", "node1", { sourceHandle: "output", targetHandle: "value" })
     ];
     // The constant has a STALE cached generation, but its live property was edited.
-    const getResult = (_wf: string, nodeId: string): unknown =>
+    const getResult = (
+      _wf: string,
+      nodeId: string
+    ): { output: string } | undefined =>
       nodeId === "const1" ? { output: "stale_cached" } : undefined;
     const constNode = mkNode("const1", "nodetool.constant.String");
     constNode.data.properties = { value: "live_edited" };
@@ -160,7 +166,10 @@ describe("collectCachedValuesForSubgraph", () => {
     const edges = [
       mkEdge("in1", "node1", { sourceHandle: "output", targetHandle: "value" })
     ];
-    const getResult = (_wf: string, nodeId: string): unknown =>
+    const getResult = (
+      _wf: string,
+      nodeId: string
+    ): { output: string } | undefined =>
       nodeId === "in1" ? { output: "stale_cached" } : undefined;
     const inNode = mkNode("in1", "nodetool.input.IntegerInput");
     inNode.data.properties = { value: 7 };
@@ -174,7 +183,10 @@ describe("collectCachedValuesForSubgraph", () => {
       mkEdge("gen1", "node1", { sourceHandle: "output", targetHandle: "image" })
     ];
     // The generative source's last output is reused even though it may be "stale".
-    const getResult = (_wf: string, nodeId: string): unknown =>
+    const getResult = (
+      _wf: string,
+      nodeId: string
+    ): { output: string } | undefined =>
       nodeId === "gen1" ? { output: "last_cached_output" } : undefined;
     const genNode = mkNode("gen1", "gen.Image");
     genNode.data.properties = { value: "ignored_live_value" };

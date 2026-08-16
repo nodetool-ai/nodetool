@@ -50,7 +50,7 @@ jest.mock("../../stores/NodeMenuStore", () => ({
 
 const mockAddRecentNode = jest.fn();
 jest.mock("../../stores/RecentNodesStore", () => ({
-  useRecentNodesStore: (selector: (state: { addRecentNode: typeof mockAddRecentNode }) => unknown) => {
+  useRecentNodesStore: <T,>(selector: (state: { addRecentNode: typeof mockAddRecentNode }) => T) => {
     const mockState = { addRecentNode: mockAddRecentNode };
     if (typeof selector === "function") {
       return selector(mockState);

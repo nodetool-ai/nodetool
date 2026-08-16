@@ -45,7 +45,7 @@ const mockUpdateNodeData = jest.fn();
 let mockEdges: Array<{ source: string; target: string }> = [];
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: unknown) => unknown) =>
+  useNodes: <T,>(selector: (state: unknown) => T) =>
     selector({
       findNode: mockFindNode,
       updateNodeData: mockUpdateNodeData,

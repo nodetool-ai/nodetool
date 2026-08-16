@@ -43,24 +43,24 @@ jest.mock("../Tracks/useAudioPeaks", () => ({
 // ── Stores that pull in network/api dependencies → light mocks ─────────────
 
 jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: (sel: (s: { get: () => Promise<null> }) => unknown) =>
+  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
     sel({ get: () => Promise.resolve(null) })
 }));
 jest.mock("../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
-  default: (sel: (s: { focusedJob: Record<string, string> }) => unknown) =>
+  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
     sel({ focusedJob: {} })
 }));
 jest.mock("../../../stores/ErrorStore", () => ({
   __esModule: true,
-  default: (sel: (s: { errors: Record<string, unknown> }) => unknown) =>
+  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
     sel({ errors: {} }),
   hasNodeError: () => false,
   nodeErrorToDisplayString: () => ""
 }));
 jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: (
-    sel: (s: { clipJobs: Record<string, unknown> }) => unknown
+  useTimelineGenerationStore: <T,>(
+    sel: (s: { clipJobs: Record<string, unknown> }) => T
   ) => sel({ clipJobs: {} })
 }));
 

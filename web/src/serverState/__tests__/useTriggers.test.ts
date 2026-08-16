@@ -32,7 +32,7 @@ jest.mock("../../trpc/client", () => ({
 const mockAddNotification = jest.fn();
 jest.mock("../../stores/NotificationStore", () => ({
   __esModule: true,
-  useNotificationStore: (selector: (s: unknown) => unknown) =>
+  useNotificationStore: <T,>(selector: (s: unknown) => T) =>
     selector({ addNotification: mockAddNotification })
 }));
 
@@ -54,6 +54,10 @@ import {
   runningTriggersQueryKey,
   triggerErrorMessage
 } from "../useTriggers";
+import type {
+  TriggerRegistrationStatus,
+  RunningTriggerRegistration
+} from "../useTriggers";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
@@ -62,7 +66,9 @@ const mockUseQueryClient = useQueryClient as jest.MockedFunction<
 >;
 
 interface MutationConfig<TVars> {
-  mutationFn: (vars: TVars) => Promise<unknown>;
+  /** The tests await the call and assert on the trpc mock; the resolved
+   *  value is never read. */
+  mutationFn: (vars: TVars) => Promise<void>;
   onSuccess: () => void;
   onError: (error: unknown, variables: TVars) => void;
 }
@@ -135,7 +141,7 @@ describe("useWorkflowTriggers", () => {
 
     renderHook(() => useWorkflowTriggers("wf-1"));
     const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<unknown>;
+      queryFn: () => Promise<TriggerRegistrationStatus[]>;
     };
     const result = await queryFn();
     expect(trpcClient.triggers.listByWorkflow.query).toHaveBeenCalledWith({
@@ -182,7 +188,7 @@ describe("useRunningTriggers", () => {
     });
     renderHook(() => useRunningTriggers());
     const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<unknown>;
+      queryFn: () => Promise<RunningTriggerRegistration[]>;
     };
     expect(await queryFn()).toEqual(triggers);
   });

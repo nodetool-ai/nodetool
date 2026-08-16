@@ -23,7 +23,7 @@ jest.mock("../../../hooks/useProviders", () => ({
 jest.mock("../GoogleWorkspaceCard", () => () => null);
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
+  default: <T,>(selector: (state: unknown) => T) =>
     selector({
       secrets: [],
       updateSecret: jest.fn(),
@@ -31,7 +31,7 @@ jest.mock("../../../stores/SecretsStore", () => ({
     })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (selector: (state: unknown) => unknown) =>
+  useNotificationStore: <T,>(selector: (state: unknown) => T) =>
     selector({ addNotification: jest.fn() })
 }));
 

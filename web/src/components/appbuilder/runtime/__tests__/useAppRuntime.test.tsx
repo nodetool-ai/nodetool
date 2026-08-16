@@ -13,7 +13,7 @@ import type { Workflow } from "../../../../stores/ApiTypes";
 const fetchWorkflow = jest.fn();
 
 jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (selector: (s: { fetchWorkflow: unknown }) => unknown) =>
+  useWorkflowManager: <T,>(selector: (s: { fetchWorkflow: unknown }) => T) =>
     selector({ fetchWorkflow })
 }));
 
