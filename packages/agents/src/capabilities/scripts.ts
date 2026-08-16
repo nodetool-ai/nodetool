@@ -1225,7 +1225,7 @@ function normalizeDirectedShots(
     };
   }
 
-  const key = (ids: readonly string[]): string => ids.join(" ");
+  const key = (ids: readonly string[]): string => ids.join("\u0000");
   const byKey = new Map(
     scaffoldShots.map((shot) => [key(shot.script_line_ids ?? []), shot])
   );
