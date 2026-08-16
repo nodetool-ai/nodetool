@@ -309,15 +309,22 @@ export function gradeJsScriptCase(
     );
   }
 
-  return {
+  const report: JsScriptTestCaseReport = {
     name: testCase.name,
     ok: outcome.ok && mismatches.length === 0,
-    ...(outcome.outputs !== undefined ? { outputs: outcome.outputs } : {}),
-    ...(outcome.streamed !== undefined ? { streamed: outcome.streamed } : {}),
     logs: outcome.logs,
-    ...(outcome.error !== undefined ? { error: outcome.error } : {}),
     mismatches,
   };
+  if (outcome.outputs !== undefined) {
+    report.outputs = outcome.outputs;
+  }
+  if (outcome.streamed !== undefined) {
+    report.streamed = outcome.streamed;
+  }
+  if (outcome.error !== undefined) {
+    report.error = outcome.error;
+  }
+  return report;
 }
 
 export function summarizeJsScriptTests(

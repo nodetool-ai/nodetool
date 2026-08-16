@@ -307,10 +307,9 @@ class ApiService {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            inputs,
-            ...(inputStreams ? { input_streams: inputStreams } : {})
-          })
+          body: JSON.stringify(
+            inputStreams ? { inputs, input_streams: inputStreams } : { inputs }
+          )
         },
         130_000
       );
@@ -343,13 +342,16 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.update.mutate({
+    const update: Parameters<typeof trpc.workflows.update.mutate>[0] = {
       id: workflow.id,
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {})
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      update.access = workflow.access;
+    }
+    return trpc.workflows.update.mutate(update);
   }
 
   async createWorkflow(workflow: {
@@ -359,12 +361,15 @@ class ApiService {
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
-    return trpc.workflows.create.mutate({
+    const create: Parameters<typeof trpc.workflows.create.mutate>[0] = {
       name: workflow.name,
       description: workflow.description,
-      graph: workflow.graph,
-      ...(workflow.access ? { access: workflow.access } : {})
-    });
+      graph: workflow.graph
+    };
+    if (workflow.access) {
+      create.access = workflow.access;
+    }
+    return trpc.workflows.create.mutate(create);
   }
 
   async uploadAsset(params: {
