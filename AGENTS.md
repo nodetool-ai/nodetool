@@ -236,17 +236,35 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 15,993 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 15,994 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
-- `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
-  inside `npm run lint`, so they cannot come back.
+- `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
+  inside `npm run lint`, so it cannot come back.
 
-Getting a rule to zero and moving its entry from the first config to the second
-is one change. A rule that does not fit NodeTool is deleted from the plugin
+The unit of enforcement is a **(rule, tree) pair**, not a rule. Eight rules over
+58 trees is 464 pairs, and 184 of them are already at zero — so a rule still
+thousands of findings deep across the repo is nonetheless finished in forty
+packages, and those forty are ratcheted today rather than after the last one
+lands. Six rules are at zero everywhere and sit in the enforced config's top-level
+`rules`; the rest are enforced per-path, one override block per rule listing the
+trees at zero for it.
+
+Those override blocks are generated, never hand-edited:
+`npm run lint:anti-slop:count` prints the table below, `:write` regenerates the
+overrides from a fresh measurement, and `:check` fails when the config and the
+measurement disagree. Hand-maintaining them is how the numbers here drifted
+before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
+lints one tree per oxlint invocation and rejects any tree whose scan touched
+zero files: oxlint does not expand `packages/*/src` itself, and a glob that
+reaches it unexpanded lints nothing while reporting nothing — which is
+indistinguishable from a clean tree, and would ratchet all 464 pairs on a
+broken run.
+
+A rule that does not fit NodeTool is deleted from the plugin
 instead — upstream ships it to be vendored and edited. That is why
 `no-shape-in-symbol-names` is gone: it banned the substring "shape" in every
 identifier, and here that is the sketch editor's drawing tools, tensor shapes,
-and third-party contracts. Promotion goes through the enforced config, not `.oxlintrc.json`,
+and third-party contracts. Enforcement goes through the enforced config, not `.oxlintrc.json`,
 because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
 oxlint resolves the nearest config per file — a rule added at the root silently
 skips those trees. `no-runtime-typeof` runs with `allowInTypeGuards: true`: a `typeof` directly
@@ -254,10 +272,8 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. The rule is enforced for thirteen trees via an override in the
-enforced config — `electron/src`, `protocol`, `node-sdk`, `app-runtime`, `cli`,
-`base-nodes`, `nodes-utils`, `security`, `minimax-nodes`, and the audio, text,
-image and llm node packages — with the decoder `packages/protocol/src/typecheck.ts`
+deleting guards. It is enforced for the thirteen trees at zero on it (read the
+list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
 consolidation moves findings into `no-unknown-parameters`, which is why that
@@ -272,18 +288,27 @@ operand that *does* resolve still reports, and `const kind = typeof value`
 still reports, because narrowing laundered through a local is still narrowing.
 `tools/oxlint/anti-slop/tests/` pins all of it.
 
-Remaining backlog, largest first:
+Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:count`:
 
-| rule | findings |
-|---|---:|
-| `require-safety-comment-for-type-assertion` | 7001 |
-| `no-unsafe-dictionary-type` | 4241 |
-| `no-unknown-parameters` | 1890 |
-| `no-module-mocking` | 1426 |
-| `no-known-value-widening` | 663 |
-| `no-runtime-typeof` | 537 |
-| `no-unknown-returns` | 191 |
-| `no-chained-type-assertions` | 44 |
+| rule | findings | trees at zero |
+|---|---:|---:|
+| `require-safety-comment-for-type-assertion` | 7001 | 3 / 58 |
+| `no-unsafe-dictionary-type` | 4241 | 5 / 58 |
+| `no-unknown-parameters` | 1890 | 8 / 58 |
+| `no-module-mocking` | 1427 | 55 / 58 |
+| `no-known-value-widening` | 663 | 12 / 58 |
+| `no-runtime-typeof` | 537 | 13 / 58 |
+| `no-unknown-returns` | 191 | 42 / 58 |
+| `no-chained-type-assertions` | 44 | 46 / 58 |
+
+The two columns rank differently, and that is the scheduling signal.
+`no-module-mocking` is 1,427 findings but zero in 55 of 58 trees: it is
+concentrated in the frontend test suites and is a test-seam problem, not a
+typing one — enforced everywhere else already, and worth its own change rather
+than a slot in the typing work. `require-safety-comment-for-type-assertion` is
+the opposite, present nearly everywhere, and moves only when the values crossing
+a boundary get named. `packages/base-nodes` and `packages/security` are at zero
+on all eight.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what

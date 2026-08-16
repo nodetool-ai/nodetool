@@ -13,6 +13,140 @@
   "overrides": [
     {
       "files": [
+        "packages/app-runtime/src/**",
+        "packages/atlascloud-nodes/src/**",
+        "packages/audio-nodes/src/**",
+        "packages/auth/src/**",
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/cli/src/**",
+        "packages/code-nodes/src/**",
+        "packages/compute/src/**",
+        "packages/config/src/**",
+        "packages/core-nodes/src/**",
+        "packages/deploy/src/**",
+        "packages/document-nodes/src/**",
+        "packages/dsl/src/**",
+        "packages/elevenlabs-nodes/src/**",
+        "packages/execution/src/**",
+        "packages/fal-codegen/src/**",
+        "packages/fal-nodes/src/**",
+        "packages/gpu/src/**",
+        "packages/huggingface/src/**",
+        "packages/huggingface-nodes/src/**",
+        "packages/image-editor/src/**",
+        "packages/image-nodes/src/**",
+        "packages/integration-nodes/src/**",
+        "packages/kernel/src/**",
+        "packages/kie-codegen/src/**",
+        "packages/kie-nodes/src/**",
+        "packages/llm-nodes/src/**",
+        "packages/minimax-nodes/src/**",
+        "packages/model-pricing/src/**",
+        "packages/models/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/replicate-codegen/src/**",
+        "packages/replicate-nodes/src/**",
+        "packages/reve-nodes/src/**",
+        "packages/sdk/src/**",
+        "packages/security/src/**",
+        "packages/storage/src/**",
+        "packages/text-nodes/src/**",
+        "packages/timeline/src/**",
+        "packages/together-nodes/src/**",
+        "packages/topaz-nodes/src/**",
+        "packages/transformers-js-nodes/src/**",
+        "packages/transformers-js-provider/src/**",
+        "packages/vectorstore/src/**",
+        "packages/workflow-runner/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-chained-type-assertions": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/atlascloud-nodes/src/**",
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/code-nodes/src/**",
+        "packages/document-nodes/src/**",
+        "packages/dsl/src/**",
+        "packages/execution/src/**",
+        "packages/huggingface-nodes/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/replicate-nodes/src/**",
+        "packages/sdk/src/**",
+        "packages/security/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-known-value-widening": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/agents/src/**",
+        "packages/app-runtime/src/**",
+        "packages/atlascloud-nodes/src/**",
+        "packages/audio-nodes/src/**",
+        "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/cli/src/**",
+        "packages/code-nodes/src/**",
+        "packages/compute/src/**",
+        "packages/config/src/**",
+        "packages/core-nodes/src/**",
+        "packages/data-nodes/src/**",
+        "packages/deploy/src/**",
+        "packages/document-nodes/src/**",
+        "packages/dsl/src/**",
+        "packages/elevenlabs-nodes/src/**",
+        "packages/execution/src/**",
+        "packages/fal-codegen/src/**",
+        "packages/fal-nodes/src/**",
+        "packages/gpu/src/**",
+        "packages/huggingface/src/**",
+        "packages/huggingface-nodes/src/**",
+        "packages/image-editor/src/**",
+        "packages/image-nodes/src/**",
+        "packages/integration-nodes/src/**",
+        "packages/kernel/src/**",
+        "packages/kie-codegen/src/**",
+        "packages/kie-nodes/src/**",
+        "packages/llm-nodes/src/**",
+        "packages/minimax-nodes/src/**",
+        "packages/model-pricing/src/**",
+        "packages/models/src/**",
+        "packages/node-sdk/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/protocol/src/**",
+        "packages/replicate-codegen/src/**",
+        "packages/replicate-nodes/src/**",
+        "packages/reve-nodes/src/**",
+        "packages/runtime/src/**",
+        "packages/sandbox-compiler/src/**",
+        "packages/sdk/src/**",
+        "packages/security/src/**",
+        "packages/storage/src/**",
+        "packages/text-nodes/src/**",
+        "packages/timeline/src/**",
+        "packages/together-nodes/src/**",
+        "packages/topaz-nodes/src/**",
+        "packages/transformers-js-nodes/src/**",
+        "packages/transformers-js-provider/src/**",
+        "packages/vectorstore/src/**",
+        "packages/video-nodes/src/**",
+        "packages/websocket/src/**",
+        "packages/workflow-runner/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-module-mocking": "error"
+      }
+    },
+    {
+      "files": [
         "electron/src/**",
         "packages/app-runtime/src/**",
         "packages/audio-nodes/src/**",
@@ -30,12 +164,102 @@
       "rules": {
         "anti-slop/no-runtime-typeof": [
           "error",
-          { "allowInTypeGuards": true }
+          {
+            "allowInTypeGuards": true
+          }
         ]
       }
     },
     {
-      "files": ["packages/protocol/src/typecheck.ts"],
+      "files": [
+        "packages/base-nodes/src/**",
+        "packages/config/src/**",
+        "packages/document-nodes/src/**",
+        "packages/elevenlabs-nodes/src/**",
+        "packages/minimax-nodes/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/security/src/**",
+        "packages/transformers-js-provider/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-unknown-parameters": "error"
+      }
+    },
+    {
+      "files": [
+        "electron/src/**",
+        "packages/atlascloud-nodes/src/**",
+        "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/code-nodes/src/**",
+        "packages/compute/src/**",
+        "packages/config/src/**",
+        "packages/data-nodes/src/**",
+        "packages/deploy/src/**",
+        "packages/document-nodes/src/**",
+        "packages/dsl/src/**",
+        "packages/elevenlabs-nodes/src/**",
+        "packages/fal-codegen/src/**",
+        "packages/fal-nodes/src/**",
+        "packages/huggingface/src/**",
+        "packages/huggingface-nodes/src/**",
+        "packages/image-editor/src/**",
+        "packages/integration-nodes/src/**",
+        "packages/kie-codegen/src/**",
+        "packages/kie-nodes/src/**",
+        "packages/minimax-nodes/src/**",
+        "packages/model-pricing/src/**",
+        "packages/models/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/protocol/src/**",
+        "packages/replicate-codegen/src/**",
+        "packages/replicate-nodes/src/**",
+        "packages/reve-nodes/src/**",
+        "packages/sandbox-compiler/src/**",
+        "packages/sdk/src/**",
+        "packages/security/src/**",
+        "packages/storage/src/**",
+        "packages/timeline/src/**",
+        "packages/together-nodes/src/**",
+        "packages/topaz-nodes/src/**",
+        "packages/transformers-js-nodes/src/**",
+        "packages/transformers-js-provider/src/**",
+        "packages/vectorstore/src/**",
+        "packages/video-nodes/src/**",
+        "packages/workflow-runner/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-unknown-returns": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/config/src/**",
+        "packages/model-pricing/src/**",
+        "packages/security/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-unsafe-dictionary-type": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/base-nodes/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/security/src/**"
+      ],
+      "rules": {
+        "anti-slop/require-safety-comment-for-type-assertion": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/protocol/src/typecheck.ts"
+      ],
       "rules": {
         "anti-slop/no-runtime-typeof": "off"
       }
