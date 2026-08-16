@@ -4,7 +4,7 @@
  */
 
 import { loadMediaRefBytes, registerWebhookWait } from "@nodetool-ai/runtime";
-import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
@@ -191,7 +191,7 @@ async function resolveUploadBytes(
   ref: Record<string, unknown>,
   context?: ProcessingContext
 ): Promise<Buffer | null> {
-  const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
+  const bytes = await loadMediaRefBytes(ref, context);
   return bytes ? Buffer.from(bytes) : null;
 }
 
@@ -343,9 +343,9 @@ async function downloadCustomResult(
   // Try Veo-style: data.resultUrls or data.response.resultUrls
   let resultUrls: string[] = [];
   const rawUrls =
-    (data?.resultUrls as unknown) ||
-    ((data?.response as Record<string, unknown>)?.resultUrls as unknown) ||
-    ((data?.response as Record<string, unknown>)?.originUrls as unknown);
+    data?.resultUrls ||
+    (data?.response as Record<string, unknown>)?.resultUrls ||
+    (data?.response as Record<string, unknown>)?.originUrls;
 
   if (Array.isArray(rawUrls)) {
     resultUrls = rawUrls.filter((u): u is string => typeof u === "string");

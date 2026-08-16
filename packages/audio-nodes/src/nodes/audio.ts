@@ -1665,8 +1665,7 @@ function hasMusicProviderSupport(
 } {
   return (
     !!context &&
-    typeof (context as { textToMusic?: unknown }).textToMusic === "function" &&
-    !!providerId &&
+    typeof context.textToMusic === "function" && !!providerId &&
     !!modelId
   );
 }

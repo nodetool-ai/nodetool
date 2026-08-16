@@ -7,12 +7,11 @@
  * places widgets the harness rejects as unknown. This test is the only thing
  * holding the two together, so it compares them field by field.
  */
-import type { Config } from "@puckeditor/core";
 import { WIDGET_CATALOG, widgetFields } from "@nodetool-ai/app-runtime";
 
 import { appConfig } from "../config";
 
-const components = (appConfig as Config).components as Record<
+const components = appConfig.components as Record<
   string,
   { label?: string; fields?: Record<string, { type?: string }> }
 >;

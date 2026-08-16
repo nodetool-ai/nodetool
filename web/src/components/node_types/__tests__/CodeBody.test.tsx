@@ -39,7 +39,7 @@ jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
 }));
 
 const mockFindNode = jest.fn(() => ({
-  data: { dynamic_properties: {} as Record<string, unknown>, dynamic_outputs: {} }
+  data: { dynamic_properties: {}, dynamic_outputs: {} }
 }));
 const mockUpdateNodeData = jest.fn();
 // Edges decide whether Ask AI is offered: generation replaces the node's

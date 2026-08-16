@@ -103,7 +103,7 @@ export function NodeTextField({
             editorClassNames.nodrag,
             editorUiClasses.control,
             scopeClass,
-            (InputProps as SlotPropsWithClassName | undefined)?.className,
+            InputProps?.className,
             (slotProps?.input as SlotPropsWithClassName | undefined)?.className
           )
         },
@@ -113,7 +113,7 @@ export function NodeTextField({
           ...slotProps?.htmlInput,
           className: cn(
             editorClassNames.nodrag,
-            (inputProps as SlotPropsWithClassName | undefined)?.className,
+            inputProps?.className,
             (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
               ?.className
           )

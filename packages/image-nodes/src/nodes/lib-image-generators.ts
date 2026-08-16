@@ -59,7 +59,7 @@ class LinearGradientNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const width = dim(props.width, 512);
     const height = dim(props.height, 512);
     const output = await runShaderNode(
@@ -93,7 +93,7 @@ class RadialGradientNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const width = dim(props.width, 512);
     const height = dim(props.height, 512);
     const output = await runShaderNode(
@@ -125,7 +125,7 @@ class AngularGradientNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const width = dim(props.width, 512);
     const height = dim(props.height, 512);
     const output = await runShaderNode(
@@ -157,7 +157,7 @@ class DiamondGradientNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const width = dim(props.width, 512);
     const height = dim(props.height, 512);
     const output = await runShaderNode(
@@ -189,7 +189,7 @@ class CheckerboardNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const width = dim(props.width, 512);
     const height = dim(props.height, 512);
     const output = await runShaderNode(

@@ -159,9 +159,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
 
   const handleSave = useCallback(
     (nextData: Data) => {
-      const rootProps = nextData.root?.props as
-        | Record<string, unknown>
-        | undefined;
+      const rootProps = nextData.root?.props;
       // The author's pick wins; a root that never carried the field at all
       // (a surface that does not edit it) leaves the document's theme alone.
       const themeId = rootProps && "theme" in rootProps ? rootProps.theme : null;

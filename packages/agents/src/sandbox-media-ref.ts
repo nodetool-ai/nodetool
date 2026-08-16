@@ -251,7 +251,7 @@ function requireRef(where: string, ref: unknown): MediaRefValue {
       `${where}: expected a media ref object ({type, uri, asset_id, data})`
     );
   }
-  return ref as MediaRefValue;
+  return ref;
 }
 
 /** How the ref reads in an error message, so the failure names what failed. */

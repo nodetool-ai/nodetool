@@ -17,7 +17,7 @@ jest.mock("../../lib/trpc", () => ({
   }
 }));
 
-const mockQuery = trpc.models.providers.query as jest.Mock;
+const mockQuery = jest.mocked(trpc.models.providers.query);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({

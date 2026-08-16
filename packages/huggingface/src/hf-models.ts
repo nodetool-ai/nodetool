@@ -838,7 +838,7 @@ export function detectRepoPackaging(
 ): RepoPackagingHint {
   const weightEntries: [string, number][] = fileEntries.filter(([name]) =>
     _isWeightFile(name)
-  ) as [string, number][];
+  );
   const weightFiles = weightEntries.map(([name]) => name);
   const lowerWeightFiles = weightFiles.map((n) => n.toLowerCase());
 

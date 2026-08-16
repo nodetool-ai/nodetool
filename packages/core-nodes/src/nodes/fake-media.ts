@@ -67,7 +67,7 @@ const bytesToBase64 = (bytes: Uint8Array): string => {
 const getOffscreenCanvas = ():
   | (new (w: number, h: number) => OffscreenCanvas)
   | undefined =>
-  (globalThis as { OffscreenCanvas?: new (w: number, h: number) => OffscreenCanvas })
+  globalThis
     .OffscreenCanvas;
 
 /**
@@ -220,7 +220,7 @@ export class FakeColorGradeNode extends BaseNode {
     const brightness = clampNum(this.brightness, 100, 0, 300);
 
     const OffscreenCanvasCtor = (
-      globalThis as { OffscreenCanvas?: typeof OffscreenCanvas }
+      globalThis
     ).OffscreenCanvas;
     // Off the browser worker (e.g. SSR/tests) just pass the image through.
     if (!src || !OffscreenCanvasCtor || typeof createImageBitmap !== "function") {

@@ -89,7 +89,7 @@ function resolveImageModel(
     return {
       id: input,
       name: input,
-      provider: provider as ImageModel["provider"]
+      provider: provider
     };
   }
   const want = normKey(input);
@@ -121,7 +121,7 @@ function resolveImageModel(
     return {
       id: input,
       name: input,
-      provider: provider as ImageModel["provider"]
+      provider: provider
     };
   }
   throw new Error(
@@ -230,7 +230,7 @@ async function run(
 
   const models = await provider
     .getAvailableImageModels()
-    .catch(() => [] as ImageModel[]);
+    .catch(() => []);
 
   if (opts.listModels) {
     if (opts.json) {

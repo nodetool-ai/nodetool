@@ -239,7 +239,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       if (msg.type === "chunk") {
         process.stdout.write((msg as { content?: string }).content ?? "");
       } else if (msg.type === "tool_call_update") {
-        process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
+        process.stderr.write(`[tool] ${msg.name}\n`);
       }
     };
     // Both delegation tools reach the belt as capabilities over one runtime.

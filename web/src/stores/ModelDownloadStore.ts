@@ -355,7 +355,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           speed: null,
           speedHistory: [],
           ...additionalProps
-        } as Download
+        }
       }
     }));
   },

@@ -92,7 +92,7 @@ describe('AssetViewerScreen save to library', () => {
   });
 
   it('hides Save for non-media types but keeps Share', () => {
-    mockAsset = { ...imageAsset, content_type: 'application/pdf' } as Asset;
+    mockAsset = { ...imageAsset, content_type: 'application/pdf' };
     renderScreen();
     expect(screen.queryByLabelText('Save to photo library')).toBeNull();
     expect(screen.getByLabelText('Share asset')).toBeTruthy();

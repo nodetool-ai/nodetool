@@ -18,7 +18,7 @@ const baseNode = (
     is_streaming_output: false,
     required_settings: [],
     ...overrides
-  }) as NodeMetadata;
+  });
 
 describe("bm25 tokenize", () => {
   it("lowercases and splits on punctuation/whitespace", () => {

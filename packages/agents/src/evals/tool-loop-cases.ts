@@ -68,7 +68,7 @@ function defineNode(
     supports_dynamic_inputs: false,
     is_streaming_output: false,
     supports_dynamic_outputs: false
-  } as NodeMetadata;
+  };
 }
 
 /**

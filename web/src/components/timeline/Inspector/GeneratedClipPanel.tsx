@@ -19,7 +19,6 @@ import { useWorkflow } from "../../../serverState/useWorkflow";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
-import type { Node } from "../../../stores/ApiTypes";
 import {
   Caption,
   CollapsibleSection,
@@ -122,7 +121,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
     const nodeStoreForForm = managerNodeStore ?? transientNodeStore;
 
     const inputDefinitions = useMemo<WorkflowInputDefinition[]>(() => {
-      const nodes = (workflow?.graph?.nodes ?? []) as Node[];
+      const nodes = workflow?.graph?.nodes ?? [];
       return nodes
         .map((node) => {
           const kind = getWorkflowInputKind(node.type);

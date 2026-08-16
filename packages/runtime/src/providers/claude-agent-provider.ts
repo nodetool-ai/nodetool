@@ -31,7 +31,7 @@
  */
 
 import { createLogger, importOptionalModule } from "@nodetool-ai/config";
-import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type {
   McpSdkServerConfigWithInstance,
   Options,
@@ -259,7 +259,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   private async loadQuery(): Promise<ClaudeQueryFn> {
     if (this.injectedQueryFn) return this.injectedQueryFn;
     const mod = await loadSdk();
-    return mod.query as ClaudeQueryFn;
+    return mod.query;
   }
 
   /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
@@ -676,7 +676,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           if (delta?.text != null) {
             streamedFromPartials = true;
             plan.emitted.content = true;
-            yield { type: "chunk", content: delta.text, done: false } as Chunk;
+            yield { type: "chunk", content: delta.text, done: false };
           } else if (delta?.thinking != null) {
             streamedFromPartials = true;
             plan.emitted.content = true;
@@ -685,13 +685,13 @@ export class ClaudeAgentProvider extends BaseProvider {
               content: delta.thinking,
               done: false,
               thinking: true
-            } as Chunk;
+            };
           }
           continue;
         }
 
         if (msg.type === "assistant") {
-          const m = (msg as SDKAssistantMessage).message;
+          const m = msg.message;
           if (m && isNonEmptyString(m.model)) resolvedModel = m.model;
           // Fallback only: no partials arrived, so render text/thinking from the
           // final content blocks — kept strictly separate, never merged.
@@ -712,7 +712,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           // persistable message, and a ToolCall item per call for live display.
           if (plan.config.emitMessages) {
             const { text, toolCalls } = assistantParts(
-              msg as SDKAssistantMessage
+              msg
             );
             for (const tc of toolCalls) yield tc;
             yield {
@@ -731,7 +731,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         // messages so the harness can persist them.
         if (msg.type === "user") {
           if (plan.config.emitMessages) {
-            for (const tr of toolResultsFromUser(msg as SDKUserMessage)) {
+            for (const tr of toolResultsFromUser(msg)) {
               yield {
                 type: "message",
                 message: {
@@ -750,7 +750,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
           if (msg.subtype === "success") {
-            yield { type: "chunk", content: "", done: true } as Chunk;
+            yield { type: "chunk", content: "", done: true };
           } else {
             throw resultError(msg);
           }
@@ -918,13 +918,7 @@ function assistantParts(msg: SDKAssistantMessage) {
   const toolCalls: ToolCall[] = [];
   if (Array.isArray(content)) {
     for (const raw of content) {
-      const b = raw as {
-        type?: string;
-        text?: string;
-        id?: string;
-        name?: string;
-        input?: unknown;
-      };
+      const b = raw;
       if (b.type === "text" && isString(b.text)) {
         text += b.text;
       } else if (b.type === "tool_use") {
@@ -945,7 +939,7 @@ function assistantParts(msg: SDKAssistantMessage) {
 function toolResultsFromUser(
   msg: SDKUserMessage
 ): Array<{ toolCallId: string; content: string }> {
-  const content = (msg.message as { content?: unknown } | undefined)?.content;
+  const content = msg.message?.content;
   const out: Array<{ toolCallId: string; content: string }> = [];
   if (Array.isArray(content)) {
     for (const raw of content) {
@@ -1136,7 +1130,7 @@ function resultError(
     parts.push(msg.result);
   }
   const denials = (
-    msg as { permission_denials?: Array<{ tool_name?: string }> }
+    msg
   ).permission_denials;
   if (Array.isArray(denials) && denials.length) {
     parts.push(

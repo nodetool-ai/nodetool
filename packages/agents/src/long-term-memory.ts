@@ -264,17 +264,17 @@ function itemFromRecord(
     text: document ?? "",
     kind: coerceKind(m["kind"]),
     importance: clampImportance(m["importance"]),
-    source: typeof m["source"] === "string" ? (m["source"] as string) : "",
+    source: typeof m["source"] === "string" ? m["source"] : "",
     createdAt:
       typeof m["created_at_ms"] === "number"
-        ? (m["created_at_ms"] as number)
+        ? m["created_at_ms"]
         : 0,
     lastAccessedAt:
       typeof m["last_accessed_at_ms"] === "number"
-        ? (m["last_accessed_at_ms"] as number)
+        ? m["last_accessed_at_ms"]
         : 0,
     accessCount:
-      typeof m["access_count"] === "number" ? (m["access_count"] as number) : 0
+      typeof m["access_count"] === "number" ? m["access_count"] : 0
   };
 }
 
@@ -304,7 +304,7 @@ function renderConversationForExtraction(messages: Message[]): string {
             part &&
             typeof part === "object" &&
             "type" in part &&
-            (part as { type: string }).type === "text"
+            part.type === "text"
           ) {
             return (part as { text?: string }).text ?? "";
           }
@@ -595,11 +595,11 @@ export class LongTermMemory {
     try {
       const response = await this.extractionProvider.generateMessageTraced({
         messages: [
-          { role: "system", content: EXTRACTION_SYSTEM_PROMPT } as Message,
+          { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
           {
             role: "user",
             content: extractionUserPrompt(conversation)
-          } as Message
+          }
         ],
         model: this.extractionModel,
         tools: [],
@@ -739,11 +739,11 @@ export class LongTermMemory {
           {
             role: "system",
             content: MEMORY_SYNTHESIS_SYSTEM_PROMPT
-          } as Message,
+          },
           {
             role: "user",
             content: buildMemorySynthesisUserPrompt(query, items)
-          } as Message
+          }
         ],
         model: this.synthesisModel!,
         tools: [],

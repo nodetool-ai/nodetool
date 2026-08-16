@@ -51,7 +51,7 @@ describe("useLayerHydration", () => {
       })
     );
 
-    expect((runtime.setLayerData as jest.Mock)).toHaveBeenCalledWith(
+    expect(jest.mocked(runtime.setLayerData)).toHaveBeenCalledWith(
       layer.id,
       layer.imageReference.uri,
       expect.any(Object),
@@ -103,7 +103,7 @@ describe("useLayerHydration", () => {
       })
     );
 
-    expect((runtime.setLayerData as jest.Mock)).toHaveBeenCalledWith(
+    expect(jest.mocked(runtime.setLayerData)).toHaveBeenCalledWith(
       layer.id,
       "asset://input-layer.png",
       expect.any(Object),

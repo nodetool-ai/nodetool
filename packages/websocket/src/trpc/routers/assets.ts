@@ -369,7 +369,7 @@ export const assetsRouter = router({
         metadata: input.metadata ?? null,
         // Recorded on finalize from what actually landed, not from the claim.
         size: null
-      })) as AssetModel;
+      }));
 
       const key = getAssetStorageKey(ctx.userId, asset.id, asset.content_type);
       const target = await adapter.createUploadUrl(key, {

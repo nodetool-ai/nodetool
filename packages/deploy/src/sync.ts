@@ -70,8 +70,8 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
         if (!seenModels.has(modelKey)) {
           seenModels.add(modelKey);
           models.push({
-            type: (m["type"] as string) || "hf.model",
-            repo_id: m["repo_id"] as string,
+            type: m["type"] || "hf.model",
+            repo_id: m["repo_id"],
             path: (m["path"] as string | null) ?? null,
             variant: (m["variant"] as string | null) ?? null,
             allow_patterns: (m["allow_patterns"] as string[] | null) ?? null,
@@ -102,7 +102,7 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
         m["provider"] === "llama_cpp" &&
         typeof m["id"] === "string"
       ) {
-        const modelId = m["id"] as string;
+        const modelId = m["id"];
         if (modelId.includes(":")) {
           const [repoId, filePath] = modelId.split(":", 2);
           const modelKey = `hf|hf.gguf|${repoId}|${filePath}|`;
@@ -157,8 +157,8 @@ export function extractModels(workflowData: WorkflowData): ExtractedModel[] {
               if (!seenModels.has(modelKey)) {
                 seenModels.add(modelKey);
                 models.push({
-                  type: (it["type"] as string) || "hf.model",
-                  repo_id: it["repo_id"] as string,
+                  type: it["type"] || "hf.model",
+                  repo_id: it["repo_id"],
                   path: (it["path"] as string | null) ?? null,
                   variant: (it["variant"] as string | null) ?? null,
                   allow_patterns:

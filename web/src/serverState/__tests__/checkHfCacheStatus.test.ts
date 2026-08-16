@@ -15,7 +15,7 @@ import { checkHfCacheStatus } from "../checkHfCacheStatus";
 import type { HfCacheStatusRequestItem, HfCacheStatusResponseItem } from "../checkHfCacheStatus";
 import { trpc } from "../../lib/trpc";
 
-const mockMutate = trpc.models.huggingfaceCacheStatus.mutate as jest.Mock;
+const mockMutate = jest.mocked(trpc.models.huggingfaceCacheStatus.mutate);
 
 describe("checkHfCacheStatus", () => {
   beforeEach(() => {

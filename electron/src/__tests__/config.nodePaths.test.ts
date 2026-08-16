@@ -37,8 +37,8 @@ const originalPlatform = process.platform;
 const originalEnv = process.env;
 
 describe('Config – node paths', () => {
-  const mockReadSettings = readSettings as jest.MockedFunction<typeof readSettings>;
-  const mockGetSystemDataPath = getSystemDataPath as jest.MockedFunction<typeof getSystemDataPath>;
+  const mockReadSettings = jest.mocked(readSettings);
+  const mockGetSystemDataPath = jest.mocked(getSystemDataPath);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -181,7 +181,7 @@ describe('Config – node paths', () => {
 
   describe('getOptionalNodeModulesPath', () => {
     it('should return correct path under userData', () => {
-      const mockGetPath = app.getPath as jest.MockedFunction<typeof app.getPath>;
+      const mockGetPath = jest.mocked(app.getPath);
       mockGetPath.mockReturnValue('/mock/userData');
 
       const result = getOptionalNodeModulesPath();

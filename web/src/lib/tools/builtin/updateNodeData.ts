@@ -75,7 +75,7 @@ FrontendToolRegistry.register({
         node_id,
         deriveCodeIOUpdates(
           propsUpdate.code,
-          (latest?.data?.dynamic_properties || {}) as Record<string, unknown>,
+          latest?.data?.dynamic_properties || {},
           latest?.data?.dynamic_outputs || {}
         )
       );

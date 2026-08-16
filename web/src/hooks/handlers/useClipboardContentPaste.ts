@@ -408,7 +408,7 @@ export const useClipboardContentPaste = () => {
         if (Array.isArray(content.data)) {
           // Handle file paths from clipboard
           // Currently processes only the first file - future enhancement could support multiple files
-          const filePaths = content.data as string[];
+          const filePaths = content.data;
           console.info(
             `Handling ${filePaths.length} file(s) from clipboard (processing first file)`
           );

@@ -165,7 +165,7 @@ describe("selectionBounds", () => {
     it("returns all fully enclosed nodes when no predicate provided", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
       const mockNodes = [mockNode1, mockNode2, mockNodeOutside];
-      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
+      jest.mocked(mockInstance.getNodes).mockReturnValue(mockNodes);
 
       const result = getNodesWithinSelection(mockInstance, rect);
       
@@ -177,7 +177,7 @@ describe("selectionBounds", () => {
     it("filters nodes with predicate", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
       const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
+      jest.mocked(mockInstance.getNodes).mockReturnValue(mockNodes);
 
       const predicate = (node: Node) => node.type === "group";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
@@ -188,7 +188,7 @@ describe("selectionBounds", () => {
     it("returns empty array when no nodes match predicate", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
       const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getNodes as jest.Mock).mockReturnValue(mockNodes);
+      jest.mocked(mockInstance.getNodes).mockReturnValue(mockNodes);
 
       const predicate = (node: Node) => node.type === "custom";
       const result = getNodesWithinSelection(mockInstance, rect, predicate);
@@ -198,7 +198,7 @@ describe("selectionBounds", () => {
 
     it("handles empty nodes array", () => {
       const rect = { x: 0, y: 0, width: 100, height: 100 };
-      (mockInstance.getNodes as jest.Mock).mockReturnValue([]);
+      jest.mocked(mockInstance.getNodes).mockReturnValue([]);
 
       const result = getNodesWithinSelection(mockInstance, rect);
       

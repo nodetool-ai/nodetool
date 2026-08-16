@@ -33,7 +33,7 @@ describe('useReducedMotion', () => {
   });
 
   it('reflects the initial reduce-motion setting', async () => {
-    (AccessibilityInfo.isReduceMotionEnabled as jest.Mock).mockResolvedValue(true);
+    jest.mocked(AccessibilityInfo.isReduceMotionEnabled).mockResolvedValue(true);
     const { result } = renderHook(() => useReducedMotion());
     await waitFor(() => expect(result.current).toBe(true));
   });

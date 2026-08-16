@@ -371,7 +371,7 @@ export class Application extends DBModel {
       )
       .returning();
 
-    const row = rows[0] as Record<string, unknown> | undefined;
+    const row = rows[0];
     if (!row) return null;
 
     const updated = new Application(row);
@@ -571,7 +571,7 @@ export async function publishApplication(
         .values({ ...snapshot, version: Number(highestInTx?.value ?? 0) + 1 })
         .returning()
         .get() as Record<string, unknown>;
-    }) as Record<string, unknown>;
+    });
     return toReleaseResponse(row);
   }
 
@@ -657,7 +657,7 @@ async function releasedRow(
     )
     .orderBy(desc(applicationVersions.version))
     .limit(1);
-  return (rows[0] as Record<string, unknown> | undefined) ?? null;
+  return rows[0] ?? null;
 }
 
 /** The snapshot a published app currently serves, if any. */
@@ -720,7 +720,7 @@ export async function releaseApplicationVersion(
         .where(target)
         .returning()
         .get() as Record<string, unknown>;
-    }) as Record<string, unknown> | null;
+    });
     return row ? toVersionResponse(row) : null;
   }
 

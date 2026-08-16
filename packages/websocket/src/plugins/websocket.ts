@@ -134,7 +134,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
           const meta = pythonBridge
             .getNodeMetadata()
             .find((n) => n.node_type === node.type);
-          const nodeRec = node as Record<string, unknown>;
+          const nodeRec = node;
           const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<
             string,
             unknown
@@ -153,12 +153,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
           const stderrSummary = (
-            pythonBridge as { getRecentStderrSummary?: () => string | null }
+            pythonBridge
           ).getRecentStderrSummary?.() ?? null;
           const loadErrors = (
-            pythonBridge as {
-              getLoadErrors?: () => Array<{ module: string; error: string }>;
-            }
+            pythonBridge
           ).getLoadErrors?.() ?? [];
           const matchingLoadError = loadErrors.find((entry) => {
             if (entry.module.includes(node.type)) return true;

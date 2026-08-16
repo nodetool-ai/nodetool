@@ -297,7 +297,7 @@ function entityFromAsset(
   asset: Asset,
   mimeToExt: Record<string, string>
 ): Entity | null {
-  const metadata = asset.metadata as Record<string, unknown> | null | undefined;
+  const metadata = asset.metadata;
   const raw = metadata?.[ENTITY_METADATA_KEY];
   if (!raw || typeof raw !== "object") return null;
   const marker = raw as Record<string, unknown>;
@@ -328,7 +328,7 @@ async function loadBoardEntities(
   const loaded = await Promise.all(
     ids.map(async (id) => {
       try {
-        const asset = await Asset.find(context.userId as string, id);
+        const asset = await Asset.find(context.userId, id);
         return asset ? entityFromAsset(asset, MIME_TO_EXT) : null;
       } catch {
         return null;
@@ -376,13 +376,13 @@ function resolveModel(
 ): ModelChoice | ToolError {
   const provider =
     typeof params["provider"] === "string" && params["provider"]
-      ? (params["provider"] as string)
+      ? params["provider"]
       : typeof boardModel?.provider === "string"
         ? boardModel.provider
         : "";
   const model =
     typeof params["model"] === "string" && params["model"]
-      ? (params["model"] as string)
+      ? params["model"]
       : typeof boardModel?.id === "string"
         ? boardModel.id
         : "";
@@ -531,7 +531,7 @@ const renderStoryboardStills: CapabilityExport = {
     const { inferImageMime } = await import("../tools/asset-persist.js");
     const style =
       typeof params["style"] === "string"
-        ? (params["style"] as string)
+        ? params["style"]
         : doc.style;
     const entities = await loadBoardEntities(context, doc);
     const aspectRatio = doc.aspectRatio || "16:9";
@@ -646,7 +646,7 @@ const renderStoryboardClips: CapabilityExport = {
     const aspectRatio = doc.aspectRatio || "16:9";
     const resolution =
       typeof params["resolution"] === "string"
-        ? (params["resolution"] as string)
+        ? params["resolution"]
         : undefined;
 
     const results = await mapWithConcurrency(
@@ -872,7 +872,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
     const fps = Math.max(1, Math.min(Number(params["fps"]) || 30, 120));
     const name =
       typeof params["name"] === "string" && params["name"]
-        ? (params["name"] as string)
+        ? params["name"]
         : row.name;
 
     // Re-assembling replaces the board's existing cut rather than leaving a

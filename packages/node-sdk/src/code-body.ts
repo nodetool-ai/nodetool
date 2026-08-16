@@ -286,7 +286,7 @@ export function normalizeCodeOutput(value: unknown) {
   if (
     typeof value === "object" &&
     !Array.isArray(value) &&
-    (value as object).constructor?.name === "Object"
+    value.constructor?.name === "Object"
   ) {
     return value as Record<string, unknown>;
   }

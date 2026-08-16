@@ -83,7 +83,7 @@ export function createNodetoolClient(
         // POST keeps the batched input in the request body instead of the URL,
         // so large batches stay under reverse-proxy URL-length limits. See #3979.
         methodOverride: "POST",
-        fetch: fetchImpl as typeof fetch,
+        fetch: fetchImpl,
         headers() {
           return authToken ? { Authorization: `Bearer ${authToken}` } : {};
         }
@@ -122,7 +122,7 @@ export function createNodetoolClient(
               provider: p.provider
             }));
           } catch {
-            return [] as Array<{ id: string; name: string; provider: string }>;
+            return [];
           }
         })
       );

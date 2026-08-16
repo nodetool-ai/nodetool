@@ -299,7 +299,7 @@ async function runCase(
     const generator = planner.plan({} as ProcessingContext);
     let next = await generator.next();
     while (!next.done) {
-      const message = next.value as { type?: string } & Record<string, unknown>;
+      const message = next.value;
       if (message.type === "tool_call_update") {
         const name = String(message.name ?? "unknown");
         toolCalls[name] = (toolCalls[name] ?? 0) + 1;

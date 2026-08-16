@@ -574,7 +574,7 @@ function audioRefFromB64(b64: string, contentType: string) {
 /** Convert an image/audio ref object to a Blob for multipart upload. */
 async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
   if (ref.data && typeof ref.data === "string") {
-    const dataStr = ref.data as string;
+    const dataStr = ref.data;
     // Handle data: URI
     if (dataStr.startsWith("data:")) {
       const commaIdx = dataStr.indexOf(",");
@@ -587,7 +587,7 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
     return new Blob([buf]);
   }
   if (ref.uri && typeof ref.uri === "string") {
-    const r = await fetch(ref.uri as string);
+    const r = await fetch(ref.uri);
     return await r.blob();
   }
   throw new Error("Cannot convert ref to blob: no data or uri");

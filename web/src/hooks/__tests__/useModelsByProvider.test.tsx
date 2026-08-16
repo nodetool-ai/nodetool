@@ -31,9 +31,9 @@ jest.mock("../useProviders", () => ({
   })
 }));
 
-const providersQuery = trpc.models.providers.query as jest.Mock;
-const llmByProviderQuery = trpc.models.llmByProvider.query as jest.Mock;
-const imageByProviderQuery = trpc.models.imageByProvider.query as jest.Mock;
+const providersQuery = jest.mocked(trpc.models.providers.query);
+const llmByProviderQuery = jest.mocked(trpc.models.llmByProvider.query);
+const imageByProviderQuery = jest.mocked(trpc.models.imageByProvider.query);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({

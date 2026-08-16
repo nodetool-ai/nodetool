@@ -76,7 +76,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
       context?: ProcessingContext
     ): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
-      const props = this.serialize() as Record<string, unknown>;
+      const props = this.serialize();
 
       const baseObj = pickImage(props, props);
       // Emit raw-RGBA (`runShaderNode`) instead of re-encoding to PNG at every
@@ -311,7 +311,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
     registerDeclaredProperty(C, property.name, property.options);
   }
 
-  return C as NodeClass;
+  return C;
 }
 
 const DESCRIPTORS: readonly Desc[] = [

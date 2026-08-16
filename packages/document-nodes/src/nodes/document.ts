@@ -185,7 +185,7 @@ export class ListDocumentsNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
     for await (const item of this._listDocuments()) {
-      collected.push(item.document as Record<string, unknown>);
+      collected.push(item.document);
     }
     return {
       document: collected[0] ?? { uri: "" },
@@ -235,7 +235,7 @@ export class ListDocumentsNode extends BaseNode {
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
     for await (const item of this._listDocuments()) {
-      collected.push(item.document as Record<string, unknown>);
+      collected.push(item.document);
       yield { document: item.document };
     }
     yield { documents: collected };

@@ -187,7 +187,7 @@ export class StateManager {
       if (!deployment) return null;
       return {
         ...revalidateState(deployment, deployment.state as Record<string, unknown>)
-      } as Record<string, unknown>;
+      };
     });
   }
 

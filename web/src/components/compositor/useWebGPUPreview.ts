@@ -41,7 +41,7 @@ let sharedDevicePromise: Promise<GPUDevice | null> | null = null;
 async function acquireDevice(): Promise<GPUDevice | null> {
   if (!sharedDevicePromise) {
     sharedDevicePromise = (async () => {
-      const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
+      const gpu = navigator.gpu;
       if (!gpu) return null;
       try {
         const adapter = await gpu.requestAdapter();

@@ -5,12 +5,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 
-interface ParsedCSV {
-  data: string[][];
-  errors: Papa.ParseError[];
-  meta: Papa.ParseMeta;
-}
-
 export const useCreateDataframe = (
   createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>,
   addNode: (node: Node<NodeData>) => void
@@ -31,7 +25,7 @@ export const useCreateDataframe = (
               const csv = event.target.result;
               const res = Papa.parse<string[]>(csv, {
                 header: false
-              }) as ParsedCSV;
+              });
 
               if (res.data.length > 0) {
                 const columnDefs = res.data[0].map((col: string) => ({

@@ -924,7 +924,7 @@ describe("chatProtocol", () => {
   });
 
   it("returns tool errors for unknown client tools", async () => {
-    (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
+    jest.mocked(FrontendToolRegistry.has).mockReturnValue(false);
 
     const set = jest.fn();
     const get = () =>
@@ -958,8 +958,8 @@ describe("chatProtocol", () => {
   });
 
   it("returns structured tool_result on tool failure", async () => {
-    (FrontendToolRegistry.has as jest.Mock).mockReturnValue(true);
-    (FrontendToolRegistry.call as jest.Mock).mockRejectedValue(new Error("nope"));
+    jest.mocked(FrontendToolRegistry.has).mockReturnValue(true);
+    jest.mocked(FrontendToolRegistry.call).mockRejectedValue(new Error("nope"));
 
     const set = jest.fn();
     const get = () =>

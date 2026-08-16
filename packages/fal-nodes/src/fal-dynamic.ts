@@ -641,10 +641,7 @@ export class FalDynamicNode extends BaseNode {
       if (value !== undefined && value !== null) args[key] = value;
     }
 
-    const result = (await falSubmit(apiKey, endpointId, args)) as Record<
-      string,
-      unknown
-    >;
+    const result = await falSubmit(apiKey, endpointId, args);
 
     // Map output values
     const mapped = mapOutputValues(openapi, outputSchema, result);

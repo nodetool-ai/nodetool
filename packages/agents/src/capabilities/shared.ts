@@ -103,7 +103,7 @@ const listShared: CapabilityExport = {
       : undefined;
     const keyPrefix =
       typeof params.key_prefix === "string"
-        ? (params.key_prefix as string)
+        ? params.key_prefix
         : undefined;
     const sources = Array.isArray(params.sources)
       ? (params.sources as string[])

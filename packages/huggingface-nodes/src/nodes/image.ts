@@ -227,7 +227,7 @@ export class ImageToImageNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageToImageNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const image = this.image as MediaRef | undefined;
+    const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
@@ -306,7 +306,7 @@ export class ImageClassificationNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const image = this.image as MediaRef | undefined;
+    const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
@@ -363,7 +363,7 @@ export class ImageSegmentationNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageSegmentationNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const image = this.image as MediaRef | undefined;
+    const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
@@ -435,7 +435,7 @@ export class ObjectDetectionNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ObjectDetectionNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const image = this.image as MediaRef | undefined;
+    const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }

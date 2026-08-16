@@ -24,9 +24,9 @@ jest.mock("../../queryClient", () => ({
 import { trpcClient } from "../../trpc/client";
 // Cast so we can read the Jest mock APIs on the nested procedures without
 // sprinkling `as any` in every test.
-const listQuery = trpcClient.settings.secrets.list.query as jest.Mock;
-const upsertMutate = trpcClient.settings.secrets.upsert.mutate as jest.Mock;
-const deleteMutate = trpcClient.settings.secrets.delete.mutate as jest.Mock;
+const listQuery = jest.mocked(trpcClient.settings.secrets.list.query);
+const upsertMutate = jest.mocked(trpcClient.settings.secrets.upsert.mutate);
+const deleteMutate = jest.mocked(trpcClient.settings.secrets.delete.mutate);
 
 describe("SecretsStore", () => {
   beforeEach(() => {

@@ -27,7 +27,7 @@ class ChromaKeyNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     const [r, g, b] = colorValueToVec4(props.key_color, [0, 1, 0, 1]);
     const output = await runShaderNode(
       chromaKeyV1,
@@ -59,7 +59,7 @@ class LumaKeyNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
+    const props = this.serialize();
     // Normalize the band so low <= high: crossed bounds would key out every
     // pixel and silently produce a blank image.
     const a = num(props.low, 0);

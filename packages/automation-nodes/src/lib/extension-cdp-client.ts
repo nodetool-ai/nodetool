@@ -236,7 +236,7 @@ export class ExtensionCdpClient {
         };
         return fn as DomainMember;
       }
-    }) as DomainNamespace;
+    });
   }
 
   private sendCommand(

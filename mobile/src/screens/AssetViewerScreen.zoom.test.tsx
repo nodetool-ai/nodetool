@@ -192,7 +192,7 @@ function transformOf() {
   const read = (key: string) => {
     const entry = transform.find((t) => key in t);
     const value = entry?.[key] as unknown;
-    if (value && typeof value === 'object' && '__getValue' in (value as object)) {
+    if (value && typeof value === 'object' && '__getValue' in value) {
       return (value as { __getValue: () => number }).__getValue();
     }
     return typeof value === 'number' ? value : 0;

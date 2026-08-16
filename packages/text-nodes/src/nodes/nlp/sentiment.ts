@@ -69,10 +69,7 @@ export class SentimentAnalyzer {
     }
 
     // Copy so repeated runs do not mutate the shared lexicon.
-    this.vocabulary = Object.assign({}, entry[0]) as Record<
-      string,
-      number | string
-    >;
+    this.vocabulary = Object.assign({}, entry[0]);
     Object.setPrototypeOf(this.vocabulary, null);
 
     // For "pattern", natural reduces each entry object to its polarity. Our

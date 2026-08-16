@@ -10,8 +10,7 @@ import type {
 import type {
   Chunk,
   LanguageModel,
-  OutputCorrelation,
-  ProcessingMessage
+  OutputCorrelation
 } from "@nodetool-ai/protocol";
 import { Agent, DEFAULT_AGENT_POLICY } from "@nodetool-ai/agents";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -1478,16 +1477,16 @@ export class AgentNode extends BaseNode {
         content,
         content_metadata: { kind, ...metadata },
         done: false
-      }) as Chunk;
+      });
 
     // Thread the run's cancellation signal in: cancelling the workflow aborts
     // WorkflowRunner, but without this the agent's provider work carries on.
     for await (const msg of agent.execute(context, {
       signal: context?.signal
     })) {
-      const pmsg = msg as ProcessingMessage;
+      const pmsg = msg;
       if (pmsg.type === "chunk") {
-        const chunk = pmsg as Chunk;
+        const chunk = pmsg;
         const content = chunk.content ?? "";
         lastText += content;
         yield {

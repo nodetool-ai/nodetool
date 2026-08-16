@@ -243,7 +243,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const reactFlow = useReactFlow();
   const [groupBodyWidth, setGroupBodyWidth] = useState(() => {
     const n = reactFlow.getNode(props.id);
-    return (n?.measured?.width ?? n?.width ?? MIN_WIDTH) as number;
+    return n?.measured?.width ?? n?.width ?? MIN_WIDTH;
   });
   useEffect(() => {
     const el = nodeRef.current;

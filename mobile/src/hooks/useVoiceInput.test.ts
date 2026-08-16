@@ -25,7 +25,7 @@ jest.mock('../services/errorReporting', () => ({
 
 const speech = jest.mocked(ExpoSpeechRecognitionModule);
 const eventHook = jest.mocked(useSpeechRecognitionEvent);
-const reportErrorMock = reportError as jest.Mock;
+const reportErrorMock = jest.mocked(reportError);
 
 type Listener = (event: unknown) => void;
 let listeners: Record<string, Listener>;
@@ -86,7 +86,7 @@ beforeEach(() => {
         remove: () => {
           appStateHandlers = appStateHandlers.filter((h) => h !== handler);
         },
-      } as ReturnType<typeof AppState.addEventListener>;
+      };
     });
 });
 

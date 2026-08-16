@@ -14,8 +14,7 @@ import {
   Background,
   BackgroundVariant,
   useReactFlow,
-  type Node,
-  type Edge
+  type Node
 } from "@xyflow/react";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
@@ -207,7 +206,7 @@ function CanvasInner({
   return (
     <ReactFlow
       nodes={nodes}
-      edges={graph.edges as Edge[]}
+      edges={graph.edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView

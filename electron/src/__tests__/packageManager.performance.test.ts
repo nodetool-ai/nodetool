@@ -36,8 +36,8 @@ describe('Performance Optimization', () => {
   let spawnMock: jest.Mock;
 
   beforeEach(() => {
-    // SAFETY: `child_process` is jest-mocked in this file, so `spawn` is a `jest.fn()`.
-    spawnMock = spawn as jest.Mock;
+    // `child_process` is jest-mocked in this file, so `spawn` is a `jest.fn()`.
+    spawnMock = jest.mocked(spawn);
     spawnMock.mockReset();
     (app as any).getVersion = jest.fn().mockReturnValue('1.0.0');
     (BrowserWindow as any).getAllWindows = jest.fn().mockReturnValue([]);

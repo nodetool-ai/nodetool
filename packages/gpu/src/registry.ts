@@ -87,7 +87,7 @@ export class ShaderRegistry {
         `Shader registry: ${entry.id}@${entry.version} is a recipe; use getRecipe or RecipeRunner`
       );
     }
-    return entry as ShaderModule;
+    return entry;
   }
 
   /** Narrowed `get` for the RecipeRunner path; throws if the entry is single-pass. */

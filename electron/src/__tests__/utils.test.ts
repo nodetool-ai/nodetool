@@ -31,7 +31,7 @@ import { promises as fs } from 'fs';
 import { serverState } from '../state';
 
 describe('Utils', () => {
-  const mockFs = fs as jest.Mocked<typeof fs>;
+  const mockFs = jest.mocked(fs);
   
   beforeEach(() => {
     jest.clearAllMocks();

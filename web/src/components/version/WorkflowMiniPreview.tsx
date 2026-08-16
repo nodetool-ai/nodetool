@@ -199,7 +199,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       return { nodes: [], edges: [] };
     }
 
-    const graphObj = workflow.graph as Graph;
+    const graphObj = workflow.graph;
     return {
       nodes: graphObj.nodes || [],
       edges: graphObj.edges || []

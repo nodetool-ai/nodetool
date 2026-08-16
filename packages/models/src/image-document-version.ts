@@ -111,7 +111,7 @@ export class ImageDocumentVersion extends DBModel {
       )
       .limit(1);
     return row
-      ? new ImageDocumentVersion(row as Record<string, unknown>)
+      ? new ImageDocumentVersion(row)
       : null;
   }
 
@@ -192,7 +192,7 @@ export class ImageDocumentVersion extends DBModel {
     const excess = rows.length - Math.max(0, maxAutosaves);
     if (excess <= 0) return;
 
-    for (const row of rows.slice(0, excess) as { id: string }[]) {
+    for (const row of rows.slice(0, excess)) {
       await db
         .delete(imageDocumentVersions)
         .where(eq(imageDocumentVersions.id, row.id));

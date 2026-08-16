@@ -559,7 +559,7 @@ export function isProviderSessionUpdate(
     typeof item === "object" &&
     item !== null &&
     "type" in item &&
-    (item as { type?: unknown }).type === "session"
+    item.type === "session"
   );
 }
 
@@ -571,7 +571,7 @@ export function isProviderMessageEvent(
     typeof item === "object" &&
     item !== null &&
     "type" in item &&
-    (item as { type?: unknown }).type === "message"
+    item.type === "message"
   );
 }
 

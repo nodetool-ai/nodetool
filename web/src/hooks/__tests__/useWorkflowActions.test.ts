@@ -41,7 +41,7 @@ describe("useWorkflowActions", () => {
     mockCreateNewWorkflow.mockResolvedValue(mockWorkflow);
     mockCreateWorkflow.mockResolvedValue(mockWorkflow);
     mockNavigate.mockClear();
-    (ReactRouterDom.useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+    jest.mocked(ReactRouterDom.useNavigate).mockReturnValue(mockNavigate);
   });
 
   it("returns loadingExampleId and all handler functions", () => {

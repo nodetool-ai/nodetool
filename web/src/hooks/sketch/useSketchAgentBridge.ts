@@ -43,7 +43,6 @@ import type { Layer, SketchDocument } from "../../components/sketch/types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import { CoordinateMapper } from "../../components/sketch/painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../../components/sketch/transform/geometry/layerGeometry";
-import type { Selection } from "../../components/sketch/types";
 import {
   getSketchAgentHandler,
   hasSketchAgentHandler,
@@ -200,7 +199,7 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
           activeLayerId: d.activeLayerId,
           foregroundColor: state.foregroundColor || "#ffffff",
           backgroundColor: state.backgroundColor || "#000000",
-          activeTool: state.activeTool as SketchToolName,
+          activeTool: state.activeTool,
           hasSelection: state.hasActiveSelection,
           layers: d.layers.map((l, i) => toLayerNode(l, i, bindingFor(l.id)))
         };
@@ -622,12 +621,12 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
             opts.points
           );
         }
-        const current = editor.getState().selection as Selection | null;
+        const current = editor.getState().selection;
         let next = combineSelections(current, overlay, mode);
         if ((opts.feather ?? 0) > 0) {
           next = featherSelection(next, opts.feather ?? 0);
         }
-        editor.getState().setSelection(next as Selection);
+        editor.getState().setSelection(next);
         editor
           .getState()
           .pushHistory("selection", undefined, { selectionOnly: true });

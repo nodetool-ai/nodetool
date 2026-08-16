@@ -859,7 +859,7 @@ export function App({
               setStreamLabel("subtask");
             }
           } else if (msg.type === "tool_call_update") {
-            const name = (msg as { name?: string }).name;
+            const name = msg.name;
             if (name) setStreamLabel(`subtask tool: ${name}`);
           }
         };

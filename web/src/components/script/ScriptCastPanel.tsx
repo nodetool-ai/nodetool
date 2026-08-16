@@ -40,7 +40,7 @@ const newSpeakerId = (): string =>
 const voiceToModelValue = (voice: VoiceBinding | null): TTSModelValue => ({
   type: "tts_model",
   id: voice?.model ?? "",
-  provider: (voice?.provider ?? "empty") as TTSModelValue["provider"],
+  provider: voice?.provider ?? "empty",
   name: voice?.model ?? "",
   voices: voice?.voice ? [voice.voice] : [],
   selected_voice: voice?.voice ?? ""

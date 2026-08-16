@@ -85,7 +85,7 @@ class SqliteVecCollectionAdapter implements VectorCollection {
   }
 
   get metadata(): CollectionMetadata {
-    return this.inner.metadata as CollectionMetadata;
+    return this.inner.metadata;
   }
 
   count(): Promise<number> {
@@ -234,7 +234,7 @@ export class SqliteVecProvider implements VectorProvider {
     const cols = await this.store.listCollections();
     return cols.map((c) => ({
       name: c.name,
-      metadata: c.metadata as CollectionMetadata
+      metadata: c.metadata
     }));
   }
 

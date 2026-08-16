@@ -122,7 +122,7 @@ export class ChatTurnSession {
   freshAttachSeq(): number {
     for (let i = this.buffer.length - 1; i >= 0; i--) {
       const entry = this.buffer[i];
-      if ((entry.message as { type?: unknown }).type === "message") {
+      if (entry.message.type === "message") {
         return entry.seq;
       }
     }

@@ -426,7 +426,7 @@ function listenForCompletion(
               (async () => {
                 const outputs = await downloadNodeOutput(
                   stream.base,
-                  output as ComfyRawNodeOutput
+                  output
                 );
                 if (Object.keys(outputs).length === 0) return;
                 stream.collected[nodeId] = outputs;
@@ -633,7 +633,7 @@ export async function uploadComfyFile(
   const ab = view.buffer.slice(
     view.byteOffset,
     view.byteOffset + view.byteLength
-  ) as ArrayBuffer;
+  );
   form.append("image", new Blob([ab], { type: mimeType }), filename);
   form.append("overwrite", "true");
   const res = await fetch(`${base}/upload/image`, {

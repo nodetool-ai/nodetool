@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { Asset, NodeMetadata } from "../../stores/ApiTypes";
+import { Asset } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useFileHandlers } from "./dropHandlerUtils";
@@ -17,11 +17,6 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { shallow } from "zustand/shallow";
 import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
 import useMetadataStore from "../../stores/MetadataStore";
-import type {
-  ChatMediaDragPayload,
-  SketchDragPayload,
-  TimelineDragPayload
-} from "../../lib/dragdrop";
 import { blockToConstant } from "./useGenerationToCanvas";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
@@ -122,7 +117,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
       const dragData = deserializeDragData(event.dataTransfer);
 
       if (dragData?.type === "create-node") {
-        const nodeMeta = dragData.payload as NodeMetadata;
+        const nodeMeta = dragData.payload;
         const {
           node: newNode,
           afterAdd,
@@ -141,7 +136,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
       // Handle asset/sketch/timeline drops on pane
       if (targetIsPane && dragData) {
         if (dragData.type === "chat-media") {
-          const block = dragData.payload as ChatMediaDragPayload;
+          const block = dragData.payload;
           const constant = blockToConstant(block);
           if (!constant) {
             return;
@@ -163,7 +158,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
         }
 
         if (dragData.type === "sketch") {
-          const sketch = dragData.payload as SketchDragPayload;
+          const sketch = dragData.payload;
           const metadata = getMetadata(CONSTANT_SKETCH_NODE_TYPE);
           if (!metadata) {
             addNotification({
@@ -185,7 +180,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
         }
 
         if (dragData.type === "timeline") {
-          const timeline = dragData.payload as TimelineDragPayload;
+          const timeline = dragData.payload;
           const metadata = getMetadata(CONSTANT_TIMELINE_NODE_TYPE);
           if (!metadata) {
             addNotification({
@@ -207,7 +202,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
         }
 
         if (dragData.type === "assets-multiple") {
-          const selectedAssetIds = dragData.payload as string[];
+          const selectedAssetIds = dragData.payload;
           // If multiple assets are selected, create nodes for all of them
           if (selectedAssetIds.length > 1) {
             const results = await Promise.all(
@@ -265,7 +260,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
             return;
           }
         } else if (dragData.type === "asset") {
-          const asset = dragData.payload as Asset;
+          const asset = dragData.payload;
           try {
             const fetchedAsset = await getAsset(asset.id);
             addNodeFromAsset(fetchedAsset, position);

@@ -77,7 +77,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const audio = this.audio as MediaRef | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
     }
@@ -151,7 +151,7 @@ export class AudioClassificationNode extends BaseNode {
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<AudioClassificationNodeOutputs> {
     const token = getHfToken(this._secrets);
-    const audio = this.audio as MediaRef | undefined;
+    const audio = this.audio;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
     }

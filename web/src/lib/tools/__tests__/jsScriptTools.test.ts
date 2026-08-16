@@ -84,7 +84,7 @@ describe("ui_jsscript_* tools", () => {
     );
     expect(jsScriptTools).toHaveLength(8);
     for (const tool of jsScriptTools) {
-      const schema = tool.parameters as { required?: string[] };
+      const schema = tool.parameters;
       expect(schema.required).toContain("script_id");
     }
   });

@@ -72,7 +72,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
       key: String(i),
       label: c.name
     }));
-    const allRows = (df.data ?? []) as unknown[][];
+    const allRows = df.data ?? [];
     const mapped = allRows
       .slice(0, MAX_CSV_ROWS)
       .map((row) =>

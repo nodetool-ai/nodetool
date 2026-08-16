@@ -17,8 +17,8 @@ import {
 import { subgraph } from "../../../core/graph";
 import { getNodeSelectedOutputs } from "../../../stores/nodeGenerationAccessor";
 
-const mockSubgraph = subgraph as jest.Mock;
-const mockGetNodeSelectedOutputs = getNodeSelectedOutputs as jest.Mock;
+const mockSubgraph = jest.mocked(subgraph);
+const mockGetNodeSelectedOutputs = jest.mocked(getNodeSelectedOutputs);
 
 function mkNode(id: string, type = "nodetool.test.Node"): Node<NodeData> {
   return {

@@ -15,7 +15,6 @@ import {
 } from "../../../hooks/useOAuthConnection";
 
 import { useProviders } from "../../../hooks/useProviders";
-import type { ProviderInfo } from "../../../stores/ApiTypes";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../hooks/useProviders");
@@ -30,7 +29,7 @@ const registryWith = (...ids: string[]) => ({
   providers: ids.map((provider) => ({
     provider,
     capabilities: ["generate_message"]
-  })) as ProviderInfo[],
+  })),
   isLoading: false,
   isFetching: false,
   error: null

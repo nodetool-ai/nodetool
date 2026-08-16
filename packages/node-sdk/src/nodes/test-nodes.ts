@@ -412,7 +412,7 @@ export class ListSumProcessor extends BaseNode {
   async process(): Promise<ListSumProcessorOutputs> {
     const values = (this.values ?? []) as number[];
     const sum = Array.isArray(values)
-      ? values.reduce((a: number, b) => a + (b as number), 0)
+      ? values.reduce((a: number, b) => a + b, 0)
       : 0;
     return { sum };
   }

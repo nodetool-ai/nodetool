@@ -510,9 +510,9 @@ export function createExecutor(): Executor {
   ): void {
     validateInputs(args.module, args.inputs);
     const { inputs: maybeConverted, scratchToRelease } = convertAlphaIfNeeded(
-      args as EncodeArgs<AnyWgslStruct>
+      args
     );
-    const effectiveArgs = { ...args, inputs: maybeConverted } as EncodeArgs<Schema>;
+    const effectiveArgs = { ...args, inputs: maybeConverted };
     const resolved = resolveVariant(
       effectiveArgs.module,
       effectiveArgs.inputs,

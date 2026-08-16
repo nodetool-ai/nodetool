@@ -117,7 +117,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
         }
       }
     },
-    local: (p) => localView(p as Parameters<typeof localView>[0]),
+    local: (p) => localView(p),
   },
   {
     key: "navigate",
@@ -143,7 +143,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       type: "object",
       properties: { url: { type: "string" } }
     },
-    local: (p) => localRestart(p as Parameters<typeof localRestart>[0]),
+    local: (p) => localRestart(p),
   },
   {
     key: "click",
@@ -153,7 +153,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       type: "object",
       properties: { ...ELEMENT_REF_PROPS }
     },
-    local: (p) => localClick(p as Parameters<typeof localClick>[0]),
+    local: (p) => localClick(p),
   },
   {
     key: "input_text",
@@ -221,7 +221,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
         pixels: { type: "integer" }
       }
     },
-    local: (p) => localScroll(p as Parameters<typeof localScroll>[0]),
+    local: (p) => localScroll(p),
   },
   {
     key: "console_exec",
@@ -241,7 +241,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       type: "object",
       properties: { max_lines: { type: "integer" } }
     },
-    local: (p) => localConsoleView(p as Parameters<typeof localConsoleView>[0]),
+    local: (p) => localConsoleView(p),
   },
   {
     key: "capture_media",
@@ -272,7 +272,7 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
         }
       }
     },
-    local: (p) => localCaptureMedia(p as Parameters<typeof localCaptureMedia>[0]),
+    local: (p) => localCaptureMedia(p),
   },
   {
     key: "upload_asset",

@@ -1092,7 +1092,7 @@ export class StepExecutor {
           yield* drainUi();
           continue;
         }
-        if ("type" in item && (item as { type?: string }).type === "message") {
+        if ("type" in item && item.type === "message") {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
             lastAssistant = isString(m.content)

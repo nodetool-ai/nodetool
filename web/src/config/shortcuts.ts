@@ -854,7 +854,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Go back to previously focused node",
     registerCombo: true
   }
-] as Shortcut[];
+];
 
 /**
  * A mapping of shortcut categories to their human-readable display names.

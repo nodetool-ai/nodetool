@@ -4,7 +4,7 @@ let nodeCounter = 0;
 const createNode = jest.fn((_meta: unknown, position: { x: number; y: number }) => ({
   id: `node-${(nodeCounter += 1)}`,
   position,
-  data: { properties: {} as Record<string, unknown> }
+  data: { properties: {} }
 }));
 const addNode = jest.fn();
 const nodeStoreState = { nodes: [] as unknown[], createNode, addNode };

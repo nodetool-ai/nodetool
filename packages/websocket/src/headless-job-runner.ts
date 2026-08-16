@@ -106,7 +106,7 @@ async function persistTerminalStatus(
   result: RunResult
 ): Promise<void> {
   try {
-    const job = (await Job.get(jobId)) as Job | null;
+    const job = await Job.get(jobId);
     if (!job) return;
     // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
     // while the run is still executing. Don't overwrite that.
@@ -167,7 +167,7 @@ export async function startHeadlessJob(
   if (options.jobId !== undefined) {
     jobFields.id = options.jobId;
   }
-  const job = (await Job.create(jobFields)) as Job;
+  const job = await Job.create(jobFields);
 
   // The run is accepted from here on: everything above could still reject and
   // leave the caller free to redeliver, everything below is an executing run.

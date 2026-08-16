@@ -240,10 +240,10 @@ function scriptedAuthorProvider(
       for (const call of script) {
         if (args.signal?.aborted) break;
         const id = `call_${++seq}`;
-        yield { id, name: call.name, args: call.args } as ProviderStreamItem;
+        yield { id, name: call.name, args: call.args };
         await tools.get(call.name)?.execute?.(call.args, id);
       }
-      yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
+      yield { type: "chunk", content: "", done: true };
     }
   };
   // SAFETY: the app-build loop calls only these three members. Standing the

@@ -291,7 +291,7 @@ async function runAgentCommand(opts: RunOptions): Promise<void> {
     for await (const msg of agent.execute(ctx)) {
       traceEvent(msg, traceOpts);
       if (msg.type === "step_result") {
-        const sr = msg as { result: unknown; is_task_result?: boolean };
+        const sr = msg;
         if (sr.is_task_result) {
           finalText =
             typeof sr.result === "string"
@@ -395,21 +395,18 @@ async function fetchJob(
       // large batches stay under reverse-proxy URL-length limits. See #3979.
       links: [httpBatchLink({ url: `${apiUrl}/trpc`, methodOverride: "POST" })]
     });
-    const data = (await client.jobs.get.query({ id: jobId })) as Record<
-      string,
-      unknown
-    >;
+    const data = await client.jobs.get.query({ id: jobId });
     return {
-      id: typeof data["id"] === "string" ? (data["id"] as string) : jobId,
+      id: typeof data["id"] === "string" ? data["id"] : jobId,
       status:
         typeof data["status"] === "string"
-          ? (data["status"] as string)
+          ? data["status"]
           : undefined,
       error:
-        typeof data["error"] === "string" ? (data["error"] as string) : null,
+        typeof data["error"] === "string" ? data["error"] : null,
       workflowId:
         typeof data["workflow_id"] === "string"
-          ? (data["workflow_id"] as string)
+          ? data["workflow_id"]
           : null
     };
   } catch {

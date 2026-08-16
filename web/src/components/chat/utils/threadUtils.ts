@@ -1,4 +1,4 @@
-import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
+import type { Message } from "../../../stores/ApiTypes";
 import { ThreadInfo } from "../types/thread.types";
 
 /** Server-assigned title, else the opening user message, else a placeholder. */
@@ -19,7 +19,7 @@ export const threadPreview = (
     text = content;
   } else if (Array.isArray(content) && content[0]?.type === "text") {
     // `text` can be null even on a text block — never stringify "undefined".
-    text = (content[0] as MessageTextContent).text ?? "";
+    text = content[0].text ?? "";
   } else {
     text = "[Media message]";
   }

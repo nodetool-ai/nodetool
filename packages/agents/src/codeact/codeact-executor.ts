@@ -747,7 +747,7 @@ export class CodeActExecutor {
       // as a provider image message; the observation itself stays light.
       const images = bridge.drainImages();
       return images.length > 0
-        ? [{ type: "text", text } as MessageContent, ...images]
+        ? [{ type: "text", text }, ...images]
         : text;
     };
 
@@ -819,7 +819,7 @@ export class CodeActExecutor {
           yield* drainUi();
           continue;
         }
-        if ("type" in item && (item as { type?: string }).type === "message") {
+        if ("type" in item && item.type === "message") {
           const m = (item as { message?: Message }).message;
           if (m && m.role === "assistant") {
             lastAssistant =
