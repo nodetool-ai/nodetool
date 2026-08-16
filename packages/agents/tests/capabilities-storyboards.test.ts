@@ -320,6 +320,106 @@ describe("storyboards capability behaviour", () => {
     expect(result.error).toContain("Run render_storyboard_clips first");
   });
 
+  describe("clip length on a script-linked board", () => {
+    /** A script whose one line has a 3.4 s take, plus 250 ms of silence. */
+    const makeScript = async (voiced: boolean): Promise<Script> =>
+      Script.create<Script>({
+        user_id: "u1",
+        project_id: "default",
+        name: "Script",
+        document: JSON.stringify({
+          cast: [{ id: "sp1", name: "Keeper", voice: null }],
+          sections: [
+            {
+              id: "sec1",
+              lines: [
+                {
+                  id: "line-1",
+                  speakerId: "sp1",
+                  text: "We are closed.",
+                  pauseAfterMs: 250,
+                  currentTakeId: voiced ? "take-1" : null,
+                  takes: voiced
+                    ? [
+                        {
+                          id: "take-1",
+                          assetId: "audio-1",
+                          durationMs: 3400,
+                          words: [],
+                          textSnapshot: "We are closed.",
+                          voiceSnapshot: null,
+                          createdAt: "2026-01-01T00:00:00.000Z"
+                        }
+                      ]
+                    : []
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+    const linkedBoard = async (
+      scriptId: string,
+      shotOverrides: Partial<Shot> = {}
+    ): Promise<Storyboard> =>
+      makeBoard(
+        [
+          shot({
+            id: "s1",
+            index: 0,
+            duration_seconds: 8,
+            script_line_ids: ["line-1"],
+            ...shotOverrides
+          })
+        ],
+        { screenplay: { type: "screenplay", id: "sp", script_id: scriptId } }
+      );
+
+    /** The `duration_seconds` the image_to_video prediction asked for. */
+    const renderedDuration = async (
+      board: Storyboard,
+      context: ReturnType<typeof ctx>
+    ): Promise<unknown> => {
+      await run(context).invoke("render_storyboard_stills", {
+        storyboard_id: board.id
+      });
+      await run(context).invoke("render_storyboard_clips", {
+        storyboard_id: board.id
+      });
+      const call = context.runProviderPrediction.mock.calls
+        .map((c) => c[0] as { capability: string; params: Record<string, unknown> })
+        .find((c) => c.capability === "image_to_video");
+      return call?.params["duration_seconds"];
+    };
+
+    it("renders a linked shot as long as the takes it covers", async () => {
+      const script = await makeScript(true);
+      const board = await linkedBoard(script.id);
+      // 3400 ms + 250 ms of silence, rounded up to whole seconds.
+      expect(await renderedDuration(board, ctx())).toBe(4);
+    });
+
+    it("keeps the shot's own length when it is pinned to manual", async () => {
+      const script = await makeScript(true);
+      const board = await linkedBoard(script.id, { duration_source: "manual" });
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+
+    it("keeps the shot's own length when the linked line is unvoiced", async () => {
+      const script = await makeScript(false);
+      const board = await linkedBoard(script.id);
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+
+    it("leaves an unlinked board's shots alone", async () => {
+      const board = await makeBoard([
+        shot({ id: "s1", index: 0, duration_seconds: 8 })
+      ]);
+      expect(await renderedDuration(board, ctx())).toBe(8);
+    });
+  });
+
   it("assembles the rendered clips into a timeline", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const context = ctx();

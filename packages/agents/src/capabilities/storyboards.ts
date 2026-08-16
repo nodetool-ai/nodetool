@@ -664,7 +664,19 @@ const renderStoryboardClips: CapabilityExport = {
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
     const { entitiesForShot } = await import("@nodetool-ai/protocol");
+    const { effectiveShotDuration, scriptLinesById } = await import(
+      "@nodetool-ai/timeline"
+    );
     const entities = await loadBoardEntities(context, doc);
+    // A linked board times its shots from the words they cover, so a clip is
+    // rendered long enough to hold its voiceover (design §2.3). A shot pinned
+    // to `manual`, an unvoiced line, or an unlinked board keeps
+    // `duration_seconds`.
+    const scriptDoc = await loadLinkedScript(
+      boardScreenplay(row, doc),
+      context.userId
+    );
+    const linesById = scriptLinesById(scriptDoc?.sections ?? []);
     const aspectRatio = doc.aspectRatio || "16:9";
     const resolution =
       typeof params["resolution"] === "string"
@@ -706,7 +718,7 @@ const renderStoryboardClips: CapabilityExport = {
               entities: entitiesForShot(shot, entities).map(wireEntity),
               aspect_ratio: aspectRatio,
               resolution,
-              duration_seconds: shot.duration_seconds
+              duration_seconds: effectiveShotDuration(shot, linesById).seconds
             }
           })) as Uint8Array;
           const saved = await saveMedia(
