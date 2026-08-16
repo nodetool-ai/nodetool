@@ -148,3 +148,75 @@ describe("buildScriptTimelineDocument", () => {
     expect(doc.clips[0].durationMs).toBe(3000);
   });
 });
+
+describe("buildScriptTimelineDocument, linked to a storyboard", () => {
+  const renderedBoard = {
+    boardId: "board-1",
+    shots: [
+      {
+        type: "shot" as const,
+        id: "shot-a",
+        index: 0,
+        action: "A lighthouse at dusk",
+        status: "rendered" as const,
+        clip: { type: "video" as const, asset_id: "clip-a", uri: "asset://a" },
+        script_line_ids: ["a"],
+        duration_seconds: 30
+      }
+    ],
+    musicPrompt: "slow maritime score"
+  };
+
+  it("cuts the board's shots in and parks each take inside its shot", () => {
+    const doc = buildScriptTimelineDocument(
+      script({ sections: [{ id: "s1", lines: [voicedLine("a")] }] }),
+      renderedBoard
+    );
+
+    expect(doc.linked).toBe(true);
+    const video = doc.clips.filter((c) => c.mediaType === "video");
+    expect(video).toHaveLength(1);
+    expect(video[0].storyboardShotId).toBe("shot-a");
+    // The shot runs as long as the take it covers, not its own 30s target.
+    expect(video[0].durationMs).toBe(2000);
+
+    const voice = doc.clips.filter((c) => c.scriptLineId === "a");
+    expect(voice).toHaveLength(1);
+    expect(voice[0].startMs).toBe(0);
+    expect(voice[0].scriptId).toBe("script-1");
+    expect(voice[0].storyboardBoardId).toBe("board-1");
+    expect(voice[0].storyboardShotId).toBe("shot-a");
+    expect(doc.skippedShotIds).toEqual([]);
+  });
+
+  it("reports lines whose shot was never rendered", () => {
+    const doc = buildScriptTimelineDocument(
+      script({ sections: [{ id: "s1", lines: [voicedLine("a")] }] }),
+      {
+        ...renderedBoard,
+        shots: [
+          {
+            type: "shot" as const,
+            id: "shot-a",
+            index: 0,
+            action: "A lighthouse at dusk",
+            status: "planned" as const,
+            script_line_ids: ["a"]
+          }
+        ]
+      }
+    );
+    expect(doc.skippedShotIds).toEqual(["shot-a"]);
+    expect(doc.skippedLineIds).toEqual(["a"]);
+    expect(doc.clips.filter((c) => c.scriptLineId)).toHaveLength(0);
+  });
+
+  it("assembles the unlinked way when no board is given", () => {
+    const doc = buildScriptTimelineDocument(
+      script({ sections: [{ id: "s1", lines: [voicedLine("a")] }] })
+    );
+    expect(doc.linked).toBe(false);
+    expect(doc.skippedShotIds).toEqual([]);
+    expect(doc.tracks.map((t) => t.name)).toEqual(["Voiceover"]);
+  });
+});

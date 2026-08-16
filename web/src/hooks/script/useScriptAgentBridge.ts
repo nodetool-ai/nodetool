@@ -222,6 +222,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
           sequenceId: result.sequenceId,
           clipCount: result.clipCount,
           skippedLineIds: result.skippedLineIds,
+          skippedShotIds: result.skippedShotIds,
           reassembled: result.reassembled
         };
       },

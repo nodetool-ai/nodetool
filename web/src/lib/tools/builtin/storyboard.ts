@@ -292,7 +292,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_assemble_timeline",
   description:
-    "Assemble the specified storyboard's rendered shots into a persisted timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. Shots without a rendered clip are skipped (returned in skippedShotIds). Each timeline clip stays linked to its shot, so ui_storyboard_revise_shot updates the cut in place.",
+    "Assemble the specified storyboard's rendered shots into a persisted timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. When the board links a script, the words are cut in with the picture instead: each shot runs as long as the takes it covers, every voiced line becomes a voiceover clip inside its shot, and the draft narration clip is dropped (lines that got no clip are returned in skippedLineIds). Shots without a rendered clip are skipped (returned in skippedShotIds). If the board is already linked to a sequence, that sequence is rewritten in place (reassembled), keeping tracks the editor added. Each timeline clip stays linked to its shot, so ui_storyboard_revise_shot updates the cut in place.",
   parameters: z.object({ storyboard_id: storyboardIdParam }),
   async execute({ storyboard_id }) {
     const result =

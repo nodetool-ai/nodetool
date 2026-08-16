@@ -13,13 +13,16 @@ jest.mock("../../../trpc/client", () => ({
       get: { query: jest.fn() },
       create: { mutate: jest.fn() },
       update: { mutate: jest.fn() }
-    }
+    },
+    scripts: { get: { query: jest.fn() } },
+    storyboards: { get: { query: jest.fn() } }
   }
 }));
 
 const getQuery = trpcClient.timeline.get.query as jest.Mock;
 const createMutate = trpcClient.timeline.create.mutate as jest.Mock;
 const updateMutate = trpcClient.timeline.update.mutate as jest.Mock;
+const boardQuery = trpcClient.storyboards.get.query as jest.Mock;
 
 const take = (assetId: string): ScriptTake => ({
   id: `${assetId}-take`,
@@ -146,5 +149,72 @@ describe("useAssembleScriptTimeline", () => {
     expect(doc.clips.some((c: TimelineClip) => c.currentAssetId === "asset-a")).toBe(
       true
     );
+  });
+
+  it("cuts the linked storyboard's shots in with the words", async () => {
+    seedVoicedScript("script-1", null);
+    useScriptStore.getState().setStoryboardLink("script-1", "board-1");
+    boardQuery.mockResolvedValue({
+      id: "board-1",
+      document: {
+        screenplay: {
+          type: "screenplay",
+          id: "sp-1",
+          title: "My film",
+          shots: [],
+          script_id: "script-1"
+        },
+        shots: [
+          {
+            type: "shot",
+            id: "shot-a",
+            index: 0,
+            action: "A lighthouse at dusk",
+            status: "rendered",
+            clip: { type: "video", asset_id: "clip-a", uri: "asset://a" },
+            script_line_ids: ["line-a"]
+          }
+        ]
+      }
+    });
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleScriptTimeline());
+    let out: Awaited<ReturnType<typeof result.current.assemble>>;
+    await act(async () => {
+      out = await result.current.assemble("script-1");
+    });
+
+    expect(out!.skippedShotIds).toEqual([]);
+    const doc = updateMutate.mock.calls[0][0].document;
+    expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
+      "Shots",
+      "Voiceover"
+    ]);
+    const voice = doc.clips.filter((c: TimelineClip) => c.scriptLineId);
+    expect(voice).toHaveLength(1);
+    expect(voice[0].storyboardShotId).toBe("shot-a");
+    expect(voice[0].storyboardBoardId).toBe("board-1");
+  });
+
+  it("assembles voiceover-only when the linked storyboard is gone", async () => {
+    seedVoicedScript("script-1", null);
+    useScriptStore.getState().setStoryboardLink("script-1", "board-gone");
+    boardQuery.mockRejectedValue(new Error("Storyboard not found"));
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleScriptTimeline());
+    let out: Awaited<ReturnType<typeof result.current.assemble>>;
+    await act(async () => {
+      out = await result.current.assemble("script-1");
+    });
+
+    expect(out!.sequenceId).toBe("tl-new");
+    const doc = updateMutate.mock.calls[0][0].document;
+    expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
+      "Voiceover"
+    ]);
   });
 });
