@@ -123,7 +123,7 @@ const JsScriptRunConsole = ({
 
   return (
     <FlexColumn fullWidth gap={SPACING.sm} sx={{ minHeight: 0, flex: 1 }}>
-      <FlexRow gap={SPACING.sm} align="center" padding={1}>
+      <FlexRow gap={SPACING.sm} align="center" wrap padding={1}>
         <EditorButton
           density="compact"
           variant="contained"

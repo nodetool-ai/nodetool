@@ -59,7 +59,7 @@ export function useDocumentsOfKind(
   });
 }
 
-/** Four kinds' queries collapsed into one list, one status, one error. */
+/** Every kind's queries collapsed into one list, one status, one error. */
 export interface AllDocuments {
   documents: DocumentListEntry[];
   isLoading: boolean;
@@ -77,6 +77,7 @@ export interface AllDocuments {
 export function useAllDocuments(limit = 50): AllDocuments {
   const storyboards = useDocumentsOfKind('storyboard', limit);
   const scripts = useDocumentsOfKind('script', limit);
+  const jsScripts = useDocumentsOfKind('jsscript', limit);
   const timelines = useDocumentsOfKind('timeline', limit);
   const sketches = useDocumentsOfKind('sketch', limit);
 
@@ -85,19 +86,26 @@ export function useAllDocuments(limit = 50): AllDocuments {
       [
         ...(storyboards.data ?? []),
         ...(scripts.data ?? []),
+        ...(jsScripts.data ?? []),
         ...(timelines.data ?? []),
         ...(sketches.data ?? []),
       ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-    [storyboards.data, scripts.data, timelines.data, sketches.data]
+    [
+      storyboards.data,
+      scripts.data,
+      jsScripts.data,
+      timelines.data,
+      sketches.data,
+    ]
   );
 
-  const queries = [storyboards, scripts, timelines, sketches];
+  const queries = [storyboards, scripts, jsScripts, timelines, sketches];
 
   return {
     documents,
     isLoading: queries.some((query) => query.isLoading),
     isRefetching: queries.some((query) => query.isRefetching),
-    // Surface the first failure; the browser shows one banner, not four.
+    // Surface the first failure; the browser shows one banner, not one per kind.
     error: queries.find((query) => query.error)?.error ?? null,
     refetch: () => {
       for (const query of queries) {

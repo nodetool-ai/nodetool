@@ -60,6 +60,7 @@ describe('linking', () => {
       'App',
       'StoryboardEditor',
       'ScriptEditor',
+      'JsScriptEditor',
       'TimelineViewer',
       'SketchViewer',
       'DocumentViewer',
@@ -101,6 +102,7 @@ describe('linking', () => {
 
     it('prefers the dedicated document screens over the fallback viewer', () => {
       expect(routeForPath('/document/script/d1').name).toBe('ScriptEditor');
+      expect(routeForPath('/document/jsscript/d1').name).toBe('JsScriptEditor');
       expect(routeForPath('/document/storyboard/d1').name).toBe('StoryboardEditor');
       expect(routeForPath('/document/timeline/d1').name).toBe('TimelineViewer');
       expect(routeForPath('/document/mindmap/d1')).toEqual({
