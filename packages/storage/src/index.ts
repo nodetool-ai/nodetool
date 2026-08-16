@@ -13,6 +13,7 @@ export { SupabaseStorage } from "./supabase-storage.js";
 
 // URI-based asset storage (used by the runtime / websocket server)
 export type {
+  DownloadUrlOptions,
   StorageAdapter,
   StorageEntry,
   StorageListResult,

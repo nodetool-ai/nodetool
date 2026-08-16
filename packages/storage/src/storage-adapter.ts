@@ -56,6 +56,26 @@ export interface StorageAdapter {
     key: string,
     opts?: UploadUrlOptions
   ): Promise<UploadTarget | null>;
+
+  /**
+   * Mint a short-lived HTTPS URL the *client* can GET the object from, so a
+   * cloud object is readable without the bucket being public and without the
+   * bytes passing through the API process.
+   *
+   * Returns `null` when the URI does not belong to this adapter, when the
+   * backend has no such concept (the local file store and the in-memory
+   * store), or when signing fails — every one of which is the signal to fall
+   * back to another URL form.
+   */
+  createDownloadUrl?(
+    uri: string,
+    opts?: DownloadUrlOptions
+  ): Promise<string | null>;
+}
+
+export interface DownloadUrlOptions {
+  /** Lifetime in seconds. Backends may clamp this to their own maximum. */
+  expiresIn?: number;
 }
 
 export interface UploadUrlOptions {

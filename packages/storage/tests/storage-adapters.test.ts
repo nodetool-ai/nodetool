@@ -141,6 +141,39 @@ describe("S3StorageAdapter", () => {
     expect(attempts).toBe(1);
   });
 
+  it("presigns a download url including the adapter prefix", async () => {
+    const presignGetObject = vi.fn(
+      async (input: { bucket: string; key: string; expiresIn: number }) =>
+        `https://b.s3.amazonaws.com/${input.key}?X-Amz-Expires=${input.expiresIn}`
+    );
+    const client: S3Api = { ...fakeClient(new Map()), presignGetObject };
+    const storage = new S3StorageAdapter({ bucket: "b", prefix: "runs/r1", client });
+    expect(await storage.createDownloadUrl("s3://b/runs/r1/out.bin")).toBe(
+      "https://b.s3.amazonaws.com/runs/r1/out.bin?X-Amz-Expires=604800"
+    );
+    expect(await storage.createDownloadUrl("s3://other/out.bin")).toBeNull();
+    expect(await storage.createDownloadUrl("file:///tmp/x")).toBeNull();
+  });
+
+  it("returns null when the client cannot presign or signing throws", async () => {
+    const noPresign = new S3StorageAdapter({
+      bucket: "b",
+      client: fakeClient(new Map())
+    });
+    expect(await noPresign.createDownloadUrl("s3://b/k.bin")).toBeNull();
+
+    const throwing = new S3StorageAdapter({
+      bucket: "b",
+      client: {
+        ...fakeClient(new Map()),
+        async presignGetObject() {
+          throw new Error("unsignable key");
+        }
+      }
+    });
+    expect(await throwing.createDownloadUrl("s3://b/k.bin")).toBeNull();
+  });
+
   it("lists objects across continuation tokens", async () => {
     const pages = [
       {
@@ -224,6 +257,55 @@ describe("SupabaseStorageAdapter", () => {
     expect(uri).toBe("supabase://uploads/a/b.png");
     expect(await storage.exists(uri)).toBe(true);
     expect(await storage.retrieve(uri)).toEqual(new Uint8Array([9, 9]));
+  });
+
+  it("mints a signed download url, which works on a private bucket", async () => {
+    const createSignedUrl = vi.fn(async (key: string, expiresIn: number) => ({
+      data: {
+        signedUrl: `https://x.supabase.co/storage/v1/object/sign/uploads/${key}?token=t&exp=${expiresIn}`
+      },
+      error: null
+    }));
+    const client = {
+      storage: { from: () => ({ createSignedUrl }) }
+    } as any;
+    const storage = new SupabaseStorageAdapter({
+      url: "https://x.supabase.co",
+      apiKey: "k",
+      bucket: "uploads",
+      client
+    });
+    expect(await storage.createDownloadUrl("supabase://uploads/foo.png")).toBe(
+      "https://x.supabase.co/storage/v1/object/sign/uploads/foo.png?token=t&exp=604800"
+    );
+    expect(createSignedUrl).toHaveBeenCalledWith("foo.png", 604800);
+    // Another adapter's bucket, and a non-supabase uri.
+    expect(
+      await storage.createDownloadUrl("supabase://other/foo.png")
+    ).toBeNull();
+    expect(await storage.createDownloadUrl("file:///tmp/x")).toBeNull();
+  });
+
+  it("returns null when signing fails, so callers can fall back", async () => {
+    const client = {
+      storage: {
+        from: () => ({
+          createSignedUrl: async () => ({
+            data: null,
+            error: { message: "Bucket not found" }
+          })
+        })
+      }
+    } as any;
+    const storage = new SupabaseStorageAdapter({
+      url: "https://x.supabase.co",
+      apiKey: "k",
+      bucket: "uploads",
+      client
+    });
+    expect(
+      await storage.createDownloadUrl("supabase://uploads/foo.png")
+    ).toBeNull();
   });
 
   it("converts internal uri to public url", async () => {

@@ -4,6 +4,7 @@ import {
   type SupabaseUploadOptions
 } from "./supabase-rest.js";
 import type {
+  DownloadUrlOptions,
   StorageAdapter,
   StorageEntry,
   StorageListResult,
@@ -11,6 +12,7 @@ import type {
   UploadTarget,
   UploadUrlOptions
 } from "./storage-adapter.js";
+import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
@@ -255,7 +257,31 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Signed GET URL for `uri`, valid for `expiresIn` seconds (default
+   * `SIGNED_URL_TTL`). Unlike `getPublicUrl` this works on a private bucket —
+   * Supabase's `/object/public/…` route resolves only buckets marked public,
+   * and answers `NoSuchBucket` for every private one.
+   *
+   * Returns `null` when the URI belongs to another adapter or the sign call
+   * fails, so callers fall back rather than surfacing a URL that 404s.
+   */
+  async createDownloadUrl(
+    uri: string,
+    opts: DownloadUrlOptions = {}
+  ): Promise<string | null> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return null;
+    const expiresIn = Math.min(opts.expiresIn ?? SIGNED_URL_TTL, SIGNED_URL_TTL);
+    const { data, error } = await this.getClient()
+      .storage.from(parsed.bucket)
+      .createSignedUrl(parsed.key, expiresIn);
+    if (error || !data) return null;
+    return data.signedUrl;
+  }
+
+  /**
    * Convert an internal `supabase://bucket/key` URI to a public HTTPS URL.
+   * Only usable when the bucket is public — prefer `createDownloadUrl`.
    * Returns `null` if the URI does not belong to this adapter.
    */
   getPublicUrl(uri: string): string | null {

@@ -6,6 +6,7 @@ import {
   type S3PutObjectInput
 } from "./s3/client.js";
 import type {
+  DownloadUrlOptions,
   StorageAdapter,
   StorageEntry,
   StorageListResult,
@@ -15,6 +16,7 @@ import type {
 } from "./storage-adapter.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
+import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 
 export interface S3StorageAdapterOptions {
   bucket: string;
@@ -278,5 +280,32 @@ export class S3StorageAdapter implements StorageAdapter {
       headers,
       expiresAt: Date.now() + expiresIn * 1000
     };
+  }
+
+  /**
+   * Presigned GET for `uri`, so a client reads the object without the bucket
+   * being public. Returns `null` when the URI belongs to another bucket, the
+   * injected client can't presign (test fakes), or signing throws.
+   */
+  async createDownloadUrl(
+    uri: string,
+    opts: DownloadUrlOptions = {}
+  ): Promise<string | null> {
+    const parsed = this.parseUri(uri);
+    if (!parsed || parsed.bucket !== this.bucket) return null;
+    const client = this.getClient();
+    if (!client.presignGetObject) return null;
+    const expiresIn = Math.min(opts.expiresIn ?? SIGNED_URL_TTL, SIGNED_URL_TTL);
+    try {
+      return await client.presignGetObject({
+        bucket: parsed.bucket,
+        key: parsed.key,
+        expiresIn
+      });
+    } catch {
+      // Unsignable key (see S3Client.presignGetObject) — fall back to another
+      // URL form rather than failing the run.
+      return null;
+    }
   }
 }

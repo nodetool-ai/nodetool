@@ -132,6 +132,11 @@ export interface S3Api {
    * client-direct uploads must treat its absence as "not supported".
    */
   presignPutObject?(input: S3PresignPutObjectInput): Promise<string>;
+  /**
+   * Optional for the same reason as `presignPutObject`. Callers that hand a
+   * client a direct download URL must treat its absence as "not supported".
+   */
+  presignGetObject?(input: S3PresignGetObjectInput): Promise<string>;
 }
 
 export interface S3RetryOptions {
