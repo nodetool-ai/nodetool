@@ -236,13 +236,17 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 27,159 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 26,238 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — the rules already at **zero**. Run
   inside `npm run lint`, so they cannot come back.
 
 Getting a rule to zero and moving its entry from the first config to the second
-is one change. Promotion goes through the enforced config, not `.oxlintrc.json`,
+is one change. A rule that does not fit NodeTool is deleted from the plugin
+instead — upstream ships it to be vendored and edited. That is why
+`no-shape-in-symbol-names` is gone: it banned the substring "shape" in every
+identifier, and here that is the sketch editor's drawing tools, tensor shapes,
+and third-party contracts. Promotion goes through the enforced config, not `.oxlintrc.json`,
 because `web/`, `electron/` and `mobile/` carry their own `.oxlintrc.json` and
 oxlint resolves the nearest config per file — a rule added at the root silently
 skips those trees. Remaining backlog, largest first:
@@ -256,7 +260,6 @@ skips those trees. Remaining backlog, largest first:
 | `no-known-value-widening` | 1737 |
 | `no-module-mocking` | 1545 |
 | `no-chained-type-assertions` | 1053 |
-| `no-shape-in-symbol-names` | 921 |
 | `no-unknown-returns` | 182 |
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 182; what
