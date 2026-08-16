@@ -33,13 +33,18 @@ const shot = (id: string): Shot => ({
   status: "planned"
 });
 
-const screenplay = (scriptId?: string): Screenplay => ({
-  type: "screenplay",
-  id: "sp-1",
-  title: "My film",
-  shots: [shot("shot-1")],
-  ...(scriptId ? { script_id: scriptId } : {})
-});
+const screenplay = (scriptId?: string): Screenplay => {
+  const doc: Screenplay = {
+    type: "screenplay",
+    id: "sp-1",
+    title: "My film",
+    shots: [shot("shot-1")]
+  };
+  if (scriptId) {
+    doc.script_id = scriptId;
+  }
+  return doc;
+};
 
 const seedBoard = (scriptId?: string): void => {
   const store = useStoryboardStore.getState();

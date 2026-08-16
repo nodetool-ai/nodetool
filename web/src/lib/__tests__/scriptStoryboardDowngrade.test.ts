@@ -24,17 +24,24 @@ const list = trpcClient.storyboards.list.query as jest.Mock;
 const get = trpcClient.storyboards.get.query as jest.Mock;
 const update = trpcClient.storyboards.update.mutate as jest.Mock;
 
+const screenplayFor = (id: string, scriptId: string | null) => {
+  const screenplay: Record<string, unknown> = {
+    type: "screenplay",
+    id: `sp-${id}`,
+    title: "My film",
+    shots: []
+  };
+  if (scriptId) {
+    screenplay.script_id = scriptId;
+  }
+  return screenplay;
+};
+
 const boardResponse = (id: string, scriptId: string | null) => ({
   id,
   updatedAt: "2026-08-16T00:00:00.000Z",
   document: {
-    screenplay: {
-      type: "screenplay",
-      id: `sp-${id}`,
-      title: "My film",
-      shots: [],
-      ...(scriptId ? { script_id: scriptId } : {})
-    },
+    screenplay: screenplayFor(id, scriptId),
     shots: [
       {
         type: "shot",
