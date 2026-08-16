@@ -1,6 +1,9 @@
 # Script ↔ Storyboard Link — Technical Design
 
-> Status: Proposed · Companion: [prd.md](prd.md), [tasks.md](tasks.md).
+> Status: Phase 1 shipped · Phase 2 shipped except audio-led timing (§2.3) ·
+> Phase 3 has `buildLinkedTimeline` (§2.4), not the assemble switch ·
+> Phase 4 has the drift helpers (§2.5) and the tool summaries (§3.2), no UI.
+> Companion: [prd.md](prd.md), [tasks.md](tasks.md).
 
 The design links the two documents with keys and derives everything else. No
 document is merged, no ownership moves: the script keeps words and voice, the
