@@ -256,7 +256,7 @@ describe('DocumentsScreen', () => {
 
   it('banners a load error and retries', () => {
     mockedUseAllDocuments.mockReturnValue(
-      listResult({ error: new Error('offline') as unknown as ListResult['error'] })
+      listResult({ error: new Error('offline') })
     );
     renderScreen();
 

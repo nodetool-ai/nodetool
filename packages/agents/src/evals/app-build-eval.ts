@@ -246,6 +246,9 @@ function scriptedAuthorProvider(
       yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
     }
   };
+  // SAFETY: the app-build loop calls only these three members. Standing the
+  // double up on `BaseProvider.prototype` would give it base implementations
+  // that read instance fields no constructor ever set.
   return provider as unknown as BaseProvider;
 }
 

@@ -152,6 +152,9 @@ class WebSocketService {
     });
     manager.setCallbacks({
       onOpen: () => this.handleOpen(),
+      // SAFETY: the manager decodes a wire object and labels it with the chat
+      // union; this router reads it by routing id instead of by variant, and
+      // the union's members declare no index signature.
       onMessage: (data: WebSocketMessageData) =>
         this.routeMessage(data as unknown as Record<string, unknown>),
       onError: (error: Error) =>

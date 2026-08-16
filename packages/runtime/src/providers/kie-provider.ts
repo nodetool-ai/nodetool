@@ -803,6 +803,8 @@ export class KieProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
+    // SAFETY: the SDK's `create` is overloaded over a closed param interface,
+    // while this request is assembled field by field.
     const response = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -852,6 +854,7 @@ export class KieProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
+    // SAFETY: as above, for the streaming overload.
     const stream = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }

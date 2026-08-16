@@ -131,6 +131,9 @@ export async function connectCdp(
 
   for (;;) {
     try {
+      // SAFETY: `CdpClient` is the `Runtime.enable`/`Runtime.evaluate`/`close`
+      // subset this renderer drives; chrome-remote-interface types every
+      // domain dynamically.
       return (await CDP({ port })) as unknown as CdpClient;
     } catch (err) {
       lastError = err;

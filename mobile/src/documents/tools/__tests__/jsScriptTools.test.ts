@@ -16,8 +16,11 @@ import {
 import {
   emptyJsScriptDocument,
   type JsScriptAgentHandler,
+  type JsScriptMetaInput,
+  type JsScriptPort,
   type JsScriptRunOutcome,
   type JsScriptSnapshot,
+  type JsScriptTestCase,
 } from '../../jsScriptTypes';
 
 const snapshot = (): JsScriptSnapshot => ({
@@ -47,18 +50,27 @@ const runOutcome = (ok: boolean): JsScriptRunOutcome => {
   return outcome;
 };
 
-type MockHandler = {
-  [K in keyof JsScriptAgentHandler]: jest.Mock;
-};
+type MockHandler = jest.Mocked<JsScriptAgentHandler>;
 
 const makeHandler = (): MockHandler => ({
   getSnapshot: jest.fn(() => snapshot()),
-  setCode: jest.fn(() => snapshot()),
-  setPorts: jest.fn(() => snapshot()),
-  setMeta: jest.fn(() => snapshot()),
-  setTests: jest.fn(() => snapshot()),
-  save: jest.fn(async () => ({ ok: true, updatedAt: '2026-08-01T00:00:00Z' })),
-  run: jest.fn(async () => runOutcome(true)),
+  setCode: jest.fn((_code: string) => snapshot()),
+  setPorts: jest.fn(
+    (_ports: { inputs?: JsScriptPort[]; outputs?: JsScriptPort[] }) =>
+      snapshot()
+  ),
+  setMeta: jest.fn((_meta: JsScriptMetaInput) => snapshot()),
+  setTests: jest.fn((_tests: JsScriptTestCase[]) => snapshot()),
+  save: jest.fn(
+    async (): Promise<{ ok: true; updatedAt: string | null }> => ({
+      ok: true,
+      updatedAt: '2026-08-01T00:00:00Z',
+    })
+  ),
+  run: jest.fn(
+    async (..._args: Parameters<JsScriptAgentHandler['run']>) =>
+      runOutcome(true)
+  ),
   test: jest.fn(async () => ({ passed: 1, failed: 0, cases: [] })),
 });
 
@@ -76,7 +88,7 @@ describe('JS script tools', () => {
       'jsscript',
       'js-1',
       'Sum numbers',
-      handler as unknown as JsScriptAgentHandler
+      handler
     );
   });
 

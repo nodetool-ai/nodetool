@@ -143,7 +143,10 @@ export function createSupabaseStorageClient(
             const response = await fetch(objectUrl(key), {
               method: "POST",
               headers,
-              body: data as unknown as BodyInit
+              // SAFETY: `BodyInit` names `ArrayBufferView<ArrayBuffer>`, while
+              // `Buffer`/`Uint8Array` are declared over `ArrayBufferLike`;
+              // fetch accepts either at runtime.
+              body: data as BodyInit
             });
             if (!response.ok) {
               return { error: await readError(response) };

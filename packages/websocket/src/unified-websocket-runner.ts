@@ -8597,6 +8597,10 @@ export class UnifiedWebSocketRunner {
       case "clear_models":
         return this.clearModels();
       case "run_job":
+        // SAFETY: the wire command's `data` is the run request. Every read
+        // is `req.workflow_id ?? …`, so the field the interface declares
+        // required is in practice optional — making it so in `@nodetool-ai/
+        // protocol` is the truthful fix and reaches every client.
         await this.runJob(data as unknown as RunJobRequest);
         return { message: "Job started", workflow_id: workflowId ?? null };
       case "reconnect_job":

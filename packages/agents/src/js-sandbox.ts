@@ -115,9 +115,14 @@ import {
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
 type WritableRun = Writable<Omit<RunMessage, "type">>;
 type WritableRunInWorkerOptions = Writable<RunInWorkerOptions>;
-// The variant package uses a `default` export. With `esModuleInterop` this
-// typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
+/**
+ * The variant package is CJS with a `default` export, so `ns.default` is the
+ * variant at runtime.
+ */
+// SAFETY: TypeScript's CJS interop synthesizes `default` as the whole module
+// object, contradicting the package's own `.d.ts`, which declares it as the
+// `QuickJSSyncVariant` this reads.
 const quickJsVariant = (
   quickJsVariantModule as unknown as {
     default: Parameters<typeof loadQuickJs>[0];
@@ -2325,10 +2330,18 @@ export function buildSandbox(
       : {}
   );
 
+  /** Each `media.*` member after handle resolution — one shared signature. */
+  type MediaMemberMap = Record<
+    string,
+    (...args: unknown[]) => Promise<unknown>
+  >;
+
   // A media handle is accepted wherever `media.*` takes a ref or bytes. The
   // last step of a chain promotes the result with the matching `media.to*`
-  // call. Only this promotion writes to storage; intermediates never do.
-  const mediaMembers = Object.fromEntries(
+  // call. Only this promotion writes to storage; intermediates never do. The
+  // wrapped members share one signature, so they are held under that type and
+  // only the assembled `media` object claims the bridge's shape.
+  const mediaMembers: MediaMemberMap = Object.fromEntries(
     Object.entries(mediaRefBridge).map(([name, fn]) => [
       name,
       async (...args: unknown[]) =>
@@ -2340,7 +2353,7 @@ export function buildSandbox(
           )) as unknown[])
         )
     ])
-  ) as unknown as typeof mediaRefBridge;
+  );
   const promoteTypedHandle =
     (
       name: "toImage" | "toAudio" | "toVideo",
@@ -2356,12 +2369,7 @@ export function buildSandbox(
       if (isSandboxMediaHandle(value)) {
         return promote(value, options);
       }
-      return (
-        mediaMembers[name] as unknown as (
-          value: unknown,
-          options?: Record<string, unknown>
-        ) => Promise<unknown>
-      )(value, options);
+      return mediaMembers[name](value, options);
     };
   const media = {
     ...mediaMembers,

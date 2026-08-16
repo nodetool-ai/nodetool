@@ -95,6 +95,11 @@ function extractAssistantText(out: PipelineOutput[]): string {
   return typeof generated === "string" ? generated : "";
 }
 
+/** The tokenizer a transformers.js pipeline instance carries. */
+interface TokenizerHolder {
+  tokenizer?: unknown;
+}
+
 export async function generateMessage(args: ChatArgs): Promise<Message> {
   warnIfTools(args);
   if (args.signal?.aborted) throw makeAbortError();
@@ -155,7 +160,9 @@ export async function* generateMessages(
   };
 
   // Tokenizer is exposed on the pipeline instance as `.tokenizer`.
-  const tokenizer = (pipeline as unknown as { tokenizer?: unknown }).tokenizer;
+  // SAFETY: the pipeline instance carries `.tokenizer`, which the SDK's
+  // pipeline type does not declare.
+  const tokenizer: unknown = (pipeline as TokenizerHolder).tokenizer;
   if (!tokenizer) {
     // Pipeline missing tokenizer — fall back to non-streaming.
     const message = await generateMessage(args);

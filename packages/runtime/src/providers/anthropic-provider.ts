@@ -1185,6 +1185,9 @@ export class AnthropicProvider extends BaseProvider {
       continuation <= MAX_PAUSE_TURN_CONTINUATIONS;
       continuation++
     ) {
+      // SAFETY: the request is assembled field by field as a dictionary, and
+      // the SDK's param interface is closed — it declares no index signature,
+      // so the two do not overlap.
       const streamRequest = {
         ...(currentRequest as unknown as MessageCreateParamsStreaming),
         stream: true as const
@@ -1423,6 +1426,8 @@ export class AnthropicProvider extends BaseProvider {
       continuation++
     ) {
       this.recordRequestPayload(currentRequest);
+      // SAFETY: as above — a dictionary request handed to the SDK's closed
+      // non-streaming param interface.
       response = await this.getClient().messages.create(
         currentRequest as unknown as MessageCreateParamsNonStreaming,
         this.requestOptions(args.signal)

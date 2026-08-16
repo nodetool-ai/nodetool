@@ -29,6 +29,16 @@ class FallbackStore<T> {
   }
 }
 
-export const AsyncLocalStorage =
-  _asyncHooks?.AsyncLocalStorage ??
-  (FallbackStore as unknown as typeof import("node:async_hooks").AsyncLocalStorage);
+/** The `AsyncLocalStorage` surface this package uses — all the fallback can offer. */
+export interface AsyncContextStore<T> {
+  getStore(): T | undefined;
+  run<R>(value: T, callback: () => R): R;
+}
+
+/** Constructor of an {@link AsyncContextStore}. */
+export interface AsyncContextStoreConstructor {
+  new <T>(): AsyncContextStore<T>;
+}
+
+export const AsyncLocalStorage: AsyncContextStoreConstructor =
+  _asyncHooks?.AsyncLocalStorage ?? FallbackStore;

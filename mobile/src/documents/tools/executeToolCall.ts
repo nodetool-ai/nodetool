@@ -14,7 +14,8 @@ export interface ToolCallMessage {
   type: 'tool_call';
   tool_call_id: string;
   name: string;
-  args: Record<string, unknown>;
+  /** Absent for a no-argument tool; `isToolCallMessage` does not require it. */
+  args?: Record<string, unknown>;
   thread_id: string;
 }
 

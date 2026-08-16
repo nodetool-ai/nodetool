@@ -46,7 +46,7 @@ describe("hardenWebContents", () => {
     serverState.serverPort = 7777;
     jest.clearAllMocks();
     mock = createMockWebContents();
-    hardenWebContents(mock as unknown as Electron.WebContents);
+    hardenWebContents(mock);
   });
 
   it("registers all expected event handlers", () => {

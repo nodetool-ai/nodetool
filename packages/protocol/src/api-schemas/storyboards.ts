@@ -127,6 +127,10 @@ export function normalizeStoryboardShot(
       `Shot at position ${label} needs a non-empty \`action\` — the concrete visual to render.`
     );
   }
+  // SAFETY: `status` comes off the wire as a bare string, and the spread
+  // carries the record's untyped extras; typing this honestly means giving
+  // `storyboardShot` a `ShotStatus` enum and dropping the passthrough, which
+  // changes what the save accepts.
   return {
     ...shot,
     type: "shot",
@@ -175,6 +179,9 @@ export function normalizeStoryboardScreenplay(
       .join("; ");
     throw new Error(`\`screenplay\` is not savable — ${paths}`);
   }
+  // SAFETY: the schema's passthrough output types `shots` as `StoryboardShot`
+  // (whose `status` is a bare string), not `Shot` — same gap as
+  // `normalizeStoryboardShot`.
   return parsed.data as unknown as Screenplay;
 }
 

@@ -808,7 +808,7 @@ export function registerAgentMcpTools(
       ? (actionSchema["required"] as string[])
       : []
     ).filter((name) => name !== "title")
-  } as unknown as JsonSchema);
+  });
 
   server.tool(
     session.providerTool.name,

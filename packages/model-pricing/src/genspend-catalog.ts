@@ -136,7 +136,7 @@ export interface GenspendPricingCatalog {
 }
 
 export const genspendPricingCatalog =
-  catalog as unknown as GenspendPricingCatalog;
+  catalog as GenspendPricingCatalog;
 
 /** The catalog price for a provider-native model id, or null when untracked. */
 export function getGenspendPrice(

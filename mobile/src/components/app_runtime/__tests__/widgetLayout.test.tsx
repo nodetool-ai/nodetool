@@ -75,7 +75,10 @@ const makeWorkflow = (id: string): Workflow =>
     name: "Probe",
     description: "",
     graph: { nodes: [], edges: [] },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 const renderApp = (
   id: string,

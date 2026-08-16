@@ -93,22 +93,36 @@ export async function importNodeBuiltin<T>(name: string): Promise<T | null> {
  * back to `globalThis.require` for CJS bundles. Returns `null` on
  * non-Node runtimes or when the builtin cannot be resolved.
  */
+/** CommonJS `require`, present only in a CJS bundle. */
+type BuiltinRequire = (id: string) => ModuleNamespace;
+
+/** The Node `process` members this loader reaches for. */
+interface NodeProcessGlobal {
+  getBuiltinModule?: BuiltinRequire;
+}
+
+/** `globalThis` as a CJS bundle sees it. */
+interface GlobalWithRequire {
+  require?: BuiltinRequire;
+}
+
 export function getNodeBuiltinSync<T>(name: string): T | null {
   if (!IS_NODE) return null;
   try {
-    const proc = globalThis.process as unknown as {
-      getBuiltinModule?: (id: string) => ModuleNamespace;
-    };
+    // SAFETY: `getBuiltinModule` landed in Node 18.19 and is absent from the
+    // `@types/node` `Process` this repo compiles against; the guard below is
+    // what decides whether it is really there.
+    const proc = globalThis.process as NodeProcessGlobal | undefined;
     if (typeof proc?.getBuiltinModule === "function") {
       // SAFETY: `T` is the namespace shape the caller names for `name`.
       return proc.getBuiltinModule(name) as T;
     }
-    const g = globalThis as unknown as {
-      require?: (id: string) => ModuleNamespace;
-    };
-    if (typeof g.require === "function") {
+    // SAFETY: `require` exists only when this module is loaded from a CJS
+    // bundle, so it is not on the ESM `globalThis` type; the guard decides.
+    const cjsRequire = (globalThis as GlobalWithRequire).require;
+    if (typeof cjsRequire === "function") {
       // SAFETY: `T` is the export shape the caller names for `name`.
-      return g.require(name) as T;
+      return cjsRequire(name) as T;
     }
   } catch {
     // fall through to null

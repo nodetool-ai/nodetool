@@ -74,7 +74,10 @@ const makeWorkflow = (id: string): Workflow =>
       ],
       edges: [],
     },
-  }) as unknown as Workflow;
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  });
 
 const emit = (message: Record<string, unknown>) => {
   act(() => {

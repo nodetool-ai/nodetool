@@ -103,11 +103,17 @@ const detail = (doc: TimelineDocument) => ({
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TimelineViewer'>;
 
-const navigation = {
+/** The screen calls only these three; the navigator prop is far wider. */
+const partialNavigation: Pick<
+  Props['navigation'],
+  'setOptions' | 'navigate' | 'goBack'
+> = {
   setOptions: jest.fn(),
   navigate: jest.fn(),
   goBack: jest.fn(),
-} as unknown as Props['navigation'];
+};
+// SAFETY: nothing under test reaches for another navigator method.
+const navigation = partialNavigation as Props['navigation'];
 
 const route = {
   key: 'TimelineViewer-1',

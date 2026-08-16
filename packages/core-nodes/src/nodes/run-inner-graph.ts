@@ -10,8 +10,9 @@
 import { WorkflowRunner, Graph, withExplicitNodeFlags } from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
-  GraphData,
-  HydratedGraphData
+  Edge,
+  HydratedGraphData,
+  NodeDescriptor
 } from "@nodetool-ai/protocol";
 
 /** Browser-safe UUID: works in Node and browser bundles alike. */
@@ -105,9 +106,17 @@ export async function runInnerGraph(
     hydratedGraph = { nodes: [...loaded.nodes], edges: [...loaded.edges] };
   } else {
     hydratedGraph = withExplicitNodeFlags({
-      nodes: normalizedNodes,
-      edges: normalizedEdges
-    } as unknown as GraphData);
+      nodes: normalizedNodes.map((node) => {
+        const { id, type } = node;
+        // SAFETY: an inner graph is a saved workflow graph, whose nodes carry
+        // a string `id` and `type` — the same fields `loadFromDict` proves on
+        // the branch above. Restated here so the descriptor shape is explicit.
+        return { ...node, id, type } as NodeDescriptor;
+      }),
+      // SAFETY: `Edge`'s required handles are strings in a saved graph, and
+      // `normalizeEdges` preserves them.
+      edges: normalizedEdges as Edge[]
+    });
   }
 
   // Map runner output keys (node.name ?? node.id) back to the properties.name

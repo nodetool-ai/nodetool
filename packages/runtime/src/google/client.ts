@@ -68,7 +68,9 @@ async function request<T>(
   if (contentType.includes("application/json")) {
     return (await res.json()) as T;
   }
-  return (await res.text()) as unknown as T;
+  // SAFETY: a non-JSON body is text, so the caller's `T` is `string` for the
+  // endpoints that return one (e.g. a file download).
+  return (await res.text()) as T;
 }
 
 function query(params: Record<string, string | number | undefined>): string {

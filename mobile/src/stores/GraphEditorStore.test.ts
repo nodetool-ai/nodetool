@@ -26,12 +26,28 @@ function meta(
     description: '',
     namespace: 'test',
     layout: 'default',
-    properties: [{ name: 'text', type: { type: 'str' }, default: 'hi' }],
-    outputs: [{ name: 'output', type: { type: 'str' } }],
-    is_dynamic: false,
+    properties: [
+      {
+        name: 'text',
+        type: { type: 'str', optional: false, type_args: [] },
+        default: 'hi',
+        required: false,
+      },
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: { type: 'str', optional: false, type_args: [] },
+        stream: false,
+      },
+    ],
+    recommended_models: [],
+    required_settings: [],
     supports_dynamic_inputs: false,
+    supports_dynamic_outputs: false,
+    is_streaming_output: false,
     ...overrides,
-  } as unknown as NodeMetadata;
+  };
 }
 
 function resetStore() {

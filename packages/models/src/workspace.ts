@@ -26,9 +26,11 @@ export class Workspace extends DBModel {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
-    // Handle raw integer booleans from legacy data
-    if (typeof this.is_default === "number") {
-      this.is_default = (this.is_default as unknown as number) !== 0;
+    // Handle raw integer booleans from legacy data. The column is declared
+    // `boolean`, so the legacy integer only shows through a widened read.
+    const rawIsDefault: unknown = this.is_default;
+    if (typeof rawIsDefault === "number") {
+      this.is_default = rawIsDefault !== 0;
     }
     this.is_default ??= false;
     this.created_at ??= now;

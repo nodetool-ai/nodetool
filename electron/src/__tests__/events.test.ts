@@ -11,7 +11,7 @@ const mockWebContents = { send: jest.fn() };
 const mockWindow = {
   webContents: mockWebContents,
   isDestroyed: jest.fn().mockReturnValue(false)
-} as unknown as Electron.BrowserWindow;
+};
 
 (BrowserWindow.getAllWindows as jest.Mock).mockReturnValue([mockWindow]);
 

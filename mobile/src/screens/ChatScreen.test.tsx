@@ -100,18 +100,24 @@ describe('ChatScreen', () => {
     addMessageToCache: jest.fn(),
   };
 
-  const mockNavigation = {
+  const setOptionsMock = jest.fn();
+  const partialNavigation: Pick<
+    ChatScreenProps['navigation'],
+    'navigate' | 'setOptions' | 'goBack'
+  > = {
     navigate: jest.fn(),
-    setOptions: jest.fn(),
+    setOptions: setOptionsMock,
     goBack: jest.fn(),
   };
+  // SAFETY: ChatScreen calls only these three navigator methods.
+  const mockNavigation = partialNavigation as ChatScreenProps['navigation'];
 
   // ChatScreen takes the full navigator prop pair; these tests drive only the
   // three navigation methods above and never read the route.
   const renderChatScreen = () =>
     render(
       <ChatScreen
-        navigation={mockNavigation as unknown as ChatScreenProps['navigation']}
+        navigation={mockNavigation}
         route={{} as ChatScreenProps['route']}
       />
     );
@@ -198,7 +204,7 @@ describe('ChatScreen', () => {
 
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByText } = render(<HeaderRight />);
@@ -215,7 +221,7 @@ describe('ChatScreen', () => {
 
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByText } = render(<HeaderRight />);
@@ -226,7 +232,7 @@ describe('ChatScreen', () => {
       renderChatScreen();
       
       // Get the headerRight component
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByTestId } = render(<HeaderRight />);
@@ -244,7 +250,7 @@ describe('ChatScreen', () => {
       
       renderChatScreen();
       
-      const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
+      const setOptionsCall = setOptionsMock.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
       
       const { getByTestId } = render(<HeaderRight />);

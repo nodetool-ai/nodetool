@@ -111,7 +111,7 @@ export type ClaudeQueryFn = (params: {
 export type ClaudeCreateMcpServerFn = (opts: {
   name: string;
   version?: string;
-  tools: Array<SdkMcpToolDefinition<never>>;
+  tools: Array<SdkMcpToolDefinition>;
 }) => McpSdkServerConfigWithInstance;
 
 /** MCP server name under which NodeTool's tools are exposed to the SDK. */
@@ -253,14 +253,16 @@ export class ClaudeAgentProvider extends BaseProvider {
   private async loadQuery(): Promise<ClaudeQueryFn> {
     if (this.injectedQueryFn) return this.injectedQueryFn;
     const mod = await loadSdk();
-    return mod.query as unknown as ClaudeQueryFn;
+    return mod.query as ClaudeQueryFn;
   }
 
   /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
   private async loadCreateMcpServer(): Promise<ClaudeCreateMcpServerFn> {
     if (this.injectedCreateMcpServerFn) return this.injectedCreateMcpServerFn;
     const mod = await loadSdk();
-    return mod.createSdkMcpServer as unknown as ClaudeCreateMcpServerFn;
+    // SAFETY: the SDK's factory is generic over each tool's Zod shape; this
+    // provider always hands it the default `AnyZodRawShape` definitions.
+    return mod.createSdkMcpServer as ClaudeCreateMcpServerFn;
   }
 
   /**
@@ -993,7 +995,7 @@ function toolDefinition(
     name: string,
     args: Record<string, unknown>
   ) => Promise<string | MessageContent[]>
-): SdkMcpToolDefinition<never> {
+): SdkMcpToolDefinition {
   return {
     name: tool.name,
     description: tool.description ?? "",
@@ -1002,7 +1004,7 @@ function toolDefinition(
       const result = await run(tool.name, toolArgs ?? {});
       return { content: toolResultToMcpContent(result) };
     }
-  } as unknown as SdkMcpToolDefinition<never>;
+  };
 }
 
 type McpContentBlock =

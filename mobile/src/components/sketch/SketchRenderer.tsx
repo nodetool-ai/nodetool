@@ -148,7 +148,14 @@ export function asSketchDocument(value: unknown): SketchDocumentData | null {
   }
   return {
     sketch: {
-      canvas: canvas as unknown as SketchCanvas,
+      canvas: {
+        width: canvas.width,
+        height: canvas.height,
+        // SAFETY: the sketch document schema types `backgroundColor` as an
+        // optional CSS colour string, and it is read straight into a style
+        // prop — the same value the asserted canvas object carried before.
+        backgroundColor: canvas.backgroundColor as string | undefined,
+      },
       layers: value.layers as SketchLayer[],
     },
     layerBindings: Array.isArray(value.layerBindings)

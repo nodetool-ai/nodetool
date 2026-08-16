@@ -147,7 +147,6 @@ describe('executeToolCall', () => {
         type: 'tool_call',
         tool_call_id: 'call-1',
         name: 'ui_test_noargs',
-        args: undefined as unknown as Record<string, unknown>,
         thread_id: 'thread-1',
       },
       sender

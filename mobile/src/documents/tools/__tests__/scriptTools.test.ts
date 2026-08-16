@@ -54,8 +54,9 @@ const snapshot = (): ScriptSnapshot => ({
   selectedLineId: null,
 });
 
+/** Every member keeps its real signature, so the double *is* a handler. */
 type MockHandler = {
-  [K in keyof ScriptAgentHandler]: jest.Mock;
+  [K in keyof ScriptAgentHandler]: ScriptAgentHandler[K] & jest.Mock;
 };
 
 const makeHandler = (): MockHandler => ({
@@ -73,7 +74,12 @@ const makeHandler = (): MockHandler => ({
   removeLine: jest.fn(() => lineNode('line-a', 0)),
   moveLine: jest.fn(() => lineNode('line-a', 2)),
   selectLine: jest.fn(() => lineNode('line-a', 0)),
-  save: jest.fn(async () => ({ ok: true, updatedAt: '2026-07-26T00:00:00Z' })),
+  save: jest.fn(
+    async (): Promise<{ ok: true; updatedAt: string | null }> => ({
+      ok: true,
+      updatedAt: '2026-07-26T00:00:00Z',
+    })
+  ),
 });
 
 const call = (
@@ -93,7 +99,7 @@ describe('script tools', () => {
       'script',
       'sc-1',
       'Test script',
-      handler as unknown as ScriptAgentHandler
+      handler
     );
   });
 
