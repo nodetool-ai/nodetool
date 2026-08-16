@@ -8,18 +8,13 @@ import { validateInboundMessage } from "../validateInboundMessage";
 
 Object.assign(global, { TextEncoder, TextDecoder });
 
-/** The private routing surface these tests drive, named so it stays checked. */
-interface ManagerInternals {
-  routeMessage(message: WebSocketMessage): void;
-}
-
-const internals = (): ManagerInternals =>
-  globalWebSocketManager as unknown as ManagerInternals;
-
-/** Mirrors what the socket's "message" listener does with a decoded frame. */
+/**
+ * Mirrors what the socket's "message" listener does with a decoded frame.
+ * `routeMessage` is private; element access reaches it with its types intact.
+ */
 const ingest = (message: WebSocketMessage): void => {
   validateInboundMessage(message);
-  internals().routeMessage(message);
+  globalWebSocketManager["routeMessage"](message);
 };
 
 // Mock dependencies before imports
@@ -83,7 +78,7 @@ describe("GlobalWebSocketManager", () => {
         job_id: "job-123"
       };
 
-      internals().routeMessage(message);
+      globalWebSocketManager["routeMessage"](message);
 
       expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
@@ -97,7 +92,7 @@ describe("GlobalWebSocketManager", () => {
         workflow_id: "workflow-456"
       };
 
-      internals().routeMessage(message);
+      globalWebSocketManager["routeMessage"](message);
 
       expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
@@ -111,7 +106,7 @@ describe("GlobalWebSocketManager", () => {
         thread_id: "thread-789"
       };
 
-      internals().routeMessage(message);
+      globalWebSocketManager["routeMessage"](message);
 
       expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
@@ -130,7 +125,7 @@ describe("GlobalWebSocketManager", () => {
         }
       };
 
-      internals().routeMessage(resourceChangeMessage);
+      globalWebSocketManager["routeMessage"](resourceChangeMessage);
 
       expect(handleResourceChange).toHaveBeenCalledWith(resourceChangeMessage);
     });
@@ -149,7 +144,7 @@ describe("GlobalWebSocketManager", () => {
         }
       };
 
-      internals().routeMessage(resourceChangeMessage);
+      globalWebSocketManager["routeMessage"](resourceChangeMessage);
 
       // Regular handler should NOT be called for resource_change messages
       expect(handler).not.toHaveBeenCalled();
@@ -173,7 +168,7 @@ describe("GlobalWebSocketManager", () => {
           }
         };
 
-        internals().routeMessage(message);
+        globalWebSocketManager["routeMessage"](message);
 
         expect(handleResourceChange).toHaveBeenCalledWith(message);
       });

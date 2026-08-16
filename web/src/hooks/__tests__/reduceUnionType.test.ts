@@ -1,6 +1,6 @@
 import reduceUnionType from "../reduceUnionType";
-import { TypeMetadata } from "../../stores/ApiTypes";
 import { stub } from "../../test-utils/doubles";
+import { TypeMetadata } from "../../stores/ApiTypes";
 
 // Helper to create a minimal valid TypeMetadata
 const createTypeMetadata = (

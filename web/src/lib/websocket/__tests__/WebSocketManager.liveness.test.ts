@@ -3,6 +3,7 @@
  * half-open socket the browser still calls OPEN while nothing arrives.
  */
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
@@ -90,7 +91,7 @@ const connect = async (mgr: WebSocketManager): Promise<void> => {
 describe("WebSocketManager liveness watchdog", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 
@@ -214,7 +215,7 @@ describe("WebSocketManager liveness watchdog", () => {
 describe("WebSocketManager outbound queue", () => {
   beforeEach(() => {
     FakeWebSocket.instances = [];
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = FakeWebSocket;
+    installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
   });
 

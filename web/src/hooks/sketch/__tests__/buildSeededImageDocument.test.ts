@@ -1,6 +1,6 @@
 import { buildSeededImageDocument } from "../buildSeededImageDocument";
-import type { sketch } from "@nodetool-ai/protocol/api-schemas";
 import { stub } from "../../../test-utils/doubles";
+import type { sketch } from "@nodetool-ai/protocol/api-schemas";
 
 const SERIALIZED_PREFIX = "ntlayer:";
 

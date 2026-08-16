@@ -17,6 +17,7 @@
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { stub } from "../../../test-utils/doubles";
 import { BrushEngine } from "../painting/BrushEngine";
 import { PencilEngine } from "../painting/PencilEngine";
 import { EraserEngine } from "../painting/EraserEngine";
@@ -33,7 +34,6 @@ import {
   DEFAULT_ERASER_SETTINGS,
   makeAffineTransform
 } from "../types";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -688,10 +688,12 @@ describe("PaintSession", () => {
       getImageData: jest.fn(),
       putImageData: jest.fn()
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       expect(session.begin(ctx, makePointerEvent())).toBe(true);
@@ -850,10 +852,12 @@ describe("ShapeTool (transform-aware commit)", () => {
       lineCap: "butt",
       lineJoin: "miter"
     });
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     const getContextSpy = jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockImplementation((((contextId: string) =>
-        contextId === "2d" ? fakeCtx : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+        contextId === "2d" ? fakeCtx : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
     try {
       const tool = new ShapeTool();

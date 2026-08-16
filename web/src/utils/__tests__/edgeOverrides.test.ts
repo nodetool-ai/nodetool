@@ -1,8 +1,8 @@
 import { Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { EdgeOverrideCollector, applyNodeOverrides } from "../edgeOverrides";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 const node = (
   id: string,

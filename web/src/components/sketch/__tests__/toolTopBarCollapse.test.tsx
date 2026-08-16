@@ -8,6 +8,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
@@ -16,7 +17,6 @@ import { ConnectedToolTopBar } from "../editor-shell/ConnectedToolTopBar";
 import type { ConnectedToolTopBarProps } from "../editor-shell/ConnectedToolTopBar";
 import { useSketchStore } from "../state";
 import type { useSegmentation } from "../hooks/useSegmentation";
-import { stub } from "../../../test-utils/doubles";
 
 const mockIsMobile = jest.fn(() => false);
 jest.mock("../hooks/useSketchIsMobile", () => ({

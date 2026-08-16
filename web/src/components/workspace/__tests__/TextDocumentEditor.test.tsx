@@ -1,4 +1,5 @@
 import React from "react";
+import { installGlobal, stub } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -53,7 +54,6 @@ jest.mock("../../node/DataTable/DataTable", () => ({
 }));
 
 import TextDocumentEditor from "../TextDocumentEditor";
-import { stub } from "../../../test-utils/doubles";
 
 const renderEditor = (asset: Asset) => {
   const queryClient = new QueryClient({
@@ -82,10 +82,10 @@ describe("TextDocumentEditor — CSV add row", () => {
   });
 
   const mockCsvText = (text: string) => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      text: async () => text
-    }) as unknown as typeof fetch;
+    installGlobal(
+      "fetch",
+      jest.fn().mockResolvedValue({ ok: true, text: async () => text })
+    );
   };
 
   it("keeps the appended row for a single-column CSV", async () => {

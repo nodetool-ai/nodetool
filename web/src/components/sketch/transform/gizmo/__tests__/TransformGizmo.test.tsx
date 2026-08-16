@@ -12,6 +12,7 @@
  */
 
 import React from "react";
+import { installGlobal } from "../../../../../test-utils/doubles";
 import { render } from "@testing-library/react";
 import { TransformGizmo } from "../TransformGizmo";
 import { TransformTool } from "../../../tools/TransformTool";
@@ -108,8 +109,7 @@ class StubResizeObserver implements ResizeObserver {
   unobserve = jest.fn();
   disconnect = jest.fn();
 }
-(globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
-  StubResizeObserver as unknown as typeof ResizeObserver;
+installGlobal("ResizeObserver", StubResizeObserver);
 
 beforeEach(() => {
   useSketchStore.setState((s) => ({

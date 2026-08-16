@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MasksExtractorBody } from "./MasksExtractorBody";
 
@@ -122,7 +123,6 @@ jest.mock("@mui/material/styles", () => ({
 
 import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 const mockUseNodes = asMock(useNodes);
 const mockUseRunSingleNode = asMock(useRunSingleNode);
@@ -133,7 +133,7 @@ describe("MasksExtractorBody", () => {
     nodeType: "replicate.image.background.Bria_RemoveBackground",
     nodeMetadata: {
       node_type: "replicate.image.background.Bria_RemoveBackground",
-      properties: [{ name: "image", type: "image" }],
+      properties: [{ name: "image", type: { type: "image" } }],
       outputs: []
     },
     data: {

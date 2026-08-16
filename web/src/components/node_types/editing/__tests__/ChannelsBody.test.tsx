@@ -1,10 +1,10 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ChannelsBody } from "../ChannelsBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
-import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -62,7 +62,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
   nodeType: "nodetool.image.Channels",
   nodeMetadata: stub<Parameters<typeof ChannelsBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.image.Channels",
-    properties: [{ name: "image", type: "image" }],
+    properties: [{ name: "image", type: { type: "image" } }],
     outputs: [],
     is_streaming_output: false
   }),

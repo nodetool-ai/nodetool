@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import { Edge } from "@xyflow/react";
 import { useConnectionEvents } from "../useConnectionEvents";
 import { useNodes } from "../../../contexts/NodeContext";
-import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext");
 

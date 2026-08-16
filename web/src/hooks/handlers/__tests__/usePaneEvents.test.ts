@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { usePaneEvents } from "../usePaneEvents";
@@ -7,7 +8,16 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSelect from "../../nodes/useSelect";
-import { asMock, stub } from "../../../test-utils/doubles";
+
+/** A drag/click target that answers `classList.contains("react-flow__pane")`. */
+const paneTarget = (isPane: boolean): HTMLDivElement => {
+  const el = document.createElement("div");
+  if (isPane) {
+    el.classList.add("react-flow__pane");
+  }
+  return el;
+};
+
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/NodePlacementStore");
@@ -114,7 +124,7 @@ describe("usePaneEvents", () => {
       );
 
       const mockEvent = stub<ReactMouseEvent>({
-        target: { classList: { contains: () => true } },
+        target: paneTarget(true),
         clientX: 150,
         clientY: 200
       });
@@ -135,7 +145,7 @@ describe("usePaneEvents", () => {
       );
 
       const mockEvent = stub<ReactMouseEvent>({
-        target: { classList: { contains: () => true } },
+        target: paneTarget(true),
         clientX: 150,
         clientY: 200
       });
@@ -156,7 +166,7 @@ describe("usePaneEvents", () => {
       );
 
       const mockEvent = stub<ReactMouseEvent>({
-        target: { classList: { contains: () => false } },
+        target: paneTarget(false),
         clientX: 150,
         clientY: 200
       });

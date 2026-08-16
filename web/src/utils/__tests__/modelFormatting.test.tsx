@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import "@testing-library/jest-dom/jest-globals";
+import { stub } from "../../test-utils/doubles";
 import { describe, it, expect } from "@jest/globals";
 import { render, screen } from "@testing-library/react";
 import React from "react";
@@ -12,7 +13,6 @@ import {
   sortModelTypes
 } from "../modelFormatting";
 import type { UnifiedModel } from "../../stores/ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 describe("prettifyModelType", () => {
   it("returns plain text for the 'All' type", () => {

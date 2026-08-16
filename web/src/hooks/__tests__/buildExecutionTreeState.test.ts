@@ -2,8 +2,8 @@
  * @jest-environment node
  */
 import { buildExecutionTreeState } from "../useExecutionTreeState";
-import type { Message } from "../../stores/ApiTypes";
 import { stub } from "../../test-utils/doubles";
+import type { Message } from "../../stores/ApiTypes";
 
 function makeMessage(
   eventType: string,

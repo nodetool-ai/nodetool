@@ -3,10 +3,10 @@
  */
 
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { asMock } from "../../test-utils/doubles";
 import { HandleTooltip } from '../HandleTooltip';
 import { TypeMetadata } from '../../stores/ApiTypes';
 import useConnectionStore from '../../stores/ConnectionStore';
-import { asMock } from "../../test-utils/doubles";
 
 // Mock the dependencies
 jest.mock('../../utils/MousePosition', () => ({

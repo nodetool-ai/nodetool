@@ -1,4 +1,5 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
+import { stub } from "../../test-utils/doubles";
 import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
 import {
@@ -6,7 +7,6 @@ import {
   flushPendingNodeStreams,
   mergeNodeUpdateProperties
 } from "../workflowUpdates";
-import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({

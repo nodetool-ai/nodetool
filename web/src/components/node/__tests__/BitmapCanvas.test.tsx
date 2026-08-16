@@ -1,15 +1,18 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import BitmapCanvas from "../BitmapCanvas";
-import { stub } from "../../../test-utils/doubles";
 
 describe("BitmapCanvas", () => {
   const mockGetContext = (drawImage: jest.Mock) =>
+    // SAFETY: `getContext` is overloaded over every context id; this double
+    // answers the "2d" id, the only one the code under test asks for.
     jest
       .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockImplementation(((() => ({
-        drawImage
-      })) as unknown) as HTMLCanvasElement["getContext"]);
+      .mockImplementation(((contextId: string) =>
+        contextId === "2d"
+          ? stub<CanvasRenderingContext2D>({ drawImage })
+          : null) as HTMLCanvasElement["getContext"]);
 
   it("paints the bitmap onto a canvas sized to its dimensions", () => {
     const drawImage = jest.fn();

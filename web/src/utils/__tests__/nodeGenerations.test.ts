@@ -10,8 +10,8 @@ import {
   displayableGenerations,
   type Generation
 } from "../nodeGenerations";
-import type { Asset } from "../../stores/ApiTypes";
 import { stub } from "../../test-utils/doubles";
+import type { Asset } from "../../stores/ApiTypes";
 
 const gen = (outputs: Record<string, unknown>): Generation => ({
   id: "g1",

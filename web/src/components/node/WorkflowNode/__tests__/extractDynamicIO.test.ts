@@ -4,9 +4,9 @@ import {
   OUTPUT_TYPE_MAP,
   type DynamicIOSource
 } from "../WorkflowLoader.helpers";
+import { stub } from "../../../../test-utils/doubles";
 import { WORKFLOW_NODE_TYPE } from "../WorkflowLoader";
 import { Workflow } from "../../../../stores/ApiTypes";
-import { stub } from "../../../../test-utils/doubles";
 
 // Helper to create a minimal Workflow object for testing
 function makeWorkflow(nodes: unknown[]): Workflow {

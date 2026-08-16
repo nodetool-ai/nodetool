@@ -1,5 +1,7 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useResizable } from "../useResizable";
+import type React from "react";
 import type { RefObject } from "react";
 
 describe("useResizable", () => {
@@ -69,7 +71,7 @@ describe("useResizable", () => {
       const { result } = renderHook(() => useResizable(ref, {}));
       const handler = result.current("right");
 
-      const mockEvent = {
+      const mockEvent = stub<React.PointerEvent>({
         button: 2,
         clientX: 200,
         clientY: 150,
@@ -77,9 +79,9 @@ describe("useResizable", () => {
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         currentTarget: document.createElement("div")
-      };
+      });
 
-      handler(mockEvent as unknown as React.PointerEvent);
+      handler(mockEvent);
       expect(mockEvent.preventDefault).not.toHaveBeenCalled();
     });
 
@@ -88,7 +90,7 @@ describe("useResizable", () => {
       const { result } = renderHook(() => useResizable(ref, {}));
       const handler = result.current("right");
 
-      const mockEvent = {
+      const mockEvent = stub<React.PointerEvent>({
         button: 0,
         clientX: 200,
         clientY: 150,
@@ -96,9 +98,9 @@ describe("useResizable", () => {
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         currentTarget: document.createElement("div")
-      };
+      });
 
-      handler(mockEvent as unknown as React.PointerEvent);
+      handler(mockEvent);
       expect(mockEvent.preventDefault).not.toHaveBeenCalled();
     });
 
@@ -128,7 +130,7 @@ describe("useResizable", () => {
       handle.setPointerCapture = setPointerCapture;
       const addEventListener = jest.spyOn(handle, "addEventListener");
 
-      const mockEvent = {
+      const mockEvent = stub<React.PointerEvent>({
         button: 0,
         clientX: 200,
         clientY: 150,
@@ -136,9 +138,9 @@ describe("useResizable", () => {
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         currentTarget: handle
-      };
+      });
 
-      handler(mockEvent as unknown as React.PointerEvent);
+      handler(mockEvent);
 
       expect(mockEvent.preventDefault).toHaveBeenCalled();
       expect(mockEvent.stopPropagation).toHaveBeenCalled();

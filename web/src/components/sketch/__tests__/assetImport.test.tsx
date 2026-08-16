@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from "@jest/globals";
+import { installGlobal } from "../../../test-utils/doubles";
 import { renderHook, act } from "@testing-library/react";
 
 import { createDefaultDocument } from "../types";
@@ -9,10 +10,13 @@ describe("asset import", () => {
   const originalCreateImageBitmap = global.createImageBitmap;
 
   beforeEach(() => {
-    global.fetch = jest.fn(async () => ({
-      ok: true,
-      blob: async () => new Blob(["image"], { type: "image/png" })
-    })) as unknown as typeof fetch;
+    installGlobal(
+      "fetch",
+      jest.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob(["image"], { type: "image/png" })
+      }))
+    );
     global.createImageBitmap = jest.fn(async () => ({
       width: 64,
       height: 48,

@@ -1,4 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
+import { installGlobal } from "../../../test-utils/doubles";
+import { asMock } from "../../../test-utils/doubles";
 import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -9,7 +11,6 @@ import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
 import * as MousePosition from "../../../utils/MousePosition";
 import * as Browser from "../../../utils/browser";
-import { asMock } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -121,7 +122,7 @@ describe("useClipboardContentPaste", () => {
       return { addNotification: jest.fn() };
     });
 
-    (window as unknown as { api?: unknown }).api = undefined;
+    installGlobal("api", undefined);
   });
 
   it("returns handleContentPaste and hasClipboardContent functions", () => {
@@ -182,17 +183,11 @@ describe("useClipboardContentPaste", () => {
           new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" })
       } as Response);
 
-      (window as unknown as {
-        api?: {
-          clipboard?: {
-            readImage?: jest.Mock;
-          };
-        };
-      }).api = {
+      installGlobal("api", {
         clipboard: {
           readImage: jest.fn().mockResolvedValue(pngDataUrl)
         }
-      };
+      });
 
       const { result } = renderHook(() => useClipboardContentPaste());
 

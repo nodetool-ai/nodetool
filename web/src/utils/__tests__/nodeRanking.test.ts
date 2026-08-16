@@ -5,8 +5,8 @@ import {
   searchTermsFromQuery,
   rankNodeMetadata,
 } from "../nodeRanking";
-import type { NodeMetadata } from "../../stores/ApiTypes";
 import { stub } from "../../test-utils/doubles";
+import type { NodeMetadata } from "../../stores/ApiTypes";
 
 const makeNode = (overrides: Record<string, unknown>): NodeMetadata =>
   stub<NodeMetadata>({
@@ -79,7 +79,7 @@ describe("rankNodeMetadata", () => {
     const terms = searchTermsFromQuery("blur");
     const results = rankNodeMetadata(nodes, terms);
     expect(results.length).toBe(1);
-    expect((results[0].meta as unknown as Record<string, unknown>).node_type).toBe("nodetool.image.Blur");
+    expect(results[0].meta.node_type).toBe("nodetool.image.Blur");
     expect(results[0].score).toBeGreaterThan(0);
   });
 
@@ -112,7 +112,7 @@ describe("rankNodeMetadata", () => {
     const results = rankNodeMetadata(nodes, terms, {
       candidateBoosts: boostMap,
     });
-    expect((results[0].meta as unknown as Record<string, unknown>).node_type).toBe("nodetool.text.Concat");
+    expect(results[0].meta.node_type).toBe("nodetool.text.Concat");
     expect(results[0].score).toBeGreaterThanOrEqual(50);
   });
 
@@ -126,7 +126,7 @@ describe("rankNodeMetadata", () => {
 
   it("sorts alphabetically on tie", () => {
     const results = rankNodeMetadata(nodes, []);
-    const types = results.map((r) => (r.meta as unknown as Record<string, unknown>).node_type);
+    const types = results.map((r) => r.meta.node_type);
     const sorted = [...types].sort();
     expect(types).toEqual(sorted);
   });
@@ -141,7 +141,7 @@ describe("rankNodeMetadata", () => {
       }),
     ];
     const results = rankNodeMetadata(withProvider, []);
-    expect(results.every((r) => (r.meta as unknown as Record<string, unknown>).namespace !== "openai")).toBe(true);
+    expect(results.every((r) => r.meta.namespace !== "openai")).toBe(true);
   });
 
   it("includes provider nodes when option set", () => {
@@ -156,6 +156,6 @@ describe("rankNodeMetadata", () => {
     const results = rankNodeMetadata(withProvider, [], {
       includeProviderNodes: true,
     });
-    expect(results.some((r) => (r.meta as unknown as Record<string, unknown>).namespace === "openai")).toBe(true);
+    expect(results.some((r) => r.meta.namespace === "openai")).toBe(true);
   });
 });

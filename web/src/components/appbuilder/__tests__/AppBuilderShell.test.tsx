@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -126,7 +127,6 @@ jest.mock("../puck/PuckAppEditor", () => ({
 }));
 
 import AppBuilderShell from "../AppBuilderShell";
-import { stub } from "../../../test-utils/doubles";
 
 const workflow: Workflow = {
   id: "wf-1",
@@ -170,7 +170,7 @@ const originalMatchMedia = window.matchMedia;
 
 /** Reports every query as matching (or not), standing in for the viewport width. */
 const setNarrowViewport = (narrow: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: narrow,
     media: query,
     onchange: null,
@@ -179,7 +179,7 @@ const setNarrowViewport = (narrow: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 beforeEach(() => {

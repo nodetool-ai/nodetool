@@ -2,9 +2,9 @@
  * @jest-environment node
  */
 import { arePropsEqual, NodeContentProps } from "../NodeContent.helpers";
+import { stub } from "../../../test-utils/doubles";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { stub } from "../../../test-utils/doubles";
 
 function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps {
   const defaultMeta: NodeMetadata = stub<NodeMetadata>({

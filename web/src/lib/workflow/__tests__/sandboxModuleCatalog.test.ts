@@ -13,8 +13,8 @@ import {
   fetchSandboxModuleClosure,
   type SandboxModuleRecord
 } from "../sandboxModuleCatalog";
-import type { WorkflowGraph } from "../../../stores/ApiTypes";
 import { stub } from "../../../test-utils/doubles";
+import type { WorkflowGraph } from "../../../stores/ApiTypes";
 
 const DIGEST = "a".repeat(64);
 const OTHER_DIGEST = "e".repeat(64);

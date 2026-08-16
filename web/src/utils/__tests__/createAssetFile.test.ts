@@ -151,7 +151,7 @@ describe("createAssetFile", () => {
       {
         type: "image",
         uri: "/api/storage/temp/abc.png",
-        data: ext as unknown as Uint8Array,
+        data: ext,
         mimeType: "image/png",
         width: 1672,
         height: 1024
@@ -179,7 +179,7 @@ describe("createAssetFile", () => {
     const ext = new ExtData(17, realBytes);
 
     const [result] = await createAssetFile(
-      { type: "image", data: ext as unknown as Uint8Array, mimeType: "image/png" } as any,
+      { type: "image", data: ext, mimeType: "image/png" } as any,
       "node"
     );
 

@@ -1,9 +1,9 @@
 import { restFetch } from "../../lib/rest-fetch";
+import { stub } from "../../test-utils/doubles";
 import {
   exportApplicationBundle,
   importApplicationBundle
 } from "../applicationBundle";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()

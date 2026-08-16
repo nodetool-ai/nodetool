@@ -10,9 +10,9 @@
  */
 
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
+import { stub } from "../../../test-utils/doubles";
 import { IDENTITY_AFFINE, makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
-import { stub } from "../../../test-utils/doubles";
 
 const I = () => ({ ...IDENTITY_AFFINE });
 const T = (x: number, y: number, scaleX = 1, scaleY = 1) =>
@@ -21,7 +21,6 @@ const T = (x: number, y: number, scaleX = 1, scaleY = 1) =>
 function makeMockCtx(): ToolContext {
   return stub<ToolContext>({
     doc: {
-      id: "test-doc",
       canvas: { width: 100, height: 100 },
       activeLayerId: "layer-1",
       layers: [],

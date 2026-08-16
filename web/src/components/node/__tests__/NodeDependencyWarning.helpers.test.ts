@@ -5,8 +5,9 @@ import {
   refreshRuntimeStatuses,
   ensureRuntimeStatuses
 } from "../NodeDependencyWarning.helpers";
-import { trpcClient } from "../../../trpc/client";
 import { asMock } from "../../../test-utils/doubles";
+import { trpcClient } from "../../../trpc/client";
+import { installGlobal } from "../../../test-utils/doubles";
 
 const runtimeStatusesQuery = asMock(trpcClient.packs.runtimeStatuses
   .query);
@@ -41,52 +42,48 @@ describe("refreshRuntimeStatuses", () => {
   });
 
   it("asks the server when window.api is unavailable", async () => {
-    const w = window as unknown as Record<string, unknown>;
-    const origApi = w.api;
-    w.api = undefined;
+    const origApi = window.api;
+    installGlobal("api", undefined);
     runtimeStatusesQuery.mockResolvedValue({
       statuses: [{ id: "ffmpeg", installed: true }]
     });
     await refreshRuntimeStatuses();
     expect(runtimeStatusesQuery).toHaveBeenCalled();
     expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
-    w.api = origApi;
+    installGlobal("api", origApi);
   });
 
   it("asks the server when packages.getRuntimeStatuses is missing", async () => {
-    const w = window as unknown as Record<string, unknown>;
-    const origApi = w.api;
-    w.api = { packages: {} };
+    const origApi = window.api;
+    installGlobal("api", { packages: {} });
     runtimeStatusesQuery.mockResolvedValue({
       statuses: [{ id: "ffmpeg", installed: false }]
     });
     await refreshRuntimeStatuses();
     expect(runtimeStatusesQuery).toHaveBeenCalled();
     expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(false);
-    w.api = origApi;
+    installGlobal("api", origApi);
   });
 
   it("prefers the desktop IPC when it is there", async () => {
-    const w = window as unknown as Record<string, unknown>;
-    const origApi = w.api;
+    const origApi = window.api;
     const getRuntimeStatuses = jest
       .fn()
       .mockResolvedValue([{ id: "ffmpeg", installed: true }]);
-    w.api = { packages: { getRuntimeStatuses } };
+    installGlobal("api", { packages: { getRuntimeStatuses } });
     await refreshRuntimeStatuses();
     expect(getRuntimeStatuses).toHaveBeenCalled();
     expect(runtimeStatusesQuery).not.toHaveBeenCalled();
     expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
-    w.api = origApi;
+    installGlobal("api", origApi);
   });
 });
 
 describe("ensureRuntimeStatuses", () => {
   it("resolves without error when api is unavailable", async () => {
-    const w = window as unknown as Record<string, unknown>;
-    const origApi = w.api;
-    w.api = undefined;
+    const origApi = window.api;
+    installGlobal("api", undefined);
     await expect(ensureRuntimeStatuses(true)).resolves.toBeUndefined();
-    w.api = origApi;
+    installGlobal("api", origApi);
   });
 });

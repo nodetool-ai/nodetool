@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
+import { asMock } from "../../test-utils/doubles";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 jest.mock("../../trpc/client", () => ({
@@ -32,7 +33,6 @@ import { trpcClient } from "../../trpc/client";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useDashboardData } from "../useDashboardData";
-import { asMock } from "../../test-utils/doubles";
 
 const mockListQuery = trpcClient.workflows.list.query as jest.Mock;
 const mockUseSettings = asMock(useSettingsStore);

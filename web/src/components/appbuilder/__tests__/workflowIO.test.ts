@@ -1,6 +1,6 @@
 import { extractWorkflowIO, workflowInputForScriptPort } from "../workflowIO";
-import { Node, Workflow } from "../../../stores/ApiTypes";
 import { PartialMembers, stub } from "../../../test-utils/doubles";
+import { Node, Workflow } from "../../../stores/ApiTypes";
 
 const makeWorkflow = (nodes: PartialMembers<Node>[]): Workflow =>
   stub<Workflow>({

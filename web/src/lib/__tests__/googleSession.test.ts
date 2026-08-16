@@ -3,6 +3,7 @@
  */
 
 import type { Session } from "@supabase/supabase-js";
+import { stub } from "../../test-utils/doubles";
 
 const mockRestFetch = jest.fn();
 let mockGoogleEnabled = true;
@@ -19,7 +20,6 @@ jest.mock("../runtimeConfig", () => ({
 }));
 
 import { syncGoogleProviderToken } from "../googleSession";
-import { stub } from "../../test-utils/doubles";
 
 const googleSession = (
   overrides: Partial<Session> = {}

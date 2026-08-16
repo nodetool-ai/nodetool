@@ -15,6 +15,7 @@
  */
 
 import type { LayerContentBounds, Layer } from "../types";
+import { stub } from "../../../test-utils/doubles";
 import { createDefaultDocument, makeSingleQuadTransform } from "../types";
 import { fxEnsureTransform as ensureTransformMatrix, aff } from "./_transformFixtures";
 import { MoveTool } from "../tools/MoveTool";
@@ -26,7 +27,6 @@ import {
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { setCanvasRasterBounds, getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,7 +97,6 @@ function makeMockCtx(docOverrides?: {
 
   return stub<ToolContext>({
     doc: {
-      id: "test-doc",
       canvas: { width: cw, height: ch },
       activeLayerId,
       layers,

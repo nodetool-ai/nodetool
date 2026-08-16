@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
+import { asMock } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { makeTrack } from "@nodetool-ai/timeline";
@@ -13,7 +14,6 @@ import {
 } from "../useTimelineAutosave";
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { asMock } from "../../../test-utils/doubles";
 
 const updateMutate = asMock(trpcClient.timeline.update.mutate);
 

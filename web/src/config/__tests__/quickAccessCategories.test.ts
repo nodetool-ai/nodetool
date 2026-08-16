@@ -5,9 +5,9 @@ import {
   getNodeSubcategory,
   getTopLevelCategory
 } from "../quickAccessCategories";
+import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 import type { NodeCategoryId } from "../../stores/PanelStore";
-import { stub } from "../../test-utils/doubles";
 
 const slot = (kind: string): OutputSlot =>
   stub<OutputSlot>({ name: "output", type: { type: kind } });

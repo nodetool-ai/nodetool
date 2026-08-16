@@ -1,8 +1,8 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import "../builtin/searchNodes";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 describe("ui_search_nodes tool", () => {
   it("accepts boolean-like string flags", async () => {

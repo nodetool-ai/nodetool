@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -9,7 +10,6 @@ import { trpcClient } from "../../../trpc/client";
 import SandboxPackDisclosure, {
   SANDBOX_PACK_CONSENT_TEXT
 } from "../SandboxPackDisclosure";
-import { asMock } from "../../../test-utils/doubles";
 
 const modulesQuery = asMock(trpcClient.packs.sandboxModules
   .query);

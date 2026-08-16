@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import {
   useInputNodeAutoRun
 } from "../useInputNodeAutoRun";
@@ -38,7 +39,6 @@ import { getNodeGenerations } from "../../../stores/nodeGenerationAccessor";
 import type { Generation } from "../../../utils/nodeGenerations";
 import { subgraph } from "../../../core/graph";
 import { useSettingsStore } from "../../../stores/SettingsStore";
-import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;

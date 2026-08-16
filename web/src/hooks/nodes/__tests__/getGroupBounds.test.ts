@@ -1,8 +1,8 @@
 import { getGroupBounds } from "../getGroupBounds";
+import { stub } from "../../../test-utils/doubles";
 import { getChildNodes } from "../getChildNodes";
 import { Node, getNodesBounds } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
-import { stub } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({

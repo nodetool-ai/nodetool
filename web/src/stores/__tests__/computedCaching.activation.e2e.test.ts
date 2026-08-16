@@ -30,6 +30,7 @@
  * Run from the web dir: `cd web && npx jest src/stores/__tests__/computedCaching.activation.e2e.test.ts`
  */
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import type { NodeMetadata, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { NodeData } from "../NodeData";
 import useResultsStore from "../ResultsStore";
@@ -44,7 +45,6 @@ import { computeRunSignatures } from "../../utils/computeRunSignatures";
 import { createNodeHasher } from "../../utils/nodeHash";
 import { getNodeGenerations } from "../nodeGenerationAccessor";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import { stub } from "../../test-utils/doubles";
 
 const WF = "wf-e2e";
 const NOW = 1_700_000_000_000;

@@ -1,8 +1,8 @@
 import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
+import { stub } from "../../test-utils/doubles";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import type { WorkflowAttributes } from "../ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
   EditorInsertionProvider: ({ children }: any) => children,
@@ -86,8 +86,10 @@ const randomUUIDMock = jest.fn(() => "test-job-id-123");
 if (typeof globalThis.crypto === "undefined") {
   (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
 }
+// SAFETY: the double returns a plain string where the DOM type promises a
+// UUID-shaped template literal; the runner only ever forwards the value.
 (globalThis.crypto as { randomUUID: () => string }).randomUUID =
-  randomUUIDMock as unknown as Crypto["randomUUID"];
+  randomUUIDMock as Crypto["randomUUID"];
 
 describe("WorkflowRunner", () => {
   let store: ReturnType<typeof createWorkflowRunnerStore>;

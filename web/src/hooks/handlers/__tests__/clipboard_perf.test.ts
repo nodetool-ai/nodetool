@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -6,7 +7,6 @@ import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { asMock } from "../../../test-utils/doubles";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({

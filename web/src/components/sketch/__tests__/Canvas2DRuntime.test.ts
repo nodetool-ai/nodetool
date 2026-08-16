@@ -12,6 +12,7 @@
  */
 
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
+import { installGlobal, stub } from "../../../test-utils/doubles";
 import type { SketchDocument } from "../types";
 import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import {
@@ -19,7 +20,6 @@ import {
   getLayerGeometry,
   setCanvasRasterBounds
 } from "../transform/geometry/layerGeometry";
-import { stub } from "../../../test-utils/doubles";
 
 function makeDoc(overrides?: Partial<SketchDocument>): SketchDocument {
   const base = createDefaultDocument(64, 64);
@@ -63,10 +63,12 @@ function mockCanvas2DContext() {
     fillStyle: "#000"
   });
 
+  // SAFETY: `getContext` is overloaded over every context id; this double
+  // answers the "2d" id, the only one the code under test asks for.
   const getContextSpy = jest
     .spyOn(HTMLCanvasElement.prototype, "getContext")
     .mockImplementation((((contextId: string) =>
-      contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+      contextId === "2d" ? fakeContext : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
   const toDataUrlSpy = jest
     .spyOn(HTMLCanvasElement.prototype, "toDataURL")
@@ -87,7 +89,7 @@ function mockCanvas2DContext() {
       if (this.onload) { this.onload(); }
     }
   }
-  globalThis.Image = SyncImage as unknown as typeof Image;
+  installGlobal("Image", SyncImage);
 
   return {
     restore: () => {
@@ -592,7 +594,7 @@ describe("Canvas2DRuntime", () => {
 
       const drawImage = jest.fn();
       const fillRect = jest.fn();
-      const createPattern = jest.fn(() => "pattern" as unknown as CanvasPattern);
+      const createPattern = jest.fn(() => stub<CanvasPattern>({}));
       const save = jest.fn();
       const restore = jest.fn();
       const clearRect = jest.fn();
@@ -617,10 +619,12 @@ describe("Canvas2DRuntime", () => {
         fillStyle: "#000"
       });
 
+      // SAFETY: `getContext` is overloaded over every context id; this double
+      // answers the "2d" id, the only one the code under test asks for.
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")
         .mockImplementation((((contextId: string) =>
-          contextId === "2d" ? fakeContext : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+          contextId === "2d" ? fakeContext : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
       try {
         const target = document.createElement("canvas");

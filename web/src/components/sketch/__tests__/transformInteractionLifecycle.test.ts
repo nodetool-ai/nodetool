@@ -7,12 +7,12 @@
  */
 
 import { getToolHandler } from "../tools";
+import { stub } from "../../../test-utils/doubles";
 import type { ToolContext, ToolPointerEvent } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import type { LayerTransform } from "../types";
 import { aff } from "./_transformFixtures";
 import { createDefaultDocument, makeAffineTransform } from "../types";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 
@@ -154,13 +154,7 @@ describe("TransformTool in-transform undo/redo", () => {
     const clickEvent = makePointerEvent();
 
     expect(
-      (tool as unknown as {
-        tryAutoSelectPick: (
-          toolCtx: ToolContext,
-          event: ToolPointerEvent,
-          pickedOverride?: typeof secondLayer
-        ) => boolean;
-      }).tryAutoSelectPick(ctx, clickEvent, secondLayer)
+      tool["tryAutoSelectPick"](ctx, clickEvent, secondLayer)
     ).toBe(true);
 
     expect(tool.getTargetSet().getIds()).toEqual([secondLayer.id]);

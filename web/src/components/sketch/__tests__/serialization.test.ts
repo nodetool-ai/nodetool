@@ -11,6 +11,7 @@ import {
   exportSelectedRasterLayer,
   getLayerDataImageUrl
 } from "../serialization";
+import { stub } from "../../../test-utils/doubles";
 import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import type { SketchDocument } from "../types";
 
@@ -227,11 +228,13 @@ describe("Sketch Serialization", () => {
 
       const drawImage = jest.fn();
       const fillRect = jest.fn();
+      // SAFETY: `getContext` is overloaded over every context id; this double
+      // answers the "2d" id, the only one the code under test asks for.
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")
         .mockImplementation((((contextId: string) =>
           contextId === "2d"
-            ? ({
+            ? stub<CanvasRenderingContext2D>({
                 drawImage,
                 fillRect,
                 clearRect: jest.fn(),
@@ -239,8 +242,8 @@ describe("Sketch Serialization", () => {
                 restore: jest.fn(),
                 globalAlpha: 1,
                 fillStyle: "#000"
-              } as unknown as CanvasRenderingContext2D)
-            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+              })
+            : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
       class MockImage {
         onload: (() => void) | null = null;
@@ -284,11 +287,13 @@ describe("Sketch Serialization", () => {
       doc.layers[0].transform = makeAffineTransform({ x: 4, y: 5 });
 
       const drawImage = jest.fn();
+      // SAFETY: `getContext` is overloaded over every context id; this double
+      // answers the "2d" id, the only one the code under test asks for.
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")
         .mockImplementation((((contextId: string) =>
           contextId === "2d"
-            ? ({
+            ? stub<CanvasRenderingContext2D>({
                 drawImage,
                 fillRect: jest.fn(),
                 clearRect: jest.fn(),
@@ -296,8 +301,8 @@ describe("Sketch Serialization", () => {
                 restore: jest.fn(),
                 globalAlpha: 1,
                 fillStyle: "#000"
-              } as unknown as CanvasRenderingContext2D)
-            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+              })
+            : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
       class MockImage {
         onload: (() => void) | null = null;
@@ -377,11 +382,13 @@ describe("Sketch Serialization", () => {
       doc.maskLayerId = maskLayer.id;
 
       const drawImage = jest.fn();
+      // SAFETY: `getContext` is overloaded over every context id; this double
+      // answers the "2d" id, the only one the code under test asks for.
       const getContextSpy = jest
         .spyOn(HTMLCanvasElement.prototype, "getContext")
         .mockImplementation((((contextId: string) =>
           contextId === "2d"
-            ? ({
+            ? stub<CanvasRenderingContext2D>({
                 drawImage,
                 fillRect: jest.fn(),
                 clearRect: jest.fn(),
@@ -389,8 +396,8 @@ describe("Sketch Serialization", () => {
                 restore: jest.fn(),
                 globalAlpha: 1,
                 fillStyle: "#000"
-              } as unknown as CanvasRenderingContext2D)
-            : null) as unknown) as typeof HTMLCanvasElement.prototype.getContext);
+              })
+            : null)) as typeof HTMLCanvasElement.prototype.getContext);
 
       class MockImage {
         onload: (() => void) | null = null;

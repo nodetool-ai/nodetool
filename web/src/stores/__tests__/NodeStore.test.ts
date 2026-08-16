@@ -1,6 +1,7 @@
 jest.mock("../../components/node_types/PlaceholderNode", () => () => null);
 
 import { Position, Node, Edge, addEdge as xyflowAddEdge } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { createNodeStore } from "../NodeStore";
 import { NodeData } from "../NodeData";
 import useErrorStore from "../ErrorStore";
@@ -8,7 +9,6 @@ import useResultsStore from "../ResultsStore";
 import useMetadataStore from "../MetadataStore";
 import { CONTROL_HANDLE_ID } from "../graphEdgeToReactFlowEdge";
 import { NodeMetadata } from "../ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 const makeNode = (
   id: string,

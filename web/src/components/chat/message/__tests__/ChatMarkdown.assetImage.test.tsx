@@ -145,7 +145,7 @@ describe("ChatMarkdown asset image", () => {
     expect(img).not.toBeNull();
     expect(img).toHaveAttribute("src", httpsUrl);
     // signUrl should be disabled for https (no key)
-    const calls = mockUseQuery.mock.calls as unknown as Array<[any, any]>;
+    const { calls } = mockUseQuery.mock;
     // At least one call should have enabled: false
     expect(calls.some(([, opts]) => opts && opts.enabled === false)).toBe(true);
   });

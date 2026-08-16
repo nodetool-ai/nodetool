@@ -7,9 +7,9 @@ import {
   graphNodeToReactFlowNode,
   type IncomingGraphNode
 } from "../graphNodeToReactFlowNode";
+import { stub } from "../../test-utils/doubles";
 import { Workflow } from "../ApiTypes";
 import { DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
-import { stub } from "../../test-utils/doubles";
 
 describe("graphNodeToReactFlowNode", () => {
   const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => stub<Workflow>({

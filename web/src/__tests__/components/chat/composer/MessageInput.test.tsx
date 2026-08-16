@@ -212,28 +212,22 @@ describe("MessageInput", () => {
 
   describe("Ref Forwarding", () => {
     it("forwards ref to textarea element", () => {
-      let ref: HTMLTextAreaElement | null = null;
-      const setRef = (element: HTMLTextAreaElement | null) => {
-        ref = element;
-      };
+      const ref = React.createRef<HTMLTextAreaElement>();
 
-      render(<MessageInput {...baseProps} ref={setRef} />);
+      render(<MessageInput {...baseProps} ref={ref} />);
 
-      expect(ref).toBeInstanceOf(HTMLTextAreaElement);
-      expect(ref).toBe(screen.getByRole("textbox"));
+      expect(ref.current).toBeInstanceOf(HTMLTextAreaElement);
+      expect(ref.current).toBe(screen.getByRole("textbox"));
     });
 
     it("can focus the textarea using ref", () => {
-      let ref: HTMLTextAreaElement | null = null;
-      const setRef = (element: HTMLTextAreaElement | null) => {
-        ref = element;
-      };
+      const ref = React.createRef<HTMLTextAreaElement>();
 
-      render(<MessageInput {...baseProps} ref={setRef} />);
+      render(<MessageInput {...baseProps} ref={ref} />);
 
-      expect(ref).toBeInTheDocument();
-      (ref as unknown as HTMLTextAreaElement | null)?.focus();
-      expect(ref).toHaveFocus();
+      expect(ref.current).toBeInTheDocument();
+      ref.current?.focus();
+      expect(ref.current).toHaveFocus();
     });
   });
 

@@ -1,4 +1,5 @@
 import { WebSocketManager } from "../WebSocketManager";
+import { installGlobal } from "../../../test-utils/doubles";
 import type { ConnectionState, WebSocketConfig } from "../WebSocketManager";
 
 jest.mock("msgpackr", () => ({
@@ -109,8 +110,7 @@ describe("WebSocketManager", () => {
 
     beforeEach(() => {
       RecordingSocket.instances = [];
-      (globalThis as unknown as { WebSocket: unknown }).WebSocket =
-        RecordingSocket;
+      installGlobal("WebSocket", RecordingSocket);
     });
 
     it("opens no socket when destroyed while the URL is being resolved", async () => {

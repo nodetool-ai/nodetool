@@ -4,9 +4,9 @@ jest.mock("../NodeStore", () => ({
 }));
 
 import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
+import { stub } from "../../test-utils/doubles";
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Workflow } from "../ApiTypes";
-import { stub } from "../../test-utils/doubles";
 
 const createMockWorkflow = (): Workflow =>
   stub<Workflow>({

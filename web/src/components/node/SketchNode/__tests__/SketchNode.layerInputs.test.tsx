@@ -8,6 +8,7 @@
  * accessor, not the legacy across-runs result resolver).
  */
 import React from "react";
+import { asMock, stub } from "../../../../test-utils/doubles";
 import { render, waitFor } from "@testing-library/react";
 
 // ─── Heavy children / chrome → inert stubs ──────────────────────────────────
@@ -149,7 +150,6 @@ import SketchNode from "../SketchNode";
 import { useNodes } from "../../../../contexts/NodeContext";
 import useResultsStore from "../../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../../stores/WorkflowAssetStore";
-import { asMock, stub } from "../../../../test-utils/doubles";
 
 const mockUseNodes = asMock(useNodes);
 

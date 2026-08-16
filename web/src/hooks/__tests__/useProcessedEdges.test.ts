@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useProcessedEdges } from "../useProcessedEdges";
 import { Edge, Node, Position } from "@xyflow/react";
 import { DataType } from "../../config/data_types";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import { stub } from "../../test-utils/doubles";
 
 const createMockNode = (
   id: string,

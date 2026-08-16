@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../../test-utils/doubles";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,7 +8,6 @@ import { MessageView } from "../MessageView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { Message, ToolCall } from "../../../../stores/ApiTypes";
 import useGlobalChatStore from "../../../../stores/GlobalChatStore";
-import { asMock } from "../../../../test-utils/doubles";
 
 // The store hook is called with a selector; default to an empty store so no
 // tool is "running". Tests can swap the implementation to inject runtime.

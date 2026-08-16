@@ -492,17 +492,10 @@ describe("TimelineStore — undo/redo (temporal)", () => {
     store.getState().moveClip(clip.id, 1000);
     expect(store.getState().clips[0].startMs).toBe(1000);
 
-    // Access temporal API
-    const temporal = (
-      store as unknown as {
-        temporal: { getState: () => { undo: () => void; redo: () => void };
-      };
-    }).temporal;
-
-    temporal.getState().undo();
+    timelineTemporalOf(store).undo();
     expect(store.getState().clips[0].startMs).toBe(0);
 
-    temporal.getState().redo();
+    timelineTemporalOf(store).redo();
     expect(store.getState().clips[0].startMs).toBe(1000);
   });
 

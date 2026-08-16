@@ -1,6 +1,6 @@
 import { getSelectionRect, getNodesWithinSelection } from "../selectionBounds";
-import type { XYPosition, ReactFlowInstance, Node, Edge } from "@xyflow/react";
 import { stub } from "../../test-utils/doubles";
+import type { XYPosition, ReactFlowInstance, Node, Edge } from "@xyflow/react";
 
 describe("selectionBounds", () => {
   describe("getSelectionRect", () => {

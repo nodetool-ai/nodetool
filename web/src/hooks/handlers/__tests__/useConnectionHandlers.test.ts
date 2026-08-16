@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionHandlers from "../useConnectionHandlers";
 import useConnectionStore from "../../../stores/ConnectionStore";
@@ -44,7 +45,6 @@ jest.mock("../../../utils/TypeHandler", () => ({
 
 import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
-import { asMock, asMockStore } from "../../../test-utils/doubles";
 
 const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<
   typeof findOutputHandle

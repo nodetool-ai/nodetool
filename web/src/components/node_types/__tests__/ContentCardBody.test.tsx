@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -10,7 +11,6 @@ import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import type { Asset, NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import ContentCardBody from "../ContentCardBody";
-import { stub } from "../../../test-utils/doubles";
 
 const workflowId = "workflow-1";
 const nodeId = "node-1";

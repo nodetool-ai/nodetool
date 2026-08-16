@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -14,7 +15,6 @@ jest.mock("tabulator-tables", () => ({
 
 import TableActions from "../TableActions";
 import type { TabulatorFull as Tabulator } from "tabulator-tables";
-import { stub } from "../../../../test-utils/doubles";
 
 describe("TableActions", () => {
   const mockTabulator = stub<Tabulator>({

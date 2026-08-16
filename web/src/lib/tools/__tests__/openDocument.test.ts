@@ -1,4 +1,5 @@
 import { FrontendToolRegistry } from "../frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import {
   useWorkspaceTabsStore,
@@ -11,7 +12,6 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
-import { stub } from "../../../test-utils/doubles";
 
 const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   sequenceId,

@@ -8,12 +8,12 @@
  * "running", then A completes — B's slice (and A's own) must survive.
  */
 import type { JobUpdate, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { handleUpdate } from "../workflowUpdates";
 import useWorkflowRunsStore from "../WorkflowRunsStore";
 import useStatusStore from "../StatusStore";
 import useResultsStore from "../ResultsStore";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {

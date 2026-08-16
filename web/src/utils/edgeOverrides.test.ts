@@ -1,7 +1,8 @@
 import { EdgeOverrideCollector, applyNodeOverrides } from "./edgeOverrides";
+import { stub } from "../test-utils/doubles";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
-import { stub } from "../test-utils/doubles";
+import type { NodeMetadata } from "../stores/ApiTypes";
 
 const makeNode = (
   id: string,
@@ -35,7 +36,7 @@ describe("EdgeOverrideCollector", () => {
 
     const node = makeNode("node1", "some.Type");
     const findNode = (id: string) => (id === "node1" ? node : undefined);
-    const getMetadata = () => ({
+    const getMetadata = () => stub<NodeMetadata>({
       title: "Test",
       namespace: "test",
       node_type: "some.Type",
@@ -45,10 +46,7 @@ describe("EdgeOverrideCollector", () => {
       description: ""
     });
 
-    const result = collector.resolve(
-      findNode,
-      getMetadata as unknown as (type: string) => undefined
-    );
+    const result = collector.resolve(findNode, getMetadata);
     expect(result.get("node1")).toEqual({ input_a: "second" });
   });
 
@@ -59,7 +57,7 @@ describe("EdgeOverrideCollector", () => {
 
     const node = makeNode("node1", "some.Type");
     const findNode = (id: string) => (id === "node1" ? node : undefined);
-    const getMetadata = () => ({
+    const getMetadata = () => stub<NodeMetadata>({
       title: "Test",
       namespace: "test",
       node_type: "some.Type",
@@ -69,10 +67,7 @@ describe("EdgeOverrideCollector", () => {
       description: ""
     });
 
-    const result = collector.resolve(
-      findNode,
-      getMetadata as unknown as (type: string) => undefined
-    );
+    const result = collector.resolve(findNode, getMetadata);
     expect(result.get("node1")).toEqual({ images: ["img1", "img2"] });
   });
 

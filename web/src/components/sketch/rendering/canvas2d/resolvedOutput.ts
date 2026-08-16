@@ -24,7 +24,7 @@ const SDR_SRGB: Pick<ResolvedLayerBitmap, "workingSpace" | "dynamicRange"> = {
 export function evaluateLayerEffectsCPU(
   layerId: string,
   source: HTMLCanvasElement,
-  effects: LayerEffect[],
+  effects: LayerEffect[] | null,
   fxCache: Map<string, { key: string; canvas: HTMLCanvasElement }>,
   fxTempCanvas: HTMLCanvasElement | null
 ): { result: ResolvedLayerBitmap; fxTempCanvas: HTMLCanvasElement | null } {

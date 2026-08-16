@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useResizePanel } from "../useResizePanel";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { stub } from "../../../test-utils/doubles";
 
 beforeEach(() => {
   usePanelStore.setState(usePanelStore.getInitialState());

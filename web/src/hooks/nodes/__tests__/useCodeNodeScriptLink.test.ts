@@ -3,11 +3,11 @@
  * mocked; what these assert is what the hook writes onto the node.
  */
 import { renderHook, act } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { useCodeNodeScriptLink } from "../useCodeNodeScriptLink";
 import { useNodes } from "../../../contexts/NodeContext";
 import { trpc } from "../../../trpc/client";
 import type { NodeData } from "../../../stores/NodeData";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn()

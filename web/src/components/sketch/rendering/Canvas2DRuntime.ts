@@ -647,7 +647,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   evaluateLayerEffects(
     layerId: string,
     source: HTMLCanvasElement,
-    effects: LayerEffect[]
+    effects: LayerEffect[] | null
   ): ResolvedLayerBitmap {
     const { result, fxTempCanvas } = evaluateLayerEffectsCPU(
       layerId,

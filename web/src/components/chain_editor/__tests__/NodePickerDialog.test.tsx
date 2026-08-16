@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -6,7 +7,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { NodePickerDialog } from "../NodePickerDialog";
 
 const mockMatchMedia = (coarse: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: query.includes("pointer: coarse") ? coarse : false,
     media: query,
     onchange: null,
@@ -15,7 +16,7 @@ const mockMatchMedia = (coarse: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 const renderDialog = () =>

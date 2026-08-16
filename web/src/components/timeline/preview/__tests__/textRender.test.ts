@@ -1,7 +1,8 @@
 import type { ClipTextStyle } from "@nodetool-ai/timeline";
+import { stub } from "../../../../test-utils/doubles";
 
 import { TextRasterizer } from "../textRender";
-import { stub } from "../../../../test-utils/doubles";
+import { installGlobal } from "../../../../test-utils/doubles";
 
 describe("TextRasterizer", () => {
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
@@ -31,8 +32,7 @@ describe("TextRasterizer", () => {
         return transferToImageBitmap();
       }
     }
-    globalThis.OffscreenCanvas =
-      FakeOffscreenCanvas as unknown as typeof OffscreenCanvas;
+    installGlobal("OffscreenCanvas", FakeOffscreenCanvas);
   });
 
   afterAll(() => {

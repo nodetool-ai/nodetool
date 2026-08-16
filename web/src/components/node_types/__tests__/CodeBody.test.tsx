@@ -1,13 +1,14 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CodeBody from "../CodeBody";
 import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
-import { stub } from "../../../test-utils/doubles";
+import { installGlobal } from "../../../test-utils/doubles";
 
 // jsdom has no layout; report a real size so CodeBody's size-gate mounts Monaco.
-class SizedResizeObserver {
+class SizedResizeObserver implements ResizeObserver {
   constructor(private cb: ResizeObserverCallback) {}
   observe(el: Element) {
     this.cb(
@@ -17,14 +18,13 @@ class SizedResizeObserver {
           contentRect: { width: 320, height: 200 } as DOMRectReadOnly
         } as ResizeObserverEntry
       ],
-      this as unknown as ResizeObserver
+      this
     );
   }
   unobserve() {}
   disconnect() {}
 }
-(globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
-  SizedResizeObserver as unknown as typeof ResizeObserver;
+installGlobal("ResizeObserver", SizedResizeObserver);
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();

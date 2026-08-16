@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../test-utils/doubles";
 import { useSelectionActions } from "../useSelectionActions";
 
 const mockSetNodes = jest.fn();
@@ -19,7 +20,6 @@ jest.mock("../nodes/useSurroundWithGroup", () => ({
 }));
 
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
-import { asMock } from "../../test-utils/doubles";
 
 describe("useSelectionActions", () => {
   const defaultNodes = [

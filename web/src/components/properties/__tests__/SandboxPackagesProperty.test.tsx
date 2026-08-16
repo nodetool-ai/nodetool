@@ -1,4 +1,5 @@
 import React from "react";
+import { asMock } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -13,7 +14,6 @@ import SandboxPackagesProperty, {
   SANDBOX_CONSENT_TEXT,
   type Declaration
 } from "../SandboxPackagesProperty";
-import { asMock } from "../../../test-utils/doubles";
 
 const modulesQuery = asMock(trpcClient.packs.sandboxModules
   .query);

@@ -11,6 +11,7 @@
  * 4. Editor-shell module: connected components re-export
  */
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useSketchStore } from "../state/useSketchStore";
 import {
   useEditorSession,
@@ -21,7 +22,6 @@ import {
   setActiveLayerTransformPreview,
   clearActiveLayerTransformPreview
 } from "../activeLayerTransform";
-import { stub } from "../../../test-utils/doubles";
 
 // ---------------------------------------------------------------------------
 // Helpers

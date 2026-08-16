@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { useValueCalculation, useDragHandling } from "../useNumberInput";
 import { InputProps, NumberInputState } from "../../components/inputs/NumberInput";
-import { stub } from "../../test-utils/doubles";
 
 describe("useNumberInput", () => {
   describe("useValueCalculation", () => {
@@ -49,6 +49,9 @@ describe("useNumberInput", () => {
           right: 250,
           width: 200,
           height: 40,
+          x: 50,
+          y: 100,
+          toJSON: () => ({}),
         }),
       }),
     });

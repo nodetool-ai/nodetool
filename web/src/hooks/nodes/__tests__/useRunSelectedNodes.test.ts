@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useRunSelectedNodes } from "../useRunSelectedNodes";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -42,15 +43,12 @@ import {
 } from "../../../stores/WorkflowRunner";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createRunResolver } from "../../../utils/runResolver";
-import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
 const mockUseNotificationStore = asMock(useNotificationStore);
-const mockMetadataGetState = (
-  useMetadataStore as unknown as { getState: jest.Mock }
-).getState;
+const mockMetadataGetState = asMockStore(useMetadataStore).getState;
 const mockCreateRunResolver = createRunResolver as jest.Mock;
 
 type RunnerState = {

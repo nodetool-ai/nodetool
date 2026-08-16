@@ -232,7 +232,7 @@ describe("useDynamicOutput", () => {
 
   it("works with undefined dynamicOutputs", () => {
     const { result } = renderHook(() =>
-      useDynamicOutput("node-1", undefined as unknown as Record<string, TypeMetadata>)
+      useDynamicOutput("node-1", undefined)
     );
 
     act(() => {

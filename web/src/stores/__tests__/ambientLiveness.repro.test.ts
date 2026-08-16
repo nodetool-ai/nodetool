@@ -9,6 +9,7 @@
  * gap is in message delivery; if it fails, the store layer is the bug.
  */
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import type { JobUpdate, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { handleUpdate } from "../workflowUpdates";
@@ -16,7 +17,6 @@ import useWorkflowRunsStore from "../WorkflowRunsStore";
 import useStatusStore from "../StatusStore";
 import useResultsStore from "../ResultsStore";
 import { useNodeActiveRunCount } from "../../hooks/nodes/useNodeExecState";
-import { stub } from "../../test-utils/doubles";
 
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {

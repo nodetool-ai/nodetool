@@ -1,3 +1,4 @@
+import { installGlobal, stub } from "../../../../test-utils/doubles";
 let rafCallback: (() => void) | null = null;
 let rafId = 1;
 
@@ -7,14 +8,20 @@ const mockPause = jest.fn();
 
 let mockIsPlaying = true;
 
-global.requestAnimationFrame = jest.fn((cb: () => void) => {
-  rafCallback = cb;
-  return rafId++;
-}) as unknown as typeof requestAnimationFrame;
+installGlobal(
+  "requestAnimationFrame",
+  jest.fn((cb: () => void) => {
+    rafCallback = cb;
+    return rafId++;
+  })
+);
 
-global.cancelAnimationFrame = jest.fn(() => {
-  rafCallback = null;
-}) as unknown as typeof cancelAnimationFrame;
+installGlobal(
+  "cancelAnimationFrame",
+  jest.fn(() => {
+    rafCallback = null;
+  })
+);
 
 jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
   useTimelinePlaybackStore: {
@@ -28,7 +35,6 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
 }));
 
 import { PlaybackClock } from "../PlaybackClock";
-import { stub } from "../../../../test-utils/doubles";
 
 function flushRAF() {
   if (rafCallback) {

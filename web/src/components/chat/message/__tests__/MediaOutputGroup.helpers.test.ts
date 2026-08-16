@@ -35,7 +35,7 @@ describe("isImageContent", () => {
   });
 
   it("returns false for other types", () => {
-    expect(isImageContent(vid as unknown as MessageContent)).toBe(false);
+    expect(isImageContent(vid)).toBe(false);
     expect(isImageContent({ type: "text", text: "" } as MessageContent)).toBe(false);
   });
 });
@@ -46,7 +46,7 @@ describe("isVideoContent", () => {
   });
 
   it("returns false for other types", () => {
-    expect(isVideoContent(img as unknown as MessageContent)).toBe(false);
+    expect(isVideoContent(img)).toBe(false);
   });
 });
 

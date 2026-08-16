@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 
 import WorkflowChainSurface from "../WorkflowChainSurface";
 import { useChainEditorStore } from "../../chain_editor/useChainEditorStore";
@@ -10,7 +11,6 @@ import type {
   TypeMetadata,
   Workflow
 } from "../../../stores/ApiTypes";
-import { stub } from "../../../test-utils/doubles";
 
 const saveWorkflow = jest.fn().mockResolvedValue(undefined);
 const updateWorkflow = jest.fn();

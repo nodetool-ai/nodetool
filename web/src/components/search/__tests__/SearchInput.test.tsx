@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import SearchInput from "../SearchInput";
@@ -23,7 +24,7 @@ const renderWithTheme = (ui: React.ReactElement) =>
 
 // `useAutoFocusEnabled` reads `(pointer: coarse)`; jsdom has no matchMedia.
 const mockMatchMedia = (coarse: boolean) => {
-  window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
     matches: query.includes("pointer: coarse") ? coarse : false,
     media: query,
     onchange: null,
@@ -32,7 +33,7 @@ const mockMatchMedia = (coarse: boolean) => {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn()
-  })) as unknown as typeof window.matchMedia;
+  }));
 };
 
 describe("SearchInput", () => {

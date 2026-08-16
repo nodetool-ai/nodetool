@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
 import { useSelectionEvents } from "../useSelectionEvents";
@@ -6,7 +7,6 @@ import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useDragHandlers from "../useDragHandlers";
 import { NodeData } from "../../../stores/NodeData";
-import { asMock, stub } from "../../../test-utils/doubles";
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/ContextMenuStore");

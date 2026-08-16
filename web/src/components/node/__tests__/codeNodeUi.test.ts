@@ -9,8 +9,8 @@ import {
   hasCodeProperty,
   isCodeBodyNode
 } from "../codeNodeUi";
-import type { NodeMetadata } from "../../../stores/ApiTypes";
 import { stub } from "../../../test-utils/doubles";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 const makeMetadata = (
   overrides: Partial<NodeMetadata> = {}

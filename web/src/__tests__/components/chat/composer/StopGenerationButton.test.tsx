@@ -105,36 +105,30 @@ describe("StopGenerationButton", () => {
 
   describe("Ref Forwarding", () => {
     it("forwards ref to button element", () => {
-      let ref: HTMLButtonElement | null = null;
-      const setRef = (element: HTMLButtonElement | null) => {
-        ref = element;
-      };
+      const ref = React.createRef<HTMLButtonElement>();
 
       render(
         <ThemeProvider theme={mockTheme}>
-          <StopGenerationButton {...baseProps} ref={setRef} />
+          <StopGenerationButton {...baseProps} ref={ref} />
         </ThemeProvider>
       );
 
-      expect(ref).toBeInstanceOf(HTMLButtonElement);
-      expect(ref).toBe(screen.getByRole("button"));
+      expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+      expect(ref.current).toBe(screen.getByRole("button"));
     });
 
     it("can focus the button using ref", () => {
-      let ref: HTMLButtonElement | null = null;
-      const setRef = (element: HTMLButtonElement | null) => {
-        ref = element;
-      };
+      const ref = React.createRef<HTMLButtonElement>();
 
       render(
         <ThemeProvider theme={mockTheme}>
-          <StopGenerationButton {...baseProps} ref={setRef} />
+          <StopGenerationButton {...baseProps} ref={ref} />
         </ThemeProvider>
       );
 
-      expect(ref).toBeInTheDocument();
-      (ref as unknown as HTMLButtonElement | null)?.focus();
-      expect(ref).toHaveFocus();
+      expect(ref.current).toBeInTheDocument();
+      ref.current?.focus();
+      expect(ref.current).toHaveFocus();
     });
   });
 

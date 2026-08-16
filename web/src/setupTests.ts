@@ -3,6 +3,7 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
+import { installGlobal } from "./test-utils/doubles";
 
 // Mock import.meta for Vite environment variables
 Object.defineProperty(globalThis, "import", {
@@ -20,8 +21,9 @@ Object.defineProperty(globalThis, "import", {
 
 // Mock TextEncoder/TextDecoder for msgpack
 import { TextEncoder, TextDecoder } from "util";
-(globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
-(globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
+
+installGlobal("TextEncoder", TextEncoder);
+installGlobal("TextDecoder", TextDecoder);
 
 // Mock global.btoa and atob for base64 operations
 global.btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
@@ -35,8 +37,7 @@ if (typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === "unde
     unobserve = (): void => {};
     disconnect = (): void => {};
   }
-  (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
-    StubResizeObserver as unknown as typeof ResizeObserver;
+  installGlobal("ResizeObserver", StubResizeObserver);
 }
 
 // jsdom does not implement pointer capture; stub it with per-element tracking so

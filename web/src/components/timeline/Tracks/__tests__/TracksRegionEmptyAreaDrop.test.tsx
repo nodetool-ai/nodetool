@@ -8,6 +8,7 @@
  * dropping a video to create a new track skipped audio extraction.
  */
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
@@ -17,7 +18,6 @@ import { TracksRegion } from "../TracksRegion";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../../stores/ApiTypes";
-import { stub } from "../../../../test-utils/doubles";
 
 /** The slice of `Response` the video-audio import path reads back. */
 type AudioExtractionResponse = {
@@ -58,7 +58,7 @@ function dataTransferFor(asset: Asset): DataTransfer {
   const data: Record<string, string> = { asset: JSON.stringify(asset) };
   return stub<DataTransfer>({
     types: ["asset"],
-    dropEffect: "",
+    dropEffect: "none",
     effectAllowed: "all",
     getData: (k: string) => data[k] ?? "",
     setData: () => {}

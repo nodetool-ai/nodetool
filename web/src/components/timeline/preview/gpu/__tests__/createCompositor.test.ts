@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
-import { createCompositor } from "../createCompositor";
 import { stub } from "../../../../../test-utils/doubles";
+import { createCompositor } from "../createCompositor";
 
 /**
  * Minimal fake canvas: vends a stub 2D context and refuses WebGPU, so the
@@ -9,7 +9,7 @@ import { stub } from "../../../../../test-utils/doubles";
  * — but a stub lets us assert the Canvas2D path actually initialises.
  */
 function fakeCanvas(): HTMLCanvasElement {
-  const ctx2d = {
+  const ctx2d = stub<CanvasRenderingContext2D>({
     setTransform() {},
     fillRect() {},
     drawImage() {},
@@ -24,12 +24,12 @@ function fakeCanvas(): HTMLCanvasElement {
     filter: "none",
     globalAlpha: 1,
     globalCompositeOperation: "source-over"
-  };
-  return stub<HTMLCanvasElement>({
-    width: 320,
-    height: 180,
-    getContext: (type: string) => (type === "2d" ? ctx2d : null)
   });
+  // SAFETY: `getContext` is overloaded over every context id; this canvas
+  // answers "2d" and refuses the rest, which is what the compositor asks.
+  const getContext = ((type: string) =>
+    type === "2d" ? ctx2d : null) as HTMLCanvasElement["getContext"];
+  return stub<HTMLCanvasElement>({ width: 320, height: 180, getContext });
 }
 
 describe("createCompositor", () => {

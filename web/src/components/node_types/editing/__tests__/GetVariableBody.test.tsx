@@ -1,4 +1,5 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { GetVariableBody } from "../GetVariableBody";
@@ -8,7 +9,6 @@ import {
 } from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
-import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();

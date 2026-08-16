@@ -6,8 +6,11 @@ import {
   normalizeGraphForKernel,
   type LoadedModules
 } from "../browserRunnerCore";
-import type { WorkflowGraph } from "../../../stores/ApiTypes";
 import { stub } from "../../../test-utils/doubles";
+import type { WorkflowGraph } from "../../../stores/ApiTypes";
+
+/** The registry `createBrowserRegistry` vends, as the runner sees it. */
+type BrowserRegistry = ReturnType<LoadedModules["wf"]["createBrowserRegistry"]>;
 
 function makeGraph(
   overrides: {
@@ -198,9 +201,9 @@ describe("browserRunnerCore", () => {
     // and node classes with/without the requiresGpu marker.
     function fakeModules(): LoadedModules {
       const serverTypes = new Set(["server.Only"]);
-      const registry = {
+      const registry = stub<BrowserRegistry>({
         has: (t: string) => !serverTypes.has(t)
-      };
+      });
       return stub<LoadedModules>({
         wf: {
           createBrowserRegistry: () => registry,
@@ -232,7 +235,8 @@ describe("browserRunnerCore", () => {
       const serverTypes = new Set<string>();
       const mods = stub<LoadedModules>({
         wf: {
-          createBrowserRegistry: () => ({ has: (t: string) => !serverTypes.has(t) }),
+          createBrowserRegistry: () =>
+            stub<BrowserRegistry>({ has: (t: string) => !serverTypes.has(t) }),
           runBrowserWorkflow: (() => {}) as never
         },
         nodeClasses: [{ nodeType: "plain.A" }, { nodeType: "plain.B" }]

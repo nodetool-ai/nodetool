@@ -1,10 +1,10 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ExtractVideoFrameBody } from "../ExtractVideoFrameBody";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
-import { stub } from "../../../../test-utils/doubles";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
@@ -62,8 +62,8 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
   nodeType: "nodetool.video.ExtractFrame",
   nodeMetadata: stub<Parameters<typeof ExtractVideoFrameBody>[0]["nodeMetadata"]>({
     node_type: "nodetool.video.ExtractFrame",
-    properties: [{ name: "video", type: "video" }],
-    outputs: [{ name: "output", type: "image" }],
+    properties: [{ name: "video", type: { type: "video" } }],
+    outputs: [{ name: "output", type: { type: "image" } }],
     is_streaming_output: false
   }),
   data: stub<Parameters<

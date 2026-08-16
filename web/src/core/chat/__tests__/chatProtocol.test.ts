@@ -1,4 +1,5 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
+import { stub } from "../../../test-utils/doubles";
 import type { WebSocketMessage } from "../../../lib/websocket/GlobalWebSocketManager";
 import type { GlobalChatState } from "../../../stores/GlobalChatStore";
 import type { Message } from "../../../stores/ApiTypes";
@@ -11,7 +12,6 @@ const partialChatState = (state: unknown): GlobalChatState =>
   state as GlobalChatState;
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
-import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -1037,7 +1037,7 @@ describe("chatProtocol media predictions", () => {
       updateThreadTitle: jest.fn()
     });
 
-  const run = async (state: GlobalChatState, msg: Record<string, unknown>) => {
+  const run = async (state: GlobalChatState, msg: WebSocketMessage) => {
     let captured = state;
     const set = jest.fn((updater) => {
       captured = {
@@ -1046,7 +1046,7 @@ describe("chatProtocol media predictions", () => {
       };
     });
     await handleChatWebSocketMessage(
-      msg as unknown as WebSocketMessage,
+      msg,
       set,
       () => captured
     );

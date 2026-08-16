@@ -1,10 +1,10 @@
 import { Edge, Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 import { createRunResolver } from "../runResolver";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { createNodeHasher } from "../nodeHash";
 import { getCurrentGeneration, type Generation } from "../nodeGenerations";
-import { stub } from "../../test-utils/doubles";
 
 const WF = "wf1";
 const NOW = 1_700_000_000_000;

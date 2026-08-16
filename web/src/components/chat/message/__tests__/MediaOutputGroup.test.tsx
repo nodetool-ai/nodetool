@@ -1,11 +1,11 @@
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import MediaOutputGroup from "../MediaOutputGroup";
 import type { Message, MessageContent } from "../../../../stores/ApiTypes";
-import { stub } from "../../../../test-utils/doubles";
 
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered

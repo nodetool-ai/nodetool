@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock } from "../../../../test-utils/doubles";
 import type { Edge, Node } from "@xyflow/react";
 
 import { useVariablePassthroughOutputs } from "../promptComposer/useVariablePassthroughOutputs";
@@ -6,7 +7,6 @@ import { useNodes } from "../../../../contexts/NodeContext";
 import useMetadataStore from "../../../../stores/MetadataStore";
 import type { NodeData } from "../../../../stores/NodeData";
 import type { TypeMetadata } from "../../../../stores/ApiTypes";
-import { asMock } from "../../../../test-utils/doubles";
 
 jest.mock("../../../../contexts/NodeContext", () => ({
   useNodes: jest.fn()

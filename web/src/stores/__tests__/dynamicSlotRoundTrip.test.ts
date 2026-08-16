@@ -4,12 +4,12 @@ jest.mock("../NodeStore", () => ({
 }));
 
 import type { Node } from "@xyflow/react";
+import { stub } from "../../test-utils/doubles";
 
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
 import type { Workflow } from "../ApiTypes";
 import type { NodeData } from "../NodeData";
-import { stub } from "../../test-utils/doubles";
 
 const workflow = stub<Workflow>({
   id: "wf-1",

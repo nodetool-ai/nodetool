@@ -29,6 +29,7 @@ jest.mock("../../node_types/code_assistant/CodeAssistantDialog", () => ({
 }));
 
 import { render, screen } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import userEvent from "@testing-library/user-event";
 import { Position, type Edge, type Node } from "@xyflow/react";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
@@ -41,7 +42,6 @@ import useCodeGenDialogStore from "../../../stores/CodeGenDialogStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { NodeData } from "../../../stores/NodeData";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
-import { stub } from "../../../test-utils/doubles";
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
 

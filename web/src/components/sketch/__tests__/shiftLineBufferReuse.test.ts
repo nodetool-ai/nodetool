@@ -7,6 +7,7 @@
  */
 
 import React from "react";
+import { stub } from "../../../test-utils/doubles";
 import { PaintSession } from "../painting/PaintSession";
 import type { Point, Layer } from "../types";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
@@ -15,7 +16,6 @@ import type {
   StrokeBufferMode,
   EngineCompositeOp
 } from "../painting/PaintEngine";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -110,10 +110,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
           hardness: 0.8
         }
       },
-      foregroundColor: "#000000",
-      backgroundColor: "#ffffff",
-      mirrorX: false,
-      mirrorY: false
     },
     activeTool: "brush",
     onStrokeStart: jest.fn(),
@@ -136,8 +132,6 @@ function makeToolContext(overrides?: Partial<ToolContext>): ToolContext {
     }),
     selection: null,
     foregroundColor: "#000000",
-    strokeDirtyRectRef: { current: null },
-    setContentBounds: jest.fn(),
     ...overrides
   });
 }

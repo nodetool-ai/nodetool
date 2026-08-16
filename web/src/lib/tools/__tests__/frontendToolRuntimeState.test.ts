@@ -12,7 +12,7 @@ const createMockState = (): FrontendToolState => ({
   getCurrentWorkflow: jest.fn(),
   setCurrentWorkflowId: jest.fn(),
   fetchWorkflow: jest.fn(),
-  newWorkflow: jest.fn() as unknown as () => ReturnType<FrontendToolState["newWorkflow"]>,
+  newWorkflow: jest.fn(),
   createNew: jest.fn(),
   searchTemplates: jest.fn(),
   copy: jest.fn()

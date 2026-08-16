@@ -174,7 +174,7 @@ export function selectionHitTest(
 
 /** Axis-aligned bounds of pixels with any mask alpha (includes feather tails). */
 export function getSelectionBounds(
-  sel: Selection
+  sel: Selection | null
 ): { x: number; y: number; width: number; height: number } | null {
   if (!validateSelectionMask(sel)) {
     return null;

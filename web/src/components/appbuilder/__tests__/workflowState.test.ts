@@ -1,6 +1,6 @@
 import { extractVariableNames, extractWorkflowState } from "../workflowState";
-import { Node, Workflow } from "../../../stores/ApiTypes";
 import { PartialMembers, stub } from "../../../test-utils/doubles";
+import { Node, Workflow } from "../../../stores/ApiTypes";
 
 const makeWorkflow = (nodes: PartialMembers<Node>[]): Workflow =>
   stub<Workflow>({

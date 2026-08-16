@@ -7,15 +7,25 @@
  */
 
 import React from "react";
+import { stub } from "../../../../test-utils/doubles";
 import { renderHook, act } from "@testing-library/react";
 import {
   computePinchStep,
   useCanvasTouchGestures
 } from "../useCanvasTouchGestures";
 import { SKETCH_ZOOM_MAX, SKETCH_ZOOM_MIN } from "../../state/useSketchStore";
-import { stub } from "../../../../test-utils/doubles";
 
-const RECT = { left: 0, top: 0, width: 400, height: 300 };
+const RECT: DOMRect = {
+  left: 0,
+  top: 0,
+  width: 400,
+  height: 300,
+  x: 0,
+  y: 0,
+  right: 400,
+  bottom: 300,
+  toJSON: () => ({})
+};
 
 describe("computePinchStep", () => {
   it("pans by the midpoint delta when the distance is unchanged", () => {

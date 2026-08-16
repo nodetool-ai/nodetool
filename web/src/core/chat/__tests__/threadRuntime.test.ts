@@ -4,6 +4,7 @@ import {
   threadRuntimeUpdate,
   mirrorsForThread
 } from "../threadRuntime";
+import { stub } from "../../../test-utils/doubles";
 import type { GlobalChatState } from "../../../stores/GlobalChatStore";
 import type {
   TaskUpdate,
@@ -11,7 +12,6 @@ import type {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
-import { stub } from "../../../test-utils/doubles";
 
 const makeState = (
   overrides: Partial<GlobalChatState> = {}

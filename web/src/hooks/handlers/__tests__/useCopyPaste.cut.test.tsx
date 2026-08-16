@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock } from "../../../test-utils/doubles";
 import type { Node } from "@xyflow/react";
 import { useCopyPaste } from "../useCopyPaste";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
@@ -6,7 +7,6 @@ import useSessionStateStore from "../../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { isTextInputActive } from "../../../utils/browser";
 import type { NodeData } from "../../../stores/NodeData";
-import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({ screenToFlowPosition: jest.fn() }))

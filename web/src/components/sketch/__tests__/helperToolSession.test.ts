@@ -12,13 +12,13 @@
  */
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { stub } from "../../../test-utils/doubles";
 import { HelperToolSession } from "../painting/HelperToolSession";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import { createDefaultDocument, makeAffineTransform } from "../types";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
-import { stub } from "../../../test-utils/doubles";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 

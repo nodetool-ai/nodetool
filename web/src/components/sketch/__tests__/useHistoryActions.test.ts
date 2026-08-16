@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useHistoryActions } from "../hooks/useHistoryActions";
 import type { HistoryEntry } from "../types";
-import { stub } from "../../../test-utils/doubles";
 
 /**
  * A canvas double tagged with the snapshot it stands for, so an assertion can

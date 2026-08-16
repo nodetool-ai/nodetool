@@ -1,12 +1,12 @@
 import { hasAssetDrag, readAssetDrag } from "../assetDrag";
-import { DRAG_DATA_MIME } from "../../../../../lib/dragdrop/serialization";
 import { stub } from "../../../../../test-utils/doubles";
+import { DRAG_DATA_MIME } from "../../../../../lib/dragdrop/serialization";
 
 /** Minimal DataTransfer stand-in: a key/value map + a `types` list. */
 const fakeDataTransfer = (entries: Record<string, string>): DataTransfer =>
   stub<DataTransfer>({
     types: Object.keys(entries),
-    files: [] as unknown as FileList,
+    files: stub<FileList>({ length: 0 }),
     getData: (key: string) => entries[key] ?? ""
   });
 

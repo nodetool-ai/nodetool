@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { asMock, stub } from "../../test-utils/doubles";
 import { triggersQueryKey } from "../useTriggers";
 
 jest.mock("@tanstack/react-query", () => ({
@@ -58,7 +59,6 @@ import type {
   TriggerRegistrationStatus,
   RunningTriggerRegistration
 } from "../useTriggers";
-import { stub } from "../../test-utils/doubles";
 
 const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
@@ -75,7 +75,7 @@ interface MutationConfig<TVars> {
 }
 
 const mutationConfig = <TVars,>(): MutationConfig<TVars> =>
-  mockUseMutation.mock.calls[0][0] as unknown as MutationConfig<TVars>;
+  asMock(useMutation).mock.calls[0][0];
 
 describe("triggersQueryKey", () => {
   it("is hierarchical and scoped to the workflow", () => {
@@ -141,9 +141,8 @@ describe("useWorkflowTriggers", () => {
     });
 
     renderHook(() => useWorkflowTriggers("wf-1"));
-    const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<TriggerRegistrationStatus[]>;
-    };
+    const queryFn: () => Promise<TriggerRegistrationStatus[]> =
+      asMock(useQuery).mock.calls[0][0].queryFn;
     const result = await queryFn();
     expect(trpcClient.triggers.listByWorkflow.query).toHaveBeenCalledWith({
       workflowId: "wf-1"
@@ -188,9 +187,8 @@ describe("useRunningTriggers", () => {
       triggers
     });
     renderHook(() => useRunningTriggers());
-    const { queryFn } = mockUseQuery.mock.calls[0][0] as unknown as {
-      queryFn: () => Promise<RunningTriggerRegistration[]>;
-    };
+    const queryFn: () => Promise<RunningTriggerRegistration[]> =
+      asMock(useQuery).mock.calls[0][0].queryFn;
     expect(await queryFn()).toEqual(triggers);
   });
 });

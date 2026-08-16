@@ -54,7 +54,7 @@ describe("isMarkdownText", () => {
   });
 
   it("returns false for non-string input", () => {
-    expect(isMarkdownText(null as unknown as string)).toBe(false);
-    expect(isMarkdownText(undefined as unknown as string)).toBe(false);
+    expect(isMarkdownText(null)).toBe(false);
+    expect(isMarkdownText(undefined)).toBe(false);
   });
 });

@@ -7,9 +7,9 @@
  * - Error type variants in step_result (Error object, non-string error)
  */
 import { buildExecutionTreeState } from "../useExecutionTreeState";
+import { stub } from "../../test-utils/doubles";
 import type { Message } from "../../stores/ApiTypes";
 import type { StepToolCall } from "../../stores/GlobalChatStore";
-import { stub } from "../../test-utils/doubles";
 
 function makeMessage(
   eventType: string,

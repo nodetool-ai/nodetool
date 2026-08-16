@@ -1,4 +1,5 @@
 import React from "react";
+import { installGlobal, removeGlobal } from "../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -28,13 +29,13 @@ jest.mock("../../node/NodeDependencyWarning.helpers", () => ({
 beforeEach(() => {
   installRuntime.mockReset();
   openPackageManager.mockReset();
-  (window as unknown as { api: unknown }).api = {
+  installGlobal("api", {
     packages: { installRuntime },
-  };
+  });
 });
 
 afterEach(() => {
-  delete (window as unknown as { api?: unknown }).api;
+  removeGlobal("api");
 });
 
 const missing: MissingRuntime[] = [

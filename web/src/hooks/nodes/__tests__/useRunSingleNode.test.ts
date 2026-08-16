@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useRunSingleNode } from "../useRunSingleNode";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -35,16 +36,11 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import type { Generation } from "../../../utils/nodeGenerations";
-import { asMock } from "../../../test-utils/doubles";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
-const mockResultsGetState = (
-  useResultsStore as unknown as { getState: jest.Mock }
-).getState;
-const mockAssetsGetState = (
-  useWorkflowAssetStore as unknown as { getState: jest.Mock }
-).getState;
+const mockResultsGetState = asMockStore(useResultsStore).getState;
+const mockAssetsGetState = asMockStore(useWorkflowAssetStore).getState;
 const mockUseNotificationStore = asMock(useNotificationStore);
 
 describe("useRunSingleNode", () => {

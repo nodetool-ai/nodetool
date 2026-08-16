@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { installGlobal } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -16,7 +17,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Polyfill PointerEvent for jsdom (which doesn't support it natively).
 // PointerEvent extends MouseEvent so clientX/clientY/button work correctly.
 if (typeof window !== "undefined" && !window.PointerEvent) {
-  (window as unknown as Record<string, unknown>).PointerEvent =
+  installGlobal(
+    "PointerEvent",
     class PointerEvent extends MouseEvent {
       readonly pointerId: number;
       readonly pointerType: string;
@@ -28,7 +30,7 @@ if (typeof window !== "undefined" && !window.PointerEvent) {
         this.pointerType = params.pointerType ?? "";
         this.isPrimary = params.isPrimary ?? false;
       }
-    };
+    });
 }
 
 // ── Heavy media hooks → no-op mocks ─────────────────────────────────────────

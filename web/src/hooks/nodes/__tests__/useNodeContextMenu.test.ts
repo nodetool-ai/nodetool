@@ -52,6 +52,7 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 import { renderHook, act } from "@testing-library/react";
+import { asMock, asMockStore } from "../../../test-utils/doubles";
 import { useNodeContextMenu } from "../useNodeContextMenu";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import { useNodeStoreRef, useNodes } from "../../../contexts/NodeContext";
@@ -67,7 +68,6 @@ import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import { constantToInputType, inputToConstantType } from "../../../utils/NodeTypeMapping";
 import { useReactFlow } from "@xyflow/react";
-import { asMock } from "../../../test-utils/doubles";
 
 const mockedUseContextMenuStore = useContextMenuStore as jest.Mock;
 const mockedUseNodes = useNodes as jest.Mock;
@@ -203,9 +203,7 @@ describe("useNodeContextMenu", () => {
     mockGetMetadata.mockReturnValue({ title: "String Constant" });
     // buildRunSubgraph (used by handleRunFromHere) classifies upstream nodes via
     // the store's getState accessor, not the hook selector.
-    (
-      useMetadataStore as unknown as { getState: jest.Mock }
-    ).getState.mockReturnValue({ getMetadata: mockGetMetadata });
+    asMockStore(useMetadataStore).getState.mockReturnValue({ getMetadata: mockGetMetadata });
     mockedConstantToInputType.mockReturnValue("nodetool.input.StringInput");
     mockedInputToConstantType.mockReturnValue("nodetool.constant.String");
   });

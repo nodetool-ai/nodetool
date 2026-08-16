@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
 import { useDropZone } from "../useDropZone";
 import { useDragDropStore } from "../store";
 import type { DropZoneConfig } from "../types";
@@ -14,7 +15,6 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../serialization";
-import { stub } from "../../../test-utils/doubles";
 
 const mockDeserialize = deserializeDragData as jest.MockedFunction<
   typeof deserializeDragData

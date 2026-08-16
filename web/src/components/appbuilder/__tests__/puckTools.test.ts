@@ -3,6 +3,7 @@ jest.mock("../../../lib/rest-fetch", () => ({
 }));
 
 import type { FrontendToolState } from "../../../lib/tools/frontendTools";
+import { stub } from "../../../test-utils/doubles";
 import { restFetch } from "../../../lib/rest-fetch";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import "../../../lib/tools/builtin/puck";
@@ -11,7 +12,6 @@ import {
   listOpenPuckApplicationIds,
   PuckAgentHandler
 } from "../puck/puckAgentBridge";
-import { stub } from "../../../test-utils/doubles";
 
 const APP_ID = "app-1";
 

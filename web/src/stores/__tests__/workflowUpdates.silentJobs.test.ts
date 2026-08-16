@@ -1,9 +1,9 @@
 import type { NodeUpdate, WorkflowAttributes } from "../ApiTypes";
+import { stub } from "../../test-utils/doubles";
 import useResultsStore from "../ResultsStore";
 import useStatusStore from "../StatusStore";
 import { handleUpdate } from "../workflowUpdates";
 import { markJobSilent, unmarkJobSilent } from "../previewJobs";
-import { stub } from "../../test-utils/doubles";
 
 const mockRunnerStore = {
   getState: () => ({

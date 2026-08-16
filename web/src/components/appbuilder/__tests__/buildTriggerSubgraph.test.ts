@@ -3,11 +3,11 @@
  * downstream subgraph, with live UI values injected onto input nodes.
  */
 import type { AppInstanceState, BindingRef } from "@nodetool-ai/app-runtime";
+import { stub } from "../../../test-utils/doubles";
 
 import { buildTriggerSubgraph } from "../runtime/buildTriggerSubgraph";
 import type { AppRuntimeState } from "../runtime/appRuntimeStore";
 import { WorkflowIO } from "../workflowIO";
-import { stub } from "../../../test-utils/doubles";
 
 // browserSupportsSync needs the registry loaded; stub it so the prefix logic is
 // driven by the test, not by whether the browser runner warmed up.
