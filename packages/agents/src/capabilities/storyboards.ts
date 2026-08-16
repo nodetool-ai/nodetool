@@ -975,7 +975,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       });
     }
 
-    return {
+    const result: Record<string, unknown> = {
       ok: true,
       timeline_id: sequence.id,
       name: sequence.name,
@@ -987,9 +987,12 @@ const assembleStoryboardTimeline: CapabilityExport = {
       track_count: tracks.length,
       script_id: script ? scriptId : null,
       skipped_shot_ids: assembled.skippedShotIds,
-      skipped_line_ids: skippedLineIds,
-      ...(warnings.length ? { warnings } : {})
+      skipped_line_ids: skippedLineIds
     };
+    if (warnings.length) {
+      result.warnings = warnings;
+    }
+    return result;
   }
 };
 
