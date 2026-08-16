@@ -598,11 +598,11 @@ const ListWidget: React.FC<WidgetProps> = (widget) => {
 const KeyValueWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
-  const entries = isRow(value)
+  const entries: Array<[string, unknown]> = isRow(value)
     ? Object.entries(value)
     : value == null || value === ""
       ? []
-      : ([["value", value]] as [string, unknown][]);
+      : [["value", value]];
   if (entries.length === 0) {
     const placeholder = str(widget.props.placeholder);
     return placeholder ? (

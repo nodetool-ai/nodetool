@@ -12,7 +12,7 @@
 export * from "./castTypes";
 export { DemoEngine, seedCastMetadata } from "./demoEngine";
 export type { DemoEngineOptions } from "./demoEngine";
-export { DemoPlayer, default as DemoPlayerDefault } from "./DemoPlayer";
+export { DemoPlayer } from "./DemoPlayer";
 export type { DemoPlayerProps } from "./DemoPlayer";
 export { CastRecorder, downloadCastJson } from "./recorder";
 export type {
@@ -38,13 +38,13 @@ export { describeImageCast } from "./describeImageCast";
 export { cookbookCasts } from "./cookbook";
 export { workflowCasts } from "./workflows";
 export * from "./chat/chatCastTypes";
-export { ChatDemoPlayer, default as ChatDemoPlayerDefault } from "./chat/ChatDemoPlayer";
+export { ChatDemoPlayer } from "./chat/ChatDemoPlayer";
 export type { ChatDemoPlayerProps } from "./chat/ChatDemoPlayer";
 export { computeChatStateAt, seedChatGlobalState } from "./chat/chatReplay";
 export type { ChatReplayState } from "./chat/chatReplay";
 export { agentChatCast } from "./chat/agentChatCast";
 export * from "./timeline/timelineCastTypes";
-export { TimelineDemoPlayer, default as TimelineDemoPlayerDefault } from "./timeline/TimelineDemoPlayer";
+export { TimelineDemoPlayer } from "./timeline/TimelineDemoPlayer";
 export type { TimelineDemoPlayerProps } from "./timeline/TimelineDemoPlayer";
 export { TimelineDemoEngine, seedTimelineCastAssets } from "./timeline/timelineReplay";
 export type { TimelineDemoEngineOptions } from "./timeline/timelineReplay";

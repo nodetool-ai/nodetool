@@ -20,6 +20,9 @@ function createMockContext(
   retrieveImpl?: (uri: string) => Promise<Uint8Array | null>
 ): ProcessingContext {
   return {
+    jobId: "job-1",
+    workflowId: "wf-1",
+    userId: "user-1",
     getSecret: vi.fn().mockResolvedValue("test-secret"),
     storage: {
       retrieve: vi.fn(retrieveImpl ?? (async () => new Uint8Array([1, 2, 3]))),
@@ -51,7 +54,8 @@ describe("PythonNodeExecutor", () => {
       { text: "hello" },
       {},
       {},
-      undefined
+      undefined,
+      {}
     );
   });
 
@@ -136,7 +140,8 @@ describe("PythonNodeExecutor", () => {
       {},
       {},
       { images: [new Uint8Array([1]), new Uint8Array([2])] },
-      undefined
+      undefined,
+      { jobId: "job-1", workflowId: "wf-1", userId: "user-1" }
     );
   });
 
@@ -235,7 +240,8 @@ describe("PythonNodeExecutor", () => {
       { prompt: "hi" },
       {},
       {},
-      undefined
+      undefined,
+      {}
     );
   });
 });

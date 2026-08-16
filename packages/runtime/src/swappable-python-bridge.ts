@@ -15,6 +15,10 @@ import type {
   PythonBridge,
   ExecuteResult,
   ExecuteInputBlobs,
+  ExecuteIdentity,
+  JobBoundary,
+  ModelEvictRequest,
+  ModelEvictResult,
   ProgressEvent,
   PythonNodeMetadata,
   PythonWorkerLoadError,
@@ -115,9 +119,17 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): Promise<ExecuteResult> {
-    return this._target.execute(nodeType, fields, secrets, blobs, onProgress);
+    return this._target.execute(
+      nodeType,
+      fields,
+      secrets,
+      blobs,
+      onProgress,
+      identity
+    );
   }
 
   executeStream(
@@ -125,14 +137,16 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
-    onProgress?: (event: ProgressEvent) => void
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity
   ): AsyncGenerator<ExecuteResult> {
     return this._target.executeStream(
       nodeType,
       fields,
       secrets,
       blobs,
-      onProgress
+      onProgress,
+      identity
     );
   }
 
@@ -260,6 +274,22 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
 
   supportsModelManagement(): boolean {
     return this._target.supportsModelManagement();
+  }
+
+  evictModels(req?: ModelEvictRequest): Promise<ModelEvictResult> {
+    return this._target.evictModels(req);
+  }
+
+  supportsJobLifecycle(): boolean {
+    return this._target.supportsJobLifecycle();
+  }
+
+  jobStart(job: JobBoundary): Promise<void> {
+    return this._target.jobStart(job);
+  }
+
+  jobEnd(job: JobBoundary): Promise<void> {
+    return this._target.jobEnd(job);
   }
 
   supportsComfy(): boolean {

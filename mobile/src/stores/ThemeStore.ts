@@ -26,7 +26,7 @@ const getColorsForMode = (mode: ThemeMode): ThemeColors => {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      mode: 'dark' as ThemeMode,
+      mode: 'dark',
       colors: getColorsForMode('dark'),
       toggleTheme: () => {
         const currentMode = get().mode;

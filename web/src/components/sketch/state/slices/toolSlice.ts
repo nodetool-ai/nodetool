@@ -289,14 +289,14 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
   resetColors: () =>
     set({ foregroundColor: "#000000", backgroundColor: "#ffffff" }),
 
-  colorMode: "hex" as ColorMode,
+  colorMode: "hex",
   setColorMode: (mode: ColorMode) => set({ colorMode: mode }),
 
   mirrorX: false,
   mirrorY: false,
   setMirrorX: (v: boolean) => set({ mirrorX: v }),
   setMirrorY: (v: boolean) => set({ mirrorY: v }),
-  symmetryMode: "off" as SymmetryMode,
+  symmetryMode: "off",
   symmetryRays: SYMMETRY_DEFAULT_RAYS,
   setSymmetryMode: (mode: SymmetryMode) => {
     set({

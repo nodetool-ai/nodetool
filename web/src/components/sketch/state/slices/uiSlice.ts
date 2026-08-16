@@ -136,8 +136,8 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
     set((state) => ({ mobilePanelsOpen: !state.mobilePanelsOpen })),
   setMobilePanelsOpen: (open: boolean) => set({ mobilePanelsOpen: open }),
 
-  selectedLayerIds: [] as string[],
-  layerShiftRangeAnchorId: null as string | null,
+  selectedLayerIds: [],
+  layerShiftRangeAnchorId: null,
 
   toggleLayerInSelection: (layerId: string) =>
     set((state) => {

@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";

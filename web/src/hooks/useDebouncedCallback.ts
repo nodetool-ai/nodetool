@@ -36,6 +36,6 @@ export function useDebouncedCallback<TArgs extends unknown[]>(
       }, delay);
     };
     debounced.cancel = cancel;
-    return debounced as DebouncedCallback<TArgs>;
+    return debounced;
   }, [delay]);
 }

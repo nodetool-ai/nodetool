@@ -510,6 +510,18 @@ export function startFakeWorker(
             data: { deleted: true }
           });
           break;
+        // ── Run boundary + eviction (protocol v4) ────────────────────
+        case "job.start":
+        case "job.end":
+          send({ type: "result", request_id: requestId, data: { ok: true } });
+          break;
+        case "models.evict":
+          send({
+            type: "result",
+            request_id: requestId,
+            data: { evicted: ["org/m"], freed_vram_gb: 4 }
+          });
+          break;
         case "cancel":
           // no-op
           break;

@@ -3725,6 +3725,10 @@ export class UnifiedWebSocketRunner {
           node as { id: string; type: string; [key: string]: unknown }
         ),
       bridgeFactory: async () => null,
+      // This runner owns a long-lived shared bridge, so `bridgeFactory` hands
+      // the session nothing to close. The run boundary still has to reach that
+      // bridge — pass it explicitly.
+      jobLifecycleBridge: this.pythonBridge ?? null,
       jobId,
       workflowId,
       context,
@@ -5264,6 +5268,7 @@ export class UnifiedWebSocketRunner {
           node as { id: string; type: string; [key: string]: unknown }
         ),
       bridgeFactory: async () => null,
+      jobLifecycleBridge: this.pythonBridge ?? null,
       jobId,
       context,
       params: {},
@@ -7642,6 +7647,7 @@ export class UnifiedWebSocketRunner {
             node as { id: string; type: string; [key: string]: unknown }
           ),
         bridgeFactory: async () => null,
+        jobLifecycleBridge: this.pythonBridge ?? null,
         jobId,
         workflowId,
         context,
