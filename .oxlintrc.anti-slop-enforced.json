@@ -2,9 +2,15 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": [],
   "categories": {},
-  "rules": {},
+  "rules": {
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-widen-then-assert": "error"
+  },
   "jsPlugins": [
-    { "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" }
+    {
+      "name": "anti-slop",
+      "specifier": "./tools/oxlint/anti-slop/index.ts"
+    }
   ],
   "ignorePatterns": [
     "**/dist/**",
