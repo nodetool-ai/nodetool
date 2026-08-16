@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/model-pricing",
-  "version": "0.7.0-rc.35",
+  "version": "0.7.0-rc.36",
   "description": "Unit-price lookup for models selected on generic nodes, shared by the web cost preview and the server-side run estimate",
   "type": "module",
   "engines": {
