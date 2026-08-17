@@ -59,6 +59,18 @@ jobs:
           echo "REMAINING_PAIRS=$REMAINING" >> $GITHUB_ENV
           echo "$REMAINING non-zero (rule, tree) pairs remain." >> $GITHUB_STEP_SUMMARY
 
+          # Which end of the backlog this run works. Decided here rather than
+          # in the prompt: the mode has to be legible in the run summary, and
+          # an agent asked to derive it from a run number is one arithmetic
+          # slip away from never picking the large pairs at all.
+          if [ $(( ${{ github.run_number }} % 4 )) -eq 0 ]; then
+            PAIR_MODE=large
+          else
+            PAIR_MODE=cheap
+          fi
+          echo "PAIR_MODE=$PAIR_MODE" >> $GITHUB_ENV
+          echo "Target selection for this run: **$PAIR_MODE**." >> $GITHUB_STEP_SUMMARY
+
       - name: Run quality checks baseline
         id: pre-check
         continue-on-error: true
@@ -112,13 +124,41 @@ jobs:
 
             ## Picking scope
 
-            Prefer **finishing one whole tree** over scattering single fixes:
-            one typecheck and one test run then cover several pairs at once, and
-            a tree at zero on all eight rules cannot regress on any of them.
-            Take the top tree from the "closest to zero" table that you can
-            finish. If none is finishable, take cheap pairs from one package.
+            **This run's target selection is `${{ env.PAIR_MODE }}`** — one run
+            in four is `large`, the rest are `cheap`.
 
-            Keep it to one package (plus any caller you must update) per PR.
+            **`cheap`:** prefer finishing one whole tree over scattering single
+            fixes. One typecheck and one test run then cover several pairs at
+            once, and a tree at zero on every rule cannot regress on any of
+            them. Take the top tree from the "closest to zero" table that you
+            can finish; if none is finishable, take cheap pairs from one
+            package. Keep it to one package (plus any caller you must update).
+
+            **`large`:** ignore both tables above and take the top row of
+            "Largest (rule, tree) pairs" that no open PR is already working.
+            Those pairs are never cheap and their trees are never nearly-done,
+            so nothing in `cheap` mode ever selects them — `web` sat at
+            thousands of findings and had a separate nightly workflow built for
+            it, which these runs replace.
+
+            A large pair does not finish in one PR, so bound it the same way:
+            one directory of the tree, every finding in that directory fixed,
+            the pair's before/after count in the PR body. It ratchets only when
+            the whole pair reaches zero — say so in the PR rather than implying
+            the win is held.
+
+            When the pair is `require-safety-comment-for-type-assertion` in
+            `web`, `electron` or `mobile`, expect **test files**: those trees
+            have no `as any` in production code at all. Type the double instead
+            of commenting the assertion — `selectorOver(state)` for a mocked
+            zustand hook, a real fixture type or a factory in
+            `web/src/test-utils/doubles.ts` for a partial object, a declared
+            member instead of `(global as any).fetch = …`. A deliberately
+            invalid fixture keeps its assertion **and** gets the `SAFETY:`
+            comment saying which invalid input it is proving the code survives.
+            Never weaken an assertion to make a fixture compile: typing the
+            double is how `ChatView` was found asserting against `PlanningUpdate`
+            payloads the app cannot produce.
 
             ## What a real fix looks like
 
@@ -140,6 +180,12 @@ jobs:
                usually collapses into `??`.
             4. **Point a type at its owner.** `params?: RunWorkflowOptions["params"]`
                beats a second `Record<string, unknown>` that can drift from it.
+            5. **Write down the return type the body already has.** For
+               `no-implicit-return-type`, read what the function returns and
+               annotate it — or annotate the binding, which is the same answer.
+               If the inferred type is unpleasant to write, that is the finding
+               talking: name it. Do not annotate `unknown` to silence this rule;
+               that just moves the finding to `no-unknown-returns`.
 
             A genuine assertion that cannot go away keeps a `SAFETY:` comment
             stating the invariant TypeScript cannot express. Note the rule's
@@ -193,6 +239,11 @@ jobs:
             npm run typecheck && npm run lint && npm run test && npm run test:packages
             npm run lint:anti-slop:check
             ```
+            `electron/tsconfig.json` excludes `src/__tests__` and `**/*.test.ts`,
+            so `npm run typecheck` reads none of the electron test files. If you
+            edited one, only `npm run test` (through ts-jest) checks it — a green
+            typecheck there proves nothing.
+
             Some suites fail on a runner for reasons that predate your change.
             If one does, confirm it against a clean tree before calling it
             unrelated, and say which in the PR.

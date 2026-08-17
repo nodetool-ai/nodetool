@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Measures the anti-slop backlog and ratchets what is already won.
 //
-// The backlog config (.oxlintrc.anti-slop.json) runs eight rules over 58 trees
-// — 464 (rule, tree) pairs. 184 of those pairs are already at zero, but a pair
+// The backlog config (.oxlintrc.anti-slop.json) runs nine rules over 58 trees
+// — 522 (rule, tree) pairs. 238 of those pairs are already at zero, but a pair
 // at zero is only a fact about today unless something enforces it. This script
 // derives the zero set from a real lint run and writes it into the enforced
 // config (.oxlintrc.anti-slop-enforced.json) as one per-rule override, so a
@@ -40,7 +40,7 @@ const TRAILING_OVERRIDES = [
   }
 ];
 
-/** The eight backlog rules, read from the config rather than hardcoded. */
+/** The backlog rules, read from the config rather than hardcoded. */
 function backlogRules() {
   const config = JSON.parse(readFileSync(join(repoRoot, BACKLOG_CONFIG), "utf8"));
   return Object.keys(config.rules)
@@ -222,6 +222,18 @@ function targets(counts, rules, trees, limit = 40) {
   for (const pair of pairs.slice(0, limit)) {
     console.log(`| ${pair.count} | \`${pair.rule}\` | \`${pair.tree}\` |`);
   }
+
+  // Without this table the biggest pairs are invisible: they are never cheap
+  // and their trees are never nearly-done, so nothing above ever names them.
+  // `web` carries thousands of findings and appeared in neither table — which
+  // is why it needed a workflow of its own to get any attention at all.
+  console.log(`\n### Largest (rule, tree) pairs\n`);
+  console.log(`| findings | rule | tree |`);
+  console.log(`|---:|---|---|`);
+  for (const pair of [...pairs].reverse().slice(0, 10)) {
+    console.log(`| ${pair.count} | \`${pair.rule}\` | \`${pair.tree}\` |`);
+  }
+
   console.log(`\n${pairs.length} non-zero pairs remain.`);
 }
 

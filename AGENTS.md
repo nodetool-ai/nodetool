@@ -236,13 +236,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 15,985 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,469 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
-The unit of enforcement is a **(rule, tree) pair**, not a rule. Eight rules over
-58 trees is 464 pairs, and 209 of them are already at zero — so a rule still
+The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
+58 trees is 522 pairs, and 238 of them are already at zero — so a rule still
 thousands of findings deep across the repo is nonetheless finished in forty
 packages, and those forty are ratcheted today rather than after the last one
 lands. Seven rules are at zero everywhere and sit in the enforced config's top-level
@@ -265,7 +265,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 464 pairs on a
+indistinguishable from a clean tree, and would ratchet all 522 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -300,25 +300,28 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 6990 | 9 / 58 |
-| `no-unsafe-dictionary-type` | 4235 | 9 / 58 |
-| `no-unknown-parameters` | 1893 | 13 / 58 |
-| `no-module-mocking` | 1428 | 55 / 58 |
-| `no-known-value-widening` | 658 | 17 / 58 |
+| `require-safety-comment-for-type-assertion` | 7012 | 9 / 58 |
+| `no-unsafe-dictionary-type` | 4237 | 9 / 58 |
+| `no-unknown-parameters` | 1894 | 13 / 58 |
+| `no-module-mocking` | 1435 | 55 / 58 |
+| `no-known-value-widening` | 662 | 17 / 58 |
 | `no-runtime-typeof` | 510 | 19 / 58 |
+| `no-implicit-return-type` | 448 | 29 / 58 |
 | `no-unknown-returns` | 222 | 41 / 58 |
 | `no-chained-type-assertions` | 49 | 46 / 58 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,427 findings but zero in 55 of 58 trees: it is
+`no-module-mocking` is 1,435 findings but zero in 55 of 58 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Nine trees are at zero on all eight: `packages/auth`,
-`packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
-`packages/security` and `packages/workflow-runner`.
+a boundary get named. Eight trees are at zero on all nine: `packages/auth`,
+`packages/base-nodes`, `packages/chat`, `packages/model-pricing`,
+`packages/nodes-utils`, `packages/reve-nodes`, `packages/security` and
+`packages/workflow-runner`. `packages/config` dropped off that list by one
+finding when `no-implicit-return-type` was added — which is what the list is
+for.
 
 `no-hand-written-any` is **enforced everywhere**, and it is the one rule that got
 there rather than stalling. It exists because
@@ -367,13 +370,45 @@ type-alias body or a type-parameter default, neither of which is an annotation.
 exact and pinned by test — `Record<string, any[]>` has an array value type, so
 the dictionary rule classifies nothing and the `any` is this rule's to report.
 
-`type-safety.yaml` is untouched here, and the case for narrowing it is now
-concrete rather than a matter of taste: its `: any` half is redundant, since the
-ratchet holds that at zero in all three trees it targets. What it still covers
-that nothing else does is missing return annotations — `no-unknown-returns`
-reports a return typed `unknown`, not one typed nothing — and `as any`, which is
-`require-safety-comment-for-type-assertion`'s and sits at 9 of 58 trees. That is
-a separate change.
+`.github/workflows/type-safety.yaml` is **gone**, folded into the ratchet. It
+was a second nightly agent over `web/`, `electron/` and `mobile/`, and by the
+time `no-hand-written-any` reached zero it had nothing of its own left. Its
+`: any` scan was not merely redundant but unable to report zero: a grep for
+`: any` in `web/src` matches twenty lines, every one of them prose or an
+identifier named `anyType`, so the gate was pinned open on a signal no agent
+could clear. Its `as any` half is `require-safety-comment-for-type-assertion` ×
+{`web`, `electron`, `mobile`} — three pairs the ratchet already measures, and
+holds once won, which the deleted workflow never did.
+
+That left one thing the ratchet could not express, so it became a rule.
+**`no-implicit-return-type`** reports an inferred return type on a module's
+public surface: an exported function, an exported `const` bound to one, and the
+non-`private` members of an exported class. Inference inside a module is fine —
+the compiler reads the body. Across the boundary it means the contract is
+whatever today's implementation happens to produce. `no-unknown-returns` reports
+a return typed `unknown`; this one reports a return typed nothing, and the two
+do not overlap: annotating `unknown` to silence this rule just moves the finding
+to that one.
+
+Counting first kept it shippable: scoped to exports it is **448 findings, at
+zero in 29 of 58 trees** on the day it landed — the same order as
+`no-runtime-typeof`, not the 6,990 that would have arrived from reporting every
+arrow callback in the repo. Two boundaries are deliberate and pinned by test.
+The rule walks *down* from the export declaration, so `const f = () => {}`
+followed by `export { f }` is out of reach — reaching it needs binding
+resolution the rule does not do. And a contract written on the binding
+(`export const load: (a: string) => Promise<string> = …`) is an answer, not a
+finding, which is also how a typed React component is usually written.
+
+Deleting a workflow removed the only thing that ever worked the app trees, so
+`:targets` grew a **largest (rule, tree) pairs** table and the ratchet takes
+from it on every fourth run. The two tables it printed before — trees closest to
+zero, and the forty cheapest pairs — are both selections for *small* work, so
+`web` at thousands of findings appeared in neither. It was invisible to the
+agent, which is the mechanical reason it needed a workflow of its own. A large
+pair does not finish in one PR and only ratchets when it reaches zero; the
+prompt says to bound it to one directory and report the before/after count
+rather than imply the win is already held.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what

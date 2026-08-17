@@ -5,12 +5,14 @@ copied at upstream commit `446268e5d15baa968eaec669ff65358d36ae6259` by that
 repo's `install-anti-slop` skill. MIT, see `LICENSE`. Upstream ships it to be
 vendored and edited, not consumed as a dependency.
 
-Fifteen rules that reject low-evidence TypeScript: `unknown` in parameters,
-returns and dictionary values, hand-written `any`, type-assertion chains,
-assertions without a `SAFETY:` comment, runtime `typeof` narrowing, conditional
-empty-object spread, module mocking, `Reflect.get`/`Reflect.apply`.
+Sixteen rules that reject low-evidence TypeScript: `unknown` in parameters,
+returns and dictionary values, hand-written `any`, inferred return types on
+exports, type-assertion chains, assertions without a `SAFETY:` comment, runtime
+`typeof` narrowing, conditional empty-object spread, module mocking,
+`Reflect.get`/`Reflect.apply`.
 
-One of the fifteen is NodeTool's own: `no-hand-written-any` (below). Upstream
+Two of the sixteen are NodeTool's own: `no-hand-written-any` and
+`no-implicit-return-type` (both below). Upstream
 ships a rule this vendoring does not, `no-shape-in-symbol-names`, which bans the
 substring "shape" in every identifier. It is deleted here. NodeTool draws
 shapes: the sketch editor's `ShapeTool`, `drawShape` and `ShapeSettings` name a
@@ -37,6 +39,19 @@ variables, properties, type arguments — and skips three things on purpose:
   does, so the split is exact rather than name-matched: `Record<string, any[]>`
   has an array value type, that rule classifies nothing, and this one reports.
 
+`no-implicit-return-type` is also written here. It reports a return type left to
+inference on a module's public surface — an exported function, an exported
+`const` bound to one, and the non-`private` members of an exported class — and
+exists because `.github/workflows/type-safety.yaml` was a whole nightly agent
+kept alive by this one uncovered case. `no-unknown-returns` reports a return
+typed `unknown`; this reports one typed nothing. Scope is the point: reporting
+every function in the repo would have put it thousands deep with nothing
+schedulable, the position `no-shape-in-symbol-names` was deleted from. Bounded
+to exports it landed at 448 findings, already zero in 29 of 58 trees. Two limits
+are pinned in `tests/no-implicit-return-type.test.ts`: it walks down from the
+export declaration, so `export { f }` is out of reach, and an annotation on the
+binding rather than the function counts as the answer.
+
 `no-runtime-typeof` carries two exemptions upstream does not, both for checks that are
 correct as written and that no predicate can replace:
 
@@ -59,7 +74,7 @@ in `npm run test:packages` via the root `test:oxlint-rules` script.
 
 ## How it is wired
 
-`.oxlintrc.anti-slop.json` registers the plugin and enables the eight rules with
+`.oxlintrc.anti-slop.json` registers the plugin and enables the nine rules with
 findings left, at `error`. It is a **separate config**, run only by
 `npm run lint:anti-slop`:
 
@@ -71,7 +86,7 @@ npm run lint:anti-slop   # whole repo, exits 1 while findings remain
 npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
 ```
 
-`npm run lint` and CI do not run it. The rules find 15,985 violations in the
+`npm run lint` and CI do not run it. The rules find 16,469 violations in the
 current tree, so folding them into the main gate would leave it permanently red.
 Treat this as a backlog to work down, not a merge blocker.
 
@@ -80,7 +95,7 @@ Treat this as a backlog to work down, not a merge blocker.
 everywhere in its top-level `rules`, plus one generated override block per
 backlog rule listing the trees already at zero for it — regenerate those with
 `npm run lint:anti-slop:write`, never by hand. The two configs partition the
-fifteen rules — a rule belongs to exactly one.
+sixteen rules — a rule belongs to exactly one.
 
 Promotion goes through the enforced config rather than `.oxlintrc.json` because
 `web/`, `electron/` and `mobile/` each carry their own `.oxlintrc.json`, and
