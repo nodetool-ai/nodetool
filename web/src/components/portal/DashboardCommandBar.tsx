@@ -9,6 +9,7 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import CommandBarModelChip from "./CommandBarModelChip";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 
 const TRACK_ICONS = {
@@ -98,6 +99,15 @@ const styles = (theme: Theme) =>
       },
       "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
+    // A vertical rule sets the model apart: the chips before it choose what
+    // gets made, this chooses what makes it.
+    ".cmd-model": {
+      display: "inline-flex",
+      alignItems: "center",
+      marginLeft: getSpacingPx(SPACING.sm),
+      paddingLeft: getSpacingPx(SPACING.md),
+      borderLeft: `1px solid ${theme.vars.palette.divider}`
+    },
     ".cmd-hint": {
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
@@ -185,9 +195,12 @@ const DashboardCommandBar: React.FC<DashboardCommandBarProps> = ({
         </button>
       </div>
 
-      {showModes && (
-        <div className="cmd-modes" role="group" aria-label="Output kind">
-          {WELCOME_TRACKS.map((t) => {
+      {/* The row carries the model chip in both modes: the first-run hero
+          hides the kind chips because its starter cards say the same thing,
+          but which model runs is not something the cards cover. */}
+      <div className="cmd-modes" role="group" aria-label="Output kind">
+        {showModes &&
+          WELCOME_TRACKS.map((t) => {
             const active = t.id === track;
             const Icon = TRACK_ICONS[t.id];
             return (
@@ -199,11 +212,12 @@ const DashboardCommandBar: React.FC<DashboardCommandBarProps> = ({
                 style={{ "--track-accent": t.accent } as CSSProperties}
                 onClick={() => {
                   setTrack(t.id);
-                  // A chip on an empty box is the old starter-card gesture:
-                  // open that track with its own example prompt. With
-                  // something typed it only chooses what the send makes.
+                  // A chip on an empty box writes that track's example into
+                  // the box rather than opening a chat outright. Choosing a
+                  // kind is also how you reach its model, so the click has to
+                  // leave the user here.
                   if (!hasPrompt) {
-                    onSubmit(t.id, "");
+                    setPrompt(t.samplePrompt);
                   }
                 }}
               >
@@ -212,13 +226,17 @@ const DashboardCommandBar: React.FC<DashboardCommandBarProps> = ({
               </button>
             );
           })}
-          <span className="cmd-hint">
-            {hasPrompt
-              ? "enter to open a chat with this prompt"
-              : "pick one for an example prompt"}
-          </span>
-        </div>
-      )}
+        <span className={showModes ? "cmd-model" : undefined}>
+          <CommandBarModelChip track={track} />
+        </span>
+        <span className="cmd-hint">
+          {hasPrompt
+            ? "enter to open a chat with this prompt"
+            : showModes
+              ? "pick a kind for an example prompt"
+              : "pick a starter below, or describe your own"}
+        </span>
+      </div>
     </div>
   );
 };
