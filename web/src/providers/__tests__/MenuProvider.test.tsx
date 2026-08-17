@@ -10,7 +10,7 @@ function setup(withApi = true) {
   } else {
     (window as any).api = undefined;
   }
-  let ctx: any = null;
+  let ctx: React.ContextType<typeof MenuContext> | null = null;
   function Consumer() {
     ctx = useContext(MenuContext)!;
     return null;

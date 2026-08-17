@@ -867,6 +867,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </html>`;
 }
 
+/** The upgraded socket `handleUpgrade` hands back, as this server drives it. */
+type UpgradedSocket = TestUiSocket & {
+  on(event: "error", listener: (error: Error) => void): void;
+};
+
+/** The `ws` socket members this adapter drives. */
+interface TestUiSocket {
+  on(event: "message", listener: (raw: Buffer, isBinary: boolean) => void): void;
+  on(event: "close", listener: () => void): void;
+  send(data: Uint8Array | string): void;
+  close(code?: number, reason?: string): void;
+}
+
 class WsAdapter implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
   applicationState: "connected" | "disconnected" = "connected";
@@ -882,8 +895,8 @@ class WsAdapter implements WebSocketConnection {
     }) => void
   > = [];
 
-  constructor(private socket: any) {
-    socket.on("message", (raw: any, isBinary: boolean) => {
+  constructor(private socket: TestUiSocket) {
+    socket.on("message", (raw: Buffer, isBinary: boolean) => {
       const frame = isBinary
         ? {
             type: "websocket.message",
@@ -1455,7 +1468,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       return;
     }
 
-    wss.handleUpgrade(request, socket, head, (ws: any) => {
+    wss.handleUpgrade(request, socket, head, (ws: UpgradedSocket) => {
       ws.on("error", (error: Error) => {
         log.error("WebSocket client error", error);
       });

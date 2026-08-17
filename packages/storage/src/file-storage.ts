@@ -44,9 +44,9 @@ export class FileStorage implements AbstractStorage {
     const rel = normalizeStorageKey(key);
     try {
       return await r.readBytes(rel);
-    } catch (err: any) {
+    } catch (err) {
       if (
-        err?.code === "ENOENT" ||
+        (err as { code?: string } | null)?.code === "ENOENT" ||
         (err instanceof FsSafeError && err.code === "not-found")
       ) {
         throw new Error(`Key not found: ${key}`, { cause: err });

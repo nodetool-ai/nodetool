@@ -39,14 +39,22 @@ jest.mock("../../../hooks/browser/useWaveRecorder", () => ({
 
 // Mock Select component
 jest.mock("../../../components/inputs/Select", () => {
-  return function MockSelect({ value, onChange, options }: any) {
+  return function MockSelect({
+    value,
+    onChange,
+    options
+  }: {
+    value?: string;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string }>;
+  }) {
     return (
       <select
         data-testid="device-select"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
-        {options.map((opt: any) => (
+        {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>

@@ -1,4 +1,7 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
+import { stub } from "../../../test-utils/doubles";
+import type { GlobalChatState } from "../../../stores/GlobalChatStore";
+import type { ThreadRuntimeStatus } from "../threadRuntime";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
@@ -14,7 +17,10 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
-const makeState = (threadRuntimeStatus: string) => ({
+const makeState = (
+  threadRuntimeStatus: ThreadRuntimeStatus
+): GlobalChatState =>
+  stub<GlobalChatState>({
   status: "streaming",
   currentThreadId: "thread-1",
   threads: {
@@ -44,7 +50,7 @@ const makeState = (threadRuntimeStatus: string) => ({
   selectedModel: { provider: "", id: "" },
   summarizeThread: jest.fn(),
   updateThreadTitle: jest.fn()
-});
+  });
 
 /** A zustand `set` argument given as an updater rather than a partial state. */
 const isStateUpdater = (
@@ -52,8 +58,10 @@ const isStateUpdater = (
 ): value is (state: unknown) => Record<string, unknown> =>
   typeof value === "function";
 
-const makeHarness = (threadRuntimeStatus = "streaming") => {
-  let state: any = makeState(threadRuntimeStatus);
+const makeHarness = (
+  threadRuntimeStatus: ThreadRuntimeStatus = "streaming"
+) => {
+  let state = makeState(threadRuntimeStatus);
   const set = jest.fn((updater) => {
     state = {
       ...state,

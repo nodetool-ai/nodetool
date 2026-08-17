@@ -94,14 +94,16 @@ describe('buildMenu', () => {
 
     // Trigger save command
     const fileMenu = template.find((item) => item.label === 'File');
-    const saveItem = fileMenu?.submenu?.find((item: any) => item.label === 'Save');
+    const saveItem = fileMenu?.submenu?.find(
+      (item: { label?: string }) => item.label === 'Save'
+    );
     saveItem?.click();
     expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'saveWorkflow' });
 
     // Trigger help command
     const helpMenu = template.find((item) => item.role === 'help');
     const learnMoreItem = helpMenu?.submenu?.find(
-      (item: any) => item.label === 'Learn More',
+      (item: { label?: string }) => item.label === 'Learn More',
     );
     await learnMoreItem?.click?.();
     expect(openExternalMock).toHaveBeenCalledWith('https://nodetool.ai');

@@ -16,21 +16,34 @@ jest.mock("../../../stores/AssetStore", () => ({
   }
 }));
 jest.mock("../../../stores/AssetGridStore", () => {
-  const assetGridStore = {
+  // Named rather than inferred: the object's own methods refer back to it, and
+  // `typeof assetGridStore` inside its initializer is a circular inference.
+  interface MockAssetGridStore {
+    selectedAssetIds: string[];
+    setSelectedAssetIds: jest.Mock;
+    setSelectedAssets: jest.Mock;
+    setCurrentAudioAsset: jest.Mock;
+    setState: (state: Partial<MockAssetGridStore>) => void;
+    getState: () => MockAssetGridStore;
+  }
+
+  const assetGridStore: MockAssetGridStore = {
     selectedAssetIds: [] as string[],
     setSelectedAssetIds: jest.fn((ids: string[]) => {
       assetGridStore.selectedAssetIds = ids;
     }),
     setSelectedAssets: jest.fn(),
     setCurrentAudioAsset: jest.fn(),
-    setState: (state: Partial<any>) => {
+    setState: (state: Partial<MockAssetGridStore>) => {
       Object.assign(assetGridStore, state);
     },
     getState: () => assetGridStore
   };
   return {
     __esModule: true,
-    useAssetGridStore: (selector: any) => selector(assetGridStore),
+    useAssetGridStore: (
+      selector: (state: MockAssetGridStore) => unknown
+    ) => selector(assetGridStore),
     assetGridStore
   };
 });

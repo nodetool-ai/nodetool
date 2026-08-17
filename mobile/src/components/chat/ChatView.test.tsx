@@ -9,7 +9,15 @@ import { Message, ChatStatus } from '../../types';
 
 // Mock child components
 jest.mock('./ChatMessageList', () => ({
-  ChatMessageList: ({ messages, isLoading, isStreaming }: any) => {
+  ChatMessageList: ({
+    messages,
+    isLoading,
+    isStreaming,
+  }: {
+    messages: Message[];
+    isLoading: boolean;
+    isStreaming: boolean;
+  }) => {
     const { Text, View } = require('react-native');
     return (
       <View testID="chat-message-list">
@@ -22,7 +30,15 @@ jest.mock('./ChatMessageList', () => ({
 }));
 
 jest.mock('./ChatComposer', () => ({
-  ChatComposer: ({ status, onSendMessage, onStop }: any) => {
+  ChatComposer: ({
+    status,
+    onSendMessage,
+    onStop,
+  }: {
+    status: ChatStatus;
+    onSendMessage: (content: unknown[], prompt: string) => void;
+    onStop?: () => void;
+  }) => {
     const { TouchableOpacity, Text, View } = require('react-native');
     return (
       <View testID="chat-composer">

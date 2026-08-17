@@ -3,11 +3,11 @@ import { useAssetDownload } from "../useAssetDownload";
 
 function clickSpy() {
   const clicks: HTMLAnchorElement[] = [];
-  jest.spyOn(document.body, "appendChild").mockImplementation((el: any) => {
-    if (el.tagName === "A") {clicks.push(el as HTMLAnchorElement);}
+  jest.spyOn(document.body, "appendChild").mockImplementation((el) => {
+    if (el instanceof HTMLAnchorElement) {clicks.push(el);}
     return el;
   });
-  jest.spyOn(document.body, "removeChild").mockImplementation((el: any) => {
+  jest.spyOn(document.body, "removeChild").mockImplementation((el) => {
     return el;
   });
   return () => clicks;

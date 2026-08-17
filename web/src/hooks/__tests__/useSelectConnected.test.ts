@@ -3,6 +3,12 @@ import { useSelectConnected } from "../useSelectConnected";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import {
+  selectorOver,
+  stub,
+  type PartialMembers
+} from "../../test-utils/doubles";
+import type { NodeStore, NodeStoreState } from "../../stores/NodeStore";
 
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn(),
@@ -15,9 +21,12 @@ const mockUseNodeStoreRef = useNodeStoreRef as jest.MockedFunction<
 >;
 
 // Backs both the subscribed selectors and the hook's lazy `getState()` read.
-const setStore = (state: any) => {
-  mockUseNodes.mockImplementation((selector: any) => selector(state));
-  mockUseNodeStoreRef.mockReturnValue({ getState: () => state } as any);
+const setStore = (members: PartialMembers<NodeStoreState>) => {
+  const state = stub<NodeStoreState>(members);
+  mockUseNodes.mockImplementation(selectorOver(state));
+  mockUseNodeStoreRef.mockReturnValue(
+    Object.assign(() => state, { getState: () => state }) as NodeStore
+  );
 };
 
 const createMockNodeData = (): NodeData => ({

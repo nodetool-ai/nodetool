@@ -142,7 +142,7 @@ describe("useOllamaModels", () => {
 
   describe("loading states", () => {
     it("sets ollamaLoading to true during initial fetch", async () => {
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });

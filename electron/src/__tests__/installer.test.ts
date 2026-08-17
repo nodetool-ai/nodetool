@@ -44,7 +44,7 @@ describe("installer promptForInstallLocation", () => {
 
   it("sends prompt to renderer and resolves with location and modelBackend", async () => {
     jest.mocked(getDefaultInstallLocation).mockReturnValue("/default/path");
-    let handler: any;
+    let handler: Parameters<typeof createIpcMainHandler>[1] | undefined;
     jest.mocked(createIpcMainHandler).mockImplementation((_channel, fn) => {
       handler = fn;
     });
@@ -60,7 +60,7 @@ describe("installer promptForInstallLocation", () => {
       { defaultPath: "/default/path" }
     );
 
-    await handler({} as any, {
+    await handler?.({} as never, {
       location: "/chosen",
       modelBackend: "ollama",
     });
@@ -79,13 +79,13 @@ describe("installer promptForInstallLocation", () => {
 
   it("registers install handler", async () => {
     jest.mocked(getDefaultInstallLocation).mockReturnValue("/d");
-    let handler: any;
+    let handler: Parameters<typeof createIpcMainHandler>[1] | undefined;
     jest.mocked(createIpcMainHandler).mockImplementation((_c, fn) => {
       handler = fn;
     });
 
     const promise = promptForInstallLocation();
-    await handler({}, { location: "/loc", modelBackend: "ollama" });
+    await handler?.({} as never, { location: "/loc", modelBackend: "ollama" });
     await promise;
 
     expect(createIpcMainHandler).toHaveBeenCalledWith(

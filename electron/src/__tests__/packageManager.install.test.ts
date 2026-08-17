@@ -46,7 +46,7 @@ describe('installExpectedPackages Performance Benchmark', () => {
 
   test('measures installation time', async () => {
     // Setup spawn mock
-    spawn.mockImplementation((command: any, args: any) => {
+    spawn.mockImplementation((command: string, args: readonly string[]) => {
       const proc = new EventEmitter();
       // Use Object.assign to avoid TS casting syntax issues in case of parser config mismatch
       Object.assign(proc, {
@@ -92,7 +92,10 @@ describe('installExpectedPackages Performance Benchmark', () => {
     expect(result.success).toBe(true);
 
     // Verify batching behavior
-    const installCalls = spawn.mock.calls.filter((call: any) => call[1].includes('install') && !call[1].includes('pip list'));
+    const installCalls = spawn.mock.calls.filter(
+      (call: [string, readonly string[]]) =>
+        call[1].includes('install') && !call[1].includes('pip list')
+    );
     expect(installCalls.length).toBe(1);
 
     // Verify command content

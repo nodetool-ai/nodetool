@@ -36,7 +36,18 @@ const mockedCreateWorkflowRunner = jest.spyOn(
 const mockedClipboard = jest.mocked(clipboard);
 const mockedNativeImage = jest.mocked(nativeImage);
 
-function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string, outputData: any = {}): Workflow {
+/** The workflow-runner state slice this test drives. */
+interface RunnerState {
+  connect: jest.Mock;
+  run: jest.Mock;
+  onComplete: ((results: Array<{ uri: string }>) => void) | undefined;
+}
+
+function createBaseWorkflow(
+  runMode: 'headless' | 'normal',
+  outputType: string,
+  outputData: Record<string, unknown> = {}
+): Workflow {
   return {
     id: 'wf1',
     name: 'Test Workflow',
@@ -78,15 +89,19 @@ describe('runWorkflow', () => {
     const mockImage = {} as any;
     mockedNativeImage.createFromBuffer.mockReturnValue(mockImage);
 
-    let onComplete: ((results: any[]) => void) | undefined;
+    let onComplete: ((results: Array<{ uri: string }>) => void) | undefined;
     const mockConnect = jest.fn().mockResolvedValue(undefined);
     const mockRun = jest.fn(async () => {
       if (onComplete) onComplete([{ uri: 'resultdata' }]);
     });
-    const state: any = { connect: mockConnect, run: mockRun, onComplete: undefined };
+    const state: RunnerState = {
+      connect: mockConnect,
+      run: mockRun,
+      onComplete: undefined
+    };
     const runner = {
       getState: jest.fn(() => state),
-      setState: jest.fn((partial: any) => {
+      setState: jest.fn((partial: Partial<RunnerState>) => {
         if (partial.onComplete) {
           onComplete = partial.onComplete;
           state.onComplete = partial.onComplete;

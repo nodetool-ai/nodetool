@@ -9,13 +9,22 @@ jest.mock("@mui/material", () => {
   const actual = jest.requireActual("@mui/material");
   return {
     ...actual,
-    Tooltip: ({ children }: any) => <>{children}</>
+    Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>
   };
 });
 
 // Mock the stores and hooks
 jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: any) => {
+  useAssetGridStore: (
+    selector: (state: {
+      isGlobalSearchMode: boolean;
+      setIsGlobalSearchMode: jest.Mock;
+      globalSearchResults: unknown[];
+      setGlobalSearchResults: jest.Mock;
+      setIsGlobalSearchActive: jest.Mock;
+      setGlobalSearchQuery: jest.Mock;
+    }) => unknown
+  ) => {
     const mockState = {
       isGlobalSearchMode: false,
       setIsGlobalSearchMode: jest.fn(),

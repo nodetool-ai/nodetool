@@ -148,9 +148,43 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
   return _db as BetterSQLite3Database<typeof schema>;
 }
 
+
 /**
  * Get the current database dialect.
  */
+/**
+ * The transaction handle a `db.transaction` callback receives.
+ *
+ * Derived from the driver's own signature rather than written out, so it keeps
+ * up with the schema. Both dialects run through it — the SQLite branch takes a
+ * synchronous callback and the Postgres branch an async one — because the two
+ * expose the same query builders. The one capability they do not share is
+ * Postgres row locking; see {@link forUpdate}.
+ */
+export type DbTransaction = Parameters<
+  Parameters<BetterSQLite3Database<typeof schema>["transaction"]>[0]
+>[0];
+
+/**
+ * Adds `FOR UPDATE` row locking to a select, on the Postgres branch.
+ *
+ * The connection is typed as the SQLite driver throughout (see {@link getDb}),
+ * whose select builder has no `.for()` — postgres.js's does. Call sites used to
+ * annotate their transaction handle `any` to reach it, which switched off
+ * checking for the whole callback. This names the single difference instead,
+ * and throws rather than silently returning an unlocked query if it is ever
+ * called on a connection that cannot lock.
+ */
+export function forUpdate<Q>(query: Q): Q {
+  const lockable = query as { for?: (mode: "update") => Q };
+  if (!lockable.for) {
+    throw new Error(
+      "forUpdate() requires a Postgres query builder; branch on getDbType()."
+    );
+  }
+  return lockable.for("update");
+}
+
 export function getDbType(): DbDialect {
   return _dbType;
 }

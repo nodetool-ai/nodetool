@@ -43,14 +43,23 @@ jest.mock(
 import { z } from "zod";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import { mustFind } from "../test-utils/doubles";
+
+/** The messages these tests send through the socket and read back. */
+interface ToolResultMessage {
+  type?: unknown;
+  tool_call_id?: string;
+  ok?: boolean;
+  result?: { sum?: number };
+}
 
 // Mock WebSocketManager send to capture messages
 class FakeWSManager {
-  public sent: any[] = [];
+  public sent: ToolResultMessage[] = [];
   isConnected() {
     return true;
   }
-  send(msg: any) {
+  send(msg: ToolResultMessage) {
     this.sent.push(msg);
   }
   getWebSocket() {
@@ -65,8 +74,10 @@ describe("GlobalChatStore tool_call handling", () => {
   beforeEach(() => {
     fakeWsManager.sent = [];
     // Mock the globalWebSocketManager to use our fake
-    jest.spyOn(globalWebSocketManager, 'send').mockImplementation((msg: any): Promise<void> => {
-      fakeWsManager.sent.push(msg);
+    jest
+      .spyOn(globalWebSocketManager, 'send')
+      .mockImplementation((msg): Promise<void> => {
+        fakeWsManager.sent.push(msg);
       return Promise.resolve();
     });
     jest.spyOn(globalWebSocketManager, 'getConnectionState').mockReturnValue({
@@ -109,12 +120,13 @@ describe("GlobalChatStore tool_call handling", () => {
       elapsed_ms: Date.now() - start
     });
 
-    const resultMsg = fakeWsManager.sent.find(
-      (m: any) => m.type === "tool_result" && m.tool_call_id === tool_call_id
+    const resultMsg = mustFind(
+      fakeWsManager.sent,
+      (m) => m.type === "tool_result" && m.tool_call_id === tool_call_id,
+      "tool_result message"
     );
-    expect(resultMsg).toBeTruthy();
     expect(resultMsg.ok).toBe(true);
-    expect(resultMsg.result.sum).toBe(5);
+    expect(resultMsg.result?.sum).toBe(5);
 
     unregister();
   });

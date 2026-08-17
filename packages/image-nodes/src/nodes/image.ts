@@ -1953,7 +1953,8 @@ export class ImageToImageNode extends BaseNode {
     // fine as long as an entity carries an image.
     const entities = Array.isArray(this.entities) ? this.entities : [];
     const entityHasImage = entities.some(
-      (e: any) => !!e?.image || (e?.reference_images?.length ?? 0) > 0
+      (e: { image?: unknown; reference_images?: unknown[] } | null) =>
+        !!e?.image || (e?.reference_images?.length ?? 0) > 0
     );
     if (bytesList.length === 0 && !entityHasImage) {
       throw new Error("The input image is empty.");

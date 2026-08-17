@@ -61,6 +61,36 @@ export function asMockStore<T>(moduleExport: T): MockedStoreHook {
 }
 
 /**
+ * Builds the implementation of a mocked zustand-style hook, which is called
+ * with a selector and answers with what that selector reads.
+ *
+ * The state's type is inferred from the members the test supplies, so the
+ * selector body is checked against them: reading a field the double does not
+ * provide is a compile error rather than `undefined` at run time. This is what
+ * a mocked hook needs instead of `(selector: any) => selector(state)`, which
+ * turns off checking on both sides of the call.
+ */
+export function selectorOver<S>(state: S): <R>(select: (state: S) => R) => R {
+  return (select) => select(state);
+}
+
+/**
+ * Reads the item a test expects to be there, failing with what it looked for
+ * instead of `Cannot read properties of undefined` three lines later.
+ *
+ * `Array.prototype.find` widens to `T | undefined`, which is why assertions on
+ * its result used to sit behind an `any`-typed callback: the `any` hid the
+ * undefined rather than handling it.
+ */
+export function mustFind<T>(items: readonly T[], match: (item: T) => boolean, what = "item"): T {
+  const found = items.find(match);
+  if (found === undefined) {
+    throw new Error(`expected to find a matching ${what}, got none of ${items.length}`);
+  }
+  return found;
+}
+
+/**
  * Installs a stand-in for a global — a DOM class jsdom does not ship, or one a
  * test must control. `Object.defineProperty` is how jsdom installs its own
  * globals, so a fake goes in the same way, with nothing asserted away.
