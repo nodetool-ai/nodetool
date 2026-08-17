@@ -14,7 +14,7 @@ import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NodeLogsDialog } from "./NodeLogs";
 import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
-export interface NodeHeaderProps {
+interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
   title?: string;

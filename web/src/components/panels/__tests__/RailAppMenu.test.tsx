@@ -7,7 +7,6 @@
  * and the workspace is focused.
  */
 
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

@@ -2,7 +2,6 @@
  * Tests for MessageContentRenderer component
  */
 
-import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { render, screen, act } from '@testing-library/react-native';
 import { MessageContentRenderer } from './MessageContentRenderer';

@@ -33,12 +33,12 @@ const ASPECT_RATIO = "16:9";
 
 export type StudioPromptStage = "idle" | "directing" | "writing";
 
-export interface StudioPromptStartResult {
+interface StudioPromptStartResult {
   boardId: string;
   scriptId: string;
 }
 
-export interface UseStudioPromptStartResult {
+interface UseStudioPromptStartResult {
   start: (prompt: string) => Promise<StudioPromptStartResult>;
   stage: StudioPromptStage;
   busy: boolean;

@@ -40,27 +40,27 @@ export interface ModelAggregateResult {
   call_count: number;
 }
 
-export interface DashboardProviderResult {
+interface DashboardProviderResult {
   provider: string;
   total_cost: number;
   call_count: number;
 }
 
-export interface DashboardModelResult {
+interface DashboardModelResult {
   provider: string;
   model: string;
   total_cost: number;
   call_count: number;
 }
 
-export interface DashboardDayResult {
+interface DashboardDayResult {
   /** Local calendar day, `YYYY-MM-DD`. */
   date: string;
   /** Spend per provider for the day. */
   totals: Record<string, number>;
 }
 
-export interface DashboardExecutionResult {
+interface DashboardExecutionResult {
   id: string;
   node_id: string;
   node_type: string;
@@ -77,7 +77,7 @@ export interface DashboardExecutionResult {
   created_at: string | null;
 }
 
-export interface DashboardResult {
+interface DashboardResult {
   window: { start: string; end: string; days: number };
   providers: DashboardProviderResult[];
   daily: DashboardDayResult[];

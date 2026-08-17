@@ -7,7 +7,6 @@
  * Regression: the empty-area path used to call addImportedClip directly, so
  * dropping a video to create a new track skipped audio extraction.
  */
-import React from "react";
 import { stub } from "../../../../test-utils/doubles";
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react";

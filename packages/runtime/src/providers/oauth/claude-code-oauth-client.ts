@@ -92,7 +92,7 @@ export interface AuthorizationUrlOptions {
   readonly loginMethod?: ClaudeCodeLoginMethod;
 }
 
-export interface ClaudeCodeOAuthClientOptions {
+interface ClaudeCodeOAuthClientOptions {
   /** Override the published Claude Code client id. */
   readonly clientId?: string;
   readonly tokenEndpoint?: string;

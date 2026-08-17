@@ -259,7 +259,7 @@ const HIST_COLORS = {
   luminance: "rgba(255, 255, 255, 0.85)"
 } satisfies Record<HistogramView, string>;
 
-export interface LevelsBodyProps {
+interface LevelsBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

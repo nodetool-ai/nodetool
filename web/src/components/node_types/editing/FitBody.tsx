@@ -135,7 +135,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface FitBodyProps {
+interface FitBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

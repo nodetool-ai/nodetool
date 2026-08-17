@@ -23,7 +23,7 @@ export interface ContextMenuState {
   payload?: unknown;
 }
 
-export interface ContextMenuActions {
+interface ContextMenuActions {
   openContextMenu: (
     contextMenuClass: string,
     nodeId: string,

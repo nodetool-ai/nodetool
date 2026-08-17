@@ -41,7 +41,7 @@ const headerStyles = (theme: Theme) =>
     }
   });
 
-export interface LayerVersionListProps {
+interface LayerVersionListProps {
   documentId: string;
   layerId: string;
 }

@@ -20,7 +20,7 @@ import {
   Text
 } from "../../ui_primitives";
 
-export interface PaintedLayerPanelProps {
+interface PaintedLayerPanelProps {
   layer: Layer;
 }
 

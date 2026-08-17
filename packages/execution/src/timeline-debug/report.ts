@@ -106,7 +106,7 @@ function buildTimelineVerdict(
     : { ok, headline, issues };
 }
 
-export interface TimelineDebugReportInput {
+interface TimelineDebugReportInput {
   target: TimelineDebugTarget;
   /** The document as loaded — untrusted, validated here. */
   document: unknown;

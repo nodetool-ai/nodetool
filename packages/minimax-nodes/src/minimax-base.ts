@@ -291,7 +291,7 @@ export function videoRenderSettings(
 // Async video generation (submit → poll → download)
 // ---------------------------------------------------------------------------
 
-export interface VideoTaskOptions {
+interface VideoTaskOptions {
   pollIntervalMs?: number;
   maxAttempts?: number;
 }

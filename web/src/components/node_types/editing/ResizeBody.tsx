@@ -118,7 +118,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface ResizeBodyProps {
+interface ResizeBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -10,7 +10,7 @@ import { framesForTiming } from "./tutorialTiming";
 const INTRO_SECONDS = 2.5;
 const OUTRO_SECONDS = 4;
 
-export interface TimelineTutorialEntry {
+interface TimelineTutorialEntry {
   /** Remotion composition id, e.g. "TimelineTutorial-trim-arrange". */
   compositionId: string;
   /** Output basename: out/<slug>.mp4 → web/public/tutorials/<slug>.mp4. */

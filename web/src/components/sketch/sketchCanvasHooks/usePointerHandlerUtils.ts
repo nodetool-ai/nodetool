@@ -41,7 +41,7 @@ import {
 } from "../transform/geometry/layerGeometry";
 import { sketchClientToDocCanvas } from "../tools/transform/handleGeometry";
 
-export interface UsePointerHandlerUtilsParams {
+interface UsePointerHandlerUtilsParams {
   zoom: number;
   pan: Point;
   containerRef: React.RefObject<HTMLDivElement | null>;

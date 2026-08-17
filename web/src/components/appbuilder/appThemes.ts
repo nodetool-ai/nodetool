@@ -10,7 +10,7 @@
  */
 import { BORDER_RADIUS, SPACING } from "../ui_primitives";
 
-export interface AppTheme {
+interface AppTheme {
   id: string;
   label: string;
   /** Palette slot the page sits on. */

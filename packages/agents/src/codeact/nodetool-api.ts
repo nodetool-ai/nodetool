@@ -1304,7 +1304,7 @@ If you do not know the document's id, find it with \`list()\` on the namespace.`
  */
 export const NODETOOL_API_SECTION_HEADER = "# The `nodetool` object model";
 
-export interface NodetoolApiPromptOptions {
+interface NodetoolApiPromptOptions {
   /**
    * Whether this session can author graphs with `@nodetool-ai/sandbox-dsl` —
    * the belt carries the three workflow verbs AND the pack is installed. The

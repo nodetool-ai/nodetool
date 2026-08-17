@@ -12,7 +12,7 @@ export interface SdkV1ModelCatalogHttpService {
   }): Promise<SdkV1ModelCatalog> | SdkV1ModelCatalog;
 }
 
-export interface HandleSdkV1ModelCatalogOptions {
+interface HandleSdkV1ModelCatalogOptions {
   service: SdkV1ModelCatalogHttpService;
   getUserId: (request: Request) => string;
   onInternalError?: (error: unknown) => void;

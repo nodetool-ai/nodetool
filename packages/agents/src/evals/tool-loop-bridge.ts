@@ -75,7 +75,7 @@ export const DEFAULT_TOOL_NAMES = [
 
 export type DefaultToolName = (typeof DEFAULT_TOOL_NAMES)[number];
 
-export interface CreateBridgeOptions {
+interface CreateBridgeOptions {
   toolNames?: readonly string[];
 }
 

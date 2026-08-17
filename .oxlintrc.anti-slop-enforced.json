@@ -118,17 +118,22 @@
     {
       "files": [
         "packages/atlascloud-nodes/src/**",
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
+        "packages/config/src/**",
         "packages/document-nodes/src/**",
         "packages/dsl/src/**",
         "packages/execution/src/**",
         "packages/huggingface-nodes/src/**",
+        "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
         "packages/replicate-nodes/src/**",
+        "packages/reve-nodes/src/**",
         "packages/sdk/src/**",
-        "packages/security/src/**"
+        "packages/security/src/**",
+        "packages/workflow-runner/src/**"
       ],
       "rules": {
         "anti-slop/no-known-value-widening": "error"
@@ -201,16 +206,22 @@
         "electron/src/**",
         "packages/app-runtime/src/**",
         "packages/audio-nodes/src/**",
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
+        "packages/chat/src/**",
         "packages/cli/src/**",
+        "packages/config/src/**",
         "packages/image-nodes/src/**",
         "packages/llm-nodes/src/**",
         "packages/minimax-nodes/src/**",
+        "packages/model-pricing/src/**",
         "packages/node-sdk/src/**",
         "packages/nodes-utils/src/**",
         "packages/protocol/src/**",
+        "packages/reve-nodes/src/**",
         "packages/security/src/**",
-        "packages/text-nodes/src/**"
+        "packages/text-nodes/src/**",
+        "packages/workflow-runner/src/**"
       ],
       "rules": {
         "anti-slop/no-runtime-typeof": [
@@ -223,14 +234,19 @@
     },
     {
       "files": [
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
+        "packages/chat/src/**",
         "packages/config/src/**",
         "packages/document-nodes/src/**",
         "packages/elevenlabs-nodes/src/**",
         "packages/minimax-nodes/src/**",
+        "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
+        "packages/reve-nodes/src/**",
         "packages/security/src/**",
-        "packages/transformers-js-provider/src/**"
+        "packages/transformers-js-provider/src/**",
+        "packages/workflow-runner/src/**"
       ],
       "rules": {
         "anti-slop/no-unknown-parameters": "error"
@@ -287,11 +303,15 @@
     },
     {
       "files": [
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/config/src/**",
         "packages/model-pricing/src/**",
-        "packages/security/src/**"
+        "packages/nodes-utils/src/**",
+        "packages/reve-nodes/src/**",
+        "packages/security/src/**",
+        "packages/workflow-runner/src/**"
       ],
       "rules": {
         "anti-slop/no-unsafe-dictionary-type": "error"
@@ -299,9 +319,15 @@
     },
     {
       "files": [
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/config/src/**",
+        "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
-        "packages/security/src/**"
+        "packages/reve-nodes/src/**",
+        "packages/security/src/**",
+        "packages/workflow-runner/src/**"
       ],
       "rules": {
         "anti-slop/require-safety-comment-for-type-assertion": "error"

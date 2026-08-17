@@ -60,7 +60,7 @@ export const RODIN_3D_MODELS: Model3D[] = [
   }
 ];
 
-export interface RodinProviderOptions {
+interface RodinProviderOptions {
   pollIntervalMs?: number;
   maxPollAttempts?: number;
 }

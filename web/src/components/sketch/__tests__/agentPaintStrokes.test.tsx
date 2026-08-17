@@ -17,7 +17,6 @@
  * brush stamp included), so no headless canvas shim is needed.
  */
 
-import React from "react";
 import { act, render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 

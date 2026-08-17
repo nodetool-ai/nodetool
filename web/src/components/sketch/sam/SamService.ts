@@ -56,7 +56,7 @@ export interface SamBackendCapabilities {
   rle: boolean;
 }
 
-export interface NodeMetadataInputLike {
+interface NodeMetadataInputLike {
   name?: string | null;
 }
 
@@ -72,7 +72,7 @@ interface ResolveSamPromptCapabilityInputsParams {
   boxPromptInputs?: readonly string[];
 }
 
-export interface ResolvedSamPromptCapabilityInputs {
+interface ResolvedSamPromptCapabilityInputs {
   capabilities: SamBackendCapabilities;
   textPromptInputName: string | null;
   pointPromptsInputName: string | null;

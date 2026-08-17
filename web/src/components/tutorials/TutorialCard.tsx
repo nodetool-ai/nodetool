@@ -145,7 +145,7 @@ const taglineStyles = (theme: Theme, compact: boolean): CSSObject => {
   return styles;
 };
 
-export interface TutorialCardProps {
+interface TutorialCardProps {
   tutorial: Tutorial;
   active?: boolean;
   /** Row layout with a small thumbnail — for narrow viewports. */

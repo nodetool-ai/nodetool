@@ -50,7 +50,7 @@ export interface PackageAsset {
   url: string;
 }
 
-export interface PackageAssetSource {
+interface PackageAssetSource {
   packageAssetsRoots?: string[];
   metadataRoots?: string[];
   metadataMaxDepth?: number;

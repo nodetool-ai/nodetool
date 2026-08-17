@@ -511,7 +511,7 @@ export function getModelInputFields(
 }
 
 /** Kie execution metadata carried on a manifest entry. */
-export interface ManifestNodeMeta {
+interface ManifestNodeMeta {
   useSuno: boolean;
   sunoEndpoint?: string;
   pollInterval?: number;

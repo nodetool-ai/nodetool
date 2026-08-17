@@ -15,7 +15,7 @@ import { normalizeRunRecord, type NormalizedRunRecord } from "./normalize.js";
 import { stableStringify } from "./stable-json.js";
 
 /** One golden entry, matching `expected/stream.shape.json`'s element shape. */
-export interface StreamShapeEntry {
+interface StreamShapeEntry {
   channel: string;
   message: Record<string, unknown>;
 }

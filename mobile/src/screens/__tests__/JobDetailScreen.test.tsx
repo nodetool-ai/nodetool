@@ -6,7 +6,6 @@
  * that has no stored output to show.
  */
 
-import React from 'react';
 import { Alert } from 'react-native';
 import { act, render, screen, fireEvent } from '@testing-library/react-native';
 

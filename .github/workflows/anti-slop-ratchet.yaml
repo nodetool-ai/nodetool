@@ -1,0 +1,234 @@
+name: Anti-Slop Ratchet
+
+# Drives (rule, tree) pairs of the anti-slop backlog to zero and ratchets what
+# it wins. See AGENTS.md § anti-slop for the backlog/enforced config split.
+#
+# The measurement is the slow part: one oxlint invocation per tree, run three
+# times over a full pass (scan, `:write`, `:check`). Budget for that, not for
+# the edits.
+
+on:
+  schedule:
+    - cron: "30 9 * * *" # Daily at 09:30 UTC
+  workflow_dispatch:
+
+jobs:
+  anti-slop-ratchet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
+
+      - name: Measure the backlog and pick targets
+        id: targets
+        run: |
+          npm run lint:anti-slop:targets > /tmp/anti-slop-targets.md
+          cat /tmp/anti-slop-targets.md >> $GITHUB_STEP_SUMMARY
+
+          # Read the count rather than infer it. An unreadable measurement must
+          # fail here: parsed as "0 pairs left" it would skip the agent and
+          # report a clean nightly, which is the one wrong answer available.
+          REMAINING=$(sed -n 's/^\([0-9]\{1,\}\) non-zero pairs remain.*/\1/p' /tmp/anti-slop-targets.md)
+          if [ -z "$REMAINING" ]; then
+            echo "Could not read the pair count from the measurement." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "REMAINING_PAIRS=$REMAINING" >> $GITHUB_ENV
+          echo "$REMAINING non-zero (rule, tree) pairs remain." >> $GITHUB_STEP_SUMMARY
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          echo "PKG_TEST_PRE_EXIT=$PKG_TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.REMAINING_PAIRS != '0'
+        uses: anthropics/claude-code-action@v1.0.189
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff."
+          prompt: |
+            # Drive anti-slop (rule, tree) pairs to zero
+
+            The vendored anti-slop Oxlint plugin runs through two configs: a
+            backlog (`.oxlintrc.anti-slop.json`) and an enforced config
+            (`.oxlintrc.anti-slop-enforced.json`) carrying every (rule, tree)
+            pair already at zero. Read AGENTS.md § anti-slop first — it explains
+            the split, the generated overrides, and which rules are holdouts.
+
+            Your job: take pairs from backlog to enforced, by fixing the code.
+
+            ## Today's measurement
+
+            `npm run lint:anti-slop:targets` has already run. Read
+            `/tmp/anti-slop-targets.md` — it holds the per-rule table, the trees
+            closest to zero, and the cheapest remaining pairs. **Use it. Do not
+            re-derive these numbers**: counting findings off a raw `oxlint` run
+            silently mixes in oxlint's own default-rule diagnostics, which
+            report through the same channel and are not backlog findings.
+
+            To see the findings for one tree:
+            ```bash
+            npx oxlint --config .oxlintrc.anti-slop.json --format json packages/<name>/src \
+              | jq '.diagnostics[] | select(.code | startswith("anti-slop"))'
+            ```
+
+            ## Picking scope
+
+            Prefer **finishing one whole tree** over scattering single fixes:
+            one typecheck and one test run then cover several pairs at once, and
+            a tree at zero on all eight rules cannot regress on any of them.
+            Take the top tree from the "closest to zero" table that you can
+            finish. If none is finishable, take cheap pairs from one package.
+
+            Keep it to one package (plus any caller you must update) per PR.
+
+            ## What a real fix looks like
+
+            Fix the typing, do not annotate around the finding. Four shapes
+            cover nearly everything:
+
+            1. **Name the value crossing a boundary.** A function taking
+               `Record<string, unknown>` or `unknown` usually has a real
+               contract nobody wrote down. Write it, and make the caller meet it
+               at its own boundary.
+            2. **Give a `typeof` narrowing a predicate that takes a domain
+               type.** `no-runtime-typeof` allows `typeof` inside a function
+               returning `v is T`. But a predicate taking bare `unknown` just
+               moves the finding into `no-unknown-parameters` — take `T`, a
+               named union, or an indexed access like `Foo["bar"]` instead.
+            3. **Delete guards that check what the type already declares.** A
+               `typeof params.seconds === "number"` against a declared
+               `seconds?: number` is a defensive check on a trusted path and
+               usually collapses into `??`.
+            4. **Point a type at its owner.** `params?: RunWorkflowOptions["params"]`
+               beats a second `Record<string, unknown>` that can drift from it.
+
+            A genuine assertion that cannot go away keeps a `SAFETY:` comment
+            stating the invariant TypeScript cannot express. Note the rule's
+            comment walk stops at the `VariableDeclaration`, so for an exported
+            const the comment goes inside, before the asserted expression.
+
+            ## Rules
+
+            - **Never** weaken the plugin, the backlog config, or a rule's
+              options to make findings disappear. Do not add
+              `oxlint-disable` comments. The only legitimate way a finding goes
+              away is the code getting better.
+            - Do not change runtime behavior. Where a check looks dead, confirm
+              it against tests before removing it — some are load-bearing for
+              injected stubs.
+            - Do not touch CI workflow files.
+            - Respect the documented holdouts in AGENTS.md; if a pair is a
+              holdout, say so in the PR and pick another.
+
+            ## Before starting
+
+            Run `gh pr list --state open --limit 30` and skip the run entirely
+            if an anti-slop ratchet PR is already open.
+
+            ## Ratchet what you win
+
+            After the code is fixed, regenerate the enforced overrides from a
+            fresh measurement and commit the result:
+            ```bash
+            npm run lint:anti-slop:write
+            ```
+            Then update the backlog table, the pair count, and the
+            list of trees at zero on all eight rules in AGENTS.md to match what
+            it printed. Those numbers are checked, so they must not be guessed.
+
+            ## Prove the new ratchet can fail
+
+            A check that has only ever been green is indistinguishable from one
+            that examines nothing. For one pair you just ratcheted,
+            re-introduce the violation, confirm `npm run lint:anti-slop:enforced`
+            reports it and exits non-zero, then revert and confirm it is green
+            again. Put both observations in the PR body. If the enforced lint
+            stays green with the violation present, the ratchet did not take —
+            stop and report that instead of opening the PR.
+
+            ## Verification
+
+            All of these must pass, and `:check` must agree with the config you
+            committed:
+            ```bash
+            npm run typecheck && npm run lint && npm run test && npm run test:packages
+            npm run lint:anti-slop:check
+            ```
+            Some suites fail on a runner for reasons that predate your change.
+            If one does, confirm it against a clean tree before calling it
+            unrelated, and say which in the PR.
+
+            ## Submit
+
+            Open a PR titled "refactor(lint): drive <tree> to zero on <n> anti-slop rules".
+            In the body give the before/after pair count and backlog total, what
+            each fix named rather than annotated, the failure you induced to
+            prove the ratchet works, and anything you deliberately left as a
+            holdout.
+
+      - name: Post-change verification
+        if: always() && env.REMAINING_PAIRS != '0'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$PKG_TEST_PRE_EXIT" -eq 0 ] && [ $PKG_TEST_EXIT -ne 0 ]; then
+            echo "New package test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+
+          # The enforced config is generated from a measurement. A pair driven
+          # to zero without `:write` being run leaves it unratcheted, and a
+          # regression leaves it claiming a zero that is gone — both are drift,
+          # and both look like success without this.
+          npm run lint:anti-slop:check

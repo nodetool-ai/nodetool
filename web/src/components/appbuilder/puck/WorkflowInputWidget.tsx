@@ -48,7 +48,7 @@ import { WorkflowInputIO } from "../workflowIO";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { isString } from "../../../utils/typePredicates";
 
-export interface WorkflowInputWidgetProps {
+interface WorkflowInputWidgetProps {
   id: string;
   binding?: string;
   /** Overrides the input node's own name — app wording beats graph wording. */
@@ -302,7 +302,7 @@ const MODEL_KIND_NODE_TYPE = {
 const isModelKind = (value: unknown): value is ModelWidgetKind =>
   MODEL_WIDGET_KINDS.includes(value as ModelWidgetKind);
 
-export interface ModelSelectWidgetProps {
+interface ModelSelectWidgetProps {
   id: string;
   binding?: string;
   label?: string;

@@ -10,7 +10,7 @@ interface UseWheelZoomParams {
   onPanChange: (pan: Point) => void;
 }
 
-export interface UseWheelZoomResult {
+interface UseWheelZoomResult {
   handleWheel: (e: React.WheelEvent) => void;
 }
 

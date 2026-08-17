@@ -17,7 +17,7 @@ import CompositorEditor, {
   type CompositorEditorProps
 } from "./CompositorEditor";
 
-export interface CompositorEditorModalProps extends CompositorEditorProps {
+interface CompositorEditorModalProps extends CompositorEditorProps {
   open: boolean;
   title?: string;
   onClose: () => void;

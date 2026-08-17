@@ -10,7 +10,7 @@ import { isFunctionValue } from "../lib/wire-values.js";
 
 type Resolvable<T> = T | (() => T);
 
-export interface CreateNodeToolSdkV1CapabilitiesProviderOptions {
+interface CreateNodeToolSdkV1CapabilitiesProviderOptions {
   nodetoolVersion: string;
   registry: Pick<NodeRegistry, "revision">;
   pythonBridge: Resolvable<SdkV1PythonBridgeStatus>;

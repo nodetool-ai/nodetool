@@ -2,12 +2,12 @@ import type { AnimationRole, ClipAnimation } from "@nodetool-ai/timeline";
 
 const MIN_MARKER_WIDTH_PX = 6;
 
-export interface AnimationZoneMarker {
+interface AnimationZoneMarker {
   offsetPx: number;
   widthPx: number;
 }
 
-export interface ClipAnimationMarkers {
+interface ClipAnimationMarkers {
   inZone?: AnimationZoneMarker;
   outZone?: AnimationZoneMarker;
   hasLoopOrEmphasis: boolean;

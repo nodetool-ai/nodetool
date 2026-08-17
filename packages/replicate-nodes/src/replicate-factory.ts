@@ -36,7 +36,7 @@ import type { ReplicateOutput } from "./replicate-base.js";
 // Manifest types — mirrors replicate-codegen types.ts NodeSpec
 // ---------------------------------------------------------------------------
 
-export interface ReplicateFieldDef {
+interface ReplicateFieldDef {
   name: string;
   apiParamName?: string;
   tsType: string;

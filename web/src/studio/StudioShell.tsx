@@ -55,7 +55,7 @@ const CreditsChip = () => {
   );
 };
 
-export interface StudioShellProps {
+interface StudioShellProps {
   /** Page title shown next to the brand; omit on the home screen. */
   title?: string;
   /** Show the back-to-home button (every page except home). */

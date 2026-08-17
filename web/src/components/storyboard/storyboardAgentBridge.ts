@@ -56,7 +56,7 @@ export interface StoryboardSnapshot {
 }
 
 /** What an extraction (or a re-projection) left behind. */
-export interface StoryboardScriptLink {
+interface StoryboardScriptLink {
   scriptId: string;
   /** Lines the script now holds. */
   lineCount: number;
@@ -67,7 +67,7 @@ export interface StoryboardScriptLink {
 }
 
 /** What a re-projection rewrote on the board. */
-export interface StoryboardReprojection {
+interface StoryboardReprojection {
   scriptId: string;
   /** Shots whose dialogue/narration and snapshot were rewritten. */
   reprojectedShotIds: string[];

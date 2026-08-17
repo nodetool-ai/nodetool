@@ -62,7 +62,7 @@ const menuStyles = () =>
     padding: `${getSpacingPx(SPACING.xs)} 0`
   });
 
-export interface RailAppMenuProps {
+interface RailAppMenuProps {
   /**
    * Called after an item opens something (a page tab, Help, Downloads). The
    * mobile panel sheet uses it to dismiss itself so the destination isn't

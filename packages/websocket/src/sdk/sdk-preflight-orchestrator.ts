@@ -27,7 +27,7 @@ export interface SdkV1PreflightPrincipal {
   userId: string;
 }
 
-export interface SdkV1AuthorizedWorkflow {
+interface SdkV1AuthorizedWorkflow {
   graph: GraphValidationInput;
   workflowInterface: WorkflowInterfaceV1Response;
 }
@@ -48,7 +48,7 @@ export type SdkV1RequirementResolver = (
   requirement: Readonly<SdkV1Requirement>
 ) => Promise<SdkV1RequirementAvailability> | SdkV1RequirementAvailability;
 
-export interface RunSdkV1PreflightOptions {
+interface RunSdkV1PreflightOptions {
   request: SdkV1PreflightRequest;
   principal: SdkV1PreflightPrincipal;
   workflowSource: SdkV1AuthorizedWorkflowSource;

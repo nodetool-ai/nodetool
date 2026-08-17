@@ -3,7 +3,6 @@
  * button inside a row must not double as a row tap.
  */
 
-import React from 'react';
 import { Alert } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 

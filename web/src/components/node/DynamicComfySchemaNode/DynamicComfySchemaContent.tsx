@@ -8,7 +8,7 @@ import type { NodeData } from "../../../stores/NodeData";
 
 const EMPTY_PROPERTIES: Property[] = [];
 
-export interface DynamicComfySchemaContentProps {
+interface DynamicComfySchemaContentProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

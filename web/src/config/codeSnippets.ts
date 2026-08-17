@@ -33,7 +33,7 @@ export type SnippetCategory =
  * `components/node/PropertyInput.resolver.tsx` for the editor a type resolves
  * to (`color` and `svg_element` live only in the latter).
  */
-export interface SnippetInputDeclaration {
+interface SnippetInputDeclaration {
   type: string;
   default?: unknown;
   description?: string;

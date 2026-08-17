@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { registerComboCallback } from "../stores/KeyPressedStore";
 import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
 import { getIsElectronDetails, isTextInputActive } from "../utils/browser";
@@ -39,21 +39,10 @@ import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
-interface NodeEditorShortcutsResult {
-  packageNameDialogOpen: boolean;
-  packageNameInput: string;
-  setPackageNameInput: (value: string) => void;
-  handleSaveExampleConfirm: () => Promise<void>;
-  handleSaveExampleCancel: () => void;
-}
-
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
-): NodeEditorShortcutsResult => {
-  const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
-  const [packageNameInput, setPackageNameInput] = useState("");
-
+): void => {
   // Subscribe to undo/redo functions only (stable) to prevent re-renders on history changes
   const undoHistory = useTemporalNodes((state) => state.undo);
   const redoHistory = useTemporalNodes((state) => state.redo);
@@ -67,7 +56,6 @@ export const useNodeEditorShortcuts = (
   // Get store ref to access nodes imperatively without subscribing
   const nodeStore = useNodeStoreRef();
   const reactFlow = useReactFlow();
-  const saveExample = useWorkflowManager((state) => state.saveExample);
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
   const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
@@ -270,35 +258,6 @@ export const useNodeEditorShortcuts = (
       }
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
-
-  const handleSaveExample = useCallback(() => {
-    setPackageNameDialogOpen(true);
-  }, []);
-
-  const handleSaveExampleConfirm = useCallback(async () => {
-    try {
-      await saveExample(packageNameInput);
-      setPackageNameDialogOpen(false);
-      setPackageNameInput("");
-      addNotification({
-        content: "Example saved successfully",
-        type: "success",
-        alert: true
-      });
-    } catch (error) {
-      addNotification({
-        content:
-          error instanceof Error ? error.message : "Failed to save example",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [saveExample, packageNameInput, addNotification]);
-
-  const handleSaveExampleCancel = useCallback(() => {
-    setPackageNameDialogOpen(false);
-    setPackageNameInput("");
-  }, []);
 
   const handleShowKeyboardShortcuts = useCallback(() => {
     if (onShowShortcuts) {
@@ -506,7 +465,6 @@ export const useNodeEditorShortcuts = (
         callback: () => openSettingsTab()
       },
       saveWorkflow: { callback: handleSave },
-      saveExample: { callback: handleSaveExample },
       newWorkflow: { callback: handleNewWorkflow },
       closeWorkflow: { callback: closeCurrentWorkflow },
       zoomIn: { callback: handleZoomIn },
@@ -623,7 +581,6 @@ export const useNodeEditorShortcuts = (
     handleWorkflowSettingsToggle,
     handleShowKeyboardShortcuts,
     handleSave,
-    handleSaveExample,
     handleNewWorkflow,
     closeCurrentWorkflow,
     handleZoomIn,
@@ -709,11 +666,4 @@ export const useNodeEditorShortcuts = (
     // selectedNodeCount affects active flags for align shortcuts
   }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
 
-  return {
-    packageNameDialogOpen,
-    packageNameInput,
-    setPackageNameInput,
-    handleSaveExampleConfirm,
-    handleSaveExampleCancel
-  };
 };

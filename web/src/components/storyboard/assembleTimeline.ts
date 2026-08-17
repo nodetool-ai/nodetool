@@ -23,7 +23,7 @@ import { linkedScriptId } from "../../lib/scriptStoryboardLink";
 
 export { isAssemblableShot } from "@nodetool-ai/timeline";
 
-export interface AssembledDocument extends AssembledTimeline {
+interface AssembledDocument extends AssembledTimeline {
   /** Linked lines that got no clip; empty for an unlinked board. */
   skippedLineIds: string[];
   /** True when the script's words were cut in with the shots. */

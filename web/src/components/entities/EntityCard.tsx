@@ -23,7 +23,7 @@ import {
 import ImageRefPreview from "../node/ImageRefPreview";
 import { ENTITY_KIND_COLOR } from "./entityKind";
 
-export interface EntityCardProps {
+interface EntityCardProps {
   entity: Entity;
   onEdit?: (entity: Entity) => void;
   onRemove?: (entity: Entity) => void;

@@ -6,7 +6,7 @@ import {
 } from "../../stores/ModelMenuStore";
 import { useASRModelsByProvider } from "../../hooks/useModelsByProvider";
 
-export interface ASRModelMenuDialogProps {
+interface ASRModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ASRModel) => void;

@@ -37,7 +37,7 @@ import { buildVideoClipsFromRefs } from "./video-clip.js";
 // Manifest types — mirrors kie-codegen types.ts
 // ---------------------------------------------------------------------------
 
-export interface KieFieldDef {
+interface KieFieldDef {
   name: string;
   type:
     | "str"
@@ -61,7 +61,7 @@ export interface KieFieldDef {
   required?: boolean;
 }
 
-export interface KieUploadDef {
+interface KieUploadDef {
   field: string;
   kind: "image" | "audio" | "video";
   isList?: boolean;
@@ -70,13 +70,13 @@ export interface KieUploadDef {
   groupKey?: string;
 }
 
-export interface KieValidationDef {
+interface KieValidationDef {
   field: string;
   rule: "not_empty";
   message?: string;
 }
 
-export interface KieConditionalDef {
+interface KieConditionalDef {
   field: string;
   condition: "gte_zero" | "truthy" | "not_default";
   defaultValue?: unknown;

@@ -3,7 +3,6 @@
  * array of primitives becomes one column, and an empty value says so instead of
  * rendering an empty frame.
  */
-import React from "react";
 import { render, screen } from "@testing-library/react-native";
 
 import {

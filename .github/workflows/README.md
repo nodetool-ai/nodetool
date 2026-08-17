@@ -45,6 +45,7 @@ see below.
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
 | `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
+| `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail | none/maintenance | Advisory |
 | `app-build-eval.yml` | Nightly `app-build` eval suite; reports the one-shot rate, gates nothing | none/maintenance | Advisory (report only) |
 | `aur-publish.yml` | Publish the AUR package on a GitHub release | none/maintenance | Required for its own job |
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
@@ -173,6 +174,7 @@ gh workflow run shipped-feature-inliner.yaml
 gh workflow run flaky-test-fixer.yaml
 gh workflow run abstraction-improver.yaml
 gh workflow run abstraction-police.yaml
+gh workflow run anti-slop-ratchet.yaml
 gh workflow run example-smoke-debug.yml
 gh workflow run user-journeys.yml
 ```

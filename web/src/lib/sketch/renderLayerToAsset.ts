@@ -23,7 +23,7 @@ import type { SketchDocument } from "../../components/sketch/types";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 
-export interface RenderedLayerAsset {
+interface RenderedLayerAsset {
   /** Uploaded asset id. */
   assetId: string;
   /** Best-effort resolvable URL for the asset (falls back to asset://). */
@@ -49,7 +49,7 @@ function safeBase(name: string): string {
   return trimmed || "layer";
 }
 
-export interface RenderLayerToAssetParams {
+interface RenderLayerToAssetParams {
   doc: SketchDocument;
   /** Layer id to render, or null for the flattened composite. */
   layerId: string | null;
@@ -115,7 +115,7 @@ export async function renderLayerToAsset(
   };
 }
 
-export interface RenderLayersMergedParams {
+interface RenderLayersMergedParams {
   doc: SketchDocument;
   /** Layer ids to composite together, in any order. */
   layerIds: string[];

@@ -17,7 +17,7 @@ import {
   type GroupRow
 } from "./costsData";
 
-export interface CostsTableProps {
+interface CostsTableProps {
   executions: Execution[];
   groupBy: GroupByKey;
 }

@@ -217,7 +217,7 @@ const VariableInsertBar: React.FC<{
   );
 };
 
-export interface PromptComposerBodyProps {
+interface PromptComposerBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

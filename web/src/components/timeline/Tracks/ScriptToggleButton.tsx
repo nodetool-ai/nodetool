@@ -54,7 +54,7 @@ const buttonStyles = (theme: Theme, compact: boolean) =>
     }
   });
 
-export interface ScriptToggleButtonProps {
+interface ScriptToggleButtonProps {
   /** Phone toolbar: icon only, with the label carried by the tooltip / a11y name. */
   compact?: boolean;
 }

@@ -50,7 +50,7 @@ export const waveformSelectorStyles = (theme: Theme) =>
     }
   });
 
-export interface WaveformSelectorProps {
+interface WaveformSelectorProps {
   options: readonly string[];
   value: string;
   accentColor: string;

@@ -64,7 +64,7 @@ function stringList() {
 }
 
 /** The `{nodes, edges}` bag a client sends as a workflow graph. */
-export interface WorkflowGraphBody {
+interface WorkflowGraphBody {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
 }

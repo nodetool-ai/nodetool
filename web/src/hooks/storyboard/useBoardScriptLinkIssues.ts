@@ -17,7 +17,7 @@ import {
 } from "../../lib/scriptStoryboardLink";
 import type { ScriptLinkIssue } from "@nodetool-ai/protocol";
 
-export interface BoardScriptLinkIssues {
+interface BoardScriptLinkIssues {
   errors: ScriptLinkIssue[];
   warnings: ScriptLinkIssue[];
   /** Every issue's message, errors first — what a banner renders. */

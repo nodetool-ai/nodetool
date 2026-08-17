@@ -6,8 +6,14 @@ import {
   reveGenerate,
   reveImageToRef,
   REVE_ASPECT_RATIOS,
-  REVE_POSTPROCESSING
+  REVE_POSTPROCESSING,
+  type ReveImageRef
 } from "../reve-base.js";
+
+/** Output handles CreateImageNode.process() emits. */
+type CreateImageNodeOutputs = {
+  output: ReveImageRef;
+};
 
 export class CreateImageNode extends BaseNode {
   static readonly nodeType = "reve.CreateImage";
@@ -70,7 +76,7 @@ export class CreateImageNode extends BaseNode {
   })
   declare test_time_scaling: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(): Promise<CreateImageNodeOutputs> {
     const apiKey = getReveApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");

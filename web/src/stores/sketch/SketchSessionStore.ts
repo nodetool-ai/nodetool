@@ -71,7 +71,7 @@ interface ExternalizationResult {
   externalizedLayerIds: string[];
 }
 
-export interface RecordGeneratedVersionInput {
+interface RecordGeneratedVersionInput {
   /** Newly appended version (already persisted server-side). */
   version: LayerVersion;
   /** Hash recorded against the version — becomes the new `lastGeneratedHash`. */

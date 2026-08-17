@@ -48,7 +48,7 @@ import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 const CHAT_PANEL_WIDTH = 360;
 
-export interface CodeAssistantDialogProps {
+interface CodeAssistantDialogProps {
   open: boolean;
   /** The Code node the applied draft is written to. */
   nodeId: string;

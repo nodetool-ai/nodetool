@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SdkExecutionCapacitySnapshot } from "../unified-websocket-runner.js";
 
-export interface SdkLiveRunnerCapacitySource {
+interface SdkLiveRunnerCapacitySource {
   getSdkExecutionCapacitySnapshot(input: {
     workflowId: string;
     concurrent?: boolean;

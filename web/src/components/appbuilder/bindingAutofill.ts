@@ -23,7 +23,7 @@ export interface AutofillableProps {
   label?: unknown;
 }
 
-export interface WidgetNumericDefaults {
+interface WidgetNumericDefaults {
   min: number;
   max: number;
   step: number;

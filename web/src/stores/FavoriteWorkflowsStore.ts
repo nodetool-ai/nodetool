@@ -70,7 +70,7 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
   )
 );
 
-export interface FavoriteWorkflowActions {
+interface FavoriteWorkflowActions {
   toggleFavorite: (workflowId: string) => void;
   addFavorite: (workflowId: string) => void;
   removeFavorite: (workflowId: string) => void;

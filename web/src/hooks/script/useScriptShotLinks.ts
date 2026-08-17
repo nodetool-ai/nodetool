@@ -25,7 +25,7 @@ export interface ScriptLineShotLink {
   open: () => void;
 }
 
-export interface ScriptLineLink {
+interface ScriptLineLink {
   shotLink: ScriptLineShotLink | null;
   /** True when a linked board carries no shot for this line. */
   orphaned: boolean;

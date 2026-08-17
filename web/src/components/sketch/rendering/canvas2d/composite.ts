@@ -115,7 +115,7 @@ export interface StrokeTempState {
 }
 
 /** Options for {@link renderDocumentComposite}. */
-export interface RenderDocumentCompositeOptions {
+interface RenderDocumentCompositeOptions {
   /**
    * When true, mask-type layers are drawn like raster layers (editor preview).
    * Export/flatten paths omit this so flattened output does not paint mask pixels

@@ -101,7 +101,7 @@ const isAudioChunk = (v: unknown): v is Chunk => {
   );
 };
 
-export interface AudioOutBodyProps {
+interface AudioOutBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

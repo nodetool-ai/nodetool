@@ -12,7 +12,7 @@ import { findLayerMoveTargetIndex, findMergeDownTargetIndex } from "../types";
 import { useSketchStore } from "../state";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
-export interface UseLayerActionsParams {
+interface UseLayerActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   pushHistory: (label: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>, options?: PushHistoryOptions) => void;
@@ -38,7 +38,7 @@ export interface UseLayerActionsParams {
   groupLayers: (layerIds: string[]) => void;
 }
 
-export interface HandleAddLayerOptions {
+interface HandleAddLayerOptions {
   fillColor?: string | null;
   name?: string;
   type?: "raster" | "mask";

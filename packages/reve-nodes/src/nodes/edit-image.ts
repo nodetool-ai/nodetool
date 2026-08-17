@@ -7,8 +7,14 @@ import {
   reveGenerate,
   reveImageToRef,
   REVE_ASPECT_RATIOS,
-  REVE_POSTPROCESSING
+  REVE_POSTPROCESSING,
+  type ReveImageRef
 } from "../reve-base.js";
+
+/** Output handles EditImageNode.process() emits. */
+type EditImageNodeOutputs = {
+  output: ReveImageRef;
+};
 
 export class EditImageNode extends BaseNode {
   static readonly nodeType = "reve.EditImage";
@@ -94,7 +100,7 @@ export class EditImageNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<EditImageNodeOutputs> {
     const apiKey = getReveApiKey(this._secrets);
 
     const instruction = String(this.edit_instruction ?? "");

@@ -5,7 +5,6 @@
  * registry-driven navigation can be exercised without a server.
  */
 
-import React from 'react';
 import { Alert, type AlertButton } from 'react-native';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 

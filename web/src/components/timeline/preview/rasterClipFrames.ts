@@ -9,7 +9,7 @@ import {
 import { ShapeRasterizer } from "./shapeRender";
 import { TextRasterizer } from "./textRender";
 
-export interface RasterClipFrame {
+interface RasterClipFrame {
   width: number;
   height: number;
   dataUrl: string;

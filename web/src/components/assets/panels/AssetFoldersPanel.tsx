@@ -3,7 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import FolderList from "../FolderList";
 import WorkflowTree from "../WorkflowTree";
 
-export interface AssetFoldersPanelProps {
+interface AssetFoldersPanelProps {
   isFullscreenAssets?: boolean;
 }
 

@@ -8,7 +8,6 @@
  * mount and pushes it active, so static getState() only reaches that instance
  * once the provider is rendered.
  */
-import React from "react";
 import { stub } from "../../../../test-utils/doubles";
 import { describe, it, expect } from "@jest/globals";
 import { act, fireEvent, render, screen } from "@testing-library/react";

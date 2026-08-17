@@ -36,7 +36,7 @@ export interface ResizeBounds {
   minHeight: number;
 }
 
-export interface ResizeDelta {
+interface ResizeDelta {
   startWidth: number;
   startHeight: number;
   /** Pointer movement since drag start, in flow (un-zoomed) units. */

@@ -55,7 +55,7 @@ import {
   type FalPricingEstimate
 } from "../../utils/fetchFalPricingEstimate";
 
-export interface FalPricingFooterProps {
+interface FalPricingFooterProps {
   metadata: NodeMetadata;
   /** Only render the chip while the parent node is selected. */
   selected: boolean;

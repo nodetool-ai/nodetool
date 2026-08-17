@@ -27,7 +27,7 @@ import {
 import { defaultValueForType, normalizeTypeMetadata } from "../utils/dynamicSlots";
 import { isCollectType, Slugify } from "../utils/TypeHandler";
 
-export interface TransformOutputArgs {
+interface TransformOutputArgs {
   /** The node whose output the new Code node will read. */
   sourceNodeId: string;
   sourceHandle: string;
@@ -36,7 +36,7 @@ export interface TransformOutputArgs {
   position: XYPosition;
 }
 
-export interface CreateValueArgs {
+interface CreateValueArgs {
   /** The node whose input the new Code node will feed. */
   targetNodeId: string;
   targetHandle: string;
@@ -45,7 +45,7 @@ export interface CreateValueArgs {
   position: XYPosition;
 }
 
-export interface CodeGenFromHandle {
+interface CodeGenFromHandle {
   /** "Transform this output…" — seeds an input slot from a source handle. */
   transformOutput: (args: TransformOutputArgs) => boolean;
   /** "Create value with AI…" — seeds the expected output from a destination handle. */

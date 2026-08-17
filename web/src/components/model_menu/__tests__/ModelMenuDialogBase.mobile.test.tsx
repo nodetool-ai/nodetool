@@ -1,4 +1,3 @@
-import React from "react";
 import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";

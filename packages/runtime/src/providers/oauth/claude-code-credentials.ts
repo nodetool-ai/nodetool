@@ -49,7 +49,7 @@ interface CredentialsFile {
 /** Owner-only file mode, matching the CLI. */
 const FILE_MODE = 0o600;
 
-export interface ClaudeCodeCredentialsStoreOptions {
+interface ClaudeCodeCredentialsStoreOptions {
   /** Override the config directory. Defaults to `$CLAUDE_CONFIG_DIR` or `~/.claude`. */
   readonly configDir?: string;
   readonly logger?: Logger;

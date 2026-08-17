@@ -47,7 +47,7 @@ const fetchLinks = async (
   };
 };
 
-export interface UseStudioProjectsResult {
+interface UseStudioProjectsResult {
   projects: StudioProject[];
   loading: boolean;
 }

@@ -175,7 +175,7 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
   );
 });
 
-export interface SketchEditorProps {
+interface SketchEditorProps {
   initialDocument?: SketchDocument;
   initialEditorState?: SketchPersistenceSnapshot;
   /**

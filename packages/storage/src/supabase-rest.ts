@@ -8,12 +8,12 @@
  * call sites and test fakes stay small and structural.
  */
 
-export interface SupabaseError {
+interface SupabaseError {
   message: string;
 }
 
 /** Blob-compatible download payload — only `arrayBuffer()` is consumed. */
-export interface SupabaseDownloadData {
+interface SupabaseDownloadData {
   arrayBuffer(): Promise<ArrayBuffer>;
 }
 
@@ -26,7 +26,7 @@ export interface SupabaseObjectEntry {
   metadata?: Record<string, unknown> | null;
 }
 
-export interface SupabaseListOptions {
+interface SupabaseListOptions {
   limit?: number;
   offset?: number;
   search?: string;

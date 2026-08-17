@@ -33,7 +33,7 @@ import {
   transformSelectionMask
 } from "../selection/selectionFreeTransform";
 
-export interface UseTransformActionsParams {
+interface UseTransformActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   pushHistory: (
@@ -65,7 +65,6 @@ interface RepeatableTransformRecord {
   transform: LayerTransform;
   selectionScoped: boolean;
 }
-
 
 /** Runtime canvas snapshots for history restore (multi-layer bake, etc.). */
 function snapshotLayersForHistory(

@@ -163,7 +163,7 @@ function getTransformedLayerExtents(
 
 // ── Hook ─────────────────────────────────────────────────────────────
 
-export interface UseCanvasGeometryActionsParams {
+interface UseCanvasGeometryActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   pushHistory: (
@@ -190,7 +190,7 @@ export interface UseCanvasGeometryActionsParams {
   syncSketchOutputsNow: () => void;
 }
 
-export interface HandlePasteOptions {
+interface HandlePasteOptions {
   targetLayerId?: string;
   pasteAnchorDocument?: Point | null;
 }

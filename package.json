@@ -107,6 +107,7 @@
     "lint:anti-slop": "oxlint --config .oxlintrc.anti-slop.json packages/*/src web/src electron/src mobile/src",
     "lint:anti-slop:enforced": "oxlint --config .oxlintrc.anti-slop-enforced.json packages/*/src web/src electron/src mobile/src",
     "lint:anti-slop:count": "node ./scripts/anti-slop-ratchet.mjs",
+    "lint:anti-slop:targets": "node ./scripts/anti-slop-ratchet.mjs --targets",
     "lint:anti-slop:write": "node ./scripts/anti-slop-ratchet.mjs --write",
     "lint:anti-slop:check": "node ./scripts/anti-slop-ratchet.mjs --check",
     "lint:eslint": "eslint packages/*/src",

@@ -9,7 +9,7 @@
  */
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 
-export interface TimelineDocumentPayload {
+interface TimelineDocumentPayload {
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];

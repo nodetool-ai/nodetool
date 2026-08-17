@@ -10,7 +10,7 @@ const EXECUTABLE_RUNTIMES = new Map([
   ["ffprobe", "ffprobe"]
 ]);
 
-export interface CreateNodeToolSdkV1RuntimeProbeOptions {
+interface CreateNodeToolSdkV1RuntimeProbeOptions {
   getPythonBridgeReady: () => boolean;
   hasExecutable?: (command: string) => Promise<boolean>;
 }

@@ -259,7 +259,7 @@ interface RunModule {
 }
 
 /** The budgets in force for one invocation, after every manifest has lowered them. */
-export interface SandboxWasmBudgets {
+interface SandboxWasmBudgets {
   readonly callConcurrency: number;
   readonly callsPerInvocation: number;
   readonly wallClockMs: number;

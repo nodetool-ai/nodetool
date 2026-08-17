@@ -49,7 +49,7 @@ import {
   SPACING
 } from "../ui_primitives";
 
-export interface AppDataPanelProps {
+interface AppDataPanelProps {
   meta: AppDocMeta;
   onChange: (next: AppDocMeta) => void;
   /** The workflow the builder opened with — the default for a new operation. */

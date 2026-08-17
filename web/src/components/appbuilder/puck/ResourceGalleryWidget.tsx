@@ -22,7 +22,7 @@ import {
 import { trpc } from "../../../trpc/client";
 import { useBoundResource, type ResourceItem } from "./useBoundResource";
 
-export interface ResourceGalleryProps {
+interface ResourceGalleryProps {
   /** Puck injects the placed widget's id. */
   id?: string;
   /** Id of the `ResourceBinding` in the app document. */

@@ -37,7 +37,7 @@ export interface JsScriptRunRequest {
   inputStreams?: Record<string, unknown[]>;
 }
 
-export interface JsScriptRunDialogProps {
+interface JsScriptRunDialogProps {
   open: boolean;
   inputs: readonly JsScriptPort[];
   /** True when the body reads its inputs with `stream`. */

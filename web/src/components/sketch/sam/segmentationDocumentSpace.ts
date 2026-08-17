@@ -4,7 +4,7 @@ import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import { dataUrlToCanvas, deserializeLayerData } from "../serialization";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 
-export interface DocumentSpaceSegmentationRaster {
+interface DocumentSpaceSegmentationRaster {
   data: string;
   bounds: LayerContentBounds;
   imageDataUrl: string | null;

@@ -117,7 +117,7 @@ const toSliderSpecs = (properties: Property[]): SliderSpec[] =>
     return specs;
   }, []);
 
-export interface AdjustmentBodyProps {
+interface AdjustmentBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

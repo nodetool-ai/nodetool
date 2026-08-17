@@ -11,7 +11,7 @@
  * call, so holding it back costs nothing.
  */
 
-export interface MergeOptions {
+interface MergeOptions {
   /** Maximum generators consumed at once. Defaults to unbounded. */
   concurrency?: number;
 }

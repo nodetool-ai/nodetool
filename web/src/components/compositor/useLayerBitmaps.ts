@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export interface LoadedBitmap {
+interface LoadedBitmap {
   bitmap: ImageBitmap;
   width: number;
   height: number;

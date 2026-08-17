@@ -28,7 +28,7 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   error?: { code?: string; message?: string };
 }
 
-export interface UseTimelineDirectGenJobApi {
+interface UseTimelineDirectGenJobApi {
   /** Returns the requestId once the RPC has been dispatched (or null on validation failure). */
   start: (clipId: string) => Promise<string | null>;
   cancel: (clipId: string) => void;

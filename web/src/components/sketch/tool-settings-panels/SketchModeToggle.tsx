@@ -46,7 +46,7 @@ const SketchModeToggleInternal: React.FC<SketchModeToggleProps> = ({
 export const SketchModeToggle = memo(SketchModeToggleInternal);
 SketchModeToggle.displayName = "SketchModeToggle";
 
-export interface SketchModeOptionProps extends ToggleOptionProps {
+interface SketchModeOptionProps extends ToggleOptionProps {
   /** "text" (default) or "icon" — icon variant uses tighter padding. */
   variant?: "text" | "icon";
 }

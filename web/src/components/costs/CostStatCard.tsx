@@ -10,7 +10,7 @@ import {
   SPACING
 } from "../ui_primitives";
 
-export interface CostStatCardProps {
+interface CostStatCardProps {
   label: string;
   icon: React.ComponentType<SvgIconProps>;
   /** Large value; `decimal` is rendered dimmer/smaller (e.g. cents). */

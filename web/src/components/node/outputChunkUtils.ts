@@ -1,6 +1,6 @@
 import type { Chunk } from "../../stores/ApiTypes";
 
-export interface AudioChunkLike {
+interface AudioChunkLike {
   timestamp: [number, number];
   text: string;
 }

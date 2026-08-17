@@ -1,4 +1,3 @@
-import React from 'react';
 import { asMock } from "../../../test-utils/doubles";
 import { render } from '@testing-library/react';
 import ConnectionLine from '../ConnectionLine';

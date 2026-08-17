@@ -92,18 +92,33 @@ function localFilePath(uri: string): string {
   }
 }
 
+/**
+ * The `ImageRef` fields this pack resolves bytes from. Node props arrive
+ * untyped from the graph, so the contract is stated here rather than at each
+ * read: bytes inline, base64 (bare or as a data URI), or a URI to fetch.
+ */
+export interface ReveImageInput {
+  uri?: string;
+  data?: Uint8Array | string;
+}
+
+/** Whether an image payload arrived base64-encoded rather than as bytes. */
+function isEncodedData(data: Uint8Array | string): data is string {
+  return typeof data === "string";
+}
+
 /** Resolve an ImageRef-like value to raw bytes. */
 export async function refToBytes(
-  ref: unknown,
+  ref: ReveImageInput | null | undefined,
   context?: AssetContext
 ): Promise<Uint8Array> {
-  if (!ref || typeof ref !== "object") {
+  if (!ref) {
     throw new Error("Image is required");
   }
-  const r = ref as { uri?: string; data?: Uint8Array | string };
+  const r = ref;
 
   if (r.data) {
-    if (typeof r.data === "string") {
+    if (isEncodedData(r.data)) {
       const inline = r.data.match(/^data:[^;]*;base64,(.+)$/s);
       const b64 = inline ? inline[1] : r.data;
       return new Uint8Array(Buffer.from(b64, "base64"));
@@ -147,7 +162,7 @@ export async function refToBytes(
 
 /** Resolve an ImageRef-like value to a base64 string (no data: prefix). */
 export async function refToBase64(
-  ref: unknown,
+  ref: ReveImageInput | null | undefined,
   context?: AssetContext
 ): Promise<string> {
   const bytes = await refToBytes(ref, context);
@@ -158,11 +173,19 @@ export async function refToBase64(
 // Response → ImageRef
 // ---------------------------------------------------------------------------
 
+/** The `ImageRef` this pack emits: a base64 PNG, sized when sharp is present. */
+export interface ReveImageRef {
+  type: "image";
+  uri: string;
+  data: string;
+  mimeType: string;
+  width?: number;
+  height?: number;
+}
+
 /** Build an ImageRef from a base64 PNG, attaching dimensions when sharp is available. */
-export async function reveImageToRef(
-  base64: string
-): Promise<Record<string, unknown>> {
-  const ref: Record<string, unknown> = {
+export async function reveImageToRef(base64: string): Promise<ReveImageRef> {
+  const ref: ReveImageRef = {
     type: "image",
     uri: "",
     data: base64,
@@ -184,9 +207,31 @@ export async function reveImageToRef(
 // Request
 // ---------------------------------------------------------------------------
 
+/**
+ * The fields the three Reve image endpoints accept. Each node fills the subset
+ * its endpoint uses, and `cleanBody` drops whatever it left unset.
+ */
+export interface ReveRequestBody {
+  /** `create` and `remix`. */
+  prompt?: string;
+  /** `edit`. */
+  edit_instruction?: string;
+  /** `edit`: one base64 image, no data: prefix. */
+  reference_image?: string;
+  /** `remix`: 1–6 base64 images, no data: prefix. */
+  reference_images?: string[];
+  aspect_ratio?: string;
+  version?: string;
+  postprocessing?: string[];
+  test_time_scaling?: number;
+}
+
+/** One request field's value, before the empty ones are dropped. */
+type ReveRequestField = ReveRequestBody[keyof ReveRequestBody];
+
 /** Drop null/undefined/empty fields and an all-"none" postprocessing array. */
-function cleanBody(body: Record<string, unknown>) {
-  const out: Record<string, unknown> = {};
+function cleanBody(body: ReveRequestBody): ReveRequestBody {
+  const out: Record<string, ReveRequestField> = {};
   for (const [k, v] of Object.entries(body)) {
     if (v === null || v === undefined || v === "") continue;
     if (Array.isArray(v) && v.length === 0) continue;
@@ -195,8 +240,11 @@ function cleanBody(body: Record<string, unknown>) {
   return out;
 }
 
-/** Normalize a postprocessing enum selection into the API's array form. */
-export function postprocessingArray(value: unknown): string[] {
+/**
+ * Normalize a postprocessing enum selection into the API's array form. The
+ * selection is a node prop, so it arrives as whatever the graph stored.
+ */
+export function postprocessingArray(value: string | null | undefined): string[] {
   const v = String(value ?? "none");
   return v === "none" ? [] : [v];
 }
@@ -209,7 +257,7 @@ export function postprocessingArray(value: unknown): string[] {
 export async function reveGenerate(
   apiKey: string,
   endpoint: ReveEndpoint,
-  body: Record<string, unknown>
+  body: ReveRequestBody
 ): Promise<ReveImageResponse> {
   const response = await fetch(`${REVE_API_BASE}/v1/image/${endpoint}`, {
     method: "POST",
@@ -226,6 +274,9 @@ export async function reveGenerate(
     throw new Error(`Reve API error (${response.status}): ${errorText}`);
   }
 
+  // SAFETY: a 2xx from the documented Reve endpoints carries this JSON shape;
+  // the two fields read below (`content_violation`, `image`) are checked
+  // immediately, and a missing `image` throws rather than reaching a node.
   const result = (await response.json()) as ReveImageResponse;
   if (result.content_violation) {
     throw new Error("Reve flagged this request as a content policy violation");

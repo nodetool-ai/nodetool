@@ -15,7 +15,7 @@ import { isFunction, isString } from "../utils/type-guards.js";
  * An EPUB's OPF metadata, mirroring the fields epub2 parses out of the package
  * document. A book may declare further keys; they ride along as strings.
  */
-export interface EpubMetadata {
+interface EpubMetadata {
   title?: string;
   creator?: string;
   creatorFileAs?: string;
@@ -31,7 +31,7 @@ export interface EpubMetadata {
 }
 
 /** One table-of-contents entry, as `tableOfContents` reports it. */
-export interface EpubTocItem {
+interface EpubTocItem {
   id: string | undefined;
   title: string | undefined;
   href: string | undefined;
@@ -39,7 +39,7 @@ export interface EpubTocItem {
 }
 
 /** One chapter's text, as `extractChapters` reports it. */
-export interface EpubChapter {
+interface EpubChapter {
   id: string;
   title: string;
   href: string;

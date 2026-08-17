@@ -153,7 +153,7 @@ export function parseModelSpec(
   return { providerId: head.toLowerCase(), model: spec.slice(cut + 1) };
 }
 
-export interface SupervisorHandleInit {
+interface SupervisorHandleInit {
   config: SupervisorRunConfig;
   /**
    * The run's context — the supervisor's tools and its `supervisor:` memory
@@ -163,7 +163,7 @@ export interface SupervisorHandleInit {
   context: ProcessingContext;
 }
 
-export interface BuiltSupervisor {
+interface BuiltSupervisor {
   handle: SupervisorHandle;
   providerId: string;
   model: string;
@@ -252,7 +252,7 @@ export function printSupervisedSummary(
   write(formatSupervisedSummary(summarizeInterventions(interventions)));
 }
 
-export interface SupervisorCostAttribution {
+interface SupervisorCostAttribution {
   interventions: readonly Intervention[];
   jobId: string;
   workflowId: string | null;

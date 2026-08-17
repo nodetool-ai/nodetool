@@ -4,7 +4,6 @@
  * flag off hides both without touching tracks/clips.
  */
 
-import React from "react";
 import { act, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 

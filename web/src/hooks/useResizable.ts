@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 
-export interface ResizableSize {
+interface ResizableSize {
   width: number;
   height: number;
 }
@@ -9,7 +9,7 @@ export interface ResizableSize {
 /** Edges/corners that can initiate a resize (top-left stays anchored). */
 export type ResizeDirection = "right" | "bottom" | "bottom-right";
 
-export interface UseResizableOptions {
+interface UseResizableOptions {
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;

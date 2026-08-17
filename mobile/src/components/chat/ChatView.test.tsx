@@ -2,7 +2,6 @@
  * Tests for ChatView component
  */
 
-import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ChatView } from './ChatView';

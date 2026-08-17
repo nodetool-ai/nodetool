@@ -153,7 +153,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface CompositorBodyProps {
+interface CompositorBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -39,13 +39,23 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * A tool call together with what running it produced. The provider-facing
+ * `ToolCall` describes a call the model asked for and has no room for an
+ * answer, so the executed form is its own type rather than an intersection
+ * asserted onto the call at each use.
+ */
+export interface ExecutedToolCall extends ToolCall {
+  result: unknown;
+}
+
 export interface ChatCallbacks {
   /** Called for each text chunk streamed from the provider. */
   onChunk?: (text: string) => void;
   /** Called when a tool call is received from the provider. */
   onToolCall?: (toolCall: ToolCall) => void;
-  /** Called after a tool has been executed. */
-  onToolResult?: (toolCall: ToolCall, result: unknown) => void;
+  /** Called after a tool has been executed, with that call's result. */
+  onToolResult?: (toolCall: ToolCall, result: ExecutedToolCall["result"]) => void;
   /**
    * Called when the provider emits a session-continuity update. The caller
    * persists the token onto the assistant message so the next turn can resume.
@@ -64,7 +74,7 @@ export async function runTool(
   context: ProcessingContext,
   toolCall: ToolCall,
   tools: Tool[]
-): Promise<ToolCall> {
+): Promise<ExecutedToolCall> {
   const tool = tools.find((t) => t.name === toolCall.name);
   if (!tool) {
     throw new Error(`Tool "${toolCall.name}" not found`);
@@ -77,7 +87,7 @@ export async function runTool(
     name: toolCall.name,
     args: toolCall.args,
     result
-  } as ToolCall & { result: unknown };
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -85,11 +95,16 @@ export async function runTool(
 // ---------------------------------------------------------------------------
 
 function isChunk(item: ProviderStreamItem): item is Chunk {
-  return "type" in item && (item as Chunk).type === "chunk";
+  return "type" in item && item.type === "chunk";
 }
 
 function isToolCall(item: ProviderStreamItem): item is ToolCall {
   return "name" in item && "id" in item && !("type" in item);
+}
+
+/** A tool result that is already plain text, so it needs no JSON encoding. */
+function isTextResult(result: ExecutedToolCall["result"]): result is string {
+  return typeof result === "string";
 }
 
 /**
@@ -105,13 +120,17 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+/**
+ * Whether a value implements the `JSON.stringify` hook. By that protocol's
+ * contract `toJSON` returns something JSON-representable, which is what lets
+ * the serializer hand the result straight back.
+ */
+function hasToJson<T>(value: T): value is T & { toJSON: () => JsonValue } {
+  return value !== null && typeof value === "object" && "toJSON" in value;
+}
+
 export function defaultSerializer<T>(_key: string, value: T): T | JsonValue {
-  if (value !== null && typeof value === "object" && "toJSON" in value) {
-    // SAFETY: `toJSON` is the JSON.stringify protocol hook — it exists on the
-    // value and, by that contract, produces a JSON-representable result.
-    return (value as { toJSON: () => JsonValue }).toJSON();
-  }
-  return value;
+  return hasToJson(value) ? value.toJSON() : value;
 }
 
 /**
@@ -219,9 +238,7 @@ export async function processChat(opts: {
   const executeTool = async (
     toolCall: ToolCall
   ): Promise<string | MessageContent[]> => {
-    const executed = (await runTool(context, toolCall, tools)) as ToolCall & {
-      result: unknown;
-    };
+    const executed = await runTool(context, toolCall, tools);
     callbacks?.onToolResult?.(toolCall, executed.result);
 
     // A view-image-style result carries pixels the model asked for. Forward
@@ -232,7 +249,7 @@ export async function processChat(opts: {
       ? stripImagePayload(executed.result)
       : executed.result;
     const text = truncateToolResult(
-      typeof value === "string"
+      isTextResult(value)
         ? value
         : (JSON.stringify(value, defaultSerializer) ?? "")
     );
@@ -271,7 +288,9 @@ export async function processChat(opts: {
     }
     if (isChunk(item)) {
       if (item.thinking) continue;
-      if (typeof item.content !== "string") continue;
+      // A chunk's content is either text or raw audio samples; only text is
+      // streamed to the caller.
+      if (item.content instanceof Float32Array) continue;
       callbacks?.onChunk?.(item.content);
     }
   }

@@ -131,7 +131,7 @@ const styles = (theme: Theme) =>
 
 const ACCENT_FALLBACK: SynthAccent = "primary";
 
-export interface SynthModuleBodyProps {
+interface SynthModuleBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

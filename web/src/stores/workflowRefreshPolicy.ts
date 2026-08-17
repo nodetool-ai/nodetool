@@ -1,4 +1,4 @@
-export interface RefreshableWorkflowStore {
+interface RefreshableWorkflowStore {
   getState(): {
     workflowIsDirty: boolean;
     getWorkflow(): { updated_at?: string | null };

@@ -174,14 +174,14 @@ export type LayerEffectType =
 /**
  * A control point on a curves spline. Both axes range [0, 1].
  */
-export interface CurvePoint {
+interface CurvePoint {
   x: number;
   y: number;
 }
 
 // ─── Per-effect typed interfaces ──────────────────────────────────────────────
 
-export interface BrightnessContrastEffect {
+interface BrightnessContrastEffect {
   type: "brightness_contrast";
   enabled: boolean;
   params: {
@@ -192,7 +192,7 @@ export interface BrightnessContrastEffect {
   };
 }
 
-export interface HueSaturationEffect {
+interface HueSaturationEffect {
   type: "hue_saturation";
   enabled: boolean;
   params: {
@@ -205,7 +205,7 @@ export interface HueSaturationEffect {
   };
 }
 
-export interface ExposureEffect {
+interface ExposureEffect {
   type: "exposure";
   enabled: boolean;
   params: {
@@ -214,7 +214,7 @@ export interface ExposureEffect {
   };
 }
 
-export interface CurvesEffect {
+interface CurvesEffect {
   type: "curves";
   enabled: boolean;
   params: {
@@ -227,7 +227,7 @@ export interface CurvesEffect {
   };
 }
 
-export interface TonemapEffect {
+interface TonemapEffect {
   type: "tonemap";
   enabled: boolean;
   params: {
@@ -239,7 +239,7 @@ export interface TonemapEffect {
   };
 }
 
-export interface BloomEffect {
+interface BloomEffect {
   type: "bloom";
   enabled: boolean;
   params: {

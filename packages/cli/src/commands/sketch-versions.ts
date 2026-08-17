@@ -89,7 +89,7 @@ export interface SketchVersionStore {
   deleteVersion: (imageDocumentId: string, version: number) => Promise<void>;
 }
 
-export interface SketchVersionsDeps {
+interface SketchVersionsDeps {
   /** Defaults to the local database through `@nodetool-ai/models`. */
   store?: () => Promise<SketchVersionStore>;
   /** Defaults to `validateSketchDocument` from the sketch-debug core. */

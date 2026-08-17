@@ -11,7 +11,7 @@ import { useCurrentWorkspaceStore } from "../stores/CurrentWorkspaceStore";
  * workflow has no workspace assigned. Setting the workspace patches the
  * active workflow and remembers the choice for future new workflows.
  */
-export interface CurrentWorkspace {
+interface CurrentWorkspace {
   workspaceId: string | undefined;
   setWorkspaceId: (newWorkspaceId: string | undefined) => Promise<void>;
   hasActiveWorkflow: boolean;

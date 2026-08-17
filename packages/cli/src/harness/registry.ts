@@ -37,7 +37,7 @@ export type HarnessCapability =
   | "no-db" // can run hermetically, no database
   | "gated"; // wired into CI as a pass/fail gate
 
-export interface HarnessSelfcheck {
+interface HarnessSelfcheck {
   /** Keyless, deterministic, target-free invocation from the repo root. */
   command: string;
   /**
@@ -568,7 +568,7 @@ export const SURFACES: SurfaceEntry[] = [
   }
 ];
 
-export interface HarnessAuditResult {
+interface HarnessAuditResult {
   surfaces: Array<{
     id: string;
     title: string;
@@ -629,7 +629,7 @@ export function auditHarnessCoverage(
 // The gate: diff → touched surfaces → selfchecks to run.
 // ---------------------------------------------------------------------------
 
-export interface GateCheck {
+interface GateCheck {
   harnessId: string;
   command: string;
   cost: "cheap" | "expensive";

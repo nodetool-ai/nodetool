@@ -240,7 +240,7 @@ const WORK_PREFIXES = [
 ];
 
 /** One piece of media a live backend actually produced. */
-export interface GeneratedArtifact {
+interface GeneratedArtifact {
   kind: "style" | "keyframe" | "clip";
   /** Absolute path on disk, or undefined when the generation failed. */
   path?: string;

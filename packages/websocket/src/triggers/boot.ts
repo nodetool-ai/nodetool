@@ -54,7 +54,7 @@ export function triggersEnabled(): boolean {
   return !["1", "true", "yes", "on"].includes(raw.toLowerCase());
 }
 
-export interface StartTriggerServicesOptions {
+interface StartTriggerServicesOptions {
   /** Overrides the `NODETOOL_DISABLE_TRIGGERS` env check. */
   enabled?: boolean;
   /** Run the schedule adapter. Defaults to true. */
@@ -70,7 +70,7 @@ export interface StartTriggerServicesOptions {
   fileWatchIntervalMs?: number;
 }
 
-export interface TriggerServicesHandle {
+interface TriggerServicesHandle {
   /** False when the subsystem was opted out; every member is then inert. */
   readonly enabled: boolean;
   /** The wired DB-backed service, or `null` when disabled. */

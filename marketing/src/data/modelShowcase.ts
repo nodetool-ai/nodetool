@@ -42,7 +42,7 @@ export function promptExamplesForModel(
   return showcaseForModel(slug).slice(skip, skip + limit);
 }
 
-export interface DuelPair {
+interface DuelPair {
   duelId: string;
   prompt: string;
   /** Output for model `a`. */

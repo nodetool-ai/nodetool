@@ -40,14 +40,14 @@ const DOCUMENT_LABEL = {
   application: "app"
 } satisfies Record<SyncedDocumentType, string>;
 
-export interface DocumentChangeNotice {
+interface DocumentChangeNotice {
   event: "created" | "updated" | "deleted";
   id: string;
   /** The row's `updated_at` after the write, when the backend forwarded it. */
   updatedAt: string | null;
 }
 
-export interface DocumentSyncSubscriber {
+interface DocumentSyncSubscriber {
   /** The `updated_at` token the editor last read or wrote. */
   localRevision: () => string | null;
   /** Whether the editor holds edits the server has not accepted yet. */

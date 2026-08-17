@@ -104,7 +104,7 @@ function buildDisplayMarkdown(
   }
 }
 
-export interface PersistBinaryOptions {
+interface PersistBinaryOptions {
   /** Optional workspace key. When set, bytes are also stored in `context.workspaceStorage`. */
   outputFile?: string;
   /** MIME type for storage + UI resolution. */

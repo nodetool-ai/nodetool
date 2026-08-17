@@ -13,7 +13,7 @@ import { Property, NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { resolveExposedInputLabeledNames } from "../../utils/exposedInputs";
 
-export interface ExposedLabeledInputsProps {
+interface ExposedLabeledInputsProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

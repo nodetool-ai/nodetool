@@ -52,7 +52,7 @@ import type { UseCanvasActionsReturn } from "./useCanvasActions";
 import type { UseColorActionsReturn } from "./useColorActions";
 import type { UseSegmentationReturn } from "./useSegmentation";
 
-export interface UseEditorSessionParams {
+interface UseEditorSessionParams {
   initialDocument?: SketchDocument;
   initialEditorState?: SketchPersistenceSnapshot;
   /** Optional stable document id — forwarded to `useEditorLifecycle`. */
@@ -63,7 +63,7 @@ export interface UseEditorSessionParams {
 }
 
 /** Everything SketchEditor needs for one editing session. */
-export interface UseEditorSessionReturn
+interface UseEditorSessionReturn
   extends EditorLifecycleResult,
     UseHistoryActionsReturn {
   canvasRef: RefObject<SketchCanvasRef | null>;

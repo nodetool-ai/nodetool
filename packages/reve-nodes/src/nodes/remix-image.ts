@@ -7,8 +7,14 @@ import {
   reveGenerate,
   reveImageToRef,
   REVE_ASPECT_RATIOS,
-  REVE_POSTPROCESSING
+  REVE_POSTPROCESSING,
+  type ReveImageRef
 } from "../reve-base.js";
+
+/** Output handles RemixImageNode.process() emits. */
+type RemixImageNodeOutputs = {
+  output: ReveImageRef;
+};
 
 export class RemixImageNode extends BaseNode {
   static readonly nodeType = "reve.RemixImage";
@@ -92,7 +98,7 @@ export class RemixImageNode extends BaseNode {
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
-  ): Promise<Record<string, unknown>> {
+  ): Promise<RemixImageNodeOutputs> {
     const apiKey = getReveApiKey(this._secrets);
 
     const prompt = String(this.prompt ?? "");

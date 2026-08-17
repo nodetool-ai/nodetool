@@ -32,7 +32,7 @@ export interface ExtensionPageHandle {
   close(): Promise<void>;
 }
 
-export interface CreateExtensionPageOptions extends ExtensionCdpClientOptions {
+interface CreateExtensionPageOptions extends ExtensionCdpClientOptions {
   viewport?: { width: number; height: number };
 }
 

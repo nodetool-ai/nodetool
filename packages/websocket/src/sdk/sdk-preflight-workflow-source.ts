@@ -7,7 +7,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export interface CreateNodeToolSdkV1WorkflowSourceOptions {
+interface CreateNodeToolSdkV1WorkflowSourceOptions {
   registry: NodeRegistry;
   /**
    * Injectable for focused tests. Production uses Workflow.find, which

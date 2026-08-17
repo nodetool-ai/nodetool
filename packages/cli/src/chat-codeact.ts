@@ -64,7 +64,7 @@ class ExecuteCodeTool extends Tool {
   }
 }
 
-export interface CliCodeActTurn {
+interface CliCodeActTurn {
   /**
    * The tools handed to the provider: `execute_code`, the core tools, and
    * `view_image`.
@@ -75,7 +75,7 @@ export interface CliCodeActTurn {
   session: ChatCodeActSession;
 }
 
-export interface CliCodeActTurnOptions {
+interface CliCodeActTurnOptions {
   /** The full local toolbelt; it lives inside the sandbox. */
   tools: Tool[];
   context: ProcessingContext;

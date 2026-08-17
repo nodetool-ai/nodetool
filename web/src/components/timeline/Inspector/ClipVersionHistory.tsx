@@ -190,7 +190,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
 );
 VersionTile.displayName = "VersionTile";
 
-export interface ClipVersionHistoryProps {
+interface ClipVersionHistoryProps {
   clipId: string;
 }
 

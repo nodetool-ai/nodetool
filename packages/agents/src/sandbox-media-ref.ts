@@ -52,7 +52,7 @@ export const MAX_DATA_URI_BYTES = 4 * 1024 * 1024;
 export type MediaRefKind = "document" | "image" | "audio" | "video";
 
 /** What `media.info` answers. */
-export interface MediaRefInfo {
+interface MediaRefInfo {
   type: string;
   mimeType: string;
   uri: string;
@@ -60,7 +60,7 @@ export interface MediaRefInfo {
 }
 
 /** The host side of the guest's `media` namespace. */
-export interface MediaRefBridge {
+interface MediaRefBridge {
   bytes(ref: unknown): Promise<GuestBytes>;
   text(ref: unknown, options?: unknown): Promise<string>;
   info(ref: unknown): Promise<MediaRefInfo>;
@@ -484,7 +484,7 @@ function withoutContext(member: string): never {
 }
 
 /** What a host supplies alongside the context when it builds the bridge. */
-export interface MediaRefBridgeOptions {
+interface MediaRefBridgeOptions {
   /**
    * Resolve a guest-supplied filesystem path to the one path this run may
    * read, or throw. The sandbox passes its own `resolveGuestPath`, so

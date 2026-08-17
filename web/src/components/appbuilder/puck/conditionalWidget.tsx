@@ -17,7 +17,7 @@ import {
   useFormatted
 } from "../runtime/AppRuntimeContext";
 
-export interface ConditionalProps {
+interface ConditionalProps {
   visibleWhen?: ConditionProps;
   disabledWhen?: ConditionProps;
   /** `{binding|filter}` template rendered in place of the bound raw value. */

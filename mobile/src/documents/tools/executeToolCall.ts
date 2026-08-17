@@ -23,7 +23,7 @@ export interface ToolCallMessage {
  * The subset of the socket this needs. Shaped to match `WebSocketManager.send`,
  * whose constraint is a tagged object.
  */
-export interface ToolResultSender {
+interface ToolResultSender {
   send: (message: { type: string; [key: string]: unknown }) => void;
 }
 

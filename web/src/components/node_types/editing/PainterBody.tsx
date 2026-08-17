@@ -323,7 +323,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface PainterBodyProps {
+interface PainterBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

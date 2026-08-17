@@ -33,7 +33,7 @@ export type ClipGenerationStatus =
   | "failed"
   | "completed";
 
-export interface ClipJobState {
+interface ClipJobState {
   clipId: string;
   jobId: string;
   /** The workflowId associated with the clip at job submission time. */

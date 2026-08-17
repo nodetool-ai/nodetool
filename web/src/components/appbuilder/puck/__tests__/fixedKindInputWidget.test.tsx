@@ -3,7 +3,6 @@
  * and routes it through the editor's property resolver, so the check that
  * matters is that a kind lands on its real editor rather than on a text box.
  */
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 

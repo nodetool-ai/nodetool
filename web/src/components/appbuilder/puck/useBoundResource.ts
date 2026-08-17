@@ -18,7 +18,7 @@ import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 
 export type ResourceItem = RouterOutputs["resources"]["list"][number];
 
-export interface BoundResource {
+interface BoundResource {
   /** The declared binding, or undefined when the widget names none. */
   binding: ResourceBinding | undefined;
   items: ResourceItem[];

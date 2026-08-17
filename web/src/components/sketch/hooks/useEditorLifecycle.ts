@@ -46,7 +46,7 @@ function readCanvasResizeHandlesEnabled(): boolean {
   }
 }
 
-export interface UseEditorLifecycleParams {
+interface UseEditorLifecycleParams {
   initialDocument: SketchDocument | undefined;
   initialEditorState?: SketchPersistenceSnapshot;
   /**

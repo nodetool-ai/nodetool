@@ -13,13 +13,12 @@ import { normalizeDynamicSlot } from "../../utils/dynamicSlots";
 import { inferredCodeInputNamesFromData } from "../../utils/codeNodeHandles";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 
-
 const rootCss = css({
   marginTop: "1em",
   marginBottom: "0.5em"
 });
 
-export interface NodeInputsProps {
+interface NodeInputsProps {
   id: string;
   layout?: string;
   nodeType: string;

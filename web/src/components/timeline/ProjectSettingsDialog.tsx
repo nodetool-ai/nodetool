@@ -73,7 +73,7 @@ const isValidFps = (n: number): boolean =>
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export interface ProjectSettingsDialogProps {
+interface ProjectSettingsDialogProps {
   open: boolean;
   onClose: () => void;
 }

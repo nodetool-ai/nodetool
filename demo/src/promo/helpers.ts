@@ -18,7 +18,7 @@ export interface CameraKey {
 }
 
 /** A rectangle in graph coordinates. */
-export interface GraphRect {
+interface GraphRect {
   x0: number;
   y0: number;
   x1: number;

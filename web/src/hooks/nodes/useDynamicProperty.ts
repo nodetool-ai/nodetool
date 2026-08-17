@@ -8,7 +8,7 @@ import {
   valueFitsType
 } from "../../utils/dynamicSlots";
 
-export interface UseDynamicPropertyResult {
+interface UseDynamicPropertyResult {
   handleDeleteProperty: (propertyName: string) => void;
   /**
    * Create a slot. With a `type` the slot is declared in `dynamic_inputs` and

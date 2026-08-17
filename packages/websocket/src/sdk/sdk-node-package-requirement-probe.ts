@@ -1,7 +1,7 @@
 import type { SdkV1Requirement } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import type { SdkV1RequirementAvailability } from "./sdk-static-preflight-service.js";
 
-export interface CreateNodeToolSdkV1NodePackageProbeOptions {
+interface CreateNodeToolSdkV1NodePackageProbeOptions {
   userId: string;
   timeoutMs?: number;
   /**

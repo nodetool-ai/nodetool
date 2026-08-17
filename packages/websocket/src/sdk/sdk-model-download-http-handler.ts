@@ -8,7 +8,7 @@ import {
   type SdkV1ModelDownloadService
 } from "./sdk-model-download-service.js";
 
-export interface HandleSdkV1ModelDownloadOptions {
+interface HandleSdkV1ModelDownloadOptions {
   service: SdkV1ModelDownloadService;
   getUserId: (request: Request) => string;
   onInternalError?: (error: unknown) => void;

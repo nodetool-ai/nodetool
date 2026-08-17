@@ -94,7 +94,7 @@ export function emptyJsScriptDocument(): JsScriptDocument {
 
 // ── Document-level validation ───────────────────────────────────────────────
 
-export interface JsScriptDocumentIssue {
+interface JsScriptDocumentIssue {
   severity: "error" | "warning";
   code: string;
   message: string;

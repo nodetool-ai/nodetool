@@ -25,6 +25,7 @@
  */
 
 import type { Platform, ProcessingMessage } from "@nodetool-ai/protocol";
+import type { RunResult } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { ProcessingContext } from "@nodetool-ai/runtime/context";
 import { runWorkflow, type GraphData, type RunWorkflowOptions } from "./run.js";
@@ -66,7 +67,8 @@ export interface CreateWorkflowHandlerOptions {
 
 export interface WorkflowRequestBody {
   graph: GraphData;
-  params?: Record<string, unknown>;
+  /** The run's params, exactly as `runWorkflow` takes them. */
+  params?: RunWorkflowOptions["params"];
   workflow_id?: string;
   job_id?: string;
 }
@@ -81,12 +83,15 @@ export function createWorkflowHandler(
 
     let body: WorkflowRequestBody;
     try {
+      // SAFETY: an untrusted HTTP body. Nothing is read from it before the
+      // object/`graph` check below, and the graph itself is validated against
+      // the node registry by `runWorkflow`, which rejects an unknown node type.
       body = (await req.json()) as WorkflowRequestBody;
     } catch {
       return jsonError(400, "invalid_json");
     }
 
-    if (!body || typeof body !== "object" || !body.graph) {
+    if (!isObjectBody(body) || !body.graph) {
       return jsonError(400, "missing_graph");
     }
 
@@ -151,24 +156,32 @@ export function createWorkflowHandler(
   };
 }
 
-function formatSse(event: string | null, data: unknown): string {
+/** Whether a decoded JSON body arrived as an object at all. */
+function isObjectBody<T>(body: T): body is T & object {
+  return typeof body === "object" && body !== null;
+}
+
+/** Everything this handler streams: run messages, the final result, an error. */
+type SseData = ProcessingMessage | RunResult | { message: string };
+
+function formatSse(event: string | null, data: SseData): string {
   const payload = JSON.stringify(data);
   const prefix = event ? `event: ${event}\n` : "";
   return `${prefix}data: ${payload}\n\n`;
 }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  method_not_allowed: "POST required",
-  invalid_json: "Body must be valid JSON",
-  missing_graph: "Body must include a `graph`",
-  before_run_failed: "beforeRun hook failed"
-};
+const ERROR_MESSAGES = new Map<string, string>([
+  ["method_not_allowed", "POST required"],
+  ["invalid_json", "Body must be valid JSON"],
+  ["missing_graph", "Body must include a `graph`"],
+  ["before_run_failed", "beforeRun hook failed"]
+]);
 
 function jsonError(status: number, code: string): Response {
   return new Response(
     JSON.stringify({
       error: code,
-      message: ERROR_MESSAGES[code] ?? "Request failed"
+      message: ERROR_MESSAGES.get(code) ?? "Request failed"
     }),
     {
       status,

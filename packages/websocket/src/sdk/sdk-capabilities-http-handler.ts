@@ -1,7 +1,7 @@
 import type { SdkV1Capabilities } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
 
-export interface HandleSdkV1CapabilitiesOptions {
+interface HandleSdkV1CapabilitiesOptions {
   getCapabilities: () => Promise<SdkV1Capabilities> | SdkV1Capabilities;
   environment?: NodeJS.ProcessEnv;
   onInternalError?: (error: unknown) => void;

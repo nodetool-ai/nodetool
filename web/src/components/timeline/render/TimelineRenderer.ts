@@ -53,7 +53,7 @@ export interface RenderProgress {
   ratio: number;
 }
 
-export interface RenderTimelineOptions {
+interface RenderTimelineOptions {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   /** Sequence resolution in pixels. */

@@ -33,7 +33,7 @@ export type LayerRasterBounds = {
 
 export type ExportedRasterLayerSourceMetadata = SegmentationSourceMetadata;
 
-export interface ExportedRasterLayerData {
+interface ExportedRasterLayerData {
   imageDataUrl: string;
   byteLength: number;
   sourceMetadata: ExportedRasterLayerSourceMetadata;
@@ -384,7 +384,7 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-export interface ImageLoadResult {
+interface ImageLoadResult {
   data: string;
   naturalWidth: number;
   naturalHeight: number;

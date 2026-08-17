@@ -76,7 +76,7 @@ Respond with ONLY a single JSON object and nothing else — no preamble, no expl
 {"block": true|false, "tier": "hard"|"soft"|"none", "severity": "low"|"medium"|"high"|"critical", "reason": "one short sentence"}
 When you allow, use {"block": false, "tier": "none", "severity": "low", "reason": ""}. The reason must be one short sentence and must never restate sensitive data.`;
 
-export interface SecurityMonitorUserPromptParams {
+interface SecurityMonitorUserPromptParams {
   /** The tool name about to run. */
   name: string;
   /** Permission category of the tool (read/write/execute/external). */

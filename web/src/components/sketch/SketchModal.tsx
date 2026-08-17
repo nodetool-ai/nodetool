@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
     },
   });
 
-export interface SketchModalProps {
+interface SketchModalProps {
   open: boolean;
   title?: string;
   initialDocument?: SketchDocument;

@@ -14,7 +14,7 @@ export type EditableGeometryType =
   | "CylinderGeometry"
   | "TorusGeometry";
 
-export interface GeometryParamSpec {
+interface GeometryParamSpec {
   /** Key on `geometry.parameters` and the constructor argument. */
   key: string;
   label: string;

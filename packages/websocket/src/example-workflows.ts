@@ -3,7 +3,7 @@ import nodePath from "node:path";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { isString } from "./lib/wire-values.js";
 
-export interface ExampleWorkflowLoadOptions {
+interface ExampleWorkflowLoadOptions {
   examplesDir?: string;
   /** Fallback thumbnail directory when the sibling of examplesDir has no JPGs. */
   examplesAssetsFallbackDir?: string;

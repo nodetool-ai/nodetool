@@ -236,23 +236,31 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 16,297 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 15,918 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
-The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
-58 trees is 522 pairs, and 228 of them are already at zero — so a rule still
+The unit of enforcement is a **(rule, tree) pair**, not a rule. Eight rules over
+58 trees is 464 pairs, and 210 of them are already at zero — so a rule still
 thousands of findings deep across the repo is nonetheless finished in forty
 packages, and those forty are ratcheted today rather than after the last one
 lands. Six rules are at zero everywhere and sit in the enforced config's top-level
 `rules`; the rest are enforced per-path, one override block per rule listing the
 trees at zero for it.
 
+`.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
+one tree, regenerate the overrides, and induce a failure to prove the new ones
+bite. It opens a PR; it merges nothing.
+
 Those override blocks are generated, never hand-edited:
-`npm run lint:anti-slop:count` prints the table below, `:write` regenerates the
-overrides from a fresh measurement, and `:check` fails when the config and the
-measurement disagree. Hand-maintaining them is how the numbers here drifted
+`npm run lint:anti-slop:count` prints the table below, `:targets` adds the
+trees closest to zero and the cheapest remaining pairs, `:write` regenerates
+the overrides from a fresh measurement, and `:check` fails when the config and
+the measurement disagree. Read the counts off `:targets` rather than off a raw
+`oxlint` run — oxlint's own default rules report through the same channel, so
+counting diagnostics instead of `anti-slop(...)` codes overstates a tree by
+several times. Hand-maintaining them is how the numbers here drifted
 before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
@@ -292,13 +300,12 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7002 | 3 / 58 |
-| `no-unsafe-dictionary-type` | 4240 | 5 / 58 |
-| `no-unknown-parameters` | 1891 | 8 / 58 |
+| `require-safety-comment-for-type-assertion` | 6982 | 9 / 58 |
+| `no-unsafe-dictionary-type` | 4227 | 9 / 58 |
+| `no-unknown-parameters` | 1882 | 13 / 58 |
 | `no-module-mocking` | 1427 | 55 / 58 |
-| `no-known-value-widening` | 663 | 12 / 58 |
-| `no-runtime-typeof` | 537 | 13 / 58 |
-| `no-hand-written-any` | 302 | 44 / 58 |
+| `no-known-value-widening` | 657 | 17 / 58 |
+| `no-runtime-typeof` | 508 | 19 / 58 |
 | `no-unknown-returns` | 191 | 42 / 58 |
 | `no-chained-type-assertions` | 44 | 46 / 58 |
 

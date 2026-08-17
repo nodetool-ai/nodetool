@@ -312,7 +312,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
   );
 };
 
-export interface ClipAnimationsProps {
+interface ClipAnimationsProps {
   clip: TimelineClip;
 }
 

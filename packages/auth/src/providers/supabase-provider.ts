@@ -10,6 +10,13 @@
 
 import { createHash } from "node:crypto";
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
+import {
+  isJsonObject,
+  readIdentifier,
+  readString,
+  type JsonObject,
+  type JsonValue
+} from "../json-wire.js";
 
 /** The slice of the GoTrue user object we consume. */
 interface GoTrueUser {
@@ -32,13 +39,18 @@ interface SupabaseAuthClient {
   };
 }
 
-/** Extract a human-readable message from a GoTrue error body. */
-function readGoTrueErrorMessage(body: unknown, status: number): string {
-  if (body && typeof body === "object") {
-    const obj = body as Record<string, unknown>;
-    for (const field of ["msg", "message", "error_description", "error"]) {
-      const val = obj[field];
-      if (typeof val === "string" && val) return val;
+/** The spellings GoTrue uses for an error message, most specific first. */
+const GOTRUE_ERROR_FIELDS = ["msg", "message", "error_description", "error"];
+
+/** Extract a human-readable message from a decoded GoTrue error body. */
+function readGoTrueErrorMessage(
+  body: JsonObject | null,
+  status: number
+): string {
+  if (body !== null) {
+    for (const field of GOTRUE_ERROR_FIELDS) {
+      const message = readString(body, field);
+      if (message !== undefined) return message;
     }
   }
   return `Supabase auth request failed with status ${status}`;
@@ -65,9 +77,12 @@ function createGoTrueClient(
           }
         });
 
-        let body: unknown = null;
+        // The body is untrusted network JSON. Decode it to the wire shape
+        // here, at the boundary, so no read below works on `unknown`.
+        let body: JsonObject | null = null;
         try {
-          body = await response.json();
+          const decoded: JsonValue = await response.json();
+          body = isJsonObject(decoded) ? decoded : null;
         } catch {
           // Non-JSON body (e.g. empty 5xx) — handled below via status.
         }
@@ -81,10 +96,8 @@ function createGoTrueClient(
           };
         }
 
-        const user =
-          body && typeof body === "object" && "id" in body
-            ? { id: String(body.id) }
-            : null;
+        const id = body === null ? undefined : readIdentifier(body, "id");
+        const user = id === undefined ? null : { id };
         return { data: { user }, error: null };
       }
     }
@@ -200,12 +213,14 @@ export class SupabaseAuthProvider extends AuthProvider {
       const { data, error } = await client.auth.getUser(token);
 
       if (error) {
-        // `error` is truthy here, so it cannot be null — no null guard needed.
-        const errMsg =
-          typeof error === "object" && "message" in error
-            ? String(error.message)
-            : String(error);
-        return { ok: false, error: errMsg };
+        // `error` is truthy here, so it cannot be null. Its declared shape is
+        // `{ message }`, but this client is injectable and the tests feed it
+        // strings, numbers and message-less objects, so render whatever
+        // arrived rather than trusting the declaration.
+        const message = isJsonObject(error)
+          ? readIdentifier(error, "message")
+          : undefined;
+        return { ok: false, error: message ?? String(error) };
       }
 
       const user = data?.user;

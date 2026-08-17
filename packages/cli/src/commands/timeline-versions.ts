@@ -90,7 +90,7 @@ export interface TimelineVersionStore {
   deleteVersion: (timelineId: string, version: number) => Promise<void>;
 }
 
-export interface TimelineVersionsDeps {
+interface TimelineVersionsDeps {
   /** Defaults to the local database through `@nodetool-ai/models`. */
   store?: () => Promise<TimelineVersionStore>;
   /** Defaults to `@nodetool-ai/execution/timeline-debug`. */

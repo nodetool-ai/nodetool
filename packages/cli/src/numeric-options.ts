@@ -12,7 +12,7 @@
  */
 import { InvalidArgumentError } from "commander";
 
-export interface NumericOptionConstraints {
+interface NumericOptionConstraints {
   /** Reject values below this bound (inclusive). */
   min?: number;
   /** Reject values above this bound (inclusive). */

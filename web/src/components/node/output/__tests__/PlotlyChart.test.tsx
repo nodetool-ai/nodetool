@@ -1,4 +1,3 @@
-import React from "react";
 import { render, waitFor, cleanup } from "@testing-library/react";
 import type { Data, Frame } from "plotly.js";
 

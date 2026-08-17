@@ -20,7 +20,7 @@ import type {
  * drag-to-canvas remain for adding them again or placing them by hand.
  * Generation routes through the normal chat pipeline.
  */
-export interface CanvasMediaComposerProps {
+interface CanvasMediaComposerProps {
   /** Workflow controls (Run button + menu) rendered inside the composer
    *  footer. Supplied by FloatingToolBar; kept here so the canvas composer
    *  stays a thin wrapper over MediaChatComposer. */

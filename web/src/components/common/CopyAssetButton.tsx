@@ -173,7 +173,7 @@ async function convertToPngBlob(blob: Blob): Promise<Blob> {
   });
 }
 
-export interface CopyAssetButtonProps {
+interface CopyAssetButtonProps {
   /**
    * The MIME type of the asset (e.g., "image/png", "text/plain")
    */

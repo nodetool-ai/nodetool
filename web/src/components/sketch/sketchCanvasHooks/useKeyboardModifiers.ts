@@ -7,7 +7,7 @@
 
 import { useEffect, useRef } from "react";
 
-export interface UseKeyboardModifiersResult {
+interface UseKeyboardModifiersResult {
   shiftHeldRef: React.MutableRefObject<boolean>;
   altHeldRef: React.MutableRefObject<boolean>;
   spaceHeldRef: React.MutableRefObject<boolean>;

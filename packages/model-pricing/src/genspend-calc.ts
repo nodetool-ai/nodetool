@@ -59,7 +59,7 @@ export interface ModelParamPrice extends ModelUnitPricingLike {
  * and the stored row are pushed through this, so the two always compare in one
  * vocabulary.
  */
-const RESOLUTION_TIERS: Record<string, string> = {
+const RESOLUTION_TIERS = new Map<string, string>(Object.entries({
   "360p": "360p",
   "480p": "480p",
   "540p": "480p",
@@ -86,11 +86,11 @@ const RESOLUTION_TIERS: Record<string, string> = {
   "2048": "2K",
   "2048x2048": "2K",
   "4096": "4K"
-};
+}));
 
 /** Normalize a resolution to a tier, or null when it names none we know. */
-export function normalizeResolution(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+export function normalizeResolution(value: string | undefined): string | null {
+  if (value === undefined) return null;
   // Collapse whitespace runs before touching the separators: an unbounded
   // `\s*` on both sides of the class backtracks polynomially (CodeQL).
   const key = value
@@ -99,7 +99,7 @@ export function normalizeResolution(value: unknown): string | null {
     .replace(/\s+/g, " ")
     .replace(/ ?[x*×] ?/g, "x");
   if (!key) return null;
-  return RESOLUTION_TIERS[key] ?? null;
+  return RESOLUTION_TIERS.get(key) ?? null;
 }
 
 const PER_SECOND_CLASSES = new Set(["per-video-second", "per-audio-second"]);
@@ -200,10 +200,7 @@ function selectRow(
 
   // Audio is a billing axis worth up to 2×. Unset, the honest default is
   // whatever the base spec delivers — not the cheaper of the two.
-  const wantAudio =
-    typeof params.withAudio === "boolean"
-      ? params.withAudio
-      : (baseRow?.with_audio ?? null);
+  const wantAudio = params.withAudio ?? baseRow?.with_audio ?? null;
   if (wantAudio !== null) {
     const audio = candidates.filter((row) => row.with_audio === wantAudio);
     if (audio.length > 0) candidates = audio;
@@ -245,12 +242,9 @@ export function priceGenspendEntry(
     );
   }
 
+  const askedSeconds = params.seconds ?? 0;
   const statedSeconds =
-    typeof params.seconds === "number" &&
-    Number.isFinite(params.seconds) &&
-    params.seconds > 0
-      ? params.seconds
-      : null;
+    Number.isFinite(askedSeconds) && askedSeconds > 0 ? askedSeconds : null;
 
   const clip = "clip_seconds" in entry ? entry.clip_seconds : undefined;
   if (statedSeconds !== null && clip !== undefined) {
@@ -306,11 +300,10 @@ export function priceGenspendEntry(
   // A re-rate replaces the generation cost rather than adding to it, and is
   // scoped by resolution. No row for the requested resolution declines the
   // re-rate — never another rung — leaving the generation cost as a floor.
-  const refVideoSeconds =
-    typeof params.referenceVideoSeconds === "number" &&
-    Number.isFinite(params.referenceVideoSeconds)
-      ? params.referenceVideoSeconds
-      : 0;
+  const statedRefVideoSeconds = params.referenceVideoSeconds ?? 0;
+  const refVideoSeconds = Number.isFinite(statedRefVideoSeconds)
+    ? statedRefVideoSeconds
+    : 0;
   if (refVideoSeconds > 0) {
     const rates = surcharges.filter((s) => s.kind === "input_video_second");
     const rate =
@@ -332,11 +325,8 @@ export function priceGenspendEntry(
     }
   }
 
-  const refImages =
-    typeof params.referenceImages === "number" &&
-    Number.isFinite(params.referenceImages)
-      ? params.referenceImages
-      : 0;
+  const statedRefImages = params.referenceImages ?? 0;
+  const refImages = Number.isFinite(statedRefImages) ? statedRefImages : 0;
   if (refImages > 0) {
     const surcharge = surcharges.find((s) => s.kind === "input_image");
     if (surcharge) {

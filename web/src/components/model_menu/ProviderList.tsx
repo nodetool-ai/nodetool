@@ -519,7 +519,7 @@ type ProviderStoreHook = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
-export interface ProviderListProps {
+interface ProviderListProps {
   providers: string[];
   isLoading: boolean;
   isError: boolean;

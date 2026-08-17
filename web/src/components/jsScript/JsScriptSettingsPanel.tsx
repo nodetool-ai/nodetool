@@ -24,7 +24,7 @@ import {
 import JsScriptPortsEditor from "./JsScriptPortsEditor";
 import JsScriptSecretsEditor from "./JsScriptSecretsEditor";
 
-export interface JsScriptSettingsPanelProps {
+interface JsScriptSettingsPanelProps {
   scriptId: string;
   readOnly?: boolean;
 }

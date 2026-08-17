@@ -14,7 +14,7 @@ import { templateCatalog, type CatalogCategory } from "./templateCatalog.generat
  * internal links.
  */
 
-export interface IdeaCategory extends CatalogCategory {
+interface IdeaCategory extends CatalogCategory {
   route: string;
 }
 

@@ -32,7 +32,7 @@ type RequirementResolverOptions = Omit<
   "userId"
 >;
 
-export interface CreateNodeToolSdkV1PreflightServiceOptions {
+interface CreateNodeToolSdkV1PreflightServiceOptions {
   registry: NodeRegistry;
   workflowSource?: SdkV1AuthorizedWorkflowSource;
   requirementResolverOptions?: RequirementResolverOptions;
@@ -92,7 +92,7 @@ export interface CreateNodeToolSdkV1PreflightServiceOptions {
   ) => Promise<readonly string[]> | readonly string[];
 }
 
-export interface NodeToolSdkV1PreflightService {
+interface NodeToolSdkV1PreflightService {
   preflight(input: {
     request: SdkV1PreflightRequest;
     principal: SdkV1PreflightPrincipal;

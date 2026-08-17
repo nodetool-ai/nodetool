@@ -28,7 +28,7 @@ import { syncLineClipToTimeline } from "./timelineSync";
 import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 /** Speech-to-text default for word-level take timing (best-effort). */
-export interface AsrConfig {
+interface AsrConfig {
   provider: string;
   model: string;
 }

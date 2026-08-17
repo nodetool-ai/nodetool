@@ -18,7 +18,7 @@ import {
 } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
-export interface TransformContextMenuProps {
+interface TransformContextMenuProps {
   open: boolean;
   position: { x: number; y: number } | null;
   onClose: () => void;

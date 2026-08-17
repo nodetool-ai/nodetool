@@ -103,7 +103,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   );
 };
 
-export interface ToolToggleProps {
+interface ToolToggleProps {
   /** Phone toolbar: icon-only buttons on a 28px touch target. */
   compact?: boolean;
 }

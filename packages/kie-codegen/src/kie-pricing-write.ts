@@ -11,13 +11,13 @@ import {
   type KieModelPricingSummary,
 } from "@nodetool-ai/kie-nodes/kie-pricing-api";
 
-export interface KieManifestPricingEntry {
+interface KieManifestPricingEntry {
   className: string;
   moduleName: string;
   modelId: string;
 }
 
-export interface KieUnitPricingEntry {
+interface KieUnitPricingEntry {
   model_id: string;
   unit_price: number;
   billing_unit: string;
@@ -33,7 +33,7 @@ export interface KieUnitPricingCatalog {
   prices: Record<string, KieModelPricingSummary>;
 }
 
-export interface KieNodeTypePricingBundle {
+interface KieNodeTypePricingBundle {
   schemaVersion: number;
   writtenAt: string;
   byNodeType: Record<string, KieUnitPricingEntry>;

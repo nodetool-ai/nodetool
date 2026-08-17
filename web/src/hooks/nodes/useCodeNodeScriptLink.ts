@@ -39,7 +39,7 @@ export interface JsScriptLink {
   version: number;
 }
 
-export interface CodeNodeScriptLinkState {
+interface CodeNodeScriptLinkState {
   link: JsScriptLink | null;
   linkedName: string | null;
   /** Pick a script and pin its current content as a version. */

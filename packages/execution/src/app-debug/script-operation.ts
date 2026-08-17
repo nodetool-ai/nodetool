@@ -37,7 +37,7 @@ export type JsScriptOperationRunner = (input: {
 }) => Promise<JsScriptRunResult>;
 
 /** How one invocation's mapped values reach the body. */
-export interface JsScriptInvocation {
+interface JsScriptInvocation {
   inputs: Record<string, unknown>;
   inputStreams?: Record<string, unknown[]>;
 }

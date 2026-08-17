@@ -390,7 +390,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface SketchLayersPanelProps {
+interface SketchLayersPanelProps {
   foregroundColor: string;
   onForegroundColorChange: (color: string) => void;
   showColorPicker?: boolean;

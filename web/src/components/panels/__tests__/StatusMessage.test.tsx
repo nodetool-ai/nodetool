@@ -13,7 +13,6 @@
  * - Has correct CSS classes and MUI Typography props
  */
 
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import StatusMessage from "../StatusMessage";

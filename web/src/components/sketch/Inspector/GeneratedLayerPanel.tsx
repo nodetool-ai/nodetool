@@ -31,7 +31,7 @@ import { GeneratedLayerHeader } from "./GeneratedLayerHeader";
 import { LayerActions } from "./LayerActions";
 import { LayerVersionList } from "./LayerVersionList";
 
-export interface GeneratedLayerPanelProps {
+interface GeneratedLayerPanelProps {
   layer: Layer;
 }
 

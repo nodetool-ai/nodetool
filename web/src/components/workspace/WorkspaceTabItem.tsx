@@ -19,7 +19,7 @@ import {
   MenuItemPrimitive
 } from "../ui_primitives";
 
-export interface WorkspaceTabItemProps {
+interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
   isEditing: boolean;

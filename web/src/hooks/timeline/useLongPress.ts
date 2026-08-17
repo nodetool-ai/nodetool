@@ -27,21 +27,21 @@ export interface LongPressPoint {
  * Structural shape shared by React's synthetic pointer event and the DOM's —
  * clip drags track movement through window listeners, so both reach `move`.
  */
-export interface LongPressSource {
+interface LongPressSource {
   clientX: number;
   clientY: number;
   pointerType: string;
   target: EventTarget | null;
 }
 
-export interface UseLongPressOptions {
+interface UseLongPressOptions {
   /** Hold duration before the press counts. */
   delayMs?: number;
   /** Movement past this cancels the hold and lets the drag win. */
   moveTolerancePx?: number;
 }
 
-export interface LongPressHandlers {
+interface LongPressHandlers {
   start: (e: LongPressSource) => void;
   move: (e: Pick<LongPressSource, "clientX" | "clientY">) => void;
   cancel: () => void;

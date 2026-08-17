@@ -44,7 +44,7 @@ import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipVersionHistory } from "./ClipVersionHistory";
 
-export interface GeneratedClipPanelProps {
+interface GeneratedClipPanelProps {
   clipId: string;
 }
 

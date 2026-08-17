@@ -10,7 +10,7 @@
 
 export type VariableSyntax = "double" | "single";
 
-export interface TemplateVariableMatch {
+interface TemplateVariableMatch {
   name: string;
   syntax: VariableSyntax;
   /** Character offset of the first brace in the source. */

@@ -4,7 +4,7 @@ export interface HarmonyMessage {
   content: string;
 }
 
-export interface ParsedHarmonyContent {
+interface ParsedHarmonyContent {
   messages: HarmonyMessage[];
   rawText: string;
 }

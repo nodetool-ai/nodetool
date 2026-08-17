@@ -80,7 +80,7 @@ const TRACK_TYPES: TrackTypeOption[] = [
   }
 ];
 
-export interface AddTrackButtonProps {
+interface AddTrackButtonProps {
   /** Phone toolbar: drop the "Track" label, keep the icon and a 28px target. */
   compact?: boolean;
 }

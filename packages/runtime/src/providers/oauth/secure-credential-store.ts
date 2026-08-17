@@ -32,7 +32,7 @@ export interface KeyringBackend {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
-export interface KeychainCredentialStoreOptions {
+interface KeychainCredentialStoreOptions {
   /** Keychain service namespace. */
   readonly service?: string;
   /** Inject a backend (tests / custom keyrings). Defaults to lazy `keytar`. */

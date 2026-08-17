@@ -19,8 +19,7 @@
 type ModuleNamespace = object;
 
 export const IS_NODE =
-  typeof process !== "undefined" &&
-  typeof process.versions?.node === "string";
+  typeof process !== "undefined" && process.versions?.node != null;
 
 /**
  * `process` is undefined in browser/edge runtimes, where a bare `process.env`
@@ -34,9 +33,7 @@ export const safeProcessEnv = (): Record<string, string | undefined> =>
 
 /** `process.platform`, or `""` where there is no `process`. */
 export const safeProcessPlatform = (): string =>
-  typeof process !== "undefined" && typeof process.platform === "string"
-    ? process.platform
-    : "";
+  typeof process !== "undefined" ? (process.platform ?? "") : "";
 
 /**
  * Dynamic import that bundlers can't statically resolve.
@@ -105,6 +102,20 @@ interface GlobalWithRequire {
   require?: BuiltinRequire;
 }
 
+/** Whether this Node build exposes the `process.getBuiltinModule` accessor. */
+function hasGetBuiltinModule(
+  proc: NodeProcessGlobal | undefined
+): proc is { getBuiltinModule: BuiltinRequire } {
+  return typeof proc?.getBuiltinModule === "function";
+}
+
+/** Whether this module was loaded from a CJS bundle, which carries `require`. */
+function hasCjsRequire(
+  global: GlobalWithRequire
+): global is { require: BuiltinRequire } {
+  return typeof global.require === "function";
+}
+
 export function getNodeBuiltinSync<T>(name: string): T | null {
   if (!IS_NODE) return null;
   try {
@@ -112,16 +123,16 @@ export function getNodeBuiltinSync<T>(name: string): T | null {
     // `@types/node` `Process` this repo compiles against; the guard below is
     // what decides whether it is really there.
     const proc = globalThis.process as NodeProcessGlobal | undefined;
-    if (typeof proc?.getBuiltinModule === "function") {
+    if (hasGetBuiltinModule(proc)) {
       // SAFETY: `T` is the namespace shape the caller names for `name`.
       return proc.getBuiltinModule(name) as T;
     }
     // SAFETY: `require` exists only when this module is loaded from a CJS
     // bundle, so it is not on the ESM `globalThis` type; the guard decides.
-    const cjsRequire = (globalThis as GlobalWithRequire).require;
-    if (typeof cjsRequire === "function") {
+    const globalScope = globalThis as GlobalWithRequire;
+    if (hasCjsRequire(globalScope)) {
       // SAFETY: `T` is the export shape the caller names for `name`.
-      return cjsRequire(name) as T;
+      return globalScope.require(name) as T;
     }
   } catch {
     // fall through to null

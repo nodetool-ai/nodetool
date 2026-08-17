@@ -29,7 +29,7 @@ const styles = css({
   pointerEvents: "auto"
 });
 
-export interface HandleOnlyFieldProps {
+interface HandleOnlyFieldProps {
   /** Node id this handle belongs to */
   id: string;
   /** The property whose target handle we render */

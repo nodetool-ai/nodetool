@@ -74,7 +74,7 @@ function pickOrCreateVideoTrack(): string | undefined {
   return video.id;
 }
 
-export interface TopBarPromptProps {
+interface TopBarPromptProps {
   /** Phone layout: prompt + Generate on one row, setting chips on a second. */
   compact?: boolean;
 }

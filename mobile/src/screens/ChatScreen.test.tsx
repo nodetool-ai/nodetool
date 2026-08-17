@@ -2,7 +2,6 @@
  * Tests for ChatScreen
  */
 
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChatScreen from './ChatScreen';

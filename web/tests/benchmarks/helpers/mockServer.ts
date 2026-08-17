@@ -272,7 +272,7 @@ add(null, /^\/terminal/, (_req, res) => {
 
 // ── Server ────────────────────────────────────────────────────────────────────
 
-export interface MockServer {
+interface MockServer {
   close: () => Promise<void>;
   port: number;
 }

@@ -4,7 +4,6 @@
  * an effect without folding the section, and the hover-revealed reset action.
  */
 
-import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

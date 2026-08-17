@@ -20,7 +20,7 @@ const seg = (seconds: number): number => {
   return Math.max(0.08, Math.log(t / 0.0005) / Math.log(10 / 0.0005));
 };
 
-export interface AdsrPreviewProps {
+interface AdsrPreviewProps {
   attack: number;
   decay: number;
   sustain: number;

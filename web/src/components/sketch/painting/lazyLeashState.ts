@@ -15,7 +15,7 @@
 
 import type { Point } from "../types";
 
-export interface LazyLeash {
+interface LazyLeash {
   /** Raw pointer position in document coordinates. */
   rawDoc: Point;
   /** Lazy brush tip in document coordinates (the actual paint anchor). */

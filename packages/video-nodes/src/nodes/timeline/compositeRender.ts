@@ -33,7 +33,7 @@ import {
 } from "./rawFrames.js";
 import { NodeRasterizer } from "./rasterizers.js";
 
-export interface CompositeRenderOptions {
+interface CompositeRenderOptions {
   sequence: TimelineSequence;
   /** Sequence resolution and rate the frames are composited at. */
   width: number;
@@ -48,7 +48,7 @@ export interface CompositeRenderOptions {
   onProgress?: (frame: number, totalFrames: number) => void;
 }
 
-export interface CompositeRenderResult {
+interface CompositeRenderResult {
   totalFrames: number;
   /** Clips whose media could not be decoded, by name — reported, not fatal. */
   skippedClips: string[];

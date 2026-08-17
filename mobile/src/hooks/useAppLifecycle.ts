@@ -38,7 +38,7 @@ export type AppLifecycleEvent = 'foreground' | 'background';
 
 export type AppLifecycleListener = (event: AppLifecycleEvent) => void;
 
-export interface AppLifecycleHandlers {
+interface AppLifecycleHandlers {
   onForeground?: () => void;
   onBackground?: () => void;
 }

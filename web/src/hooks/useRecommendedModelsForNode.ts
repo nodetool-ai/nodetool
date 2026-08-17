@@ -60,7 +60,7 @@ async function fetchRecommendedByTask(
   }
 }
 
-export interface RecommendedModelsForNode {
+interface RecommendedModelsForNode {
   recommendedModels: UnifiedModel[];
   modelPacks: ModelPack[];
 }

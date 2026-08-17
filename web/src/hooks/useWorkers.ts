@@ -110,7 +110,7 @@ export const useWorkerHealth = (
     retry: false
   });
 
-export interface UseWorkersResult {
+interface UseWorkersResult {
   profiles: WorkerProfile[];
   instances: WorkerInstance[];
   /** The instance the local NodeTool instance has attached to, if any. */

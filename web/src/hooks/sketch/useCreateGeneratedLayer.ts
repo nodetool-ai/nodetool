@@ -6,7 +6,7 @@ import { trpcClient } from "../../trpc/client";
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 
-export interface CreateGeneratedLayerOptions {
+interface CreateGeneratedLayerOptions {
   workflowId: string;
   /** Display name for the new layer. Defaults to "Generated Layer". */
   layerName?: string;

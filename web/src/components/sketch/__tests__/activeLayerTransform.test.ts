@@ -1,7 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 import { createDefaultDocument, makeAffineTransform, type LayerTransform } from "../types";

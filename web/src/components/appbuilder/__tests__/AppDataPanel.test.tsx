@@ -2,7 +2,6 @@
  * The panel that makes operations, variables, and resources editable by hand
  * rather than only through the agent's `ui_app_*` tools.
  */
-import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

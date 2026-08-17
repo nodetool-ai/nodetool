@@ -33,7 +33,7 @@ const bodyStyles = () =>
     }
   });
 
-export interface ConstantSketchBodyProps {
+interface ConstantSketchBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

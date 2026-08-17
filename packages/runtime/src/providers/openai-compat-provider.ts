@@ -28,7 +28,7 @@ import type { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.openai-compat");
 
-export interface OpenAICompatConfig {
+interface OpenAICompatConfig {
   /** Provider id reported by this instance (e.g. `"groq"`). */
   providerId: ProviderId;
   apiKey: string;
