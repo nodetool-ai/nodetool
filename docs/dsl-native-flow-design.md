@@ -1,7 +1,7 @@
 # DSL Native Flow — Technical Design
 
 **Status:** Draft — for review
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-17 — added the detailed task breakdown (§7)
 
 ---
 
@@ -253,18 +253,170 @@ flow API is for programs.
 
 ## 7. Implementation plan
 
-1. Extract `buildBuiltinRegistry()` from `core.ts` `run()`; no behavior
-   change. Extend it with the executor-resolution chain both paths share.
-2. `flow/core.ts`: `startFlow`, ambient ALS, invoke path, one-shot +
-   drain-to-last semantics, spans, `onCall`, `close()`/asyncDispose.
-   Unit tests against hermetic nodes (`nodetool.text.*`, `nodetool.math.*`).
-3. Streaming: `.stream` for streaming-output nodes; the `StreamingInputs`
-   adapter for `run`-contract nodes, with EOS and early-return tests.
-4. Codegen: emit the flow tree; wire `codegen:check`.
-5. Python bridge lazy-connect; integration test behind the existing worker
-   guard.
-6. Docs: README section in `packages/dsl`, a harness-registry entry naming
-   the unit suites as the selfcheck.
+Eight tasks, ordered by dependency. T1–T3 are the core and land together or
+in sequence; T4 unlocks the typed surface; T5–T8 are independent once T4 is
+in. Every task ends with `npm run test --workspace=packages/dsl` green plus
+the repo gate (`npm run typecheck && npm run lint`), and any task touching
+`packages/dsl` re-runs `npm run codegen:check`.
+
+### T1 — Extract the shared registry/executor chain
+
+*Refactor only; no behavior change.*
+
+- **Files:** `packages/dsl/src/core.ts` → new `packages/dsl/src/registry.ts`.
+- **Steps:**
+  1. Move the builtin-pack registration block from `run()` (the
+     `registerBaseNodes` + five try/catch optional packs, `core.ts:340–377`)
+     into `buildBuiltinRegistry(): Promise<NodeRegistry>`, memoized per
+     process — `run()` currently rebuilds it per call, which the flow API
+     must not do per node call.
+  2. Move the resolution chain (`opts.registry` → `NodeRegistry.global` →
+     builtin → Python candidate) into
+     `createExecutorResolver(opts, bridge): (node) => NodeExecutor`.
+  3. Re-wire `run()` through both helpers.
+- **Acceptance:** `tests/core.test.ts` and `tests/integration.test.ts` pass
+  unchanged; `registry.ts` exports are consumed by `core.ts` only (until T2).
+
+### T2 — Flow core: `startFlow`, ambient context, invoke path
+
+- **Files:** new `packages/dsl/src/flow/core.ts`,
+  `packages/dsl/src/flow/invoke.ts`; new test
+  `packages/dsl/tests/flow-core.test.ts`.
+- **Steps:**
+  1. `Flow` / `FlowOptions` / `CallOptions` types as in §4.1–4.2. `Flow`
+     owns one `ProcessingContext` (job id `flow-<uuid>`, `userId` default
+     `"1"`, `secretResolver`, `FileStorageAdapter` on the default assets
+     path — same wiring as `run-node.ts`).
+  2. Ambient context: module-level
+     `AsyncLocalStorage<Flow>`; `flow.run(body)` = `als.run(flow, body)`.
+  3. Flow resolution helper `resolveFlow(opts?: CallOptions): Flow` —
+     `opts.flow` → `als.getStore()` → lazy process-default flow (env
+     secrets only, created once, never auto-closed).
+  4. `invoke(nodeType, inputs, opts)` in `invoke.ts`: resolve executor via
+     T1's chain, fresh instance per call, `initialize()` →
+     drain `genProcess(inputs, ctx)` folding last-value-per-slot →
+     `finalize()` in a `finally`. Rejects with the node's error unwrapped.
+  5. `close()` + `[Symbol.asyncDispose]`: idempotent; closes the Python
+     bridge when one was connected (T7); subsequent calls on a closed flow
+     reject with `FlowClosedError`.
+  6. `onCall` events (`start`/`end`/`error` with `type`, `durationMs`) and a
+     `node.process` span per call via the existing tracing entry point the
+     kernel uses.
+- **Tests (hermetic, no keys):** one-shot call returns outputs
+  (`nodetool.text.Concat`); multi-yield `genProcess` folds to last value;
+  ambient vs explicit `{flow}` precedence (two concurrent `flow.run` bodies
+  don't cross); default-flow fallback works with no `startFlow`; error from
+  `process()` rejects and `finalize()` still ran; closed flow rejects;
+  `onCall` sequence recorded.
+- **Acceptance:** all of the above green; no import of `WorkflowRunner`
+  anywhere under `src/flow/`.
+
+### T3 — Streaming both directions
+
+- **Files:** `packages/dsl/src/flow/streaming.ts`; test
+  `packages/dsl/tests/flow-streaming.test.ts`.
+- **Steps:**
+  1. `invokeStream(nodeType, inputs, opts): AsyncIterable<Record<string,
+     unknown>>` — yields each `genProcess` record; iterator
+     `return()`/`throw()` forwarded to the generator so early `break` runs
+     node cleanup; `finalize()` on completion either way.
+  2. `StreamingInputs` adapter for `run`-contract nodes: accepts
+     `AsyncIterable<T> | T[] | T` per stream-typed handle; per-handle queue
+     with EOS on source end; implements `stream`, `any`, `first`, and the
+     envelope variants with synthesized plain envelopes.
+  3. `StreamingOutputs` adapter: `emit(slot, value)` pushes `{slot, value}`
+     into the returned async iterable; `emitGroup` flattens to member
+     emissions (correlation tokens dropped — §5).
+  4. Awaited form for `run`-contract nodes = drain the emission iterable,
+     fold last-value-per-slot.
+  5. Backpressure: the emission queue is unbounded is **not** acceptable —
+     cap it (default 1024) and make `emit` await the consumer past the cap.
+- **Tests:** stream yields in order; early `break` triggers generator
+  cleanup (probe with a `finally` in a test node); array input wraps to a
+  stream; interleaved two-handle `any()` order; EOS terminates `run()`;
+  emission backpressure (producer awaits when the consumer is slow);
+  `emitGroup` flattening.
+
+### T4 — Codegen: the typed flow surface
+
+- **Files:** `packages/dsl/scripts/codegen.ts`,
+  `packages/dsl/src/flow/generated/` (emitted),
+  `packages/dsl/src/flow/index.ts`; extend
+  `packages/dsl/tests/codegen.test.ts`.
+- **Steps:**
+  1. Emit one flow module per namespace next to the graph tree, from the
+     same metadata pass. Per node: a plain-value `Inputs` type (today's
+     literal types minus the `Connectable<...>` wrapper — emit the inner
+     type directly rather than unwrapping with a conditional type, so hover
+     types stay readable), the callable
+     `(inputs, opts?) => Promise<Outputs>` delegating to T2's `invoke`.
+  2. `.stream` member only when `is_streaming_output` (the flag read at
+     `codegen.ts:376`) or the class declares the `run` contract; typed
+     `AsyncIterable<Partial<Outputs>>`.
+  3. Stream-typed input handles on `run`-contract nodes widen to
+     `T | T[] | AsyncIterable<T>`.
+  4. Code node special case: the callable applies `usesStreamInputContract`
+     to `inputs.code` at call time to pick the invoke path.
+  5. `--check` covers the flow tree (it already diffs the whole emitted
+     set; assert with a deliberate stale file in the test).
+  6. Namespace re-exports from `flow/index.ts`; keep the graph DSL's
+     namespace names.
+- **Acceptance:** `npm run codegen` is idempotent; `codegen:check` fails on
+  a hand-edited flow file (prove it once, revert); `tsc` accepts
+  `text.template({string: "x"})` and rejects `{string: 1}` in a
+  type-level test.
+
+### T5 — Package export and docs
+
+- **Files:** `packages/dsl/package.json`, `packages/dsl/README.md`,
+  `AGENTS.md` (this repo file's DSL row), this doc's status line.
+- **Steps:** add the `./flow` export map entry (mirroring the root entry's
+  four conditions, including `nodetool-dev`); README section with the §1
+  example; note in the exports table.
+- **Acceptance:** `node -e 'import("@nodetool-ai/dsl/flow")'` resolves from
+  a built workspace; `npm run build:packages` clean.
+
+### T6 — Abort and error semantics
+
+- **Files:** `flow/core.ts`, `flow/invoke.ts`; test
+  `packages/dsl/tests/flow-abort.test.ts`.
+- **Steps:**
+  1. `FlowOptions.signal` and `CallOptions.signal` combined per call
+     (`AbortSignal.any`); already-aborted signal rejects before resolve.
+  2. Forward the combined signal into `ProcessingContext` so providers that
+     honor abort stop mid-request; nodes that ignore it still reject at the
+     next yield boundary.
+  3. Streaming iterables settle their pending `next()` with the abort
+     rejection and run generator cleanup.
+- **Tests:** pre-aborted call rejects with `AbortError` and never invokes
+  `process()`; mid-stream abort cleans up; flow-level abort rejects two
+  concurrent in-flight calls.
+
+### T7 — Python bridge lazy-connect
+
+- **Files:** `flow/core.ts` (+ a small helper in
+  `packages/runtime` if `connectPythonBridgeForGraph`'s graph-shaped
+  signature doesn't fit a single node type — prefer reusing its internals
+  via a `connectPythonBridgeForTypes(types, hasTsExecutor, opts)` overload).
+- **Steps:** on the first call whose type no TS registry resolves, connect
+  once (single in-flight promise so concurrent first calls share it); reuse
+  for the flow's lifetime; close in `close()`. `bridgeOptions` /
+  `NODETOOL_WORKER_URL` as in §4.6.
+- **Tests:** unknown type with no bridge configured rejects with the
+  existing "Unknown node type" error; bridge connect is invoked at most
+  once under concurrency (fake bridge); integration test behind the
+  existing worker-availability guard used by the graph DSL's integration
+  suite.
+
+### T8 — Harness registry entry
+
+- **Files:** `packages/cli/src/harness/registry.ts`.
+- **Steps:** add a `dsl-native-flow` harness entry covering the
+  `packages/dsl` surface, naming the T2/T3/T6 suites as the keyless
+  selfcheck so `nodetool harness gate` runs them on diffs touching
+  `packages/dsl/src/flow/`.
+- **Acceptance:** `nodetool harness audit` passes with no new undocumented
+  gap; `harness gate --dry-run` on a flow-touching diff plans the suites.
 
 ## 8. Out of scope
 
