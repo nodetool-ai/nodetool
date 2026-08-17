@@ -6,7 +6,6 @@
  * ones that only make sense while a workflow is open for editing.
  */
 
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

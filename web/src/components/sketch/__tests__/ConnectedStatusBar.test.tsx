@@ -7,7 +7,6 @@
  * selection size render from real store state.
  */
 
-import React from "react";
 import { render } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 

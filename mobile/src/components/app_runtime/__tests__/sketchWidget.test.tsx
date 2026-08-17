@@ -5,7 +5,6 @@
  * `SketchRef` carrying only an id — and both must end up composited. The
  * document backend is mocked so the ref path is exercised without a server.
  */
-import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 

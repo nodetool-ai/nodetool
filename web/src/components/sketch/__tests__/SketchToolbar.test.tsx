@@ -1,4 +1,3 @@
-import React from "react";
 import { render, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";

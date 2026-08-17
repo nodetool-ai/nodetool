@@ -2,7 +2,6 @@
  * Running an app renders its release, not the canvas — and falls back to the
  * draft only while nothing is published.
  */
-import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";

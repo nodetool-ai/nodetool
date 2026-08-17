@@ -4,7 +4,6 @@
  * playhead and selects the clip (bidirectional with the tracks).
  */
 
-import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";

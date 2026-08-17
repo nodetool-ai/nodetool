@@ -2,7 +2,6 @@
  * Tests for FilePreview component
  */
 
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { FilePreview } from './FilePreview';
 import { DroppedFile } from '../../types/chat.types';

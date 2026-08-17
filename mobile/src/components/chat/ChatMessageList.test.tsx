@@ -2,7 +2,6 @@
  * Tests for ChatMessageList component
  */
 
-import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { ChatMessageList } from './ChatMessageList';
 import { Message } from '../../types';

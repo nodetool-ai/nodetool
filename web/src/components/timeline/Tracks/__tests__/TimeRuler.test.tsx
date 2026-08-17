@@ -6,7 +6,6 @@
  * the playhead, and the delete button removes it from the store.
  */
 
-import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 

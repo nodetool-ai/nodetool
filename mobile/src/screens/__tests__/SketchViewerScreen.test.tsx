@@ -8,7 +8,6 @@
  * the screen around it — loading, retry, and the layer list.
  */
 
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import SketchViewerScreen from '../SketchViewerScreen';
