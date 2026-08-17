@@ -26,9 +26,9 @@ jest.mock("@mui/material/styles", () => ({
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
   useMediaQuery: jest.fn().mockReturnValue(false),
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  Typography: ({ children, ...props }: any) => <p {...props}>{children}</p>,
-  CircularProgress: ({ ...props }: any) => (
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>,
+  Typography: ({ children, ...props }: React.ComponentProps<"p">) => <p {...props}>{children}</p>,
+  CircularProgress: ({ ...props }: React.ComponentProps<"div">) => (
     <div data-testid="circular-progress" {...props} />
   )
 }));

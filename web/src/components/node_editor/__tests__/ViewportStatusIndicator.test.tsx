@@ -25,6 +25,7 @@ jest.mock("../../../config/shortcuts", () => ({
 
 import { useNodes } from "../../../contexts/NodeContext";
 import { useViewport, useStore, useReactFlow } from "@xyflow/react";
+import { selectorOver } from "../../../test-utils/doubles";
 
 const mockZoom = 1.25;
 const mockZoomTo = jest.fn();
@@ -47,8 +48,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: mockZoom
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, mockZoom] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, mockZoom] })
     );
 
     (useReactFlow as jest.Mock).mockImplementation(() => ({
@@ -58,8 +59,8 @@ describe("ViewportStatusIndicator", () => {
       fitView: mockFitView
     }));
 
-    (useNodes as jest.Mock).mockImplementation((sel: any) =>
-      sel({
+    (useNodes as jest.Mock).mockImplementation(
+      selectorOver({
         nodes: [
           { id: "1", position: { x: 0, y: 0 }, selected: true },
           { id: "2", position: { x: 100, y: 0 }, selected: false }
@@ -77,8 +78,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, 1] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, 1] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("100%")).toBeInTheDocument();
@@ -128,8 +129,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, 1.25] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, 1.25] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
     const addButton = screen.getByTestId("AddIcon").closest("button") as HTMLElement;
@@ -142,8 +143,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.25
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, 1.25] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, 1.25] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
     const removeButton = screen.getByTestId("RemoveIcon").closest("button") as HTMLElement;
@@ -168,8 +169,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 2.5
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, 2.5] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, 2.5] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByText("250%")).toBeInTheDocument();
@@ -181,8 +182,8 @@ describe("ViewportStatusIndicator", () => {
       (useViewport as jest.Mock).mockImplementation(() => ({
         zoom: z
       }));
-      (useStore as jest.Mock).mockImplementation((sel: any) =>
-        sel({ transform: [0, 0, z] })
+      (useStore as jest.Mock).mockImplementation(
+        selectorOver({ transform: [0, 0, z] })
       );
       const { unmount } = renderWithTheme(<ViewportStatusIndicator />);
       expect(screen.getByText(`${Math.round(z * 100)}%`)).toBeInTheDocument();
@@ -201,8 +202,8 @@ describe("ViewportStatusIndicator", () => {
     (useViewport as jest.Mock).mockImplementation(() => ({
       zoom: 1.0
     }));
-    (useStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ transform: [0, 0, 1.0] })
+    (useStore as jest.Mock).mockImplementation(
+      selectorOver({ transform: [0, 0, 1.0] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
     

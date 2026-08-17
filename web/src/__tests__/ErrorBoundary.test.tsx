@@ -13,7 +13,7 @@ jest.mock("react-router-dom", () => ({
 // Mock MUI Button to avoid theme complexity
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
-  Button: ({ children, onClick, ...props }: any) => (
+  Button: ({ children, onClick, ...props }: React.ComponentProps<"button">) => (
     <button onClick={onClick} {...props}>
       {children}
     </button>
@@ -37,12 +37,12 @@ jest.mock("../components/ui_primitives", () => ({
       </Tag>
     );
   },
-  EditorButton: ({ children, onClick, className, ...props }: any) => (
+  EditorButton: ({ children, onClick, className, ...props }: React.ComponentProps<"button">) => (
     <button onClick={onClick} className={className} {...props}>
       {children}
     </button>
   ),
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>
 }));
 
 describe("ErrorBoundary", () => {

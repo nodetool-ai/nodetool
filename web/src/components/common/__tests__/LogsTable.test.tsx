@@ -7,21 +7,21 @@ import mockTheme from '../../../__mocks__/themeMock';
 
 // Mock UI primitives
 jest.mock('../../ui_primitives', () => {
-  const CopyButton = (props: any) => <button {...props}>Copy</button>;
+  const CopyButton = (props: React.ComponentProps<"button">) => <button {...props}>Copy</button>;
   CopyButton.displayName = "CopyButton";
-  const Text = ({ children, ...props }: any) => <span {...props}>{children}</span>;
+  const Text = ({ children, ...props }: React.ComponentProps<"span">) => <span {...props}>{children}</span>;
   Text.displayName = "Text";
-  const Tooltip = ({ children }: any) => <>{children}</>;
+  const Tooltip = ({ children }: React.PropsWithChildren) => <>{children}</>;
   Tooltip.displayName = "Tooltip";
-  const ToolbarIconButton = ({ children, ...props }: any) => <button {...props}>{children}</button>;
+  const ToolbarIconButton = ({ children, ...props }: React.ComponentProps<"button">) => <button {...props}>{children}</button>;
   ToolbarIconButton.displayName = "ToolbarIconButton";
-  const Card = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  const Card = ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>;
   Card.displayName = "Card";
-  const Popover = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  const Popover = ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>;
   Popover.displayName = "Popover";
-  const FlexColumn = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  const FlexColumn = ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>;
   FlexColumn.displayName = "FlexColumn";
-  const FlexRow = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+  const FlexRow = ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>;
   FlexRow.displayName = "FlexRow";
   return {
     __esModule: true,
@@ -42,7 +42,7 @@ jest.mock('../../ui_primitives', () => {
 // Mock MUI Tooltip
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
-  const TooltipMock = ({ children }: any) => <div data-testid="tooltip">{children}</div>;
+  const TooltipMock = ({ children }: React.ComponentProps<"div">) => <div data-testid="tooltip">{children}</div>;
   TooltipMock.displayName = "TooltipMock";
   return {
     ...actual,
