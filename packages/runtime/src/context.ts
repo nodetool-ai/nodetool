@@ -2944,6 +2944,13 @@ export class ProcessingContext {
       m4a: "audio/mp4",
       flac: "audio/flac"
     };
+    const VIDEO_MIME: Record<string, string> = {
+      mp4: "video/mp4",
+      m4v: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      avi: "video/x-msvideo"
+    };
 
     // Strict, anchored sanitizer for the URIs that may flow into the asset /
     // storage retrieval path. Two schemes are recognized — `asset://<id>.<ext>`
@@ -2997,6 +3004,26 @@ export class ProcessingContext {
             {
               type: "audio",
               audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+            }
+          ];
+        }
+        return [part];
+      }
+      if (
+        part.type === "video" &&
+        part.video.uri &&
+        isResolvableUri(part.video.uri)
+      ) {
+        const bytes = await this.retrieveMediaBytes(part.video.uri);
+        if (bytes) {
+          const ext = part.video.uri.split(".").pop()?.toLowerCase() ?? "mp4";
+          const mimeType =
+            VIDEO_MIME[ext] ?? part.video.mimeType ?? "video/mp4";
+          const b64 = Buffer.from(bytes).toString("base64");
+          return [
+            {
+              type: "video",
+              video: { uri: `data:${mimeType};base64,${b64}`, mimeType }
             }
           ];
         }

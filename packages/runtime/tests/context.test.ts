@@ -1398,6 +1398,50 @@ describe("ProcessingContext – asset helper methods", () => {
     }
   });
 
+  it("resolveMessageMediaUris dereferences asset:// video URIs to data URIs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-resolve-asset-video-"));
+    try {
+      const mp4Bytes = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70]);
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        userId: "u1",
+        workspaceDir: root,
+        fetchFn: async (input: string | URL | Request) => {
+          const url = String(input);
+          if (url.endsWith("/api/assets/clip.mp4")) {
+            return new Response(
+              JSON.stringify({ id: "clip", get_url: "/api/storage/clip.mp4" }),
+              { status: 200, headers: { "content-type": "application/json" } }
+            );
+          }
+          if (url.endsWith("/api/storage/clip.mp4")) {
+            return new Response(mp4Bytes, {
+              status: 200,
+              headers: { "content-type": "video/mp4" }
+            });
+          }
+          return new Response("not found", { status: 404 });
+        }
+      });
+
+      const resolved = await ctx.resolveMessageMediaUris([
+        {
+          role: "user",
+          content: [{ type: "video", video: { uri: "asset://clip.mp4" } }]
+        }
+      ]);
+
+      const parts = resolved[0].content as Array<Record<string, any>>;
+      expect(parts[0].type).toBe("video");
+      expect(parts[0].video.mimeType).toBe("video/mp4");
+      expect(parts[0].video.uri).toBe(
+        `data:video/mp4;base64,${Buffer.from(mp4Bytes).toString("base64")}`
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("resolveMessageMediaUris splits a text-embedded image mention into its own resolved block", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     const ctx = new ProcessingContext({
