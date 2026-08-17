@@ -37,6 +37,11 @@ function countToolCallsTokens(
   return count;
 }
 
+/** A message body that is plain text rather than an array of content parts. */
+function isTextBody(content: Message["content"]): content is string {
+  return typeof content === "string";
+}
+
 /**
  * Count tokens for a single Message.
  *
@@ -48,7 +53,7 @@ export function countMessageTokens(message: Message): number {
 
   const content = message.content;
   if (content) {
-    if (typeof content === "string") {
+    if (isTextBody(content)) {
       tokenCount += countTextTokens(content);
     } else if (Array.isArray(content)) {
       for (const part of content) {

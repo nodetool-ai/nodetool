@@ -9,6 +9,7 @@ import {
   referencedVariables,
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
+import type { TemplateVars } from "@nodetool-ai/nodes-utils";
 import { loadNodeFsPromises, loadNodePath } from "@nodetool-ai/nodes-utils";
 import {
   isFunction,
@@ -23,15 +24,14 @@ const NODE_ONLY: readonly Platform[] = ["node"];
  * Turn any asset-ref values in a template's variable bag into their
  * `asset://<id>.<ext>` token so a wired image / audio / video / document
  * expands like an inline `@`-mention instead of rendering as `"[object
- * Object]"`. Non-asset values (strings, numbers, other refs) pass through
- * untouched for the normal `String(value)` substitution.
+ * Object]"`. Non-asset values take the string form the renderer would have
+ * given them anyway; `null`/`undefined` stay absent so they render as "".
  */
-function tokenizeAssetVars(
-  vars: Record<string, unknown>
-) {
-  const out: Record<string, unknown> = {};
+function tokenizeAssetVars(vars: Record<string, unknown>): TemplateVars {
+  const out: TemplateVars = {};
   for (const [key, value] of Object.entries(vars)) {
-    out[key] = assetRefToPromptToken(value) ?? value;
+    out[key] =
+      assetRefToPromptToken(value) ?? (value == null ? undefined : String(value));
   }
   return out;
 }

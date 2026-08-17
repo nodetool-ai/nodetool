@@ -42,15 +42,18 @@ const LEVEL_NUM = {
 } satisfies Record<LogLevel, number>;
 
 /** Maps Python-style log level names to their JS equivalents. */
-const LEVEL_ALIASES: Record<string, LogLevel> = {
-  warning: "warn",
-  critical: "error"
-};
+const LEVEL_ALIASES = new Map<string, LogLevel>([
+  ["warning", "warn"],
+  ["critical", "error"]
+]);
 
 function normalizeLevel(raw: string): LogLevel | null {
   const lower = raw.toLowerCase();
-  if ((VALID_LEVELS as string[]).includes(lower)) return lower as LogLevel;
-  return LEVEL_ALIASES[lower] ?? null;
+  return (
+    VALID_LEVELS.find((level) => level === lower) ??
+    LEVEL_ALIASES.get(lower) ??
+    null
+  );
 }
 
 // Initialize eagerly from env so configureLogging() is optional for entry
@@ -152,6 +155,11 @@ function jsonReplacer<T>(_key: string, value: T): T | SerializedError {
   return value;
 }
 
+/** A log argument worth rendering as JSON instead of stringifying. */
+function isStructured<T>(value: T): value is T & object {
+  return typeof value === "object" && value !== null;
+}
+
 function formatArgs(args: unknown[]): string {
   if (args.length === 0) return "";
   return (
@@ -159,7 +167,7 @@ function formatArgs(args: unknown[]): string {
     args
       .map((a) => {
         if (a instanceof Error) return a.stack ?? a.message;
-        if (typeof a === "object" && a !== null) {
+        if (isStructured(a)) {
           try {
             return JSON.stringify(a, jsonReplacer);
           } catch {

@@ -34,5 +34,6 @@ export {
 } from "./node-only-modules.js";
 
 export { renderTemplate, referencedVariables } from "./template.js";
+export type { TemplateValue, TemplateVars } from "./template.js";
 
 export { base64ToBytes, bytesToBase64 } from "./base64.js";

@@ -48,15 +48,21 @@ export function createBrowserRegistry(
  * A graph that passes can run entirely client-side; one that doesn't must be
  * sent to the server (it references nodes the browser can't execute).
  */
+/**
+ * Whether a node from an untrusted graph actually names a type. Generic in the
+ * caller's type so it narrows the declared `string` and a wire value alike.
+ */
+function isNodeType<T>(value: T): value is T & string {
+  return typeof value === "string" && value !== "";
+}
+
 export function graphRunsInRegistry(
   graph: GraphData,
   registry: Pick<NodeRegistry, "has">
 ): boolean {
   const nodes = graph?.nodes ?? [];
   if (nodes.length === 0) return false;
-  return nodes.every(
-    (node) => typeof node.type === "string" && registry.has(node.type)
-  );
+  return nodes.every((node) => isNodeType(node.type) && registry.has(node.type));
 }
 
 export interface RunBrowserWorkflowOptions
@@ -110,16 +116,25 @@ export async function* runBrowserWorkflow(
  * Stamp `job_id`/`workflow_id` onto a message without clobbering values the
  * runner already set (mirrors the server's `streamJobMessages` fallback).
  */
+/** The routing fields the transport stamps on every outgoing message. */
+type MessageRouting = { job_id?: string | null; workflow_id?: string | null };
+
 function stamp(
   message: ProcessingMessage,
   jobId: string,
   workflowId: string | null
 ): ProcessingMessage {
-  const record = message as Record<string, unknown>;
+  // SAFETY: `job_id`/`workflow_id` are routing fields the transport stamps on
+  // every message, but a few union variants (`save_update`, for one) do not
+  // declare them — so both the read and the stamped result go through the
+  // routing shape instead of re-declaring the fields on each variant.
+  const routing = message as MessageRouting;
+  // SAFETY: the spread preserves `message`'s own discriminant and fields, so
+  // the result is the same variant it went in as, plus the two routing fields.
   return {
-    ...record,
-    job_id: record.job_id ?? jobId,
-    workflow_id: record.workflow_id ?? workflowId
+    ...message,
+    job_id: routing.job_id ?? jobId,
+    workflow_id: routing.workflow_id ?? workflowId
   } as ProcessingMessage;
 }
 
@@ -130,13 +145,14 @@ function stampResult(
 ): RunResult {
   return {
     ...result,
-    messages: result.messages.map((m) =>
-      stamp(m as ProcessingMessage, jobId, workflowId)
-    )
+    messages: result.messages.map((m) => stamp(m, jobId, workflowId))
   };
 }
 
 function generateJobId(): string {
+  // SAFETY: `crypto.randomUUID` is absent from older browsers and from
+  // non-secure contexts, and the DOM lib types it as always present — so the
+  // optional shape here is what the guard below actually checks.
   const g = globalThis as { crypto?: { randomUUID?: () => string } };
   if (g.crypto?.randomUUID) return g.crypto.randomUUID();
   return `job_${Date.now().toString(36)}_${Math.random()

@@ -74,6 +74,9 @@ export class FileUserManager {
       // Buffer, which JSON.parse coerces via the default utf8 decoding, so "utf8"
       // and "" are byte-identical here (equivalent mutant).
       const data = await readFile(this.usersFile, "utf8");
+      // SAFETY: this file has one writer — `save()` below, which serializes a
+      // `UsersFile`. A hand-edited or truncated file throws in `JSON.parse`
+      // and is caught as "no users", so a bad shape never reaches a caller.
       return JSON.parse(data) as UsersFile;
     } catch {
       return { version: "1.0", users: {} };
