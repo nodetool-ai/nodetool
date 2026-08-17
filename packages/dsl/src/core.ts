@@ -1,11 +1,16 @@
 import { WorkflowRunner, withExplicitNodeFlags } from "@nodetool-ai/kernel";
-import { NodeRegistry, usesStreamInputContract } from "@nodetool-ai/node-sdk";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { usesStreamInputContract } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
   connectPythonBridgeForGraph,
-  resolvePythonNodeExecutor,
   type PythonBridgeOptions
 } from "@nodetool-ai/runtime";
+import {
+  buildBuiltinRegistry,
+  createExecutorResolver,
+  createHasTsExecutor
+} from "./registry.js";
 import type {
   NodeDescriptor as GraphNodeDescriptor,
   NodeUpdate
@@ -337,49 +342,8 @@ export async function run(
     secretResolver: opts?.secretResolver
   });
 
-  const builtinRegistry = new NodeRegistry();
-  const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
-  registerBaseNodes(builtinRegistry);
-  try {
-    const { registerElevenLabsNodes } =
-      await import("@nodetool-ai/elevenlabs-nodes");
-    registerElevenLabsNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the ElevenLabs node package in a runnable state.
-  }
-  try {
-    const { registerMinimaxNodes } = await import("@nodetool-ai/minimax-nodes");
-    registerMinimaxNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the MiniMax node package in a runnable state.
-  }
-  try {
-    const { registerTransformersJsNodes } = await import(
-      "@nodetool-ai/transformers-js-nodes"
-    );
-    registerTransformersJsNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Transformers.js node package in a runnable state.
-  }
-  try {
-    const { registerHuggingFaceNodes } = await import(
-      "@nodetool-ai/huggingface-nodes"
-    );
-    registerHuggingFaceNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Hugging Face node package in a runnable state.
-  }
-  try {
-    const { registerReveNodes } = await import("@nodetool-ai/reve-nodes");
-    registerReveNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Reve node package in a runnable state.
-  }
-
-  const hasTsExecutor = (type: string): boolean =>
-    Boolean(opts?.registry?.has(type)) ||
-    NodeRegistry.global.has(type) ||
-    builtinRegistry.has(type);
+  const builtinRegistry = await buildBuiltinRegistry();
+  const hasTsExecutor = createHasTsExecutor(opts?.registry, builtinRegistry);
 
   // Connect a Python worker bridge only when the graph has a node type no TS
   // registry can resolve (a candidate Python node). Transport is chosen by
@@ -391,20 +355,11 @@ export async function run(
     opts?.bridgeOptions
   );
 
-  const resolveExecutor = (node: { id: string; type: string }) => {
-    if (opts?.registry?.has(node.type)) {
-      return opts.registry.resolve(node);
-    }
-    if (NodeRegistry.global.has(node.type)) {
-      return NodeRegistry.global.resolve(node);
-    }
-    if (builtinRegistry.has(node.type)) {
-      return builtinRegistry.resolve(node);
-    }
-    const py = resolvePythonNodeExecutor(pythonBridge, node);
-    if (py) return py;
-    throw new Error(`Unknown node type: ${node.type}`);
-  };
+  const resolveExecutor = createExecutorResolver(
+    opts,
+    builtinRegistry,
+    pythonBridge
+  );
 
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor,
