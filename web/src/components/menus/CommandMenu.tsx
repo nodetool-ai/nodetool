@@ -69,6 +69,8 @@ import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import GroupWorkRoundedIcon from "@mui/icons-material/GroupWorkRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import { openBugReport } from "../../stores/BugReportStore";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 
 // Icons — Layout & Alignment
@@ -633,6 +635,30 @@ const PanelCommands = memo(function PanelCommands() {
   );
 });
 
+const HelpCommands = memo(function HelpCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
+  return (
+    <Command.Group heading="Help">
+      <Command.Item
+        onSelect={() =>
+          executeAndClose(() =>
+            openBugReport({
+              source: "manual",
+              workflowId: currentWorkflowId ?? undefined
+            })
+          )
+        }
+      >
+        <BugReportIcon /> Report a Bug
+      </Command.Item>
+    </Command.Group>
+  );
+});
+
 /**
  * App bundle commands, mirroring the workflow bundle ones. An app bundle is
  * one JSON file carrying the app plus the graph of every workflow it binds, so
@@ -847,6 +873,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
           <LayoutCommands />
           <ViewCommands />
           <PanelCommands />
+          <HelpCommands />
           <OpenWorkflowCommands />
         </Command.List>
       </Command>

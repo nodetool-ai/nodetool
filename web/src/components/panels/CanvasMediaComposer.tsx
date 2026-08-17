@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import MediaChatComposer from "../chat/composer/MediaChatComposer";
+import WorkspaceChip from "../workspaces/WorkspaceChip";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { useAutoAddGeneratedMediaToCanvas } from "../../hooks/handlers/useAutoAddGeneratedMediaToCanvas";
@@ -131,6 +132,7 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
       leadingActions={leadingActions}
+      chipActions={<WorkspaceChip />}
       trailingActions={trailingActions}
     />
   );

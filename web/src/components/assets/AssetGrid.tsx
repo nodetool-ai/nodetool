@@ -272,7 +272,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const showFolders = !isMobile && effectiveFoldersVisible;
 
   const filesPanel = (
-    <PanelErrorBoundary>
+    <PanelErrorBoundary panelName="Assets">
       <AssetFilesPanel isHorizontal={isHorizontal} itemSpacing={itemSpacing} />
     </PanelErrorBoundary>
   );
@@ -352,7 +352,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               }
               separatorLabel="Resize the folder pane"
               first={
-                <PanelErrorBoundary>
+                <PanelErrorBoundary panelName="Asset folders">
                   <AssetFoldersPanel
                     isFullscreenAssets={Boolean(isFullscreenAssets)}
                   />

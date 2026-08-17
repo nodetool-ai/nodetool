@@ -1,8 +1,11 @@
 import React from "react";
-import { Text, FlexRow } from "../ui_primitives";
+import { Text, FlexColumn, SPACING } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 
 interface PanelErrorBoundaryProps {
   fallback?: React.ReactNode;
+  /** Names the panel in the report, so a maintainer knows what crashed. */
+  panelName?: string;
   children: React.ReactNode;
 }
 
@@ -32,11 +35,13 @@ export default class PanelErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
+      const panel = this.props.panelName ?? "Panel";
       return (
         this.props.fallback ?? (
-          <FlexRow
+          <FlexColumn
             align="center"
             justify="center"
+            gap={SPACING.sm}
             sx={{
               padding: 3,
               minHeight: 200,
@@ -45,9 +50,19 @@ export default class PanelErrorBoundary extends React.Component<
             }}
           >
             <Text size="small" component="div">
-              Panel failed to render.
+              {panel} failed to render.
             </Text>
-          </FlexRow>
+            <ReportBugButton
+              variant="outlined"
+              label="Report a bug"
+              context={{
+                source: "panel-crash",
+                summary: `${panel} failed to render`,
+                errorText: this.state.error?.message,
+                stackTrace: this.state.error?.stack
+              }}
+            />
+          </FlexColumn>
         )
       );
     }

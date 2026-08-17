@@ -8,6 +8,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
+import ReportBugButton from "../support/ReportBugButton";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -182,6 +183,15 @@ const NotificationButton: React.FC = React.memo(() => {
                     className="copy-button"
                     tooltip="Copy to clipboard"
                   />
+                  {notification.type === "error" ? (
+                    <ReportBugButton
+                      context={{
+                        source: "notification",
+                        summary: notification.content,
+                        errorText: notification.content
+                      }}
+                    />
+                  ) : null}
                 </Box>
               ))}
             </Box>

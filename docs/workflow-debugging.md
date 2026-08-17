@@ -356,11 +356,13 @@ diff working_workflow.json broken_workflow.json
 
 If you're still stuck after debugging:
 
-1. **Export your workflow** as JSON
-2. **Take screenshots** of error messages
-3. **Note your system info** (OS, GPU, RAM, NodeTool version)
-4. **Ask on [Discord](https://discord.gg/WmQTWZRcYE)** with these details
-5. **File a [GitHub issue](https://github.com/nodetool-ai/nodetool/issues)** for bugs
+1. **Click Report on the failed node.** The bug-report form collects the error,
+   the node's settings, the workflow and the logs for you, then saves a zip you
+   drag into a pre-filled GitHub issue. See
+   [Report a Bug from inside NodeTool](troubleshooting.md#report-a-bug-from-inside-nodetool).
+2. **Ask on [Discord](https://discord.gg/WmQTWZRcYE)** if you would rather talk
+   it through first. Bring the workflow JSON, a screenshot, and your OS and
+   NodeTool version.
 
 ---
 
