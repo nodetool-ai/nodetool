@@ -39,25 +39,14 @@ must expose media handles, not raw URL strings.
 The factory uploads AssetRefs with `uploadImageInput`, `uploadVideoInput`, or
 `uploadAudioInput` before sending URL strings to KIE.
 
-## AssetRef Type Rules (Reference Implementation)
+## AssetRef Type Rules
 
-KIE nodes have the canonical `defaultForType()` function that other packages should follow:
-
-```typescript
-function defaultForType(type: string): unknown {
-  switch (type) {
-    case "image":
-      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
-    case "audio":
-      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
-    case "video":
-      return { type: "video", uri: "", asset_id: null, data: null, metadata: null, duration: null, format: null };
-    case "list[image]":
-      return [];
-    // ...
-  }
-}
-```
+The default a declared property starts at comes from `defaultForPropType()` in
+`@nodetool-ai/node-sdk` (`manifest-node-values.ts`), shared with the fal,
+replicate, atlascloud, together, and topaz factories. It returns an empty
+`AssetRef` for `image`/`audio`/`video` (video also carries `duration: null,
+format: null`), `[]` for any `list[...]`, `null` for any `dict[...]`, and `""`
+otherwise. Change it there, not here.
 
 ## Output Type Metadata
 

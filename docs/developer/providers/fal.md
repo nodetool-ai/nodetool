@@ -233,7 +233,7 @@ Both commits follow the rule: **parser/codegen bugs go in `packages/fal-codegen/
 | Field parsed with wrong type | `packages/fal-codegen/src/schema-parser.ts` |
 | Field needs a different default or description | `fieldOverrides` in the endpoint's config entry |
 | Enum name conflicts across nodes | `enumOverrides` in the config entry |
-| Asset input defaults to `""` instead of `AssetRef` | `defaultForPropType()` in `packages/fal-nodes/src/fal-factory.ts` |
+| Asset input defaults to `""` instead of `AssetRef` | `defaultForPropType()` in `packages/node-sdk/src/manifest-node-values.ts` |
 | Audio/video output missing preview | set `metadataOutputTypes` in the factory, not `outputTypes` |
 | API call behavior (retry, upload, mapping) | `packages/fal-nodes/src/fal-base.ts` |
 

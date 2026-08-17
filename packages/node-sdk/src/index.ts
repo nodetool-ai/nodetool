@@ -5,6 +5,7 @@ export * from "./pricing-bundle.js";
 export * from "./cost-estimate.js";
 export * from "./pricing-params.js";
 export * from "./field-classification.js";
+export * from "./manifest-node-values.js";
 export * from "./registry.js";
 export * from "./metadata.js";
 export * from "./node-metadata.js";

@@ -14,9 +14,11 @@ import {
   BaseNode,
   classifyFields,
   classNameToTitle,
+  defaultForPropType,
+  propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import type {
   AssetMediaKind,
@@ -480,67 +482,6 @@ function coerceScalar(v: NodeValue, type: AtlasFieldType): NodeValue {
   }
 }
 
-/**
- * A value held by a node property or by a prompt-asset override: NodeTool's
- * property types are scalars, media refs, and lists or dicts of those.
- */
-type NodeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Uint8Array
-  | NodeValue[]
-  | { [key: string]: NodeValue };
-
-/**
- * The empty media ref a media property starts at before the user picks an
- * asset. `duration` and `format` are carried by video only.
- */
-type EmptyMediaRef = {
-  type: "image" | "video" | "audio";
-  uri: string;
-  asset_id: null;
-  data: null;
-  metadata: null;
-  duration?: null;
-  format?: null;
-};
-
-/** What a property starts at when the manifest names no default. */
-type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
-
-function defaultForType(type: AtlasFieldType): FieldDefault {
-  switch (type) {
-    case "bool":
-      return false;
-    case "int":
-    case "float":
-      return 0;
-    case "image":
-      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
-    case "video":
-      return {
-        type: "video",
-        uri: "",
-        asset_id: null,
-        data: null,
-        metadata: null,
-        duration: null,
-        format: null
-      };
-    case "audio":
-      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
-    case "list[image]":
-    case "list[video]":
-    case "list[audio]":
-      return [];
-    default:
-      return "";
-  }
-}
-
 function computeFieldClassification(fields: AtlasFieldDef[]) {
   return classifyFields(fields.map((f) => ({ name: f.name, propType: f.type })));
 }
@@ -553,25 +494,6 @@ function refHasSource(value: unknown): boolean {
   if (typeof r.data === "string" && r.data.length > 0) return true;
   if (r.data instanceof Uint8Array && r.data.byteLength > 0) return true;
   return r.asset_id != null && r.asset_id !== "";
-}
-
-/**
- * A manifest-built node seen through its declared properties. Each manifest
- * field is registered as a plain instance property, so the manifest's field
- * name indexes the instance directly.
- */
-type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
-
-/**
- * Read one declared property off a node instance, by the name the manifest
- * gave it.
- */
-function propertyOf(instance: BaseNode, name: string): NodeValue {
-  // SAFETY: every declared property is registered from a manifest field, whose
-  // declared types are exactly the scalars, media refs, and lists or dicts of
-  // those that `NodeValue` names.
-  const properties = instance as ManifestNodeProperties;
-  return properties[name];
 }
 
 /**
@@ -768,7 +690,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     // on Nano Banana models). Coercing those to a type-default empty string
     // can fail enum-values validation, since "" isn't in the values list.
     const propDefault =
-      field.default === null ? null : field.default ?? defaultForType(field.type);
+      field.default === null
+        ? null
+        : field.default ?? defaultForPropType(field.type);
     const propOptions: PropOptions = {
       type: field.type,
       default: propDefault

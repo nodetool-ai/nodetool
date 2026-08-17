@@ -20,6 +20,7 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeValue } from "@nodetool-ai/node-sdk";
 import {
   getFalApiKey,
   falSubmit,
@@ -344,20 +345,6 @@ function endpointIdFromOpenApi(
 // ---------------------------------------------------------------------------
 // Value coercion: asset refs → FAL CDN URLs
 // ---------------------------------------------------------------------------
-
-/**
- * A value held by a node property, or one placed in a FAL request body: a
- * scalar, a media ref, or a list or dict of those.
- */
-type NodeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Uint8Array
-  | NodeValue[]
-  | { [key: string]: NodeValue };
 
 /** A value in a FAL endpoint's JSON response body. */
 type FalResponseValue =

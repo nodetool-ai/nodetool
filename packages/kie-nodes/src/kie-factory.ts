@@ -11,9 +11,11 @@ import {
   BaseNode,
   classifyFields,
   classNameToTitle,
+  defaultForPropType,
+  propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type {
   PromptAssetTextField,
   PromptAssetInputField
@@ -165,68 +167,6 @@ function computeFieldClassification(fields: KieFieldDef[]) {
   return base;
 }
 
-/**
- * A value held by a node property or by a prompt-asset override: NodeTool's
- * property types are scalars, media refs, and lists or dicts of those.
- */
-type NodeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Uint8Array
-  | NodeValue[]
-  | { [key: string]: NodeValue };
-
-/**
- * The empty media ref a media property starts at before the user picks an
- * asset. `duration` and `format` are carried by video only.
- */
-type EmptyMediaRef = {
-  type: "image" | "video" | "audio";
-  uri: string;
-  asset_id: null;
-  data: null;
-  metadata: null;
-  duration?: null;
-  format?: null;
-};
-
-/** What a property starts at when the manifest names no default. */
-type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
-
-function defaultForType(type: string): FieldDefault {
-  switch (type) {
-    case "bool":
-      return false;
-    case "int":
-    case "float":
-      return 0;
-    case "image":
-      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
-    case "audio":
-      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
-    case "video":
-      return {
-        type: "video",
-        uri: "",
-        asset_id: null,
-        data: null,
-        metadata: null,
-        duration: null,
-        format: null
-      };
-    case "list[image]":
-    case "list[video]":
-    case "list[audio]":
-    case "list[str]":
-      return [];
-    default:
-      return "";
-  }
-}
-
 function uploadFnForKind(
   kind: "image" | "audio" | "video"
 ): (
@@ -253,25 +193,6 @@ async function buildVideoClips(
     (ref) => uploadVideoInput(apiKey, ref, context),
     value
   );
-}
-
-/**
- * A manifest-built node seen through its declared properties. Each manifest
- * field is registered as a plain instance property, so the manifest's field
- * name indexes the instance directly.
- */
-type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
-
-/**
- * Read one declared property off a node instance, by the name the manifest
- * gave it.
- */
-function propertyOf(instance: BaseNode, name: string): NodeValue {
-  // SAFETY: every declared property is registered from a manifest field, whose
-  // declared types are exactly the scalars, media refs, and lists or dicts of
-  // those that `NodeValue` names.
-  const properties = instance as ManifestNodeProperties;
-  return properties[name];
 }
 
 /**
@@ -349,7 +270,7 @@ async function buildParams(
 
     const value = readValue(field.name);
     const paramName = spec.paramNames?.[field.name] ?? field.name;
-    const defLit = field.default ?? defaultForType(field.type);
+    const defLit = field.default ?? defaultForPropType(field.type);
 
     if (isListStrType(field.type)) {
       const list = normalizeStringList(value ?? defLit);
@@ -569,7 +490,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     if (field.name === "num_images") continue;
     const propOptions: PropOptions = {
       type: field.type === "list[image]" ? "list[image]" : field.type,
-      default: field.default ?? defaultForType(field.type)
+      default: field.default ?? defaultForPropType(field.type)
     };
     if (field.title) propOptions.title = field.title;
     if (field.description) propOptions.description = field.description;
