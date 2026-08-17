@@ -14,6 +14,10 @@ import { isString } from "../utils/type-guards.js";
 
 export const MAX_COMPARE_IMAGES = 8;
 
+export const DEFAULT_VIDEO_PROMPT = "Describe this video in detail.";
+export const DEFAULT_UNDERSTAND_VIDEO_TOKENS = 1500;
+export const MAX_UNDERSTAND_VIDEO_TOKENS = 8192;
+
 export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
@@ -260,6 +264,50 @@ export const SCORE_ADHERENCE_SCHEMA: JsonSchema = {
   required: ["provider", "model", "image", "brief"]
 };
 
+export const UNDERSTAND_VIDEO_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    provider: {
+      type: "string" as const,
+      description:
+        "Provider id of a chat model that reads video, e.g. gemini (find_model)."
+    },
+    model: { type: "string" as const, description: "Model id." },
+    video: {
+      type: "string" as const,
+      description: "Video to read: asset id, asset:// URI, URL, or data URI."
+    },
+    prompt: {
+      type: "string" as const,
+      description: `What to ask about the video. Default: "${DEFAULT_VIDEO_PROMPT}"`
+    },
+    max_tokens: {
+      type: "integer" as const,
+      minimum: 1,
+      maximum: MAX_UNDERSTAND_VIDEO_TOKENS,
+      description:
+        `Answer length cap. Default ${DEFAULT_UNDERSTAND_VIDEO_TOKENS}, ` +
+        `max ${MAX_UNDERSTAND_VIDEO_TOKENS}.`
+    }
+  },
+  required: ["provider", "model", "video"]
+};
+
+export const understandVideoSpec: CapabilitySpec = {
+  name: "understand_video",
+  description:
+    "Send a video plus an instruction to a multimodal chat model (Gemini " +
+    "reads video natively) and return the model's answer as text. Use it to " +
+    "describe or summarize a clip, answer questions about what happens in " +
+    "it, or extract on-screen text. Takes the whole video, not sampled " +
+    "frames — for a single still use critique_image instead.",
+  inputSchema: UNDERSTAND_VIDEO_SCHEMA,
+  // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the gate classes it
+  // `external` — the same category the vision judges carry.
+  category: "external",
+  userMessage: () => "Reading a video with a multimodal model"
+};
+
 export const generateImageSpec: CapabilitySpec = {
   name: "generate_image",
   description:
@@ -490,6 +538,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec,
+  understandVideoSpec,
   ffmpegSpec,
   ytDlpSpec
 ];
