@@ -238,9 +238,7 @@ async function ensureState(): Promise<BrowserState> {
   }
 
   const { launchBrowser, CdpPage: CdpPageCls } = await import("./cdp-page.js");
-  const headless = process.env.NODETOOL_BROWSER_HEADLESS !== "false";
   const session = await launchBrowser({
-    headless,
     viewport: { width: 1280, height: 900 }
   });
   const page = await CdpPageCls.create(session.client, {
