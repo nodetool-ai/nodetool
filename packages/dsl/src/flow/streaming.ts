@@ -172,14 +172,22 @@ export class FlowStreamingInputs implements StreamingInputs {
     this.signal = signal
       ? AbortSignal.any([signal, this.abortController.signal])
       : this.abortController.signal;
-    for (const [handle, value] of Object.entries(inputs)) {
-      const queue: HandleQueue = { items: [], closed: false, waiters: [] };
-      this.queues.set(handle, queue);
+    // Every handle is counted before any pump starts: a synchronous source
+    // (an array) would otherwise drain to zero open sources and close the
+    // `any()` queue before the next handle was even registered.
+    const entries = Object.entries(inputs);
+    for (const [handle] of entries) {
+      this.queues.set(handle, { items: [], closed: false, waiters: [] });
       this.openSources++;
-      this.pumps.push(this.pump(handle, queue, value));
     }
     if (this.openSources === 0) {
       this.closeAnyQueue();
+    }
+    for (const [handle, value] of entries) {
+      const queue = this.queues.get(handle);
+      if (queue) {
+        this.pumps.push(this.pump(handle, queue, value));
+      }
     }
   }
 
