@@ -10,6 +10,8 @@
 import { pack, unpack } from "msgpackr";
 import type {
   Chunk,
+  Message,
+  MessageTextContent,
   ToolCallUpdate,
   PlanningUpdate,
   TaskUpdate,
@@ -17,6 +19,27 @@ import type {
 } from "@nodetool-ai/protocol";
 
 export type WebSocketCtor = typeof WebSocket;
+
+/**
+ * A field value as it comes off the wire. msgpack and JSON both decode into
+ * this domain, so a frame's own fields have a contract before anything narrows
+ * them to a protocol shape.
+ */
+export type ChatFrameValue =
+  | null
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | ChatFrameValue[]
+  | ChatFrameFields;
+
+export interface ChatFrameFields {
+  [field: string]: ChatFrameValue | undefined;
+}
+
+/** What a WebSocket hands `onmessage`: a text frame, or binary as a buffer or a view over one. */
+type InboundFrame = string | ArrayBuffer | ArrayBufferView;
 
 export type ConnectionState =
   | "idle"
@@ -32,18 +55,9 @@ export interface ChatChunkEvent extends Chunk {
 }
 
 /** A complete persisted message (assistant final or echoed user input). */
-export interface ChatMessageEvent {
+export interface ChatMessageEvent extends Message {
   type: "message";
-  id?: string;
   role: "user" | "assistant" | "system" | "tool";
-  thread_id?: string | null;
-  content?: unknown;
-  tool_calls?: unknown;
-  tool_call_id?: string | null;
-  provider?: string | null;
-  model?: string | null;
-  created_at?: string;
-  [key: string]: unknown;
 }
 
 /** Tool invocation announced mid-stream. */
@@ -68,9 +82,8 @@ export interface ChatThreadUpdateEvent {
 }
 
 /** Anything else — surfaced raw so callers can opt in to it. */
-export interface ChatRawEvent {
+export interface ChatRawEvent extends ChatFrameFields {
   type: string;
-  [key: string]: unknown;
 }
 
 export type ChatEvent =
@@ -83,6 +96,27 @@ export type ChatEvent =
   | PlanningUpdate
   | TaskUpdate
   | ChatRawEvent;
+
+/** Outbound `chat_message` command: one user turn, in the shape the server persists. */
+interface ChatMessageCommand {
+  command: "chat_message";
+  data: Message & {
+    type: "message";
+    role: "user";
+    content: MessageTextContent[];
+    thread_id: string;
+    /** Persisted on the message row, but absent from the protocol `Message`. */
+    agent_mode: boolean;
+  };
+}
+
+/** Outbound `stop` command: cancel the in-flight turn on a thread. */
+interface StopCommand {
+  command: "stop";
+  data: { thread_id: string };
+}
+
+type ChatCommand = ChatMessageCommand | StopCommand;
 
 export interface SendChatMessageOptions {
   threadId: string;
@@ -123,6 +157,8 @@ type EventMap = {
 
 type Listener<K extends keyof EventMap> = (payload: EventMap[K]) => void;
 
+type ListenerStore = { [K in keyof EventMap]: Set<Listener<K>> };
+
 const DEFAULT_RECONNECT_MS = 1500;
 const DEFAULT_MAX_RECONNECT = 10;
 const MAX_RECONNECT_MS = 15_000;
@@ -139,7 +175,18 @@ export class ChatSocket {
   private intentionalClose = false;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private listeners = new Map<keyof EventMap, Set<Listener<keyof EventMap>>>();
+  private readonly listeners: ListenerStore = {
+    chunk: new Set(),
+    message: new Set(),
+    tool_call: new Set(),
+    error: new Set(),
+    generation_stopped: new Set(),
+    thread_update: new Set(),
+    planning_update: new Set(),
+    task_update: new Set(),
+    raw: new Set(),
+    state: new Set()
+  };
 
   constructor(options: ChatSocketOptions) {
     this.url = options.url;
@@ -168,14 +215,10 @@ export class ChatSocket {
    * have their own typed handler — useful for bridging future server events.
    */
   on<K extends keyof EventMap>(event: K, listener: Listener<K>): () => void {
-    let set = this.listeners.get(event);
-    if (!set) {
-      set = new Set();
-      this.listeners.set(event, set);
-    }
-    set.add(listener as Listener<keyof EventMap>);
+    const set = this.listeners[event];
+    set.add(listener);
     return () => {
-      set?.delete(listener as Listener<keyof EventMap>);
+      set.delete(listener);
     };
   }
 
@@ -216,7 +259,7 @@ export class ChatSocket {
       this.scheduleReconnect();
     };
     ws.onerror = () => this.setState("error");
-    ws.onmessage = (ev: MessageEvent) => this.handleRaw(ev.data);
+    ws.onmessage = (ev: MessageEvent<InboundFrame>) => this.handleRaw(ev.data);
   }
 
   /** Close the socket and cancel any pending reconnect. */
@@ -259,9 +302,7 @@ export class ChatSocket {
   }
 
   private emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
-    const set = this.listeners.get(event);
-    if (!set) return;
-    for (const fn of set) {
+    for (const fn of this.listeners[event]) {
       try {
         fn(payload);
       } catch (err) {
@@ -271,11 +312,11 @@ export class ChatSocket {
     }
   }
 
-  private sendCommand(payload: unknown): void {
+  private sendCommand(payload: ChatCommand): void {
     if (!this.socket || this.socket.readyState !== this.Ctor.OPEN) {
       throw new Error("WebSocket is not connected");
     }
-    let frame: string | ArrayBufferLike | Uint8Array;
+    let frame: string | Uint8Array;
     try {
       frame = pack(payload);
     } catch (err) {
@@ -285,43 +326,23 @@ export class ChatSocket {
       );
       frame = JSON.stringify(payload);
     }
-    this.socket.send(frame as never);
+    this.socket.send(frame);
   }
 
-  private handleRaw(raw: unknown): void {
-    let frame: ChatEvent | null = null;
-    if (raw instanceof ArrayBuffer) {
-      try {
-        frame = unpack(new Uint8Array(raw)) as ChatEvent;
-      } catch (err) {
-        console.error("[ChatSocket] failed to decode msgpack frame:", err);
-        return;
-      }
-    } else if (typeof raw === "string") {
-      try {
-        frame = JSON.parse(raw) as ChatEvent;
-      } catch (err) {
-        console.error("[ChatSocket] failed to parse JSON frame:", err);
-        return;
-      }
-    } else if (raw && typeof raw === "object") {
-      // Some platforms may deliver a Buffer-like directly.
-      try {
-        const u8 =
-          raw instanceof Uint8Array
-            ? raw
-            : new Uint8Array(raw as ArrayBufferLike);
-        frame = unpack(u8) as ChatEvent;
-      } catch {
-        return;
-      }
-    }
-    if (!frame || typeof frame !== "object" || !("type" in frame)) return;
+  private handleRaw(inbound: InboundFrame): void {
+    const frame = isTextFrame(inbound)
+      ? parseTextFrame(inbound)
+      : decodeBinaryFrame(inbound);
+    if (!frame) return;
 
     this.emit("raw", frame);
     const type = frame.type;
     if (isKnownEventType(type)) {
-      this.emit(type, frame as never);
+      // SAFETY: `isKnownEventType` proved the tag is one of `EventMap`'s
+      // discriminated keys, so the frame is that key's payload. TypeScript
+      // cannot correlate a union key with its own payload across the generic
+      // `emit` call.
+      this.emit(type, frame as EventMap[typeof type]);
     }
   }
 
@@ -343,7 +364,10 @@ export class ChatSocket {
   }
 }
 
-const KNOWN_TYPES = new Set([
+/** Every event with a typed handler; `raw` and `state` are local, not frame tags. */
+type KnownType = Exclude<keyof EventMap, "raw" | "state">;
+
+const KNOWN_TYPES: ReadonlySet<string> = new Set<KnownType>([
   "chunk",
   "message",
   "tool_call",
@@ -352,12 +376,63 @@ const KNOWN_TYPES = new Set([
   "thread_update",
   "planning_update",
   "task_update"
-] as const);
+]);
 
-type KnownType = typeof KNOWN_TYPES extends Set<infer T> ? T : never;
+function isKnownEventType(type: string): type is KnownType {
+  return KNOWN_TYPES.has(type);
+}
 
-function isKnownEventType(t: string): t is KnownType {
-  return (KNOWN_TYPES as Set<string>).has(t);
+function isTextFrame(inbound: InboundFrame): inbound is string {
+  return typeof inbound === "string";
+}
+
+/** `typeof` calls null, arrays and byte blobs "object" too; a frame body is none of those. */
+function isFrameFields(value: ChatFrameValue): value is ChatFrameFields {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Uint8Array)
+  );
+}
+
+function isFrameTag(value: ChatFrameValue | undefined): value is string {
+  return typeof value === "string";
+}
+
+function toChatEvent(decoded: ChatFrameValue): ChatEvent | null {
+  if (!isFrameFields(decoded) || !isFrameTag(decoded.type)) return null;
+  // SAFETY: the two predicates above establish exactly what `ChatEvent`'s
+  // widest member `ChatRawEvent` declares — a keyed frame body with a string
+  // `type`. Tags we model narrow further in `handleRaw`.
+  return decoded as ChatRawEvent;
+}
+
+function parseTextFrame(text: string): ChatEvent | null {
+  try {
+    return toChatEvent(JSON.parse(text));
+  } catch (err) {
+    console.error("[ChatSocket] failed to parse JSON frame:", err);
+    return null;
+  }
+}
+
+function decodeBinaryFrame(
+  inbound: ArrayBuffer | ArrayBufferView
+): ChatEvent | null {
+  try {
+    return toChatEvent(unpack(frameBytes(inbound)));
+  } catch (err) {
+    console.error("[ChatSocket] failed to decode msgpack frame:", err);
+    return null;
+  }
+}
+
+/** Some platforms deliver a Buffer-like view rather than a bare `ArrayBuffer`. */
+function frameBytes(inbound: ArrayBuffer | ArrayBufferView): Uint8Array {
+  return inbound instanceof ArrayBuffer
+    ? new Uint8Array(inbound)
+    : new Uint8Array(inbound.buffer, inbound.byteOffset, inbound.byteLength);
 }
 
 function globalCtor(): WebSocketCtor | null {
