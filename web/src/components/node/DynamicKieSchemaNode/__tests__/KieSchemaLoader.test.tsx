@@ -12,10 +12,17 @@ jest.mock("../../../ui_primitives", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Caption: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   LoadingSpinner: () => <span data-testid="loading-spinner" />,
-  ToolbarIconButton: ({ children, onClick, disabled, ...props }: any) => (
+  ToolbarIconButton: ({
+    children,
+    onClick,
+    disabled,
+    ...props
+  }: React.ComponentProps<"button">) => (
     <button onClick={onClick} disabled={disabled} {...props}>{children}</button>
   ),
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => (
+    <div {...props}>{children}</div>
+  )
 }));
 
 const { render } = nodeStoreRenderers(

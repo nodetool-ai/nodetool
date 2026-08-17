@@ -9,7 +9,7 @@ const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 // Mock LoadingSpinner
 jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
-  LoadingSpinner: ({ size }: any) => <span data-testid="loading-spinner" data-size={size}>Loading</span>
+  LoadingSpinner: ({ size }: { size?: number | string }) => <span data-testid="loading-spinner" data-size={size}>Loading</span>
 }));
 
 describe("CircularActionButton", () => {

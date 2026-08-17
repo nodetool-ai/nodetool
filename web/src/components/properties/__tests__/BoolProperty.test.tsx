@@ -5,7 +5,14 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Mock NodeSwitch to avoid Switch theme complexities
 jest.mock("../../editor_ui/NodeSwitch", () => ({
   __esModule: true,
-  NodeSwitch: ({ checked, onChange, id, inputProps }: any) => (
+  NodeSwitch: ({
+    checked,
+    onChange,
+    id,
+    inputProps
+  }: React.ComponentProps<"input"> & {
+    inputProps?: React.ComponentProps<"input">;
+  }) => (
     <input
       type="checkbox"
       id={id}

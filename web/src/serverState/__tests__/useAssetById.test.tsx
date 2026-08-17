@@ -6,7 +6,10 @@ import { mockAsset } from "../../__mocks__/fixtures";
 const mockGetAsset = jest.fn();
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
-  useAssetStore: jest.fn((selector: any) => selector({ get: mockGetAsset }))
+  useAssetStore: jest.fn(
+    (selector: (state: { get: typeof mockGetAsset }) => unknown) =>
+      selector({ get: mockGetAsset })
+  )
 }));
 
 jest.mock("@tanstack/react-query", () => ({
@@ -42,7 +45,7 @@ describe("useAssetById", () => {
   });
 
   it("throws error when queryFn is called without asset ID", async () => {
-    let capturedQueryFn: any;
+    let capturedQueryFn: (() => Promise<unknown>) | undefined;
     (useQuery as jest.Mock).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
       return { data: undefined };
@@ -50,11 +53,11 @@ describe("useAssetById", () => {
 
     renderHook(() => useAssetById(undefined));
     
-    await expect(capturedQueryFn()).rejects.toThrow("Asset ID is required");
+    await expect(capturedQueryFn?.()).rejects.toThrow("Asset ID is required");
   });
 
   it("calls getAsset with correct ID", async () => {
-    let capturedQueryFn: any;
+    let capturedQueryFn: (() => Promise<unknown>) | undefined;
     mockGetAsset.mockResolvedValue(mockAsset);
     (useQuery as jest.Mock).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
@@ -63,7 +66,7 @@ describe("useAssetById", () => {
 
     renderHook(() => useAssetById("asset-456"));
     
-    await capturedQueryFn();
+    await capturedQueryFn?.();
     expect(mockGetAsset).toHaveBeenCalledWith("asset-456");
   });
 });

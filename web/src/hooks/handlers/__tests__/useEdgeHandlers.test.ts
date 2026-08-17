@@ -31,7 +31,16 @@ describe("useEdgeHandlers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     storeEdgeUpdateSuccessful = true;
-    mockedUseNodes.mockImplementation((selector: any) => {
+    mockedUseNodes.mockImplementation(
+      (
+        selector?: (state: {
+          findEdge: jest.Mock;
+          updateEdge: jest.Mock;
+          deleteEdge: jest.Mock;
+          edgeUpdateSuccessful: boolean;
+          setEdgeUpdateSuccessful: jest.Mock;
+        }) => unknown
+      ) => {
       const state = {
         findEdge: mockFindEdge,
         updateEdge: mockUpdateEdge,
@@ -44,13 +53,15 @@ describe("useEdgeHandlers", () => {
     mockedUseNodeStoreRef.mockImplementation(() => ({
       getState: () => ({ edgeUpdateSuccessful: storeEdgeUpdateSuccessful })
     }));
-    mockedUseContextMenuStore.mockImplementation((selector: any) => {
+    mockedUseContextMenuStore.mockImplementation(
+      (selector?: (state: { openContextMenu: jest.Mock }) => unknown) => {
       const state = {
         openContextMenu: mockOpenContextMenu
       };
       return selector ? selector(state) : state;
     });
-    mockedUseConnectionStore.mockImplementation((selector: any) => {
+    mockedUseConnectionStore.mockImplementation(
+      (selector?: (state: { setIsReconnecting: jest.Mock }) => unknown) => {
       const state = {
         setIsReconnecting: mockSetIsReconnecting
       };

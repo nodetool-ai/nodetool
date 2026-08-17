@@ -91,7 +91,27 @@ describe("useNumberInput", () => {
   });
 
   describe("useDragHandling", () => {
-    const createMockProps = (overrides: any = {}) => ({
+    /** The drag inputs and mutable drag state these tests assemble. */
+    interface DragProps {
+      min: number;
+      max: number;
+      inputType: "float" | "int";
+      onChange: jest.Mock;
+      onChangeComplete: jest.Mock | undefined;
+    }
+
+    interface DragState {
+      localValue: string;
+      isDragging: boolean;
+      hasExceededDragThreshold: boolean;
+      dragStartX: number;
+      currentDragValue: number;
+      decimalPlaces: number;
+      lastClientX: number;
+      actualSliderWidth: number;
+    }
+
+    const createMockProps = (overrides: Partial<DragProps> = {}) => ({
       min: 0,
       max: 100,
       inputType: "float" as const,
@@ -100,7 +120,7 @@ describe("useNumberInput", () => {
       ...overrides,
     });
 
-    const createMockState = (overrides: any = {}): any => ({
+    const createMockState = (overrides: Partial<DragState> = {}): DragState => ({
       localValue: "50",
       isDragging: false,
       hasExceededDragThreshold: false,

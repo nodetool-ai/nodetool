@@ -168,7 +168,7 @@ describe("useSurroundWithGroup", () => {
     const groupNode = updatedNodes[0];
     const childNodes = updatedNodes.slice(1);
 
-    childNodes.forEach((node: any) => {
+    childNodes.forEach((node: { parentId?: string }) => {
       expect(node.parentId).toBe(groupNode.id);
     });
   });

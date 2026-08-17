@@ -14,7 +14,8 @@ const mockSessionState = {
 } satisfies Record<string, any>;
 
 jest.mock("../../../stores/SessionStateStore", () => {
-  const store: any = (selector: any) => selector(mockSessionState);
+  const store = (selector: (state: typeof mockSessionState) => unknown) =>
+    selector(mockSessionState);
   store.getState = () => mockSessionState;
   return { __esModule: true, default: store };
 });
@@ -30,8 +31,8 @@ const invalidClipboardData = JSON.stringify({
 });
 
 describe("useClipboard", () => {
-  let originalNavigator: any;
-  let originalWindow: any;
+  let originalNavigator: Navigator;
+  let originalWindow: Window & typeof globalThis;
 
   beforeEach(() => {
     jest.clearAllMocks();

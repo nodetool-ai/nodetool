@@ -7,7 +7,13 @@ const mockCreateNewWorkflow = jest.fn();
 const mockCreateWorkflow = jest.fn();
 
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: jest.fn((selector: (state: any) => any) => {
+  useWorkflowManager: jest.fn(
+    (
+      selector: (state: {
+        createNew: jest.Mock;
+        create: jest.Mock;
+      }) => unknown
+    ) => {
     const state = {
       createNew: mockCreateNewWorkflow,
       create: mockCreateWorkflow

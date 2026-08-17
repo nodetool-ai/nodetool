@@ -57,8 +57,12 @@ jest.mock("../../../node/NodeProgress", () => ({
 const mockSearch = jest.fn().mockResolvedValue({ assets: [] });
 const mockGet = jest.fn();
 jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: any) =>
-    selector({ search: mockSearch, get: mockGet })
+  useAssetStore: (
+    selector: (state: {
+      search: typeof mockSearch;
+      get: typeof mockGet;
+    }) => unknown
+  ) => selector({ search: mockSearch, get: mockGet })
 }));
 
 const renderWithTheme = (ui: React.ReactElement) => {

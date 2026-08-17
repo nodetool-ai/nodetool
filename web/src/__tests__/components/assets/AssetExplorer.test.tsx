@@ -3,11 +3,12 @@ import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import ThemeNodetool from "../../../components/themes/ThemeNodetool";
 import AssetExplorer from "../../../components/assets/AssetExplorer";
+import type { Asset } from "../../../stores/ApiTypes";
 
 // Mock child components and hooks to isolate AssetExplorer behavior
 jest.mock("../../../components/assets/AssetGrid", () => ({
   __esModule: true,
-  default: ({ sortedAssets }: { sortedAssets: any[] }) => (
+  default: ({ sortedAssets }: { sortedAssets?: Asset[] }) => (
     <div data-testid="asset-grid">asset-grid:{sortedAssets?.length ?? 0}</div>
   )
 }));
@@ -18,7 +19,9 @@ jest.mock("../../../serverState/useAssets", () => ({
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManager: (sel: any) => sel({ currentWorkflowId: "wf-1" })
+  useWorkflowManager: (
+    sel: (state: { currentWorkflowId: string }) => unknown
+  ) => sel({ currentWorkflowId: "wf-1" })
 }));
 
 jest.mock("react-router-dom", () => ({

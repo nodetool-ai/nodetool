@@ -149,7 +149,9 @@ describe("FindReplaceBar", () => {
     jest.useRealTimers();
   });
 
-  const renderWithTheme = (props: any = {}) => {
+  const renderWithTheme = (
+    props: Partial<React.ComponentProps<typeof FindReplaceBar>> = {}
+  ) => {
     return render(
       <ThemeProvider theme={mockTheme}>
         <FindReplaceBar {...defaultProps} {...props} />

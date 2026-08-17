@@ -14,7 +14,16 @@ jest.mock("../../ui_primitives", () => ({
     tooltipPlacement,
     enterDelay,
     className
-  }: any) => (
+  }: {
+    isOpen?: boolean;
+    onToggle?: () => void;
+    showLabel?: string;
+    hideLabel?: string;
+    icon?: React.ReactNode;
+    tooltipPlacement?: string;
+    enterDelay?: number;
+    className?: string;
+  }) => (
     <button
       data-testid="labeled-toggle"
       data-is-open={isOpen}

@@ -40,12 +40,20 @@ describe("getGroupBounds", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetNodesBounds.mockImplementation((nodes: any[]) => {
+    mockGetNodesBounds.mockImplementation((nodes) => {
+      // These tests only ever pass node objects, never the id form the
+      // ReactFlow signature also accepts.
+      const sized = nodes as Array<{
+        position?: { x: number; y: number };
+        width?: number;
+        height?: number;
+        measured?: { width?: number; height?: number };
+      }>;
       if (nodes.length === 0) {
         return { x: 0, y: 0, width: 0, height: 0 };
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      nodes.forEach((node) => {
+      sized.forEach((node) => {
         const x = node.position?.x || 0;
         const y = node.position?.y || 0;
         const w = node.width || node.measured?.width || 100;

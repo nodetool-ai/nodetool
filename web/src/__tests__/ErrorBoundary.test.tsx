@@ -29,7 +29,15 @@ jest.mock("../components/ui_primitives", () => ({
   CopyButton: ({ value }: { value: string }) => (
     <button data-testid="copy-button">Copy: {String(value).substring(0, 20)}</button>
   ),
-  Text: ({ children, className, component, ...props }: any) => {
+  Text: ({
+    children,
+    className,
+    component,
+    ...props
+  }: React.PropsWithChildren<{
+    className?: string;
+    component?: "p" | "span" | "div" | "h1" | "h2";
+  }>) => {
     const Tag = component || "p";
     return (
       <Tag className={className} {...props}>
