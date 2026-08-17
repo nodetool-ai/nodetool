@@ -2,6 +2,17 @@ import * as path from "path";
 
 const c = require("../../scripts/node-runtime.constants.cjs") as {
   NODE_RUNTIME_VERSION: string;
+  ALL_NODE_RUNTIME_TARGETS: Array<{ platform: string; arch: string }>;
+  hostNodeRuntimeTargets: (
+    platform: string,
+    arch: string
+  ) => Array<{ platform: string; arch: string }>;
+  resolveNodeRuntimeTargets: (opts?: {
+    argv?: string[];
+    env?: Record<string, string | undefined>;
+    platform?: string;
+    arch?: string;
+  }) => Array<{ platform: string; arch: string }>;
   nodeBinaryName: (platform: string) => string;
   nodeArchive: (
     platform: string,
@@ -78,5 +89,54 @@ describe("node-runtime.constants", () => {
         "d3dcompiler_47.dll",
       ])
     );
+  });
+
+  it("prefetches both mac arches on darwin hosts", () => {
+    expect(c.hostNodeRuntimeTargets("darwin", "arm64")).toEqual([
+      { platform: "darwin", arch: "arm64" },
+      { platform: "darwin", arch: "x64" },
+    ]);
+    expect(c.hostNodeRuntimeTargets("darwin", "x64")).toEqual([
+      { platform: "darwin", arch: "arm64" },
+      { platform: "darwin", arch: "x64" },
+    ]);
+  });
+
+  it("prefetches only the host target on win32 and linux", () => {
+    expect(c.hostNodeRuntimeTargets("win32", "x64")).toEqual([
+      { platform: "win32", arch: "x64" },
+    ]);
+    expect(c.hostNodeRuntimeTargets("linux", "x64")).toEqual([
+      { platform: "linux", arch: "x64" },
+    ]);
+    expect(c.hostNodeRuntimeTargets("linux", "arm64")).toEqual([
+      { platform: "linux", arch: "arm64" },
+    ]);
+  });
+
+  it("resolves explicit CLI targets for after-pack self-heal", () => {
+    expect(
+      c.resolveNodeRuntimeTargets({
+        argv: ["linux-x64"],
+        platform: "darwin",
+        arch: "arm64",
+      })
+    ).toEqual([{ platform: "linux", arch: "x64" }]);
+  });
+
+  it("fetches every target only when NODETOOL_FETCH_ALL_NODE_RUNTIMES=1", () => {
+    expect(
+      c.resolveNodeRuntimeTargets({
+        platform: "win32",
+        arch: "x64",
+      })
+    ).toEqual([{ platform: "win32", arch: "x64" }]);
+    expect(
+      c.resolveNodeRuntimeTargets({
+        env: { NODETOOL_FETCH_ALL_NODE_RUNTIMES: "1" },
+        platform: "win32",
+        arch: "x64",
+      })
+    ).toEqual(c.ALL_NODE_RUNTIME_TARGETS);
   });
 });
