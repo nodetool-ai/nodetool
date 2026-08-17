@@ -45,7 +45,7 @@ see below.
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
 | `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
-| `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail | none/maintenance | Advisory |
+| `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail. Every fourth run takes a large pair instead of a nearly-done tree — this is where the app trees' `as any` and missing return types are worked, since `type-safety.yaml` folded into it | none/maintenance | Advisory |
 | `app-build-eval.yml` | Nightly `app-build` eval suite; reports the one-shot rate, gates nothing | none/maintenance | Advisory (report only) |
 | `aur-publish.yml` | Publish the AUR package on a GitHub release | none/maintenance | Required for its own job |
 | `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
@@ -81,7 +81,6 @@ see below.
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
 | `shipped-feature-inliner.yaml` | Scheduled agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
 | `test-coverage.yaml` | Scheduled agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
-| `type-safety.yaml` | Scheduled agent removes `any`, tightens types | none/maintenance | Advisory (`continue-on-error`) |
 | `ui-primitives-compliance.yaml` | Scheduled agent migrates raw MUI imports to `ui_primitives/`, fixes hardcoded design tokens | none/maintenance | Advisory (`continue-on-error`) |
 | `useless-test-pruner.yaml` | Scheduled agent deletes or strengthens tests proven unable to fail under mutation | none/maintenance | Advisory (`continue-on-error`) |
 | `workflow-example-validation.yaml` | Weekly `nodetool validate` + repair of shipped example workflows | none/maintenance | Advisory (`continue-on-error`) |
@@ -156,7 +155,6 @@ Prose still gets its own checks: `docs-lint.yml` on any `**/*.md`, and
 gh workflow run security-audit.yaml
 gh workflow run quality-assurance.yaml
 gh workflow run dead-code-cleanup.yaml
-gh workflow run type-safety.yaml
 gh workflow run performance-optimization.yaml
 gh workflow run dependency-cleanup.yaml
 gh workflow run test-coverage.yaml

@@ -69,6 +69,42 @@
       "files": [
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
+        "packages/automation-nodes/src/**",
+        "packages/base-nodes/src/**",
+        "packages/chat/src/**",
+        "packages/code-nodes/src/**",
+        "packages/compute/src/**",
+        "packages/core-nodes/src/**",
+        "packages/data-nodes/src/**",
+        "packages/document-nodes/src/**",
+        "packages/dsl/src/**",
+        "packages/elevenlabs-nodes/src/**",
+        "packages/fal-codegen/src/**",
+        "packages/gpu/src/**",
+        "packages/huggingface/src/**",
+        "packages/integration-nodes/src/**",
+        "packages/model-pricing/src/**",
+        "packages/nodes-utils/src/**",
+        "packages/replicate-codegen/src/**",
+        "packages/reve-nodes/src/**",
+        "packages/sandbox-compiler/src/**",
+        "packages/sdk/src/**",
+        "packages/security/src/**",
+        "packages/text-nodes/src/**",
+        "packages/topaz-nodes/src/**",
+        "packages/transformers-js-nodes/src/**",
+        "packages/transformers-js-provider/src/**",
+        "packages/vectorstore/src/**",
+        "packages/workflow-runner/src/**"
+      ],
+      "rules": {
+        "anti-slop/no-implicit-return-type": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/atlascloud-nodes/src/**",
+        "packages/auth/src/**",
         "packages/base-nodes/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
