@@ -203,6 +203,15 @@ export interface MessageAudioContent {
   };
 }
 
+export interface MessageVideoContent {
+  type: "video";
+  video: {
+    uri?: string;
+    data?: Uint8Array | string;
+    mimeType?: string;
+  };
+}
+
 export interface MessageDocumentContent {
   type: "document";
   document: {
@@ -269,6 +278,7 @@ export type MessageContent =
   | MessageTextContent
   | MessageImageContent
   | MessageAudioContent
+  | MessageVideoContent
   | MessageDocumentContent;
 
 export interface ProviderToolErrorResult {
