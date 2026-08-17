@@ -265,7 +265,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 464 pairs on a
+indistinguishable from a clean tree, and would ratchet all 522 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -315,17 +315,38 @@ concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. Nine trees are at zero on all eight: `packages/auth`,
-`packages/base-nodes`, `packages/chat`, `packages/config`,
-`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
-`packages/security` and `packages/workflow-runner`.
+a boundary get named. `packages/base-nodes` and `packages/security` are at zero
+on all nine.
 
-Driving a whole small tree to zero is the cheapest way to move the pair count,
-and the fixes that get there rhyme: name the value crossing a boundary
-(`TemplateVars`, `ExecutedToolCall`, `JsonObject`, `ReveRequestBody`), give a
-`typeof` narrowing a predicate that takes a domain type rather than `unknown`
-so the finding does not just change rules, and delete the guards that were
-only ever checking a field the type already declared.
+`no-hand-written-any` is the newest, and it exists because
+`.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
+`web/`, `electron/` and `mobile/` nightly, fixes five to ten files, and nothing
+stopped the next PR putting `any` back in the file it just cleaned. What decided
+the rule's shape was counting first. Of the 1,012 `: any` annotations in
+`packages/*/src`, **960** are `declare <name>: any` — the ambient class field the
+`@prop` decorator requires for a node property, a deliberate contract in
+`@nodetool-ai/node-sdk` and not fixable at the site. Reporting it would have put
+the rule 960 findings deep on day one with nothing to do about them, which is
+where `no-shape-in-symbol-names` was when it was deleted. So the rule skips a
+`PropertyDefinition` with `declare: true` — decided from the AST, not a name or a
+path — and what is left is 302 hand-written annotations, 224 of them in `web/`,
+already at zero in 44 of 58 trees.
+
+It reports `any` in annotation positions: parameters, returns, variables,
+properties, and type arguments (`any[]`, `Promise<any>`, `Map<string, any>`). It
+deliberately does not report `as any` — `require-safety-comment-for-type-assertion`
+asks whether an assertion is justified in writing, this one asks whether a type
+can be written at all, and a third report on the same syntax buys nothing — nor a
+type-alias body or a type-parameter default, neither of which is an annotation.
+`Record<string, any>` is one finding, not two: an `any` under a type
+`no-unsafe-dictionary-type` classifies belongs to that rule. The boundary is
+exact and pinned by test — `Record<string, any[]>` has an array value type, so
+the dictionary rule classifies nothing and the `any` is this rule's to report.
+
+`type-safety.yaml` is untouched here. Whether it still earns its slot is now a
+question with evidence behind it: the tree it works hardest on is the one
+carrying 74% of the remaining findings, and a nightly grep and a ratchet are not
+the same instrument — but that is a separate change.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what

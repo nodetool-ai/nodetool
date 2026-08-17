@@ -4,6 +4,7 @@
   "categories": {},
   "rules": {
     "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-hand-written-any": "error",
     "anti-slop/no-known-value-widening": "error",
     "anti-slop/no-module-mocking": "error",
     "anti-slop/no-runtime-typeof": ["error", { "allowInTypeGuards": true }],

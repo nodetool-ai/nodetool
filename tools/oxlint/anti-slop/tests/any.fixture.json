@@ -1,0 +1,14 @@
+{
+  "plugins": [],
+  "categories": {},
+  "rules": {
+    "anti-slop/no-hand-written-any": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error"
+  },
+  "jsPlugins": [
+    {
+      "name": "anti-slop",
+      "specifier": "../index.ts"
+    }
+  ]
+}
