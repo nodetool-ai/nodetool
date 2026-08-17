@@ -138,5 +138,8 @@ export function loadPackageAssetJson<T>(
 ): T {
   const resolved = resolvePackageAssetPath(ref, importerUrl, registry);
   const req = nodeModule!.createRequire(importerUrl);
+  // SAFETY: `T` is the shape the caller names for this registered asset;
+  // `resolvePackageAssetPath` has already checked the ref against the registry,
+  // so what `require` returns is that asset's JSON and nothing else.
   return req(resolved) as T;
 }

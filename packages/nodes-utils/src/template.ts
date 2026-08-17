@@ -66,13 +66,23 @@ export function referencedVariables(template: string): string[] {
 }
 
 /**
+ * One template variable's value. The renderer substitutes `String(value ?? "")`
+ * and then runs string filters over the result, so the contract is "a scalar
+ * with a meaningful string form"; `null` and `undefined` render as the empty
+ * string. Callers holding a richer value stringify it at their own boundary,
+ * where they know what its string form should be — the renderer's
+ * `[object Object]` is never that.
+ */
+export type TemplateValue = string | number | boolean | null | undefined;
+
+/** The variable bag `renderTemplate` substitutes from. */
+export type TemplateVars = Record<string, TemplateValue>;
+
+/**
  * Substitute `{{ variable }}` / `{variable}` placeholders in `template` with
  * values from `vars`. Unknown placeholders are left intact.
  */
-export function renderTemplate(
-  template: string,
-  vars: Record<string, unknown>
-): string {
+export function renderTemplate(template: string, vars: TemplateVars): string {
   let result = template;
 
   // {{ var|filter1|filter2 }}. The content class excludes both braces so the
