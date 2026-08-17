@@ -39,6 +39,7 @@ import {
   type AffineMatrix
 } from "../transform/geometry/affineMatrix";
 import {
+  isArray,
   isFiniteNumber,
   isNumber,
   isObjectLike,
@@ -514,7 +515,7 @@ export function createDefaultGroupLayer(name: string): Layer {
  * every layer has a valid `effects` array. Unknown effect types are dropped.
  */
 function normalizeLayerEffects(raw: unknown): LayerEffect[] {
-  if (!Array.isArray(raw)) {
+  if (!isArray(raw)) {
     return [];
   }
   const result: LayerEffect[] = [];

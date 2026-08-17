@@ -1,5 +1,5 @@
 import { TypeMetadata } from "../stores/ApiTypes";
-import { isBoolean, isNumber, isString } from "./typePredicates";
+import { isArray, isBoolean, isNumber, isString } from "./typePredicates";
 
 /**
  * Human readable string representation of a type.
@@ -116,13 +116,13 @@ export const valueMatchesType = (
         }
         return isString(v) && t.values.includes(v);
       case "list": {
-        if (!Array.isArray(v)) {return false;}
+        if (!isArray(v)) {return false;}
         const elementType = t.type_args && t.type_args[0];
         if (!elementType) {return true;} // untyped list
         return v.every((item) => matches(item, elementType));
       }
       case "tuple": {
-        if (!Array.isArray(v)) {return false;}
+        if (!isArray(v)) {return false;}
         if (!t.type_args || t.type_args.length === 0) {return true;}
         if (v.length !== t.type_args.length) {return false;}
         for (let i = 0; i < t.type_args.length; i++) {

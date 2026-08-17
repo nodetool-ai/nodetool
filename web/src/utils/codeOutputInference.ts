@@ -7,7 +7,7 @@
  */
 import * as acorn from "acorn";
 import type { TypeMetadata } from "../stores/ApiTypes";
-import { isString } from "./typePredicates";
+import { isArray, isString } from "./typePredicates";
 
 // ---------------------------------------------------------------------------
 // Minimal AST walker (replaces acorn-walk for the node types used below)
@@ -33,7 +33,7 @@ function walkAst(
     ancestors.push(node);
     for (const [key, value] of Object.entries(node)) {
       if (key === "type" || key === "start" || key === "end") continue;
-      if (Array.isArray(value)) {
+      if (isArray(value)) {
         for (const item of value) {
           if (isAstNode(item)) walkNode(item);
         }

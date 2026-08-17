@@ -24,6 +24,8 @@ import useSecretsStore from "../../../stores/SecretsStore";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { FAL_SAM_NODE_TYPE } from "../../../constants/nodeTypes";
 import {
+  isArray,
+  isNonEmptyString,
   isNumber,
   isObjectLike,
   isString
@@ -182,7 +184,7 @@ function parseJsonValue<T>(value: unknown): T | null {
  */
 function normalizeFalScores(value: unknown): number[] {
   const parsed = parseJsonValue<unknown>(value);
-  if (!Array.isArray(parsed)) {
+  if (!isArray(parsed)) {
     return [];
   }
   return parsed
@@ -192,7 +194,7 @@ function normalizeFalScores(value: unknown): number[] {
 
 function normalizeFalMetadataEntries(value: unknown): FalMaskMetadata[] {
   const parsed = parseJsonValue<unknown>(value);
-  if (Array.isArray(parsed)) {
+  if (isArray(parsed)) {
     return parsed.filter((entry): entry is FalMaskMetadata => isFalMaskMetadata(entry));
   }
   if (isFalMaskMetadata(parsed)) {
@@ -207,7 +209,7 @@ function normalizeFalBoxes(
   scale: number
 ): FalNormalizedBox[] {
   const parsed = parseJsonValue<unknown>(value);
-  if (!Array.isArray(parsed)) {
+  if (!isArray(parsed)) {
     return fallbackMasks.map((mask) => ({
       x: 0,
       y: 0,
@@ -226,7 +228,7 @@ function normalizeFalBoxes(
       height: Math.round((fallbackMask?.height ?? 0) * invScale)
     };
 
-    if (Array.isArray(entry) && entry.length >= 4) {
+    if (isArray(entry) && entry.length >= 4) {
       const [cx, cy, width, height] = entry;
       if (
         isNumber(cx) &&
@@ -281,7 +283,7 @@ function normalizeFalRle(value: unknown): string | string[] | null {
       if (isString(parsed) && parsed.length > 0) {
         return parsed;
       }
-      if (Array.isArray(parsed)) {
+      if (isArray(parsed)) {
         const entries = parsed.filter(
           (entry): entry is string => typeof entry === "string" && entry.length > 0
         );
@@ -297,7 +299,7 @@ function normalizeFalRle(value: unknown): string | string[] | null {
   if (isString(parsed) && parsed.length > 0) {
     return parsed;
   }
-  if (Array.isArray(parsed)) {
+  if (isArray(parsed)) {
     const entries = parsed.filter(
       (entry): entry is string => typeof entry === "string" && entry.length > 0
     );
@@ -318,7 +320,7 @@ function normalizeFalMetadataBox(
   scale: number
 ): FalNormalizedBox | null {
   const invScale = scale > 0 ? 1 / scale : 1;
-  if (Array.isArray(value) && value.length >= 4) {
+  if (isArray(value) && value.length >= 4) {
     const [cx, cy, width, height] = value;
     if (
       isFiniteNumber(cx) &&
@@ -471,9 +473,10 @@ async function uploadToFal(
     throw new Error(`FAL upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
   }
 
-  const uploadData = await uploadRes.json();
-  const resultUrl = uploadData.url ?? uploadData.access_url ?? uploadData.file_url;
-  if (!resultUrl) {
+  const uploadData: unknown = await uploadRes.json();
+  const fields = isObjectLike(uploadData) ? uploadData : {};
+  const resultUrl = fields.url ?? fields.access_url ?? fields.file_url;
+  if (!isNonEmptyString(resultUrl)) {
     throw new Error("FAL upload succeeded but no URL returned in response");
   }
   return resultUrl;
@@ -630,7 +633,8 @@ export class SamServiceFal implements SamService {
       throw new Error(`FAL segmentation failed: ${submitRes.status} ${errorText}`);
     }
 
-    const submitData = await submitRes.json();
+    const submitted: unknown = await submitRes.json();
+    const submitData = isObjectLike(submitted) ? submitted : {};
 
     // If sync_mode returned the result directly
     if (submitData.masks || submitData.image || submitData.rle) {
@@ -638,7 +642,7 @@ export class SamServiceFal implements SamService {
     }
 
     // Otherwise, poll the queue
-    const requestId = (submitData as FalQueueResponse).request_id;
+    const requestId = (submitData as Partial<FalQueueResponse>).request_id;
     if (!requestId) {
       throw new Error("FAL returned no request_id and no inline result");
     }

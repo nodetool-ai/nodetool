@@ -45,7 +45,7 @@ import {
 
 import { restFetch } from "../rest-fetch";
 import type { WorkflowGraph } from "../../stores/ApiTypes";
-import { isString } from "../../utils/typePredicates";
+import { isArray, isString } from "../../utils/typePredicates";
 
 const ROUTE_PREFIX = "/api/sandbox-modules/";
 
@@ -112,7 +112,7 @@ export function collectSandboxModuleDeclarations(
       data ??
       {};
     const declared = props["packages"];
-    if (!Array.isArray(declared)) continue;
+    if (!isArray(declared)) continue;
     for (const entry of declared) {
       const specifier =
         isString(entry)
@@ -172,7 +172,7 @@ function parseDependencies(header: string | null): string[] {
   if (!header) return [];
   try {
     const parsed: unknown = JSON.parse(header);
-    return Array.isArray(parsed)
+    return isArray(parsed)
       ? parsed.filter((id): id is string => typeof id === "string")
       : [];
   } catch {

@@ -1,4 +1,4 @@
-import { isNumber, isObjectLike } from "../../utils/typePredicates";
+import { isArray, isNumber, isObjectLike } from "../../utils/typePredicates";
 /**
  * Browser-side dependency-hash helper for sketch layer bindings.
  *
@@ -40,7 +40,7 @@ function stableSerialize(value: unknown): string {
   if (value === undefined) {
     return "undefined";
   }
-  if (Array.isArray(value)) {
+  if (isArray(value)) {
     return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
   }
   if (isObjectLike(value)) {
