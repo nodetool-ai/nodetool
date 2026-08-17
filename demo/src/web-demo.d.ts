@@ -129,4 +129,43 @@ declare module "@web-demo" {
     clipQueued: number;
     clipReady: number;
   };
+
+  /** Mirror of web/src/demo/doc/docCastTypes.ts `DocSurface`. */
+  export type DocSurface =
+    | "sketch"
+    | "script"
+    | "storyboard"
+    | "jsscript"
+    | "app";
+
+  /** Mirror of web/src/demo/doc/docCastTypes.ts `DocDemoCast`. */
+  export interface DocDemoCast {
+    version: number;
+    kind: "doc";
+    surface: DocSurface;
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    durationMs: number;
+    fps?: number;
+    docId: string;
+    assistantTitle: string;
+    [key: string]: unknown;
+  }
+
+  export interface DocDemoPlayerProps {
+    cast: DocDemoCast;
+    /** Elapsed time into the cast, in milliseconds. */
+    timeMs: number;
+    /** Width of the assistant dock in px. Pass 0 to hide it. */
+    assistantWidthPx?: number;
+    /** Lets a frame renderer block the capture until videos are paintable. */
+    onPendingMedia?: PendingMediaHandler;
+    style?: React.CSSProperties;
+  }
+
+  export const DocDemoPlayer: React.FC<DocDemoPlayerProps>;
+  /** One document cast per document type (sketch, script, storyboard, JS script, app). */
+  export const docCasts: DocDemoCast[];
 }

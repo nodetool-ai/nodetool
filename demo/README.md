@@ -105,32 +105,41 @@ The casts live in `web/src/demo/workflows/` (reusing `cookbook/builders.ts`); th
 per-example titles, camera beats, and captions live in `demo/src/workflows.ts`.
 `scripts/render-workflows.ts` bundles once and renders all of them.
 
-## Other UI surfaces (chat, timeline)
+## Other UI surfaces (chat, timeline, documents)
 
 The graph editor isn't the only NodeTool UI that can star in a tutorial video.
 The same "hand-author a cast, replay it through the real components, drive it
 from Remotion's clock" approach works for any surface whose state is a pure
-function of a handful of props or a small store — it just needs its own cast
-format and player, because each surface's state shape is different. Two ship
-today:
+function of a handful of props or a small store. Every surface a user can open
+a document in is covered:
 
 | Surface | Cast type | Player | Tutorial composition |
 | --- | --- | --- | --- |
 | Graph editor | `DemoCast` (`web/src/demo/castTypes.ts`) | `DemoPlayer` | `Tutorial` |
 | Global Chat | `ChatDemoCast` (`web/src/demo/chat/chatCastTypes.ts`) | `ChatDemoPlayer` | `ChatTutorial` |
 | Timeline editor | `TimelineDemoCast` (`web/src/demo/timeline/timelineCastTypes.ts`) | `TimelineDemoPlayer` | `TimelineTutorial` |
+| Sketch, script, storyboard, JS script, mini app | `DocDemoCast` (`web/src/demo/doc/docCastTypes.ts`) | `DocDemoPlayer` | `DocTutorial` |
 
-All three tutorial compositions share one shell, `demo/src/components/TutorialShell.tsx`
+All four tutorial compositions share one shell, `demo/src/components/TutorialShell.tsx`
 — the title card / step indicator / lower-third captions / outro card timing —
 so a new surface only has to supply a replay player, not re-implement the
-narration chrome. See `demo/src/Tutorial.tsx`, `ChatTutorial.tsx`, and
-`TimelineTutorial.tsx` for the three (nearly identical) call sites.
+narration chrome. See `demo/src/Tutorial.tsx`, `ChatTutorial.tsx`,
+`TimelineTutorial.tsx`, and `DocTutorial.tsx` for the four (nearly identical)
+call sites.
 
 ```bash
 cd demo
 npm run render:tutorial:chat-agent-qa           # Ask the chat agent → web/public/tutorials/chat-agent-qa.mp4
 npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → web/public/tutorials/timeline-trim-arrange.mp4
+npm run render:tutorials:docs                   # the five document tutorials (sketch, script, storyboard, JS script, app)
+npm run still:tutorials:docs                    # their posters
 ```
+
+A rendered MP4 is only half a tutorial: the app plays it from
+`web/src/components/tutorials/tutorialsData.ts`, so add an entry there (id,
+title, `learn` bullets, `/tutorials/<slug>.mp4`, `/tutorials/<slug>.jpg`) once
+the files exist. The entries and the files land in the same change — the
+Tutorials page 404s on an entry whose video was never rendered.
 
 **Chat** (`web/src/demo/chat/`): `ChatView` is prop-driven, not store-driven, so
 `ChatDemoPlayer` skips the "engine" machinery entirely — `computeChatStateAt`
@@ -156,7 +165,33 @@ URIs — or, for media too large to inline, from pinned files: a
 player's `resolveAssetUrl` prop (Remotion `staticFile`), the same pinning
 scheme the graph cast uses.
 
-To add a fourth surface, follow the same shape: a `<Surface>CastTypes.ts`
+**Documents** (`web/src/demo/doc/`): one format and one player for all five
+document types — sketch, script, storyboard, JS script, mini app. Where the
+other two formats invent an op language per surface, a `DocDemoCast` event is a
+**shallow patch of the document root**, and the fold (`docStateAt`) is "apply
+every patch with `t <= timeMs`". `seedDocState` then pushes the folded document
+into whichever store the surface reads (`ScriptStore.loadScript`,
+`StoryboardStore.loadBoard`, `JsScriptStore.loadScript`); sketch and app render
+straight from props, so for them it is a no-op and the player passes the
+document down. `DocDemoPlayer` mounts the production component per surface —
+`SketchRenderer`, `ScriptDocumentPane`, `StoryboardBoard`, `JsScriptEditorPane`,
+`AppRuntimeView` — read-only, without each editor's page shell (autosave,
+generation subscriptions, tRPC loading).
+
+Every document cast also carries an **assistant track**: the conversation that
+produced the edits, in the same event shape the chat cast uses. `AssistantDock`
+(`web/src/demo/assistant/`) renders it with the real `ChatView` beside the
+document, so the video shows the surface and the assistant that changed it at
+once. The two tracks are authored against one clock — the assistant's tool call
+runs, and the patch that follows is what it did. `docCasts.test.ts` enforces
+that: every patch has an assistant turn behind it, and the last frame still
+shows every tool call the assistant made.
+
+Preview one without Remotion: `cd web && npm start`, then open
+`http://localhost:3000/demo.html?doc=sketch-assistant` (any cast id from
+`web/src/demo/doc/casts.ts`) and scrub it.
+
+To add a sixth surface, follow the same shape: a `<Surface>CastTypes.ts`
 (events + a base document/props snapshot), a pure replay function or minimal
 engine class, a `<Surface>DemoPlayer.tsx` that mounts the real production
 component(s) inside whatever provider stack they need, a cast registry, and a
