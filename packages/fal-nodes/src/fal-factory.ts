@@ -11,9 +11,11 @@ import {
   BaseNode,
   classifyFields,
   classNameToTitle,
+  defaultForPropType,
+  propertyOf,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type {
   ProcessingContext,
   PromptAssetTextField,
@@ -85,20 +87,6 @@ function assetKind(
   return "none";
 }
 
-/**
- * A value held by a node property or by a prompt-asset override: NodeTool's
- * property types are scalars, media refs, and lists or dicts of those.
- */
-type NodeValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Uint8Array
-  | NodeValue[]
-  | { [key: string]: NodeValue };
-
 /** A value in a FAL endpoint's JSON response body. */
 type FalResponseValue =
   | string
@@ -107,42 +95,6 @@ type FalResponseValue =
   | null
   | FalResponseValue[]
   | { [key: string]: FalResponseValue };
-
-/**
- * The empty media ref a media property starts at before the user picks an
- * asset. `duration` and `format` are carried by video only.
- */
-type EmptyMediaRef = {
-  type: "image" | "video" | "audio";
-  uri: string;
-  asset_id: null;
-  data: null;
-  metadata: null;
-  duration?: null;
-  format?: null;
-};
-
-/** What a property starts at when the manifest names no default. */
-type FieldDefault = boolean | number | string | never[] | EmptyMediaRef;
-
-function defaultForPropType(propType: string): FieldDefault {
-  switch (propType) {
-    case "bool":
-      return false;
-    case "int":
-    case "float":
-      return 0;
-    case "image":
-      return { type: "image", uri: "", asset_id: null, data: null, metadata: null };
-    case "audio":
-      return { type: "audio", uri: "", asset_id: null, data: null, metadata: null };
-    case "video":
-      return { type: "video", uri: "", asset_id: null, data: null, metadata: null, duration: null, format: null };
-    default:
-      if (propType.startsWith("list[")) return [];
-      return "";
-  }
-}
 
 function castValue(value: NodeValue, propType: string): NodeValue {
   if (value === null || value === undefined) return value;
@@ -188,25 +140,6 @@ function computeFieldClassification(
  * empty image/audio/video inputs (and strip the mentions from the text).
  * Shared with KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
  */
-/**
- * A manifest-built node seen through its declared properties. Each manifest
- * field is registered as a plain instance property, so the manifest's field
- * name indexes the instance directly.
- */
-type ManifestNodeProperties = BaseNode & { [property: string]: NodeValue };
-
-/**
- * Read one declared property off a node instance, by the name the manifest
- * gave it.
- */
-function propertyOf(instance: BaseNode, name: string): NodeValue {
-  // SAFETY: every declared property is registered from a manifest field, whose
-  // declared types are exactly the scalars, media refs, and lists or dicts of
-  // those that `NodeValue` names.
-  const properties = instance as ManifestNodeProperties;
-  return properties[name];
-}
-
 async function promptAssetOverrides(
   instance: BaseNode,
   spec: FalManifestEntry,

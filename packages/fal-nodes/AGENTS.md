@@ -44,8 +44,8 @@ All asset input properties MUST use proper AssetRef default objects, not empty s
 []  // empty array is correct
 ```
 
-The `defaultForPropType()` function in `fal-factory.ts` handles this. Reference
-the KIE nodes `defaultForType()` as the canonical implementation.
+`defaultForPropType()` in `@nodetool-ai/node-sdk` (`manifest-node-values.ts`)
+handles this, shared with every other provider factory.
 
 ## Output Type Metadata
 
