@@ -54,7 +54,7 @@ export class BoundedQueue<T> implements AsyncIterable<T> {
   private readonly pushWaiters: Array<() => void> = [];
   private closed = false;
   private cancelled = false;
-  private failure: unknown = null;
+  private failure: { error: unknown } | null = null;
 
   constructor(private readonly limit: number) {}
 
@@ -80,7 +80,7 @@ export class BoundedQueue<T> implements AsyncIterable<T> {
 
   /** End the iteration by rejecting the pending (and every later) `next()`. */
   fail(error: unknown): void {
-    this.failure ??= error;
+    this.failure ??= { error };
     this.closed = true;
     this.wakeAll(this.takeWaiters);
     this.wakeAll(this.pushWaiters);
@@ -109,7 +109,7 @@ export class BoundedQueue<T> implements AsyncIterable<T> {
         continue;
       }
       if (this.failure !== null) {
-        throw this.failure;
+        throw this.failure.error;
       }
       if (this.closed) return;
       await new Promise<void>((resolve) => this.takeWaiters.push(resolve));
@@ -153,7 +153,7 @@ interface HandleQueue {
  * other value becomes a one-item stream. `stream()` and `any()` each see every
  * item — a node drains one or the other, not both.
  */
-export class FlowStreamingInputs implements StreamingInputs {
+class FlowStreamingInputs implements StreamingInputs {
   private readonly queues = new Map<string, HandleQueue>();
   private readonly anyQueue: HandleQueue = {
     items: [],
@@ -280,7 +280,10 @@ export class FlowStreamingInputs implements StreamingInputs {
     }
   }
 
-  async first(name: string, defaultValue?: unknown): Promise<unknown> {
+  // No return annotation: the item is an arbitrary workflow value, and an
+  // explicit `Promise<unknown>` is exactly what anti-slop/no-unknown-returns
+  // bans. The contract callers see is `StreamingInputs.first` in the runtime.
+  async first(name: string, defaultValue?: unknown) {
     for await (const item of this.stream(name)) {
       return item;
     }
@@ -321,6 +324,19 @@ function waitFor(queue: HandleQueue, signal: AbortSignal): Promise<void> {
     queue.waiters.push(settle);
     signal.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+/** The read side, plus the two controls the flow needs to stop the sources. */
+export interface FlowInputs extends StreamingInputs {
+  dispose(): void;
+  sourcesSettled(): Promise<void>;
+}
+
+export function createStreamingInputs(
+  inputs: Record<string, unknown>,
+  signal: AbortSignal | undefined
+): FlowInputs {
+  return new FlowStreamingInputs(inputs, signal);
 }
 
 /** Turns a node's `emit` calls into items of the returned async iterable. */
@@ -368,7 +384,7 @@ export async function* runContractEmissions(
   }
   throwIfAborted(signal);
   const queue = new BoundedQueue<StreamEmission>(scope.emissionLimit);
-  const streamingInputs = new FlowStreamingInputs(inputs, signal);
+  const streamingInputs = createStreamingInputs(inputs, signal);
   const streamingOutputs = new FlowStreamingOutputs(queue);
 
   const running = executor

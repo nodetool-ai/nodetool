@@ -444,9 +444,8 @@ export async function* genProcessRecords(
 export function foldRecords(
   records: ReadonlyArray<Record<string, unknown>>
 ): Record<string, unknown> {
-  const folded: Record<string, unknown> = {};
-  for (const record of records) {
-    Object.assign(folded, record);
-  }
-  return folded;
+  return records.reduce<Record<string, unknown>>(
+    (folded, record) => Object.assign(folded, record),
+    {}
+  );
 }
