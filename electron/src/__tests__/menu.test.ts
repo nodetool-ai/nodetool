@@ -111,6 +111,69 @@ describe('buildMenu', () => {
     expect(setApplicationMenuMock).toHaveBeenCalledWith({ template });
   });
 
+  it('offers Snap to Grid in View and mirrors the renderer state onto its checkbox', async () => {
+    mockIpcChannels();
+
+    const sendMock = jest.fn();
+    const buildFromTemplateMock = jest
+      .fn()
+      .mockImplementation((template) => ({ template }));
+
+    jest.doMock('electron', () => ({
+      app: {
+        isPackaged: false,
+        getPath: jest.fn().mockReturnValue('/mock/userData'),
+      },
+      Menu: {
+        buildFromTemplate: buildFromTemplateMock,
+        setApplicationMenu: jest.fn(),
+      },
+      shell: { openExternal: jest.fn() },
+    }));
+
+    jest.doMock('../state', () => ({
+      getMainWindow: jest.fn().mockReturnValue({
+        webContents: { send: sendMock },
+      }),
+    }));
+
+    jest.doMock('../window', () => ({
+      createLogViewerWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
+    }));
+
+    const menuModule = await import('../menu');
+    menuModule.buildMenu();
+
+    const findSnapItem = (call: number) => {
+      const template = buildFromTemplateMock.mock.calls[call][0] as Array<
+        Record<string, any>
+      >;
+      const viewMenu = template.find((item) => item.label === 'View');
+      return viewMenu?.submenu?.find(
+        (item: { label?: string }) => item.label === 'Snap to Grid'
+      );
+    };
+
+    const snapItem = findSnapItem(0);
+    expect(snapItem?.type).toBe('checkbox');
+    expect(snapItem?.checked).toBe(false);
+
+    snapItem?.click();
+    expect(sendMock).toHaveBeenCalledWith('menu-event', {
+      type: 'toggleSnapToGrid',
+    });
+
+    // The renderer owns the setting; pushing it back re-checks the item.
+    menuModule.setMenuSnapToGrid(true);
+    expect(buildFromTemplateMock).toHaveBeenCalledTimes(2);
+    expect(findSnapItem(1)?.checked).toBe(true);
+
+    // An unchanged value does not rebuild the menu.
+    menuModule.setMenuSnapToGrid(true);
+    expect(buildFromTemplateMock).toHaveBeenCalledTimes(2);
+  });
+
   it('builds a Vaults submenu, checks the active vault, and switches on click', async () => {
     mockIpcChannels();
 

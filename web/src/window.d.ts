@@ -122,6 +122,7 @@ export type MenuEventType =
   | "resetZoom"
   | "zoomIn"
   | "zoomOut"
+  | "toggleSnapToGrid"
   | "prevTab"
   | "nextTab"
   | "switchToTab"
@@ -226,6 +227,8 @@ declare global {
       ) => Promise<FileExplorerResult | void>;
       onMenuEvent: (callback: (data: MenuEventData) => void) => void;
       unregisterMenuEvent: (callback: (data: MenuEventData) => void) => void;
+      /** Mirror the snap-to-grid setting onto the desktop View menu checkbox. */
+      setMenuSnapToGrid?: (enabled: boolean) => void;
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;

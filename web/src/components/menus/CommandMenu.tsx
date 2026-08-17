@@ -33,6 +33,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
@@ -91,6 +92,8 @@ import FitScreenRoundedIcon from "@mui/icons-material/FitScreenRounded";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+import GridOnRoundedIcon from "@mui/icons-material/GridOnRounded";
+import GridOffRoundedIcon from "@mui/icons-material/GridOffRounded";
 
 // Icons — Panels
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
@@ -553,6 +556,8 @@ const ViewCommands = memo(function ViewCommands() {
   const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
   const handleFitView = useFitView();
   const reactFlow = useReactFlow();
+  const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
+  const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
 
   return (
     <Command.Group heading="View">
@@ -561,6 +566,12 @@ const ViewCommands = memo(function ViewCommands() {
       >
         {visible ? <MapOutlinedIcon /> : <MapRoundedIcon />}
         {visible ? "Hide Mini Map" : "Show Mini Map"}
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => setSnapToGrid(!snapToGrid))}
+      >
+        {snapToGrid ? <GridOffRoundedIcon /> : <GridOnRoundedIcon />}
+        {snapToGrid ? "Turn Off Snap to Grid" : "Snap to Grid"}
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(() => handleFitView({ padding: 0.5 }))}
