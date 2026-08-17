@@ -6,6 +6,8 @@ import {
   filterTypesByInputExact,
   filterTypesByOutputExact,
   filterDataByExactType,
+  filterTypesByInputType,
+  filterTypesByOutputType,
 } from "../typeFilterUtils";
 import type { NodeMetadata, TypeMetadata } from "../../../stores/ApiTypes";
 
@@ -185,6 +187,63 @@ describe("filterDataByExactType", () => {
 
   it("returns empty when filters exclude all nodes", () => {
     const result = filterDataByExactType(nodes, "str", "int");
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("connection-driven filtering across `any` handles", () => {
+  const strInputNode = makeNode({
+    title: "StrInput",
+    properties: [
+      { name: "text", type: makeType("str"), default: "", description: "", required: false }
+    ],
+    outputs: [{ name: "output", type: makeType("str"), stream: false }]
+  });
+  const anyInputNode = makeNode({
+    title: "AnyInput",
+    properties: [
+      { name: "value", type: makeType("any"), default: null, description: "", required: false }
+    ],
+    outputs: [{ name: "output", type: makeType("any"), stream: false }]
+  });
+  const intNode = makeNode({
+    title: "IntNode",
+    properties: [
+      { name: "value", type: makeType("int"), default: 0, description: "", required: false }
+    ],
+    outputs: [{ name: "result", type: makeType("int"), stream: false }]
+  });
+  const nodes = [intNode, anyInputNode, strInputNode];
+
+  it("offers nodes whose only compatible input is `any`", () => {
+    const result = filterTypesByInputType(nodes, makeType("str"));
+    expect(result.map((n) => n.title)).toContain("AnyInput");
+  });
+
+  it("offers nodes whose only compatible output is `any`", () => {
+    const result = filterTypesByOutputType(nodes, makeType("str"));
+    expect(result.map((n) => n.title)).toContain("AnyInput");
+  });
+
+  it("ranks an `any` input below a typed match", () => {
+    const result = filterTypesByInputType(nodes, makeType("str"));
+    expect(result[0].title).toBe("StrInput");
+    expect(result[result.length - 1].title).toBe("AnyInput");
+  });
+
+  it("ranks an `any` output below a typed match", () => {
+    const result = filterTypesByOutputType(nodes, makeType("str"));
+    expect(result[0].title).toBe("StrInput");
+    expect(result[result.length - 1].title).toBe("AnyInput");
+  });
+
+  it("offers every node with a typed input when dragging from an `any` output", () => {
+    const result = filterTypesByInputType(nodes, makeType("any"));
+    expect(result).toHaveLength(3);
+  });
+
+  it("still drops nodes with no compatible handle", () => {
+    const result = filterTypesByInputType([intNode], makeType("image"));
     expect(result).toHaveLength(0);
   });
 });
