@@ -83,7 +83,12 @@ import {
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 import NodeHistoryViewer from "../node/NodeHistoryViewer";
 import { extractTextValue } from "../../utils/extractTextValue";
-import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
+import {
+  isArray,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -343,7 +348,7 @@ const resolvePreviewValue = (
   result: unknown,
   primaryOutputName: string | undefined
 ): unknown => {
-  if (!Array.isArray(result)) {
+  if (!isArray(result)) {
     return extractPrimaryValue(result, primaryOutputName);
   }
 
@@ -353,7 +358,7 @@ const resolvePreviewValue = (
   const values = result
     .flatMap((item) => {
       const value = extractPrimaryValue(item, primaryOutputName);
-      return Array.isArray(value) ? value : [value];
+      return isArray(value) ? value : [value];
     })
     .filter((value) => value !== undefined && value !== null);
 
@@ -373,7 +378,7 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
   if (value instanceof Uint8Array) {
     return value;
   }
-  if (Array.isArray(value)) {
+  if (isArray(value)) {
     return isNumberArray(value) ? new Uint8Array(value) : undefined;
   }
   if (!isRecord(value)) {
@@ -399,14 +404,14 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
   if (data instanceof Uint8Array) {
     return data;
   }
-  if (Array.isArray(data) && isNumberArray(data)) {
+  if (isArray(data) && isNumberArray(data)) {
     return new Uint8Array(data);
   }
   return undefined;
 };
 
 const extractImagePreviewValues = (value: unknown): unknown[] => {
-  if (Array.isArray(value)) {
+  if (isArray(value)) {
     if (isNumberArray(value)) {
       return [value];
     }
@@ -416,7 +421,7 @@ const extractImagePreviewValues = (value: unknown): unknown[] => {
     if (value.output !== undefined) {
       return extractImagePreviewValues(value.output);
     }
-    if (Array.isArray(value.data) && !isNumberArray(value.data)) {
+    if (isArray(value.data) && !isNumberArray(value.data)) {
       return value.data.flatMap((item) => extractImagePreviewValues(item));
     }
   }

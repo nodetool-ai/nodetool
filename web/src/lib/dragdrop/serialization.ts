@@ -7,6 +7,7 @@
 
 import { BORDER_RADIUS, FONT_WEIGHT } from "../../components/ui_primitives";
 import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
+import { isArray } from "../../utils/typePredicates";
 import type { DragData, DragDataType } from "./types";
 
 /** Custom MIME type for internal drag data */
@@ -44,7 +45,7 @@ function isNodeMetadataLike(value: unknown): value is NodeMetadata {
 }
 
 function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item): item is string => typeof item === "string");
+  return isArray(value) && value.every((item): item is string => typeof item === "string");
 }
 
 function isAssetLike(value: unknown): value is Asset {
