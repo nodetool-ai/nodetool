@@ -181,7 +181,6 @@ export type WorkflowManagerState = {
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   delete: (workflow: Workflow) => Promise<void>;
-  saveExample: (packageName: string) => Promise<Workflow>;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -595,46 +594,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
         // Invalidate workflow tools reactively
         get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-      },
-
-      // Saves the current workflow as an example.
-      saveExample: async (packageName: string) => {
-        const workflow = get().getCurrentWorkflow();
-        if (!workflow) {
-          throw new Error("Workflow not found");
-        }
-        // Same first-save rule as saveWorkflow: a never-persisted workflow
-        // has no server revision to check against.
-        const neverPersisted = Boolean(get().unsavedWorkflowIds[workflow.id]);
-        const data = await trpcClient.workflows.update.mutate({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          tags: workflow.tags,
-          package_name: packageName,
-          path: workflow.path,
-          access: "public",
-          graph: workflow.graph,
-          expected_updated_at: neverPersisted
-            ? undefined
-            : workflow.updated_at ?? undefined
-        });
-
-        if (neverPersisted) {
-          set((state) => {
-            const { [workflow.id]: _saved, ...rest } = state.unsavedWorkflowIds;
-            return { unsavedWorkflowIds: rest };
-          });
-        }
-
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-        get().queryClient?.invalidateQueries({ queryKey: ["templates"] });
-        get().queryClient?.invalidateQueries({
-          queryKey: ["workflow", workflow.id]
-        });
-        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-
-        return data as Workflow;
       },
 
       /**

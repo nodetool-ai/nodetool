@@ -32,7 +32,6 @@ import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogSto
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
-import { isDevelopment } from "../../lib/env";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -202,7 +201,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const queryClient = useQueryClient();
 
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
-  const saveExample = useWorkflowManager((state) => state.saveExample);
   const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const createNew = useWorkflowManager((state) => state.createNew);
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
@@ -418,11 +416,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       <Command.Item onSelect={() => executeAndClose(autoLayout)}>
         <AutoFixHighRoundedIcon /> Auto Layout
       </Command.Item>
-      {isDevelopment && (
-        <Command.Item onSelect={() => executeAndClose(() => saveExample(""))}>
-          <SaveRoundedIcon /> Save as Example
-        </Command.Item>
-      )}
     </Command.Group>
     </>
   );
