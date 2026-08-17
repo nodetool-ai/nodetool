@@ -150,10 +150,19 @@ straight off the global `GlobalChatStore` instead of props; `seedChatGlobalState
 mirrors the replay state into that store each frame, the same "seed the shared
 store" trick `seedCastMetadata`/`seedDemoAuth` use for the graph editor.
 
-**Timeline** (`web/src/demo/timeline/`): mounts only `PreviewArea` +
-`TracksRegion` inside a `TimelineProvider` — not the full `TimelineEditor` page,
+**Timeline** (`web/src/demo/timeline/`): mounts the editor's own layout inside a
+`TimelineProvider` — `TopBar`, `PreviewArea` beside `TimelineInspector`,
+`TracksRegion`, `BottomStatusBar` — but not the full `TimelineEditor` page,
 which also wires up autosave, generation-job subscriptions, and tRPC-backed
-sequence loading that don't apply to a hand-authored, backend-free cast.
+sequence loading that don't apply to a hand-authored, backend-free cast. The
+chrome reads the same stores the engine seeds: the inspector shows the clip the
+cast's `select` event picked, the status bar the zoom its `zoom` event set. The
+top bar's actions are inert — a tutorial should show where Save and Export live,
+and a replay must not run them. A composition that draws its own chrome (the
+promo, with its recreated prompt bar) passes `chrome={false}` for the bare
+preview + tracks surface. The chrome lives in `timelineChrome.tsx` so it can be
+mounted without the preview compositor, which needs a canvas backend a test
+environment has no way to give it (`__tests__/timelineChrome.test.tsx`).
 `TimelineDemoEngine` seeds a fresh `TimelineInstance` (`createTimelineInstance`,
 exported from `TimelineInstance.tsx` for exactly this purpose) with the cast's
 starting `TimelineSequence`, then folds `TimelineCastEvent[]` (add/patch/remove
@@ -177,6 +186,17 @@ document down. `DocDemoPlayer` mounts the production component per surface —
 `SketchRenderer`, `ScriptDocumentPane`, `StoryboardBoard`, `JsScriptEditorPane`,
 `AppRuntimeView` — read-only, without each editor's page shell (autosave,
 generation subscriptions, tRPC loading).
+
+Sketch is the one surface with chrome of its own: `SketchEditorSurface` puts the
+production toolbar, layers panel, and status bar around `SketchRenderer`, all
+subscribed to a `SketchInstance` the player seeds per frame — so the tool lights
+up in the toolbar because the cast says so, and the panel's opacity and blend
+controls move as the assistant sets them. The canvas stays `SketchRenderer`
+rather than the interactive `SketchCanvasPane`: a replay renders state and never
+accepts input, so the painting, pointer, and history machinery has nothing to
+drive it. That is why a sketch cast's document has two halves — `document` (the
+layer stack) and `editor` (tool, zoom, colors, panel selection), each patchable
+on its own.
 
 Every document cast also carries an **assistant track**: the conversation that
 produced the edits, in the same event shape the chat cast uses. `AssistantDock`

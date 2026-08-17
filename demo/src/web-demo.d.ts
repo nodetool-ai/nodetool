@@ -108,6 +108,8 @@ declare module "@web-demo" {
     resolveAssetUrl?: (file: string) => string;
     /** Pixel height of the tracks region. Default 320. */
     tracksHeightPx?: number;
+    /** Mount the editor chrome (top bar, inspector, status bar). Default true. */
+    chrome?: boolean;
     /** Lets a frame renderer block the capture until videos are paintable. */
     onPendingMedia?: PendingMediaHandler;
     style?: React.CSSProperties;

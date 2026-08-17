@@ -5,12 +5,13 @@
  * `../DemoPlayer.tsx` (graph) and `../timeline/TimelineDemoPlayer.tsx`
  * (timeline), and the one that covers the remaining five document types.
  *
- * The document is the production component in every case — `SketchRenderer`,
- * `ScriptDocumentPane`, `StoryboardBoard`, `JsScriptEditorPane`,
- * `AppRuntimeView` — driven as a pure function of elapsed time. It deliberately
- * mounts the document surface only, not each editor's page shell: those wire up
- * autosave, tRPC-backed loading, and generation subscriptions, none of which
- * apply to a backend-free, hand-authored cast.
+ * The document is the production component in every case — the sketch editor's
+ * own toolbar/layers/status chrome around `SketchRenderer`, `ScriptDocumentPane`,
+ * `StoryboardBoard`, `JsScriptEditorPane`, `AppRuntimeView` — driven as a pure
+ * function of elapsed time. It deliberately mounts the document surface only,
+ * not each editor's page shell: those wire up autosave, tRPC-backed loading,
+ * and generation subscriptions, none of which apply to a backend-free,
+ * hand-authored cast.
  *
  * The surfaces are read-only here for the same reason the graph canvas is: a
  * replay renders state, it never accepts input.
@@ -36,8 +37,8 @@ import ThemeNodetool from "../../components/themes/ThemeNodetool";
 import AppRuntimeView from "../../components/appbuilder/AppRuntimeView";
 import JsScriptEditorPane from "../../components/jsScript/JsScriptEditorPane";
 import ScriptDocumentPane from "../../components/script/ScriptDocumentPane";
-import SketchRenderer from "../../components/sketch/SketchRenderer";
 import { StoryboardBoard } from "../../components/storyboard/StoryboardBoard";
+import { SketchEditorSurface } from "./SketchEditorSurface";
 import { WorkflowManagerProvider } from "../../contexts/WorkflowManagerContext";
 import { queryClient } from "../../queryClient";
 import { TRPCProvider } from "../../trpc/Provider";
@@ -66,9 +67,9 @@ function DocSurfaceView({
   switch (cast.surface) {
     case "sketch":
       return (
-        <SketchRenderer
-          document={doc as SketchDocCast["doc"]}
-          showDimensions
+        <SketchEditorSurface
+          documentId={cast.docId}
+          doc={doc as SketchDocCast["doc"]}
           ariaLabel={cast.name}
         />
       );
