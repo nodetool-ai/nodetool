@@ -35,6 +35,18 @@ export interface WelcomeTrack {
 
 export const WELCOME_TRACKS: WelcomeTrack[] = [
   {
+    id: "agent",
+    label: "Agent",
+    blurb: "A task the agent plans, runs, and reports back on.",
+    modeLabel: "agent",
+    accent: "#60A5FA",
+    threadTitle: "Agent",
+    samplePrompt:
+      "research the three strongest open-source video models and write a short comparison I can paste into a doc",
+    chatMode: "chat",
+    capability: "generate_message"
+  },
+  {
     id: "image",
     label: "Image",
     blurb: "A still frame from a prompt.",
@@ -69,17 +81,5 @@ export const WELCOME_TRACKS: WelcomeTrack[] = [
       "a calm narrator: you are listening to nodetool. every model, your keys, your canvas.",
     chatMode: "audio",
     capability: "text_to_speech"
-  },
-  {
-    id: "agent",
-    label: "Text · Agent",
-    blurb: "A reasoning step or written output.",
-    modeLabel: "chat",
-    accent: "#60A5FA",
-    threadTitle: "Chat",
-    samplePrompt:
-      "draft a 4-line tagline for a creative tool that runs every AI model locally or in the cloud, no hype words",
-    chatMode: "chat",
-    capability: "generate_message"
   }
 ];
