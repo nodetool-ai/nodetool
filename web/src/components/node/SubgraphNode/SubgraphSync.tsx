@@ -31,10 +31,23 @@ export const SubgraphSync = memo(({ nodeId, data }: SubgraphSyncProps) => {
     const nextDynamicInputs =
       Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined;
 
+    // The inner Input node's value only seeds the slot. Once the slot exists
+    // on the outer node the user edits it there — inline on the node body —
+    // and that value is what runs (SubgraphNode feeds its dynamic props to the
+    // inner Input nodes as params). Re-reading the inner value on every sync
+    // would snap each edit back.
+    const previousProperties = data.dynamic_properties ?? {};
+    const nextDynamicProperties: Record<string, unknown> = {};
+    for (const name of Object.keys(dynamic_properties)) {
+      nextDynamicProperties[name] = Object.hasOwn(previousProperties, name)
+        ? previousProperties[name]
+        : dynamic_properties[name];
+    }
+
     if (
       isEqual(data.dynamic_inputs, nextDynamicInputs) &&
       isEqual(data.dynamic_outputs ?? {}, dynamic_outputs) &&
-      isEqual(data.dynamic_properties ?? {}, dynamic_properties)
+      isEqual(previousProperties, nextDynamicProperties)
     ) {
       return;
     }
@@ -42,7 +55,7 @@ export const SubgraphSync = memo(({ nodeId, data }: SubgraphSyncProps) => {
     updateNodeData(nodeId, {
       dynamic_inputs: nextDynamicInputs,
       dynamic_outputs,
-      dynamic_properties
+      dynamic_properties: nextDynamicProperties
     });
   }, [
     nodeId,
