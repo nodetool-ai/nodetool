@@ -39,7 +39,10 @@ import {
 import { initMasterKey } from "@nodetool-ai/security";
 import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
-import { ExecutionSession } from "@nodetool-ai/execution";
+import {
+  ExecutionSession,
+  type RawGraphInput
+} from "@nodetool-ai/execution";
 import {
   NodeRegistry,
   createGraphNodeTypeResolver
@@ -649,7 +652,7 @@ addSupervisorOptions(
     try {
       const supervisorConfig = parseSupervisorFlags(opts);
       await setupDb();
-      let graph: { nodes: any[]; edges: any[] };
+      let graph: RawGraphInput;
       let workflowId: string | null = null;
       const params = opts.params
         ? (JSON.parse(opts.params) as Record<string, unknown>)
@@ -689,7 +692,15 @@ addSupervisorOptions(
         idOrFile.includes("/") ||
         idOrFile.includes("\\")
       ) {
-        let raw: any;
+        /** A DSL/JSON workflow file: the graph, optionally wrapped. */
+        let raw: {
+          graph?: RawGraphInput;
+          nodes?: readonly Record<string, unknown>[];
+          edges?: readonly Record<string, unknown>[];
+          workflow_id?: string;
+          id?: string;
+          params?: Record<string, unknown>;
+        };
         if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
           // Execute DSL file via tsx and capture JSON output
           const { execFileSync } = await import("node:child_process");
@@ -703,7 +714,7 @@ addSupervisorOptions(
           const { readFileSync } = await import("node:fs");
           raw = JSON.parse(readFileSync(idOrFile, "utf8"));
         }
-        graph = raw.graph ?? raw;
+        graph = raw.graph ?? (raw as RawGraphInput);
         workflowId = raw.workflow_id ?? raw.id ?? null;
         if (raw.params) Object.assign(params, raw.params);
       } else {

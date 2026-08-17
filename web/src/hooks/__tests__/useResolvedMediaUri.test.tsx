@@ -6,7 +6,10 @@ import { useResolvedMediaUri } from "../useResolvedMediaUri";
 const mockGetAsset = jest.fn();
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
-  useAssetStore: jest.fn((selector: any) => selector({ get: mockGetAsset }))
+  useAssetStore: jest.fn(
+    (selector: (state: { get: typeof mockGetAsset }) => unknown) =>
+      selector({ get: mockGetAsset })
+  )
 }));
 
 jest.mock("@tanstack/react-query", () => ({

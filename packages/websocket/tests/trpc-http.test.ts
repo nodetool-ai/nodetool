@@ -10,6 +10,7 @@ import {
   fastifyTRPCPlugin,
   type FastifyTRPCPluginOptions
 } from "@trpc/server/adapters/fastify";
+import { initTestDb } from "@nodetool-ai/models";
 import { appRouter, type AppRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
 import type { Context } from "../src/trpc/context.js";
@@ -60,6 +61,10 @@ let baseUrl: string;
 const AUTH_USER_ID = "test-user-http";
 
 beforeAll(async () => {
+  // models.providers reads the caller's custom-provider catalog from the
+  // settings table, so the router needs a database to answer at all.
+  initTestDb();
+
   app = Fastify();
 
   // Add userId to every request from the x-user-id header (mimics auth middleware)

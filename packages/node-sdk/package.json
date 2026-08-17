@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:metadata": "vitest run tests/metadata.test.ts",
     "test:mutation": "stryker run",
+    "test:mutation:crash": "stryker run stryker.crash.config.json",
+    "test:crash-fuzz": "vitest run --config vitest.crash.config.ts",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },

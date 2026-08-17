@@ -15,7 +15,8 @@ describe("SettingsStore", () => {
   describe("Initial State", () => {
     test("has correct default settings", () => {
       const settings = useSettingsStore.getState().settings;
-      expect(settings.gridSnap).toBe(1);
+      expect(settings.snapToGrid).toBe(false);
+      expect(settings.gridSnap).toBe(25);
       expect(settings.connectionSnap).toBe(20);
       expect(settings.panControls).toBe("LMB");
       expect(settings.selectionMode).toBe("partial");
@@ -38,9 +39,18 @@ describe("SettingsStore", () => {
       expect(useSettingsStore.getState().settings.gridSnap).toBe(5);
     });
 
-    test("setGridSnap defaults to 1 when falsy value passed", () => {
+    test("setGridSnap falls back to the default when falsy value passed", () => {
       useSettingsStore.getState().setGridSnap(0);
-      expect(useSettingsStore.getState().settings.gridSnap).toBe(1);
+      expect(useSettingsStore.getState().settings.gridSnap).toBe(
+        defaultSettings.gridSnap
+      );
+    });
+
+    test("setSnapToGrid toggles snapping", () => {
+      useSettingsStore.getState().setSnapToGrid(true);
+      expect(useSettingsStore.getState().settings.snapToGrid).toBe(true);
+      useSettingsStore.getState().setSnapToGrid(false);
+      expect(useSettingsStore.getState().settings.snapToGrid).toBe(false);
     });
 
     test("setConnectionSnap updates value", () => {
@@ -303,7 +313,37 @@ describe("SettingsStore", () => {
       expect(defaultSettings.showWelcomeOnStartup).toBeDefined();
       expect(defaultSettings.soundNotifications).toBeDefined();
       expect(defaultSettings.instantUpdate).toBeDefined();
+      expect(defaultSettings.snapToGrid).toBeDefined();
       expect(defaultSettings.autosave).toBeDefined();
+    });
+
+    test("legacy persisted gridSnap of 1 migrates to the new grid size", async () => {
+      localStorage.setItem(
+        "settings-storage",
+        JSON.stringify({ state: { settings: { gridSnap: 1 } }, version: 0 })
+      );
+      let migrated = 0;
+      await jest.isolateModulesAsync(async () => {
+        const fresh = await import("../SettingsStore");
+        migrated = fresh.useSettingsStore.getState().settings.gridSnap;
+      });
+      expect(migrated).toBe(defaultSettings.gridSnap);
+    });
+
+    test("a persisted gridSnap chosen after the toggle shipped is kept", async () => {
+      localStorage.setItem(
+        "settings-storage",
+        JSON.stringify({
+          state: { settings: { gridSnap: 1, snapToGrid: true } },
+          version: 0
+        })
+      );
+      let kept = 0;
+      await jest.isolateModulesAsync(async () => {
+        const fresh = await import("../SettingsStore");
+        kept = fresh.useSettingsStore.getState().settings.gridSnap;
+      });
+      expect(kept).toBe(1);
     });
 
     test("defaultAutosaveSettings has correct structure", () => {

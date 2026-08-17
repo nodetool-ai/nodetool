@@ -178,7 +178,7 @@ export function createNode<
   return node;
 }
 
-export function workflow(...terminals: DslNode<any>[]): Workflow {
+export function workflow(...terminals: DslNode<never>[]): Workflow {
   if (terminals.length === 0) {
     throw new Error("workflow() requires at least one terminal node");
   }
@@ -448,7 +448,7 @@ export async function run(
 }
 
 export async function runGraph(
-  ...terminals: DslNode<any>[]
+  ...terminals: DslNode<never>[]
 ): Promise<WorkflowResult> {
   return run(workflow(...terminals));
 }

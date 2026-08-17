@@ -6,6 +6,9 @@ import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
 
+/** The metadata slice these tests feed the store, keyed by node type. */
+type NodeMetadataById = Record<string, { namespace: string; type: string }>;
+
 jest.mock("../../stores/MetadataStore", () => ({
   __esModule: true,
   default: jest.fn()
@@ -32,7 +35,8 @@ describe("useNamespaceTree", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    asMock(useMetadataStore).mockImplementation((selector?: any) => {
+    asMock(useMetadataStore).mockImplementation(
+      (selector?: (state: { metadata: NodeMetadataById }) => unknown) => {
       const state = { metadata: mockMetadata };
       return selector ? selector(state) : state;
     });
@@ -81,7 +85,8 @@ describe("useNamespaceTree", () => {
         "node7": { namespace: "openai.chat", type: "nodetool.openai.Chat2" }
       };
       
-      asMock(useMetadataStore).mockImplementation((selector?: any) => {
+      asMock(useMetadataStore).mockImplementation(
+      (selector?: (state: { metadata: NodeMetadataById }) => unknown) => {
         const state = { metadata: duplicateMetadata };
         return selector ? selector(state) : state;
       });
@@ -174,7 +179,8 @@ describe("useNamespaceTree", () => {
         "node1": { namespace: "provider.category.subcategory", type: "nodetool.test.Node" }
       };
       
-      asMock(useMetadataStore).mockImplementation((selector?: any) => {
+      asMock(useMetadataStore).mockImplementation(
+      (selector?: (state: { metadata: NodeMetadataById }) => unknown) => {
         const state = { metadata: nestedMetadata };
         return selector ? selector(state) : state;
       });
@@ -196,7 +202,7 @@ describe("useNamespaceTree", () => {
 
     beforeEach(() => {
       asMock(useMetadataStore).mockImplementation(
-        (selector?: any) => {
+        (selector?: (state: { metadata: NodeMetadataById }) => unknown) => {
           const state = { metadata: metadataWithOptional };
           return selector ? selector(state) : state;
         }

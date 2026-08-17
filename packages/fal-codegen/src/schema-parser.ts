@@ -154,7 +154,7 @@ export class SchemaParser {
       if (refPath.startsWith("#/")) {
         const parts = refPath.replace(/^#\//, "").split("/");
 
-        let current: any = schema;
+        let current: unknown = schema;
         for (const part of parts) {
           current = (current as AnyRecord)?.[part] ?? {};
         }
@@ -568,7 +568,7 @@ export class SchemaParser {
     if (!refPath.startsWith("#/")) return null;
     const parts = refPath.replace(/^#\//, "").split("/");
 
-    let current: any = this._rootSchema;
+    let current: unknown = this._rootSchema;
     for (const part of parts) {
       current = (current as AnyRecord)?.[part];
       if (!current) return null;

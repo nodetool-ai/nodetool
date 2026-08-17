@@ -3,7 +3,8 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { useRunningJobs } from "../useRunningJobs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
-import useAuth from "../../stores/useAuth";
+import useAuth, { type LoginStore } from "../../stores/useAuth";
+import { stub } from "../../test-utils/doubles";
 
 // Mock the tRPC client used by the hook.
 jest.mock("../../trpc/client", () => ({
@@ -64,14 +65,16 @@ describe("useRunningJobs", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAuth.mockImplementation((selector: (s: any) => any) =>
-      selector({ user: { id: "test-user" }, state: "logged_in" })
+    mockUseAuth.mockImplementation(
+      (selector: (s: LoginStore) => unknown) =>
+        selector(stub<LoginStore>({ user: { id: "test-user" }, state: "logged_in" }))
     );
   });
 
   it("does not fetch when not authenticated", () => {
-    mockUseAuth.mockImplementation((selector: (s: any) => any) =>
-      selector({ user: null, state: "logged_out" })
+    mockUseAuth.mockImplementation(
+      (selector: (s: LoginStore) => unknown) =>
+        selector(stub<LoginStore>({ user: null, state: "logged_out" }))
     );
 
     const { result } = renderHook(() => useRunningJobs(), {

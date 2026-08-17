@@ -1,7 +1,10 @@
 import { render, act } from "@testing-library/react";
 import { ConnectableNodesProvider } from "../ConnectableNodesProvider";
-import useConnectableNodes from "../../stores/ConnectableNodesStore";
+import useConnectableNodes, {
+  type ConnectableNodesState
+} from "../../stores/ConnectableNodesStore";
 import metadataStore from "../../stores/MetadataStore";
+import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 
 // Mock metadata store
 jest.mock("../../stores/MetadataStore", () => {
@@ -15,8 +18,10 @@ const getState = jest.mocked((metadataStore as any).getState);
 const mockFilterByInput = jest.fn();
 const mockFilterByOutput = jest.fn();
 jest.mock("../../components/node_menu/typeFilterUtils", () => ({
-  filterTypesByInputType: (metadata: any, type: any) => mockFilterByInput(metadata, type),
-  filterTypesByOutputType: (metadata: any, type: any) => mockFilterByOutput(metadata, type)
+  filterTypesByInputType: (metadata: NodeMetadata[], type: TypeMetadata) =>
+    mockFilterByInput(metadata, type),
+  filterTypesByOutputType: (metadata: NodeMetadata[], type: TypeMetadata) =>
+    mockFilterByOutput(metadata, type)
 }));
 
 const sampleType = {
@@ -27,7 +32,7 @@ const sampleType = {
 };
 
 function setup(active = true) {
-  let ctx: any;
+  let ctx: ConnectableNodesState | undefined;
   function Consumer() {
     ctx = useConnectableNodes();
     return null;

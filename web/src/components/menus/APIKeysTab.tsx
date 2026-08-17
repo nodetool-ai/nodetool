@@ -41,6 +41,7 @@ import {
 import { ToolbarIconButton } from "../ui_primitives";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
+import { CustomProvidersSection } from "./CustomProvidersSection";
 
 import {
   PROVIDER_META,
@@ -1043,6 +1044,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
         return section;
       })}
+
+      <CustomProvidersSection />
 
       {/* Edit / Connect dialog */}
       {editingSecret && (() => {

@@ -128,17 +128,47 @@ export class SQLiteMigrationAdapter implements MigrationDBAdapter {
  * SQL uses `?` placeholders which are converted to `$1, $2, ...`
  * for PostgreSQL compatibility with the SQLite-style migrations.
  */
-export class PostgresMigrationAdapter implements MigrationDBAdapter {
-  private pool: any;
+/**
+ * The `pg` surface these adapters use. `pg` and `postgres` are optional peer
+ * dependencies — only installed for PostgreSQL — so they are described by the
+ * members called here rather than imported for their types.
+ */
+interface PgQueryResult {
+  rows: Row[];
+  rowCount?: number | null;
+}
 
-  private client: any = null;
+interface PgClient {
+  query(sql: string, params?: unknown[]): Promise<PgQueryResult>;
+  release(): void;
+}
+
+interface PgPool {
+  connect(): Promise<PgClient>;
+}
+
+/** The `postgres` (postgres.js) surface these adapters use. */
+interface PostgresReservedConnection {
+  /** postgres.js resolves to the rows, carrying the affected count alongside. */
+  unsafe(sql: string, params?: unknown[]): Promise<Row[] & { count?: number }>;
+  release(): void;
+}
+
+interface PostgresSql {
+  reserve(): Promise<PostgresReservedConnection>;
+}
+
+export class PostgresMigrationAdapter implements MigrationDBAdapter {
+  private pool: PgPool;
+
+  private client: PgClient | null = null;
   private lastRowCount = 0;
 
   /**
    * @param pool - A `pg.Pool` instance.
    */
 
-  constructor(pool: any) {
+  constructor(pool: PgPool) {
     this.pool = pool;
   }
 
@@ -150,10 +180,11 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
    * Acquire a dedicated client for the migration session.
    * All operations run on a single client for transaction safety.
    */
-  private async ensureClient(): Promise<void> {
+  private async ensureClient(): Promise<PgClient> {
     if (!this.client) {
       this.client = await this.pool.connect();
     }
+    return this.client;
   }
 
   /** Convert `?` placeholders to PostgreSQL `$1, $2, ...` style. */
@@ -163,20 +194,20 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
   }
 
   async execute(sql: string, params?: SqlParams): Promise<void> {
-    await this.ensureClient();
-    const result = await this.client.query(this.pgSql(sql), params ?? []);
+    const client = await this.ensureClient();
+    const result = await client.query(this.pgSql(sql), params ?? []);
     this.lastRowCount = result.rowCount ?? 0;
   }
 
   async fetchone(sql: string, params?: SqlParams): Promise<Row | null> {
-    await this.ensureClient();
-    const result = await this.client.query(this.pgSql(sql), params ?? []);
+    const client = await this.ensureClient();
+    const result = await client.query(this.pgSql(sql), params ?? []);
     return result.rows[0] ?? null;
   }
 
   async fetchall(sql: string, params?: SqlParams): Promise<Row[]> {
-    await this.ensureClient();
-    const result = await this.client.query(this.pgSql(sql), params ?? []);
+    const client = await this.ensureClient();
+    const result = await client.query(this.pgSql(sql), params ?? []);
     return result.rows;
   }
 
@@ -241,8 +272,8 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
    * Called by the runner before migration execution.
    */
   async begin(): Promise<void> {
-    await this.ensureClient();
-    await this.client.query("BEGIN");
+    const client = await this.ensureClient();
+    await client.query("BEGIN");
   }
 
   /**
@@ -291,14 +322,11 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
  * ```
  */
 export class PostgresJsMigrationAdapter implements MigrationDBAdapter {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private sql: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private reserved: any = null;
+  private sql: PostgresSql;
+  private reserved: PostgresReservedConnection | null = null;
   private lastRowCount = 0;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(sql: any) {
+  constructor(sql: PostgresSql) {
     this.sql = sql;
   }
 
@@ -320,9 +348,12 @@ export class PostgresJsMigrationAdapter implements MigrationDBAdapter {
     }
   }
 
-  private async getConn(): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  private async getConn(): Promise<PostgresReservedConnection> {
     if (!this.reserved) {
       await this.begin();
+    }
+    if (!this.reserved) {
+      throw new Error("Failed to reserve a postgres connection for migrations.");
     }
     return this.reserved;
   }

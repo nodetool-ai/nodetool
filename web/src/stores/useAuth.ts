@@ -71,7 +71,7 @@ type SupabaseSubscription = {
   unsubscribe: () => void;
 };
 
-interface LoginStore {
+export interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
   /** The current Supabase user object derived from the session, or null. */

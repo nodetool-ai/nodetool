@@ -5,8 +5,9 @@ const mockAddNotification = jest.fn();
 const mockUploadAsset = jest.fn();
 
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: (selector: any) =>
-    selector({ addNotification: mockAddNotification })
+  useNotificationStore: (
+    selector: (state: { addNotification: typeof mockAddNotification }) => unknown
+  ) => selector({ addNotification: mockAddNotification })
 }));
 
 jest.mock("../../../serverState/useAssetUpload", () => ({

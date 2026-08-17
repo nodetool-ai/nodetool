@@ -15,7 +15,7 @@ jest.mock("@mui/material", () => {
   const actual = jest.requireActual("@mui/material");
   return {
     ...actual,
-    Tooltip: ({ children }: any) => <>{children}</>
+    Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>
   };
 });
 
@@ -38,7 +38,7 @@ jest.mock("@mui/material/styles", () => ({
 
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
-  default: (selector: any) => {
+  default: (selector: (state: { openContextMenu: jest.Mock }) => unknown) => {
     const mockState = {
       openContextMenu: jest.fn()
     };
@@ -47,7 +47,7 @@ jest.mock("../../../stores/ContextMenuStore", () => ({
 }));
 
 jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: any) => {
+  useAssetGridStore: (selector: (state: { globalSearchQuery: string }) => unknown) => {
     const mockState = {
       globalSearchQuery: "test"
     };

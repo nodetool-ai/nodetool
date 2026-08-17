@@ -145,13 +145,43 @@ const getPreferredConnectableInput = (
     return null;
   }
 
+  // A property typed `any` accepts everything, so it is the weakest match —
+  // pick a typed one when the node has both.
+  const typedProperties = compatibleProperties.filter(
+    (property) => property.type.type !== "any"
+  );
+  const candidates =
+    typedProperties.length > 0 ? typedProperties : compatibleProperties;
+
   // Prefer a property classified as an input port (the node's "primary"
   // wired-from-upstream slot); fall back to the first compatible property.
   const inputFields = metadata.input_fields ?? [];
   return (
-    compatibleProperties.find((property) =>
-      inputFields.includes(property.name)
-    ) || compatibleProperties[0]
+    candidates.find((property) => inputFields.includes(property.name)) ||
+    candidates[0]
+  );
+};
+
+/**
+ * The output slot to wire into the input handle the drag started from: the
+ * first one the connection policy accepts, preferring a typed slot over one
+ * declared `any` (which matches everything and so says the least).
+ */
+const getPreferredConnectableOutput = (
+  metadata: NodeMetadata,
+  typeMetadata: NonNullable<ConnectableNodesState["typeMetadata"]>
+) => {
+  const compatibleOutputs = (metadata.outputs || []).filter((output) =>
+    isConnectable(output.type, typeMetadata, true)
+  );
+
+  if (compatibleOutputs.length === 0) {
+    return null;
+  }
+
+  return (
+    compatibleOutputs.find((output) => output.type.type !== "any") ||
+    compatibleOutputs[0]
   );
 };
 
@@ -263,8 +293,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         // When filterType is "output", we're looking at nodes with compatible outputs
         // because we started from an input handle
         if (filterType === "output" && typeMetadata) {
-          const output =
-            metadata.outputs.length > 0 ? metadata.outputs[0] : null;
+          const output = getPreferredConnectableOutput(metadata, typeMetadata);
           if (!output) {return;}
           const edge = {
             id: generateEdgeId(),

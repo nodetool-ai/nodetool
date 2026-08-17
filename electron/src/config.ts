@@ -378,6 +378,24 @@ const resolveNpmInvocation = (): NpmInvocation | null => {
 };
 
 /**
+ * The `NODETOOL_LOCAL_FILE_ROOTS` the backend runs with.
+ *
+ * The server defaults to the user's home directory, which is the right
+ * allowlist for a self-hosted deployment several people can reach. The desktop
+ * app is the opposite case: it spawns the server as this user's own process on
+ * loopback, and the user drags files onto the canvas from wherever they keep
+ * them. Restricting only the *preview* left a dropped image from a folder
+ * outside home running fine (the runner reads any absolute `file://` path) but
+ * showing a broken image — nodetool-ai/nodetool#4999. `*` lifts the containment
+ * check; the server's denylist for `.ssh`, `.aws` and friends still applies.
+ *
+ * A launching environment that set its own roots keeps them.
+ */
+const getLocalFileRootsEnv = (
+  env: Record<string, string | undefined> = process.env
+): string => env["NODETOOL_LOCAL_FILE_ROOTS"] || "*";
+
+/**
  * Resets the cached conda env path. Intended for use in tests only so that
  * each test case starts with a clean slate.
  */
@@ -391,6 +409,7 @@ export {
   getPythonPath,
   getUVPath,
   getProcessEnv,
+  getLocalFileRootsEnv,
   resolveNpmInvocation,
   getSystemDataPath,
   getDefaultAssetsPath,

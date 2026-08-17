@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "testRunner": "vitest",
+  "reporters": ["json", "clear-text", "progress"],
+  "jsonReporter": { "fileName": "reports/crash-fuzz/mutation.json" },
+  "coverageAnalysis": "perTest",
+  "inPlace": true,
+  "mutate": [
+    "src/graph-validation.ts",
+    "src/code-analysis.ts",
+    "src/code-node-validation.ts",
+    "src/validation.ts"
+  ],
+  "vitest": {
+    "configFile": "vitest.crash.config.ts",
+    "related": false
+  },
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  },
+  "timeoutMS": 120000,
+  "concurrency": 4
+}

@@ -5,6 +5,8 @@
  * authoring casts. Cast source:
  *   ?cast=<url>          fetch the cast JSON from a URL
  *   ?castData=<base64>   inline base64-encoded cast JSON
+ *   ?doc=<castId>        a built-in document cast (sketch, script, storyboard,
+ *                        jsscript, app) rendered with its assistant dock
  *   (none)               the built-in sample cast
  *
  * Pinned assets resolve to `${assetsBase}/${file}` where assetsBase comes from
@@ -20,6 +22,9 @@ import ReactDOM from "react-dom/client";
 import { DemoPlayer } from "./demo/DemoPlayer";
 import { sampleCast } from "./demo/sampleCast";
 import { isDemoCast, type DemoCast } from "./demo/castTypes";
+import { DocDemoPlayer } from "./demo/doc/DocDemoPlayer";
+import { docCasts } from "./demo/doc/casts";
+import type { DocDemoCast } from "./demo/doc/docCastTypes";
 
 interface NodetoolDemoApi {
   ready: boolean;
@@ -55,22 +60,44 @@ async function loadCast(): Promise<DemoCast> {
   return sampleCast;
 }
 
-function assetsBaseFor(cast: DemoCast): string {
+/** Which player the page mounts: the graph canvas, or a document surface. */
+type PreviewCast =
+  | { kind: "graph"; cast: DemoCast }
+  | { kind: "doc"; cast: DocDemoCast };
+
+async function loadPreview(): Promise<PreviewCast> {
+  const docId = new URLSearchParams(window.location.search).get("doc");
+  if (docId) {
+    const found = docCasts.find((c) => c.id === docId);
+    if (!found) {
+      throw new Error(
+        `Unknown document cast "${docId}". Known: ${docCasts
+          .map((c) => c.id)
+          .join(", ")}`
+      );
+    }
+    return { kind: "doc", cast: found };
+  }
+  return { kind: "graph", cast: await loadCast() };
+}
+
+function assetsBaseFor(castId: string): string {
   const params = new URLSearchParams(window.location.search);
-  return params.get("assets") ?? `/demo-assets/${cast.id}`;
+  return params.get("assets") ?? `/demo-assets/${castId}`;
 }
 
 function App(): React.JSX.Element {
-  const [cast, setCast] = useState<DemoCast | null>(null);
+  const [preview, setPreview] = useState<PreviewCast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeMs, setTimeMs] = useState(0);
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    loadCast().then(setCast).catch((e) => setError(String(e)));
+    loadPreview().then(setPreview).catch((e) => setError(String(e)));
   }, []);
 
-  const assetsBase = cast ? assetsBaseFor(cast) : "";
+  const cast = preview?.cast ?? null;
+  const assetsBase = cast ? assetsBaseFor(cast.id) : "";
   const resolveAssetUrl = useMemo(
     () => (file: string) => `${assetsBase}/${file}`,
     [assetsBase]
@@ -121,7 +148,7 @@ function App(): React.JSX.Element {
       </div>
     );
   }
-  if (!cast) {
+  if (!preview) {
     return (
       <div style={styles.center} data-ready="false">
         Loading…
@@ -132,7 +159,15 @@ function App(): React.JSX.Element {
   return (
     <div style={styles.root} data-ready="true">
       <div style={styles.stage}>
-        <DemoPlayer cast={cast} timeMs={timeMs} resolveAssetUrl={resolveAssetUrl} />
+        {preview.kind === "doc" ? (
+          <DocDemoPlayer cast={preview.cast} timeMs={timeMs} />
+        ) : (
+          <DemoPlayer
+            cast={preview.cast}
+            timeMs={timeMs}
+            resolveAssetUrl={resolveAssetUrl}
+          />
+        )}
       </div>
       <div style={styles.controls}>
         <button
@@ -145,7 +180,7 @@ function App(): React.JSX.Element {
         <input
           type="range"
           min={0}
-          max={cast.durationMs}
+          max={preview.cast.durationMs}
           step={10}
           value={timeMs}
           onChange={(e) => {
@@ -155,7 +190,8 @@ function App(): React.JSX.Element {
           style={styles.scrubber}
         />
         <span style={styles.time}>
-          {(timeMs / 1000).toFixed(2)}s / {(cast.durationMs / 1000).toFixed(2)}s
+          {(timeMs / 1000).toFixed(2)}s /{" "}
+          {(preview.cast.durationMs / 1000).toFixed(2)}s
         </span>
       </div>
     </div>

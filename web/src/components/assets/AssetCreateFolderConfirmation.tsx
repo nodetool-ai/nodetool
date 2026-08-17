@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useMemo
+} from "react";
 import { Text, FlexRow, AlertBanner, Surface, TextInput, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import { getMousePosition } from "../../utils/MousePosition";
@@ -8,6 +15,13 @@ import useAssets from "../../serverState/useAssets";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
+
+const VIEWPORT_MARGIN = 16;
+
+const clampToViewport = (desired: number, size: number, viewport: number) => {
+  const max = Math.max(VIEWPORT_MARGIN, viewport - size - VIEWPORT_MARGIN);
+  return Math.min(Math.max(desired, VIEWPORT_MARGIN), max);
+};
 
 const AssetCreateFolderConfirmation: React.FC = () => {
   const setDialogOpen = useAssetGridStore(
@@ -23,13 +37,19 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     (state) => state.setSelectedAssets
   );
 
-  const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   const [folderName, setFolderName] = useState("New Folder");
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const handleClose = useCallback(() => {
     setDialogOpen(false);
   }, [setDialogOpen]);
+  const dismissAlert = useCallback(() => setShowAlert(null), []);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<{ x: number; y: number } | null>(null);
   const theme = useTheme();
   const createFolder = useAssetStore((state) => state.createFolder);
   const updateAsset = useAssetStore((state) => state.update);
@@ -61,8 +81,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   useEffect(() => {
     if (dialogOpen) {
       setFolderName("New Folder");
-      const mousePosition = getMousePosition();
-      setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
       setShowAlert(null);
       const timer = setTimeout(() => {
         if (inputRef.current) {
@@ -161,14 +179,24 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     setSelectedAssets
   ]);
 
-  const screenWidth = window.innerWidth;
-  const dialogWidth = 400;
-  const leftPosition = dialogPosition.x - dialogWidth;
-
-  const safeLeft = Math.min(
-    Math.max(leftPosition, 50),
-    screenWidth - dialogWidth - 50
-  );
+  // Place from the measured size, not an assumed one: a fixed upward offset put
+  // the name field above the viewport whenever the New Folder button sat near
+  // the top of the window. Re-runs when an alert or the move notice changes the
+  // height, keeping the anchor the cursor had when the dialog opened.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialogOpen || !dialog) {
+      anchorRef.current = null;
+      return;
+    }
+    const anchor = anchorRef.current ?? getMousePosition();
+    anchorRef.current = anchor;
+    const { width, height } = dialog.getBoundingClientRect();
+    setPosition({
+      left: clampToViewport(anchor.x - width, width, window.innerWidth),
+      top: clampToViewport(anchor.y - height, height, window.innerHeight)
+    });
+  }, [dialogOpen, showAlert, hasSelectedAssets]);
 
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent) => {
@@ -199,17 +227,25 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     >
       <Surface
         className="asset-create-folder-dialog"
+        ref={dialogRef}
         elevation={3}
+        style={{
+          left: `${position?.left ?? 0}px`,
+          top: `${position?.top ?? 0}px`,
+          // Placement happens before the browser paints, so nothing is ever
+          // seen at the fallback origin.
+          visibility: position ? "visible" : "hidden"
+        }}
         sx={{
           position: "absolute",
-          left: `${safeLeft}px`,
-          top: `${dialogPosition.y - 200}px`,
           width: 400,
           maxWidth: "calc(100vw - 32px)",
+          maxHeight: `calc(100vh - ${VIEWPORT_MARGIN * 2}px)`,
           backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.9)`,
           backdropFilter: "blur(10px)",
           borderRadius: BORDER_RADIUS.sm,
-          overflow: "hidden"
+          overflowX: "hidden",
+          overflowY: "auto"
         }}
       >
         <Text
@@ -232,7 +268,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             <AlertBanner
               className="asset-create-folder-error-alert"
               severity="error"
-              onClose={handleClose}
+              onClose={dismissAlert}
             >
               {showAlert}
             </AlertBanner>

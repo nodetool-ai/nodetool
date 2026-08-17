@@ -3,6 +3,7 @@ import {
   getPythonPath,
   getUVPath,
   getProcessEnv,
+  getLocalFileRootsEnv,
   _resetCondaEnvCache,
   srcPath,
   PID_FILE_PATH,
@@ -394,6 +395,25 @@ describe('Config', () => {
       // UV_CACHE_DIR should be inside userData directory
       const userDataPath = app.getPath('userData').replace(/\\/g, '/');
       expect((result.UV_CACHE_DIR ?? '').replace(/\\/g, '/')).toContain(userDataPath);
+    });
+  });
+
+  describe('getLocalFileRootsEnv', () => {
+    // The server's own default is the home directory. That refused the preview
+    // of an image dragged in from a folder outside home while the runner read
+    // it happily — nodetool-ai/nodetool#4999.
+    it('lifts the containment check for the desktop app', () => {
+      expect(getLocalFileRootsEnv({})).toBe('*');
+    });
+
+    it('keeps roots the launching environment configured', () => {
+      expect(
+        getLocalFileRootsEnv({ NODETOOL_LOCAL_FILE_ROOTS: '/srv/media' })
+      ).toBe('/srv/media');
+    });
+
+    it('ignores an empty setting', () => {
+      expect(getLocalFileRootsEnv({ NODETOOL_LOCAL_FILE_ROOTS: '' })).toBe('*');
     });
   });
 });

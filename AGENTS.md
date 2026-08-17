@@ -236,7 +236,7 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 15,918 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,469 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
@@ -324,16 +324,37 @@ a boundary get named. Ten trees are at zero on all nine rules: `packages/auth`,
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
 `web/`, `electron/` and `mobile/` nightly, fixes five to ten files, and nothing
-stopped the next PR putting `any` back in the file it just cleaned. What decided
-the rule's shape was counting first. Of the 1,012 `: any` annotations in
-`packages/*/src`, **960** are `declare <name>: any` — the ambient class field the
-`@prop` decorator requires for a node property, a deliberate contract in
-`@nodetool-ai/node-sdk` and not fixable at the site. Reporting it would have put
-the rule 960 findings deep on day one with nothing to do about them, which is
-where `no-shape-in-symbol-names` was when it was deleted. So the rule skips a
-`PropertyDefinition` with `declare: true` — decided from the AST, not a name or a
-path — and what is left is 302 hand-written annotations, 224 of them in `web/`,
-already at zero in 44 of 58 trees.
+stopped the next PR putting `any` back in the file it just cleaned.
+
+What decided the rule's shape was counting first. Of the 1,012 `: any`
+annotations in `packages/*/src`, **960** are `declare <name>: any` — the ambient
+class field the `@prop` decorator requires for a node property, a deliberate
+contract in `@nodetool-ai/node-sdk` and not fixable at the site. Reporting it
+would have put the rule 960 findings deep on day one with nothing to do about
+them, which is where `no-shape-in-symbol-names` was when it was deleted. So the
+rule skips a `PropertyDefinition` with `declare: true` — decided from the AST,
+not a name or a path — and what was left was 302 hand-written annotations.
+
+Those 302 are now zero, so the rule sits in the enforced config's top-level
+`rules` rather than in the backlog table above. **All 246 in `web/`,
+`electron/` and `mobile/` were in test files** — the doubles, not the code under
+test — which is why the nightly workflow kept finding more: it was cleaning
+scaffolding, and scaffolding is where the next PR writes `any` again. Typing
+them is what `web/src/test-utils/doubles.ts` is for, and it grew two helpers
+in the sweep: `selectorOver(state)` types a mocked zustand selector from the
+members a test supplies, and `mustFind(items, match)` reads what a test expects
+to be there instead of dereferencing `Array.find`'s `T | undefined`. Ten such
+dereferences were hiding behind the `any`-typed callbacks that mask them.
+
+The remaining 56 were production code, and three of them were load-bearing.
+`packages/models` annotated every `db.transaction` callback `any` because the
+connection is typed as the SQLite driver while the Postgres branch calls
+`.for("update")`; that is now `DbTransaction` plus a `forUpdate()` helper that
+names the one capability the dialects do not share, and throws rather than
+silently returning an unlocked query. `packages/vectorstore` sorted embeddings
+by an `index` field its own declared response type omitted. `DBModel`'s
+`[key: string]: any` — which made every property read on every model `any` — is
+`unknown`, at the cost of one narrowing in `partitionValue()`.
 
 It reports `any` in annotation positions: parameters, returns, variables,
 properties, and type arguments (`any[]`, `Promise<any>`, `Map<string, any>`). It
@@ -346,10 +367,45 @@ type-alias body or a type-parameter default, neither of which is an annotation.
 exact and pinned by test — `Record<string, any[]>` has an array value type, so
 the dictionary rule classifies nothing and the `any` is this rule's to report.
 
-`type-safety.yaml` is untouched here. Whether it still earns its slot is now a
-question with evidence behind it: the tree it works hardest on is the one
-carrying 74% of the remaining findings, and a nightly grep and a ratchet are not
-the same instrument — but that is a separate change.
+`.github/workflows/type-safety.yaml` is **gone**, folded into the ratchet. It
+was a second nightly agent over `web/`, `electron/` and `mobile/`, and by the
+time `no-hand-written-any` reached zero it had nothing of its own left. Its
+`: any` scan was not merely redundant but unable to report zero: a grep for
+`: any` in `web/src` matches twenty lines, every one of them prose or an
+identifier named `anyType`, so the gate was pinned open on a signal no agent
+could clear. Its `as any` half is `require-safety-comment-for-type-assertion` ×
+{`web`, `electron`, `mobile`} — three pairs the ratchet already measures, and
+holds once won, which the deleted workflow never did.
+
+That left one thing the ratchet could not express, so it became a rule.
+**`no-implicit-return-type`** reports an inferred return type on a module's
+public surface: an exported function, an exported `const` bound to one, and the
+non-`private` members of an exported class. Inference inside a module is fine —
+the compiler reads the body. Across the boundary it means the contract is
+whatever today's implementation happens to produce. `no-unknown-returns` reports
+a return typed `unknown`; this one reports a return typed nothing, and the two
+do not overlap: annotating `unknown` to silence this rule just moves the finding
+to that one.
+
+Counting first kept it shippable: scoped to exports it is **448 findings, at
+zero in 29 of 58 trees** on the day it landed — the same order as
+`no-runtime-typeof`, not the 6,990 that would have arrived from reporting every
+arrow callback in the repo. Two boundaries are deliberate and pinned by test.
+The rule walks *down* from the export declaration, so `const f = () => {}`
+followed by `export { f }` is out of reach — reaching it needs binding
+resolution the rule does not do. And a contract written on the binding
+(`export const load: (a: string) => Promise<string> = …`) is an answer, not a
+finding, which is also how a typed React component is usually written.
+
+Deleting a workflow removed the only thing that ever worked the app trees, so
+`:targets` grew a **largest (rule, tree) pairs** table and the ratchet takes
+from it on every fourth run. The two tables it printed before — trees closest to
+zero, and the forty cheapest pairs — are both selections for *small* work, so
+`web` at thousands of findings appeared in neither. It was invisible to the
+agent, which is the mechanical reason it needed a workflow of its own. A large
+pair does not finish in one PR and only ratchets when it reaches zero; the
+prompt says to bound it to one directory and report the before/after count
+rather than imply the win is already held.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what

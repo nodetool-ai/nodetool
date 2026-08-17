@@ -1,8 +1,16 @@
 import { renderHook } from "@testing-library/react";
-import { asMock } from "../../test-utils/doubles";
+import { asMock, selectorOver } from "../../test-utils/doubles";
 import { useSelectionActions } from "../useSelectionActions";
 
-const mockSetNodes = jest.fn();
+/** The node members these tests place, position and read back. */
+interface PositionedNode {
+  id: string;
+  position: { x: number; y: number };
+  selected?: boolean;
+  measured?: { width: number; height: number };
+}
+
+const mockSetNodes = jest.fn<void, [PositionedNode[]]>();
 const mockSetEdges = jest.fn();
 const mockSurroundWithGroup = jest.fn();
 
@@ -45,8 +53,8 @@ describe("useSelectionActions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    asMock(useNodes).mockImplementation((sel: any) =>
-      sel({
+    asMock(useNodes).mockImplementation(
+      selectorOver({
         nodes: defaultNodes,
         edges: [],
         setNodes: mockSetNodes,
@@ -76,8 +84,8 @@ describe("useSelectionActions", () => {
     });
 
     it("does nothing with fewer than 2 nodes", () => {
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           getSelectedNodes: () => [
             { id: "1", position: { x: 0, y: 0 }, selected: true }
           ]
@@ -106,8 +114,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -150,8 +158,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -207,8 +215,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -230,7 +238,7 @@ describe("useSelectionActions", () => {
 
       // Get the nodes array passed directly to setNodes
       const updatedNodes = mockSetNodes.mock.calls[0][0];
-      const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
+      const byId = Object.fromEntries(updatedNodes.map((n) => [n.id, n]));
 
       // Sequential placement with spacing from leftMostX:
       // Formula: leftMostX + (index * (nodeWidth + HORIZONTAL_SPACING))
@@ -256,8 +264,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -272,8 +280,8 @@ describe("useSelectionActions", () => {
     });
 
     it("does nothing with fewer than 2 nodes", () => {
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           getSelectedNodes: () => [
             { id: "1", position: { x: 0, y: 0 }, selected: true }
           ]
@@ -309,8 +317,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -332,7 +340,7 @@ describe("useSelectionActions", () => {
 
       // Get the nodes array passed directly to setNodes
       const updatedNodes = mockSetNodes.mock.calls[0][0];
-      const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
+      const byId = Object.fromEntries(updatedNodes.map((n) => [n.id, n]));
 
       // Sequential placement with spacing from topMostY:
       // Formula: topMostY + (index * (nodeHeight + VERTICAL_SPACING))
@@ -358,8 +366,8 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -379,8 +387,8 @@ describe("useSelectionActions", () => {
       const testNodes = [
         { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -423,8 +431,8 @@ describe("useSelectionActions", () => {
         { id: "1", position: { x: 0, y: 0 }, selected: true },
         { id: "2", position: { x: 200, y: 0 }, selected: true }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,
@@ -456,8 +464,8 @@ describe("useSelectionActions", () => {
         { id: "e-2", selected: false },
         { id: "e-3", selected: true }
       ];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: [],
           edges,
           setNodes: mockSetNodes,
@@ -488,8 +496,8 @@ describe("useSelectionActions", () => {
     it("toggles bypass on selected nodes", () => {
       const mockToggleBypass = jest.fn();
       const testNodes = [{ id: "1", position: { x: 0, y: 0 }, selected: true }];
-      asMock(useNodes).mockImplementation((sel: any) =>
-        sel({
+      asMock(useNodes).mockImplementation(
+        selectorOver({
           nodes: testNodes,
           edges: [],
           setNodes: mockSetNodes,

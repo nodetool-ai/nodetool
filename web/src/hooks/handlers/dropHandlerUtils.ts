@@ -116,40 +116,46 @@ export const useFileHandlers = () => {
       }
 
       try {
-        await uploadAsset({
-          file,
-          workflow_id: workflow.id,
-          parent_id: currentFolderId || user?.id,
-          onCompleted: (uploadedAsset: Asset) => {
-            const assetType = contentTypeToNodeType(
-              uploadedAsset.content_type,
-              uploadedAsset.name || file.name
-            );
-            const nodeType = constantForType(assetType || "");
-
-            if (nodeType === null) {
-              addNotification({
-                type: "warning",
-                alert: true,
-                content: "Unsupported file type: " + file.type
-              });
-              return;
-            }
-
-            const nodeMetadata = getMetadata(nodeType);
-            if (!nodeMetadata) {
-              throw new Error("No metadata for node type: " + nodeType);
-            }
-            const newNode = createNode(nodeMetadata, position);
-            newNode.data.properties.value = {
-              type: assetType,
-              uri: uploadedAsset.get_url,
-              asset_id: uploadedAsset.id,
-              temp_id: null
-            };
-            addNode(newNode);
-          }
+        // `uploadAsset` queues the upload and returns immediately, so await the
+        // callbacks rather than the call — otherwise a failed upload resolves as
+        // a successful drop and the user gets no node and no error.
+        const uploadedAsset = await new Promise<Asset>((resolve, reject) => {
+          uploadAsset({
+            file,
+            workflow_id: workflow.id,
+            parent_id: currentFolderId || user?.id,
+            onCompleted: resolve,
+            onFailed: (error: string) => reject(new Error(error))
+          });
         });
+
+        const assetType = contentTypeToNodeType(
+          uploadedAsset.content_type,
+          uploadedAsset.name || file.name
+        );
+        const nodeType = constantForType(assetType || "");
+
+        if (nodeType === null) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: "Unsupported file type: " + file.type
+          });
+          return { success: false, error: "Unsupported file type" };
+        }
+
+        const nodeMetadata = getMetadata(nodeType);
+        if (!nodeMetadata) {
+          throw new Error("No metadata for node type: " + nodeType);
+        }
+        const newNode = createNode(nodeMetadata, position);
+        newNode.data.properties.value = {
+          type: assetType,
+          uri: uploadedAsset.get_url,
+          asset_id: uploadedAsset.id,
+          temp_id: null
+        };
+        addNode(newNode);
 
         return { success: true };
       } catch (error) {

@@ -24,18 +24,20 @@ jest.mock("../../lib/supabaseClient", () => ({
   }
 }));
 
-const threadSubscriptions: Record<string, (data: any) => void> = {};
-const eventSubscriptions: Record<string, ((...args: any[]) => void)[]> = {};
+const threadSubscriptions: Record<string, (data: unknown) => void> = {};
+const eventSubscriptions: Record<string, ((...args: unknown[]) => void)[]> = {};
 
 const mockGlobalWebSocketManager = {
   send: jest.fn().mockResolvedValue(undefined),
   ensureConnection: jest.fn().mockResolvedValue(undefined),
   disconnect: jest.fn(),
-  subscribe: jest.fn().mockImplementation((key: string, callback: (data: any) => void) => {
+  subscribe: jest.fn().mockImplementation(
+    (key: string, callback: (data: unknown) => void) => {
     threadSubscriptions[key] = callback;
     return () => { delete threadSubscriptions[key]; };
   }),
-  subscribeEvent: jest.fn().mockImplementation((event: string, callback: (...args: any[]) => void) => {
+  subscribeEvent: jest.fn().mockImplementation(
+    (event: string, callback: (...args: unknown[]) => void) => {
     if (!eventSubscriptions[event]) {
       eventSubscriptions[event] = [];
     }
@@ -116,7 +118,7 @@ const simulateServerMessage = (
       )
   });
 
-  mockServer.clients().forEach((client: any) => {
+  mockServer.clients().forEach((client) => {
     client.send(blob);
   });
 };
@@ -180,7 +182,7 @@ describe("GlobalChatStore", () => {
     mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
     mockGlobalWebSocketManager.isConnected = true;
 
-    let sentData: any;
+    let sentData: unknown;
     mockGlobalWebSocketManager.send.mockImplementation(async (data) => {
       sentData = data;
       return Promise.resolve();
@@ -871,7 +873,7 @@ describe("GlobalChatStore", () => {
   });
 
   describe("sendMessage Advanced Cases", () => {
-    let sentData: any;
+    let sentData: unknown;
 
     beforeEach(async () => {
       mockServer = new Server("ws://test/ws");
@@ -993,7 +995,7 @@ describe("GlobalChatStore", () => {
   });
 
   describe("stopGeneration", () => {
-    let sentData: any;
+    let sentData: unknown;
 
     beforeEach(async () => {
       mockServer = new Server("ws://test/ws");
@@ -1208,7 +1210,7 @@ describe("GlobalChatStore", () => {
           )
       });
 
-      mockServer.clients().forEach((client: any) => {
+      mockServer.clients().forEach((client) => {
         client.send(blob);
       });
 

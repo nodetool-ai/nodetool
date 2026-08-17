@@ -46,7 +46,7 @@ jest.mock('../../../stores/MetadataStore', () => {
 // Mock @xyflow/react Handle to count renders
 let handleRenderCount = 0;
 jest.mock('@xyflow/react', () => ({
-  Handle: ({ children }: any) => {
+  Handle: ({ children }: React.PropsWithChildren) => {
     handleRenderCount++;
     return <div>{children}</div>;
   },

@@ -235,6 +235,10 @@ const api = {
     menuEventUnsubscribers.delete(callback);
   },
 
+  /** Mirror the renderer's snap-to-grid setting onto the View menu checkbox. */
+  setMenuSnapToGrid: (enabled: boolean) =>
+    ipcRenderer.send(IpcChannels.MENU_SET_SNAP_TO_GRID, enabled),
+
   // ============================================================================
   // server: Server lifecycle, logs, and status
   // ============================================================================
@@ -591,6 +595,10 @@ const api = {
   menu: {
     /** Subscribe to menu events (cut, copy, paste, etc.) */
     onEvent: createEventSubscription(IpcChannels.MENU_EVENT),
+
+    /** Mirror the renderer's snap-to-grid setting onto the View menu checkbox. */
+    setSnapToGrid: (enabled: boolean) =>
+      ipcRenderer.send(IpcChannels.MENU_SET_SNAP_TO_GRID, enabled),
   },
 
   // ============================================================================
@@ -795,6 +803,9 @@ const api = {
   // channel. Every capability must be declared as a named method on this
   // `api` object with input validation above.
 };
+
+/** The bridge surface exposed on `window.api`, named so tests can hold it. */
+export type PreloadApi = typeof api;
 
 contextBridge.exposeInMainWorld("api", api);
 // Some pages (e.g. `electron/pages/*`) still refer to `window.electronAPI`.

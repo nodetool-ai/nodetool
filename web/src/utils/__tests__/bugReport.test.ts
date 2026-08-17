@@ -1,9 +1,7 @@
 import {
   summarizePropertyValue,
   formatNodeProperties,
-  formatInputConnections,
-  buildReportBody,
-  buildReportUrl
+  formatInputConnections
 } from "../bugReport";
 
 describe("summarizePropertyValue", () => {
@@ -119,66 +117,5 @@ describe("formatInputConnections", () => {
 
   it("handles no connections", () => {
     expect(formatInputConnections([])).toBe("(no connected inputs)");
-  });
-});
-
-describe("buildReportBody", () => {
-  it("includes error, configuration, connections and logs", () => {
-    const body = buildReportBody({
-      nodeType: "nodetool.image.ImageToImage",
-      nodeTitle: "My Node",
-      errorText: "Unauthorized",
-      logLines: ["[ERROR] boom"],
-      systemInfo: "Browser: test",
-      properties: {
-        model: {
-          type: "image_model",
-          provider: "fal",
-          id: "fal-ai/flux/dev"
-        },
-        api_key: "secret"
-      },
-      inputConnections: [
-        { sourceType: "nodetool.constant.Image", targetHandle: "image" }
-      ]
-    });
-    expect(body).toContain("**Node type:** `nodetool.image.ImageToImage`");
-    expect(body).toContain("**Node title:** My Node");
-    expect(body).toContain("Unauthorized");
-    expect(body).toContain("model: image_model: fal/fal-ai/flux/dev");
-    expect(body).toContain("api_key: «redacted»");
-    expect(body).not.toContain("api_key: secret");
-    expect(body).toContain("nodetool.constant.Image → image");
-    expect(body).toContain("[ERROR] boom");
-  });
-
-  it("omits the title line when there is no title", () => {
-    const body = buildReportBody({
-      nodeType: "x",
-      errorText: "e",
-      logLines: [],
-      systemInfo: "s"
-    });
-    expect(body).not.toContain("**Node title:**");
-    expect(body).toContain("(no logs captured)");
-    expect(body).toContain("(no properties set)");
-    expect(body).toContain("(no connected inputs)");
-  });
-});
-
-describe("buildReportUrl", () => {
-  it("produces a github issue url with title, body and label", () => {
-    const url = buildReportUrl("https://github.com/o/r/issues/new", {
-      nodeType: "nodetool.image.ImageToImage",
-      errorText: "Unauthorized\nsecond line",
-      logLines: [],
-      systemInfo: "s"
-    });
-    const parsed = new URL(url);
-    expect(parsed.searchParams.get("labels")).toBe("bug");
-    expect(parsed.searchParams.get("title")).toBe(
-      '[Bug] Node "nodetool.image.ImageToImage" error: Unauthorized'
-    );
-    expect(parsed.searchParams.get("body")).toContain("Node Error Report");
   });
 });

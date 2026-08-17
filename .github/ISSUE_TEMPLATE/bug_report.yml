@@ -8,6 +8,12 @@ body:
       value: |
         Thanks for taking the time to report a bug! Please fill out as much detail as possible.
 
+        **Faster: report from inside NodeTool.** Click **Report** on the error,
+        or press `Cmd/Ctrl+K` → **Report a Bug**. The form fills in your version,
+        the error, the node settings and the workflow, then saves a zip you drag
+        into an issue. API keys are stripped first. See
+        [Troubleshooting → Report a Bug](https://docs.nodetool.ai/troubleshooting#report-a-bug-from-inside-nodetool).
+
         **Before submitting**, please check:
         - [Existing issues](https://github.com/nodetool-ai/nodetool/issues) to avoid duplicates
         - [Discord](https://discord.gg/WmQTWZRcYE) for quick help from the community

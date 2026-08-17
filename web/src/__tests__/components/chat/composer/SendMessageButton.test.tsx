@@ -6,7 +6,9 @@ import userEvent from "@testing-library/user-event";
 import { SendMessageButton } from "../../../../components/chat/composer/SendMessageButton";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-const renderComponent = (props: any) => {
+const renderComponent = (
+  props: React.ComponentProps<typeof SendMessageButton>
+) => {
   return render(
     <ThemeProvider theme={mockTheme}>
       <SendMessageButton {...props} />

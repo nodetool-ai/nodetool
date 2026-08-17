@@ -4,8 +4,9 @@ const mockSearch = jest.fn();
 
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
-  useAssetStore: jest.fn((selector: any) =>
-    selector({ search: mockSearch })
+  useAssetStore: jest.fn(
+    (selector: (state: { search: typeof mockSearch }) => unknown) =>
+      selector({ search: mockSearch })
   )
 }));
 
@@ -29,7 +30,7 @@ describe("useAssetSearch", () => {
   it("rejects queries shorter than 2 characters", async () => {
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets("a");
     });
@@ -44,7 +45,7 @@ describe("useAssetSearch", () => {
   it("rejects empty string queries", async () => {
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets("");
     });
@@ -56,7 +57,7 @@ describe("useAssetSearch", () => {
   it("rejects whitespace-only queries", async () => {
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets("   ");
     });
@@ -67,7 +68,7 @@ describe("useAssetSearch", () => {
   it("performs search with valid query", async () => {
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets("test query");
     });
@@ -137,7 +138,7 @@ describe("useAssetSearch", () => {
 
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets("test");
     });
@@ -166,7 +167,7 @@ describe("useAssetSearch", () => {
 
     const { result } = renderHook(() => useAssetSearch());
 
-    let searchResult: any;
+    let searchResult: Awaited<ReturnType<typeof result.current.searchAssets>> | undefined;
     await act(async () => {
       searchResult = await result.current.searchAssets(
         "test",

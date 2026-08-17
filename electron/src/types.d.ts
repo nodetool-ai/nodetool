@@ -414,6 +414,7 @@ export interface MenuEventData {
     | "redo"
     | "close"
     | "fitView"
+    | "toggleSnapToGrid"
     | "openSettings";
 }
 
@@ -553,6 +554,7 @@ export enum IpcChannels {
   CLIPBOARD_CLEAR = "clipboard-clear",
   CLIPBOARD_AVAILABLE_FORMATS = "clipboard-available-formats",
   MENU_EVENT = "menu-event",
+  MENU_SET_SNAP_TO_GRID = "menu-set-snap-to-grid",
   ON_CREATE_WORKFLOW = "on-create-workflow",
   ON_UPDATE_WORKFLOW = "on-update-workflow",
   ON_DELETE_WORKFLOW = "on-delete-workflow",
@@ -706,6 +708,7 @@ export interface IpcRequest {
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
+  [IpcChannels.MENU_SET_SNAP_TO_GRID]: boolean;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: { text: string; type?: ClipboardType };
   [IpcChannels.CLIPBOARD_READ_TEXT]: ClipboardType | undefined;
   [IpcChannels.CLIPBOARD_WRITE_IMAGE]: {
@@ -825,6 +828,7 @@ export interface IpcResponse {
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
+  [IpcChannels.MENU_SET_SNAP_TO_GRID]: void;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
   [IpcChannels.CLIPBOARD_READ_TEXT]: string;
   [IpcChannels.CLIPBOARD_WRITE_IMAGE]: void;

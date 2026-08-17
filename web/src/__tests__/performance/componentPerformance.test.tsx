@@ -39,7 +39,10 @@ describe('Performance Regression Tests', () => {
     // Simulates the CRITICAL issue we fixed in NodeInputs
     it('should not re-render when using object selector with unchanged values', () => {
       // Create a test store
-      const useTestStore = create<{ edges: any[]; nodes: any[] }>(() => ({
+      const useTestStore = create<{
+        edges: Array<{ id: string; source: string; target: string }>;
+        nodes: Array<{ id: string }>;
+      }>(() => ({
         edges: [{ id: '1', source: 'a', target: 'b' }],
         nodes: [{ id: 'a' }, { id: 'b' }]
       }));
@@ -65,7 +68,10 @@ describe('Performance Regression Tests', () => {
     });
 
     it('should demonstrate re-render reduction with proper selectors', () => {
-      const useTestStore = create<{ data: any; counter: number }>(() => ({
+      const useTestStore = create<{
+        data: { value: number };
+        counter: number;
+      }>(() => ({
         data: { value: 1 },
         counter: 0
       }));

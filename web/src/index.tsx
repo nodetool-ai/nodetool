@@ -73,6 +73,9 @@ const SearchProviderSetupDialog = React.lazy(
 const ProviderOnboardingDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderOnboardingDialog")
 );
+import BugReportDialogHost from "./components/support/BugReportDialogHost";
+import ReportBugButton from "./components/support/ReportBugButton";
+import { installConsoleCapture } from "./utils/consoleCapture";
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -533,23 +536,41 @@ if (!rootElement) throw new Error("Root element #root not found");
 const root = ReactDOM.createRoot(rootElement);
 
 /**
- * Routes Electron menu/tray "Settings" actions to the in-app settings tab.
- * The desktop shell sends an `openSettings` menu event (instead of opening a
- * separate window); the tab opens and the router singleton focuses the
- * workspace, which works from any route.
+ * Routes Electron menu/tray actions into the app.
+ *
+ * "Settings" opens the in-app settings tab (the desktop shell sends an
+ * `openSettings` menu event instead of opening a separate window); the tab
+ * opens and the router singleton focuses the workspace, which works from any
+ * route. "Snap to Grid" toggles the editor setting, and the setting is mirrored
+ * back so the View menu checkbox matches whichever surface changed it.
  */
 const MenuNavigationBridge = () => {
-  const handleMenuEvent = useCallback((data: MenuEventData) => {
-    if (data.type === "openSettings") {
-      openSettingsTab();
-    }
-  }, []);
+  const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
+  const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
+
+  const handleMenuEvent = useCallback(
+    (data: MenuEventData) => {
+      if (data.type === "openSettings") {
+        openSettingsTab();
+      }
+      if (data.type === "toggleSnapToGrid") {
+        setSnapToGrid(!useSettingsStore.getState().settings.snapToGrid);
+      }
+    },
+    [setSnapToGrid]
+  );
   useMenuHandler(handleMenuEvent);
+
+  useEffect(() => {
+    window.api?.setMenuSnapToGrid?.(snapToGrid);
+  }, [snapToGrid]);
+
   return null;
 };
 
 const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   const [status, setStatus] = useState<string>("pending");
+  const [metadataError, setMetadataError] = useState<string>("");
   const [configLoaded, setConfigLoaded] = useState(false);
   const authState = useAuth((s) => s.state);
 
@@ -598,6 +619,9 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
       })
       .catch((error) => {
         console.error("Failed to load metadata:", error);
+        setMetadataError(
+          error instanceof Error ? error.message : String(error)
+        );
         setStatus("error");
       });
   }, [authState, configLoaded]);
@@ -675,6 +699,15 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       >
                         Refresh Page
                       </button>
+                      <ReportBugButton
+                        variant="outlined"
+                        label="Report a bug"
+                        context={{
+                          source: "app-crash",
+                          summary: "Error loading application metadata",
+                          errorText: metadataError
+                        }}
+                      />
                     </div>
                   )}
                   {/* Render RouterProvider only when metadata is successfully loaded */}
@@ -715,6 +748,9 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <ProviderOnboardingDialog />
                     </>
                   )}
+                  {/* Outside the router gate: a boot failure is exactly when
+                      someone needs to report a bug. */}
+                  <BugReportDialogHost />
                 </KeyboardProvider>
               </WorkflowManagerProvider>
             </MenuProvider>
@@ -724,6 +760,10 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
     </React.StrictMode>
   );
 };
+
+// Record console output and uncaught errors from the first line on, so a bug
+// report can carry them without the reporter having had devtools open.
+installConsoleCapture();
 
 // Start the largest boot payload (node metadata) immediately so its download
 // overlaps the runtime-config round-trip below instead of running after it.

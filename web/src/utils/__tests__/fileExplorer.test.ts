@@ -22,7 +22,7 @@ describe("fileExplorer", () => {
     jest.clearAllMocks();
     jest.spyOn(console, "warn").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
-    (useNotificationStore.setState as any)((state: any) => ({
+    useNotificationStore.setState((state) => ({
       ...state,
       addNotification
     }));

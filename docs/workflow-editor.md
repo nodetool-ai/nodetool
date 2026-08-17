@@ -45,7 +45,9 @@ Your infinite workspace.
 | Fit everything | `F` |
 | Reset zoom (to 50%) | `Ctrl/⌘ + 0` |
 
-**The grid** helps align nodes. Turn on **Snap to Grid** in View menu.
+**The grid** helps align nodes. Turn on **Snap to Grid** in the View menu of the
+desktop app, from the command menu (`Ctrl/⌘ + K`), or in Settings → General.
+The grid size is the **Grid Snap Precision** setting.
 
 ---
 
