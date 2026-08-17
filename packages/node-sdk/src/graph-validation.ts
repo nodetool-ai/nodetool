@@ -380,6 +380,128 @@ function modelProviderOf(ref: Record<string, unknown>): string | undefined {
 }
 
 /**
+ * The type an edge's source handle carries, reporting any handle it cannot
+ * resolve. An empty string means the edge is not type-checked at this end — no
+ * metadata, a reserved handle, or a dynamic output declaring no type.
+ */
+function resolveSourceHandleType(
+  edge: NormEdge,
+  sourceNode: GraphValidationNode,
+  sourceMeta: NodeMetadata | undefined,
+  issues: GraphValidationIssue[]
+): string {
+  if (!sourceMeta || !edge.sourceHandle || isReservedHandle(edge.sourceHandle)) {
+    return "";
+  }
+
+  const declared = sourceMeta.outputs.find((o) => o.name === edge.sourceHandle);
+  if (declared) return typeMetaToString(declared.type);
+
+  // Metadata, not instance state: `reactFlowNodeToGraphNode` writes
+  // `dynamic_outputs: {}` on every node, so testing the instance field
+  // disabled this check for nearly every saved graph. Mirrors the target
+  // side's use of `supports_dynamic_inputs`.
+  if (sourceMeta.supports_dynamic_outputs !== true) {
+    issues.push({
+      severity: "error",
+      code: "unknown_handle",
+      edgeId: edge.id,
+      nodeId: edge.source,
+      nodeType: String(sourceNode.type ?? ""),
+      message: `Edge "${edge.id}" references output "${edge.sourceHandle}" not found on ${String(sourceNode.type)}`
+    });
+    return "";
+  }
+
+  // An empty map is a node that never declared any dynamic output (the
+  // ReactFlow → graph conversion writes `{}` on every node), so only a
+  // populated one can say a handle is missing. A name the body emits counts as
+  // declared: the editor shows it and an agent can connect to it.
+  const dynamicOutputs = readDynamicOutputs(sourceNode);
+  const names = Object.keys(dynamicOutputs);
+  const inferred = isJsCodeNodeType(String(sourceNode.type ?? ""))
+    ? inferredCodeOutputNames(String(readProperties(sourceNode).code ?? ""))
+    : [];
+  if (
+    names.length > 0 &&
+    !new Set([...names, ...inferred]).has(edge.sourceHandle)
+  ) {
+    issues.push({
+      severity: "error",
+      code: "unknown_handle",
+      edgeId: edge.id,
+      nodeId: edge.source,
+      nodeType: String(sourceNode.type ?? ""),
+      message: `Edge "${edge.id}" references output "${edge.sourceHandle}" on ${String(sourceNode.type)}, which declares ${names.map((n) => `"${n}"`).join(", ")}`
+    });
+    return "";
+  }
+  return typeMetaToString(
+    dynamicOutputs[edge.sourceHandle] as TypeMetaLike | undefined
+  );
+}
+
+interface TargetHandleType {
+  type: string;
+  /**
+   * True when the type came from a declared dynamic slot: the user asked for
+   * that type explicitly, so a mismatch is an error, not a guess.
+   */
+  typedDynamicSlot: boolean;
+}
+
+/**
+ * The type an edge's target handle expects — the mirror of
+ * {@link resolveSourceHandleType}, except that a dynamic slot declaring no
+ * type is reported rather than passed over in silence.
+ */
+function resolveTargetHandleType(
+  edge: NormEdge,
+  targetNode: GraphValidationNode,
+  targetMeta: NodeMetadata | undefined,
+  issues: GraphValidationIssue[]
+): TargetHandleType {
+  if (!targetMeta || !edge.targetHandle || isReservedHandle(edge.targetHandle)) {
+    return { type: "", typedDynamicSlot: false };
+  }
+
+  const declared = targetMeta.properties.find(
+    (p) => p.name === edge.targetHandle
+  );
+  if (declared) {
+    return { type: typeMetaToString(declared.type), typedDynamicSlot: false };
+  }
+
+  if (targetMeta.supports_dynamic_inputs !== true) {
+    issues.push({
+      severity: "error",
+      code: "unknown_handle",
+      edgeId: edge.id,
+      nodeId: edge.target,
+      nodeType: String(targetNode.type ?? ""),
+      message: `Edge "${edge.id}" targets input "${edge.targetHandle}" not found on ${String(targetNode.type)}`
+    });
+    return { type: "", typedDynamicSlot: false };
+  }
+
+  const slotType = slotTypeToString(
+    readDynamicInputs(targetNode)[edge.targetHandle]
+  );
+  if (slotType) {
+    return { type: slotType, typedDynamicSlot: true };
+  }
+  issues.push({
+    severity: "info",
+    code: "untyped_dynamic_slot",
+    edgeId: edge.id,
+    nodeId: edge.target,
+    nodeType: String(targetNode.type ?? ""),
+    message: `Edge "${edge.id}" targets dynamic input "${edge.targetHandle}" on ${String(targetNode.type)}, which declares no type — the connection is not type-checked`
+  });
+  return { type: "", typedDynamicSlot: false };
+}
+
+/**
  * Self-loops and cycles — both fatal at run time, neither visible before it.
  *
  * `Graph.validateEdgeEndpoints` (kernel) rejects a self-loop on *any* edge:
@@ -1031,106 +1153,29 @@ export function validateGraph(
       });
     }
 
-    const sourceMeta = registry.getMetadata(String(sourceNode.type ?? ""));
-    const targetMeta = registry.getMetadata(String(targetNode.type ?? ""));
+    const sourceType = resolveSourceHandleType(
+      e,
+      sourceNode,
+      registry.getMetadata(String(sourceNode.type ?? "")),
+      issues
+    );
+    const target = resolveTargetHandleType(
+      e,
+      targetNode,
+      registry.getMetadata(String(targetNode.type ?? "")),
+      issues
+    );
 
-    let sourceType = "";
-    let targetType = "";
-
-    if (sourceMeta && e.sourceHandle && !isReservedHandle(e.sourceHandle)) {
-      const out = sourceMeta.outputs.find((o) => o.name === e.sourceHandle);
-      // Metadata, not instance state: `reactFlowNodeToGraphNode` writes
-      // `dynamic_outputs: {}` on every node, so testing the instance field
-      // disabled this check for nearly every saved graph. Mirrors the target
-      // side's use of `supports_dynamic_inputs`.
-      const supportsDynamicOut = sourceMeta.supports_dynamic_outputs === true;
-      if (!out && !supportsDynamicOut) {
-        issues.push({
-          severity: "error",
-          code: "unknown_handle",
-          edgeId: e.id,
-          nodeId: e.source,
-          nodeType: String(sourceNode.type ?? ""),
-          message: `Edge "${e.id}" references output "${e.sourceHandle}" not found on ${String(sourceNode.type)}`
-        });
-      } else if (out) {
-        sourceType = typeMetaToString(out.type);
-      } else {
-        // Dynamic outputs: an empty map is a node that never declared any (the
-        // ReactFlow → graph conversion writes `{}` on every node), so only a
-        // populated one can say a handle is missing.
-        const declaredOutputs = readDynamicOutputs(sourceNode);
-        const names = Object.keys(declaredOutputs);
-        const inferredOut = isJsCodeNodeType(String(sourceNode.type ?? ""))
-          ? inferredCodeOutputNames(
-              String(readProperties(sourceNode).code ?? "")
-            )
-          : [];
-        const knownOut = new Set([...names, ...inferredOut]);
-        if (names.length > 0 && !knownOut.has(e.sourceHandle)) {
-          issues.push({
-            severity: "error",
-            code: "unknown_handle",
-            edgeId: e.id,
-            nodeId: e.source,
-            nodeType: String(sourceNode.type ?? ""),
-            message: `Edge "${e.id}" references output "${e.sourceHandle}" on ${String(sourceNode.type)}, which declares ${names.map((n) => `"${n}"`).join(", ")}`
-          });
-        } else {
-          sourceType = typeMetaToString(
-            declaredOutputs[e.sourceHandle] as TypeMetaLike | undefined
-          );
-        }
-      }
-    }
-
-    // True when targetType came from a declared dynamic slot: the user asked
-    // for that type explicitly, so a mismatch is an error, not a guess.
-    let typedDynamicSlot = false;
-
-    if (targetMeta && e.targetHandle && !isReservedHandle(e.targetHandle)) {
-      const inp = targetMeta.properties.find((p) => p.name === e.targetHandle);
-      const supportsDynamicIn = targetMeta.supports_dynamic_inputs === true;
-      if (!inp && !supportsDynamicIn) {
-        issues.push({
-          severity: "error",
-          code: "unknown_handle",
-          edgeId: e.id,
-          nodeId: e.target,
-          nodeType: String(targetNode.type ?? ""),
-          message: `Edge "${e.id}" targets input "${e.targetHandle}" not found on ${String(targetNode.type)}`
-        });
-      } else if (inp) {
-        targetType = typeMetaToString(inp.type);
-      } else {
-        const slot = readDynamicInputs(targetNode)[e.targetHandle];
-        const slotType = slotTypeToString(slot);
-        if (slotType) {
-          targetType = slotType;
-          typedDynamicSlot = true;
-        } else {
-          issues.push({
-            severity: "info",
-            code: "untyped_dynamic_slot",
-            edgeId: e.id,
-            nodeId: e.target,
-            nodeType: String(targetNode.type ?? ""),
-            message: `Edge "${e.id}" targets dynamic input "${e.targetHandle}" on ${String(targetNode.type)}, which declares no type — the connection is not type-checked`
-          });
-        }
-      }
-    }
-
-    if (typesIncompatible(sourceType, targetType)) {
+    if (typesIncompatible(sourceType, target.type)) {
       issues.push({
-        severity: typedDynamicSlot ? "error" : "warning",
+        severity: target.typedDynamicSlot ? "error" : "warning",
         code: "type_mismatch",
         edgeId: e.id,
         nodeId: e.target,
         nodeType: String(targetNode.type ?? ""),
-        message: typedDynamicSlot
-          ? `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → dynamic input ${String(targetNode.type)}.${e.targetHandle}, declared as ${targetType}`
-          : `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${targetType}) — types may be incompatible`
+        message: target.typedDynamicSlot
+          ? `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → dynamic input ${String(targetNode.type)}.${e.targetHandle}, declared as ${target.type}`
+          : `Edge "${e.id}" connects ${String(sourceNode.type)}.${e.sourceHandle} (${sourceType}) → ${String(targetNode.type)}.${e.targetHandle} (${target.type}) — types may be incompatible`
       });
     }
   }
