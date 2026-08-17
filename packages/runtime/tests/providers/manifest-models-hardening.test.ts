@@ -344,7 +344,12 @@ describe("inferVideoTasks", () => {
     ["texttovideo", ["text_to_video"]],
     ["image-to-video", ["image_to_video"]],
     ["image to video", ["image_to_video"]],
-    ["imagetovideo", ["image_to_video"]]
+    ["imagetovideo", ["image_to_video"]],
+    ["fal-ai/topaz/upscale/video", ["video_to_video"]],
+    ["super-resolution", ["video_to_video"]],
+    ["seedvr", ["video_to_video"]],
+    ["flashvsr", ["video_to_video"]],
+    ["wan-vision-enhancer", ["video_to_video"]]
   ];
   for (const [frag, expected] of cases) {
     it(`"${frag}" → ${expected.join("+")}`, () => {

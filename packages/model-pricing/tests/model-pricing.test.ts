@@ -31,6 +31,21 @@ describe("getModelUnitPrice", () => {
     });
   });
 
+  it("prices a Topaz variant at its endpoint's rate", () => {
+    const endpoint = "fal-ai/topaz/upscale/image";
+    const base = getModelUnitPrice({ id: endpoint, provider: "fal_ai" });
+    expect(base?.unit_price).toBeGreaterThan(0);
+    expect(
+      getModelUnitPrice({ id: `${endpoint}/Redefine`, provider: "fal_ai" })
+    ).toEqual(base);
+  });
+
+  it("does not price an unrelated id that merely extends a FAL endpoint", () => {
+    expect(
+      getModelUnitPrice({ id: "fal-ai/flux/schnell/nope", provider: "fal_ai" })
+    ).toBeNull();
+  });
+
   it("prices a kie model from its USD conversion, not its credit figure", () => {
     const { id, price } = firstEntry(kieUnitPricingCatalog, "usd_price");
     const found = getModelUnitPrice({ id, provider: "kie" });
