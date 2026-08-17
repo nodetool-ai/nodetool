@@ -13,7 +13,6 @@ import {
   type TimelineInstance
 } from "../../stores/timeline/TimelineInstance";
 import { useAssetStore } from "../../stores/AssetStore";
-import type { Asset } from "../../stores/ApiTypes";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import type { TimelineCastAsset, TimelineCastEvent, TimelineDemoCast } from "./timelineCastTypes";
 

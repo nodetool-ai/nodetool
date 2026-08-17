@@ -33,7 +33,6 @@ import {
   useBuilderOperations,
   useBuilderWorkflow
 } from "./BuilderWorkflowContext";
-import type { WorkflowState } from "../workflowState";
 import type { WorkflowInputIO } from "../workflowIO";
 
 type Option = { label: string; value: string };

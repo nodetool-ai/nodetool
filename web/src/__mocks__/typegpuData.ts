@@ -4,8 +4,6 @@
  * with a real device). Schema objects only need to be inert placeholders.
  */
 
-type Schema = Record<string, unknown>;
-
 export const struct = (fields: Record<string, unknown>) => ({
   fields
 });

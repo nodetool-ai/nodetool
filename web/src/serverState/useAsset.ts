@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Asset, Video, Audio, Image, Document, Model3DRef } from "../stores/ApiTypes";
+import { Video, Audio, Image, Document, Model3DRef } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
 import { fileUriToHttpUrl } from "../utils/localFile";

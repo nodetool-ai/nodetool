@@ -18,7 +18,6 @@ import {
   type VideoModelSelection,
   type VideoResolution
 } from "../../../stores/MediaGenerationStore";
-import type { MediaOption } from "./MediaOptionMenu";
 
 /** Extract per-model option constraints (manifest enums) from a raw model. */
 export function videoModelConstraints(model: VideoModel) {

@@ -17,10 +17,8 @@ import {
   IMAGE_EDIT_STRENGTHS,
   IMAGE_RESOLUTIONS,
   INFERENCE_STEPS,
-  type AspectRatioOption,
   type ImageResolution
 } from "../../../stores/MediaGenerationStore";
-import type { MediaOption } from "./MediaOptionMenu";
 import { buildAspectOptions, clampToAllowed } from "./videoModelOptions";
 
 // Shared generic helpers live in videoModelOptions — re-export them so image
