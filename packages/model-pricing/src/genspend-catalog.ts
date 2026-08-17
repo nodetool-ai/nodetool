@@ -136,6 +136,10 @@ export interface GenspendPricingCatalog {
 }
 
 export const genspendPricingCatalog =
+  // SAFETY: `catalog` is the generated `genspend-pricing.json` shipped in this
+  // package, written by `npm run sync:genspend` to exactly this shape and kept
+  // there by `sync:genspend:check`. TypeScript infers the JSON's literal
+  // types, which do not match the declared interface structurally.
   catalog as GenspendPricingCatalog;
 
 /** The catalog price for a provider-native model id, or null when untracked. */

@@ -38,38 +38,49 @@ interface CatalogPrice {
   usd_price?: unknown;
 }
 
-function readNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+/**
+ * Whether a catalog field arrived as a real number. Generic in the caller's
+ * type so it narrows the row's `unknown` fields in place, rather than taking
+ * bare `unknown` and handing back a value that lost its origin.
+ */
+function isFiniteNumber<T>(value: T): value is T & number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/** Whether a catalog field arrived as text. */
+function isText<T>(value: T): value is T & string {
+  return typeof value === "string";
 }
 
 function falPrice(modelId: string): ModelUnitPricingLike | null {
   const prices = falUnitPricingCatalog.prices;
+  // SAFETY: the FAL catalog is generated JSON shipped with the package, so its
+  // rows have no declared field types here; every field is checked below
+  // before it becomes a price.
   const entry = prices?.[modelId] as CatalogPrice | undefined;
   if (!entry) return null;
-  const unitPrice = readNumber(entry.unit_price);
-  if (unitPrice === undefined) return null;
+  if (!isFiniteNumber(entry.unit_price)) return null;
   return {
-    unit_price: unitPrice,
-    billing_unit:
-      typeof entry.billing_unit === "string" ? entry.billing_unit : "",
-    currency: typeof entry.currency === "string" ? entry.currency : "USD",
+    unit_price: entry.unit_price,
+    billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
+    currency: isText(entry.currency) ? entry.currency : "USD",
     source: "bundle"
   };
 }
 
 function kiePrice(modelId: string): ModelUnitPricingLike | null {
+  // SAFETY: as in `falPrice` — generated JSON with no declared field types,
+  // checked field by field below.
   const entry = kieUnitPricingCatalog.prices?.[modelId] as
     | CatalogPrice
     | undefined;
   if (!entry) return null;
   // Only the USD conversion is a real price; a raw credit figure has no fixed
   // USD value, so skip the model when it's absent.
-  const usd = readNumber(entry.usd_price);
-  if (usd === undefined) return null;
+  if (!isFiniteNumber(entry.usd_price)) return null;
   return {
-    unit_price: usd,
-    billing_unit:
-      typeof entry.billing_unit === "string" ? entry.billing_unit : "",
+    unit_price: entry.usd_price,
+    billing_unit: isText(entry.billing_unit) ? entry.billing_unit : "",
     currency: "USD",
     source: "bundle"
   };
