@@ -32,9 +32,6 @@ export {
   projectSegmentationMasksToDocumentSpace
 } from "./segmentationDocumentSpace";
 
-export { WebSocketNodeExecutor, getNodeExecutor } from "./NodeExecutor";
-export type { NodeExecutor, GraphNode, GraphEdge, InlineGraph, NodeExecutionResult } from "./NodeExecutor";
-
 export {
   getMaskOverlayColor,
   getMaskOutlineColor,
