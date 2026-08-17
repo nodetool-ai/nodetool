@@ -486,6 +486,30 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     ).toEqual([]);
   });
 
+  it("lets a Code node import a platform module without declaring it", () => {
+    // The host mounts `@nodetool-ai/sandbox-nodetool/*` for any body that
+    // imports one — the Code node's as well as a script's — so requiring a
+    // `packages` entry would fail a body the sandbox runs.
+    const issues = validateCodeNodeBody(
+      body(
+        'import { invoke_node } from "@nodetool-ai/sandbox-nodetool/flow";\n' +
+          'const r = await invoke_node({ type: "nodetool.text.Concat" });\n' +
+          "return { out: r };",
+        [],
+        ["out"]
+      )
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("still rejects an undeclared pack import from a Code node", () => {
+    const issues = validateCodeNodeBody(
+      body('import { x } from "@acme/geo";\nreturn { out: x };', [], ["out"])
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.message).toContain("@acme/geo");
+  });
+
   it("still names a pack a JS script imports that is not installed", () => {
     const issues = validateCodeNodeBody({
       ...body('import { x } from "@nope/pack";\nreturn { out: x };', [], ["out"]),

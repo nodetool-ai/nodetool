@@ -63,6 +63,7 @@ import {
   type SandboxLimits,
   type RunSandboxOptions,
   type RunSandboxResult,
+  type SandboxCapabilityMount,
   type SandboxInputTake
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
@@ -736,8 +737,38 @@ export class CodeNode extends BaseNode {
       globals: await this.sandboxGlobals(context),
       limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
-      modules: this.resolveModules(envelope, context)
+      modules: this.resolveModules(envelope, context),
+      capabilities: await this.resolveCapabilities(code, context)
     };
+  }
+
+  /**
+   * NodeTool's own guest modules (`@nodetool-ai/sandbox-nodetool/*`) for the
+   * namespaces this body imports, or nothing when it imports none.
+   *
+   * They are not packs, so they are not declared in `packages`: the host
+   * decides what a run can reach, and for this node the host already made that
+   * decision when it gave the body the `tools.*` / `nodetool.*` belt. The run
+   * is therefore ungated, exactly as the belt is — a second, stricter door on
+   * the import path would mean one call is gated and the same call through
+   * `tools.*` is not. It is the wiring `mountJsScriptSandbox` builds for a JS
+   * script, over the Code node's own module resolution.
+   */
+  private async resolveCapabilities(
+    code: string,
+    context: ProcessingContext | undefined
+  ): Promise<SandboxCapabilityMount | undefined> {
+    if (!context) return undefined;
+    const mod = await loadAgentsModule();
+    if (!mod) return undefined;
+    const mounted = await mod.mountCapabilityModules(
+      code,
+      mod.ungatedCapabilityRun(context)
+    );
+    if (!mounted.ok) {
+      throw new Error(mounted.error.replace("The action imports", "The code imports"));
+    }
+    return mounted.mount;
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -954,7 +985,10 @@ export class CodeNode extends BaseNode {
     `;
 
     const result = await runInSandbox({
-      ...(await this.sandboxOptions("", envelope, context)),
+      // The body itself, not the rewritten one: `code` is overridden below,
+      // but the options are also what decide which platform modules this run
+      // mounts, and that answer is read off the imports the user wrote.
+      ...(await this.sandboxOptions(envelope.code, envelope, context)),
       code: wrappedBody
     });
 

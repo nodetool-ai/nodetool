@@ -128,6 +128,25 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "dsl-native-flow",
+    title: "Native flow (call a node as a function, host backend + guest surface)",
+    // No CLI command owns it: the public surface is the sandbox pack
+    // @nodetool-ai/sandbox-flow, and the host side is internal to
+    // packages/dsl. The checked-in suites are the headless surface — they call
+    // nodes on the flow's own invoke path, stream both directions, and abort
+    // mid-call, with no key, no database, and no server.
+    command:
+      "npm run test --workspace=packages/dsl -- flow-core flow-streaming flow-abort",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/dsl-native-flow-design.md",
+    selfcheck: {
+      command:
+        "npm run test --workspace=packages/dsl -- flow-core flow-streaming flow-abort",
+      cost: "cheap"
+    }
+  },
+  {
     id: "app-debug",
     title: "Mini-app debug harness",
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
@@ -375,6 +394,17 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Workflow authoring (planners + ui_* graph tools)",
     harnesses: ["validate", "eval"],
     paths: ["packages/agents/", "packages/dsl/"]
+  },
+  {
+    id: "dsl-native-flow",
+    title: "Native flow (typed node calls from guest code)",
+    harnesses: ["dsl-native-flow", "packs-compile"],
+    paths: [
+      "packages/dsl/src/flow/",
+      "packages/agents/src/capabilities/flow.ts",
+      "packages/agents/src/capabilities/flow.specs.ts",
+      "packages/sandbox-packs/sandbox-flow/"
+    ]
   },
   {
     id: "mini-apps",

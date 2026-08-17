@@ -1,10 +1,19 @@
 /**
  * Code generation script for @nodetool-ai/dsl
  *
- * Introspects all registered nodes from @nodetool-ai/base-nodes and emits
- * type-safe factory functions grouped by namespace into packages/dsl/src/generated/.
+ * Introspects all registered nodes from @nodetool-ai/base-nodes and emits two
+ * trees from one metadata pass:
  *
- * Run: npx tsx packages/dsl/scripts/codegen.ts
+ *  - `src/generated/` — the graph DSL: a factory per node returning a
+ *    `DslNode`, wired with `Connectable<T>` handles.
+ *  - `src/flow/generated/` — the native flow surface, which runs inside the
+ *    QuickJS guest: a callable per node taking plain values and returning its
+ *    outputs, delegating to `../guest-core.js`.
+ *
+ * Run: npx tsx packages/dsl/scripts/codegen.ts [--check] [--graph|--flow]
+ *
+ * `--check` writes nothing and exits 1 on any difference. `--graph` / `--flow`
+ * narrow the run to one tree.
  */
 
 import fs from "node:fs";
@@ -22,12 +31,19 @@ import type {
 // Constants
 // ---------------------------------------------------------------------------
 
-const GENERATED_DIR = path.resolve(
+const SRC_DIR = path.resolve(
   import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
-  "../src/generated"
+  "../src"
 );
 
+const GENERATED_DIR = path.join(SRC_DIR, "generated");
+const FLOW_GENERATED_DIR = path.join(SRC_DIR, "flow", "generated");
+
 const HEADER = "// Auto-generated — do not edit manually\n";
+
+const FLOW_HEADER = `${HEADER}// Guest surface: every call bridges to the host through
+// "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
+`;
 
 const JS_RESERVED = new Set([
   "break",
@@ -258,26 +274,150 @@ interface NodeInfo {
   factoryName: string;
 }
 
+/**
+ * The exported name per node, positionally aligned with `nodes`: a repeated
+ * name takes a trailing `_` per repeat, and a JS reserved word or an
+ * `Object.prototype` member takes one too. Both trees read this, so a node is
+ * called the same thing in the graph DSL and in the flow surface.
+ */
+function factoryNamesFor(nodes: NodeInfo[]): string[] {
+  const counts = new Map<string, number>();
+  for (const node of nodes) {
+    counts.set(node.factoryName, (counts.get(node.factoryName) ?? 0) + 1);
+  }
+  const seen = new Map<string, number>();
+  return nodes.map((node) => {
+    let name = node.factoryName;
+    if ((counts.get(name) ?? 0) > 1) {
+      const before = seen.get(name) ?? 0;
+      seen.set(name, before + 1);
+      if (before > 0) name = name + "_".repeat(before);
+    }
+    if (JS_RESERVED.has(name) || BUILTIN_NAMES.has(name)) name = name + "_";
+    return name;
+  });
+}
+
+/** Media ref type names any of these nodes mention, in import order. */
+function mediaRefImports(nodes: NodeInfo[]): string[] {
+  const refs = new Set<string>();
+  for (const { meta } of nodes) {
+    for (const prop of meta.properties) collectMediaRefs(prop.type, refs);
+    for (const out of meta.outputs) collectMediaRefs(out.type, refs);
+  }
+  return ALL_MEDIA_IMPORTS.filter((ref) => refs.has(ref));
+}
+
+/** Whether a property is optional in the inputs bag. */
+function isOptionalProperty(prop: PropertyMetadata): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(prop, "default") ||
+    prop.type.optional === true ||
+    prop.type.type === "optional"
+  );
+}
+
+function propertyKey(name: string): string {
+  return isValidIdentifier(name) ? name : JSON.stringify(name);
+}
+
+/**
+ * One guest module per namespace: plain-value inputs, no handles, no graph.
+ *
+ * A `run`-contract node reads every handle as a stream, so its inputs widen to
+ * `T | T[]` — arrays only, which is the whole of streaming input in v1.
+ */
+function generateFlowFile(nodes: NodeInfo[]): string {
+  const lines: string[] = [FLOW_HEADER];
+  const streaming = nodes.filter(
+    ({ meta }) => meta.is_streaming_output || meta.is_streaming_input
+  );
+
+  const coreImports = streaming.length > 0 ? "callNode, streamNode" : "callNode";
+  lines.push(`import { ${coreImports} } from "../guest-core.js";`);
+  const usedMediaRefs = mediaRefImports(nodes);
+  if (usedMediaRefs.length > 0) {
+    lines.push(
+      `import type { ${usedMediaRefs.join(", ")} } from "../../types.js";`
+    );
+  }
+  lines.push("");
+
+  const names = factoryNamesFor(nodes);
+  nodes.forEach((node, index) => {
+    const { meta, className } = node;
+    const callableName = names[index];
+    const hasProps = meta.properties.length > 0;
+    const runContract = meta.is_streaming_input === true;
+
+    lines.push(`// ${meta.title || className} — ${meta.node_type}`);
+
+    lines.push(`export type ${className}Inputs = {`);
+    for (const prop of meta.properties) {
+      const base = mapType(prop.type);
+      const tsType = runContract
+        ? `${base} | ${base.includes("|") ? `(${base})` : base}[]`
+        : base;
+      lines.push(
+        `  ${propertyKey(prop.name)}${isOptionalProperty(prop) ? "?" : ""}: ${tsType};`
+      );
+    }
+    lines.push("};");
+    lines.push("");
+
+    lines.push(`export interface ${className}Outputs {`);
+    for (const out of meta.outputs) {
+      lines.push(`  ${propertyKey(out.name)}: ${mapType(out.type)};`);
+    }
+    lines.push("}");
+    lines.push("");
+
+    const inputsArg = hasProps
+      ? `inputs: ${className}Inputs`
+      : `inputs?: ${className}Inputs`;
+    const inputsExpr = hasProps ? "inputs" : "inputs ?? {}";
+
+    lines.push(
+      `export function ${callableName}(${inputsArg}): Promise<${className}Outputs> {`
+    );
+    lines.push(
+      `  return callNode<${className}Outputs>("${meta.node_type}", ${inputsExpr});`
+    );
+    lines.push("}");
+    lines.push("");
+
+    if (meta.is_streaming_output || runContract) {
+      // A `run`-contract node emits per slot, so its stream carries
+      // `{slot, value}`; a `genProcess` stream carries one partial record per
+      // yield. `invokeStream` on the host picks the same two shapes.
+      const slotType =
+        meta.outputs.length > 0 ? `keyof ${className}Outputs & string` : "string";
+      const itemType = runContract
+        ? `{ slot: ${slotType}; value: unknown }`
+        : `Partial<${className}Outputs>`;
+      lines.push(
+        `${callableName}.stream = function (${inputsArg}): AsyncIterable<${itemType}> {`
+      );
+      lines.push(
+        `  return streamNode<${itemType}>("${meta.node_type}", ${inputsExpr});`
+      );
+      lines.push("};");
+      lines.push("");
+    }
+  });
+
+  return lines.join("\n");
+}
+
 function generateFile(namespace: string, nodes: NodeInfo[]): string {
   const lines: string[] = [HEADER];
-
-  // Determine needed imports
-  const mediaRefs = new Set<string>();
-  for (const { meta } of nodes) {
-    for (const prop of meta.properties) {
-      collectMediaRefs(prop.type, mediaRefs);
-    }
-    for (const out of meta.outputs) {
-      collectMediaRefs(out.type, mediaRefs);
-    }
-  }
 
   // Core imports
   const coreImports = ["createNode", "Connectable", "DslNode"];
   lines.push(`import { ${coreImports.join(", ")} } from "../core.js";`);
 
   // Types imports
-  const usedMediaRefs = ALL_MEDIA_IMPORTS.filter((r) => mediaRefs.has(r));
+  const usedMediaRefs = mediaRefImports(nodes);
   if (usedMediaRefs.length > 0) {
     lines.push(
       `import type { ${usedMediaRefs.join(", ")} } from "../types.js";`
@@ -286,33 +426,11 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
   lines.push("");
 
-  // Track factory name collisions
-  const factoryNameCounts = new Map<string, number>();
-  for (const node of nodes) {
-    factoryNameCounts.set(
-      node.factoryName,
-      (factoryNameCounts.get(node.factoryName) ?? 0) + 1
-    );
-  }
-  const factoryNameSeen = new Map<string, number>();
+  const factoryNames = factoryNamesFor(nodes);
 
-  for (const node of nodes) {
+  nodes.forEach((node, nodeIndex) => {
     const { meta, className } = node;
-    let { factoryName } = node;
-
-    // Handle collisions
-    if ((factoryNameCounts.get(factoryName) ?? 0) > 1) {
-      const seen = factoryNameSeen.get(factoryName) ?? 0;
-      factoryNameSeen.set(factoryName, seen + 1);
-      if (seen > 0) {
-        factoryName = factoryName + "_".repeat(seen);
-      }
-    }
-
-    // Avoid JS reserved words and built-in name shadows
-    if (JS_RESERVED.has(factoryName) || BUILTIN_NAMES.has(factoryName)) {
-      factoryName = factoryName + "_";
-    }
+    const factoryName = factoryNames[nodeIndex];
 
     // Comment
     lines.push(`// ${meta.title || className} — ${meta.node_type}`);
@@ -387,7 +505,7 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
     );
     lines.push("}");
     lines.push("");
-  }
+  });
 
   return lines.join("\n");
 }
@@ -408,11 +526,20 @@ function generateBarrel(namespaces: string[]): string {
 // Main
 // ---------------------------------------------------------------------------
 
-/** The files `src/generated/` must hold, keyed by file name. */
-interface GeneratedOutput {
+/** One emitted tree: the files a directory must hold, keyed by file name. */
+interface GeneratedTree {
+  /** `graph` or `flow` — what `--graph` / `--flow` select. */
+  id: "graph" | "flow";
+  /** Repo-relative directory, for the log lines. */
+  label: string;
+  dir: string;
   files: Map<string, string>;
   /** Node count per namespace file, for the log line. */
   nodeCounts: Map<string, number>;
+}
+
+interface GeneratedOutput {
+  trees: GeneratedTree[];
   namespaces: string[];
   totalNodes: number;
 }
@@ -449,92 +576,134 @@ function generateAll(): GeneratedOutput {
     totalNodes++;
   }
 
-  const files = new Map<string, string>();
+  const graphFiles = new Map<string, string>();
+  const flowFiles = new Map<string, string>();
   const nodeCounts = new Map<string, number>();
   const namespaces: string[] = [];
   for (const [ns, nodes] of byNamespace) {
-    files.set(`${ns}.ts`, generateFile(ns, nodes));
+    graphFiles.set(`${ns}.ts`, generateFile(ns, nodes));
+    flowFiles.set(`${ns}.ts`, generateFlowFile(nodes));
     nodeCounts.set(`${ns}.ts`, nodes.length);
     namespaces.push(ns);
   }
-  files.set("index.ts", generateBarrel(namespaces));
+  graphFiles.set("index.ts", generateBarrel(namespaces));
 
-  return { files, nodeCounts, namespaces, totalNodes };
+  return {
+    trees: [
+      {
+        id: "graph",
+        label: "src/generated/",
+        dir: GENERATED_DIR,
+        files: graphFiles,
+        nodeCounts
+      },
+      {
+        id: "flow",
+        label: "src/flow/generated/",
+        dir: FLOW_GENERATED_DIR,
+        files: flowFiles,
+        nodeCounts
+      }
+    ],
+    namespaces,
+    totalNodes
+  };
 }
 
-/** Read what is on disk under `src/generated/`, keyed by file name. */
-function readGenerated(): Map<string, string> {
+/** Read what is on disk in one tree's directory, keyed by file name. */
+function readTree(dir: string): Map<string, string> {
   const onDisk = new Map<string, string>();
-  if (!fs.existsSync(GENERATED_DIR)) return onDisk;
-  for (const file of fs.readdirSync(GENERATED_DIR)) {
-    onDisk.set(file, fs.readFileSync(path.join(GENERATED_DIR, file), "utf8"));
+  if (!fs.existsSync(dir)) return onDisk;
+  for (const file of fs.readdirSync(dir)) {
+    onDisk.set(file, fs.readFileSync(path.join(dir, file), "utf8"));
   }
   return onDisk;
 }
 
-function write(output: GeneratedOutput): void {
-  if (fs.existsSync(GENERATED_DIR)) {
-    for (const file of fs.readdirSync(GENERATED_DIR)) {
-      fs.unlinkSync(path.join(GENERATED_DIR, file));
+function write(tree: GeneratedTree, output: GeneratedOutput): void {
+  if (fs.existsSync(tree.dir)) {
+    for (const file of fs.readdirSync(tree.dir)) {
+      fs.unlinkSync(path.join(tree.dir, file));
     }
   } else {
-    fs.mkdirSync(GENERATED_DIR, { recursive: true });
+    fs.mkdirSync(tree.dir, { recursive: true });
   }
 
-  for (const [fileName, content] of output.files) {
-    fs.writeFileSync(path.join(GENERATED_DIR, fileName), content);
-    const count = output.nodeCounts.get(fileName);
+  for (const [fileName, content] of tree.files) {
+    fs.writeFileSync(path.join(tree.dir, fileName), content);
+    const count = tree.nodeCounts.get(fileName);
     console.log(
-      count === undefined ? `  ${fileName}` : `  ${fileName} — ${count} nodes`
+      count === undefined
+        ? `  ${tree.label}${fileName}`
+        : `  ${tree.label}${fileName} — ${count} nodes`
     );
   }
 
   console.log(
-    `\nDone: ${output.namespaces.length} namespace files, ${output.totalNodes} nodes total.`
+    `\nDone: ${tree.label} — ${output.namespaces.length} namespace files, ${output.totalNodes} nodes total.`
   );
 }
 
 /**
- * Compare the generated output against what is checked in. Exits 1 on any
- * difference, so CI catches a DSL that no longer matches the node registry.
+ * Compare one tree against what is checked in. Exits 1 on any difference, so
+ * CI catches a DSL that no longer matches the node registry.
  */
-function check(output: GeneratedOutput): void {
-  const onDisk = readGenerated();
+function check(tree: GeneratedTree, output: GeneratedOutput): boolean {
+  const onDisk = readTree(tree.dir);
   const missing: string[] = [];
   const changed: string[] = [];
 
-  for (const [fileName, content] of output.files) {
+  for (const [fileName, content] of tree.files) {
     const current = onDisk.get(fileName);
     if (current === undefined) missing.push(fileName);
     else if (current !== content) changed.push(fileName);
   }
-  const extra = [...onDisk.keys()].filter((f) => !output.files.has(f));
+  const extra = [...onDisk.keys()].filter((f) => !tree.files.has(f));
 
   if (missing.length === 0 && changed.length === 0 && extra.length === 0) {
     console.log(
-      `src/generated/ is up to date (${output.namespaces.length} namespaces, ${output.totalNodes} nodes).`
+      `${tree.label} is up to date (${output.namespaces.length} namespaces, ${output.totalNodes} nodes).`
     );
-    return;
+    return true;
   }
 
   console.error(
-    "\nsrc/generated/ is out of date — the DSL no longer matches the node registry."
+    `\n${tree.label} is out of date — the DSL no longer matches the node registry.`
   );
   for (const file of missing.sort()) console.error(`  missing: ${file}`);
   for (const file of extra.sort()) console.error(`  stale:   ${file}`);
   for (const file of changed.sort()) console.error(`  changed: ${file}`);
-  console.error(
-    "\nRun `npm run codegen --workspace=packages/dsl` and commit the result."
-  );
-  process.exit(1);
+  return false;
 }
 
 function main(): void {
-  const checkOnly = process.argv.includes("--check");
+  const argv = process.argv.slice(2);
+  const checkOnly = argv.includes("--check");
+  // No tree flag means both, which is what `npm run codegen` does. The flags
+  // exist for working on one tree without rewriting the other.
+  const wanted = new Set(
+    ["graph", "flow"].filter(
+      (id) =>
+        argv.includes(`--${id}`) ||
+        (!argv.includes("--graph") && !argv.includes("--flow"))
+    )
+  );
+
   console.log(`Introspecting ${ALL_BASE_NODES.length} node classes...`);
   const output = generateAll();
-  if (checkOnly) check(output);
-  else write(output);
+  const trees = output.trees.filter((tree) => wanted.has(tree.id));
+
+  if (!checkOnly) {
+    for (const tree of trees) write(tree, output);
+    return;
+  }
+  const ok = trees.map((tree) => check(tree, output)).every(Boolean);
+  if (!ok) {
+    console.error(
+      "\nRun `npm run codegen --workspace=packages/dsl` and commit the result."
+    );
+    process.exit(1);
+  }
 }
 
 main();

@@ -48,6 +48,7 @@ import {
   sandboxPackageListTool
 } from "../capabilities/packs.js";
 import { GRAPH_DSL_PACKAGE, withGraphDslPackage } from "./graph-dsl-package.js";
+import { FLOW_PACKAGE, withFlowPackage } from "./flow-package.js";
 import {
   FABRIC_PACKAGE,
   FABRIC_PROMPT_SECTION,
@@ -224,15 +225,19 @@ export function createChatCodeActSession(
   // Authoring a graph is a package, not a builder: a turn whose belt can save,
   // validate and run a workflow gets the DSL pack on its allowlist, provided
   // this machine installed it.
-  const sandboxPackages = withFabricPackage(
-    withGraphDslPackage(
-      sessionAllowedPackages(options.sandboxPackages),
-      options.tools.map((t) => t.name),
+  const sandboxPackages = withFlowPackage(
+    withFabricPackage(
+      withGraphDslPackage(
+        sessionAllowedPackages(options.sandboxPackages),
+        options.tools.map((t) => t.name),
+        sandboxModuleCatalog
+      ),
       sandboxModuleCatalog
     ),
     sandboxModuleCatalog
   );
   const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
+  const withFlow = sandboxPackages.includes(FLOW_PACKAGE);
   const withFabric = sandboxPackages.includes(FABRIC_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
@@ -420,7 +425,10 @@ export function createChatCodeActSession(
   }
 
   const nodetoolApiSection = withNodetoolApi
-    ? buildNodetoolApiPromptSection(toolNames, { graphDsl: withGraphDsl })
+    ? buildNodetoolApiPromptSection(toolNames, {
+        graphDsl: withGraphDsl,
+        nativeFlow: withFlow
+      })
     : "";
   const extraSections: string[] = [];
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);

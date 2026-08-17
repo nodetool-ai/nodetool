@@ -78,6 +78,13 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   read_media_bytes: "read",
   export_workflow_digraph: "read",
   find_model: "read",
+  // The `flow` module: starting a node is execution; pulling the next item
+  // out of a stream the gate already admitted is a read, so a guest loop is
+  // not prompted once per item.
+  invoke_node: "execute",
+  open_node_stream: "execute",
+  take_node_stream: "read",
+  close_node_stream: "read",
   generate_image: "write",
   generate_speech: "write",
   generate_video: "write",

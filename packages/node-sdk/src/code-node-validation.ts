@@ -246,7 +246,11 @@ export function validateCodeNodeBody(
     ...new Set(
       imported.filter((specifier) => {
         if (declaredSpecifiers.has(specifier)) return false;
-        if (allowInstalled && isCapabilitySpecifier(specifier)) return false;
+        // NodeTool's own guest modules are not packs and are never declared:
+        // the host mounts them for any body that imports one — a Code node's
+        // as well as a script's — so requiring a `packages` entry would fail
+        // a body the sandbox runs happily.
+        if (isCapabilitySpecifier(specifier)) return false;
         return !allowInstalled;
       })
     )

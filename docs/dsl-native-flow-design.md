@@ -1,30 +1,71 @@
 # DSL Native Flow — Technical Design
 
-**Status:** Draft — for review
-**Last updated:** 2026-08-17 — added the detailed task breakdown (§7)
+**Status:** In progress — the public surface runs in the QuickJS guest (§0)
+**Last updated:** 2026-08-17 — recorded the guest pivot (§0) and rewrote §1
 
 ---
 
+## 0. The QuickJS pivot
+
+**What changed:** the public surface is guest code, not a host import. §4–§6
+describe the host API, which is now internal.
+
+A user writes flow code in a Code node, where it runs in the sandbox like every
+other body. The typed callables live in a shipped pack,
+`@nodetool-ai/sandbox-flow` (`packages/sandbox-packs/sandbox-flow/`), built from
+`packages/dsl/src/flow/generated/` — one guest module per namespace, emitted by
+the same `npm run codegen` pass as the graph tree. Each call crosses to the host
+through the capability module `@nodetool-ai/sandbox-nodetool/flow`
+(`invoke_node`, `open_node_stream`, `take_node_stream`, `close_node_stream`),
+which lands on the host flow of §4–§6.
+
+Point by point against what came before:
+
+- **No `@nodetool-ai/dsl/flow` export.** `startFlow`, `invoke`, `invokeStream`
+  and the streaming adapters stay in `packages/dsl/src/flow/`, consumed by the
+  capability module. They are the backend, not the API; a caller who wants them
+  is inside NodeTool.
+- **Streaming input is arrays only, v1.** §4.4's `AsyncIterable` on an input
+  handle does not cross the guest boundary, so a `run`-contract node's inputs
+  widen to `T | T[]` and nothing more. The host adapter still accepts an
+  iterable — nothing in the guest can hand it one.
+- **Correlation and `emitGroup` are unchanged** (§5): a group flattens to its
+  member emissions, lineage is not modelled, and a `.stream` on a
+  `run`-contract node yields `{slot, value}`.
+- **Isolation comes back.** §2 counted the sandbox boundary as a cost the host
+  surface avoids. It is now paid per call — one crossing for a one-shot call,
+  one per item for a stream — and what it buys is that model-authored flow code
+  is no longer trusted code.
+
+**Open item.** Pack discovery refuses a non-relative import in authored pack
+code (`inspectJavaScript`, `packages/node-sdk/src/sandbox-pack-discovery.ts`),
+so the pack's guest core cannot yet name the capability module. Either that
+rule gains an allowance for `@nodetool-ai/sandbox-nodetool/*`, or the bridge
+ships as a host module (`SANDBOX_HOST_MODULES`). A second, smaller one: the
+host mounts a capability facade by scanning the **body's** static imports
+(`packages/agents/src/codeact/capability-modules.ts`), so a body using the pack
+must also `import "@nodetool-ai/sandbox-nodetool/flow"` itself. Mounting what a
+resolved pack module imports would remove that line from every program.
+
 ## 1. Summary
 
-A third way to run nodes, cheaper than both existing ones: call a node as a
-typed async function and write the control flow in plain JavaScript. No graph,
-no edges, no `WorkflowRunner`, no QuickJS. `await` is the edge, a variable is
-the wire, `Promise.all` is the fan-out.
+A third way to run nodes, cheaper than the graph: call a node as a typed async
+function and write the control flow in plain JavaScript. No graph, no edges, no
+`WorkflowRunner`. `await` is the edge, a variable is the wire, `Promise.all` is
+the fan-out.
 
-```ts
-import { startFlow, text, gemini } from "@nodetool-ai/dsl/flow";
+```js
+// A Code node body. `packages` declares "@nodetool-ai/sandbox-flow".
+import "@nodetool-ai/sandbox-nodetool/flow";
+import { template } from "@nodetool-ai/sandbox-flow/nodetool.text";
+import { textToSpeech } from "@nodetool-ai/sandbox-flow/gemini.audio";
 
-await using flow = await startFlow({ secretResolver });
-
-await flow.run(async () => {
-  const draft = await text.template({
-    string: "Write a haiku about {{topic}}",
-    values: { topic: "rain" }
-  });
-  const speech = await gemini.audio.textToSpeech({ text: draft.output });
-  return speech.output;
+const draft = await template({
+  string: "Write a haiku about {{topic}}",
+  values: { topic: "rain" }
 });
+const speech = await textToSpeech({ text: draft.output });
+return speech.output;
 ```
 
 Each call resolves the node class from the registry, assigns the inputs,
@@ -32,10 +73,10 @@ injects secrets, runs `process()`/`genProcess()` through the node's own
 `toExecutor()` bridge, and returns the outputs record — the same execution the
 kernel's `NodeActor` performs, minus the actor.
 
-The existing graph DSL (`workflow()` + `run()`) and the QuickJS sandbox are
-untouched. This is the host-side surface for **trusted** code: CLI scripts,
-server code, tests, harnesses, and agent-authored flows that already run on
-the host.
+The existing graph DSL (`workflow()` + `run()`) is untouched, and the sandbox
+gains a pack rather than a mode. Where a graph is the deliverable — something
+to open in the editor, validate, supervise, or hand to the server — build one
+with `@nodetool-ai/sandbox-dsl` instead (§5).
 
 ## 2. Why
 

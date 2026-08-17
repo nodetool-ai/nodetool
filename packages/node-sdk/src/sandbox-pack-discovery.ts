@@ -20,6 +20,7 @@ import {
   parseWasmBinary,
   skillSections,
   RESERVED_IDENTIFIERS,
+  SANDBOX_CAPABILITY_PACK,
   SANDBOX_WASM_FACADE_VERSION,
   SandboxModuleManifestSchema,
   SandboxPackManifestSchema,
@@ -877,10 +878,21 @@ function inspectJavaScript(
       return;
     const value = node.source?.value;
     if (!isString(value)) return;
-    if (!value.startsWith("."))
+    if (!value.startsWith(".")) {
+      // Capability-module specifiers are the one sanctioned external import:
+      // the guest loader resolves them to a mounted facade, mounting still
+      // requires the node body to import the module, and every call passes
+      // the per-call permission gate — so a pack module holding this import
+      // gains nothing the body did not already consent to.
+      if (
+        value === SANDBOX_CAPABILITY_PACK ||
+        value.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)
+      )
+        return;
       throw new SandboxPackDiscoveryError(
         `${packageName}/${moduleId}: import outside the pack: ${value}`
       );
+    }
     const packRoot = realpathOrThrow(packDir);
     const importedCandidate = resolve(packRoot, dirname(moduleId), value);
     if (
