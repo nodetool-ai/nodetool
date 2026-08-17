@@ -91,8 +91,8 @@ export interface RecentDocument {
   updatedAt: string;
   /** The workspace tab that opens this document. */
   tabType: WorkspaceTabType;
-  /** Asset thumbnail, when the document has one. */
-  thumbUrl?: string;
+  /** Asset thumbnail, or null for a document that has none. */
+  thumbUrl: string | null;
 }
 
 /** The fields every typed list item carries, whatever the router. */
@@ -115,7 +115,9 @@ const toDocument = (
   kind,
   name: item.name || fallbackName,
   updatedAt: item.updatedAt,
-  tabType: KIND_TAB_TYPE[kind]
+  tabType: KIND_TAB_TYPE[kind],
+  // Only assets carry a thumbnail; the typed documents render their icon.
+  thumbUrl: null
 });
 
 const listAssets = () =>
@@ -179,7 +181,7 @@ export const useRecentDocuments = (): UseRecentDocumentsResult => {
             // Assets are immutable once written, so creation is their date.
             updatedAt: asset.created_at,
             tabType,
-            ...(asset.thumb_url ? { thumbUrl: asset.thumb_url } : {})
+            thumbUrl: asset.thumb_url ?? null
           }
         ];
       }

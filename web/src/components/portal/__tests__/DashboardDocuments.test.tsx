@@ -30,7 +30,8 @@ const doc = (
   kind,
   name,
   updatedAt,
-  tabType
+  tabType,
+  thumbUrl: null
 });
 
 const DOCUMENTS: RecentDocument[] = [
