@@ -30,7 +30,7 @@ import {
   mergeExtractedScript
 } from "../../lib/scriptStoryboardLink";
 
-export interface ExtractScriptOptions {
+interface ExtractScriptOptions {
   /** Re-project onto the linked script instead of refusing the call. */
   relink?: boolean;
   /** Open the script's tab afterwards. Default true. */

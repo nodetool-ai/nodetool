@@ -46,7 +46,7 @@ import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
  * the caller (which owns binding storage; see NOD-323 for the persisted
  * binding store).
  */
-export interface LayerGenerationBinding {
+interface LayerGenerationBinding {
   documentId: string;
   layerId: string;
   workflowId: string;
@@ -58,7 +58,7 @@ export interface LayerGenerationBinding {
   locked?: boolean;
 }
 
-export interface LayerGenerationCompletion {
+interface LayerGenerationCompletion {
   jobId: string;
   assetId: string;
   versionId: string;
@@ -432,7 +432,6 @@ const subscribeJob = async (
   }
 };
 
-
 interface UseGenerateLayerResult {
   generateLayer: () => Promise<void>;
   cancelLayerGeneration: () => Promise<void>;
@@ -445,7 +444,7 @@ interface UseGenerateLayerResult {
   currentJobId: string | undefined;
 }
 
-export interface UseGenerateLayerOptions {
+interface UseGenerateLayerOptions {
   binding: LayerGenerationBinding;
   onComplete?: (info: LayerGenerationCompletion) => void;
   onFailed?: (errorMessage: string) => void;

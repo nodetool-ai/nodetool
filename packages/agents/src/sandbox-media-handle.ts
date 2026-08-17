@@ -43,7 +43,7 @@ export const MAX_RUN_MEDIA_BYTES = 256 * 1024 * 1024;
 export type SandboxMediaType = "image" | "audio" | "video";
 
 /** What a handle looks like to the guest. */
-export interface SandboxMediaHandle {
+interface SandboxMediaHandle {
   [SANDBOX_MEDIA_HANDLE]: string;
   type: SandboxMediaType;
   uri: string;
@@ -61,7 +61,7 @@ export interface SandboxMediaMeta {
   height?: number;
 }
 
-export interface SandboxMediaEntry {
+interface SandboxMediaEntry {
   bytes: Uint8Array;
   type: SandboxMediaType;
   mimeType: string;

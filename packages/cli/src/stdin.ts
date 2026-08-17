@@ -43,7 +43,7 @@ import {
   formatToolResult,
 } from "./tool-format.js";
 
-export interface StdinModeOptions {
+interface StdinModeOptions {
   provider: string;
   model: string;
   workspaceDir: string;

@@ -16,7 +16,7 @@ export function isOnlineState(state: Pick<NetInfoState, 'isConnected' | 'isInter
   return state.isConnected === true && state.isInternetReachable !== false;
 }
 
-export interface NetworkStatus {
+interface NetworkStatus {
   /** The device has a connection that is not known to be unreachable. */
   isOnline: boolean;
   /** Convenience inverse of `isOnline`. */

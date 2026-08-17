@@ -44,7 +44,7 @@ function parseTokens(raw: string): OAuthTokens | null {
   };
 }
 
-export interface SecureTokenStoreOptions {
+interface SecureTokenStoreOptions {
   /** Backing secret store (e.g. OS keychain). */
   readonly credentialStore: SecureCredentialStore;
   /** Provider id, e.g. "openai" — part of the storage key. */

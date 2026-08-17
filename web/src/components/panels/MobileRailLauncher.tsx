@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface MobileRailLauncherProps {
+interface MobileRailLauncherProps {
   /** Renders the logo/app menu alongside the panel toggle. */
   showAppMenu?: boolean;
 }

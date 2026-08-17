@@ -15,7 +15,7 @@ const log = createLogger("nodetool.base-nodes.agents");
  * diagnostics/logging by the caller; execution flows through the generic
  * `tool.process` path like any other tool.
  */
-export interface ControlTool extends ToolLike {
+interface ControlTool extends ToolLike {
   targetNodeId: string;
   process: (
     context: ProcessingContext,

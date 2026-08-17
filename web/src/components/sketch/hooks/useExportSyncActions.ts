@@ -34,7 +34,7 @@ export interface PendingExportSync {
   mask: boolean;
 }
 
-export interface UseExportSyncActionsParams {
+interface UseExportSyncActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   onExportImage?: (dataUrl: string) => void;
   onExportMask?: (dataUrl: string | null) => void;

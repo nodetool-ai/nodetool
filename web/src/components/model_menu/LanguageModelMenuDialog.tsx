@@ -4,7 +4,7 @@ import type { LanguageModel, ModelPack, UnifiedModel } from "../../stores/ApiTyp
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 
-export interface LanguageModelMenuDialogProps {
+interface LanguageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: LanguageModel) => void;

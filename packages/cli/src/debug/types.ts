@@ -38,7 +38,7 @@ export type {
 } from "@nodetool-ai/execution/debug";
 
 /** A canvas screenshot captured at one stage of the browser run. */
-export interface BrowserStageShot {
+interface BrowserStageShot {
   /** 0-based capture order. */
   index: number;
   /** Run status at capture time (running until the final frame). */

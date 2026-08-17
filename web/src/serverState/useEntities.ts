@@ -23,7 +23,7 @@ import { trpcClient } from "../trpc/client";
 import { isObjectLike, isString } from "../utils/typePredicates";
 
 /** The Entity-without-images object stored on `metadata.nodetool_entity`. */
-export interface EntityMarker {
+interface EntityMarker {
   kind: EntityKind;
   name: string;
   descriptor: string;
@@ -115,7 +115,7 @@ export function useEntities(): UseQueryResult<Entity[], Error> {
   });
 }
 
-export interface SaveEntityInput {
+interface SaveEntityInput {
   /** The existing image asset to tag as an entity's reference. */
   assetId: string;
   kind: EntityKind;

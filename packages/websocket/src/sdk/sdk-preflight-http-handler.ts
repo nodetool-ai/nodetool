@@ -16,7 +16,7 @@ export interface SdkV1PreflightHttpService {
   }): Promise<SdkV1PreflightSummary>;
 }
 
-export interface HandleSdkV1PreflightOptions {
+interface HandleSdkV1PreflightOptions {
   service: SdkV1PreflightHttpService;
   /**
    * Resolves only the server-authenticated principal. Implementations must not

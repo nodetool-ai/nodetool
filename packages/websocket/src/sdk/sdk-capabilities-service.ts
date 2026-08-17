@@ -19,7 +19,7 @@ export interface SdkV1CapabilityLimits {
   requestTimeoutSeconds: number;
 }
 
-export interface BuildSdkV1CapabilitiesOptions {
+interface BuildSdkV1CapabilitiesOptions {
   nodetoolVersion: string;
   registryRevision: number;
   pythonBridge: SdkV1PythonBridgeStatus;

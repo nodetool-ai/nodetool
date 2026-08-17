@@ -122,7 +122,7 @@ const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(({
 ));
 ImagePreview.displayName = "ImagePreview";
 
-export interface MasksExtractorBodyProps {
+interface MasksExtractorBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

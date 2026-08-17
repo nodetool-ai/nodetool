@@ -146,7 +146,7 @@ type AssetRef = {
   metadata?: { mime_type?: string };
 };
 
-export interface AssetStorageLike {
+interface AssetStorageLike {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
 }
 
@@ -248,7 +248,7 @@ function bytesToDataUri(bytes: Uint8Array, mime: string): string {
 }
 
 // Image generation / editing — POST /v1/images/generations (synchronous)
-export interface ImageParams {
+interface ImageParams {
   prompt: string;
   width?: number | null;
   height?: number | null;
@@ -306,7 +306,7 @@ export function imageBytesToDataUri(bytes: Uint8Array): string {
 }
 
 // Text-to-speech — POST /v1/audio/speech (synchronous, encoded audio)
-export interface SpeechParams {
+interface SpeechParams {
   text: string;
   voice?: string;
   speed?: number | null;
@@ -349,7 +349,7 @@ export async function togetherTextToSpeech(
 }
 
 // Transcription — POST /v1/audio/transcriptions (multipart, OpenAI-compatible)
-export interface TranscribeParams {
+interface TranscribeParams {
   audio: Uint8Array;
   language?: string | null;
   filename?: string;
@@ -389,7 +389,7 @@ export async function togetherTranscribe(
 }
 
 // Video — POST /v2/videos then poll GET /v2/videos/{id} (asynchronous)
-export interface VideoParams {
+interface VideoParams {
   prompt?: string | null;
   aspectRatio?: string | null;
   resolution?: string | null;
@@ -402,7 +402,7 @@ export interface VideoParams {
   firstFrameDataUri?: string | null;
 }
 
-export interface VideoPollOptions {
+interface VideoPollOptions {
   pollIntervalMs?: number;
   timeoutMs?: number;
 }

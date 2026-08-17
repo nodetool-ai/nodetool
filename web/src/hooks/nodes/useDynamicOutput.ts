@@ -3,7 +3,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { shallow } from "zustand/shallow";
 
-export interface UseDynamicOutputResult {
+interface UseDynamicOutputResult {
   handleDeleteOutput: (outputName: string) => void;
   handleAddOutput: (outputName: string, typeMetadata: TypeMetadata) => void;
   handleRenameOutput: (oldName: string, newName: string) => void;

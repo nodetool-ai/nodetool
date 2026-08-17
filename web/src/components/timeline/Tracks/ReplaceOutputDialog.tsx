@@ -8,7 +8,7 @@ import React, { memo, useCallback, useState } from "react";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { Dialog, Text, TextInput } from "../../ui_primitives";
 
-export interface ReplaceOutputDialogProps {
+interface ReplaceOutputDialogProps {
   clipId: string;
   /** Asset id the clip currently points at, prefilled into the field. */
   initialAssetId: string;

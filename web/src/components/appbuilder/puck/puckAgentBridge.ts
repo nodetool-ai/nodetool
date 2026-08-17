@@ -24,7 +24,7 @@ import type {
 
 import { ComponentSummary } from "./puckDataOps";
 
-export interface PuckComponentType {
+interface PuckComponentType {
   type: string;
   label?: string;
   fields: { name: string; type: string }[];
@@ -38,7 +38,7 @@ export interface PuckSnapshot {
   components: ComponentSummary[];
 }
 
-export interface AddComponentArgs {
+interface AddComponentArgs {
   type: string;
   props?: Record<string, unknown>;
   parentId?: string | null;

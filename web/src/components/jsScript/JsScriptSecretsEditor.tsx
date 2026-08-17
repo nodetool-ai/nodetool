@@ -18,7 +18,7 @@ import {
   SPACING
 } from "../ui_primitives";
 
-export interface JsScriptSecretsEditorProps {
+interface JsScriptSecretsEditorProps {
   secrets: readonly string[];
   readOnly?: boolean;
   onChange: (secrets: string[]) => void;

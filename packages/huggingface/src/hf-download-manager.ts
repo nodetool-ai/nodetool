@@ -37,7 +37,7 @@ export interface DownloadUpdate {
 
 export type ProgressCallback = (update: DownloadUpdate) => void;
 
-export interface StartDownloadOptions {
+interface StartDownloadOptions {
   path?: string | null;
   allowPatterns?: string[] | null;
   ignorePatterns?: string[] | null;

@@ -14,14 +14,14 @@
 import type { NormalizedRunFrame, NormalizedRunRecord } from "./normalize.js";
 import { stableStringify } from "./stable-json.js";
 
-export interface ChannelDiffEntry {
+interface ChannelDiffEntry {
   kind: "added" | "removed" | "changed" | "unchanged";
   /** Index within the side the entry belongs to (baseline for removed/changed, candidate for added). */
   baselineMessage?: Record<string, unknown>;
   candidateMessage?: Record<string, unknown>;
 }
 
-export interface ChannelDiff {
+interface ChannelDiff {
   channel: string;
   entries: ChannelDiffEntry[];
 }

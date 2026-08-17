@@ -40,7 +40,7 @@ import type {
 export type AgentStrokeTool = "brush" | "pencil" | "eraser";
 
 /** One sampled point of a stroke, in document (canvas) pixel coordinates. */
-export interface AgentStrokePoint {
+interface AgentStrokePoint {
   x: number;
   y: number;
   /** Pen pressure in [0,1]; omit for an unmodulated (mouse-like) stroke. */
@@ -66,7 +66,7 @@ export interface AgentStrokeRequest {
   closed?: boolean;
 }
 
-export interface AgentStrokeBounds {
+interface AgentStrokeBounds {
   x: number;
   y: number;
   width: number;
@@ -82,7 +82,7 @@ export interface AgentStrokeOutcome {
   bounds: AgentStrokeBounds | null;
 }
 
-export interface PaintAgentStrokeParams {
+interface PaintAgentStrokeParams {
   stroke: AgentStrokeRequest;
   /** The document layer being painted — read for transform and alpha lock. */
   layer: Layer;

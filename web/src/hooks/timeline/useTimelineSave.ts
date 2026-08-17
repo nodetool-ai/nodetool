@@ -17,7 +17,7 @@ import { trpcClient } from "../../trpc/client";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 import { isString } from "../../utils/typePredicates";
 
-export interface UseTimelineSaveResult {
+interface UseTimelineSaveResult {
   /** PATCH the current document immediately. Resolves when the save settles. */
   save: () => Promise<void>;
   isSaving: boolean;

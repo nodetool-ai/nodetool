@@ -9,7 +9,7 @@ import { WorkflowLoader } from "./WorkflowLoader";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 
-export interface WorkflowNodeContentProps {
+interface WorkflowNodeContentProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

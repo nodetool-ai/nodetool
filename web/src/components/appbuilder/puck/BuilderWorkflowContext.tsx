@@ -48,7 +48,7 @@ const BuilderWorkflowContext = createContext<BuilderWorkflowContextValue>({
   workflowFor: () => EMPTY_STATE
 });
 
-export interface BuilderWorkflowProviderProps {
+interface BuilderWorkflowProviderProps {
   /** The host workflow's bindable surface. */
   value: WorkflowState;
   /** The document's operations. Empty for an app with none bound yet. */

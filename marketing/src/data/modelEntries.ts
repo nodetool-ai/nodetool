@@ -32,7 +32,7 @@ export function modalityLabel(m: Modality): string {
 
 export type Accent = "blue" | "violet" | "emerald" | "rose" | "amber" | "cyan";
 
-export interface ModelFact {
+interface ModelFact {
   label: string;
   value: string;
 }

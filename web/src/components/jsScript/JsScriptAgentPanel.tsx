@@ -5,7 +5,7 @@ import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
 import { jsScriptSystemPrompt } from "./jsScriptBodyContract";
 import { useJsScriptName } from "../../stores/jsScript/JsScriptStore";
 
-export interface JsScriptAgentPanelProps {
+interface JsScriptAgentPanelProps {
   scriptId: string;
 }
 

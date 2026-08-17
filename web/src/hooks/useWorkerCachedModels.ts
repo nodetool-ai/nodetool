@@ -4,7 +4,7 @@ import { trpc } from "../lib/trpc";
 import { useWorkers } from "./useWorkers";
 import type { RouterOutputs } from "../trpc/client";
 
-export interface WorkerCachedModelsResult {
+interface WorkerCachedModelsResult {
   /** Keys of models cached on the active worker (`owner/repo` or `owner/repo/path`). */
   ids: Set<string>;
   /** True while the worker cache list has not resolved yet (worker attached, query pending). */

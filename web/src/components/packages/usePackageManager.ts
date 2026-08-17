@@ -95,7 +95,7 @@ export interface PMRow {
   };
 }
 
-export interface PackageManagerModel {
+interface PackageManagerModel {
   isSoftware: boolean;
   isThirdParty: boolean;
   categories: PMCount[];

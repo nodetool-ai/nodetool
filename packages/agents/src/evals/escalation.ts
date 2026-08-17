@@ -105,7 +105,7 @@ function matches(reply: EscalationReply, text: string): boolean {
 }
 
 /** What the scripted user answers with, as the model sees it. */
-export interface EscalationAnswer {
+interface EscalationAnswer {
   ok: true;
   answer: string;
 }

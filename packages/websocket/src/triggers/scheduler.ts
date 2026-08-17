@@ -30,12 +30,12 @@ const log = createLogger("nodetool.websocket.triggers.scheduler");
 const DEFAULT_SWEEP_INTERVAL_MS = 5_000;
 
 /** Fired once per registration each time a sweep delivers a new tick. */
-export interface SchedulerNotifyEvent {
+interface SchedulerNotifyEvent {
   registrationId: string;
   inputId: string;
 }
 
-export interface StartSchedulerOptions {
+interface StartSchedulerOptions {
   wakeupService: TriggerWakeupService;
   /** Same-process dispatch hint — called after a new tick is delivered. */
   notify?: (event: SchedulerNotifyEvent) => void;

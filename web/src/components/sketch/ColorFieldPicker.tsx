@@ -20,7 +20,7 @@ import { parseColorToRgba, rgbaToCss, rgbToHsv, hsvToRgb } from "./types";
 /** Below this saturation/value, hue is ambiguous — don't resync from color. */
 const MIN_SV_FOR_HUE_SYNC = 0.05;
 
-export interface ColorFieldPickerProps {
+interface ColorFieldPickerProps {
   color: string;
   onColorChange: (color: string) => void;
 }

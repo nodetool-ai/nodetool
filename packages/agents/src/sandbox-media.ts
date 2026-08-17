@@ -72,7 +72,7 @@ export type ImageFormat = (typeof IMAGE_FORMATS)[number];
 // ---------------------------------------------------------------------------
 
 /** The subset of `CanvasRenderingContext2D` both backends satisfy. */
-export interface MediaContext2D {
+interface MediaContext2D {
   [key: string]: unknown;
   drawImage: (...args: unknown[]) => void;
   measureText: (text: string) => { width: number } & Record<string, unknown>;
@@ -88,18 +88,18 @@ export interface MediaContext2D {
   putImageData: (data: unknown, x: number, y: number) => void;
 }
 
-export interface MediaGradient {
+interface MediaGradient {
   addColorStop: (offset: number, color: string) => void;
 }
 
-export interface MediaSurface {
+interface MediaSurface {
   readonly width: number;
   readonly height: number;
   readonly ctx: MediaContext2D;
 }
 
 /** A decoded image the backend's `drawImage` accepts. */
-export interface MediaImage {
+interface MediaImage {
   readonly width: number;
   readonly height: number;
   readonly handle: unknown;
@@ -548,7 +548,7 @@ function buildFilter(options: Record<string, unknown>): string {
   return parts.join(" ");
 }
 
-export interface ImageBridge {
+interface ImageBridge {
   info(bytes: unknown): Promise<Record<string, unknown>>;
   decode(bytes: unknown): Promise<Record<string, unknown>>;
   stats(bytes: unknown): Promise<Record<string, unknown>>;
@@ -1077,18 +1077,18 @@ export const imageOps: ImageBridge = createImageBridge();
 const PROPERTY_SET = new Set<string>(CANVAS_PROPERTIES);
 const METHOD_SET = new Set<string>(CANVAS_METHODS);
 
-export interface CanvasGradientSpec {
+interface CanvasGradientSpec {
   readonly type: "linear" | "radial" | "conic";
   readonly coords: readonly number[];
   readonly stops: readonly (readonly [number, string])[];
 }
 
-export interface CanvasOp {
+interface CanvasOp {
   readonly op: string;
   readonly args?: readonly unknown[];
 }
 
-export interface CanvasRenderSpec {
+interface CanvasRenderSpec {
   readonly width: number;
   readonly height: number;
   readonly background?: string;

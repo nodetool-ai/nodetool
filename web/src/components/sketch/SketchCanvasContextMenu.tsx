@@ -219,7 +219,7 @@ const ToolGridButton = memo(function ToolGridButton({
   );
 });
 
-export interface SketchCanvasContextMenuProps {
+interface SketchCanvasContextMenuProps {
   /** Applied to the menu paper (e.g. `sketch-editor__context-menu`). */
   className?: string;
   open: boolean;

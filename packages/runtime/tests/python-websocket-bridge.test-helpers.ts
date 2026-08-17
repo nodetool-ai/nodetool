@@ -22,7 +22,7 @@ export const FAKE_NODE = {
   required_settings: []
 };
 
-export interface FakeWorkerOptions {
+interface FakeWorkerOptions {
   /**
    * When true, the first WebSocket upgrade is held until releaseUpgrade() is
    * called on the handle. Used to reproduce in-flight handshake races where

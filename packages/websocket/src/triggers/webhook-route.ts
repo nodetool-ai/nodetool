@@ -45,7 +45,7 @@ export interface WebhookTriggerSink {
   }): Promise<boolean>;
 }
 
-export interface WebhookRouteOptions {
+interface WebhookRouteOptions {
   /** Durable sink for the incoming event. */
   wakeupService: WebhookTriggerSink;
   /**

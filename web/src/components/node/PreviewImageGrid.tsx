@@ -134,7 +134,7 @@ const ImageTile = memo<ImageTileProps>(({
 });
 ImageTile.displayName = "ImageTile";
 
-export interface PreviewImageGridProps {
+interface PreviewImageGridProps {
   images: ImageSource[];
   onDoubleClick?: (index: number) => void;
   onOpenInViewer?: (index: number) => void; // Open in asset viewer

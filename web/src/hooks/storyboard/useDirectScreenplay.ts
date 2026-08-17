@@ -53,7 +53,7 @@ export const coerceScreenplay = (value: unknown): Screenplay | null => {
   return isScreenplay(candidate) ? candidate : null;
 };
 
-export interface UseDirectScreenplayResult {
+interface UseDirectScreenplayResult {
   direct: (boardId: string, shotCount: number) => Promise<void>;
   directing: boolean;
   error: string | null;

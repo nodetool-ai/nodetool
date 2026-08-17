@@ -16,7 +16,7 @@ import {
 // Model catalogue
 // ---------------------------------------------------------------------------
 
-export interface FalImageModel {
+interface FalImageModel {
   id: string;
   name: string;
 }

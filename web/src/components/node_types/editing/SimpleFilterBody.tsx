@@ -142,7 +142,7 @@ const ImagePreview: React.FC<{
 ));
 ImagePreview.displayName = "SimpleFilterImagePreview";
 
-export interface SimpleFilterBodyProps {
+interface SimpleFilterBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

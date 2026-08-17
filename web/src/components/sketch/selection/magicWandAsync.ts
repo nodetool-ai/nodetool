@@ -3,7 +3,7 @@ import {
   magicWandNonContiguousFromRgba
 } from "./selectionMask";
 
-export interface MagicWandSelectionRequest {
+interface MagicWandSelectionRequest {
   rgba: Uint8ClampedArray;
   width: number;
   height: number;

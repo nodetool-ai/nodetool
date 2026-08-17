@@ -24,14 +24,14 @@ import type { ShowcaseEntry } from "./showcase";
 
 export type Modality = "image" | "video" | "audio" | "text";
 
-export interface TaskModel {
+interface TaskModel {
   name: string;
   provider: string;
   modality: Modality;
   blurb: string;
 }
 
-export interface TaskEntry extends PageEntry {
+interface TaskEntry extends PageEntry {
   slug: string;
   /** Human task name, e.g. "Image to Video". */
   task: string;

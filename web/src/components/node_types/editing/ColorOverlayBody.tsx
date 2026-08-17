@@ -107,7 +107,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface ColorOverlayBodyProps {
+interface ColorOverlayBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -141,7 +141,7 @@ const ShortcutRow: React.FC<{ shortcut: Shortcut }> = ({ shortcut }) => {
   );
 };
 
-export interface TimelineShortcutsDialogProps {
+interface TimelineShortcutsDialogProps {
   open: boolean;
   onClose: () => void;
 }

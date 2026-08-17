@@ -41,7 +41,7 @@ export interface Render3DOptions {
   transparent: boolean;
 }
 
-export interface CameraFraming {
+interface CameraFraming {
   /** Distance from the bounding-sphere center to the camera. */
   distance: number;
   near: number;

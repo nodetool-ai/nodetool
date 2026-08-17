@@ -163,7 +163,7 @@ export function formatInputConnections(connections: InputConnection[]): string {
     .join("\n");
 }
 
-export interface BuildReportBodyParams {
+interface BuildReportBodyParams {
   nodeType: string;
   nodeTitle?: string;
   errorText: string;

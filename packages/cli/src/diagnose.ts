@@ -77,7 +77,7 @@ export interface DiagnoseInputs {
 // ---------------------------------------------------------------------------
 
 /** The node or step the run failed on. */
-export interface FailureSite {
+interface FailureSite {
   /** Where the failure was identified. */
   kind: "node" | "step" | "job" | "unknown";
   /** Node id, when a failing node was found. */
@@ -93,7 +93,7 @@ export interface FailureSite {
 }
 
 /** Summary of the last LLM call before the failure. */
-export interface LastLlmSummary {
+interface LastLlmSummary {
   /** Span name — "llm.chat" or "llm.stream". */
   name: string;
   provider: string | null;
@@ -110,7 +110,7 @@ export interface LastLlmSummary {
 }
 
 /** Compact view of the memory/state snapshot at failure. */
-export interface MemorySnapshot {
+interface MemorySnapshot {
   /** Number of top-level keys. */
   keyCount: number;
   /** Top-level keys (capped). */
@@ -120,7 +120,7 @@ export interface MemorySnapshot {
 }
 
 /** A heuristic pointer at where to start fixing. */
-export interface FixLocus {
+interface FixLocus {
   /** One-line, human-readable starting point. */
   summary: string;
   /** Failing node type, when derivable. */

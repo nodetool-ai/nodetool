@@ -11,7 +11,7 @@ import { create } from "zustand";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
 /** Graph changes made only to open the dialog. */
-export interface CodeGenDiscardPlan {
+interface CodeGenDiscardPlan {
   /** Nodes created for this request. */
   nodeIds: readonly string[];
   /** Edges created for this request. */
@@ -20,7 +20,7 @@ export interface CodeGenDiscardPlan {
   restoreEdges: readonly Edge[];
 }
 
-export interface CodeGenDialogRequest {
+interface CodeGenDialogRequest {
   /** The Code node an accepted submission is applied to. */
   nodeId: string;
   /** Typed inputs seeded from a source handle. */

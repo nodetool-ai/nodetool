@@ -14,7 +14,7 @@ export type AudioDevice = {
   label: string;
 };
 
-export interface WaveRecorderReturn {
+interface WaveRecorderReturn {
   error: string | null;
   setError: Dispatch<SetStateAction<string | null>>;
   micRef: MutableRefObject<HTMLDivElement | null>;

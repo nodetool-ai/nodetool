@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface BottomStatusBarProps {
+interface BottomStatusBarProps {
   /** Whether the session is local or cloud */
   mode?: "local" | "cloud";
   /** Number of clips currently generating */

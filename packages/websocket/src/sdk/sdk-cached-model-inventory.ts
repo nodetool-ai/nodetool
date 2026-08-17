@@ -1,14 +1,14 @@
 import type { PythonBridge, UnifiedModelLike } from "@nodetool-ai/runtime";
 import { isNonBlankString } from "../lib/wire-values.js";
 
-export interface SdkV1CachedModelInventorySource {
+interface SdkV1CachedModelInventorySource {
   providerIds: readonly string[];
   listModels: (
     userId: string
   ) => Promise<readonly UnifiedModelLike[]> | readonly UnifiedModelLike[];
 }
 
-export interface CreateNodeToolSdkV1CachedModelInventoryOptions {
+interface CreateNodeToolSdkV1CachedModelInventoryOptions {
   sources?: readonly SdkV1CachedModelInventorySource[];
   pythonBridge?: Pick<PythonBridge, "listCachedModels">;
   getPythonBridgeReady?: () => boolean;

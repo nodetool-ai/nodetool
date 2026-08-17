@@ -36,7 +36,7 @@ function pollIntervalMs(): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 15_000;
 }
 
-export interface RemoteCancelResult {
+interface RemoteCancelResult {
   cancelled: boolean;
   workflowId: string | null;
 }

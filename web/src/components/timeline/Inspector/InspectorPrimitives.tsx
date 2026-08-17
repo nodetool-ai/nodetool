@@ -94,7 +94,7 @@ const headerIconButtonStyles = (theme: Theme) =>
     }
   });
 
-export interface InspectorHeaderAction {
+interface InspectorHeaderAction {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
@@ -102,7 +102,7 @@ export interface InspectorHeaderAction {
   variant?: "default" | "danger";
 }
 
-export interface InspectorHeaderProps {
+interface InspectorHeaderProps {
   eyebrow: string;
   actions?: InspectorHeaderAction[];
 }
@@ -185,7 +185,7 @@ const identityMetaStyles = (theme: Theme) =>
     lineHeight: 1.3
   });
 
-export interface ClipIdentityCardProps {
+interface ClipIdentityCardProps {
   name: string;
   metadata: ReadonlyArray<string>;
   /** Track-type accent shown as a small swatch beside the metadata. */
@@ -243,7 +243,7 @@ const rowControlStyles = css({
   minWidth: 110
 });
 
-export interface InspectorRowProps {
+interface InspectorRowProps {
   label: React.ReactNode;
   children: React.ReactNode;
   htmlFor?: string;
@@ -359,14 +359,14 @@ const pillUnitStyles = (theme: Theme) =>
     flexShrink: 0
   });
 
-export interface InspectorPillScrub {
+interface InspectorPillScrub {
   /** Value change per horizontal pixel dragged. Shift ×10, Alt ×0.1. */
   step: number;
   min?: number;
   max?: number;
 }
 
-export interface InspectorPillInputProps {
+interface InspectorPillInputProps {
   value: string;
   onCommit: (raw: string) => void;
   /** Small trailing unit token, e.g. "s", "×", "px". */
@@ -609,7 +609,7 @@ const inspectorSelectStyles = (theme: Theme) =>
     }
   });
 
-export interface InspectorSelectProps {
+interface InspectorSelectProps {
   /** Accessible name — the visible label lives on the enclosing row. */
   label: string;
   value: string;
@@ -680,7 +680,7 @@ const toggleSwitchSx = {
   }
 } as const;
 
-export interface InspectorToggleRowProps {
+interface InspectorToggleRowProps {
   label: React.ReactNode;
   checked: boolean;
   onChange: (next: boolean) => void;
@@ -807,7 +807,7 @@ const precisionSliderSx = (theme: Theme) => {
   };
 };
 
-export interface InspectorSliderRowProps {
+interface InspectorSliderRowProps {
   label: string;
   value: number;
   /** Formatted readout shown right of the slider, e.g. "0.50", "45°", "80%". */
@@ -1036,14 +1036,14 @@ const sectionActionStyles = (theme: Theme) =>
     "& svg": { fontSize: 13 }
   });
 
-export interface InspectorSectionAction {
+interface InspectorSectionAction {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
 }
 
-export interface InspectorSectionTitleProps {
+interface InspectorSectionTitleProps {
   title: string;
   icon?: React.ReactNode;
   /**

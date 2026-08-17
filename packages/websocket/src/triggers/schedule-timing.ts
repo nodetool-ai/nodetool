@@ -26,7 +26,7 @@ export const SCHEDULE_KIND = "schedule";
 
 export const DEFAULT_INTERVAL_SECONDS = 60;
 
-export interface ScheduleTiming {
+interface ScheduleTiming {
   /** `interval_seconds` from config, or the 60s default. */
   intervalSeconds: number;
   /** The same interval in milliseconds, floored at 1ms. */

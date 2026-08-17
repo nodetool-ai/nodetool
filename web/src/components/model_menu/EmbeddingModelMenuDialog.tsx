@@ -4,7 +4,7 @@ import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTy
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import { useEmbeddingModelMenuStore } from "../../stores/ModelMenuStore";
 
-export interface EmbeddingModelMenuDialogProps {
+interface EmbeddingModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: EmbeddingModel) => void;

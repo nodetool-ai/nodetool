@@ -15,7 +15,7 @@ export type CodeAuthoringModelSource =
   | "language_model_preference"
   | "application_default";
 
-export interface CodeAuthoringModel {
+interface CodeAuthoringModel {
   provider: string;
   id: string;
   name: string;
@@ -23,13 +23,13 @@ export interface CodeAuthoringModel {
 
 export type CodeAuthoringSkipReason = "no_tool_support" | "unknown_model";
 
-export interface SkippedCodeAuthoringCandidate {
+interface SkippedCodeAuthoringCandidate {
   model: CodeAuthoringModel;
   source: CodeAuthoringModelSource;
   reason: CodeAuthoringSkipReason;
 }
 
-export interface CodeAuthoringModelResult {
+interface CodeAuthoringModelResult {
   /** The model to generate with, or null while loading or when blocked. */
   model: CodeAuthoringModel | null;
   source: CodeAuthoringModelSource | null;

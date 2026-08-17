@@ -104,7 +104,7 @@ const Bubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   );
 };
 
-export interface ChatThreadWidgetProps {
+interface ChatThreadWidgetProps {
   id: string;
   /** The conversation: an app variable, or an output that emits messages. */
   binding?: string;
@@ -216,7 +216,7 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
   );
 };
 
-export interface ChatComposerWidgetProps {
+interface ChatComposerWidgetProps {
   id: string;
   /** The workflow input the composed message is written to. */
   binding?: string;

@@ -1,4 +1,4 @@
-export interface ParsedThought {
+interface ParsedThought {
   thoughtContent: string;
   hasClosingTag: boolean;
   textBeforeThought: string;

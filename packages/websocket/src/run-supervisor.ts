@@ -20,7 +20,7 @@ import { getProvider, type ProcessingContext } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.websocket.run-supervisor");
 
-export interface CreateRunSupervisorOptions {
+interface CreateRunSupervisorOptions {
   /** The request's flag. Anything but `true` yields `null`. */
   supervise?: boolean | undefined;
   /** Per-request supervisor configuration. */

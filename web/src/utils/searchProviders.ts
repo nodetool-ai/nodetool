@@ -7,7 +7,7 @@
 
 export type SerpProviderId = "brave" | "serpapi" | "dataforseo" | "apify";
 
-export interface SearchProviderConfig {
+interface SearchProviderConfig {
   id: SerpProviderId;
   label: string;
   description: string;

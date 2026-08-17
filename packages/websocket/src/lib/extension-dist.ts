@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { zipSync } from "fflate";
 
-export interface ExtensionDistInfo {
+interface ExtensionDistInfo {
   /** Absolute path to the extension `dist` dir (may not exist). */
   path: string;
   /** Whether a valid build (with manifest.json) was found there. */

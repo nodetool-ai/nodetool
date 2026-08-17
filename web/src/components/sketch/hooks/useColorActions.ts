@@ -10,7 +10,7 @@ import type { SketchTool } from "../types";
 import { isShapeTool, mergeRgbHexIntoColor } from "../types";
 import { useSketchStore } from "../state";
 
-export interface UseColorActionsParams {
+interface UseColorActionsParams {
   activeTool: SketchTool;
   setForegroundColor: (color: string) => void;
   setBrushSettings: (settings: { color?: string; size?: number }) => void;

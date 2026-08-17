@@ -49,7 +49,7 @@ interface BootstrapLogger {
   warn: (msg: string) => void;
 }
 
-export interface BootstrapRegistryOptions {
+interface BootstrapRegistryOptions {
   /** Roots scanned for Python package metadata. */
   metadataRoots?: string[];
   metadataMaxDepth?: number;
@@ -108,7 +108,7 @@ const BUILTIN_PACK_REGISTRARS: Record<
   huggingface: registerHuggingFaceNodes
 };
 
-export interface RegisterBuiltInNodesOptions {
+interface RegisterBuiltInNodesOptions {
   /**
    * Per-pack enabled overrides keyed by pack id. Packs absent from the map
    * keep their install default (`defaultEnabled` in the catalog — most packs
@@ -147,7 +147,7 @@ export function getUnavailableBuiltinPackDiagnostics(): NodePackAvailabilityDiag
   });
 }
 
-export interface PythonBridgeMetadataMergeResult {
+interface PythonBridgeMetadataMergeResult {
   total: number;
   bridgeOnly: number;
   alreadyKnown: number;

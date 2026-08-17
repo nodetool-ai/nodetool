@@ -23,7 +23,7 @@ import {
   type ScriptProjectionSource
 } from "../../lib/scriptStoryboardLink";
 
-export interface LinkedScript {
+interface LinkedScript {
   scriptId: string | null;
   /** Null until the script document has arrived. */
   source: ScriptProjectionSource | null;

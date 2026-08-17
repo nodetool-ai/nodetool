@@ -134,7 +134,7 @@ function extractItems(
 }
 
 /** What every DataForSEO backend answers with. */
-export interface DataForSEOResult {
+interface DataForSEOResult {
   success?: boolean;
   results?: unknown;
   error?: string;

@@ -49,7 +49,7 @@ export interface LeftPanelTopLevelCategory {
   icon: ReactNode;
 }
 
-export interface NodeSubcategory {
+interface NodeSubcategory {
   id: NodeCategoryId;
   label: string;
   icon: ReactNode;

@@ -16,7 +16,7 @@ import { apiService } from "../../services/api";
  */
 export type MediaKind = "image" | "audio" | "video" | "document" | "model_3d";
 
-export interface MediaValue {
+interface MediaValue {
   type: MediaKind;
   uri: string;
   asset_id?: string;

@@ -89,7 +89,7 @@ export async function isLlamaCppModelCached(
 // Download options
 // ---------------------------------------------------------------------------
 
-export interface DownloadLlamaCppModelOptions {
+interface DownloadLlamaCppModelOptions {
   token?: string | null;
   progressCallback?: (deltaBytes: number, totalBytes: number | null) => void;
   cancelSignal?: AbortSignal;

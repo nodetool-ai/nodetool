@@ -55,7 +55,7 @@ export interface TransformTargets {
 // ─── Gesture snapshots ────────────────────────────────────────────────────────
 
 /** Captured baselines for projecting a union-gizmo gesture onto each layer. */
-export interface MultiGestureBaselines {
+interface MultiGestureBaselines {
   readonly baselineDocMatrices: ReadonlyMap<string, AffineMatrix>;
   readonly unionDocMatrixStart: AffineMatrix;
 }

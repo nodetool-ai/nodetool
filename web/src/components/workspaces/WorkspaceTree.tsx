@@ -21,11 +21,11 @@ import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
 /** Props forwarded onto a rendered tree row. */
-export interface TreeViewItemSlotProps {
+interface TreeViewItemSlotProps {
   className?: string;
 }
 
-export interface TreeViewItem {
+interface TreeViewItem {
   id: string;
   label: string;
   className?: string;
@@ -289,7 +289,6 @@ const WorkspaceTree: React.FC = () => {
       getCurrentWorkflow: state.getCurrentWorkflow
     }))
   );
-
 
   const currentWorkflow = getCurrentWorkflow();
   const workflowId = currentWorkflowId ?? currentWorkflow?.id;

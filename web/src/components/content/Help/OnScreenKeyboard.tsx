@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 
-export interface KeyboardButtonTheme {
+interface KeyboardButtonTheme {
   /** CSS class applied to each button listed in `buttons`. */
   class: string;
   /** Space-separated button ids. */

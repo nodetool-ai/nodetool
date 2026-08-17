@@ -268,7 +268,7 @@ OutputSelectPanel.displayName = "OutputSelectPanel";
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export interface AddClipMenuProps {
+interface AddClipMenuProps {
   /** Track to add the clip to */
   trackId: string;
   /** Start time for the new clip in milliseconds */

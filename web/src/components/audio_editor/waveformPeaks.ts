@@ -11,7 +11,7 @@
 
 const PEAK_BLOCK_SIZE = 256;
 
-export interface ChannelPeaks {
+interface ChannelPeaks {
   readonly blockSize: number;
   readonly min: Float32Array;
   readonly max: Float32Array;

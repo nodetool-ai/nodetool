@@ -107,7 +107,7 @@ function extractImageOutputs(workflow: Workflow): ImageOutputNode[] {
     .map((n) => ({ id: n.id, label: shortNodeLabel(n) }));
 }
 
-export interface CreateGeneratedLayerDialogProps {
+interface CreateGeneratedLayerDialogProps {
   open: boolean;
   onClose: () => void;
   /** Called with the new layer id after a successful create. */

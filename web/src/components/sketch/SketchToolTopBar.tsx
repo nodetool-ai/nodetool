@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
     ...settingRowChildrenSx(theme)
   });
 
-export interface SketchToolTopBarProps {
+interface SketchToolTopBarProps {
   activeTool: SketchTool;
   brushSettings: BrushSettings;
   pencilSettings: PencilSettings;

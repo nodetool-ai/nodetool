@@ -110,7 +110,7 @@ function applyAliases(
 }
 
 /** Options every normalizer takes. */
-export interface StoryboardNormalizeOptions {
+interface StoryboardNormalizeOptions {
   /** Mints an id for a screenplay or shot that arrives without one. */
   generateId?: () => string;
 }

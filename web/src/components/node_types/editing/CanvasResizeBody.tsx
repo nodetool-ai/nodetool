@@ -162,7 +162,7 @@ const PreviewImage: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface CanvasResizeBodyProps {
+interface CanvasResizeBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

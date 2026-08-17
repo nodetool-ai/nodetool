@@ -24,7 +24,7 @@ export const TIMELINE_SCROLLBAR_HEIGHT_PX = 14;
 const MIN_THUMB_PX = 28;
 const TROUGH_HEIGHT_PX = 8;
 
-export interface ScrollThumb {
+interface ScrollThumb {
   /** Width of the thumb in px. */
   thumbWidth: number;
   /** Left offset of the thumb within the trough, in px. */
@@ -103,7 +103,7 @@ const thumbStyles = (theme: Theme, scrollable: boolean) =>
       : undefined
   });
 
-export interface TimelineScrollbarProps {
+interface TimelineScrollbarProps {
   /** Total scrollable content width at the current zoom (px). */
   contentWidthPx: number;
   /** Visible viewport width of the lanes area (px). */

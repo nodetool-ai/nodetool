@@ -80,7 +80,7 @@ interface CancellableEvent {
  * real `WebContents` satisfies it, and a test can stand one up without
  * standing up the whole Electron object.
  */
-export interface HardenableWebContents {
+interface HardenableWebContents {
   on(
     event: "will-navigate" | "will-redirect",
     listener: (event: CancellableEvent, url: string) => void

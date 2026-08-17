@@ -104,7 +104,7 @@ const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(
 );
 ImagePreview.displayName = "MaskImagePreview";
 
-export interface MaskBodyProps {
+interface MaskBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -3,7 +3,7 @@ import { trpc } from "../../trpc/client";
 import type { DateRange } from "./costsData";
 import { apiToView, rangeToDays, type CostsView } from "./costsView";
 
-export interface UseCostsDashboardResult {
+interface UseCostsDashboardResult {
   /** Mapped view when the query has loaded real data; null otherwise. */
   view: CostsView | null;
   isLoading: boolean;

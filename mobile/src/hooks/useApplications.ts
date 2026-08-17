@@ -97,7 +97,7 @@ export interface ApplicationRunIdentity {
   version: number | null;
 }
 
-export interface ApplicationApp {
+interface ApplicationApp {
   name: string;
   /** The document to render, once both requests have resolved. */
   document: ApplicationDocument | null;

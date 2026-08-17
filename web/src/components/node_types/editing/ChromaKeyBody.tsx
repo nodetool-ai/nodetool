@@ -97,7 +97,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface ChromaKeyBodyProps {
+interface ChromaKeyBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

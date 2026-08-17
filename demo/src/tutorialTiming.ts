@@ -1,5 +1,5 @@
 /** Shared frame-count math for the three-beat tutorial layout (see TutorialShell). */
-export interface TutorialTiming {
+interface TutorialTiming {
   introSeconds: number;
   outroSeconds: number;
   replayWindowMs: number;

@@ -67,13 +67,13 @@ export interface GltfBufferView {
   byteStride?: number;
 }
 
-export interface GltfPrimitive {
+interface GltfPrimitive {
   attributes: Record<string, number>;
   indices?: number;
   mode?: number;
 }
 
-export interface GltfMesh {
+interface GltfMesh {
   primitives: GltfPrimitive[];
   [key: string]: unknown;
 }

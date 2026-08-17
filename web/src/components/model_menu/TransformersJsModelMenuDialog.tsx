@@ -6,7 +6,7 @@ import { useTransformersJsModelMenuStore } from "../../stores/ModelMenuStore";
 import { useTransformersJsModelsByType } from "../../hooks/useModelsByProvider";
 import { trpc } from "../../lib/trpc";
 
-export interface TransformersJsModelMenuDialogProps {
+interface TransformersJsModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;

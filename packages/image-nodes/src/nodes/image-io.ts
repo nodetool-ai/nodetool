@@ -30,7 +30,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { readbackTextureRef } from "./gpu-device.js";
 
 /** Straight-alpha RGBA8 pixels plus dimensions — the GPU upload contract. */
-export interface RawRgba {
+interface RawRgba {
   rgba: Uint8Array;
   width: number;
   height: number;

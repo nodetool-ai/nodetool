@@ -141,7 +141,7 @@ export function sanitizeForLog(
   return walk(value, 0);
 }
 
-export interface ProviderFailureLog {
+interface ProviderFailureLog {
   provider: string;
   model: string;
   /** The exact wire payload the provider sent, if it was recorded. */

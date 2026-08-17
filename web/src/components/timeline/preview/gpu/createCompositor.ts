@@ -3,7 +3,7 @@ import type { CompositorInitResult, TimelineCompositor } from "./types";
 
 export type CompositorBackend = "webgpu" | "canvas2d";
 
-export interface CreateCompositorResult {
+interface CreateCompositorResult {
   compositor: TimelineCompositor;
   backend: CompositorBackend;
   init: CompositorInitResult;

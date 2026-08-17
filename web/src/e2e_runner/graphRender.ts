@@ -22,7 +22,7 @@ import type {
 } from "../stores/ApiTypes";
 import { isBoolean, isNumber, isString } from "../utils/typePredicates";
 
-export interface RawGraph {
+interface RawGraph {
   nodes: unknown[];
   edges: unknown[];
 }

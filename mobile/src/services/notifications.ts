@@ -27,7 +27,7 @@ export function jobDeepLink(jobId: string): string {
   return `${DEEP_LINK_SCHEME}job/${encodeURIComponent(jobId)}`;
 }
 
-export interface RunFinishedNotification {
+interface RunFinishedNotification {
   /** Job id the run belongs to — drives the deep link. */
   jobId: string;
   /** Human-readable workflow name shown in the title. */

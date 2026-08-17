@@ -228,7 +228,7 @@ export function sectionToNode(section: ScriptSection): ScriptSectionNode {
 }
 
 /** One line with everywhere it lives, so a caller can both read and splice it. */
-export interface FlatScriptLine {
+interface FlatScriptLine {
   line: ScriptLine;
   sectionId: string;
   /** Position of the owning section in `doc.sections`. */

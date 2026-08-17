@@ -155,7 +155,7 @@ const VersionRow: React.FC<VersionRowProps> = memo(
 );
 VersionRow.displayName = "VersionRow";
 
-export interface TimelineVersionHistoryPanelProps {
+interface TimelineVersionHistoryPanelProps {
   /** Sequence whose history is shown. */
   sequenceId: string | null | undefined;
 }

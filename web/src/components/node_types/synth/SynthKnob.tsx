@@ -86,7 +86,7 @@ export const synthKnobStyles = (theme: Theme) =>
     }
   });
 
-export interface SynthKnobProps {
+interface SynthKnobProps {
   spec: KnobSpec;
   value: number;
   /** Arc/pointer color — the module's resolved accent. */

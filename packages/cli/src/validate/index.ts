@@ -17,12 +17,12 @@ import { buildFullRegistry } from "../node-registry.js";
 import { resolveTarget } from "../debug/index.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
 
-export interface ValidateResult {
+interface ValidateResult {
   target: DebugTargetInfo;
   report: GraphValidationReport;
 }
 
-export interface ValidateDeps {
+interface ValidateDeps {
   loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>;
 }
 

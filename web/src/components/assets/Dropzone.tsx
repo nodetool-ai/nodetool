@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface DropzoneProps {
+interface DropzoneProps {
   onDrop: (files: File[]) => void;
   children?: React.ReactNode;
 }

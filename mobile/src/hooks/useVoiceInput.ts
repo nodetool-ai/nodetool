@@ -44,7 +44,7 @@ export type VoiceInputStatus =
   | 'listening'
   | 'error';
 
-export interface UseVoiceInputOptions {
+interface UseVoiceInputOptions {
   /**
    * Called with each finalized transcript chunk. Callers append this to
    * whatever the user already typed — it is never the full composer value.
@@ -54,7 +54,7 @@ export interface UseVoiceInputOptions {
   lang?: string;
 }
 
-export interface UseVoiceInputResult {
+interface UseVoiceInputResult {
   status: VoiceInputStatus;
   /** True while audio is being captured (`starting` or `listening`). */
   isListening: boolean;

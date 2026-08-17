@@ -68,7 +68,7 @@ export interface BridgeShape {
 }
 
 /** The main-side table {@link deriveBridgeShape} reads. */
-export interface BridgeTable {
+interface BridgeTable {
   /** The record `expose()` would receive, minus caller globals. */
   readonly bridges: Readonly<Record<string, unknown>>;
   /** Dispatchers the run built, in any order. */
@@ -275,14 +275,14 @@ export interface RunMessage {
 }
 
 /** Suspended-time credit, pushed while the guest is parked on a take. */
-export interface SuspendUpdateMessage {
+interface SuspendUpdateMessage {
   readonly type: "suspend-update";
   readonly runId: string;
   readonly suspendedMs: number;
 }
 
 /** One input handle reached end-of-stream. Streams never reopen. */
-export interface StreamClosedMessage {
+interface StreamClosedMessage {
   readonly type: "stream-closed";
   readonly runId: string;
   readonly handle: string;
@@ -314,7 +314,7 @@ export type HostToWorkerMessage =
 // ---------------------------------------------------------------------------
 
 /** One bridge call, addressed by the path the worker proxied. */
-export interface RpcRequestMessage {
+interface RpcRequestMessage {
   readonly type: "rpc";
   readonly id: number;
   /** `["workspace", "read"]`, `["fetch"]`, `["__wasmCall"]`, … */
@@ -323,12 +323,12 @@ export interface RpcRequestMessage {
 }
 
 /** Fire-and-forget: port FIFO puts every line ahead of the result. */
-export interface LogMessage {
+interface LogMessage {
   readonly type: "log";
   readonly line: string;
 }
 
-export interface ProgressMessage {
+interface ProgressMessage {
   readonly type: "progress";
   readonly percent: number;
   readonly message?: string;

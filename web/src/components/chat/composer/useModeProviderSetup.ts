@@ -4,7 +4,7 @@ import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore"
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 import { capabilityForMode, setupReasonForMode } from "./modeProviderSetup";
 
-export interface ModeProviderSetup {
+interface ModeProviderSetup {
   /** True when the mode needs a capability no configured provider serves. */
   needsSetup: boolean;
   /** Banner copy for the current mode (null when nothing is needed). */

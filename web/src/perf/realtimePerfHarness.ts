@@ -26,7 +26,7 @@ import { buildMegaSynthPatch } from "./megaSynthPatch";
 const SYNTH_SAMPLE_RATE = 24000;
 const SYNTH_CHUNK_FRAMES = 512;
 
-export interface PerfRunOptions {
+interface PerfRunOptions {
   /** Number of synth voices. */
   voices?: number;
   /** How long to let the patch run before aborting it. */
@@ -56,7 +56,7 @@ export interface PerfRunOptions {
   playback?: boolean;
 }
 
-export interface PlaybackStatsSample {
+interface PlaybackStatsSample {
   /** ms since run start (main-thread clock). */
   t: number;
   buffered: number;
@@ -66,7 +66,7 @@ export interface PlaybackStatsSample {
   framesOut: number;
 }
 
-export interface PerfRunSummary {
+interface PerfRunSummary {
   voices: number;
   patch: "voices" | "complex" | "mega";
   nodeCount: number;

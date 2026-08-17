@@ -158,7 +158,7 @@ export function __setTransformersModuleForTesting(
 type PipelineCacheKey = string;
 const pipelineCache = new Map<PipelineCacheKey, Promise<object>>();
 
-export interface PipelineOptions {
+interface PipelineOptions {
   task: string;
   model?: string;
   dtype?: string;

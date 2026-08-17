@@ -25,14 +25,14 @@ import {
 /** The CLI's local-mode user, matching `nodetool.ts`. */
 const LOCAL_USER_ID = "1";
 
-export interface MigrateCodeInputsOptions {
+interface MigrateCodeInputsOptions {
   dryRun?: boolean;
   /** Migrate this user's workflows instead of the local user's. */
   userId?: string;
   json?: boolean;
 }
 
-export interface MigrateCodeInputsReport {
+interface MigrateCodeInputsReport {
   workflowsScanned: number;
   codeNodesScanned: number;
   nodesRewritten: number;

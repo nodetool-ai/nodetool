@@ -673,7 +673,7 @@ const SECTION_TITLES = {
 //  Main content
 /* ------------------------------------------------------------------ */
 
-export interface APIKeysTabContentProps {
+interface APIKeysTabContentProps {
   searchTerm?: string;
 }
 

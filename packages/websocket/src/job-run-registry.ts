@@ -61,7 +61,7 @@ const RETENTION_MS = () =>
  * the first. Same as a chat turn, and the same trade — a client that wants
  * two views of one run opens them against one socket.
  */
-export interface JobRunDeliveryTarget {
+interface JobRunDeliveryTarget {
   deliver(message: Record<string, unknown>): Promise<void>;
 }
 
@@ -81,7 +81,7 @@ export interface JobRunExecutionHooks {
   ): boolean;
 }
 
-export interface JobRunAttachResult {
+interface JobRunAttachResult {
   /** Frames with `job_seq` greater than the requested `last_seq`. */
   replay: Array<Record<string, unknown>>;
   /** True when `last_seq` predates what the bounded buffer still holds. */

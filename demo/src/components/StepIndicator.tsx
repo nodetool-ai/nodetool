@@ -12,7 +12,7 @@ export interface TutorialStep {
   zoom?: number;
 }
 
-export interface StepIndicatorProps {
+interface StepIndicatorProps {
   steps: TutorialStep[];
   /** Current replay time in ms (frame clock minus the intro offset). */
   timeMs: number;

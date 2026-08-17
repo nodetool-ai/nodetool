@@ -76,7 +76,7 @@ async function loadPeaks(url: string): Promise<PeaksResult | null> {
   return promise;
 }
 
-export interface UseAudioPeaksResult {
+interface UseAudioPeaksResult {
   peaks: Float32Array | null;
   durationMs: number | null;
 }
@@ -112,5 +112,4 @@ export function useAudioPeaks(url: string | undefined): UseAudioPeaksResult {
 
   return state;
 }
-
 

@@ -138,7 +138,7 @@ const channelClass = (name: string): string => {
   return "";
 };
 
-export interface CurvesBodyProps {
+interface CurvesBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

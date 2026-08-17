@@ -89,22 +89,10 @@ export interface DialogueBlock {
   text?: string;
 }
 
-/** Dynamic mask specification. */
-export interface DynamicMask {
-  /** Mask data */
-  mask_data?: unknown;
-}
-
 /** Easy control weight configuration. */
 export interface EasyControlWeight {
   /** Weight scale */
   scale?: number;
-}
-
-/** Element input specification. */
-export interface ElementInput {
-  /** Element data */
-  element_data?: unknown;
 }
 
 /** Embedding configuration. */
@@ -139,14 +127,6 @@ export interface IPAdapter {
   scale?: number;
 }
 
-/** Image conditioning specification. */
-export interface ImageCondition {
-  /** Image URL */
-  image_url?: string;
-  /** Conditioning scale */
-  conditioning_scale?: number;
-}
-
 /** Image conditioning input. */
 export interface ImageConditioningInput {
   /** Image URL */
@@ -161,42 +141,12 @@ export interface ImageInput {
   image_url?: string;
 }
 
-/** Inpainting section specification. */
-export interface InpaintSection {
-  /** Start position */
-  start?: number;
-  /** End position */
-  end?: number;
-}
-
 /** Keyframe transition specification. */
 export interface KeyframeTransition {
   /** Frame number */
   frame?: number;
   /** Transition type */
   transition_type?: string;
-}
-
-/** Kling V3 combo element input. */
-export interface KlingV3ComboElementInput {
-  /** Element data */
-  element_data?: unknown;
-}
-
-/** Kling V3 image element input. */
-export interface KlingV3ImageElementInput {
-  /** The frontal image of the element (main view). */
-  frontal_image_url?: string;
-  /** Additional reference images from different angles. 1-3 images supported. At least one image is required. */
-  reference_image_urls?: string[];
-}
-
-/** Kling V3 multi-prompt element. */
-export interface KlingV3MultiPromptElement {
-  /** Prompt text */
-  prompt?: string;
-  /** Prompt weight */
-  weight?: number;
 }
 
 /** LoRA input configuration. */
@@ -227,12 +177,6 @@ export interface LoraWeight {
 export interface MoondreamInputParam {
   /** Parameter data */
   param_data?: unknown;
-}
-
-/** Omni video element input. */
-export interface OmniVideoElementInput {
-  /** Element data */
-  element_data?: unknown;
 }
 
 /** Point prompt for image segmentation. */
@@ -267,12 +211,6 @@ export interface RGBColor {
   g?: number;
   /** Blue component (0-255) */
   b?: number;
-}
-
-/** Reference face for face-related operations. */
-export interface ReferenceFace {
-  /** Face image URL */
-  image_url?: string;
 }
 
 /** Reference image input. */
@@ -317,14 +255,6 @@ export interface VibeVoiceSpeaker {
   speaker_id?: string;
   /** Voice style */
   voice_style?: string;
-}
-
-/** Video conditioning specification. */
-export interface VideoCondition {
-  /** Video URL */
-  video_url?: string;
-  /** Conditioning scale */
-  conditioning_scale?: number;
 }
 
 /** Video conditioning input. */

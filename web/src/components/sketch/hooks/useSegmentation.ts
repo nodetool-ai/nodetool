@@ -42,7 +42,7 @@ import {
 } from "../sam";
 import type { SamModelInfo } from "../sam";
 
-export interface UseSegmentationParams {
+interface UseSegmentationParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   pushHistory: (
     label: string,

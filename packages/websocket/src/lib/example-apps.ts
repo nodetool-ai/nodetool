@@ -35,7 +35,7 @@ export interface ExampleAppSummary {
   operationCount: number;
 }
 
-export interface ExampleAppsOptions {
+interface ExampleAppsOptions {
   examplesDir?: string;
   exampleAppsDir?: string;
 }

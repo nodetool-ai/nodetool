@@ -18,7 +18,7 @@
  * can flip it back on with one click.
  */
 
-export interface OptionalNodePack {
+interface OptionalNodePack {
   /** Stable id persisted in the enabled list. Never rename. */
   id: string;
   /** Display name shown in the node menu. */

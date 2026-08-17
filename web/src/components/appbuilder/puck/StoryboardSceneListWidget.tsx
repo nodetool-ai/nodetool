@@ -30,7 +30,7 @@ import { isConcurrencyConflict } from "../../../hooks/useApplications";
 import { useBoundResource } from "./useBoundResource";
 import { isString } from "../../../utils/typePredicates";
 
-export interface StoryboardSceneListProps {
+interface StoryboardSceneListProps {
   /** Puck injects the placed widget's id. */
   id?: string;
   /** Id of the `ResourceBinding` in the app document. */

@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 
-export interface DragPosition {
+interface DragPosition {
   x: number;
   y: number;
 }
 
-export interface UseDraggableOptions {
+interface UseDraggableOptions {
   /**
    * Selector that the pointer-down target must match (or be inside of) for a
    * drag to begin. Mirrors react-draggable's `handle`. When omitted, the whole

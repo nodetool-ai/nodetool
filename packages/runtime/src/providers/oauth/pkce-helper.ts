@@ -32,7 +32,7 @@ function base64UrlEncode(bytes: Uint8Array): string {
     .replace(/=+$/, "");
 }
 
-export interface PKCEHelperOptions {
+interface PKCEHelperOptions {
   /** Injected randomness; defaults to the platform CSPRNG. */
   readonly random?: RandomSource;
   /** Verifier entropy in bytes. RFC 7636 allows 43–128 chars; 32 bytes → 43. */

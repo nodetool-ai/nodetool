@@ -20,7 +20,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../stores/lastModelStore";
 
-export interface LastDirectGenModel {
+interface LastDirectGenModel {
   provider: string | undefined;
   model: string | undefined;
   /** TTS voice for audio kind; undefined for image/video. */

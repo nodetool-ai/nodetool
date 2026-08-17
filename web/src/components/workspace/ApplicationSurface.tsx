@@ -20,7 +20,7 @@ import {
   SPACING
 } from "../ui_primitives";
 
-export interface ApplicationSurfaceProps {
+interface ApplicationSurfaceProps {
   refId: string;
 }
 

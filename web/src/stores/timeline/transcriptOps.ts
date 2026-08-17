@@ -36,7 +36,7 @@ export const PLACEHOLDER_BEAT_MS = 3000;
 export type TranscriptSegmentKind = "generated" | "imported";
 
 /** One word of the projected transcript, located on the absolute timeline. */
-export interface TranscriptToken {
+interface TranscriptToken {
   /** The media clip this word indexes into (the span a cut would remove). */
   clipId: string;
   /** Index of the word within `clip.caption.words`. */
@@ -90,7 +90,7 @@ export interface TranscriptDoc {
   durationMs: number;
 }
 
-export interface ReflowedClips {
+interface ReflowedClips {
   clips: TimelineClip[];
   /** Total timeline length after laying generated beats end-to-end. */
   durationMs: number;
@@ -506,7 +506,7 @@ export function removeFillers(clips: TimelineClip[]): ReflowedClips {
 // ── Reconcile a freeform text edit back to the media ─────────────────────────
 
 /** One transcript word still present in the editor, with its current text. */
-export interface SurvivingWord {
+interface SurvivingWord {
   clipId: string;
   wordIndex: number;
   text: string;
@@ -634,7 +634,7 @@ export function applyEditorEdits(
 
 // ── Move (cut / paste a word range) ──────────────────────────────────────────
 
-export interface CutResult extends ReflowedClips {
+interface CutResult extends ReflowedClips {
   /** The removed media as standalone, 0-based clips ready to paste elsewhere. */
   extracted: TimelineClip[];
 }

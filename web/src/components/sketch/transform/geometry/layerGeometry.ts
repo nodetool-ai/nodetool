@@ -155,7 +155,7 @@ function aabbOfQuad(quad: Quad): Rect {
 
 // ─── Bundled geometry ────────────────────────────────────────────────────────
 
-export interface LayerGeometry {
+interface LayerGeometry {
   /** Layer-local pixel allocation (for the renderer). */
   rasterBounds: LayerContentBounds;
   /** Document-space top-left where the raster's top-left pixel is drawn. */

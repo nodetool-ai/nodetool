@@ -80,7 +80,7 @@ export const MESHY_3D_MODELS: Model3D[] = [
  * Optional knobs for tests and advanced users. Production callers should leave
  * these at their defaults.
  */
-export interface MeshyProviderOptions {
+interface MeshyProviderOptions {
   /** Override the polling interval (ms). Defaults to 5000. */
   pollIntervalMs?: number;
   /** Override the max poll attempts. Defaults to 120 (= 10 minutes @ 5s). */

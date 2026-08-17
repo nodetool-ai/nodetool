@@ -34,7 +34,7 @@ const containerStyles = (theme: Theme) =>
     justifyContent: "center"
   });
 
-export interface TimelinePlayerProps {
+interface TimelinePlayerProps {
   /** Sequence id to load and play. */
   sequenceId?: string;
   /**

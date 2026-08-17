@@ -31,7 +31,7 @@ const bodyStyles = css({
   }
 });
 
-export interface ConstantTimelineBodyProps {
+interface ConstantTimelineBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

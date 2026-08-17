@@ -27,7 +27,7 @@ import {
   type SupervisorRunConfig
 } from "./supervisor.js";
 
-export interface SupervisedDslRun {
+interface SupervisedDslRun {
   /** Workflow outputs, keyed by export name — the unsupervised path's shape. */
   results: Record<string, Record<string, unknown>>;
   /** Every decision the supervisor made, across the file's workflows. */

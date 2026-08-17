@@ -58,7 +58,7 @@ const JINA_EMBEDDING_MODELS: EmbeddingModel[] = [
   }
 ];
 
-export interface JinaProviderOptions {
+interface JinaProviderOptions {
   fetchFn?: typeof fetch;
   /**
    * Jina-specific task hint. v3 supports `retrieval.passage` (default for

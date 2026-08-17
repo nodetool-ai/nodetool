@@ -37,7 +37,7 @@ export const TEST_SCOPE: BindingScope = {
 export const INPUT_KEY = `${DEFAULT_OPERATION_ID}:in1`;
 export const OUTPUT_KEY = `${DEFAULT_OPERATION_ID}:out1`;
 
-export interface TestRuntime {
+interface TestRuntime {
   store: AppRuntimeStore;
   value: AppRuntimeContextValue;
   wrapper: React.FC<{ children: React.ReactNode }>;

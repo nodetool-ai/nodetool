@@ -56,7 +56,7 @@ export interface SdkV1RequirementAvailability {
   details?: SdkV1Requirement["details"];
 }
 
-export interface BuildSdkV1AvailabilityPreflightOptions extends Omit<
+interface BuildSdkV1AvailabilityPreflightOptions extends Omit<
   BuildSdkV1StaticPreflightOptions,
   "request"
 > {
@@ -71,7 +71,7 @@ export interface SdkV1ExecutionReadiness {
   issues: SdkV1ValidationIssue[];
 }
 
-export interface BuildSdkV1ExecutionPreflightOptions extends Omit<
+interface BuildSdkV1ExecutionPreflightOptions extends Omit<
   BuildSdkV1AvailabilityPreflightOptions,
   "request"
 > {

@@ -15,13 +15,13 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { isString } from "../../utils/typePredicates";
 
-export interface ProjectSettingsPatch {
+interface ProjectSettingsPatch {
   fps?: number;
   width?: number;
   height?: number;
 }
 
-export interface UseTimelineProjectSettingsResult {
+interface UseTimelineProjectSettingsResult {
   /** Apply the patch to the store and persist it. Resolves when settled. */
   save: (patch: ProjectSettingsPatch) => Promise<void>;
   isSaving: boolean;

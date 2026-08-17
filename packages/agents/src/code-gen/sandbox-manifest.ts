@@ -83,7 +83,7 @@ export interface SandboxLimitDoc {
  * couples one file's prompt to another file's sentences, and rewording a note
  * would silently leak it into the wrong prompt.
  */
-export interface SandboxNote {
+interface SandboxNote {
   readonly text: string;
   /**
    * `"all"` (default) holds anywhere the sandbox runs. `"code-node"` holds only

@@ -24,7 +24,7 @@ import {
 /** Max canvas dimensions to prevent excessive resource consumption. */
 export const MAX_FABRIC_DIMENSION = 8192;
 
-export interface FabricSceneSpec {
+interface FabricSceneSpec {
   width?: number;
   height?: number;
   backgroundColor?: string;
@@ -306,7 +306,7 @@ export async function toDataURL(
 }
 
 /** Fabric's own parse of an SVG document: its objects and canvas options. */
-export interface FabricSvgScene {
+interface FabricSvgScene {
   objects: unknown[];
   options: unknown;
 }

@@ -79,7 +79,7 @@ const dimensionFieldSx = {
   "& .MuiInputLabel-root": { fontSize: SKETCH_FONT.sm }
 } as const;
 
-export interface SketchCanvasSizePanelProps {
+interface SketchCanvasSizePanelProps {
   canvasWidth: number;
   canvasHeight: number;
   onCanvasResize: (width: number, height: number) => void;

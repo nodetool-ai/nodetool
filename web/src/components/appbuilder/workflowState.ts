@@ -19,7 +19,7 @@ import { extractWorkflowIO, WorkflowInputIO, WorkflowOutputIO } from "./workflow
 import { isString } from "../../utils/typePredicates";
 
 /** A graph node offered by the node-property binding picker. */
-export interface BindableGraphNode {
+interface BindableGraphNode {
   id: string;
   type: string;
   /** User-given node title (ui_properties), when set. */

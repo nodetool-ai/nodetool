@@ -20,7 +20,7 @@ export type FrontendRendererToolResult =
       error: string;
     };
 
-export interface ExecuteFrontendRendererToolOptions {
+interface ExecuteFrontendRendererToolOptions {
   userId: string;
   rendererId?: string;
   toolName: string;
@@ -28,7 +28,7 @@ export interface ExecuteFrontendRendererToolOptions {
   timeoutMs?: number;
 }
 
-export interface ExecuteFrontendRendererToolResult {
+interface ExecuteFrontendRendererToolResult {
   handled: boolean;
   result?: unknown;
 }

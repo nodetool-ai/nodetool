@@ -119,7 +119,7 @@ export const makeComponentId = (
   rand: () => string
 ): string => `${type}-${rand()}`;
 
-export interface AddComponentInput {
+interface AddComponentInput {
   type: string;
   id: string;
   props?: Record<string, unknown>;

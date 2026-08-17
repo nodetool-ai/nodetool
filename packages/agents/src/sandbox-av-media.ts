@@ -404,7 +404,7 @@ function matchingAudio(inputs: readonly WavData[], where: string): WavData {
   return first;
 }
 
-export interface AudioBridge {
+interface AudioBridge {
   info(bytes: Uint8Array): Promise<Record<string, unknown>>;
   normalize(bytes: Uint8Array): Promise<Uint8Array>;
   trim(
@@ -428,7 +428,7 @@ export interface AudioBridge {
   ): Promise<Uint8Array>;
 }
 
-export interface VideoBridge {
+interface VideoBridge {
   info(bytes: Uint8Array): Promise<Record<string, unknown>>;
   trim(
     bytes: Uint8Array,

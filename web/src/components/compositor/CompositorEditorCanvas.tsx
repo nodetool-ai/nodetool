@@ -46,7 +46,7 @@ export interface CanvasLayer {
   transform?: LayerTransform2D;
 }
 
-export interface CompositorEditorCanvasProps {
+interface CompositorEditorCanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   layers: CanvasLayer[];

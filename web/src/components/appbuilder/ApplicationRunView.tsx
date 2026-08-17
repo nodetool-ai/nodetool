@@ -27,7 +27,7 @@ import {
 import { parseApplicationDocument, type AppDocument } from "./appData";
 import AppRuntimeView from "./AppRuntimeView";
 
-export interface ApplicationRunViewProps {
+interface ApplicationRunViewProps {
   applicationId: string;
 }
 

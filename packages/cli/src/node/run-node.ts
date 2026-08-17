@@ -10,7 +10,7 @@ import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 import { buildFullRegistry } from "../node-registry.js";
 
-export interface NodeRunResult {
+interface NodeRunResult {
   nodeType: string;
   title: string | null;
   ok: boolean;
@@ -22,7 +22,7 @@ export interface NodeRunResult {
   outputs: Array<{ name: string; type: string }>;
 }
 
-export interface RunSingleNodeOptions {
+interface RunSingleNodeOptions {
   /** Property values keyed by @prop name. */
   props?: Record<string, unknown>;
   /**

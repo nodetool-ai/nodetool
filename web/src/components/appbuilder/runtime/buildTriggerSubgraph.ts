@@ -37,7 +37,7 @@ import { WorkflowIO } from "../workflowIO";
 import { withNodeProperties } from "../nodeBinding";
 import { AppRuntimeState } from "./appRuntimeStore";
 
-export interface TriggerSubgraph {
+interface TriggerSubgraph {
   /** Browser-runnable graph in runner (graph-node) shape. */
   graph: WorkflowGraph;
   /** Ids of the nodes that will execute (for the job title / bookkeeping). */

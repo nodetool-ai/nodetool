@@ -109,7 +109,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface OutlineBodyProps {
+interface OutlineBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -15,7 +15,7 @@ import {
   type RunGroup
 } from "../../utils/nodeGenerations";
 
-export interface UseNodeGenerationsResult {
+interface UseNodeGenerationsResult {
   generations: Generation[];
   current: Generation | undefined;
   select: (id: string) => void;

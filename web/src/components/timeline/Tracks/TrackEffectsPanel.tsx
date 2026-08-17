@@ -1994,7 +1994,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
 );
 EffectCard.displayName = "EffectCard";
 
-export interface TrackEffectsPanelProps {
+interface TrackEffectsPanelProps {
   trackId: string;
 }
 

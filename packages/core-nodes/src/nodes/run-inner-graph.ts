@@ -22,12 +22,12 @@ export const randomUUID = (): string =>
 
 const OUTPUT_TYPE_PREFIXES = ["nodetool.output."];
 
-export interface InnerGraphInput {
+interface InnerGraphInput {
   nodes?: unknown[];
   edges?: unknown[];
 }
 
-export interface RunInnerGraphOptions {
+interface RunInnerGraphOptions {
   /** Dynamic-prop values that become params for the inner Input nodes. */
   params: Record<string, unknown>;
   /** Prefix for the generated child job id (e.g. "sub"). */

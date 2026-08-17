@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface ResizableSideDockProps {
+interface ResizableSideDockProps {
   /** Persist key. Widths stay independent per assistant location. */
   storageKey: string;
   defaultWidth?: number;

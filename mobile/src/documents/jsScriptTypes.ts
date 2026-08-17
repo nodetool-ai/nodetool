@@ -31,7 +31,7 @@ export interface JsScriptPort {
 }
 
 /** A sandbox module declaration. Round-tripped, never written from here. */
-export interface JsScriptPackage {
+interface JsScriptPackage {
   specifier: string;
   resolvedPackVersion?: string;
   contentDigest?: string;
@@ -100,7 +100,7 @@ export interface JsScriptRunOutcome {
   duration_ms: number;
 }
 
-export interface JsScriptMismatch {
+interface JsScriptMismatch {
   output: string;
   expected: unknown;
   actual: unknown;

@@ -93,7 +93,7 @@ export function findJourneysDir(): string {
   );
 }
 
-export interface JourneySummary {
+interface JourneySummary {
   name: string;
   description?: string;
   surfaces: string[];
@@ -123,7 +123,7 @@ export async function listJourneys(journeysDir: string = findJourneysDir()): Pro
   return summaries;
 }
 
-export interface RunJourneyOptions {
+interface RunJourneyOptions {
   journeysDir?: string;
   /** Overrides the journey manifest's own `surfaces` list. The oracle
    * (`kernel`) is always included even if omitted — `compareJourney` needs it

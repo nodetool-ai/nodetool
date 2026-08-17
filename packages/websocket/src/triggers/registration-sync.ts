@@ -34,7 +34,7 @@ const WEBHOOK_BOOKKEEPING_KEYS = [
   "webhook_secret_hash"
 ] as const;
 
-export interface SyncRegistrationsOptions {
+interface SyncRegistrationsOptions {
   /**
    * Workflow-level activation state to apply to every synced row. Omit it on
    * the plain save path: existing rows then keep whatever the Activate toggle

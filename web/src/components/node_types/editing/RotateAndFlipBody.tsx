@@ -112,7 +112,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface RotateAndFlipBodyProps {
+interface RotateAndFlipBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

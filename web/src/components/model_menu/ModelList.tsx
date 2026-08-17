@@ -142,7 +142,7 @@ const HighlightedModelName = memo<{
 
 HighlightedModelName.displayName = "HighlightedModelName";
 
-export interface ModelListProps<TModel extends ModelSelectorModel> {
+interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
   searchTerm?: string;

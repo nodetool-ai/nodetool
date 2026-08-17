@@ -21,7 +21,7 @@ import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 
-export interface FloatingToolbarActions {
+interface FloatingToolbarActions {
   handleRun: () => Promise<void>;
   handleStop: () => void;
   handlePause: () => void;

@@ -18,7 +18,7 @@ import {
   type RenderProgress
 } from "../../components/timeline/render/TimelineRenderer";
 
-export interface UseTimelineExportResult {
+interface UseTimelineExportResult {
   /** Render + download the timeline as an MP4. Resolves when the file is saved. */
   exportVideo: (filename?: string) => Promise<void>;
   /**

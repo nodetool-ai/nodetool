@@ -28,7 +28,7 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../entities/entityKind";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 
-export interface StoryboardEntitiesFieldProps {
+interface StoryboardEntitiesFieldProps {
   boardId: string;
   entityIds: string[];
 }

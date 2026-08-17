@@ -23,7 +23,7 @@ export interface ToolParameterSchema {
   additionalProperties?: boolean;
 }
 
-export interface MobileToolContext {
+interface MobileToolContext {
   abortSignal: AbortSignal;
 }
 

@@ -7,7 +7,7 @@ import { getMaxUploadBytes, type StorageAdapter } from "@nodetool-ai/storage";
 import { getAssetFileName } from "../lib/asset-paths.js";
 import { isSdkLifecycleV1Enabled } from "./sdk-feature-flags.js";
 
-export interface HandleSdkV1TemporaryAssetUploadOptions {
+interface HandleSdkV1TemporaryAssetUploadOptions {
   storage: StorageAdapter;
   environment?: NodeJS.ProcessEnv;
   getConfiguredMaxUploadBytes?: () => number;

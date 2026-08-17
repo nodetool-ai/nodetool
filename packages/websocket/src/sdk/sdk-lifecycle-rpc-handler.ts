@@ -22,7 +22,7 @@ const SUPPORTED_COMMANDS = new Set([
   "preflight_workflow"
 ]);
 
-export interface HandleSdkV1LifecycleRpcOptions {
+interface HandleSdkV1LifecycleRpcOptions {
   getCapabilities: () => Promise<SdkV1Capabilities> | SdkV1Capabilities;
   preflightService: {
     preflight(input: {

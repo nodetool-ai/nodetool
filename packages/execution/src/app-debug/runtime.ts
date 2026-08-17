@@ -73,7 +73,7 @@ export interface HeadlessOperationInit {
 }
 
 /** A widget's declarative logic props, as the document stores them. */
-export interface HeadlessWidgetInit {
+interface HeadlessWidgetInit {
   id: string;
   visibleWhen?: ConditionProps;
   disabledWhen?: ConditionProps;
@@ -82,7 +82,7 @@ export interface HeadlessWidgetInit {
 }
 
 /** Whether a widget is on screen and usable, as of the last fold. */
-export interface HeadlessWidgetState {
+interface HeadlessWidgetState {
   visible: boolean;
   disabled: boolean;
   /** True once the widget was both visible and enabled at any point. */
@@ -93,7 +93,7 @@ export interface HeadlessWidgetState {
   disabledWhen: string | null;
 }
 
-export interface HeadlessRuntimeInit {
+interface HeadlessRuntimeInit {
   operations: ReadonlyArray<HeadlessOperationInit>;
   /** The operation a bare `run`/`cancel` targets. */
   defaultOperationId: string;
@@ -337,7 +337,7 @@ export class InMemoryResourceProvider implements HeadlessResourceProvider {
 }
 
 /** One simulated invocation, as the report shows it. */
-export interface HeadlessInvocationRecord {
+interface HeadlessInvocationRecord {
   id: string;
   operationId: string;
   decision: RunDecision["kind"];

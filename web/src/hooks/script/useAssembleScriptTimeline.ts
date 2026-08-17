@@ -24,7 +24,7 @@ import {
 } from "../../lib/assembledSequenceMerge";
 import { newDocumentId } from "../../lib/newDocumentId";
 
-export interface AssembleScriptResult {
+interface AssembleScriptResult {
   sequenceId: string;
   clipCount: number;
   skippedLineIds: string[];
@@ -34,7 +34,7 @@ export interface AssembleScriptResult {
   reassembled: boolean;
 }
 
-export interface UseAssembleScriptTimelineResult {
+interface UseAssembleScriptTimelineResult {
   assemble: (scriptId: string) => Promise<AssembleScriptResult>;
   assembling: boolean;
   error: string | null;

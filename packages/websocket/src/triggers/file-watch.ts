@@ -67,12 +67,12 @@ interface CatchUpChange {
 }
 
 /** Fired once per registration each time a watcher delivers a new event. */
-export interface FileWatchNotifyEvent {
+interface FileWatchNotifyEvent {
   registrationId: string;
   inputId: string;
 }
 
-export interface RunFileWatchSweepOptions {
+interface RunFileWatchSweepOptions {
   wakeupService: TriggerWakeupService;
   /** Same-process dispatch hint — called after a new event is delivered. */
   notify?: (event: FileWatchNotifyEvent) => void;
@@ -80,7 +80,7 @@ export interface RunFileWatchSweepOptions {
   now?: () => number;
 }
 
-export interface StartFileWatchOptions extends RunFileWatchSweepOptions {
+interface StartFileWatchOptions extends RunFileWatchSweepOptions {
   /** Reconciliation sweep period — how often new/disabled/changed
    * registrations are picked up. Defaults to 5s; live events do not wait for
    * this timer, only registration churn does. */

@@ -120,7 +120,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface BlurBodyProps {
+interface BlurBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

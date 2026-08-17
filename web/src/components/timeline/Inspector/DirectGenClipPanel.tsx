@@ -77,7 +77,7 @@ interface VideoModelChange {
   name: string;
 }
 
-export interface DirectGenClipPanelProps {
+interface DirectGenClipPanelProps {
   clipId: string;
 }
 

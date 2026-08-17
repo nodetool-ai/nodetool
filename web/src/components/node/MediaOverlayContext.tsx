@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export interface MediaOverlayValue {
+interface MediaOverlayValue {
   // Set by NodeHistoryViewer to tell nested media renderers (ImageView in
   // particular) to skip their own hover toolbar and dimensions overlay, since
   // NodeHistoryViewer renders unified controls at a higher level.

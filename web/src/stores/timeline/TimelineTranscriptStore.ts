@@ -45,7 +45,7 @@ import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 // ── Generation config ────────────────────────────────────────────────────────
 
-export interface TranscriptGenerationConfig {
+interface TranscriptGenerationConfig {
   /** Text-to-speech provider/model/voice for the voiceover. */
   ttsProvider: string;
   ttsModel: string;

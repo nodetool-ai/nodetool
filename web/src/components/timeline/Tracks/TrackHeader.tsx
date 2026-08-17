@@ -267,7 +267,7 @@ const resizeHandleStyles = (theme: Theme) =>
     }
   });
 
-export interface TrackHeaderProps {
+interface TrackHeaderProps {
   track: TimelineTrack;
   /** Pre-computed 1-based index within the track's type group. */
   typedIndex: number;

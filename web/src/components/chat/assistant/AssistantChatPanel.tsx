@@ -39,7 +39,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-export interface AssistantChatPanelProps {
+interface AssistantChatPanelProps {
   chatSource: ChatSource;
   focused?: UiDocumentRef | null;
   getSelection?: () => UiContext["selection"];

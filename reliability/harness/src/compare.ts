@@ -28,7 +28,7 @@ export interface CompareDriver extends RunDriver {
   supports?(journey: Journey): boolean;
 }
 
-export interface SurfaceCompareResult {
+interface SurfaceCompareResult {
   surface: string;
   /** False when the driver declared (via `supports`) that this journey does
    * not apply to it, or when the driver's `run()` threw. */

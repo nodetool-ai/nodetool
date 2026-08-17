@@ -51,7 +51,7 @@ import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
 const DEFAULT_STRENGTH = 0.65;
 const DEFAULT_STEPS = 30;
 
-export interface DirectGenLayerPanelProps {
+interface DirectGenLayerPanelProps {
   layer: Layer;
   binding: LayerWorkflowBinding;
 }

@@ -97,7 +97,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface ChannelsBodyProps {
+interface ChannelsBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

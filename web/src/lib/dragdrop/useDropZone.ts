@@ -39,7 +39,7 @@ import {
   extractFiles
 } from "./serialization";
 
-export interface DropZoneProps {
+interface DropZoneProps {
   onDragEnter: (event: React.DragEvent) => void;
   onDragOver: (event: React.DragEvent) => Promise<void>;
   onDragLeave: (event: React.DragEvent) => void;

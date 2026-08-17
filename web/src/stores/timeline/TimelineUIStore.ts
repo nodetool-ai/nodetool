@@ -17,13 +17,13 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 export type TimelineTool = "select" | "cut";
 
 /** A reference to one transcript word: its clip and the word index within it. */
-export interface WordRef {
+interface WordRef {
   clipId: string;
   wordIndex: number;
 }
 
 /** A transcript word selection — an inclusive range between two endpoints. */
-export interface WordSelection {
+interface WordSelection {
   anchor: WordRef;
   focus: WordRef;
 }

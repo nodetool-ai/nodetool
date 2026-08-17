@@ -22,7 +22,7 @@ import {
   Text
 } from "../ui_primitives";
 
-export interface LinkedWorkflowsMenuProps {
+interface LinkedWorkflowsMenuProps {
   applicationId: string;
   /** The app tab has focus — background tabs fetch nothing. */
   active?: boolean;

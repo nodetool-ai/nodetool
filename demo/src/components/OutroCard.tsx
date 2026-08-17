@@ -7,7 +7,7 @@ import {
   useVideoConfig,
 } from "remotion";
 
-export interface OutroCardProps {
+interface OutroCardProps {
   title: string;
   /** Short call-to-action lines shown beneath the title. */
   points: string[];

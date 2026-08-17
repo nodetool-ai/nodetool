@@ -76,7 +76,7 @@ function formatKieLastRun(cost: ProviderCost): string {
   return parts.join(" · ");
 }
 
-export interface KieCreditsFooterProps {
+interface KieCreditsFooterProps {
   metadata: NodeMetadata;
   /** Only render the chip while the parent node is selected. */
   selected: boolean;

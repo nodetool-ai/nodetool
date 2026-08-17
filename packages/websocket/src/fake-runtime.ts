@@ -174,7 +174,7 @@ const STRUCTURAL_PREFIXES = [
   "nodetool.control."
 ];
 
-export interface FakeMeta {
+interface FakeMeta {
   node_type?: string;
   required_settings?: string[] | null;
   required_runtimes?: string[] | null;

@@ -50,7 +50,7 @@ export interface ToolCallRecord {
   toolCallId: string;
 }
 
-export interface ToolBridgeOptions {
+interface ToolBridgeOptions {
   tools: Tool[];
   context: ProcessingContext;
   /** Observability hook — fires before each bridged tool executes. */

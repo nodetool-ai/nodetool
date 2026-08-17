@@ -23,18 +23,12 @@ const DEFAULT_FLAGS = [
   "--window-size=1280,900"
 ];
 
-export interface LaunchOptions {
+interface LaunchOptions {
   headless?: boolean;
   /** Existing CDP endpoint port. If set, a Chrome instance is not launched. */
   port?: number;
   extraFlags?: string[];
   viewport?: { width: number; height: number };
-}
-
-export interface BrowserSession {
-  /** Close the page (and Chrome, if it was launched here). */
-  close(): Promise<void>;
-  page: CdpPage;
 }
 
 export type WaitUntil = "load" | "domcontentloaded" | "networkidle";

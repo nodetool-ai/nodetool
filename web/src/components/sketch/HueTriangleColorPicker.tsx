@@ -266,7 +266,7 @@ function paintSVCursor(ctx: CanvasRenderingContext2D, hueDeg: number, s: number,
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export interface HueTriangleColorPickerProps {
+interface HueTriangleColorPickerProps {
   color: string;
   onColorChange: (color: string) => void;
 }

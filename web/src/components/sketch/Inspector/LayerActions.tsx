@@ -119,7 +119,7 @@ const runButtonStyles = (theme: Theme) =>
     }
   });
 
-export interface LayerActionsProps {
+interface LayerActionsProps {
   layerId: string;
   binding: LayerWorkflowBinding;
 }

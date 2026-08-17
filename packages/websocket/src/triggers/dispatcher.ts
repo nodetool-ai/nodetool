@@ -141,7 +141,7 @@ export type DispatcherNotify = (event?: {
   inputId?: string;
 }) => void;
 
-export interface TriggerDispatcherOptions {
+interface TriggerDispatcherOptions {
   /** Where unprocessed inputs are read from. Wire the Drizzle store at boot. */
   store: TriggerInputStore;
   startJob?: StartTriggerJob;
@@ -151,7 +151,7 @@ export interface TriggerDispatcherOptions {
   batchSize?: number;
 }
 
-export interface StartDispatcherOptions extends TriggerDispatcherOptions {
+interface StartDispatcherOptions extends TriggerDispatcherOptions {
   /** Poll period for the crash-recovery path. Defaults to 15s. */
   intervalMs?: number;
 }

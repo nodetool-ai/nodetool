@@ -28,7 +28,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 
-export interface MobileDocumentSelectorProps {
+interface MobileDocumentSelectorProps {
   tabs: WorkspaceTab[];
   activeTabId: string | null;
   typeColor: Record<WorkspaceTabType, string>;

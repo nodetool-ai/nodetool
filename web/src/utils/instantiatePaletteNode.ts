@@ -30,7 +30,7 @@ type PaletteCreateNodeFn = (
   properties?: Record<string, unknown>
 ) => Node<NodeData>;
 
-export interface PaletteNodeInstance {
+interface PaletteNodeInstance {
   node: Node<NodeData>;
   /** Dynamic IO to merge once the node exists in the store. */
   afterAdd?: Partial<NodeData>;

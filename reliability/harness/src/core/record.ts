@@ -165,7 +165,7 @@ export function makeFrame(
 }
 
 /** Minimal shape the debug harness's `report.json` needs to expose for conversion. */
-export interface DebugBundleReportLike {
+interface DebugBundleReportLike {
   target?: { workflowId?: string | null } | null;
   server?: {
     status?: string;

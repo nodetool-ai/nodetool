@@ -20,7 +20,7 @@ import {
 import { EditorButton } from "../editor_ui";
 import { isNumber } from "../../utils/typePredicates";
 
-export interface AudioEditorToolbarProps {
+interface AudioEditorToolbarProps {
   isPlaying: boolean;
   loop: boolean;
   zoom: number;

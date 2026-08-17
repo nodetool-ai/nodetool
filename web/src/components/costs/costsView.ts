@@ -68,7 +68,7 @@ export interface ProviderView {
   total: number;
 }
 
-export interface CostsStatsView {
+interface CostsStatsView {
   totalSpend: number;
   executionCount: number;
   failedCount: number;

@@ -6,7 +6,7 @@ import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import { StateIconButton, MOTION } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
-export interface DefaultModelPinProps {
+interface DefaultModelPinProps {
   /**
    * Modality key the default is stored under, e.g. "language_model".
    * When omitted (pickers without a default modality, like raw HF browsing),

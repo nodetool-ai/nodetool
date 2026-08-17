@@ -110,7 +110,7 @@ const TRANSITION_MODES = [
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export interface ClipAdjustmentsProps {
+interface ClipAdjustmentsProps {
   clip: TimelineClip;
 }
 

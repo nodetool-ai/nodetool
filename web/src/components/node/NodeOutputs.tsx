@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface NodeOutputsProps {
+interface NodeOutputsProps {
   id: string;
   outputs: OutputSlot[];
 }

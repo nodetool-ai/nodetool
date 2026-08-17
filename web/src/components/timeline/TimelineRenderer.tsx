@@ -45,7 +45,7 @@ const rendererStyles = (theme: Theme) =>
     }
   });
 
-export interface TimelineRendererProps {
+interface TimelineRendererProps {
   sequence: TimelineSequence;
   className?: string;
   ariaLabel?: string;
