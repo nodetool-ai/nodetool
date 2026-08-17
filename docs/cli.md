@@ -423,6 +423,36 @@ The bundle holds `report.json` and `report.md`, the resolved `workflow.json`,
 and `server/messages.jsonl`. `--trace` adds `server/trace.jsonl`; `--browser`
 adds `browser/record.json`, a canvas screenshot, and `browser/console-errors.log`.
 
+### `nodetool node run <node_type>`
+
+Instantiate one node, hand it a property bag, and print what it emits — no
+workflow, no graph. Use it when `debug` says a run went wrong and you want to
+know whether one node is the reason.
+
+**Options:**
+
+- `--props <json>` — JSON object of property values keyed by `@prop` name (default `{}`).
+- `--no-secrets` — skip secret and asset resolution, so the run touches no database.
+- `--json` — print the full run result as JSON.
+
+**Examples:**
+
+```bash
+nodetool node run nodetool.text.Concat --props '{"a":"hi ","b":"there"}'
+nodetool node run nodetool.text.Concat --props '{"a":"hi ","b":"there"}' --no-secrets
+nodetool node run nodetool.text.Concat --props '{"a":"hi ","b":"there"}' --json
+```
+
+The verdict names the node type, its title, and how long it took, then lists
+every record it emitted:
+
+```
+✅ nodetool.text.Concat (Concat) — 0ms
+
+Emitted 1 record(s):
+  {"output":"hi there"}
+```
+
 ## Mini App Management
 
 ### `nodetool apps`
@@ -476,6 +506,266 @@ workflow — two example apps binding one template — reuses the existing row i
 ```bash
 nodetool apps import-bundle my.app.json
 nodetool apps import-bundle my.app.json --project my-project --json
+```
+
+## Editor Documents
+
+Timelines, sketches, and JS scripts each get the same three commands:
+`validate` checks the document without rendering or running it, `debug` replays
+a scripted edit session against it, and `versions` reads and writes its snapshot
+history. All of them take a JSON file or a row id — a path that exists on disk
+wins over an id, and file targets need no database.
+
+### `nodetool timeline`
+
+**Subcommands:** `validate`, `debug`, `versions`
+
+#### `nodetool timeline validate <timeline_id_or_file>`
+
+Check a timeline sequence without rendering it: clips on tracks the document
+does not have, fields a schema round trip would strip, animation presets that
+do not exist, and timings nothing can render. The target is a timeline JSON
+file — a bare `TimelineDocument` or anything carrying one under `document`, so
+a `timeline.get` response works as-is — or a `timeline_sequences` row id.
+
+**Options:**
+
+- `--json` — print the full `TimelineValidation` as JSON.
+- `--warnings-as-errors` — exit non-zero on warnings, not just errors.
+
+```bash
+nodetool timeline validate sequence.json
+nodetool timeline validate <timeline_id> --json
+nodetool timeline validate <timeline_id> --warnings-as-errors
+```
+
+```
+✅ 0 error(s), 0 warning(s)
+```
+
+#### `nodetool timeline debug <timeline_id_or_file>`
+
+Run the same check, then execute each scripted step against the headless
+`ui_timeline_*` bridge and validate the document the session left behind. A
+step names a tool with or without the `ui_timeline_` prefix. A failing step is
+recorded and the script continues, so one bad target does not hide everything
+after it. Rendering, playback, decode, and generation are not simulated; the
+report lists that under `notSimulated`.
+
+**Options:**
+
+- `--interact <json>` — the scripted steps, e.g. `[{"tool":"add_track","input":{"type":"audio"}}]`.
+- `--out <dir>` — bundle output directory (default `nodetool-debug/timeline-<id>-<timestamp>`).
+- `--json` — print the full `TimelineDebugReport` as JSON to stdout.
+
+```bash
+nodetool timeline debug sequence.json \
+  --interact '[{"tool":"add_track","input":{"type":"audio","name":"Music"}}]'
+```
+
+```
+✓ ui_timeline_add_track
+
+✅ Timeline is sound — 1 interaction(s) ran clean.
+  timeline: 2 track(s), 1 clip(s), 4000ms @ 30fps
+  session:  1 step(s), 0 failed
+```
+
+The bundle holds `report.json`, `report.md`, and `timeline.json` (the input
+document). The command exits `0` only when the verdict is ok.
+
+#### `nodetool timeline versions`
+
+Read and write a sequence's snapshot history against the local database:
+manual saves, the autosaves `timeline.update` writes at most every five
+minutes, and the pre-restore snapshot that makes a restore undoable.
+
+**Subcommands:** `list`, `show`, `create`, `restore`, `delete`. All five take `--json`.
+
+- `list <timeline_id>` — newest first; `--save-type <manual|autosave|restore>`, `--limit <n>` (default 100).
+- `show <timeline_id> <version>` — one version's metadata and the document it stored.
+- `create <timeline_id>` — snapshot the sequence as it stands now; `--name <name>` labels it.
+- `restore <timeline_id> <version>` — snapshot the current state first, write the old document back, then re-validate it.
+- `delete <timeline_id> <version>` — `-y, --yes` skips the confirmation prompt.
+
+```bash
+nodetool timeline versions list <timeline_id> --save-type manual --limit 10
+nodetool timeline versions show <timeline_id> 3 --json
+nodetool timeline versions create <timeline_id> --name "before the recut"
+nodetool timeline versions restore <timeline_id> 3
+nodetool timeline versions delete <timeline_id> 3 --yes
+```
+
+An old document is restored against today's schema, so what it used to pass is
+not what it passes now: a restore whose document no longer validates prints the
+issues and exits non-zero.
+
+### `nodetool sketch`
+
+**Subcommands:** `validate`, `debug`, `versions`
+
+#### `nodetool sketch validate <sketch_id_or_file>`
+
+Check a sketch (image document) without opening an editor: a duplicate layer
+id, an `activeLayerId` or binding pointing at a layer the document lacks,
+opacity or a blend mode no compositor ships, a binding with no workflow or
+prompt behind it, and fields a schema round trip would strip. The target is a
+`{sketch, layerBindings}` JSON file — or anything carrying one, so a
+`sketch.get` response works as-is — or an `image_documents` row id. Layer
+bitmaps stay opaque to the check.
+
+**Options:**
+
+- `--json` — print the full `SketchValidation` as JSON.
+- `--warnings-as-errors` — exit non-zero on warnings, not just errors.
+
+```bash
+nodetool sketch validate sketch.json
+nodetool sketch validate <image_document_id> --json
+```
+
+#### `nodetool sketch debug <sketch_id_or_file>`
+
+Run the same check, then execute each scripted step against the headless
+`ui_sketch_*` bridge (the prefix is optional) and validate the document the
+session left behind. Pixels, painting, rendering, generation, and asset I/O are
+not simulated; the report lists that under `notSimulated`.
+
+**Options:**
+
+- `--interact <json>` — the scripted steps, e.g. `[{"tool":"add_layer","input":{"name":"Glow"}}]`.
+- `--out <dir>` — bundle output directory (default `nodetool-debug/sketch-<id>-<timestamp>`).
+- `--json` — print the full `SketchDebugReport` as JSON to stdout.
+
+```bash
+nodetool sketch debug sketch.json \
+  --interact '[{"tool":"add_layer","input":{"name":"Shadow"}},
+               {"tool":"set_layer_props","input":{"target":"Shadow","opacity":0.4,"blendMode":"multiply"}}]'
+```
+
+```
+✓ ui_sketch_add_layer
+✓ ui_sketch_set_layer_props
+
+✅ Sketch is sound — 2 interaction(s) ran clean.
+  sketch:  2 layer(s), 0 binding(s), 1024x768
+  session: 2 step(s), 0 failed
+```
+
+The bundle holds `report.json`, `report.md`, and `sketch.json`.
+
+#### `nodetool sketch versions`
+
+The same five subcommands as `timeline versions`, against an image document's
+history. The per-layer generation takes in the editor are a different thing:
+those record one generated image on one layer, these snapshot the whole
+document.
+
+```bash
+nodetool sketch versions list <image_document_id> --save-type manual --limit 10
+nodetool sketch versions show <image_document_id> 3 --json
+nodetool sketch versions create <image_document_id> --name "before the repaint"
+nodetool sketch versions restore <image_document_id> 3
+nodetool sketch versions delete <image_document_id> 3 --yes
+```
+
+### `nodetool jsscript`
+
+A JS script is a named, versioned script document: a body plus declared ports,
+sandbox packages, secrets, a timeout, and saved test cases. The target of every
+subcommand is a script JSON file (a bare `JsScriptDocument` or anything carrying
+one under `document`) or a `js_scripts` row id.
+
+**Subcommands:** `validate`, `run`, `test`, `debug`, `versions`
+
+#### `nodetool jsscript validate <script_id_or_file>`
+
+Check the body's syntax, its imports against the installed pack catalog,
+undefined names, undeclared `inputs.*` reads, outputs no `emit`/`output` call
+reaches, duplicate or non-identifier port names, and tests naming ports the
+script does not declare. A body that declares outputs and returns them instead
+of emitting them is an error — a script has no legacy return contract. Zero
+saved tests, and a declared secret this install lacks, are warnings.
+
+**Options:**
+
+- `--json` — print the full `JsScriptValidation` as JSON.
+- `--warnings-as-errors` — exit non-zero on warnings, not just errors.
+
+```bash
+nodetool jsscript validate script.json
+nodetool jsscript validate <js_script_id> --warnings-as-errors
+```
+
+#### `nodetool jsscript run <script_id_or_file>`
+
+Execute the body once in the QuickJS sandbox and print its outputs, streamed
+emits, logs, and error. A body that reads its inputs with `stream` is fed with
+`--input-streams` instead of `--inputs`; a staged handle the script does not
+declare is refused.
+
+**Options:**
+
+- `--inputs <json>` — input values, e.g. `'{"a":1}'`.
+- `--input-streams <json>` — items staged per handle, e.g. `'{"nums":[1,2,3]}'`.
+- `--json` — print the run result as JSON.
+
+```bash
+nodetool jsscript run script.json --inputs '{"numbers":[1,2,3]}'
+nodetool jsscript run script.json --input-streams '{"numbers":[1,2,3]}'
+```
+
+```
+✅ ran in 1032ms
+  outputs:  {"total":6}
+  streamed: [{"name":"running","value":1},{"name":"running","value":3},{"name":"running","value":6}]
+```
+
+#### `nodetool jsscript test <script_id_or_file>`
+
+Run the document's own saved test cases and grade each one. Exits non-zero when
+any case fails, which makes it the regression check after an edit.
+
+**Options:**
+
+- `--json` — print the grade report as JSON.
+
+```bash
+nodetool jsscript test script.json
+nodetool jsscript test <js_script_id> --json
+```
+
+```
+✅ 2 passed, 0 failed
+  ✓ sums three numbers
+  ✓ sums an empty list to zero
+```
+
+#### `nodetool jsscript debug <script_id_or_file>`
+
+Replay each scripted step against the headless `ui_jsscript_*` bridge (the
+prefix is optional) and validate the document the session left behind. The
+editor, persistence of a debug session, and secret values are not simulated.
+
+**Options:**
+
+- `--interact <json>` — the scripted steps, e.g. `[{"tool":"set_code","input":{"code":"..."}}]`.
+- `--out <dir>` — bundle output directory (default `nodetool-debug/jsscript-<id>-<timestamp>`).
+- `--json` — print the full `JsScriptDebugReport` as JSON to stdout.
+
+```bash
+nodetool jsscript debug script.json \
+  --interact '[{"tool":"set_code","input":{"code":"await output(\"n\", 1);"}}]'
+```
+
+#### `nodetool jsscript versions`
+
+The same five subcommands as `timeline versions`, against a script's history.
+
+```bash
+nodetool jsscript versions list <js_script_id> --limit 10
+nodetool jsscript versions create <js_script_id> --name "before the rewrite"
+nodetool jsscript versions restore <js_script_id> 3
 ```
 
 ## Job Management
@@ -962,6 +1252,88 @@ See the [Agent CLI](agent-cli.md) reference for full details.
 
 > The `nodetool db` group (`migrate`, `status`, `baseline`, `rollback`) is documented under
 > [Database Migrations](#database-migrations) above.
+
+## Development Tooling
+
+### `nodetool affected [files...]`
+
+Map changed files — or the git working tree — to the smallest set of workspaces
+that must be rebuilt and tested: the workspace that owns each file plus its
+downstream dependents, and a `build:packages` only when a package that loads
+from `dist/` is in the set. It saves reaching for the full build after a
+one-file change.
+
+**Options:**
+
+- `--base <ref>` — compare against a git ref instead of the working tree.
+- `--json` — print the result as JSON.
+
+**Examples:**
+
+```bash
+nodetool affected
+nodetool affected --base main
+nodetool affected packages/cli/src/nodetool.ts
+nodetool affected --json
+```
+
+The output names each affected workspace and the commands to run:
+
+```
+1 affected workspace(s) from 1 changed file(s):
+  changed   @nodetool-ai/cli
+
+Suggested commands:
+  npm run test --workspace=packages/cli
+```
+
+### `nodetool eval <suite>`
+
+Run one of the agent evaluation suites against a provider and model, and report
+its metrics — success rate, expectation score, tool calls, duration, and cost.
+
+**Suites:** `graph-planner`, `graph-e2e`, `code-gen`, `task-planner`, `subtask`,
+`codeact`, `app-build`, `tool-loop`, `workflow-escalation`, `script-tools`,
+`jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
+`model3d-tools`, `app-tools`, `thread-memory-tools`, `creative-pipeline`.
+
+**Options** (the same on every suite):
+
+- `-p, --provider <id>` — provider id (`anthropic`, `openai`, `claude_agent_sdk`, `ollama`, …).
+- `-m, --model <id>` — model id for that provider.
+- `--cases <ids>` — comma-separated case ids to run (default: all).
+- `--list` — list the suite's cases and exit.
+- `--json` — print the full report as JSON.
+- `--out <path>` — write the JSON report to a file.
+- `--max-retries <n>` — planner attempts per case (default 3).
+- `--max-iterations <n>` — turn cap per case for the loop-style suites (default 12).
+- `--timeout <ms>` — per-case execution timeout for the suites that run what they plan (default 300000).
+- `--judge-model <provider/model>` — the model that judges outputs in the self-judging suites (`graph-e2e`, `app-build`). Defaults to the run's own provider and model, which grades its own work.
+- `--min-success <rate>` — exit non-zero when the success rate falls below this threshold (0..1).
+- `--no-find-model` — run without configured model providers, skipping the model-dependent cases.
+
+**Examples:**
+
+```bash
+# See what a suite covers before spending on it — needs no provider
+nodetool eval graph-planner --list
+
+nodetool eval graph-planner -p anthropic -m claude-sonnet-5
+nodetool eval timeline-tools -p openai -m gpt-5.4-mini --cases cut-and-trim,titles-with-motion
+nodetool eval graph-e2e -p anthropic -m claude-sonnet-5 --timeout 600000
+nodetool eval codeact -p anthropic -m claude-sonnet-5 --json --out report.json
+
+# Gate a run in CI
+nodetool eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
+```
+
+`--list` prints each case id with what it checks:
+
+```
+summarize                Single LLM step with one wired input and one output
+branch-both-paths        Conditional with both If branches wired
+deterministic-over-llm   Pure string mechanics must not be solved with an LLM step
+```
 
 ## Tips
 
