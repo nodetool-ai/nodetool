@@ -249,10 +249,18 @@ lands. Six rules are at zero everywhere and sit in the enforced config's top-lev
 `rules`; the rest are enforced per-path, one override block per rule listing the
 trees at zero for it.
 
+`.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
+one tree, regenerate the overrides, and induce a failure to prove the new ones
+bite. It opens a PR; it merges nothing.
+
 Those override blocks are generated, never hand-edited:
-`npm run lint:anti-slop:count` prints the table below, `:write` regenerates the
-overrides from a fresh measurement, and `:check` fails when the config and the
-measurement disagree. Hand-maintaining them is how the numbers here drifted
+`npm run lint:anti-slop:count` prints the table below, `:targets` adds the
+trees closest to zero and the cheapest remaining pairs, `:write` regenerates
+the overrides from a fresh measurement, and `:check` fails when the config and
+the measurement disagree. Read the counts off `:targets` rather than off a raw
+`oxlint` run — oxlint's own default rules report through the same channel, so
+counting diagnostics instead of `anti-slop(...)` codes overstates a tree by
+several times. Hand-maintaining them is how the numbers here drifted
 before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that

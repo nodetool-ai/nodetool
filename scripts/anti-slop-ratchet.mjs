@@ -15,6 +15,7 @@
 //   node scripts/anti-slop-ratchet.mjs            # report: per-rule + per-tree
 //   node scripts/anti-slop-ratchet.mjs --write    # regenerate the enforced overrides
 //   node scripts/anti-slop-ratchet.mjs --check    # exit 1 if the overrides drifted
+//   node scripts/anti-slop-ratchet.mjs --targets  # report + what to finish next
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -172,6 +173,58 @@ function report(counts, total, files, clean, rules, trees) {
   console.log(`Trees at zero on all ${rules.length} rules: ${spotless.join(", ") || "none"}.`);
 }
 
+/**
+ * The cheapest pairs to finish next, smallest first.
+ *
+ * The per-rule table ranks by how much work is left; this ranks by how little.
+ * A pair sitting at one or two findings is a ratchet win for an afternoon,
+ * and a tree whose every remaining pair is small can be finished outright —
+ * which is worth more than the finding count suggests, because one typecheck
+ * and one test run then cover several pairs.
+ *
+ * Printed rather than derived by whoever is doing the work: counting these by
+ * hand off a raw `oxlint` run silently mixes in oxlint's own default-rule
+ * diagnostics, which report through the same channel and are not backlog
+ * findings at all.
+ */
+function targets(counts, rules, trees, limit = 40) {
+  const pairs = [];
+  for (const tree of trees) {
+    for (const rule of rules) {
+      const count = counts.get(`${tree}|${rule}`) ?? 0;
+      if (count > 0) pairs.push({ count, rule, tree });
+    }
+  }
+  pairs.sort((a, b) => a.count - b.count || a.tree.localeCompare(b.tree));
+
+  const treeTotals = new Map(
+    trees.map((tree) => [
+      tree,
+      rules.reduce((sum, rule) => sum + (counts.get(`${tree}|${rule}`) ?? 0), 0)
+    ])
+  );
+  const nearlyDone = trees
+    .filter((tree) => (treeTotals.get(tree) ?? 0) > 0)
+    .sort((a, b) => (treeTotals.get(a) ?? 0) - (treeTotals.get(b) ?? 0))
+    .slice(0, 10);
+
+  console.log(`### Whole trees closest to zero on all ${rules.length} rules\n`);
+  console.log(`| tree | findings left | rules left |`);
+  console.log(`|---|---:|---:|`);
+  for (const tree of nearlyDone) {
+    const rulesLeft = rules.filter((rule) => (counts.get(`${tree}|${rule}`) ?? 0) > 0).length;
+    console.log(`| \`${tree}\` | ${treeTotals.get(tree)} | ${rulesLeft} |`);
+  }
+
+  console.log(`\n### Cheapest (rule, tree) pairs\n`);
+  console.log(`| findings | rule | tree |`);
+  console.log(`|---:|---|---|`);
+  for (const pair of pairs.slice(0, limit)) {
+    console.log(`| ${pair.count} | \`${pair.rule}\` | \`${pair.tree}\` |`);
+  }
+  console.log(`\n${pairs.length} non-zero pairs remain.`);
+}
+
 const mode = process.argv[2] ?? "--report";
 const rules = backlogRules();
 const trees = lintableTrees();
@@ -198,6 +251,10 @@ if (mode === "--write") {
     );
     process.exit(1);
   }
+} else if (mode === "--targets") {
+  report(counts, total, files, clean, rules, trees);
+  console.log("");
+  targets(counts, rules, trees);
 } else {
   report(counts, total, files, clean, rules, trees);
 }
