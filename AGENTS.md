@@ -241,13 +241,13 @@ exactly one of them:
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
-The unit of enforcement is a **(rule, tree) pair**, not a rule. Eight rules over
-58 trees is 464 pairs, and 210 of them are already at zero — so a rule still
-thousands of findings deep across the repo is nonetheless finished in forty
-packages, and those forty are ratcheted today rather than after the last one
-lands. Six rules are at zero everywhere and sit in the enforced config's top-level
-`rules`; the rest are enforced per-path, one override block per rule listing the
-trees at zero for it.
+The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
+58 trees is 522 pairs, and 258 of them are already at zero — so a rule still
+over a thousand findings deep across the repo is nonetheless finished in
+fifty-five packages, and those fifty-five are ratcheted today rather than after
+the last one lands. Six rules are at zero everywhere and sit in the enforced
+config's top-level `rules`; the rest are enforced per-path, one override block
+per rule listing the trees at zero for it.
 
 `.github/workflows/anti-slop-ratchet.yaml` runs this loop daily: measure, fix
 one tree, regenerate the overrides, and induce a failure to prove the new ones
@@ -280,7 +280,7 @@ inside a function returning `v is T` is the rule's sanctioned form, so working
 the backlog means consolidating repeated inline checks into named predicates
 (each tree has a predicate module: `packages/protocol/src/predicates.ts`,
 `web/src/utils/typePredicates.ts`, mobile's twin, per-package siblings), never
-deleting guards. It is enforced for the thirteen trees at zero on it (read the
+deleting guards. It is enforced for the twenty trees at zero on it (read the
 list off the enforced config), with the decoder `packages/protocol/src/typecheck.ts`
 exempt: in the package that owns the schemas, an inline `typeof` means someone
 bypassed the parse. One tradeoff: predicates take `value: unknown`, so
@@ -300,23 +300,26 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 6982 | 9 / 58 |
-| `no-unsafe-dictionary-type` | 4227 | 9 / 58 |
-| `no-unknown-parameters` | 1882 | 13 / 58 |
-| `no-module-mocking` | 1427 | 55 / 58 |
-| `no-known-value-widening` | 657 | 17 / 58 |
-| `no-runtime-typeof` | 508 | 19 / 58 |
+| `require-safety-comment-for-type-assertion` | 6974 | 10 / 58 |
+| `no-unsafe-dictionary-type` | 4225 | 10 / 58 |
+| `no-unknown-parameters` | 1884 | 14 / 58 |
+| `no-module-mocking` | 1428 | 55 / 58 |
+| `no-known-value-widening` | 658 | 17 / 58 |
+| `no-runtime-typeof` | 505 | 20 / 58 |
+| `no-hand-written-any` | 302 | 44 / 58 |
 | `no-unknown-returns` | 191 | 42 / 58 |
 | `no-chained-type-assertions` | 44 | 46 / 58 |
 
 The two columns rank differently, and that is the scheduling signal.
-`no-module-mocking` is 1,427 findings but zero in 55 of 58 trees: it is
+`no-module-mocking` is 1,428 findings but zero in 55 of 58 trees: it is
 concentrated in the frontend test suites and is a test-seam problem, not a
 typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
-a boundary get named. `packages/base-nodes` and `packages/security` are at zero
-on all nine.
+a boundary get named. Ten trees are at zero on all nine rules: `packages/auth`,
+`packages/base-nodes`, `packages/chat`, `packages/config`,
+`packages/model-pricing`, `packages/nodes-utils`, `packages/reve-nodes`,
+`packages/sdk`, `packages/security`, `packages/workflow-runner`.
 
 `no-hand-written-any` is the newest, and it exists because
 `.github/workflows/type-safety.yaml` had no way to keep what it won: it greps

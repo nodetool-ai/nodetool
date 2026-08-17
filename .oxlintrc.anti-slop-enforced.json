@@ -219,6 +219,7 @@
         "packages/nodes-utils/src/**",
         "packages/protocol/src/**",
         "packages/reve-nodes/src/**",
+        "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/text-nodes/src/**",
         "packages/workflow-runner/src/**"
@@ -244,6 +245,7 @@
         "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
         "packages/reve-nodes/src/**",
+        "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/transformers-js-provider/src/**",
         "packages/workflow-runner/src/**"
@@ -310,6 +312,7 @@
         "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
         "packages/reve-nodes/src/**",
+        "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/workflow-runner/src/**"
       ],
@@ -326,6 +329,7 @@
         "packages/model-pricing/src/**",
         "packages/nodes-utils/src/**",
         "packages/reve-nodes/src/**",
+        "packages/sdk/src/**",
         "packages/security/src/**",
         "packages/workflow-runner/src/**"
       ],

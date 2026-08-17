@@ -27,6 +27,8 @@ export type {
   ChatGenerationStoppedEvent,
   ChatThreadUpdateEvent,
   ChatRawEvent,
+  ChatFrameFields,
+  ChatFrameValue,
   SendChatMessageOptions,
   ChatSocketOptions,
   ConnectionState,
