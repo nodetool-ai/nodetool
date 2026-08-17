@@ -99,6 +99,7 @@ interface FalManifestField {
   name: string;
   apiParamName?: string;
   propType: string;
+  enumValues?: string[];
 }
 interface FalManifestEntry {
   endpointId?: string;
@@ -121,6 +122,97 @@ function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
     }
   }
   return _falManifestByEndpoint.get(modelId);
+}
+
+// ---------------------------------------------------------------------------
+// Topaz model variants
+// ---------------------------------------------------------------------------
+
+/**
+ * fal ships Topaz as one endpoint per media kind and selects the actual Topaz
+ * model — Standard V2, Redefine, Wonder 3 for images; Proteus, Artemis, Gaia,
+ * Nyx, Starlight for video — through a `model` enum on that endpoint. A single
+ * catalog entry per endpoint therefore offers no way to pick one, and every
+ * run silently gets fal's default (Standard V2 / Proteus), which is the wrong
+ * model for compressed sources, CGI, animation, or generative restoration.
+ *
+ * So each endpoint is expanded into one catalog entry per variant, id
+ * `<endpointId>/<variant>`, and the variant is split back off and sent as
+ * `model` when the request is built — the same shape TopazProvider uses for
+ * Topaz's own API.
+ */
+const TOPAZ_UPSCALE_IMAGE = "fal-ai/topaz/upscale/image";
+const TOPAZ_UPSCALE_VIDEO = "fal-ai/topaz/upscale/video";
+const TOPAZ_VARIANT_ENDPOINTS = [TOPAZ_UPSCALE_IMAGE, TOPAZ_UPSCALE_VIDEO];
+
+/** The `model` enum a Topaz endpoint declares, or [] when it isn't shipped. */
+function topazVariants(endpointId: string): string[] {
+  const field = getFalManifestEntry(endpointId)?.inputFields?.find(
+    (f) => (f.apiParamName ?? f.name) === "model"
+  );
+  return field?.enumValues ?? [];
+}
+
+/**
+ * Replace each Topaz entry with one entry per model variant. Entries whose
+ * endpoint declares no `model` enum are left as they are, so a manifest that
+ * drops the field degrades to today's single entry rather than to none.
+ */
+function expandTopazVariants<T extends { id: string; name: string }>(
+  models: T[]
+): T[] {
+  const out: T[] = [];
+  for (const m of models) {
+    const variants = TOPAZ_VARIANT_ENDPOINTS.includes(m.id)
+      ? topazVariants(m.id)
+      : [];
+    if (variants.length === 0) {
+      out.push(m);
+      continue;
+    }
+    for (const variant of variants) {
+      out.push({
+        ...m,
+        id: `${m.id}/${variant}`,
+        name: `${m.name} — ${variant}`
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Split a catalog id back into the fal endpoint and the Topaz `model` value.
+ * Bare endpoint ids (saved before variants existed, or typed by hand) resolve
+ * to no variant, which leaves fal's own default in place.
+ */
+function splitTopazVariant(modelId: string): {
+  endpointId: string;
+  variant?: string;
+} {
+  for (const endpointId of TOPAZ_VARIANT_ENDPOINTS) {
+    const prefix = `${endpointId}/`;
+    if (modelId.startsWith(prefix)) {
+      return { endpointId, variant: modelId.slice(prefix.length) };
+    }
+  }
+  return { endpointId: modelId };
+}
+
+/**
+ * `UpscaleImageParams.creativity` is 0–1; the Topaz image endpoint takes a
+ * 1–6 level (Redefine only) and rejects anything else, so it is rescaled for
+ * that endpoint and passed through untouched everywhere else.
+ */
+function topazCreativity(
+  endpointId: string,
+  creativity: number | null | undefined
+): number | string | null | undefined {
+  if (endpointId !== TOPAZ_UPSCALE_IMAGE || creativity == null) {
+    return creativity;
+  }
+  const level = Math.round(Math.min(1, Math.max(0, creativity)) * 5) + 1;
+  return String(level);
 }
 
 /**
@@ -316,8 +408,7 @@ class FalArgsBuilder {
     const field = this.accepted.get(apiName);
     if (!field) return undefined;
     if (field.propType.toLowerCase() !== "enum") return value;
-    const enumValues = (field as FalManifestField & { enumValues?: string[] })
-      .enumValues;
+    const enumValues = field.enumValues;
     if (!enumValues || enumValues.length === 0) return value;
     return enumValues.includes(value) ? value : undefined;
   }
@@ -326,7 +417,7 @@ class FalArgsBuilder {
   private enumValuesOf(apiName: string): string[] | undefined {
     const field = this.accepted.get(apiName);
     if (!field || field.propType.toLowerCase() !== "enum") return undefined;
-    return (field as FalManifestField & { enumValues?: string[] }).enumValues;
+    return field.enumValues;
   }
 
   /**
@@ -483,11 +574,15 @@ export class FalProvider extends BaseProvider {
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return loadImageModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+    return expandTopazVariants(
+      loadImageModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+    );
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+    return expandTopazVariants(
+      loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+    );
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
@@ -1007,17 +1102,18 @@ export class FalProvider extends BaseProvider {
     image: Uint8Array,
     params: UpscaleImageParams
   ): Promise<Uint8Array> {
-    const modelId = params.model.id;
+    const { endpointId, variant } = splitTopazVariant(params.model.id);
     const url = await this.upload(image, "image/png");
-    const b = new FalArgsBuilder(modelId);
+    const b = new FalArgsBuilder(endpointId);
     b.attachAsset("image", url)
+      .set("model", variant)
       .set("prompt", params.prompt)
       .set("upscale_factor", params.scale)
       .set("scale", params.scale)
-      .set("creativity", params.creativity);
+      .set("creativity", topazCreativity(endpointId, params.creativity));
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
-    log.debug("FAL upscaleImage", { model: modelId });
-    return this.runImageEndpoint(modelId, b.args);
+    log.debug("FAL upscaleImage", { model: endpointId, variant });
+    return this.runImageEndpoint(endpointId, b.args);
   }
 
   override async removeBackground(
@@ -1064,18 +1160,19 @@ export class FalProvider extends BaseProvider {
     video: Uint8Array,
     params: VideoToVideoParams
   ): Promise<Uint8Array> {
-    const modelId = params.model.id;
+    const { endpointId, variant } = splitTopazVariant(params.model.id);
     const url = await this.upload(video, "video/mp4");
-    const b = new FalArgsBuilder(modelId);
+    const b = new FalArgsBuilder(endpointId);
     b.attachAsset("video", url)
+      .set("model", variant)
       .set("prompt", params.prompt)
       .set("negative_prompt", params.negativePrompt)
       .set("strength", params.strength)
       .set("duration", params.durationSeconds)
       .setSize(null, params.resolution);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
-    log.debug("FAL videoToVideo", { model: modelId });
-    return this.runVideoEndpoint(modelId, b.args);
+    log.debug("FAL videoToVideo", { model: endpointId, variant });
+    return this.runVideoEndpoint(endpointId, b.args);
   }
 
   override async lipSync(

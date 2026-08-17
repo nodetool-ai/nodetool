@@ -52,12 +52,33 @@ function isText<T>(value: T): value is T & string {
   return typeof value === "string";
 }
 
+/**
+ * Endpoints whose catalog id is a prefix of the ids NodeTool offers: the FAL
+ * provider expands Topaz's `model` enum into one selectable model per variant
+ * (`fal-ai/topaz/upscale/image/Redefine`), while the generated catalog is keyed
+ * by the endpoint FAL bills — which prices every variant the same. Without this
+ * the variants would come back unpriced, so a run of one would skip the budget
+ * gate the single entry used to be gated by.
+ */
+const FAL_VARIANT_ENDPOINTS = [
+  "fal-ai/topaz/upscale/image",
+  "fal-ai/topaz/upscale/video"
+];
+
+/** The catalog key for a model id, folding a variant back onto its endpoint. */
+function falPricingKey(modelId: string): string {
+  return (
+    FAL_VARIANT_ENDPOINTS.find((e) => modelId.startsWith(`${e}/`)) ?? modelId
+  );
+}
+
 function falPrice(modelId: string): ModelUnitPricingLike | null {
   const prices = falUnitPricingCatalog.prices;
   // SAFETY: the FAL catalog is generated JSON shipped with the package, so its
   // rows have no declared field types here; every field is checked below
   // before it becomes a price.
-  const entry = prices?.[modelId] as CatalogPrice | undefined;
+  const entry = (prices?.[modelId] ??
+    prices?.[falPricingKey(modelId)]) as CatalogPrice | undefined;
   if (!entry) return null;
   if (!isFiniteNumber(entry.unit_price)) return null;
   return {

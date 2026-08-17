@@ -635,3 +635,131 @@ describe("FalProvider — TTS arg shaping fallbacks", () => {
     expect(captured.seed).toBe(5);
   });
 });
+
+describe("FalProvider — Topaz model variants", () => {
+  const IMAGE_ENDPOINT = "fal-ai/topaz/upscale/image";
+  const VIDEO_ENDPOINT = "fal-ai/topaz/upscale/video";
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** Client that records both the endpoint id and the request body. */
+  function recordingClient(response: any) {
+    const uploadMock = vi.fn().mockResolvedValue("https://fal.media/u.bin");
+    let endpoint: string | null = null;
+    let input: any = null;
+    const subscribeMock = vi.fn(async (id: string, opts: any) => {
+      endpoint = id;
+      input = opts.input;
+      return { data: response };
+    });
+    return {
+      client: { subscribe: subscribeMock, storage: { upload: uploadMock } },
+      get endpoint() {
+        return endpoint;
+      },
+      get input() {
+        return input;
+      }
+    };
+  }
+
+  it("lists one image model per Topaz variant instead of one endpoint", async () => {
+    const models = await createProvider().getAvailableImageModels();
+    const ids = models.map((m) => m.id);
+
+    expect(ids).not.toContain(IMAGE_ENDPOINT);
+    expect(ids).toContain(`${IMAGE_ENDPOINT}/Standard V2`);
+    expect(ids).toContain(`${IMAGE_ENDPOINT}/Redefine`);
+    expect(ids).toContain(`${IMAGE_ENDPOINT}/Wonder 3`);
+    const redefine = models.find(
+      (m) => m.id === `${IMAGE_ENDPOINT}/Redefine`
+    )!;
+    expect(redefine.name).toContain("Redefine");
+    expect(redefine.supportedTasks).toEqual(["upscale"]);
+  });
+
+  it("lists one video model per Topaz variant, tagged video-to-video", async () => {
+    const models = await createProvider().getAvailableVideoModels();
+    const ids = models.map((m) => m.id);
+
+    expect(ids).not.toContain(VIDEO_ENDPOINT);
+    expect(ids).toContain(`${VIDEO_ENDPOINT}/Proteus`);
+    expect(ids).toContain(`${VIDEO_ENDPOINT}/Starlight Precise 2.5`);
+    const proteus = models.find((m) => m.id === `${VIDEO_ENDPOINT}/Proteus`)!;
+    expect(proteus.supportedTasks).toEqual(["video_to_video"]);
+  });
+
+  it("sends the selected variant as `model` to the bare endpoint", async () => {
+    const ctx = recordingClient({ image: { url: "https://fal.ai/up.png" } });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await p.upscaleImage(new Uint8Array([1, 2]), {
+      model: {
+        id: `${IMAGE_ENDPOINT}/Redefine`,
+        name: "Topaz Redefine",
+        provider: "fal_ai"
+      },
+      scale: 4
+    } satisfies UpscaleImageParams);
+
+    expect(ctx.endpoint).toBe(IMAGE_ENDPOINT);
+    expect(ctx.input.model).toBe("Redefine");
+    expect(ctx.input.image_url).toBe("https://fal.media/u.bin");
+    expect(ctx.input.upscale_factor).toBe(4);
+  });
+
+  it("rescales 0–1 creativity onto Topaz's 1–6 level", async () => {
+    const ctx = recordingClient({ image: { url: "https://fal.ai/up.png" } });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await p.upscaleImage(new Uint8Array([1, 2]), {
+      model: {
+        id: `${IMAGE_ENDPOINT}/Redefine`,
+        name: "Topaz Redefine",
+        provider: "fal_ai"
+      },
+      creativity: 1
+    } satisfies UpscaleImageParams);
+
+    expect(ctx.input.creativity).toBe("6");
+  });
+
+  it("runs a bare Topaz endpoint id without a variant", async () => {
+    const ctx = recordingClient({ image: { url: "https://fal.ai/up.png" } });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await p.upscaleImage(new Uint8Array([1, 2]), {
+      model: { id: IMAGE_ENDPOINT, name: "Topaz", provider: "fal_ai" },
+      scale: 2
+    } satisfies UpscaleImageParams);
+
+    expect(ctx.endpoint).toBe(IMAGE_ENDPOINT);
+    expect(ctx.input.model).toBeUndefined();
+  });
+
+  it("sends the selected variant on the video endpoint", async () => {
+    const ctx = recordingClient({ video: { url: "https://fal.ai/up.mp4" } });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await p.videoToVideo(new Uint8Array([1, 2]), {
+      model: {
+        id: `${VIDEO_ENDPOINT}/Starlight Precise 2.5`,
+        name: "Topaz Starlight",
+        provider: "fal_ai"
+      }
+    } satisfies VideoToVideoParams);
+
+    expect(ctx.endpoint).toBe(VIDEO_ENDPOINT);
+    expect(ctx.input.model).toBe("Starlight Precise 2.5");
+    expect(ctx.input.video_url).toBe("https://fal.media/u.bin");
+  });
+});
