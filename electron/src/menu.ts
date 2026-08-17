@@ -60,6 +60,19 @@ const buildVaultSubmenu = (): MenuItemConstructorOptions[] => {
   ];
 };
 
+// The renderer owns the "Snap to Grid" setting (it is persisted with the rest
+// of the editor settings). The menu keeps a mirror so its checkbox shows the
+// real state; `setMenuSnapToGrid` is how the renderer pushes changes back.
+let snapToGridChecked = false;
+
+const setMenuSnapToGrid = (enabled: boolean) => {
+  if (snapToGridChecked === enabled) {
+    return;
+  }
+  snapToGridChecked = enabled;
+  buildMenu();
+};
+
 const buildMenu = () => {
   const mainWindow = getMainWindow();
   if (!mainWindow) {
@@ -269,6 +282,17 @@ const buildMenu = () => {
           },
         },
         { type: "separator" },
+        {
+          label: "Snap to Grid",
+          type: "checkbox",
+          checked: snapToGridChecked,
+          click: () => {
+            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+              type: "toggleSnapToGrid",
+            });
+          },
+        },
+        { type: "separator" },
         { role: "togglefullscreen" },
       ],
     },
@@ -374,4 +398,4 @@ Features & Versions
   }
 }
 
-export { buildMenu };
+export { buildMenu, setMenuSnapToGrid };

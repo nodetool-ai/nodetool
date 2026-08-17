@@ -536,18 +536,35 @@ if (!rootElement) throw new Error("Root element #root not found");
 const root = ReactDOM.createRoot(rootElement);
 
 /**
- * Routes Electron menu/tray "Settings" actions to the in-app settings tab.
- * The desktop shell sends an `openSettings` menu event (instead of opening a
- * separate window); the tab opens and the router singleton focuses the
- * workspace, which works from any route.
+ * Routes Electron menu/tray actions into the app.
+ *
+ * "Settings" opens the in-app settings tab (the desktop shell sends an
+ * `openSettings` menu event instead of opening a separate window); the tab
+ * opens and the router singleton focuses the workspace, which works from any
+ * route. "Snap to Grid" toggles the editor setting, and the setting is mirrored
+ * back so the View menu checkbox matches whichever surface changed it.
  */
 const MenuNavigationBridge = () => {
-  const handleMenuEvent = useCallback((data: MenuEventData) => {
-    if (data.type === "openSettings") {
-      openSettingsTab();
-    }
-  }, []);
+  const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
+  const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
+
+  const handleMenuEvent = useCallback(
+    (data: MenuEventData) => {
+      if (data.type === "openSettings") {
+        openSettingsTab();
+      }
+      if (data.type === "toggleSnapToGrid") {
+        setSnapToGrid(!useSettingsStore.getState().settings.snapToGrid);
+      }
+    },
+    [setSnapToGrid]
+  );
   useMenuHandler(handleMenuEvent);
+
+  useEffect(() => {
+    window.api?.setMenuSnapToGrid?.(snapToGrid);
+  }, [snapToGrid]);
+
   return null;
 };
 

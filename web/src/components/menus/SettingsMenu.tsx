@@ -200,6 +200,7 @@ function SettingsPage() {
 
   const settingsTab = SECTION_TO_TAB[section];
 
+  const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
   const setConnectionSnap = useSettingsStore(
     (state) => state.setConnectionSnap
@@ -382,6 +383,13 @@ function SettingsPage() {
       setSoundNotifications(checked);
     },
     [setSoundNotifications]
+  );
+
+  const handleSnapToGridChange = useCallback(
+    (checked: boolean) => {
+      setSnapToGrid(checked);
+    },
+    [setSnapToGrid]
   );
 
   const handleGridSnapChange = useCallback(
@@ -910,6 +918,18 @@ function SettingsPage() {
 
                       <SearchItem
                         search={generalSearch}
+                        keywords="canvas navigation grid snap align nodes"
+                      >
+                        <LabeledSwitch
+                          label="Snap to Grid"
+                          checked={!!settings.snapToGrid}
+                          onChange={handleSnapToGridChange}
+                          description="Align nodes to the canvas grid while dragging. Also in the View menu of the desktop app."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
                         keywords="canvas navigation grid snap precision"
                       >
                         <TextInput
@@ -920,11 +940,13 @@ function SettingsPage() {
                           label="Grid Snap Precision"
                           value={settings.gridSnap}
                           onChange={handleGridSnapChange}
+                          disabled={!settings.snapToGrid}
                           variant="standard"
                           size="small"
                         />
                         <Text className="description">
-                          Snap precision for moving nodes on the canvas.
+                          Grid size used when Snap to Grid is on. The canvas grid
+                          is drawn every 25 units.
                         </Text>
                       </SearchItem>
 

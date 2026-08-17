@@ -51,7 +51,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 | **Fit to screen** | Press `F` |
 | **Focus on selection** | Select nodes, then press `F` |
 | **Reset zoom** | `Ctrl/⌘ + 0` |
-| **Snap to grid** | Enable in View menu |
+| **Snap to grid** | Enable in the View menu, the command menu, or Settings |
 
 ---
 

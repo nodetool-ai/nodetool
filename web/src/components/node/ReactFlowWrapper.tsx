@@ -496,6 +496,7 @@ const ReactFlowWrapper = ({
   const edgeTypes = EDGE_TYPES;
 
   const {
+    snapToGrid,
     gridSnap,
     connectionSnap,
     panControls,
@@ -504,6 +505,7 @@ const ReactFlowWrapper = ({
     instantUpdate
   } = useSettingsStore(
     useShallow((state) => ({
+      snapToGrid: state.settings.snapToGrid,
       gridSnap: state.settings.gridSnap,
       connectionSnap: state.settings.connectionSnap,
       panControls: state.settings.panControls,
@@ -937,7 +939,7 @@ const ReactFlowWrapper = ({
         edges={processedEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        snapToGrid={true}
+        snapToGrid={snapToGrid}
         snapGrid={snapGrid}
         defaultViewport={storedViewport || undefined}
         onMoveEnd={handleMoveEnd}

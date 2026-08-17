@@ -235,6 +235,10 @@ const api = {
     menuEventUnsubscribers.delete(callback);
   },
 
+  /** Mirror the renderer's snap-to-grid setting onto the View menu checkbox. */
+  setMenuSnapToGrid: (enabled: boolean) =>
+    ipcRenderer.send(IpcChannels.MENU_SET_SNAP_TO_GRID, enabled),
+
   // ============================================================================
   // server: Server lifecycle, logs, and status
   // ============================================================================
@@ -591,6 +595,10 @@ const api = {
   menu: {
     /** Subscribe to menu events (cut, copy, paste, etc.) */
     onEvent: createEventSubscription(IpcChannels.MENU_EVENT),
+
+    /** Mirror the renderer's snap-to-grid setting onto the View menu checkbox. */
+    setSnapToGrid: (enabled: boolean) =>
+      ipcRenderer.send(IpcChannels.MENU_SET_SNAP_TO_GRID, enabled),
   },
 
   // ============================================================================
