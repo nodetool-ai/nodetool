@@ -3,7 +3,9 @@
  *
  * The Sketch Assistant is asked for a vignette and a warmer look; it calls
  * `ui_sketch_add_layer` and `ui_sketch_set_layer_props`, and the layer stack
- * changes under the real `SketchRenderer` as the calls land.
+ * changes in the real editor — toolbar, layers panel, status bar — as the
+ * calls land. The panel's row for the new layer is selected while the
+ * assistant works on it, the way it would be if you had added it yourself.
  *
  * Backend-free: the generated art is an inline SVG data URI, so replay never
  * paints a stroke or spends a credit.
@@ -18,7 +20,12 @@ import {
   toolRunning,
   userMessage
 } from "../chat/chatCastHelpers";
-import { patch, sketchDocument, sketchLayer } from "./docCastHelpers";
+import {
+  patch,
+  sketchCastDoc,
+  sketchDocument,
+  sketchLayer
+} from "./docCastHelpers";
 import { DOC_CAST_VERSION, type SketchDocCast } from "./docCastTypes";
 
 const WIDTH = 1024;
@@ -77,19 +84,39 @@ export const sketchAssistantCast: SketchDocCast = {
     provider: PROVIDER_IDS.ANTHROPIC
   },
 
-  doc: sketchDocument(WIDTH, HEIGHT, [base], base.id),
+  doc: sketchCastDoc(sketchDocument(WIDTH, HEIGHT, [base], base.id), {
+    activeTool: "select",
+    zoom: 1,
+    foregroundColor: "#f2b28c",
+    selectedLayerIds: [base.id]
+  }),
 
   events: [
     // The assistant's add_layer call lands: a new layer on top, still at full
     // strength and normal blend — deliberately wrong, so the fix reads.
     patch(5200, {
-      layers: [base, { ...vignette, opacity: 1, blendMode: "normal" }],
-      activeLayerId: vignette.id
+      document: sketchDocument(
+        WIDTH,
+        HEIGHT,
+        [base, { ...vignette, opacity: 1, blendMode: "normal" }],
+        vignette.id
+      ),
+      editor: {
+        activeTool: "select",
+        zoom: 1,
+        foregroundColor: "#f2b28c",
+        selectedLayerIds: [vignette.id]
+      }
     }),
-    // set_layer_props dials it in.
+    // set_layer_props dials it in: the panel's opacity and blend controls for
+    // the selected row are what changes.
     patch(9400, {
-      layers: [base, { ...vignette, opacity: 0.7, blendMode: "multiply" }],
-      activeLayerId: vignette.id
+      document: sketchDocument(
+        WIDTH,
+        HEIGHT,
+        [base, { ...vignette, opacity: 0.7, blendMode: "multiply" }],
+        vignette.id
+      )
     })
   ],
 

@@ -44,7 +44,7 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
     ],
     captions: [
       { fromMs: 600, toMs: 4800, text: "Say what you want changed — the assistant reads the layer stack you have." },
-      { fromMs: 5400, toMs: 9000, text: "It adds the layer itself: same tools you'd reach for, driven by the chat." },
+      { fromMs: 5400, toMs: 9000, text: "The new layer appears in the panel on the right, selected and ready." },
       { fromMs: 9600, toMs: 14600, text: "Then it dials in blend mode and opacity, and the canvas settles." },
     ],
     outroTitle: "Your canvas, your words",

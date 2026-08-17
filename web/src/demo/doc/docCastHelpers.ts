@@ -13,7 +13,11 @@ import {
   type SketchDocument
 } from "../../components/sketch/types";
 import type { ScriptLine, ScriptSection } from "../../stores/script/ScriptStore";
-import type { DocCastEvent } from "./docCastTypes";
+import type {
+  DocCastEvent,
+  SketchCastDoc,
+  SketchEditorCast
+} from "./docCastTypes";
 
 /** A timed shallow patch of the document root. */
 export const patch = <Doc>(t: number, patch: Partial<Doc>): DocCastEvent<Doc> => ({
@@ -47,6 +51,7 @@ export const sketchLayer = (
   ...overrides
 });
 
+/** The document half of a sketch cast frame — the layer stack and canvas. */
 export const sketchDocument = (
   width: number,
   height: number,
@@ -61,6 +66,12 @@ export const sketchDocument = (
   toolSettings: cloneDefaultToolSettings(),
   metadata: { createdAt: EPOCH, updatedAt: EPOCH }
 });
+
+/** One sketch cast frame: the document plus the editor chrome around it. */
+export const sketchCastDoc = (
+  document: SketchDocument,
+  editor: SketchEditorCast = {}
+): SketchCastDoc => ({ document, editor });
 
 // ── Script ──────────────────────────────────────────────────────────────────
 

@@ -56,6 +56,9 @@ export const TimelineScene: React.FC = () => {
         resolveAssetUrl={resolvePromoAsset}
         tracksHeightPx={tracksHeightPx}
         onPendingMedia={onPendingMedia}
+        // The promo draws its own prompt bar and headlines over the surface;
+        // the editor's own chrome would collide with them.
+        chrome={false}
       />
 
       <GenerateBar

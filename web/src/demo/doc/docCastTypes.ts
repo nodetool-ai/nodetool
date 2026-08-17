@@ -21,7 +21,10 @@
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import type { LanguageModel, Workflow } from "../../stores/ApiTypes";
-import type { SketchDocument } from "../../components/sketch/types";
+import type {
+  SketchDocument,
+  SketchTool
+} from "../../components/sketch/types";
 import type { JsScriptDocument } from "../../stores/jsScript/JsScriptStore";
 import type { ScriptDraft } from "../../stores/script/ScriptStore";
 import type { StoryboardBoard } from "../../stores/storyboard/StoryboardStore";
@@ -73,6 +76,33 @@ interface DocDemoCastBase<Surface extends DocSurface, Doc> {
   assistantTitle: string;
 }
 
+/**
+ * The sketch-editor chrome around the canvas: the toolbar's active tool and
+ * colors, the layers panel's multi-selection, the status bar's zoom and cursor
+ * readout. None of it lives in the document, so a cast that wants the tutorial
+ * to show a tool being picked carries it here.
+ */
+export interface SketchEditorCast {
+  activeTool?: SketchTool;
+  zoom?: number;
+  foregroundColor?: string;
+  backgroundColor?: string;
+  /** Layers highlighted in the panel beyond the document's `activeLayerId`. */
+  selectedLayerIds?: string[];
+  /** Cursor readout in document pixels, or null for "pointer is off-canvas". */
+  cursorDocPos?: { x: number; y: number } | null;
+}
+
+/**
+ * A sketch surface renders the document *and* the editor state around it, so
+ * the cast wraps both — a patch sets either half, the way the JS-script and
+ * app casts patch their own two-part documents.
+ */
+export interface SketchCastDoc {
+  document: SketchDocument;
+  editor?: SketchEditorCast;
+}
+
 /** The script store keys `id`/`updatedAt` itself, so a cast never sets them. */
 export type ScriptCastDoc = Omit<ScriptDraft, "id" | "updatedAt">;
 /** Same for the storyboard store. */
@@ -88,7 +118,7 @@ export interface AppCastDoc {
   workflow: Workflow;
 }
 
-export type SketchDocCast = DocDemoCastBase<"sketch", SketchDocument>;
+export type SketchDocCast = DocDemoCastBase<"sketch", SketchCastDoc>;
 export type ScriptDocCast = DocDemoCastBase<"script", ScriptCastDoc>;
 export type StoryboardDocCast = DocDemoCastBase<"storyboard", StoryboardCastDoc>;
 export type JsScriptDocCast = DocDemoCastBase<"jsscript", JsScriptCastDoc>;

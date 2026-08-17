@@ -60,7 +60,13 @@ export interface SketchInstance {
   saveInFlight: { current: boolean };
 }
 
-const createSketchInstance = (): SketchInstance => ({
+/**
+ * Build a fresh, isolated bundle of sketch stores. `SketchProvider` calls this
+ * for the surfaces a user edits in; the demo harness calls it directly so a
+ * replay engine can seed the stores it will provide (the timeline's
+ * `createTimelineInstance` exists for the same reason).
+ */
+export const createSketchInstance = (): SketchInstance => ({
   editor: createSketchStore(),
   session: createSketchSessionStore(),
   canvasRef: createSketchCanvasRefStore(),
@@ -129,14 +135,21 @@ interface SketchProviderProps {
    * button). Defaults to `true` for always-focused surfaces (page, modal).
    */
   active?: boolean;
+  /**
+   * Stores to provide instead of a fresh bundle. The demo harness passes the
+   * instance its replay engine already seeded; editor surfaces omit it.
+   */
+  instance?: SketchInstance;
   children: React.ReactNode;
 }
 
 export const SketchProvider = ({
   active = true,
+  instance: provided,
   children
 }: SketchProviderProps) => {
-  const instance = useMemo(() => createSketchInstance(), []);
+  const created = useMemo(() => createSketchInstance(), []);
+  const instance = provided ?? created;
 
   useEffect(() => {
     if (!active) return;

@@ -103,17 +103,34 @@ describe("document casts — the surfaces get their data", () => {
 
   it("sketch: the vignette layer is added, then dialed in", () => {
     const start = docStateAt(sketchAssistantCast, 0);
-    expect(start.layers).toHaveLength(1);
+    expect(start.document.layers).toHaveLength(1);
 
     const added = docStateAt(sketchAssistantCast, 6000);
-    expect(added.layers).toHaveLength(2);
-    expect(added.layers[1].blendMode).toBe("normal");
-    expect(added.activeLayerId).toBe("layer-vignette");
+    expect(added.document.layers).toHaveLength(2);
+    expect(added.document.layers[1].blendMode).toBe("normal");
+    expect(added.document.activeLayerId).toBe("layer-vignette");
 
     const settled = docStateAt(sketchAssistantCast, 12000);
-    expect(settled.layers[1].blendMode).toBe("multiply");
-    expect(settled.layers[1].opacity).toBeCloseTo(0.7);
-    expect(settled.layers[1].data).toContain("data:image/svg+xml");
+    expect(settled.document.layers[1].blendMode).toBe("multiply");
+    expect(settled.document.layers[1].opacity).toBeCloseTo(0.7);
+    expect(settled.document.layers[1].data).toContain("data:image/svg+xml");
+  });
+
+  it("sketch: the editor chrome follows the layer the assistant works on", () => {
+    // The panel highlights the row being edited, and a patch that touches only
+    // the document leaves the chrome where the previous patch put it.
+    expect(docStateAt(sketchAssistantCast, 0).editor?.selectedLayerIds).toEqual([
+      "layer-base"
+    ]);
+    expect(
+      docStateAt(sketchAssistantCast, 6000).editor?.selectedLayerIds
+    ).toEqual(["layer-vignette"]);
+    expect(
+      docStateAt(sketchAssistantCast, 12000).editor?.selectedLayerIds
+    ).toEqual(["layer-vignette"]);
+    expect(docStateAt(sketchAssistantCast, 12000).editor?.activeTool).toBe(
+      "select"
+    );
   });
 
   it("script: the store gets the cast, the lines, then a take on each line", () => {
