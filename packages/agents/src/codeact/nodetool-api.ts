@@ -16,6 +16,7 @@
 
 import { GRAPH_JSON_PRELUDE } from "../graph-dsl-core.js";
 import { GRAPH_DSL_PROMPT_SECTION } from "./graph-dsl-package.js";
+import { FLOW_PROMPT_SECTION } from "./flow-package.js";
 
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
@@ -1312,6 +1313,12 @@ interface NodetoolApiPromptOptions {
    * the allowlist and the catalog.
    */
   graphDsl?: boolean;
+  /**
+   * Whether this session can call nodes directly with
+   * `@nodetool-ai/sandbox-flow` — the pack is installed and on the
+   * allowlist. The caller decides it (`withFlowPackage`).
+   */
+  nativeFlow?: boolean;
 }
 
 export function buildNodetoolApiPromptSection(
@@ -1343,6 +1350,7 @@ fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
   if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
+  if (options.nativeFlow) sections.push(FLOW_PROMPT_SECTION);
   if (names.has("find_model") && names.has("generate_image")) {
     sections.push(MEDIA_EXAMPLE);
   }
