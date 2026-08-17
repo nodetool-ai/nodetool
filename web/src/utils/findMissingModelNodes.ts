@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import { UNSET_PROVIDER } from "@nodetool-ai/protocol";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { PROVIDER_MODEL_TYPES } from "./aiModelNodes";
@@ -10,12 +11,18 @@ export interface MissingModelNode {
   modelType: string;
 }
 
+/**
+ * True when a model field names no model: it needs both an id and a provider
+ * that is not the `"empty"` sentinel. A missing provider counts as unset —
+ * `validateNodeProperties` refuses `{ id: "gpt-4" }` with `unset_model` before
+ * the job row exists, so the run dies on a 400 unless this catches it first.
+ */
 export function isModelEmpty(value: unknown): boolean {
   if (!value) return true;
   if (typeof value !== "object") return false;
-  const hasId = "id" in value && !!value.id;
   const provider = "provider" in value ? value.provider : undefined;
-  return !hasId || provider === "empty" || provider === "";
+  const id = "id" in value ? value.id : undefined;
+  return !id || !provider || provider === UNSET_PROVIDER;
 }
 
 /**
