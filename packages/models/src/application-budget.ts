@@ -14,7 +14,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDbType } from "./db.js";
+import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
   applicationBudgets,
   applicationInvocations
@@ -405,8 +405,7 @@ export async function reserveInvocation(
   if (getDbType() === "sqlite") {
     // better-sqlite3 transactions must be fully synchronous; an async callback
     // returns a Promise the driver rejects.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.transaction((tx: any): Reservation => {
+    return db.transaction((tx: DbTransaction): Reservation => {
       const budgetRow = tx
         .select()
         .from(applicationBudgets)
@@ -458,16 +457,16 @@ export async function reserveInvocation(
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return db.transaction(async (tx: any): Promise<Reservation> => {
+  return db.transaction(async (tx: DbTransaction): Promise<Reservation> => {
     // Locking the budget row is what makes the read-then-write atomic: every
     // other admission for this app waits here until this one has written.
-    const [budgetRow] = await tx
-      .select()
-      .from(applicationBudgets)
-      .where(eq(applicationBudgets.application_id, input.applicationId))
-      .limit(1)
-      .for("update");
+    const [budgetRow] = await forUpdate(
+      tx
+        .select()
+        .from(applicationBudgets)
+        .where(eq(applicationBudgets.application_id, input.applicationId))
+        .limit(1)
+    );
     if (!budgetRow) {
       const [orphan] = await tx
         .insert(applicationInvocations)

@@ -37,6 +37,21 @@ interface ConsoleHandler {
   (msg: { type: string; text: string }): void;
 }
 
+/** A function shipped into the page context and called through CDP. */
+type PageFunction = (...args: never[]) => unknown;
+
+/** The `Runtime.consoleAPICalled` payload this page reads. */
+interface ConsoleApiEvent {
+  type?: string;
+  args?: Array<{ value?: unknown; description?: string }>;
+}
+
+/** The `Network.responseReceived` payload this page reads. */
+interface ResponseReceivedEvent {
+  type?: string;
+  response?: { status?: number };
+}
+
 export class CdpPage {
   private currentUrl = "about:blank";
   private currentTitle = "";
@@ -61,14 +76,14 @@ export class CdpPage {
       Console.enable?.()
     ]);
     const page = new CdpPage(client, viewport);
-    Runtime.consoleAPICalled((evt: any) => {
+    Runtime.consoleAPICalled((evt: ConsoleApiEvent) => {
       const text = (evt.args ?? [])
-        .map((a: any) => (a.value !== undefined ? String(a.value) : (a.description ?? "")))
+        .map((a) => (a.value !== undefined ? String(a.value) : (a.description ?? "")))
         .join(" ");
       const type = evt.type ?? "log";
       for (const h of page.consoleHandlers) h({ type, text });
     });
-    Network.responseReceived((evt: any) => {
+    Network.responseReceived((evt: ResponseReceivedEvent) => {
       if (evt.type === "Document") {
         page.lastNavStatus = evt.response?.status ?? null;
       }
@@ -181,8 +196,8 @@ export class CdpPage {
    * source, so untrusted strings cannot escape into executable code.
    */
   private async callFn<T = unknown>(
-    fn: (...args: any[]) => any,
-    ...args: any[]
+    fn: PageFunction,
+    ...args: unknown[]
   ): Promise<T> {
     const Runtime = this.client.Runtime;
     const globalRef = await Runtime.evaluate({ expression: "globalThis" });
@@ -217,8 +232,8 @@ export class CdpPage {
   }
 
   async evaluate<T = unknown>(
-    fnOrExpr: string | ((...args: any[]) => any),
-    ...args: any[]
+    fnOrExpr: string | PageFunction,
+    ...args: unknown[]
   ): Promise<T> {
     if (typeof fnOrExpr === "function") {
       return this.callFn<T>(fnOrExpr, ...args);
