@@ -17,7 +17,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 | `Ctrl/⌘ + S` | Save |
 | `F` | Fit view |
 | `Ctrl/⌘ + Z` | Undo |
-| `Alt/⌘ + K` | Command menu |
+| `Ctrl/⌘ + K` | Command menu |
 
 ---
 
@@ -126,7 +126,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 ### Command Menu
 
-Press `Alt/⌘ + K` to open the command menu – the fastest way to:
+Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 - Open any workflow by name
 - Switch views and panels
 - Access settings
@@ -230,7 +230,7 @@ Press `Alt/⌘ + K` to open the command menu – the fastest way to:
 | `Ctrl + D` | `⌘ + D` | Duplicate |
 | `F` | `F` | Fit to screen |
 | `A` | `A` | Align nodes |
-| `Alt + K` | `⌘ + K` | Command menu |
+| `Ctrl + K` | `⌘ + K` | Command menu |
 | `i` | `i` | Toggle Inspector |
 
 ---
