@@ -29,10 +29,13 @@ describe("FinishStepTool", () => {
       expect(tool.name).toBe("finish_step");
     });
 
-    it("has a non-empty description", () => {
+    it("describes the completion contract the model has to follow", () => {
       const tool = new FinishStepTool();
-      expect(tool.description).toBeTruthy();
-      expect(tool.description.length).toBeGreaterThan(0);
+      // A step finalizes only through this tool, so a model not told these
+      // rules emits a raw JSON block and the step fails on maxIterations.
+      expect(tool.description).toContain("ONLY way");
+      expect(tool.description).toContain("Do not output raw JSON blocks");
+      expect(tool.description).toContain("output schema");
     });
   });
 

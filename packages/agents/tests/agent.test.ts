@@ -739,6 +739,15 @@ describe("Agent", () => {
       [finishAction({ ok: true })]
     ]);
 
+    // Active skills have no public accessor, so the prompt the provider was
+    // handed is the only place the env-loaded skill is observable.
+    const sentToModel: string[] = [];
+    const generateMessages = provider.generateMessages.bind(provider);
+    provider.generateMessages = async function* (...args: unknown[]) {
+      sentToModel.push(JSON.stringify(args));
+      yield* generateMessages(...args);
+    };
+
     const savedEnv = process.env["NODETOOL_AGENT_SKILL_DIRS"];
     process.env["NODETOOL_AGENT_SKILL_DIRS"] = path.join(tmpDir, "env-skills");
     try {
@@ -757,6 +766,10 @@ describe("Agent", () => {
       }
 
       expect(agent.taskPlan).not.toBeNull();
+
+      const prompts = sentToModel.join("\n");
+      expect(prompts).toContain("env-skill");
+      expect(prompts).toContain("Env skill instructions.");
     } finally {
       if (savedEnv !== undefined) {
         process.env["NODETOOL_AGENT_SKILL_DIRS"] = savedEnv;

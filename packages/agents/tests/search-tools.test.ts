@@ -257,10 +257,13 @@ describe("GoogleNewsTool", () => {
     expect(calledUrl).toContain("engine=google_news");
   });
 
-  it("returns error when query is missing", async () => {
+  it("refuses a missing query, naming it, without reaching a backend", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "k" });
+    fetchSpy = stubFetch({});
     const result = (await tool.process(ctx, {})) as Record<string, unknown>;
-    expect(result.error).toBeDefined();
+    // The key is configured, so an unguarded call would spend a real request.
+    expect(result.error).toEqual(expect.stringContaining("keyword"));
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("throws when API key is missing", async () => {
@@ -341,10 +344,13 @@ describe("GoogleImagesTool", () => {
     expect(calledUrl).toContain("engine=google_images");
   });
 
-  it("returns error when query is missing", async () => {
+  it("refuses a missing query, naming it, without reaching a backend", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "k" });
+    fetchSpy = stubFetch({});
     const result = (await tool.process(ctx, {})) as Record<string, unknown>;
-    expect(result.error).toBeDefined();
+    // The key is configured, so an unguarded call would spend a real request.
+    expect(result.error).toEqual(expect.stringContaining("keyword"));
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("throws when API key is missing", async () => {
