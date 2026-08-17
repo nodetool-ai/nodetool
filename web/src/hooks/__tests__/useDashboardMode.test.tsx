@@ -30,17 +30,29 @@ describe("useDashboardMode", () => {
     expect(result.current).toBe("returning");
   });
 
-  it("answers from onboarding alone while the workflow list loads", () => {
+  it("holds the answer back while the workflow list loads", () => {
     const { result: newUser } = renderHook(() =>
       useDashboardMode({ workflowCount: 0, isLoadingWorkflows: true })
     );
-    expect(newUser.current).toBe("first-run");
+    expect(newUser.current).toBe("pending");
 
     act(() => useOnboardingStore.setState({ dismissed: true }));
     const { result: knownUser } = renderHook(() =>
       useDashboardMode({ workflowCount: 0, isLoadingWorkflows: true })
     );
     expect(knownUser.current).toBe("returning");
+  });
+
+  it("never answers first-run and then returning for one user", () => {
+    const { result, rerender } = renderHook(
+      (props: { workflowCount: number; isLoadingWorkflows: boolean }) =>
+        useDashboardMode(props),
+      { initialProps: { workflowCount: 0, isLoadingWorkflows: true } }
+    );
+    expect(result.current).toBe("pending");
+
+    rerender({ workflowCount: 7, isLoadingWorkflows: false });
+    expect(result.current).toBe("returning");
   });
 
   it("treats every step completed as finished, without a dismissal", () => {
