@@ -21,9 +21,9 @@ Vendoring exists so a rule that does not fit can go.
 
 ## Local edits
 
-`no-hand-written-any` is written here, not vendored. It reports `any` in
-annotation positions — parameters, returns, variables, properties, type
-arguments — and skips three things on purpose:
+`no-hand-written-any` is written here, not vendored, and is enforced across
+every tree. It reports `any` in annotation positions — parameters, returns,
+variables, properties, type arguments — and skips three things on purpose:
 
 - **`declare` class properties.** `declare postprocessing: any` is the ambient
   field the `@prop` decorator requires for a node property. It is 960 of the
@@ -59,7 +59,7 @@ in `npm run test:packages` via the root `test:oxlint-rules` script.
 
 ## How it is wired
 
-`.oxlintrc.anti-slop.json` registers the plugin and enables the nine rules with
+`.oxlintrc.anti-slop.json` registers the plugin and enables the eight rules with
 findings left, at `error`. It is a **separate config**, run only by
 `npm run lint:anti-slop`:
 
@@ -71,12 +71,12 @@ npm run lint:anti-slop   # whole repo, exits 1 while findings remain
 npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
 ```
 
-`npm run lint` and CI do not run it. The rules find 16,297 violations in the
+`npm run lint` and CI do not run it. The rules find 15,985 violations in the
 current tree, so folding them into the main gate would leave it permanently red.
 Treat this as a backlog to work down, not a merge blocker.
 
 `.oxlintrc.anti-slop-enforced.json` is the other half, run as part of
-`npm run lint` so what is won cannot regress. It carries the six rules at zero
+`npm run lint` so what is won cannot regress. It carries the seven rules at zero
 everywhere in its top-level `rules`, plus one generated override block per
 backlog rule listing the trees already at zero for it — regenerate those with
 `npm run lint:anti-slop:write`, never by hand. The two configs partition the
