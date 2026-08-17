@@ -3,9 +3,7 @@ import { memo, useMemo, useState, useRef, useEffect } from "react";
 
 import {
   LoadingSpinner,
-  Dialog,
   Box,
-  TextInput,
   BORDER_RADIUS,
   Modal,
   SPACING
@@ -95,13 +93,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [quickAddNodeOpen, setQuickAddNodeOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
-  const {
-    packageNameDialogOpen,
-    packageNameInput,
-    setPackageNameInput,
-    handleSaveExampleConfirm,
-    handleSaveExampleCancel
-  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+  useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   const { missing: missingRuntimes } = useWorkflowRuntimeCheck(workflowId);
   // Let the user dismiss the install prompt without acting on it.
@@ -254,34 +246,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           )}
         </Box>
       </EditorUiProvider>
-
-      {/* Package Name Dialog */}
-      <Dialog
-        open={packageNameDialogOpen}
-        onClose={handleSaveExampleCancel}
-        maxWidth="sm"
-        fullWidth
-        title="Save example"
-        onConfirm={handleSaveExampleConfirm}
-        onCancel={handleSaveExampleCancel}
-        confirmText="Save"
-        cancelText="Cancel"
-      >
-        <TextInput
-          autoFocus
-          margin="dense"
-          label="Package Name"
-          fullWidth
-          variant="outlined"
-          value={packageNameInput}
-          onChange={(e) => setPackageNameInput(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === "Enter") {
-              handleSaveExampleConfirm();
-            }
-          }}
-        />
-      </Dialog>
 
       <RuntimeInstallDialog
         missing={missingRuntimes}

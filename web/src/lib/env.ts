@@ -51,7 +51,6 @@ export const isLocalhost: boolean = (() => {
   );
 })();
 
-export const isDevelopment = isLocalhost;
 export const isProduction = !isLocalhost;
 export const isElectron = browserIsElectron;
 

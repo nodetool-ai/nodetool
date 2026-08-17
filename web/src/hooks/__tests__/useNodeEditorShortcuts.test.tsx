@@ -51,7 +51,6 @@ jest.mock("../../stores/NodeMenuStore", () => ({
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: <T,>(
     selector: (state: {
-      saveExample: () => Promise<void>;
       removeWorkflow: () => void;
       getCurrentWorkflow: () => null;
       openWorkflows: Array<{ id: string }>;
@@ -60,7 +59,6 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
     }) => T
   ) =>
     selector({
-      saveExample: async () => Promise.resolve(),
       removeWorkflow: jest.fn(),
       getCurrentWorkflow: () => null,
       openWorkflows: [],
