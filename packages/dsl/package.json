@@ -37,7 +37,8 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/config": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
