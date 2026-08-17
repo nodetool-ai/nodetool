@@ -562,7 +562,7 @@ The mechanisms that make the above stick:
 | Tests required | CI workflow `test.yml` |
 | Coverage targets | `npm run test:coverage` + **target** Codecov gate |
 | Security advisories | `npm audit` in `security-audit.yaml` |
-| Type safety | `type-safety.yaml` workflow |
+| Type safety | `anti-slop/no-hand-written-any` in `npm run lint`; `type-safety.yaml` for `as any` and missing return types |
 | Quality | `quality-checks.yml`, `quality-guard.yml`, `quality-assurance.yaml` |
 | Dead code | `dead-code-cleanup.yaml` |
 | Bundle size | **target** size-limit CI step |

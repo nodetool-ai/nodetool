@@ -81,7 +81,7 @@ see below.
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
 | `shipped-feature-inliner.yaml` | Scheduled agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
 | `test-coverage.yaml` | Scheduled agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
-| `type-safety.yaml` | Scheduled agent removes `any`, tightens types | none/maintenance | Advisory (`continue-on-error`) |
+| `type-safety.yaml` | Scheduled agent removes `as any` and adds missing return types in `web`/`electron`/`mobile` — what the anti-slop ratchet does not hold | none/maintenance | Advisory (`continue-on-error`) |
 | `ui-primitives-compliance.yaml` | Scheduled agent migrates raw MUI imports to `ui_primitives/`, fixes hardcoded design tokens | none/maintenance | Advisory (`continue-on-error`) |
 | `useless-test-pruner.yaml` | Scheduled agent deletes or strengthens tests proven unable to fail under mutation | none/maintenance | Advisory (`continue-on-error`) |
 | `workflow-example-validation.yaml` | Weekly `nodetool validate` + repair of shipped example workflows | none/maintenance | Advisory (`continue-on-error`) |

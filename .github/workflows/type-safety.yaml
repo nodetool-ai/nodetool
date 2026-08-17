@@ -41,13 +41,17 @@ jobs:
           echo "## Type Safety Scan" >> $GITHUB_STEP_SUMMARY
           ISSUES=0
 
-          ANY_COUNT=$(grep -r ": any" web/src electron/src mobile/src --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l || echo 0)
-          echo "Files with explicit 'any' types: $ANY_COUNT" >> $GITHUB_STEP_SUMMARY
-          if [ "$ANY_COUNT" -gt 0 ]; then ISSUES=1; fi
-
-          AS_ANY_COUNT=$(grep -r "as any" web/src electron/src mobile/src --include="*.ts" --include="*.tsx" -l 2>/dev/null | wc -l || echo 0)
-          echo "Files with 'as any' casts: $AS_ANY_COUNT" >> $GITHUB_STEP_SUMMARY
-          if [ "$AS_ANY_COUNT" -gt 0 ]; then ISSUES=1; fi
+          # `: any` is deliberately not scanned. anti-slop/no-hand-written-any
+          # holds it at zero in all three of these trees and `npm run lint`
+          # enforces it on every PR, so there is nothing here left to find. A
+          # grep for it now matches only prose and identifiers like `anyType`
+          # (20 such lines in web/src, 0 real annotations), which would pin
+          # this gate open for reasons no agent can fix.
+          AS_ANY=$(grep -rn "as any" web/src electron/src mobile/src \
+            --include="*.ts" --include="*.tsx" 2>/dev/null \
+            | grep -cvE ':[0-9]+:[[:space:]]*(//|\*|/\*)' || true)
+          echo "\`as any\` assertions: $AS_ANY" >> $GITHUB_STEP_SUMMARY
+          if [ "$AS_ANY" -gt 0 ]; then ISSUES=1; fi
 
           echo "TYPE_ISSUES=$ISSUES" >> $GITHUB_ENV
 
@@ -64,7 +68,7 @@ jobs:
           echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
 
       - name: Run Claude Code
-        if: env.TYPE_ISSUES == '1'
+        if: env.TYPE_ISSUES == '1' || github.event_name == 'workflow_dispatch'
         uses: anthropics/claude-code-action@v1.0.189
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -77,7 +81,9 @@ jobs:
           prompt: |
             # Improve Type Safety
 
-            Find and fix weak TypeScript types in the NodeTool codebase.
+            Fix the two weak-type problems in `web/`, `electron/` and `mobile/`
+            that no lint rule holds today. Everything else in this area is
+            already ratcheted — do not re-do the ratchet's work.
 
             ## Scope
             - `/web/src` — React frontend
@@ -86,37 +92,67 @@ jobs:
 
             ## What to fix
 
-            **Replace `any` types**: Search for `: any`, `as any`, `any[]`, `Record<string, any>`, and `Promise<any>`. Replace with proper types by reading the surrounding code to understand what the actual type should be.
+            **`as any` assertions.** `anti-slop/require-safety-comment-for-type-assertion`
+            is at zero in only 9 of 58 trees, and these three are not among
+            them, so nothing stops an `as any` landing here. All 478 of them
+            sit in test files; production code in these trees has none. So this
+            is about typing the doubles, not the code under test:
 
-            **Add missing return types**: Functions and methods that are missing explicit return type annotations. Focus on exported functions and public methods.
+            - A mocked zustand hook takes `selectorOver(state)` from
+              `web/src/test-utils/doubles.ts`, not `(s: any) => s(state)`.
+            - A partial fixture (`{} as any`, `{title: "x"} as any`) gets the
+              real type with the fields the component reads, or a factory in
+              `doubles.ts` when the shape repeats.
+            - `(global as any).fetch = …` and friends: declare the member
+              instead of asserting over it.
+            - An assertion that is genuinely load-bearing — a test deliberately
+              passing an invalid value to assert the runtime handles it — stays,
+              with a one-line comment saying why. That is the form the rule will
+              ask for when it reaches these trees.
 
-            **Replace type assertions with type guards**: Where `as SomeType` is used, consider if a type guard (`if ('prop' in obj)` or `instanceof`) would be safer.
+            **Missing return type annotations** on exported functions and public
+            methods. `anti-slop/no-unknown-returns` reports a return typed
+            `unknown`, not one typed nothing, so this is uncovered too.
 
-            **Fix loose generic types**: Replace `Array<any>` with properly typed arrays. Replace `Record<string, any>` with specific interfaces.
+            Replacing `as SomeType` with a type guard (`'prop' in obj`,
+            `instanceof`) counts as fixing it, when the guard is honest.
+
+            ## Do not fix here
+            - `: any`, `any[]`, `Promise<any>`, `Record<string, any>` —
+              `anti-slop/no-hand-written-any` holds these at zero in every tree
+              and `npm run lint` enforces it on every PR. If you find one, the
+              rule has a hole; report it in the PR body instead of patching the
+              site.
 
             ## Rules
             - Only fix types you can verify are correct. Do not guess types — read the usage sites.
             - Do not touch `@ts-expect-error` / `@ts-ignore` directives — these exist for cross-library compatibility.
             - Do not change runtime behavior. Type changes should be compile-time only.
+            - Do not weaken a test to make it type-check. If typing a double makes
+              an assertion fail, the assertion was testing a payload the app
+              cannot produce — fix the fixture and say so in the PR body.
             - Do not touch CI workflow files.
             - Keep changes focused — maximum 10 files per PR.
-            - Prioritize: exported APIs > internal functions > local variables.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a type safety PR is already open.
-            - Pick the 5-10 worst offenders (most `any` usage or most impactful files).
+            - Pick the 5-10 files with the most `as any` lines.
 
             ## Verification
             After changes, all checks must still pass:
             ```bash
             npm run typecheck && npm run lint && npm run test
             ```
+            `electron/tsconfig.json` does not cover `src/__tests__`, so
+            `npm run typecheck` reads none of the electron test files you edit —
+            only `npm run test` (through ts-jest) does. A green typecheck there
+            proves nothing about them.
 
             ## Submit
             Create a PR titled "types: improve type safety in <area>" listing each file changed and what types were improved.
 
       - name: Post-change verification
-        if: always() && env.TYPE_ISSUES == '1'
+        if: always() && (env.TYPE_ISSUES == '1' || github.event_name == 'workflow_dispatch')
         run: |
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
           npm run typecheck 2>&1 || TYPECHECK_EXIT=1

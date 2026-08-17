@@ -367,13 +367,28 @@ type-alias body or a type-parameter default, neither of which is an annotation.
 exact and pinned by test — `Record<string, any[]>` has an array value type, so
 the dictionary rule classifies nothing and the `any` is this rule's to report.
 
-`type-safety.yaml` is untouched here, and the case for narrowing it is now
-concrete rather than a matter of taste: its `: any` half is redundant, since the
-ratchet holds that at zero in all three trees it targets. What it still covers
-that nothing else does is missing return annotations — `no-unknown-returns`
-reports a return typed `unknown`, not one typed nothing — and `as any`, which is
-`require-safety-comment-for-type-assertion`'s and sits at 9 of 58 trees. That is
-a separate change.
+`.github/workflows/type-safety.yaml` is now narrowed to what the ratchet does
+**not** hold. Its `: any` half was redundant the moment the rule reached zero in
+all three trees it targets, and worse than redundant as a gate: a grep for
+`: any` in `web/src` matches twenty lines and every one of them is prose or an
+identifier named `anyType`, so the scan could never reach zero and the job ran
+on a signal no agent could clear. That half is gone, with the reason written at
+the scan step so nobody adds it back.
+
+What is left is the two things nothing else reports. **Missing return
+annotations** — `no-unknown-returns` reports a return typed `unknown`, not one
+typed nothing. And **`as any`**, which belongs to
+`require-safety-comment-for-type-assertion`, still at 9 of 58 trees with
+`web/`, `electron/` and `mobile/` outside that set. There are 478 of them
+across the three, and — exactly as with `no-hand-written-any` — **every one is
+in a test file**; the single production hit is a comment containing the words
+"has any". So the prompt now says what the fix is: type the double in
+`web/src/test-utils/doubles.ts`, keep a deliberately-invalid fixture with a
+comment saying why, and never weaken an assertion to make it compile.
+
+The gate flips both directions now, which the old one could not: run the scan
+step against a tree with no assertion and it reports `TYPE_ISSUES=0`; add one
+`as any` and it reports 1.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what
