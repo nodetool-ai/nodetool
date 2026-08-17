@@ -485,6 +485,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     [layers]
   );
   const layerRows = useMemo(() => buildLayersPanelRows(layers), [layers]);
+  // Rows render in tree order, so recovering each row's index with
+  // `layers.indexOf` made a single render quadratic in the layer count.
+  const layerRealIndexById = useMemo(() => {
+    const index = new Map<string, number>();
+    layers.forEach((layer, i) => index.set(layer.id, i));
+    return index;
+  }, [layers]);
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -898,6 +905,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     [layers, activeLayerId]
   );
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
+  const selectedLayerIdSet = useMemo(
+    () => new Set(selectedLayerIds),
+    [selectedLayerIds]
+  );
   const layerIdsInDoc = useMemo(
     () => new Set(layers.map((l) => l.id)),
     [layers]
@@ -1181,12 +1192,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         }}
       >
         {layerRows.map(({ layer, depth }) => {
-          const realIdx = layers.indexOf(layer);
+          const realIdx = layerRealIndexById.get(layer.id) ?? -1;
           const isPaintTarget = layer.id === activeLayerId;
-          const isRowSelected =
-            selectedLayerIds.length >= 2
-              ? selectedLayerIds.includes(layer.id)
-              : layer.id === activeLayerId;
+          const isRowSelected = hasMultiLayerSelection
+            ? selectedLayerIdSet.has(layer.id)
+            : layer.id === activeLayerId;
           return (
             <LayerItem
               key={layer.id}

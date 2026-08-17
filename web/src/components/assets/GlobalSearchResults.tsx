@@ -210,6 +210,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     (state) => state.selectedAssets
   );
   const { isSearching } = useAssetSearch();
+  // The result list is not virtualized, so the per-result selection test below
+  // runs over every hit.
+  const selectedAssetIdSet = useMemo(
+    () => new Set(selectedAssetIds),
+    [selectedAssetIds]
+  );
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
@@ -426,7 +432,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           data-testid="global-search-results-list"
         >
           {results.map((asset) => {
-            const isSelected = selectedAssetIds.includes(asset.id);
+            const isSelected = selectedAssetIdSet.has(asset.id);
             const assetType = getAssetType(asset.content_type);
             const assetSize = asset.size;
             const hasVisualContent =
