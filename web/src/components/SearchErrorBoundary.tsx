@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
 import { EditorButton, Text, Box, BORDER_RADIUS } from "./ui_primitives";
+import ReportBugButton from "./support/ReportBugButton";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -104,6 +105,15 @@ class SearchErrorBoundary extends Component<
           >
             Try Again
           </EditorButton>
+          <ReportBugButton
+            label="Report a bug"
+            context={{
+              source: "panel-crash",
+              summary: this.props.fallbackTitle || "Search error",
+              errorText: this.state.error?.message,
+              stackTrace: this.state.error?.stack
+            }}
+          />
         </Box>
       );
     }

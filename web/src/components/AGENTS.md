@@ -79,6 +79,45 @@ If no existing primitive fits your use case:
 - Don't create new inline objects/functions in JSX when passing to memoized children.
 - Co-locate tests in `__tests__/` subdirectories next to source files.
 
+## Error surfaces must reach the bug-report dialog
+
+Anything a user sees when something failed — an error box, a crashed panel, a
+failed job, an error notification — carries a Report control that opens the
+dialog in `components/support/`. A new error surface without one is a dead end:
+the user reads a stack trace they cannot send anywhere.
+
+Wire it with `ReportBugButton` (or `openBugReport()` from
+`stores/BugReportStore` when you are inside a class error boundary):
+
+```tsx
+<ReportBugButton
+  context={{
+    source: "panel-crash",
+    summary: "Assets panel failed to render",
+    errorText: error.message,
+    stackTrace: error.stack
+  }}
+/>
+```
+
+`source` picks the label and the issue title; the rest is optional. Already
+wired: `NodeErrors`, `ErrorBoundary`, `PanelErrorBoundary`,
+`SearchErrorBoundary`, `NotificationButton` (error notifications), `JobItem`,
+the metadata boot-failure screen in `index.tsx`, and the command menu.
+
+Two rules for the payload:
+
+- **The dialog cannot read editor-scoped stores.** It mounts at the app root,
+  outside `NodeContext`, so anything only the surface can see — a node's
+  properties, its wiring — travels in `context.nodeDetail` as formatted text.
+- **Redaction happens in `utils/bugReportBundle.ts`, not at the call site.**
+  Pass the real error text; `redactSecretsInText` strips credential shapes and
+  `redactDeep` drops secret-keyed values out of the graph. If you find a
+  credential format that survives, add the pattern there with a test.
+
+The user-facing flow is documented in
+[docs/troubleshooting.md](../../../docs/troubleshooting.md#report-a-bug-from-inside-nodetool).
+
 ## Node editor pitfalls
 
 From shipped fixes in `node_editor/`, `node/`, and the Inspector:

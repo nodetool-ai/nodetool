@@ -7,6 +7,7 @@ import { ThemeProvider } from "@mui/material";
 import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { openBugReport } from "./stores/BugReportStore";
 
 const errorBoundaryStyles = (theme: Theme) =>
   css({
@@ -186,6 +187,15 @@ const ErrorBoundary: React.FC = () => {
 
   const fullErrorText = `${errorMessage}\n\n${stackTrace}`;
 
+  const handleReport = () => {
+    openBugReport({
+      source: "app-crash",
+      summary: errorMessage,
+      errorText: errorMessage,
+      stackTrace: stackTrace ?? undefined
+    });
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(fullErrorText).then(() => {
       setCopied(true);
@@ -214,6 +224,14 @@ const ErrorBoundary: React.FC = () => {
               className="reload-button"
             >
               Reload page
+            </EditorButton>
+            <EditorButton
+              variant="outlined"
+              size="large"
+              onClick={handleReport}
+              className="copy-error-button"
+            >
+              Report a bug
             </EditorButton>
             <EditorButton
               variant="outlined"
