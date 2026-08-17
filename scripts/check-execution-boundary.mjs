@@ -44,8 +44,10 @@ const ALWAYS_ALLOWED_PACKAGES = new Set(["kernel", "execution"]);
 // `getWorkflowRuntimeEnvironment`/`getRuntimeEnvironment` helper (a third
 // executor-resolution pattern, per the execution package README's inventory
 // table) — a separate migration, not part of A5, so they stay listed.
+// `packages/agents/src/agent-workflow-runner.ts` was flattened into
+// `execute-agent-graph.ts`, which now runs its graph through
+// `ExecutionSession` — the entry is dropped, not renamed onto the new path.
 const ALLOWLIST = new Set([
-  "packages/agents/src/agent-workflow-runner.ts",
   "packages/core-nodes/src/nodes/run-inner-graph.ts",
   "packages/dsl/src/core.ts",
   "packages/websocket/src/mcp-server.ts",

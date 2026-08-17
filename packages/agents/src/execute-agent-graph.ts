@@ -1,16 +1,17 @@
 /**
- * executeAgentGraph -- executes a graph plan via the kernel's WorkflowRunner.
+ * executeAgentGraph -- executes a graph plan through `ExecutionSession`.
  *
- * Takes a GraphData (produced by `authorGraph`) and runs it through the
- * kernel. Every node resolves through the provided NodeRegistry. Authored
- * Agent nodes carry no execution policy of their own; the run's model, system
- * prompt, and turn budget are stamped onto them and its live tool set is
- * injected into the context, so they run like any hand-placed Agent node.
+ * Takes a GraphData (produced by `authorGraph`) and runs it on the kernel via
+ * the execution facade. Every node resolves through the provided NodeRegistry.
+ * Authored Agent nodes carry no execution policy of their own; the run's
+ * model, system prompt, and turn budget are stamped onto them and its live
+ * tool set is injected into the context, so they run like any hand-placed
+ * Agent node.
  */
 
-import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { ExecutionSession, toRawGraphInput } from "@nodetool-ai/execution";
 import {
-  hydrateGraphNodeFlags,
+  createGraphNodeTypeResolver,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
@@ -23,7 +24,6 @@ import type {
 import { createLogger } from "@nodetool-ai/config";
 import { AGENT_NODE_TYPE } from "./graph-builder.js";
 import type { Tool } from "./tools/base-tool.js";
-import { randomUUID } from "node:crypto";
 import { isString } from "./utils/type-guards.js";
 
 const log = createLogger("nodetool.agents.workflow-runner");
@@ -123,7 +123,6 @@ export async function* executeAgentGraph(
   graphData: GraphData,
   opts: ExecuteAgentGraphOptions
 ): AsyncGenerator<ProcessingMessage> {
-  const jobId = randomUUID();
   const { provider, model, registry, tools, context } = opts;
 
   // Agent nodes select tools by name; only the caller holds the wired
@@ -139,6 +138,14 @@ export async function* executeAgentGraph(
   });
   runContext.setInjectedTools(tools);
 
+  // Forward to the parent so callers reading the shared context's queue and
+  // listeners see the graph run; the session's own stream feeds this
+  // generator. Monkeypatching `emit` on the shared context raced any other
+  // execution holding the same context — whichever run restored last won.
+  const removeListener = runContext.addMessageListener((message) => {
+    context.emit(message);
+  });
+
   const resolvedGraph = applyRunPolicy(graphData, {
     providerId: provider.provider,
     modelId: model,
@@ -147,91 +154,49 @@ export async function* executeAgentGraph(
     maxTokens: opts.maxTokens
   });
 
-  const runner = new WorkflowRunner(jobId, {
-    resolveExecutor: (node: { id: string; type: string }) =>
-      registry.resolve(node),
-    executionContext: runContext
+  // Planned graphs carry no behavior flags; the facade stamps them from the
+  // registry. `resolveNodeType` is what also resolves `propertyTypes`, without
+  // which every `list[...]` handle reads as non-list — see
+  // packages/execution/tests/execution-session-hydration-audit.test.ts.
+  const session = await ExecutionSession.create({
+    graph: toRawGraphInput(resolvedGraph),
+    registry,
+    resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
+    context: runContext,
+    params: opts.inputs ?? {},
+    captureMessages: true
   });
-
-  log.info("Executing agent graph", {
-    jobId,
-    nodes: resolvedGraph.nodes.length,
-    edges: resolvedGraph.edges.length
-  });
-
-  // Stream kernel messages live to our generator through the documented
-  // listener API. Monkeypatching `emit` on the shared context raced any other
-  // execution holding the same context — whichever run restored last won.
-  const queue: ProcessingMessage[] = [];
-  let waiter: (() => void) | null = null;
-  const wake = (): void => {
-    const w = waiter;
-    waiter = null;
-    w?.();
-  };
-  const removeListener = runContext.addMessageListener(
-    (msg: ProcessingMessage) => {
-      // Forward to the parent so callers reading the shared context's queue
-      // and listeners see the graph run, then feed this generator.
-      context.emit(msg);
-      queue.push(msg);
-      wake();
-    }
-  );
 
   // An outer abort must stop the kernel run itself — without this the graph
   // keeps executing (and burning provider calls) until it finishes on its
   // own, since nothing else observes the signal.
   const signal = opts.signal;
-  const onAbort = (): void => runner.cancel();
-  if (signal?.aborted) runner.cancel();
+  const onAbort = (): void => session.cancel("cancelled");
+  if (signal?.aborted) session.cancel("cancelled");
   else signal?.addEventListener("abort", onAbort, { once: true });
 
-  let runError: unknown = null;
-  let done = false;
-  const runPromise = runner
-    .run(
-      { job_id: jobId, params: opts.inputs },
-      // Planned graphs carry no behavior flags; stamp them from the
-      // registry so streaming nodes run streaming.
-      hydrateGraphNodeFlags(resolvedGraph, registry)
-    )
-    .catch((err) => {
-      runError = err;
-      return undefined;
-    })
-    .finally(() => {
-      done = true;
-      wake();
-    });
+  log.info("Executing agent graph", {
+    jobId: session.jobId,
+    nodes: resolvedGraph.nodes.length,
+    edges: resolvedGraph.edges.length
+  });
 
+  let drained = false;
   try {
-    while (true) {
-      while (queue.length > 0) {
-        yield queue.shift()!;
-      }
-      if (done) break;
-      await new Promise<void>((resolve) => {
-        waiter = resolve;
-      });
+    for await (const message of session.messages) {
+      yield message;
     }
+    drained = true;
   } finally {
     removeListener();
     signal?.removeEventListener("abort", onAbort);
-    if (!done) {
-      runner.cancel();
-      await runPromise;
-    }
+    // A consumer that stops early (a `break`, or a throw upstream) leaves the
+    // run executing and billing. The stream only closes when the run settles,
+    // so anything short of a full drain means the caller walked away.
+    if (!drained) session.cancel("cancelled");
   }
 
-  if (runError) {
-    throw runError instanceof Error ? runError : new Error(String(runError));
-  }
-
-  const result = await runPromise;
-  if (!result) {
-    throw new Error("Workflow execution produced no result");
-  }
+  const result = await session.result;
 
   if (result.status === "failed") {
     throw new Error(result.error ?? "Workflow execution failed");
@@ -249,7 +214,7 @@ export async function* executeAgentGraph(
   }
 
   log.info("Agent graph execution complete", {
-    jobId,
+    jobId: session.jobId,
     status: result.status,
     outputKeys: Object.keys(result.outputs)
   });

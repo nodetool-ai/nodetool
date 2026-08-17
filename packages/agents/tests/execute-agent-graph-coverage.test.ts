@@ -3,17 +3,25 @@ import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 /**
- * executeAgentGraph drives the kernel's WorkflowRunner over a planned graph.
- * We mock the kernel so no real actor runtime spins up: a module-level
- * `runBehavior` lets each test decide what `runner.run` does (emit live
- * messages via the intercepted context.emit, resolve a result, reject, etc.),
- * and we capture every constructed runner to inspect the wiring (jobId,
- * resolveExecutor, executionContext).
+ * executeAgentGraph drives a planned graph through `ExecutionSession`, the one
+ * facade that constructs the kernel's WorkflowRunner. We mock the facade so no
+ * real actor runtime spins up: a module-level `runBehavior` lets each test
+ * decide what the run does (emit live messages via the run context, resolve a
+ * result, reject), and we capture every created session to inspect the wiring
+ * (graph, registry, context, params).
  */
 
-interface RunnerCtorOpts {
-  resolveExecutor: (node: { id: string; type: string }) => unknown;
-  executionContext: { emit: (m: ProcessingMessage) => void };
+interface MockContext {
+  emit: (m: ProcessingMessage) => void;
+  addMessageListener: (l: (m: ProcessingMessage) => void) => () => void;
+}
+
+interface CreateOptions {
+  graph: { nodes: Array<Record<string, unknown>>; edges: unknown[] };
+  registry: unknown;
+  context: MockContext;
+  params: Record<string, unknown>;
+  captureMessages: boolean;
 }
 
 interface RunResult {
@@ -23,47 +31,90 @@ interface RunResult {
   messages?: ProcessingMessage[];
 }
 
-const runnerInstances: Array<{
+const sessionInstances: Array<{
   jobId: string;
-  opts: RunnerCtorOpts;
-  runArgs: unknown[];
-  cancelCount?: number;
+  options: CreateOptions;
+  cancelCount: number;
 }> = [];
 
 let runBehavior: (
-  ctx: { emit: (m: ProcessingMessage) => void },
-  params: unknown,
+  ctx: MockContext,
+  params: Record<string, unknown>,
   graph: unknown
-) => Promise<RunResult | undefined>;
+) => Promise<RunResult>;
 
-vi.mock("@nodetool-ai/kernel", () => ({
-  WorkflowRunner: class {
-    jobId: string;
-    opts: RunnerCtorOpts;
-    constructor(jobId: string, opts: RunnerCtorOpts) {
-      this.jobId = jobId;
-      this.opts = opts;
-      runnerInstances.push({ jobId, opts, runArgs: [] });
+vi.mock("@nodetool-ai/execution", () => {
+  /**
+   * Mirrors the facade's observable contract: messages emitted on the run
+   * context are queued into `messages`, the stream closes once the run
+   * settles, and `result` carries the terminal RunResult.
+   */
+  class FakeExecutionSession {
+    readonly jobId: string;
+    readonly result: Promise<RunResult>;
+    private readonly queue: ProcessingMessage[] = [];
+    private readonly record: (typeof sessionInstances)[number];
+    private waiter: (() => void) | null = null;
+    private closed = false;
+
+    constructor(options: CreateOptions) {
+      this.jobId = `job-${sessionInstances.length + 1}`;
+      this.record = { jobId: this.jobId, options, cancelCount: 0 };
+      sessionInstances.push(this.record);
+
+      const unsubscribe = options.context.addMessageListener((message) => {
+        this.queue.push(message);
+        this.wake();
+      });
+      this.result = runBehavior(
+        options.context,
+        options.params,
+        options.graph
+      ).finally(() => {
+        this.closed = true;
+        unsubscribe();
+        this.wake();
+      });
+      // The real facade always keeps a handler on its result promise.
+      this.result.catch(() => undefined);
     }
-    async run(params: unknown, graph: unknown): Promise<RunResult | undefined> {
-      const inst = runnerInstances[runnerInstances.length - 1];
-      inst.runArgs = [params, graph];
-      return runBehavior(this.opts.executionContext, params, graph);
+
+    private wake(): void {
+      const w = this.waiter;
+      this.waiter = null;
+      w?.();
     }
+
+    get messages(): AsyncIterable<ProcessingMessage> {
+      const self = this;
+      return {
+        async *[Symbol.asyncIterator]() {
+          for (;;) {
+            while (self.queue.length > 0) {
+              yield self.queue.shift()!;
+            }
+            if (self.closed) return;
+            await new Promise<void>((resolve) => {
+              self.waiter = resolve;
+            });
+          }
+        }
+      };
+    }
+
     cancel(): void {
-      const inst = runnerInstances[runnerInstances.length - 1];
-      inst.cancelCount = (inst.cancelCount ?? 0) + 1;
+      this.record.cancelCount += 1;
     }
   }
-}));
 
-const hydrateSpy = vi.fn((g: unknown) => ({
-  ...(g as object),
-  __hydrated: true
-}));
-vi.mock("@nodetool-ai/node-sdk", () => ({
-  hydrateGraphNodeFlags: hydrateSpy
-}));
+  return {
+    toRawGraphInput: (graph: unknown) => graph,
+    ExecutionSession: {
+      create: async (options: CreateOptions) =>
+        new FakeExecutionSession(options)
+    }
+  };
+});
 
 // Import AFTER mocks are registered.
 const { executeAgentGraph } = await import("../src/execute-agent-graph.js");
@@ -95,14 +146,16 @@ const msg = (
   extra: Record<string, unknown> = {}
 ): ProcessingMessage => ({ type, ...extra }) as unknown as ProcessingMessage;
 
+/** Lets a started generator get past the async `ExecutionSession.create`. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 beforeEach(() => {
-  runnerInstances.length = 0;
-  hydrateSpy.mockClear();
+  sessionInstances.length = 0;
   runBehavior = async () => ({ status: "completed", outputs: {} });
 });
 
 describe("executeAgentGraph — happy path", () => {
-  it("streams kernel-emitted messages live, then a final step_result", async () => {
+  it("streams run messages live, then a final step_result", async () => {
     runBehavior = async (ctx) => {
       ctx.emit(msg("log_update", { content: "a" }));
       ctx.emit(msg("node_update", { status: "running" }));
@@ -135,56 +188,54 @@ describe("executeAgentGraph — happy path", () => {
     expect(messages).toEqual([]);
   });
 
-  it("hydrates the graph flags and passes job_id + inputs to run", async () => {
+  it("hands the graph, registry and inputs to the session", async () => {
     const inputs = { topic: "cats" };
     const opts = makeOpts({ inputs });
 
     await drain(executeAgentGraph(emptyGraph, opts));
 
-    expect(hydrateSpy).toHaveBeenCalledOnce();
-    const inst = runnerInstances[0];
-    const [params, graph] = inst.runArgs as [any, any];
-    expect(params.job_id).toBe(inst.jobId);
-    expect(params.params).toBe(inputs);
-    expect(graph.__hydrated).toBe(true);
+    const { options } = sessionInstances[0];
+    expect(options.graph).toMatchObject({ nodes: [], edges: [] });
+    expect(options.registry).toBe(opts.registry);
+    expect(options.params).toBe(inputs);
+    // Without capture the session queues nothing and this generator is empty.
+    expect(options.captureMessages).toBe(true);
   });
 
-  it("restores context.emit after execution (delegates to the original)", async () => {
+  it("stops forwarding to the caller's context once the run is over", async () => {
     const opts = makeOpts();
-    const orig = opts.context.emit;
 
     await drain(executeAgentGraph(emptyGraph, opts));
 
-    orig.mockClear();
-    const after = msg("log_update", { content: "post-run" });
-    opts.context.emit(after);
-    // The restored emit forwards to the original without re-queuing.
-    expect(orig).toHaveBeenCalledWith(after);
+    const runContext = sessionInstances[0].options.context;
+    opts.context.emit.mockClear();
+    runContext.emit(msg("log_update", { content: "post-run" }));
+
+    expect(opts.context.emit).not.toHaveBeenCalled();
   });
 });
 
-describe("executeAgentGraph — node resolution", () => {
-  it("resolves every node through the registry", async () => {
+describe("executeAgentGraph — run context", () => {
+  it("forwards every run message to the caller's context", async () => {
+    runBehavior = async (ctx) => {
+      ctx.emit(msg("log_update", { content: "a" }));
+      return { status: "completed", outputs: {} };
+    };
     const opts = makeOpts();
 
     await drain(executeAgentGraph(emptyGraph, opts));
 
-    const resolve = runnerInstances[0].opts.resolveExecutor;
-    const resolved = resolve({ id: "n2", type: "nodetool.text.Concat" });
-
-    expect(resolved).toEqual({ resolved: "n2" });
-    expect(opts.registry.resolve).toHaveBeenCalledWith({
-      id: "n2",
-      type: "nodetool.text.Concat"
-    });
+    expect(opts.context.emit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "log_update", content: "a" })
+    );
   });
 
   it("injects the run's tools into a scoped child context, not the caller's", async () => {
     const opts = makeOpts();
     await drain(executeAgentGraph(emptyGraph, opts));
 
-    // The kernel runs against the child, which carries the tools…
-    const runContext = runnerInstances[0].opts.executionContext as any;
+    // The run happens against the child, which carries the tools…
+    const runContext = sessionInstances[0].options.context as any;
     expect(runContext.setInjectedTools).toHaveBeenCalledWith(opts.tools);
     expect(runContext.getInjectedTool("t1")).toEqual({ name: "t1" });
     // …while the caller's context is left exactly as it was, so a second
@@ -197,13 +248,13 @@ describe("executeAgentGraph — node resolution", () => {
     const opts = makeOpts();
     await drain(executeAgentGraph(emptyGraph, opts));
 
-    const runContext = runnerInstances[0].opts.executionContext as any;
+    const runContext = sessionInstances[0].options.context as any;
     expect(runContext.memory).toBe(opts.context.memory);
   });
 });
 
 describe("executeAgentGraph — cancellation", () => {
-  it("cancels the kernel run when the external signal aborts mid-run", async () => {
+  it("cancels the run when the external signal aborts mid-run", async () => {
     const controller = new AbortController();
     let release: () => void = () => {};
     runBehavior = async () => {
@@ -218,10 +269,10 @@ describe("executeAgentGraph — cancellation", () => {
       makeOpts({ signal: controller.signal })
     );
     const drained = drain(gen);
-    await Promise.resolve();
+    await settle();
 
     controller.abort();
-    expect(runnerInstances[0].cancelCount).toBe(1);
+    expect(sessionInstances[0].cancelCount).toBe(1);
 
     release();
     await drained;
@@ -232,7 +283,7 @@ describe("executeAgentGraph — cancellation", () => {
       executeAgentGraph(emptyGraph, makeOpts({ signal: AbortSignal.abort() }))
     );
 
-    expect(runnerInstances[0].cancelCount).toBe(1);
+    expect(sessionInstances[0].cancelCount).toBe(1);
   });
 
   it("detaches the abort listener once the run is over", async () => {
@@ -243,7 +294,25 @@ describe("executeAgentGraph — cancellation", () => {
 
     controller.abort();
     // The run already finished; a late abort must not re-enter cancel().
-    expect(runnerInstances[0].cancelCount ?? 0).toBe(0);
+    expect(sessionInstances[0].cancelCount).toBe(0);
+  });
+
+  it("cancels the run when the consumer stops reading early", async () => {
+    let release: () => void = () => {};
+    runBehavior = async (ctx) => {
+      ctx.emit(msg("log_update", { content: "a" }));
+      await new Promise<void>((r) => {
+        release = r;
+      });
+      return { status: "completed", outputs: {} };
+    };
+
+    const gen = executeAgentGraph(emptyGraph, makeOpts());
+    await gen.next();
+    await gen.return(undefined as never);
+
+    expect(sessionInstances[0].cancelCount).toBe(1);
+    release();
   });
 });
 
@@ -254,7 +323,7 @@ describe("executeAgentGraph — model stamping", () => {
       edges: []
     }) as any;
 
-  const stampedNodes = () => hydrateSpy.mock.calls[0][0] as any;
+  const stampedNodes = () => sessionInstances[0].options.graph as any;
 
   it("stamps the configured provider+model onto a model-less Agent node", async () => {
     await drain(executeAgentGraph(graphWith({ prompt: "hi" }), makeOpts()));
@@ -345,7 +414,7 @@ describe("executeAgentGraph — model stamping", () => {
 });
 
 describe("executeAgentGraph — error propagation", () => {
-  it("re-throws an Error rejected by runner.run", async () => {
+  it("re-throws an Error rejected by the run", async () => {
     runBehavior = async () => {
       throw new Error("kernel exploded");
     };
@@ -353,17 +422,6 @@ describe("executeAgentGraph — error propagation", () => {
 
     await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "kernel exploded"
-    );
-  });
-
-  it("wraps a non-Error rejection into an Error", async () => {
-    runBehavior = async () => {
-      throw "string failure";
-    };
-    const opts = makeOpts();
-
-    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
-      "string failure"
     );
   });
 
@@ -378,15 +436,6 @@ describe("executeAgentGraph — error propagation", () => {
     const first = await gen.next();
     expect((first.value as any).type).toBe("log_update");
     await expect(gen.next()).rejects.toThrow("boom");
-  });
-
-  it("throws when the run resolves with no result", async () => {
-    runBehavior = async () => undefined;
-    const opts = makeOpts();
-
-    await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
-      "Workflow execution produced no result"
-    );
   });
 
   it("throws the result.error when status is failed", async () => {
@@ -411,9 +460,8 @@ describe("executeAgentGraph — error propagation", () => {
     );
   });
 
-  it("restores context.emit even when run rejects", async () => {
+  it("stops forwarding to the caller's context even when the run rejects", async () => {
     const opts = makeOpts();
-    const orig = opts.context.emit;
     runBehavior = async () => {
       throw new Error("boom");
     };
@@ -421,10 +469,12 @@ describe("executeAgentGraph — error propagation", () => {
     await expect(drain(executeAgentGraph(emptyGraph, opts))).rejects.toThrow(
       "boom"
     );
-    orig.mockClear();
-    const after = msg("log_update", { content: "post-crash" });
-    opts.context.emit(after);
-    expect(orig).toHaveBeenCalledWith(after);
+
+    const runContext = sessionInstances[0].options.context;
+    opts.context.emit.mockClear();
+    runContext.emit(msg("log_update", { content: "post-crash" }));
+
+    expect(opts.context.emit).not.toHaveBeenCalled();
   });
 });
 
