@@ -11,6 +11,11 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
+import {
+  isJsonObject,
+  isNonEmptyString,
+  type JsonValue
+} from "../json-wire.js";
 
 /**
  * Minimum length (in bytes) for a presented token to be considered.
@@ -50,9 +55,14 @@ export class StaticTokenProvider extends AuthProvider {
     // forcing the branch true registers no tokens either way (equivalent).
     if (multiTokens) {
       try {
-        const parsed = JSON.parse(multiTokens) as Record<string, string>;
-        for (const [token, userId] of Object.entries(parsed)) {
-          this.tokens.set(token, userId);
+        // `STATIC_AUTH_TOKENS` is operator-supplied JSON, so each entry is
+        // checked rather than asserted into a `Record<string, string>` — a
+        // non-string value used to be stored as a user id verbatim.
+        const parsed: JsonValue = JSON.parse(multiTokens);
+        for (const [token, userId] of isJsonObject(parsed)
+          ? Object.entries(parsed)
+          : []) {
+          if (isNonEmptyString(userId)) this.tokens.set(token, userId);
         }
       } catch {
         // Ignore malformed JSON – treat as no tokens configured.
@@ -61,7 +71,7 @@ export class StaticTokenProvider extends AuthProvider {
   }
 
   async verifyToken(token: string): Promise<AuthResult> {
-    if (typeof token !== "string") {
+    if (!isNonEmptyString(token)) {
       return { ok: false, error: "Invalid token" };
     }
 

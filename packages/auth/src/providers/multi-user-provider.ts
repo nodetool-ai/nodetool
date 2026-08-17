@@ -5,6 +5,7 @@
  */
 import * as jose from "jose";
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
+import { isNonEmptyString } from "../json-wire.js";
 
 export interface MultiUserAuthProviderOptions {
   /** JWT signing secret (symmetric HS256). */
@@ -28,14 +29,14 @@ export class MultiUserAuthProvider extends AuthProvider {
       const { payload } = await jose.jwtVerify(token, this.secret);
 
       const userId = payload[this.userIdClaim];
-      if (typeof userId !== "string" || !userId) {
+      if (!isNonEmptyString(userId)) {
         return {
           ok: false,
           error: `Missing user ID claim: ${this.userIdClaim}`
         };
       }
 
-      const role = typeof payload.role === "string" ? payload.role : undefined;
+      const role = isNonEmptyString(payload.role) ? payload.role : undefined;
 
       return {
         ok: true,

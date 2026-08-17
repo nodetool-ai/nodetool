@@ -40,7 +40,8 @@ export type GraphData = {
 export interface RunWorkflowOptions {
   graph: GraphData;
   registry: NodeRegistry;
-  params?: Record<string, unknown>;
+  /** The run's params, exactly as the job request carries them. */
+  params?: RunJobRequest["params"];
   jobId?: string;
   workflowId?: string;
 
@@ -169,7 +170,7 @@ export async function* runWorkflow(
   };
 
   let finished = false;
-  let runError: unknown = null;
+  let runError: unknown;
   let result: RunResult | null = null;
 
   const runPromise = runner
