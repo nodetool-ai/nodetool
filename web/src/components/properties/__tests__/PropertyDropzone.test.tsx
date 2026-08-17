@@ -29,6 +29,13 @@ jest.mock("../../../utils/browser", () => ({
   },
 }));
 
+// The viewer is a whole asset browser behind a router and a query client;
+// these tests are about the dropzone itself.
+jest.mock("../../assets/AssetViewer", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 // Import after mocks are set up
 import PropertyDropzone from "../PropertyDropzone";
 
@@ -144,5 +151,32 @@ describe("PropertyDropzone", () => {
       uri: "asset://87c6124bc9684facabb8cb3575dcb8ad",
       asset_id: "87c6124bc9684facabb8cb3575dcb8ad"
     });
+  });
+
+  // A source the backend refuses (a dropped file outside the allowed roots, a
+  // stale asset URL) used to render as a bare broken-image glyph, which is how
+  // nodetool-ai/nodetool#4999 read as "an empty image node".
+  it("says so when the image source fails to load", () => {
+    const { container } = renderWithTheme(
+      <PropertyDropzone
+        asset={undefined}
+        uri="/api/files/local?path=%2Fprojects%2FplayingTag.png"
+        onChange={mockOnChange}
+        contentType="image"
+        props={mockProps as any}
+      />
+    );
+
+    const image = container.querySelector("img") as HTMLImageElement;
+    expect(screen.queryByText("Image could not be loaded")).toBeNull();
+
+    fireEvent.error(image);
+
+    expect(screen.getByText("Image could not be loaded")).toBeInTheDocument();
+    expect(image.style.display).toBe("none");
+
+    fireEvent.load(image);
+
+    expect(screen.queryByText("Image could not be loaded")).toBeNull();
   });
 });

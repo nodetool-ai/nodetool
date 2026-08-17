@@ -14,6 +14,12 @@
  * (platform path-delimited) replaces that default, which is how a desktop user
  * previews media off an external volume.
  *
+ * The single entry `*` lifts the containment check entirely. That is for the
+ * desktop app, which spawns this server as the user's own process on loopback
+ * and lets them drag a file in from anywhere — the run path already reads any
+ * absolute `file://` URI, so restricting only the *preview* left a dropped file
+ * that runs fine but shows a broken image. The denylist below still applies.
+ *
  * These surfaces are already disabled when `NODETOOL_ENV=production`; this is
  * the second layer, for the dev/desktop/self-hosted deployments where the file
  * browser is live and more than one person can reach the port.
@@ -23,6 +29,14 @@ import * as path from "node:path";
 import * as os from "node:os";
 
 export const LOCAL_FILE_ROOTS_ENV = "NODETOOL_LOCAL_FILE_ROOTS";
+
+/** The `NODETOOL_LOCAL_FILE_ROOTS` entry that lifts the containment check. */
+export const UNRESTRICTED_ROOT = "*";
+
+/** Whether a resolved root list places no containment requirement on a path. */
+export function isUnrestricted(roots: string[]): boolean {
+  return roots.includes(UNRESTRICTED_ROOT);
+}
 
 /**
  * Never part of a legitimate preview or browse flow, even inside a root.
@@ -48,7 +62,11 @@ export function getLocalFileRoots(): string[] {
       .split(path.delimiter)
       .map((entry) => entry.trim())
       .filter(Boolean)
-      .map((entry) => path.resolve(expandTilde(entry)));
+      .map((entry) =>
+        entry === UNRESTRICTED_ROOT
+          ? UNRESTRICTED_ROOT
+          : path.resolve(expandTilde(entry))
+      );
     if (roots.length > 0) return roots;
   }
   return [path.resolve(os.homedir())];
@@ -115,8 +133,9 @@ export function localPathDenialMessage(reason: LocalPathDenial): string {
 /**
  * Resolve a caller-supplied path against the allowed roots.
  *
- * A relative path resolves against the first root, so the file browser's "."
- * still means "home". A leading `~` expands. Containment is checked twice:
+ * A relative path resolves against the first root (against home when the roots
+ * are unrestricted), so the file browser's "." still means "home" out of the
+ * box. A leading `~` expands. Containment is checked twice:
  * lexically on the resolved path, then again on the symlink-resolved path —
  * a link at an allowed location (`~/shortcut -> /etc`) passes the first check
  * but the stat/stream that follows would traverse it. realpath runs against
@@ -131,12 +150,15 @@ export async function resolveLocalPath(
     return { ok: false, reason: "invalid" };
   }
 
+  const unrestricted = isUnrestricted(roots);
+  const relativeBase = unrestricted ? os.homedir() : roots[0];
+
   const expanded = expandTilde(userPath);
   const resolved = path.isAbsolute(expanded)
     ? path.resolve(expanded)
-    : path.resolve(roots[0], expanded);
+    : path.resolve(relativeBase, expanded);
 
-  if (!isWithinAnyRoot(resolved, roots)) {
+  if (!unrestricted && !isWithinAnyRoot(resolved, roots)) {
     return { ok: false, reason: "outside_roots" };
   }
   if (isSensitivePath(resolved)) {
@@ -145,7 +167,7 @@ export async function resolveLocalPath(
 
   // A root can itself sit behind a symlink (macOS `/var` → `/private/var`), so
   // the post-realpath containment check compares against the real roots too.
-  const resolvedRoots = await realRoots(roots);
+  const resolvedRoots = unrestricted ? roots : await realRoots(roots);
 
   let probe = resolved;
   for (;;) {
@@ -154,7 +176,7 @@ export async function resolveLocalPath(
       // Re-anchor the not-yet-resolved tail onto the real ancestor so a link
       // in the middle of the path can't smuggle the leaf out of the roots.
       const realResolved = path.join(real, path.relative(probe, resolved));
-      if (!isWithinAnyRoot(realResolved, resolvedRoots)) {
+      if (!unrestricted && !isWithinAnyRoot(realResolved, resolvedRoots)) {
         return { ok: false, reason: "outside_roots" };
       }
       if (isSensitivePath(realResolved)) {

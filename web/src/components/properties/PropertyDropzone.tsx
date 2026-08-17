@@ -55,6 +55,7 @@ const PropertyDropzone = ({
 
   const [openViewer, setOpenViewer] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [imageError, setImageError] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
@@ -194,12 +195,24 @@ const PropertyDropzone = ({
   );
 
   const handleImageLoad = useCallback(() => {
+    setImageError(false);
     if (imageRef.current) {
       setImageDimensions({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
       });
     }
+  }, []);
+
+  // A dropped file the backend refuses to serve (or an asset URL that has gone
+  // stale) otherwise renders as a bare broken-image glyph with nothing said
+  // about it anywhere — the shape of nodetool-ai/nodetool#4999.
+  const handleImageError = useCallback(() => {
+    setImageDimensions(null);
+    setImageError(true);
+    console.error("PropertyDropzone: image failed to load", {
+      src: imageRef.current?.src
+    });
   }, []);
 
   const handleDoubleClick = useCallback(() => {
@@ -344,7 +357,8 @@ const PropertyDropzone = ({
 
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
-      case "image":
+      case "image": {
+        const imageSource = asset?.get_url || uri || "";
         return (
           <>
             <AssetViewer
@@ -356,12 +370,19 @@ const PropertyDropzone = ({
             <div className="image-preview-surface" style={{ position: "relative" }}>
               <img
                 ref={imageRef}
-                src={asset?.get_url || uri || ""}
+                src={imageSource}
                 alt={asset?.name || ""}
                 onLoad={handleImageLoad}
+                onError={handleImageError}
                 onDoubleClick={handleDoubleClick}
                 draggable={false}
+                // Hidden rather than unmounted so a later source still loads
+                // and clears the message through onLoad.
+                style={imageError ? { display: "none" } : undefined}
               />
+              {imageError && (
+                <p className="centered uppercase">Image could not be loaded</p>
+              )}
               {imageDimensions && (
                 <ImageDimensions
                   width={imageDimensions.width}
@@ -371,6 +392,7 @@ const PropertyDropzone = ({
             </div>
           </>
         );
+      }
       case "audio":
         return (
           <>
@@ -462,7 +484,7 @@ const PropertyDropzone = ({
       default:
         return null;
     }
-  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
+  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleImageError, imageError, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
 
   return (
     <div css={styles(theme)}>
