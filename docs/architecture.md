@@ -79,10 +79,11 @@ buffered actor path (`_runCorrelated` in `NodeActor`) fires a node once per
   this is what the old `zip_all` mode approximated, but it is now driven by the
   actual lineage of each value rather than a static flag.
 - Outputs declare how they relate to their inputs via **`outputCorrelation`**
-  (`forward`, `iteration`, `aggregate`, `single`), which tells the scheduler
-  whether an output is a passthrough, a new per-item iteration, a collapse of a
-  stream, or a one-shot value. Join nodes like `Zip` and `Cross` pair values
-  from independent iteration sources within their common parent scope.
+  (`forward`, `iteration`, `chunk`, `aggregate`, `single`), which tells the
+  scheduler whether an output is a passthrough, a new per-item iteration, a
+  chunk of one logical item, a collapse of a stream, or a one-shot value. Join
+  nodes like `Zip` and `Cross` pair values from independent iteration sources
+  within their common parent scope.
 
 See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the full model.
 
@@ -93,7 +94,7 @@ The `ProcessingContext` provides the runtime environment for node execution:
 - **Message queue** -- Collects `ProcessingMessage` events for streaming to clients
 - **Cache interface** -- Pluggable cache adapters (memory, disk) for intermediate results
 - **Asset storage** -- `StorageAdapter` interface supporting local filesystem, S3, or Supabase
-- **Asset output modes** -- `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
+- **Asset output modes** -- `native` (the default), `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
 - **User context** -- Authentication tokens, user data, workspace information
 
 ---

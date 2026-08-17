@@ -1,4 +1,4 @@
-# automation-nodes — Triggers, Filesystem, SQLite, OS
+# automation-nodes — Triggers, Apple/OS automation, browser, SQLite path
 
 **Navigation**: [packages/AGENTS.md](../AGENTS.md) → **automation-nodes**
 
@@ -7,13 +7,11 @@
 ## Output-slot contract (the headline bug)
 
 - **Every key a node returns must be a declared `metadataOutputTypes` slot.**
-  `Insert`/`Update`/`Delete`/`ExecuteSQL` declared a single `output` slot but
-  returned `row_id`/`rows_affected`/… — keys the editor never exposed as handles,
-  so the data was unreachable downstream. The
-  `assertKeysDeclared` invariant in `tests/output-slots-and-fixes.test.ts` pins
-  this; **never test a node only as a terminal sink** (sinks hide the mismatch).
-- **`SaveImageFile`/`SaveVideoFile` outputs need the `type` discriminator**
-  (`type: "image"`/`"video"`).
+  This package's SQLite CRUD nodes declared a single `output` slot but returned
+  `row_id`/`rows_affected`/… — keys the editor never exposed as handles, so the
+  data was unreachable downstream. They are gone (only
+  `lib.sqlite.GetDatabasePath` remains), but the rule outlives them:
+  **never test a node only as a terminal sink** (sinks hide the mismatch).
 
 ## Dependencies
 
@@ -21,17 +19,11 @@
   own `package.json`** — `cheerio`/`turndown`/`sharp` were imported but resolved
   only via monorepo hoisting, which breaks on standalone install.
 
-## Filesystem & SQLite
+## File watching
 
-- **Don't overload `fs.mkdir`'s `recursive` flag to express "error if exists".**
-  `recursive` means parents-plus-idempotent, so passing `exist_ok` as `recursive`
-  also disables parent creation. Always `mkdir({ recursive: true })` and check
-  existence separately.
-- **Validate dynamic SQL has at least one column/value before string-building** —
-  empty `data`/`columns` otherwise emits syntactically invalid SQL. Throw a clear
-  message.
 - **A glob-to-regex converter must translate every metacharacter the contract
-  promises** — `*` → `.*` **and** `?` → `.` — not just `*`.
+  promises** — `*` → `.*` **and** `?` → `.` — not just `*`. The converter is
+  `src/lib/file-watch-match.ts`; `tests/file-watch-match.test.ts` pins it.
 
 ## Triggers & timeouts
 

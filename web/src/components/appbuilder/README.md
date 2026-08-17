@@ -164,9 +164,10 @@ workflow id: `/miniapp/:workflowId` survives only as a legacy redirect
 (`components/applications/LegacyAppRedirect.tsx`) that resolves to the app
 binding that workflow, or 404s.
 
-`generateAppData` still scaffolds a form/results layout from a graph's
-Input/Output nodes, but only inside an app the user already created — it fills a
-blank canvas, it never persists a document.
+There is no Generate-from-workflow button any more: nothing auto-fills a
+canvas with a widget per workflow input and output. An empty app starts empty,
+and the assistant panel — reachable with or without a workflow bound — is what
+builds it.
 
 The mobile app renders the same documents natively (`mobile/src/components/app_runtime/`)
 on top of the same `@nodetool-ai/app-runtime` core — it runs apps, it does not

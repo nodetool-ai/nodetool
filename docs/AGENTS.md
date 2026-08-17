@@ -561,9 +561,14 @@ the rest of the runtime and the browser worker bundle never pull it in.
 
 ### Executable resolution & nested sessions
 
-The binary is resolved from `CLAUDE_CODE_EXECUTABLE` (explicit path) and
-otherwise `claude` on `PATH`. The desktop app ships `@anthropic-ai/claude-code`
-as a runtime package; server/dev users need `claude` installed and logged in.
+The SDK resolves its own bundled `claude` binary, shipped per platform as an
+optional dependency of `@anthropic-ai/claude-agent-sdk` (e.g.
+`@anthropic-ai/claude-agent-sdk-linux-x64`), so nothing has to be on `PATH`;
+`options.pathToClaudeCodeExecutable` overrides it and NodeTool does not set it.
+Users still have to be logged in — auth comes from the credential store under
+`~/.claude`. The `@anthropic-ai/claude-code` CLI the desktop app offers as the
+`claude` runtime package is what the separate Claude Code *agent node* needs,
+not this provider.
 
 When NodeTool itself runs **under** Claude Code (e.g. Claude Code on the web),
 the inherited `CLAUDECODE` / `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` /
