@@ -257,23 +257,23 @@ The same approach applies to audio refs (see `audioBytesAsync` in `audio.ts`). T
 
 Use `@prop` with `type: "enum"` and a **`values`** array to present a dropdown in the UI.
 
-This pattern is taken from `LengthTextNode` in `packages/text-nodes/src/nodes/text-extra.ts`:
+This pattern is taken from `TokenizeLibNode` in `packages/text-nodes/src/nodes/lib-nlp.ts`:
 
 ```ts
 @prop({
   type: "enum",
-  default: "characters",
-  title: "Measure",
-  description: "Choose whether to count characters, words, or lines",
-  values: ["characters", "words", "lines"],
+  default: "word",
+  title: "Mode",
+  description: "Tokenization mode: split into words or sentences",
+  values: ["word", "sentence"],
 })
-declare measure: any;
+declare mode: any;
 ```
 
 In your `process()` method, read and cast the value from `this`:
 
 ```ts
-const measure = String(this.measure ?? "characters");
+const mode = String(this.mode ?? "word");
 ```
 
 ---

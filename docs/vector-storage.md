@@ -111,7 +111,7 @@ const provider = new SupabaseProvider({
 
 - **Workflow nodes** — every node under `vector.*` in `@nodetool-ai/core-nodes` (`packages/core-nodes/src/nodes/vector.ts`) goes through the default provider.
 - **Collections REST/tRPC API** — `packages/websocket/src/trpc/routers/collections.ts` and `packages/websocket/src/collection-api.ts`.
-- **Agent tools** — `VecTextSearchTool`, `VecHybridSearchTool`, `VecRecursiveSplitAndIndexTool`, etc. in `packages/agents/src/tools/vector-tools.ts`.
+- **Agent tools** — `vector_text_search`, `vector_hybrid_search`, `vector_recursive_split_and_index`, etc. in the `collections` capability module (`packages/agents/src/capabilities/collections.ts`). The collection each tool works on rides on the run (`CapabilityRun.vectorCollection`) rather than being a constructor argument.
 
 ## Adding a New Backend
 
