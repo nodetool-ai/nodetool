@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 
 const hasNativeDialog = (): boolean => {

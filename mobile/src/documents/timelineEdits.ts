@@ -51,7 +51,6 @@ import {
   type ClipShapeStyle,
   type ClipTextStyle,
   type TimelineClip,
-  type TimelineMarker,
   type TimelineTrack,
 } from '@nodetool-ai/timeline';
 

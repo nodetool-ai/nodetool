@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 
 interface UseEditorModeOptions {
   defaultEnabled?: boolean;

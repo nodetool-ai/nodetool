@@ -57,17 +57,6 @@ export const makeNodeStore = (
 };
 
 /**
- * Replaces the state of a store built by `makeNodeStore`, for a test that
- * seeds a different graph per case.
- */
-export const seedNodeStore = (
-  store: NodeStore,
-  state: NodeStateDouble
-): void => {
-  store.setState(asState(state), true);
-};
-
-/**
  * A `renderHook`/`render` wrapper that provides `store` on `NodeContext`.
  */
 export const nodeStoreWrapper = (
