@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import { Box, FlexColumn } from "../../ui_primitives";
+import { Box, FlexColumn, SPACING } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
@@ -78,7 +78,7 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {/* This node draws its own body (no `.node-body.base-node`), so it also
           has to supply the 8px inset that class gives every other node's
           header — without it the icon sits flush against the border. */}
-      <Box sx={{ px: "8px", pt: "8px", flexShrink: 0 }}>
+      <Box sx={{ px: SPACING.md, pt: SPACING.md, flexShrink: 0 }}>
         <NodeHeader
           id={id}
           selected={selected}
