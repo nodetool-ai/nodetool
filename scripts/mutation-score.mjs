@@ -2,8 +2,10 @@
 // Aggregate Stryker mutation scores from each package's
 // reports/mutation/mutation.json and emit a Markdown summary.
 //
-// Usage: node scripts/mutation-score.mjs [pkg1 pkg2 ...]
-// With no args, scans every packages/* that has a stryker.config.json.
+// Usage: node scripts/mutation-score.mjs [--report-dir <rel>] [pkg1 pkg2 ...]
+// With no package args, scans every packages/* that has a stryker.config.json.
+// --report-dir points at a report written by a non-default Stryker config
+// (the crash fuzzer writes reports/crash-fuzz). Defaults to reports/mutation.
 // Prints a Markdown table to stdout. Exits 0 always (reporting only).
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -34,7 +36,11 @@ function scoreFor(reportPath) {
   return { detected, undetected, total, score };
 }
 
-const requested = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const dirFlag = argv.indexOf("--report-dir");
+const reportDir = dirFlag === -1 ? "reports/mutation" : argv[dirFlag + 1];
+if (dirFlag !== -1) argv.splice(dirFlag, 2);
+const requested = argv;
 const pkgs =
   requested.length > 0
     ? requested
@@ -47,13 +53,7 @@ let totalDetected = 0;
 let totalUndetected = 0;
 
 for (const pkg of pkgs) {
-  const reportPath = join(
-    packagesDir,
-    pkg,
-    "reports",
-    "mutation",
-    "mutation.json"
-  );
+  const reportPath = join(packagesDir, pkg, reportDir, "mutation.json");
   if (!existsSync(reportPath)) {
     rows.push({ pkg, score: null, detected: 0, total: 0, missing: true });
     continue;
@@ -79,7 +79,8 @@ for (const row of rows) {
   }
 }
 const overallTotal = totalDetected + totalUndetected;
-const overall = overallTotal === 0 ? null : (totalDetected / overallTotal) * 100;
+const overall =
+  overallTotal === 0 ? null : (totalDetected / overallTotal) * 100;
 lines.push(
   `| **Overall** | **${fmt(overall)}** | **${totalDetected} / ${overallTotal}** |`
 );
