@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
@@ -20,6 +21,18 @@ jest.mock("../../../hooks/useProviders", () => ({
   })
 }));
 jest.mock("../GoogleWorkspaceCard", () => () => null);
+// The custom-provider section lists the user's endpoints over tRPC; this suite
+// has no server, and an empty catalog is the state it renders here.
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {
+    customProviders: {
+      list: { query: jest.fn().mockResolvedValue([]) },
+      save: { mutate: jest.fn() },
+      delete: { mutate: jest.fn() },
+      test: { mutate: jest.fn() }
+    }
+  }
+}));
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,
   default: <T,>(
@@ -58,10 +71,15 @@ describe("APIKeysTabContent on a hosted deployment", () => {
   });
 
   it("hides the Claude subscription card, whose sign-in needs a local server", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } }
+    });
     render(
-      <ThemeProvider theme={mockTheme}>
-        <APIKeysTabContent />
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <APIKeysTabContent />
+        </ThemeProvider>
+      </QueryClientProvider>
     );
 
     expect(

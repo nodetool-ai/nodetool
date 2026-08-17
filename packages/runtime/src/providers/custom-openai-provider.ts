@@ -21,18 +21,19 @@ import type { LanguageModel } from "./types.js";
 const MODEL_LIST_TIMEOUT_MS = 5000;
 
 /**
- * Kwargs the registry hands the constructor. The `_`-prefixed keys are runtime
- * injections the registry excludes from its credential check; the two secret
- * names it also resolves are read back off this same object.
+ * Kwargs the registry hands the constructor. The registry constructs every
+ * provider from a plain `Record<string, unknown>`, so the shape is documented
+ * rather than declared, and each key is narrowed as it is read:
+ *
+ * - `_providerId` — the wire id this instance reports.
+ * - `_baseUrlKey` / `_apiKeyKey` — names of the two resolved secrets; their
+ *   values arrive on this same object under those names.
+ * - `_models` — model ids to report instead of calling `GET <base>/models`.
+ *
+ * The `_`-prefixed keys are runtime injections the registry excludes from its
+ * credential check.
  */
-export interface CustomOpenAIProviderConfig {
-  _providerId: string;
-  _baseUrlKey: string;
-  _apiKeyKey: string;
-  /** Model ids to report instead of calling `GET <base>/models`. */
-  _models?: string[];
-  [key: string]: unknown;
-}
+export type CustomOpenAIProviderConfig = Record<string, unknown>;
 
 /** Placeholder key for endpoints that accept anonymous requests. */
 const NO_KEY = "no-key";
@@ -40,6 +41,11 @@ const NO_KEY = "no-key";
 function readString(config: CustomOpenAIProviderConfig, key: string): string {
   const value = config[key];
   return isString(value) ? value.trim() : "";
+}
+
+function readModels(config: CustomOpenAIProviderConfig): string[] {
+  const value = config._models;
+  return Array.isArray(value) ? value.filter(isString) : [];
 }
 
 export class CustomOpenAIProvider extends OpenAICompatProvider {
@@ -57,24 +63,32 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
     config: CustomOpenAIProviderConfig,
     options: OpenAICompatProviderOptions = {}
   ) {
-    const providerId = config._providerId;
+    const providerId = readString(config, "_providerId");
     if (!providerId) {
       throw new Error("_providerId is required for a custom provider");
     }
-    const baseURL = normalizeBaseUrl(readString(config, config._baseUrlKey));
-    if (!baseURL) {
-      throw new Error(`${config._baseUrlKey} is required`);
+    const baseUrlKey = readString(config, "_baseUrlKey");
+    if (!baseUrlKey) {
+      throw new Error("_baseUrlKey is required for a custom provider");
     }
-    const apiKey = readString(config, config._apiKeyKey) || NO_KEY;
+    const apiKeyKey = readString(config, "_apiKeyKey");
+    if (!apiKeyKey) {
+      throw new Error("_apiKeyKey is required for a custom provider");
+    }
+    const baseURL = normalizeBaseUrl(readString(config, baseUrlKey));
+    if (!baseURL) {
+      throw new Error(`${baseUrlKey} is required`);
+    }
+    const apiKey = readString(config, apiKeyKey) || NO_KEY;
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super({ providerId, apiKey, baseURL }, { ...options, fetchFn });
 
     this._customFetch = fetchFn;
     this._customBaseURL = baseURL;
-    this._customModels = config._models ?? [];
-    this._baseUrlKey = config._baseUrlKey;
-    this._apiKeyKey = config._apiKeyKey;
+    this._customModels = readModels(config);
+    this._baseUrlKey = baseUrlKey;
+    this._apiKeyKey = apiKeyKey;
   }
 
   override getContainerEnv(): Record<string, string> {
