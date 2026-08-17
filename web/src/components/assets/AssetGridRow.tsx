@@ -64,6 +64,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
 
+  // Otherwise each row scans the whole selection once per item it holds.
+  const selectedAssetIdSet = useMemo(
+    () => new Set(selectedAssetIds),
+    [selectedAssetIds]
+  );
+
   const selectHandlers = useMemo(() => {
     const handlers: Record<string, () => void> = {};
     for (const item of rowItems) {
@@ -224,8 +230,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           return null;
         }
 
-        const isSelected =
-          selectedAssetIds && selectedAssetIds.includes(item.id);
+        const isSelected = selectedAssetIdSet.has(item.id);
 
         return (
           <div

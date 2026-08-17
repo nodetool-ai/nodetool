@@ -25,6 +25,18 @@ interface AssetListViewProps {
 const ROW_HEIGHT = 40;
 const TYPE_SECTION_HEIGHT = 36;
 
+// Hoisted so a fresh literal per render does not defeat the memo on IconForType.
+const HEADER_ICON_STYLE = {
+  width: "24px",
+  height: "24px",
+  marginRight: "0.5em"
+};
+const ROW_ICON_STYLE = {
+  width: "24px",
+  height: "24px",
+  transform: "scale(0.85)"
+};
+
 type VirtualListItemData =
   | { type: 'header'; key: string; data: { type: string; count: number; isExpanded: boolean } }
   | { type: 'asset'; key: string; data: { asset: Asset } };
@@ -392,11 +404,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           <IconForType
             iconName={type}
             showTooltip={false}
-            containerStyle={{
-              width: "24px",
-              height: "24px",
-              marginRight: "0.5em"
-            }}
+            containerStyle={HEADER_ICON_STYLE}
           />
           <Text className="asset-content-type-title">
             {getTypeDisplayName(type)} ({count})
@@ -473,11 +481,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
               <IconForType
                 iconName={getAssetCategory(asset.content_type)}
                 showTooltip={false}
-                containerStyle={{
-                  width: "24px",
-                  height: "24px",
-                  transform: "scale(0.85)"
-                }}
+                containerStyle={ROW_ICON_STYLE}
               />
             )}
           </div>

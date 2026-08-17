@@ -57,6 +57,35 @@ const NodeItem = memo(function NodeItem({
   ref
 }: NodeItemProps) {
   const theme = useTheme();
+  // Rows re-render on every keystroke in the node search; a fresh slotProps
+  // object per row would defeat the memo on Tooltip and re-serialize its sx.
+  const descriptionTooltipSlotProps = useMemo(
+    () => ({
+      popper: { sx: { zIndex: theme.zIndex.commandMenu } },
+      tooltip: {
+        sx: {
+          bgcolor: "grey.800",
+          color: "grey.100",
+          maxWidth: 350,
+          padding: getSpacingPx(SPACING.xl)
+        }
+      }
+    }),
+    [theme.zIndex.commandMenu]
+  );
+  const runtimeTooltipSlotProps = useMemo(
+    () => ({
+      popper: { sx: { zIndex: theme.zIndex.tooltip } },
+      tooltip: {
+        sx: {
+          bgcolor: "grey.800",
+          color: "grey.100",
+          fontSize: "var(--fontSizeSmaller)"
+        }
+      }
+    }),
+    [theme.zIndex.tooltip]
+  );
   const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
   const hasRuntimeDeps =
     node.required_runtimes && node.required_runtimes.length > 0;
@@ -336,17 +365,7 @@ const NodeItem = memo(function NodeItem({
             title={tooltipContent}
             placement="right"
             delay={TOOLTIP_ENTER_DELAY}
-            slotProps={{
-              popper: { sx: { zIndex: theme.zIndex.commandMenu } },
-              tooltip: {
-                sx: {
-                  bgcolor: "grey.800",
-                  color: "grey.100",
-                  maxWidth: 350,
-                  padding: getSpacingPx(SPACING.xl)
-                }
-              }
-            }}
+            slotProps={descriptionTooltipSlotProps}
           >
             <div style={iconContainerStyle}>{iconWithText}</div>
           </Tooltip>
@@ -358,16 +377,7 @@ const NodeItem = memo(function NodeItem({
             title={`Requires: ${node.required_runtimes!.join(", ")}`}
             placement="top"
             delay={TOOLTIP_ENTER_DELAY}
-            slotProps={{
-              popper: { sx: { zIndex: theme.zIndex.tooltip } },
-              tooltip: {
-                sx: {
-                  bgcolor: "grey.800",
-                  color: "grey.100",
-                  fontSize: "var(--fontSizeSmaller)"
-                }
-              }
-            }}
+            slotProps={runtimeTooltipSlotProps}
           >
             <Box
               component="span"
