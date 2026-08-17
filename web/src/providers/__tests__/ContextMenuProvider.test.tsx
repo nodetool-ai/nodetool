@@ -1,4 +1,3 @@
-import React from "react";
 import { render, act } from "@testing-library/react";
 import { ContextMenuProvider } from "../ContextMenuProvider";
 import useContextMenu from "../../stores/ContextMenuStore";

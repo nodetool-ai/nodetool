@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';

@@ -3,7 +3,6 @@
  * screen its kind already has, a binding that resolves to nothing says so, and
  * an `openResource` action navigates rather than no-opping.
  */
-import React from "react";
 import { fireEvent, render, screen, act } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 

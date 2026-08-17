@@ -6,7 +6,6 @@
  * charting library and no PDF viewer — so what is asserted there is that the
  * card names the value and offers to open it, not that it draws it.
  */
-import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 
 import {

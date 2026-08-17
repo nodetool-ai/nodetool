@@ -3,7 +3,6 @@
  * as native widgets, a Run button turns widget values into run params, and the
  * streamed messages of that run fold into the bound display widget.
  */
-import React from "react";
 import { fireEvent, render, screen, act } from "@testing-library/react-native";
 import { v4 as uuidv4 } from "uuid";
 import {

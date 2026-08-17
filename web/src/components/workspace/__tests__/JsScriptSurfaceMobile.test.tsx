@@ -6,7 +6,6 @@
  * model and the console output survive a switch; only one is displayed.
  */
 
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";

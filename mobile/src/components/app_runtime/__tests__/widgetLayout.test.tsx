@@ -4,7 +4,6 @@
  * fixed-size control, and nested scrolling on the inner scrollers that sit
  * inside the app's own ScrollView (Android needs the prop to deliver the pan).
  */
-import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 

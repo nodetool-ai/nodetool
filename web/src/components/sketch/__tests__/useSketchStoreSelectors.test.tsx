@@ -5,7 +5,6 @@
  * The old useSketchStoreSelectors() aggregator has been removed; these tests
  * verify the replacement provides correct isolation.
  */
-import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 import {

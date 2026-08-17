@@ -1,4 +1,3 @@
-import React from "react";
 import { asMock } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";

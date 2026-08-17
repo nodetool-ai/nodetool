@@ -2,7 +2,6 @@
  * Tests for MessageView component
  */
 
-import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { MessageView } from './MessageView';
 import { Message } from '../../types';

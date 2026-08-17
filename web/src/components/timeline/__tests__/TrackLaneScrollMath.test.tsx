@@ -8,7 +8,6 @@
  * positions or px→ms conversions (seek, rubber-band).
  */
 
-import React from "react";
 import { installGlobal } from "../../../test-utils/doubles";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";

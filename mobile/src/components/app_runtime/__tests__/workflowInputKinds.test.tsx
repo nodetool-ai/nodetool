@@ -4,7 +4,6 @@
  * a kind that falls through to a plain text box would silently break the app
  * (a model reference is not something anybody types).
  */
-import React from "react";
 import { render, screen } from "@testing-library/react-native";
 
 import {

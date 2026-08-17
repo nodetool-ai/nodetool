@@ -1,4 +1,3 @@
-import React from "react";
 import { render, act } from "@testing-library/react";
 import { ConnectableNodesProvider } from "../ConnectableNodesProvider";
 import useConnectableNodes from "../../stores/ConnectableNodesStore";

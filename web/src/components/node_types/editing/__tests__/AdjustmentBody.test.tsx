@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import { AdjustmentBody } from "../AdjustmentBody";
 import { ADJUSTMENT_NODE_TYPES } from "../AdjustmentBody.constants";

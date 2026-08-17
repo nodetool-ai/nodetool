@@ -3,7 +3,6 @@
  * web builder can place but this renderer does not know falls through to the
  * unknown-widget hint, so each one is checked against a real document.
  */
-import React from "react";
 import { render, screen } from "@testing-library/react-native";
 
 import {

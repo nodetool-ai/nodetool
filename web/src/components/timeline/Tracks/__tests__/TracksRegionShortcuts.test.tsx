@@ -8,7 +8,6 @@
  * `window` rather than a specific element. Store state is seeded AFTER render
  * so `getState()` routes to the mounted provider's instance (not the default).
  */
-import React from "react";
 import { describe, it, expect, jest } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";

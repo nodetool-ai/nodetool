@@ -1,5 +1,5 @@
 import { render, act } from "@testing-library/react";
-import React, { FC } from "react";
+import { FC } from "react";
 import { NodeInputs } from "../NodeInputs";
 import { NodeProvider } from "../../../contexts/NodeContext";
 import { createNodeStore } from "../../../stores/NodeStore";
