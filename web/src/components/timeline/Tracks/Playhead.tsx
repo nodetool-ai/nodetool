@@ -106,7 +106,7 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     pointerEvents: "none"
   });
 
-export interface PlayheadProps {
+interface PlayheadProps {
   /** Left offset of the scrollable track area (header width). */
   trackAreaOffsetPx?: number;
   /** Total height the playhead line should span (track area height). */

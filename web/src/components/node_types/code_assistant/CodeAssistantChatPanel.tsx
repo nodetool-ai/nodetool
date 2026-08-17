@@ -22,7 +22,7 @@ handles, so every declared output must be set on every return path; \`yield\`
 streams items; a sandbox package must be declared (ui_code_set_packages)
 before its import resolves.`;
 
-export interface CodeAssistantChatPanelProps {
+interface CodeAssistantChatPanelProps {
   /** The Code node whose draft the ui_code_* tools edit. */
   nodeId: string;
   /** Kept for the dialog's call site. Not bound onto the chat thread. */

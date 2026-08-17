@@ -19,14 +19,14 @@ import type { DocumentKind, ResourceDocumentKind } from './kinds';
 import { isNumber, isString } from '../utils/typePredicates';
 
 /** What a read or a write resolves to. `token` is only meaningful to the backend. */
-export interface LoadedDocument<Doc = unknown> {
+interface LoadedDocument<Doc = unknown> {
   doc: Doc;
   name: string;
   token: unknown;
   updatedAt: string | null;
 }
 
-export interface SaveInput<Doc = unknown> {
+interface SaveInput<Doc = unknown> {
   doc: Doc;
   name: string;
   /** The token the caller read. A stale one must make the server reject. */

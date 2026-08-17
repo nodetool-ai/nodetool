@@ -40,7 +40,7 @@ import JsScriptRunDialog, {
   type JsScriptRunRequest
 } from "./JsScriptRunDialog";
 
-export interface JsScriptRunConsoleProps {
+interface JsScriptRunConsoleProps {
   scriptId: string;
   readOnly?: boolean;
   onRun: (request: JsScriptRunRequest) => void;

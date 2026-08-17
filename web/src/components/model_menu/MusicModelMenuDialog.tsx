@@ -4,7 +4,7 @@ import type { MusicModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes"
 import { useMusicModelMenuStore } from "../../stores/ModelMenuStore";
 import { useMusicModelsByProvider } from "../../hooks/useModelsByProvider";
 
-export interface MusicModelMenuDialogProps {
+interface MusicModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: MusicModel) => void;

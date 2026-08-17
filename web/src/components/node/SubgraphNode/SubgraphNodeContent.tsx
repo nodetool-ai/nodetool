@@ -9,7 +9,7 @@ import { SubgraphSync } from "./SubgraphSync";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 
-export interface SubgraphNodeContentProps {
+interface SubgraphNodeContentProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

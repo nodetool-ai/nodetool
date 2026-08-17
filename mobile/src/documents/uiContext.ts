@@ -32,7 +32,7 @@ export interface UiContextPayload {
 }
 
 /** Selection the focused screen reports, so the agent can act on "this shot". */
-export interface UiSelection {
+interface UiSelection {
   clipIds?: string[];
   shotIds?: string[];
   layerIds?: string[];

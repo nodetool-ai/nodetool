@@ -37,7 +37,7 @@ import type { useColorActions } from "./useColorActions";
 import type { useSegmentation } from "./useSegmentation";
 import type { useCanvasStoreActions, useColorStoreActions, useSessionStoreActions } from "./useEditorStoreActions";
 
-export interface UseEditorCommandsParams {
+interface UseEditorCommandsParams {
   /** Forwarded ref from SketchEditor for imperative handle. */
   editorRef: RefObject<SketchEditorHandle | null>;
 
@@ -60,7 +60,7 @@ export interface UseEditorCommandsParams {
   suspendKeyboardShortcuts?: boolean;
 }
 
-export interface EditorCommandsResult {
+interface EditorCommandsResult {
   handleRunSegmentation: () => void;
   handleClearSegmentPrompts: () => void;
   handleFillSelectionWithForeground: () => void;

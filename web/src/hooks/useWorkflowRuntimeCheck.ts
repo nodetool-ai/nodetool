@@ -22,7 +22,7 @@ export interface MissingRuntime {
   packageId: string;
 }
 
-export interface WorkflowRuntimeCheckResult {
+interface WorkflowRuntimeCheckResult {
   missing: MissingRuntime[];
   /** True until the first status check resolves. */
   loading: boolean;

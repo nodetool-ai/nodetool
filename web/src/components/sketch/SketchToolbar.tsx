@@ -113,7 +113,7 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
   );
 }
 
-export interface SketchToolbarProps {
+interface SketchToolbarProps {
   activeTool: SketchTool;
   selectMode: SelectToolMode;
   onToolChange: (tool: SketchTool) => void;

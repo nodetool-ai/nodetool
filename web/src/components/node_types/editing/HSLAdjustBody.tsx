@@ -137,7 +137,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface HSLAdjustBodyProps {
+interface HSLAdjustBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

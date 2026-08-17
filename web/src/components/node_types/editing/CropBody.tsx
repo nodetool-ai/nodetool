@@ -274,7 +274,7 @@ interface DragState {
   scale: number;
 }
 
-export interface CropBodyProps {
+interface CropBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

@@ -47,7 +47,7 @@ const RETENTION_MS = () =>
   envInt("NODETOOL_CHAT_REPLAY_RETENTION_MS", 5 * 60 * 1000);
 
 /** A connection that can deliver frames to its client. */
-export interface ChatTurnDeliveryTarget {
+interface ChatTurnDeliveryTarget {
   deliver(message: Record<string, unknown>): Promise<void>;
 }
 
@@ -62,7 +62,7 @@ export interface ChatTurnExecutionHooks {
   cancelPendingCalls(threadId: string): void;
 }
 
-export interface ChatTurnAttachResult {
+interface ChatTurnAttachResult {
   /** Frames with `chat_seq` greater than the requested `last_seq`. */
   replay: Array<Record<string, unknown>>;
   /** True when `last_seq` predates what the bounded buffer still holds. */

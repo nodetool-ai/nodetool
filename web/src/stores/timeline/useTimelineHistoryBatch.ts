@@ -29,7 +29,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useTimelineStoreApi, timelineTemporalOf } from "./TimelineStore";
 
-export interface TimelineHistoryBatch {
+interface TimelineHistoryBatch {
   /** Start a gesture: snapshot the current undo-stack depth as the baseline. */
   begin: () => void;
   /** Call after every store mutation; pauses once a checkpoint was recorded. */

@@ -32,15 +32,15 @@ interface VideoSettings {
   duration: number;
 }
 
-export interface ImageModelPatch extends ImageSettings {
+interface ImageModelPatch extends ImageSettings {
   model: ImageModelValue;
 }
 
-export interface VideoModelPatch extends VideoSettings {
+interface VideoModelPatch extends VideoSettings {
   model: VideoModelSelection;
 }
 
-export interface AudioModelPatch {
+interface AudioModelPatch {
   model: TTSModelValue;
   voice: string;
 }

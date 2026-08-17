@@ -8,7 +8,7 @@ export interface SdkV1ExecutionTargetReadiness {
   message?: string | null;
 }
 
-export interface CreateNodeToolSdkV1ExecutionReadinessProbeOptions {
+interface CreateNodeToolSdkV1ExecutionReadinessProbeOptions {
   getTargetReadiness?: () =>
     | Promise<SdkV1ExecutionTargetReadiness>
     | SdkV1ExecutionTargetReadiness;

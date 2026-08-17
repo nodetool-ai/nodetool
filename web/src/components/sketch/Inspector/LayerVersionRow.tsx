@@ -65,7 +65,7 @@ function versionStatusType(
   }
 }
 
-export interface LayerVersionRowProps {
+interface LayerVersionRowProps {
   version: LayerVersion;
   onRestore: (versionId: string) => void;
   onSetFavorite: (versionId: string, favorite: boolean) => void;

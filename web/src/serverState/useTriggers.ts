@@ -73,7 +73,7 @@ export const runningTriggersQueryKey = ["triggers", "by-user", "running"] as con
 /** How long the cross-workflow armed list stays fresh. */
 const RUNNING_TRIGGERS_STALE_MS = 30_000;
 
-export interface UseWorkflowTriggersOptions {
+interface UseWorkflowTriggersOptions {
   /** Gate the query — pass whether the open graph actually has trigger nodes. */
   enabled?: boolean;
 }

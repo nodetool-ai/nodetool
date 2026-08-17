@@ -82,7 +82,7 @@ export interface JsScriptVersionStore {
   deleteVersion: (jsScriptId: string, version: number) => Promise<void>;
 }
 
-export interface JsScriptVersionsDeps {
+interface JsScriptVersionsDeps {
   /** Defaults to the local database through `@nodetool-ai/models`. */
   store?: () => Promise<JsScriptVersionStore>;
   /** Defaults to `validateJsScriptDoc` from the js-script-debug core. */

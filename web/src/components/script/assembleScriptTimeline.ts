@@ -26,7 +26,7 @@ export {
   takeCaptionWords
 } from "@nodetool-ai/timeline";
 
-export interface AssembledScriptDocument extends AssembledScriptTimeline {
+interface AssembledScriptDocument extends AssembledScriptTimeline {
   /** Shots left out of the cut; empty for an unlinked script. */
   skippedShotIds: string[];
   /** True when the board's shots were cut in with the words. */

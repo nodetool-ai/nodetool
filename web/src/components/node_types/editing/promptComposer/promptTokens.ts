@@ -16,12 +16,12 @@
  * lets the Lexical nodes/plugins stay thin.
  */
 
-export interface TextToken {
+interface TextToken {
   kind: "text";
   text: string;
 }
 
-export interface AssetToken {
+interface AssetToken {
   kind: "asset";
   /** Full `asset://<id>.<ext>` reference, stored verbatim. */
   uri: string;
@@ -30,14 +30,14 @@ export interface AssetToken {
   ext: string;
 }
 
-export interface EntityToken {
+interface EntityToken {
   kind: "entity";
   /** Full `entity://<id>` reference, stored verbatim. */
   uri: string;
   entityId: string;
 }
 
-export interface VariableToken {
+interface VariableToken {
   kind: "variable";
   /** Inner expression, e.g. "name" or "name|upper". */
   expr: string;

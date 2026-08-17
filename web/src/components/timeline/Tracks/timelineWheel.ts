@@ -22,7 +22,7 @@ export type TimelineWheelSrc = Pick<
   "deltaX" | "deltaY" | "ctrlKey" | "metaKey" | "shiftKey"
 >;
 
-export interface TimelineWheelMotion {
+interface TimelineWheelMotion {
   /** Vertical delta to feed the zoom step; 0 when the gesture isn't a zoom. */
   zoomDelta: number;
   /** Raw horizontal delta to scroll by; 0 when the gesture isn't a scroll. */

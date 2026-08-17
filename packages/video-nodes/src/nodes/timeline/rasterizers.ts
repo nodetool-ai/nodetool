@@ -33,7 +33,7 @@ import {
 import type { RawImage } from "./rawFrames.js";
 
 /** A rasterized layer plus the signature that identifies its pixels. */
-export interface RasterResult extends RawImage {
+interface RasterResult extends RawImage {
   /** Changes exactly when the pixels do — the compositor's upload key. */
   version: string;
 }

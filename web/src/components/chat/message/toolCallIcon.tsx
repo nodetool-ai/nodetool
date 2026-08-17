@@ -24,7 +24,7 @@ export type ToolAccent =
   | "secondary"
   | "neutral";
 
-export interface ToolVisual {
+interface ToolVisual {
   Icon: SvgIconComponent;
   accent: ToolAccent;
 }

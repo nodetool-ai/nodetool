@@ -16,12 +16,12 @@
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 
 /** The documents a cut was assembled from, by id. */
-export interface AssemblyOwner {
+interface AssemblyOwner {
   boardId?: string | null;
   scriptId?: string | null;
 }
 
-export interface MergedSequence {
+interface MergedSequence {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
 }

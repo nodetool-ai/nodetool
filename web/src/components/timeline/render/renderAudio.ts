@@ -10,7 +10,7 @@
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { AudioGraph, type ScheduledAudioClip } from "../preview/AudioGraph";
 
-export interface RenderAudioOptions {
+interface RenderAudioOptions {
   clips: TimelineClip[];
   tracks: TimelineTrack[];
   /** Total timeline length to render, in milliseconds. */

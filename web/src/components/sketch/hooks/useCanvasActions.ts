@@ -63,7 +63,7 @@ import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 import { useSketchStore } from "../state";
 import { combineMasks, type SelectionCombineOp } from "../selection";
 
-export interface UseCanvasActionsParams {
+interface UseCanvasActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   activeTool: SketchTool;

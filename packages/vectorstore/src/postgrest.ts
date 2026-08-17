@@ -25,27 +25,27 @@ export interface PostgrestRowsResult {
   count: number | null;
 }
 
-export interface PostgrestMaybeSingleResult {
+interface PostgrestMaybeSingleResult {
   data: PostgrestRow | null;
   error: PostgrestError | null;
 }
 
-export interface PostgrestRpcResult {
+interface PostgrestRpcResult {
   data: unknown;
   error: PostgrestError | null;
 }
 
-export interface PostgrestSelectOptions {
+interface PostgrestSelectOptions {
   count?: "exact";
   head?: boolean;
 }
 
-export interface PostgrestUpsertOptions {
+interface PostgrestUpsertOptions {
   onConflict?: string;
 }
 
 /** The fluent builder surface used by SupabaseProvider. */
-export interface PostgrestFilterBuilder extends PromiseLike<PostgrestRowsResult> {
+interface PostgrestFilterBuilder extends PromiseLike<PostgrestRowsResult> {
   eq(column: string, value: unknown): this;
   in(column: string, values: readonly unknown[]): this;
   is(column: string, value: null | boolean): this;
@@ -57,7 +57,7 @@ export interface PostgrestFilterBuilder extends PromiseLike<PostgrestRowsResult>
   maybeSingle(): PromiseLike<PostgrestMaybeSingleResult>;
 }
 
-export interface PostgrestTableApi {
+interface PostgrestTableApi {
   select(
     columns?: string,
     options?: PostgrestSelectOptions
@@ -80,7 +80,7 @@ export interface PostgrestClientApi {
   ): PromiseLike<PostgrestRpcResult>;
 }
 
-export interface PostgrestClientOptions {
+interface PostgrestClientOptions {
   /** Base URL of the Supabase project (e.g. https://xyz.supabase.co). */
   url: string;
   /** API key sent as both `apikey` and Bearer authorization. */

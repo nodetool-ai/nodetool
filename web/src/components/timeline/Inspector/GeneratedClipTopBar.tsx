@@ -29,7 +29,7 @@ const topBarStyles = (theme: Theme) =>
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
-export interface GeneratedClipTopBarProps {
+interface GeneratedClipTopBarProps {
   clip: TimelineClip;
 }
 

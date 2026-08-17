@@ -8,7 +8,7 @@ import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { HistoryEntry } from "../types";
 
-export interface UseHistoryActionsParams {
+interface UseHistoryActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   undo: (
     layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>

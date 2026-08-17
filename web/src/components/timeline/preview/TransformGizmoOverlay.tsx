@@ -75,7 +75,7 @@ const snapAnchor = (norm01: number, dimPx: number): number => {
   return clamp01(norm01);
 };
 
-export interface TransformGizmoOverlayProps {
+interface TransformGizmoOverlayProps {
   /** Selected clip id (target of mutations). */
   clipId: string;
   /** Current transform (undefined → identity). */

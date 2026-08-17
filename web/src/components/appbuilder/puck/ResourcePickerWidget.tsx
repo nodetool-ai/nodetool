@@ -17,7 +17,7 @@ import { SelectField, Caption, FlexColumn } from "../../ui_primitives";
 import { trpc } from "../../../trpc/client";
 import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 
-export interface ResourcePickerProps {
+interface ResourcePickerProps {
   /** Puck injects the placed widget's id. */
   id?: string;
   /** Id of the `ResourceBinding` in the app document. */

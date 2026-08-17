@@ -36,7 +36,7 @@ export interface HasherContext {
   currentGenerationId: (_id: string) => string | undefined;
 }
 
-export interface NodeHasher {
+interface NodeHasher {
   classify: (_id: string) => NodeKind;
   inputSignature: (_id: string) => string;
   outputIdentity: (_id: string) => string;

@@ -18,7 +18,7 @@
  * of documents and decide which mutations record a checkpoint.
  */
 
-export interface DocHistory<Doc> {
+interface DocHistory<Doc> {
   /** Checkpoints oldest-first; the last is the most recent undo target. */
   past: Doc[];
   /** Redo checkpoints; the last is the next redo target. */

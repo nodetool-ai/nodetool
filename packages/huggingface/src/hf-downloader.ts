@@ -29,7 +29,7 @@ export const HF_ENDPOINT = "https://huggingface.co";
 // Types
 // ---------------------------------------------------------------------------
 
-export interface AsyncHfDownloadOptions {
+interface AsyncHfDownloadOptions {
   revision?: string;
   repoType?: RepoType;
   token?: string | boolean | null;

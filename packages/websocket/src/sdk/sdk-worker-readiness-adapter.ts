@@ -1,13 +1,13 @@
 import type { SdkV1ExecutionTargetReadiness } from "./sdk-execution-readiness-probe.js";
 
-export interface SdkV1RecordedWorker {
+interface SdkV1RecordedWorker {
   id: string;
   profile_name: string;
   target: string;
   status: string;
 }
 
-export interface CreateNodeToolSdkV1WorkerReadinessAdapterOptions {
+interface CreateNodeToolSdkV1WorkerReadinessAdapterOptions {
   workerId: string;
   /**
    * Reads persisted worker rows only. Do not pass provider status,

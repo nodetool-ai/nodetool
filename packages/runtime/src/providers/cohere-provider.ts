@@ -52,7 +52,7 @@ const COHERE_EMBEDDING_MODELS: EmbeddingModel[] = [
   }
 ];
 
-export interface CohereProviderOptions {
+interface CohereProviderOptions {
   fetchFn?: typeof fetch;
   /**
    * The Cohere `input_type` parameter. Defaults to `"search_document"` which

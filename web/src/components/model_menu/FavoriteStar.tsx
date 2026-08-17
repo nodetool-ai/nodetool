@@ -4,7 +4,7 @@ import React, { useCallback, memo } from "react";
 import { FavoriteButton, MOTION } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
-export interface FavoriteStarProps {
+interface FavoriteStarProps {
   provider?: string;
   id?: string;
   size?: "small" | "medium";

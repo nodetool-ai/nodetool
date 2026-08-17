@@ -62,7 +62,7 @@ export interface RunOptions {
   supervisor?: SupervisorHandle;
 }
 
-export interface RunWithCapture {
+interface RunWithCapture {
   result: RunResult;
   /** Node id → handle → envelopes in arrival order. */
   captured: Map<string, Map<string, MessageEnvelope[]>>;

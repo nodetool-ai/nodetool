@@ -31,12 +31,12 @@ type StoryboardWireDocument = Awaited<
   ReturnType<typeof trpcClient.storyboards.get.query>
 >["document"];
 
-export interface DeriveStoryboardResult {
+interface DeriveStoryboardResult {
   boardId: string;
   shotCount: number;
 }
 
-export interface UseDeriveStoryboardResult {
+interface UseDeriveStoryboardResult {
   derive: (
     scriptId: string,
     options?: { open?: boolean }

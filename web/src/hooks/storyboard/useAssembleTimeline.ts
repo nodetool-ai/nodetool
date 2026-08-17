@@ -36,7 +36,7 @@ export interface AssembleResult {
   reassembled: boolean;
 }
 
-export interface UseAssembleTimelineResult {
+interface UseAssembleTimelineResult {
   assemble: (boardId: string) => Promise<AssembleResult>;
   assembling: boolean;
   error: string | null;

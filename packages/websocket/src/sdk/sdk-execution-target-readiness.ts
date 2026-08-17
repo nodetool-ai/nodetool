@@ -1,11 +1,11 @@
 import type { SdkV1ExecutionTarget } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import type { SdkV1ExecutionTargetReadiness } from "./sdk-execution-readiness-probe.js";
 
-export interface SdkV1ActiveWorker {
+interface SdkV1ActiveWorker {
   id: string;
 }
 
-export interface CreateSdkV1ExecutionTargetReadinessOptions {
+interface CreateSdkV1ExecutionTargetReadinessOptions {
   getActiveWorker: () =>
     | Promise<SdkV1ActiveWorker | null | undefined>
     | SdkV1ActiveWorker

@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface FolderItemProps {
+interface FolderItemProps {
   folder: Asset;
   isParent?: boolean;
   isSelected?: boolean;

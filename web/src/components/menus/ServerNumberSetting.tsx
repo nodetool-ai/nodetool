@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TextInput, Text } from "../ui_primitives";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
-export interface ServerNumberSettingProps {
+interface ServerNumberSettingProps {
   /** Registry env var key (e.g. MAX_CONCURRENT_RUNS_PER_WORKFLOW). */
   envVar: string;
   label: string;

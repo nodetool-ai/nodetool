@@ -51,12 +51,12 @@ export const KIND_ORDER: ProviderModelKind[] = [
   "text",
 ];
 
-export interface ProviderFaq {
+interface ProviderFaq {
   q: string;
   a: string;
 }
 
-export interface ProviderHighlight {
+interface ProviderHighlight {
   name: string;
   /** One-line description of the model / family. */
   desc: string;

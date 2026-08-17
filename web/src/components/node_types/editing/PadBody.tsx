@@ -104,7 +104,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface PadBodyProps {
+interface PadBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

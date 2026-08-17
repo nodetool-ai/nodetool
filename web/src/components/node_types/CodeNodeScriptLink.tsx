@@ -16,7 +16,7 @@ import { notifyMutationError } from "../../utils/notifyMutationError";
 import { EditorButton, NodeSelect, NodeMenuItem } from "../editor_ui";
 import { Caption, FlexRow, GAP, SPACING } from "../ui_primitives";
 
-export interface CodeNodeScriptLinkProps {
+interface CodeNodeScriptLinkProps {
   id: string;
   data: NodeData;
 }

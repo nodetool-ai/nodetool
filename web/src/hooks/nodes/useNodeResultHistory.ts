@@ -22,7 +22,7 @@ import { normalizeAssetList } from "../../utils/normalizeAsset";
 import { assetToOutputValue } from "../../utils/nodeGenerations";
 import type { OutputPreviewValue } from "../../utils/nodeGenerations";
 
-export interface UseNodeResultHistoryResult {
+interface UseNodeResultHistoryResult {
   assetHistory: Asset[];
   historyCount: number;
   lastJobAssets: Asset[];

@@ -76,7 +76,7 @@ export interface UseTransformPreviewBridgeResult {
   clearLayerTransformPreview: (layerId?: string) => void;
 }
 
-export interface UseTransformPreviewBridgeParams {
+interface UseTransformPreviewBridgeParams {
   /** Optional coordinator ref for typed redraw requests and tracing. */
   coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
 }

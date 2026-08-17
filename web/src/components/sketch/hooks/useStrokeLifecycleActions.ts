@@ -16,13 +16,13 @@ import {
 import type { PendingExportSync } from "./useExportSyncActions";
 import type { StrokeEndOptions } from "../tools/types";
 
-export interface PendingStrokeFinalize {
+interface PendingStrokeFinalize {
   hasSnapshot: boolean;
   data: string | null;
   committedBounds?: LayerContentBounds | null;
 }
 
-export interface UseStrokeLifecycleActionsParams {
+interface UseStrokeLifecycleActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   activeTool: SketchTool;

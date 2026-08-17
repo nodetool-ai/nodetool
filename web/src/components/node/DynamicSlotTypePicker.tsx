@@ -20,7 +20,7 @@ import {
   slotTypeLabel
 } from "../../utils/dynamicSlotTypes";
 
-export interface DynamicSlotTypePickerProps {
+interface DynamicSlotTypePickerProps {
   /** Name of the dynamic slot being typed. */
   propertyName: string;
   /** Currently declared type; `any` when the slot is untyped. */

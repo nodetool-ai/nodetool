@@ -162,7 +162,7 @@ const wireEntity = (entity: Entity) => ({
 const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
 
-export interface UseGenerateShotResult {
+interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
   generateClip: (boardId: string, shot: Shot) => Promise<void>;
   generateRevisedClip: (

@@ -212,7 +212,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface MentionAssetTileProps {
+interface MentionAssetTileProps {
   asset: Asset;
   selected: boolean;
   onSelect: () => void;

@@ -20,14 +20,14 @@ import {
 } from "@nodetool-ai/storage";
 import { getAssetFileName } from "@nodetool-ai/websocket";
 
-export interface MigrateKeysOptions {
+interface MigrateKeysOptions {
   dryRun?: boolean;
   /** Migrate only this user's objects. */
   userId?: string;
   json?: boolean;
 }
 
-export interface MigrateKeysReport {
+interface MigrateKeysReport {
   scanned: number;
   moved: number;
   alreadyMigrated: number;

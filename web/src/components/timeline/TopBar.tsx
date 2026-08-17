@@ -46,7 +46,7 @@ const styles = (theme: Theme, compact: boolean) =>
     flexShrink: 0
   });
 
-export interface TopBarProps {
+interface TopBarProps {
   /** Called when the user clicks Export (renders the timeline to a video file) */
   onExportVideo?: () => void;
   /** True while an export render is in progress. */

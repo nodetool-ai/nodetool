@@ -136,7 +136,7 @@ export const chartTraces = (value: unknown, kind: ChartKind): Data[] => {
   });
 };
 
-export interface ChartWidgetProps {
+interface ChartWidgetProps {
   id: string;
   binding?: string;
   events?: AppEvent[];

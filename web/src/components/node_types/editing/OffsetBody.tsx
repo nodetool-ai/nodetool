@@ -124,7 +124,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface OffsetBodyProps {
+interface OffsetBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

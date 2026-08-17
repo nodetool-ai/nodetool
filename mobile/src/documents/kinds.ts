@@ -34,7 +34,7 @@ export type ResourceDocumentKind = Exclude<DocumentKind, 'script' | 'jsscript'>;
  */
 export type DocumentSurface = 'editor' | 'viewer';
 
-export interface DocumentKindInfo {
+interface DocumentKindInfo {
   kind: DocumentKind;
   /** Singular label, e.g. "Storyboard". */
   label: string;

@@ -175,7 +175,7 @@ export const browserRunnablePrefix = (
   };
 };
 
-export interface DownstreamRunGraph {
+interface DownstreamRunGraph {
   /** Downstream nodes with external upstream results injected as overrides. */
   nodes: Node<NodeData>[];
   edges: Edge[];
@@ -185,7 +185,7 @@ export interface DownstreamRunGraph {
   totalPropertiesInjected: number;
 }
 
-export interface BuildDownstreamRunGraphParams {
+interface BuildDownstreamRunGraphParams {
   nodeId: string;
   nodes: Node<NodeData>[];
   edges: Edge[];

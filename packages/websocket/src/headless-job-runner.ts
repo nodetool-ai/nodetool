@@ -36,7 +36,7 @@ import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 const log = createLogger("nodetool.websocket.headless-job");
 
 /** Wake-up payload for a trigger-driven run (protocol `trigger_event` shape). */
-export interface HeadlessTriggerEvent {
+interface HeadlessTriggerEvent {
   node_id: string;
   payload: unknown;
   input_id: string;
@@ -79,7 +79,7 @@ export type HeadlessJobStatus =
   | "cancelled"
   | "suspended";
 
-export interface HeadlessJobResult {
+interface HeadlessJobResult {
   jobId: string;
   status: HeadlessJobStatus;
   error: string | null;

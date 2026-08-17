@@ -64,7 +64,7 @@ import CodeAssistantDialog from "./code_assistant/CodeAssistantDialog";
 import CodeNodeScriptLink from "./CodeNodeScriptLink";
 import { isObjectLike, isString } from "../../utils/typePredicates";
 
-export interface CodeBodyProps {
+interface CodeBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

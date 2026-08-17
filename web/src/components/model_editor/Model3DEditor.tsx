@@ -310,7 +310,7 @@ const AddMenu = ({ onAdd }: AddMenuProps) => {
   );
 };
 
-export interface Model3DEditorProps {
+interface Model3DEditorProps {
   url: string;
   name?: string;
   onSave: (blob: Blob) => Promise<void> | void;

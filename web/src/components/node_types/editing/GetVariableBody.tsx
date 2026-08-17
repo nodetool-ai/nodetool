@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
     ".outputs-row": { flex: "0 0 auto" }
   });
 
-export interface GetVariableBodyProps {
+interface GetVariableBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

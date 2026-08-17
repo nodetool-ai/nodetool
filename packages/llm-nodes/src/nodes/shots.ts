@@ -83,7 +83,7 @@ export interface ShotSpec {
 }
 
 /** Options controlling the fan-out in {@link toShotSpecs}. */
-export interface ShotSpecOptions {
+interface ShotSpecOptions {
   aspectRatio?: string;
   defaultDuration?: number;
 }
@@ -162,7 +162,7 @@ export function toShotSpecs(
 export type ChainSeed = "keyframe" | "previous" | "none";
 
 /** One ordered step in a shot chain: which shot, seeded from where. */
-export interface ChainStep {
+interface ChainStep {
   index: number;
   seedFrom: ChainSeed;
 }

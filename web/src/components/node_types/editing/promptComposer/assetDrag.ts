@@ -11,7 +11,7 @@ import {
   deserializeDragData
 } from "../../../../lib/dragdrop/serialization";
 
-export interface AssetDrag {
+interface AssetDrag {
   /** Fully-resolved assets (single-asset drags carry the whole object). */
   assets: Asset[];
   /** Asset ids that still need resolving (multi-select drags carry ids only). */

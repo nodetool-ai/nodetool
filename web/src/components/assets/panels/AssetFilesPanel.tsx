@@ -8,7 +8,7 @@ import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 
-export interface AssetFilesPanelProps {
+interface AssetFilesPanelProps {
   isHorizontal?: boolean;
   itemSpacing?: number;
 }

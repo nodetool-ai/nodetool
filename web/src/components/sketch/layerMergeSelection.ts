@@ -1,6 +1,6 @@
 import type { Layer } from "./types";
 
-export interface MergeSelectedLayersPlan {
+interface MergeSelectedLayersPlan {
   mergeOrder: string[];
   mergePairs: Array<{ upperLayerId: string; lowerLayerId: string }>;
   survivingLayerId: string;

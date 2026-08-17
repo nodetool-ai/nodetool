@@ -61,7 +61,7 @@ const GROUP_LAYER_ICON_BUTTON_SX = {
 /** Where a dragged layer will be inserted relative to the drop target. */
 export type DropPosition = "before" | "after" | "into" | null;
 
-export interface LayerItemProps {
+interface LayerItemProps {
   layer: Layer;
   realIdx: number;
   depth?: number;

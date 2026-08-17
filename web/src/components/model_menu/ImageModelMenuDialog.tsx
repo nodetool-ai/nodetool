@@ -7,7 +7,7 @@ import {
   type ImageModelTask
 } from "../../hooks/useModelsByProvider";
 
-export interface ImageModelMenuDialogProps {
+interface ImageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;

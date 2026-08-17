@@ -82,7 +82,7 @@ export function referenceWasmResolution(
  * run must produce. `result` pins a successful run's value; `errorIncludes`
  * pins the substring a rejection's message must carry.
  */
-export interface SandboxWasmCase {
+interface SandboxWasmCase {
   readonly name: string;
   readonly code: string;
   readonly result?: unknown;

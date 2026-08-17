@@ -72,7 +72,7 @@ export interface TimelineClipNode {
   shapeStyle?: TimelineShapeStyle;
 }
 
-export interface TimelineTextStyle {
+interface TimelineTextStyle {
   text: string;
   fontFamily?: string;
   fontSizePx: number;
@@ -82,7 +82,7 @@ export interface TimelineTextStyle {
   maxWidthFrac?: number;
 }
 
-export interface TimelineShapeStyle {
+interface TimelineShapeStyle {
   kind: "rect" | "ellipse" | "line";
   fill?: string;
   stroke?: string;
@@ -129,7 +129,7 @@ export type TimelineGenerateKind =
   | "text-to-image"
   | "text-to-audio";
 
-export interface TimelineGenerateOptions {
+interface TimelineGenerateOptions {
   kind: TimelineGenerateKind;
   prompt: string;
   /** Target track id; defaults to a sensible track for the media kind. */
@@ -149,7 +149,7 @@ export interface TimelineGenerateOptions {
   autoGenerate?: boolean;
 }
 
-export interface TimelineGenerateResult {
+interface TimelineGenerateResult {
   clip: TimelineClipNode;
   /** True when a generation job was dispatched for the new clip. */
   generationStarted: boolean;
@@ -191,7 +191,7 @@ export interface TimelineClipParamsPatch {
 }
 
 /** Generation-binding fields the agent can change on a generated clip. */
-export interface TimelineClipBindingPatch {
+interface TimelineClipBindingPatch {
   prompt?: string;
   negativePrompt?: string;
   provider?: string;
@@ -223,7 +223,7 @@ export interface TimelineMovePatch {
   trackId?: string;
 }
 
-export interface TimelineClipFramesOptions {
+interface TimelineClipFramesOptions {
   /** Absolute timeline timestamps to sample. Defaults to evenly spaced samples. */
   timesMs?: number[];
   /** Number of evenly spaced samples when `timesMs` is omitted. */
@@ -244,7 +244,7 @@ export interface TimelineClipFrameNode {
   dataUrl: string;
 }
 
-export interface TimelineClipFramesResult {
+interface TimelineClipFramesResult {
   clip: TimelineClipNode;
   frames: TimelineClipFrameNode[];
 }

@@ -22,12 +22,12 @@ import type { ScriptDraft } from "./ScriptStore";
 /** Fallback cue length for a current take whose duration is unknown. */
 const PLACEHOLDER_LINE_MS = 3000;
 
-export interface ScriptSubtitleOptions {
+interface ScriptSubtitleOptions {
   format?: SubtitleFormat;
   granularity?: SubtitleGranularity;
 }
 
-export interface ScriptSubtitleResult {
+interface ScriptSubtitleResult {
   /** The rendered subtitle file content. */
   text: string;
   format: SubtitleFormat;

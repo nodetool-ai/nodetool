@@ -87,7 +87,7 @@ export interface GenerationStoppedUpdate {
  * GlobalChatStore as a pending approval; the user resolves it via the inline
  * ToolApprovalCard, which sends a `tool_approval_response` back.
  */
-export interface ToolApprovalRequestMessage {
+interface ToolApprovalRequestMessage {
   type: "tool_approval_request";
   thread_id: string;
   approval_id: string;
@@ -102,7 +102,7 @@ export interface ToolApprovalRequestMessage {
  * GlobalChatStore as a pending plan approval; the user resolves it via the
  * inline PlanApprovalCard, which sends a `plan_approval_response` back.
  */
-export interface PlanApprovalRequestMessage {
+interface PlanApprovalRequestMessage {
   type: "plan_approval_request";
   thread_id: string | null;
   approval_id: string;
@@ -121,7 +121,7 @@ export interface ToolCallMessage {
  * Reply to a `resume_chat` command, sent before any replayed frames. See
  * `chatResumedMessageOutSchema` in @nodetool-ai/protocol for the contract.
  */
-export interface ChatResumedUpdate {
+interface ChatResumedUpdate {
   type: "chat_resumed";
   thread_id: string;
   status: "running" | "finished" | "unknown";
@@ -135,7 +135,7 @@ export interface ChatResumedUpdate {
  * running on the server. Sent once per running turn so a client that starts
  * with no local state (a page reload) can reattach with `resume_chat`.
  */
-export interface ChatTurnActiveUpdate {
+interface ChatTurnActiveUpdate {
   type: "chat_turn_active";
   thread_id: string;
   status: "running";

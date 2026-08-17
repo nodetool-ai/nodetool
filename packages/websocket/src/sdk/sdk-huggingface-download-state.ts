@@ -5,7 +5,7 @@ import type {
 
 type ModelDownloadStatus = "downloading" | "not_downloading" | "unknown";
 
-export interface CreateNodeToolSdkV1HuggingFaceDownloadStateOptions {
+interface CreateNodeToolSdkV1HuggingFaceDownloadStateOptions {
   /** Explicit provider ids backed by this Hugging Face cache. */
   providerIds: readonly string[];
   getDownloadManager: (userId: string) => Pick<

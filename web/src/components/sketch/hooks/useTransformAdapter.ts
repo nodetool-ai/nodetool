@@ -15,24 +15,24 @@ import { useMemo } from "react";
 import { useDisplayedActiveLayerTransform } from "../activeLayerTransform";
 import { isAffineTransform } from "../types";
 
-export interface TransformDisplayState {
+interface TransformDisplayState {
   scaleX: number;
   scaleY: number;
   rotation: number;
 }
 
-export interface TransformAdapterActions {
+interface TransformAdapterActions {
   onCommit: () => void;
   onCancel: () => void;
   onReset: () => void;
 }
 
-export interface TransformAdapterResult {
+interface TransformAdapterResult {
   display: TransformDisplayState;
   actions: TransformAdapterActions;
 }
 
-export interface UseTransformAdapterParams {
+interface UseTransformAdapterParams {
   onTransformCommit: () => void;
   onTransformCancel: () => void;
   onTransformReset: () => void;

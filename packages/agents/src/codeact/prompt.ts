@@ -239,7 +239,7 @@ function renderSandboxSummary(
   ].join("\n\n");
 }
 
-export interface CodeActPromptOptions {
+interface CodeActPromptOptions {
   /** Tools documented in full (signature + description) in the prompt. */
   tools: ToolSignatureSource[];
   /**

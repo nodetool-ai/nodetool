@@ -68,7 +68,7 @@ export interface ContextFactoryInput {
  * `userId` the auth plugin attaches) and the plain `IncomingMessage` the
  * test-UI server serves satisfy it.
  */
-export interface ContextRequest {
+interface ContextRequest {
   userId?: string | null;
 }
 

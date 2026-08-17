@@ -10,7 +10,7 @@ export type MentionTab = "recent" | "saved";
 
 const PAGE_SIZE = 24;
 
-export interface AssetMentionSearch {
+interface AssetMentionSearch {
   activeTab: MentionTab;
   setActiveTab: (tab: MentionTab) => void;
   /**

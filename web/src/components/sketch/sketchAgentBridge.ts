@@ -83,7 +83,7 @@ export interface SketchSnapshot {
   layers: SketchLayerNode[];
 }
 
-export interface SketchGenerateOptions {
+interface SketchGenerateOptions {
   kind: SketchGenerateKind;
   prompt: string;
   /** New layer name; defaults to a sensible name for the kind. */
@@ -100,7 +100,7 @@ export interface SketchGenerateOptions {
   autoGenerate?: boolean;
 }
 
-export interface SketchGenerateResult {
+interface SketchGenerateResult {
   layer: SketchLayerNode;
   /** True when a generation job was dispatched for the new layer. */
   generationStarted: boolean;
@@ -109,7 +109,7 @@ export interface SketchGenerateResult {
 }
 
 /** Layer props the agent can patch. Omit a field to leave it unchanged. */
-export interface SketchLayerPropsPatch {
+interface SketchLayerPropsPatch {
   name?: string;
   visible?: boolean;
   opacity?: number;
@@ -118,7 +118,7 @@ export interface SketchLayerPropsPatch {
   alphaLock?: boolean;
 }
 
-export interface SketchAddLayerOptions {
+interface SketchAddLayerOptions {
   name?: string;
   type?: "raster" | "mask";
   /** Fill the new layer with this color (hex). */
@@ -132,7 +132,7 @@ export type SketchSelectionOp = "all" | "clear" | "invert";
 export type SketchStrokeTool = "brush" | "pencil" | "eraser";
 
 /** One sampled point of a stroke, in canvas (document) pixel coordinates. */
-export interface SketchStrokePoint {
+interface SketchStrokePoint {
   x: number;
   y: number;
   /** Pen pressure in [0,1]; omit for an unmodulated (mouse-like) stroke. */
@@ -140,7 +140,7 @@ export interface SketchStrokePoint {
 }
 
 /** A single continuous stroke, as the agent describes it. */
-export interface SketchStrokeOptions {
+interface SketchStrokeOptions {
   /** Layer to paint on; defaults to the active layer. */
   target?: string;
   /** Paint engine; defaults to `brush`. */
@@ -163,7 +163,7 @@ export interface SketchStrokeOptions {
   closed?: boolean;
 }
 
-export interface SketchStrokeResult {
+interface SketchStrokeResult {
   layerId: string;
   layerName: string;
   tool: SketchStrokeTool;
@@ -173,7 +173,7 @@ export interface SketchStrokeResult {
   bounds: { x: number; y: number; width: number; height: number } | null;
 }
 
-export interface SketchLayerImageResult {
+interface SketchLayerImageResult {
   /** null target → the flattened composite; otherwise the addressed layer. */
   layerId: string | null;
   layerName: string | null;
@@ -194,7 +194,7 @@ export interface SketchRenderedAssetResult {
   layerName: string | null;
 }
 
-export interface SketchFillOptions {
+interface SketchFillOptions {
   target?: string;
   x: number;
   y: number;
@@ -203,7 +203,7 @@ export interface SketchFillOptions {
   contiguous?: boolean;
 }
 
-export interface SketchFillResult {
+interface SketchFillResult {
   layerId: string;
   layerName: string;
   x: number;
@@ -211,12 +211,12 @@ export interface SketchFillResult {
   color: string;
 }
 
-export interface SketchGradientStop {
+interface SketchGradientStop {
   offset: number;
   color: string;
 }
 
-export interface SketchGradientOptions {
+interface SketchGradientOptions {
   target?: string;
   type: "linear" | "radial";
   start: { x: number; y: number };
@@ -224,13 +224,13 @@ export interface SketchGradientOptions {
   stops?: SketchGradientStop[];
 }
 
-export interface SketchGradientResult {
+interface SketchGradientResult {
   layerId: string;
   layerName: string;
   type: "linear" | "radial";
 }
 
-export interface SketchDrawShapeOptions {
+interface SketchDrawShapeOptions {
   target?: string;
   shape: "rect" | "ellipse" | "line" | "arrow" | "polygon" | "star";
   x: number;
@@ -245,14 +245,14 @@ export interface SketchDrawShapeOptions {
   innerRadius?: number;
 }
 
-export interface SketchDrawShapeResult {
+interface SketchDrawShapeResult {
   layerId: string;
   layerName: string;
   shape: string;
   bounds: { x: number; y: number; width: number; height: number };
 }
 
-export interface SketchSelectionShapeOptions {
+interface SketchSelectionShapeOptions {
   mode?: "replace" | "add" | "subtract" | "intersect";
   shape: "rect" | "ellipse" | "lasso" | "polygon";
   bounds?: { x: number; y: number; width: number; height: number };
@@ -260,13 +260,13 @@ export interface SketchSelectionShapeOptions {
   feather?: number;
 }
 
-export interface SketchSelectionShapeResult {
+interface SketchSelectionShapeResult {
   hasSelection: boolean;
   shape: string;
   mode: string;
 }
 
-export interface SketchTransformOptions {
+interface SketchTransformOptions {
   target?: string;
   dx?: number;
   dy?: number;
@@ -277,7 +277,7 @@ export interface SketchTransformOptions {
   flipV?: boolean;
 }
 
-export interface SketchTransformResult {
+interface SketchTransformResult {
   layerId: string;
   layerName: string;
   dx: number;
@@ -289,7 +289,7 @@ export interface SketchTransformResult {
   flipV: boolean;
 }
 
-export interface SketchAdjustLayerOptions {
+interface SketchAdjustLayerOptions {
   target?: string;
   brightness?: number;
   contrast?: number;
@@ -305,7 +305,7 @@ export interface SketchAdjustLayerResult {
   adjustments: Record<string, number>;
 }
 
-export interface SketchCropOptions {
+interface SketchCropOptions {
   target?: string | null;
   x: number;
   y: number;
@@ -313,19 +313,19 @@ export interface SketchCropOptions {
   height: number;
 }
 
-export interface SketchCropResult {
+interface SketchCropResult {
   layerId: string | null;
   width: number;
   height: number;
 }
 
-export interface SketchPickColorOptions {
+interface SketchPickColorOptions {
   target?: string | null;
   x: number;
   y: number;
 }
 
-export interface SketchPickColorResult {
+interface SketchPickColorResult {
   x: number;
   y: number;
   color: string;

@@ -32,14 +32,14 @@
  * a presentable workflow (scripts/install-mega-synth.ts).
  */
 
-export interface MegaNode {
+interface MegaNode {
   [key: string]: unknown;
   id: string;
   type: string;
   properties: Record<string, unknown>;
   ui_properties: { position: { x: number; y: number } };
 }
-export interface MegaEdge {
+interface MegaEdge {
   [key: string]: unknown;
   id: string;
   source: string;

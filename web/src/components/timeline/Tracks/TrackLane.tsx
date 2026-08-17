@@ -102,7 +102,7 @@ interface RubberBandRect {
   height: number;
 }
 
-export interface TrackLaneProps {
+interface TrackLaneProps {
   track: TimelineTrack;
 }
 

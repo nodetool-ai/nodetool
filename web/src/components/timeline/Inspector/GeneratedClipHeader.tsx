@@ -50,7 +50,7 @@ const capitalize = (s: string): string =>
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export interface GeneratedClipHeaderProps {
+interface GeneratedClipHeaderProps {
   clip: TimelineClip;
 }
 

@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
 
 import { FlexColumn, FlexRow, Text, BORDER_RADIUS, MOTION } from "../ui_primitives";
 
-export interface PackageRowProps {
+interface PackageRowProps {
   name: string;
   /** Badges (chips) and version text shown inline after the name. */
   meta?: ReactNode;

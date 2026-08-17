@@ -17,7 +17,7 @@ import { AssetMentionMenu } from "../../node_types/editing/promptComposer/AssetM
 import { useAssetMentionSearch } from "../../node_types/editing/promptComposer/useAssetMentionSearch";
 
 /** An active `@`-mention span in a textarea's value. */
-export interface MentionTrigger {
+interface MentionTrigger {
   /** Index of the `@` character. */
   start: number;
   /** Caret position; the query is `value.slice(start + 1, end)`. */
@@ -71,7 +71,7 @@ const menuWrapperStyles = (rect: DOMRect): React.CSSProperties => ({
   zIndex: Z_INDEX.tooltip
 });
 
-export interface UseTextareaAssetMention {
+interface UseTextareaAssetMention {
   /** The positioned picker, or `null` when no mention is active. */
   mentionMenu: React.ReactNode;
   /**
@@ -81,7 +81,7 @@ export interface UseTextareaAssetMention {
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => boolean;
 }
 
-export interface UseTextareaAssetMentionOptions {
+interface UseTextareaAssetMentionOptions {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   /** Replace the textarea value (used to strip the `@query` on selection). */

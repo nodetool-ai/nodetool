@@ -18,7 +18,7 @@ import {
 } from "../ui_primitives";
 import { useSaveEntity } from "../../serverState/useEntities";
 
-export interface EntityEditorDialogProps {
+interface EntityEditorDialogProps {
   open: boolean;
   onClose: () => void;
   /** The image asset to tag as this entity's reference. */

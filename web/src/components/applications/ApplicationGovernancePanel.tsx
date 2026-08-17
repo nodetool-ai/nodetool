@@ -286,7 +286,7 @@ const InvocationsSection = memo(function InvocationsSection({
   );
 });
 
-export interface ApplicationGovernancePanelProps {
+interface ApplicationGovernancePanelProps {
   applicationId: string;
 }
 

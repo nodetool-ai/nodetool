@@ -15,7 +15,7 @@ export interface ClipThumbnail {
   dataUrl: string;
 }
 
-export interface ClipFrame extends ClipThumbnail {
+interface ClipFrame extends ClipThumbnail {
   /** Requested frame timestamp in seconds within the source video. */
   requestedTime: number;
   width: number;

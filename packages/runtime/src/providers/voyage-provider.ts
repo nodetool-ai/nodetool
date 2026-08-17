@@ -65,7 +65,7 @@ const VOYAGE_EMBEDDING_MODELS: EmbeddingModel[] = [
   }
 ];
 
-export interface VoyageProviderOptions {
+interface VoyageProviderOptions {
   fetchFn?: typeof fetch;
   /**
    * Voyage `input_type` hint. Use `"document"` when embedding content for a

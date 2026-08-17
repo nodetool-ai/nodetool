@@ -26,7 +26,7 @@ export interface OutputHandle {
 /**
  * Represents an input handle (either static or dynamic)
  */
-export interface InputHandle {
+interface InputHandle {
   name: string;
   type: TypeMetadata;
   isDynamic: boolean;

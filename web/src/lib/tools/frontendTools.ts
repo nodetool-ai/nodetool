@@ -76,7 +76,7 @@ type RegisteredTool = Omit<FrontendToolDefinition, "parameters" | "execute"> & {
   execute: (args: never, ctx: FrontendToolContext) => Promise<unknown>;
 };
 
-export interface FrontendToolManifestEntry {
+interface FrontendToolManifestEntry {
   name: string;
   description: string;
   parameters: JsonSchema;

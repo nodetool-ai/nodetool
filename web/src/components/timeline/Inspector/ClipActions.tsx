@@ -29,7 +29,7 @@ const actionsRowStyles = (theme: Theme) =>
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export interface ClipActionsProps {
+interface ClipActionsProps {
   clipId: string;
   duplicateOffsetMs?: number;
 }

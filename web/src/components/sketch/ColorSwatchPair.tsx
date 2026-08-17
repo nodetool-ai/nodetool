@@ -35,7 +35,7 @@ const OVERLAP = 12;
 /** Footprint of the overlapping pair. */
 const STACK = SWATCH + OVERLAP;
 
-export interface ColorSwatchPairProps {
+interface ColorSwatchPairProps {
   foregroundColor: string;
   backgroundColor: string;
   onForegroundColorChange: (color: string) => void;

@@ -6,7 +6,7 @@ import {
 } from "../../stores/ModelMenuStore";
 import { useTTSModelsByProvider } from "../../hooks/useModelsByProvider";
 
-export interface TTSModelMenuDialogProps {
+interface TTSModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: TTSModel) => void;

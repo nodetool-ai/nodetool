@@ -9,7 +9,7 @@ const TAB_DEFS: { value: InspectorTab; label: string; hasCount: boolean }[] = [
   { value: "help", label: "Help", hasCount: false }
 ];
 
-export interface InspectorTabsProps {
+interface InspectorTabsProps {
   active: InspectorTab;
   onChange: (next: InspectorTab) => void;
   counts: Partial<Record<InspectorTab, number>>;

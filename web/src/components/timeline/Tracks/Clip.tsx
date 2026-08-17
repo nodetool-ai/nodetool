@@ -454,7 +454,7 @@ const animationLoopIconStyles = (theme: Theme) =>
     "& svg": { fontSize: 12 }
   });
 
-export interface ClipProps {
+interface ClipProps {
   clipId: string;
 }
 

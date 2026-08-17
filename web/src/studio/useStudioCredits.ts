@@ -10,7 +10,7 @@ import type { RouterOutputs } from "../trpc/client";
 
 export type CreditStatusOutput = RouterOutputs["credits"]["status"];
 
-export interface StudioCredits {
+interface StudioCredits {
   status: CreditStatusOutput | null;
   remaining: number;
   loading: boolean;

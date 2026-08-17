@@ -11,7 +11,7 @@ const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
   keyof typeof SHORTCUT_CATEGORIES
 >;
 
-export interface ShortcutsSearchableListProps {
+interface ShortcutsSearchableListProps {
   shortcuts: readonly Shortcut[];
   /** Catalog for resolving shortcut slugs in combo tooltips (defaults to `shortcuts`). */
   tooltipCatalog?: readonly Shortcut[];

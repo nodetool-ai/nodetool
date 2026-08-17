@@ -16,7 +16,7 @@
  */
 import { parseIntEnv, parseBoolEnv } from "./env-config.js";
 
-export interface HttpRateLimitConfig {
+interface HttpRateLimitConfig {
   enabled: boolean;
   max: number;
   /** Window length in milliseconds. */

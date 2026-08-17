@@ -20,7 +20,7 @@ import {
 export const MIN_RUNS = 1;
 export const MAX_RUNS = 32;
 
-export interface RunProgress {
+interface RunProgress {
   current: number;
   total: number;
 }

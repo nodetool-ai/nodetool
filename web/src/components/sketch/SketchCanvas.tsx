@@ -187,7 +187,7 @@ export interface SketchCanvasRef {
  *
  * Props are grouped by concern:
  */
-export interface SketchCanvasProps {
+interface SketchCanvasProps {
   // ── Committed document state ───────────────────────────────────────
   document: SketchDocument;
   selection?: Selection | null;

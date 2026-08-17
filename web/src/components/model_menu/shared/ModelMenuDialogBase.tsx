@@ -56,7 +56,7 @@ import {
 } from "../../../utils/modelMenuNavigation";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
 
-export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
+interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   open: boolean;
   onClose: () => void;
   anchorEl?: HTMLElement | null;

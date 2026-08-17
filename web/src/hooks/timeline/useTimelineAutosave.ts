@@ -121,7 +121,7 @@ const sameDocument = (
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled;
 
-export interface UseTimelineAutosaveOptions {
+interface UseTimelineAutosaveOptions {
   debounceMs?: number;
 }
 

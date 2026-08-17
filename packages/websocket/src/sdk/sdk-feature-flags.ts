@@ -36,7 +36,7 @@ export function isSdkLifecycleV1Enabled(
   return enabledUnlessDisabled(environment, SDK_LIFECYCLE_V1_DISABLE_FLAG);
 }
 
-export interface SdkFeatureFlagSnapshot {
+interface SdkFeatureFlagSnapshot {
   workflowInterfaceV1: boolean;
   authenticationV1: boolean;
   lifecycleV1: boolean;

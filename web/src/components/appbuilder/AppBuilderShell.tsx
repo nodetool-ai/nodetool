@@ -27,7 +27,7 @@ import AppDataPanel from "./AppDataPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { isString } from "../../utils/typePredicates";
 
-export interface AppBuilderShellProps {
+interface AppBuilderShellProps {
   /**
    * The application being edited. This is the app's identity: the agent's
    * `ui_app_*` tools address this editor by it.

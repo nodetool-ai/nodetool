@@ -207,7 +207,7 @@ const lanesContainerStyles = css({
   // Will be set dynamically via style.width
 });
 
-export interface TracksRegionProps {
+interface TracksRegionProps {
   /** Height of the tracks area in pixels. */
   heightPx: number;
 }

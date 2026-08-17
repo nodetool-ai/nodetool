@@ -21,7 +21,7 @@ import type {
 } from '@nodetool-ai/protocol';
 
 /** A model pick as the web pickers emit it. Mobile only reads these through. */
-export interface StoryboardModelSelection {
+interface StoryboardModelSelection {
   type: string;
   id: string;
   provider: string;

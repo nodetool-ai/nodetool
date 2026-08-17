@@ -129,7 +129,7 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   />
 );
 
-export interface ScaleBodyProps {
+interface ScaleBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

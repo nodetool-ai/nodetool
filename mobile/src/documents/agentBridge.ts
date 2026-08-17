@@ -45,7 +45,7 @@ export interface DocumentSnapshot {
  * starts from. It stays optional because a caller that only needs a document
  * listed (or a test that only needs a registration) registers no operations.
  */
-export interface DocumentAgentHandler {
+interface DocumentAgentHandler {
   getSnapshot?: () => DocumentSnapshot;
 }
 

@@ -20,7 +20,7 @@ import type { Readable } from "node:stream";
 import { MissingBinaryError, execFfprobe } from "../ffmpeg-helpers.js";
 
 /** Pixel dimensions of a decoded source. */
-export interface RawSize {
+interface RawSize {
   width: number;
   height: number;
 }
@@ -146,7 +146,7 @@ export interface VideoFrameStream extends RawSize {
 /** How many decoded frames ffmpeg may run ahead of the consumer. */
 const READAHEAD_FRAMES = 4;
 
-export interface VideoFrameStreamOptions {
+interface VideoFrameStreamOptions {
   filePath: string;
   /** Decoded frame size (already fitted to the sequence frame). */
   size: RawSize;
@@ -328,7 +328,7 @@ class FrameReader {
 }
 
 /** A running encoder that turns written RGBA frames into a video file. */
-export interface FrameEncoder {
+interface FrameEncoder {
   write(rgba: Uint8Array): Promise<void>;
   /** Close the input and wait for the file to be finalized. */
   finish(): Promise<void>;

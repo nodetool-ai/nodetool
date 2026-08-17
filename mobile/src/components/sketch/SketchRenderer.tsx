@@ -63,7 +63,7 @@ export type SketchLayerStatus =
   | 'locked'
   | 'missing';
 
-export interface SketchRect {
+interface SketchRect {
   x: number;
   y: number;
   width: number;
@@ -91,7 +91,7 @@ export interface SketchLayer {
   imageReference?: { uri?: string } | null;
 }
 
-export interface SketchLayerBinding {
+interface SketchLayerBinding {
   layerId: string;
   status: SketchLayerStatus;
   currentAssetId?: string;
@@ -201,7 +201,7 @@ export function layerDataImageUri(data: string | null | undefined): string | nul
 // ── Compositing ────────────────────────────────────────────────────────────
 
 /** One layer, resolved into everything the composite and a layer list need. */
-export interface ResolvedLayer {
+interface ResolvedLayer {
   id: string;
   name: string;
   type: 'raster' | 'mask' | 'group';

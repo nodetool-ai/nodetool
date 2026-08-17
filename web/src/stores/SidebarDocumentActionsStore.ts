@@ -44,7 +44,7 @@ export const useSidebarDocumentActionsStore =
       set({ onRename: null, onDuplicate: null, onDelete: null })
   }));
 
-export interface SidebarDocumentActions {
+interface SidebarDocumentActions {
   onRename: ((item: SidebarDocumentItem) => void) | null;
   onDuplicate: ((item: SidebarDocumentItem) => void) | null;
   onDelete: ((item: SidebarDocumentItem) => void) | null;

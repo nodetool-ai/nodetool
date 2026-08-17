@@ -62,7 +62,7 @@ const MODELS: Array<{ id: string; name: string }> = [
 
 const SAMPLE_RATE = 24000;
 
-export interface ElevenLabsProviderOptions {
+interface ElevenLabsProviderOptions {
   fetchFn?: typeof fetch;
 }
 

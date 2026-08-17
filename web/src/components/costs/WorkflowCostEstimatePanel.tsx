@@ -69,7 +69,7 @@ export function formatUnits(item: NodeCostEstimate): string {
   return resolution ? `${units} @ ${resolution}` : units;
 }
 
-export interface WorkflowCostEstimatePanelProps {
+interface WorkflowCostEstimatePanelProps {
   workflowId: string;
 }
 

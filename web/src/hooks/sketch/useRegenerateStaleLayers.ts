@@ -18,7 +18,7 @@ import {
   type LayerJobState
 } from "../../stores/sketch/SketchGenerationStore";
 
-export interface RegenerateStalePreflight {
+interface RegenerateStalePreflight {
   staleLayerIds: string[];
   lockedLayerIds: string[];
 }

@@ -3,7 +3,7 @@
  * tables. Keyed by the runtime provider id used in `modelProviderCoverage`.
  * `byokEnv` is the API-key env var NodeTool reads for BYOK.
  */
-export interface ProviderDisplay {
+interface ProviderDisplay {
   name: string;
   byokEnv: string;
   url: string;

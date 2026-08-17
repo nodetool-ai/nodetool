@@ -10,7 +10,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-export interface SidebarThread {
+interface SidebarThread {
   id: string;
   title: string | null;
   updated_at?: string;

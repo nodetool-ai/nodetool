@@ -4,7 +4,7 @@
  * calls NodeTerminal makes.
  */
 /** The `ITerminalOptions` subset NodeTerminal constructs a terminal with. */
-export interface TerminalOptions {
+interface TerminalOptions {
   cols?: number;
   rows?: number;
   disableStdin?: boolean;

@@ -182,7 +182,7 @@ const dividerStyles = (theme: Theme) =>
     margin: `0 ${theme.spacing(0.5)}`
   });
 
-export interface PreviewAreaProps {
+interface PreviewAreaProps {
   /** Sequence fps — read from the parent so no extra query is needed here. */
   fps?: number;
   /** Sequence pixel width (pass-through to compositor). */

@@ -60,7 +60,7 @@ export function useDocumentsOfKind(
 }
 
 /** Every kind's queries collapsed into one list, one status, one error. */
-export interface AllDocuments {
+interface AllDocuments {
   documents: DocumentListEntry[];
   isLoading: boolean;
   isRefetching: boolean;

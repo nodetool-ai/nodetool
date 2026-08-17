@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
-export interface ChatSettings {
+interface ChatSettings {
   provider: string;
   model: string;
   enabledTools: string[];

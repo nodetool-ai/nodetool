@@ -39,7 +39,7 @@ export interface SdkV1ModelDownloadService {
   }): SdkV1ModelDownloadState;
 }
 
-export interface CreateSdkV1ModelDownloadServiceOptions {
+interface CreateSdkV1ModelDownloadServiceOptions {
   now?: () => Date;
   startHuggingFaceDownload?: (
     userId: string,

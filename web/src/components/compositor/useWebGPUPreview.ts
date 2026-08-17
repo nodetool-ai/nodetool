@@ -65,7 +65,7 @@ interface CachedTexture {
   height: number;
 }
 
-export interface UseWebGPUPreviewResult {
+interface UseWebGPUPreviewResult {
   status: PreviewStatus;
   /** Imperative render trigger (also runs automatically on input changes). */
   render: () => void;

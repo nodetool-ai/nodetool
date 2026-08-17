@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
 
 export { GENERATOR_NODE_TYPES } from "./bespokeNodeTypes";
 
-export interface GeneratorBodyProps {
+interface GeneratorBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

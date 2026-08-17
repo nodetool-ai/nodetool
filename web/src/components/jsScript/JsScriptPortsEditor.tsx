@@ -39,7 +39,7 @@ const PORT_TYPES = [
 
 const TYPE_OPTIONS = PORT_TYPES.map((type) => ({ value: type, label: type }));
 
-export interface JsScriptPortsEditorProps {
+interface JsScriptPortsEditorProps {
   label: string;
   ports: readonly JsScriptPort[];
   readOnly?: boolean;

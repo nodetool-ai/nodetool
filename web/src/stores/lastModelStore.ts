@@ -13,7 +13,7 @@ import { persist } from "zustand/middleware";
 
 export type ModelKind = "image" | "video" | "audio";
 
-export interface RememberedModel {
+interface RememberedModel {
   provider?: string;
   model?: string;
   /** TTS voice; only meaningful for the "audio" kind. */

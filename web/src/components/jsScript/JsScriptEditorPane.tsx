@@ -22,7 +22,7 @@ import {
   useJsScriptStore
 } from "../../stores/jsScript/JsScriptStore";
 
-export interface JsScriptEditorPaneProps {
+interface JsScriptEditorPaneProps {
   scriptId: string;
   readOnly?: boolean;
 }

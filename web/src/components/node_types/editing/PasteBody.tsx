@@ -109,7 +109,7 @@ const PreviewImage: React.FC<{ value: unknown; placeholder: string }> = ({
   />
 );
 
-export interface PasteBodyProps {
+interface PasteBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

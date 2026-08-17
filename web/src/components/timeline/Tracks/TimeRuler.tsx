@@ -251,7 +251,7 @@ export function formatTimecode(ms: number, majorMs = 1000): string {
   return `${min}:${sec < 10 ? "0" : ""}${secText}`;
 }
 
-export interface TimeRulerProps {
+interface TimeRulerProps {
   /** Total width of the scrollable canvas in pixels. */
   totalWidthPx: number;
   /** Header width (left panel) to offset the ruler content. */

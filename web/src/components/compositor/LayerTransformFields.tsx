@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface LayerTransformFieldsProps {
+interface LayerTransformFieldsProps {
   transform: LayerTransform2D;
   onChange: (transform: LayerTransform2D, complete: boolean) => void;
 }

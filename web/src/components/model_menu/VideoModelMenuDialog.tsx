@@ -9,7 +9,7 @@ import {
   type VideoModelTask
 } from "../../hooks/useModelsByProvider";
 
-export interface VideoModelMenuDialogProps {
+interface VideoModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: VideoModel) => void;

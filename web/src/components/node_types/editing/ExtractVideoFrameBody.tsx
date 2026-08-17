@@ -221,7 +221,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface ExtractVideoFrameBodyProps {
+interface ExtractVideoFrameBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;

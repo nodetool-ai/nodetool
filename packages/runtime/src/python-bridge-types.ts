@@ -3,14 +3,14 @@ import { z } from "zod";
 
 import type { ASRResult } from "./providers/types.js";
 
-export interface NodeMetadataProperty {
+interface NodeMetadataProperty {
   name: string;
   type: { type: string; type_args?: Array<{ type: string }> };
   default?: unknown;
   description?: string;
 }
 
-export interface NodeMetadataOutput {
+interface NodeMetadataOutput {
   name: string;
   type: { type: string; type_args?: Array<{ type: string }> };
 }

@@ -23,14 +23,14 @@ export interface KnobSpec {
   unit?: KnobUnit;
 }
 
-export interface EnumToggleSpec {
+interface EnumToggleSpec {
   name: string;
   default: string;
   options: ReadonlyArray<{ value: string; label: string }>;
 }
 
 /** Boolean on/off toggle for a `bool` property (e.g. compressor auto gain). */
-export interface BoolToggleSpec {
+interface BoolToggleSpec {
   name: string;
   label: string;
   default: boolean;

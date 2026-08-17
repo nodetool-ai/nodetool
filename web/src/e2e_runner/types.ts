@@ -56,7 +56,7 @@ export interface WsEvent {
   [key: string]: unknown;
 }
 
-export interface CapturedOutput {
+interface CapturedOutput {
   node_id?: string;
   node_name?: string;
   output_name?: string;
@@ -64,7 +64,7 @@ export interface CapturedOutput {
   value: unknown;
 }
 
-export interface CapturedLog {
+interface CapturedLog {
   ts: number;
   level?: string;
   content: string;

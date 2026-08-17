@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface MentionEntityTileProps {
+interface MentionEntityTileProps {
   entity: Entity;
   selected: boolean;
   onSelect: () => void;

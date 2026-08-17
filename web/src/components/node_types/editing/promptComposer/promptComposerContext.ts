@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-export interface PromptComposerContextValue {
+interface PromptComposerContextValue {
   /** Names of the node's dynamic inputs — variables that resolve at runtime. */
   knownVariables: Set<string>;
   /**

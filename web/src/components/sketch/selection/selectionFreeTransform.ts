@@ -9,7 +9,7 @@ import type { Layer, LayerContentBounds, LayerTransform, Selection } from "../ty
 import { isAffineTransform } from "../types";
 import { cloneSelectionMask, getSelectionBounds, sampleMask, selectionHasAnyPixels } from "./selectionMask";
 
-export interface PreparedSelectionFreeTransform {
+interface PreparedSelectionFreeTransform {
   selectionCanvas: HTMLCanvasElement;
   baseCanvas: HTMLCanvasElement;
   selectionBounds: LayerContentBounds;

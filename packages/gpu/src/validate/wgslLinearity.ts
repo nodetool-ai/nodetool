@@ -106,12 +106,12 @@ const RGB_RE = /\.rgb\b/;
 const SAMPLE_DECL_RE =
   /\b(?:let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=\n]+)?=\s*(?:textureSample|textureLoad)\b/g;
 
-export interface LinearityValidationResult {
+interface LinearityValidationResult {
   ok: boolean;
   violations: string[];
 }
 
-export interface LinearityValidationArgs {
+interface LinearityValidationArgs {
   id: string;
   linearity: LinearityMode;
   wgsl: string;

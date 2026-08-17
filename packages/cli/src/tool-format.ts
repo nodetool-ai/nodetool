@@ -344,7 +344,7 @@ export function formatToolCode(
 // and WebSocket paths). Claude-Code-style, but dependency-free.
 // ---------------------------------------------------------------------------
 
-export interface DiffLine {
+interface DiffLine {
   /** "-" removed, "+" added, " " a meta/context note. */
   sign: "-" | "+" | " ";
   text: string;

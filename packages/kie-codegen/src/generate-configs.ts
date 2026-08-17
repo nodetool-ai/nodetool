@@ -6,7 +6,7 @@ import { KieSchemaParser } from "./schema-parser.js";
 import { writeKieConfigs } from "./config-writer.js";
 import type { NodeConfig } from "./types.js";
 
-export interface GenerateKieConfigsOptions {
+interface GenerateKieConfigsOptions {
   useCache?: boolean;
   limit?: number;
 }

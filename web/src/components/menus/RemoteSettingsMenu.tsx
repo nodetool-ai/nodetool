@@ -95,18 +95,18 @@ const GROUP_SECTIONS: Record<string, string> = (() => {
   return map;
 })();
 
-export interface MetaSectionEntry {
+interface MetaSectionEntry {
   group: string;
   settings: SettingWithValue[];
 }
 
-export interface MetaSection {
+interface MetaSection {
   key: string;
   label: string;
   entries: MetaSectionEntry[];
 }
 
-export interface DisplayedGroup {
+interface DisplayedGroup {
   id: string;
   label: string;
 }

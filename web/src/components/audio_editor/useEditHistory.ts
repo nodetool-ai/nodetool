@@ -17,7 +17,7 @@ interface HistoryState<T> {
   future: T[];
 }
 
-export interface EditHistory<T> {
+interface EditHistory<T> {
   present: T | null;
   canUndo: boolean;
   canRedo: boolean;

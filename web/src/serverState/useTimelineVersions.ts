@@ -32,7 +32,7 @@ export const timelineVersionsQueryKey = (
   saveType?: TimelineVersionSaveType
 ) => ["timeline", timelineId, "versions", limit, saveType ?? "all"] as const;
 
-export interface UseTimelineVersionsOptions {
+interface UseTimelineVersionsOptions {
   limit?: number;
   saveType?: TimelineVersionSaveType;
 }

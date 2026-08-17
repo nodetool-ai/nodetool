@@ -7,7 +7,7 @@ import { OutroCard } from "./OutroCard";
 import { StepIndicator, type TutorialStep } from "./StepIndicator";
 import type { CaptionCue } from "../types";
 
-export interface TutorialShellProps {
+interface TutorialShellProps {
   /** Opening title-card heading. */
   title: string;
   /** Opening title-card subheading. */

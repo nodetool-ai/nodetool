@@ -24,7 +24,7 @@ const SUPPORTED_MODEL_TYPES = new Set<ModelType>([
   "embedding_model"
 ]);
 
-export interface CreateNodeToolSdkV1ModelProbeOptions {
+interface CreateNodeToolSdkV1ModelProbeOptions {
   userId: string;
   timeoutMs?: number;
   listProviderIds?: () => readonly string[];

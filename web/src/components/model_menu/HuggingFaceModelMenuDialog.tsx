@@ -7,7 +7,7 @@ import { useWorkerCachedModelIds } from "../../hooks/useWorkerCachedModels";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 
-export interface HuggingFaceModelMenuDialogProps {
+interface HuggingFaceModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
@@ -110,5 +110,4 @@ function HuggingFaceModelMenuDialog({
 }
 
 export default memo(HuggingFaceModelMenuDialog);
-
 

@@ -97,7 +97,7 @@ const BACKGROUND_COLORS: {
   { value: "gradient", label: "Gradient", color: "#2a2a3a" }
 ];
 
-export interface Model3DViewerProps {
+interface Model3DViewerProps {
   asset?: Asset;
   url?: string;
   compact?: boolean;

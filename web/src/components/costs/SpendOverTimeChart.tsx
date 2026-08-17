@@ -15,7 +15,7 @@ const PLOT_HEIGHT = 240;
 const X_AXIS_HEIGHT = 22;
 const Y_LABEL_WIDTH = 52;
 
-export interface SpendOverTimeChartProps {
+interface SpendOverTimeChartProps {
   days: DayPoint[];
   /** Providers shown in the legend (in order). */
   providers: ProviderView[];

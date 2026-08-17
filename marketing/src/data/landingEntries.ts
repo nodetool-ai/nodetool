@@ -21,7 +21,7 @@ export type LandingKind = "use-case" | "persona";
 /** A shared body section to render under the hero, in order. */
 export type LandingSection = "features" | "use-cases";
 
-export interface LandingEntry extends PageEntry {
+interface LandingEntry extends PageEntry {
   slug: string;
   kind: LandingKind;
   /** Chip label above the H1, e.g. "Use case" or "For researchers". */

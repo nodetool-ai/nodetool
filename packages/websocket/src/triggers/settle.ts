@@ -75,7 +75,7 @@ export function rearmTrigger(registration: TriggerRegistration): void {
   registration.consecutive_failures = 0;
 }
 
-export interface TriggerOutcome {
+interface TriggerOutcome {
   /** The run's error, or `null` when it completed. */
   error: string | null;
   /** Whether this kind's fire time is the dispatcher's to stamp. */

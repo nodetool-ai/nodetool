@@ -113,8 +113,7 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
-
-export interface MediaChatComposerProps {
+interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
   onSendMessage: (

@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export interface HandleColumnProps {
+interface HandleColumnProps {
   id: string;
   properties: Property[];
   /** Edges connected to this node (used to flag is-connected per property) */

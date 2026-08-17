@@ -27,7 +27,7 @@ import {
 import AppBuilderShell from "./AppBuilderShell";
 import { registerDocumentSync } from "../../stores/documentSync";
 
-export interface ApplicationAppBuilderProps {
+interface ApplicationAppBuilderProps {
   applicationId: string;
 }
 

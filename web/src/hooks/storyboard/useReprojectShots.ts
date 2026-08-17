@@ -25,12 +25,12 @@ import {
   type ScriptProjectionSource
 } from "../../lib/scriptStoryboardLink";
 
-export interface ReprojectOptions {
+interface ReprojectOptions {
   /** Shots to re-project; every drifted shot when omitted. */
   shotIds?: string[];
 }
 
-export interface ReprojectResult {
+interface ReprojectResult {
   scriptId: string;
   /** Shots whose text the pass actually rewrote. */
   reprojectedShotIds: string[];
@@ -38,7 +38,7 @@ export interface ReprojectResult {
   driftedShotIds: string[];
 }
 
-export interface UseReprojectShotsResult {
+interface UseReprojectShotsResult {
   reproject: (
     boardId: string,
     options?: ReprojectOptions

@@ -22,7 +22,7 @@ import {
   MenuItemPrimitive,
   Text, BORDER_RADIUS } from "../../ui_primitives";
 
-export interface ClipTransformContextMenuProps {
+interface ClipTransformContextMenuProps {
   open: boolean;
   position: { x: number; y: number } | null;
   onClose: () => void;

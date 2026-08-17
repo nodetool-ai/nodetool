@@ -30,7 +30,7 @@ function formatTimestamp(isoString: string): string {
   }
 }
 
-export interface GeneratedLayerHeaderProps {
+interface GeneratedLayerHeaderProps {
   layer: Layer;
   binding: LayerWorkflowBinding;
 }

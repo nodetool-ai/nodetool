@@ -30,7 +30,7 @@ export interface TemplateGraphNode {
 }
 
 /** A connection between two node handles. */
-export interface TemplateGraphEdge {
+interface TemplateGraphEdge {
   source: string;
   sourceHandle: string;
   target: string;
@@ -45,7 +45,7 @@ export interface TemplateGraph {
 }
 
 /** A node type used in a template, with how many times it appears. */
-export interface TemplateNodeType {
+interface TemplateNodeType {
   type: string;
   label: string;
   count: number;

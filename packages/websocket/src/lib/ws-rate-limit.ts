@@ -11,7 +11,7 @@
  */
 import { parseIntEnv, parseBoolEnv } from "./env-config.js";
 
-export interface WsRateLimitConfig {
+interface WsRateLimitConfig {
   enabled: boolean;
   maxMessages: number;
   windowMs: number;

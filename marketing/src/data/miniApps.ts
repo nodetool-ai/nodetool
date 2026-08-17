@@ -12,20 +12,20 @@
  */
 import type { PageEntry } from "./types";
 
-export interface MiniAppInput {
+interface MiniAppInput {
   label: string;
   /** Presentation kind: text | number | toggle | choice | image | audio | video | color. */
   kind: string;
 }
 
-export interface MiniAppOutput {
+interface MiniAppOutput {
   label: string;
   /** What the widget displays: text | image | audio | video | data | progress. */
   kind: string;
 }
 
 /** A workflow template the app binds, one per operation target. */
-export interface MiniAppWorkflow {
+interface MiniAppWorkflow {
   name: string;
   slug: string;
   /** Route of its /templates page. */
