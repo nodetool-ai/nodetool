@@ -79,7 +79,7 @@
     "build:packages:tsc": "tsc --build tsconfig.build.json && node scripts/copy-manifests.mjs",
     "build:web": "turbo run build --filter=web",
     "build:mcpb": "node scripts/build-mcpb.mjs --smoke",
-    "build": "turbo run build --concurrency=50%",
+    "build": "turbo run build",
     "test:packages": "turbo run test --filter=\"./packages/*\" --filter=\"./reliability/*\" && npm run test:oxlint-rules",
     "test:oxlint-rules": "vitest run --config vitest.config.ts tools/oxlint",
     "turbo": "turbo",
