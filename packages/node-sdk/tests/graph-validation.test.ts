@@ -166,6 +166,24 @@ describe("validateGraph", () => {
     expect(report.issues.some((i) => i.code === "dangling_edge")).toBe(true);
   });
 
+  it("checks no handle on an edge whose endpoint type has no metadata", () => {
+    const registry = fakeRegistry({ "a.Int": meta("a.Int", { in: "int" }, {}) });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.Ghost" },
+          { id: "2", type: "a.Int" }
+        ],
+        edges: [
+          { id: "e1", source: "1", sourceHandle: "out", target: "2", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    // The unknown type is the one report; nothing downstream invents a second.
+    expect(report.issues.map((i) => i.code)).toEqual(["unknown_node"]);
+  });
+
   it("flags unknown edge handles but allows reserved __control__", () => {
     const registry = fakeRegistry({
       "a.A": meta("a.A", {}, { out: "str" }),
@@ -1111,6 +1129,30 @@ describe("Code nodes", () => {
       registry
     );
     expect(report.issues.some((i) => i.code === "unknown_handle")).toBe(false);
+  });
+
+  it("accepts a source handle the body emits but dynamic_outputs omits", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "c",
+            type: CODE,
+            properties: { code: 'await emit("extra", 1); return { out: "x" };' },
+            dynamic_outputs: { out: { type: "str" } }
+          },
+          { id: "s", type: "a.IntSink", properties: {} }
+        ],
+        edges: [
+          { id: "e", source: "c", sourceHandle: "extra", target: "s", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_handle")).toBe(false);
+    // An inferred handle carries no declared type, so the edge is not
+    // type-checked against the int sink.
+    expect(report.issues.some((i) => i.code === "type_mismatch")).toBe(false);
   });
 });
 
