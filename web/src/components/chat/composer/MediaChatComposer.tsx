@@ -87,6 +87,12 @@ import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
+import {
+  audioModelPatch,
+  imageModelPatch,
+  recentModelEntry,
+  videoModelPatch
+} from "./modelSelection";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
@@ -720,64 +726,20 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
-      const constraints = imageModelConstraints(model);
-      setImageParams({
-        model: {
-          type: "image_model",
-          id: model.id,
-          provider: model.provider,
-          name: model.name || "",
-          path: model.path || "",
-          ...constraints
-        },
-        resolution: clampToAllowed(
-          imageParams.resolution,
-          constraints.resolutions
-        ),
-        aspectRatio: clampToAllowed(
-          imageParams.aspectRatio,
-          constraints.aspectRatios
-        )
-      });
-      addRecentModel({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
+      setImageParams(imageModelPatch(model, imageParams));
+      addRecentModel(recentModelEntry(model));
       setImageModelOpen(false);
     },
-    [setImageParams, addRecentModel, imageParams.resolution, imageParams.aspectRatio]
+    [setImageParams, addRecentModel, imageParams]
   );
 
   const handlePickVideoModel = useCallback(
     (model: VideoModel) => {
-      const constraints = videoModelConstraints(model);
-      setVideoParams({
-        model: {
-          type: "video_model",
-          id: model.id,
-          provider: model.provider,
-          name: model.name || "",
-          ...constraints
-        },
-        duration: clampToAllowed(videoParams.duration, constraints.durations),
-        resolution: clampToAllowed(
-          videoParams.resolution,
-          constraints.resolutions
-        ),
-        aspectRatio: clampToAllowed(
-          videoParams.aspectRatio,
-          constraints.aspectRatios
-        )
-      });
-      addRecentModel({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
+      setVideoParams(videoModelPatch(model, videoParams));
+      addRecentModel(recentModelEntry(model));
       setVideoModelOpen(false);
     },
-    [setVideoParams, addRecentModel, videoParams.duration, videoParams.resolution, videoParams.aspectRatio]
+    [setVideoParams, addRecentModel, videoParams]
   );
 
   const handlePickImageEditModel = useCallback(
@@ -847,23 +809,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickTtsModel = useCallback(
     (model: TTSModel) => {
-      const voices = Array.isArray(model.voices) ? model.voices : [];
-      setAudioParams({
-        model: {
-          type: "tts_model",
-          id: model.id,
-          provider: model.provider,
-          name: model.name || "",
-          voices,
-          selected_voice: voices[0] ?? audioParams.voice
-        },
-        voice: voices[0] ?? audioParams.voice
-      });
-      addRecentModel({
-        provider: model.provider || "",
-        id: model.id || "",
-        name: model.name || ""
-      });
+      setAudioParams(audioModelPatch(model, audioParams.voice));
+      addRecentModel(recentModelEntry(model));
       setTtsModelOpen(false);
     },
     [setAudioParams, addRecentModel, audioParams.voice]

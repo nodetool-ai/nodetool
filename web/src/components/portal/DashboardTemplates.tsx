@@ -23,7 +23,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import {
-  wrapStyles,
+  useSectionWrap,
   SectionHeader,
   DashboardSearchBox,
   SectionLink
@@ -118,6 +118,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
   fullPage = false
 }) => {
   const theme = useTheme();
+  const sectionWrap = useSectionWrap();
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
   const { handleExampleClick, handleViewAllTemplates, loadingExampleId } =
     useWorkflowActions();
@@ -194,7 +195,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       id={DASHBOARD_TEMPLATES_SECTION_ID}
       css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}
     >
-      <div css={wrapStyles(theme)}>
+      <div css={sectionWrap}>
         <SectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox
             ref={searchRef}

@@ -7,6 +7,7 @@ import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
+import type { WorkflowLastRun } from "./runStatus";
 
 const styles = (theme: Theme) =>
   css({
@@ -62,10 +63,28 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".redit": {
+      display: "flex",
+      alignItems: "center",
+      gap: `${theme.spacing(SPACING.xs)}`,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       marginTop: `${theme.spacing(SPACING.micro)}`
-    }
+    },
+    ".rrun": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: `${theme.spacing(SPACING.xs)}`
+    },
+    ".rrun-dot": {
+      width: 6,
+      height: 6,
+      borderRadius: BORDER_RADIUS.circle,
+      background: theme.vars.palette.text.disabled,
+      "&.running": { background: theme.vars.palette.primary.main },
+      "&.failed": { background: theme.vars.palette.error.main },
+      "&.done": { background: theme.vars.palette.success.main }
+    },
+    ".rsep": { color: theme.vars.palette.divider }
   });
 
 function lastEdited(dateStr: string | undefined): string {
@@ -85,6 +104,7 @@ function lastEdited(dateStr: string | undefined): string {
 interface RecentWorkflowCardProps {
   workflow: Workflow;
   onClick: (workflow: Workflow) => void;
+  lastRun?: WorkflowLastRun;
 }
 
 const boltGlyph = (
@@ -95,7 +115,8 @@ const boltGlyph = (
 
 const RecentWorkflowCard: React.FC<RecentWorkflowCardProps> = ({
   workflow,
-  onClick
+  onClick,
+  lastRun
 }) => {
   const theme = useTheme();
   const [imgFailed, setImgFailed] = useState(false);
@@ -131,7 +152,9 @@ const RecentWorkflowCard: React.FC<RecentWorkflowCardProps> = ({
             />
           </div>
         )}
-        {nodeCount > 0 && (
+        {/* WorkflowMiniPreview draws its own node count, so the badge is only
+            ours to add when a generated thumbnail covers it. */}
+        {showGeneration && nodeCount > 0 && (
           <span className="nodes">
             {boltGlyph}
             {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
@@ -140,7 +163,18 @@ const RecentWorkflowCard: React.FC<RecentWorkflowCardProps> = ({
       </div>
       <div className="rmeta">
         <div className="rname">{workflow.name}</div>
-        <div className="redit">{lastEdited(workflow.updated_at)}</div>
+        <div className="redit">
+          <span>{lastEdited(workflow.updated_at)}</span>
+          {lastRun && (
+            <>
+              <span className="rsep">·</span>
+              <span className="rrun">
+                <span className={`rrun-dot ${lastRun.tone}`} />
+                {lastRun.label}
+              </span>
+            </>
+          )}
+        </div>
       </div>
     </button>
   );
