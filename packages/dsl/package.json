@@ -15,6 +15,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./flow": {
+      "nodetool-dev": "./src/flow/index.ts",
+      "types": "./dist/flow/index.d.ts",
+      "import": "./dist/flow/index.js",
+      "default": "./dist/flow/index.js"
     }
   },
   "scripts": {

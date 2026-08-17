@@ -114,6 +114,37 @@ export interface FlowRuntime extends Flow {
   emissionLimit(override: number | undefined): number;
 }
 
+/** The context a flow of its own owns: fresh job id, own storage adapter. */
+function ownContext(opts: FlowOptions): ProcessingContext {
+  const context = new ProcessingContext({
+    jobId: `flow-${randomUUID()}`,
+    workflowId: null,
+    userId: opts.userId ?? "1",
+    secretResolver: opts.secretResolver,
+    storage: new FileStorageAdapter(getDefaultAssetsPath())
+  });
+  if (opts.signal) {
+    context.signal = opts.signal;
+  }
+  return context;
+}
+
+/**
+ * The context a flow runs on when a host hands it one. The context is the
+ * caller's — cost, secrets and storage stay attributed to the run that owns
+ * it — so a flow-level signal is applied to a copy rather than written onto
+ * something the host is still using.
+ */
+function contextFromExisting(
+  existing: ProcessingContext,
+  signal: AbortSignal | undefined
+): ProcessingContext {
+  if (!signal || signal === existing.signal) return existing;
+  const scoped = existing.copy({ shareMemory: true });
+  scoped.signal = signal;
+  return scoped;
+}
+
 class FlowImpl implements FlowRuntime {
   readonly context: ProcessingContext;
   private readonly opts: FlowOptions;
@@ -121,18 +152,11 @@ class FlowImpl implements FlowRuntime {
   private closed = false;
   private bridge: PythonBridgeBase | null = null;
 
-  constructor(opts: FlowOptions) {
+  constructor(opts: FlowOptions, existing?: ProcessingContext) {
     this.opts = opts;
-    this.context = new ProcessingContext({
-      jobId: `flow-${randomUUID()}`,
-      workflowId: null,
-      userId: opts.userId ?? "1",
-      secretResolver: opts.secretResolver,
-      storage: new FileStorageAdapter(getDefaultAssetsPath())
-    });
-    if (opts.signal) {
-      this.context.signal = opts.signal;
-    }
+    this.context = existing
+      ? contextFromExisting(existing, opts.signal)
+      : ownContext(opts);
   }
 
   /** Warm the builtin registry so the first node call does not pay for it. */
@@ -208,6 +232,21 @@ let processDefaultFlow: FlowImpl | null = null;
 /** Create a flow. `await using flow = await startFlow()` closes it for you. */
 export async function startFlow(opts: FlowOptions = {}): Promise<Flow> {
   return new FlowImpl(opts).ready();
+}
+
+/**
+ * A flow over a `ProcessingContext` the caller already owns.
+ *
+ * The host bridge that lets sandboxed guest code invoke a node runs the node
+ * on the *invoking* run's context, so the call bills, resolves secrets and
+ * writes storage exactly as the surrounding run does. `userId` and
+ * `secretResolver` come from that context and are therefore not options here.
+ */
+export async function createFlowForContext(
+  context: ProcessingContext,
+  opts: Omit<FlowOptions, "userId" | "secretResolver"> = {}
+): Promise<Flow> {
+  return new FlowImpl(opts, context).ready();
 }
 
 /**
