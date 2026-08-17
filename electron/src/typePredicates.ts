@@ -17,6 +17,10 @@ export function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value !== "";
 }
 
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
 /** Anything `typeof` calls an object, `null` aside — an array passes. */
 export function isObjectLike(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object";

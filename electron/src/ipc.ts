@@ -75,7 +75,7 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
-import { isNonEmptyString, isString } from "./typePredicates";
+import { isBoolean, isNonEmptyString, isString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
@@ -776,7 +776,7 @@ export function initializeIpcHandlers(): void {
   });
 
   ipcMain.on(IpcChannels.MENU_SET_SNAP_TO_GRID, (_event, enabled: unknown) => {
-    if (typeof enabled !== "boolean") {
+    if (!isBoolean(enabled)) {
       return;
     }
     try {

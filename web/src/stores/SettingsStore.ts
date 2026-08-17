@@ -277,19 +277,19 @@ export const useSettingsStore = create<SettingsStore>()(
           persistedSettings !== undefined &&
           persistedSettings.snapToGrid === undefined &&
           persistedSettings.gridSnap === 1;
-        return {
-          ...currentState,
-          settings: {
-            ...defaultSettings,
-            ...persistedSettings,
-            ...(legacyGridSnap ? { gridSnap: defaultSettings.gridSnap } : {}),
-            // Deep merge autosave settings to ensure new defaults are included
-            autosave: {
-              ...defaultAutosaveSettings,
-              ...persisted?.settings?.autosave
-            }
+        const settings: Settings = {
+          ...defaultSettings,
+          ...persistedSettings,
+          // Deep merge autosave settings to ensure new defaults are included
+          autosave: {
+            ...defaultAutosaveSettings,
+            ...persistedSettings?.autosave
           }
         };
+        if (legacyGridSnap) {
+          settings.gridSnap = defaultSettings.gridSnap;
+        }
+        return { ...currentState, settings };
       }
     }
   )
