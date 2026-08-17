@@ -4,7 +4,16 @@
  * Heavy external dependencies (provider instances, HF cache I/O) are mocked so
  * the tests remain fast and hermetic.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  vi
+} from "vitest";
+import { initTestDb } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -129,6 +138,12 @@ function makeProvider(
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("models router", () => {
+  // models.providers reads the caller's custom-provider catalog from the
+  // settings table, so the router needs a database to answer at all.
+  beforeAll(() => {
+    initTestDb();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: no providers, no HF cache, no disk I/O errors
