@@ -1499,7 +1499,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships thirty-six packs in
+global — the `data.*` namespace is gone. NodeTool ships thirty-eight packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1541,6 +1541,8 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |
 | `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host |
 | `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host |
+| `@nodetool-ai/sandbox-dsl` | NodeTool's generated graph builder | guest |
+| `@nodetool-ai/sandbox-flow` | NodeTool's generated node callables | guest |
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
 runs where the sandbox runs — needed when the library wants Node builtins or a
@@ -1548,10 +1550,16 @@ DOM, when it carries a limit the guest could not enforce on itself (zip's
 50 MB inflation cap), or when the code is NodeTool's own and a config-only pack
 therefore cannot ship it.
 
-The last five are that case: they replace the S3, Notion, Supabase, Twilio and
-Apify nodes. Each builds an authenticated request — `-aws` signs one with
-SigV4 — and **none of them sends it**. The guest passes what comes back to its
-own `fetch`, so the run's fetch cap and SSRF guard still apply. Credentials
+The last two are authored guest code rather than a library: `-dsl` builds a
+workflow graph, `-flow` calls nodes as typed async functions
+(docs/dsl-native-flow-design.md). Both are generated from `packages/dsl` and
+rebuilt by `npm run build:sandbox-dsl` / `build:sandbox-flow`.
+
+The `-aws`, `-notion`, `-supabase`, `-twilio` and `-apify` packs are the host
+case: they replace the S3, Notion, Supabase, Twilio and Apify nodes. Each
+builds an authenticated request — `-aws` signs one with SigV4 — and **none of
+them sends it**. The guest passes what comes back to its own `fetch`, so the
+run's fetch cap and SSRF guard still apply. Credentials
 come from `nodetool.secrets.get(name)`, which a Code node can narrow to the
 names it declares in its `secrets` property. A host pack's manifest entry is
 `{"kind": "host", "host": "<id>"}`, and the id resolves only through NodeTool's

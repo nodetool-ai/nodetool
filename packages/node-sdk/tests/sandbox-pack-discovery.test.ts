@@ -135,6 +135,21 @@ describe("sandbox package discovery", () => {
     }
   });
 
+  it("accepts capability-module imports in authored pack code", () => {
+    const dir = pack(jsManifest(), {
+      "sandbox/index.js":
+        "import { invoke_node } from '@nodetool-ai/sandbox-nodetool/flow';\nexport const call = (args) => invoke_node(args);"
+    });
+    expect(discoverSandboxPack(dir)?.name).toBe("@acme/test-pack");
+    rmSync(dir, { recursive: true, force: true });
+
+    const lookalike = pack(jsManifest(), {
+      "sandbox/index.js": "import x from '@nodetool-ai/sandbox-nodetool-fake'; export default x"
+    });
+    expectDiscoveryError(() => discoverSandboxPack(lookalike), "import outside the pack");
+    rmSync(lookalike, { recursive: true, force: true });
+  });
+
   it("validates WASM imports, memories, signatures, and declared exports", () => {
     const valid = pack({ apiVersion: 1, sandboxModules: [{ name: "math", kind: "wasm", file: "math.wasm", memoryPagesMax: 4, exports: ["run"] }] }, { "math.wasm": scalarWasm });
     const discovery = discoverSandboxPack(valid);
