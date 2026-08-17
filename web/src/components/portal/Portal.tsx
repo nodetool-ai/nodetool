@@ -13,6 +13,7 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import DashboardHero from "./DashboardHero";
 import DashboardActivity from "./DashboardActivity";
+import DashboardAgentSessions from "./DashboardAgentSessions";
 import DashboardDownloads from "./DashboardDownloads";
 import { DashboardColumn, wrapStyles } from "./dashboardChrome";
 import GettingStartedChecklist from "./GettingStartedChecklist";
@@ -176,6 +177,12 @@ const Portal: React.FC = () => {
     openProviderOnboarding();
   }, []);
 
+  // A fresh agent chat, through the same gate the hero's agent track uses —
+  // key-less users get provider onboarding first, then the chat opens.
+  const handleNewAgentSession = useCallback(() => {
+    handleStart("agent", "");
+  }, [handleStart]);
+
   return (
     <Box css={styles(theme)}>
       <div className="dashboard-scroll">
@@ -187,13 +194,17 @@ const Portal: React.FC = () => {
             onOpenEmptyCanvas={handleCreateNewWorkflow}
             onOpenSettings={handleOpenSettings}
           />
-          {/* A returning user's own work leads, with the checklist and run
-              activity moved into a rail beside it. A first-run user has no
-              work yet, so the material that teaches them leads instead. */}
+          {/* A returning user's own work leads — agent sessions first, then
+              workflows — with the checklist and task activity in a rail
+              beside it. A first-run user has no work yet, so the material
+              that teaches them leads instead. */}
           {mode === "returning" ? (
             <div css={[wrapStyles(theme), columnStyles(theme)]}>
               <div className="dash-main">
                 <DashboardColumn>
+                  <DashboardAgentSessions
+                    onNewSession={handleNewAgentSession}
+                  />
                   <DashboardWorkflows
                     workflows={sortedWorkflows}
                     isLoading={isLoadingWorkflows}

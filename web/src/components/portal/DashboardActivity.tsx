@@ -91,7 +91,7 @@ interface DashboardActivityProps {
 }
 
 /**
- * Recent runs, in the dashboard's right rail. A workflow tool whose dashboard
+ * Recent tasks, in the dashboard's right rail. An agent tool whose dashboard
  * says nothing about what ran, or what broke, is missing the one thing only it
  * can show.
  */
@@ -124,9 +124,9 @@ const DashboardActivity: React.FC<DashboardActivityProps> = ({
   ).length;
 
   return (
-    <section css={styles(theme)} aria-label="Recent runs">
+    <section css={styles(theme)} aria-label="Task activity">
       <div className="act-head">
-        <span className="act-title">Recent runs</span>
+        <span className="act-title">Task activity</span>
         {runningCount > 0 && (
           <span className="act-count">{runningCount} running</span>
         )}
@@ -134,8 +134,8 @@ const DashboardActivity: React.FC<DashboardActivityProps> = ({
 
       {runs.length === 0 ? (
         <p className="act-empty">
-          Nothing has run yet. Open a workflow and press run — what it does will
-          show up here.
+          Nothing has run yet. Ask the agent for something, or run a workflow —
+          every task lands here.
         </p>
       ) : (
         <div className="act-list">
