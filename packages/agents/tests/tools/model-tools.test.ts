@@ -36,9 +36,10 @@ describe("ListProviderModelsTool metadata", () => {
     expect(tool.name).toBe("list_provider_models");
   });
 
-  it("has a description", () => {
+  it("describes what it lists and what it needs", () => {
     const tool = listProviderModelsTool({});
-    expect(tool.description).toBeTruthy();
+    expect(tool.description).toMatch(/models/i);
+    expect(tool.description).toMatch(/provider/i);
   });
 
   it("inputSchema requires 'provider' property", () => {

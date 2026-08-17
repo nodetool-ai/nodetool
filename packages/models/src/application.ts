@@ -24,7 +24,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb, getDbType } from "./db.js";
+import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import { applications, applicationVersions } from "./schema/applications.js";
 import {
   applicationBudgets,
@@ -283,8 +283,7 @@ export class Application extends DBModel {
     const db = getDb();
     const id = this.id;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statements = (tx: any): unknown[] => [
+    const statements = (tx: DbTransaction): unknown[] => [
       tx
         .delete(applicationVersions)
         .where(eq(applicationVersions.application_id, id)),
@@ -300,15 +299,13 @@ export class Application extends DBModel {
     if (getDbType() === "sqlite") {
       // better-sqlite3 transactions must be fully synchronous; an async
       // callback returns a Promise the driver rejects.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      db.transaction((tx: any): void => {
+      db.transaction((tx: DbTransaction): void => {
         for (const statement of statements(tx)) {
           (statement as { run: () => void }).run();
         }
       });
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await db.transaction(async (tx: any): Promise<void> => {
+      await db.transaction(async (tx: DbTransaction): Promise<void> => {
         for (const statement of statements(tx)) await statement;
       });
     }
@@ -555,8 +552,7 @@ export async function publishApplication(
   if (getDbType() === "sqlite") {
     // better-sqlite3 transactions must be fully synchronous; an async callback
     // returns a Promise the driver rejects.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = db.transaction((tx: any): Record<string, unknown> => {
+    const row = db.transaction((tx: DbTransaction): Record<string, unknown> => {
       const highestInTx = tx
         .select({ value: max(applicationVersions.version) })
         .from(applicationVersions)
@@ -575,17 +571,17 @@ export async function publishApplication(
     return toReleaseResponse(row);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const row = await db.transaction(async (tx: any) => {
+  const row = await db.transaction(async (tx: DbTransaction) => {
     // Locking the app row serializes publishes of the same app: a second
     // publisher waits here instead of reading a version number this one is
     // about to take.
-    await tx
-      .select()
-      .from(applications)
-      .where(eq(applications.id, application.id))
-      .limit(1)
-      .for("update");
+    await forUpdate(
+      tx
+        .select()
+        .from(applications)
+        .where(eq(applications.id, application.id))
+        .limit(1)
+    );
     const [highestInTx] = await tx
       .select({ value: max(applicationVersions.version) })
       .from(applicationVersions)
@@ -701,8 +697,7 @@ export async function releaseApplicationVersion(
   );
 
   if (getDbType() === "sqlite") {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = db.transaction((tx: any): Record<string, unknown> | null => {
+    const row = db.transaction((tx: DbTransaction): Record<string, unknown> | null => {
       const existing = tx
         .select()
         .from(applicationVersions)
@@ -724,14 +719,14 @@ export async function releaseApplicationVersion(
     return row ? toVersionResponse(row) : null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const row = await db.transaction(async (tx: any) => {
-    const [existing] = await tx
-      .select()
-      .from(applicationVersions)
-      .where(target)
-      .limit(1)
-      .for("update");
+  const row = await db.transaction(async (tx: DbTransaction) => {
+    const [existing] = await forUpdate(
+      tx
+        .select()
+        .from(applicationVersions)
+        .where(target)
+        .limit(1)
+    );
     if (!existing) return null;
     await tx
       .update(applicationVersions)

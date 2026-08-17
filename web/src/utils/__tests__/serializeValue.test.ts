@@ -26,7 +26,7 @@ describe("serializeValue", () => {
   });
 
   it("returns null when JSON.stringify throws", () => {
-    const circular: any = {};
+    const circular: Record<string, unknown> = {};
     circular.self = circular;
     expect(serializeValue(circular)).toBeNull();
   });

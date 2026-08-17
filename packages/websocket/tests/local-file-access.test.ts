@@ -9,7 +9,9 @@ import * as path from "node:path";
 import * as os from "node:os";
 import {
   LOCAL_FILE_ROOTS_ENV,
+  UNRESTRICTED_ROOT,
   getLocalFileRoots,
+  isUnrestricted,
   localPathDenialMessage,
   resolveLocalPath
 } from "../src/lib/local-file-access.js";
@@ -166,6 +168,63 @@ describe("resolveLocalPath", () => {
       tmpDir
     ]);
     expect(result).toEqual({ ok: false, reason: "outside_roots" });
+  });
+});
+
+/**
+ * The desktop app runs the server as the user's own process and lets them drag
+ * a file onto the canvas from anywhere. Home-only roots refused the preview of
+ * a file kept outside home while the runner read it happily —
+ * nodetool-ai/nodetool#4999.
+ */
+describe("resolveLocalPath with unrestricted roots", () => {
+  it("refuses a file outside home under the default roots", async () => {
+    const outside = path.join(tmpDir, "projects", "playingTag.png");
+    expect(await resolveLocalPath(outside, [os.homedir()])).toEqual({
+      ok: false,
+      reason: "outside_roots"
+    });
+  });
+
+  it("accepts that same file when the roots are unrestricted", async () => {
+    const outside = path.join(tmpDir, "projects", "playingTag.png");
+    expect(await resolveLocalPath(outside, [UNRESTRICTED_ROOT])).toEqual({
+      ok: true,
+      path: outside
+    });
+  });
+
+  it("still refuses sensitive home entries", async () => {
+    const result = await resolveLocalPath(
+      path.join(os.homedir(), ".ssh", "id_rsa"),
+      [UNRESTRICTED_ROOT]
+    );
+    expect(result).toEqual({ ok: false, reason: "sensitive" });
+  });
+
+  it("still refuses a NUL byte", async () => {
+    expect(await resolveLocalPath("/tmp/a\0b", [UNRESTRICTED_ROOT])).toEqual({
+      ok: false,
+      reason: "invalid"
+    });
+  });
+
+  it("resolves a relative path against home", async () => {
+    const result = await resolveLocalPath("Documents/a.png", [
+      UNRESTRICTED_ROOT
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      path: path.join(os.homedir(), "Documents", "a.png")
+    });
+  });
+
+  it("reads the marker off the environment", () => {
+    process.env[LOCAL_FILE_ROOTS_ENV] = UNRESTRICTED_ROOT;
+    const roots = getLocalFileRoots();
+    expect(roots).toEqual([UNRESTRICTED_ROOT]);
+    expect(isUnrestricted(roots)).toBe(true);
+    expect(isUnrestricted([os.homedir()])).toBe(false);
   });
 });
 

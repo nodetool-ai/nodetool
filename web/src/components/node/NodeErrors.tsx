@@ -12,29 +12,15 @@ import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { VERSION, GIT_COMMIT_HASH, BUILD_NUMBER } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import {
-  buildReportUrl,
+  formatInputConnections,
+  formatNodeProperties,
   type InputConnection
 } from "../../utils/bugReport";
-
-const GITHUB_ISSUE_URL =
-  "https://github.com/nodetool-ai/nodetool/issues/new";
-
-/** Gather browser / OS / build system information. */
-function getSystemInfo(): string {
-  const lines: string[] = [
-    `Browser: ${navigator.userAgent}`,
-    `Platform: ${navigator.platform}`,
-    `Language: ${navigator.language}`,
-    `Screen: ${window.screen.width}x${window.screen.height} (devicePixelRatio: ${window.devicePixelRatio})`,
-    `NodeTool version: ${VERSION} (build ${BUILD_NUMBER}, commit ${GIT_COMMIT_HASH})`,
-  ];
-  return lines.join("\n");
-}
+import { openBugReport } from "../../stores/BugReportStore";
 
 /** Collect the upstream connections feeding a node from the graph state. */
 function collectInputConnections(
@@ -135,23 +121,35 @@ const NodeErrorsImpl: React.FC<{
   const errorDisplay = nodeErrorToDisplayString(error);
 
   const handleReport = useCallback(() => {
-    const logLines = (logs ?? []).map(
-      (l) => `[${l.severity.toUpperCase()}] ${l.content}`
-    );
     const state = nodeStore.getState();
     const node = state.findNode(id);
-    const url = buildReportUrl(GITHUB_ISSUE_URL, {
-      nodeType,
-      nodeTitle:
-        node?.data?.title,
+    // The dialog runs at the app root and cannot reach this node store, so the
+    // node's settings and wiring travel with the request.
+    openBugReport({
+      source: "node-error",
+      summary: errorDisplay.split("\n")[0],
       errorText: errorDisplay,
-      logLines,
-      systemInfo: getSystemInfo(),
-      properties: node?.data?.properties,
-      inputConnections: collectInputConnections(state, id)
+      nodeType,
+      nodeTitle: node?.data?.title,
+      nodeId: id,
+      workflowId: workflow_id,
+      nodeDetail: [
+        `Node type: ${nodeType}`,
+        ...(node?.data?.title ? [`Node title: ${node.data.title}`] : []),
+        "",
+        "--- Properties ---",
+        formatNodeProperties(node?.data?.properties),
+        "",
+        "--- Connected inputs ---",
+        formatInputConnections(collectInputConnections(state, id)),
+        "",
+        "--- Node logs ---",
+        (logs ?? [])
+          .map((l) => `[${l.severity.toUpperCase()}] ${l.content}`)
+          .join("\n") || "(no logs captured)"
+      ].join("\n")
     });
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, [errorDisplay, logs, nodeType, nodeStore, id]);
+  }, [errorDisplay, logs, nodeType, nodeStore, id, workflow_id]);
 
   const kieTaskId = useMemo(
     () => extractKieTaskId(errorDisplay),
@@ -165,13 +163,13 @@ const NodeErrorsImpl: React.FC<{
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
-        <Tooltip title="Report this issue on GitHub">
+        <Tooltip title="Report this as a bug">
           <button
             type="button"
             className="report-button nodrag"
             onClick={handleReport}
             tabIndex={-1}
-            aria-label="Report this issue on GitHub"
+            aria-label="Report this as a bug"
           >
             <BugReportIcon sx={{ fontSize: "0.9em" }} />
             Report

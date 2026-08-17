@@ -4,6 +4,7 @@ import {
   getOptionalNodeModulesPath,
   getPythonPath,
   getProcessEnv,
+  getLocalFileRootsEnv,
   PID_FILE_PATH,
   webPath,
 } from "./config";
@@ -319,6 +320,8 @@ async function startServer(): Promise<void> {
     // surface where they are the point. Set `NODETOOL_NODE_PROFILE=cloud` in
     // the launching environment to opt into the curated cloud catalog.
     NODETOOL_NODE_PROFILE: getProcessEnv()["NODETOOL_NODE_PROFILE"] ?? "full",
+    // Preview any file the user drags onto the canvas, wherever it lives.
+    NODETOOL_LOCAL_FILE_ROOTS: getLocalFileRootsEnv(),
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,

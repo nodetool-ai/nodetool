@@ -140,6 +140,9 @@ interface MediaChatComposerProps {
    *  canvas dock drag handle). Empty in the chat panel. Stays visible even
    *  while the composer is minimized. */
   leadingActions?: React.ReactNode;
+  /** Extra chips rendered at the end of the chip cluster, beside the model
+   *  chip (e.g. the canvas workspace picker). Empty in the chat panel. */
+  chipActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
   /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
@@ -188,6 +191,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   autoFocus = true,
   trailingActions,
   leadingActions,
+  chipActions,
   placeholder: placeholderOverride,
   hideModePicker = false,
   hideModelPicker = false,
@@ -1496,6 +1500,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             </>
           )}
 
+          {/* Host-supplied chips at the end of the cluster (e.g. the canvas
+              workspace picker). Empty in the chat panel. */}
+          {chipActions}
           </div>
 
           {/* Primary Generate/Send button, or timer + stop when busy. Sits

@@ -23,6 +23,9 @@ export const defaultAutosaveSettings: AutosaveSettings = {
 };
 
 export interface Settings {
+  /** Snap nodes to the canvas grid while dragging. Toggled from the View menu. */
+  snapToGrid: boolean;
+  /** Grid size in canvas units used when {@link snapToGrid} is on. */
   gridSnap: number;
   connectionSnap: number;
   panControls: string;
@@ -70,6 +73,7 @@ export interface Settings {
 
 interface SettingsStore {
   settings: Settings;
+  setSnapToGrid: (value: boolean) => void;
   setGridSnap: (value: number) => void;
   setConnectionSnap: (value: number) => void;
   setPanControls: (value: string) => void;
@@ -91,7 +95,10 @@ interface SettingsStore {
 }
 
 export const defaultSettings: Settings = {
-  gridSnap: 1,
+  snapToGrid: false,
+  // Matches the canvas background grid gap, so a snapped node lands on a
+  // visible grid crossing.
+  gridSnap: 25,
   connectionSnap: 20,
   // On Mac the trackpad already pans (two-finger scroll) and zooms (pinch), so
   // left-drag is free to rubber-band select — the Figma/Sketch convention Mac
@@ -120,6 +127,11 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       settings: { ...defaultSettings },
+      setSnapToGrid: (value: boolean) =>
+        set((state) => ({
+          settings: { ...state.settings, snapToGrid: value }
+        })),
+
       setGridSnap: (value: number) =>
         set((state) => ({
           settings: {
@@ -256,18 +268,28 @@ export const useSettingsStore = create<SettingsStore>()(
       // Merge persisted state with defaults so newly-added settings get their defaults.
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<SettingsStore> | undefined;
-        return {
-          ...currentState,
-          settings: {
-            ...defaultSettings,
-            ...persisted?.settings,
-            // Deep merge autosave settings to ensure new defaults are included
-            autosave: {
-              ...defaultAutosaveSettings,
-              ...persisted?.settings?.autosave
-            }
+        const persistedSettings = persisted?.settings;
+        // Before the "Snap to Grid" toggle existed, snapping was always on and
+        // the grid defaulted to 1 — a value that snaps to nothing. Installs
+        // carrying that leftover get the new grid size, not a toggle that does
+        // nothing when switched on.
+        const legacyGridSnap =
+          persistedSettings !== undefined &&
+          persistedSettings.snapToGrid === undefined &&
+          persistedSettings.gridSnap === 1;
+        const settings: Settings = {
+          ...defaultSettings,
+          ...persistedSettings,
+          // Deep merge autosave settings to ensure new defaults are included
+          autosave: {
+            ...defaultAutosaveSettings,
+            ...persistedSettings?.autosave
           }
         };
+        if (legacyGridSnap) {
+          settings.gridSnap = defaultSettings.gridSnap;
+        }
+        return { ...currentState, settings };
       }
     }
   )

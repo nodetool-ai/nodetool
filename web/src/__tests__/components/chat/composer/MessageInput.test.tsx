@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MessageInput } from "../../../../components/chat/composer/MessageInput";
 
-const renderComponent = (props: any) => {
+const renderComponent = (props: React.ComponentProps<typeof MessageInput>) => {
   return render(<MessageInput {...props} />);
 };
 

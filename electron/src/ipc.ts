@@ -42,6 +42,7 @@ import {
   getVaultList,
 } from "./vaults";
 import { applyVaultSwitch } from "./vaultSwitch";
+import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
@@ -74,7 +75,7 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
-import { isNonEmptyString, isString } from "./typePredicates";
+import { isBoolean, isNonEmptyString, isString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
@@ -771,6 +772,17 @@ export function initializeIpcHandlers(): void {
       }
     } catch (error) {
       logMessage(`Error in window maximize: ${error}`, "error");
+    }
+  });
+
+  ipcMain.on(IpcChannels.MENU_SET_SNAP_TO_GRID, (_event, enabled: unknown) => {
+    if (!isBoolean(enabled)) {
+      return;
+    }
+    try {
+      setMenuSnapToGrid(enabled);
+    } catch (error) {
+      logMessage(`Error syncing snap-to-grid menu state: ${error}`, "error");
     }
   });
 

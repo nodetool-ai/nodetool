@@ -5,11 +5,11 @@ import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManag
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
-  EditorInsertionProvider: ({ children }: any) => children,
+  EditorInsertionProvider: ({ children }: React.PropsWithChildren) => children,
   useEditorInsertion: () => null,
   __esModule: true,
   default: {
-    Provider: ({ children }: any) => children,
+    Provider: ({ children }: React.PropsWithChildren) => children,
   },
 }));
 

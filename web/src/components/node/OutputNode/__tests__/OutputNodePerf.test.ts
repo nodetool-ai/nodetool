@@ -31,7 +31,7 @@ describe("OutputNode Asset Creation Performance", () => {
 
     let settled = false;
     const uploads = Promise.all(
-      assetFiles.map(({ file }: { file: any }) => createAssetMock(file))
+      assetFiles.map(({ file }: { file: File }) => createAssetMock(file))
     ).then(() => {
       settled = true;
     });

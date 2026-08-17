@@ -72,7 +72,11 @@ symlinks that leave the roots are refused too.
 
 - **Keep the roots narrow.** Widen `NODETOOL_LOCAL_FILE_ROOTS` only to the
   directories that actually hold media you preview — an external volume, a
-  scratch dir — never to `/`.
+  scratch dir — never to `/`. The single entry `*` lifts the containment check
+  (the denylist still applies); it belongs to the desktop app, which runs the
+  server as one user's own process on loopback and lets them drag a file onto
+  the canvas from anywhere. Electron sets it, and a launching environment that
+  configured its own roots keeps them.
 - **Set `NODETOOL_ENV=production`** on any deployment more than one person can
   reach, which disables both surfaces outright.
 

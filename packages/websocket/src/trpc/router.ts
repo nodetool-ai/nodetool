@@ -4,6 +4,7 @@ import { assetsRouter } from "./routers/assets.js";
 import { codeGenRouter } from "./routers/code-gen.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
+import { customProvidersRouter } from "./routers/custom-providers.js";
 import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { filesRouter } from "./routers/files.js";
@@ -40,6 +41,7 @@ export const appRouter = router({
   collections: collectionsRouter,
   costs: costsRouter,
   credits: creditsRouter,
+  customProviders: customProvidersRouter,
   extension: extensionRouter,
   files: filesRouter,
   fonts: fontsRouter,

@@ -1,9 +1,11 @@
 import { render, act } from "@testing-library/react";
 import { ContextMenuProvider } from "../ContextMenuProvider";
-import useContextMenu from "../../stores/ContextMenuStore";
+import useContextMenu, {
+  type ContextMenuContextType
+} from "../../stores/ContextMenuStore";
 
 function setup(active = true) {
-  let ctx: any;
+  let ctx: ContextMenuContextType | undefined;
   function Consumer() {
     ctx = useContextMenu();
     return null;

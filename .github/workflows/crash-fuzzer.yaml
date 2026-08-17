@@ -1,19 +1,27 @@
 name: Crash Fuzzer
 
-# Feeds malformed input to the surfaces that parse untrusted documents —
-# `nodetool validate` over workflow graphs, `jsscript validate` over script
-# documents, `node run` over single nodes — and reports the cases that crash
-# instead of failing cleanly.
+# Feeds malformed documents to the surfaces that parse untrusted input —
+# `validateGraph`, the Code-node analyzer, the node property validator — and
+# reports the cases that crash instead of failing cleanly.
 #
 # A validator is allowed to reject its input. It is not allowed to throw a
 # TypeError, blow the stack, or hang: those reach users as an unhandled
-# exception in the editor, the CLI, or the server, and they are the bugs this
-# looks for. The oracle is therefore the *shape* of the failure (a JS stack
-# trace or a timeout), never a non-zero exit code.
+# exception in the editor, the CLI, or the server. The oracle is therefore the
+# *shape* of the failure, never a non-zero exit code.
 #
-# Mutants come from the shipped examples and the CLI's own fixtures, so every
-# seed is a real document the registry knows. The seed is printed and settable,
-# so a crash the fuzzer finds can be reproduced by hand.
+# The fuzzer runs in two legs, both built on the repo's Stryker setup:
+#
+#   sweep   — the crash corpus at a rotating seed. Finds crashes on inputs no
+#             previous run has produced. Fast (seconds), and it is the same
+#             suite that runs on every PR at the pinned seed.
+#   mutants — Stryker mutates the parser sources and runs the crash corpus as
+#             its only test suite. A surviving mutant is a branch no fuzzed
+#             document distinguishes: the corpus never reaches it, or reaching
+#             it changes nothing the oracle asserts. Either way it is a hole,
+#             and it is where the next crash will come from.
+#
+# Corpus and oracle live in `packages/node-sdk/tests/fuzz/`; the Stryker leg is
+# `packages/node-sdk/stryker.crash.config.json`.
 
 on:
   schedule:
@@ -21,24 +29,32 @@ on:
   workflow_dispatch:
     inputs:
       seed:
-        description: "PRNG seed (default: the run number) — reuse to replay a crash"
+        description: "Sweep PRNG seed (default: the run number) — reuse to replay a crash"
         required: false
         default: ""
       mutants:
-        description: "Mutants to generate per source document"
+        description: "Mutants to generate per seed document in the sweep"
         required: false
-        default: "8"
+        default: "40"
+      skip_stryker:
+        description: "Run the sweep only (skip the mutation-testing leg)"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   crash-fuzzer:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     permissions:
       id-token: write
       contents: write
       pull-requests: write
       issues: write
       actions: read
+    defaults:
+      run:
+        working-directory: packages/node-sdk
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -51,243 +67,93 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Install all workspace dependencies
+      - name: Install workspace dependencies
+        working-directory: .
         run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
-      # validate and node run load the node registry, which the decorator
-      # packages (base-nodes, node-sdk, ...) expose from dist/.
-      - name: Build packages
-        run: npm run build:packages
-
-      - name: Generate mutants
-        id: mutate
-        shell: bash
-        run: |
-          SEED="${{ github.event.inputs.seed }}"
-          if [ -z "$SEED" ]; then SEED="${{ github.run_number }}"; fi
-          COUNT="${{ github.event.inputs.mutants }}"
-          if [ -z "$COUNT" ]; then COUNT=8; fi
-          echo "FUZZ_SEED=$SEED" >> $GITHUB_ENV
-          echo "Seed: $SEED, mutants per document: $COUNT" >> $GITHUB_STEP_SUMMARY
-
-          FUZZ_SEED="$SEED" FUZZ_COUNT="$COUNT" node --input-type=module - <<'JS'
-          import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-          import { execFileSync } from "node:child_process";
-
-          // Mulberry32 — same seed, same corpus, so a crash replays.
-          let state = (Number(process.env.FUZZ_SEED) || 1) >>> 0;
-          const rand = () => {
-            state = (state + 0x6d2b79f5) >>> 0;
-            let t = state;
-            t = Math.imul(t ^ (t >>> 15), t | 1);
-            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-          };
-          const pick = (xs) => xs[Math.floor(rand() * xs.length)];
-
-          const sources = execFileSync(
-            "bash",
-            [
-              "-c",
-              "find packages -path '*examples*' -name '*.json' ! -name '*.app.json' | head -40; " +
-                "find packages/cli/tests/fixtures -name 'js-script-*.json' 2>/dev/null",
-            ],
-            { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-          )
-            .split("\n")
-            .filter(Boolean);
-
-          const HOSTILE = [
-            null,
-            [],
-            {},
-            "",
-            "\u0000",
-            "x".repeat(200000),
-            -1,
-            1e308,
-            true,
-            { $ref: "#/" },
-            [[[[[[[[[[1]]]]]]]]]],
-          ];
-
-          // Every mutation keeps the document parseable as JSON — the point is
-          // to break the *schema*, not the parser.
-          const MUTATIONS = {
-            dropKey(node) {
-              const keys = Object.keys(node);
-              if (keys.length) delete node[pick(keys)];
-            },
-            hostileValue(node) {
-              const keys = Object.keys(node);
-              if (keys.length) node[pick(keys)] = pick(HOSTILE);
-            },
-            retypeKey(node) {
-              const keys = Object.keys(node);
-              if (!keys.length) return;
-              const key = pick(keys);
-              node[key] = Array.isArray(node[key]) ? {} : [];
-            },
-            danglingRef(doc) {
-              for (const edge of doc?.graph?.edges ?? doc?.edges ?? []) {
-                edge.source = "node-that-does-not-exist";
-                break;
-              }
-            },
-            duplicateId(doc) {
-              const nodes = doc?.graph?.nodes ?? doc?.nodes ?? [];
-              if (nodes.length > 1) nodes[1].id = nodes[0].id;
-            },
-            selfCycle(doc) {
-              const nodes = doc?.graph?.nodes ?? doc?.nodes ?? [];
-              const edges = doc?.graph?.edges ?? doc?.edges;
-              if (nodes.length && Array.isArray(edges)) {
-                edges.push({
-                  id: "fuzz-cycle",
-                  source: nodes[0].id,
-                  target: nodes[0].id,
-                  sourceHandle: "output",
-                  targetHandle: "input",
-                });
-              }
-            },
-          };
-
-          const walk = (value, visit) => {
-            if (Array.isArray(value)) {
-              for (const item of value) walk(item, visit);
-            } else if (value && typeof value === "object") {
-              visit(value);
-              for (const item of Object.values(value)) walk(item, visit);
-            }
-          };
-
-          mkdirSync("/tmp/fuzz", { recursive: true });
-          const manifest = [];
-          const count = Number(process.env.FUZZ_COUNT) || 8;
-          const nodeTypes = new Set();
-
-          for (const source of sources) {
-            let original;
-            try {
-              original = JSON.parse(readFileSync(source, "utf8"));
-            } catch {
-              continue; // not our problem: the file on disk is already invalid
-            }
-            walk(original, (node) => {
-              if (typeof node.type === "string" && node.type.includes(".")) nodeTypes.add(node.type);
-            });
-
-            for (let i = 0; i < count; i += 1) {
-              const doc = JSON.parse(JSON.stringify(original));
-              const name = pick(Object.keys(MUTATIONS));
-              if (name === "dropKey" || name === "hostileValue" || name === "retypeKey") {
-                const targets = [];
-                walk(doc, (node) => targets.push(node));
-                if (targets.length) MUTATIONS[name](pick(targets));
-              } else {
-                MUTATIONS[name](doc);
-              }
-              const out = `/tmp/fuzz/${source.replace(/[^a-z0-9]+/gi, "_")}-${i}.json`;
-              writeFileSync(out, JSON.stringify(doc));
-              manifest.push({ mutant: out, source, mutation: name });
-            }
-          }
-
-          writeFileSync("/tmp/fuzz/manifest.json", JSON.stringify(manifest, null, 2));
-          writeFileSync("/tmp/fuzz/node-types.txt", [...nodeTypes].join("\n"));
-          console.log(`generated ${manifest.length} mutants from ${sources.length} documents`);
-          JS
-
-      - name: Fuzz the parsers
-        id: fuzz
+      # The corpus is hermetic — it builds its own registry from seed
+      # documents and imports the validators from source — so no
+      # build:packages is needed.
+      - name: Sweep fresh inputs
+        id: sweep
         continue-on-error: true
-        shell: bash
+        env:
+          FUZZ_SEED: ${{ github.event.inputs.seed || github.run_number }}
+          FUZZ_COUNT: ${{ github.event.inputs.mutants || '40' }}
         run: |
-          echo "## Crash Fuzzer (seed $FUZZ_SEED)" >> $GITHUB_STEP_SUMMARY
-          : > crash-report.log
-          CRASHES=0
-          CASES=0
+          echo "## Crash Fuzzer" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sweep seed \`$FUZZ_SEED\`, $FUZZ_COUNT mutants per seed document." >> "$GITHUB_STEP_SUMMARY"
+          echo "FUZZ_SEED=$FUZZ_SEED" >> "$GITHUB_ENV"
+          echo "FUZZ_COUNT=$FUZZ_COUNT" >> "$GITHUB_ENV"
+          # Overwritten by the mutation leg; a skipped leg must not read as
+          # "survivors found".
+          echo "FUZZ_SURVIVORS=0" >> "$GITHUB_ENV"
+          npm run test:crash-fuzz -- --reporter=default --reporter=json \
+            --outputFile=../../crash-sweep.json 2>&1 | tee ../../crash-sweep.log
 
-          # A crash is a stack trace or a hang. A validation failure — however
-          # loud — is the harness working.
-          classify() {
-            local out="$1"
-            if grep -qE "^[[:space:]]+at .+:[0-9]+:[0-9]+|TypeError|RangeError|ReferenceError|Maximum call stack|Unhandled|is not a function|Cannot read properties" "$out"; then
-              return 0
-            fi
-            return 1
-          }
+      - name: Report the sweep
+        if: always()
+        run: |
+          if [ "${{ steps.sweep.outcome }}" = "success" ]; then
+            echo "✅ No crash on this seed." >> "$GITHUB_STEP_SUMMARY"
+            echo "FUZZ_CRASHED=0" >> "$GITHUB_ENV"
+          else
+            echo "❌ The sweep found a crash. Replay it by dispatching this workflow with seed \`$FUZZ_SEED\` and $FUZZ_COUNT mutants, or locally:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+            echo "FUZZ_SEED=$FUZZ_SEED FUZZ_COUNT=$FUZZ_COUNT npm run test:crash-fuzz --workspace=packages/node-sdk" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "FUZZ_CRASHED=1" >> "$GITHUB_ENV"
+          fi
 
-          run_case() {
-            local label="$1"; shift
-            CASES=$((CASES + 1))
-            if timeout 60 "$@" > /tmp/case.out 2>&1; then
-              STATUS=ok
-            else
-              STATUS=$?
-            fi
-            if [ "$STATUS" = "124" ]; then
-              CRASHES=$((CRASHES + 1))
-              { echo "### HANG: $label"; echo '```'; echo "$@"; tail -40 /tmp/case.out; echo '```'; echo; } >> crash-report.log
-              echo "- HANG: $label" >> $GITHUB_STEP_SUMMARY
-            elif classify /tmp/case.out; then
-              CRASHES=$((CRASHES + 1))
-              { echo "### CRASH: $label"; echo '```'; echo "$@"; tail -60 /tmp/case.out; echo '```'; echo; } >> crash-report.log
-              echo "- CRASH: $label" >> $GITHUB_STEP_SUMMARY
-            fi
-          }
+      - name: Mutation-test the parsers against the crash corpus
+        if: github.event.inputs.skip_stryker != 'true'
+        continue-on-error: true
+        run: npm run test:mutation:crash
 
-          while IFS= read -r mutant; do
-            case "$mutant" in
-              *js_script*) run_case "jsscript validate $mutant" npm run dev:nodetool -- jsscript validate "$mutant" --json ;;
-              *) run_case "validate $mutant" npm run dev:nodetool -- validate "$mutant" --json ;;
-            esac
-          done < <(node -e 'JSON.parse(require("fs").readFileSync("/tmp/fuzz/manifest.json","utf8")).forEach(m=>console.log(m.mutant))')
+      - name: Report the mutation score
+        if: always() && github.event.inputs.skip_stryker != 'true'
+        working-directory: .
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🧬 Parser mutants killed by the crash corpus" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          node scripts/mutation-score.mjs --report-dir reports/crash-fuzz node-sdk >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          node scripts/crash-fuzz-survivors.mjs --limit 40 >> "$GITHUB_STEP_SUMMARY"
+          node scripts/crash-fuzz-survivors.mjs --json > crash-survivors.json
+          SURVIVORS=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("crash-survivors.json","utf8")).length)')
+          echo "FUZZ_SURVIVORS=$SURVIVORS" >> "$GITHUB_ENV"
 
-          # Single nodes get hostile property bags. --no-secrets keeps the run
-          # hermetic: no database, no provider keys.
-          while IFS= read -r type; do
-            [ -z "$type" ] && continue
-            for props in '{}' '{"__proto__":{"polluted":true}}' '[]' '{"value":null}' '{"value":"'"$(head -c 2000 /dev/zero | tr '\0' 'x')"'"}'; do
-              run_case "node run $type $props" npm run dev:nodetool -- node run "$type" --props "$props" --no-secrets --json
-            done
-          done < <(head -25 /tmp/fuzz/node-types.txt)
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "$CASES cases, $CRASHES crashes" >> $GITHUB_STEP_SUMMARY
-          echo "FUZZ_CRASHES=$CRASHES" >> $GITHUB_ENV
-
-      - name: Copy the manifest into the workspace
-        if: env.FUZZ_CRASHES != '0'
-        run: cp /tmp/fuzz/manifest.json fuzz-manifest.json
-
-      - name: Upload crash corpus
-        if: env.FUZZ_CRASHES != '0'
+      - name: Upload the crash corpus report
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: crash-corpus
+          name: crash-fuzz-report
           path: |
-            crash-report.log
-            fuzz-manifest.json
+            crash-sweep.log
+            crash-sweep.json
+            crash-survivors.json
+            packages/node-sdk/reports/crash-fuzz/mutation.json
           if-no-files-found: warn
           retention-days: 30
 
       - name: Run quality checks baseline
-        if: env.FUZZ_CRASHES != '0'
+        if: env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0'
         id: pre-check
         continue-on-error: true
+        working-directory: .
         run: |
           LINT_EXIT=0; TEST_EXIT=0
           npm run lint 2>&1 || LINT_EXIT=1
           npm run test:packages 2>&1 || TEST_EXIT=1
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> "$GITHUB_ENV"
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> "$GITHUB_ENV"
 
       - name: Run Claude Code
-        if: env.FUZZ_CRASHES != '0'
+        if: env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0'
         uses: anthropics/claude-code-action@v1.0.189
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -298,76 +164,95 @@ jobs:
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
             --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
           prompt: |
-            # Fix Crashes Found by the Fuzzer
+            # Crash Fuzzer Follow-up
 
-            A fuzzing run fed malformed documents to `nodetool validate`,
-            `nodetool jsscript validate`, and `nodetool node run`. Each case in
-            `crash-report.log` produced a stack trace or a hang instead of a
-            clean rejection. `/tmp/fuzz/manifest.json` maps every mutant back to
-            the document it came from and the mutation applied.
+            The crash fuzzer runs a mutated-document corpus
+            (`packages/node-sdk/tests/fuzz/`) against `validateGraph`, the
+            Code-node analyzer, and the node property validator, then uses that
+            corpus as Stryker's test oracle over the parser sources.
 
-            The fuzzer ran with seed `${{ env.FUZZ_SEED }}`. Regenerate the same
-            corpus by dispatching this workflow with that seed.
+            This run: sweep crashed = `${{ env.FUZZ_CRASHED }}` at seed
+            `${{ env.FUZZ_SEED }}` (`${{ env.FUZZ_COUNT }}` mutants per seed
+            document); `${{ env.FUZZ_SURVIVORS }}` parser mutants survived the
+            corpus.
 
-            ## What counts as a bug here
-            Rejecting bad input is correct. Crashing on it is not. Each entry in
-            the report is one of:
-            - an unhandled `TypeError` / `RangeError` / `ReferenceError`
-            - a stack overflow on deeply nested or cyclic input
-            - a hang (the case was killed at 60s)
+            ## Priority 1 — a crash, if the sweep failed
 
-            ## How to work
-            1. Reproduce the crash first. Run the exact command from the report:
-               ```bash
-               npm run dev:nodetool -- validate /tmp/fuzz/<mutant>.json --json
-               ```
-               If it does not reproduce, say so and move to the next one — do not
-               fix from the log alone.
-            2. Read the stack trace to the frame in NodeTool's own code. Fix it
-               **there**, not at the call site and not with a catch-all wrapper
-               around the whole command.
-            3. Add a regression test next to the code you fixed, with the
-               minimal input that triggers the crash. Copy the mutant's relevant
-               fragment into the test as a literal — do not read from `/tmp`.
-            4. Re-run the reproduction and confirm it now reports a validation
-               issue (or a clean error) instead of throwing.
+            `crash-sweep.log` holds the failing assertion. Reproduce it first:
+
+            ```bash
+            FUZZ_SEED=${{ env.FUZZ_SEED }} FUZZ_COUNT=${{ env.FUZZ_COUNT }} \
+              npm run test:crash-fuzz --workspace=packages/node-sdk
+            ```
+
+            Rejecting bad input is correct; crashing on it is not. A failure
+            here is an unhandled `TypeError` / `RangeError`, a stack overflow, a
+            report whose `counts` disagree with its `issues`, or a document that
+            blew the time budget.
+
+            - Read the stack trace to the frame in NodeTool's own code and fix
+              it **there** — not at the call site, and not with a catch-all
+              wrapper. `try { … } catch { return [] }` around the crashing call
+              hides the bug and is not acceptable.
+            - Do not make the validator accept invalid input to stop it
+              crashing. The correct outcome is a reported issue, not a pass.
+            - Add the minimal triggering input to
+              `packages/node-sdk/tests/fuzz/seeds.ts` as a literal so the corpus
+              covers it at every seed from now on, and re-run at the pinned seed
+              to refresh the snapshots (`npm run test:crash-fuzz -- -u`).
+
+            ## Priority 2 — surviving mutants
+
+            `crash-survivors.json` lists parser mutants the corpus failed to
+            kill, each with file, line, mutator, and replacement. Each one is a
+            branch the corpus does not distinguish. For the ones that matter:
+
+            - Add a seed document or a mutation operator that reaches the branch
+              and makes the mutant observable. New operators go in
+              `tests/fuzz/corpus.ts`; new documents in `tests/fuzz/seeds.ts`.
+            - A mutant that is genuinely equivalent (no input can tell the two
+              versions apart) gets a `// Stryker disable next-line <Mutator>:
+              <why>` comment naming the reason — the same convention
+              `src/validation.ts` already uses. Do not disable one you merely
+              found hard to kill.
+            - Prefer widening the corpus over adding hand-written unit tests:
+              the point is that fuzzed input reaches the branch.
 
             ## Rules
-            - Root-cause fixes only. A `try { … } catch { return [] }` around the
-              crashing call hides the bug and is not acceptable.
-            - Do not make the validator accept invalid input to stop it crashing.
-              The correct outcome is usually a reported issue, not a pass.
-            - Do not touch the fuzzer or CI workflow files.
-            - One crash class per commit. Maximum 6 fixes per PR — several
-              reports usually share one root cause, so group them.
-            - If a crash is in a third-party dependency, guard the input at
-              NodeTool's boundary and name the dependency in the PR.
-
-            ## Before starting
-            - Run `gh pr list --state open --limit 20` — skip crashes already
-              covered by an open fuzzer PR.
+            - One concern per commit. Maximum 6 fixes per PR — several
+              survivors usually share one root cause, so group them.
+            - Do not touch the CI workflow files.
+            - Do not lower `stryker.crash.config.json` thresholds or narrow its
+              `mutate` list to make the number look better.
+            - Check `gh pr list --state open --limit 20` first and skip anything
+              an open fuzzer PR already covers.
 
             ## Verification
             ```bash
-            npm run lint && npm run test:packages
+            npm run lint
+            npm run test:packages
+            npm run test:crash-fuzz --workspace=packages/node-sdk
+            npm run test:mutation:crash --workspace=packages/node-sdk
             ```
-            Plus the reproduction command for every crash you fixed.
+            The mutation score must not drop.
 
             ## Submit
-            Create a PR titled "fix: crash on malformed <input kind>" listing each
-            crash, the stack frame that caused it, the fix, and the regression
-            test that now covers it.
+            Open a PR titled "fix: crash on malformed <input kind>" (Priority 1)
+            or "test: close crash-corpus gaps in <file>" (Priority 2). List each
+            crash or survivor, the stack frame or branch behind it, and what now
+            covers it.
 
       - name: Post-change verification
-        if: always() && env.FUZZ_CRASHES != '0'
+        if: always() && (env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0')
+        working-directory: .
         run: |
           LINT_EXIT=0; TEST_EXIT=0
           npm run lint 2>&1 || LINT_EXIT=1
           npm run test:packages 2>&1 || TEST_EXIT=1
 
           if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+            echo "New lint errors introduced" >> "$GITHUB_STEP_SUMMARY"; exit 1
           fi
           if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+            echo "New test failures introduced" >> "$GITHUB_STEP_SUMMARY"; exit 1
           fi

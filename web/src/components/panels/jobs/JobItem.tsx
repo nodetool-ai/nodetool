@@ -26,6 +26,7 @@ import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import isEqual from "../../../utils/isEqual";
 import { notifyMutationError } from "../../../utils/notifyMutationError";
+import ReportBugButton from "../../support/ReportBugButton";
 
 const formatDuration = (ms: number): string => {
   if (ms < 0) {
@@ -392,6 +393,17 @@ const JobItem = ({ job }: { job: Job }) => {
           <AssetThumb key={asset.id} asset={asset} />
         ))}
       </FlexRow>
+      {isError && (
+        <ReportBugButton
+          context={{
+            source: "job-failure",
+            summary: `Job failed: ${workflowName}`,
+            errorText: job.error || "Job failed",
+            workflowId: job.workflow_id,
+            jobId: job.id
+          }}
+        />
+      )}
       {isActive && (
         <ToolbarIconButton
           size="small"

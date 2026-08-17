@@ -11,6 +11,8 @@ import { ChatTutorial } from "./ChatTutorial";
 import { CHAT_TUTORIALS, chatTutorialFrames } from "./chatTutorials";
 import { TimelineTutorial } from "./TimelineTutorial";
 import { TIMELINE_TUTORIALS, timelineTutorialFrames } from "./timelineTutorials";
+import { DocTutorial } from "./DocTutorial";
+import { DOC_TUTORIALS, docTutorialFrames } from "./docTutorials";
 import { PROMO_DURATION_FRAMES, PROMO_FPS, Promo } from "./promo/Promo";
 import type { DemoCast } from "@web-demo";
 
@@ -106,6 +108,19 @@ export const Root: React.FC = () => {
           width={WIDTH}
           height={HEIGHT}
           durationInFrames={timelineTutorialFrames(tut)}
+        />
+      ))}
+
+      {DOC_TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={DocTutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={docTutorialFrames(tut)}
         />
       ))}
 

@@ -30,7 +30,7 @@ describe("useEditorKeyboardShortcuts", () => {
     // Expect six registrations (ctrl/meta x f/a/e)
     expect(jest.mocked(useCombo).mock.calls.length).toBe(6);
     const calls = jest.mocked(useCombo).mock.calls;
-    const combos = calls.map((c: any[]) => c[0].join("+").toLowerCase());
+    const combos = calls.map((c) => c[0].join("+").toLowerCase());
     expect(combos).toEqual(
       expect.arrayContaining([
         "control+shift+f",

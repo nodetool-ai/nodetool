@@ -58,9 +58,11 @@ jest.mock("../../../../components/node/NodeProgress", () => ({
 }));
 jest.mock("../../../../components/inputs/NumberInput", () => ({
   __esModule: true,
-  default: React.memo((props: any) => (
-    <div data-testid={props.id}>{props.value}</div>
-  ))
+  default: React.memo(
+    (props: { id?: string; value?: number }) => (
+      <div data-testid={props.id}>{props.value}</div>
+    )
+  )
 }));
 
 // jsdom does not implement pointer capture APIs.

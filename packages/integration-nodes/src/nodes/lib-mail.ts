@@ -1,3 +1,4 @@
+import type { ImapFlow } from "imapflow";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -8,7 +9,7 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 async function createImapClient(
   user: string,
   appPassword: string
-): Promise<any> {
+): Promise<ImapFlow> {
   const { ImapFlow } = await import("imapflow");
   const client = new ImapFlow({
     host: "imap.gmail.com",

@@ -5,7 +5,11 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import RemoteSettingsMenuComponent from "../RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
-import { useNotificationStore } from "../../../stores/NotificationStore";
+import {
+  useNotificationStore,
+  type NotificationStore
+} from "../../../stores/NotificationStore";
+import { stub } from "../../../test-utils/doubles";
 
 // jest hoists `jest.mock` above the imports, so a factory may only reach
 // out-of-scope names that begin with `mock`.
@@ -17,7 +21,11 @@ const mockIsFunction = <T,>(
 jest.mock("../../../stores/RemoteSettingStore");
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../common/ExternalLink", () => {
-  return function MockExternalLink({ href, children, tooltipText }: any) {
+  return function MockExternalLink({
+    href,
+    children,
+    tooltipText
+  }: React.ComponentProps<"a"> & { tooltipText?: string }) {
     return (
       <a href={href} title={tooltipText}>
         {children}
@@ -34,29 +42,35 @@ jest.mock("../settingsMenuStyles", () => ({
 // Mock MUI components to avoid theme complexity
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
-  Button: ({ children, onClick, ...props }: any) => (
+  Button: ({ children, onClick, ...props }: React.ComponentProps<"button">) => (
     <button onClick={onClick} {...props}>{children}</button>
   ),
-  TextField: ({ label, value, onChange, children, ...props }: any) => (
+  TextField: ({
+    label,
+    value,
+    onChange,
+    children,
+    ...props
+  }: React.ComponentProps<"input"> & { label?: string }) => (
     <div data-testid="TextField">
       {label && <span className="textfield-label">{label}</span>}
       <input {...props} value={value || ""} onChange={onChange} />
       {children}
     </div>
   ),
-  Typography: ({ children, ...props }: any) => (
+  Typography: ({ children, ...props }: React.ComponentProps<"span">) => (
     <span {...props}>{children}</span>
   ),
-  Select: ({ children, ...props }: any) => (
+  Select: ({ children, ...props }: React.ComponentProps<"select">) => (
     <select {...props} data-testid="Select">{children}</select>
   ),
-  MenuItem: ({ children, ...props }: any) => (
+  MenuItem: ({ children, ...props }: React.ComponentProps<"option">) => (
     <option {...props}>{children}</option>
   ),
-  FormControl: ({ children, ...props }: any) => (
+  FormControl: ({ children, ...props }: React.ComponentProps<"div">) => (
     <div {...props}>{children}</div>
   ),
-  InputLabel: ({ children, ...props }: any) => (
+  InputLabel: ({ children, ...props }: React.ComponentProps<"label">) => (
     <label {...props}>{children}</label>
   )
 }));
@@ -75,9 +89,9 @@ const mockRemoteSettingsStore = {
   setSettingValue: jest.fn()
 };
 
-const mockNotificationStore = {
+const mockNotificationStore = stub<NotificationStore>({
   addNotification: jest.fn()
-};
+});
 
 const theme = mockTheme;
 const queryClient = new QueryClient({
@@ -115,7 +129,7 @@ describe("RemoteSettingsMenu", () => {
       return mockRemoteSettingsStore as any;
     });
 
-    mockUseNotificationStore.mockImplementation(<T,>(selector?: (state: any) => T) => {
+    mockUseNotificationStore.mockImplementation(<T,>(selector?: (state: NotificationStore) => T) => {
       if (mockIsFunction(selector)) {
         return selector(mockNotificationStore);
       }

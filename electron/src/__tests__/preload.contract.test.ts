@@ -36,6 +36,7 @@ const IpcChannels = {
   WINDOW_MINIMIZE: "window-minimize",
   WINDOW_MAXIMIZE: "window-maximize",
   MENU_EVENT: "menu-event",
+  MENU_SET_SNAP_TO_GRID: "menu-set-snap-to-grid",
   ON_CREATE_WORKFLOW: "on-create-workflow",
   ON_UPDATE_WORKFLOW: "on-update-workflow",
   ON_DELETE_WORKFLOW: "on-delete-workflow",
@@ -86,8 +87,10 @@ jest.mock("electron", () => electronMock);
 
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
 
+import type { PreloadApi } from "../preload";
+
 describe("preload contract", () => {
-  let api: any;
+  let api: PreloadApi;
   let exposedNames: string[];
 
   beforeAll(() => {
@@ -102,7 +105,7 @@ describe("preload contract", () => {
       .mock.calls;
     exposedNames = calls.map((c: unknown[]) => c[0] as string);
     // Both window.api and window.electronAPI receive the same object.
-    api = calls[0][1];
+    api = calls[0][1] as PreloadApi;
   });
 
   test("exposes both 'api' and 'electronAPI' globals (legacy compat)", () => {

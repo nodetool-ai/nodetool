@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import type { Interpolation, Theme } from "@emotion/react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import FindReplaceBar from "../FindReplaceBar";
@@ -31,7 +32,7 @@ jest.mock("@mui/material/Tooltip", () => ({
 
 jest.mock("@mui/material/IconButton", () => ({
   __esModule: true,
-  default: ({ children, disabled, onClick, className, ...rest }: any) => (
+  default: ({ children, disabled, onClick, className, ...rest }: React.ComponentProps<"button">) => (
     <button
       disabled={disabled}
       onClick={onClick}
@@ -46,7 +47,11 @@ jest.mock("@mui/material/IconButton", () => ({
 
 jest.mock("@mui/material/Box", () => ({
   __esModule: true,
-  default: ({ children, className, css }: any) => (
+  default: ({
+    children,
+    className,
+    css
+  }: React.ComponentProps<"div"> & { css?: Interpolation<Theme> }) => (
     <div className={className} css={css}>
       {children}
     </div>
@@ -57,7 +62,12 @@ jest.mock("@mui/material/Box", () => ({
 jest.mock("../../ui_primitives", () => ({
   ...jest.requireActual("../../ui_primitives/tokens"),
   ...jest.requireActual("../../ui_primitives/spacing"),
-  CloseButton: ({ onClick, buttonSize, tooltip, className }: any) => (
+  CloseButton: ({
+    onClick,
+    buttonSize,
+    tooltip,
+    className
+  }: React.ComponentProps<"button"> & { buttonSize?: string; tooltip?: string }) => (
     <button
       onClick={onClick}
       data-size={buttonSize}
@@ -68,7 +78,13 @@ jest.mock("../../ui_primitives", () => ({
       ×
     </button>
   ),
-  ToolbarIconButton: ({ icon, onClick, disabled, tooltip, className }: any) => (
+  ToolbarIconButton: ({
+    icon,
+    onClick,
+    disabled,
+    tooltip,
+    className
+  }: React.ComponentProps<"button"> & { icon?: React.ReactNode; tooltip?: string }) => (
     <button
       onClick={onClick}
       disabled={disabled}
@@ -79,7 +95,18 @@ jest.mock("../../ui_primitives", () => ({
       {icon}
     </button>
   ),
-  NodeTextField: ({ value, onChange, onKeyDown, className, placeholder, slotProps }: any) => (
+  NodeTextField: ({
+    value,
+    onChange,
+    onKeyDown,
+    className,
+    placeholder,
+    slotProps
+  }: React.ComponentProps<"input"> & {
+    slotProps?: {
+      htmlInput?: { "aria-label"?: string; maxLength?: number };
+    };
+  }) => (
     <input
       type="text"
       value={value}
@@ -91,7 +118,7 @@ jest.mock("../../ui_primitives", () => ({
       maxLength={slotProps?.htmlInput?.maxLength}
     />
   ),
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>
 }));
 
 describe("FindReplaceBar", () => {
@@ -122,7 +149,9 @@ describe("FindReplaceBar", () => {
     jest.useRealTimers();
   });
 
-  const renderWithTheme = (props: any = {}) => {
+  const renderWithTheme = (
+    props: Partial<React.ComponentProps<typeof FindReplaceBar>> = {}
+  ) => {
     return render(
       <ThemeProvider theme={mockTheme}>
         <FindReplaceBar {...defaultProps} {...props} />

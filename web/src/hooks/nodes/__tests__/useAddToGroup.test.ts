@@ -25,8 +25,8 @@ jest.mock('react', () => {
 
 jest.mock("../useIsGroupable", () => ({
   useIsGroupable: () => ({
-    isGroupable: (node: any) => node.type !== "nodetool.group.Loop",
-    isGroup: (node: any) => node.type === "nodetool.group.Loop"
+    isGroupable: (node: { type?: string }) => node.type !== "nodetool.group.Loop",
+    isGroup: (node: { type?: string }) => node.type === "nodetool.group.Loop"
   })
 }));
 

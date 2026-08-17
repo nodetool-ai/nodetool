@@ -11,6 +11,48 @@ This guide covers eight providers that share one implementation pattern:
 
 ---
 
+## No code needed: add an endpoint from Settings
+
+Most OpenAI-compatible endpoints — a proxy, a company gateway, a self-hosted
+router — need nothing from this guide. **Settings → Models & Providers →
+OpenAI-compatible endpoints → Add endpoint** takes a name, a slug, a base URL
+and an optional API key, and the provider appears in the model menu straight
+away. Add as many as you like.
+
+The slug becomes the wire id: `myproxy` → `custom_myproxy`, which is what lands
+on model objects, spans and saved workflows. It is fixed once created, because
+renaming it would orphan every model reference in a saved graph.
+
+The endpoint and key are stored per account and encrypted, and they also read
+from the environment under the same names — so a server can be configured with
+no database writes at all:
+
+```bash
+CUSTOM_MYPROXY_BASE_URL=https://proxy.example.com/v1
+CUSTOM_MYPROXY_API_KEY=sk-…
+```
+
+Include the version path the endpoint serves (usually `/v1`) in the URL, the
+same way you would set `baseURL` on an OpenAI client. Models come from
+`GET <base_url>/models`; endpoints without that route take a hand-written list
+of model ids instead.
+
+| What | Path |
+|------|------|
+| Ids, secret names, validation | `packages/protocol/src/custom-providers.ts` |
+| The provider | `packages/runtime/src/providers/custom-openai-provider.ts` |
+| Registration | `packages/runtime/src/providers/custom-provider-registry.ts` |
+| Storage + registry sync | `packages/websocket/src/custom-providers.ts` |
+| API | `packages/websocket/src/trpc/routers/custom-providers.ts` (`customProviders.list\|save\|delete\|test`) |
+| UI | `web/src/components/menus/CustomProvidersSection.tsx` |
+
+Write a provider file instead when the endpoint needs more than chat over a
+base URL — its own media API, non-standard request fields, per-model tool
+support, or a curated model list that ships with NodeTool. That is the rest of
+this guide.
+
+---
+
 ## TL;DR
 
 - Models appear automatically: each provider fetches its `/models` endpoint at runtime, so new upstream models show up in the model picker without a code change.

@@ -18,20 +18,20 @@ import AboutMenu from "../AboutMenu";
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
   CircularProgress: () => <div data-testid="CircularProgress" />,
-  Typography: ({ children, ...props }: any) => <span {...props}>{children}</span>,
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  Chip: ({ children, ...props }: any) => <span data-testid="Chip" {...props}>{children}</span>,
+  Typography: ({ children, ...props }: React.ComponentProps<"span">) => <span {...props}>{children}</span>,
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>,
+  Chip: ({ children, ...props }: React.ComponentProps<"span">) => <span data-testid="Chip" {...props}>{children}</span>,
 }));
 
 // Mock UI primitives
 jest.mock("../../ui_primitives", () => ({
-  FlexRow: ({ children, ...props }: any) => <div data-testid="FlexRow" {...props}>{children}</div>,
-  FlexColumn: ({ children, ...props }: any) => <div data-testid="FlexColumn" {...props}>{children}</div>,
-  Text: ({ children, ...props }: any) => <span data-testid="Text" {...props}>{children}</span>,
-  Caption: ({ children, ...props }: any) => <span data-testid="Caption" {...props}>{children}</span>,
-  LoadingSpinner: (props: any) => <div data-testid="LoadingSpinner" {...props} />,
-  Chip: ({ children, ...props }: any) => <span data-testid="UIPrimitiveChip" {...props}>{children}</span>,
-  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  FlexRow: ({ children, ...props }: React.ComponentProps<"div">) => <div data-testid="FlexRow" {...props}>{children}</div>,
+  FlexColumn: ({ children, ...props }: React.ComponentProps<"div">) => <div data-testid="FlexColumn" {...props}>{children}</div>,
+  Text: ({ children, ...props }: React.ComponentProps<"span">) => <span data-testid="Text" {...props}>{children}</span>,
+  Caption: ({ children, ...props }: React.ComponentProps<"span">) => <span data-testid="Caption" {...props}>{children}</span>,
+  LoadingSpinner: (props: React.ComponentProps<"div">) => <div data-testid="LoadingSpinner" {...props} />,
+  Chip: ({ children, ...props }: React.ComponentProps<"span">) => <span data-testid="UIPrimitiveChip" {...props}>{children}</span>,
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>,
 }));
 
 // Mock stores

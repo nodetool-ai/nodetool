@@ -85,20 +85,24 @@ export function isConnectableCached(
  * - 0: Exact type match (same type and type_name for enums)
  * - 1: Same base type (e.g., enum to enum with different type_name)
  * - 2: Compatible but different type (e.g., enum to str)
- * - 3: No match (should be filtered out)
+ * - 3: Compatible only because the property is `any`
+ * - 4: No match (should be filtered out)
  */
 const getInputMatchPriority = (
   inputType: TypeMetadata,
   node: NodeMetadata
 ): number => {
-  let bestPriority = 3;
+  let bestPriority = 4;
 
   for (const prop of node.properties) {
-    if (prop.type.type === "any") {
+    if (!isConnectableCached(inputType, prop.type)) {
       continue;
     }
 
-    if (!isConnectableCached(inputType, prop.type)) {
+    // An `any` property accepts everything, so it says nothing about how well
+    // the node fits — rank it below every typed match but keep it reachable.
+    if (prop.type.type === "any" && inputType.type !== "any") {
+      bestPriority = Math.min(bestPriority, 3);
       continue;
     }
 
@@ -133,13 +137,9 @@ export const filterTypesByInputType = (
   inputType: TypeMetadata
 ): NodeMetadata[] => {
   const filtered = metadata.filter((node) => {
-    return node.properties.some((prop) => {
-      // Exclude matches that are only connectable because the property is "any"
-      if (prop.type.type === "any") {
-        return false;
-      }
-      return isConnectableCached(inputType, prop.type);
-    });
+    return node.properties.some((prop) =>
+      isConnectableCached(inputType, prop.type)
+    );
   });
 
   // Sort by match priority (lower = better match)
@@ -162,14 +162,17 @@ const getOutputMatchPriority = (
   outputType: TypeMetadata,
   node: NodeMetadata
 ): number => {
-  let bestPriority = 3;
+  let bestPriority = 4;
 
   for (const output of node.outputs) {
-    if (output.type.type === "any") {
+    if (!isConnectableCached(output.type, outputType)) {
       continue;
     }
 
-    if (!isConnectableCached(output.type, outputType)) {
+    // An `any` output fits every input, so it says nothing about how well the
+    // node fits — rank it below every typed match but keep it reachable.
+    if (output.type.type === "any" && outputType.type !== "any") {
+      bestPriority = Math.min(bestPriority, 3);
       continue;
     }
 
@@ -208,13 +211,9 @@ export const filterTypesByOutputType = (
   }
 
   const filtered = metadata.filter((node) => {
-    return node.outputs.some((output) => {
-      // Exclude matches that are only connectable because the output is "any"
-      if (output.type.type === "any") {
-        return false;
-      }
-      return isConnectableCached(output.type, outputType);
-    });
+    return node.outputs.some((output) =>
+      isConnectableCached(output.type, outputType)
+    );
   });
 
   // Sort by match priority (lower = better match)

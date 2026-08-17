@@ -34,6 +34,7 @@ For the full agent harness loop — `nodetool validate` (static pre-flight),
 ```
 web/src/
 ├── components/    # React UI components (PascalCase .tsx files)
+│   └── support/   # Bug-report dialog — every error surface links to it
 ├── e2e_runner/    # In-browser graph harness — runs workflows vs. real backend (see README.md)
 ├── stores/        # Zustand state stores (single-domain each)
 ├── hooks/         # Custom React hooks (useX naming)

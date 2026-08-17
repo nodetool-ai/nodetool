@@ -49,7 +49,7 @@ function calculateReadingTimeout(content: string): number {
   );
 }
 
-interface NotificationStore {
+export interface NotificationStore {
   notifications: Notification[];
   lastDisplayedTimestamp: Date | null;
 

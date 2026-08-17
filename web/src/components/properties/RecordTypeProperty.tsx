@@ -66,10 +66,11 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
   );
 
   const addColumn = useCallback(() => {
-    const columns = value.columns || [];
+    const columns: ColumnDef[] = value.columns || [];
+    const existingNames = new Set(columns.map((col) => col.name));
     let newColumnName = "Column 1";
     let counter = 1;
-    while (columns.find((col: ColumnDef) => col.name === newColumnName)) {
+    while (existingNames.has(newColumnName)) {
       newColumnName = `Column ${counter}`;
       counter++;
     }
