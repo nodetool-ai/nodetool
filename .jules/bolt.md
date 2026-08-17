@@ -89,3 +89,6 @@
 ## 2026-05-25 - O(N*M) lookup optimization in eval case selection
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `packages/cli/src/commands/eval.ts` where `picked.some((c) => c.id === id)` was called inside `[...wanted].filter(...)`. When evaluating a large suite with many specific cases requested, this nested array iteration creates unnecessary overhead.
 **Action:** Replaced `.some()` inside the `.filter()` loop with an $O(1)$ `Set` lookup. Extracting the `picked` IDs into a `Set` before the loop reduces the complexity from $O(N \times M)$ to $O(N + M)$.
+## 2026-05-25 - O(N^2) Array finding optimization in Dataframe Components
+**Learning:** Found an $O(N^2)$ performance bottleneck when adding new columns in `web/src/components/properties/DataframeProperty.tsx`, `web/src/components/properties/DataframeEditorModal.tsx`, and `web/src/components/properties/RecordTypeProperty.tsx`. Generating a unique column name used `while (columns.find(...))` looping over all existing columns. For dataframes with a large number of columns, iterating the whole array per increment caused unnecessary allocations and computation overhead.
+**Action:** Pre-computed a `Set` of existing column names before the loop to allow $O(1)$ lookup via `Set.has()`, effectively reducing the time complexity to $O(N)$.
