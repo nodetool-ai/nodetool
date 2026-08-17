@@ -33,6 +33,7 @@ import { DeepSeekProvider } from "./deepseek-provider.js";
 import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
+import { CustomOpenAIProvider } from "./custom-openai-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
@@ -88,6 +89,12 @@ export { DeepSeekProvider };
 export { XAIProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
+export { CustomOpenAIProvider };
+export type { CustomOpenAIProviderConfig } from "./custom-openai-provider.js";
+export {
+  syncCustomProviders,
+  listCustomProviderIds
+} from "./custom-provider-registry.js";
 export { HuggingFaceProvider };
 export { PythonProvider };
 export { ReplicateProvider };

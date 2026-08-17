@@ -24,11 +24,16 @@ import {
   listRegisteredProviderIds,
   PythonProvider,
   registerProvider,
+  syncCustomProviders,
   RECOMMENDED_MODELS
 } from "@nodetool-ai/runtime";
 import { readCachedHfModels } from "@nodetool-ai/huggingface";
-import type { UnifiedModel } from "@nodetool-ai/protocol";
-import { getSecret } from "@nodetool-ai/models";
+import {
+  CUSTOM_PROVIDERS_SETTING_KEY,
+  parseCustomProviderCatalog,
+  type UnifiedModel
+} from "@nodetool-ai/protocol";
+import { getSecret, Setting } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
 /**
@@ -155,11 +160,31 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
   return pythonProvidersPromise;
 }
 
+/**
+ * Register the user's OpenAI-compatible endpoints into the runtime registry.
+ * The server does this on every request; the CLI has no request, so every
+ * entrance that resolves a provider calls it once. Non-fatal: an unreachable
+ * database leaves the built-in providers working.
+ */
+let customProvidersPromise: Promise<void> | null = null;
+export async function ensureCustomProvidersRegistered(): Promise<void> {
+  if (!customProvidersPromise) {
+    customProvidersPromise = (async () => {
+      const setting = await Setting.find("1", CUSTOM_PROVIDERS_SETTING_KEY);
+      if (setting) {
+        syncCustomProviders(parseCustomProviderCatalog(setting.getValue()));
+      }
+    })().catch(() => undefined);
+  }
+  return customProvidersPromise;
+}
+
 /** Build a registered provider, rejecting unknown ids instead of falling back. */
 export async function createProviderStrict(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
+  await ensureCustomProvidersRegistered();
   if (
     PYTHON_ONLY_PROVIDERS.includes(id) &&
     !listRegisteredProviderIds().includes(id)
@@ -191,6 +216,7 @@ export async function createProvider(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
+  await ensureCustomProvidersRegistered();
   if (
     !PYTHON_ONLY_PROVIDERS.includes(id) &&
     !listRegisteredProviderIds().includes(id)
@@ -219,6 +245,7 @@ export async function buildConfiguredProviders(): Promise<
   Record<string, BaseProvider>
 > {
   const result: Record<string, BaseProvider> = {};
+  await ensureCustomProvidersRegistered();
   for (const id of listRegisteredProviderIds()) {
     try {
       if (await isProviderConfigured(id, resolveForUser1)) {

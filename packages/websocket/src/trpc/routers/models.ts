@@ -15,6 +15,7 @@ import {
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
+import { syncCustomProviderRegistry } from "../../custom-providers.js";
 
 function secretResolverFor(userId: string) {
   return (key: string) =>
@@ -1000,6 +1001,11 @@ export const modelsRouter = router({
     .output(providersOutput)
     .query(async ({ ctx }) => {
       const userId = ctx.userId;
+      // The registry is a process global but a custom provider's catalog is
+      // per user, so the caller's own definitions have to be in it before the
+      // enumeration below — otherwise a second account's endpoints are the
+      // ones listed, or none are after a restart.
+      await syncCustomProviderRegistry(userId);
       const infos: Array<{ provider: string; capabilities: string[] }> = [];
       for (const providerId of await getAvailableProviderIds(userId)) {
         const instance = await instantiateProvider(providerId, userId);
