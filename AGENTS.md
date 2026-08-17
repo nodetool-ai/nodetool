@@ -236,13 +236,13 @@ The vendored [anti-slop](https://github.com/dmmulroy/anti-slop) Oxlint plugin
 (`tools/oxlint/anti-slop/`) runs through two configs, and every rule sits in
 exactly one of them:
 
-- `.oxlintrc.anti-slop.json` — the **backlog**, 15,994 findings. Run it with
+- `.oxlintrc.anti-slop.json` — the **backlog**, 16,297 findings. Run it with
   `npm run lint:anti-slop`. Not on the CI path; it would be red for months.
 - `.oxlintrc.anti-slop-enforced.json` — everything already at **zero**. Run
   inside `npm run lint`, so it cannot come back.
 
-The unit of enforcement is a **(rule, tree) pair**, not a rule. Eight rules over
-58 trees is 464 pairs, and 184 of them are already at zero — so a rule still
+The unit of enforcement is a **(rule, tree) pair**, not a rule. Nine rules over
+58 trees is 522 pairs, and 228 of them are already at zero — so a rule still
 thousands of findings deep across the repo is nonetheless finished in forty
 packages, and those forty are ratcheted today rather than after the last one
 lands. Six rules are at zero everywhere and sit in the enforced config's top-level
@@ -257,7 +257,7 @@ before (6,991/18,453 recorded against an actual 7,016/18,504). The generator
 lints one tree per oxlint invocation and rejects any tree whose scan touched
 zero files: oxlint does not expand `packages/*/src` itself, and a glob that
 reaches it unexpanded lints nothing while reporting nothing — which is
-indistinguishable from a clean tree, and would ratchet all 464 pairs on a
+indistinguishable from a clean tree, and would ratchet all 522 pairs on a
 broken run.
 
 A rule that does not fit NodeTool is deleted from the plugin
@@ -292,12 +292,13 @@ Remaining backlog, largest first — regenerate with `npm run lint:anti-slop:cou
 
 | rule | findings | trees at zero |
 |---|---:|---:|
-| `require-safety-comment-for-type-assertion` | 7001 | 3 / 58 |
-| `no-unsafe-dictionary-type` | 4241 | 5 / 58 |
-| `no-unknown-parameters` | 1890 | 8 / 58 |
+| `require-safety-comment-for-type-assertion` | 7002 | 3 / 58 |
+| `no-unsafe-dictionary-type` | 4240 | 5 / 58 |
+| `no-unknown-parameters` | 1891 | 8 / 58 |
 | `no-module-mocking` | 1427 | 55 / 58 |
 | `no-known-value-widening` | 663 | 12 / 58 |
 | `no-runtime-typeof` | 537 | 13 / 58 |
+| `no-hand-written-any` | 302 | 44 / 58 |
 | `no-unknown-returns` | 191 | 42 / 58 |
 | `no-chained-type-assertions` | 44 | 46 / 58 |
 
@@ -308,7 +309,37 @@ typing one — enforced everywhere else already, and worth its own change rather
 than a slot in the typing work. `require-safety-comment-for-type-assertion` is
 the opposite, present nearly everywhere, and moves only when the values crossing
 a boundary get named. `packages/base-nodes` and `packages/security` are at zero
-on all eight.
+on all nine.
+
+`no-hand-written-any` is the newest, and it exists because
+`.github/workflows/type-safety.yaml` had no way to keep what it won: it greps
+`web/`, `electron/` and `mobile/` nightly, fixes five to ten files, and nothing
+stopped the next PR putting `any` back in the file it just cleaned. What decided
+the rule's shape was counting first. Of the 1,012 `: any` annotations in
+`packages/*/src`, **960** are `declare <name>: any` — the ambient class field the
+`@prop` decorator requires for a node property, a deliberate contract in
+`@nodetool-ai/node-sdk` and not fixable at the site. Reporting it would have put
+the rule 960 findings deep on day one with nothing to do about them, which is
+where `no-shape-in-symbol-names` was when it was deleted. So the rule skips a
+`PropertyDefinition` with `declare: true` — decided from the AST, not a name or a
+path — and what is left is 302 hand-written annotations, 224 of them in `web/`,
+already at zero in 44 of 58 trees.
+
+It reports `any` in annotation positions: parameters, returns, variables,
+properties, and type arguments (`any[]`, `Promise<any>`, `Map<string, any>`). It
+deliberately does not report `as any` — `require-safety-comment-for-type-assertion`
+asks whether an assertion is justified in writing, this one asks whether a type
+can be written at all, and a third report on the same syntax buys nothing — nor a
+type-alias body or a type-parameter default, neither of which is an annotation.
+`Record<string, any>` is one finding, not two: an `any` under a type
+`no-unsafe-dictionary-type` classifies belongs to that rule. The boundary is
+exact and pinned by test — `Record<string, any[]>` has an array value type, so
+the dictionary rule classifies nothing and the `any` is this rule's to report.
+
+`type-safety.yaml` is untouched here. Whether it still earns its slot is now a
+question with evidence behind it: the tree it works hardest on is the one
+carrying 74% of the remaining findings, and a nightly grep and a ratchet are not
+the same instrument — but that is a separate change.
 
 A rule can also stall short of zero. `no-unknown-returns` went 604 → 191 (the
 predicate consolidation above put twenty back); what

@@ -5,12 +5,13 @@ copied at upstream commit `446268e5d15baa968eaec669ff65358d36ae6259` by that
 repo's `install-anti-slop` skill. MIT, see `LICENSE`. Upstream ships it to be
 vendored and edited, not consumed as a dependency.
 
-Fourteen rules that reject low-evidence TypeScript: `unknown` in parameters,
-returns and dictionary values, type-assertion chains, assertions without a
-`SAFETY:` comment, runtime `typeof` narrowing, conditional empty-object spread,
-module mocking, `Reflect.get`/`Reflect.apply`.
+Fifteen rules that reject low-evidence TypeScript: `unknown` in parameters,
+returns and dictionary values, hand-written `any`, type-assertion chains,
+assertions without a `SAFETY:` comment, runtime `typeof` narrowing, conditional
+empty-object spread, module mocking, `Reflect.get`/`Reflect.apply`.
 
-Upstream ships a fifteenth, `no-shape-in-symbol-names`, which bans the
+One of the fifteen is NodeTool's own: `no-hand-written-any` (below). Upstream
+ships a rule this vendoring does not, `no-shape-in-symbol-names`, which bans the
 substring "shape" in every identifier. It is deleted here. NodeTool draws
 shapes: the sketch editor's `ShapeTool`, `drawShape` and `ShapeSettings` name a
 rectangle or an ellipse, not a structure. The rest of its 921 findings were
@@ -19,6 +20,22 @@ tensor `shape` fields read out of safetensors headers and third-party contracts
 Vendoring exists so a rule that does not fit can go.
 
 ## Local edits
+
+`no-hand-written-any` is written here, not vendored. It reports `any` in
+annotation positions — parameters, returns, variables, properties, type
+arguments — and skips three things on purpose:
+
+- **`declare` class properties.** `declare postprocessing: any` is the ambient
+  field the `@prop` decorator requires for a node property. It is 960 of the
+  1,012 `: any` annotations in `packages/*/src` and none of them is fixable at
+  the site. Decided from the AST (`PropertyDefinition` with `declare: true`), so
+  a rename cannot smuggle a hand-written `any` past it.
+- **`as any` and `<any>x`.** `require-safety-comment-for-type-assertion` already
+  reports those, and asks a different question.
+- **Anything `no-unsafe-dictionary-type` classifies.** `Record<string, any>` is
+  one finding, from that rule. The dedup walks the same ancestor chain that rule
+  does, so the split is exact rather than name-matched: `Record<string, any[]>`
+  has an array value type, that rule classifies nothing, and this one reports.
 
 `no-runtime-typeof` carries two exemptions upstream does not, both for checks that are
 correct as written and that no predicate can replace:
@@ -42,8 +59,9 @@ in `npm run test:packages` via the root `test:oxlint-rules` script.
 
 ## How it is wired
 
-`.oxlintrc.anti-slop.json` registers the plugin and enables all fourteen rules at
-`error`. It is a **separate config**, run only by `npm run lint:anti-slop`:
+`.oxlintrc.anti-slop.json` registers the plugin and enables the nine rules with
+findings left, at `error`. It is a **separate config**, run only by
+`npm run lint:anti-slop`:
 
 ```bash
 npm run lint:anti-slop   # whole repo, exits 1 while findings remain
@@ -53,15 +71,16 @@ npm run lint:anti-slop   # whole repo, exits 1 while findings remain
 npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
 ```
 
-`npm run lint` and CI do not run it. The rules find 26,238 violations in the
+`npm run lint` and CI do not run it. The rules find 16,297 violations in the
 current tree, so folding them into the main gate would leave it permanently red.
 Treat this as a backlog to work down, not a merge blocker.
 
-`.oxlintrc.anti-slop-enforced.json` is the other half: the rules already at zero,
-run as part of `npm run lint` so they cannot regress. A rule is promoted by
-moving its entry from the backlog config into the enforced one, in the same PR
-that gets it to zero. The two configs partition the fourteen rules — a rule
-belongs to exactly one.
+`.oxlintrc.anti-slop-enforced.json` is the other half, run as part of
+`npm run lint` so what is won cannot regress. It carries the six rules at zero
+everywhere in its top-level `rules`, plus one generated override block per
+backlog rule listing the trees already at zero for it — regenerate those with
+`npm run lint:anti-slop:write`, never by hand. The two configs partition the
+fifteen rules — a rule belongs to exactly one.
 
 Promotion goes through the enforced config rather than `.oxlintrc.json` because
 `web/`, `electron/` and `mobile/` each carry their own `.oxlintrc.json`, and
