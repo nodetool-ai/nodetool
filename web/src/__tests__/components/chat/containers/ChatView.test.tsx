@@ -6,8 +6,12 @@ import ChatView from "../../../../components/chat/containers/ChatView";
 import mockTheme from "../../../../__mocks__/themeMock";
 import {
   Message,
-  LanguageModel
+  MessageContent,
+  LanguageModel,
+  PlanningUpdate,
+  TaskUpdate
 } from "../../../../stores/ApiTypes";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 
 // Mock react-router-dom hooks
 const mockNavigate = jest.fn();
@@ -36,22 +40,28 @@ jest.mock("@mui/material", () => ({
 // Mock ChatThreadView component
 jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
   __esModule: true,
-  default: function MockChatThreadView({ messages, status }: any) {
+  default: function MockChatThreadView({
+    messages,
+    status
+  }: {
+    messages?: Message[];
+    status?: string;
+  }) {
     return (
       <div data-testid="chat-thread-view">
         <div>Messages: {messages?.length || 0}</div>
         <div>Status: {status}</div>
-        {messages?.map((msg: any, index: number) => (
+        {messages?.map((msg, index: number) => (
           <div key={index} data-testid={`message-${index}`}>
             <div data-testid={`message-role-${index}`}>{msg.role}</div>
             <div data-testid={`message-content-${index}`}>
               {Array.isArray(msg.content)
-                ? msg.content.map((c: any, i: number) => (
+                ? msg.content.map((c, i: number) => (
                     <span key={i}>
                       {c.type === "text" ? c.text : "[non-text content]"}
                     </span>
                   ))
-                : msg.content}
+                : String(msg.content ?? "")}
             </div>
           </div>
         ))}
@@ -63,7 +73,16 @@ jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
 // Mock ChatInputSection component
 jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
   __esModule: true,
-  default: function MockChatInputSection({ status, onSendMessage }: any) {
+  default: function MockChatInputSection({
+    status,
+    onSendMessage
+  }: {
+    status?: string;
+    onSendMessage: (
+      content: MessageContent[],
+      prompt: string
+    ) => Promise<void> | void;
+  }) {
     return (
       <div data-testid="chat-input-section">
         <div>Status: {status}</div>
@@ -366,21 +385,17 @@ describe("ChatView", () => {
         }
       ];
 
-      const planningUpdate: any = {
-        id: "plan-1",
+      const planningUpdate: PlanningUpdate = {
         type: "planning_update",
         status: "running",
-        plan: "Test plan",
-        current_step: 1,
-        total_steps: 3
+        phase: "Test plan",
+        content: "step 1 of 3"
       };
 
-      const taskUpdate: any = {
-        id: "task-1",
+      const taskUpdate: TaskUpdate = {
         type: "task_update",
-        status: "completed",
-        task: "Test task",
-        result: "Task completed"
+        task: { id: "task-1", title: "Test task", status: "completed" },
+        event: TaskUpdateEvent.TaskCompleted
       };
 
       renderWithProviders(

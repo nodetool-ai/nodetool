@@ -11,15 +11,37 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 
+/** The slices of node shape these performance tests actually read. */
+interface OutputSlot {
+  type: string;
+}
+
+interface NodeMeta {
+  outputs?: OutputSlot[];
+}
+
+interface ComparedProps {
+  id?: string;
+  type?: string;
+  selected?: boolean;
+  data?: unknown;
+}
+
+interface DynamicEdge {
+  target: string;
+  targetHandle: string;
+  type?: string;
+}
+
 describe('BaseNode Performance Optimizations', () => {
   describe('Color Computation Memoization', () => {
     it('should compute node colors only when metadata changes', () => {
       let computeCount = 0;
 
-      const computeNodeColors = (metadata: any) => {
+      const computeNodeColors = (metadata: NodeMeta) => {
         computeCount++;
         const outputColors = new Set<string>();
-        metadata?.outputs?.forEach((output: any) => {
+        metadata?.outputs?.forEach((output) => {
           outputColors.add(output.type);
         });
         return [...outputColors];
@@ -29,7 +51,7 @@ describe('BaseNode Performance Optimizations', () => {
         outputs: [{ type: 'string' }, { type: 'int' }, { type: 'string' }]
       };
 
-      const Component = ({ meta, _trigger }: { meta: any; _trigger: number }) => {
+      const Component = ({ meta, _trigger }: { meta: NodeMeta; _trigger: number }) => {
         const colors = React.useMemo(() => computeNodeColors(meta), [meta]);
         return <div>{colors.join(',')}</div>;
       };
@@ -117,13 +139,13 @@ describe('BaseNode Performance Optimizations', () => {
     it('should fast-fail on simple checks before expensive isEqual', () => {
       let isEqualCalls = 0;
 
-      const customIsEqual = (a: any, b: any) => {
+      const customIsEqual = (a: unknown, b: unknown) => {
         isEqualCalls++;
         return JSON.stringify(a) === JSON.stringify(b);
       };
 
       // Optimized comparison
-      const optimizedCompare = (prevProps: any, nextProps: any) => {
+      const optimizedCompare = (prevProps: ComparedProps, nextProps: ComparedProps) => {
         // Fast checks first
         if (prevProps.id !== nextProps.id) {return false;}
         if (prevProps.type !== nextProps.type) {return false;}
@@ -268,7 +290,7 @@ describe('NodeInputs Performance Optimizations', () => {
 
       const resolveDynamicInputs = (
         dynamicProps: Record<string, any>,
-        edges: any[],
+        edges: DynamicEdge[],
         nodeId: string
       ) => {
         resolutionCount++;
@@ -288,7 +310,7 @@ describe('NodeInputs Performance Optimizations', () => {
         _trigger
       }: {
         dynamicProps: Record<string, any>;
-        edges: any[];
+        edges: DynamicEdge[];
         nodeId: string;
         _trigger: number;
       }) => {
@@ -350,7 +372,7 @@ describe('NodeInputs Performance Optimizations', () => {
       }: {
         properties: Property[];
         dynamicProps: Record<string, any>;
-        edges: any[];
+        edges: DynamicEdge[];
         showAdvanced: boolean;
         nodeId: string;
         _trigger: number;

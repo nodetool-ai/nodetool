@@ -8,7 +8,7 @@ jest.mock('electron', () => ({
 }));
 
 jest.mock('ws', () => {
-  const instances: any[] = [];
+  const instances: WS[] = [];
   class WS extends EventEmitter {
     public url: string;
     public send = jest.fn();
@@ -35,7 +35,7 @@ async function connectRunner() {
   return { runner, socket };
 }
 
-function sendMessage(socket: any, data: Record<string, unknown>) {
+function sendMessage(socket: EventEmitter, data: Record<string, unknown>) {
   socket.emit('message', Buffer.from(pack(data)));
 }
 
