@@ -4,8 +4,11 @@ import type { BaseProvider } from "./base-provider.js";
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not a behavioural contract.
 const log = createLogger("nodetool.runtime.provider-registry");
 
+/** A provider class as the registry constructs it: from its resolved kwargs. */
+type ProviderConstructor = new (kwargs: Record<string, unknown>) => BaseProvider;
+
 interface ProviderRegistration {
-  cls: new (...args: any[]) => BaseProvider;
+  cls: ProviderConstructor;
   kwargs: Record<string, unknown>;
   // Keys that should be resolved from the secret store / env when available,
   // but are NOT required for the provider to be considered configured. The
@@ -26,7 +29,7 @@ const _PROVIDER_REGISTRY = new Map<string, ProviderRegistration>();
 
 export function registerProvider(
   providerId: string,
-  cls: new (...args: any[]) => BaseProvider,
+  cls: ProviderConstructor,
   kwargs: Record<string, unknown> = {},
   optionalKwargs: Record<string, unknown> = {}
 ): void {

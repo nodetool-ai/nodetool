@@ -14,8 +14,9 @@ const mockFolderTree = {
 
 jest.mock("../../stores/AssetStore", () => ({
   __esModule: true,
-  useAssetStore: jest.fn((selector: any) =>
-    selector({ loadFolderTree: mockLoadFolderTree })
+  useAssetStore: jest.fn(
+    (selector: (state: { loadFolderTree: typeof mockLoadFolderTree }) => unknown) =>
+      selector({ loadFolderTree: mockLoadFolderTree })
   )
 }));
 
@@ -50,7 +51,7 @@ describe("useFolderTree", () => {
   });
 
   it("calls loadFolderTree with correct sort order", async () => {
-    let capturedQueryFn: any;
+    let capturedQueryFn: (() => Promise<unknown>) | undefined;
     mockLoadFolderTree.mockResolvedValue(mockFolderTree);
     (useQuery as jest.Mock).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
@@ -59,7 +60,7 @@ describe("useFolderTree", () => {
 
     renderHook(() => useFolderTree("name"));
     
-    await capturedQueryFn();
+    await capturedQueryFn?.();
     expect(mockLoadFolderTree).toHaveBeenCalledWith("name");
   });
 });

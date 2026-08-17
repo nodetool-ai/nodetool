@@ -19,6 +19,7 @@ Step-by-step troubleshooting for common NodeTool issues. For installation-specif
 - [Performance Optimization](#performance-optimization)
 - [Debugging Techniques](#debugging-techniques)
 - [Getting Help](#getting-help)
+  - [Report a Bug from inside NodeTool](#report-a-bug-from-inside-nodetool)
 
 ---
 
@@ -471,9 +472,41 @@ Before reaching out, try these steps — they resolve most issues:
 | **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** | Bug reports, feature requests, reproducible problems |
 | **[Documentation](index.md)** | Guides, API reference, node documentation |
 
+### Report a Bug from inside NodeTool
+
+Every error in NodeTool carries a **Report** button. It opens a form that
+collects the technical detail for you, so you only have to describe what
+happened.
+
+You reach it from:
+
+- A **failed node** — the Report button on the red error box
+- A **failed job** — the Report button in the Jobs panel
+- An **error notification** — the Report button in the notification list
+- A **crashed screen or panel** — the "Report a bug" button on the error screen
+- **Anywhere** — the command menu (`Cmd/Ctrl+K`) → **Report a Bug**
+
+The form has three steps:
+
+1. **Describe it.** What went wrong, the steps to reproduce, what you expected.
+2. **Check what you send.** The form lists every file it will attach — the
+   error and stack trace, the failing node's settings, the workflow graph, the
+   run logs, the browser console. Each row has a **View** button that shows the
+   exact content, and a checkbox to leave it out. You can add screenshots here
+   too; a picture of the broken screen is the most useful thing you can attach.
+3. **Save, then open the issue.** **Save report bundle** writes one zip to your
+   downloads. **Open GitHub issue** then opens a pre-filled issue. Drag the zip
+   into it and submit.
+
+NodeTool uploads nothing. The zip stays on your machine until you attach it,
+and it never leaves if you close the dialog. API keys, tokens and embedded
+media are stripped before anything is written to the file.
+
 ### How to Ask Effectively
 
-Include these details when asking for help:
+The Report a Bug form gathers your version, OS, error text, node settings and
+workflow for you. When you ask elsewhere — Discord, an issue you write by hand
+— include these:
 
 1. **NodeTool version** — from **Help → About**
 2. **Operating system** — macOS/Windows/Linux + version

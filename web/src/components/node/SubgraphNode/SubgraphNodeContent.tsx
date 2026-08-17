@@ -1,5 +1,8 @@
-import React, { memo, useMemo } from "react";
-import { Box, Caption } from "../../ui_primitives";
+import React, { memo, useCallback, useMemo } from "react";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import { Box, Caption, FlexRow, MOTION } from "../../ui_primitives";
+import { useNodes } from "../../../contexts/NodeContext";
+import { useOpenSubgraph } from "../../../hooks/nodes/useOpenSubgraph";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -31,6 +34,15 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
     const innerNodeCount = Array.isArray(innerGraph?.nodes)
       ? innerGraph.nodes.length
       : 0;
+
+    // The canvas this node sits on, not `data.workflow_id` — that is only
+    // stamped on nodes the store created, so a node loaded from a saved graph
+    // would key its tab off "" and the tab strip would never find it.
+    const canvasWorkflowId = useNodes((state) => state.workflow.id);
+    const openSubgraph = useOpenSubgraph();
+    const handleOpen = useCallback(() => {
+      openSubgraph(canvasWorkflowId, id, data);
+    }, [openSubgraph, canvasWorkflowId, id, data]);
 
     const visibleProperties = useMemo(
       () => nodeMetadata.properties.filter((p) => p.name !== "graph"),
@@ -68,7 +80,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
             nodeType={nodeType}
             data={data}
             showHandle={true}
-            editableDynamicInputs={false}
+            editableDynamicInputs={true}
           />
         </Box>
         {nodeMetadata.supports_dynamic_outputs && (
@@ -88,18 +100,44 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
           <NodeProgress id={id} workflowId={workflowId} />
         )}
         <Box
+          component="button"
+          type="button"
+          className="nodrag nopan"
+          onClick={handleOpen}
+          title="Open the subgraph in its own tab"
           sx={{
             flexShrink: 0,
             mt: 0.5,
-            px: 1,
+            pl: 1,
+            // Extra right inset keeps the count clear of the resize handle.
+            pr: 4,
             py: 0.5,
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
             borderTop: 1,
-            borderColor: "divider"
+            borderLeft: 0,
+            borderRight: 0,
+            borderBottom: 0,
+            borderStyle: "solid",
+            borderColor: "divider",
+            background: "transparent",
+            color: "text.secondary",
+            cursor: "pointer",
+            textAlign: "left",
+            transition: MOTION.background,
+            "&:hover": { backgroundColor: "action.hover" }
           }}
         >
+          <FlexRow gap={0.5} align="center">
+            <AccountTreeIcon sx={{ fontSize: 14 }} />
+            <Caption>Open subgraph</Caption>
+          </FlexRow>
           <Caption>
             {innerNodeCount === 0
-              ? "empty — double-click to edit"
+              ? "empty"
               : `${innerNodeCount} inner node${innerNodeCount === 1 ? "" : "s"}`}
           </Caption>
         </Box>

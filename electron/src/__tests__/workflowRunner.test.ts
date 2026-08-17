@@ -18,7 +18,7 @@ jest.mock('electron', () => {
 
 // Mock WebSocket module with a simple EventEmitter based implementation
 jest.mock('ws', () => {
-  const instances: any[] = [];
+  const instances: WS[] = [];
   class WS extends EventEmitter {
     public url: string;
     public send = jest.fn();
@@ -70,7 +70,10 @@ describe('WorkflowRunner', () => {
     expect(socket.send).toHaveBeenCalledTimes(1);
 
     const encoded = socket.send.mock.calls[0][0];
-    const decoded: any = unpack(encoded);
+    const decoded = unpack(encoded) as {
+      command: string;
+      data: { workflow_id: string };
+    };
     expect(decoded.command).toBe('run_job');
     expect(decoded.data.workflow_id).toBe('123');
 

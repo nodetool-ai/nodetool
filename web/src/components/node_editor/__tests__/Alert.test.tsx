@@ -15,7 +15,7 @@ jest.mock("../../../hooks/browser/useClipboard", () => ({
 const mockRemoveNotification = jest.fn();
 const mockUpdateLastDisplayedTimestamp = jest.fn();
 
-const makeStoreState = (notifications: any[]) => ({
+const makeStoreState = (notifications: Notification[]) => ({
   notifications,
   removeNotification: mockRemoveNotification,
   lastDisplayedTimestamp: null,
@@ -26,11 +26,15 @@ jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
 }));
 
-import { useNotificationStore } from "../../../stores/NotificationStore";
+import {
+  useNotificationStore,
+  type Notification
+} from "../../../stores/NotificationStore";
 
-const renderWithStore = (notifications: any[]) => {
+const renderWithStore = (notifications: Notification[]) => {
   asMock(useNotificationStore).mockImplementation(
-    (sel: any) => sel(makeStoreState(notifications))
+    (sel: (state: ReturnType<typeof makeStoreState>) => unknown) =>
+      sel(makeStoreState(notifications))
   );
   return render(
     <ThemeProvider theme={mockTheme}>
@@ -39,7 +43,7 @@ const renderWithStore = (notifications: any[]) => {
   );
 };
 
-const notification = {
+const notification: Notification = {
   id: "1",
   type: "error",
   content: "Error message",

@@ -12,7 +12,7 @@ jest.mock("../PropertyField", () => ({
 
 let renderCount = 0;
 
-const Wrapper: FC<any> = (props) => {
+const Wrapper: FC<React.ComponentProps<typeof NodeInputs>> = (props) => {
   renderCount++;
   return <NodeInputs {...props} />;
 };
@@ -35,7 +35,13 @@ describe("NodeInputs Performance", () => {
         <Wrapper
           id="node1"
           nodeType="test"
-          properties={[{ name: "prop1", type: { type: "string" } }]}
+          properties={[
+            {
+              name: "prop1",
+              required: false,
+              type: { type: "string", optional: false, type_args: [] }
+            }
+          ]}
           data={{ properties: { prop1: "val" } } as any}
           nodeMetadata={{} as any}
         />

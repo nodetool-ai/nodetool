@@ -44,8 +44,8 @@ jest.mock("react-markdown", () => {
   }: {
     children?: string;
     components?: {
-      img?: React.ComponentType<any>;
-      a?: React.ComponentType<any>;
+      img?: React.ComponentType<React.ComponentProps<"img">>;
+      a?: React.ComponentType<React.ComponentProps<"a">>;
     };
     urlTransform?: (url: string) => string | null | undefined;
   }) => {

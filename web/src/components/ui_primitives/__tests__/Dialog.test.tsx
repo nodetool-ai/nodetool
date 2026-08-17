@@ -10,7 +10,12 @@ jest.mock("../DialogActionButtons", () => ({
     onCancel,
     confirmText,
     cancelText
-  }: any) => (
+  }: {
+    onConfirm?: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }) => (
     <div data-testid="dialog-action-buttons">
       <button onClick={onCancel}>{cancelText || "Cancel"}</button>
       <button onClick={onConfirm}>{confirmText || "Confirm"}</button>

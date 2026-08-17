@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { FC } from "react";
 import { NodeInputs } from "../NodeInputs";
 import { NodeProvider } from "../../../contexts/NodeContext";
+import type { NodeData } from "../../../stores/NodeData";
 import { createNodeStore } from "../../../stores/NodeStore";
 
 // Count how many times each property's field renders, keyed by property name.
@@ -20,7 +21,15 @@ const properties = [
   { name: "prop2", type: { type: "string" } }
 ] as any;
 
-const Harness: FC<{ data: any }> = ({ data }) => (
+/** The node data these tests hand to NodeInputs, with the fields it requires. */
+const makeData = (properties: Record<string, unknown>): NodeData => ({
+  workflow_id: "wf1",
+  properties,
+  selectable: true,
+  dynamic_properties: {}
+});
+
+const Harness: FC<{ data: NodeData }> = ({ data }) => (
   <NodeProvider createStore={() => createNodeStore()}>
     <NodeInputs
       id="node1"
@@ -39,7 +48,7 @@ describe("NodeInputs field memoization", () => {
 
   it("does not re-render a sibling field when an unrelated property value changes", () => {
     const { rerender } = render(
-      <Harness data={{ workflow_id: "wf1", properties: { prop1: "a", prop2: "b" } }} />
+      <Harness data={makeData({ prop1: "a", prop2: "b" })} />
     );
 
     expect(renderCounts.prop1).toBe(1);
@@ -49,7 +58,7 @@ describe("NodeInputs field memoization", () => {
     // with a new object, but prop2's value is unchanged.
     rerender(
       <Harness
-        data={{ workflow_id: "wf1", properties: { prop1: "a-changed", prop2: "b" } }}
+        data={makeData({ prop1: "a-changed", prop2: "b" })}
       />
     );
 

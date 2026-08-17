@@ -11,7 +11,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb, getDbType } from "./db.js";
+import { getDb, getDbType, type DbTransaction } from "./db.js";
 import { runEvents } from "./schema/run-events.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -96,8 +96,7 @@ export class RunEvent extends DBModel {
 
     let row: Record<string, unknown>;
     if (getDbType() === "sqlite") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      row = db.transaction((tx: any) => {
+      row = db.transaction((tx: DbTransaction) => {
         const existing = tx
           .select({ seq: runEvents.seq })
           .from(runEvents)
@@ -110,8 +109,7 @@ export class RunEvent extends DBModel {
         return r;
       });
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      row = await db.transaction(async (tx: any) => {
+      row = await db.transaction(async (tx: DbTransaction) => {
         const rows = await tx
           .select({ seq: runEvents.seq })
           .from(runEvents)

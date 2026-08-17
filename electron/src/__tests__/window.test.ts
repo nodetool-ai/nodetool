@@ -107,8 +107,34 @@ jest.mock('path', () => ({
   join: jest.fn().mockImplementation((...args) => args.join('/')),
 }));
 
+/**
+ * The BrowserWindow members these tests drive. Typing the listener registrars
+ * is what lets `.mock.calls.find(...)` read `call[0]` as the event name.
+ */
+type Listener = (...args: never[]) => void;
+
+interface MockWindow {
+  setBackgroundColor: jest.Mock;
+  loadFile: jest.Mock;
+  webContents: {
+    on: jest.Mock<void, [string, Listener]>;
+    setWindowOpenHandler: jest.Mock;
+    openDevTools: jest.Mock;
+    closeDevTools: jest.Mock;
+    isDevToolsOpened: jest.Mock<boolean, []>;
+  };
+  on: jest.Mock<void, [string, Listener]>;
+  focus: jest.Mock;
+  destroy: jest.Mock;
+  isDestroyed: jest.Mock<boolean, []>;
+  isVisible: jest.Mock<boolean, []>;
+  isMinimized: jest.Mock<boolean, []>;
+  restore: jest.Mock;
+  show: jest.Mock;
+}
+
 describe('Window Module', () => {
-  let mockWindow: any;
+  let mockWindow: MockWindow;
   
   beforeEach(() => {
     jest.clearAllMocks();
@@ -288,7 +314,7 @@ describe('Window Module', () => {
       
       // Get the before-input-event handler
       const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
-(call: any) => call[0] === 'before-input-event'
+(call) => call[0] === 'before-input-event'
       );
       expect(beforeInputCall).toBeDefined();
       
@@ -317,7 +343,7 @@ describe('Window Module', () => {
       createWindow();
       
       // Get the close event handler
-      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      const closeCall = mockWindow.on.mock.calls.find((call) => call[0] === 'close');
       expect(closeCall).toBeDefined();
       
       const handler = closeCall![1];
@@ -337,7 +363,7 @@ describe('Window Module', () => {
       createWindow();
       
       // Get the close event handler
-      const closeCall = mockWindow.on.mock.calls.find((call: any) => call[0] === 'close');
+      const closeCall = mockWindow.on.mock.calls.find((call) => call[0] === 'close');
       expect(closeCall).toBeDefined();
       
       const handler = closeCall![1];

@@ -141,12 +141,12 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     }
 
     const data = (await resp.json()) as {
-      data: Array<{ embedding: number[] }>;
+      data: Array<{ embedding: number[]; index?: number }>;
     };
 
     // Sort by index to guarantee order
     return data.data
-      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
       .map((d) => d.embedding);
   }
 
@@ -225,10 +225,10 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
     }
 
     const data = (await resp.json()) as {
-      data: Array<{ embedding: number[] }>;
+      data: Array<{ embedding: number[]; index?: number }>;
     };
     return data.data
-      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
       .map((d) => d.embedding);
   }
 
@@ -303,7 +303,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       data: Array<{ embedding: number[]; index?: number }>;
     };
     return data.data
-      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
       .map((d) => d.embedding);
   }
 
@@ -340,7 +340,7 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       data: Array<{ embedding: number[]; index?: number }>;
     };
     return data.data
-      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
       .map((d) => d.embedding);
   }
 }

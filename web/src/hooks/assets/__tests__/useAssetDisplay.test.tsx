@@ -1,5 +1,7 @@
 import { render } from "@testing-library/react";
 import { useAssetDisplay } from "../useAssetDisplay";
+import type { Asset } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 jest.mock("../../../components/asset_viewer/ImageViewer", () => ({
   __esModule: true,
@@ -26,30 +28,30 @@ jest.mock("../../../components/asset_viewer/LazyModel3DViewer", () => ({
   default: () => <div data-testid="model3d-viewer">3d model</div>
 }));
 
-function HookComponent(props: any) {
+function HookComponent(props: Parameters<typeof useAssetDisplay>[0]) {
   const { component } = useAssetDisplay(props);
   return <div data-testid="out">{component}</div>;
 }
 
 describe("useAssetDisplay", () => {
   test("renders ImageViewer for image content type", () => {
-    const asset: any = { content_type: "image/png" };
+    const asset = stub<Asset>({ content_type: "image/png" });
     const { getByTestId } = render(<HookComponent asset={asset} />);
     expect(getByTestId("image-viewer")).toBeInTheDocument();
   });
 
   test("renders ImageViewer for SVG content type", () => {
-    const asset: any = { content_type: "image/svg+xml" };
+    const asset = stub<Asset>({ content_type: "image/svg+xml" });
     const { getByTestId } = render(<HookComponent asset={asset} />);
     expect(getByTestId("image-viewer")).toBeInTheDocument();
   });
 
   test("renders ImageViewer for an SVG named file with a generic type", () => {
-    const asset: any = {
+    const asset = stub<Asset>({
       content_type: "application/octet-stream",
       name: "logo.svg",
       get_url: "/api/storage/1/logo.svg"
-    };
+    });
     const { getByTestId } = render(<HookComponent asset={asset} />);
     expect(getByTestId("image-viewer")).toBeInTheDocument();
   });
@@ -79,10 +81,10 @@ describe("useAssetDisplay", () => {
   });
 
   test("renders Model3DViewer for model/ content type", () => {
-    const asset: any = {
+    const asset = stub<Asset>({
       content_type: "model/gltf-binary",
       get_url: "https://example.com/model.glb"
-    };
+    });
     const { getByTestId } = render(<HookComponent asset={asset} />);
     expect(getByTestId("model3d-viewer")).toBeInTheDocument();
   });

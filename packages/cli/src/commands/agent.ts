@@ -104,7 +104,14 @@ function ts(): string {
   return d.toISOString().slice(11, 23);
 }
 
-function traceEvent(msg: any, opts: TraceOptions): void {
+/** Whatever `Agent.execute` yields — the union this printer switches on. */
+type TraceMessage = Awaited<ReturnType<ReturnType<Agent["execute"]>["next"]>> extends {
+  value: infer V;
+}
+  ? Exclude<V, void>
+  : never;
+
+function traceEvent(msg: TraceMessage, opts: TraceOptions): void {
   if (opts.json) {
     process.stderr.write(JSON.stringify(msg) + "\n");
     return;

@@ -6,7 +6,7 @@
 
 import { eq, lt } from "drizzle-orm";
 import { DBModel } from "./base-model.js";
-import { getDb, getDbType } from "./db.js";
+import { getDb, getDbType, type DbTransaction } from "./db.js";
 import { runLeases } from "./schema/run-leases.js";
 
 export class RunLease extends DBModel {
@@ -40,8 +40,7 @@ export class RunLease extends DBModel {
     // better-sqlite3 transactions must be fully synchronous; async callbacks
     // return a Promise and are rejected by the driver.
     if (getDbType() === "sqlite") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return db.transaction((tx: any) => {
+      return db.transaction((tx: DbTransaction) => {
         const existing = tx
           .select()
           .from(runLeases)
@@ -86,8 +85,7 @@ export class RunLease extends DBModel {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return db.transaction(async (tx: any) => {
+    return db.transaction(async (tx: DbTransaction) => {
       const [existing] = await tx
         .select()
         .from(runLeases)

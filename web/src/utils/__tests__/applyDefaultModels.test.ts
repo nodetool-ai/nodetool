@@ -2,11 +2,11 @@ import { applyDefaultModels } from "../applyDefaultModels";
 
 jest.mock("../../stores/ModelPreferencesStore", () => {
   let state = { defaults: {} };
-  const store: any = {
+  const store = {
     getState: () => state,
-    _setState: (s: typeof state) => { state = s; }
+    _setState: (s: typeof state) => { state = s; },
+    subscribe: jest.fn()
   };
-  store.subscribe = jest.fn();
   return { __esModule: true, default: store };
 });
 

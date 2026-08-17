@@ -796,6 +796,9 @@ const api = {
   // `api` object with input validation above.
 };
 
+/** The bridge surface exposed on `window.api`, named so tests can hold it. */
+export type PreloadApi = typeof api;
+
 contextBridge.exposeInMainWorld("api", api);
 // Some pages (e.g. `electron/pages/*`) still refer to `window.electronAPI`.
 contextBridge.exposeInMainWorld("electronAPI", api);

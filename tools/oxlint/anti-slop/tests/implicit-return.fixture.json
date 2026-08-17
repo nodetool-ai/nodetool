@@ -1,0 +1,13 @@
+{
+  "plugins": [],
+  "categories": {},
+  "rules": {
+    "anti-slop/no-implicit-return-type": "error"
+  },
+  "jsPlugins": [
+    {
+      "name": "anti-slop",
+      "specifier": "../index.ts"
+    }
+  ]
+}

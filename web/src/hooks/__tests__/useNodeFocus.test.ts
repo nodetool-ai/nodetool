@@ -51,7 +51,8 @@ describe("useNodeFocus", () => {
     (useNodeStoreRef as jest.Mock).mockReturnValue({
       getState: () => ({ nodes: mockNodes }),
     });
-    (useNodeFocusStore as any).mockImplementation((selector: any) => {
+    (useNodeFocusStore as unknown as jest.Mock).mockImplementation(
+      (selector?: (state: typeof mockFocusStore) => unknown) => {
       if (mockIsFunction(selector)) {
         return selector(mockFocusStore);
       }

@@ -42,7 +42,7 @@ export const TIMELINE_TUTORIALS: TimelineTutorialEntry[] = [
       { atMs: 7200, label: "Zoom in and play it back" },
     ],
     captions: [
-      { fromMs: 700, toMs: 2000, text: "Select a clip on the timeline to trim or inspect it." },
+      { fromMs: 700, toMs: 2000, text: "Select a clip on the timeline — the inspector fills in with its settings." },
       { fromMs: 3800, toMs: 6200, text: "Drag in the next shot and a caption — both land on their own track." },
       { fromMs: 7400, toMs: 15600, text: "Zoom in, scrub the playhead, and watch the cut play back live." },
     ],

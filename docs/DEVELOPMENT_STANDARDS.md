@@ -253,6 +253,15 @@ correctness- and security-critical packages: `agents`, `auth`, `config`,
   not mutation-tested (their value is in end-to-end/contract tests). Revisit if
   pure-logic modules there grow.
 
+`node-sdk` carries a second Stryker config, `stryker.crash.config.json`, whose
+test oracle is the crash-fuzzer corpus alone (`tests/fuzz/`, run with
+`npm run test:crash-fuzz`). It mutates the four parser sources —
+`graph-validation.ts`, `code-analysis.ts`, `code-node-validation.ts`,
+`validation.ts` — and answers a different question from the gated config: not
+"do the tests catch regressions" but "does fuzzed input reach this branch at
+all". A survivor there is a hole in the corpus, so the config is report-only
+(`break: null`) and the nightly `Crash Fuzzer` workflow is what acts on it.
+
 Reports land in each package's gitignored `reports/mutation/` directory.
 
 ---
@@ -562,7 +571,7 @@ The mechanisms that make the above stick:
 | Tests required | CI workflow `test.yml` |
 | Coverage targets | `npm run test:coverage` + **target** Codecov gate |
 | Security advisories | `npm audit` in `security-audit.yaml` |
-| Type safety | `type-safety.yaml` workflow |
+| Type safety | `anti-slop/no-hand-written-any` + `no-implicit-return-type` in `npm run lint`; `anti-slop-ratchet.yaml` works the backlog |
 | Quality | `quality-checks.yml`, `quality-guard.yml`, `quality-assurance.yaml` |
 | Dead code | `dead-code-cleanup.yaml` |
 | Bundle size | **target** size-limit CI step |

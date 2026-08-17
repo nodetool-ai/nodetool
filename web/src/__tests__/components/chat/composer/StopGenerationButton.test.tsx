@@ -6,7 +6,9 @@ import userEvent from "@testing-library/user-event";
 import { StopGenerationButton } from "../../../../components/chat/composer/StopGenerationButton";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-const renderComponent = (props: any) => {
+const renderComponent = (
+  props: React.ComponentProps<typeof StopGenerationButton>
+) => {
   return render(
     <ThemeProvider theme={mockTheme}>
       <StopGenerationButton {...props} />

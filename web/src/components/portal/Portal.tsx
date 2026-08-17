@@ -14,6 +14,7 @@ import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import DashboardHero from "./DashboardHero";
 import DashboardActivity from "./DashboardActivity";
 import DashboardAgentSessions from "./DashboardAgentSessions";
+import DashboardDocuments from "./DashboardDocuments";
 import DashboardDownloads from "./DashboardDownloads";
 import { DashboardColumn, wrapStyles } from "./dashboardChrome";
 import GettingStartedChecklist from "./GettingStartedChecklist";
@@ -211,6 +212,7 @@ const Portal: React.FC = () => {
                     onOpenWorkflow={handleOpenWorkflow}
                     onCreateNew={handleCreateNewWorkflow}
                   />
+                  <DashboardDocuments />
                   <DashboardTemplates />
                   <DashboardTutorials variant="compact" />
                 </DashboardColumn>
@@ -247,6 +249,9 @@ const Portal: React.FC = () => {
                 onOpenWorkflow={handleOpenWorkflow}
                 onCreateNew={handleCreateNewWorkflow}
               />
+              {/* Empty for a genuinely new user, but a user who started with a
+                  sketch or a video has no workflows and still has work here. */}
+              <DashboardDocuments />
             </>
           )}
           <DashboardFooter

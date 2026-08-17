@@ -79,8 +79,10 @@ export function seedCastMetadata(metadata: Record<string, NodeMetadata>): void {
 /**
  * Seed a placeholder logged-in user. Output/asset components (e.g. AssetViewer
  * via useAssets) throw when no user is present; the demo has no real auth.
+ * Exported because every player needs it, not just the graph one — the
+ * storyboard's shot cards throw the same way.
  */
-function seedDemoAuth(): void {
+export function seedDemoAuth(): void {
   if (useAuth.getState().user === null) {
     useAuth.setState({ user: { id: "demo" }, state: "logged_in" });
   }
@@ -103,7 +105,7 @@ const DEMO_SECRET_KEYS = [
   "HF_TOKEN",
 ] as const;
 
-function seedDemoSecrets(): void {
+export function seedDemoSecrets(): void {
   const seeded: SecretResponse[] = DEMO_SECRET_KEYS.map((key) => ({
     id: `demo-${key}`,
     user_id: "demo",

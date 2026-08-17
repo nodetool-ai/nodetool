@@ -14,8 +14,7 @@ jest.mock("../../stores/MetadataStore", () => {
     setRecommendedModels: jest.fn(),
     setNodeTypes: jest.fn()
   };
-  const store: any = () => state;
-  store.getState = () => state;
+  const store = Object.assign(() => state, { getState: () => state });
   return { __esModule: true, default: store };
 });
 
