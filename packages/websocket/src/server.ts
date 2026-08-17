@@ -64,6 +64,10 @@ import {
   touchWorkerInstance
 } from "@nodetool-ai/models";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
+import { syncCustomProviderRegistry } from "./custom-providers.js";
+
+/** User id the auth middleware assigns in local (no-account) mode. */
+const LOCAL_USER_ID = "1";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
@@ -308,6 +312,21 @@ try {
 } catch (err) {
   log.warn(
     "Seeds failed (non-fatal)",
+    err instanceof Error ? err : new Error(String(err))
+  );
+}
+
+// User-defined OpenAI-compatible providers for the local user, so a workflow
+// run through a headless entrance reaches them without a settings request
+// first. Each request re-syncs the caller's own catalog.
+try {
+  const ids = await syncCustomProviderRegistry(LOCAL_USER_ID);
+  if (ids.length > 0) {
+    log.info(`Registered custom providers: ${ids.join(", ")}`);
+  }
+} catch (err) {
+  log.warn(
+    "Custom provider sync failed (non-fatal)",
     err instanceof Error ? err : new Error(String(err))
   );
 }

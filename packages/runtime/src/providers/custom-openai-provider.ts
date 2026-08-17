@@ -1,0 +1,132 @@
+/**
+ * A provider the user defined at runtime: any endpoint that speaks the OpenAI
+ * Chat Completions dialect, reached by base URL plus optional API key.
+ *
+ * Unlike every other provider here, this class is not registered under one
+ * fixed id. The host registers one entry per user-defined provider, passing the
+ * wire id and the secret names to read through the registry's kwargs — so the
+ * base URL and key still resolve per user at `getProvider()` time and nothing
+ * is baked in at module load.
+ */
+
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import { normalizeBaseUrl } from "@nodetool-ai/protocol";
+import { isString } from "../type-predicates.js";
+import type { LanguageModel } from "./types.js";
+
+/** Cap on the model-list probe so an unreachable proxy cannot stall the model menu. */
+const MODEL_LIST_TIMEOUT_MS = 5000;
+
+/**
+ * Kwargs the registry hands the constructor. The `_`-prefixed keys are runtime
+ * injections the registry excludes from its credential check; the two secret
+ * names it also resolves are read back off this same object.
+ */
+export interface CustomOpenAIProviderConfig {
+  _providerId: string;
+  _baseUrlKey: string;
+  _apiKeyKey: string;
+  /** Model ids to report instead of calling `GET <base>/models`. */
+  _models?: string[];
+  [key: string]: unknown;
+}
+
+/** Placeholder key for endpoints that accept anonymous requests. */
+const NO_KEY = "no-key";
+
+function readString(config: CustomOpenAIProviderConfig, key: string): string {
+  const value = config[key];
+  return isString(value) ? value.trim() : "";
+}
+
+export class CustomOpenAIProvider extends OpenAICompatProvider {
+  static override requiredSecrets(): string[] {
+    return [];
+  }
+
+  private readonly _customFetch: typeof fetch;
+  private readonly _customBaseURL: string;
+  private readonly _customModels: string[];
+  private readonly _baseUrlKey: string;
+  private readonly _apiKeyKey: string;
+
+  constructor(
+    config: CustomOpenAIProviderConfig,
+    options: OpenAICompatProviderOptions = {}
+  ) {
+    const providerId = config._providerId;
+    if (!providerId) {
+      throw new Error("_providerId is required for a custom provider");
+    }
+    const baseURL = normalizeBaseUrl(readString(config, config._baseUrlKey));
+    if (!baseURL) {
+      throw new Error(`${config._baseUrlKey} is required`);
+    }
+    const apiKey = readString(config, config._apiKeyKey) || NO_KEY;
+    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+
+    super({ providerId, apiKey, baseURL }, { ...options, fetchFn });
+
+    this._customFetch = fetchFn;
+    this._customBaseURL = baseURL;
+    this._customModels = config._models ?? [];
+    this._baseUrlKey = config._baseUrlKey;
+    this._apiKeyKey = config._apiKeyKey;
+  }
+
+  override getContainerEnv(): Record<string, string> {
+    const env: Record<string, string> = {
+      [this._baseUrlKey]: this._customBaseURL
+    };
+    if (this.apiKey && this.apiKey !== NO_KEY) {
+      env[this._apiKeyKey] = this.apiKey;
+    }
+    return env;
+  }
+
+  /**
+   * Nothing on the wire announces tool support, and it is a property of
+   * whatever sits behind the proxy. A model that lacks it fails at call time
+   * with the endpoint's own error; answering `false` here would hide the
+   * capability from every model behind every custom provider.
+   */
+  override async hasToolSupport(_model: string): Promise<boolean> {
+    return true;
+  }
+
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    if (this._customModels.length > 0) {
+      return this._customModels.map((id) => ({
+        id,
+        name: id,
+        provider: this.provider
+      }));
+    }
+    try {
+      const response = await this._customFetch(`${this._customBaseURL}/models`, {
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+        signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
+      });
+      if (!response.ok) return [];
+
+      const payload = (await response.json()) as {
+        data?: Array<{ id?: string; name?: string }>;
+      };
+      return (payload.data ?? [])
+        .filter(
+          (row): row is { id: string; name?: string } =>
+            isString(row.id) && row.id.length > 0
+        )
+        .map((row) => ({
+          id: row.id,
+          name: row.name ?? row.id,
+          provider: this.provider
+        }));
+    } catch {
+      return [];
+    }
+  }
+}
