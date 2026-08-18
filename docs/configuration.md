@@ -366,7 +366,7 @@ the run is a separate concern; see
 
 These configure the build, not the server. The packaged Electron backend is one
 bundled `server.mjs` plus a flat `_modules/` directory staged by
-[`scripts/bundle-backend.mjs`](../scripts/bundle-backend.mjs). Some staged
+[`scripts/bundle-backend.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/bundle-backend.mjs). Some staged
 dependencies ship prebuilt binaries for every OS and architecture in a single
 package; staging all of them wastes disk in a single-target artifact, so the
 staging step prunes them to one target.
@@ -383,7 +383,7 @@ A build for the host needs neither.
 NODETOOL_BUNDLE_PLATFORM=win32 NODETOOL_BUNDLE_ARCH=x64 node scripts/bundle-backend.mjs
 ```
 
-[`scripts/verify-backend-bundle.mjs`](../scripts/verify-backend-bundle.mjs)
+[`scripts/verify-backend-bundle.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/verify-backend-bundle.mjs)
 reads the same two variables and resolves the `@seydx/node-av-<platform>-<arch>`
 binary it expects to find staged (`node-av-win32-<arch>-msvc` on Windows), so a
 verification run must be given the target the staging run used. When no prebuild

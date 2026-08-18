@@ -21,6 +21,8 @@ import {
   loadEnvironment
 } from "@nodetool-ai/config";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
+import { setCodeNodeAgentsModule } from "@nodetool-ai/base-nodes";
+import * as agentsModule from "@nodetool-ai/agents";
 import {
   bootstrapNodeRegistry,
   mergePythonBridgeMetadata
@@ -443,6 +445,14 @@ const registry = await bootstrapNodeRegistry({
   log
 });
 log.info(`Node registry ready [${startupMs()}]`);
+
+// The Code node reaches the toolbelt and its `@nodetool-ai/sandbox-nodetool/*`
+// imports through the agents package, which it resolves by bare specifier.
+// That specifier resolves in a checkout and nowhere in the bundled backend —
+// esbuild inlines the workspace packages into server.mjs — so hand it the copy
+// this module already holds. Without it, a Code node body in the desktop app
+// and in the Docker image runs with an empty `nodetool.capabilities()`.
+setCodeNodeAgentsModule(agentsModule);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
