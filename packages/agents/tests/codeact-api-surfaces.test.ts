@@ -209,6 +209,23 @@ const SOLUTIONS: Record<string, string[]> = {
        durationSeconds: cut.duration_seconds
      });`
   ],
+  "settings-and-credentials": [
+    `const before = await nodetool.settings.secrets();
+     const missingBefore = before.secrets
+       .filter((s) => !s.configured)
+       .map((s) => s.key);
+     await nodetool.settings.set("AUTOSAVE_ENABLED", "false");
+     await nodetool.settings.requestSecret("STRIPE_API_KEY", {
+       reason: "to look up invoices in Stripe"});
+     const after = await nodetool.settings.secrets();
+     const autosave = await nodetool.settings.get("AUTOSAVE_ENABLED");
+     await finish({
+       autosave: autosave.value,
+       missingBefore,
+       stripeReady: after.secrets.some(
+         (s) => s.key === "STRIPE_API_KEY" && s.configured)
+     });`
+  ],
   "email-triage": [
     `const found = await nodetool.email.search({subject: "invoice", since_hours_ago: 48});
      const ids = found.messages.map((m) => m.message_id).sort();

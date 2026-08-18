@@ -108,6 +108,7 @@ Key reminders for this package:
 - Use `sx` prop on primitives for one-off styles. Use `styled()` only inside `ui_primitives/` for defining new primitives.
 - No inline `display: "flex"` — use `FlexRow`/`FlexColumn` layout primitives.
 - No hardcoded hex colors or pixel spacing — use theme values and spacing constants (`SPACING`, `GAP`, `PADDING`).
+- **Every open workspace tab stays mounted; only the active one is shown.** `WorkspaceTabLayer` marks inactive tabs `inert` (pinned by `WorkspaceTabLayer.test.tsx`), so a hidden tab cannot take focus. A component must never assume it is the only mounted instance of itself: a `window` key listener that moves focus must pass `isTextInputActive()` and `canTakeFocus(target)` from `utils/browser.ts` — a background Model Manager tab's search box once pulled focus off every keystroke typed in the active tab.
 
 ### Design Token Checklist (full reference: [docs/DESIGN.md](../../docs/DESIGN.md))
 

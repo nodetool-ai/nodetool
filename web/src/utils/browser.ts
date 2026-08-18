@@ -89,41 +89,23 @@ export const isEditableElement = (
 export const isTextInputActive = (): boolean =>
   isEditableElement(document.activeElement);
 
-
 /**
- * Whether an element is a sane target to *move* focus to programmatically.
- *
- * Focus-moving handlers (type-to-focus search boxes, "press / to search") run
- * from a global key listener, so every mounted instance sees every keystroke —
- * including instances sitting in a hidden workspace tab. Those must not steal
- * focus from whatever the user is actually looking at.
+ * Whether an element is rendered, visible and outside any `inert` subtree, so
+ * that `element.focus()` would move focus to it. Inactive workspace tabs stay
+ * mounted at opacity 0 and inert; their inputs must not compete for keys.
  */
-export const canTakeFocus = (node: Element | null | undefined): boolean => {
-  if (!(node instanceof HTMLElement)) {
+export const canTakeFocus = (
+  element: HTMLElement | null | undefined
+): boolean => {
+  if (!element || !element.isConnected) {
     return false;
   }
-  if (!node.isConnected) {
+  if (element.closest("[inert]") !== null) {
     return false;
   }
-  if (node.hidden || node.closest("[hidden]") !== null) {
-    return false;
-  }
-  // Inactive workspace tabs stay mounted and are marked `inert`
-  // (WorkspaceShell.tsx). Nothing inside one may take focus.
-  if (node.closest("[inert]") !== null) {
-    return false;
-  }
-  if (node.closest('[aria-hidden="true"]') !== null) {
-    return false;
-  }
-  if (
-    (node instanceof HTMLInputElement ||
-      node instanceof HTMLTextAreaElement ||
-      node instanceof HTMLButtonElement ||
-      node instanceof HTMLSelectElement) &&
-    node.disabled
-  ) {
-    return false;
-  }
-  return true;
+  // Not opacity: a paused enter animation reads as opacity 0 while the window
+  // is occluded. jsdom has no checkVisibility; there, attached and not inert
+  // is the answer.
+  return element.checkVisibility?.() ?? true;
 };
+

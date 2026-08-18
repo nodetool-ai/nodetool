@@ -78,6 +78,12 @@ export function isPublicAuthExemptRoute(
     pathname === "/api/nodes/metadata" ||
     pathname.startsWith("/api/kie/webhook") ||
     pathname.startsWith("/api/webhooks/") ||
+    // Messaging-integration identity routes. Like the webhook routes, they
+    // authenticate themselves — every handler requires the server's
+    // NODETOOL_INTEGRATION_TOKEN, compared in constant time — and they carry
+    // no per-caller session. Without that env var they are not registered at
+    // all, so the exemption reaches a 404.
+    pathname.startsWith("/api/integrations/") ||
     isPublicWorkflowMetadataRequest(pathname, method)
   );
 }

@@ -87,7 +87,8 @@ registerTypeToFocus(inputRef, (key) => setSearch(key));
   (`utils/browser.ts`). `registerTypeToFocus` is that rule packaged: a printable
   key, no modifier, nothing editable focused, and the input can take focus.
 - **Inactive workspace tabs stay mounted and are `inert`**
-  (`components/workspace/WorkspaceShell.tsx`). A component must never assume it
+  (`components/workspace/WorkspaceTabLayer.tsx`, pinned by
+  `WorkspaceTabLayer.test.tsx`). A component must never assume it
   is the only mounted instance of itself — a Model Manager sitting in a
   background tab used to pull focus off every keystroke typed anywhere in the
   app. `canTakeFocus` returns false inside an `[inert]` subtree, which is what

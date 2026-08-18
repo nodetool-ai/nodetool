@@ -152,3 +152,21 @@ export const assetCreateBodySchema = z.object({
 
 /** The asset body as the route reads it: every field may be absent. */
 export type ParsedAssetCreateBody = z.output<typeof assetCreateBodySchema>;
+
+// ── Integration routes (`/api/integrations/:provider/*`) ─────────────
+//
+// These are new surface rather than a parseJsonBody cast being tightened, so
+// the fields are validated outright: a missing or wrong-typed field is a 400
+// from the schema, not a field the handler reads as absent.
+
+/** `POST /api/integrations/:provider/link/start|token`, `DELETE .../link` */
+export const integrationExternalIdBodySchema = z.object({
+  external_id: z.string().min(1)
+});
+
+/** `POST /api/integrations/:provider/link/complete` */
+export const integrationLinkCompleteBodySchema = z.object({
+  external_id: z.string().min(1),
+  code: z.string().min(1),
+  user_id: z.string().min(1)
+});

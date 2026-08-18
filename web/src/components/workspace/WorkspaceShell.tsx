@@ -17,18 +17,7 @@ import {
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceEmptyView from "./WorkspaceEmptyView";
-import { Z_INDEX } from "../ui_primitives";
-
-const ACTIVE_TAB_STYLE: React.CSSProperties = {
-  opacity: 1,
-  pointerEvents: "auto",
-  zIndex: Z_INDEX.raised
-};
-const INACTIVE_TAB_STYLE: React.CSSProperties = {
-  opacity: 0,
-  pointerEvents: "none",
-  zIndex: Z_INDEX.base
-};
+import WorkspaceTabLayer from "./WorkspaceTabLayer";
 
 const PanelLeft = React.lazy(() => import("../panels/PanelLeft"));
 const PanelRight = React.lazy(() => import("../panels/PanelRight"));
@@ -169,18 +158,9 @@ const WorkspaceShell = () => {
             {tabs.map((tab) => {
               const isActive = tab.id === activeTabId;
               return (
-                <div
-                  key={tab.id}
-                  className="tab-layer"
-                  style={isActive ? ACTIVE_TAB_STYLE : INACTIVE_TAB_STYLE}
-                  // Every tab stays mounted so its editor state survives a
-                  // switch. `inert` keeps the hidden ones out of focus and the
-                  // a11y tree — and `canTakeFocus` reads it, so a background
-                  // tab's search box can never steal a keystroke.
-                  inert={!isActive}
-                >
+                <WorkspaceTabLayer key={tab.id} active={isActive}>
                   <TabContent tab={tab} active={isActive} />
-                </div>
+                </WorkspaceTabLayer>
               );
             })}
           </div>

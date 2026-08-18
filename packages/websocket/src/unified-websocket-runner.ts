@@ -184,6 +184,8 @@ import {
   type ApprovalRequest,
   type PlanApprovalDecision,
   type RequestPlanApproval,
+  type SecretPromptRequest,
+  type SecretPromptStatus,
   type TaskPlan
 } from "@nodetool-ai/agents";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
@@ -5079,6 +5081,46 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Open the bespoke secret dialog on the client and resolve with what the
+   * user did — never with what they typed.
+   *
+   * The value does not travel over this socket in either direction. The
+   * dialog writes it with the client's own `settings.secrets.upsert` call, so
+   * the credential never enters the chat transcript, the run's message log, or
+   * the model's context; this frame only asks, and the response only reports.
+   *
+   * A cancelled wait (the user pressed Stop) is a decline, which is the same
+   * fail-closed reading the approval prompts take.
+   */
+  private async requestSecretEntry(
+    threadId: string,
+    request: SecretPromptRequest
+  ): Promise<SecretPromptStatus> {
+    const approvalId = `secret_${randomUUID()}`;
+    await this.sendMessage({
+      type: "secret_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      key: request.key,
+      description: request.description ?? null,
+      reason: request.reason ?? null,
+      help_url: request.helpUrl ?? null
+    });
+    try {
+      // No timeout — finding an API key takes as long as it takes; `stop`
+      // cancels this thread.
+      const response = await this.approvalBridge.createWaiter(
+        approvalId,
+        0,
+        threadId
+      );
+      return response.status === "saved" ? "saved" : "declined";
+    } catch {
+      return "declined";
+    }
+  }
+
+  /**
    * Round-trip a plan approval to the client and resolve with the user's
    * decision. Emits a `plan_approval_request` carrying the serialized plan,
    * then waits for the matching `plan_approval_response` (resolved via
@@ -5736,6 +5778,7 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
+      secretPrompt: (request) => this.requestSecretEntry(threadId, request),
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });
@@ -9213,6 +9256,17 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "plan_approval_response") {
+        const approvalId = isString(data.approval_id) ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
+          for (const session of this.adoptedSessions.values()) {
+            session.hooks.resolveApproval(approvalId, data);
+          }
+        }
+        continue;
+      }
+
+      if (msgType === "secret_request_response") {
         const approvalId = isString(data.approval_id) ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);

@@ -87,6 +87,9 @@ import { SkipLinks } from "./components/ui_primitives";
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
 );
+const IntegrationLinkPage = React.lazy(
+  () => import("./components/settings/IntegrationLinkPage")
+);
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
 );
@@ -284,6 +287,18 @@ function getRoutes() {
         <ProtectedRoute>
           <React.Suspense fallback={<LoadingSpinner />}>
             <AcceptSharePage />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      // The confirmation page for a bot-initiated account link; the bridge
+      // hands this URL to the user in the chat.
+      path: "/integrations/link",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <IntegrationLinkPage />
           </React.Suspense>
         </ProtectedRoute>
       )

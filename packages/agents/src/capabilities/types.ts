@@ -93,6 +93,39 @@ export interface ClientToolRouter {
 }
 
 /**
+ * What `request_secret` asks the user for. The run supplies the key and the
+ * reason; the *value* is not part of this contract in either direction.
+ */
+export interface SecretPromptRequest {
+  /** The secret's name, e.g. `STRIPE_API_KEY`. */
+  readonly key: string;
+  /** What the credential is for, shown in the dialog. */
+  readonly description?: string;
+  /** Why the run needs it now — the guest's own sentence. */
+  readonly reason?: string;
+  /** Where the user gets the key, rendered as a link when it is https. */
+  readonly helpUrl?: string;
+}
+
+/** What the user did with the dialog. */
+export type SecretPromptStatus = "saved" | "declined";
+
+/**
+ * The bespoke secret dialog: the only way a sandbox run can cause a secret to
+ * be set.
+ *
+ * A host that can show the dialog mounts this; a headless run carries none and
+ * `request_secret` fails closed rather than falling back to a write path the
+ * user never saw. The callback resolves with what the user did — never with
+ * what they typed. The value goes from the dialog straight to the secret store
+ * over the client's own authenticated tRPC call, so it never passes through
+ * the guest, the model's context, or this process's chat transcript.
+ */
+export type SecretPrompt = (
+  request: SecretPromptRequest
+) => Promise<SecretPromptStatus>;
+
+/**
  * provider, model, `parentTools()`, `forwardMessage` — what `run_subtask` and
  * `run_search` take as constructor options today.
  */
@@ -111,6 +144,11 @@ export interface CapabilityRun {
   readonly gate: CapabilityGate;
   /** Browser round trip for `ui_*` capabilities; absent on headless runs. */
   readonly client?: ClientToolRouter;
+  /**
+   * Opens the bespoke secret dialog. Absent on headless runs, which is what
+   * makes `request_secret` fail closed there.
+   */
+  readonly secretPrompt?: SecretPrompt;
   /** What `run_subtask` / `run_search` need. */
   readonly subAgent?: SubAgentRuntime;
   // The injected singletons `getAllMcpTools` takes today (mcp-tools.ts).

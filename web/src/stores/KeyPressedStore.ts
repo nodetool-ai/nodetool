@@ -63,7 +63,7 @@ interface ComboOptions {
    * `canTakeFocus(target)` holds — an instance living in an inert/hidden
    * workspace tab never fires. Pass a getter so a ref can be read lazily.
    */
-  target?: () => Element | null | undefined;
+  target?: () => HTMLElement | null | undefined;
 }
 
 // Module-level variables and functions
@@ -614,7 +614,7 @@ const useCombo = (
   options?: {
     scope?: ComboScope;
     allowInInputs?: boolean;
-    target?: () => Element | null | undefined;
+    target?: () => HTMLElement | null | undefined;
   }
 ) => {
   const keyboardActive = useContext(KeyboardContext);

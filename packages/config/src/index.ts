@@ -28,6 +28,13 @@ export {
 } from "./settings.js";
 
 export {
+  registerSettingDefinition,
+  settingCatalog,
+  settingDefinition,
+  type SettingCatalogEntry
+} from "./setting-catalog.js";
+
+export {
   configureLogging,
   getLogLevel,
   createLogger,

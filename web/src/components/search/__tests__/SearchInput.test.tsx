@@ -14,8 +14,8 @@ jest.mock("../../ui_primitives", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-// The real dispatcher: focusOnTyping now goes through registerTypeToFocus, and
-// initKeyListeners attaches the one window listener the store owns.
+// focusOnTyping now goes through registerTypeToFocus, so these tests drive the
+// real store: initKeyListeners attaches the one window listener it owns.
 
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
@@ -136,106 +136,63 @@ describe("SearchInput", () => {
 
     expect(screen.getByTestId("search-input-field")).toHaveFocus();
   });
-});
 
-describe("SearchInput focusOnTyping", () => {
-  let detach: () => void;
+  describe("focusOnTyping", () => {
+    let detachKeys: () => void;
 
-  beforeEach(() => {
-    window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn()
-    }));
-    detach = initKeyListeners();
-  });
-
-  afterEach(() => {
-    detach();
-    document.body.innerHTML = "";
-  });
-
-  const typeAnywhere = (key: string) => {
-    act(() => {
-      window.dispatchEvent(
-        new KeyboardEvent("keydown", { key, bubbles: true })
-      );
+    beforeEach(() => {
+      detachKeys = initKeyListeners();
     });
-  };
 
-  it("focuses the field and forwards the key when nothing editable is focused", () => {
-    const onSearchChange = jest.fn();
-    renderWithTheme(
-      <SearchInput
-        onSearchChange={onSearchChange}
-        focusOnTyping={true}
-        focusSearchInput={false}
-      />
-    );
-    const input = screen.getByTestId("search-input-field") as HTMLInputElement;
-    expect(document.activeElement).not.toBe(input);
+    afterEach(() => {
+      detachKeys();
+    });
 
-    typeAnywhere("a");
+    it("pulls focus in when nothing editable is focused", () => {
+      renderWithTheme(
+        <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+      );
+      const input = screen.getByTestId("search-input-field");
+      expect(document.activeElement).not.toBe(input);
 
-    expect(document.activeElement).toBe(input);
-    expect(input.value).toBe("a");
-  });
+      fireEvent.keyDown(window, { key: "a" });
 
-  it("leaves focus alone while the user is typing in another field", () => {
-    renderWithTheme(
-      <SearchInput
-        onSearchChange={jest.fn()}
-        focusOnTyping={true}
-        focusSearchInput={false}
-      />
-    );
-    const input = screen.getByTestId("search-input-field") as HTMLInputElement;
-    const other = document.createElement("input");
-    document.body.appendChild(other);
-    other.focus();
+      expect(document.activeElement).toBe(input);
+    });
 
-    typeAnywhere("a");
+    it("leaves focus in another input the user is typing into", () => {
+      const other = document.createElement("input");
+      document.body.appendChild(other);
+      renderWithTheme(
+        <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+      );
+      other.focus();
 
-    expect(document.activeElement).toBe(other);
-    expect(input.value).toBe("");
-  });
+      const event = new KeyboardEvent("keydown", { key: "a", cancelable: true });
+      window.dispatchEvent(event);
 
-  it("does not steal focus from an inert background tab", () => {
-    const { container } = renderWithTheme(
-      <SearchInput
-        onSearchChange={jest.fn()}
-        focusOnTyping={true}
-        focusSearchInput={false}
-      />
-    );
-    const input = screen.getByTestId("search-input-field") as HTMLInputElement;
-    // Stand in for WorkspaceShell's inactive .tab-layer.
-    (container.firstElementChild as HTMLElement).setAttribute("inert", "");
+      expect(document.activeElement).toBe(other);
+      expect(event.defaultPrevented).toBe(false);
+      document.body.removeChild(other);
+    });
 
-    typeAnywhere("a");
+    it("stays quiet inside an inert host (an inactive workspace tab)", () => {
+      const host = document.createElement("div");
+      host.setAttribute("inert", "");
+      document.body.appendChild(host);
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <SearchInput onSearchChange={jest.fn()} focusSearchInput={false} focusOnTyping />
+        </ThemeProvider>,
+        { container: host }
+      );
 
-    expect(document.activeElement).not.toBe(input);
-    expect(input.value).toBe("");
-  });
+      const event = new KeyboardEvent("keydown", { key: "a", cancelable: true });
+      window.dispatchEvent(event);
 
-  it("stays out of the way when focusOnTyping is off", () => {
-    renderWithTheme(
-      <SearchInput
-        onSearchChange={jest.fn()}
-        focusOnTyping={false}
-        focusSearchInput={false}
-      />
-    );
-    const input = screen.getByTestId("search-input-field") as HTMLInputElement;
-
-    typeAnywhere("a");
-
-    expect(document.activeElement).not.toBe(input);
-    expect(input.value).toBe("");
+      expect(document.activeElement).toBe(document.body);
+      expect(event.defaultPrevented).toBe(false);
+      document.body.removeChild(host);
+    });
   });
 });

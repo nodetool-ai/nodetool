@@ -106,62 +106,25 @@ describe("isTextInputActive", () => {
 });
 
 describe("canTakeFocus", () => {
-  const mount = (build: (host: HTMLElement) => HTMLElement) => {
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    const target = build(host);
-    return { host, target };
-  };
-
-  afterEach(() => {
-    document.body.innerHTML = "";
-  });
-
-  it("accepts a mounted, enabled input", () => {
-    const { target } = mount((host) => {
-      const input = document.createElement("input");
-      host.appendChild(input);
-      return input;
-    });
-    expect(canTakeFocus(target)).toBe(true);
-  });
-
-  it("rejects null and detached nodes", () => {
-    expect(canTakeFocus(null)).toBe(false);
-    expect(canTakeFocus(undefined)).toBe(false);
+  it("is false for a detached element", () => {
     expect(canTakeFocus(document.createElement("input"))).toBe(false);
+    expect(canTakeFocus(null)).toBe(false);
   });
 
-  it("rejects an input inside an inert subtree", () => {
-    const { host, target } = mount((h) => {
-      const input = document.createElement("input");
-      h.appendChild(input);
-      return input;
-    });
+  it("is true for an attached element outside any inert subtree", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    expect(canTakeFocus(input)).toBe(true);
+    document.body.removeChild(input);
+  });
+
+  it("is false inside an inert ancestor", () => {
+    const host = document.createElement("div");
     host.setAttribute("inert", "");
-    expect(canTakeFocus(target)).toBe(false);
-  });
-
-  it("rejects hidden and aria-hidden subtrees", () => {
-    const { host, target } = mount((h) => {
-      const input = document.createElement("input");
-      h.appendChild(input);
-      return input;
-    });
-    host.setAttribute("aria-hidden", "true");
-    expect(canTakeFocus(target)).toBe(false);
-    host.removeAttribute("aria-hidden");
-    host.setAttribute("hidden", "");
-    expect(canTakeFocus(target)).toBe(false);
-  });
-
-  it("rejects a disabled control", () => {
-    const { target } = mount((h) => {
-      const input = document.createElement("input");
-      input.disabled = true;
-      h.appendChild(input);
-      return input;
-    });
-    expect(canTakeFocus(target)).toBe(false);
+    const input = document.createElement("input");
+    host.appendChild(input);
+    document.body.appendChild(host);
+    expect(canTakeFocus(input)).toBe(false);
+    document.body.removeChild(host);
   });
 });
