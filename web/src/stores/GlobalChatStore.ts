@@ -31,6 +31,7 @@ import useWorkflowRunsStore from "./WorkflowRunsStore";
 import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
   sendPlanApprovalResponse,
+  sendSecretRequestResponse,
   sendToolApprovalResponse
 } from "../core/chat/chatProtocol";
 import { isLocalhost } from "../lib/env";
@@ -153,6 +154,37 @@ interface PlanApprovalRequest {
   plan: ProposedPlan;
 }
 
+/**
+ * A pending request for a credential, awaiting the user's own entry. Keyed by
+ * `approval_id` in `pendingSecretRequests`.
+ *
+ * The value is not in this state and never will be: the card writes it
+ * straight to the secret store and reports only what happened. That is the
+ * whole point of routing a secret through a dialog rather than through the
+ * agent — nothing that holds chat state ever holds the credential.
+ */
+export interface PendingSecretRequest {
+  thread_id: string;
+  key: string;
+  description: string | null;
+  reason: string | null;
+  help_url: string | null;
+}
+
+/** What the user did with the secret dialog. */
+export type SecretRequestOutcome = "saved" | "declined";
+
+/** Server → client secret-request payload. */
+interface SecretRequest {
+  type: "secret_request";
+  thread_id: string;
+  approval_id: string;
+  key: string;
+  description: string | null;
+  reason: string | null;
+  help_url: string | null;
+}
+
 export interface GlobalChatState {
   // Connection state + mirror of the CURRENT thread's runtime (see
   // core/chat/threadRuntime.ts). Multi-thread consumers read `threadRuntime`.
@@ -245,6 +277,14 @@ export interface GlobalChatState {
     approvalId: string,
     decision: PlanDecision,
     feedback?: string
+  ) => void;
+
+  // Inline secret-entry prompts awaiting the user, keyed by approval_id.
+  pendingSecretRequests: Record<string, PendingSecretRequest>;
+  addPendingSecretRequest: (req: SecretRequest) => void;
+  resolveSecretRequest: (
+    approvalId: string,
+    outcome: SecretRequestOutcome
   ) => void;
 
   // Planning updates
@@ -557,6 +597,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const { [approvalId]: _resolved, ...rest } =
             state.pendingPlanApprovals;
           return { pendingPlanApprovals: rest };
+        });
+      },
+
+      // Inline secret-entry prompts
+      pendingSecretRequests: {},
+      addPendingSecretRequest: (req: SecretRequest) =>
+        set((state) => ({
+          pendingSecretRequests: {
+            ...state.pendingSecretRequests,
+            [req.approval_id]: {
+              thread_id: req.thread_id,
+              key: req.key,
+              description: req.description ?? null,
+              reason: req.reason ?? null,
+              help_url: req.help_url ?? null
+            }
+          }
+        })),
+      resolveSecretRequest: (
+        approvalId: string,
+        outcome: SecretRequestOutcome
+      ) => {
+        if (!get().pendingSecretRequests[approvalId]) return;
+        void sendSecretRequestResponse(approvalId, outcome);
+        set((state) => {
+          const { [approvalId]: _resolved, ...rest } =
+            state.pendingSecretRequests;
+          return { pendingSecretRequests: rest };
         });
       },
 
@@ -1606,9 +1674,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   approval.thread_id !== null && approval.thread_id !== tid
               )
             );
+            const remainingSecrets = Object.fromEntries(
+              Object.entries(state.pendingSecretRequests).filter(
+                ([, request]) => request.thread_id !== tid
+              )
+            );
             return {
               pendingApprovals: remaining,
-              pendingPlanApprovals: remainingPlans
+              pendingPlanApprovals: remainingPlans,
+              pendingSecretRequests: remainingSecrets
             };
           });
         }
@@ -1769,6 +1843,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
           if (!state.pendingPlanApprovals) {
             state.pendingPlanApprovals = {};
+          }
+          if (!state.pendingSecretRequests) {
+            state.pendingSecretRequests = {};
           }
           if (!state.selectedModel) {
             state.selectedModel = buildDefaultLanguageModel();

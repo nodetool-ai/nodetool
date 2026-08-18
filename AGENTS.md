@@ -1645,6 +1645,29 @@ user to sign in again. A server with no Google login offers none of
 it — see `NODETOOL_GOOGLE_WORKSPACE` in
 [docs/configuration.md](docs/configuration.md).
 
+**NodeTool's own settings are a capability module**
+(`@nodetool-ai/sandbox-nodetool/settings`, also `nodetool.settings.*`), and the
+shape of it is the point: `list_settings`, `get_setting` and `set_setting` cover
+ordinary configuration, `list_secrets` reports which credentials this install
+holds without their values, and there is **no `set_secret`**. The definitions
+come from `settingCatalog()` in `@nodetool-ai/config` — the same table the tRPC
+settings router answers `settings.list` from — so the capability knows which
+names hold credentials instead of guessing from the name, and refuses to read or
+write one.
+
+Setting a secret goes through a bespoke dialog. `request_secret` takes a name, a
+reason and a help URL — never a value. The host sends a `secret_request` frame,
+the user types the key into a card in their own client, that client saves it
+with its own `settings.secrets.upsert` call, and the answer coming back
+(`secret_request_response`) says `saved` or `declined` and nothing else. The
+credential therefore never enters the guest, the websocket payload, the chat
+transcript, or the model's context; the run learns only that a secret now
+exists, and reads it — if at all — through `nodetool.secrets.get` under its own
+declared `secretScope`. The dialog is a host capability, not a fallback: a
+headless run (a workflow on the kernel, the CLI, an eval) carries no
+`CapabilityRun.secretPrompt` and the call is refused by name rather than
+quietly writing something nobody approved.
+
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
 `-html`; `lib.excel.*` is `-xlsx`; `lib.ocr.*` is `-ocr`; and

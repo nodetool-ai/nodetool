@@ -278,6 +278,16 @@ one the host granted.
   and because the check is at the bridge, `nodetool.secrets.get` cannot route
   around it. An absent scope is unscoped, which is what a Code node authored
   before scopes existed still gets; an empty declared scope denies everything.
+  Writing one is a separate question with a stricter answer: guest code cannot
+  set a secret at all. The `settings` capability module
+  (`@nodetool-ai/sandbox-nodetool/settings`) reads and writes ordinary
+  configuration, refuses `get_setting`/`set_setting` on anything the catalog
+  marks a credential, and offers `request_secret` — which takes a *name and a
+  reason*, never a value. It opens a dialog in the user's client, the user types
+  the key there, and the client saves it with its own authenticated call, so the
+  credential never passes through the guest, the websocket frame, or the model's
+  context. A run with no interactive client is refused by name rather than
+  falling back to a write nobody saw.
 - **SSRF guard.** `fetch` refuses loopback, link-local and private ranges,
   including IPv6 forms and IPv4-mapped addresses, and re-checks on every
   redirect. `limits.allowPrivateNetwork` lifts it; it is host-set only, so guest

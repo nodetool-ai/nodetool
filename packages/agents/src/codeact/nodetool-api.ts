@@ -81,6 +81,13 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   threads: ["list_threads", "get_thread", "get_message"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
+  settings: [
+    "list_settings",
+    "get_setting",
+    "set_setting",
+    "list_secrets",
+    "request_secret"
+  ],
   assets: [
     "list_assets",
     "get_asset",
@@ -271,6 +278,27 @@ const nodetool = (() => {
           ? null
           : __secretScope.slice();
       }
+    },
+
+    /**
+     * NodeTool's own configuration, and the one way to get a credential set.
+     *
+     * \`secrets\` above reads; this asks. \`requestSecret\` sends no value and
+     * receives none — it opens a dialog where the user types the key, and
+     * answers only whether they saved one.
+     */
+    settings: {
+      /** Every non-secret setting, or one group's worth. */
+      list: (opts) => __need("list_settings")(__merge(opts)),
+      /** One setting's value, resolved from this user then the environment. */
+      get: (key) => __need("get_setting")({ key: key }),
+      /** Change one setting. Refuses a secret and anything undeclared. */
+      set: (key, value) => __need("set_setting")({ key: key, value: value }),
+      /** Which credentials exist, never what they are. */
+      secrets: () => __need("list_secrets")({}),
+      /** Ask the user to enter one, in a dialog you never see the contents of. */
+      requestSecret: (key, opts) =>
+        __need("request_secret")(__merge(opts, { key: key }))
     },
 
     /**
@@ -1048,6 +1076,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   action. \`list({workflow_type: "example"})\` enumerates the shipped
   example workflows and \`example("<package>/<name>")\` loads one with its
   graph — a worked example to read before authoring one.`
+  },
+  {
+    namespace: "settings",
+    doc: `- \`nodetool.settings\` — this install's configuration. \`list({group})\`,
+  \`get(key)\` and \`set(key, value)\` cover the ordinary settings; \`secrets()\`
+  reports which credentials are configured, without their values. A secret is
+  never set from code: \`requestSecret(key, {reason, help_url})\` opens a dialog
+  where the user types it, and answers only whether they saved one — read it
+  afterwards with \`nodetool.secrets.get(key)\`, which works only if this run
+  declares the name in its secret scope. When a run has no interactive client
+  the request is refused; say what is missing instead of asking again.`
   },
   {
     namespace: "nodes",
