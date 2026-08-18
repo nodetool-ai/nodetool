@@ -3,6 +3,7 @@
 **Author:** Matti Georgi
 **Status:** Draft — for review
 **Last updated:** 2026-08-18
+**Implementation plan:** [telegram-bot-implementation-plan.md](telegram-bot-implementation-plan.md)
 **Reference:** [georgi/claude-pipe](https://github.com/georgi/claude-pipe) — a Telegram/Discord/CLI bridge onto a coding-agent SDK, whose channel-adapter and progress-editing patterns this design reuses. Its Telegram channel is raw `fetch` against the Bot API with zero dependencies, which this design follows.
 
 ---
